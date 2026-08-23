@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { cloneDeep as _cloneDeep } from 'lodash';
 import {
   emptyRecordSaveCompletion,
   reduceAttachmentStatus,
@@ -182,7 +183,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   }
 
   public setAttachmentItems(items: readonly RecordAttachmentCompletionItem[]): void {
-    const copiedItems = items.map((item) => ({ ...item }));
+    const copiedItems = _cloneDeep(items) as RecordAttachmentCompletionItem[];
     this.completion = {
       attachments: {
         status: reduceAttachmentStatus(copiedItems),
@@ -195,7 +196,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   }
 
   public setProjectedMetadata(metadata: Record<string, unknown> | null): void {
-    this.metadata = metadata;
+    this.metadata = _cloneDeep(metadata);
   }
 
   public confirmPrimaryPersistence(oid: string, source?: StorageServiceResponse): void {
@@ -203,12 +204,12 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     this.oid = oid ?? '';
     if (source) {
       this.message = typeof source.message === 'string' ? source.message : '';
-      this.data = source.data;
-      this.metadata = source.metadata ?? null;
+      this.data = _cloneDeep(source.data);
+      this.metadata = _cloneDeep(source.metadata ?? null);
       this.totalItems = source.totalItems;
-      this.items = Array.isArray(source.items) ? source.items.map((item) => ({ ...item })) : [];
+      this.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
     }
-    this.outcome = 'saved';
+    this.outcome = this.problems.length > 0 ? 'saved-with-warnings' : 'saved';
     this.success = true;
   }
 
@@ -224,11 +225,16 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     this.addProblem(problem);
   }
 
+  /** Track a nonblocking warning before or after the primary commit. */
+  public recordWarning(problem: RecordSaveProblem): void {
+    this.addProblem(problem);
+  }
+
   public mergeLegacyHookFields(source: unknown): void {
     if (!source || typeof source !== 'object') return;
     const fields = source as Record<string, unknown>;
     if (typeof fields.workspaceOid === 'string' && fields.workspaceOid.trim()) this.workspaceOid = fields.workspaceOid;
-    if (Object.hasOwn(fields, 'workspaceData')) this.workspaceData = fields.workspaceData;
+    if (Object.hasOwn(fields, 'workspaceData')) this.workspaceData = _cloneDeep(fields.workspaceData);
   }
 
   /**

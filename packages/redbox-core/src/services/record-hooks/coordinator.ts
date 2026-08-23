@@ -27,6 +27,7 @@ export interface RecordHookCoordinatorOptions {
   operation: ActionExecutionOperation;
   dependencies?: ActionExecutionDependencies;
   resolveHook: RecordHookResolver;
+  normalizeRecord?: (record: AnyRecord) => AnyRecord;
 }
 
 export interface RecordHookPreResult {
@@ -157,6 +158,17 @@ export class RecordHookCoordinator {
     }
   }
 
+  private normalizeRecord(record: unknown, requireRecord = false): AnyRecord {
+    if (this.options.normalizeRecord === undefined && !requireRecord) {
+      return record as AnyRecord;
+    }
+    if (!record || typeof record !== 'object' || Array.isArray(record)) {
+      throw new Error('Record hook did not return a record');
+    }
+    const candidate = record as AnyRecord;
+    return this.options.normalizeRecord?.(candidate) ?? candidate;
+  }
+
   /**
    * Build the generic actions for one phase. `invoke` supplies the legacy
    * calling convention; the mutable cancellation cell lets the adapter report
@@ -195,9 +207,10 @@ export class RecordHookCoordinator {
 
   /**
    * Detached hooks historically skipped a malformed entry and continued with
-   * later entries. Save-time prevalidation still blocks malformed configuration
-   * before persistence; this path preserves the public fire-and-forget method's
-   * per-entry compatibility behaviour.
+   * later entries. Save-time prevalidation covers configured pre hooks, while
+   * malformed postSync and detached entries retain their per-entry compatibility
+   * behaviour. This path preserves that behaviour for the public fire-and-forget
+   * method.
    */
   private detachedActions(
     recordType: unknown,
@@ -250,7 +263,7 @@ export class RecordHookCoordinator {
     user: unknown
   ): Promise<RecordHookPreResult> {
     // Each hook receives the record produced by the previous one.
-    let currentRecord = record;
+    let currentRecord = this.normalizeRecord(record);
     const actions = this.actions(recordType, mode, 'pre', hook => {
       const fn = this.options.resolveHook(hook, mode, 'pre');
       return fn(oid, currentRecord, hookOptions(hook), user);
@@ -258,7 +271,7 @@ export class RecordHookCoordinator {
     const context = this.phaseContext(mode, 'pre');
     const outcome = await Effect.runPromise(
       runSequentialActionPlan(actions, context, this.dependencies, value => {
-        currentRecord = value as AnyRecord;
+        currentRecord = this.normalizeRecord(value);
       })
     );
     this.append(outcome.report);
@@ -273,7 +286,7 @@ export class RecordHookCoordinator {
     user: unknown,
     initialResponse: AnyRecord
   ): Promise<RecordHookPostSyncResult> {
-    let currentRecord = record;
+    let currentRecord = this.normalizeRecord(record);
     let response = initialResponse;
     // Each hook is handed its own clone of the response so far, and keeps that
     // same clone across retries. Hooks are allowed to mutate it in place.
@@ -295,10 +308,7 @@ export class RecordHookCoordinator {
       const options = hookOptions(hooks[index]);
       const returnType = options.returnType === undefined ? 'record' : options.returnType;
       if (returnType === 'record') {
-        if (!value || typeof value !== 'object') {
-          throw new Error('Post-save record hook did not return a record');
-        }
-        currentRecord = value as AnyRecord;
+        currentRecord = this.normalizeRecord(value, true);
       } else if (value && typeof value === 'object') {
         response = mergeLegacyHookResponse(response, value as AnyRecord);
       }
@@ -318,9 +328,10 @@ export class RecordHookCoordinator {
     mode: string,
     user: unknown
   ): RecordHookDispatchResult {
+    const normalizedRecord = this.normalizeRecord(record);
     const actions = this.detachedActions(recordType, mode, hook => {
       const fn = this.options.resolveHook(hook, mode, 'post');
-      return fn(oid, record, hookOptions(hook), user);
+      return fn(oid, normalizedRecord, hookOptions(hook), user);
     });
     const context = this.phaseContext(mode, 'post');
     const operation = this.options.operation;

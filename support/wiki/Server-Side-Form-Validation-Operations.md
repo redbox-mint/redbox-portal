@@ -18,7 +18,16 @@ recordValidation: {
 }
 ```
 
-`timeoutMs` covers blocking conditional expressions and blocking validators.
+`timeoutMs` is one wall-clock budget shared by blocking conditional expressions,
+blocking validators, and any advisory pass. Advisory validation receives only
+the time left after blocking work, so enabling advisory groups does not silently
+double the configured budget. The deadline is anchored before blocking
+expression/validator work. Elapsed time is checked around synchronous JSONata
+and validator units as well as by a Promise timer, so event-loop-blocking work
+is still classified as a timeout once control returns. The service cannot
+cancel work that has already started. Late completion is ignored and late
+rejection is absorbed, so validators and expressions must remain deterministic
+and side-effect free.
 `shadowReportMaxSeries` bounds the number of process-local report rows to
 10,000 or fewer. Invalid values fall back to the core defaults.
 
@@ -53,14 +62,86 @@ recordValidation: {
 
 Workflow-stage configuration may replace groups and restrict roles or target
 steps, but it cannot set mode. This keeps the enforcement unit stable as
-`(record type, operation)`. An omitted operation is the strict-all/default
-unit and should be reviewed separately from named operations.
+`(record type, operation)`. An omitted operation runs every blocking validator,
+regardless of the form's conditional/default group subset. It is the
+strict-all/default unit and should be reviewed separately from named operations.
+A supplied named operation is always resolved and authorized, including on
+authorization-only, non-form system-metadata, and no-change updates. Those
+classifications remain exempt from conditional-group and form-validator
+execution; only the named operation contract is enforced. If no operation is
+supplied, exempt updates retain their validation skip, while metadata/form
+changes retain the strict-all behavior above.
+A named operation with `enabledValidationGroups: []` has the same all-groups
+sentinel. In either strict-all case, validators that belong only to advisory
+groups discovered from suggested summaries are omitted from the blocking pass
+and run separately. Strict-all is not itself an advisory overlap; only an
+explicit named group selected for both passes is a configuration error.
+An advisory group must use `initialMembership: 'none'`. An advisory group with
+`initialMembership: 'all'`—including the built-in `all` group—is rejected as
+malformed and is not evidence that a validator is advisory-only or a reason to
+exclude it from strict-all enforcement. Advisory validator findings, execution
+failures, and timeouts remain nonblocking. Malformed advisory summaries and
+unknown or invalid advisory groups are enforcement-configuration errors: they
+remain observable in shadow mode and block the save in enforce mode.
+
+Rich-text sanitation is a candidate transformation, not a blocking validator
+failure. In the default `record.form.htmlSanitizationMode: 'sanitize'`,
+`htmlSanitized` is reported with advisory issues and the cloned transformed
+candidate is threaded through approval, persistence, and later hooks in both
+shadow and enforce rollout modes. Caller-owned objects are not mutated. In
+`reject` mode the value is not transformed and `htmlUnsafe` remains a blocking
+finding, subject to the configured shadow/enforce rollout decision.
+Each transformation carries its exact source value and schema-owned path. The
+application boundary requires that path to resolve to the same string before it
+replaces the value, and it applies transformations returned by the blocking and
+advisory validator passes as well as the initial sanitation pass.
+Sanitation runs before ordinary field and form validators, including for each
+repeatable row, so required, length, and custom validators see the value that
+can actually be persisted. Successful saves with sanitation advisories return
+`saved-with-warnings` and include the safe advisory issues.
+If a later blocking expression, validator, timeout, or unknown-group path makes
+the result unresolved in shadow mode, the typed unresolved result retains the
+successfully sanitized candidate and `RecordsService` persists that safe clone.
+A stale, mismatched, non-string, or malformed transformation is never ignored: the save
+fails closed in both modes rather than persisting the raw value.
+
+## Authoritative expression context
+
+Conditional group expressions receive one JSON-like object:
+
+```typescript
+{
+  formData,
+  operation,
+  recordType,
+  formName,
+  brand,
+  workflow: { currentStep, targetStep },
+  requestParams,
+  runtimeContext,
+  actor: { authenticated, roles }
+}
+```
+
+Browser and API routes use the same request-fact projector. The only facts the
+transport can offer are bounded `recordType` and `targetStep` references plus
+boolean `merge` and `datastreams`; `recordValidation.allowedRequestParameters`
+must also allow a name before it appears in `requestParams`. Runtime write facts
+are the normalized `routeFamily`, `writeKind`, and `saveOperation`. Only trusted
+internal callers may add JSON-only runtime facts. Public facts are projected
+only from the route family's explicit validated path/query inputs; body metadata
+cannot override operation or browser transition intent. Raw request, response,
+session, user, header, token, credential, and attachment objects are never
+available to expressions.
 
 At startup, ReDBox normalizes the global and record-type mode layers, hashes
 them, and reads audits under the synthetic OID `record-validation-rollout`.
 The first baseline and each changed fingerprint are saved with action
-`validation-mode-changed`. Startup fails if a changed snapshot cannot be
-durably confirmed. Unchanged restarts do not create duplicate audit rows.
+`validation-mode-changed`. Startup requires audit read/write capability and
+fails if the storage hook does not expose `createRecordAudit`, if the audit
+store is unavailable, or if a changed snapshot cannot be durably confirmed.
+This deliberately trades startup availability for a durable rollout history;
+unchanged restarts read the history but do not create duplicate audit rows.
 
 ## Logs, telemetry, and the shadow report
 
@@ -87,16 +168,25 @@ The OpenTelemetry meter is `redbox.record-validation` and emits:
 | `redbox.record_validation.configuration_diagnostics` | counter | Safe configuration/execution findings |
 | `redbox.record_validation.diagnostics` | counter | Findings by stable code |
 
-Metric dimensions are record type, operation, form, mode, status, and outcome;
-request IDs are deliberately excluded to control cardinality. Configure the
-deployment's OpenTelemetry SDK/exporter to retain these instruments.
+Metric dimensions include deployment-resolved record type, operation, form,
+write kind, validation phase, mode, status, and outcome. Unresolved or
+untrusted record type, form, and operation values are reduced to fixed
+`unresolved`, `unknown`, or `malformed` buckets. Diagnostic counters add only a
+stable diagnostic code and the fixed diagnostic scope; validator class/code,
+field, pointer, lineage, and expression names are never metric attributes.
+Request IDs, expressions, submitted values, and request parameters are also
+excluded. Configure the deployment's OpenTelemetry SDK/exporter to retain these
+bounded instruments.
 
 `RecordValidationService.getShadowReport()` returns a bounded process-local
-aggregate by record type, operation, form, and code. Each row reports run and
-would-reject counts, blocking/advisory errors, timeouts, configuration
-diagnostics, and latency. A run with multiple codes contributes once to each
-code row. `overflowRuns` must remain zero; increase the cap only after checking
-that unexpected form/operation identifiers are not causing cardinality growth.
+aggregate by record type, operation, form, write kind, phase, code, and safe
+expression or validator identity. Each row reports run and would-reject counts,
+blocking/advisory errors, timeouts, configuration diagnostics, and latency. A
+run with multiple codes contributes once to each code row. `overflowRuns` must
+remain zero; increase the cap only after checking that unexpected
+form/operation identifiers are not causing cardinality growth.
+Detailed safe expression and validator identities are available only in this
+bounded report and the capped diagnostic/log payloads, not in metric labels.
 Use exported telemetry, rather than this process-local view, for multi-instance
 or long-term reports.
 
@@ -145,11 +235,78 @@ validation operations, phase, service/reason, and safe record/form/type/brand
 context. It contains no metadata values. If the audit is absent, rejected, or
 unconfirmed, the write is rejected.
 
-`RecordsService.createBatch` is the one documented v1 direct-storage bypass.
-It writes a `batch-validation-bypassed` audit with `validationStatus:
-'unvalidated'` before forwarding the batch. New integrations should use
-validated per-record saves; do not describe a successful direct batch as
-validated.
+### Bypass and unvalidated-write inventory
+
+| Path | Validation/audit behavior |
+|---|---|
+| Public/browser `RecordsService.create`, `updateMeta`, and transition | Final candidate is authoritatively validated and object edit authorization is enforced; target-step and transition-role checks are retained/repeated after hooks; hook trigger flags do not disable validation |
+| Context-free internal `RecordsService.create`/`updateMeta` calls | Authoritatively validated with the strict-all omitted-operation policy |
+| Approved internal save context | Validation is bypassed only after a durable, payload-free `validation-bypassed` audit |
+| `RecordsService.bootstrapData` | Uses the approved `trusted-data-migration` bypass and therefore requires durable audit storage |
+| `RecordsService.createBatch` | V1 direct-storage path; writes `batch-validation-bypassed` with `validationStatus: 'unvalidated'` before forwarding the batch |
+| Calling a storage hook directly | Outside the authoritative service boundary, unsupported, and not represented as a validated write |
+
+This is the complete supported inventory. New integrations should use validated
+per-record saves; do not describe a successful direct batch or storage-hook
+write as validated.
+
+`StorageService.createRecordAudit` remains optional in the TypeScript interface
+so existing out-of-tree storage hooks continue to compile. It is a runtime
+requirement for rollout startup, explicit validation bypasses, bootstrap-data
+bypasses, and `createBatch`; each of those paths fails closed before its record
+write when the method is absent or durable success is not confirmed. A custom
+storage hook that supports these paths must implement idempotent audit lookup
+and durable `createRecordAudit` semantics matching its normal persistence
+guarantees.
+
+## Cache invalidation
+
+Resolved form definitions, constructed candidate-independent forms, validator
+mappings, and compiled expressions use bounded process-local caches. Each form
+lookup computes a bounded effective-configuration fingerprint. The identity
+also incorporates reusable definitions; validator mappings use their own
+bounded definition fingerprint.
+Consequently a changed same-name form or reusable validator definition replaces
+the cached effective entry without waiting for process restart. Configurations
+that exceed fingerprint bounds are treated as uncacheable, not as stable.
+Candidate-sensitive question-tree forms are reconstructed per candidate and are
+never reused as candidate-independent constructed forms. Explicit
+`RecordValidationService.clearCaches()` remains available for hook-specific
+external resources whose change is not represented in the loaded effective
+configuration. Normal restart/bootstrap begins with empty caches, and validation
+results are never cached.
+
+## Workflow and hook authority
+
+Browser step transitions enter the same authoritative `RecordsService`
+transition path as API saves. They do not pre-mutate workflow metadata and then
+perform a context-free update. Create and transition candidates are bound to the
+canonical target step resolved by `WorkflowStepsService` and its form; a
+same-name caller-supplied step object cannot replace its authorization or hook
+context. An explicit target that is missing,
+malformed, or unresolved is rejected before hooks or persistence. Missing,
+malformed, or conflicting final candidate form references are normalized to
+that authoritative form before persistence, while explicit
+brand/type/workflow divergence is rejected. Update hooks are selected from the
+stored authoritative record type only. `redboxOid` is the public record UUID
+and is the only identity bound to the update route OID; a conflicting
+`redboxOid` is rejected before hooks or persistence. Waterline `id` and Mongo
+`_id` are distinct storage primary keys, remain distinct in authoritative
+snapshots and hook candidates, and are stripped only from adapter-bound create
+and update payloads. They are never overwritten with the route UUID. The route
+OID is also rebound onto the update response passed to postSync hooks and is
+used directly for detached hooks, secondary metadata writes, attachments,
+indexing, audit, reload, and the public save response; an adapter response OID
+cannot redirect update side effects. Configured creates select their public OID
+before pre-save hooks: hook replacements that omit it are rebound to that OID,
+while conflicting replacements are rejected before validation, attachment
+journaling, or persistence. The same preselected OID is authoritative for all
+configured-create hooks and downstream effects. Ordinary
+object-edit, target-step, and transition-role authorization
+is checked independently of validation operation policy and checked again
+after authoritative hook output. If a public update cannot load a usable
+original snapshot, it fails closed as a system pre-save error rather than
+reporting an edit-authorization denial that was never decided.
 
 ## Signoff and enforcement
 

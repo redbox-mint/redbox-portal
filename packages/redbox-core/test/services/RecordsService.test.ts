@@ -12,10 +12,8 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../../src/StorageService';
 import type { FormAttributes } from '../../src/waterline-models/Form';
-import {
-  Services as RecordValidationServices,
-  type RecordValidationServiceDependencies,
-} from '../../src/services/RecordValidationService';
+import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
+import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import {
   setupServiceTestGlobals,
   cleanupServiceTestGlobals,
@@ -23,6 +21,11 @@ import {
   createQueryObject,
   configureModelMethod,
 } from './testHelper';
+
+const { Services: RecordValidationServices } = require('../../src/services/RecordValidationService') as
+  typeof import('../../src/services/RecordValidationService');
+const DomSanitizerServices = require('../../src/services/DomSanitizerService').default as
+  typeof import('../../src/services/DomSanitizerService').default;
 
 describe('RecordsService', function () {
   let mockSails: any;
@@ -162,7 +165,14 @@ describe('RecordsService', function () {
           },
         })
       ),
-      get: sinon.stub().returns(of({ name: 'draft', config: {} })),
+      get: sinon.stub().callsFake((_recordType: unknown, step: string) => of({
+        name: step,
+        config: {
+          form: step === 'draft' ? 'default-form' : `${step}-form`,
+          workflow: { stage: step },
+          authorization: { transitionRoles: [], viewRoles: [], editRoles: [] },
+        },
+      })),
     };
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
@@ -203,6 +213,7 @@ describe('RecordsService', function () {
     delete (global as any).WorkflowStepsService;
     delete (global as any).RecordTypesService;
     delete (global as any).RecordValidationService;
+    delete (global as any).DomSanitizerService;
     delete (global as any).TranslationService;
     delete (global as any).RedboxJavaStorageService;
     delete (global as any).SolrSearchService;
@@ -1320,7 +1331,7 @@ describe('RecordsService', function () {
       mockStorageService.getMeta.resolves({
         redboxOid: 'record-123',
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
-        metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: false }] },
+        metadata: { attachments: [] },
       });
       (global as any).FormsService.getFormByName.returns(
         of({
@@ -1408,8 +1419,66 @@ describe('RecordsService', function () {
     });
   });
 
+    it('reconciles attachments against the independently loaded storage snapshot', async function () {
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        markMutation: sinon.stub().resolves(true),
+        rebindOid: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+      });
+      const replacement = { attachmentId: 'attachment-1', fileId: 'new-file', pending: true };
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'record-123',
+        metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+        metadata: {
+          attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file', pending: false }],
+        },
+      });
+      (global as any).FormsService.getFormByName.returns(of({
+        name: 'default-form',
+        configuration: { attachmentFields: ['attachments'] },
+      }));
+      (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        {
+          redboxOid: 'record-123',
+          metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+          // Deliberately stale caller "original": it already contains the
+          // replacement and therefore cannot be attachment authority.
+          metadata: { attachments: [replacement] },
+          authorization: {},
+        },
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        { attachments: [replacement] }
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
+      expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
+      expect(journal.prepareMutations.firstCall.args[0].map((item: any) => item.operation).sort())
+        .to.deep.equal(['delete', 'finalize']);
+    });
+  });
+    });
+  });
+
   describe('create save pipeline', function () {
-    it('journals attachments before persistence and retains the confirmed oid', async function () {
+    it('keeps the preselected create OID authoritative for attachments, reload, index, audit, and response', async function () {
+      const createOid = 'authoritative-create-123';
       const journal = {
         prepareMutations: sinon.stub().resolves(),
         findUnresolvedByOid: sinon.stub().resolves([]),
@@ -1421,12 +1490,12 @@ describe('RecordsService', function () {
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       mockStorageService.create.resolves({
         success: true,
-        oid: 'new-record-123',
+        oid: 'wrong-adapter-create-oid',
         applicationState: 'applied',
       });
-      mockStorageService.updateMeta.resolves({ success: true, oid: 'new-record-123', applicationState: 'applied' });
+      mockStorageService.updateMeta.resolves({ success: true, oid: 'wrong-adapter-update-oid', applicationState: 'applied' });
       mockStorageService.getMeta.resolves({
-        redboxOid: 'new-record-123',
+        redboxOid: createOid,
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
         metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: false }] },
       });
@@ -1440,17 +1509,57 @@ describe('RecordsService', function () {
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
-        { metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] } },
-        { name: 'rdmp', hooks: {}, searchable: false },
+        {
+          redboxOid: createOid,
+          metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] },
+        },
+        { name: 'rdmp', hooks: {}, searchable: true },
         { username: 'user-1' }
       );
+      await new Promise(resolveImmediate => setImmediate(resolveImmediate));
 
       expect(result.wasPersisted()).to.equal(true);
-      expect(result.oid).to.equal('new-record-123');
+      expect(result.oid).to.equal(createOid);
       expect(journal.prepareMutations.calledBefore(mockStorageService.create)).to.equal(true);
+      expect(journal.prepareMutations.firstCall.args[0][0].oid).to.equal(createOid);
       expect(mockStorageService.create.calledBefore(mockDatastreamService.addDatastream)).to.equal(true);
-      expect(journal.rebindOid.calledOnce).to.equal(true);
+      expect(journal.rebindOid.notCalled).to.equal(true);
+      expect(mockDatastreamService.addDatastream.firstCall.args[0]).to.equal(createOid);
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[1]).to.equal(createOid);
+      expect(mockStorageService.getMeta.calledWith(createOid)).to.equal(true);
+      expect(mockSearchService.index.calledWith(createOid)).to.equal(true);
+      expect(mockQueueService.now.firstCall.args[1].redboxOid).to.equal(createOid);
+    });
+
+    it('ignores wrong and blank adapter OIDs on the bootstrap-safe create path', async function () {
+      const createOid = 'bootstrap-authoritative-oid';
+      for (const adapterOid of ['wrong-bootstrap-adapter-oid', '']) {
+        mockStorageService.create.resetHistory();
+        mockSearchService.index.resetHistory();
+        mockQueueService.now.resetHistory();
+        mockStorageService.create.resolves({
+          success: true,
+          oid: adapterOid,
+          applicationState: 'applied',
+        });
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { redboxOid: createOid, metadata: { title: 'Bootstrap record' } },
+          {},
+          { username: 'bootstrap-service' },
+          false,
+          false
+        );
+
+        expect(result.outcome, JSON.stringify({ adapterOid })).to.equal('saved');
+        expect(result.oid, JSON.stringify({ adapterOid })).to.equal(createOid);
+        expect(mockStorageService.create.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid }))
+          .to.equal(createOid);
+        expect(mockSearchService.index.calledWith(createOid), JSON.stringify({ adapterOid })).to.equal(true);
+        expect(mockQueueService.now.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid })).to.equal(createOid);
+      }
     });
   });
 
@@ -1641,6 +1750,101 @@ describe('RecordsService', function () {
         ...overrides,
       });
 
+    const richHtmlForm = (name = 'default-form'): FormConfigFrame => ({
+      name,
+      type: 'rdmp',
+      componentDefinitions: [{
+        name: 'description',
+        component: { class: 'RichTextEditorComponent' },
+        model: { class: 'RichTextEditorModel' },
+      }],
+    });
+
+    const installRichHtmlValidation = (
+      mode: 'shadow' | 'enforce',
+      htmlSanitizationMode: 'sanitize' | 'reject' = 'sanitize',
+      executeValidators?: NonNullable<RecordValidationServiceDependencies['executeValidators']>,
+      collectTransformations?: NonNullable<RecordValidationServiceDependencies['collectTransformations']>
+    ) => {
+      mockSails.config.recordValidation = { mode, timeoutMs: 5_000, allowedRequestParameters: [] };
+      mockSails.config.record.form = { htmlSanitizationMode, returnMetadataOnSave: true };
+      mockSails.config.dompurify = {
+        profiles: {
+          html: { USE_PROFILES: { html: true } },
+          svg: { USE_PROFILES: { svg: true } },
+        },
+        defaultProfile: 'html',
+      };
+      mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
+      mockSails.config.reusableFormDefinitions = {};
+      (global as any).DomSanitizerService = new DomSanitizerServices.DomSanitizer();
+      const dependencies: Partial<RecordValidationServiceDependencies> = {
+        loadRecordType: async () => ({ id: 'record-type-1', name: 'rdmp', recordValidation: { mode } }),
+        loadStartingWorkflowStep: async () => ({
+          name: 'draft',
+          starting: true,
+          config: { form: 'default-form' },
+        }),
+        loadWorkflowStep: async (_recordType, step) => ({ name: step, config: { form: `${step}-form` } }),
+        loadWorkflowSteps: async () => [],
+        loadForm: async (formName, brand) => ({
+          id: `form-${formName}`,
+          name: formName,
+          branding: brand,
+          configuration: richHtmlForm(formName),
+        } as FormAttributes),
+        ...(executeValidators
+          ? {
+              collectTransformations: async (form, checkDeadline) =>
+                collectTransformations
+                  ? await collectTransformations(form, checkDeadline)
+                  : (await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
+                      form,
+                      transformationOnly: true,
+                      checkDeadline,
+                    })).transformations,
+              executeValidators,
+            }
+          : {}),
+      };
+      const validationService = new RecordValidationServices.RecordValidation(dependencies);
+      const resolve = sinon.spy(validationService, 'resolve');
+      mockSails.services.recordvalidationservice = validationService;
+      (global as any).FormsService.getForm.resolves({
+        name: 'default-form',
+        configuration: richHtmlForm(),
+      });
+      (global as any).FormsService.getFormByName.callsFake((formName: string) => of({
+        name: formName,
+        configuration: richHtmlForm(formName),
+      }));
+      return { resolve };
+    };
+
+    it('rejects a public create with a missing or malformed authoritative record type', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const preHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      for (const recordType of [{}, { name: '../malformed-type' }]) {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Caller type is not authority' }, metaMetadata: { type: 'rdmp' } },
+          recordType,
+          { username: 'user-1' },
+          true,
+          true,
+          undefined,
+          createRecordSaveContext({ routeFamily: 'browser', operation: 'create' })
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
+      }
+      expect(preHook.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
     it('validates the final pre-hook create candidate before attachment preparation or storage', async function () {
       const journal = {
         prepareMutations: sinon.stub().resolves(),
@@ -1688,7 +1892,7 @@ describe('RecordsService', function () {
       expect(mockDatastreamService.addDatastream?.notCalled ?? true).to.equal(true);
     });
 
-    it('exposes current attachmentFields to create hooks and refreshes them after a form change', async function () {
+    it('exposes current attachmentFields to create hooks and normalizes the final workflow form', async function () {
       (globalThis as any).__createHookAttachmentFields = undefined;
       (global as any).FormsService.getForm.resolves({
         name: 'default-form',
@@ -1704,8 +1908,8 @@ describe('RecordsService', function () {
       );
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
-        expect(request.candidate.metaMetadata.form).to.equal('after-hook-form');
-        expect(request.candidate.metaMetadata.attachmentFields).to.deep.equal(['afterHookAttachment']);
+        expect(request.candidate.metaMetadata.form).to.equal('default-form');
+        expect(request.candidate.metaMetadata.attachmentFields).to.deep.equal(['beforeHookAttachment']);
         return allowResult();
       });
 
@@ -1732,9 +1936,10 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('saved');
         expect((globalThis as any).__createHookAttachmentFields).to.deep.equal(['beforeHookAttachment']);
-        expect(mockStorageService.create.firstCall.args[1].metaMetadata.attachmentFields).to.deep.equal([
-          'afterHookAttachment',
-        ]);
+        expect(mockStorageService.create.firstCall.args[1].metaMetadata).to.deep.include({
+          form: 'default-form',
+          attachmentFields: ['beforeHookAttachment'],
+        });
       } finally {
         delete (globalThis as any).__createHookAttachmentFields;
       }
@@ -1788,6 +1993,8 @@ describe('RecordsService', function () {
           routeFamily: 'internal',
           operation: 'create',
           validationOperation: 'publish',
+          validationRequestParameters: { locale: 'en-AU' },
+          validationRuntimeContext: { source: 'targeted-create-test' },
         })
       );
 
@@ -1802,7 +2009,672 @@ describe('RecordsService', function () {
       expect(request.candidate.metaMetadata.form).to.equal('published-form');
       expect(request.candidate.workflow.stage).to.equal('published');
       expect(request.candidate.workflow.hookMarker).to.equal('create-preserved');
+      expect(request.requestParameters).to.deep.equal({ locale: 'en-AU' });
+      expect(request.runtimeContext).to.deep.equal({
+        source: 'targeted-create-test',
+        routeFamily: 'internal',
+        writeKind: 'create',
+        saveOperation: 'create',
+      });
+      expect(request.phase).to.equal('pre-save');
       expect(mockStorageService.create.firstCall.args[1].workflow.hookMarker).to.equal('create-preserved');
+    });
+
+    it('rejects malformed and unresolved targeted creates before hooks, form loading, validation, or storage', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const preHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const recordType = {
+        name: 'rdmp',
+        hooks: {
+          onCreate: { pre: [{ function: '(_oid, record) => record' }] },
+          onTransitionWorkflow: { pre: [{ function: '(_oid, record) => record' }] },
+        },
+        recordValidation: { mode: 'enforce' },
+        searchable: false,
+      };
+      (global as any).WorkflowStepsService.get.returns(of(undefined));
+
+      for (const targetStep of ['../malformed', 'missing-step']) {
+        mockStorageService.create.resetHistory();
+        (global as any).FormsService.getForm.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+        preHook.resetHistory();
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Target must resolve' } },
+          recordType,
+          { username: 'user-1' },
+          true,
+          true,
+          targetStep,
+          createRecordSaveContext({
+            routeFamily: 'api',
+            operation: 'transition',
+            targetStep,
+          })
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
+        expect(preHook.notCalled).to.equal(true);
+        expect((global as any).FormsService.getForm.notCalled).to.equal(true);
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(mockStorageService.create.notCalled).to.equal(true);
+      }
+
+      expect((global as any).WorkflowStepsService.get.calledOnce).to.equal(true);
+      const targetLog = mockSails.log.warn.getCalls()
+        .map((call: sinon.SinonSpyCall) => call.args[1])
+        .find((details: any) => details?.event === 'record_validation_workflow_target_rejected' &&
+          details?.diagnostic_code === 'record-validation-workflow-step-not-found');
+      expect(targetLog).to.deep.include({ mode: 'enforce', operation: 'transition', record_type: 'rdmp' });
+    });
+
+    it('normalizes deleted, blank, and malformed pre-create form references before validation and persistence', async function () {
+      const mutations = [
+        'delete record.metaMetadata.form; return record;',
+        'record.metaMetadata.form = ""; return record;',
+        'record.metaMetadata.form = "../malformed-form"; return record;',
+      ];
+      for (const mutation of mutations) {
+        mockStorageService.create.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Normalized create form' } },
+          {
+            name: 'rdmp',
+            hooks: { onCreate: { pre: [{ function: `(_oid, record) => { ${mutation} }` }] } },
+            searchable: false,
+          },
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome).to.equal('saved');
+        expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form)
+          .to.equal('default-form');
+        expect(mockStorageService.create.firstCall.args[1].metaMetadata.form).to.equal('default-form');
+      }
+    });
+
+    it('requires normal object edit authorization on public create, update, and transition boundaries', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const publicCreateContext = createRecordSaveContext({ routeFamily: 'api', operation: 'create' });
+      const deniedCreate = await RecordsService.create(
+        { id: 'brand-1' },
+        {
+          metadata: { title: 'Denied public create' },
+          authorization: { edit: ['different-user'], view: [], editRoles: [], viewRoles: [] },
+        },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        true,
+        true,
+        undefined,
+        publicCreateContext
+      );
+      expect(deniedCreate.outcome).to.equal('not-saved');
+      expect(deniedCreate.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const deniedUpdate = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Denied update'),
+        { username: 'different-user' },
+        true,
+        true,
+        {},
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+      );
+      expect(deniedUpdate.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+
+      const nextStep = {
+        name: 'published',
+        config: { form: 'published-form', authorization: { transitionRoles: [] } },
+      };
+      const deniedTransition = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Denied transition'),
+        { username: 'different-user' },
+        true,
+        true,
+        nextStep,
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'transition' })
+      );
+      expect(deniedTransition.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+    });
+
+    it('rejects a stored record from another brand before type lookup, hooks, validation, or persistence', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const stored = {
+        ...baseRecord(),
+        metaMetadata: { ...baseRecord().metaMetadata, brandId: 'brand-2' },
+      };
+      mockStorageService.getMeta.resolves(stored);
+      const preHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        true,
+        {},
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
+      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
+      expect(preHook.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('rejects a conflicting public update OID before hooks, validation, or storage', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const preHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        { ...baseRecord('Conflicting identity'), redboxOid: 'different-record' },
+        { username: 'user-1' },
+        true,
+        false
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code)
+        .to.equal('record-validation-authority-context-divergence');
+      expect(preHook.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('keeps create identity separate from caller and adapter storage IDs through hooks', async function () {
+      (globalThis as any).__createIdentityFacts = undefined;
+      mockStorageService.create.resolves({
+        success: true,
+        oid: 'conflicting-adapter-oid',
+        id: 'waterline-adapter-id',
+        _id: 'mongo-adapter-id',
+        applicationState: 'applied',
+      });
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'explicit-create-oid',
+        id: 'waterline-adapter-id',
+        _id: 'mongo-adapter-id',
+        metadata: { title: 'Explicit' },
+      });
+      const recordType = {
+        name: 'rdmp',
+        searchable: false,
+        hooks: {
+          onCreate: {
+            postSync: [{
+              function: `(_oid, record, _options, _user, response) => {
+                globalThis.__createIdentityFacts = {
+                  oid: _oid,
+                  recordOid: record.redboxOid,
+                  recordId: record.id,
+                  recordMongoId: record._id,
+                  responseOid: response.oid,
+                  responseId: response.id,
+                  responseMongoId: response._id,
+                };
+                return record;
+              }`,
+            }],
+          },
+        },
+      };
+
+      try {
+        const created = await RecordsService.create(
+          { id: 'brand-1' },
+          {
+            redboxOid: 'explicit-create-oid',
+            id: 'waterline-caller-id',
+            _id: 'mongo-caller-id',
+            metadata: { title: 'Explicit' },
+          },
+          recordType,
+          { username: 'user-1' },
+          false,
+          true
+        );
+
+        expect(created.outcome).to.equal('saved');
+        expect(created.oid).to.equal('explicit-create-oid');
+        expect(mockStorageService.create.firstCall.args[1]).to.deep.include({
+          redboxOid: 'explicit-create-oid',
+        });
+        expect(mockStorageService.create.firstCall.args[1]).not.to.have.property('id');
+        expect(mockStorageService.create.firstCall.args[1]).not.to.have.property('_id');
+        expect(mockStorageService.updateMeta.firstCall.args[1]).to.equal('explicit-create-oid');
+        expect(mockStorageService.updateMeta.firstCall.args[2]).not.to.have.property('id');
+        expect(mockStorageService.updateMeta.firstCall.args[2]).not.to.have.property('_id');
+        expect(mockStorageService.getMeta.calledWith('explicit-create-oid')).to.equal(true);
+        expect((globalThis as any).__createIdentityFacts).to.deep.equal({
+          oid: 'explicit-create-oid',
+          recordOid: 'explicit-create-oid',
+          recordId: 'waterline-caller-id',
+          recordMongoId: 'mongo-caller-id',
+          responseOid: 'explicit-create-oid',
+          responseId: 'waterline-adapter-id',
+          responseMongoId: 'mongo-adapter-id',
+        });
+      } finally {
+        delete (globalThis as any).__createIdentityFacts;
+      }
+    });
+
+    it('binds an omitted pre-create hook OID back to the preselected public identity for every downstream effect', async function () {
+      (globalThis as any).__configuredCreateOids = [];
+      mockStorageService.create.resolves({
+        success: true,
+        oid: 'redirecting-adapter-oid',
+        applicationState: 'applied',
+      });
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'route-create-oid',
+        metadata: { title: 'Committed route record' },
+      });
+      const recordType = {
+        name: 'rdmp',
+        searchable: true,
+        hooks: {
+          onCreate: {
+            pre: [{
+              function: `(_oid, record) => {
+                globalThis.__configuredCreateOids.push(['pre', _oid, record.redboxOid]);
+                const { redboxOid: _discarded, ...replacement } = record;
+                return replacement;
+              }`,
+            }],
+            postSync: [{
+              function: `(_oid, record, _options, _user, response) => {
+                globalThis.__configuredCreateOids.push(['postSync', _oid, record.redboxOid, response.oid]);
+                return record;
+              }`,
+            }],
+            post: [{
+              function: `(_oid, record) => {
+                globalThis.__configuredCreateOids.push(['post', _oid, record.redboxOid]);
+              }`,
+            }],
+          },
+        },
+      };
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { redboxOid: 'route-create-oid', metadata: { title: 'Route record' } },
+          recordType,
+          { username: 'user-1' },
+          true,
+          true
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved');
+        expect(result.oid).to.equal('route-create-oid');
+        expect(mockStorageService.create.firstCall.args[1].redboxOid).to.equal('route-create-oid');
+        expect(mockStorageService.updateMeta.firstCall.args[1]).to.equal('route-create-oid');
+        expect(mockStorageService.updateMeta.firstCall.args[2].redboxOid).to.equal('route-create-oid');
+        expect(mockStorageService.getMeta.calledWith('route-create-oid')).to.equal(true);
+        expect(mockSearchService.index.calledWith('route-create-oid', sinon.match.object)).to.equal(true);
+        expect(mockQueueService.now.firstCall.args[1].redboxOid).to.equal('route-create-oid');
+        expect((globalThis as any).__configuredCreateOids).to.deep.equal([
+          ['pre', 'route-create-oid', 'route-create-oid'],
+          ['postSync', 'route-create-oid', 'route-create-oid', 'route-create-oid'],
+          ['post', 'route-create-oid', 'route-create-oid'],
+        ]);
+      } finally {
+        delete (globalThis as any).__configuredCreateOids;
+      }
+    });
+
+    it('rejects configured pre-create hook identity divergence before validation or downstream effects', async function () {
+      (globalThis as any).__configuredCreatePreOid = undefined;
+      const attachmentJournal = { prepareMutations: sinon.stub() };
+      mockSails.services.attachmentmetadataservice = attachmentJournal;
+      const recordType = {
+        name: 'rdmp',
+        searchable: true,
+        hooks: {
+          onCreate: {
+            pre: [{
+              function: `(_oid, record) => {
+                globalThis.__configuredCreatePreOid = _oid;
+                return { ...record, redboxOid: 'hook-redirect-oid' };
+              }`,
+            }],
+          },
+        },
+      };
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { redboxOid: 'route-create-oid', metadata: { title: 'Route record' } },
+          recordType,
+          { username: 'user-1' },
+          true,
+          true
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code)
+          .to.equal('record-validation-authority-context-divergence');
+        expect((globalThis as any).__configuredCreatePreOid).to.equal('route-create-oid');
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(attachmentJournal.prepareMutations.notCalled).to.equal(true);
+        expect(mockStorageService.create.notCalled).to.equal(true);
+        expect(mockStorageService.getMeta.notCalled).to.equal(true);
+        expect(mockSearchService.index.notCalled).to.equal(true);
+        expect(mockQueueService.now.notCalled).to.equal(true);
+      } finally {
+        delete (globalThis as any).__configuredCreatePreOid;
+      }
+    });
+
+    it('preserves distinct storage IDs through snapshots and hooks while stripping them from update writes', async function () {
+      (globalThis as any).__identitySeenAfterStorage = undefined;
+      const stored = { ...baseRecord(), id: 'waterline-storage-id', _id: 'mongo-storage-id' };
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.callsFake(async (_brand: unknown, _oid: string, candidate: any) => {
+        expect(candidate.redboxOid).to.equal('record-123');
+        expect(candidate).not.to.have.property('id');
+        expect(candidate).not.to.have.property('_id');
+        delete candidate.redboxOid;
+        return { success: true, oid: 'record-123', applicationState: 'applied' };
+      });
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        searchable: false,
+        hooks: {
+          onUpdate: {
+            postSync: [{
+              function:
+                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, postSyncOid: record.redboxOid } })',
+            }],
+            post: [{
+              function:
+                '(_oid, record) => { globalThis.__identitySeenAfterStorage = { redboxOid: record.redboxOid, id: record.id, _id: record._id, postSyncOid: record.metadata.postSyncOid }; }',
+            }],
+          },
+        },
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          {
+            ...baseRecord('Identity-safe update'),
+            id: 'waterline-storage-id',
+            _id: 'mongo-storage-id',
+          },
+          { username: 'user-1' },
+          true,
+          true
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved');
+        expect(mockStorageService.updateMeta.callCount).to.equal(2);
+        expect((globalThis as any).__identitySeenAfterStorage).to.deep.equal({
+          redboxOid: 'record-123',
+          id: 'waterline-storage-id',
+          _id: 'mongo-storage-id',
+          postSyncOid: 'record-123',
+        });
+      } finally {
+        delete (globalThis as any).__identitySeenAfterStorage;
+      }
+    });
+
+    it('keeps the primary save but rejects a postSync route-identity conflict', async function () {
+      mockStorageService.getMeta.resolves(baseRecord());
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+      });
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        searchable: false,
+        hooks: {
+          onUpdate: {
+            postSync: [{ function: '(_oid, record) => ({ ...record, redboxOid: "different-record" })' }],
+          },
+        },
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Primary identity-safe update'),
+        { username: 'user-1' },
+        true,
+        true
+      );
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.problems[0].issues[0].code)
+        .to.equal('record-validation-authority-context-divergence');
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+    });
+
+    it('keeps the route OID authoritative when an update adapter returns a blank or wrong OID', async function () {
+      (globalThis as any).__routeOidEffects = [];
+      const stored = { ...baseRecord(), id: 'waterline-storage-id', _id: 'mongo-storage-id' };
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.onFirstCall().resolves({
+        success: true,
+        oid: 'wrong-adapter-oid',
+        applicationState: 'applied',
+      });
+      mockStorageService.updateMeta.onSecondCall().resolves({
+        success: true,
+        oid: '',
+        applicationState: 'applied',
+      });
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        searchable: false,
+        hooks: {
+          onUpdate: {
+            postSync: [{
+              function: `(_oid, record, _options, _user, response) => {
+                globalThis.__routeOidEffects.push({ phase: 'postSync', oid: _oid, responseOid: response.oid });
+                return { ...record, metadata: { ...record.metadata, postSyncApplied: true } };
+              }`,
+            }],
+            post: [{
+              function: `(_oid) => {
+                globalThis.__routeOidEffects.push({ phase: 'post', oid: _oid });
+              }`,
+            }],
+          },
+        },
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          { ...stored, metadata: { title: 'Route-authoritative update' } },
+          { username: 'user-1' },
+          true,
+          true
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.oid).to.equal('record-123');
+        expect(result.outcome).to.equal('saved');
+        expect(mockStorageService.updateMeta.callCount).to.equal(2);
+        expect(mockStorageService.updateMeta.getCalls().map((call: sinon.SinonSpyCall) => call.args[1]))
+          .to.deep.equal(['record-123', 'record-123']);
+        expect((globalThis as any).__routeOidEffects).to.deep.equal([
+          { phase: 'postSync', oid: 'record-123', responseOid: 'record-123' },
+          { phase: 'post', oid: 'record-123' },
+        ]);
+        expect(mockStorageService.getMeta.lastCall.args[0]).to.equal('record-123');
+      } finally {
+        delete (globalThis as any).__routeOidEffects;
+      }
+    });
+
+    it('deep-clones the separate metadata argument before a failing mutating pre-hook', async function () {
+      const stored = baseRecord();
+      const callerMetadata = { nested: { title: 'Caller-owned title' } };
+      const callerSnapshot = structuredClone(callerMetadata);
+      mockStorageService.getMeta.resolves(stored);
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        searchable: false,
+        hooks: {
+          onUpdate: {
+            pre: [{
+              function: `(_oid, record) => {
+                record.metadata.nested.title = 'Mutated by hook';
+                throw new Error('pre-hook failure');
+              }`,
+            }],
+          },
+        },
+      }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        callerMetadata
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(callerMetadata).to.deep.equal(callerSnapshot);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('rejects a missing stored record type instead of accepting the caller type', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const stored = {
+        ...baseRecord(),
+        metaMetadata: { brandId: 'brand-1', form: 'default-form' },
+      };
+      mockStorageService.getMeta.resolves(stored);
+      const preHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        { ...stored, metaMetadata: { ...stored.metaMetadata, type: 'rdmp' } },
+        { username: 'user-1' },
+        true,
+        true,
+        {},
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
+      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
+      expect(preHook.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('returns a system pre-save failure when a public update snapshot is unavailable', async function () {
+      const { createRecordSaveContext, recordSaveFailureStatus } = require('../../src/RecordSaveResponse');
+      mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Legitimate caller update'),
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-snapshot-unavailable');
+      expect(recordSaveFailureStatus(result)).to.equal(500);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('rejects a pre-hook that changes authoritative transition workflow context', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const nextStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onTransitionWorkflow: {
+            pre: [{
+              function: '(_oid, record) => ({ ...record, workflow: { stage: "rogue-stage" } })',
+            }],
+          },
+        },
+        searchable: false,
+      }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'publisher', roles: [{ name: 'Publisher' }] },
+        true,
+        false,
+        nextStep
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
     it('rejects unauthorized targeted creates and does not broaden object-form transition roles', async function () {
@@ -1871,7 +2743,7 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
 
-    it('keeps advisory failures response-neutral in enforce mode', async function () {
+    it('reports advisory failures without blocking an enforced save', async function () {
       const advisoryErrors: RecordSaveIssue[] = [{
         message: '@validator-error-recommended',
         field: 'description',
@@ -1888,9 +2760,324 @@ describe('RecordsService', function () {
         { username: 'user-1' }
       );
 
-      expect(result.outcome).to.equal('saved');
-      expect(result.problems).to.deep.equal([]);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.problems).to.have.length(1);
+      expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+      expect(result.problems[0].issues).to.deep.equal(advisoryErrors);
       expect(mockStorageService.create.calledOnce).to.equal(true);
+    });
+
+    it('durably persists the exact sanitized create candidate in shadow and enforce modes', async function () {
+      const dirtyHtml = '<p>Safe</p><script>alert(1)</script><img src="x" onerror="alert(2)">';
+      for (const mode of ['shadow', 'enforce'] as const) {
+        mockStorageService.create.resetHistory();
+        const { resolve } = installRichHtmlValidation(mode);
+        const callerRecord = { metadata: { description: dirtyHtml, retained: 'caller-owned' } };
+        const originalCallerRecord = structuredClone(callerRecord);
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          callerRecord,
+          { name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode } },
+          { username: 'user-1' }
+        );
+
+        expect(result.outcome, mode).to.equal('saved-with-warnings');
+        expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+        expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class), mode)
+          .to.deep.equal(['htmlSanitized']);
+        expect(callerRecord, mode).to.deep.equal(originalCallerRecord);
+        const validationResult = await resolve.firstCall.returnValue;
+        expect(validationResult.status, JSON.stringify(validationResult.diagnostics)).to.equal('resolved');
+        if (validationResult.status !== 'resolved') throw new Error('Expected resolved validation result.');
+        const persisted = mockStorageService.create.firstCall.args[1];
+        expect(persisted.metadata, mode).to.deep.equal(validationResult.transformedCandidate.metadata);
+        expect(persisted.metadata.description, mode).to.equal('<p>Safe</p><img src="x">');
+        expect(persisted.metadata.retained, mode).to.equal('caller-owned');
+        expect(validationResult.blockingErrors, mode).to.deep.equal([]);
+        expect(validationResult.advisoryErrors.map((issue: RecordSaveIssue) => issue.class), mode)
+          .to.deep.equal(['htmlSanitized']);
+      }
+    });
+
+    it('never lets rich HTML found only by the validator pass reach create or update storage writes', async function () {
+      const dirtyHtml = '<p>Validator pass</p><script>alert(1)</script><img src="x" onerror="alert(2)">';
+      const executeValidators: NonNullable<RecordValidationServiceDependencies['executeValidators']> = async (
+        form,
+        enabledValidationGroups,
+        validatorDefinitionsMap,
+        jsonataEvaluatorFactory,
+        excludedOnlyValidationGroups,
+        checkDeadline
+      ) => await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
+        form,
+        enabledValidationGroups: [...enabledValidationGroups],
+        validatorDefinitionsMap,
+        jsonataEvaluatorFactory,
+        excludedOnlyValidationGroups: [...(excludedOnlyValidationGroups ?? [])],
+        checkDeadline,
+      });
+      installRichHtmlValidation('enforce', 'sanitize', executeValidators, async () => []);
+
+      const createResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { redboxOid: 'validator-pass-create', metadata: { description: dirtyHtml } },
+        { name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } },
+        { username: 'user-1' },
+        false,
+        false
+      );
+      const createdCandidate = mockStorageService.create.firstCall.args[1];
+      expect(createResult.outcome).to.equal('saved-with-warnings');
+      expect(createdCandidate.metadata.description).to.equal('<p>Validator pass</p><img src="x">');
+      expect(JSON.stringify(createdCandidate)).not.to.match(/<script|onerror/);
+
+      mockStorageService.getMeta.resolves({
+        ...baseRecord(),
+        metadata: { title: 'Original', description: '<p>Original</p>' },
+      });
+      mockStorageService.updateMeta.resetHistory();
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {},
+        searchable: false,
+        recordValidation: { mode: 'enforce' },
+      }));
+      const updateResult = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        { ...baseRecord(), metadata: { title: 'Updated', description: dirtyHtml } },
+        { username: 'user-1' },
+        false,
+        false
+      );
+      const updatedCandidate = mockStorageService.updateMeta.firstCall.args[2];
+      expect(updateResult.outcome).to.equal('saved-with-warnings');
+      expect(updatedCandidate.metadata.description).to.equal('<p>Validator pass</p><img src="x">');
+      expect(JSON.stringify(updatedCandidate)).not.to.match(/<script|onerror/);
+    });
+
+    it('never persists an unsafe replacement returned by the rich HTML transformation channel', async function () {
+      const dirtyHtml = '<p>Unsafe replacement</p><img src="x" onerror="alert(1)">';
+      const unsafeTransformation = {
+        kind: 'rich-html-sanitized' as const,
+        dataModelPath: ['description'],
+        sourceValue: dirtyHtml,
+        value: dirtyHtml,
+        advisorySummary: {
+          id: 'description',
+          message: 'description',
+          errors: [{ class: 'htmlSanitized', message: '@validator-warning-html-sanitized', params: {} }],
+        },
+      };
+
+      for (const mode of ['shadow', 'enforce'] as const) {
+        mockStorageService.create.resetHistory();
+        const { resolve } = installRichHtmlValidation(
+          mode,
+          'sanitize',
+          async () => ({ summaries: [], transformations: [unsafeTransformation] }),
+          async () => []
+        );
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { description: dirtyHtml } },
+          { name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode } },
+          { username: 'user-1' },
+          false,
+          false
+        );
+
+        const validationResult = await resolve.firstCall.returnValue;
+        expect(validationResult, mode).to.deep.include({ status: 'unresolved', shouldBlock: true });
+        expect(validationResult.diagnostics.map((item: { code: string }) => item.code), mode)
+          .to.include('record-validation-transformation-inapplicable');
+        expect(result.outcome, mode).to.equal('not-saved');
+        expect(mockStorageService.create.notCalled, mode).to.equal(true);
+      }
+    });
+
+    it('never persists raw rich HTML when later blocking validation fails or times out in shadow mode', async function () {
+      const dirtyHtml = '<p>Safe</p><script>alert(1)</script><img src="x" onerror="alert(2)">';
+      const cases: Array<{
+        name: string;
+        execute: NonNullable<RecordValidationServiceDependencies['executeValidators']>;
+        diagnostic: string;
+      }> = [
+        {
+          name: 'failure',
+          execute: async () => {
+            throw new Error('unrelated blocking validator failure');
+          },
+          diagnostic: 'record-validation-execution-failed',
+        },
+        {
+          name: 'timeout',
+          execute: async () => await new Promise<never>(() => undefined),
+          diagnostic: 'record-validation-timeout',
+        },
+      ];
+
+      for (const testCase of cases) {
+        mockStorageService.create.resetHistory();
+        const { resolve } = installRichHtmlValidation('shadow', 'sanitize', testCase.execute);
+        if (testCase.name === 'timeout') mockSails.config.recordValidation.timeoutMs = 10;
+        const callerRecord = { metadata: { description: dirtyHtml, retained: testCase.name } };
+        const callerSnapshot = structuredClone(callerRecord);
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          callerRecord,
+          { name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'shadow' } },
+          { username: 'user-1' }
+        );
+
+        const validationResult = await resolve.firstCall.returnValue;
+        expect(validationResult, testCase.name).to.deep.include({ status: 'unresolved', shouldBlock: false });
+        expect(validationResult.diagnostics.map((item: { code: string }) => item.code), testCase.name)
+          .to.include(testCase.diagnostic);
+        expect(validationResult.transformedCandidate, testCase.name).not.to.equal(undefined);
+        expect(validationResult.transformedCandidate?.metadata.description, testCase.name).to.equal(
+          '<p>Safe</p><img src="x">'
+        );
+        expect(result.outcome, testCase.name).to.equal('saved');
+        expect(callerRecord, testCase.name).to.deep.equal(callerSnapshot);
+        const persisted = mockStorageService.create.firstCall.args[1];
+        expect(persisted.metadata.description, testCase.name).to.equal('<p>Safe</p><img src="x">');
+        expect(JSON.stringify(persisted), testCase.name).not.to.include('<script');
+        expect(JSON.stringify(persisted), testCase.name).not.to.include('onerror');
+      }
+    });
+
+    it('rejects unsafe HTML without persistence when rich HTML mode is reject', async function () {
+      const { resolve } = installRichHtmlValidation('enforce', 'reject');
+      const dirtyHtml = '<p>Unsafe</p><script>alert(1)</script>';
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { description: dirtyHtml } },
+        { name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } },
+        { username: 'user-1' }
+      );
+
+      const validationResult = await resolve.firstCall.returnValue;
+      expect(validationResult.status, JSON.stringify(validationResult.diagnostics)).to.equal('resolved');
+      if (validationResult.status !== 'resolved') throw new Error('Expected resolved validation result.');
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+      expect(validationResult.blockingErrors.map((issue: RecordSaveIssue) => issue.class)).to.deep.equal([
+        'htmlUnsafe',
+      ]);
+      expect(validationResult.transformedCandidate.metadata.description).to.equal(dirtyHtml);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('uses sanitized authoritative candidates for update and transition persistence', async function () {
+      const dirtyHtml = '<p>Changed</p><script>alert(1)</script>';
+      for (const writeKind of ['update', 'transition'] as const) {
+        mockStorageService.updateMeta.resetHistory();
+        const { resolve } = installRichHtmlValidation('enforce');
+        const stored = {
+          ...baseRecord(),
+          metadata: { title: 'Original', description: '<p>Original</p>', retained: true },
+        };
+        mockStorageService.getMeta.resolves(stored);
+        (global as any).RecordTypesService.get.returns(of({
+          name: 'rdmp',
+          hooks: {},
+          searchable: false,
+          recordValidation: { mode: 'enforce' },
+        }));
+        const targetStep = writeKind === 'transition'
+          ? {
+              name: 'published',
+              config: {
+                form: 'published-form',
+                workflow: { stage: 'published' },
+                authorization: { transitionRoles: [], viewRoles: [], editRoles: [] },
+              },
+            }
+          : {};
+        const candidate = {
+          ...baseRecord('Changed'),
+          metadata: { title: 'Changed', description: dirtyHtml, retained: true },
+        };
+
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          candidate,
+          { username: 'user-1' },
+          false,
+          false,
+          targetStep
+        );
+
+        expect(result.outcome, writeKind).to.equal('saved-with-warnings');
+        expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class), writeKind)
+          .to.deep.equal(['htmlSanitized']);
+        const validationResult = await resolve.firstCall.returnValue;
+        expect(validationResult.status, writeKind).to.equal('resolved');
+        if (validationResult.status !== 'resolved') throw new Error('Expected resolved validation result.');
+        const persisted = mockStorageService.updateMeta.firstCall.args[2];
+        expect(resolve.firstCall.args[0].writeKind, writeKind).to.equal(writeKind);
+        expect(persisted.metadata, writeKind).to.deep.equal(validationResult.transformedCandidate.metadata);
+        expect(persisted.metadata.description, writeKind).to.equal('<p>Changed</p>');
+        expect(persisted.redboxOid, writeKind).to.equal('record-123');
+        expect(persisted.metaMetadata.form, writeKind).to.equal(
+          writeKind === 'transition' ? 'published-form' : 'default-form'
+        );
+      }
+    });
+
+    it('persists and dispatches the sanitized candidate returned by postSync validation', async function () {
+      (globalThis as any).__sanitizedPostSyncRecord = undefined;
+      const { resolve } = installRichHtmlValidation('enforce');
+      const recordType = {
+        name: 'rdmp',
+        searchable: false,
+        recordValidation: { mode: 'enforce' },
+        hooks: {
+          onCreate: {
+            postSync: [{
+              function:
+                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, description: "<p>Hook</p><script>alert(1)</script>" } })',
+            }],
+            post: [{
+              function:
+                '(_oid, record) => { globalThis.__sanitizedPostSyncRecord = structuredClone(record); }',
+            }],
+          },
+        },
+      };
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { description: '<p>Primary</p>' } },
+          recordType,
+          { username: 'user-1' },
+          true,
+          true
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved-with-warnings');
+        expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'post-save' });
+        expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class))
+          .to.deep.equal(['htmlSanitized']);
+        expect(resolve.callCount).to.equal(2);
+        const validationResult = await resolve.secondCall.returnValue;
+        expect(validationResult.status).to.equal('resolved');
+        if (validationResult.status !== 'resolved') throw new Error('Expected resolved validation result.');
+        const persisted = mockStorageService.updateMeta.firstCall.args[2];
+        expect(persisted.metadata).to.deep.equal(validationResult.transformedCandidate.metadata);
+        expect(persisted.metadata.description).to.equal('<p>Hook</p>');
+        expect((globalThis as any).__sanitizedPostSyncRecord).to.deep.equal(persisted);
+      } finally {
+        delete (globalThis as any).__sanitizedPostSyncRecord;
+      }
     });
 
     it('runs omitted-operation validation through the real service and ignores client group bypass data', async function () {
@@ -2012,7 +3199,7 @@ describe('RecordsService', function () {
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
         expect(request.candidate.metadata).to.deep.equal({ title: 'Replacement', hookValue: true });
-        expect(request.candidate.systemMarker).to.equal(undefined);
+        expect(request.candidate.systemMarker).to.equal('keep');
         return blockingResult();
       });
 
@@ -2027,8 +3214,169 @@ describe('RecordsService', function () {
         { title: 'Replacement' }
       );
 
+      expect(resolve.calledOnce).to.equal(true);
       expect(result.outcome).to.equal('not-saved');
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('rebinds the preselected create OID between sequential pre hooks', async function () {
+      (globalThis as any).__createSecondHookOid = undefined;
+      const recordType = {
+        name: 'rdmp',
+        hooks: {
+          onCreate: {
+            pre: [
+              { function: '() => ({ metadata: { title: "First replacement" } })' },
+              {
+                function:
+                  '(_oid, record) => { globalThis.__createSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; }',
+              },
+            ],
+          },
+        },
+        searchable: false,
+      };
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { redboxOid: 'configured-create-oid', metadata: { title: 'Requested' } },
+          recordType,
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome).to.equal('saved');
+        expect((globalThis as any).__createSecondHookOid).to.equal('configured-create-oid');
+        expect(mockStorageService.create.firstCall.args[1]).to.include({
+          redboxOid: 'configured-create-oid',
+          secondHook: true,
+        });
+      } finally {
+        delete (globalThis as any).__createSecondHookOid;
+      }
+    });
+
+    it('rejects a conflicting create OID before the next pre hook or any save side effect', async function () {
+      (globalThis as any).__conflictingCreateSecondHookRan = false;
+      const recordType = {
+        name: 'rdmp',
+        hooks: {
+          onCreate: {
+            pre: [
+              { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+              {
+                function:
+                  '(_oid, record) => { globalThis.__conflictingCreateSecondHookRan = true; return record; }',
+              },
+            ],
+          },
+        },
+        searchable: false,
+      };
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { redboxOid: 'configured-create-oid', metadata: { title: 'Requested' } },
+          recordType,
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
+        expect((globalThis as any).__conflictingCreateSecondHookRan).to.equal(false);
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(mockStorageService.create.notCalled).to.equal(true);
+        expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+        expect(mockSearchService.index.notCalled).to.equal(true);
+        expect(mockQueueService.now.notCalled).to.equal(true);
+      } finally {
+        delete (globalThis as any).__conflictingCreateSecondHookRan;
+      }
+    });
+
+    it('rebinds the route OID between sequential update pre hooks', async function () {
+      (globalThis as any).__updateSecondHookOid = undefined;
+      mockStorageService.getMeta.resolves(baseRecord());
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            pre: [
+              { function: '() => ({ metadata: { title: "First update replacement" } })' },
+              {
+                function:
+                  '(_oid, record) => { globalThis.__updateSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; }',
+              },
+            ],
+          },
+        },
+        searchable: false,
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Requested'),
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome).to.equal('saved');
+        expect((globalThis as any).__updateSecondHookOid).to.equal('record-123');
+        expect(mockStorageService.updateMeta.firstCall.args[2]).to.include({ redboxOid: 'record-123', secondHook: true });
+      } finally {
+        delete (globalThis as any).__updateSecondHookOid;
+      }
+    });
+
+    it('rejects a conflicting route OID before the next update pre hook or persistence', async function () {
+      (globalThis as any).__conflictingUpdateSecondHookRan = false;
+      mockStorageService.getMeta.resolves(baseRecord());
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            pre: [
+              { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+              {
+                function:
+                  '(_oid, record) => { globalThis.__conflictingUpdateSecondHookRan = true; return record; }',
+              },
+            ],
+          },
+        },
+        searchable: false,
+      }));
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Requested'),
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
+        expect((globalThis as any).__conflictingUpdateSecondHookRan).to.equal(false);
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+        expect(mockSearchService.index.notCalled).to.equal(true);
+        expect(mockQueueService.now.notCalled).to.equal(true);
+      } finally {
+        delete (globalThis as any).__conflictingUpdateSecondHookRan;
+      }
     });
 
     it('preserves caller-completed merge metadata when building the authoritative update candidate', async function () {
@@ -2053,6 +3401,118 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('not-saved');
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('resolves brand and record type from the stored snapshot after object-metadata replacement', async function () {
+      mockSails.config.recordtype = { rdmp: { recordValidation: { mode: 'enforce' } } };
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const replacement = {
+        ...baseRecord('Replacement object metadata'),
+        metaMetadata: { sourceMetadata: 'replacement' },
+      };
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.callsFake(async (request: any) => {
+        expect(request.candidate.metaMetadata).to.deep.include({
+          brandId: 'brand-1',
+          type: 'rdmp',
+          sourceMetadata: 'replacement',
+        });
+        return blockingResult();
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        replacement,
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(resolve.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('rejects candidate record-type divergence before hooks and runs hooks from the stored type otherwise', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const authoritativeType = {
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            pre: [{
+              function:
+                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, authoritativeHookRan: true } })',
+            }],
+          },
+        },
+        searchable: false,
+      };
+      const wrongType = {
+        name: 'other-type',
+        hooks: {
+          onUpdate: {
+            pre: [{ function: '() => { throw new Error("wrong-type hook ran"); }' }],
+          },
+        },
+        searchable: false,
+      };
+      (global as any).RecordTypesService.get.callsFake((_brand: unknown, name: string) =>
+        of(name === 'rdmp' ? authoritativeType : wrongType)
+      );
+      const triggerPreSave = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      const divergent = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        {
+          ...baseRecord('Candidate type divergence'),
+          metaMetadata: { ...stored.metaMetadata, type: 'other-type' },
+        },
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(divergent.outcome).to.equal('not-saved');
+      expect(divergent.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
+      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
+      expect(triggerPreSave.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+
+      (global as any).RecordValidationService.resolve.callsFake(async (request: any) => {
+        expect(request.candidate.metaMetadata.type).to.equal('rdmp');
+        expect(request.candidate.metadata.authoritativeHookRan).to.equal(true);
+        return allowResult();
+      });
+      const authoritative = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        {
+          ...baseRecord('Authoritative hook selection'),
+          metaMetadata: { brandId: 'brand-1', form: 'default-form' },
+        },
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        undefined,
+        createRecordSaveContext({ routeFamily: 'browser', operation: 'update' })
+      );
+
+      expect(authoritative.wasPersisted()).to.equal(true);
+      expect((global as any).RecordTypesService.get.calledOnce).to.equal(true);
+      expect((global as any).RecordTypesService.get.firstCall.args[1]).to.equal('rdmp');
+      expect(triggerPreSave.calledOnce).to.equal(true);
+      expect(triggerPreSave.firstCall.args[2]).to.equal(authoritativeType);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata.authoritativeHookRan).to.equal(true);
     });
 
     it('requires authoritative validation when the pre-update snapshot throws or is unusable', async function () {
@@ -2144,7 +3604,7 @@ describe('RecordsService', function () {
       expect(resolve.secondCall.args[0].actor).to.deep.equal({ authenticated: false, roles: [] });
     });
 
-    it('validates against stored fields without writing them back or exposing them to pre-save hooks', async function () {
+    it('merges stored fields into the authoritative persisted candidate without exposing them to pre-save hooks', async function () {
       const stored = { ...baseRecord(), storageOnly: { revision: 17 } };
       const requested = baseRecord('Caller mutation') as any;
       delete requested.storageOnly;
@@ -2186,7 +3646,7 @@ describe('RecordsService', function () {
         expect(result.outcome).to.equal('saved');
         expect((globalThis as any).__partialUpdateHookInput).not.to.have.property('storageOnly');
         const persistedMutation = mockStorageService.updateMeta.firstCall.args[2];
-        expect(persistedMutation).not.to.have.property('storageOnly');
+        expect(persistedMutation.storageOnly).to.deep.equal({ revision: 17 });
         expect(persistedMutation.hookOwned).to.equal(true);
       } finally {
         delete (globalThis as any).__partialUpdateHookInput;
@@ -2276,6 +3736,91 @@ describe('RecordsService', function () {
       );
       expect(resolve.calledOnce).to.equal(true);
       expect(resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal('new-form');
+      expect(resolve.firstCall.args[0].validationOperation).to.equal(undefined);
+      expect(resolve.firstCall.args[0].evaluateFormValidators).to.equal(true);
+    });
+
+    it('rejects named-operation contract failures on exempt updates in shadow and enforce', async function () {
+      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      const classifications = [
+        {
+          name: 'authorization-only',
+          candidate: () => {
+            const candidate = structuredClone(stored);
+            candidate.authorization.edit.push('editor-2');
+            return candidate;
+          },
+        },
+        {
+          name: 'non-form-system-metadata',
+          candidate: () => ({
+            ...structuredClone(stored),
+            metaMetadata: {
+              ...structuredClone(stored.metaMetadata),
+              sourceMetadata: 'harvest-system-state',
+            },
+          }),
+        },
+        { name: 'no-change', candidate: () => structuredClone(stored) },
+      ];
+      const failures = [
+        {
+          operation: 'missing-operation',
+          diagnostic: 'record-validation-operation-unknown',
+          expectedCode: 'record-validation-operation-invalid',
+          expectedKind: 'validation',
+        },
+        {
+          operation: 'submit',
+          diagnostic: 'record-validation-operation-role-unauthorized',
+          expectedCode: 'record-validation-operation-unauthorized',
+          expectedKind: 'authorization',
+        },
+      ];
+
+      for (const mode of ['shadow', 'enforce'] as const) {
+        for (const classification of classifications) {
+          for (const failure of failures) {
+            resolve.resetHistory();
+            mockStorageService.updateMeta.resetHistory();
+            resolve.resolves({
+              status: 'unresolved',
+              shouldBlock: true,
+              mode,
+              diagnostics: [{ code: failure.diagnostic, severity: 'error', message: 'Safe operation failure.' }],
+            });
+
+            const result = await RecordsService.updateMeta(
+              { id: 'brand-1' },
+              'record-123',
+              classification.candidate(),
+              { username: 'user-1', roles: [{ name: 'Researcher' }] },
+              false,
+              false,
+              {},
+              undefined,
+              createRecordSaveContext({
+                routeFamily: 'internal',
+                operation: 'update',
+                validationOperation: failure.operation,
+              })
+            );
+
+            expect(result.outcome, `${mode} ${classification.name} ${failure.operation}`).to.equal('not-saved');
+            expect(result.problems[0]).to.deep.include({ kind: failure.expectedKind, phase: 'pre-save' });
+            expect(result.problems[0].issues[0].code).to.equal(failure.expectedCode);
+            expect(resolve.calledOnce).to.equal(true);
+            expect(resolve.firstCall.args[0]).to.deep.include({
+              validationOperation: failure.operation,
+              evaluateFormValidators: false,
+            });
+            expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+          }
+        }
+      }
     });
 
     it('skips validation for non-form system metadata writes on the real update path', async function () {
@@ -2327,6 +3872,7 @@ describe('RecordsService', function () {
 
     it('validates an authorized transition against its target step and target form', async function () {
       const stored = baseRecord();
+      const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
       mockStorageService.getMeta.resolves(stored);
       const nextStep = {
         name: 'published',
@@ -2336,6 +3882,7 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
+      (global as any).WorkflowStepsService.get.returns(of(nextStep));
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       (global as any).RecordTypesService.get.returns(
         of({
@@ -2376,7 +3923,142 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('not-saved');
+      expect(transitionAuthorization.callCount).to.equal(2);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('authorizes transitions with the canonical resolved step, not a same-name supplied object', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const canonicalStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+      const fabricatedStep = {
+        name: 'published',
+        config: {
+          form: 'attacker-form',
+          workflow: { stage: 'attacker-stage' },
+          authorization: { transitionRoles: [] },
+        },
+      };
+      (global as any).WorkflowStepsService.get.returns(of(canonicalStep));
+      const canonicalRecordType = { name: 'rdmp', hooks: {}, searchable: false };
+      (global as any).RecordTypesService.get.returns(of(canonicalRecordType));
+      const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
+      const preTransitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'researcher', roles: [{ name: 'Researcher' }] },
+        true,
+        true,
+        fabricatedStep
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
+      expect((global as any).WorkflowStepsService.get.calledOnceWithExactly(canonicalRecordType, 'published'))
+        .to.equal(true);
+      expect(transitionAuthorization.calledOnce).to.equal(true);
+      expect(transitionAuthorization.firstCall.args[0]).to.equal(canonicalStep);
+      expect(preTransitionHook.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    for (const routeFamily of ['browser', 'api'] as const) {
+      it(`rejects an unresolved ${routeFamily} transition as a transition before hooks or persistence`, async function () {
+        const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
+        const stored = baseRecord();
+        mockStorageService.getMeta.resolves(stored);
+        mockSails.config.recordtype = { rdmp: { recordValidation: { mode: 'enforce' } } };
+        (global as any).WorkflowStepsService.get.returns(of(null));
+        const triggerPreSave = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          stored,
+          { username: 'user-1' },
+          true,
+          true,
+          undefined,
+          undefined,
+          createRecordSaveContext({
+            routeFamily,
+            operation: 'transition',
+            targetStep: 'missing-step',
+          })
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
+        expect(triggerPreSave.notCalled).to.equal(true);
+        expect((global as any).RecordTypesService.get.calledOnce).to.equal(true);
+        expect((global as any).WorkflowStepsService.get.calledOnce).to.equal(true);
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+        const targetLog = mockSails.log.warn.getCalls()
+          .map((call: sinon.SinonSpyCall) => call.args[1])
+          .find((details: any) => details?.event === 'record_validation_workflow_target_rejected');
+        expect(targetLog).to.deep.include({
+          mode: 'enforce',
+          operation: 'transition',
+          diagnostic_code: 'record-validation-workflow-step-not-found',
+        });
+      });
+    }
+
+    it('normalizes a deleted transition-hook form before the primary transition save', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+      });
+      const nextStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+      (global as any).WorkflowStepsService.get.returns(of(nextStep));
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onTransitionWorkflow: {
+            pre: [{ function: '(_oid, record) => { delete record.metaMetadata.form; return record; }' }],
+          },
+        },
+        searchable: false,
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'publisher', roles: [{ name: 'Publisher' }] },
+        true,
+        false,
+        nextStep
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form)
+        .to.equal('published-form');
+      expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata.form).to.equal('published-form');
     });
 
     it('rejects target-step transition roles safely before hooks, validation, attachments, or storage', async function () {
@@ -2390,6 +4072,7 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'] },
         },
       };
+      (global as any).WorkflowStepsService.get.returns(of(nextStep));
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -2406,6 +4089,118 @@ describe('RecordsService', function () {
       expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
       expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('uses one complete candidate for create postSync validation, persistence, and detached hooks', async function () {
+      (globalThis as any).__createPartialPostRecord = undefined;
+      const recordType = {
+        name: 'rdmp',
+        hooks: {
+          onCreate: {
+            postSync: [{ function: '() => ({ metadata: { title: "Partial create postSync" } })' }],
+            post: [{
+              function:
+                '(_oid, record) => { globalThis.__createPartialPostRecord = structuredClone(record); }',
+            }],
+          },
+        },
+        searchable: false,
+      };
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          {
+            metadata: { title: 'Primary create', omittedByReplacement: true },
+            systemMarker: { retained: true },
+          },
+          recordType,
+          { username: 'user-1' }
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved');
+        expect(resolve.callCount).to.equal(2);
+        expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+        const validated = resolve.secondCall.args[0].candidate;
+        const persisted = mockStorageService.updateMeta.firstCall.args[2];
+        expect(persisted).to.deep.equal(validated);
+        expect(persisted.metadata).to.deep.equal({ title: 'Partial create postSync' });
+        expect(persisted.metaMetadata).to.deep.include({
+          type: 'rdmp',
+          form: 'default-form',
+          brandId: 'brand-1',
+        });
+        expect(persisted.workflow).to.deep.equal({ stage: 'draft' });
+        expect(persisted.systemMarker).to.deep.equal({ retained: true });
+        expect((globalThis as any).__createPartialPostRecord).to.deep.equal(persisted);
+      } finally {
+        delete (globalThis as any).__createPartialPostRecord;
+      }
+    });
+
+    it('uses one complete candidate for targeted-create transition postSync processing', async function () {
+      (globalThis as any).__createTransitionPartialPostRecord = undefined;
+      const targetStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+      (global as any).WorkflowStepsService.get.returns(of(targetStep));
+      const recordType = {
+        name: 'rdmp',
+        hooks: {
+          onTransitionWorkflow: {
+            postSync: [{ function: '() => ({ metadata: { title: "Partial transition postSync" } })' }],
+            post: [{
+              function:
+                '(_oid, record) => { globalThis.__createTransitionPartialPostRecord = structuredClone(record); }',
+            }],
+          },
+        },
+        searchable: false,
+      };
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          {
+            metadata: { title: 'Primary targeted create', omittedByReplacement: true },
+            systemMarker: { retained: true },
+          },
+          recordType,
+          { username: 'publisher', roles: [{ name: 'Publisher' }] },
+          true,
+          true,
+          'published'
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved');
+        expect(resolve.callCount).to.equal(2);
+        expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+        const validated = resolve.secondCall.args[0].candidate;
+        const persisted = mockStorageService.updateMeta.firstCall.args[2];
+        expect(persisted).to.deep.equal(validated);
+        expect(persisted.metadata).to.deep.equal({ title: 'Partial transition postSync' });
+        expect(persisted.metaMetadata).to.deep.include({
+          type: 'rdmp',
+          form: 'published-form',
+          brandId: 'brand-1',
+        });
+        expect(persisted.workflow).to.deep.equal({ stage: 'published' });
+        expect(persisted.systemMarker).to.deep.equal({ retained: true });
+        expect((globalThis as any).__createTransitionPartialPostRecord).to.deep.equal(persisted);
+      } finally {
+        delete (globalThis as any).__createTransitionPartialPostRecord;
+      }
     });
 
     it('keeps the primary update and skips an invalid postSync secondary mutation', async function () {
@@ -2452,6 +4247,165 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
       expect(persistedCandidates[0].metadata.title).to.equal('Primary');
       expect(resolve.secondCall.args[0].candidate.metadata.title).to.equal('Invalid secondary');
+    });
+
+    it('persists the complete authoritative candidate validated after a partial postSync replacement', async function () {
+      (globalThis as any).__updatePartialPostRecord = undefined;
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+      });
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            postSync: [{ function: '() => ({ metadata: { title: "Partial postSync" } })' }],
+            post: [{
+              function: '(_oid, record) => { globalThis.__updatePartialPostRecord = structuredClone(record); }',
+            }],
+          },
+        },
+        searchable: false,
+      }));
+      const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      resolve.resolves(allowResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        baseRecord('Primary'),
+        { username: 'user-1' },
+        true,
+        true
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(mockStorageService.updateMeta.callCount).to.equal(2);
+      const validated = resolve.secondCall.args[0].candidate;
+      const persisted = mockStorageService.updateMeta.secondCall.args[2];
+      expect(persisted).to.deep.equal(validated);
+      expect(persisted.metadata).to.deep.equal({ title: 'Partial postSync' });
+      expect(persisted.metaMetadata).to.deep.include({
+        type: 'rdmp',
+        form: 'default-form',
+        brandId: 'brand-1',
+      });
+      expect(persisted.workflow).to.deep.equal({ stage: 'draft' });
+      expect(persisted.authorization.edit).to.deep.equal(['user-1']);
+      await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+      expect((globalThis as any).__updatePartialPostRecord).to.deep.equal(persisted);
+      delete (globalThis as any).__updatePartialPostRecord;
+    });
+
+    it('rebinds the route OID between sequential postSync hooks and before detached hooks', async function () {
+      (globalThis as any).__postSyncSecondHookOid = undefined;
+      (globalThis as any).__postSyncDetachedHookOid = undefined;
+      mockStorageService.getMeta.resolves(baseRecord());
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'adapter-storage-id',
+        applicationState: 'applied',
+      });
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            postSync: [
+              { function: '() => ({ metadata: { title: "First postSync replacement" } })' },
+              {
+                function:
+                  '(_oid, record) => { globalThis.__postSyncSecondHookOid = record.redboxOid; return { ...record, secondPostSync: true }; }',
+              },
+            ],
+            post: [{
+              function: '(_oid, record) => { globalThis.__postSyncDetachedHookOid = record.redboxOid; }',
+            }],
+          },
+        },
+        searchable: false,
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Primary'),
+          { username: 'user-1' },
+          true,
+          true
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved');
+        expect(result.oid).to.equal('record-123');
+        expect((globalThis as any).__postSyncSecondHookOid).to.equal('record-123');
+        expect((globalThis as any).__postSyncDetachedHookOid).to.equal('record-123');
+        expect(mockStorageService.updateMeta.callCount).to.equal(2);
+        expect(mockStorageService.updateMeta.secondCall.args[1]).to.equal('record-123');
+        expect(mockStorageService.updateMeta.secondCall.args[2]).to.include({
+          redboxOid: 'record-123',
+          secondPostSync: true,
+        });
+      } finally {
+        delete (globalThis as any).__postSyncSecondHookOid;
+        delete (globalThis as any).__postSyncDetachedHookOid;
+      }
+    });
+
+    it('rejects a conflicting postSync OID before later hooks, secondary persistence, or detached effects', async function () {
+      (globalThis as any).__conflictingPostSyncSecondHookRan = false;
+      (globalThis as any).__conflictingPostSyncDetachedHookRan = false;
+      mockStorageService.getMeta.resolves(baseRecord());
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'adapter-storage-id',
+        applicationState: 'applied',
+      });
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            postSync: [
+              { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+              {
+                function:
+                  '(_oid, record) => { globalThis.__conflictingPostSyncSecondHookRan = true; return record; }',
+              },
+            ],
+            post: [{
+              function: '() => { globalThis.__conflictingPostSyncDetachedHookRan = true; }',
+            }],
+          },
+        },
+        searchable: false,
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Primary'),
+          { username: 'user-1' },
+          true,
+          true
+        );
+        await new Promise(resolveImmediate => setImmediate(resolveImmediate));
+
+        expect(result.outcome).to.equal('saved-with-warnings');
+        expect((globalThis as any).__conflictingPostSyncSecondHookRan).to.equal(false);
+        expect((globalThis as any).__conflictingPostSyncDetachedHookRan).to.equal(false);
+        expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+        expect((global as any).RecordValidationService.resolve.calledOnce).to.equal(true);
+        expect(mockSearchService.index.notCalled).to.equal(true);
+      } finally {
+        delete (globalThis as any).__conflictingPostSyncSecondHookRan;
+        delete (globalThis as any).__conflictingPostSyncDetachedHookRan;
+      }
     });
 
     it('preserves an actionable post-save validation cause and phase for secondary candidates', async function () {
@@ -2560,6 +4514,51 @@ describe('RecordsService', function () {
       } finally {
         delete (globalThis as any).__transitionPersistenceOrder;
       }
+    });
+
+    it('normalizes a malformed postSync transition form before secondary persistence', async function () {
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+      });
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onTransitionWorkflow: {
+            postSync: [{
+              function: '(_oid, record) => ({ ...record, metaMetadata: { ...record.metaMetadata, form: "../malformed" } })',
+            }],
+          },
+        },
+        searchable: false,
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      const nextStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'publisher', roles: [{ name: 'Publisher' }] },
+        true,
+        true,
+        nextStep
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(mockStorageService.updateMeta.callCount).to.equal(2);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata.form).to.equal('published-form');
+      expect(mockStorageService.updateMeta.secondCall.args[2].metaMetadata.form).to.equal('published-form');
     });
 
     it('requires detached post-hook writes to enter RecordsService validation independently', async function () {
@@ -2782,6 +4781,7 @@ describe('RecordsService', function () {
         { id: 'brand-1' },
         {
           metadata: { title: 'HTTP payload' },
+          authorization: { edit: ['user-1'], view: ['user-1'] },
           validationBypass: {
             mode: 'bypass',
             reason: 'trusted-data-migration',
@@ -3549,6 +5549,30 @@ describe('RecordsService', function () {
       return tracker;
     }
 
+    it('copies nested adapter and hook data at the response boundary', function () {
+      const { RecordSaveResponse, createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const response = new RecordSaveResponse(createRecordSaveContext());
+      const source = {
+        success: true,
+        data: { nested: { value: 'data' } },
+        metadata: { nested: { value: 'metadata' } },
+        items: [{ nested: { value: 'item' } }],
+      };
+      const hookFields = { workspaceData: { nested: { value: 'workspace' } } };
+      response.confirmPrimaryPersistence('tracker-oid', source);
+      response.mergeLegacyHookFields(hookFields);
+
+      source.data.nested.value = 'changed';
+      source.metadata.nested.value = 'changed';
+      source.items[0].nested.value = 'changed';
+      hookFields.workspaceData.nested.value = 'changed';
+
+      expect((response.data as any).nested.value).to.equal('data');
+      expect((response.metadata as any).nested.value).to.equal('metadata');
+      expect((response.items[0] as any).nested.value).to.equal('item');
+      expect((response.workspaceData as any).nested.value).to.equal('workspace');
+    });
+
     it('does not substitute fallback metadata when the committed snapshot cannot be loaded', async function () {
       mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
       const audit = sinon.stub(RecordsService, 'auditRecord');
@@ -3577,11 +5601,11 @@ describe('RecordsService', function () {
   });
 
   describe('createBatch', function () {
-    it('publishes createRecordAudit as a required StorageService capability', function () {
+    it('keeps createRecordAudit optional for hook compatibility while audited paths fail closed at runtime', function () {
       type IsRequired<T, K extends keyof T> = {} extends Pick<T, K> ? false : true;
-      const createRecordAuditIsRequired: IsRequired<StorageService, 'createRecordAudit'> = true;
+      const createRecordAuditIsRequired: IsRequired<StorageService, 'createRecordAudit'> = false;
 
-      expect(createRecordAuditIsRequired).to.equal(true);
+      expect(createRecordAuditIsRequired).to.equal(false);
     });
 
     it('durably audits the v1 direct-storage bypass and never reports the batch as validated', async function () {
