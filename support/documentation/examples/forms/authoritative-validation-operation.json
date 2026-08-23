@@ -1,0 +1,36 @@
+{
+  "name": "authoritative-validation-operation-example",
+  "type": "dataset",
+  "enabledValidationGroups": ["draft"],
+  "validationGroups": {
+    "all": { "description": "Run every validator.", "initialMembership": "all" },
+    "none": { "description": "Run no validators.", "initialMembership": "none" },
+    "draft": { "description": "Draft-save validators.", "initialMembership": "all" },
+    "submit": { "description": "Submission validators.", "initialMembership": "none" }
+  },
+  "validationOperations": {
+    "submit": {
+      "enabledValidationGroups": ["submit"],
+      "label": "Submit for review",
+      "description": "Validate the submission and request review.",
+      "roles": ["Researcher"],
+      "allowedTargetSteps": ["review"]
+    }
+  },
+  "validators": [],
+  "componentDefinitions": [
+    {
+      "name": "submit_button",
+      "component": {
+        "class": "SaveButtonComponent",
+        "config": {
+          "label": "Submit",
+          "labelSaving": "Submitting...",
+          "operation": "submit",
+          "targetStep": "review",
+          "enabledValidationGroups": ["submit"]
+        }
+      }
+    }
+  ]
+}

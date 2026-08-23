@@ -1,5 +1,7 @@
 import { firstValueFrom } from 'rxjs';
 import { createHash } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
+import { metrics, type Attributes } from '@opentelemetry/api';
 import {
   calculateValidationGroups,
   ExpressionsConditionKind,
@@ -32,7 +34,10 @@ import {
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
-import type { RecordValidationConfig } from '../config/recordValidation.config';
+import {
+  DEFAULT_RECORD_VALIDATION_SHADOW_REPORT_MAX_SERIES,
+  type RecordValidationConfig,
+} from '../config/recordValidation.config';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { WorkflowStageConfig } from '../config/workflow.config';
 import type { BrandingModel } from '../model/storage/BrandingModel';
@@ -79,6 +84,15 @@ export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
 
 export type RecordValidationDiagnosticCode =
   (typeof RECORD_VALIDATION_DIAGNOSTIC_CODES)[keyof typeof RECORD_VALIDATION_DIAGNOSTIC_CODES];
+
+export type RecordValidationOutcome =
+  | 'valid'
+  | 'invalid'
+  | 'request-rejected'
+  | 'configuration-error'
+  | 'timed-out';
+
+export type RecordValidationTimeoutKind = 'none' | 'blocking' | 'advisory';
 
 export type RecordValidationWriteKind = 'create' | 'update' | 'transition';
 export type RecordValidationJSONValue =
@@ -214,11 +228,47 @@ export interface RecordValidationResolutionMetric {
   readonly mode: ValidationMode;
   readonly status: RecordValidationResult['status'];
   readonly shouldBlock: boolean;
+  /** Whether this result would reject the candidate under enforcement. */
+  readonly wouldBlock: boolean;
+  readonly outcome: RecordValidationOutcome;
+  readonly durationMs: number;
+  readonly blockingErrorCount: number;
+  readonly advisoryErrorCount: number;
+  readonly timeoutKind: RecordValidationTimeoutKind;
+  readonly configurationDiagnosticCount: number;
   readonly diagnosticCodes: readonly string[];
 }
 
 export interface RecordValidationMetricsHooks {
   resolutionCompleted(metric: RecordValidationResolutionMetric): void;
+}
+
+export interface RecordValidationShadowReportRow {
+  readonly recordType: string;
+  readonly operation: string;
+  readonly formName: string;
+  readonly code: string;
+  readonly runs: number;
+  readonly wouldReject: number;
+  readonly blockingErrors: number;
+  readonly advisoryErrors: number;
+  readonly timeouts: number;
+  readonly configurationDiagnostics: number;
+  readonly totalDurationMs: number;
+  readonly maximumDurationMs: number;
+  readonly averageDurationMs: number;
+}
+
+/**
+ * Bounded process-local view of shadow observations. Durable dashboards should
+ * consume the emitted OpenTelemetry instruments instead of polling this view.
+ */
+export interface RecordValidationShadowReport {
+  readonly generatedAt: string;
+  readonly totalRuns: number;
+  readonly overflowRuns: number;
+  readonly maxSeries: number;
+  readonly rows: readonly RecordValidationShadowReportRow[];
 }
 
 export interface RecordValidationCacheStats {
@@ -361,7 +411,64 @@ type BuildResultOptions =
 const SAFE_FIELD_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const SAFE_VALIDATOR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_.#-]{0,127}$/;
 const SAFE_TRANSLATION_KEY_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}$/;
+const SAFE_DIAGNOSTIC_CODE_PATTERN = /^[A-Za-z][A-Za-z0-9._-]{0,127}$/;
 const CACHE_LIMIT = 128;
+const SHADOW_REPORT_MAX_SERIES_LIMIT = 10_000;
+const SHADOW_REPORT_NONE_CODE = 'none';
+const STRICT_ALL_OPERATION = 'strict-all';
+const UNRESOLVED_DIMENSION = 'unresolved';
+
+const requestRejectionCodes = new Set<string>([
+  RECORD_VALIDATION_DIAGNOSTIC_CODES.operationMalformed,
+  RECORD_VALIDATION_DIAGNOSTIC_CODES.operationUnknown,
+  RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized,
+  RECORD_VALIDATION_DIAGNOSTIC_CODES.operationTargetUnauthorized,
+]);
+
+const recordValidationMeter = metrics.getMeter('redbox.record-validation');
+const recordValidationDuration = recordValidationMeter.createHistogram('redbox.record_validation.duration', {
+  description: 'Authoritative record-validation resolution duration.',
+  unit: 'ms',
+});
+const recordValidationRuns = recordValidationMeter.createCounter('redbox.record_validation.runs', {
+  description: 'Authoritative record-validation resolutions by mode and outcome.',
+  unit: '{run}',
+});
+const recordValidationBlockingErrors = recordValidationMeter.createCounter(
+  'redbox.record_validation.blocking_errors',
+  { description: 'Blocking validator failures returned by authoritative validation.', unit: '{error}' }
+);
+const recordValidationAdvisoryErrors = recordValidationMeter.createCounter(
+  'redbox.record_validation.advisory_errors',
+  { description: 'Advisory validator failures observed by authoritative validation.', unit: '{error}' }
+);
+const recordValidationTimeouts = recordValidationMeter.createCounter('redbox.record_validation.timeouts', {
+  description: 'Blocking or advisory authoritative-validation timeouts.',
+  unit: '{timeout}',
+});
+const recordValidationConfigurationDiagnostics = recordValidationMeter.createCounter(
+  'redbox.record_validation.configuration_diagnostics',
+  { description: 'Safe authoritative-validation configuration or execution diagnostics.', unit: '{diagnostic}' }
+);
+const recordValidationDiagnostics = recordValidationMeter.createCounter('redbox.record_validation.diagnostics', {
+  description: 'Safe authoritative-validation diagnostics by stable code.',
+  unit: '{diagnostic}',
+});
+
+interface MutableShadowReportRow {
+  recordType: string;
+  operation: string;
+  formName: string;
+  code: string;
+  runs: number;
+  wouldReject: number;
+  blockingErrors: number;
+  advisoryErrors: number;
+  timeouts: number;
+  configurationDiagnostics: number;
+  totalDurationMs: number;
+  maximumDurationMs: number;
+}
 
 interface CachedFormDefinition {
   readonly fingerprint: string;
@@ -562,16 +669,27 @@ function referencesBrowserOnlyJSONataContext(source: string): boolean {
 }
 
 export namespace Services {
-  /** Side-effect-free authoritative form/policy/context/group resolver. */
+  /**
+   * Resolves and executes authoritative record validation while exposing only
+   * bounded, value-free observability data.
+   *
+   * @extensionPoint Hooks may replace the service implementation or register a metrics hook; replacements must preserve authoritative form, operation, group, privacy, timeout, and shadow/enforce semantics.
+   * @remarks Metrics hooks are observational only. They cannot alter a validation result, and hook failures are isolated from the save boundary.
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/Server-Side-Form-Validation-Operations
+   */
   export class RecordValidation extends services.Core.Service {
     protected override _exportedMethods = [
       'resolve',
       'discoverOperations',
       'registerMetricsHooks',
+      'getShadowReport',
       'clearCaches',
       'getCacheStats',
     ];
     private readonly metricsHooks = new Set<RecordValidationMetricsHooks>();
+    private readonly shadowReportRows = new Map<string, MutableShadowReportRow>();
+    private shadowReportTotalRuns = 0;
+    private shadowReportOverflowRuns = 0;
     private readonly formDefinitionCache = new Map<string, CachedFormDefinition>();
     private readonly expressionCache = new Map<string, jsonata.Expression>();
     private readonly validatorMappingCache = new Map<string, ReadonlyMap<string, FormValidatorDefinition>>();
@@ -585,10 +703,41 @@ export namespace Services {
       if (metricsHooks) this.metricsHooks.add(metricsHooks);
     }
 
-    /** Add an observability hook and return a handle that unregisters only that hook. */
+    /**
+     * Add an observability hook without changing validation decisions.
+     *
+     * @param hooks Observer invoked once after each resolution.
+     * @returns A handle that unregisters only this observer.
+     */
     public registerMetricsHooks(hooks: RecordValidationMetricsHooks): () => void {
       this.metricsHooks.add(hooks);
       return () => this.metricsHooks.delete(hooks);
+    }
+
+    /**
+     * Read the process-local shadow aggregate used during rollout review.
+     *
+     * @returns A safe snapshot bounded by `shadowReportMaxSeries`.
+     */
+    public getShadowReport(): RecordValidationShadowReport {
+      const rows = [...this.shadowReportRows.values()]
+        .sort((left, right) =>
+          compareRecordValidationIdentifiers(
+            `${left.recordType}\u0000${left.operation}\u0000${left.formName}\u0000${left.code}`,
+            `${right.recordType}\u0000${right.operation}\u0000${right.formName}\u0000${right.code}`
+          )
+        )
+        .map(row => ({
+          ...row,
+          averageDurationMs: row.runs === 0 ? 0 : row.totalDurationMs / row.runs,
+        }));
+      return {
+        generatedAt: new Date().toISOString(),
+        totalRuns: this.shadowReportTotalRuns,
+        overflowRuns: this.shadowReportOverflowRuns,
+        maxSeries: this.shadowReportMaxSeries(),
+        rows,
+      };
     }
 
     /** Explicit invalidation surface for form/config reloads and isolated tests. */
@@ -598,7 +747,11 @@ export namespace Services {
       this.validatorMappingCache.clear();
     }
 
-    /** Bounded aggregate cache diagnostics; contains no keys or request-derived values. */
+    /**
+     * Read aggregate cache diagnostics without exposing cache keys.
+     *
+     * @returns Counts for each bounded service cache.
+     */
     public getCacheStats(): RecordValidationCacheStats {
       return {
         formDefinitions: this.formDefinitionCache.size,
@@ -607,11 +760,19 @@ export namespace Services {
       };
     }
 
+    /**
+     * Resolve the authoritative form and execute its blocking/advisory validators.
+     *
+     * @param request Complete server-owned candidate and save intent.
+     * @returns The authoritative decision plus safe diagnostics and resolved context.
+     */
     public async resolve(request: RecordValidationRequest): Promise<RecordValidationResult> {
+      const startedAt = performance.now();
       const diagnostics: RecordValidationDiagnostic[] = [];
       const progress: ResolutionProgress = { mode: 'shadow' };
+      let result: RecordValidationResult;
       try {
-        return await this.resolveRequest(request, diagnostics, progress);
+        result = await this.resolveRequest(request, diagnostics, progress);
       } catch {
         diagnostics.push(
           createDiagnostic(
@@ -619,19 +780,33 @@ export namespace Services {
             'Record validation resolution could not be completed.'
           )
         );
-        return this.buildResult(request, progress.mode, diagnostics, {
+        result = this.buildResult(progress.mode, diagnostics, {
           outcome: 'unresolved',
           operation: progress.operation,
           recordType: progress.recordType,
           formName: progress.formName,
         });
       }
+      try {
+        this.observeResolution(request, result, progress, performance.now() - startedAt);
+      } catch {
+        // Observability must never change the validation decision or save path.
+        try {
+          this.logger.warn('Record validation observability failed.');
+        } catch {
+          // A failed logger is observational too; preserve the resolved result.
+        }
+      }
+      return result;
     }
 
     /**
      * Resolve public operation metadata without executing expressions or
      * validators. Any incomplete/malformed context fails to an empty list so
      * discovery cannot become an authorization oracle or leak diagnostics.
+     *
+     * @param request Authorized server-owned discovery context.
+     * @returns Operations visible to the actor for the exact resolved form.
      */
     public async discoverOperations(
       request: RecordValidationOperationDiscoveryRequest
@@ -861,7 +1036,7 @@ export namespace Services {
       let mode = initialModeResolution.mode;
       progress.mode = mode;
       if (!normalized) {
-        return this.buildResult(request, mode, diagnostics, { outcome: 'unresolved', contractFailure: true });
+        return this.buildResult(mode, diagnostics, { outcome: 'unresolved', contractFailure: true });
       }
       const operation = normalized.operation;
       progress.operation = operation;
@@ -870,7 +1045,7 @@ export namespace Services {
       const recordTypeName = this.requiredReference(request.candidate.metaMetadata.type, 'recordType', diagnostics);
       progress.recordType = recordTypeName;
       if (!brand || !recordTypeName) {
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -886,7 +1061,7 @@ export namespace Services {
             'The candidate record type could not be resolved.'
           )
         );
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -903,7 +1078,7 @@ export namespace Services {
 
       const selection = await this.resolveFormSelection(normalized, recordType, diagnostics, dependencies);
       if (!selection)
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -920,7 +1095,7 @@ export namespace Services {
             { formName: selection.formName }
           )
         );
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -935,7 +1110,7 @@ export namespace Services {
             { formName: selection.formName }
           )
         );
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -958,7 +1133,7 @@ export namespace Services {
             { formName: selection.formName }
           )
         );
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -974,7 +1149,7 @@ export namespace Services {
         diagnostics
       );
       if (operation && !policy) {
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -983,7 +1158,7 @@ export namespace Services {
         });
       }
       if (policy && !this.authorizeOperation(policy, normalized, diagnostics)) {
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -1001,7 +1176,7 @@ export namespace Services {
         diagnostics
       );
       if (!context) {
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -1033,7 +1208,7 @@ export namespace Services {
         diagnostics.push(
           createDiagnostic(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout, 'Blocking record validation timed out.')
         );
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -1047,7 +1222,7 @@ export namespace Services {
             'Blocking record validation could not be completed.'
           )
         );
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -1055,7 +1230,7 @@ export namespace Services {
         });
       }
       if (!blockingRun.value) {
-        return this.buildResult(request, mode, diagnostics, {
+        return this.buildResult(mode, diagnostics, {
           outcome: 'unresolved',
           operation,
           recordType: recordTypeName,
@@ -1107,7 +1282,7 @@ export namespace Services {
           validatorDefinitions: sails.config.validators?.definitions ?? [],
         }),
       };
-      return this.buildResult(request, mode, diagnostics, {
+      return this.buildResult(mode, diagnostics, {
         outcome: 'resolved',
         operation,
         recordType: recordTypeName,
@@ -1859,7 +2034,6 @@ export namespace Services {
     }
 
     private buildResult(
-      request: RecordValidationRequest,
       mode: ValidationMode,
       diagnostics: readonly RecordValidationDiagnostic[],
       options: BuildResultOptions
@@ -1890,17 +2064,75 @@ export namespace Services {
               advisoryGroups: [...options.advisoryGroups],
             }
           : { ...common, status: 'unresolved' };
+      return result;
+    }
+
+    private observeResolution(
+      request: RecordValidationRequest,
+      result: RecordValidationResult,
+      progress: ResolutionProgress,
+      rawDurationMs: number
+    ): void {
       const requestId = safeRequestId(request.requestId);
+      const diagnosticCodes = result.diagnostics
+        .map(item => item.code)
+        .filter(code => SAFE_DIAGNOSTIC_CODE_PATTERN.test(code));
+      const diagnosticCodeSet = new Set(diagnosticCodes);
+      const blockingErrorCount = result.status === 'resolved' ? result.blockingErrors.length : 0;
+      const advisoryErrorCount = result.status === 'resolved' ? result.advisoryErrors.length : 0;
+      const timeoutKind: RecordValidationTimeoutKind = diagnosticCodeSet.has(
+        RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout
+      )
+        ? 'blocking'
+        : diagnosticCodeSet.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryTimeout)
+          ? 'advisory'
+          : 'none';
+      const requestRejected = [...diagnosticCodeSet].some(code => requestRejectionCodes.has(code));
+      const configurationDiagnosticCount = result.diagnostics.filter(
+        diagnostic =>
+          SAFE_DIAGNOSTIC_CODE_PATTERN.test(diagnostic.code) &&
+          !requestRejectionCodes.has(diagnostic.code) &&
+          diagnostic.code !== RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout &&
+          diagnostic.code !== RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryTimeout &&
+          diagnostic.code !== RECORD_VALIDATION_DIAGNOSTIC_CODES.requestParameterDropped
+      ).length;
+      const outcome: RecordValidationOutcome =
+        timeoutKind === 'blocking'
+          ? 'timed-out'
+          : requestRejected
+            ? 'request-rejected'
+            : configurationDiagnosticCount > 0 && result.diagnostics.some(item => item.severity === 'error')
+              ? 'configuration-error'
+              : blockingErrorCount > 0
+                ? 'invalid'
+                : 'valid';
+      const durationMs = Number.isFinite(rawDurationMs) && rawDurationMs >= 0 ? rawDurationMs : 0;
+      const wouldBlock =
+        outcome === 'invalid' ||
+        outcome === 'request-rejected' ||
+        outcome === 'configuration-error' ||
+        outcome === 'timed-out';
+      const formName = result.formName ?? progress.formName;
+      const operation = result.effectiveOperation ?? progress.operation;
       const metric: RecordValidationResolutionMetric = {
         ...(requestId ? { requestId } : {}),
-        ...(options.recordType ? { recordType: options.recordType } : {}),
+        ...(progress.recordType ? { recordType: progress.recordType } : {}),
         ...(formName ? { formName } : {}),
-        ...(options.operation ? { operation: options.operation } : {}),
-        mode,
+        ...(operation ? { operation } : {}),
+        mode: result.mode,
         status: result.status,
-        shouldBlock,
-        diagnosticCodes: diagnostics.map(item => item.code),
+        shouldBlock: result.shouldBlock,
+        wouldBlock,
+        outcome,
+        durationMs,
+        blockingErrorCount,
+        advisoryErrorCount,
+        timeoutKind,
+        configurationDiagnosticCount,
+        diagnosticCodes,
       };
+      this.emitOpenTelemetry(metric);
+      this.recordShadowReport(metric);
       for (const hooks of this.metricsHooks) {
         try {
           hooks.resolutionCompleted(metric);
@@ -1908,8 +2140,104 @@ export namespace Services {
           this.logger.warn('Record validation metrics hook failed.');
         }
       }
-      this.logger.debug('Record validation resolution completed.', metric);
-      return result;
+      this.logger.info('record_validation_completed', {
+        event: 'record_validation_completed',
+        request_id: metric.requestId ?? 'unavailable',
+        record_type: metric.recordType ?? UNRESOLVED_DIMENSION,
+        form: metric.formName ?? UNRESOLVED_DIMENSION,
+        validation_operation: metric.operation ?? STRICT_ALL_OPERATION,
+        mode: metric.mode,
+        status: metric.status,
+        outcome: metric.outcome,
+        should_block: metric.shouldBlock,
+        would_block: metric.wouldBlock,
+        blocking_error_count: metric.blockingErrorCount,
+        advisory_error_count: metric.advisoryErrorCount,
+        timeout_kind: metric.timeoutKind,
+        configuration_diagnostic_count: metric.configurationDiagnosticCount,
+        diagnostic_codes: metric.diagnosticCodes,
+        duration_ms: metric.durationMs,
+      });
+    }
+
+    private emitOpenTelemetry(metric: RecordValidationResolutionMetric): void {
+      const attributes: Attributes = {
+        'record_validation.mode': metric.mode,
+        'record_validation.outcome': metric.outcome,
+        'record_validation.status': metric.status,
+        'record_validation.record_type': metric.recordType ?? UNRESOLVED_DIMENSION,
+        'record_validation.form': metric.formName ?? UNRESOLVED_DIMENSION,
+        'record_validation.operation': metric.operation ?? STRICT_ALL_OPERATION,
+      };
+      try {
+        recordValidationDuration.record(metric.durationMs, attributes);
+        recordValidationRuns.add(1, attributes);
+        if (metric.blockingErrorCount > 0) recordValidationBlockingErrors.add(metric.blockingErrorCount, attributes);
+        if (metric.advisoryErrorCount > 0) recordValidationAdvisoryErrors.add(metric.advisoryErrorCount, attributes);
+        if (metric.timeoutKind !== 'none') {
+          recordValidationTimeouts.add(1, { ...attributes, 'record_validation.timeout_kind': metric.timeoutKind });
+        }
+        if (metric.configurationDiagnosticCount > 0) {
+          recordValidationConfigurationDiagnostics.add(metric.configurationDiagnosticCount, attributes);
+        }
+        for (const code of metric.diagnosticCodes) {
+          recordValidationDiagnostics.add(1, { ...attributes, 'record_validation.code': code });
+        }
+      } catch {
+        this.logger.warn('Record validation OpenTelemetry emission failed.');
+      }
+    }
+
+    private recordShadowReport(metric: RecordValidationResolutionMetric): void {
+      if (metric.mode !== 'shadow') return;
+      this.shadowReportTotalRuns += 1;
+      const recordType = metric.recordType ?? UNRESOLVED_DIMENSION;
+      const operation = metric.operation ?? STRICT_ALL_OPERATION;
+      const formName = metric.formName ?? UNRESOLVED_DIMENSION;
+      const codes = [...new Set(metric.diagnosticCodes.length > 0 ? metric.diagnosticCodes : [SHADOW_REPORT_NONE_CODE])];
+      const keys = codes.map(code => `${recordType}\u0000${operation}\u0000${formName}\u0000${code}`);
+      const missingSeries = keys.filter(key => !this.shadowReportRows.has(key)).length;
+      if (this.shadowReportRows.size + missingSeries > this.shadowReportMaxSeries()) {
+        this.shadowReportOverflowRuns += 1;
+        return;
+      }
+      for (let index = 0; index < keys.length; index += 1) {
+        const key = keys[index];
+        const code = codes[index];
+        const row = this.shadowReportRows.get(key) ?? {
+          recordType,
+          operation,
+          formName,
+          code,
+          runs: 0,
+          wouldReject: 0,
+          blockingErrors: 0,
+          advisoryErrors: 0,
+          timeouts: 0,
+          configurationDiagnostics: 0,
+          totalDurationMs: 0,
+          maximumDurationMs: 0,
+        };
+        row.runs += 1;
+        row.wouldReject += metric.wouldBlock ? 1 : 0;
+        row.blockingErrors += metric.blockingErrorCount;
+        row.advisoryErrors += metric.advisoryErrorCount;
+        row.timeouts += metric.timeoutKind === 'none' ? 0 : 1;
+        row.configurationDiagnostics += metric.configurationDiagnosticCount;
+        row.totalDurationMs += metric.durationMs;
+        row.maximumDurationMs = Math.max(row.maximumDurationMs, metric.durationMs);
+        this.shadowReportRows.set(key, row);
+      }
+    }
+
+    private shadowReportMaxSeries(): number {
+      const configured = sails.config.recordValidation?.shadowReportMaxSeries;
+      return typeof configured === 'number' &&
+        Number.isSafeInteger(configured) &&
+        configured > 0 &&
+        configured <= SHADOW_REPORT_MAX_SERIES_LIMIT
+        ? configured
+        : DEFAULT_RECORD_VALIDATION_SHADOW_REPORT_MAX_SERIES;
     }
   }
 }
