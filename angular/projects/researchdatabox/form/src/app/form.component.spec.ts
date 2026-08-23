@@ -828,8 +828,6 @@ describe('FormComponent', () => {
       failureSub.unsubscribe();
     }
   });
-    }
-  });
 
   it('fails save when pending async validation times out', async () => {
     const fixture = TestBed.createComponent(FormComponent);
