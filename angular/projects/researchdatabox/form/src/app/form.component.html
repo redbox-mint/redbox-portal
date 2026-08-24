@@ -3,8 +3,12 @@
     [conflict]="conflictState()"
     [review]="conflictReview()"
     [resolving]="manualConflictResolutionPending()"
+    [mergeAllowed]="manualConflictMergeAllowed"
+    [resolution]="saveResponse()?.concurrency?.resolution === 'already-current' ? 'already-current' : undefined"
     (reviewRequested)="reviewConflictChanges()"
     (discardRequested)="discardConflictChanges()"
+    (exportRequested)="exportConflictLocalValues()"
+    (reloadRequested)="reloadCurrentFormAfterConflict()"
     (resolutionRequested)="submitManualConflictResolution($event)"
   ></redbox-form-conflict-presenter>
 

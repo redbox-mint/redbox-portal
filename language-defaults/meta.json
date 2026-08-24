@@ -6569,6 +6569,201 @@
     "description": "Error text shown when typeahead matches cannot be fetched",
     "contentFormat": "plain"
   },
+  "@form-conflict-stale-title": {
+    "category": "form",
+    "description": "Heading shown after a record revision conflict",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-stale-message": {
+    "category": "form",
+    "description": "Message shown while stale record edits remain unresolved",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reviewing-title": {
+    "category": "form",
+    "description": "Heading shown while reviewing concurrent record changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reviewing-message": {
+    "category": "form",
+    "description": "Message shown while reviewing concurrent record changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-merging-title": {
+    "category": "form",
+    "description": "Heading shown while a non-overlapping conflict retry is in progress",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-merging-message": {
+    "category": "form",
+    "description": "Message shown while a non-overlapping conflict retry is in progress",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-already-current-title": {
+    "category": "form",
+    "description": "Heading shown when the latest record already contains the local changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-already-current-message": {
+    "category": "form",
+    "description": "Message shown when no conflict retry write was needed",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-repeated-race-title": {
+    "category": "form",
+    "description": "Heading shown when a conflict resolution loses a second race",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-repeated-race-message": {
+    "category": "form",
+    "description": "Message shown when a conflict resolution loses a second race",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-form-changed-title": {
+    "category": "form",
+    "description": "Heading shown when the generated form contract changed",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-form-changed-message": {
+    "category": "form",
+    "description": "Message explaining that form drift disables same-form merging",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-old-tab-title": {
+    "category": "form",
+    "description": "Heading shown when an unversioned tab receives a precondition-required response",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-old-tab-message": {
+    "category": "form",
+    "description": "Message explaining that an unversioned tab is review-only",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-deleted-title": {
+    "category": "form",
+    "description": "Non-disclosing heading shown when the edited record was deleted",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-deleted-message": {
+    "category": "form",
+    "description": "Non-disclosing message shown when the edited record was deleted",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-permission-lost-title": {
+    "category": "form",
+    "description": "Heading shown when current edit permission is unavailable",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-permission-lost-message": {
+    "category": "form",
+    "description": "Non-disclosing message shown when current edit permission is unavailable",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-action": {
+    "category": "form",
+    "description": "Action label to open concurrent change review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-action": {
+    "category": "form",
+    "description": "Action label to discard local edits and adopt the latest record",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-export-action": {
+    "category": "form",
+    "description": "Action label to download unsaved form values",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-load-current-form-action": {
+    "category": "form",
+    "description": "Action label to reload the page with the current generated form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-heading": {
+    "category": "form",
+    "description": "Heading for the concurrent change review region",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-instructions": {
+    "category": "form",
+    "description": "Instructions for choosing concurrent field values",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-no-overlaps": {
+    "category": "form",
+    "description": "Status shown when conflict review has no divergent overlap",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-only": {
+    "category": "form",
+    "description": "Status explaining that old-tab values are available only for comparison",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-whole-repeatable": {
+    "category": "form",
+    "description": "Badge for an atomic repeatable conflict",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-whole-repeatable-help": {
+    "category": "form",
+    "description": "Explanation that a repeatable conflict is resolved as one value",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-mine": {
+    "category": "form",
+    "description": "Label for the local value in conflict review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-latest": {
+    "category": "form",
+    "description": "Label for the latest record value in conflict review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-save-resolution": {
+    "category": "form",
+    "description": "Action label to submit manually resolved changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-saving-resolution": {
+    "category": "form",
+    "description": "Busy label while manually resolved changes are saving",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-choices-required": {
+    "category": "form",
+    "description": "Status prompting for every manual conflict choice",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-title": {
+    "category": "form",
+    "description": "Heading for the unresolved-edits discard confirmation",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-message": {
+    "category": "form",
+    "description": "Warning before discarding unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reload-warning-message": {
+    "category": "form",
+    "description": "Warning before exporting edits and loading the current form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-confirm": {
+    "category": "form",
+    "description": "Confirmation label for discarding unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-cancel": {
+    "category": "form",
+    "description": "Cancellation label for keeping unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-navigation-warning": {
+    "category": "form",
+    "description": "Browser navigation warning for unresolved memory-only conflict edits",
+    "contentFormat": "plain"
+  },
   "@form-confirm-dialog-title": {
     "category": "form",
     "description": "Default title for a form confirmation dialog",

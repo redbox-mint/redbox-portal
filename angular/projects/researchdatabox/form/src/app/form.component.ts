@@ -21,6 +21,7 @@ import {
   effect,
   ElementRef,
   HostBinding,
+  HostListener,
   Inject,
   inject,
   model,
@@ -84,6 +85,7 @@ import {
   FormValidatorTargetFieldConfig,
   RecordSaveIssue,
   RecordSaveResult,
+  isRecordFormFingerprint,
   isMatchingLineagePaths,
   JSONataQuerySource,
   LineagePathsOptional,
@@ -375,6 +377,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
   private readonly document = inject(DOCUMENT);
   private window: Window & typeof globalThis | null;
+  private allowConflictNavigationOnce = false;
 
   protected configObj: Record<string, unknown> = {};
 
@@ -1558,6 +1561,24 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     );
   }
 
+  /** Manual same-form submission is deliberately narrower than review/display. */
+  public get manualConflictMergeAllowed(): boolean {
+    const conflict = this.formConflictState();
+    const baseline = this.recordBaselineState();
+    if (!conflict || conflict.cause !== 'record-stale') {
+      return false;
+    }
+    const local = this.getPersistedFormValue();
+    const plan = planFormConflictRebase(
+      baseline,
+      { ...conflict, status: 'stale' },
+      local,
+      this.formDefMap?.formFingerprint,
+      this.currentFormRecordIdentity()
+    );
+    return plan.eligible || plan.reason === 'overlapping-changes';
+  }
+
   /** Adopt a trusted latest baseline and place its rebased candidate in the form before retry dispatch. */
   private async prepareConflictRetry(
     conflict: FormConflictState,
@@ -1675,7 +1696,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     response: RecordActionResult,
     baseline: FormRecordBaselineState | null = this.recordBaselineState()
   ): void {
-    if (typeof response?.isDefinitiveConflict !== 'function' || !response.isDefinitiveConflict()) {
+    const isAuthorizationLost =
+      response?.outcome === 'not-saved' && response.concurrencyOutcome === 'authorization-lost';
+    const isDeleted = response.concurrencyOutcome === 'deleted';
+    const discloseLatest = !isAuthorizationLost && !isDeleted;
+    if (!discloseLatest) {
+      // Keep the result safe when the caller subsequently publishes and stores
+      // it. These outcomes need only their typed cause and local-value export;
+      // no returned record projection or current coordinates are retained.
+      response.metadata = null;
+      response.data = null;
+      response.concurrency = undefined;
+    }
+    if (
+      typeof response?.isDefinitiveConflict !== 'function' ||
+      (!response.isDefinitiveConflict() && !isAuthorizationLost)
+    ) {
       return;
     }
     if (this.recordBaselineState() !== baseline) {
@@ -1687,42 +1723,68 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       return;
     }
     const currentOid = baseline?.oid ?? this.trimmedParams.oid();
-    if ((currentOid && response.oid !== currentOid) || (!currentOid && Boolean(response.oid))) {
+    if (
+      (response.oid && currentOid && response.oid !== currentOid) ||
+      (!currentOid && Boolean(response.oid)) ||
+      (!response.oid && currentOid && !isAuthorizationLost)
+    ) {
       this.loggerService.warn(`${this.logName}: ignored a conflict response without the current record identity.`);
       return;
     }
     const local = immutableFormMetadata(this.getPersistedFormValue());
-    const latest = response.metadata === null ? null : immutableFormMetadata(response.metadata);
     const current = response.concurrency;
     const previousConflict = this.formConflictState();
     const revisionStale = this.isRecordRevisionStaleConflict(response);
+    const responseFingerprint = current?.formFingerprint;
+    const renderedFingerprint = this.formDefMap?.formFingerprint;
+    const baselineFingerprint = baseline?.formFingerprint;
+    const knownFormDrift =
+      response.concurrencyOutcome === 'form-changed' ||
+      (isRecordFormFingerprint(baselineFingerprint) &&
+        isRecordFormFingerprint(responseFingerprint) &&
+        baselineFingerprint !== responseFingerprint) ||
+      (isRecordFormFingerprint(baselineFingerprint) &&
+        isRecordFormFingerprint(renderedFingerprint) &&
+        baselineFingerprint !== renderedFingerprint);
     const repeatedRace =
       previousConflict?.status === 'retrying' ||
       previousConflict?.autoRetryAttempted === true ||
       current?.resolution === 'client-auto-merged';
-    const status =
-      response.concurrencyOutcome === 'form-changed'
-        ? 'form-changed'
-        : response.concurrencyOutcome === 'deleted'
-          ? 'deleted'
-          : response.concurrencyOutcome === 'stale' && !revisionStale
-            ? 'reviewing'
-            : repeatedRace
-              ? 'reviewing'
-              : 'stale';
+    // Authorization and deletion outcomes take precedence over any duplicated
+    // fingerprint metadata. They also retain no server projection or current
+    // coordinates in the form-scoped conflict state: the local values are all
+    // that the presenter needs for its non-disclosing export action.
+    const latest = discloseLatest && response.metadata !== null ? immutableFormMetadata(response.metadata) : null;
+    let cause: FormConflictState['cause'] = 'record-stale';
+    let status: FormConflictStatus =
+      repeatedRace || (response.concurrencyOutcome === 'stale' && !revisionStale) ? 'reviewing' : 'stale';
+    if (isAuthorizationLost) {
+      cause = 'permission-lost';
+      status = 'permission-lost';
+    } else if (isDeleted) {
+      cause = 'deleted';
+      status = 'deleted';
+    } else if (knownFormDrift) {
+      cause = 'form-changed';
+      status = 'form-changed';
+    } else if (response.concurrencyOutcome === 'precondition-required') {
+      cause = 'precondition-required';
+      status = 'reviewing';
+    }
     const nextConflict = {
       requestId: response.requestId,
+      cause,
       base: baseline?.metadata ?? immutableFormMetadata({}),
       local,
       latest,
       ...(baseline?.revision !== undefined ? { baseRevision: baseline.revision } : {}),
-      ...(current?.revision !== undefined || current?.currentRevision !== undefined
+      ...(discloseLatest && (current?.revision !== undefined || current?.currentRevision !== undefined)
         ? { latestRevision: current.revision ?? current.currentRevision }
         : {}),
       ...(baseline?.entityTag ? { baseEntityTag: baseline.entityTag } : {}),
-      ...(current?.entityTag ? { latestEntityTag: current.entityTag } : {}),
+      ...(discloseLatest && current?.entityTag ? { latestEntityTag: current.entityTag } : {}),
       ...(baseline?.formFingerprint ? { baseFormFingerprint: baseline.formFingerprint } : {}),
-      ...(current?.formFingerprint ? { latestFormFingerprint: current.formFingerprint } : {}),
+      ...(discloseLatest && current?.formFingerprint ? { latestFormFingerprint: current.formFingerprint } : {}),
       status,
       autoRetryAttempted: repeatedRace,
     } satisfies FormConflictState;
@@ -1735,7 +1797,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   /** Open or refresh inline review without disabling any form controls. */
   public reviewConflictChanges(): void {
     const conflict = this.formConflictState();
-    if (!conflict || (conflict.status !== 'stale' && conflict.status !== 'reviewing')) {
+    if (
+      !conflict ||
+      (conflict.cause !== 'record-stale' && conflict.cause !== 'precondition-required') ||
+      (conflict.status !== 'stale' && conflict.status !== 'reviewing')
+    ) {
       return;
     }
     const local = immutableFormMetadata(this.getPersistedFormValue());
@@ -1764,7 +1830,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     }
     const conflict = this.formConflictState();
     const baseline = this.recordBaselineState();
-    if (!conflict?.latest || (conflict.status !== 'stale' && conflict.status !== 'reviewing')) {
+    if (
+      !conflict?.latest ||
+      conflict.cause !== 'record-stale' ||
+      (conflict.status !== 'stale' && conflict.status !== 'reviewing')
+    ) {
       return false;
     }
 
@@ -1815,6 +1885,85 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         );
       }
     }
+  }
+
+  /**
+   * Return and download a user-initiated, memory-only copy of the local values.
+   * The object URL is revoked immediately and no browser or server draft store
+   * is used.
+   */
+  public exportConflictLocalValues(): string | null {
+    const conflict = this.formConflictState();
+    if (!conflict) {
+      return null;
+    }
+    const local = immutableFormMetadata(this.getPersistedFormValue());
+    this.formConflictState.set({ ...conflict, local });
+    const content = JSON.stringify(
+      {
+        oid: this.trimmedParams.oid(),
+        recordType: this.trimmedParams.recordType(),
+        formName: this.trimmedParams.formName(),
+        unsavedValues: local,
+      },
+      null,
+      2
+    );
+    const urlApi = this.window?.URL;
+    if (!urlApi?.createObjectURL) {
+      return content;
+    }
+    const url = urlApi.createObjectURL(new Blob([content], { type: 'application/json' }));
+    const link = this.document.createElement('a');
+    const safeOid =
+      this.trimmedParams
+        .oid()
+        .replace(/[^A-Za-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'record';
+    link.href = url;
+    link.download = `${safeOid}-unsaved-values.json`;
+    link.hidden = true;
+    this.document.body.appendChild(link);
+    link.click();
+    link.remove();
+    urlApi.revokeObjectURL(url);
+    return content;
+  }
+
+  /** Export first, then permit exactly the explicit reload that obtains the current form. */
+  public reloadCurrentFormAfterConflict(): void {
+    const conflict = this.formConflictState();
+    const sameFormMergeUnavailable = conflict?.cause === 'record-stale' && !this.manualConflictMergeAllowed;
+    if (
+      !conflict ||
+      (conflict.cause !== 'form-changed' && conflict.cause !== 'precondition-required' && !sameFormMergeUnavailable)
+    ) {
+      return;
+    }
+    this.exportConflictLocalValues();
+    this.allowConflictNavigationOnce = true;
+    this.reloadWindow();
+  }
+
+  protected reloadWindow(): void {
+    this.window?.location.reload();
+  }
+
+  /** Native navigation warning for unresolved memory-only conflict work. */
+  @HostListener('window:beforeunload', ['$event'])
+  public protectUnresolvedConflictNavigation(event: BeforeUnloadEvent): string | undefined {
+    if (this.allowConflictNavigationOnce) {
+      this.allowConflictNavigationOnce = false;
+      return undefined;
+    }
+    if (!this.formConflictState()) {
+      return undefined;
+    }
+    const translated = this.translationService.t('@form-conflict-navigation-warning');
+    const warning = typeof translated === 'string' ? translated : '@form-conflict-navigation-warning';
+    event.preventDefault();
+    event.returnValue = warning;
+    return warning;
   }
 
   /**
