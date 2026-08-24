@@ -993,6 +993,20 @@ export const deletedRecordListItemSchema = withOpenApi(
     .object({
       oid: z.string(),
       revision: recordRevisionSchema,
+      lifecycleState: z.enum(['delete-pending', 'deleted', 'restore-pending', 'purge-pending', 'recovery-required']),
+      lifecycle: z
+        .object({
+          kind: z.enum(['delete', 'restore', 'purge']),
+          attempts: z.number().int().nonnegative(),
+          startedAt: dateTimeSchema,
+          updatedAt: dateTimeSchema,
+          errorCode: z
+            .string()
+            .max(64)
+            .regex(/^[a-z0-9][a-z0-9-]{0,63}$/)
+            .optional(),
+        })
+        .optional(),
       title: z.string().optional(),
       deletedRecord: jsonObjectSchema,
       dateCreated: dateTimeSchema.optional(),

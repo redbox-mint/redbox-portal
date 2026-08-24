@@ -13,6 +13,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../../src/StorageService';
 import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
+import { createRecordSaveContext } from '../../src/RecordSaveResponse';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
@@ -44,6 +45,41 @@ describe('RecordsService', function () {
       updateMeta: sinon.stub().resolves({ success: true, oid: 'record-123', isSuccessful: () => true }),
       getMeta: sinon.stub().resolves({ redboxOid: 'record-123', metadata: { title: 'Test' } }),
       getDeletedRecordMeta: sinon.stub().resolves({ redboxOid: 'deleted-record-123' }),
+      createTombstone: sinon.stub().callsFake(async (_brand: any, oid: string, tombstone: any) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+        committedRevision: tombstone.revision,
+        committedRecord: structuredClone(tombstone),
+      })),
+      removeActiveRecord: sinon.stub().callsFake(async (_brand: any, oid: string, options: any) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+        committedRevision: options.precondition.expectedRevision + 1,
+        removedRecord: structuredClone(await mockStorageService.getMeta(oid)),
+      })),
+      updateTombstone: sinon.stub().callsFake(async (_brand: any, oid: string, mutation: any) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+        committedRevision: mutation.lifecycleOperation?.targetRevision,
+        committedRecord: structuredClone(mutation),
+      })),
+      removeTombstone: sinon.stub().callsFake(async (_brand: any, oid: string) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+      })),
+      createActiveRecordFromTombstone: sinon
+        .stub()
+        .callsFake(async (_brand: any, oid: string, record: any, options: any) => ({
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: options.precondition.expectedRevision + 1,
+          committedRecord: { ...structuredClone(record), revision: options.precondition.expectedRevision + 1 },
+        })),
       delete: sinon.stub().resolves({ success: true, isSuccessful: () => true }),
       getRecords: sinon.stub().resolves({ items: [] }),
       getRecordAudit: sinon.stub().resolves([]),
@@ -68,6 +104,7 @@ describe('RecordsService', function () {
 
     mockDatastreamService = {
       listDatastreams: sinon.stub().resolves([]),
+      removeDatastream: sinon.stub().resolves({ success: true }),
     };
 
     mockSails = createMockSails({
@@ -225,6 +262,22 @@ describe('RecordsService', function () {
     delete (globalThis as any).__w05Hooks;
     sinon.restore();
   });
+
+  function enableLifecycleStorage() {
+    mockStorageService.getCapabilities = sinon.stub().returns({
+      recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+    });
+    mockStorageService.getTombstone = sinon.stub().resolves(null);
+    mockStorageService.getLifecycleTombstones = sinon.stub().resolves([]);
+    mockStorageService.getMeta.resolves({
+      redboxOid: 'record-123',
+      revision: 1,
+      metadata: { title: 'Test' },
+      metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+      authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+      workflow: { stage: 'draft' },
+    });
+  }
 
   describe('constructor', function () {
     it('should set logHeader', function () {
@@ -1030,6 +1083,10 @@ describe('RecordsService', function () {
   });
 
   describe('delete', function () {
+    beforeEach(function () {
+      enableLifecycleStorage();
+    });
+
     it('should delete record if user has access', async function () {
       const user = { username: 'admin' };
       const record = {
@@ -1042,7 +1099,10 @@ describe('RecordsService', function () {
 
       const result = await RecordsService.delete('record-123', user);
 
-      expect(mockStorageService.delete.calledWith('record-123')).to.be.true;
+      expect(mockStorageService.createTombstone.calledOnce).to.be.true;
+      expect(mockStorageService.removeActiveRecord.calledOnce).to.be.true;
+      expect(mockStorageService.updateTombstone.calledOnce).to.be.true;
+      expect(mockStorageService.delete.notCalled).to.be.true;
       expect(mockSearchService.remove.calledWith('record-123')).to.be.true;
       expect(result).to.have.property('success', true);
 
@@ -1060,7 +1120,7 @@ describe('RecordsService', function () {
       );
 
       expect(result.success).to.equal(true);
-      expect(mockStorageService.delete.calledWith('record-123')).to.equal(true);
+      expect(mockStorageService.removeActiveRecord.calledWithMatch({ id: 'brand-1' }, 'record-123')).to.equal(true);
     });
 
     it('never throws malformed configuration from fire-and-forget post hooks', function () {
@@ -1073,6 +1133,512 @@ describe('RecordsService', function () {
           { username: 'admin' }
         )
       ).not.to.throw();
+    });
+  });
+
+  describe('W07 lifecycle concurrency', function () {
+    beforeEach(function () {
+      enableLifecycleStorage();
+    });
+
+    const lifecycleRecord = (revision = 7, brandId = 'brand-1') => ({
+      redboxOid: 'record-123',
+      revision,
+      metadata: { title: 'Lifecycle record' },
+      metaMetadata: { type: 'rdmp', form: 'default-form', brandId },
+      authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+      workflow: { stage: 'draft' },
+    });
+
+    const publicContext = (
+      operation: 'delete' | 'restore' | 'purge',
+      expectedRevision?: number,
+      resolution: 'direct' | 'client-manually-resolved' = 'direct'
+    ) =>
+      createRecordSaveContext({
+        routeFamily: 'api',
+        operation,
+        concurrency: {
+          entityTagSupplied: expectedRevision !== undefined,
+          expectedRevision,
+          resolution,
+        },
+      });
+
+    const setMode = (mode: 'strict' | 'observe' | 'last-write-wins') => {
+      mockStorageService.getCapabilities.returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+      (global as any).RecordTypesService.get.returns(
+        of({ name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode } })
+      );
+    };
+
+    it('enforces strict, observe, and last-write-wins lifecycle preconditions before storage dispatch', async function () {
+      mockStorageService.getMeta.resolves(lifecycleRecord());
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+
+      setMode('strict');
+      const strictMissing = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete')
+      );
+      expect(strictMissing.outcome).to.equal('not-saved');
+      expect(strictMissing.problems[0].issues[0].code).to.equal('record-precondition-required');
+      expect(mockStorageService.createTombstone.notCalled).to.equal(true);
+
+      setMode('observe');
+      const observeTokenless = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete')
+      );
+      expect(observeTokenless.outcome).to.equal('saved');
+      expect(mockStorageService.removeActiveRecord.firstCall.args[2].precondition.expectedRevision).to.equal(7);
+
+      mockStorageService.createTombstone.resetHistory();
+      setMode('last-write-wins');
+      const staleExplicit = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete', 6)
+      );
+      expect(staleExplicit.outcome).to.equal('not-saved');
+      expect(staleExplicit.problems[0].issues[0].code).to.equal('record-revision-stale');
+      expect(mockStorageService.createTombstone.notCalled).to.equal(true);
+    });
+
+    it('allows exactly one winner in a delete/delete intent race', async function () {
+      setMode('observe');
+      mockStorageService.getMeta.resolves(lifecycleRecord());
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      let claimed = false;
+      mockStorageService.createTombstone.callsFake(async (_brand: any, oid: string, tombstone: any) => {
+        if (claimed) {
+          return { oid, applicationState: 'not-applied', nonApplicationReason: 'lifecycle-conflict' };
+        }
+        claimed = true;
+        return {
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: tombstone.revision,
+          committedRecord: tombstone,
+        };
+      });
+
+      const [first, second] = await Promise.all(
+        [0, 1].map(() =>
+          RecordsService.delete(
+            'record-123',
+            false,
+            lifecycleRecord(),
+            undefined,
+            { username: 'user-1' },
+            publicContext('delete')
+          )
+        )
+      );
+
+      expect([first.outcome, second.outcome].sort()).to.deep.equal(['not-saved', 'saved']);
+      const loser = [first, second].find(result => result.outcome === 'not-saved');
+      expect(loser.problems[0].issues[0].code).to.equal('record-lifecycle-operation-conflict');
+      expect(mockStorageService.removeActiveRecord.calledOnce).to.equal(true);
+    });
+
+    it('serializes incompatible restore/purge claims against the tombstone state and revision', async function () {
+      setMode('observe');
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      const tombstone = {
+        redboxOid: 'record-123',
+        revision: 9,
+        brandId: 'brand-1',
+        lifecycleState: 'deleted',
+        deletedRecordMetadata: lifecycleRecord(7),
+      };
+      mockStorageService.getTombstone.resolves(tombstone);
+      let claimed = false;
+      mockStorageService.updateTombstone.callsFake(async (_brand: any, oid: string, mutation: any) => {
+        if (claimed) {
+          return { oid, applicationState: 'not-applied', nonApplicationReason: 'lifecycle-conflict' };
+        }
+        claimed = true;
+        return {
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: mutation.lifecycleOperation.targetRevision,
+        };
+      });
+
+      const [restore, purge] = await Promise.all([
+        RecordsService.restoreRecord('record-123', { username: 'user-1' }, { id: 'brand-1' }, publicContext('restore')),
+        RecordsService.destroyDeletedRecord(
+          'record-123',
+          { username: 'user-1' },
+          { id: 'brand-1' },
+          publicContext('purge')
+        ),
+      ]);
+
+      expect([restore.outcome, purge.outcome].sort()).to.deep.equal(['not-saved', 'saved']);
+      expect(mockStorageService.createActiveRecordFromTombstone.calledOnce).to.equal(true);
+      expect(mockDatastreamService.listDatastreams.notCalled).to.equal(true);
+    });
+
+    it('keeps missing, cross-brand, and access-denied lifecycle failures private', async function () {
+      setMode('observe');
+      const editAccess = sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      mockStorageService.getMeta.rejects(new Error('not found'));
+      const missing = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete', 7)
+      );
+
+      mockStorageService.getMeta.resolves(lifecycleRecord(7, 'brand-2'));
+      const crossBrand = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(7, 'brand-1'),
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete', 7)
+      );
+
+      mockStorageService.getMeta.resolves(lifecycleRecord());
+      editAccess.returns(false);
+      const denied = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'other-user' },
+        publicContext('delete', 7)
+      );
+
+      const codes = [missing, crossBrand, denied].map(result => result.problems[0].issues[0].code);
+      expect(new Set(codes).size).to.equal(1);
+      for (const result of [missing, crossBrand, denied]) {
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.concurrency).to.equal(undefined);
+      }
+      expect(mockStorageService.createTombstone.notCalled).to.equal(true);
+    });
+
+    it('retains an ambiguous delete for recovery and returns a typed unknown outcome', async function () {
+      setMode('observe');
+      mockStorageService.getMeta.resolves(lifecycleRecord());
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      mockStorageService.removeActiveRecord.rejects(new Error('connection reset after dispatch'));
+
+      const result = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete', 7)
+      );
+
+      expect(result.outcome).to.equal('unknown');
+      expect(result.problems[0].issues[0].code).to.equal('record-lifecycle-unknown');
+      expect(mockStorageService.updateTombstone.calledOnce).to.equal(true);
+      expect(mockStorageService.updateTombstone.firstCall.args[2].lifecycleState).to.equal('recovery-required');
+      expect(mockStorageService.removeTombstone.notCalled).to.equal(true);
+    });
+
+    it('preserves fresh resolution linkage in durable intent but omits request identifiers from tombstone reads', async function () {
+      setMode('observe');
+      mockStorageService.getMeta.resolves(lifecycleRecord());
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      const requestId = '11111111-1111-4111-8111-111111111111';
+      const conflictRequestId = '22222222-2222-4222-8222-222222222222';
+      const context = createRecordSaveContext({
+        requestId,
+        routeFamily: 'api',
+        operation: 'delete',
+        concurrency: {
+          entityTagSupplied: true,
+          expectedRevision: 7,
+          resolution: 'client-manually-resolved',
+          resolutionOfRequestId: conflictRequestId,
+        },
+      });
+
+      const result = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'user-1' },
+        context
+      );
+      expect(result.outcome).to.equal('saved');
+      const durableIntent = mockStorageService.createTombstone.firstCall.args[2];
+      expect(durableIntent.lifecycleOperation).to.include({
+        requestId,
+        resolutionOfRequestId: conflictRequestId,
+        resolution: 'client-manually-resolved',
+      });
+      expect(durableIntent.lifecycleOperation.operationId).to.be.a('string').and.not.equal(requestId);
+
+      mockStorageService.getTombstone.resolves({
+        ...durableIntent,
+        lifecycleState: 'deleted',
+        revision: 9,
+      });
+      const read = await RecordsService.getDeletedRecordMeta('record-123', { id: 'brand-1' });
+      expect(read.lifecycle).to.deep.include({ kind: 'delete', attempts: 1 });
+      expect(JSON.stringify(read.lifecycle)).not.to.include(requestId);
+      expect(JSON.stringify(read.lifecycle)).not.to.include(conflictRequestId);
+      expect(JSON.stringify(read.lifecycle)).not.to.include(durableIntent.lifecycleOperation.operationId);
+    });
+
+    it('fails closed before dispatch when lifecycle CAS is unsupported', async function () {
+      setMode('last-write-wins');
+      mockStorageService.getMeta.resolves(lifecycleRecord());
+      mockStorageService.getCapabilities.returns({
+        recordConcurrency: {
+          ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+          conditionalTombstoneCreate: false,
+        },
+      });
+
+      const result = await RecordsService.delete(
+        'record-123',
+        false,
+        lifecycleRecord(),
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete')
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('record-concurrency-capability-unavailable');
+      expect(mockStorageService.createTombstone.notCalled).to.equal(true);
+    });
+
+    it('recovers a completed restore idempotently without creating another active record', async function () {
+      const operation = {
+        operationId: '33333333-3333-4333-8333-333333333333',
+        kind: 'restore',
+        requestId: '44444444-4444-4444-8444-444444444444',
+        sourceRevision: 9,
+        targetRevision: 10,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:01.000Z',
+        attempts: 1,
+        resolution: 'direct',
+      };
+      const tombstone = {
+        redboxOid: 'record-123',
+        revision: 10,
+        brandId: 'brand-1',
+        lifecycleState: 'restore-pending',
+        lifecycleOperation: operation,
+        deletedRecordMetadata: lifecycleRecord(7),
+      };
+      let present = true;
+      mockStorageService.getTombstone.callsFake(async () => (present ? tombstone : null));
+      mockStorageService.getMeta.resolves({
+        ...lifecycleRecord(11),
+        lifecycleOperationId: operation.operationId,
+      });
+      mockStorageService.removeTombstone.callsFake(async () => {
+        present = false;
+        return { success: true, oid: 'record-123', applicationState: 'applied' };
+      });
+
+      const first = await RecordsService.recoverLifecycleOperation(tombstone);
+      const retry = await RecordsService.recoverLifecycleOperation(tombstone);
+
+      expect(first).to.equal('completed');
+      expect(retry).to.equal('cancelled');
+      expect(mockStorageService.createActiveRecordFromTombstone.notCalled).to.equal(true);
+      expect(mockStorageService.removeTombstone.calledOnce).to.equal(true);
+    });
+
+    it('never lets delete recovery remove an active record from a newer lineage', async function () {
+      const operation = {
+        operationId: '55555555-5555-4555-8555-555555555555',
+        kind: 'delete',
+        requestId: '66666666-6666-4666-8666-666666666666',
+        sourceRevision: 7,
+        targetRevision: 8,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:01.000Z',
+        attempts: 1,
+        resolution: 'direct',
+      };
+      const tombstone = {
+        redboxOid: 'record-123',
+        revision: 8,
+        brandId: 'brand-1',
+        lifecycleState: 'delete-pending',
+        lifecycleOperation: operation,
+        deletedRecordMetadata: lifecycleRecord(7),
+      };
+      mockStorageService.getTombstone.resolves(tombstone);
+      mockStorageService.getMeta.resolves(lifecycleRecord(9));
+
+      const recovered = await RecordsService.recoverLifecycleOperation(tombstone);
+
+      expect(recovered).to.equal('cancelled');
+      expect(mockStorageService.removeActiveRecord.notCalled).to.equal(true);
+      expect(mockStorageService.removeTombstone.calledOnce).to.equal(true);
+      expect(mockStorageService.removeTombstone.firstCall.args[2].lifecycle).to.deep.equal({
+        expectedState: 'delete-pending',
+        operationId: operation.operationId,
+      });
+    });
+
+    it('resumes an interruption after active removal but before tombstone finalization', async function () {
+      setMode('observe');
+      const active = lifecycleRecord(7);
+      let tombstone: any;
+      mockStorageService.getMeta.resolves(active);
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      mockStorageService.createTombstone.callsFake(async (_brand: any, oid: string, candidate: any) => {
+        tombstone = structuredClone(candidate);
+        return {
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: candidate.revision,
+          committedRecord: candidate,
+        };
+      });
+      mockStorageService.removeActiveRecord.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 7,
+        removedRecord: active,
+      });
+      mockStorageService.updateTombstone.onFirstCall().resolves({
+        oid: 'record-123',
+        applicationState: 'unknown',
+      });
+
+      const interrupted = await RecordsService.delete(
+        'record-123',
+        false,
+        active,
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete', 7)
+      );
+      expect(interrupted.outcome).to.equal('saved-with-warnings');
+
+      mockStorageService.getTombstone.resolves(tombstone);
+      mockStorageService.getMeta.resolves(null);
+      mockStorageService.updateTombstone.onSecondCall().callsFake(async (_brand: any, oid: string, mutation: any) => {
+        tombstone = {
+          ...tombstone,
+          ...mutation,
+          revision: mutation.lifecycleOperation.targetRevision,
+        };
+        return {
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: tombstone.revision,
+          committedRecord: tombstone,
+        };
+      });
+
+      const recovered = await RecordsService.recoverLifecycleOperation(tombstone);
+      expect(recovered).to.equal('completed');
+      expect(tombstone.lifecycleState).to.equal('deleted');
+      expect(tombstone.revision).to.equal(9);
+      expect(mockStorageService.removeActiveRecord.calledOnce).to.equal(true);
+    });
+
+    it('removes a purge tombstone only after every physical datastream is confirmed absent', async function () {
+      setMode('observe');
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      const tombstone = {
+        redboxOid: 'record-123',
+        revision: 9,
+        brandId: 'brand-1',
+        lifecycleState: 'deleted',
+        deletedRecordMetadata: lifecycleRecord(7),
+      };
+      mockStorageService.getTombstone.resolves(tombstone);
+      mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'one' }, { fileId: 'two' }]);
+      mockDatastreamService.listDatastreams.onSecondCall().resolves([]);
+
+      const result = await RecordsService.destroyDeletedRecord(
+        'record-123',
+        { username: 'user-1' },
+        { id: 'brand-1' },
+        publicContext('purge', 9)
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(mockDatastreamService.removeDatastream.callCount).to.equal(2);
+      expect(mockStorageService.removeTombstone.calledOnce).to.equal(true);
+      expect(mockStorageService.removeTombstone.firstCall.args[2].lifecycle.expectedState).to.equal('purge-pending');
+      expect(result.concurrency.revision).to.equal(undefined);
+      expect(result.concurrency.entityTag).to.equal(undefined);
+    });
+
+    it('retains recoverable purge state for incomplete and unknown physical outcomes', async function () {
+      setMode('observe');
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      const baseTombstone = {
+        redboxOid: 'record-123',
+        revision: 9,
+        brandId: 'brand-1',
+        lifecycleState: 'deleted',
+        deletedRecordMetadata: lifecycleRecord(7),
+      };
+
+      for (const physical of ['incomplete', 'unknown'] as const) {
+        mockStorageService.getTombstone.resolves(structuredClone(baseTombstone));
+        mockStorageService.updateTombstone.resetHistory();
+        mockStorageService.removeTombstone.resetHistory();
+        mockDatastreamService.listDatastreams.reset();
+        mockDatastreamService.removeDatastream.reset();
+        mockDatastreamService.removeDatastream.resolves({ success: true });
+        if (physical === 'incomplete') {
+          mockDatastreamService.listDatastreams.onFirstCall().resolves([{ fileId: 'remaining' }]);
+          mockDatastreamService.listDatastreams.onSecondCall().resolves([{ fileId: 'remaining' }]);
+        } else {
+          mockDatastreamService.listDatastreams.rejects(new Error('observation unavailable'));
+        }
+
+        const result = await RecordsService.destroyDeletedRecord(
+          'record-123',
+          { username: 'user-1' },
+          { id: 'brand-1' },
+          publicContext('purge', 9)
+        );
+
+        expect(result.outcome, physical).to.equal('saved-with-warnings');
+        expect(mockStorageService.removeTombstone.notCalled, physical).to.equal(true);
+        expect(mockStorageService.updateTombstone.calledTwice, physical).to.equal(true);
+        expect(mockStorageService.updateTombstone.secondCall.args[2]).to.deep.include({
+          lifecycleState: 'recovery-required',
+        });
+        expect(mockStorageService.updateTombstone.secondCall.args[2].lifecycleOperation.errorCode).to.equal(
+          physical === 'unknown' ? 'physical-purge-unknown' : 'physical-purge-incomplete'
+        );
+      }
     });
   });
 
@@ -1102,7 +1668,6 @@ describe('RecordsService', function () {
           },
         },
       };
-
       try {
         (RecordsService as any).validateHookConfiguration(recordType, ['onUpdate']);
         await RecordsService.triggerPreSaveTriggers('record-123', { metadata: {} }, recordType, 'onUpdate', {});
@@ -4692,7 +5257,8 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
     });
 
-    it('keeps soft delete and restore on their dedicated non-update storage boundaries', async function () {
+    it('keeps soft delete and restore on their dedicated lifecycle CAS boundaries', async function () {
+      enableLifecycleStorage();
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       const record = baseRecord();
 
@@ -4705,18 +5271,25 @@ describe('RecordsService', function () {
       );
       expect(deleteResult.success).to.equal(true);
 
-      mockStorageService.restoreRecord.resolves({
-        success: true,
-        isSuccessful: () => true,
-        metadata: record,
+      mockStorageService.getTombstone.resolves({
+        redboxOid: 'record-123',
+        revision: 3,
+        brandId: 'brand-1',
+        lifecycleState: 'deleted',
+        deletedRecordMetadata: { ...record, revision: undefined },
       });
       (global as any).BrandingService.getBrandById = sinon.stub().resolves({ id: 'brand-1' });
       const restoreResult = await RecordsService.restoreRecord('record-123', { username: 'user-1' });
 
       expect(restoreResult.success).to.equal(true);
       expect(resolve.notCalled).to.equal(true);
-      expect(mockStorageService.delete.calledOnceWithExactly('record-123', false)).to.equal(true);
-      expect(mockStorageService.restoreRecord.calledOnceWithExactly('record-123')).to.equal(true);
+      expect(mockStorageService.createTombstone.calledOnce).to.equal(true);
+      expect(mockStorageService.removeActiveRecord.calledOnce).to.equal(true);
+      expect(mockStorageService.updateTombstone.calledTwice).to.equal(true);
+      expect(mockStorageService.createActiveRecordFromTombstone.calledOnce).to.equal(true);
+      expect(mockStorageService.removeTombstone.calledOnce).to.equal(true);
+      expect(mockStorageService.delete.notCalled).to.equal(true);
+      expect(mockStorageService.restoreRecord.notCalled).to.equal(true);
     });
 
     it('validates an authorized transition against its target step and target form', async function () {
@@ -6360,6 +6933,10 @@ describe('RecordsService', function () {
   });
 
   describe('delete hook audit boundary', function () {
+    beforeEach(function () {
+      enableLifecycleStorage();
+    });
+
     it('threads a postSync replacement to detached hooks without mutating the caller-owned record', async function () {
       const callerRecord = { metadata: { title: 'Original' } };
       const callerSnapshot = structuredClone(callerRecord);
@@ -6379,6 +6956,7 @@ describe('RecordsService', function () {
           },
         },
       };
+      (globalThis as any).RecordTypesService.get.returns(of(recordType));
 
       try {
         const result = await RecordsService.delete('record-123', false, callerRecord, recordType, {

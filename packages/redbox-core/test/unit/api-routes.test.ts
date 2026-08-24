@@ -59,9 +59,13 @@ import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
 import {
   createRecordRoute,
   addUserEditRoute,
+  deleteRecordRoute,
+  destroyDeletedRecordRoute,
+  getDeletedRecordRoute,
   getMetaRoute,
   getPermissionsRoute,
   listRecordsRoute,
+  restoreRecordRoute,
   transitionWorkflowRoute,
   updateMetaRoute,
   updateObjectMetaRoute,
@@ -624,7 +628,15 @@ describe('API routes contract layer', function () {
   });
 
   it('validates and documents the conflict-aware record HTTP contract', function () {
-    const mutationRoutes = [updateMetaRoute, updateObjectMetaRoute, addUserEditRoute, transitionWorkflowRoute];
+    const mutationRoutes = [
+      updateMetaRoute,
+      updateObjectMetaRoute,
+      addUserEditRoute,
+      transitionWorkflowRoute,
+      deleteRecordRoute,
+      restoreRecordRoute,
+      destroyDeletedRecordRoute,
+    ];
     for (const route of mutationRoutes) {
       expect(responseStatuses(route)).to.include.members([200, 400, 403, 409, 412, 428, 500]);
       const headers = route.request?.headers;
@@ -652,10 +664,12 @@ describe('API routes contract layer', function () {
     const extracted = extractApiRequest(lowercaseRequest, updateMetaRoute.request);
     expect(extracted.headers).to.deep.include({ 'If-Match': formatRecordEntityTag('record-1', 3) });
 
-    for (const route of [getMetaRoute, getPermissionsRoute]) {
+    for (const route of [getMetaRoute, getPermissionsRoute, getDeletedRecordRoute]) {
       expect(route.responses?.[200]?.headers).to.have.property('ETag');
     }
     expect(createRecordRoute.responses?.[201]?.headers).to.have.property('ETag');
+    expect(deleteRecordRoute.request?.query?.safeParse({ permanent: 'true' }).success).to.equal(true);
+    expect(deleteRecordRoute.request?.query?.safeParse({ permanent: 'yes' }).success).to.equal(false);
 
     const document = buildCoreApiOpenApiDocument();
     const updateOperation = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put as OpenApiOperation;
@@ -664,6 +678,19 @@ describe('API routes contract layer', function () {
     expect(ifMatch?.schema?.pattern).to.be.a('string').and.not.equal('');
     expect(updateOperation.responses?.['412']?.headers).to.have.property('ETag');
     expect(updateOperation.responses?.['428']?.content?.['application/json']?.schema).to.exist;
+
+    const deleteOperation = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']
+      ?.delete as OpenApiOperation;
+    expect(deleteOperation.parameters?.find(parameter => parameter.name === 'permanent')).to.exist;
+    expect(deleteOperation.parameters?.find(parameter => parameter.name === 'If-Match')).to.exist;
+    expect(deleteOperation.responses).to.include.all.keys('200', '409', '412', '428');
+
+    const deletedPath = document.paths['/{branding}/{portal}/api/deletedrecords/{oid}'];
+    expect((deletedPath?.get as OpenApiOperation)?.responses?.['200']?.headers).to.have.property('ETag');
+    for (const operation of [deletedPath?.put, deletedPath?.delete] as OpenApiOperation[]) {
+      expect(operation.parameters?.find(parameter => parameter.name === 'If-Match')).to.exist;
+      expect(operation.responses).to.include.all.keys('200', '409', '412', '428');
+    }
   });
 
   it('should model the legacy response envelopes', function () {

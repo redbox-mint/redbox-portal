@@ -7,9 +7,20 @@ import type { RecordStorageMutationOptions } from '../RecordStorageConcurrency';
  * The subset of {@link StorageService} a storage adapter must implement before
  * it can advertise the record-concurrency capability.
  */
-export type RecordConcurrencyAdapter = Pick<
-  StorageService,
-  'getCapabilities' | 'create' | 'updateMeta' | 'removeActiveRecord' | 'updateTombstone' | 'removeTombstone'
+export type RecordConcurrencyAdapter = Required<
+  Pick<
+    StorageService,
+    | 'getCapabilities'
+    | 'getTombstone'
+    | 'getLifecycleTombstones'
+    | 'create'
+    | 'updateMeta'
+    | 'removeActiveRecord'
+    | 'createTombstone'
+    | 'updateTombstone'
+    | 'removeTombstone'
+    | 'createActiveRecordFromTombstone'
+  >
 >;
 
 /**
@@ -42,6 +53,15 @@ const exact = (revision: number): RecordStorageMutationOptions => ({
   precondition: { expectedRevision: revision, requireRevision: true },
 });
 
+const lifecycleExact = (
+  revision: number,
+  expectedState: 'delete-pending' | 'deleted' | 'restore-pending' | 'purge-pending' | 'recovery-required',
+  operationId: string
+): RecordStorageMutationOptions => ({
+  ...exact(revision),
+  lifecycle: { expectedState, operationId },
+});
+
 /**
  * Behavioural contract every storage adapter must satisfy before a record type
  * may run in strict concurrent-modification mode.
@@ -60,6 +80,7 @@ export const STORAGE_CONCURRENCY_CONFORMANCE_CHECKS: readonly StorageConcurrency
       assert.equal(capability?.conditionalActiveCreate, true);
       assert.equal(capability?.conditionalActiveUpdate, true);
       assert.equal(capability?.conditionalActiveRemove, true);
+      assert.equal(capability?.conditionalTombstoneCreate, true);
       assert.equal(capability?.conditionalTombstoneUpdate, true);
       assert.equal(capability?.conditionalTombstoneRemove, true);
       assert.equal(capability?.certifiedNonApplicationReasons, true);
@@ -205,14 +226,164 @@ export const STORAGE_CONCURRENCY_CONFORMANCE_CHECKS: readonly StorageConcurrency
     },
   },
   {
+    name: 'creates one owned tombstone intent and certifies same-operation retries',
+    async run(harness) {
+      const operationId = '11111111-1111-4111-8111-111111111111';
+      const tombstone = {
+        redboxOid: 'tombstone-create',
+        revision: 5,
+        brandId: 'brand-1',
+        lifecycleState: 'delete-pending' as const,
+        lifecycleOperation: {
+          operationId,
+          kind: 'delete' as const,
+          requestId: '22222222-2222-4222-8222-222222222222',
+          sourceRevision: 4,
+          targetRevision: 5,
+          startedAt: '2026-08-24T00:00:00.000Z',
+          updatedAt: '2026-08-24T00:00:00.000Z',
+          attempts: 1,
+          resolution: 'direct' as const,
+        },
+        deletedRecordMetadata: {
+          redboxOid: 'tombstone-create',
+          revision: 4,
+          metaMetadata: { brandId: 'brand-1' },
+          metadata: {},
+        },
+        dateDeleted: '2026-08-24T00:00:00.000Z',
+      };
+      const options = lifecycleExact(4, 'delete-pending', operationId);
+      const first = await harness.adapter.createTombstone(harness.brand, tombstone.redboxOid, tombstone, options);
+      const retry = await harness.adapter.createTombstone(harness.brand, tombstone.redboxOid, tombstone, options);
+      const competingOperationId = '33333333-3333-4333-8333-333333333333';
+      const competitor = await harness.adapter.createTombstone(
+        harness.brand,
+        tombstone.redboxOid,
+        {
+          ...tombstone,
+          lifecycleOperation: { ...tombstone.lifecycleOperation, operationId: competingOperationId },
+        },
+        lifecycleExact(4, 'delete-pending', competingOperationId)
+      );
+
+      assert.equal(first.applicationState, 'applied');
+      assert.equal(first.committedRevision, 5);
+      assert.equal(retry.applicationState, 'applied');
+      assert.equal(competitor.applicationState, 'not-applied');
+      assert.equal(competitor.nonApplicationReason, 'lifecycle-conflict');
+      assert.equal(
+        ((await harness.readTombstone(tombstone.redboxOid))?.deletedRecordMetadata as Record<string, unknown>)
+          ?.revision,
+        undefined
+      );
+    },
+  },
+  {
+    name: 'creates one restored active record and makes recovery delivery idempotent',
+    async run(harness) {
+      const operationId = '44444444-4444-4444-8444-444444444444';
+      const operation = {
+        operationId,
+        kind: 'restore' as const,
+        requestId: '55555555-5555-4555-8555-555555555555',
+        sourceRevision: 5,
+        targetRevision: 6,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:00.000Z',
+        attempts: 1,
+        resolution: 'direct' as const,
+      };
+      await harness.seedTombstone({
+        redboxOid: 'restore-create',
+        revision: 6,
+        lifecycleState: 'restore-pending',
+        lifecycleOperation: operation,
+        deletedRecordMetadata: {
+          redboxOid: 'restore-create',
+          dateCreated: '2026-08-01T00:00:00.000Z',
+          metaMetadata: { brandId: 'brand-1' },
+          metadata: { title: 'authoritative snapshot' },
+        },
+      });
+      const candidate = {
+        redboxOid: 'restore-create',
+        revision: 999,
+        lifecycleOperationId: 'client-owned',
+        metaMetadata: { brandId: 'brand-1' },
+        metadata: {},
+      };
+      const options = lifecycleExact(6, 'restore-pending', operationId);
+      const first = await harness.adapter.createActiveRecordFromTombstone(
+        harness.brand,
+        candidate.redboxOid,
+        candidate,
+        options
+      );
+      const retry = await harness.adapter.createActiveRecordFromTombstone(
+        harness.brand,
+        candidate.redboxOid,
+        candidate,
+        options
+      );
+
+      assert.equal(first.applicationState, 'applied');
+      assert.equal(first.committedRevision, 7);
+      assert.equal(retry.applicationState, 'applied');
+      assert.equal((await harness.readActive(candidate.redboxOid))?.revision, 7);
+      assert.equal((await harness.readActive(candidate.redboxOid))?.lifecycleOperationId, operationId);
+      assert.equal((await harness.readActive(candidate.redboxOid))?.dateCreated, '2026-08-01T00:00:00.000Z');
+      assert.deepEqual((await harness.readActive(candidate.redboxOid))?.metadata, {
+        title: 'authoritative snapshot',
+      });
+    },
+  },
+  {
     name: 'conditionally claims restore state and purges the exact tombstone',
     async run(harness) {
-      await harness.seedTombstone({ redboxOid: 'tombstone', revision: 5, lifecycleState: 'deleted' });
-      const claimed = await harness.adapter.updateTombstone?.(
+      const restoreOperationId = '66666666-6666-4666-8666-666666666666';
+      const restoreOperation = {
+        operationId: restoreOperationId,
+        kind: 'restore' as const,
+        requestId: '77777777-7777-4777-8777-777777777777',
+        sourceRevision: 5,
+        targetRevision: 6,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:00.000Z',
+        attempts: 1,
+        resolution: 'direct' as const,
+      };
+      await harness.seedTombstone({
+        redboxOid: 'tombstone',
+        revision: 5,
+        lifecycleState: 'deleted',
+        lifecycleOperation: {
+          ...restoreOperation,
+          kind: 'delete',
+          operationId: '88888888-8888-4888-8888-888888888888',
+          sourceRevision: 3,
+          targetRevision: 5,
+        },
+        deletedRecordMetadata: {
+          redboxOid: 'tombstone',
+          metaMetadata: { brandId: 'brand-1' },
+          metadata: {},
+        },
+      });
+      const malformed = await harness.adapter.updateTombstone?.(
         harness.brand,
         'tombstone',
         { lifecycleState: 'restore-pending' },
-        exact(5)
+        { ...exact(5), lifecycle: { expectedState: 'deleted' } }
+      );
+      assert.equal(malformed?.applicationState, 'not-applied');
+      assert.equal(malformed?.nonApplicationReason, 'lifecycle-conflict');
+
+      const claimed = await harness.adapter.updateTombstone?.(
+        harness.brand,
+        'tombstone',
+        { lifecycleState: 'restore-pending', lifecycleOperation: restoreOperation },
+        { ...exact(5), lifecycle: { expectedState: 'deleted' } }
       );
       assert.equal(claimed?.applicationState, 'applied');
       assert.equal(claimed?.committedRevision, 6);
@@ -220,13 +391,24 @@ export const STORAGE_CONCURRENCY_CONFORMANCE_CHECKS: readonly StorageConcurrency
       const staleClaim = await harness.adapter.updateTombstone?.(
         harness.brand,
         'tombstone',
-        { lifecycleState: 'purge-pending' },
-        exact(5)
+        {
+          lifecycleState: 'purge-pending',
+          lifecycleOperation: {
+            ...restoreOperation,
+            kind: 'purge',
+            operationId: '99999999-9999-4999-8999-999999999999',
+          },
+        },
+        { ...exact(5), lifecycle: { expectedState: 'deleted' } }
       );
       assert.equal(staleClaim?.applicationState, 'not-applied');
       assert.equal(staleClaim?.nonApplicationReason, 'stale-revision');
 
-      const purged = await harness.adapter.removeTombstone?.(harness.brand, 'tombstone', exact(6));
+      const purged = await harness.adapter.removeTombstone?.(
+        harness.brand,
+        'tombstone',
+        lifecycleExact(6, 'restore-pending', restoreOperationId)
+      );
       assert.equal(purged?.applicationState, 'applied');
       assert.equal(purged?.removedRecord?.revision, 6);
       assert.equal(await harness.readTombstone('tombstone'), null);

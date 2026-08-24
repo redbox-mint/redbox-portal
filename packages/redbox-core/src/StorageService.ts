@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream';
-import { RecordModel } from './model';
+import { DeletedRecordModel, RecordModel } from './model';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from './RecordsService';
 import type { RecordStorageMutationOptions, StorageServiceCapabilities } from './RecordStorageConcurrency';
@@ -32,6 +32,13 @@ export interface StorageService {
     oid: unknown,
     options?: RecordStorageMutationOptions
   ): Promise<StorageMutationResponse>;
+  /** Idempotently persist a durable lifecycle intent before active removal. */
+  createTombstone?(
+    brand: unknown,
+    oid: unknown,
+    record: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageMutationResponse>;
   /** Atomic tombstone claim/update primitive used by restore and purge. */
   updateTombstone?(
     brand: unknown,
@@ -45,6 +52,17 @@ export interface StorageService {
     oid: unknown,
     options?: RecordStorageMutationOptions
   ): Promise<StorageMutationResponse>;
+  /** Continue a claimed restore lineage without exposing a caller-selected revision. */
+  createActiveRecordFromTombstone?(
+    brand: unknown,
+    oid: unknown,
+    record: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageMutationResponse>;
+  /** Brand-scoped lifecycle wrapper read used by restore, purge, and recovery. */
+  getTombstone?(brand: unknown, oid: unknown): Promise<DeletedRecordModel | null>;
+  /** Bounded recovery scan; callers still condition every mutation by operation identity. */
+  getLifecycleTombstones?(states: readonly string[], limit?: number): Promise<DeletedRecordModel[]>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
   /** @deprecated Whole-record permission rewrites must use RecordsService.mutateMetaInternal(). */
@@ -58,6 +76,7 @@ export interface StorageService {
     brand: unknown,
     options?: RecordRelationshipExpandOptions
   ): Promise<RecordRelationshipGraph>;
+  /** @deprecated Lifecycle deletion must use RecordsService's staged CAS state machine. */
   delete(
     oid: unknown,
     permanentlyDelete: unknown,
@@ -66,7 +85,9 @@ export interface StorageService {
   /** @deprecated Persisted notification writes must use RecordsService.mutateMetaInternal(). */
   updateNotificationLog(oid: unknown, record: unknown, options: unknown): Promise<unknown>;
 
+  /** @deprecated Lifecycle deletion must use RecordsService's staged CAS state machine. */
   restoreRecord(oid: unknown, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse>;
+  /** @deprecated Lifecycle purge must use RecordsService's staged CAS state machine. */
   destroyDeletedRecord(oid: unknown, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
 

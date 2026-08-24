@@ -20,6 +20,7 @@ import {
   legacyRecordUpdateQuery,
   recordListQuery,
   recordListItemSchema,
+  recordDeleteQuery,
   recordMetadataReadResponseSchema,
   recordMutationHeaders,
   recordOperationQuery,
@@ -32,7 +33,6 @@ import {
   recordPermissionsReadResponseSchema,
   listApiResponseSchema,
   responseField,
-  storageServiceResponseSchema,
   stringField,
 } from '../schemas/common';
 
@@ -59,6 +59,15 @@ const recordPermissionMutationResponses = {
   403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record authorization failure'),
   ...recordConcurrencyFailureResponses,
   500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+};
+
+const recordLifecycleMutationResponses = {
+  200: recordResponseWithTag(recordSaveSuccessResponseSchema, 'Record lifecycle transition complete'),
+  400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid lifecycle concurrency request'),
+  403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record lifecycle authorization failure'),
+  404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+  ...recordConcurrencyFailureResponses,
+  500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Lifecycle persistence outcome is unknown'),
 };
 
 const recordListLegacyFallbacks = {
@@ -286,16 +295,34 @@ export const listDeletedRecordsRoute = apiRoute(
   }
 );
 
+export const getDeletedRecordRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/deletedrecords/:oid',
+  'webservice/RecordController',
+  'getDeletedRecord',
+  { params: oidParams },
+  {
+    tags: ['Records'],
+    summary: 'Get deleted record metadata and lifecycle state',
+    responses: {
+      200: recordResponseWithTag(recordMetadataReadResponseSchema, 'Deleted record metadata'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Deleted record not found in the active brand'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
+  }
+);
+
 export const restoreRecordRoute = apiRoute(
   'put',
   '/:branding/:portal/api/deletedrecords/:oid',
   'webservice/RecordController',
   'restoreRecord',
-  { params: oidParams },
+  { params: oidParams, headers: recordMutationHeaders },
   {
     tags: ['Records'],
     summary: 'Restore deleted record',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Record restored') },
+    responses: recordLifecycleMutationResponses,
   }
 );
 
@@ -304,11 +331,11 @@ export const destroyDeletedRecordRoute = apiRoute(
   '/:branding/:portal/api/deletedrecords/:oid',
   'webservice/RecordController',
   'destroyDeletedRecord',
-  { params: oidParams },
+  { params: oidParams, headers: recordMutationHeaders },
   {
     tags: ['Records'],
     summary: 'Destroy deleted record',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Deleted record destroyed') },
+    responses: recordLifecycleMutationResponses,
   }
 );
 
@@ -335,11 +362,11 @@ export const deleteRecordRoute = apiRoute(
   '/:branding/:portal/api/records/metadata/:oid',
   'webservice/RecordController',
   'deleteRecord',
-  { params: oidParams },
+  { params: oidParams, query: recordDeleteQuery, headers: recordMutationHeaders },
   {
     tags: ['Records'],
     summary: 'Delete record metadata',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Record deleted') },
+    responses: recordLifecycleMutationResponses,
   }
 );
 
@@ -670,6 +697,7 @@ export const recordApiRoutes = [
   getRecordAuditRoute,
   listRecordsRoute,
   listDeletedRecordsRoute,
+  getDeletedRecordRoute,
   restoreRecordRoute,
   destroyDeletedRecordRoute,
   getObjectMetaRoute,

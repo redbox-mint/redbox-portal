@@ -87,6 +87,10 @@ describe('MongoStorageService', function () {
       findOneAndUpdate: sandbox.stub().resolves({ redboxOid: 'oid-1', revision: 1, lifecycleState: 'deleted' }),
       findOneAndDelete: sandbox.stub().resolves({ redboxOid: 'oid-1', revision: 0, lifecycleState: 'deleted' }),
       findOne: sandbox.stub().resolves(null),
+      find: sandbox.stub().returns({
+        limit: sandbox.stub().returnsThis(),
+        toArray: sandbox.stub().resolves([]),
+      }),
       insertOne: sandbox.stub().resolves({ acknowledged: true }),
     };
     mockDb.collection.callsFake((name: string) => (name === 'record' ? recordCollection : deletedRecordCollection));
@@ -670,6 +674,8 @@ describe('MongoStorageService', function () {
       ...update.$set,
     }));
     const operation = {
+      operationId: '11111111-1111-4111-8111-111111111111',
+      kind: 'restore',
       requestId: '00000000-0000-4000-8000-000000000000',
       sourceRevision: 5,
       targetRevision: 6,
@@ -680,6 +686,7 @@ describe('MongoStorageService', function () {
     const options = {
       precondition: { expectedRevision: 5, requireRevision: true },
       requestId,
+      lifecycle: { expectedState: 'deleted', operationId: operation.operationId },
     };
 
     const updated = await service.updateTombstone(
@@ -702,7 +709,12 @@ describe('MongoStorageService', function () {
     const persisted = deletedRecordCollection.findOneAndUpdate.firstCall.args[1].$set;
     expect(persisted).to.not.have.property('revision');
     expect(persisted.deletedRecordMetadata).to.not.have.property('revision');
-    expect(persisted.lifecycleOperation.requestId).to.equal(requestId);
+    expect(persisted.lifecycleOperation.requestId).to.equal(operation.requestId);
+    expect(updated.requestId).to.equal(requestId);
+    expect(deletedRecordCollection.findOneAndUpdate.firstCall.args[0].$and).to.deep.include.members([
+      { lifecycleState: 'deleted' },
+      { 'lifecycleOperation.operationId': operation.operationId },
+    ]);
 
     deletedRecordCollection.findOneAndDelete.resolves({
       redboxOid: 'oid-1',
@@ -713,13 +725,17 @@ describe('MongoStorageService', function () {
     const removed = await service.removeTombstone({ id: 'brand-1' }, 'oid-1', {
       precondition: { expectedRevision: 6, requireRevision: true },
       requestId,
+      lifecycle: { expectedState: 'restore-pending', operationId: operation.operationId },
     });
     expect(removed).to.include({ applicationState: 'applied', committedRevision: 6, requestId });
     expect(removed.removedRecord.lifecycleState).to.equal('restore-pending');
   });
 
   it('rejects malformed or inconsistent lifecycle candidates before dispatch', async function () {
-    const options = { precondition: { expectedRevision: 5, requireRevision: true } };
+    const options = {
+      precondition: { expectedRevision: 5, requireRevision: true },
+      lifecycle: { expectedState: 'deleted' as const },
+    };
     const malformed = await service.updateTombstone(
       { id: 'brand-1' },
       'oid-1',
@@ -731,9 +747,11 @@ describe('MongoStorageService', function () {
       'oid-1',
       {
         lifecycleOperation: {
+          operationId: '11111111-1111-4111-8111-111111111111',
+          kind: 'restore',
           requestId: '123e4567-e89b-42d3-a456-426614174000',
           sourceRevision: 4,
-          targetRevision: 6,
+          targetRevision: 7,
           startedAt: '2026-08-23T00:00:00.000Z',
           updatedAt: '2026-08-23T00:00:01.000Z',
           attempts: 1,
@@ -745,6 +763,203 @@ describe('MongoStorageService', function () {
     expect(malformed.nonApplicationReason).to.equal('lifecycle-conflict');
     expect(inconsistent.nonApplicationReason).to.equal('lifecycle-conflict');
     expect(deletedRecordCollection.findOneAndUpdate.notCalled).to.equal(true);
+  });
+
+  it('atomically creates one owned tombstone intent and makes duplicate delivery idempotent', async function () {
+    const operationId = '11111111-1111-4111-8111-111111111111';
+    const tombstone = {
+      redboxOid: 'oid-1',
+      revision: 6,
+      brandId: 'brand-1',
+      lifecycleState: 'delete-pending',
+      lifecycleOperation: {
+        operationId,
+        kind: 'delete',
+        requestId: '22222222-2222-4222-8222-222222222222',
+        sourceRevision: 5,
+        targetRevision: 6,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:00.000Z',
+        attempts: 1,
+        resolution: 'direct',
+      },
+      deletedRecordMetadata: {
+        redboxOid: 'oid-1',
+        revision: 5,
+        metaMetadata: { brandId: 'brand-1' },
+        metadata: {},
+      },
+    };
+    const options = {
+      precondition: { expectedRevision: 5, requireRevision: true },
+      lifecycle: { expectedState: 'delete-pending', operationId },
+    };
+
+    const created = await service.createTombstone({ id: 'brand-1' }, 'oid-1', tombstone, options);
+    expect(created).to.include({ applicationState: 'applied', committedRevision: 6 });
+    expect(deletedRecordCollection.insertOne.firstCall.args[0].deletedRecordMetadata).not.to.have.property('revision');
+
+    deletedRecordCollection.insertOne.rejects(Object.assign(new Error('duplicate'), { code: 11000 }));
+    deletedRecordCollection.findOne.resolves(deletedRecordCollection.insertOne.firstCall.args[0]);
+    const retry = await service.createTombstone({ id: 'brand-1' }, 'oid-1', tombstone, options);
+    expect(retry).to.include({ applicationState: 'applied', committedRevision: 6 });
+
+    const competingOperationId = '33333333-3333-4333-8333-333333333333';
+    const competitor = await service.createTombstone(
+      { id: 'brand-1' },
+      'oid-1',
+      {
+        ...tombstone,
+        lifecycleOperation: { ...tombstone.lifecycleOperation, operationId: competingOperationId },
+      },
+      {
+        ...options,
+        lifecycle: { ...options.lifecycle, operationId: competingOperationId },
+      }
+    );
+    expect(competitor).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'lifecycle-conflict',
+    });
+  });
+
+  it('keeps cross-brand lifecycle intent failures private and never dispatches the insert', async function () {
+    const operationId = '11111111-1111-4111-8111-111111111111';
+    const response = await service.createTombstone(
+      { id: 'brand-1' },
+      'oid-private',
+      {
+        redboxOid: 'oid-private',
+        revision: 2,
+        brandId: 'brand-2',
+        lifecycleState: 'delete-pending',
+        lifecycleOperation: {
+          operationId,
+          kind: 'delete',
+          requestId: '22222222-2222-4222-8222-222222222222',
+          sourceRevision: 1,
+          targetRevision: 2,
+          startedAt: '2026-08-24T00:00:00.000Z',
+          updatedAt: '2026-08-24T00:00:00.000Z',
+          attempts: 1,
+          resolution: 'direct',
+        },
+        deletedRecordMetadata: {
+          metaMetadata: { brandId: 'brand-2' },
+          metadata: { secret: 'private' },
+        },
+      },
+      {
+        precondition: { expectedRevision: 1, requireRevision: true },
+        lifecycle: { expectedState: 'delete-pending', operationId },
+      }
+    );
+
+    expect(response).to.include({ applicationState: 'not-applied', nonApplicationReason: 'brand-mismatch' });
+    expect(response.committedRecord).to.equal(undefined);
+    expect(response.metadata).to.equal(null);
+    expect(deletedRecordCollection.insertOne.notCalled).to.equal(true);
+  });
+
+  it('creates a restored active record once and certifies same-operation retries', async function () {
+    const operationId = '11111111-1111-4111-8111-111111111111';
+    const options = {
+      precondition: { expectedRevision: 6, requireRevision: true },
+      lifecycle: { expectedState: 'restore-pending', operationId },
+    };
+    deletedRecordCollection.findOne.resolves({
+      redboxOid: 'oid-1',
+      revision: 6,
+      brandId: 'brand-1',
+      lifecycleState: 'restore-pending',
+      lifecycleOperation: {
+        operationId,
+        kind: 'restore',
+        requestId: '22222222-2222-4222-8222-222222222222',
+        sourceRevision: 5,
+        targetRevision: 6,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:01.000Z',
+        attempts: 1,
+        resolution: 'direct',
+      },
+      deletedRecordMetadata: {
+        redboxOid: 'oid-1',
+        dateCreated: '2026-08-01T00:00:00.000Z',
+        metaMetadata: { brandId: 'brand-1' },
+        metadata: { title: 'Authoritative snapshot' },
+      },
+    });
+    const record = {
+      redboxOid: 'oid-1',
+      revision: 999,
+      lifecycleOperationId: 'client-marker',
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Restored' },
+    };
+
+    const created = await service.createActiveRecordFromTombstone({ id: 'brand-1' }, 'oid-1', record, options);
+    expect(created).to.include({ applicationState: 'applied', committedRevision: 7 });
+    const inserted = recordCollection.insertOne.firstCall.args[0];
+    expect(inserted).to.include({
+      revision: 7,
+      lifecycleOperationId: operationId,
+      dateCreated: '2026-08-01T00:00:00.000Z',
+    });
+    expect(inserted.metadata).to.deep.equal({ title: 'Authoritative snapshot' });
+
+    recordCollection.insertOne.rejects(Object.assign(new Error('duplicate'), { code: 11000 }));
+    recordCollection.findOne.resolves(inserted);
+    const retry = await service.createActiveRecordFromTombstone({ id: 'brand-1' }, 'oid-1', record, options);
+    expect(retry).to.include({ applicationState: 'applied', committedRevision: 7 });
+
+    recordCollection.findOne.resolves({ ...inserted, lifecycleOperationId: 'other-operation' });
+    const collision = await service.createActiveRecordFromTombstone({ id: 'brand-1' }, 'oid-1', record, options);
+    expect(collision).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'lifecycle-conflict',
+    });
+  });
+
+  it('returns unknown after an unclassified intent insert failure and bounds recovery scans', async function () {
+    const operationId = '11111111-1111-4111-8111-111111111111';
+    deletedRecordCollection.insertOne.rejects(new Error('network timeout'));
+    const unknown = await service.createTombstone(
+      { id: 'brand-1' },
+      'oid-1',
+      {
+        redboxOid: 'oid-1',
+        revision: 2,
+        brandId: 'brand-1',
+        lifecycleState: 'delete-pending',
+        lifecycleOperation: {
+          operationId,
+          kind: 'delete',
+          requestId: '22222222-2222-4222-8222-222222222222',
+          sourceRevision: 1,
+          targetRevision: 2,
+          startedAt: '2026-08-24T00:00:00.000Z',
+          updatedAt: '2026-08-24T00:00:00.000Z',
+          attempts: 1,
+          resolution: 'direct',
+        },
+        deletedRecordMetadata: { metaMetadata: { brandId: 'brand-1' }, metadata: {} },
+      },
+      {
+        precondition: { expectedRevision: 1, requireRevision: true },
+        lifecycle: { expectedState: 'delete-pending', operationId },
+      }
+    );
+    expect(unknown.applicationState).to.equal('unknown');
+
+    const cursor = deletedRecordCollection.find();
+    deletedRecordCollection.find.resetHistory();
+    deletedRecordCollection.find.returns(cursor);
+    await service.getLifecycleTombstones(['delete-pending', 'invalid', 'recovery-required'], 50_000);
+    expect(deletedRecordCollection.find.firstCall.args[0]).to.deep.equal({
+      lifecycleState: { $in: ['delete-pending', 'recovery-required'] },
+    });
+    expect(cursor.limit.calledWith(1000)).to.equal(true);
   });
 
   it('rejects getMeta for an empty oid', async function () {
@@ -904,23 +1119,17 @@ describe('MongoStorageService', function () {
     expect(metaQuery.meta.calledOnce).to.be.true;
   });
 
-  it('soft-deletes records by copying them into DeletedRecord first', async function () {
+  it('fails closed for tokenless legacy soft-delete calls', async function () {
     sandbox.stub(service, 'getMeta').resolves({ redboxOid: 'oid-1', revision: 4, metadata: {} });
 
     const response = await service.delete('oid-1', false);
 
-    expect(response.success).to.equal(true);
-    expect(deletedRecordCollection.insertOne.calledOnce).to.be.true;
-    expect(deletedRecordCollection.insertOne.firstCall.args[0]).to.include({
-      redboxOid: 'oid-1',
-      revision: 5,
-      lifecycleState: 'deleted',
+    expect(response).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
     });
-    expect(deletedRecordCollection.insertOne.firstCall.args[0].deletedRecordMetadata).to.deep.equal({
-      redboxOid: 'oid-1',
-      metadata: {},
-    });
-    expect(Record.destroyOne.calledOnceWith({ redboxOid: 'oid-1' })).to.be.true;
+    expect(deletedRecordCollection.insertOne.notCalled).to.be.true;
+    expect(Record.destroyOne.notCalled).to.be.true;
   });
 
   it('does not let legacy delete/restore paths ignore a supplied exact revision', async function () {
@@ -943,54 +1152,56 @@ describe('MongoStorageService', function () {
     expect(Record.create.notCalled).to.equal(true);
   });
 
-  it('continues one monotonic revision lineage through tokenless delete and restore', async function () {
-    sandbox.stub(service, 'getMeta').resolves({
-      redboxOid: 'oid-lineage',
-      revision: 7,
-      metaMetadata: { brandId: 'brand-1' },
-      metadata: {},
-    });
-
+  it('fails closed for every tokenless legacy lifecycle mutation', async function () {
     const deleted = await service.delete('oid-lineage', false);
-    const tombstone = deletedRecordCollection.insertOne.firstCall.args[0];
-    DeletedRecord.findOne.resolves(tombstone);
     const restored = await service.restoreRecord('oid-lineage');
+    const purged = await service.destroyDeletedRecord('oid-lineage');
 
-    expect(deleted.success).to.equal(true);
-    expect(tombstone.revision).to.equal(8);
-    expect(tombstone.deletedRecordMetadata).to.not.have.property('revision');
-    expect(restored.success).to.equal(true);
-    expect(recordCollection.insertOne.firstCall.args[0].revision).to.equal(9);
-    expect(new Set([7, tombstone.revision, recordCollection.insertOne.firstCall.args[0].revision]).size).to.equal(3);
+    for (const response of [deleted, restored, purged]) {
+      expect(response).to.include({
+        applicationState: 'not-applied',
+        nonApplicationReason: 'capability-unavailable',
+      });
+    }
+    expect(deletedRecordCollection.insertOne.notCalled).to.be.true;
+    expect(recordCollection.insertOne.notCalled).to.be.true;
+    expect(DeletedRecord.destroyOne.notCalled).to.be.true;
   });
 
-  it('permanently deletes record datastreams from GridFS', async function () {
+  it('does not let the legacy permanent-delete entry point touch GridFS', async function () {
     sandbox.stub(service, 'listDatastreams').resolves([{ _id: 'file-1' }]);
     mockBucket.delete.callsFake((id, cb) => cb(null, {}));
 
     const response = await service.delete('oid-1', true);
 
-    expect(response.success).to.equal(true);
-    expect(mockBucket.delete.calledOnceWith('file-1')).to.be.true;
+    expect(response).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
+    });
+    expect(mockBucket.delete.notCalled).to.be.true;
   });
 
-  it('returns an unsuccessful response when delete throws', async function () {
+  it('does not dispatch legacy delete even when old persistence dependencies would fail', async function () {
     sandbox.stub(service, 'getMeta').resolves({ redboxOid: 'oid-1', metadata: {} });
     Record.destroyOne.rejects(new Error('delete failed'));
 
     const response = await service.delete('oid-1', false);
 
-    expect(response.success).to.equal(false);
-    expect(response.message).to.equal('delete failed');
+    expect(response).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
+    });
+    expect(Record.destroyOne.notCalled).to.be.true;
   });
 
-  it('logs GridFS deletion callback errors during permanent delete', async function () {
+  it('does not invoke legacy permanent-delete callbacks', async function () {
     sandbox.stub(service, 'listDatastreams').resolves([{ _id: 'file-1' }]);
     mockBucket.delete.callsFake((id, cb) => cb(new Error('gridfs failed')));
 
-    await service.delete('oid-1', true);
+    const response = await service.delete('oid-1', true);
 
-    expect(mockSails.log.error.called).to.be.true;
+    expect(response.nonApplicationReason).to.equal('capability-unavailable');
+    expect(mockBucket.delete.notCalled).to.be.true;
   });
 
   it('refuses direct notification persistence outside the authoritative service pipeline', async function () {
@@ -1042,7 +1253,7 @@ describe('MongoStorageService', function () {
     expect(updateMetaStub.notCalled).to.be.true;
   });
 
-  it('restores deleted records and removes the tombstone', async function () {
+  it('does not route legacy restore through direct collection mutations', async function () {
     DeletedRecord.findOne.resolves({
       redboxOid: 'oid-1',
       revision: 8,
@@ -1051,16 +1262,12 @@ describe('MongoStorageService', function () {
 
     const response = await service.restoreRecord('oid-1');
 
-    expect(response.success).to.equal(true);
-    expect(recordCollection.insertOne.calledOnce).to.be.true;
-    expect(recordCollection.insertOne.firstCall.args[0]).to.include({
-      redboxOid: 'oid-1',
-      title: 'Restored',
-      revision: 9,
+    expect(response).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
     });
-    expect(recordCollection.insertOne.firstCall.args[0]).to.not.have.property('_id');
-    expect(response.metadata).to.include({ redboxOid: 'oid-1', title: 'Restored', revision: 9 });
-    expect(DeletedRecord.destroyOne.calledOnceWith({ redboxOid: 'oid-1' })).to.be.true;
+    expect(recordCollection.insertOne.notCalled).to.be.true;
+    expect(DeletedRecord.destroyOne.notCalled).to.be.true;
   });
 
   it('returns the metadata of a deleted record', async function () {
@@ -1730,13 +1937,14 @@ describe('MongoStorageService', function () {
     });
   });
 
-  it('rejects restoreRecord for empty oids and reports failures', async function () {
-    await expectRejects(() => service.restoreRecord(''), 'refusing to search using an empty OID');
-
+  it('fails closed for empty and populated legacy restore requests', async function () {
+    const empty = await service.restoreRecord('');
     DeletedRecord.findOne.resolves({ deletedRecordMetadata: null });
     const response = await service.restoreRecord('oid-1');
 
-    expect(response.success).to.equal(false);
+    expect(empty.nonApplicationReason).to.equal('capability-unavailable');
+    expect(response.nonApplicationReason).to.equal('capability-unavailable');
+    expect(DeletedRecord.findOne.notCalled).to.be.true;
   });
 
   it('loads deleted record metadata by oid', async function () {
@@ -1751,17 +1959,17 @@ describe('MongoStorageService', function () {
     expect(DeletedRecord.findOne.lastCall.args[0]).to.deep.equal({ redboxOid: 'oid-1' });
   });
 
-  it('destroys deleted records and reports validation or persistence failures', async function () {
-    await expectRejects(() => service.destroyDeletedRecord(''), 'refusing to search using an empty OID');
-
+  it('fails closed for empty and populated legacy tombstone destruction', async function () {
+    const empty = await service.destroyDeletedRecord('');
     DeletedRecord.destroyOne.rejects(new Error('destroy failed'));
     const response = await service.destroyDeletedRecord('oid-1');
 
-    expect(response.success).to.equal(false);
-    expect(response.message).to.equal('destroy failed');
+    expect(empty.nonApplicationReason).to.equal('capability-unavailable');
+    expect(response.nonApplicationReason).to.equal('capability-unavailable');
+    expect(DeletedRecord.destroyOne.notCalled).to.be.true;
   });
 
-  it('routes conditional tombstone destruction through the atomic purge primitive', async function () {
+  it('does not allow conditional callers to bypass staged tombstone purge', async function () {
     deletedRecordCollection.findOneAndDelete.resolves({
       redboxOid: 'oid-1',
       revision: 4,
@@ -1771,8 +1979,12 @@ describe('MongoStorageService', function () {
       precondition: { expectedRevision: 4, requireRevision: true },
     });
 
-    expect(result).to.include({ applicationState: 'applied', committedRevision: 4 });
+    expect(result).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
+    });
     expect(DeletedRecord.destroyOne.notCalled).to.equal(true);
+    expect(deletedRecordCollection.findOneAndDelete.notCalled).to.equal(true);
   });
 
   it('exposes the bucket lookup helper directly', function () {

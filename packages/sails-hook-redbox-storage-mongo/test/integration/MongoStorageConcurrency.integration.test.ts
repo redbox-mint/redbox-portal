@@ -55,6 +55,25 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     };
   }
 
+  function lifecycleOperation(
+    kind: 'delete' | 'restore' | 'purge',
+    sourceRevision: number,
+    targetRevision: number,
+    operationId = randomUUID()
+  ) {
+    return {
+      operationId,
+      kind,
+      requestId: randomUUID(),
+      sourceRevision,
+      targetRevision,
+      startedAt: '2026-08-24T00:00:00.000Z',
+      updatedAt: '2026-08-24T00:00:00.000Z',
+      attempts: 1,
+      resolution: 'direct',
+    };
+  }
+
   it('has one winner across two service instances sharing one Mongo datastore', async function () {
     const oid = `cas-${randomUUID()}`;
     await records.insertOne(activeRecord(oid));
@@ -156,6 +175,100 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     expect(stale).to.include({ applicationState: 'not-applied', nonApplicationReason: 'stale-revision' });
     expect(removed).to.include({ applicationState: 'applied', committedRevision: 6 });
     expect(await tombstones.findOne({ redboxOid: oid })).to.equal(null);
+  });
+
+  it('gives one durable owner to two competing lifecycle intents', async function () {
+    const oid = `intent-${randomUUID()}`;
+    await records.insertOne(activeRecord(oid));
+    const firstOperation = lifecycleOperation('delete', 0, 1);
+    const secondOperation = lifecycleOperation('delete', 0, 1);
+    const tombstone = (operation: ReturnType<typeof lifecycleOperation>) => ({
+      redboxOid: oid,
+      revision: 1,
+      brandId: 'brand-1',
+      lifecycleState: 'delete-pending',
+      lifecycleOperation: operation,
+      deletedRecordMetadata: activeRecord(oid),
+      dateDeleted: '2026-08-24T00:00:00.000Z',
+    });
+
+    const results = await Promise.all([
+      firstService.createTombstone({ id: 'brand-1' }, oid, tombstone(firstOperation), {
+        precondition: { expectedRevision: 0, requireRevision: true },
+        lifecycle: { expectedState: 'delete-pending', operationId: firstOperation.operationId },
+      }),
+      secondService.createTombstone({ id: 'brand-1' }, oid, tombstone(secondOperation), {
+        precondition: { expectedRevision: 0, requireRevision: true },
+        lifecycle: { expectedState: 'delete-pending', operationId: secondOperation.operationId },
+      }),
+    ]);
+
+    expect(results.filter(result => result.applicationState === 'applied')).to.have.length(1);
+    expect(results.filter(result => result.nonApplicationReason === 'lifecycle-conflict')).to.have.length(1);
+    const stored = await tombstones.findOne({ redboxOid: oid });
+    expect(stored.revision).to.equal(1);
+    expect([firstOperation.operationId, secondOperation.operationId]).to.include(stored.lifecycleOperation.operationId);
+  });
+
+  it('serializes restore/purge claims and idempotently delivers a claimed restore', async function () {
+    const oid = `restore-${randomUUID()}`;
+    const restoreOperation = lifecycleOperation('restore', 5, 6);
+    const purgeOperation = lifecycleOperation('purge', 5, 6);
+    await tombstones.insertOne({
+      redboxOid: oid,
+      revision: 5,
+      brandId: 'brand-1',
+      lifecycleState: 'deleted',
+      deletedRecordMetadata: activeRecord(oid),
+    });
+
+    const claims = await Promise.all([
+      firstService.updateTombstone(
+        { id: 'brand-1' },
+        oid,
+        { lifecycleState: 'restore-pending', lifecycleOperation: restoreOperation },
+        {
+          precondition: { expectedRevision: 5, requireRevision: true },
+          lifecycle: { expectedState: 'deleted' },
+        }
+      ),
+      secondService.updateTombstone(
+        { id: 'brand-1' },
+        oid,
+        { lifecycleState: 'purge-pending', lifecycleOperation: purgeOperation },
+        {
+          precondition: { expectedRevision: 5, requireRevision: true },
+          lifecycle: { expectedState: 'deleted' },
+        }
+      ),
+    ]);
+    expect(claims.filter(result => result.applicationState === 'applied')).to.have.length(1);
+    expect(claims.filter(result => result.applicationState === 'not-applied')).to.have.length(1);
+
+    const claimed = await tombstones.findOne({ redboxOid: oid });
+    if (claimed.lifecycleState !== 'restore-pending') {
+      await tombstones.updateOne(
+        { redboxOid: oid },
+        { $set: { lifecycleState: 'restore-pending', lifecycleOperation: restoreOperation } }
+      );
+    }
+    const options = {
+      precondition: { expectedRevision: 6, requireRevision: true },
+      lifecycle: { expectedState: 'restore-pending', operationId: restoreOperation.operationId },
+    };
+    const candidate = activeRecord(oid);
+    const deliveries = await Promise.all([
+      firstService.createActiveRecordFromTombstone({ id: 'brand-1' }, oid, candidate, options),
+      secondService.createActiveRecordFromTombstone({ id: 'brand-1' }, oid, candidate, options),
+    ]);
+
+    expect(deliveries.every(result => result.applicationState === 'applied')).to.equal(true);
+    expect(deliveries.every(result => result.committedRevision === 7)).to.equal(true);
+    expect(await records.countDocuments({ redboxOid: oid })).to.equal(1);
+    expect(await records.findOne({ redboxOid: oid })).to.include({
+      revision: 7,
+      lifecycleOperationId: restoreOperation.operationId,
+    });
   });
 
   it('runs the revision backfill idempotently against the real Mongo API', async function () {

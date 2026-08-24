@@ -6,6 +6,7 @@ import {
   type RecordConcurrencyResolution,
   type RecordConcurrentModificationMode,
 } from '@researchdatabox/sails-ng-common';
+import { isDeletedRecordLifecycleState, type DeletedRecordLifecycleState } from './model/storage/DeletedRecordModel';
 
 /**
  * First server-owned revision assigned to a newly-created or legacy record.
@@ -28,6 +29,11 @@ export interface RecordStorageMutationOptions {
   requestId?: string;
   /** Diagnostic only; never relaxes persistence or authorization checks. */
   resolution?: RecordConcurrencyResolution;
+  /** Additional durable ownership predicates for lifecycle recovery CAS. */
+  lifecycle?: {
+    expectedState?: DeletedRecordLifecycleState;
+    operationId?: string;
+  };
 }
 
 export type StorageMutationNonApplicationReason =
@@ -48,6 +54,7 @@ export interface RecordStorageConcurrencyCapabilities {
   conditionalActiveCreate: true;
   conditionalActiveUpdate: true;
   conditionalActiveRemove: true;
+  conditionalTombstoneCreate: true;
   conditionalTombstoneUpdate: true;
   conditionalTombstoneRemove: true;
   certifiedNonApplicationReasons: true;
@@ -68,6 +75,7 @@ export const FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES: Readonly<RecordStorag
     conditionalActiveCreate: true,
     conditionalActiveUpdate: true,
     conditionalActiveRemove: true,
+    conditionalTombstoneCreate: true,
     conditionalTombstoneUpdate: true,
     conditionalTombstoneRemove: true,
     certifiedNonApplicationReasons: true,
@@ -78,6 +86,7 @@ const REQUIRED_CAPABILITIES: ReadonlyArray<keyof Omit<RecordStorageConcurrencyCa
   'conditionalActiveCreate',
   'conditionalActiveUpdate',
   'conditionalActiveRemove',
+  'conditionalTombstoneCreate',
   'conditionalTombstoneUpdate',
   'conditionalTombstoneRemove',
   'certifiedNonApplicationReasons',
@@ -169,5 +178,24 @@ export function normalizeRecordStorageMutationOptions(
   }
   if (isRecordSaveRequestId(value.requestId)) normalized.requestId = value.requestId;
   if (isRecordConcurrencyResolution(value.resolution)) normalized.resolution = value.resolution;
+  if (value.lifecycle) {
+    if (typeof value.lifecycle !== 'object' || Array.isArray(value.lifecycle)) {
+      throw new TypeError('Record lifecycle precondition is malformed.');
+    }
+    const expectedState = isDeletedRecordLifecycleState(value.lifecycle.expectedState)
+      ? value.lifecycle.expectedState
+      : undefined;
+    const operationId = isRecordSaveRequestId(value.lifecycle.operationId) ? value.lifecycle.operationId : undefined;
+    if (value.lifecycle.expectedState !== undefined && expectedState === undefined) {
+      throw new TypeError('Record lifecycle precondition contains an invalid state.');
+    }
+    if (value.lifecycle.operationId !== undefined && operationId === undefined) {
+      throw new TypeError('Record lifecycle precondition contains an invalid operation identity.');
+    }
+    normalized.lifecycle = {
+      ...(expectedState ? { expectedState } : {}),
+      ...(operationId ? { operationId } : {}),
+    };
+  }
   return normalized;
 }

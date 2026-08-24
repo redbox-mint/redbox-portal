@@ -220,6 +220,12 @@ export const recordOperationQuery = objectField({
   operation: validationOperationQueryField,
 });
 
+export const recordDeleteQuery = objectField({
+  permanent: withOpenApi(z.enum(['true', 'false']), {
+    description: 'Permanently purge the record and its datastreams instead of retaining a tombstone',
+  }),
+});
+
 export const recordHarvestQuery = objectField({
   updateMode: stringField('Harvest update mode'),
 });
