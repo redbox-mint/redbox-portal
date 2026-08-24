@@ -10,7 +10,9 @@ export {
   RecordSaveTracker,
   RECORD_VALIDATION_BYPASS_REASONS,
   createRecordSaveContext,
+  createRecordSaveSchemaOutcomeMetadata,
   isInternalRecordValidationBypass,
+  isRecordSaveContext,
   isCanonicalSaveRequestId,
   isRecordValidationBypassReason,
   normalizeRecordConcurrencyContext,
@@ -24,8 +26,12 @@ export {
 export type {
   RecordConcurrencyContext,
   RecordSaveContext,
+  RecordSaveContextOptions,
   RecordSaveOperation,
   RecordSaveRouteFamily,
+  RecordSaveSchemaOutcomeInput,
+  RecordSaveSchemaOutcomeMetadata,
+  NormalizedRecordSchemaOperation,
   InternalRecordValidationBypass,
   RecordValidationBypassReason,
   StorageMutationLogger,
@@ -238,11 +244,7 @@ export { Config, SailsConfig } from './config';
 
 // Bootstrap functions
 export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
-export {
-  discoverRecordContractContributorRegistry,
-  generateAllShims,
-  mergeRedboxConfig,
-} from './loader/index';
+export { discoverRecordContractContributorRegistry, generateAllShims, mergeRedboxConfig } from './loader/index';
 export type { LoaderOptions, GenerateAllShimsResult, RedboxMigration } from './loader/index';
 export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
 export type { GeneratedHookBootstrap } from './loader/bootstrapShimRuntime';

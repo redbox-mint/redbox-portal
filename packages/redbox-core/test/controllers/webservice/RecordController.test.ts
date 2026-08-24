@@ -481,6 +481,87 @@ describe('Webservice RecordController body source', () => {
   });
 
   describe('metadata handlers', () => {
+    it('characterizes merge=false as complete metadata replacement', async () => {
+      const body = {
+        title: 'Replacement',
+        nested: { incoming: true },
+        values: [{ id: 'incoming' }],
+      };
+      const record = {
+        metadata: {
+          title: 'Stored',
+          retained: 'not retained',
+          nested: { stored: true },
+          values: [{ id: 'stored' }],
+        },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      };
+      recordsService.getMeta.resolves(record);
+      recordsService.updateMeta.resolves(successResult());
+      const req = makeThrowingRequest({
+        params: { oid: 'record-1' },
+        query: { merge: false },
+        body,
+        files: {},
+      });
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      expect(recordsService.updateMeta.firstCall.args[7]).to.equal(body);
+      expect(recordsService.updateMeta.firstCall.args[7]).not.to.have.property('retained');
+      expect(recordsService.updateMeta.firstCall.args[9]).to.equal(false);
+      expect(record.metadata).to.deep.equal({
+        title: 'Stored',
+        retained: 'not retained',
+        nested: { stored: true },
+        values: [{ id: 'stored' }],
+      });
+    });
+
+    it('characterizes merge=true as recursive object merge with array concatenation', async () => {
+      const body = {
+        title: 'Merged',
+        merge: 'ordinary metadata field',
+        nested: {
+          overwritten: 'incoming',
+          incomingOnly: true,
+          values: [{ id: 'nested-incoming' }],
+        },
+        values: [{ id: 'incoming' }],
+      };
+      const record = {
+        metadata: {
+          title: 'Stored',
+          retained: 'keep',
+          nested: {
+            overwritten: 'stored',
+            retained: true,
+            values: [{ id: 'nested-stored' }],
+          },
+          values: [{ id: 'stored' }],
+        },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      };
+      recordsService.getMeta.resolves(record);
+      recordsService.updateMeta.resolves(successResult());
+      const req = makeThrowingRequest({
+        params: { oid: 'record-1' },
+        query: { merge: true },
+        body,
+        files: {},
+      });
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      expect(recordsService.updateMeta.firstCall.args[7]).to.equal(body);
+      expect(recordsService.updateMeta.firstCall.args[7]).to.deep.equal(body);
+      expect(recordsService.updateMeta.firstCall.args[9]).to.equal(true);
+      expect(record.metadata.values).to.deep.equal([{ id: 'stored' }]);
+      expect(body.values).to.deep.equal([{ id: 'incoming' }]);
+    });
+
     it('passes req.apiRequest metadata separately so attachment diffs use the persisted baseline', async () => {
       const body = {
         title: 'Validated title',
@@ -519,12 +600,14 @@ describe('Webservice RecordController body source', () => {
       const updatedRecord = recordsService.updateMeta.firstCall.args[2] as any;
       const updatedMetadata = recordsService.updateMeta.firstCall.args[7] as any;
       expect(updatedRecord.metadata.tags).to.deep.equal(['existing']);
-      expect(updatedMetadata.tags).to.deep.equal(['existing', 'incoming']);
+      expect(updatedMetadata).to.equal(body);
+      expect(updatedMetadata.tags).to.deep.equal(['incoming']);
       expect(updatedMetadata.nested.value).to.equal(2);
       const context = recordsService.updateMeta.firstCall.args[8] as any;
       expect(context.operation).to.equal('update');
       expect(context.validationOperation).to.equal('submit');
       expect(context.concurrency).to.deep.equal({ entityTagSupplied: true, expectedRevision: 5 });
+      expect(recordsService.updateMeta.firstCall.args[9]).to.equal(true);
       expect(context).not.to.have.property('enabledValidationGroups');
       expect(sendRespStub.calledOnce).to.be.true;
     });
@@ -949,6 +1032,10 @@ describe('Webservice RecordController body source', () => {
 
     it('uses req.apiRequest body in create', async () => {
       const body = {
+        validationBypass: { mode: 'bypass' },
+        schemaOperation: 'forged-operation',
+        ifMatch: `"sha256:${'b'.repeat(64)}"`,
+        schemaOutcome: { digest: 'b'.repeat(64) },
         authorization: {
           edit: ['creator'],
           view: ['reader'],
@@ -976,9 +1063,15 @@ describe('Webservice RecordController body source', () => {
       const createRequest = recordsService.create.firstCall.args[1] as any;
       expect(createRequest.metadata).to.deep.equal(body.metadata);
       expect(createRequest.authorization).to.deep.equal(body.authorization);
+      expect(createRequest).not.to.have.property('validationBypass');
+      expect(createRequest).not.to.have.property('schemaOutcome');
       const context = recordsService.create.firstCall.args[7] as any;
       expect(context.operation).to.equal('create');
       expect(context.validationOperation).to.equal('publish');
+      expect(context.schemaOperation).to.equal('publish');
+      expect(context.ifMatch).to.equal(undefined);
+      expect(context).not.to.have.property('schemaOutcome');
+      expect(context.validationBypass).to.equal(undefined);
       expect(context).not.to.have.property('enabledValidationGroups');
       expect(sendRespStub.calledOnce).to.be.true;
       expect(sendRespStub.firstCall.args[2]?.status).to.equal(201);
@@ -1924,172 +2017,6 @@ describe('Webservice RecordController body source', () => {
         displayErrors: [{ code: 'record-if-match-invalid', source: { header: 'If-Match' } }],
       });
     });
-
-    describe('metadata handlers', () => {
-        it('characterizes merge=false as complete metadata replacement', async () => {
-            const body = {
-                title: 'Replacement',
-                nested: { incoming: true },
-                values: [{ id: 'incoming' }],
-            };
-            const record = {
-                metadata: {
-                    title: 'Stored',
-                    retained: 'not retained',
-                    nested: { stored: true },
-                    values: [{ id: 'stored' }],
-                },
-                metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
-            };
-            recordsService.getMeta.resolves(record);
-            recordsService.updateMeta.resolves(successResult());
-            const req = makeThrowingRequest({
-                params: { oid: 'record-1' },
-                query: { merge: false },
-                body,
-                files: {},
-            });
-            sinon.stub(controller as any, 'sendResp');
-
-            await controller.updateMeta(req, {} as Sails.Res);
-
-            expect(recordsService.updateMeta.firstCall.args[7]).to.deep.equal(body);
-            expect(recordsService.updateMeta.firstCall.args[7]).not.to.have.property('retained');
-            expect(record.metadata).to.deep.equal({
-                title: 'Stored',
-                retained: 'not retained',
-                nested: { stored: true },
-                values: [{ id: 'stored' }],
-            });
-        });
-
-        it('characterizes merge=true as recursive object merge with array concatenation', async () => {
-            const body = {
-                title: 'Merged',
-                nested: {
-                    overwritten: 'incoming',
-                    incomingOnly: true,
-                    values: [{ id: 'nested-incoming' }],
-                },
-                values: [{ id: 'incoming' }],
-            };
-            const record = {
-                metadata: {
-                    title: 'Stored',
-                    retained: 'keep',
-                    nested: {
-                        overwritten: 'stored',
-                        retained: true,
-                        values: [{ id: 'nested-stored' }],
-                    },
-                    values: [{ id: 'stored' }],
-                },
-                metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
-            };
-            recordsService.getMeta.resolves(record);
-            recordsService.updateMeta.resolves(successResult());
-            const req = makeThrowingRequest({
-                params: { oid: 'record-1' },
-                query: { merge: true },
-                body,
-                files: {},
-            });
-            sinon.stub(controller as any, 'sendResp');
-
-            await controller.updateMeta(req, {} as Sails.Res);
-
-            expect(recordsService.updateMeta.firstCall.args[7]).to.deep.equal({
-                title: 'Merged',
-                retained: 'keep',
-                nested: {
-                    overwritten: 'incoming',
-                    retained: true,
-                    incomingOnly: true,
-                    values: [{ id: 'nested-stored' }, { id: 'nested-incoming' }],
-                },
-                values: [{ id: 'stored' }, { id: 'incoming' }],
-            });
-            expect(record.metadata.values).to.deep.equal([{ id: 'stored' }]);
-            expect(body.values).to.deep.equal([{ id: 'incoming' }]);
-        });
-
-        it('passes req.apiRequest metadata separately so attachment diffs use the persisted baseline', async () => {
-            const body = {
-                title: 'Validated title',
-                tags: ['incoming'],
-                nested: { value: 2 },
-                enabledValidationGroups: ['client-selected-group'],
-            };
-            const record = {
-                metadata: {
-                    title: 'Existing title',
-                    tags: ['existing'],
-                    nested: { value: 1 },
-                },
-                metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
-            };
-            recordsService.getMeta.resolves(record);
-            recordsService.updateMeta.resolves(successResult());
-            const req = makeThrowingRequest({
-                params: { oid: 'record-1' },
-                query: { merge: true, datastreams: true, operation: ' submit ' },
-                body,
-                files: {},
-            });
-            const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-            await controller.updateMeta(req, {} as Sails.Res);
-
-            expect(recordsService.updateMeta.calledOnce).to.be.true;
-            const updatedRecord = recordsService.updateMeta.firstCall.args[2] as any;
-            const updatedMetadata = recordsService.updateMeta.firstCall.args[7] as any;
-            expect(updatedRecord.metadata.tags).to.deep.equal(['existing']);
-            expect(updatedMetadata.tags).to.deep.equal(['existing', 'incoming']);
-            expect(updatedMetadata.nested.value).to.equal(2);
-            const context = recordsService.updateMeta.firstCall.args[8] as any;
-            expect(context.operation).to.equal('update');
-            expect(context.validationOperation).to.equal('submit');
-            expect(context).not.to.have.property('enabledValidationGroups');
-            expect(sendRespStub.calledOnce).to.be.true;
-        });
-
-        for (const apiVersion of ['1.0', '2.0']) {
-            it(`returns the ${apiVersion} failure status and envelope for a confirmed non-save`, async () => {
-                const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000001');
-                result.outcome = 'not-saved';
-                result.success = false;
-                result.message = '@dmpt-form-save-error';
-                result.problems = [{
-                    kind: 'validation',
-                    phase: 'pre-save',
-                    issues: [{ message: '@dmpt-form-save-error', code: 'validation-failed' }],
-                }];
-                recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [], brandId: 'brand-1' } });
-                recordsService.updateMeta.resolves(result);
-                const req = makeThrowingRequest({
-                    params: { oid: 'record-1' },
-                    query: { merge: false, datastreams: false },
-                    body: { title: 'Rejected' },
-                    files: {},
-                }, {
-                    headers: { 'x-redbox-api-version': apiVersion },
-                });
-                const sendRespStub = sinon.stub(controller as any, 'sendResp');
-
-                await controller.updateMeta(req, {} as Sails.Res);
-
-                const envelope = sendRespStub.firstCall.args[2];
-                expect(envelope.status).to.equal(apiVersion === '2.0' ? 400 : 500);
-                if (apiVersion === '1.0') {
-                    expect(envelope.displayErrors).to.equal(undefined);
-                    expect(envelope.meta).to.equal(undefined);
-                    expect(envelope.v1).to.deep.equal({ message: 'Update Metadata failed' });
-                } else {
-                    expect(envelope.meta.outcome).to.equal('not-saved');
-                    expect(envelope.v1).to.equal(undefined);
-                    expect(envelope.displayErrors).to.deep.equal([{ detail: 'Update Metadata failed' }]);
-                }
-            });
 
     it('delegates tracked harvest bodies to HarvestRunService.submitChunk', async () => {
       const body = {

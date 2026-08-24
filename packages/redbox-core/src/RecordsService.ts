@@ -222,7 +222,8 @@ export interface RecordsService {
     triggerPostSaveTriggers?: boolean,
     targetStep?: unknown,
     metadata?: AnyRecord,
-    context?: RecordSaveContext
+    context?: RecordSaveContext,
+    mergeMetadata?: boolean
   ): Promise<RecordSaveResponse>;
   updateMetaInternal(options: InternalRecordSnapshotSaveOptions): Promise<RecordSaveResponse>;
   mutateMetaInternal(options: InternalRecomputableMutationOptions): Promise<RecordSaveResponse>;

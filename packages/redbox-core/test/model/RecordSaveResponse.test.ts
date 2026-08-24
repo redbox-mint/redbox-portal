@@ -1,5 +1,5 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => (expect = mod.expect));
+import('chai').then(mod => (expect = mod.expect));
 import {
   emptyRecordSaveCompletion,
   isRecordSaveOutcome,
@@ -7,7 +7,9 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
+  createRecordSaveSchemaOutcomeMetadata,
   isInternalRecordValidationBypass,
+  isRecordSaveContext,
   isCanonicalSaveRequestId,
   isRecordValidationBypassReason,
   normalizeRecordConcurrencyContext,
@@ -17,6 +19,8 @@ import {
   RECORD_VALIDATION_BYPASS_REASONS,
   recordSaveFailureStatus,
   recordSaveProblem,
+  type InternalRecordValidationBypass,
+  type RecordValidationContextJSONValue,
   RecordSaveResponse,
   RecordSaveTracker,
   resolveStorageMutationState,
@@ -124,6 +128,85 @@ describe('RecordSaveResponse', function () {
 
       saveTracker.setConcurrencyMetadata({ revision: -1, resolution: 'force' });
       expect(saveTracker.toResponse().concurrency).to.equal(undefined);
+    });
+
+    it('copies only factory-validated schema outcome metadata outside record metadata', function () {
+      const saveTracker = tracker();
+      const schemaOutcome = createRecordSaveSchemaOutcomeMetadata({
+        digest: 'a'.repeat(64),
+        immutableUrl: `/default/default/api/records/schemas/${'a'.repeat(64)}`,
+        completeness: 'partial',
+        enforcement: 'shadow',
+        privateGrant: { oid: 'must-not-serialize' },
+      });
+      saveTracker.setSchemaOutcome(schemaOutcome);
+      saveTracker.confirmPrimaryPersistence('oid-1');
+
+      const result = saveTracker.toResponse();
+      expect(result.schemaOutcome).to.deep.equal({
+        digest: 'a'.repeat(64),
+        immutableUrl: `/default/default/api/records/schemas/${'a'.repeat(64)}`,
+        completeness: 'partial',
+        enforcement: 'shadow',
+      });
+      expect(Object.isFrozen(result.schemaOutcome)).to.equal(true);
+      expect(
+        Reflect.set(result, 'schemaOutcome', {
+          ...schemaOutcome,
+          digest: 'b'.repeat(64),
+        })
+      ).to.equal(false);
+      expect(result.schemaOutcome?.digest).to.equal('a'.repeat(64));
+      expect(result.metadata).to.equal(null);
+      expect(JSON.parse(JSON.stringify(result)).schemaOutcome).to.deep.equal(result.schemaOutcome);
+      expect(JSON.stringify(result)).not.to.include('must-not-serialize');
+    });
+
+    it('rejects malformed or inconsistent schema outcome identities', function () {
+      const digest = 'a'.repeat(64);
+      const valid = {
+        digest,
+        immutableUrl: `/default/default/api/records/schemas/${digest}`,
+        completeness: 'complete',
+        enforcement: 'enforce',
+      };
+      const invalidOutcomes: unknown[] = [
+        { ...valid, digest: 'A'.repeat(64) },
+        { ...valid, immutableUrl: `https://example.test/default/default/api/records/schemas/${digest}` },
+        { ...valid, immutableUrl: `/default/default/api/records/schemas/${'b'.repeat(64)}` },
+        { ...valid, immutableUrl: `/%broken/default/api/records/schemas/${digest}` },
+        { ...valid, completeness: 'unknown' },
+        { ...valid, enforcement: 'disabled' },
+      ];
+
+      for (const invalidOutcome of invalidOutcomes) {
+        expect(() => createRecordSaveSchemaOutcomeMetadata(invalidOutcome)).to.throw(TypeError);
+      }
+    });
+
+    it('snapshots schema outcome completeness and enforcement before validating them', function () {
+      const digest = 'a'.repeat(64);
+      let completenessReads = 0;
+      let enforcementReads = 0;
+      const metadata = {
+        digest,
+        immutableUrl: `/default/default/api/records/schemas/${digest}`,
+        get completeness() {
+          completenessReads += 1;
+          return completenessReads === 1 ? 'complete' : 'unvalidated-completeness';
+        },
+        get enforcement() {
+          enforcementReads += 1;
+          return enforcementReads === 1 ? 'enforce' : 'unvalidated-enforcement';
+        },
+      };
+
+      const result = createRecordSaveSchemaOutcomeMetadata(metadata);
+
+      expect(completenessReads).to.equal(1);
+      expect(enforcementReads).to.equal(1);
+      expect(result.completeness).to.equal('complete');
+      expect(result.enforcement).to.equal('enforce');
     });
 
     it('preserves only legacy workspace fields returned by a post-save hook', function () {
@@ -314,6 +397,209 @@ describe('RecordSaveResponse', function () {
         reason: 'historical-record-repair',
         actor: { kind: 'service', id: 'RepairService' },
       });
+    });
+
+    it('derives the normalized schema operation and accepts If-Match only through the trusted option', function () {
+      const ifMatch = `"sha256:${'a'.repeat(64)}"`;
+      const context = createRecordSaveContext({
+        validationOperation: '  publish  ',
+        recordSchemaIfMatch: ifMatch,
+      });
+
+      expect(context.validationOperation).to.equal('  publish  ');
+      expect(context.schemaOperation).to.equal('publish');
+      expect(context.ifMatch).to.equal(ifMatch);
+      expect(Object.isFrozen(context)).to.equal(true);
+      expect(isRecordSaveContext(context)).to.equal(true);
+      const spreadClone = { ...context };
+      const modifiedClone = {
+        ...context,
+        validationOperation: 'review',
+        schemaOperation: 'forged-operation',
+        ifMatch: `"sha256:${'b'.repeat(64)}"`,
+      };
+      expect(isRecordSaveContext(spreadClone)).to.equal(false);
+      expect(isRecordSaveContext(modifiedClone)).to.equal(false);
+      expect(isRecordSaveContext({ requestId, schemaOperation: 'publish', ifMatch })).to.equal(false);
+      const refactoredContext = createRecordSaveContext(modifiedClone);
+      expect(isRecordSaveContext(refactoredContext)).to.equal(true);
+      expect(refactoredContext.schemaOperation).to.equal('review');
+      expect(refactoredContext.ifMatch).to.equal(undefined);
+      expect(createRecordSaveContext({ validationOperation: 'bad operation' }).schemaOperation).to.be.undefined;
+    });
+
+    it('snapshots schema operation and If-Match inputs before validating them', function () {
+      const firstIfMatch = `"sha256:${'a'.repeat(64)}"`;
+      const secondIfMatch = `"sha256:${'b'.repeat(64)}"`;
+      let validationOperationReads = 0;
+      let ifMatchReads = 0;
+      const context = createRecordSaveContext({
+        get validationOperation() {
+          validationOperationReads += 1;
+          return validationOperationReads === 1 ? '  publish  ' : 'forged-operation';
+        },
+        get recordSchemaIfMatch() {
+          ifMatchReads += 1;
+          return ifMatchReads === 1 ? firstIfMatch : secondIfMatch;
+        },
+      });
+
+      expect(validationOperationReads).to.equal(1);
+      expect(ifMatchReads).to.equal(1);
+      expect(context.validationOperation).to.equal('  publish  ');
+      expect(context.schemaOperation).to.equal('publish');
+      expect(context.ifMatch).to.equal(firstIfMatch);
+    });
+
+    it('detaches and deeply freezes caller-owned validation context values', function () {
+      const requestStep = { name: 'review' };
+      const requestSteps: RecordValidationContextJSONValue[] = ['draft', requestStep];
+      const validationRequestParameters: Record<string, RecordValidationContextJSONValue> = {
+        workflow: { steps: requestSteps },
+      };
+      const runtimeAudit = { enabled: true, labels: ['initial'] };
+      const validationRuntimeContext: Record<string, RecordValidationContextJSONValue> = {
+        audit: runtimeAudit,
+      };
+      const validationBypass: {
+        mode: 'bypass';
+        reason: InternalRecordValidationBypass['reason'];
+        actor: { kind: 'service'; id: string };
+      } = {
+        mode: 'bypass',
+        reason: 'historical-record-repair',
+        actor: { kind: 'service', id: 'RepairService' },
+      };
+
+      const context = createRecordSaveContext({
+        validationRequestParameters,
+        validationRuntimeContext,
+        validationBypass,
+      });
+
+      requestStep.name = 'forged-review';
+      requestSteps.push('published');
+      runtimeAudit.enabled = false;
+      runtimeAudit.labels.push('forged');
+      validationBypass.reason = 'trusted-data-migration';
+      validationBypass.actor.id = 'ForgedService';
+
+      expect(context.validationRequestParameters).to.deep.equal({
+        workflow: { steps: ['draft', { name: 'review' }] },
+      });
+      expect(context.validationRuntimeContext).to.deep.equal({
+        audit: { enabled: true, labels: ['initial'] },
+      });
+      expect(context.validationBypass).to.deep.equal({
+        mode: 'bypass',
+        reason: 'historical-record-repair',
+        actor: { kind: 'service', id: 'RepairService' },
+      });
+      expect(Object.isFrozen(context.validationRequestParameters)).to.equal(true);
+      expect(Object.isFrozen(context.validationRequestParameters?.workflow)).to.equal(true);
+      expect(Object.isFrozen(context.validationRuntimeContext)).to.equal(true);
+      expect(Object.isFrozen(context.validationRuntimeContext?.audit)).to.equal(true);
+      expect(Object.isFrozen(context.validationBypass)).to.equal(true);
+      expect(Object.isFrozen(context.validationBypass?.actor)).to.equal(true);
+      expect(Reflect.set(context.validationBypass?.actor ?? {}, 'id', 'LateMutation')).to.equal(false);
+      expect(context.validationBypass?.actor.id).to.equal('RepairService');
+      expect(isRecordSaveContext(context)).to.equal(true);
+    });
+
+    it('snapshots nested accessors and proxies exactly once before trusting the context', function () {
+      let requestContainerReads = 0;
+      let requestOperationReads = 0;
+      const requestTarget: Record<string, RecordValidationContextJSONValue> = { operation: 'publish' };
+      const requestProxy = new Proxy(requestTarget, {
+        get(target, property, receiver) {
+          if (property === 'operation') {
+            requestOperationReads += 1;
+            return requestOperationReads === 1 ? Reflect.get(target, property, receiver) : 'forged-operation';
+          }
+          return Reflect.get(target, property, receiver);
+        },
+      });
+      const validationRequestParameters: Readonly<Record<string, RecordValidationContextJSONValue>> = {
+        get nested() {
+          requestContainerReads += 1;
+          return requestProxy;
+        },
+      };
+
+      let runtimeValueReads = 0;
+      const runtimeValues: RecordValidationContextJSONValue[] = [];
+      Object.defineProperty(runtimeValues, 0, {
+        configurable: true,
+        enumerable: true,
+        get() {
+          runtimeValueReads += 1;
+          return runtimeValueReads === 1 ? 'trusted-runtime' : 'forged-runtime';
+        },
+      });
+      runtimeValues.length = 1;
+
+      let bypassActorReads = 0;
+      let bypassActorIdReads = 0;
+      const actorTarget: InternalRecordValidationBypass['actor'] = {
+        kind: 'service',
+        id: 'AuditService',
+      };
+      const actorProxy = new Proxy(actorTarget, {
+        get(target, property, receiver) {
+          if (property === 'id') {
+            bypassActorIdReads += 1;
+            return bypassActorIdReads === 1 ? Reflect.get(target, property, receiver) : 'ForgedService';
+          }
+          return Reflect.get(target, property, receiver);
+        },
+      });
+      const validationBypass: InternalRecordValidationBypass = {
+        mode: 'bypass',
+        reason: 'configuration-recovery',
+        get actor() {
+          bypassActorReads += 1;
+          return actorProxy;
+        },
+      };
+
+      const context = createRecordSaveContext({
+        validationRequestParameters,
+        validationRuntimeContext: { values: runtimeValues },
+        validationBypass,
+      });
+
+      requestTarget.operation = 'mutated-operation';
+      expect(requestContainerReads).to.equal(1);
+      expect(requestOperationReads).to.equal(1);
+      expect(runtimeValueReads).to.equal(1);
+      expect(bypassActorReads).to.equal(1);
+      expect(bypassActorIdReads).to.equal(1);
+      expect(context.validationRequestParameters).to.deep.equal({ nested: { operation: 'publish' } });
+      expect(context.validationRuntimeContext).to.deep.equal({ values: ['trusted-runtime'] });
+      expect(context.validationBypass).to.deep.equal({
+        mode: 'bypass',
+        reason: 'configuration-recovery',
+        actor: { kind: 'service', id: 'AuditService' },
+      });
+      expect(isInternalRecordValidationBypass(context.validationBypass)).to.equal(true);
+      expect(isRecordSaveContext(context)).to.equal(true);
+    });
+
+    it('rejects nested context values that cannot be represented as detached JSON', function () {
+      const cyclic: Record<string, RecordValidationContextJSONValue> = {};
+      cyclic.self = cyclic;
+
+      expect(() => createRecordSaveContext({ validationRequestParameters: cyclic })).to.throw(
+        TypeError,
+        'validationRequestParameters must contain only acyclic JSON values.'
+      );
+      expect(() =>
+        createRecordSaveContext({
+          validationRuntimeContext: {
+            createdAt: new Date() as unknown as RecordValidationContextJSONValue,
+          },
+        })
+      ).to.throw(TypeError, 'validationRuntimeContext must contain only acyclic JSON values.');
     });
 
     it('exposes one runtime source of truth for the typed bypass reasons', function () {

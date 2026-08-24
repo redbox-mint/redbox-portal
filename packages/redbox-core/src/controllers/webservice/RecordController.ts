@@ -840,7 +840,6 @@ export namespace Controllers {
       }
 
       let record;
-      let updatedMetadata: globalThis.Record<string, unknown>;
       try {
         record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
@@ -850,17 +849,6 @@ export namespace Controllers {
               { detail: `Failed to update meta, cannot find existing record with oid: ${oid}.`, meta: { oid } },
             ],
           });
-        }
-        if (shouldMerge) {
-          // behavior modified from replacing arrays to appending to arrays:
-          updatedMetadata = _.mergeWith(_.cloneDeep(record.metadata), body, (objValue: unknown, srcValue: unknown) => {
-            if (_.isArray(objValue)) {
-              return (objValue as unknown[]).concat(srcValue as unknown[]);
-            }
-            return undefined;
-          });
-        } else {
-          updatedMetadata = body;
         }
       } catch (err) {
         return this.sendResp(req, res, {
@@ -877,8 +865,9 @@ export namespace Controllers {
           true,
           true,
           {},
-          updatedMetadata,
-          saveRequest.context
+          body,
+          saveRequest.context,
+          shouldMerge
         );
         // Attachment work is part of RecordsService's ordered save pipeline.
         // Keep accepting the legacy query parameter for route compatibility,

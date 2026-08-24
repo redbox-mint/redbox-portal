@@ -403,7 +403,14 @@ describe('RecordController getWorkflowSteps', () => {
       params: { targetStep: 'route-step' },
       query: { operation: ' submit ' },
       headers: {},
-      body: { operation: 'body-must-not-control-validation', targetStep: 'body-step' },
+      body: {
+        operation: 'body-must-not-control-validation',
+        targetStep: 'body-step',
+        validationBypass: { mode: 'bypass' },
+        schemaOperation: 'forged-operation',
+        ifMatch: `"sha256:${'b'.repeat(64)}"`,
+        schemaOutcome: { digest: 'b'.repeat(64) },
+      },
       param: sinon.stub().callsFake((name: string) => (name === 'operation' ? 'body-operation' : 'body-step')),
     } as unknown as Sails.Req;
     const parsed = (controller as any).publicValidationOperation(req);
@@ -412,6 +419,10 @@ describe('RecordController getWorkflowSteps', () => {
     expect(parsed).to.deep.equal({ valid: true, value: 'submit' });
     expect(context.operation).to.equal('transition');
     expect(context.validationOperation).to.equal('submit');
+    expect(context.schemaOperation).to.equal('submit');
+    expect(context.ifMatch).to.equal(undefined);
+    expect(context).not.to.have.property('schemaOutcome');
+    expect(context.validationBypass).to.equal(undefined);
     expect(context.validationRequestParameters).to.deep.equal({ targetStep: 'route-step' });
     expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
     expect((controller as any).publicValidationOperation({ query: {} })).to.deep.equal({ valid: true });

@@ -83,6 +83,7 @@ import type {
 import {
   createRecordSaveContext,
   isInternalRecordValidationBypass,
+  isRecordSaveContext,
   recordValidationRuntimeFacts,
   recordSaveProblem,
   type InternalRecordValidationBypass,
@@ -214,6 +215,14 @@ interface RecordValidationRolloutSnapshot {
     readonly rollout: RecordValidationRolloutLayerSnapshot;
   }[];
   readonly malformedRecordTypeCount: number;
+}
+
+function requireRecordSaveContext(context: RecordSaveContext | undefined): RecordSaveContext | undefined {
+  if (context === undefined) return undefined;
+  if (!isRecordSaveContext(context)) {
+    throw new TypeError('Record save contexts must be omitted or created by createRecordSaveContext().');
+  }
+  return context;
 }
 
 // Save codes are an internal RecordsService-to-RecordSaveResponse mapping, not
@@ -660,6 +669,37 @@ export namespace Services {
         candidate[key] = _.cloneDeep(value);
       }
       return this.normalizeRecord(candidate);
+    }
+
+    /**
+     * Apply raw submitted metadata at the single update mutation boundary.
+     * Structural schema validation belongs immediately before this boundary so
+     * it always observes the unmerged delta, while hooks retain the established
+     * post-merge contract.
+     */
+    private applySubmittedMetadata(
+      candidate: RecordWithMeta,
+      submittedMetadata: AnyRecord | undefined,
+      mergeMetadata: boolean
+    ): void {
+      if (submittedMetadata === undefined) return;
+
+      const detachedMetadata = _.cloneDeep(submittedMetadata) as AnyRecord;
+      if (mergeMetadata !== true) {
+        candidate.metadata = detachedMetadata;
+        return;
+      }
+
+      candidate.metadata = _.mergeWith(
+        _.cloneDeep(candidate.metadata ?? {}),
+        detachedMetadata,
+        (existingValue: unknown, submittedValue: unknown) => {
+          if (Array.isArray(existingValue)) {
+            return existingValue.concat(submittedValue);
+          }
+          return undefined;
+        }
+      ) as AnyRecord;
     }
 
     private cloneValidationCandidate(candidate: RecordValidationCandidate | AnyRecord): RecordWithMeta {
@@ -2159,8 +2199,7 @@ export namespace Services {
         searchable,
         action,
         actor: this.postCommitAuditActor(user),
-        resolution:
-          tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+        resolution: tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
         ...(isRecordRevision(revision) ? { committedRevision: revision } : {}),
       };
     }
@@ -2184,9 +2223,10 @@ export namespace Services {
       ) {
         return undefined;
       }
-      const actor = data.actor && typeof data.actor === 'object' && !Array.isArray(data.actor)
-        ? this.postCommitAuditActor(data.actor as AnyRecord)
-        : {};
+      const actor =
+        data.actor && typeof data.actor === 'object' && !Array.isArray(data.actor)
+          ? this.postCommitAuditActor(data.actor as AnyRecord)
+          : {};
       return {
         schemaVersion: RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION,
         oid,
@@ -2483,7 +2523,12 @@ export namespace Services {
       return service;
     }
 
-    private attachmentJournalStorageKey(oid: string, attachmentId: string, generation: string, mutationFileId: string): string {
+    private attachmentJournalStorageKey(
+      oid: string,
+      attachmentId: string,
+      generation: string,
+      mutationFileId: string
+    ): string {
       const mutationKey = createHash('sha256').update(mutationFileId).digest('hex').slice(0, 32);
       return `journal/${oid}/${attachmentId}/${generation}/${mutationKey}`;
     }
@@ -2706,7 +2751,7 @@ export namespace Services {
               item.generation,
               'pending',
               undefined,
-              item.fileId,
+              item.fileId
             );
           } catch (error) {
             journalStateKnown = false;
@@ -3363,10 +3408,12 @@ export namespace Services {
       targetStep = null,
       context?: RecordSaveContext
     ): Promise<RecordSaveResponse> {
+      const suppliedContext = requireRecordSaveContext(context);
       const tracker = new RecordSaveTracker(
         createRecordSaveContext({
-          ...(context ?? {}),
-          operation: context?.operation ?? 'create',
+          ...(suppliedContext ?? {}),
+          operation: suppliedContext?.operation ?? 'create',
+          recordSchemaIfMatch: suppliedContext?.ifMatch,
         })
       );
       const brandObj = brand as BrandingModel;
@@ -4419,14 +4466,18 @@ export namespace Services {
       triggerPostSaveTriggers: boolean = true,
       nextStep: unknown = {},
       metadata?: AnyRecord,
-      context?: RecordSaveContext
+      context?: RecordSaveContext,
+      mergeMetadata: boolean = false
     ): Promise<RecordSaveResponse> {
+      const suppliedContext = requireRecordSaveContext(context);
       const transitionRequested =
-        context?.operation === 'transition' || (context?.operation === undefined && !_.isEmpty(nextStep));
+        suppliedContext?.operation === 'transition' ||
+        (suppliedContext?.operation === undefined && !_.isEmpty(nextStep));
       const tracker = new RecordSaveTracker(
         createRecordSaveContext({
-          ...(context ?? {}),
-          operation: context?.operation ?? (transitionRequested ? 'transition' : 'update'),
+          ...(suppliedContext ?? {}),
+          operation: suppliedContext?.operation ?? (transitionRequested ? 'transition' : 'update'),
+          recordSchemaIfMatch: suppliedContext?.ifMatch,
         })
       );
       const hookOperation = this.registerSaveHookOperation(
@@ -4502,10 +4553,6 @@ export namespace Services {
       }
       const origRecordObj = this.normalizeRecord(_.cloneDeep(requestedRecord) as AnyRecord);
       sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
-      //This is done after cloning record to preserve origRecord during processing
-      if (metadata !== undefined) {
-        recordObj.metadata = _.cloneDeep(metadata);
-      }
 
       const requestedMeta = this.recordObject(recordObj.metaMetadata);
       const originalMeta = this.recordObject(originalRecord?.metaMetadata);
@@ -4700,6 +4747,11 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      // Keep the transport-provided metadata delta raw through authoritative
+      // context and authorization resolution. This is the only metadata
+      // mutation boundary before hooks, allowing structural validation to run
+      // immediately before it without observing a controller-merged value.
+      this.applySubmittedMetadata(recordObj, metadata, mergeMetadata);
       if (transitionRequested) {
         if (!_.isEmpty(recordType)) {
           try {
@@ -7156,8 +7208,7 @@ export namespace Services {
       const presentIdentities = identities.filter((identity): identity is string => identity !== undefined);
       if (new Set(presentIdentities).size > 1) return false;
       return (
-        !active ||
-        tombstoneIdentities.some(identity => typeof identity === 'string') === (activeIdentity !== undefined)
+        !active || tombstoneIdentities.some(identity => typeof identity === 'string') === (activeIdentity !== undefined)
       );
     }
 

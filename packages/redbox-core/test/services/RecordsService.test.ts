@@ -6,11 +6,13 @@ import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { rejects } from 'node:assert/strict';
 import {
   formValidatorsSharedDefinitions,
   type FormConfigFrame,
   type RecordSaveIssue,
 } from '@researchdatabox/sails-ng-common';
+import { createRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
 import type { StorageService } from '../../src/StorageService';
 import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
@@ -31,6 +33,12 @@ const { Services: RecordValidationServices } =
 const DomSanitizerServices = require('../../src/services/DomSanitizerService')
   .default as typeof import('../../src/services/DomSanitizerService').default;
 
+function assertUnknownRecord(value: unknown): asserts value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('Expected a captured record object.');
+  }
+}
+
 describe('RecordsService', function () {
   let mockSails: any;
   let RecordsService: any;
@@ -39,6 +47,9 @@ describe('RecordsService', function () {
   let mockSearchService: any;
   let mockQueueService: any;
   let mockDatastreamService: any;
+  let mockRecordValidationService: {
+    resolve: sinon.SinonStub<[request: unknown], Promise<unknown>>;
+  };
 
   beforeEach(function () {
     mockStorageService = {
@@ -230,15 +241,18 @@ describe('RecordsService', function () {
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
     };
-    (global as any).RecordValidationService = {
-      resolve: sinon.stub().resolves({
-        status: 'unresolved',
-        shouldBlock: false,
-        mode: 'shadow',
-        diagnostics: [],
-      }),
+    const recordValidationResolve = sinon.stub<[request: unknown], Promise<unknown>>();
+    recordValidationResolve.resolves({
+      status: 'unresolved',
+      shouldBlock: false,
+      mode: 'shadow',
+      diagnostics: [],
+    });
+    mockRecordValidationService = {
+      resolve: recordValidationResolve,
     };
-    mockSails.services.recordvalidationservice = (global as any).RecordValidationService;
+    (global as any).RecordValidationService = mockRecordValidationService;
+    mockSails.services.recordvalidationservice = mockRecordValidationService;
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
     };
@@ -991,30 +1005,51 @@ describe('RecordsService', function () {
 
       expect(record.metadata.attachments[0].attachmentId).to.match(/^[0-9a-f-]{36}$/i);
       expect(record.metadata.attachments[1].attachmentId).to.equal('valid-2');
-      expect(() => (RecordsService as any).ensureAttachmentIds(
-        { metadata: { attachments: [{ attachmentId: 'bad id', fileId: 'file-1' }] } },
-        ['attachments']
-      )).to.throw('Invalid attachment identity');
-      expect(() => (RecordsService as any).ensureAttachmentIds(
-        { metadata: { attachments: [
-          { attachmentId: 'same', fileId: 'file-1' },
-          { attachmentId: 'same', fileId: 'file-2' },
-        ] } },
-        ['attachments']
-      )).to.throw('Duplicate attachment identity');
+      expect(() =>
+        (RecordsService as any).ensureAttachmentIds(
+          { metadata: { attachments: [{ attachmentId: 'bad id', fileId: 'file-1' }] } },
+          ['attachments']
+        )
+      ).to.throw('Invalid attachment identity');
+      expect(() =>
+        (RecordsService as any).ensureAttachmentIds(
+          {
+            metadata: {
+              attachments: [
+                { attachmentId: 'same', fileId: 'file-1' },
+                { attachmentId: 'same', fileId: 'file-2' },
+              ],
+            },
+          },
+          ['attachments']
+        )
+      ).to.throw('Duplicate attachment identity');
     });
 
     it('plans unresolved work before replacements and deletions', function () {
       const plan = (RecordsService as any).attachmentMutationPlan(
         { metadata: { attachments: [{ attachmentId: 'old', fileId: 'old-file' }] } },
-        { metadata: { attachments: [
-          { attachmentId: 'new', fileId: 'new-file', pending: true },
-          { attachmentId: 'old', fileId: 'replacement-file' },
-        ] } },
+        {
+          metadata: {
+            attachments: [
+              { attachmentId: 'new', fileId: 'new-file', pending: true },
+              { attachmentId: 'old', fileId: 'replacement-file' },
+            ],
+          },
+        },
         ['attachments'],
         'record-1',
         'generation-1',
-        [{ attachmentId: 'retry', mutationFileId: 'retry-file', operation: 'finalize', mutationState: 'unknown', generation: 'retry-generation', attachmentField: 'attachments' }]
+        [
+          {
+            attachmentId: 'retry',
+            mutationFileId: 'retry-file',
+            operation: 'finalize',
+            mutationState: 'unknown',
+            generation: 'retry-generation',
+            attachmentField: 'attachments',
+          },
+        ]
       );
 
       expect(plan.map((item: any) => `${item.operation}:${item.fileId}`)).to.deep.equal([
@@ -1035,8 +1070,22 @@ describe('RecordsService', function () {
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       const plan = [
-        { field: 'attachments', attachmentId: 'a', fileId: 'new-file', operation: 'add', generation: 'g', entry: { fileId: 'new-file' } },
-        { field: 'attachments', attachmentId: 'a', fileId: 'old-file', operation: 'delete', generation: 'g', entry: { fileId: 'old-file' } },
+        {
+          field: 'attachments',
+          attachmentId: 'a',
+          fileId: 'new-file',
+          operation: 'add',
+          generation: 'g',
+          entry: { fileId: 'new-file' },
+        },
+        {
+          field: 'attachments',
+          attachmentId: 'a',
+          fileId: 'old-file',
+          operation: 'delete',
+          generation: 'g',
+          entry: { fileId: 'old-file' },
+        },
       ];
 
       await (RecordsService as any).prepareAttachmentJournal('record-1', plan);
@@ -1057,19 +1106,28 @@ describe('RecordsService', function () {
       };
       mockSails.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
-      const plan = [{
-        field: 'attachments', attachmentId: 'a', fileId: 'file-1', operation: 'add', generation: 'g', entry: { fileId: 'file-1' },
-      }];
+      const plan = [
+        {
+          field: 'attachments',
+          attachmentId: 'a',
+          fileId: 'file-1',
+          operation: 'add',
+          generation: 'g',
+          entry: { fileId: 'file-1' },
+        },
+      ];
 
       const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan);
 
       expect(result[0].status).to.equal('incomplete');
       expect(result[0].code).to.equal('attachment-generation-not-current');
       expect(mockSails.log.error.called).to.equal(true);
-      expect((RecordsService as any).incompleteAttachmentItems(
-        [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' }],
-        'reference-failed'
-      )).to.deep.equal([
+      expect(
+        (RecordsService as any).incompleteAttachmentItems(
+          [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' }],
+          'reference-failed'
+        )
+      ).to.deep.equal([
         { field: 'attachments', attachmentId: 'a', operation: 'add', status: 'incomplete', code: 'reference-failed' },
       ]);
     });
@@ -2213,10 +2271,12 @@ describe('RecordsService', function () {
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
         metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file', pending: false }] },
       });
-      (global as any).FormsService.getFormByName.returns(of({
-        name: 'default-form',
-        configuration: { attachmentFields: ['attachments'] },
-      }));
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
       (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
@@ -2231,7 +2291,7 @@ describe('RecordsService', function () {
         true,
         true,
         {},
-        { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file' }] },
+        { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file' }] }
       );
 
       expect(result.wasPersisted()).to.equal(true);
@@ -3619,7 +3679,12 @@ describe('RecordsService', function () {
     it('returns not-saved when update persistence is explicitly rejected', async function () {
       mockStorageService.updateMeta.resolves({ success: false, applicationState: 'not-applied' });
       const result = await RecordsService.updateMeta(
-        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+        { id: 'brand-1' },
+        'record-123',
+        updateRecord(),
+        { username: 'user-1' },
+        false,
+        false
       );
 
       expect(result.outcome).to.equal('not-saved');
@@ -3629,7 +3694,12 @@ describe('RecordsService', function () {
     it('returns unknown when update persistence is ambiguous', async function () {
       mockStorageService.updateMeta.resolves({ success: false });
       const result = await RecordsService.updateMeta(
-        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+        { id: 'brand-1' },
+        'record-123',
+        updateRecord(),
+        { username: 'user-1' },
+        false,
+        false
       );
 
       expect(result.outcome).to.equal('unknown');
@@ -3642,7 +3712,12 @@ describe('RecordsService', function () {
         findUnresolvedByOid: sinon.stub().rejects(new Error('journal read failed')),
       };
       const result = await RecordsService.updateMeta(
-        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+        { id: 'brand-1' },
+        'record-123',
+        updateRecord(),
+        { username: 'user-1' },
+        false,
+        false
       );
 
       expect(result.outcome).to.equal('not-saved');
@@ -5502,8 +5577,9 @@ describe('RecordsService', function () {
       }
     });
 
-    it('preserves caller-completed merge metadata when building the authoritative update candidate', async function () {
+    it('builds the authoritative update candidate from the raw merge delta inside RecordsService', async function () {
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
+      const rawDelta = { title: 'Merged' };
       mockStorageService.getMeta.resolves(stored);
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       resolve.callsFake(async (request: any) => {
@@ -5519,45 +5595,70 @@ describe('RecordsService', function () {
         false,
         false,
         {},
-        { title: 'Merged', retained: 'keep' }
+        rawDelta,
+        createRecordSaveContext(),
+        true
       );
 
       expect(result.outcome).to.equal('not-saved');
+      expect(rawDelta).to.deep.equal({ title: 'Merged' });
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
-    it('characterizes pre-save hooks receiving metadata already merged by the caller', async function () {
+    it('characterizes service-owned recursive object merge and array concatenation before pre-save hooks', async function () {
       const stored = {
         ...baseRecord(),
         metadata: {
           title: 'Original',
           retained: 'keep',
-          nested: { retained: true, values: [{ id: 'stored' }] },
+          nested: {
+            overwritten: 'stored',
+            retained: true,
+            values: [{ id: 'nested-stored' }],
+          },
+          values: [{ id: 'stored' }],
         },
       };
-      const callerMergedMetadata = {
+      const rawDelta = {
         title: 'Merged',
+        merge: 'ordinary metadata field',
+        nested: {
+          overwritten: 'incoming',
+          incoming: true,
+          values: [{ id: 'nested-incoming' }],
+        },
+        values: [{ id: 'incoming' }],
+      };
+      const expectedMergedMetadata = {
+        title: 'Merged',
+        merge: 'ordinary metadata field',
         retained: 'keep',
         nested: {
+          overwritten: 'incoming',
           retained: true,
           incoming: true,
-          values: [{ id: 'stored' }, { id: 'incoming' }],
+          values: [{ id: 'nested-stored' }, { id: 'nested-incoming' }],
         },
+        values: [{ id: 'stored' }, { id: 'incoming' }],
       };
       mockStorageService.getMeta.resolves(stored);
       (globalThis as Record<string, unknown>).__recordContractMergeHookInput = undefined;
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onUpdate: {
-            pre: [{
-              function:
-                '(_oid, record) => { globalThis.__recordContractMergeHookInput = structuredClone(record.metadata); return record; }',
-            }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              pre: [
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__recordContractMergeHookInput = structuredClone(record.metadata); return record; }',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       try {
@@ -5569,17 +5670,70 @@ describe('RecordsService', function () {
           true,
           false,
           {},
-          callerMergedMetadata
+          rawDelta,
+          createRecordSaveContext(),
+          true
         );
 
         expect(result.wasPersisted()).to.equal(true);
         expect((globalThis as Record<string, unknown>).__recordContractMergeHookInput).to.deep.equal(
-          callerMergedMetadata
+          expectedMergedMetadata
         );
-        expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(callerMergedMetadata);
+        expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(expectedMergedMetadata);
+        expect(rawDelta).to.deep.equal({
+          title: 'Merged',
+          merge: 'ordinary metadata field',
+          nested: {
+            overwritten: 'incoming',
+            incoming: true,
+            values: [{ id: 'nested-incoming' }],
+          },
+          values: [{ id: 'incoming' }],
+        });
       } finally {
         delete (globalThis as Record<string, unknown>).__recordContractMergeHookInput;
       }
+    });
+
+    it('characterizes service-owned replacement as discarding all omitted stored metadata', async function () {
+      const stored = {
+        ...baseRecord(),
+        metadata: {
+          title: 'Original',
+          retained: 'discard',
+          nested: { stored: true },
+          values: [{ id: 'stored' }],
+        },
+      };
+      const rawReplacement = {
+        title: 'Replacement',
+        nested: { incoming: true },
+        values: [{ id: 'incoming' }],
+      };
+      mockStorageService.getMeta.resolves(stored);
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        rawReplacement,
+        createRecordSaveContext(),
+        false
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(rawReplacement);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).not.to.have.property('retained');
+      expect(rawReplacement).to.deep.equal({
+        title: 'Replacement',
+        nested: { incoming: true },
+        values: [{ id: 'incoming' }],
+      });
     });
 
     it('resolves brand and record type from the stored snapshot after object-metadata replacement', async function () {
@@ -6987,7 +7141,6 @@ describe('RecordsService', function () {
     });
 
     it('does not accept bypass-shaped HTTP record data as a validation capability', async function () {
-      const { createRecordSaveContext } = require('../../src/RecordSaveResponse');
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(blockingResult());
 
@@ -7015,6 +7168,134 @@ describe('RecordsService', function () {
       expect(resolve.calledOnce).to.equal(true);
       expect(mockStorageService.createRecordAudit.notCalled).to.equal(true);
       expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('rejects cloned save contexts before validation, hooks, or storage', async function () {
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const trustedCreateContext = createRecordSaveContext({
+        routeFamily: 'api',
+        operation: 'create',
+        validationOperation: 'publish',
+      });
+      const spreadCreateContext: RecordSaveContext = { ...trustedCreateContext };
+
+      await rejects(
+        () =>
+          RecordsService.create(
+            { id: 'brand-1' },
+            { metadata: { title: 'Rejected create' } },
+            { name: 'rdmp', hooks: { onCreate: { pre: [{ function: '(_oid, record) => record' }] } } },
+            { username: 'user-1' },
+            true,
+            true,
+            undefined,
+            spreadCreateContext
+          ),
+        {
+          name: 'TypeError',
+          message: 'Record save contexts must be omitted or created by createRecordSaveContext().',
+        }
+      );
+
+      const trustedUpdateContext = createRecordSaveContext({
+        routeFamily: 'api',
+        operation: 'update',
+        validationOperation: 'publish',
+      });
+      const modifiedUpdateContext: RecordSaveContext = {
+        ...trustedUpdateContext,
+        validationOperation: 'forged-operation',
+      };
+      await rejects(
+        () =>
+          RecordsService.updateMeta(
+            { id: 'brand-1' },
+            'record-123',
+            baseRecord('Rejected update'),
+            { username: 'user-1' },
+            true,
+            true,
+            {},
+            { title: 'Rejected update' },
+            modifiedUpdateContext
+          ),
+        {
+          name: 'TypeError',
+          message: 'Record save contexts must be omitted or created by createRecordSaveContext().',
+        }
+      );
+
+      expect(preSaveHook.notCalled).to.equal(true);
+      expect(mockRecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.getMeta.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('preserves internal-looking user metadata without treating it as save context', async function () {
+      mockRecordValidationService.resolve.resolves(allowResult());
+      const internalLookingUserMetadata = {
+        validationBypass: { label: 'user metadata' },
+        schemaOperation: 'user-defined-operation',
+        ifMatch: 'user-defined-precondition',
+        recordSchemaIfMatch: 'user-defined-record-field',
+        schemaOutcome: { label: 'user-defined-outcome' },
+      };
+      const createInput = {
+        metadata: { title: 'Created', ...internalLookingUserMetadata },
+        authorization: { edit: ['user-1'], view: ['user-1'] },
+      };
+      const createResult = await RecordsService.create(
+        { id: 'brand-1' },
+        createInput,
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false,
+        undefined,
+        createRecordSaveContext({ routeFamily: 'api', operation: 'create' })
+      );
+
+      expect(createResult.outcome).to.equal('saved');
+      expect(createResult.schemaOutcome).to.equal(undefined);
+      const createCandidate: unknown = mockStorageService.create.firstCall.args[1];
+      assertUnknownRecord(createCandidate);
+      const createdMetadata: unknown = createCandidate.metadata;
+      assertUnknownRecord(createdMetadata);
+      expect(createdMetadata).to.deep.include(internalLookingUserMetadata);
+      expect(createInput.metadata.schemaOutcome).to.deep.equal(internalLookingUserMetadata.schemaOutcome);
+
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.resetHistory();
+      const updateInput = {
+        ...stored,
+        metadata: { title: 'Requested', ...internalLookingUserMetadata },
+        metaMetadata: { ...stored.metaMetadata, ...internalLookingUserMetadata },
+      };
+      const updateResult = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        updateInput,
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        { title: 'Updated', ...internalLookingUserMetadata },
+        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(updateResult.outcome).to.equal('saved');
+      expect(updateResult.schemaOutcome).to.equal(undefined);
+      const updateCandidate: unknown = mockStorageService.updateMeta.firstCall.args[2];
+      assertUnknownRecord(updateCandidate);
+      const updatedMetadata: unknown = updateCandidate.metadata;
+      const updatedMetaMetadata: unknown = updateCandidate.metaMetadata;
+      assertUnknownRecord(updatedMetadata);
+      assertUnknownRecord(updatedMetaMetadata);
+      expect(updatedMetadata).to.deep.include(internalLookingUserMetadata);
+      expect(updatedMetaMetadata).to.deep.include(internalLookingUserMetadata);
+      expect(updateInput.metadata.schemaOutcome).to.deep.equal(internalLookingUserMetadata.schemaOutcome);
     });
 
     it('maps every authoritative failure class to stable safe response problems', async function () {

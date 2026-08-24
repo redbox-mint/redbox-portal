@@ -1,9 +1,18 @@
 import { expect } from 'chai';
 
-import { RECORD_CONTRACT_FORMAT_V1, RECORD_SCHEMA_PROBLEM_CODES } from '../../src';
+import {
+  createRecordSaveContext,
+  createRecordSaveSchemaOutcomeMetadata,
+  RecordSaveResponse,
+  RECORD_CONTRACT_FORMAT_V1,
+  RECORD_SCHEMA_PROBLEM_CODES,
+} from '../../src';
 import type {
   ContractNode,
+  NormalizedRecordSchemaOperation,
   RecordContractPointer,
+  RecordSaveContext,
+  RecordSaveSchemaOutcomeMetadata,
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
   RecordSchemaCreateGrantReferenceInput,
@@ -117,7 +126,47 @@ function assertInvalidReferenceShapesDoNotTypeCheck(): void {
   void [invalidCreateGrant, invalidUpdateGrant, invalidSave, invalidPin, invalidGrant];
 }
 
+function assertRecordSaveSchemaContextCannotBeForged(): void {
+  // @ts-expect-error Record save contexts carry a factory-owned nominal brand.
+  const forgedContext: RecordSaveContext = {
+    requestId: '11111111-1111-4111-8111-111111111111',
+  };
+  // @ts-expect-error Normalized operations can be produced only at the factory boundary.
+  const forgedOperation: NormalizedRecordSchemaOperation = 'publish';
+
+  // @ts-expect-error The normalized schema operation is derived by the factory.
+  createRecordSaveContext({ schemaOperation: 'publish' });
+  // @ts-expect-error If-Match must use the explicitly trusted factory input.
+  createRecordSaveContext({ ifMatch: `"sha256:${'a'.repeat(64)}"` });
+  createRecordSaveContext({
+    // @ts-expect-error Schema outcomes belong to the result tracker, not request context input.
+    schemaOutcome: {
+      digest: 'a'.repeat(64),
+      immutableUrl: `/default/default/api/records/schemas/${'a'.repeat(64)}`,
+      completeness: 'complete',
+      enforcement: 'enforce',
+    },
+  });
+
+  const context = createRecordSaveContext({ validationOperation: ' publish ' });
+  const operation: NormalizedRecordSchemaOperation | undefined = context.schemaOperation;
+  const rawSchemaOutcome = {
+    digest: 'a'.repeat(64),
+    immutableUrl: `/default/default/api/records/schemas/${'a'.repeat(64)}`,
+    completeness: 'complete' as const,
+    enforcement: 'enforce' as const,
+  };
+  // @ts-expect-error Schema outcome identity exists only after factory validation.
+  const forgedSchemaOutcome: RecordSaveSchemaOutcomeMetadata = rawSchemaOutcome;
+  const schemaOutcome: RecordSaveSchemaOutcomeMetadata = createRecordSaveSchemaOutcomeMetadata(rawSchemaOutcome);
+  const response = new RecordSaveResponse();
+  // @ts-expect-error Save response schema outcome is exposed read-only.
+  response.schemaOutcome = schemaOutcome;
+  void [forgedContext, forgedOperation, operation, forgedSchemaOutcome];
+}
+
 describe('record-schema core contracts', function () {
+  void assertRecordSaveSchemaContextCannotBeForged;
   it('models every dialect-neutral IR node through an exhaustive visitor', function () {
     const scalar: ContractNode = { kind: 'scalar', nullable: false, scalarType: 'string' };
     const object: ContractNode = {
