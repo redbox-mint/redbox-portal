@@ -12,7 +12,8 @@
     "isHook": true,
     "hasModels": true,
     "hasServices": true,
-    "hasConfig": true
+    "hasConfig": true,
+    "hasMigrations": true
   },
   "repository": {
     "type": "git",

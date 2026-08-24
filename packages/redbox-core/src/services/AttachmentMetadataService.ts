@@ -1,6 +1,7 @@
 import { Services as services } from '../CoreService';
 import { AttachmentAccessAuditAttributes, AttachmentMetadataAttributes } from '../waterline-models';
 import { createHash } from 'node:crypto';
+import { normalizeAttachmentStagingFileId } from '../AttachmentStagingIdentity';
 
 export namespace Services {
   export type AttachmentAccessAction = 'access' | 'download' | 'list' | 'upload' | 'remove';
@@ -15,6 +16,39 @@ export namespace Services {
     accessedBy?: string;
     itemCount?: number;
   };
+  export type AttachmentStagingCleanupClaim = {
+    oid: string;
+    attachmentId: string;
+    fileId: string;
+    generation: string;
+  };
+  export type AttachmentMetadataServiceContract = {
+    upsert: (row: AttachmentMetadataInput) => Promise<void>;
+    findByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
+    findUnresolvedByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
+    findOneByStorageKey: (storageKey: string) => Promise<AttachmentMetadataAttributes | undefined>;
+    prepareMutations: (rows: readonly AttachmentMetadataInput[]) => Promise<void>;
+    markMutation: (
+      oid: string,
+      attachmentId: string,
+      generation: string,
+      state: AttachmentMutationState,
+      code?: string,
+      mutationFileId?: string,
+    ) => Promise<boolean>;
+      code?: string,
+      mutationFileId?: string,
+    ) => Promise<boolean>;
+    hasCleanupClaim: (oid: string, fileId: string) => Promise<boolean>;
+    claimExpiredStagingCleanup: (before: string, limit?: number) => Promise<AttachmentStagingCleanupClaim[]>;
+    releaseStagingCleanup: (claim: AttachmentStagingCleanupClaim, code: string) => Promise<boolean>;
+    completeStagingCleanup: (claim: AttachmentStagingCleanupClaim) => Promise<boolean>;
+    rebindOid: (fromOid: string, toOid: string) => Promise<void>;
+    markDeleted: (row: AttachmentMetadataInput) => Promise<void>;
+    deleteByStorageKey: (storageKey: string) => Promise<void>;
+    recordAccess: (event: AttachmentAccessEvent) => Promise<void>;
+  };
+
   export class AttachmentMetadataService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'upsert',
@@ -23,6 +57,10 @@ export namespace Services {
       'findOneByStorageKey',
       'prepareMutations',
       'markMutation',
+      'hasCleanupClaim',
+      'claimExpiredStagingCleanup',
+      'releaseStagingCleanup',
+      'completeStagingCleanup',
       'rebindOid',
       'markDeleted',
       'deleteByStorageKey',
@@ -40,11 +78,24 @@ export namespace Services {
       const payload = this.normalizeMetadataRow(row);
       const oid = String(payload.oid ?? '').trim();
       const fileId = String(payload.fileId ?? '').trim();
-      let existing = await AttachmentMetadata.findOne({ storageKey }) as AttachmentMetadataAttributes | null;
+      let existing = (await AttachmentMetadata.findOne({ storageKey })) as AttachmentMetadataAttributes | null;
+      // A journal key may be upgraded from the original attachment-only form
+      // to the mutation-specific form. Reuse that row when its mutation
+      // identity is otherwise unchanged instead of leaving an unresolved
+      // legacy row behind on the next retry.
+      if (!existing && payload.isJournal === true && payload.attachmentId && payload.generation && payload.mutationFileId) {
+        existing = (await AttachmentMetadata.findOne({
+          oid,
+          attachmentId: payload.attachmentId,
+          generation: payload.generation,
+          mutationFileId: payload.mutationFileId,
+          isJournal: true,
+        })) as AttachmentMetadataAttributes | null;
+      }
       // A physical row may retain its identity if a storage prefix changes,
       // but journal rows must never claim the physical {oid,fileId} row.
       if (!existing && payload.isJournal !== true && oid && fileId) {
-        const sameFileRows = await AttachmentMetadata.find({ oid, fileId }) as AttachmentMetadataAttributes[] | null;
+        const sameFileRows = (await AttachmentMetadata.find({ oid, fileId })) as AttachmentMetadataAttributes[] | null;
         existing = (sameFileRows ?? []).find(candidate => candidate.isJournal !== true) ?? null;
       }
       if (existing?.id) {
@@ -59,16 +110,20 @@ export namespace Services {
       if (!normalizedOid) {
         return [];
       }
-      const rows = await AttachmentMetadata.find({ oid: normalizedOid }).sort([{ createdAt: 'ASC' }]) as AttachmentMetadataAttributes[];
+      const rows = (await AttachmentMetadata.find({ oid: normalizedOid }).sort([
+        { createdAt: 'ASC' },
+      ])) as AttachmentMetadataAttributes[];
       // Journal rows are retained for reconciliation, but prepared/pending
       // work is not a confirmed physical attachment and must not appear in
       // the listing API. Legacy rows without a mutationState remain visible.
       return rows.filter(row => {
         const mutationState = String(row.mutationState ?? '').trim();
-        return row.isJournal !== true
-          && row.operation !== 'delete'
-          && mutationState !== 'cancelled'
-          && (!mutationState || mutationState === 'applied');
+        return (
+          row.isJournal !== true &&
+          row.operation !== 'delete' &&
+          mutationState !== 'cancelled' &&
+          (!mutationState || mutationState === 'applied')
+        );
       });
     }
 
@@ -77,21 +132,40 @@ export namespace Services {
       if (!normalizedOid) {
         return [];
       }
-      const rows = await AttachmentMetadata.find({ oid: normalizedOid }).sort([{ createdAt: 'ASC' }]) as AttachmentMetadataAttributes[];
-      return rows.filter(row => row.isJournal === true && (row.mutationState === 'prepared'
-        || row.mutationState === 'pending'
-        || row.mutationState === 'incomplete'
-        || row.mutationState === 'unknown'));
+      const rows = (await AttachmentMetadata.find({ oid: normalizedOid }).sort([
+        { createdAt: 'ASC' },
+      ])) as AttachmentMetadataAttributes[];
+      return rows.filter(
+        row =>
+          row.isJournal === true &&
+          (row.mutationState === 'prepared' ||
+            row.mutationState === 'pending' ||
+            row.mutationState === 'incomplete' ||
+            row.mutationState === 'unknown')
+      );
     }
 
     public async prepareMutations(rows: readonly AttachmentMetadataInput[]): Promise<void> {
       for (const row of rows) {
         const attachmentId = String(row.attachmentId ?? '').trim();
         const generation = String(row.generation ?? '').trim();
+        const oid = String(row.oid ?? '').trim();
+        const mutationFileId = normalizeAttachmentStagingFileId(row.mutationFileId ?? row.fileId);
+        if (!oid || !attachmentId || !generation || !mutationFileId) {
+          throw new Error('Attachment mutation preparation requires bounded journal identity.');
+        }
+        if (await this.hasCleanupClaim(oid, mutationFileId)) {
+          throw new Error('Attachment staging cleanup already owns this mutation.');
+        }
+        const storageKey = String(row.storageKey ?? '').trim();
+        const existing = (await AttachmentMetadata.findOne({ storageKey })) as AttachmentMetadataAttributes | null;
+        if (existing) {
+          throw new Error('Attachment mutation generation already exists.');
+        }
         await this.upsert({
           ...row,
-          fileId: this.journalFileId(attachmentId, generation, String(row.mutationFileId ?? row.fileId ?? '').trim()),
-          mutationFileId: String(row.mutationFileId ?? row.fileId ?? '').trim(),
+          fileId: this.journalFileId(attachmentId, generation, mutationFileId),
+          mutationFileId,
           isJournal: true,
           mutationState: 'prepared',
         });
@@ -103,6 +177,7 @@ export namespace Services {
       attachmentId: string,
       generation: string,
       mutationState: AttachmentMutationState,
+      lastSafeErrorCode?: string,
       mutationFileId?: string,
     ): Promise<boolean> {
       const criteria = {
@@ -117,14 +192,114 @@ export namespace Services {
       if (!criteria.oid || !criteria.attachmentId || !criteria.generation) {
         return false;
       }
-      const existing = await AttachmentMetadata.findOne(criteria) as AttachmentMetadataAttributes | null;
+      const existing = (await AttachmentMetadata.findOne(criteria)) as AttachmentMetadataAttributes | null;
       if (!existing?.id) {
         return false;
       }
-      await AttachmentMetadata.updateOne({ id: existing.id }).set({
+      const allowedSources: Record<AttachmentMutationState, readonly AttachmentMutationState[]> = {
+        prepared: [],
+        pending: ['prepared'],
+        applied: ['pending'],
+        incomplete: ['applied', 'unknown'],
+        unknown: ['prepared', 'pending', 'applied'],
+        cancelled: ['prepared', 'incomplete'],
+        'cleanup-pending': ['cancelled'],
+      };
+      if (!existing.mutationState || !allowedSources[mutationState].includes(existing.mutationState)) {
+        return false;
+      }
+      const updated = await AttachmentMetadata.updateOne({
+        id: existing.id,
+        mutationState: existing.mutationState,
+      }).set({
         mutationState,
+        attemptCount:
+          mutationState === 'pending' ? Number(existing.attemptCount ?? 0) + 1 : Number(existing.attemptCount ?? 0),
+        lastAttemptAt: new Date().toISOString(),
+        ...(lastSafeErrorCode
+          ? { lastSafeErrorCode }
+          : mutationState === 'applied'
+            ? { lastSafeErrorCode: undefined }
+            : {}),
       });
-      return true;
+      return Boolean(updated);
+    }
+
+    public async hasCleanupClaim(oid: string, fileId: string): Promise<boolean> {
+      const normalizedOid = String(oid ?? '').trim();
+      const normalizedFileId = String(fileId ?? '').trim();
+      if (!normalizedOid || !normalizedFileId) return false;
+      return Boolean(
+        await AttachmentMetadata.findOne({
+          oid: normalizedOid,
+          mutationFileId: normalizedFileId,
+          isJournal: true,
+          mutationState: 'cleanup-pending',
+        })
+      );
+    }
+
+    public async claimExpiredStagingCleanup(before: string, limit = 100): Promise<AttachmentStagingCleanupClaim[]> {
+      const beforeDate = new Date(before);
+      if (Number.isNaN(beforeDate.getTime())) return [];
+      const boundedLimit = Number.isSafeInteger(limit) ? Math.min(1000, Math.max(1, limit)) : 100;
+      const beforeIso = beforeDate.toISOString();
+      const query = AttachmentMetadata.find({
+        isJournal: true,
+        mutationState: 'cancelled',
+        updatedAt: { '<': beforeIso },
+      }) as unknown as {
+        sort: (sort: unknown) => { limit: (count: number) => Promise<AttachmentMetadataAttributes[]> };
+      };
+      const rows = await query.sort([{ updatedAt: 'ASC' }]).limit(boundedLimit);
+      const claims: AttachmentStagingCleanupClaim[] = [];
+      for (const row of rows) {
+        const oid = String(row.oid ?? '').trim();
+        const attachmentId = String(row.attachmentId ?? '').trim();
+        const fileId = normalizeAttachmentStagingFileId(row.mutationFileId);
+        const generation = String(row.generation ?? '').trim();
+        if (!row.id || !oid || !attachmentId || !fileId || !generation) continue;
+        const claimed = await AttachmentMetadata.updateOne({
+          id: row.id,
+          mutationState: 'cancelled',
+          updatedAt: { '<': beforeIso },
+        } as never).set({
+          mutationState: 'cleanup-pending',
+          lastAttemptAt: new Date().toISOString(),
+          lastSafeErrorCode: undefined,
+        });
+        if (claimed) claims.push({ oid, attachmentId, fileId, generation });
+      }
+      return claims;
+    }
+
+    public async releaseStagingCleanup(claim: AttachmentStagingCleanupClaim, code: string): Promise<boolean> {
+      const safeCode = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(code) ? code : 'attachment-cleanup-failed';
+      const updated = await AttachmentMetadata.updateOne({
+        oid: claim.oid,
+        attachmentId: claim.attachmentId,
+        generation: claim.generation,
+        mutationFileId: claim.fileId,
+        isJournal: true,
+        mutationState: 'cleanup-pending',
+      }).set({
+        mutationState: 'cancelled',
+        lastAttemptAt: new Date().toISOString(),
+        lastSafeErrorCode: safeCode,
+      });
+      return Boolean(updated);
+    }
+
+    public async completeStagingCleanup(claim: AttachmentStagingCleanupClaim): Promise<boolean> {
+      const destroyed = await AttachmentMetadata.destroy({
+        oid: claim.oid,
+        attachmentId: claim.attachmentId,
+        generation: claim.generation,
+        mutationFileId: claim.fileId,
+        isJournal: true,
+        mutationState: 'cleanup-pending',
+      });
+      return Array.isArray(destroyed) ? destroyed.length > 0 : Boolean(destroyed);
     }
 
     private journalFileId(attachmentId: string, generation: string, mutationFileId: string): string {
@@ -148,6 +323,7 @@ export namespace Services {
         isJournal: false,
         operation: 'delete',
         mutationState: 'applied',
+        lastAttemptAt: new Date().toISOString(),
       });
     }
 
@@ -156,7 +332,9 @@ export namespace Services {
       if (!normalizedStorageKey) {
         return undefined;
       }
-      return await AttachmentMetadata.findOne({ storageKey: normalizedStorageKey }) as AttachmentMetadataAttributes | undefined;
+      return (await AttachmentMetadata.findOne({ storageKey: normalizedStorageKey })) as
+        | AttachmentMetadataAttributes
+        | undefined;
     }
 
     public async deleteByStorageKey(storageKey: string): Promise<void> {
@@ -175,7 +353,9 @@ export namespace Services {
         }
 
         if (normalizedEvent.storageKey && normalizedEvent.action !== 'list') {
-          const existing = await AttachmentMetadata.findOne({ storageKey: normalizedEvent.storageKey }) as AttachmentMetadataAttributes | null;
+          const existing = (await AttachmentMetadata.findOne({
+            storageKey: normalizedEvent.storageKey,
+          })) as AttachmentMetadataAttributes | null;
           if (existing?.id) {
             const currentCount = Number(existing.accessCount ?? 0);
             const nextCount = this.shouldIncrementAccessCount(normalizedEvent.action) ? currentCount + 1 : currentCount;
@@ -239,9 +419,21 @@ export namespace Services {
       if (generation) {
         journal.generation = generation;
       }
-      const mutationFileId = this.optionalString(row.mutationFileId);
+      const mutationFileId = normalizeAttachmentStagingFileId(row.mutationFileId);
       if (mutationFileId) {
         journal.mutationFileId = mutationFileId;
+      }
+      const attemptCount = this.optionalNumber(row.attemptCount);
+      if (attemptCount !== undefined) {
+        journal.attemptCount = attemptCount;
+      }
+      const lastAttemptAt = this.optionalDateString(row.lastAttemptAt);
+      if (lastAttemptAt) {
+        journal.lastAttemptAt = lastAttemptAt;
+      }
+      const lastSafeErrorCode = this.optionalIdentifier(row.lastSafeErrorCode);
+      if (lastSafeErrorCode) {
+        journal.lastSafeErrorCode = lastSafeErrorCode;
       }
       return journal;
     }
@@ -256,8 +448,15 @@ export namespace Services {
     }
 
     private optionalMutationState(value: unknown): AttachmentMetadataAttributes['mutationState'] {
-      return value === 'prepared' || value === 'pending' || value === 'applied'
-        || value === 'incomplete' || value === 'unknown' || value === 'cancelled' ? value : undefined;
+      return value === 'prepared' ||
+        value === 'pending' ||
+        value === 'applied' ||
+        value === 'incomplete' ||
+        value === 'unknown' ||
+        value === 'cancelled' ||
+        value === 'cleanup-pending'
+        ? value
+        : undefined;
     }
 
     private normalizeAccessEvent(event: AttachmentAccessEvent): AttachmentAccessAuditInput {

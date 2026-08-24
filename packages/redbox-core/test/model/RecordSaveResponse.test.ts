@@ -1,10 +1,16 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import("chai").then(mod => (expect = mod.expect));
+import {
+  emptyRecordSaveCompletion,
+  isRecordSaveOutcome,
+  reduceAttachmentStatus,
+} from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
   isInternalRecordValidationBypass,
   isCanonicalSaveRequestId,
   isRecordValidationBypassReason,
+  normalizeRecordConcurrencyContext,
   normalizeRecordValidationRequestFacts,
   readSaveRequestId,
   recordValidationRuntimeFacts,
@@ -12,69 +18,116 @@ import {
   recordSaveFailureStatus,
   recordSaveProblem,
   RecordSaveResponse,
+  RecordSaveTracker,
   resolveStorageMutationState,
 } from '../../src/RecordSaveResponse';
-import { StorageServiceResponse } from '../../src/StorageServiceResponse';
+import { StorageMutationResponse, StorageServiceResponse } from '../../src/StorageServiceResponse';
 
 const requestId = '11111111-1111-4111-8111-111111111111';
 
-function response(): RecordSaveResponse {
-  return new RecordSaveResponse(createRecordSaveContext({ requestId, routeFamily: 'browser', operation: 'update' }));
+function tracker(): RecordSaveTracker {
+  return new RecordSaveTracker(createRecordSaveContext({ requestId, routeFamily: 'browser', operation: 'update' }));
 }
 
 describe('RecordSaveResponse', function () {
   describe('outcome state machine', function () {
     it('starts as a confirmed non-save', function () {
-      const result = response();
+      const result = tracker().toResponse();
       expect(result.outcome).to.equal('not-saved');
       expect(result.success).to.be.false;
       expect(result.wasPersisted()).to.be.false;
+      expect(result.isComplete()).to.be.false;
       expect(result.requestId).to.equal(requestId);
       expect(result.completion.attachments.status).to.equal('not-required');
     });
 
     it('marks a confirmed primary mutation as a complete save', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.confirmPrimaryPersistence('oid-1');
-      const result = saveTracker;
+      const result = saveTracker.toResponse();
       expect(result.outcome).to.equal('saved');
       expect(result.success).to.be.true;
+      expect(result.isComplete()).to.be.true;
       expect(result.oid).to.equal('oid-1');
     });
 
     it('downgrades a complete save to a warning when a later phase fails', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.confirmPrimaryPersistence('oid-1');
-      saveTracker.recordPostPersistenceProblem(recordSaveProblem('processing', 'post-save', 'hook failed', 'post-save-failed'));
-      const result = saveTracker;
+      saveTracker.recordPostPersistenceProblem(
+        recordSaveProblem('processing', 'post-save', 'hook failed', 'post-save-failed')
+      );
+      const result = saveTracker.toResponse();
       expect(result.outcome).to.equal('saved-with-warnings');
       expect(result.success).to.be.true;
       expect(result.wasPersisted()).to.be.true;
+      expect(result.isComplete()).to.be.false;
       expect(result.oid).to.equal('oid-1');
     });
 
     it('never downgrades a persisted save back to not-saved or unknown', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.confirmPrimaryPersistence('oid-1');
       saveTracker.recordPrimaryNotApplied(recordSaveProblem('processing', 'persistence', 'nope'));
       saveTracker.recordPrimaryUnknown(recordSaveProblem('system', 'persistence', 'maybe'));
-      const result = saveTracker;
+      const result = saveTracker.toResponse();
       expect(result.outcome).to.equal('saved');
       expect(result.oid).to.equal('oid-1');
     });
 
     it('does not confirm persistence after the primary mutation was ambiguous', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.recordPrimaryUnknown(recordSaveProblem('system', 'persistence', 'timeout'));
       saveTracker.confirmPrimaryPersistence('oid-1');
-      const result = saveTracker;
+      const result = saveTracker.toResponse();
       expect(result.outcome).to.equal('unknown');
       expect(result.wasPersisted()).to.be.false;
       expect(result.oid).to.equal('');
     });
 
+    it('returns a detached copy that cannot mutate tracked state', function () {
+      const saveTracker = tracker();
+      saveTracker.confirmPrimaryPersistence('oid-1');
+      const copy = saveTracker.toResponse();
+      copy.problems.push(recordSaveProblem('system', 'response', 'later'));
+      copy.oid = 'tampered';
+      expect(saveTracker.result.problems).to.have.length(0);
+      expect(saveTracker.result.oid).to.equal('oid-1');
+    });
+
+    it('retains only bounded concurrency metadata in detached results', function () {
+      const saveTracker = tracker();
+      saveTracker.setConcurrencyMetadata({
+        mode: 'strict',
+        revision: 8,
+        expectedRevision: 7,
+        currentRevision: 8,
+        entityTag: `"rb-record-v1.8.${'a'.repeat(43)}"`,
+        formFingerprint: 'sha256:form_1',
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: '22222222-2222-4222-8222-222222222222',
+        rawRequest: { authorization: 'secret' },
+      });
+
+      const result = saveTracker.toResponse();
+      expect(result.concurrency).to.deep.equal({
+        mode: 'strict',
+        revision: 8,
+        expectedRevision: 7,
+        currentRevision: 8,
+        entityTag: `"rb-record-v1.8.${'a'.repeat(43)}"`,
+        formFingerprint: 'sha256:form_1',
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: '22222222-2222-4222-8222-222222222222',
+      });
+      expect(JSON.stringify(result)).not.to.contain('authorization');
+
+      saveTracker.setConcurrencyMetadata({ revision: -1, resolution: 'force' });
+      expect(saveTracker.toResponse().concurrency).to.equal(undefined);
+    });
+
     it('preserves only legacy workspace fields returned by a post-save hook', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.confirmPrimaryPersistence('oid-1');
       saveTracker.mergeLegacyHookFields({
         workspaceOid: 'workspace-1',
@@ -83,7 +136,7 @@ describe('RecordSaveResponse', function () {
         outcome: 'not-saved',
       });
 
-      const result = saveTracker;
+      const result = saveTracker.toResponse();
       expect(result.workspaceOid).to.equal('workspace-1');
       expect(result.workspaceData).to.deep.equal({ title: 'Workspace' });
       expect(result.oid).to.equal('oid-1');
@@ -91,7 +144,7 @@ describe('RecordSaveResponse', function () {
     });
 
     it('copies source metadata and ignores invalid legacy hook values', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       const source = new StorageServiceResponse();
       source.message = 'saved';
       source.data = { source: true };
@@ -104,7 +157,7 @@ describe('RecordSaveResponse', function () {
       saveTracker.mergeLegacyHookFields(null);
       saveTracker.mergeLegacyHookFields({ workspaceOid: '   ' });
 
-      const result = saveTracker;
+      const result = saveTracker.toResponse();
       expect(result.oid).to.equal('oid-source');
       expect(result.message).to.equal('saved');
       expect(result.data).to.deep.equal({ source: true });
@@ -119,22 +172,24 @@ describe('RecordSaveResponse', function () {
     });
 
     it('serializes only bounded safe validator metadata', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.recordPrimaryNotApplied({
         kind: 'validation',
         phase: 'pre-save',
-        issues: [{
-          message: '@validator-error-required',
-          code: 'record-validation-failed',
-          class: 'required',
-          params: { required: true, unsafe: { token: 'secret' } } as never,
-          targetField: { dataModel: ['title'] },
-          lineagePaths: { dataModel: ['title'], angularComponentsJsonPointer: '/title' },
-          exception: new Error('raw database failure'),
-        } as never],
+        issues: [
+          {
+            message: '@validator-error-required',
+            code: 'record-validation-failed',
+            class: 'required',
+            params: { required: true, unsafe: { token: 'secret' } } as never,
+            targetField: { dataModel: ['title'] },
+            lineagePaths: { dataModel: ['title'], angularComponentsJsonPointer: '/title' },
+            exception: new Error('raw database failure'),
+          } as never,
+        ],
       });
 
-      const serialized = JSON.parse(JSON.stringify(saveTracker));
+      const serialized = JSON.parse(JSON.stringify(saveTracker.toResponse()));
       expect(serialized.problems[0].issues[0]).to.deep.equal({
         message: '@validator-error-required',
         code: 'record-validation-failed',
@@ -149,32 +204,63 @@ describe('RecordSaveResponse', function () {
   });
 
   describe('attachment completion', function () {
+    it('creates the empty shared completion shape and validates outcomes', function () {
+      expect(emptyRecordSaveCompletion()).to.deep.equal({
+        attachments: { status: 'not-required', items: [] },
+      });
+      expect(isRecordSaveOutcome('saved')).to.equal(true);
+      expect(isRecordSaveOutcome('saved-with-warnings')).to.equal(true);
+      expect(isRecordSaveOutcome('not-saved')).to.equal(true);
+      expect(isRecordSaveOutcome('unknown')).to.equal(true);
+      expect(isRecordSaveOutcome('unexpected')).to.equal(false);
+      expect(isRecordSaveOutcome(null)).to.equal(false);
+    });
+
+    it('reduces item facts deterministically', function () {
+      expect(reduceAttachmentStatus([])).to.equal('not-required');
+      expect(
+        reduceAttachmentStatus([{ field: 'f', attachmentId: 'a', operation: 'add', status: 'completed' }])
+      ).to.equal('completed');
+      expect(
+        reduceAttachmentStatus([
+          { field: 'f', attachmentId: 'a', operation: 'add', status: 'completed' },
+          { field: 'f', attachmentId: 'b', operation: 'add', status: 'incomplete' },
+        ])
+      ).to.equal('incomplete');
+      expect(
+        reduceAttachmentStatus([
+          { field: 'f', attachmentId: 'a', operation: 'add', status: 'incomplete' },
+          { field: 'f', attachmentId: 'b', operation: 'add', status: 'unknown' },
+        ])
+      ).to.equal('unknown');
+    });
+
     it('downgrades a persisted save when any item is not completed', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.confirmPrimaryPersistence('oid-1');
       saveTracker.setAttachmentItems([
         { field: 'attachments', attachmentId: 'a', operation: 'finalize', status: 'completed' },
         { field: 'attachments', attachmentId: 'b', operation: 'finalize', status: 'incomplete' },
       ]);
-      const result = saveTracker;
+      const result = saveTracker.toResponse();
       expect(result.outcome).to.equal('saved-with-warnings');
       expect(result.completion.attachments.status).to.equal('incomplete');
       expect(result.completion.attachments.items).to.have.length(2);
     });
 
     it('keeps a complete save complete when every item is confirmed', function () {
-      const saveTracker = response();
+      const saveTracker = tracker();
       saveTracker.confirmPrimaryPersistence('oid-1');
       saveTracker.setAttachmentItems([
         { field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' },
       ]);
-      expect(saveTracker.outcome).to.equal('saved');
+      expect(saveTracker.toResponse().outcome).to.equal('saved');
     });
   });
 
   describe('resolveStorageMutationState', function () {
     it('trusts an explicit application state', function () {
-      const response = new StorageServiceResponse();
+      const response = new StorageMutationResponse();
       response.success = false;
       response.applicationState = 'not-applied';
       expect(resolveStorageMutationState(response)).to.equal('not-applied');
@@ -264,25 +350,65 @@ describe('RecordSaveResponse', function () {
       expect(readSaveRequestId(undefined)).to.be.undefined;
     });
 
-    it('normalizes the same bounded request and runtime facts for every transport', function () {
-      expect(normalizeRecordValidationRequestFacts(
-        { recordType: ' dataset ', targetStep: '../unsafe', merge: 'true', token: 'secret' },
-        { targetStep: 'review', datastreams: false }
-      )).to.deep.equal({ recordType: 'dataset', targetStep: 'review', merge: true, datastreams: false });
+    it('normalizes only own data properties without invoking raw-request accessors', function () {
+      let accessorInvoked = false;
+      const inherited = { expectedRevision: 99, rawRequest: { authorization: 'secret' } };
+      const supplied = Object.create(inherited);
+      Object.defineProperties(supplied, {
+        expectedRevision: { value: 7, enumerable: true },
+        entityTagSupplied: { value: true, enumerable: true },
+        resolution: { value: 'client-manually-resolved', enumerable: true },
+        resolutionOfRequestId: { value: '22222222-2222-4222-8222-222222222222', enumerable: true },
+        formFingerprint: {
+          enumerable: true,
+          get: () => {
+            accessorInvoked = true;
+            return `sha256:${'0'.repeat(64)}`;
+          },
+        },
+      });
 
-      expect(recordValidationRuntimeFacts({
-        routeFamily: 'browser',
-        operation: 'transition',
-        validationRuntimeContext: { rawRequest: 'must-not-pass' },
-      }, 'transition')).to.deep.equal({
+      expect(normalizeRecordConcurrencyContext(supplied)).to.deep.equal({
+        expectedRevision: 7,
+        entityTagSupplied: true,
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: '22222222-2222-4222-8222-222222222222',
+      });
+      expect(accessorInvoked).to.equal(false);
+      expect(JSON.stringify(normalizeRecordConcurrencyContext(supplied))).not.to.contain('authorization');
+    });
+
+    it('normalizes the same bounded request and runtime facts for every transport', function () {
+      expect(
+        normalizeRecordValidationRequestFacts(
+          { recordType: ' dataset ', targetStep: '../unsafe', merge: 'true', token: 'secret' },
+          { targetStep: 'review', datastreams: false }
+        )
+      ).to.deep.equal({ recordType: 'dataset', targetStep: 'review', merge: true, datastreams: false });
+
+      expect(
+        recordValidationRuntimeFacts(
+          {
+            routeFamily: 'browser',
+            operation: 'transition',
+            validationRuntimeContext: { rawRequest: 'must-not-pass' },
+          },
+          'transition'
+        )
+      ).to.deep.equal({
         routeFamily: 'browser',
         writeKind: 'transition',
         saveOperation: 'transition',
       });
-      expect(recordValidationRuntimeFacts({
-        routeFamily: 'internal',
-        validationRuntimeContext: { service: 'repair' },
-      }, 'update')).to.deep.equal({
+      expect(
+        recordValidationRuntimeFacts(
+          {
+            routeFamily: 'internal',
+            validationRuntimeContext: { service: 'repair' },
+          },
+          'update'
+        )
+      ).to.deep.equal({
         service: 'repair',
         routeFamily: 'internal',
         writeKind: 'update',
@@ -293,36 +419,98 @@ describe('RecordSaveResponse', function () {
 
   describe('recordSaveFailureStatus', function () {
     it('maps non-persisted problem kinds to transport statuses', function () {
-      const validation = new RecordSaveResponse(createRecordSaveContext({ requestId }));
+      const validation = new RecordSaveResponse(requestId);
       validation.addProblem(recordSaveProblem('validation', 'pre-save', 'bad field'));
       expect(recordSaveFailureStatus(validation)).to.equal(400);
 
-      const authorization = new RecordSaveResponse(createRecordSaveContext({ requestId }));
+      const authorization = new RecordSaveResponse(requestId);
       authorization.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
       expect(recordSaveFailureStatus(authorization)).to.equal(403);
 
-      const processing = new RecordSaveResponse(createRecordSaveContext({ requestId }));
+      const processing = new RecordSaveResponse(requestId);
       processing.addProblem(recordSaveProblem('processing', 'persistence', 'boom'));
       expect(recordSaveFailureStatus(processing)).to.equal(500);
     });
 
     it('uses deterministic severity instead of the first problem', function () {
-      const authorizationAfterValidation = new RecordSaveResponse(createRecordSaveContext({ requestId }));
+      const authorizationAfterValidation = new RecordSaveResponse(requestId);
       authorizationAfterValidation.addProblem(recordSaveProblem('validation', 'pre-save', 'bad field'));
       authorizationAfterValidation.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
       expect(recordSaveFailureStatus(authorizationAfterValidation)).to.equal(403);
 
-      const systemAfterAuthorization = new RecordSaveResponse(createRecordSaveContext({ requestId }));
+      const systemAfterAuthorization = new RecordSaveResponse(requestId);
       systemAfterAuthorization.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
       systemAfterAuthorization.addProblem(recordSaveProblem('system', 'pre-save', 'configuration failure'));
       expect(recordSaveFailureStatus(systemAfterAuthorization)).to.equal(500);
     });
 
     it('keeps an ambiguous primary mutation on a 5xx', function () {
-      const unknownResult = new RecordSaveResponse(createRecordSaveContext({ requestId }));
+      const unknownResult = new RecordSaveResponse(requestId);
       unknownResult.outcome = 'unknown';
       unknownResult.addProblem(recordSaveProblem('validation', 'persistence', 'looks like validation'));
       expect(recordSaveFailureStatus(unknownResult)).to.equal(500);
+    });
+
+    it('gives each certified concurrency failure its own precondition status', function () {
+      const expected: Array<[string, number]> = [
+        ['record-precondition-required', 428],
+        ['record-revision-stale', 412],
+        ['record-deleted', 412],
+        ['form-definition-changed', 409],
+        ['record-lifecycle-operation-conflict', 409],
+      ];
+      for (const [code, status] of expected) {
+        const conflict = new RecordSaveResponse(requestId);
+        conflict.addProblem(recordSaveProblem('conflict', 'pre-save', 'Your changes were not saved.', code));
+        expect(recordSaveFailureStatus(conflict), code).to.equal(status);
+      }
+    });
+
+    it('never reports a certified conflict as an ambiguous 500', function () {
+      // A conflict is decided before or at the compare-and-set boundary, so it
+      // is a definitive non-write; a 5xx would make the browser treat it as
+      // `unknown` and refuse to rebase or retry it.
+      const uncoded = new RecordSaveResponse(requestId);
+      uncoded.addProblem(recordSaveProblem('conflict', 'persistence', 'Your changes were not saved.'));
+      expect(recordSaveFailureStatus(uncoded)).to.equal(409);
+
+      const casLoss = new RecordSaveResponse(requestId);
+      casLoss.addProblem(recordSaveProblem('conflict', 'persistence', 'stale', 'record-revision-stale'));
+      expect(recordSaveFailureStatus(casLoss)).to.equal(412);
+    });
+
+    it('orders conflict severity deterministically against other problem kinds', function () {
+      // Precedence follows the pipeline: authorization is resolved before the
+      // precondition, and a real system failure still outranks both.
+      const conflictAfterValidation = new RecordSaveResponse(requestId);
+      conflictAfterValidation.addProblem(recordSaveProblem('validation', 'pre-save', 'bad field'));
+      conflictAfterValidation.addProblem(recordSaveProblem('conflict', 'pre-save', 'stale', 'record-revision-stale'));
+      expect(recordSaveFailureStatus(conflictAfterValidation)).to.equal(412);
+
+      const authorizationAfterConflict = new RecordSaveResponse(requestId);
+      authorizationAfterConflict.addProblem(
+        recordSaveProblem('conflict', 'pre-save', 'stale', 'record-revision-stale')
+      );
+      authorizationAfterConflict.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
+      expect(recordSaveFailureStatus(authorizationAfterConflict)).to.equal(403);
+
+      const systemAfterConflict = new RecordSaveResponse(requestId);
+      systemAfterConflict.addProblem(recordSaveProblem('conflict', 'pre-save', 'stale', 'record-revision-stale'));
+      systemAfterConflict.addProblem(
+        recordSaveProblem(
+          'system',
+          'pre-save',
+          'adapter cannot honor preconditions',
+          'record-concurrency-capability-unavailable'
+        )
+      );
+      expect(recordSaveFailureStatus(systemAfterConflict)).to.equal(500);
+
+      // Missing precondition wins over a stale one regardless of insertion order.
+      const bothCodes = new RecordSaveResponse(requestId);
+      bothCodes.addProblem(recordSaveProblem('conflict', 'pre-save', 'stale', 'record-revision-stale'));
+      bothCodes.addProblem(recordSaveProblem('conflict', 'pre-save', 'required', 'record-precondition-required'));
+      expect(recordSaveFailureStatus(bothCodes)).to.equal(428);
     });
   });
 });

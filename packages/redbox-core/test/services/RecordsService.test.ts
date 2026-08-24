@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import _ from 'lodash';
 import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
@@ -11,6 +12,7 @@ import {
   type RecordSaveIssue,
 } from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../../src/StorageService';
+import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
@@ -22,10 +24,10 @@ import {
   configureModelMethod,
 } from './testHelper';
 
-const { Services: RecordValidationServices } = require('../../src/services/RecordValidationService') as
-  typeof import('../../src/services/RecordValidationService');
-const DomSanitizerServices = require('../../src/services/DomSanitizerService').default as
-  typeof import('../../src/services/DomSanitizerService').default;
+const { Services: RecordValidationServices } =
+  require('../../src/services/RecordValidationService') as typeof import('../../src/services/RecordValidationService');
+const DomSanitizerServices = require('../../src/services/DomSanitizerService')
+  .default as typeof import('../../src/services/DomSanitizerService').default;
 
 describe('RecordsService', function () {
   let mockSails: any;
@@ -166,14 +168,16 @@ describe('RecordsService', function () {
           },
         })
       ),
-      get: sinon.stub().callsFake((_recordType: unknown, step: string) => of({
-        name: step,
-        config: {
-          form: step === 'draft' ? 'default-form' : `${step}-form`,
-          workflow: { stage: step },
-          authorization: { transitionRoles: [], viewRoles: [], editRoles: [] },
-        },
-      })),
+      get: sinon.stub().callsFake((_recordType: unknown, step: string) =>
+        of({
+          name: step,
+          config: {
+            form: step === 'draft' ? 'default-form' : `${step}-form`,
+            workflow: { stage: step },
+            authorization: { transitionRoles: [], viewRoles: [], editRoles: [] },
+          },
+        })
+      ),
     };
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
@@ -218,6 +222,7 @@ describe('RecordsService', function () {
     delete (global as any).TranslationService;
     delete (global as any).RedboxJavaStorageService;
     delete (global as any).SolrSearchService;
+    delete (globalThis as any).__w05Hooks;
     sinon.restore();
   });
 
@@ -1354,10 +1359,12 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file', pending: false }],
         },
       });
-      (global as any).FormsService.getFormByName.returns(of({
-        name: 'default-form',
-        configuration: { attachmentFields: ['attachments'] },
-      }));
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
       (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
@@ -1381,8 +1388,812 @@ describe('RecordsService', function () {
       expect(result.wasPersisted()).to.equal(true);
       expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
-      expect(journal.prepareMutations.firstCall.args[0].map((item: any) => item.operation).sort())
-        .to.deep.equal(['delete', 'finalize']);
+      expect(journal.prepareMutations.firstCall.args[0].map((item: any) => item.operation).sort()).to.deep.equal([
+        'delete',
+        'finalize',
+      ]);
+    });
+  });
+
+  describe('record concurrency save pipeline', function () {
+    const requestId = '11111111-1111-4111-8111-111111111111';
+    const resolutionOfRequestId = '22222222-2222-4222-8222-222222222222';
+    const record = (revision = 4, title = 'Original', canEdit = true) => ({
+      redboxOid: 'record-123',
+      revision,
+      metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+      metadata: { title },
+      workflow: { stage: 'draft' },
+      authorization: {
+        edit: canEdit ? ['user-1'] : [],
+        view: [],
+        editRoles: [],
+        viewRoles: [],
+      },
+    });
+    const allowValidation = () => ({
+      status: 'resolved',
+      shouldBlock: false,
+      mode: 'shadow',
+      formName: 'default-form',
+      effectiveGroups: [],
+      resolved: {},
+      blockingErrors: [],
+      advisoryErrors: [],
+      advisoryGroups: [],
+      diagnostics: [],
+    });
+    const installMode = (mode: 'strict' | 'observe' | 'last-write-wins', hooks: Record<string, unknown> = {}) => {
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks,
+          searchable: false,
+          concurrentModification: { mode },
+        })
+      );
+    };
+    const update = (
+      candidate: any,
+      concurrency: Record<string, unknown>,
+      triggerPostSaveTriggers = false,
+      saveRequestId = requestId
+    ) =>
+      RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        candidate,
+        { username: 'user-1' },
+        false,
+        triggerPostSaveTriggers,
+        {},
+        undefined,
+        {
+          requestId: saveRequestId,
+          routeFamily: 'browser',
+          operation: 'update',
+          concurrency: { entityTagSupplied: false, ...concurrency },
+        }
+      );
+
+    it('enforces strict missing while observe and last-write-wins accept tokenless writes', async function () {
+      const validator = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+
+      installMode('strict');
+      mockStorageService.getMeta.resolves(record());
+      const strictResult = await update(record(4, 'Strict edit'), {});
+      expect(strictResult.outcome).to.equal('not-saved');
+      expect(strictResult.problems[0].issues[0].code).to.equal('record-precondition-required');
+      expect(strictResult.concurrency).to.include({ mode: 'strict', currentRevision: 4 });
+      expect(validator.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+
+      for (const mode of ['observe', 'last-write-wins'] as const) {
+        validator.resetHistory();
+        mockStorageService.getMeta.reset();
+        mockStorageService.updateMeta.reset();
+        installMode(mode);
+        mockStorageService.getMeta.onFirstCall().resolves(record());
+        mockStorageService.getMeta.onSecondCall().resolves(record(5, `${mode} edit`));
+        mockStorageService.updateMeta.resolves({
+          success: true,
+          oid: 'record-123',
+          applicationState: 'applied',
+          committedRevision: 5,
+          committedRecord: record(5, `${mode} edit`),
+        });
+
+        const result = await update(record(4, `${mode} edit`), {});
+        expect(result.outcome, mode).to.equal('saved');
+        expect(result.concurrency, mode).to.include({ mode, revision: 5, currentRevision: 5 });
+        expect(mockStorageService.updateMeta.firstCall.args[4]).to.deep.include({
+          precondition: { requireRevision: false },
+          requestId,
+          resolution: 'direct',
+        });
+      }
+    });
+
+    it('orders authorization before revision disclosure and all candidate work', async function () {
+      installMode('strict');
+      mockStorageService.getMeta.resolves(record(9, 'Private', false));
+      const journal = {
+        findUnresolvedByOid: sinon.stub(),
+        prepareMutations: sinon.stub(),
+        markMutation: sinon.stub(),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+
+      const result = await update(record(3, 'Unauthorized', false), { expectedRevision: 3 });
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].kind).to.equal('authorization');
+      expect(result.concurrency).to.equal(undefined);
+      expect(JSON.stringify(result)).not.to.contain('Private');
+      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(journal.findUnresolvedByOid.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
+    it('rejects stale revisions and form drift before validation or attachment planning', async function () {
+      const journal = {
+        findUnresolvedByOid: sinon.stub(),
+        prepareMutations: sinon.stub(),
+        markMutation: sinon.stub(),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      installMode('strict');
+      mockStorageService.getMeta.resolves(record());
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+
+      const staleCandidate = {
+        ...record(4, 'Stale'),
+        redboxOid: 'different-record',
+        metadata: {
+          attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
+        },
+      };
+      const stale = await update(staleCandidate, { expectedRevision: 3 });
+      expect(stale.problems[0].issues[0].code).to.equal('record-revision-stale');
+      expect(stale.concurrency).to.include({ expectedRevision: 3, currentRevision: 4 });
+
+      const fingerprint = await update(record(4, 'Form drift'), {
+        expectedRevision: 4,
+        formFingerprint: `sha256:${'0'.repeat(64)}`,
+      });
+      expect(fingerprint.problems[0].issues[0].code).to.equal('form-definition-changed');
+      expect(fingerprint.concurrency?.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
+      expect(fingerprint.concurrency?.formFingerprint).not.to.equal(`sha256:${'0'.repeat(64)}`);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(journal.findUnresolvedByOid.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(mockDatastreamService.addDatastream.notCalled).to.equal(true);
+      expect(JSON.stringify(fingerprint)).not.to.contain('attachmentFields');
+    });
+
+    it('accepts the fingerprint a generated form issued and resolves the form authoritatively', async function () {
+      installMode('strict');
+      const stored = record();
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 5,
+        committedRecord: record(5, 'Fingerprinted edit'),
+      });
+      const recordType = { name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode: 'strict' } };
+
+      // What the browser form route now emits for this record.
+      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType);
+      expect(issued).to.match(/^sha256:[0-9a-f]{64}$/);
+
+      // A caller-selected form object cannot change it: the service resolves
+      // the authoritative form by name, so a save recomputes the same value.
+      (global as any).FormsService.getFormByName.resetHistory();
+      const result = await update(record(4, 'Fingerprinted edit'), {
+        expectedRevision: 4,
+        formFingerprint: issued,
+      });
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.concurrency?.formFingerprint).to.equal(issued);
+      expect((global as any).FormsService.getFormByName.getCall(0).args.slice(0, 3)).to.deep.equal([
+        'default-form',
+        true,
+        'brand-1',
+      ]);
+    });
+
+    it('keeps the issued source-form fingerprint stable across a workflow transition', async function () {
+      installMode('strict');
+      const stored = record();
+      const recordType = { name: 'rdmp', hooks: {}, searchable: false };
+      (global as any).FormsService.getFormByName.callsFake((name: string) =>
+        of({ id: `${name}-id`, name, branding: 'brand-1', configuration: { name } })
+      );
+
+      const current = await RecordsService.getRecordFormFingerprint(stored, recordType);
+      const target = await RecordsService.getRecordFormFingerprint(stored, recordType, {
+        name: 'published',
+        config: { form: 'published-form' },
+      });
+
+      expect(current).to.match(/^sha256:[0-9a-f]{64}$/);
+      expect(target).to.equal(current);
+      expect((global as any).FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(
+        true
+      );
+    });
+
+    it('uses the loaded revision at a deterministic final-CAS race and runs no post-persistence work', async function () {
+      installMode('strict');
+      const stored = { ...record(4), metadata: { attachments: [] } };
+      const losingCandidate = {
+        ...record(4, 'Losing edit'),
+        metadata: {
+          attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
+        },
+      };
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
+      const journal = {
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        prepareMutations: sinon.stub().resolves(),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.getMeta.onFirstCall().resolves(stored);
+      mockStorageService.getMeta.onSecondCall().resolves(record(5, 'Winner'));
+      let releaseValidation!: () => void;
+      let validationReached!: () => void;
+      const barrier = new Promise<void>(resolve => {
+        releaseValidation = resolve;
+      });
+      const reached = new Promise<void>(resolve => {
+        validationReached = resolve;
+      });
+      (global as any).RecordValidationService.resolve.callsFake(async () => {
+        validationReached();
+        await barrier;
+        return allowValidation();
+      });
+      mockStorageService.updateMeta.callsFake(async (...args: any[]) => {
+        expect(args[4].precondition).to.deep.equal({ requireRevision: true, expectedRevision: 4 });
+        return {
+          success: false,
+          oid: 'record-123',
+          applicationState: 'not-applied',
+          nonApplicationReason: 'stale-revision',
+        };
+      });
+
+      const pending = update(losingCandidate, { expectedRevision: 4 }, true);
+      await reached;
+      releaseValidation();
+      const result = await pending;
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('record-revision-stale');
+      expect(result.concurrency).to.include({ expectedRevision: 4, currentRevision: 5 });
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(journal.prepareMutations.calledOnce).to.equal(true);
+      expect(
+        journal.markMutation.calledWith('record-123', 'attachment-1', requestId, 'cancelled', 'primary-not-applied')
+      ).to.equal(true);
+      expect(mockDatastreamService.addDatastream.notCalled).to.equal(true);
+      expect(mockDatastreamService.removeDatastream.notCalled).to.equal(true);
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(mockQueueService.now.notCalled).to.equal(true);
+    });
+
+    it('drops revision diagnostics when edit access is lost at the final-CAS race', async function () {
+      installMode('strict');
+      mockStorageService.getMeta.onFirstCall().resolves(record(4));
+      mockStorageService.getMeta.onSecondCall().resolves(record(5, 'Private winner', false));
+      mockStorageService.updateMeta.resolves({
+        success: false,
+        oid: 'record-123',
+        applicationState: 'not-applied',
+        nonApplicationReason: 'stale-revision',
+      });
+
+      const result = await update(record(4, 'Losing edit'), { expectedRevision: 4 });
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].kind).to.equal('authorization');
+      expect(result.concurrency).to.equal(undefined);
+      expect(JSON.stringify(result)).not.to.contain('Private winner');
+      expect(JSON.stringify(result)).not.to.contain('revision":5');
+    });
+
+    it('passes request linkage without treating the request ID as an idempotency key', async function () {
+      installMode('observe');
+      mockStorageService.getMeta.resolves(record(5, 'Committed'));
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 5,
+        committedRecord: record(5, 'Committed'),
+      });
+      const concurrency = {
+        resolution: 'client-auto-merged',
+        resolutionOfRequestId,
+      };
+
+      const first = await update(record(4, 'First'), concurrency);
+      const second = await update(record(4, 'Second'), concurrency);
+
+      expect(first.requestId).to.equal(requestId);
+      expect(second.requestId).to.equal(requestId);
+      expect(mockStorageService.updateMeta.callCount).to.equal(2);
+      for (const call of mockStorageService.updateMeta.getCalls()) {
+        expect(call.args[4]).to.deep.include({ requestId, resolution: 'client-auto-merged' });
+      }
+      expect(second.concurrency).to.include({
+        resolution: 'client-auto-merged',
+        resolutionOfRequestId,
+      });
+    });
+
+    it('keeps completed attachment facts and stops post-sync after attachment-reference CAS loss', async function () {
+      (globalThis as any).__concurrencyPostSyncRan = false;
+      installMode('strict', {
+        onUpdate: {
+          postSync: [{ function: '() => { globalThis.__concurrencyPostSyncRan = true; return {}; }' }],
+        },
+      });
+      const stored = {
+        ...record(4),
+        metadata: { attachments: [] },
+      };
+      const candidate = {
+        ...record(4),
+        metadata: {
+          attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
+        },
+      };
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          id: 'form-1',
+          name: 'default-form',
+          branding: 'brand-1',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
+      const journal = {
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        prepareMutations: sinon.stub().resolves(),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.getMeta.onFirstCall().resolves(stored);
+      mockStorageService.getMeta.onSecondCall().resolves({ ...candidate, revision: 6 });
+      mockStorageService.updateMeta.onFirstCall().resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 5,
+        committedRecord: { ...candidate, revision: 5 },
+      });
+      mockStorageService.updateMeta.onSecondCall().resolves({
+        success: false,
+        oid: 'record-123',
+        applicationState: 'not-applied',
+        nonApplicationReason: 'stale-revision',
+      });
+
+      const result = await update(candidate, { expectedRevision: 4 }, true);
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.oid).to.equal('record-123');
+      expect(result.completion.attachments.items[0]).to.include({
+        field: 'attachments',
+        attachmentId: 'attachment-1',
+        operation: 'finalize',
+        status: 'completed',
+      });
+      expect(
+        result.problems.some(
+          (problem: any) => problem.kind === 'conflict' && problem.issues[0]?.code === 'record-revision-stale'
+        )
+      ).to.equal(true);
+      expect(result.concurrency).to.include({ revision: 6, currentRevision: 6 });
+      expect(mockStorageService.updateMeta.secondCall.args[4].precondition).to.deep.equal({
+        requireRevision: true,
+        expectedRevision: 5,
+      });
+      expect((globalThis as any).__concurrencyPostSyncRan).to.equal(false);
+      expect(mockStorageService.updateMeta.callCount).to.equal(2);
+      delete (globalThis as any).__concurrencyPostSyncRan;
+    });
+
+    it('holds completed physical work when attachment-reference persistence is unknown', async function () {
+      installMode('strict');
+      const stored = { ...record(4), metadata: { attachments: [] } };
+      const candidate = {
+        ...record(4),
+        metadata: {
+          attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
+        },
+      };
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
+      const journal = {
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        prepareMutations: sinon.stub().resolves(),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.getMeta.onFirstCall().resolves(stored);
+      mockStorageService.getMeta.onSecondCall().resolves({ ...candidate, revision: 5 });
+      mockStorageService.updateMeta.onFirstCall().resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 5,
+        committedRecord: { ...candidate, revision: 5 },
+      });
+      mockStorageService.updateMeta.onSecondCall().resolves({
+        success: false,
+        oid: 'record-123',
+        applicationState: 'unknown',
+      });
+
+      const result = await update(candidate, { expectedRevision: 4 });
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.completion.attachments.items[0]).to.include({ status: 'completed' });
+      expect(
+        journal.markMutation.calledWith(
+          'record-123',
+          'attachment-1',
+          requestId,
+          'unknown',
+          'attachment-reference-finalization-failed'
+        )
+      ).to.equal(true);
+      expect(
+        journal.markMutation.neverCalledWith(
+          'record-123',
+          'attachment-1',
+          requestId,
+          'incomplete',
+          'attachment-reference-finalization-failed'
+        )
+      ).to.equal(true);
+    });
+
+    it('chains post-sync from the primary revision and reports a later CAS loss as a warning', async function () {
+      (globalThis as any).__concurrencyDetachedPostRan = false;
+      installMode('strict', {
+        onUpdate: {
+          postSync: [
+            {
+              function: '(_oid, value) => ({ ...value, metadata: { title: "post-sync" } })',
+            },
+          ],
+          post: [
+            {
+              function: '() => { globalThis.__concurrencyDetachedPostRan = true; }',
+            },
+          ],
+        },
+      });
+      mockStorageService.getMeta.onFirstCall().resolves(record(4));
+      mockStorageService.getMeta.onSecondCall().resolves(record(6, 'Intervening winner'));
+      mockStorageService.updateMeta.onFirstCall().resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 5,
+        committedRecord: record(5, 'Primary'),
+      });
+      mockStorageService.updateMeta.onSecondCall().resolves({
+        success: false,
+        oid: 'record-123',
+        applicationState: 'not-applied',
+        nonApplicationReason: 'stale-revision',
+      });
+
+      const result = await update(record(4, 'Primary'), { expectedRevision: 4 }, true);
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(
+        result.problems.some(
+          (problem: any) => problem.kind === 'conflict' && problem.issues[0]?.code === 'record-revision-stale'
+        )
+      ).to.equal(true);
+      expect(mockStorageService.updateMeta.secondCall.args[4].precondition).to.deep.equal({
+        requireRevision: true,
+        expectedRevision: 5,
+      });
+      expect(result.concurrency).to.include({ revision: 6, currentRevision: 6 });
+      expect((globalThis as any).__concurrencyDetachedPostRan).to.equal(false);
+      delete (globalThis as any).__concurrencyDetachedPostRan;
+    });
+
+    it('holds prepared attachments on an unknown primary result and performs no physical work', async function () {
+      installMode('strict');
+      const stored = { ...record(4), metadata: { attachments: [] } };
+      const candidate = {
+        ...record(4),
+        metadata: {
+          attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
+        },
+      };
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
+      const journal = {
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        prepareMutations: sinon.stub().resolves(),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.rejects(new Error('/private/provider/path?token=secret'));
+
+      const result = await update(candidate, { expectedRevision: 4 });
+
+      expect(result.outcome).to.equal('unknown');
+      expect(journal.prepareMutations.calledOnce).to.equal(true);
+      expect(
+        journal.markMutation.calledWith(
+          'record-123',
+          'attachment-1',
+          requestId,
+          'unknown',
+          'primary-persistence-unknown'
+        )
+      ).to.equal(true);
+      expect(mockDatastreamService.addDatastream.notCalled).to.equal(true);
+      expect(mockDatastreamService.removeDatastream.notCalled).to.equal(true);
+      expect(JSON.stringify(result)).not.to.contain('private/provider');
+      expect(JSON.stringify(result)).not.to.contain('secret');
+    });
+
+    it('retains a stable staged upload across a conflict and finalizes it under a new generation', async function () {
+      const retryRequestId = '33333333-3333-4333-8333-333333333333';
+      installMode('strict');
+      const initial = { ...record(4), metadata: { attachments: [] } };
+      const winner = { ...record(5, 'Winner'), metadata: { attachments: [] } };
+      const candidate = {
+        ...record(4, 'Retried edit'),
+        metadata: {
+          attachments: [{ attachmentId: 'attachment-1', fileId: 'stable-staged-file', pending: true }],
+        },
+      };
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
+      const journal = {
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        prepareMutations: sinon.stub().resolves(),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.getMeta.onCall(0).resolves(initial);
+      mockStorageService.getMeta.onCall(1).resolves(winner);
+      mockStorageService.getMeta.onCall(2).resolves(winner);
+      mockStorageService.getMeta.onCall(3).resolves({ ...candidate, revision: 7 });
+      mockStorageService.updateMeta.onCall(0).resolves({
+        success: false,
+        oid: 'record-123',
+        applicationState: 'not-applied',
+        nonApplicationReason: 'stale-revision',
+      });
+      mockStorageService.updateMeta.onCall(1).resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 6,
+        committedRecord: { ...candidate, revision: 6 },
+      });
+      mockStorageService.updateMeta.onCall(2).resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 7,
+        committedRecord: { ...candidate, revision: 7 },
+      });
+
+      const conflicted = await update(candidate, { expectedRevision: 4 });
+      expect(conflicted.outcome).to.equal('not-saved');
+      expect(mockDatastreamService.addDatastream.notCalled).to.equal(true);
+
+      const saved = await update(
+        candidate,
+        {
+          expectedRevision: 5,
+          resolution: 'client-manually-resolved',
+          resolutionOfRequestId: requestId,
+        },
+        false,
+        retryRequestId
+      );
+
+      expect(saved.outcome).to.equal('saved');
+      expect(saved.concurrency).to.include({
+        revision: 7,
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: requestId,
+      });
+      expect(journal.prepareMutations.callCount).to.equal(2);
+      expect(journal.prepareMutations.firstCall.args[0][0]).to.include({
+        fileId: 'stable-staged-file',
+        generation: requestId,
+      });
+      expect(journal.prepareMutations.secondCall.args[0][0]).to.include({
+        fileId: 'stable-staged-file',
+        generation: retryRequestId,
+      });
+      expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
+      expect(mockDatastreamService.addDatastream.firstCall.args[1].fileId).to.equal('stable-staged-file');
+      expect(mockStorageService.updateMeta.thirdCall.args[4].precondition).to.deep.equal({
+        requireRevision: true,
+        expectedRevision: 6,
+      });
+    });
+
+    it('adopts an incomplete staged intent only after the retry primary CAS commits', async function () {
+      const retryRequestId = '44444444-4444-4444-8444-444444444444';
+      installMode('strict');
+      const pendingAttachment = {
+        attachmentId: 'attachment-1',
+        fileId: 'stable-staged-file',
+        pending: true,
+      };
+      const stored = {
+        ...record(5),
+        metadata: { attachments: [pendingAttachment] },
+      };
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
+      const journal = {
+        findUnresolvedByOid: sinon.stub().resolves([
+          {
+            oid: 'record-123',
+            attachmentId: 'attachment-1',
+            attachmentField: 'attachments',
+            mutationFileId: 'stable-staged-file',
+            operation: 'finalize',
+            generation: 'older-generation',
+            mutationState: 'incomplete',
+          },
+        ]),
+        prepareMutations: sinon.stub().resolves(),
+        markMutation: sinon.stub().resolves(true),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockDatastreamService.addDatastream = sinon.stub().resolves();
+      mockDatastreamService.removeDatastream = sinon.stub().resolves();
+      mockStorageService.getMeta.onFirstCall().resolves(stored);
+      mockStorageService.getMeta.onSecondCall().resolves({ ...stored, revision: 7 });
+      mockStorageService.updateMeta.onFirstCall().resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 6,
+        committedRecord: { ...stored, revision: 6 },
+      });
+      mockStorageService.updateMeta.onSecondCall().resolves({
+        success: true,
+        oid: 'record-123',
+        applicationState: 'applied',
+        committedRevision: 7,
+        committedRecord: { ...stored, revision: 7 },
+      });
+
+      const result = await update(
+        stored,
+        {
+          expectedRevision: 5,
+          resolution: 'client-manually-resolved',
+          resolutionOfRequestId: requestId,
+        },
+        false,
+        retryRequestId
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(journal.prepareMutations.firstCall.args[0][0]).to.include({
+        fileId: 'stable-staged-file',
+        generation: retryRequestId,
+      });
+      const supersedeCall = journal.markMutation
+        .getCalls()
+        .find((call: sinon.SinonSpyCall) => call.args[2] === 'older-generation' && call.args[3] === 'cancelled');
+      const pendingCall = journal.markMutation
+        .getCalls()
+        .find((call: sinon.SinonSpyCall) => call.args[2] === retryRequestId && call.args[3] === 'pending');
+      expect(supersedeCall).not.to.equal(undefined);
+      expect(pendingCall).not.to.equal(undefined);
+      expect(mockStorageService.updateMeta.firstCall.calledBefore(supersedeCall!)).to.equal(true);
+      expect(supersedeCall!.calledBefore(pendingCall!)).to.equal(true);
+      expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
+    });
+
+    it('cleans only expired abandoned staging and keeps logs free of blob identifiers and provider errors', async function () {
+      const claims = [
+        { oid: 'active-record', attachmentId: 'active-attachment', fileId: 'active-file', generation: 'old-1' },
+        { oid: 'retry-record', attachmentId: 'retry-attachment', fileId: 'retry-file', generation: 'old-2' },
+        {
+          oid: 'abandoned-record',
+          attachmentId: 'abandoned-attachment',
+          fileId: 'abandoned-file',
+          generation: 'old-3',
+        },
+        {
+          oid: 'failed-record',
+          attachmentId: 'failed-attachment',
+          fileId: 'private-provider-token',
+          generation: 'old-4',
+        },
+      ];
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        claimExpiredStagingCleanup: sinon.stub().resolves(claims),
+        releaseStagingCleanup: sinon.stub().resolves(true),
+        completeStagingCleanup: sinon.stub().resolves(true),
+        findUnresolvedByOid: sinon
+          .stub()
+          .callsFake(async (oid: string) =>
+            oid === 'retry-record'
+              ? [{ mutationFileId: 'retry-file', generation: 'new-generation', mutationState: 'prepared' }]
+              : []
+          ),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockSails.config.record.attachments = { stagingExpiryMs: 60_000 };
+      mockStorageService.getMeta.callsFake(async (oid: string) =>
+        oid === 'active-record'
+          ? {
+              metadata: {
+                nested: [{ attachmentId: 'active-attachment', fileId: 'active-file', pending: true }],
+              },
+            }
+          : null
+      );
+      mockDatastreamService.removeStagedDatastream = sinon.stub().callsFake(async (fileId: string) => {
+        if (fileId === 'private-provider-token') {
+          throw new Error('/private/provider/path?token=secret');
+        }
+      });
+
+      const result = await RecordsService.cleanupAbandonedAttachmentStaging(new Date('2026-08-23T12:00:00.000Z'));
+
+      expect(result).to.deep.equal({ claimed: 4, removed: 1, retained: 2, failed: 1 });
+      expect(journal.claimExpiredStagingCleanup.calledOnceWithExactly('2026-08-23T11:59:00.000Z', 100)).to.equal(true);
+      expect(
+        mockDatastreamService.removeStagedDatastream.getCalls().map((call: sinon.SinonSpyCall) => call.args[0])
+      ).to.deep.equal(['abandoned-file', 'private-provider-token']);
+      expect(journal.completeStagingCleanup.calledOnceWithExactly(claims[2])).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect(journal.releaseStagingCleanup.calledWith(claims[0], 'attachment-cleanup-reference-active')).to.equal(true);
+      expect(journal.releaseStagingCleanup.calledWith(claims[1], 'attachment-cleanup-reference-active')).to.equal(true);
+      expect(journal.releaseStagingCleanup.calledWith(claims[3], 'attachment-cleanup-failed')).to.equal(true);
+      const cleanupLogs = JSON.stringify([
+        ...mockSails.log.info.getCalls().map((call: sinon.SinonSpyCall) => call.args),
+        ...mockSails.log.warn.getCalls().map((call: sinon.SinonSpyCall) => call.args),
+      ]);
+      expect(cleanupLogs).not.to.contain('private-provider-token');
+      expect(cleanupLogs).not.to.contain('/private/provider/path');
+      expect(cleanupLogs).not.to.contain('token=secret');
     });
   });
 
@@ -1447,7 +2258,11 @@ describe('RecordsService', function () {
         oid: 'wrong-adapter-create-oid',
         applicationState: 'applied',
       });
-      mockStorageService.updateMeta.resolves({ success: true, oid: 'wrong-adapter-update-oid', applicationState: 'applied' });
+      mockStorageService.updateMeta.resolves({
+        success: true,
+        oid: 'wrong-adapter-update-oid',
+        applicationState: 'applied',
+      });
       mockStorageService.getMeta.resolves({
         redboxOid: createOid,
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
@@ -1509,8 +2324,9 @@ describe('RecordsService', function () {
 
         expect(result.outcome, JSON.stringify({ adapterOid })).to.equal('saved');
         expect(result.oid, JSON.stringify({ adapterOid })).to.equal(createOid);
-        expect(mockStorageService.create.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid }))
-          .to.equal(createOid);
+        expect(mockStorageService.create.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid })).to.equal(
+          createOid
+        );
         expect(mockSearchService.index.calledWith(createOid), JSON.stringify({ adapterOid })).to.equal(true);
         expect(mockQueueService.now.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid })).to.equal(createOid);
       }
@@ -1710,11 +2526,13 @@ describe('RecordsService', function () {
     const richHtmlForm = (name = 'default-form'): FormConfigFrame => ({
       name,
       type: 'rdmp',
-      componentDefinitions: [{
-        name: 'description',
-        component: { class: 'RichTextEditorComponent' },
-        model: { class: 'RichTextEditorModel' },
-      }],
+      componentDefinitions: [
+        {
+          name: 'description',
+          component: { class: 'RichTextEditorComponent' },
+          model: { class: 'RichTextEditorModel' },
+        },
+      ],
     });
 
     const installRichHtmlValidation = (
@@ -1744,22 +2562,25 @@ describe('RecordsService', function () {
         }),
         loadWorkflowStep: async (_recordType, step) => ({ name: step, config: { form: `${step}-form` } }),
         loadWorkflowSteps: async () => [],
-        loadForm: async (formName, brand) => ({
-          id: `form-${formName}`,
-          name: formName,
-          branding: brand,
-          configuration: richHtmlForm(formName),
-        } as FormAttributes),
+        loadForm: async (formName, brand) =>
+          ({
+            id: `form-${formName}`,
+            name: formName,
+            branding: brand,
+            configuration: richHtmlForm(formName),
+          }) as FormAttributes,
         ...(executeValidators
           ? {
               collectTransformations: async (form, checkDeadline) =>
                 collectTransformations
                   ? await collectTransformations(form, checkDeadline)
-                  : (await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
-                      form,
-                      transformationOnly: true,
-                      checkDeadline,
-                    })).transformations,
+                  : (
+                      await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
+                        form,
+                        transformationOnly: true,
+                        checkDeadline,
+                      })
+                    ).transformations,
               executeValidators,
             }
           : {}),
@@ -1771,10 +2592,12 @@ describe('RecordsService', function () {
         name: 'default-form',
         configuration: richHtmlForm(),
       });
-      (global as any).FormsService.getFormByName.callsFake((formName: string) => of({
-        name: formName,
-        configuration: richHtmlForm(formName),
-      }));
+      (global as any).FormsService.getFormByName.callsFake((formName: string) =>
+        of({
+          name: formName,
+          configuration: richHtmlForm(formName),
+        })
+      );
       return { resolve };
     };
 
@@ -2022,10 +2845,14 @@ describe('RecordsService', function () {
       }
 
       expect((global as any).WorkflowStepsService.get.calledOnce).to.equal(true);
-      const targetLog = mockSails.log.warn.getCalls()
+      const targetLog = mockSails.log.warn
+        .getCalls()
         .map((call: sinon.SinonSpyCall) => call.args[1])
-        .find((details: any) => details?.event === 'record_validation_workflow_target_rejected' &&
-          details?.diagnostic_code === 'record-validation-workflow-step-not-found');
+        .find(
+          (details: any) =>
+            details?.event === 'record_validation_workflow_target_rejected' &&
+            details?.diagnostic_code === 'record-validation-workflow-step-not-found'
+        );
       expect(targetLog).to.deep.include({ mode: 'enforce', operation: 'transition', record_type: 'rdmp' });
     });
 
@@ -2052,8 +2879,9 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('saved');
-        expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form)
-          .to.equal('default-form');
+        expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal(
+          'default-form'
+        );
         expect(mockStorageService.create.firstCall.args[1].metaMetadata.form).to.equal('default-form');
       }
     });
@@ -2158,8 +2986,7 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('not-saved');
-      expect(result.problems[0].issues[0].code)
-        .to.equal('record-validation-authority-context-divergence');
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
       expect(preHook.notCalled).to.equal(true);
       expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
@@ -2185,8 +3012,9 @@ describe('RecordsService', function () {
         searchable: false,
         hooks: {
           onCreate: {
-            postSync: [{
-              function: `(_oid, record, _options, _user, response) => {
+            postSync: [
+              {
+                function: `(_oid, record, _options, _user, response) => {
                 globalThis.__createIdentityFacts = {
                   oid: _oid,
                   recordOid: record.redboxOid,
@@ -2198,7 +3026,8 @@ describe('RecordsService', function () {
                 };
                 return record;
               }`,
-            }],
+              },
+            ],
           },
         },
       };
@@ -2259,24 +3088,30 @@ describe('RecordsService', function () {
         searchable: true,
         hooks: {
           onCreate: {
-            pre: [{
-              function: `(_oid, record) => {
+            pre: [
+              {
+                function: `(_oid, record) => {
                 globalThis.__configuredCreateOids.push(['pre', _oid, record.redboxOid]);
                 const { redboxOid: _discarded, ...replacement } = record;
                 return replacement;
               }`,
-            }],
-            postSync: [{
-              function: `(_oid, record, _options, _user, response) => {
+              },
+            ],
+            postSync: [
+              {
+                function: `(_oid, record, _options, _user, response) => {
                 globalThis.__configuredCreateOids.push(['postSync', _oid, record.redboxOid, response.oid]);
                 return record;
               }`,
-            }],
-            post: [{
-              function: `(_oid, record) => {
+              },
+            ],
+            post: [
+              {
+                function: `(_oid, record) => {
                 globalThis.__configuredCreateOids.push(['post', _oid, record.redboxOid]);
               }`,
-            }],
+              },
+            ],
           },
         },
       };
@@ -2319,12 +3154,14 @@ describe('RecordsService', function () {
         searchable: true,
         hooks: {
           onCreate: {
-            pre: [{
-              function: `(_oid, record) => {
+            pre: [
+              {
+                function: `(_oid, record) => {
                 globalThis.__configuredCreatePreOid = _oid;
                 return { ...record, redboxOid: 'hook-redirect-oid' };
               }`,
-            }],
+              },
+            ],
           },
         },
       };
@@ -2340,8 +3177,7 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('not-saved');
-        expect(result.problems[0].issues[0].code)
-          .to.equal('record-validation-authority-context-divergence');
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
         expect((globalThis as any).__configuredCreatePreOid).to.equal('route-create-oid');
         expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
         expect(attachmentJournal.prepareMutations.notCalled).to.equal(true);
@@ -2365,22 +3201,28 @@ describe('RecordsService', function () {
         delete candidate.redboxOid;
         return { success: true, oid: 'record-123', applicationState: 'applied' };
       });
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        searchable: false,
-        hooks: {
-          onUpdate: {
-            postSync: [{
-              function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, postSyncOid: record.redboxOid } })',
-            }],
-            post: [{
-              function:
-                '(_oid, record) => { globalThis.__identitySeenAfterStorage = { redboxOid: record.redboxOid, id: record.id, _id: record._id, postSyncOid: record.metadata.postSyncOid }; }',
-            }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          searchable: false,
+          hooks: {
+            onUpdate: {
+              postSync: [
+                {
+                  function:
+                    '(_oid, record) => ({ ...record, metadata: { ...record.metadata, postSyncOid: record.redboxOid } })',
+                },
+              ],
+              post: [
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__identitySeenAfterStorage = { redboxOid: record.redboxOid, id: record.id, _id: record._id, postSyncOid: record.metadata.postSyncOid }; }',
+                },
+              ],
+            },
           },
-        },
-      }));
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       try {
@@ -2418,15 +3260,17 @@ describe('RecordsService', function () {
         oid: 'record-123',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        searchable: false,
-        hooks: {
-          onUpdate: {
-            postSync: [{ function: '(_oid, record) => ({ ...record, redboxOid: "different-record" })' }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          searchable: false,
+          hooks: {
+            onUpdate: {
+              postSync: [{ function: '(_oid, record) => ({ ...record, redboxOid: "different-record" })' }],
+            },
           },
-        },
-      }));
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       const result = await RecordsService.updateMeta(
@@ -2439,8 +3283,7 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('saved-with-warnings');
-      expect(result.problems[0].issues[0].code)
-        .to.equal('record-validation-authority-context-divergence');
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
     });
 
@@ -2458,25 +3301,31 @@ describe('RecordsService', function () {
         oid: '',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        searchable: false,
-        hooks: {
-          onUpdate: {
-            postSync: [{
-              function: `(_oid, record, _options, _user, response) => {
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          searchable: false,
+          hooks: {
+            onUpdate: {
+              postSync: [
+                {
+                  function: `(_oid, record, _options, _user, response) => {
                 globalThis.__routeOidEffects.push({ phase: 'postSync', oid: _oid, responseOid: response.oid });
                 return { ...record, metadata: { ...record.metadata, postSyncApplied: true } };
               }`,
-            }],
-            post: [{
-              function: `(_oid) => {
+                },
+              ],
+              post: [
+                {
+                  function: `(_oid) => {
                 globalThis.__routeOidEffects.push({ phase: 'post', oid: _oid });
               }`,
-            }],
+                },
+              ],
+            },
           },
-        },
-      }));
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       try {
@@ -2493,8 +3342,10 @@ describe('RecordsService', function () {
         expect(result.oid).to.equal('record-123');
         expect(result.outcome).to.equal('saved');
         expect(mockStorageService.updateMeta.callCount).to.equal(2);
-        expect(mockStorageService.updateMeta.getCalls().map((call: sinon.SinonSpyCall) => call.args[1]))
-          .to.deep.equal(['record-123', 'record-123']);
+        expect(mockStorageService.updateMeta.getCalls().map((call: sinon.SinonSpyCall) => call.args[1])).to.deep.equal([
+          'record-123',
+          'record-123',
+        ]);
         expect((globalThis as any).__routeOidEffects).to.deep.equal([
           { phase: 'postSync', oid: 'record-123', responseOid: 'record-123' },
           { phase: 'post', oid: 'record-123' },
@@ -2510,20 +3361,24 @@ describe('RecordsService', function () {
       const callerMetadata = { nested: { title: 'Caller-owned title' } };
       const callerSnapshot = structuredClone(callerMetadata);
       mockStorageService.getMeta.resolves(stored);
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        searchable: false,
-        hooks: {
-          onUpdate: {
-            pre: [{
-              function: `(_oid, record) => {
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          searchable: false,
+          hooks: {
+            onUpdate: {
+              pre: [
+                {
+                  function: `(_oid, record) => {
                 record.metadata.nested.title = 'Mutated by hook';
                 throw new Error('pre-hook failure');
               }`,
-            }],
+                },
+              ],
+            },
           },
-        },
-      }));
+        })
+      );
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -2605,17 +3460,21 @@ describe('RecordsService', function () {
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onTransitionWorkflow: {
-            pre: [{
-              function: '(_oid, record) => ({ ...record, workflow: { stage: "rogue-stage" } })',
-            }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onTransitionWorkflow: {
+              pre: [
+                {
+                  function: '(_oid, record) => ({ ...record, workflow: { stage: "rogue-stage" } })',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -2701,14 +3560,14 @@ describe('RecordsService', function () {
     });
 
     it('reports advisory failures without blocking an enforced save', async function () {
-      const advisoryErrors: RecordSaveIssue[] = [{
-        message: '@validator-error-recommended',
-        field: 'description',
-        class: 'required',
-      }];
-      (global as any).RecordValidationService.resolve.resolves(
-        allowResult({ mode: 'enforce', advisoryErrors })
-      );
+      const advisoryErrors: RecordSaveIssue[] = [
+        {
+          message: '@validator-error-recommended',
+          field: 'description',
+          class: 'required',
+        },
+      ];
+      (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce', advisoryErrors }));
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
@@ -2741,8 +3600,10 @@ describe('RecordsService', function () {
 
         expect(result.outcome, mode).to.equal('saved-with-warnings');
         expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
-        expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class), mode)
-          .to.deep.equal(['htmlSanitized']);
+        expect(
+          result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class),
+          mode
+        ).to.deep.equal(['htmlSanitized']);
         expect(callerRecord, mode).to.deep.equal(originalCallerRecord);
         const validationResult = await resolve.firstCall.returnValue;
         expect(validationResult.status, JSON.stringify(validationResult.diagnostics)).to.equal('resolved');
@@ -2752,8 +3613,10 @@ describe('RecordsService', function () {
         expect(persisted.metadata.description, mode).to.equal('<p>Safe</p><img src="x">');
         expect(persisted.metadata.retained, mode).to.equal('caller-owned');
         expect(validationResult.blockingErrors, mode).to.deep.equal([]);
-        expect(validationResult.advisoryErrors.map((issue: RecordSaveIssue) => issue.class), mode)
-          .to.deep.equal(['htmlSanitized']);
+        expect(
+          validationResult.advisoryErrors.map((issue: RecordSaveIssue) => issue.class),
+          mode
+        ).to.deep.equal(['htmlSanitized']);
       }
     });
 
@@ -2766,14 +3629,15 @@ describe('RecordsService', function () {
         jsonataEvaluatorFactory,
         excludedOnlyValidationGroups,
         checkDeadline
-      ) => await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
-        form,
-        enabledValidationGroups: [...enabledValidationGroups],
-        validatorDefinitionsMap,
-        jsonataEvaluatorFactory,
-        excludedOnlyValidationGroups: [...(excludedOnlyValidationGroups ?? [])],
-        checkDeadline,
-      });
+      ) =>
+        await new ValidatorFormConfigVisitor(mockSails.log).startWithResult({
+          form,
+          enabledValidationGroups: [...enabledValidationGroups],
+          validatorDefinitionsMap,
+          jsonataEvaluatorFactory,
+          excludedOnlyValidationGroups: [...(excludedOnlyValidationGroups ?? [])],
+          checkDeadline,
+        });
       installRichHtmlValidation('enforce', 'sanitize', executeValidators, async () => []);
 
       const createResult = await RecordsService.create(
@@ -2794,12 +3658,14 @@ describe('RecordsService', function () {
         metadata: { title: 'Original', description: '<p>Original</p>' },
       });
       mockStorageService.updateMeta.resetHistory();
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {},
-        searchable: false,
-        recordValidation: { mode: 'enforce' },
-      }));
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {},
+          searchable: false,
+          recordValidation: { mode: 'enforce' },
+        })
+      );
       const updateResult = await RecordsService.updateMeta(
         { id: 'brand-1' },
         'record-123',
@@ -2848,8 +3714,10 @@ describe('RecordsService', function () {
 
         const validationResult = await resolve.firstCall.returnValue;
         expect(validationResult, mode).to.deep.include({ status: 'unresolved', shouldBlock: true });
-        expect(validationResult.diagnostics.map((item: { code: string }) => item.code), mode)
-          .to.include('record-validation-transformation-inapplicable');
+        expect(
+          validationResult.diagnostics.map((item: { code: string }) => item.code),
+          mode
+        ).to.include('record-validation-transformation-inapplicable');
         expect(result.outcome, mode).to.equal('not-saved');
         expect(mockStorageService.create.notCalled, mode).to.equal(true);
       }
@@ -2892,8 +3760,10 @@ describe('RecordsService', function () {
 
         const validationResult = await resolve.firstCall.returnValue;
         expect(validationResult, testCase.name).to.deep.include({ status: 'unresolved', shouldBlock: false });
-        expect(validationResult.diagnostics.map((item: { code: string }) => item.code), testCase.name)
-          .to.include(testCase.diagnostic);
+        expect(
+          validationResult.diagnostics.map((item: { code: string }) => item.code),
+          testCase.name
+        ).to.include(testCase.diagnostic);
         expect(validationResult.transformedCandidate, testCase.name).not.to.equal(undefined);
         expect(validationResult.transformedCandidate?.metadata.description, testCase.name).to.equal(
           '<p>Safe</p><img src="x">'
@@ -2940,22 +3810,25 @@ describe('RecordsService', function () {
           metadata: { title: 'Original', description: '<p>Original</p>', retained: true },
         };
         mockStorageService.getMeta.resolves(stored);
-        (global as any).RecordTypesService.get.returns(of({
-          name: 'rdmp',
-          hooks: {},
-          searchable: false,
-          recordValidation: { mode: 'enforce' },
-        }));
-        const targetStep = writeKind === 'transition'
-          ? {
-              name: 'published',
-              config: {
-                form: 'published-form',
-                workflow: { stage: 'published' },
-                authorization: { transitionRoles: [], viewRoles: [], editRoles: [] },
-              },
-            }
-          : {};
+        (global as any).RecordTypesService.get.returns(
+          of({
+            name: 'rdmp',
+            hooks: {},
+            searchable: false,
+            recordValidation: { mode: 'enforce' },
+          })
+        );
+        const targetStep =
+          writeKind === 'transition'
+            ? {
+                name: 'published',
+                config: {
+                  form: 'published-form',
+                  workflow: { stage: 'published' },
+                  authorization: { transitionRoles: [], viewRoles: [], editRoles: [] },
+                },
+              }
+            : {};
         const candidate = {
           ...baseRecord('Changed'),
           metadata: { title: 'Changed', description: dirtyHtml, retained: true },
@@ -2972,8 +3845,10 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome, writeKind).to.equal('saved-with-warnings');
-        expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class), writeKind)
-          .to.deep.equal(['htmlSanitized']);
+        expect(
+          result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class),
+          writeKind
+        ).to.deep.equal(['htmlSanitized']);
         const validationResult = await resolve.firstCall.returnValue;
         expect(validationResult.status, writeKind).to.equal('resolved');
         if (validationResult.status !== 'resolved') throw new Error('Expected resolved validation result.');
@@ -2997,14 +3872,17 @@ describe('RecordsService', function () {
         recordValidation: { mode: 'enforce' },
         hooks: {
           onCreate: {
-            postSync: [{
-              function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, description: "<p>Hook</p><script>alert(1)</script>" } })',
-            }],
-            post: [{
-              function:
-                '(_oid, record) => { globalThis.__sanitizedPostSyncRecord = structuredClone(record); }',
-            }],
+            postSync: [
+              {
+                function:
+                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, description: "<p>Hook</p><script>alert(1)</script>" } })',
+              },
+            ],
+            post: [
+              {
+                function: '(_oid, record) => { globalThis.__sanitizedPostSyncRecord = structuredClone(record); }',
+              },
+            ],
           },
         },
       };
@@ -3022,8 +3900,7 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('saved-with-warnings');
         expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'post-save' });
-        expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class))
-          .to.deep.equal(['htmlSanitized']);
+        expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class)).to.deep.equal(['htmlSanitized']);
         expect(resolve.callCount).to.equal(2);
         const validationResult = await resolve.secondCall.returnValue;
         expect(validationResult.status).to.equal('resolved');
@@ -3048,16 +3925,18 @@ describe('RecordsService', function () {
           none: { description: 'No validators', initialMembership: 'none' },
           'required-fields': { description: 'Required fields', initialMembership: 'none' },
         },
-        componentDefinitions: [{
-          name: 'title',
-          component: { class: 'SimpleInputComponent' },
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              validators: [{ class: 'required', groups: { include: ['required-fields'] } }],
+        componentDefinitions: [
+          {
+            name: 'title',
+            component: { class: 'SimpleInputComponent' },
+            model: {
+              class: 'SimpleInputModel',
+              config: {
+                validators: [{ class: 'required', groups: { include: ['required-fields'] } }],
+              },
             },
           },
-        }],
+        ],
       };
       const dependencies: Partial<RecordValidationServiceDependencies> = {
         loadRecordType: async () => ({
@@ -3075,12 +3954,13 @@ describe('RecordsService', function () {
           config: { form: 'default-form' },
         }),
         loadWorkflowSteps: async () => [],
-        loadForm: async (formName, brand) => ({
-          id: `form-${formName}`,
-          name: formName,
-          branding: brand,
-          configuration: authoritativeForm,
-        } as FormAttributes),
+        loadForm: async (formName, brand) =>
+          ({
+            id: `form-${formName}`,
+            name: formName,
+            branding: brand,
+            configuration: authoritativeForm,
+          }) as FormAttributes,
       };
       mockSails.config.recordValidation = {
         mode: 'enforce',
@@ -3093,10 +3973,12 @@ describe('RecordsService', function () {
         name: 'default-form',
         configuration: authoritativeForm,
       });
-      (global as any).FormsService.getFormByName.returns(of({
-        name: 'default-form',
-        configuration: authoritativeForm,
-      }));
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: authoritativeForm,
+        })
+      );
       const attachmentJournal = {
         prepareMutations: sinon.stub().resolves(),
         findUnresolvedByOid: sinon.stub().resolves([]),
@@ -3225,8 +4107,7 @@ describe('RecordsService', function () {
             pre: [
               { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
               {
-                function:
-                  '(_oid, record) => { globalThis.__conflictingCreateSecondHookRan = true; return record; }',
+                function: '(_oid, record) => { globalThis.__conflictingCreateSecondHookRan = true; return record; }',
               },
             ],
           },
@@ -3260,21 +4141,23 @@ describe('RecordsService', function () {
     it('rebinds the route OID between sequential update pre hooks', async function () {
       (globalThis as any).__updateSecondHookOid = undefined;
       mockStorageService.getMeta.resolves(baseRecord());
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onUpdate: {
-            pre: [
-              { function: '() => ({ metadata: { title: "First update replacement" } })' },
-              {
-                function:
-                  '(_oid, record) => { globalThis.__updateSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; }',
-              },
-            ],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              pre: [
+                { function: '() => ({ metadata: { title: "First update replacement" } })' },
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__updateSecondHookOid = record.redboxOid; return { ...record, secondHook: true }; }',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       try {
@@ -3289,7 +4172,10 @@ describe('RecordsService', function () {
 
         expect(result.outcome).to.equal('saved');
         expect((globalThis as any).__updateSecondHookOid).to.equal('record-123');
-        expect(mockStorageService.updateMeta.firstCall.args[2]).to.include({ redboxOid: 'record-123', secondHook: true });
+        expect(mockStorageService.updateMeta.firstCall.args[2]).to.include({
+          redboxOid: 'record-123',
+          secondHook: true,
+        });
       } finally {
         delete (globalThis as any).__updateSecondHookOid;
       }
@@ -3298,21 +4184,22 @@ describe('RecordsService', function () {
     it('rejects a conflicting route OID before the next update pre hook or persistence', async function () {
       (globalThis as any).__conflictingUpdateSecondHookRan = false;
       mockStorageService.getMeta.resolves(baseRecord());
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onUpdate: {
-            pre: [
-              { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
-              {
-                function:
-                  '(_oid, record) => { globalThis.__conflictingUpdateSecondHookRan = true; return record; }',
-              },
-            ],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              pre: [
+                { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+                {
+                  function: '(_oid, record) => { globalThis.__conflictingUpdateSecondHookRan = true; return record; }',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
 
       try {
         const result = await RecordsService.updateMeta(
@@ -3400,10 +4287,12 @@ describe('RecordsService', function () {
         name: 'rdmp',
         hooks: {
           onUpdate: {
-            pre: [{
-              function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, authoritativeHookRan: true } })',
-            }],
+            pre: [
+              {
+                function:
+                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, authoritativeHookRan: true } })',
+              },
+            ],
           },
         },
         searchable: false,
@@ -3439,10 +4328,13 @@ describe('RecordsService', function () {
 
       expect(divergent.outcome).to.equal('not-saved');
       expect(divergent.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
-      expect((global as any).RecordTypesService.get.notCalled).to.equal(true);
+      expect((global as any).RecordTypesService.get.calledOnce).to.equal(true);
+      expect((global as any).RecordTypesService.get.firstCall.args[1]).to.equal('rdmp');
       expect(triggerPreSave.notCalled).to.equal(true);
       expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+
+      (global as any).RecordTypesService.get.resetHistory();
 
       (global as any).RecordValidationService.resolve.callsFake(async (request: any) => {
         expect(request.candidate.metaMetadata.type).to.equal('rdmp');
@@ -3921,8 +4813,9 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('not-saved');
       expect(result.problems[0].issues[0].code).to.equal('record-validation-transition-unauthorized');
-      expect((global as any).WorkflowStepsService.get.calledOnceWithExactly(canonicalRecordType, 'published'))
-        .to.equal(true);
+      expect((global as any).WorkflowStepsService.get.calledOnceWithExactly(canonicalRecordType, 'published')).to.equal(
+        true
+      );
       expect(transitionAuthorization.calledOnce).to.equal(true);
       expect(transitionAuthorization.firstCall.args[0]).to.equal(canonicalStep);
       expect(preTransitionHook.notCalled).to.equal(true);
@@ -3963,7 +4856,8 @@ describe('RecordsService', function () {
         expect((global as any).WorkflowStepsService.get.calledOnce).to.equal(true);
         expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
         expect(mockStorageService.updateMeta.notCalled).to.equal(true);
-        const targetLog = mockSails.log.warn.getCalls()
+        const targetLog = mockSails.log.warn
+          .getCalls()
           .map((call: sinon.SinonSpyCall) => call.args[1])
           .find((details: any) => details?.event === 'record_validation_workflow_target_rejected');
         expect(targetLog).to.deep.include({
@@ -3991,15 +4885,17 @@ describe('RecordsService', function () {
         },
       };
       (global as any).WorkflowStepsService.get.returns(of(nextStep));
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onTransitionWorkflow: {
-            pre: [{ function: '(_oid, record) => { delete record.metaMetadata.form; return record; }' }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onTransitionWorkflow: {
+              pre: [{ function: '(_oid, record) => { delete record.metaMetadata.form; return record; }' }],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       const result = await RecordsService.updateMeta(
@@ -4013,8 +4909,9 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('saved');
-      expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form)
-        .to.equal('published-form');
+      expect((global as any).RecordValidationService.resolve.firstCall.args[0].candidate.metaMetadata.form).to.equal(
+        'published-form'
+      );
       expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata.form).to.equal('published-form');
     });
 
@@ -4055,10 +4952,11 @@ describe('RecordsService', function () {
         hooks: {
           onCreate: {
             postSync: [{ function: '() => ({ metadata: { title: "Partial create postSync" } })' }],
-            post: [{
-              function:
-                '(_oid, record) => { globalThis.__createPartialPostRecord = structuredClone(record); }',
-            }],
+            post: [
+              {
+                function: '(_oid, record) => { globalThis.__createPartialPostRecord = structuredClone(record); }',
+              },
+            ],
           },
         },
         searchable: false,
@@ -4114,10 +5012,12 @@ describe('RecordsService', function () {
         hooks: {
           onTransitionWorkflow: {
             postSync: [{ function: '() => ({ metadata: { title: "Partial transition postSync" } })' }],
-            post: [{
-              function:
-                '(_oid, record) => { globalThis.__createTransitionPartialPostRecord = structuredClone(record); }',
-            }],
+            post: [
+              {
+                function:
+                  '(_oid, record) => { globalThis.__createTransitionPartialPostRecord = structuredClone(record); }',
+              },
+            ],
           },
         },
         searchable: false,
@@ -4215,18 +5115,22 @@ describe('RecordsService', function () {
         oid: 'record-123',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onUpdate: {
-            postSync: [{ function: '() => ({ metadata: { title: "Partial postSync" } })' }],
-            post: [{
-              function: '(_oid, record) => { globalThis.__updatePartialPostRecord = structuredClone(record); }',
-            }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              postSync: [{ function: '() => ({ metadata: { title: "Partial postSync" } })' }],
+              post: [
+                {
+                  function: '(_oid, record) => { globalThis.__updatePartialPostRecord = structuredClone(record); }',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
 
@@ -4266,24 +5170,28 @@ describe('RecordsService', function () {
         oid: 'adapter-storage-id',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onUpdate: {
-            postSync: [
-              { function: '() => ({ metadata: { title: "First postSync replacement" } })' },
-              {
-                function:
-                  '(_oid, record) => { globalThis.__postSyncSecondHookOid = record.redboxOid; return { ...record, secondPostSync: true }; }',
-              },
-            ],
-            post: [{
-              function: '(_oid, record) => { globalThis.__postSyncDetachedHookOid = record.redboxOid; }',
-            }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              postSync: [
+                { function: '() => ({ metadata: { title: "First postSync replacement" } })' },
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__postSyncSecondHookOid = record.redboxOid; return { ...record, secondPostSync: true }; }',
+                },
+              ],
+              post: [
+                {
+                  function: '(_oid, record) => { globalThis.__postSyncDetachedHookOid = record.redboxOid; }',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       try {
@@ -4322,24 +5230,28 @@ describe('RecordsService', function () {
         oid: 'adapter-storage-id',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onUpdate: {
-            postSync: [
-              { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
-              {
-                function:
-                  '(_oid, record) => { globalThis.__conflictingPostSyncSecondHookRan = true; return record; }',
-              },
-            ],
-            post: [{
-              function: '() => { globalThis.__conflictingPostSyncDetachedHookRan = true; }',
-            }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onUpdate: {
+              postSync: [
+                { function: '(_oid, record) => ({ ...record, redboxOid: "redirected-record" })' },
+                {
+                  function:
+                    '(_oid, record) => { globalThis.__conflictingPostSyncSecondHookRan = true; return record; }',
+                },
+              ],
+              post: [
+                {
+                  function: '() => { globalThis.__conflictingPostSyncDetachedHookRan = true; }',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
 
       try {
@@ -4481,17 +5393,22 @@ describe('RecordsService', function () {
         oid: 'record-123',
         applicationState: 'applied',
       });
-      (global as any).RecordTypesService.get.returns(of({
-        name: 'rdmp',
-        hooks: {
-          onTransitionWorkflow: {
-            postSync: [{
-              function: '(_oid, record) => ({ ...record, metaMetadata: { ...record.metaMetadata, form: "../malformed" } })',
-            }],
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onTransitionWorkflow: {
+              postSync: [
+                {
+                  function:
+                    '(_oid, record) => ({ ...record, metaMetadata: { ...record.metaMetadata, form: "../malformed" } })',
+                },
+              ],
+            },
           },
-        },
-        searchable: false,
-      }));
+          searchable: false,
+        })
+      );
       (global as any).RecordValidationService.resolve.resolves(allowResult());
       const nextStep = {
         name: 'published',
@@ -4612,9 +5529,9 @@ describe('RecordsService', function () {
       expect(audit.record.validationBypass.recordContext.oid).to.be.a('string').and.not.be.empty;
       expect(JSON.stringify(audit)).not.to.include('sensitive-record-value');
       expect(JSON.stringify(audit)).not.to.include('secret-token');
-      const bypassLogCall = mockSails.log.warn.getCalls().find((call: any) =>
-        call.args[1]?.event === 'record_validation_bypassed'
-      );
+      const bypassLogCall = mockSails.log.warn
+        .getCalls()
+        .find((call: any) => call.args[1]?.event === 'record_validation_bypassed');
       expect(bypassLogCall?.args[1]).to.deep.include({
         request_id: '9f851760-1978-4fb4-a667-c29c42b7e50d',
         record_type: 'rdmp',
@@ -5033,15 +5950,18 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.notCalled).to.equal(true);
     });
 
-    it('fails closed for brand-less append/remove writes under record-type enforce when validation is unavailable', async function () {
+    it('resolves authoritative brand and fails closed for append/remove when validation is unavailable', async function () {
       mockSails.config.recordValidation = { mode: 'shadow' };
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
       (global as any).RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } })
       );
       delete (global as any).RecordValidationService;
       delete mockSails.services.recordvalidationservice;
 
-      const appendStored = baseRecord();
+      const appendStored = { ...baseRecord(), revision: 1 };
       mockStorageService.getMeta.resolves(appendStored);
       const appendResult = await RecordsService.appendToRecord(
         'record-123',
@@ -5055,12 +5975,14 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
       expect((global as any).BrandingService.getBrandById.calledWith('brand-1')).to.equal(true);
       expect((global as any).RecordTypesService.get.calledWithMatch({ id: 'brand-1' }, 'rdmp')).to.equal(true);
+      expect((global as any).RecordTypesService.get.firstCall.args[0]).to.deep.include({ id: 'brand-1' });
 
       const rejectingService = { resolve: sinon.stub().rejects(new Error('validation unavailable')) };
       mockSails.services.recordvalidationservice = rejectingService;
       mockStorageService.updateMeta.resetHistory();
       const removeStored = {
         ...baseRecord(),
+        revision: 1,
         metadata: { title: 'Original', relatedRecords: ['record-456', 'record-789'] },
       };
       mockStorageService.getMeta.reset();
@@ -5556,6 +6478,269 @@ describe('RecordsService', function () {
     });
   });
 
+  describe('internal record mutations', function () {
+    const internalRecord = (revision: number, title = 'baseline') => ({
+      redboxOid: 'internal-record-1',
+      revision,
+      metadata: { title, secret: 'never-project-this' },
+      metaMetadata: {
+        brandId: 'brand-1',
+        type: 'rdmp',
+        form: 'default-form',
+        attachmentFields: [],
+      },
+      authorization: {
+        edit: ['editor'],
+        view: ['editor'],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+      },
+      workflow: { stage: 'draft' },
+    });
+
+    const enableConcurrency = (mode: 'last-write-wins' | 'observe' | 'strict') => {
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+      (global as any).RecordTypesService.get.returns(
+        of({ name: 'rdmp', hooks: {}, searchable: true, concurrentModification: { mode } })
+      );
+    };
+
+    it('fails closed for an untrusted writer identity before loading or writing record state', async function () {
+      const result = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: '../unsafe writer' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        oid: 'internal-record-1',
+        record: internalRecord(1),
+      });
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].kind).to.equal('system');
+      expect(result.problems[0].issues[0].code).to.equal('internal-record-mutation-contract-invalid');
+      expect(mockStorageService.getMeta.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(JSON.stringify(result)).not.to.include('never-project-this');
+    });
+
+    it('reauthorizes record-edit writers against the current record without disclosing or mutating it', async function () {
+      enableConcurrency('strict');
+      mockStorageService.getMeta.resolves(internalRecord(4));
+
+      const missingUser = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'FigshareService.transitionWorkflowForRecord' },
+        authorization: { kind: 'record-edit' },
+        mutationClass: 'full-record',
+        oid: 'internal-record-1',
+        record: internalRecord(4, 'missing-user-candidate'),
+      });
+      const result = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'FigshareService.transitionWorkflowForRecord' },
+        authorization: { kind: 'record-edit' },
+        mutationClass: 'full-record',
+        oid: 'internal-record-1',
+        record: internalRecord(4, 'candidate'),
+        user: { username: 'intruder', roles: [] },
+      });
+
+      expect(missingUser.outcome).to.equal('not-saved');
+      expect(missingUser.problems[0].issues[0].code).to.equal('internal-record-mutation-unauthorized');
+      expect(JSON.stringify(missingUser)).not.to.include('missing-user-candidate');
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].kind).to.equal('authorization');
+      expect(result.problems[0].issues[0].code).to.equal('internal-record-mutation-unauthorized');
+      expect(result.concurrency).to.equal(undefined);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(mockQueueService.now.notCalled).to.equal(true);
+      expect(JSON.stringify(result)).not.to.include('candidate');
+    });
+
+    for (const mode of ['last-write-wins', 'observe', 'strict'] as const) {
+      it(`enforces the authoritative snapshot revision for an internal ${mode} save`, async function () {
+        enableConcurrency(mode);
+        let current = internalRecord(7);
+        mockStorageService.getMeta.callsFake(async () => _.cloneDeep(current));
+        mockStorageService.updateMeta.callsFake(async (_brand, oid, candidate, user, options) => {
+          expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: 7 });
+          expect(options.resolution).to.equal('internal');
+          expect(user.serviceIdentity).to.equal('DoiService.publishDoiTrigger');
+          current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: 8 };
+          return {
+            success: true,
+            oid,
+            applicationState: 'applied',
+            committedRevision: 8,
+            committedRecord: _.cloneDeep(current),
+          };
+        });
+
+        const result = await RecordsService.updateMetaInternal({
+          actor: { kind: 'service', id: 'DoiService.publishDoiTrigger' },
+          authorization: { kind: 'service' },
+          mutationClass: 'external-side-effect',
+          oid: 'internal-record-1',
+          record: internalRecord(7, 'writeback'),
+        });
+
+        expect(result.outcome).to.equal('saved');
+        expect(result.requestId).to.equal(mockStorageService.updateMeta.firstCall.args[4].requestId);
+        expect(result.concurrency).to.include({ mode, revision: 8, resolution: 'internal' });
+        expect(mockSearchService.index.calledWith('internal-record-1', sinon.match({ revision: 8 }))).to.equal(true);
+        expect(mockQueueService.now.calledWith('RecordAudit')).to.equal(true);
+      });
+    }
+
+    it('surfaces a full-record stale result without replaying hooks, indexing, or audit work', async function () {
+      enableConcurrency('strict');
+      mockStorageService.getMeta.resolves(internalRecord(3, 'latest'));
+
+      const result = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'HarvestRunService.updateTrackedRecord' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        oid: 'internal-record-1',
+        record: internalRecord(2, 'stale-secret-candidate'),
+      });
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].kind).to.equal('conflict');
+      expect(result.problems[0].issues[0].code).to.equal('record-revision-stale');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(mockQueueService.now.notCalled).to.equal(true);
+      expect(JSON.stringify(result)).not.to.include('stale-secret-candidate');
+    });
+
+    it('does not dispatch post-commit hooks, indexing, or audit when an internal save loses at final CAS', async function () {
+      enableConcurrency('observe');
+      const hooks = {
+        pre: sinon.stub().callsFake((_oid, record) => record),
+        post: sinon.stub(),
+      };
+      (globalThis as any).__w05Hooks = hooks;
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'rdmp',
+          searchable: true,
+          concurrentModification: { mode: 'observe' },
+          hooks: {
+            onUpdate: {
+              pre: [{ function: 'globalThis.__w05Hooks.pre' }],
+              post: [{ function: 'globalThis.__w05Hooks.post' }],
+            },
+          },
+        })
+      );
+      mockStorageService.getMeta.resolves(internalRecord(1));
+      mockStorageService.updateMeta.resolves({
+        success: false,
+        oid: 'internal-record-1',
+        applicationState: 'not-applied',
+        nonApplicationReason: 'stale-revision',
+      });
+
+      const result = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'TriggerService.runTemplatesOnRelatedRecord' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        oid: 'internal-record-1',
+        record: internalRecord(1, 'candidate'),
+      });
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(hooks.pre.calledOnce).to.equal(true);
+      expect(hooks.post.notCalled).to.equal(true);
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(mockQueueService.now.notCalled).to.equal(true);
+      delete (globalThis as any).__w05Hooks;
+    });
+
+    it('reloads and recomputes a declared mutation once per bounded retry with fresh request linkage', async function () {
+      enableConcurrency('observe');
+      let current = internalRecord(1, 'first-baseline');
+      const computedFrom: string[] = [];
+      const dispatchedRequestIds: string[] = [];
+      mockStorageService.getMeta.callsFake(async () => _.cloneDeep(current));
+      mockStorageService.updateMeta.callsFake(async (_brand, oid, candidate, _user, options) => {
+        dispatchedRequestIds.push(options.requestId);
+        if (dispatchedRequestIds.length === 1) {
+          current = internalRecord(2, 'second-baseline');
+          return {
+            success: false,
+            oid,
+            applicationState: 'not-applied',
+            nonApplicationReason: 'stale-revision',
+          };
+        }
+        expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: 2 });
+        current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: 3 };
+        return {
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: 3,
+          committedRecord: _.cloneDeep(current),
+        };
+      });
+
+      const result = await RecordsService.mutateMetaInternal({
+        actor: { kind: 'service', id: 'RecordsService.appendToRecord' },
+        authorization: { kind: 'service' },
+        oid: 'internal-record-1',
+        triggerPreSaveTriggers: false,
+        triggerPostSaveTriggers: false,
+        mutate: snapshot => {
+          computedFrom.push(String(snapshot.metadata?.title));
+          return { ...snapshot, metadata: { ...snapshot.metadata, targeted: computedFrom.length } };
+        },
+        retry: { idempotent: true, recomputable: true, maxAttempts: 2 },
+      });
+
+      expect(result.outcome).to.equal('saved');
+      expect(computedFrom).to.deep.equal(['first-baseline', 'second-baseline']);
+      expect(dispatchedRequestIds).to.have.length(2);
+      expect(dispatchedRequestIds[0]).not.to.equal(dispatchedRequestIds[1]);
+      expect(result.concurrency?.resolutionOfRequestId).to.equal(dispatchedRequestIds[0]);
+      expect(result.requestId).to.equal(dispatchedRequestIds[1]);
+      expect(result.concurrency?.revision).to.equal(3);
+    });
+
+    it('never retries an unknown dispatched mutation or persists its candidate in audit', async function () {
+      enableConcurrency('last-write-wins');
+      mockStorageService.getMeta.resolves(internalRecord(5));
+      mockStorageService.updateMeta.resolves({
+        success: false,
+        oid: 'internal-record-1',
+        applicationState: 'unknown',
+      });
+      const mutate = sinon.stub().callsFake(snapshot => ({
+        ...snapshot,
+        metadata: { ...snapshot.metadata, secret: 'unknown-candidate-secret' },
+      }));
+
+      const result = await RecordsService.mutateMetaInternal({
+        actor: { kind: 'service', id: 'RecordsService.updateNotificationLog' },
+        authorization: { kind: 'service' },
+        oid: 'internal-record-1',
+        triggerPreSaveTriggers: false,
+        triggerPostSaveTriggers: false,
+        mutate,
+        retry: { idempotent: true, recomputable: true, maxAttempts: 3 },
+      });
+
+      expect(result.outcome).to.equal('unknown');
+      expect(mutate.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(mockQueueService.now.notCalled).to.equal(true);
+      expect(JSON.stringify(result)).not.to.include('unknown-candidate-secret');
+    });
+  });
+
   describe('createBatch', function () {
     it('keeps createRecordAudit optional for hook compatibility while audited paths fail closed at runtime', function () {
       type IsRequired<T, K extends keyof T> = {} extends Pick<T, K> ? false : true;
@@ -5660,6 +6845,8 @@ describe('RecordsService', function () {
 
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('updateMeta');
+      expect(exported).to.have.property('updateMetaInternal');
+      expect(exported).to.have.property('mutateMetaInternal');
       expect(exported).to.have.property('getMeta');
       expect(exported).to.have.property('getRecordAudit');
       expect(exported).to.have.property('getResolvedPermissionsSummary');

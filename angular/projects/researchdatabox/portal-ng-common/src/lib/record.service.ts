@@ -20,25 +20,63 @@
 import { map, firstValueFrom } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { HttpClientService } from './httpClient.service';
-import { merge as _merge, isUndefined as _isUndefined, isEmpty as _isEmpty, get as _get, isArray as _isArray, clone as _clone, isString as _isString, isNumber as _isNumber } from 'lodash-es';
-import { RecordResponseTable } from "./dashboard-models";
+import {
+  merge as _merge,
+  isUndefined as _isUndefined,
+  isEmpty as _isEmpty,
+  get as _get,
+  isArray as _isArray,
+  clone as _clone,
+  isString as _isString,
+  isNumber as _isNumber,
+} from 'lodash-es';
+import { RecordResponseTable } from './dashboard-models';
 import {
   emptyRecordSaveCompletion,
   isRecordSaveOutcome,
   RecordAttachment,
+  RecordConcurrentModificationConfig,
+  RecordConcurrencyMetadata,
   RecordSaveIssue,
   RecordSaveProblem,
   RecordSaveResult,
+  sanitizeRecordConcurrencyMetadata,
   sanitizeRecordSaveIssue,
 } from '@researchdatabox/sails-ng-common';
 
+/** Per-request options for a record save. */
+interface SaveRequestOptions {
+  headers: HttpHeaders;
+  context?: HttpContext;
+  params?: HttpParams;
+  responseType: 'json';
+  observe: 'body';
+}
+
+const saveRequestIdByteLength = 16;
+
 function createSaveRequestId(): string {
-  return globalThis.crypto.randomUUID();
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
+  }
+
+  if (typeof cryptoApi?.getRandomValues !== 'function') {
+    throw new Error('Web Crypto API is unavailable; cannot create a save request ID.');
+  }
+
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(saveRequestIdByteLength));
+  // RFC 4122 version 4 UUID: set the version and variant bits explicitly.
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+
+  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
 }
 
 export interface RecordTypeConf {
@@ -120,6 +158,7 @@ export interface RecordTypeDefinitionResponse {
   searchFilters: unknown[];
   searchable: boolean;
   relatedTo?: RecordTypeRelationship[];
+  concurrentModification?: RecordConcurrentModificationConfig;
 }
 
 export interface DashboardViewStepDefinitionResponse {
@@ -251,7 +290,14 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-  public async getRecordMetaWithOptions(oid: string, options: { includeRelationships?: boolean; relationshipDepth?: number; relationshipFields?: 'summary' | 'full' } = {}) {
+  public async getRecordMetaWithOptions(
+    oid: string,
+    options: {
+      includeRelationships?: boolean;
+      relationshipDepth?: number;
+      relationshipFields?: 'summary' | 'full';
+    } = {}
+  ) {
     const ts = Date.now();
     let params = new HttpParams().set('ts', String(ts));
     if (options.includeRelationships) {
@@ -290,7 +336,7 @@ export class RecordService extends HttpClientService {
     };
     const result$ = this.http
       .get<RecordAttachment[] | { data?: RecordAttachment[] }>(url, httpOptions)
-      .pipe(map(response => Array.isArray(response) ? response : response?.data ?? []));
+      .pipe(map(response => (Array.isArray(response) ? response : (response?.data ?? []))));
     return await firstValueFrom(result$);
   }
 
@@ -319,14 +365,13 @@ export class RecordService extends HttpClientService {
       responseType: 'json' as const,
       params,
     };
-    const result$ = this.http
-      .get<{ data?: RecordAuditTabResponse } | RecordAuditTabResponse>(url, httpOptions)
-      .pipe(
-        map(response => {
-          const payload = (response as { data?: RecordAuditTabResponse })?.data ?? response as RecordAuditTabResponse | undefined;
-          return payload?.records ? payload : { summary: { returnedCount: 0 }, rawAuditUrl: '', records: [] };
-        })
-      );
+    const result$ = this.http.get<{ data?: RecordAuditTabResponse } | RecordAuditTabResponse>(url, httpOptions).pipe(
+      map(response => {
+        const payload =
+          (response as { data?: RecordAuditTabResponse })?.data ?? (response as RecordAuditTabResponse | undefined);
+        return payload?.records ? payload : { summary: { returnedCount: 0 }, rawAuditUrl: '', records: [] };
+      })
+    );
     return await firstValueFrom(result$);
   }
 
@@ -342,21 +387,28 @@ export class RecordService extends HttpClientService {
       .get<{ data?: RecordPermissionsSummary } | RecordPermissionsSummary>(url, httpOptions)
       .pipe(
         map(response => {
-          const payload = (response as { data?: RecordPermissionsSummary })?.data ?? response as RecordPermissionsSummary | undefined;
-          return payload ?? {
-            edit: [],
-            view: [],
-            editPending: [],
-            viewPending: [],
-            editRoles: [],
-            viewRoles: [],
-          };
+          const payload =
+            (response as { data?: RecordPermissionsSummary })?.data ??
+            (response as RecordPermissionsSummary | undefined);
+          return (
+            payload ?? {
+              edit: [],
+              view: [],
+              editPending: [],
+              viewPending: [],
+              editRoles: [],
+              viewRoles: [],
+            }
+          );
         })
       );
     return await firstValueFrom(result$);
   }
 
-  public async getRecordIntegrationStatus(oid: string, opts: { integrationName?: string } = {}): Promise<IntegrationStatusResponse> {
+  public async getRecordIntegrationStatus(
+    oid: string,
+    opts: { integrationName?: string } = {}
+  ): Promise<IntegrationStatusResponse> {
     const url = `${this.brandingAndPortalUrl}/record/integrationStatus/${oid}`;
     let params = new HttpParams();
     if (!_isEmpty(opts.integrationName)) {
@@ -373,7 +425,9 @@ export class RecordService extends HttpClientService {
       .get<{ data?: IntegrationStatusResponse } | IntegrationStatusResponse>(url, httpOptions)
       .pipe(
         map(response => {
-          const payload = (response as { data?: IntegrationStatusResponse })?.data ?? response as IntegrationStatusResponse | undefined;
+          const payload =
+            (response as { data?: IntegrationStatusResponse })?.data ??
+            (response as IntegrationStatusResponse | undefined);
           return payload?.integrations ? payload : { integrations: [] };
         })
       );
@@ -382,7 +436,14 @@ export class RecordService extends HttpClientService {
 
   public async getRecordIntegrationAuditTab(
     oid: string,
-    opts: { page?: number; pageSize?: number; status?: string; integrationName?: string; dateFrom?: string; dateTo?: string } = {}
+    opts: {
+      page?: number;
+      pageSize?: number;
+      status?: string;
+      integrationName?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    } = {}
   ): Promise<IntegrationAuditTabResponse> {
     const url = `${this.brandingAndPortalUrl}/record/viewAudit/${oid}/integration-audit`;
     let params = new HttpParams();
@@ -415,8 +476,12 @@ export class RecordService extends HttpClientService {
       .get<{ data?: IntegrationAuditTabResponse } | IntegrationAuditTabResponse>(url, httpOptions)
       .pipe(
         map(response => {
-          const payload = (response as { data?: IntegrationAuditTabResponse })?.data ?? response as IntegrationAuditTabResponse | undefined;
-          return payload?.records ? payload : { summary: { numFound: 0, page: 1, pageSize: 20, totalPages: 0 }, records: [] };
+          const payload =
+            (response as { data?: IntegrationAuditTabResponse })?.data ??
+            (response as IntegrationAuditTabResponse | undefined);
+          return payload?.records
+            ? payload
+            : { summary: { numFound: 0, page: 1, pageSize: 20, totalPages: 0 }, records: [] };
         })
       );
     return await firstValueFrom(result$);
@@ -435,7 +500,10 @@ export class RecordService extends HttpClientService {
     return metadata;
   }
 
-  public async getRelationshipGraph(oid: string, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+  public async getRelationshipGraph(
+    oid: string,
+    options: RecordRelationshipExpandOptions = {}
+  ): Promise<RecordRelationshipGraph> {
     let params = new HttpParams();
     if (!_isUndefined(options.depth)) {
       params = params.set('relationshipDepth', String(options.depth));
@@ -463,7 +531,7 @@ export class RecordService extends HttpClientService {
 
     return {
       rootOid: String(graph['rootOid'] ?? oid),
-      edges: Array.isArray(graph['edges']) ? graph['edges'] as RecordRelationshipEdge[] : [],
+      edges: Array.isArray(graph['edges']) ? (graph['edges'] as RecordRelationshipEdge[]) : [],
       relatedObjects: (graph['relatedObjects'] as Record<string, Record<string, unknown>[]>) ?? {},
       omittedByAccess: (graph['omittedByAccess'] as Record<string, number>) ?? {},
     };
@@ -487,17 +555,17 @@ export class RecordService extends HttpClientService {
       if (!_isUndefined(childArr) && _isArray(childArr)) {
         for (let child of childArr) {
           let item: any = {};
-          item["oid"] = child["redboxOid"];
-          item["title"] = _get(child, 'metadata.title', child["redboxOid"]);
-          item["metadata"] = this.getDocMetadata(child);
-          item["dateCreated"] = child["dateCreated"];
-          item["dateModified"] = child["lastSaveDate"];
+          item['oid'] = child['redboxOid'];
+          item['title'] = _get(child, 'metadata.title', child['redboxOid']);
+          item['metadata'] = this.getDocMetadata(child);
+          item['dateCreated'] = child['dateCreated'];
+          item['dateModified'] = child['lastSaveDate'];
           items.push(item);
         }
       }
     }
 
-    response["items"] = items;
+    response['items'] = items;
     return response;
   }
 
@@ -510,7 +578,8 @@ export class RecordService extends HttpClientService {
     filterFields: string = '',
     filterString: string = '',
     filterMode: string = '',
-    secondarySort: string = '') {
+    secondarySort: string = ''
+  ) {
     let rows = 10;
     let start = (pageNumber - 1) * rows;
 
@@ -612,7 +681,6 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-
   /**
    * Retrieves the default HTTP request options that includes the CSRF-TOKEN-HEADER.
    *
@@ -643,7 +711,7 @@ export class RecordService extends HttpClientService {
     };
     const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
     const result = await firstValueFrom(result$);
-    return ((_get(result, 'data') ?? result) as RecordTypeDefinitionResponse);
+    return (_get(result, 'data') ?? result) as RecordTypeDefinitionResponse;
   }
 
   public async getDashboardType(dashboardType: string) {
@@ -667,7 +735,7 @@ export class RecordService extends HttpClientService {
     };
     const result$ = this.http.get<Record<string, unknown>>(url, httpOptions);
     const result = await firstValueFrom(result$);
-    return ((_get(result, 'data') ?? result) as DashboardViewDefinitionResponse);
+    return (_get(result, 'data') ?? result) as DashboardViewDefinitionResponse;
   }
 
   public async getAllDashboardTypes() {
@@ -718,8 +786,8 @@ export class RecordService extends HttpClientService {
    * Build immutable per-request options.  `HttpHeaders.set` returns a new
    * instance, so the shared request options are never mutated between saves.
    */
-  private getSaveHttpOptions(requestId: string, targetStep: string = '', operation?: string) {
-    const base = this.getHttpOptions();
+  private getSaveHttpOptions(requestId: string, targetStep: string = '', operation?: string): SaveRequestOptions {
+    const base = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
     const headers = (base.headers instanceof HttpHeaders ? base.headers : new HttpHeaders(base.headers ?? {}))
       .set('X-ReDBox-Api-Version', '2.0')
       .set('X-ReDBox-Save-Request-Id', requestId);
@@ -728,8 +796,8 @@ export class RecordService extends HttpClientService {
       headers,
       context: base.context,
       ...(params ? { params } : {}),
-      responseType: 'json' as const,
-      observe: 'body' as const,
+      responseType: 'json',
+      observe: 'body',
     };
   }
 }
@@ -744,6 +812,7 @@ export class RecordActionResult implements RecordSaveResult {
   problems: RecordSaveProblem[] = [];
   completion = emptyRecordSaveCompletion();
   requestId: string = '';
+  concurrency?: RecordConcurrencyMetadata;
 
   public wasPersisted(): boolean {
     return this.outcome === 'saved' || this.outcome === 'saved-with-warnings';
@@ -753,8 +822,17 @@ export class RecordActionResult implements RecordSaveResult {
     return this.outcome === 'saved';
   }
 
+  public isSuccessful(): boolean {
+    return this.success === true;
+  }
+
   public static fromResponse(payload: unknown, status = 200, requestId = ''): RecordActionResult {
-    type SaveMeta = Partial<RecordSaveResult>;
+    type SaveMeta = Partial<RecordSaveResult> & {
+      success?: boolean;
+      oid?: string;
+      message?: string;
+      metadata?: Record<string, unknown> | null;
+    };
     type SaveEnvelope = { meta?: SaveMeta; data?: unknown; errors?: unknown[] } & SaveMeta;
     const body = (payload && typeof payload === 'object' ? payload : {}) as SaveEnvelope;
     const meta: SaveMeta = body.meta && typeof body.meta === 'object' ? body.meta : body;
@@ -763,12 +841,14 @@ export class RecordActionResult implements RecordSaveResult {
     result.oid = typeof meta.oid === 'string' ? meta.oid : '';
     result.message = typeof meta.message === 'string' ? meta.message : '';
     result.data = body.data ?? null;
-    result.metadata = meta.metadata && typeof meta.metadata === 'object' ? meta.metadata as Record<string, unknown> : null;
+    result.metadata =
+      meta.metadata && typeof meta.metadata === 'object' ? (meta.metadata as Record<string, unknown>) : null;
+    result.concurrency = sanitizeRecordConcurrencyMetadata(meta.concurrency);
 
     if (isRecordSaveOutcome(meta.outcome)) {
       result.outcome = meta.outcome;
       result.success = meta.success === true || result.wasPersisted();
-      result.problems = Array.isArray(meta.problems) ? meta.problems as RecordSaveProblem[] : [];
+      result.problems = Array.isArray(meta.problems) ? (meta.problems as RecordSaveProblem[]) : [];
       if (meta.completion && typeof meta.completion === 'object') {
         result.completion = meta.completion as RecordSaveResult['completion'];
       }
@@ -781,11 +861,13 @@ export class RecordActionResult implements RecordSaveResult {
     // untyped 400/403 is safe to synthesise as a confirmed non-save.
     if (status === 400 || status === 403) {
       result.outcome = 'not-saved';
-      result.problems = [{
-        kind: status === 403 ? 'authorization' : 'validation',
-        phase: 'pre-save',
-        issues,
-      }];
+      result.problems = [
+        {
+          kind: status === 403 ? 'authorization' : 'validation',
+          phase: 'pre-save',
+          issues,
+        },
+      ];
       return result;
     }
 
@@ -804,11 +886,14 @@ export class RecordActionResult implements RecordSaveResult {
     // Claiming `not-saved` here would assert a certainty the client does not
     // have, so uncertainty is preserved instead.
     result.outcome = 'unknown';
-    result.problems = [{
-      kind: status === 0 ? 'network' : 'system',
-      phase: 'transport',
-      issues: issues.length > 0 ? issues : [{ message: 'The save result could not be confirmed.', code: 'save-unknown' }],
-    }];
+    result.problems = [
+      {
+        kind: status === 0 ? 'network' : 'system',
+        phase: 'transport',
+        issues:
+          issues.length > 0 ? issues : [{ message: 'The save result could not be confirmed.', code: 'save-unknown' }],
+      },
+    ];
     return result;
   }
 
@@ -848,12 +933,18 @@ export class RecordActionResult implements RecordSaveResult {
       lineagePaths?: unknown;
       source?: { pointer?: unknown };
     };
-    const pointer = typeof item.pointer === 'string' ? item.pointer
-      : typeof item.source?.pointer === 'string' ? item.source.pointer
-      : undefined;
-    const message = typeof item.detail === 'string' ? item.detail
-      : typeof item.title === 'string' ? item.title
-      : 'The submitted value is invalid.';
+    const pointer =
+      typeof item.pointer === 'string'
+        ? item.pointer
+        : typeof item.source?.pointer === 'string'
+          ? item.source.pointer
+          : undefined;
+    const message =
+      typeof item.detail === 'string'
+        ? item.detail
+        : typeof item.title === 'string'
+          ? item.title
+          : 'The submitted value is invalid.';
     return sanitizeRecordSaveIssue({
       message,
       ...(typeof item.code === 'string' ? { code: item.code } : {}),

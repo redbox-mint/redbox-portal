@@ -17,5 +17,14 @@ export const storage = {
       { key: { redboxOid: 1 } },
       { key: { redboxOid: -1 } },
     ],
+    // Every tombstone lookup starts from the OID, so it leads the compound
+    // keys; the brand is a filter on the single document the OID selects. The
+    // lifecycle key supports scanning for interrupted staged operations.
+    deletedRecordIndices: [
+      { key: { redboxOid: 1 }, unique: true },
+      { key: { lifecycleState: 1, 'lifecycleOperation.requestId': 1 } },
+      { key: { 'deletedRecordMetadata.metaMetadata.brandId': 1, redboxOid: 1 } },
+      { key: { brandId: 1, redboxOid: 1 } },
+    ],
   },
 };

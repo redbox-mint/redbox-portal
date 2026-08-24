@@ -22,6 +22,8 @@ export interface DatastreamService {
     fileIdsAdded: Datastream[]
   ): Observable<Promise<unknown>[]>;
   removeDatastream(oid: string, datastream: Datastream): Promise<unknown>;
+  /** Delete an abandoned upload from staging without touching primary data. */
+  removeStagedDatastream?(fileId: string): Promise<void>;
   addDatastream(oid: string, datastream: Datastream, stagingDisk?: StorageManagerServices.IDisk): Promise<unknown>;
   addAndRemoveDatastreams(
     oid: string,
@@ -30,5 +32,9 @@ export interface DatastreamService {
     stagingDisk?: StorageManagerServices.IDisk
   ): Promise<unknown>;
   getDatastream(oid: string, fileId: string, requestContext?: DatastreamRequestContext): Promise<DatastreamContent>;
-  listDatastreams(oid: string, fileId: string, requestContext?: DatastreamRequestContext): Promise<Record<string, unknown>[]>;
+  listDatastreams(
+    oid: string,
+    fileId: string,
+    requestContext?: DatastreamRequestContext
+  ): Promise<Record<string, unknown>[]>;
 }

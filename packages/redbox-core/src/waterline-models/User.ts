@@ -2,7 +2,7 @@
 import { Entity, Attr, HasMany, BeforeCreate, AfterCreate, AfterUpdate, toWaterlineModelDef } from '../decorators';
 
 declare const sails: Sails.Application;
-declare const UsersService: { findAndAssignAccessToRecords: (email: string, username: string) => void };
+declare const UsersService: { findAndAssignAccessToRecords: (email: string, username: string) => Promise<number> };
 declare const _: typeof import('lodash');
 
 const customToJSON = function customToJSON(this: Record<string, unknown>) {
@@ -21,24 +21,18 @@ const customToJSON = function customToJSON(this: Record<string, unknown>) {
   return obj;
 };
 
-const assignAccessToPendingRecords = function assignAccessToPendingRecords(user: Record<string, unknown>) {
-  try {
-    if (user.email != null && user.name !== 'Local Admin') {
-      UsersService.findAndAssignAccessToRecords(user.email as string, user.username as string);
-    }
-  } catch (error) {
-    if (typeof sails !== 'undefined' && sails.log && typeof sails.log.error === 'function') {
-      sails.log.error('Unable to assign access to pending records');
-      sails.log.error(error);
-    }
-  }
+const assignAccessToPendingRecords = async function assignAccessToPendingRecords(
+  user: Record<string, unknown>
+): Promise<number> {
+  if (user.email == null || user.name === 'Local Admin') return 0;
+  return await UsersService.findAndAssignAccessToRecords(user.email as string, user.username as string);
 };
 
 const hashPassword = (user: Record<string, unknown>, cb: (err?: Error) => void) => {
   if (!user.password) {
     return cb();
   }
-   
+
   const bcryptLib = require('bcryptjs');
   bcryptLib.genSalt(10, (err: Error | null, salt: string) => {
     if (err) {
@@ -57,9 +51,16 @@ const hashPassword = (user: Record<string, unknown>, cb: (err?: Error) => void) 
 };
 
 const handleAfterMutation = (user: Record<string, unknown>, cb: (err?: Error) => void) => {
-  const userModel = typeof globalThis !== 'undefined' ? (globalThis as Record<string, unknown>).User as Record<string, unknown> | undefined : undefined;
+  const userModel =
+    typeof globalThis !== 'undefined'
+      ? ((globalThis as Record<string, unknown>).User as Record<string, unknown> | undefined)
+      : undefined;
   if (userModel && typeof userModel.assignAccessToPendingRecords === 'function') {
-    userModel.assignAccessToPendingRecords(user);
+    Promise.resolve(userModel.assignAccessToPendingRecords(user)).then(
+      () => cb(),
+      error => cb(error instanceof Error ? error : new Error('Unable to assign access to pending records'))
+    );
+    return;
   }
   cb();
 };

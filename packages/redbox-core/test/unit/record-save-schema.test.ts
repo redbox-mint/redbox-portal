@@ -2,7 +2,8 @@ import {
   RECORD_SAVE_MESSAGE_MAX_LENGTH,
   RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
 } from '@researchdatabox/sails-ng-common';
-import { recordSaveIssueSchema } from '../../src/api-routes/schemas/responses';
+import { recordConcurrencyMetadataSchema, recordSaveIssueSchema } from '../../src/api-routes/schemas/responses';
+import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 
 describe('record-save issue response schema', function () {
   let expect: Chai.ExpectStatic;
@@ -61,5 +62,29 @@ describe('record-save issue response schema', function () {
         message: 'x'.repeat(RECORD_SAVE_MESSAGE_MAX_LENGTH + 1),
       }).success
     ).to.equal(false);
+  });
+
+  it('accepts only bounded typed concurrency metadata', function () {
+    expect(
+      recordConcurrencyMetadataSchema.safeParse({
+        mode: 'strict',
+        revision: 4,
+        currentRevision: 4,
+        expectedRevision: 3,
+        entityTag: formatRecordEntityTag('record-1', 4),
+        formFingerprint: 'form-fingerprint-1',
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: '00000000-0000-4000-8000-000000000041',
+      }).success
+    ).to.equal(true);
+
+    expect(
+      recordConcurrencyMetadataSchema.safeParse({
+        revision: 4,
+        submittedCandidate: { secret: 'must-not-enter-the-envelope' },
+      }).success
+    ).to.equal(false);
+    expect(recordConcurrencyMetadataSchema.safeParse({ revision: -1 }).success).to.equal(false);
+    expect(recordConcurrencyMetadataSchema.safeParse({ resolution: 'server-trust-me' }).success).to.equal(false);
   });
 });

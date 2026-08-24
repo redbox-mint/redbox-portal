@@ -7,6 +7,10 @@
  */
 
 import { LineagePath, LineagePathsOptional, LineagePathsPartial } from './config/names/naming-helpers';
+import { isPlainRecord } from './internal/plain-record';
+// Type-only: erased at emit, so `record-concurrency` may import values from here
+// without creating a runtime module cycle.
+import type { RecordConcurrencyMetadata } from './record-concurrency.model';
 
 export interface ActionResult {
   /** True when the requested primary action was completed. */
@@ -23,20 +27,18 @@ export interface ActionResult {
 
 export type RecordSaveOutcome = 'saved' | 'saved-with-warnings' | 'not-saved' | 'unknown';
 
-export type RecordSaveProblemKind =
-  | 'validation'
-  | 'processing'
-  | 'authorization'
-  | 'system'
-  | 'network';
+export const RECORD_SAVE_PROBLEM_KINDS = [
+  'validation',
+  'processing',
+  'authorization',
+  'conflict',
+  'system',
+  'network',
+] as const;
 
-export type RecordSavePhase =
-  | 'pre-save'
-  | 'persistence'
-  | 'attachments'
-  | 'post-save'
-  | 'response'
-  | 'transport';
+export type RecordSaveProblemKind = (typeof RECORD_SAVE_PROBLEM_KINDS)[number];
+
+export type RecordSavePhase = 'pre-save' | 'persistence' | 'attachments' | 'post-save' | 'response' | 'transport';
 
 export type RecordSaveValidatorParameterPrimitive = string | number | boolean | null;
 export type RecordSaveValidatorParameterValue =
@@ -59,6 +61,7 @@ export const RECORD_SAVE_PUBLIC_FIELD_LIMITS = {
   maxCodeLength: 128,
   maxFieldLength: 128,
   maxPointerLength: 2_048,
+  maxAttachmentIdLength: 128,
 } as const;
 export const RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
@@ -77,6 +80,8 @@ export interface RecordSaveIssue {
   field?: string;
   /** JSON pointer into Angular or record metadata, when available. */
   pointer?: string;
+  /** Logical attachment identity, never a storage key or path. */
+  attachmentId?: string;
   /** Validator implementation class, when this is a validator failure. */
   class?: string;
   /** Bounded scalar parameters used to render a configured validator message. */
@@ -87,14 +92,6 @@ export interface RecordSaveIssue {
   lineagePaths?: LineagePathsOptional;
 }
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return false;
-  }
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-
 type PublicValidatorParameterRule = 'boolean' | 'number' | 'source-type';
 
 /**
@@ -103,7 +100,9 @@ type PublicValidatorParameterRule = 'boolean' | 'number' | 'source-type';
  * configured patterns/expressions/descriptions, and provider details stay
  * server-side.
  */
-const PUBLIC_VALIDATOR_PARAMETER_RULES: Readonly<Record<string, Readonly<Record<string, PublicValidatorParameterRule>>>> = {
+const PUBLIC_VALIDATOR_PARAMETER_RULES: Readonly<
+  Record<string, Readonly<Record<string, PublicValidatorParameterRule>>>
+> = {
   min: { requiredThreshold: 'number' },
   max: { requiredThreshold: 'number' },
   minLength: { actualLength: 'number', requiredLength: 'number' },
@@ -120,9 +119,7 @@ function safeValidatorParameterForRule(
 ): RecordSaveValidatorParameterPrimitive | undefined {
   if (rule === 'number') return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
   if (rule === 'boolean') return typeof value === 'boolean' ? value : undefined;
-  return value === 'static' || value === 'vocabulary' || value === 'query' || value === 'service'
-    ? value
-    : undefined;
+  return value === 'static' || value === 'vocabulary' || value === 'query' || value === 'service' ? value : undefined;
 }
 
 /** Remove non-allowlisted, executable, excessive, and otherwise unsafe validator parameters. */
@@ -226,19 +223,29 @@ export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
     typeof code === 'string' &&
     code.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxCodeLength &&
     RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN.test(code)
-  ) issue.code = code;
+  )
+    issue.code = code;
   const field = item.field;
   if (
     typeof field === 'string' &&
     field.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength &&
     RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN.test(field)
-  ) issue.field = field;
+  )
+    issue.field = field;
   const pointer = item.pointer;
   if (
     typeof pointer === 'string' &&
     pointer.startsWith('/') &&
     pointer.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength
-  ) issue.pointer = pointer;
+  )
+    issue.pointer = pointer;
+  const attachmentId = item.attachmentId;
+  if (
+    typeof attachmentId === 'string' &&
+    attachmentId.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxAttachmentIdLength &&
+    RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN.test(attachmentId)
+  )
+    issue.attachmentId = attachmentId;
   if (
     typeof item.class === 'string' &&
     item.class.length <= RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH &&
@@ -295,6 +302,7 @@ export interface RecordSaveResult extends ActionResult {
   problems: RecordSaveProblem[];
   completion: RecordSaveCompletion;
   requestId: string;
+  concurrency?: RecordConcurrencyMetadata;
 }
 
 export type StorageMutationApplicationState = 'applied' | 'not-applied' | 'unknown';
@@ -314,23 +322,37 @@ export function emptyRecordSaveCompletion(): RecordSaveCompletion {
  * certainty about the physical operation.
  */
 export function reduceAttachmentStatus(
-  items: readonly RecordAttachmentCompletionItem[],
+  items: readonly RecordAttachmentCompletionItem[]
 ): RecordAttachmentCompletionStatus {
   if (items.length === 0) {
     return 'not-required';
   }
-  if (items.some((item) => item.status === 'unknown')) {
+  if (items.some(item => item.status === 'unknown')) {
     return 'unknown';
   }
-  if (items.some((item) => item.status === 'incomplete')) {
+  if (items.some(item => item.status === 'incomplete')) {
     return 'incomplete';
   }
   return 'completed';
 }
 
 export function isRecordSaveOutcome(value: unknown): value is RecordSaveOutcome {
-  return value === 'saved'
-    || value === 'saved-with-warnings'
-    || value === 'not-saved'
-    || value === 'unknown';
+  return value === 'saved' || value === 'saved-with-warnings' || value === 'not-saved' || value === 'unknown';
+}
+
+export function isRecordSaveProblemKind(value: unknown): value is RecordSaveProblemKind {
+  return typeof value === 'string' && (RECORD_SAVE_PROBLEM_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * Canonical save request-correlation identifier: one RFC 4122 UUID. It is
+ * correlation only and is never treated as an idempotency key.
+ */
+export const RECORD_SAVE_REQUEST_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const RECORD_SAVE_REQUEST_ID_MAX_LENGTH = 36;
+
+export function isRecordSaveRequestId(value: unknown): value is string {
+  return typeof value === 'string' && RECORD_SAVE_REQUEST_ID_PATTERN.test(value);
 }

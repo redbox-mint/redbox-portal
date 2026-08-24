@@ -17,14 +17,20 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { ActionResult, StorageMutationApplicationState } from '@researchdatabox/sails-ng-common';
+import {
+  ActionResult,
+  StorageMutationApplicationState,
+  type RecordConcurrencyResolution,
+} from '@researchdatabox/sails-ng-common';
+import type { RecordModel } from './model';
+import type { StorageMutationNonApplicationReason } from './RecordStorageConcurrency';
 
 /**
  * Response class for StorageService methods.
  *
  * This remains the generic response used by all storage operations.  Save
- * Save-specific fields live on RecordSaveResponse. Storage adapters may
- * additionally report whether a mutation was applied.
+ * specific fields live on StorageMutationResponse/RecordSaveResponse so
+ * existing storage services do not need to manufacture attachment state.
  */
 export class StorageServiceResponse implements ActionResult {
   success: boolean = false;
@@ -35,14 +41,25 @@ export class StorageServiceResponse implements ActionResult {
   details?: Record<string, unknown> | string;
   totalItems: number = 0;
   items: Record<string, unknown>[] = [];
-  applicationState?: StorageMutationApplicationState;
-  constructor() {
-
-  }
+  constructor() {}
 
   public isSuccessful(): boolean {
     return this.success === true;
   }
 }
 
-export default StorageServiceResponse
+/**
+ * Storage facts for a primary metadata mutation.  `unknown` is intentional:
+ * a rejected or timed-out call is not proof that the provider did not write.
+ */
+export class StorageMutationResponse extends StorageServiceResponse {
+  applicationState?: StorageMutationApplicationState;
+  nonApplicationReason?: StorageMutationNonApplicationReason;
+  committedRevision?: number;
+  committedRecord?: RecordModel | Record<string, unknown>;
+  removedRecord?: RecordModel | Record<string, unknown>;
+  requestId?: string;
+  resolution?: RecordConcurrencyResolution;
+}
+
+export default StorageServiceResponse;

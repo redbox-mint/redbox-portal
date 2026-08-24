@@ -23,6 +23,8 @@ describe('MongoStorageService', function () {
   let DeletedRecord: any;
   let RecordAudit: any;
   let IntegrationAudit: any;
+  let recordCollection: any;
+  let deletedRecordCollection: any;
 
   beforeEach(function () {
     sandbox = sinon.createSandbox();
@@ -31,6 +33,7 @@ describe('MongoStorageService', function () {
         storage: {
           mongodb: {
             indices: [{ key: { redboxOid: 1 } }],
+            deletedRecordIndices: [{ key: { lifecycleState: 1, 'lifecycleOperation.requestId': 1 } }],
           },
         },
         record: {
@@ -74,6 +77,20 @@ describe('MongoStorageService', function () {
       collection: sandbox.stub(),
     };
 
+    recordCollection = {
+      findOneAndUpdate: sandbox.stub().resolves({ redboxOid: 'oid-1', revision: 1 }),
+      findOneAndDelete: sandbox.stub().resolves({ redboxOid: 'oid-1', revision: 0 }),
+      findOne: sandbox.stub().resolves(null),
+      insertOne: sandbox.stub().resolves({ acknowledged: true }),
+    };
+    deletedRecordCollection = {
+      findOneAndUpdate: sandbox.stub().resolves({ redboxOid: 'oid-1', revision: 1, lifecycleState: 'deleted' }),
+      findOneAndDelete: sandbox.stub().resolves({ redboxOid: 'oid-1', revision: 0, lifecycleState: 'deleted' }),
+      findOne: sandbox.stub().resolves(null),
+      insertOne: sandbox.stub().resolves({ acknowledged: true }),
+    };
+    mockDb.collection.callsFake((name: string) => (name === 'record' ? recordCollection : deletedRecordCollection));
+
     Record = {
       tableName: 'record',
       getDatastore: sandbox.stub().returns({ manager: mockDb }),
@@ -86,6 +103,7 @@ describe('MongoStorageService', function () {
     };
     DeletedRecord = {
       tableName: 'deletedrecord',
+      getDatastore: sandbox.stub().returns({ manager: mockDb }),
       create: sandbox.stub().resolves({}),
       findOne: sandbox.stub().resolves(null),
       destroyOne: sandbox.stub().resolves({}),
@@ -157,7 +175,9 @@ describe('MongoStorageService', function () {
       indexes: sandbox.stub().resolves([{ name: '_id_' }]),
       createIndexes: sandbox.stub().resolves([]),
     };
-    const deletedCollection = {};
+    const deletedCollection = {
+      createIndexes: sandbox.stub().resolves([]),
+    };
     mockDb.collection.callsFake((name: string, options?: any) => {
       if (options?.strict) {
         return { ok: 1 };
@@ -174,6 +194,8 @@ describe('MongoStorageService', function () {
     expect(service.recordCol).to.equal(recordCollection);
     expect(service.deletedRecordCol).to.equal(deletedCollection);
     expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
+    expect(deletedCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.deletedRecordIndices)).to.be
+      .true;
   });
 
   it('creates the collection through a seed record when strict lookup fails', async function () {
@@ -216,7 +238,21 @@ describe('MongoStorageService', function () {
 
     expect(response.success).to.equal(true);
     expect(response.oid).to.equal('12345678901234567890123456789012');
-    expect(Record.create.firstCall.args[0]).to.include({ redboxOid: '12345678901234567890123456789012' });
+    expect(response.committedRevision).to.equal(0);
+    expect(Record.create.firstCall.args[0]).to.include({
+      redboxOid: '12345678901234567890123456789012',
+      revision: 0,
+    });
+  });
+
+  it('overwrites a client-supplied create revision', async function () {
+    const candidate = { redboxOid: 'oid-client', revision: 72, metadata: {} };
+
+    const response = await service.create(null, candidate, null);
+
+    expect(response.committedRevision).to.equal(0);
+    expect(Record.create.firstCall.args[0].revision).to.equal(0);
+    expect(candidate.revision).to.equal(72);
   });
 
   it('preserves a preassigned record oid instead of generating a replacement', async function () {
@@ -242,80 +278,473 @@ describe('MongoStorageService', function () {
   });
 
   it('strips immutable fields before updateMeta persists', async function () {
-    const setStub = sandbox.stub().resolves({});
-    Record.updateOne.returns({ set: setStub });
-    const record = { id: 'a', _id: 'b', dateCreated: 'c', lastSaveDate: 'd', keep: true };
+    const record = {
+      id: 'a',
+      _id: 'b',
+      redboxOid: 'client-oid',
+      revision: 99,
+      dateCreated: 'c',
+      lastSaveDate: 'd',
+      keep: true,
+    };
 
     const response = await service.updateMeta(null, 'oid-1', record);
 
     expect(response.success).to.equal(true);
-    expect(setStub.calledOnceWith({ keep: true })).to.be.true;
+    const update = recordCollection.findOneAndUpdate.firstCall.args[1];
+    expect(update.$set.keep).to.equal(true);
+    expect(update.$set).to.not.have.keys('id', '_id', 'redboxOid', 'revision', 'dateCreated');
+    expect(update.$set.lastSaveDate).to.be.a('string');
+    expect(update.$inc).to.deep.equal({ revision: 1 });
+    expect(record).to.include({ redboxOid: 'client-oid', revision: 99, lastSaveDate: 'd' });
   });
 
-  it('classifies an updateOne no-match result as not-applied', async function () {
-    const setStub = sandbox.stub().resolves([]);
-    Record.updateOne.returns({ set: setStub });
+  it('classifies an atomic update no-match result as not-applied', async function () {
+    recordCollection.findOneAndUpdate.resolves(null);
 
     const response = await service.updateMeta(null, 'missing-oid', { keep: true });
 
     expect(response.success).to.equal(false);
     expect(response.applicationState).to.equal('not-applied');
-    expect(response.message).to.equal('Record was not found');
+    expect(response.nonApplicationReason).to.equal('not-found');
   });
 
   it('scopes branded updates to the stored record brand', async function () {
-    const metaStub = sandbox.stub().resolves({});
-    const setStub = sandbox.stub().returns({ meta: metaStub });
-    Record.updateOne.returns({ set: setStub });
-
-    const response = await service.updateMeta(
-      { id: 'brand-1' },
-      'oid-1',
-      { metadata: { title: 'Updated' }, metaMetadata: { brandId: 'brand-1' } }
-    );
+    const response = await service.updateMeta({ id: 'brand-1' }, 'oid-1', {
+      metadata: { title: 'Updated' },
+      metaMetadata: { brandId: 'brand-1' },
+    });
 
     expect(response.success).to.equal(true);
-    expect(Record.updateOne.calledOnceWith({
-      redboxOid: 'oid-1',
-      'metaMetadata.brandId': 'brand-1',
-    })).to.equal(true);
-    expect(metaStub.calledOnceWith({ enableExperimentalDeepTargets: true })).to.equal(true);
+    expect(recordCollection.findOneAndUpdate.firstCall.args[0]).to.deep.include({
+      $and: [
+        { redboxOid: 'oid-1', 'metaMetadata.brandId': 'brand-1' },
+        {
+          $or: [{ revision: { $lt: Number.MAX_SAFE_INTEGER } }, { revision: { $exists: false } }],
+        },
+      ],
+    });
   });
 
   it('refuses a candidate that names a different active brand without issuing an update', async function () {
-    const response = await service.updateMeta(
-      { id: 'brand-1' },
-      'oid-1',
-      { metadata: {}, metaMetadata: { brandId: 'brand-2' } }
-    );
+    const response = await service.updateMeta({ id: 'brand-1' }, 'oid-1', {
+      metadata: {},
+      metaMetadata: { brandId: 'brand-2' },
+    });
 
     expect(response.success).to.equal(false);
     expect(response.applicationState).to.equal('not-applied');
-    expect(Record.updateOne.notCalled).to.equal(true);
+    expect(response.nonApplicationReason).to.equal('brand-mismatch');
+    expect(recordCollection.findOneAndUpdate.notCalled).to.equal(true);
   });
 
   it('refuses branded replacement metadata without a candidate brandId', async function () {
-    const response = await service.updateMeta(
-      { id: 'brand-1' },
-      'oid-1',
-      { metadata: {}, metaMetadata: { form: 'dataset-2.4-draft' } }
-    );
+    const response = await service.updateMeta({ id: 'brand-1' }, 'oid-1', {
+      metadata: {},
+      metaMetadata: { form: 'dataset-2.4-draft' },
+    });
 
     expect(response.success).to.equal(false);
     expect(response.applicationState).to.equal('not-applied');
-    expect(response.message).to.equal('Record was not found');
-    expect(Record.updateOne.notCalled).to.equal(true);
+    expect(response.nonApplicationReason).to.equal('brand-mismatch');
+    expect(recordCollection.findOneAndUpdate.notCalled).to.equal(true);
   });
 
   it('returns an unsuccessful response when updateMeta fails', async function () {
-    const setStub = sandbox.stub().rejects(new Error('update failed'));
-    Record.updateOne.returns({ set: setStub });
+    recordCollection.findOneAndUpdate.rejects(new Error('update failed'));
 
     const response = await service.updateMeta('brand', 'oid-1', { keep: true }, 'user');
 
     expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('unknown');
     expect(String(response.message.message || response.message)).to.include('update failed');
     expect(mockSails.log.error.calledWithMatch('updateMeta() failed for oid oid-1: update failed')).to.equal(true);
+  });
+
+  it('declares full concurrency capability only for native atomic collections', function () {
+    expect(service.getCapabilities().recordConcurrency).to.deep.include({
+      version: 1,
+      conditionalActiveUpdate: true,
+      conditionalActiveRemove: true,
+      conditionalTombstoneUpdate: true,
+      conditionalTombstoneRemove: true,
+      revisionLineage: true,
+    });
+
+    service.recordCol = { findOneAndUpdate: sandbox.stub() };
+    expect(service.getCapabilities()).to.deep.equal({});
+  });
+
+  it('applies a matching CAS once and returns committed state plus request linkage', async function () {
+    recordCollection.findOneAndUpdate.resolves({
+      redboxOid: 'oid-1',
+      revision: 5,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Updated' },
+    });
+    const options = {
+      precondition: { expectedRevision: 4, requireRevision: true },
+      requestId: '123e4567-e89b-42d3-a456-426614174000',
+      resolution: 'internal',
+    };
+
+    const response = await service.updateMeta(
+      { id: 'brand-1' },
+      'oid-1',
+      { metaMetadata: { brandId: 'brand-1' }, metadata: { title: 'Updated' }, revision: 100 },
+      null,
+      options
+    );
+
+    expect(response).to.include({
+      success: true,
+      applicationState: 'applied',
+      committedRevision: 5,
+      requestId: options.requestId,
+      resolution: 'internal',
+    });
+    expect(response.committedRecord.metadata).to.deep.equal({ title: 'Updated' });
+    expect(recordCollection.findOneAndUpdate.firstCall.args[0]).to.deep.equal({
+      $and: [{ redboxOid: 'oid-1', 'metaMetadata.brandId': 'brand-1' }, { revision: 4 }],
+    });
+    expect(recordCollection.findOneAndUpdate.firstCall.args[1].$inc).to.deep.equal({ revision: 1 });
+    expect(recordCollection.findOneAndUpdate.firstCall.args[1].$set).to.not.have.property('revision');
+  });
+
+  it('certifies stale and deleted CAS no-match outcomes without a fallback write', async function () {
+    recordCollection.findOneAndUpdate.resolves(null);
+    recordCollection.findOne.onFirstCall().resolves({
+      redboxOid: 'oid-1',
+      revision: 8,
+      metaMetadata: { brandId: 'brand-1' },
+    });
+
+    const stale = await service.updateMeta({ id: 'brand-1' }, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 7, requireRevision: true },
+    });
+    expect(stale).to.include({ applicationState: 'not-applied', nonApplicationReason: 'stale-revision' });
+    expect(recordCollection.findOneAndUpdate.callCount).to.equal(1);
+
+    recordCollection.findOne.resetBehavior();
+    recordCollection.findOne.resolves(null);
+    deletedRecordCollection.findOne.resolves({
+      redboxOid: 'oid-1',
+      revision: 9,
+      brandId: 'brand-1',
+      lifecycleState: 'deleted',
+    });
+    const deleted = await service.updateMeta({ id: 'brand-1' }, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 7, requireRevision: true },
+    });
+    expect(deleted).to.include({ applicationState: 'not-applied', nonApplicationReason: 'deleted' });
+    expect(recordCollection.findOneAndUpdate.callCount).to.equal(2);
+  });
+
+  it('classifies a no-match in another brand without exposing its record state', async function () {
+    recordCollection.findOneAndUpdate.resolves(null);
+    recordCollection.findOne.resolves({
+      redboxOid: 'oid-1',
+      revision: 22,
+      metaMetadata: { brandId: 'brand-2' },
+      metadata: { secret: 'must not be returned' },
+    });
+    const result = await service.updateMeta({ id: 'brand-1' }, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 3, requireRevision: true },
+    });
+
+    expect(result.nonApplicationReason).to.equal('brand-mismatch');
+    expect(result.committedRecord).to.equal(undefined);
+    expect(result.metadata).to.equal(null);
+  });
+
+  it('keeps tokenless compatibility while advancing a server revision atomically', async function () {
+    recordCollection.findOneAndUpdate.resolves({ redboxOid: 'oid-1', revision: 12, metadata: {} });
+
+    const result = await service.updateMeta(null, 'oid-1', { revision: 1, metadata: {} });
+
+    expect(result).to.include({ applicationState: 'applied', committedRevision: 12 });
+    expect(recordCollection.findOneAndUpdate.firstCall.args[0].$and[1]).to.deep.equal({
+      $or: [{ revision: { $lt: Number.MAX_SAFE_INTEGER } }, { revision: { $exists: false } }],
+    });
+    expect(recordCollection.findOneAndUpdate.firstCall.args[1].$inc).to.deep.equal({ revision: 1 });
+    expect(recordCollection.findOneAndUpdate.firstCall.args[1].$set).to.not.have.property('revision');
+  });
+
+  it('does not certify an unrecognized or thrown post-dispatch driver fact', async function () {
+    recordCollection.findOneAndUpdate.resolves({ ok: 1 });
+    const unrecognized = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 0, requireRevision: true },
+    });
+    expect(unrecognized.applicationState).to.equal('unknown');
+    expect(unrecognized.nonApplicationReason).to.equal(undefined);
+
+    recordCollection.findOneAndUpdate.resolves(undefined);
+    const missingDriverFact = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 0, requireRevision: true },
+    });
+    expect(missingDriverFact.applicationState).to.equal('unknown');
+    expect(missingDriverFact.nonApplicationReason).to.equal(undefined);
+
+    recordCollection.findOneAndUpdate.rejects(new Error('connection closed after dispatch'));
+    const thrown = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 0, requireRevision: true },
+    });
+    expect(thrown.applicationState).to.equal('unknown');
+    expect(thrown.nonApplicationReason).to.equal(undefined);
+  });
+
+  it('does not certify a driver document with an inconsistent advanced revision', async function () {
+    recordCollection.findOneAndUpdate.resolves({ redboxOid: 'oid-1', revision: 9 });
+
+    const result = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 4, requireRevision: true },
+    });
+
+    expect(result.applicationState).to.equal('unknown');
+    expect(result.nonApplicationReason).to.equal(undefined);
+  });
+
+  it('fails closed on an unsupported dialect without using Waterline update fallback', async function () {
+    service.recordCol = {};
+    const response = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 0, requireRevision: true },
+    });
+
+    expect(response).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
+    });
+    expect(Record.updateOne.notCalled).to.equal(true);
+  });
+
+  it('fails closed before dispatch when an exact revision cannot be advanced', async function () {
+    const response = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: Number.MAX_SAFE_INTEGER, requireRevision: true },
+    });
+
+    expect(response).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
+    });
+    expect(recordCollection.findOneAndUpdate.notCalled).to.equal(true);
+  });
+
+  it('rejects malformed runtime preconditions without dispatch', async function () {
+    const missingRequireFlag = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: 0 } as any,
+    });
+    const invalidRevision = await service.updateMeta(null, 'oid-1', { metadata: {} }, null, {
+      precondition: { expectedRevision: '0', requireRevision: true } as any,
+    });
+
+    expect(missingRequireFlag.nonApplicationReason).to.equal('capability-unavailable');
+    expect(invalidRevision.nonApplicationReason).to.equal('capability-unavailable');
+    expect(recordCollection.findOneAndUpdate.notCalled).to.equal(true);
+  });
+
+  it('allows exactly one of two clients to initialize a missing legacy revision', async function () {
+    let stored: any = {
+      redboxOid: 'oid-legacy',
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Original' },
+    };
+    const atomicCollection = {
+      findOneAndUpdate: sandbox.stub().callsFake(async (_filter: any, update: any) => {
+        if (!stored || stored.revision !== undefined) return null;
+        stored = { ...stored, ...update.$set, revision: 1 };
+        return { ...stored };
+      }),
+      findOneAndDelete: sandbox.stub(),
+      findOne: sandbox.stub().callsFake(async () => (stored ? { ...stored } : null)),
+    };
+    const tombstoneCollection = {
+      findOneAndUpdate: sandbox.stub(),
+      findOneAndDelete: sandbox.stub(),
+      findOne: sandbox.stub().resolves(null),
+    };
+    const ServiceClass = service.constructor;
+    const firstService = new ServiceClass();
+    const secondService = new ServiceClass();
+    firstService.recordCol = atomicCollection;
+    firstService.deletedRecordCol = tombstoneCollection;
+    secondService.recordCol = atomicCollection;
+    secondService.deletedRecordCol = tombstoneCollection;
+    const options = { precondition: { expectedRevision: 0, requireRevision: true } };
+
+    const results = await Promise.all([
+      firstService.updateMeta({ id: 'brand-1' }, 'oid-legacy', { metadata: { title: 'First' } }, null, options),
+      secondService.updateMeta({ id: 'brand-1' }, 'oid-legacy', { metadata: { title: 'Second' } }, null, options),
+    ]);
+
+    expect(results.filter((result: any) => result.applicationState === 'applied')).to.have.length(1);
+    expect(results.filter((result: any) => result.nonApplicationReason === 'stale-revision')).to.have.length(1);
+    expect(stored.revision).to.equal(1);
+    expect(atomicCollection.findOneAndUpdate.firstCall.args[0].$and[1]).to.deep.equal({
+      $or: [{ revision: 0 }, { revision: { $exists: false } }],
+    });
+  });
+
+  it('makes update/remove races one-winner at the shared native collection', async function () {
+    let stored: any = {
+      redboxOid: 'oid-race',
+      revision: 3,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Original' },
+    };
+    const expectedFromFilter = (filter: any) => filter.$and[1].revision;
+    const atomicCollection = {
+      findOneAndUpdate: sandbox.stub().callsFake(async (filter: any, update: any) => {
+        if (!stored || stored.revision !== expectedFromFilter(filter)) return null;
+        stored = { ...stored, ...update.$set, revision: stored.revision + 1 };
+        return { ...stored };
+      }),
+      findOneAndDelete: sandbox.stub().callsFake(async (filter: any) => {
+        if (!stored || stored.revision !== expectedFromFilter(filter)) return null;
+        const removed = stored;
+        stored = null;
+        return removed;
+      }),
+      findOne: sandbox.stub().callsFake(async () => (stored ? { ...stored } : null)),
+    };
+    service.recordCol = atomicCollection;
+    const options = { precondition: { expectedRevision: 3, requireRevision: true } };
+
+    const [update, remove] = await Promise.all([
+      service.updateMeta(
+        { id: 'brand-1' },
+        'oid-race',
+        { metaMetadata: { brandId: 'brand-1' }, metadata: { title: 'Winner' } },
+        null,
+        options
+      ),
+      service.removeActiveRecord({ id: 'brand-1' }, 'oid-race', options),
+    ]);
+
+    expect(update.applicationState).to.equal('applied');
+    expect(update.committedRevision).to.equal(4);
+    expect(remove.applicationState).to.equal('not-applied');
+    expect(remove.nonApplicationReason).to.equal('stale-revision');
+    expect(stored.revision).to.equal(4);
+  });
+
+  it('makes removal the sole winner when it reaches the shared revision first', async function () {
+    let stored: any = {
+      redboxOid: 'oid-remove-wins',
+      revision: 3,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Original' },
+    };
+    const atomicCollection = {
+      findOneAndDelete: sandbox.stub().callsFake(async (filter: any) => {
+        if (!stored || stored.revision !== filter.$and[1].revision) return null;
+        const removed = stored;
+        stored = null;
+        return removed;
+      }),
+      findOneAndUpdate: sandbox.stub().callsFake(async () => null),
+      findOne: sandbox.stub().callsFake(async () => (stored ? { ...stored } : null)),
+    };
+    service.recordCol = atomicCollection;
+    const options = { precondition: { expectedRevision: 3, requireRevision: true } };
+
+    const removed = await service.removeActiveRecord({ id: 'brand-1' }, 'oid-remove-wins', options);
+    const update = await service.updateMeta(
+      { id: 'brand-1' },
+      'oid-remove-wins',
+      { metaMetadata: { brandId: 'brand-1' }, metadata: { title: 'Too late' } },
+      null,
+      options
+    );
+
+    expect(removed).to.include({ applicationState: 'applied', committedRevision: 3 });
+    expect(update).to.include({ applicationState: 'not-applied', nonApplicationReason: 'not-found' });
+    expect(stored).to.equal(null);
+  });
+
+  it('conditionally updates/removes tombstones and persists bounded request linkage', async function () {
+    const requestId = '123e4567-e89b-42d3-a456-426614174000';
+    deletedRecordCollection.findOneAndUpdate.callsFake(async (_filter: any, update: any) => ({
+      redboxOid: 'oid-1',
+      revision: 6,
+      brandId: 'brand-1',
+      ...update.$set,
+    }));
+    const operation = {
+      requestId: '00000000-0000-4000-8000-000000000000',
+      sourceRevision: 5,
+      targetRevision: 6,
+      startedAt: '2026-08-23T00:00:00.000Z',
+      updatedAt: '2026-08-23T00:00:01.000Z',
+      attempts: 1,
+    };
+    const options = {
+      precondition: { expectedRevision: 5, requireRevision: true },
+      requestId,
+    };
+
+    const updated = await service.updateTombstone(
+      { id: 'brand-1' },
+      'oid-1',
+      {
+        revision: 999,
+        lifecycleState: 'restore-pending',
+        lifecycleOperation: operation,
+        deletedRecordMetadata: {
+          redboxOid: 'oid-1',
+          revision: 5,
+          metaMetadata: { brandId: 'brand-1' },
+          metadata: {},
+        },
+      },
+      options
+    );
+    expect(updated).to.include({ applicationState: 'applied', committedRevision: 6, requestId });
+    const persisted = deletedRecordCollection.findOneAndUpdate.firstCall.args[1].$set;
+    expect(persisted).to.not.have.property('revision');
+    expect(persisted.deletedRecordMetadata).to.not.have.property('revision');
+    expect(persisted.lifecycleOperation.requestId).to.equal(requestId);
+
+    deletedRecordCollection.findOneAndDelete.resolves({
+      redboxOid: 'oid-1',
+      revision: 6,
+      brandId: 'brand-1',
+      lifecycleState: 'restore-pending',
+    });
+    const removed = await service.removeTombstone({ id: 'brand-1' }, 'oid-1', {
+      precondition: { expectedRevision: 6, requireRevision: true },
+      requestId,
+    });
+    expect(removed).to.include({ applicationState: 'applied', committedRevision: 6, requestId });
+    expect(removed.removedRecord.lifecycleState).to.equal('restore-pending');
+  });
+
+  it('rejects malformed or inconsistent lifecycle candidates before dispatch', async function () {
+    const options = { precondition: { expectedRevision: 5, requireRevision: true } };
+    const malformed = await service.updateTombstone(
+      { id: 'brand-1' },
+      'oid-1',
+      { lifecycleOperation: 'client-value' },
+      options
+    );
+    const inconsistent = await service.updateTombstone(
+      { id: 'brand-1' },
+      'oid-1',
+      {
+        lifecycleOperation: {
+          requestId: '123e4567-e89b-42d3-a456-426614174000',
+          sourceRevision: 4,
+          targetRevision: 6,
+          startedAt: '2026-08-23T00:00:00.000Z',
+          updatedAt: '2026-08-23T00:00:01.000Z',
+          attempts: 1,
+        },
+      },
+      options
+    );
+
+    expect(malformed.nonApplicationReason).to.equal('lifecycle-conflict');
+    expect(inconsistent.nonApplicationReason).to.equal('lifecycle-conflict');
+    expect(deletedRecordCollection.findOneAndUpdate.notCalled).to.equal(true);
   });
 
   it('rejects getMeta for an empty oid', async function () {
@@ -328,39 +757,24 @@ describe('MongoStorageService', function () {
     expect(Record.count.calledOnceWith({ redboxOid: 'oid-1' })).to.be.true;
   });
 
-  it('promotes pending authorization into real access arrays', async function () {
-    const metadata = {
-      authorization: {
-        view: ['existing'],
-        edit: [],
-        viewPending: ['user@example.com'],
-        editPending: ['user@example.com', 'user@example.com'],
-      },
-    };
-    sandbox.stub(service, 'getMeta').resolves(metadata);
-    const updateMetaStub = sandbox.stub(service, 'updateMeta').resolves({});
+  it('fails closed instead of performing a direct permission rewrite outside RecordsService', async function () {
+    const updateMetaStub = sandbox.stub(service, 'updateMeta');
 
-    service.provideUserAccessAndRemovePendingAccess('oid-1', 'user@example.com', 'user@example.com');
-    await Promise.resolve();
-    await Promise.resolve();
+    const result = await service.provideUserAccessAndRemovePendingAccess(
+      'oid-1',
+      'user@example.com',
+      'user@example.com'
+    );
 
-    expect(updateMetaStub.calledOnce).to.be.true;
-    const updated = updateMetaStub.firstCall.args[2];
-    expect(updated.authorization.edit).to.deep.equal(['user@example.com']);
-    expect(updated.authorization.view).to.deep.equal(['existing', 'user@example.com']);
-    expect(updated.authorization.editPending).to.deep.equal([]);
-    expect(updated.authorization.viewPending).to.deep.equal([]);
+    expect(result.applicationState).to.equal('not-applied');
+    expect(result.nonApplicationReason).to.equal('capability-unavailable');
+    expect(updateMetaStub.notCalled).to.be.true;
   });
 
-  it('logs an error if pending authorization promotion cannot save', async function () {
-    sandbox.stub(service, 'getMeta').resolves({ authorization: {} });
-    sandbox.stub(service, 'updateMeta').rejects(new Error('save failed'));
-
-    service.provideUserAccessAndRemovePendingAccess('oid-1', 'user@example.com', 'user@example.com');
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(mockSails.log.error.called).to.be.true;
+  it('returns a typed non-application fact for legacy direct permission callers', async function () {
+    const result = await service.provideUserAccessAndRemovePendingAccess('oid-1', 'user', 'pending');
+    expect(result.success).to.equal(false);
+    expect(result.isSuccessful()).to.equal(false);
   });
 
   it('prepares batch items before dispatching create calls', async function () {
@@ -491,13 +905,63 @@ describe('MongoStorageService', function () {
   });
 
   it('soft-deletes records by copying them into DeletedRecord first', async function () {
-    sandbox.stub(service, 'getMeta').resolves({ redboxOid: 'oid-1', metadata: {} });
+    sandbox.stub(service, 'getMeta').resolves({ redboxOid: 'oid-1', revision: 4, metadata: {} });
 
     const response = await service.delete('oid-1', false);
 
     expect(response.success).to.equal(true);
-    expect(DeletedRecord.create.calledOnce).to.be.true;
+    expect(deletedRecordCollection.insertOne.calledOnce).to.be.true;
+    expect(deletedRecordCollection.insertOne.firstCall.args[0]).to.include({
+      redboxOid: 'oid-1',
+      revision: 5,
+      lifecycleState: 'deleted',
+    });
+    expect(deletedRecordCollection.insertOne.firstCall.args[0].deletedRecordMetadata).to.deep.equal({
+      redboxOid: 'oid-1',
+      metadata: {},
+    });
     expect(Record.destroyOne.calledOnceWith({ redboxOid: 'oid-1' })).to.be.true;
+  });
+
+  it('does not let legacy delete/restore paths ignore a supplied exact revision', async function () {
+    const options = { precondition: { expectedRevision: 3, requireRevision: true } };
+
+    const deletion = await service.delete('oid-1', false, options);
+    const restoration = await service.restoreRecord('oid-1', options);
+
+    expect(deletion).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
+    });
+    expect(restoration).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'capability-unavailable',
+    });
+    expect(DeletedRecord.create.notCalled).to.equal(true);
+    expect(deletedRecordCollection.insertOne.notCalled).to.equal(true);
+    expect(Record.destroyOne.notCalled).to.equal(true);
+    expect(Record.create.notCalled).to.equal(true);
+  });
+
+  it('continues one monotonic revision lineage through tokenless delete and restore', async function () {
+    sandbox.stub(service, 'getMeta').resolves({
+      redboxOid: 'oid-lineage',
+      revision: 7,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: {},
+    });
+
+    const deleted = await service.delete('oid-lineage', false);
+    const tombstone = deletedRecordCollection.insertOne.firstCall.args[0];
+    DeletedRecord.findOne.resolves(tombstone);
+    const restored = await service.restoreRecord('oid-lineage');
+
+    expect(deleted.success).to.equal(true);
+    expect(tombstone.revision).to.equal(8);
+    expect(tombstone.deletedRecordMetadata).to.not.have.property('revision');
+    expect(restored.success).to.equal(true);
+    expect(recordCollection.insertOne.firstCall.args[0].revision).to.equal(9);
+    expect(new Set([7, tombstone.revision, recordCollection.insertOne.firstCall.args[0].revision]).size).to.equal(3);
   });
 
   it('permanently deletes record datastreams from GridFS', async function () {
@@ -529,9 +993,10 @@ describe('MongoStorageService', function () {
     expect(mockSails.log.error.called).to.be.true;
   });
 
-  it('updates notification logs and persists when the trigger condition is met', async function () {
-    const updateMetaStub = sandbox.stub(service, 'updateMeta').resolves({});
-    const record = {};
+  it('refuses direct notification persistence outside the authoritative service pipeline', async function () {
+    const updateMetaStub = sandbox.stub(service, 'updateMeta');
+    const record = { secret: 'must-not-be-logged-or-mutated' };
+    mockSails.log.verbose.resetHistory();
 
     const result = await service.updateNotificationLog('oid-1', record, {
       name: 'notify',
@@ -542,9 +1007,11 @@ describe('MongoStorageService', function () {
       saveRecord: true,
     });
 
-    expect(result.notifications).to.have.length(1);
-    expect(result.status.sent).to.equal(true);
-    expect(updateMetaStub.calledOnce).to.be.true;
+    expect(result.applicationState).to.equal('not-applied');
+    expect(result.nonApplicationReason).to.equal('capability-unavailable');
+    expect(updateMetaStub.notCalled).to.be.true;
+    expect(record).to.deep.equal({ secret: 'must-not-be-logged-or-mutated' });
+    expect(JSON.stringify(mockSails.log.verbose.args)).not.to.include('must-not-be-logged-or-mutated');
   });
 
   it('returns the record unchanged when a notification condition is not met', async function () {
@@ -559,27 +1026,40 @@ describe('MongoStorageService', function () {
     expect(result).to.equal(record);
   });
 
-  it('rethrows when notification persistence fails', async function () {
-    sandbox.stub(service, 'metTriggerCondition').returns('true');
-    sandbox.stub(service, 'updateMeta').rejects(new Error('persist failed'));
+  it('returns a typed non-application fact rather than dispatching an unsafe notification write', async function () {
+    const updateMetaStub = sandbox.stub(service, 'updateMeta');
 
-    await expectRejects(
-      () => service.updateNotificationLog('oid-1', {}, { name: 'notify', saveRecord: true }),
-      'persist failed'
+    const result = await service.updateNotificationLog(
+      'oid-1',
+      {},
+      {
+        name: 'notify',
+        forceRun: true,
+        saveRecord: true,
+      }
     );
+    expect(result.applicationState).to.equal('not-applied');
+    expect(updateMetaStub.notCalled).to.be.true;
   });
 
   it('restores deleted records and removes the tombstone', async function () {
     DeletedRecord.findOne.resolves({
       redboxOid: 'oid-1',
+      revision: 8,
       deletedRecordMetadata: { _id: 'mongo-id', redboxOid: 'oid-1', title: 'Restored' },
     });
-    Record.create.resolves({ redboxOid: 'oid-1', title: 'Restored' });
 
     const response = await service.restoreRecord('oid-1');
 
     expect(response.success).to.equal(true);
-    expect(Record.create.calledOnceWith({ redboxOid: 'oid-1', title: 'Restored' })).to.be.true;
+    expect(recordCollection.insertOne.calledOnce).to.be.true;
+    expect(recordCollection.insertOne.firstCall.args[0]).to.include({
+      redboxOid: 'oid-1',
+      title: 'Restored',
+      revision: 9,
+    });
+    expect(recordCollection.insertOne.firstCall.args[0]).to.not.have.property('_id');
+    expect(response.metadata).to.include({ redboxOid: 'oid-1', title: 'Restored', revision: 9 });
     expect(DeletedRecord.destroyOne.calledOnceWith({ redboxOid: 'oid-1' })).to.be.true;
   });
 
@@ -592,7 +1072,7 @@ describe('MongoStorageService', function () {
     const metadata = await service.getDeletedRecordMeta('oid-1');
 
     expect(DeletedRecord.findOne.calledWith({ redboxOid: 'oid-1' })).to.be.true;
-    expect(metadata).to.deep.equal({ redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' } });
+    expect(metadata).to.deep.equal({ redboxOid: 'oid-1', revision: 0, metaMetadata: { brandId: 'brand-1' } });
   });
 
   it('returns null when no deleted record exists for the oid', async function () {
@@ -1021,6 +1501,15 @@ describe('MongoStorageService', function () {
     expect(mockSails.log.error.called).to.be.true;
   });
 
+  it('rejects path-shaped staging cleanup identities before accessing storage', async function () {
+    await expectRejects(
+      () => service.removeStagedDatastream('../../outside-staging'),
+      'Invalid staged attachment identity.'
+    );
+
+    expect((global as any).StorageManagerService.stagingDisk.notCalled).to.be.true;
+  });
+
   it('throws a translated error when a datastream is missing', async function () {
     sandbox.stub(service as any, 'getFileWithName').returns({
       toArray: sandbox.stub().resolves([]),
@@ -1258,7 +1747,7 @@ describe('MongoStorageService', function () {
     expect(await service.getDeletedRecordMeta('missing')).to.equal(null);
 
     DeletedRecord.findOne.resolves({ deletedRecordMetadata: metadata });
-    expect(await service.getDeletedRecordMeta('oid-1')).to.equal(metadata);
+    expect(await service.getDeletedRecordMeta('oid-1')).to.deep.equal({ ...metadata, revision: 0 });
     expect(DeletedRecord.findOne.lastCall.args[0]).to.deep.equal({ redboxOid: 'oid-1' });
   });
 
@@ -1270,6 +1759,20 @@ describe('MongoStorageService', function () {
 
     expect(response.success).to.equal(false);
     expect(response.message).to.equal('destroy failed');
+  });
+
+  it('routes conditional tombstone destruction through the atomic purge primitive', async function () {
+    deletedRecordCollection.findOneAndDelete.resolves({
+      redboxOid: 'oid-1',
+      revision: 4,
+      lifecycleState: 'purge-pending',
+    });
+    const result = await service.destroyDeletedRecord('oid-1', {
+      precondition: { expectedRevision: 4, requireRevision: true },
+    });
+
+    expect(result).to.include({ applicationState: 'applied', committedRevision: 4 });
+    expect(DeletedRecord.destroyOne.notCalled).to.equal(true);
   });
 
   it('exposes the bucket lookup helper directly', function () {

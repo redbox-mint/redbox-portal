@@ -1,10 +1,18 @@
 /// <reference path="../sails.ts" />
-import { Attr, BeforeCreate, BeforeUpdate, Entity, buildInvalidNewRecordError, buildInvalidUpdateRecordError, toWaterlineModelDef } from '../decorators';
+import {
+  Attr,
+  BeforeCreate,
+  BeforeUpdate,
+  Entity,
+  buildInvalidNewRecordError,
+  buildInvalidUpdateRecordError,
+  toWaterlineModelDef,
+} from '../decorators';
 
 const normalizeRequiredString = (
   record: Record<string, unknown>,
   field: 'oid' | 'fileId' | 'storageKey',
-  isCreate: boolean,
+  isCreate: boolean
 ): void => {
   const value = String(record[field] ?? '').trim();
   const hasFieldProp = Object.hasOwn(record, field);
@@ -23,13 +31,15 @@ const normalizeRequiredString = (
   }
 };
 
-const requiredTrimmedStringValidation = (field: 'oid' | 'fileId' | 'storageKey') => (value: unknown): boolean => {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`AttachmentMetadata.${field} is required`);
-  }
+const requiredTrimmedStringValidation =
+  (field: 'oid' | 'fileId' | 'storageKey') =>
+  (value: unknown): boolean => {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`AttachmentMetadata.${field} is required`);
+    }
 
-  return true;
-};
+    return true;
+  };
 
 const normalize = (record: Record<string, unknown>, isCreate: boolean): void => {
   normalizeRequiredString(record, 'oid', isCreate);
@@ -66,7 +76,12 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
 
   if (Object.hasOwn(record, 'mutationState')) {
     const mutationState = String(record.mutationState ?? '').trim();
-    if (mutationState && !['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'].includes(mutationState)) {
+    if (
+      mutationState &&
+      !['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled', 'cleanup-pending'].includes(
+        mutationState
+      )
+    ) {
       throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
         'AttachmentMetadata.mutationState is invalid'
       );
@@ -107,7 +122,7 @@ const beforeUpdate = (record: Record<string, unknown>, cb: (err?: Error) => void
     { attributes: { storageKey: 1 }, unique: true },
     { attributes: { oid: 1, fileId: 1 }, unique: true },
     { attributes: { oid: 1 } },
-  ]
+  ],
 })
 export class AttachmentMetadataClass {
   @Attr({ type: 'string', required: true, validations: { custom: requiredTrimmedStringValidation('oid') } })
@@ -116,7 +131,12 @@ export class AttachmentMetadataClass {
   @Attr({ type: 'string', required: true, validations: { custom: requiredTrimmedStringValidation('fileId') } })
   public fileId!: string;
 
-  @Attr({ type: 'string', required: true, unique: true, validations: { custom: requiredTrimmedStringValidation('storageKey') } })
+  @Attr({
+    type: 'string',
+    required: true,
+    unique: true,
+    validations: { custom: requiredTrimmedStringValidation('storageKey') },
+  })
   public storageKey!: string;
 
   @Attr({ type: 'boolean', defaultsTo: false })
@@ -128,8 +148,18 @@ export class AttachmentMetadataClass {
   @Attr({ type: 'string', isIn: ['add', 'finalize', 'delete'] })
   public operation?: 'add' | 'finalize' | 'delete';
 
-  @Attr({ type: 'string', isIn: ['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled'] })
-  public mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled';
+  @Attr({
+    type: 'string',
+    isIn: ['prepared', 'pending', 'applied', 'incomplete', 'unknown', 'cancelled', 'cleanup-pending'],
+  })
+  public mutationState?:
+    | 'prepared'
+    | 'pending'
+    | 'applied'
+    | 'incomplete'
+    | 'unknown'
+    | 'cancelled'
+    | 'cleanup-pending';
 
   @Attr({ type: 'string' })
   public generation?: string;
@@ -177,7 +207,7 @@ export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes 
   accessCount?: number;
   attachmentId?: string;
   operation?: 'add' | 'finalize' | 'delete';
-  mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled';
+  mutationState?: 'prepared' | 'pending' | 'applied' | 'incomplete' | 'unknown' | 'cancelled' | 'cleanup-pending';
   generation?: string;
   isJournal?: boolean;
   mutationFileId?: string;

@@ -9,6 +9,7 @@ describe('storage-mongo hook exports', function () {
     expect(hook.registerRedboxModels()).to.have.keys(['Record', 'DeletedRecord', 'RecordAudit', 'IntegrationAudit']);
     expect(hook.registerRedboxServices()).to.have.property('MongoStorageService');
     expect(hook.ServiceExports).to.have.property('MongoStorageService');
+    expect(hook.registerRedboxMigrations()).to.have.length(1);
     expect(hook.registerRedboxConfig()).to.deep.equal({
       storage: require('../src/config/storage').storage,
       record: require('../src/config/record').record,

@@ -1,116 +1,144 @@
-import "./sails";
+import './sails';
 
+export { Attachment } from './Attachment';
+export { Controllers } from './CoreController';
+export { Services } from './CoreService';
+export { Datastream } from './Datastream';
+export { StorageServiceResponse, StorageMutationResponse } from './StorageServiceResponse';
 export {
-    Attachment
-}
-    from "./Attachment";
-export {
-    Controllers
-}
-    from "./CoreController";
-export {
-    Services
-}
-    from "./CoreService";
-export {
-    Datastream
-}
-    from "./Datastream";
-export {
-    StorageServiceResponse
-}
-    from "./StorageServiceResponse";
-export {
-    RecordSaveResponse,
-    RECORD_VALIDATION_BYPASS_REASONS,
-    createRecordSaveContext,
-    isInternalRecordValidationBypass,
-    isCanonicalSaveRequestId,
-    legacyRecordSaveBody,
-    isRecordValidationBypassReason,
-    parsePublicValidationOperation,
-    readSaveRequestId,
-    recordSaveContextFromHeaders,
-    recordSaveFailureStatus,
-    recordSaveFailureStatusForVersion,
-    recordSaveProblem,
-    resolveStorageMutationState,
-}
-    from "./RecordSaveResponse";
+  RecordSaveResponse,
+  RecordSaveTracker,
+  RECORD_VALIDATION_BYPASS_REASONS,
+  createRecordSaveContext,
+  isInternalRecordValidationBypass,
+  isCanonicalSaveRequestId,
+  isRecordValidationBypassReason,
+  normalizeRecordConcurrencyContext,
+  parsePublicValidationOperation,
+  readSaveRequestId,
+  recordSaveDisplayErrors,
+  recordSaveFailureStatus,
+  recordSaveProblem,
+  resolveStorageMutationState,
+} from './RecordSaveResponse';
 export type {
-    RecordSaveContext,
-    RecordSaveOperation,
-    RecordSaveRouteFamily,
-    InternalRecordValidationBypass,
-    RecordValidationBypassReason,
-    StorageMutationLogger,
-    PublicValidationOperationParseResult,
-} from "./RecordSaveResponse";
+  RecordConcurrencyContext,
+  RecordSaveContext,
+  RecordSaveOperation,
+  RecordSaveRouteFamily,
+  InternalRecordValidationBypass,
+  RecordValidationBypassReason,
+  StorageMutationLogger,
+  PublicValidationOperationParseResult,
+  RecordSaveDisplayError,
+} from './RecordSaveResponse';
+export { formatRecordFormFingerprint } from './RecordFormFingerprint';
 export {
-    DatastreamServiceResponse
-}
-    from "./DatastreamServiceResponse";
+  RECORD_HTTP_HEADERS,
+  parsePublicRecordConcurrencyRequest,
+  recordRepresentationConcurrency,
+  recordRepresentationRevision,
+  recordSaveResultHeaderOption,
+  recordSaveResultHeaders,
+} from './RecordHttpConcurrency';
+export type {
+  PublicRecordConcurrencyRequestErrorCode,
+  PublicRecordConcurrencyRequestOptions,
+  PublicRecordConcurrencyRequestResult,
+  RecordRepresentationConcurrency,
+} from './RecordHttpConcurrency';
+export { normalizeAttachmentStagingFileId } from './AttachmentStagingIdentity';
+export {
+  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+  INITIAL_RECORD_REVISION,
+  RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
+  RecordConcurrencyCapabilityError,
+  assertFullRecordStorageConcurrencyCapability,
+  assertStorageConcurrencyCapabilityForMode,
+  hasFullRecordStorageConcurrencyCapability,
+  nextRecordRevision,
+  normalizeRecordStorageMutationOptions,
+} from './RecordStorageConcurrency';
+export type {
+  RecordMutationPrecondition,
+  RecordStorageConcurrencyCapabilities,
+  RecordStorageMutationOptions,
+  StorageCapabilityProvider,
+  StorageMutationNonApplicationReason,
+  StorageServiceCapabilities,
+} from './RecordStorageConcurrency';
+// Behavioural conformance checks hook-provided storage adapters run against
+// their own dialect before declaring the record-concurrency capability.
+export { STORAGE_CONCURRENCY_CONFORMANCE_CHECKS } from './testing/storageConcurrencyConformance';
+export type {
+  RecordConcurrencyAdapter,
+  StorageConcurrencyConformanceCheck,
+  StorageConcurrencyConformanceHarness,
+} from './testing/storageConcurrencyConformance';
+// Shared concurrency policy/result contracts are re-exported here so server
+// code has one import site for record-save contracts.
+export {
+  DEFAULT_RECORD_CONCURRENT_MODIFICATION_CONFIG,
+  DEFAULT_RECORD_CONCURRENT_MODIFICATION_MODE,
+  coerceRecordConcurrentModificationConfig,
+  isRecordConcurrencyMetadata,
+  isRecordConcurrencyProblemCode,
+  isRecordConcurrencyResolution,
+  isRecordConcurrentModificationConfig,
+  isRecordConcurrentModificationMode,
+  isRecordEntityTag,
+  isRecordFormFingerprint,
+  isRecordRevision,
+  resolveRecordConcurrentModificationConfig,
+  resolveRecordConcurrentModificationMode,
+  sanitizeRecordConcurrencyMetadata,
+  validateRecordConcurrentModificationConfig,
+  RECORD_CONCURRENCY_PROBLEM_CODES,
+  RECORD_CONCURRENCY_RESOLUTIONS,
+  RECORD_CONCURRENT_MODIFICATION_MODES,
+} from '@researchdatabox/sails-ng-common';
+export type {
+  RecordConcurrencyMetadata,
+  RecordConcurrencyProblemCode,
+  RecordConcurrencyResolution,
+  RecordConcurrentModificationConfigValidation,
+} from '@researchdatabox/sails-ng-common';
+export { formatRecordEntityTag, parseRecordEntityTag } from './RecordEntityTag';
+export type {
+  ParsedRecordEntityTag,
+  RecordEntityTag,
+  RecordEntityTagParseFailureReason,
+  RecordEntityTagParseResult,
+} from './RecordEntityTag';
+export { DatastreamServiceResponse } from './DatastreamServiceResponse';
 
-export {
-    DatastreamService
-}
-    from "./DatastreamService";
-export {
-    QueueService
-}
-    from "./QueueService";
-export {
-    RecordsService
-}
-    from "./RecordsService";
-export {
-    HarvestRunService
-}
-    from "./HarvestRunService";
+export { DatastreamService } from './DatastreamService';
+export { QueueService } from './QueueService';
+export { RecordsService } from './RecordsService';
+export { HarvestRunService } from './HarvestRunService';
 export type {
-    RecordRelationshipExpandOptions,
-    RecordRelationshipGraph,
-    RecordRelationshipEdge,
-    RecordMetaWithRelationships,
-    LegacyRelatedRecordsResponse,
-    RecordTypeLookupSummary,
-}
-    from "./RecordsService";
-export {
-    classifyRecordWrite,
-    recordWriteRequiresFormValidation,
-}
-    from "./RecordWriteClassification";
-export type { RecordWriteClassification } from "./RecordWriteClassification";
-export {
-    SearchService
-}
-    from "./SearchService";
-export {
-    StorageService
-}
-    from "./StorageService";
-export {
-    RecordAuditParams
-}
-    from "./RecordAuditParams";
-export {
-    IntegrationAuditParams
-}
-    from "./IntegrationAuditParams";
+  RecordRelationshipExpandOptions,
+  RecordRelationshipGraph,
+  RecordRelationshipEdge,
+  RecordMetaWithRelationships,
+  LegacyRelatedRecordsResponse,
+  RecordTypeLookupSummary,
+} from './RecordsService';
+export { classifyRecordWrite, recordWriteRequiresFormValidation } from './RecordWriteClassification';
+export type { RecordWriteClassification } from './RecordWriteClassification';
+export { SearchService } from './SearchService';
+export { StorageService } from './StorageService';
+export { RecordAuditParams } from './RecordAuditParams';
+export { IntegrationAuditParams } from './IntegrationAuditParams';
 export type {
-    IntegrationOutcome,
-    IntegrationOutcomeSeverity,
-    IntegrationStatusSummary,
-    IntegrationStatusRecordContext,
-    IntegrationOutcomeMapper
-}
-    from "./services/IntegrationAuditService";
+  IntegrationOutcome,
+  IntegrationOutcomeSeverity,
+  IntegrationStatusSummary,
+  IntegrationStatusRecordContext,
+  IntegrationOutcomeMapper,
+} from './services/IntegrationAuditService';
 export * from './model/storage/HarvestRunModel';
-export {
-    ILogger
-}
-    from "./Logger";
+export { ILogger } from './Logger';
 
 export * from './model';
 export * from './decorator';
@@ -135,10 +163,7 @@ export {
   resolveHookAssetFile,
   resolveHookViewFile,
 } from './hooks/hookResources';
-export type {
-  RedboxHookResource,
-  ResolvedHookFile,
-} from './hooks/hookResources';
+export type { RedboxHookResource, ResolvedHookFile } from './hooks/hookResources';
 
 export { WaterlineModels } from './waterline-models';
 export * from './transformers/ExportJSONTransformer';
@@ -160,7 +185,7 @@ export {
   createDefaultBinding,
   fromDoiPublishingFormModel,
   resolveDoiConnectionPassword,
-  toDoiPublishingFormModel
+  toDoiPublishingFormModel,
 } from './configmodels/DoiPublishing';
 export type {
   DoiPublishingConfigData,
@@ -178,7 +203,7 @@ export type {
   DoiDescriptionMapping,
   DoiGeoLocationMapping,
   DoiFundingReferenceMapping,
-  DoiRelatedItemMapping
+  DoiRelatedItemMapping,
 } from './configmodels/DoiPublishing';
 export * from './configmodels/AppConfig.interface';
 export * from './configmodels/AuthorizedDomainsEmails';
@@ -218,7 +243,12 @@ export { ServiceExports } from './services';
 export * from './services';
 
 // Controllers
-export { ControllerExports, WebserviceControllerExports, ControllerNames, WebserviceControllerNames } from './controllers';
+export {
+  ControllerExports,
+  WebserviceControllerExports,
+  ControllerNames,
+  WebserviceControllerNames,
+} from './controllers';
 export * from './controllers';
 
 // Visitors

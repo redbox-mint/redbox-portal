@@ -4,172 +4,175 @@
  */
 
 export interface RecordAuditingConfig {
-    enabled: boolean;
-    recordAuditJobName: string;
+  enabled: boolean;
+  recordAuditJobName: string;
 }
 
 export interface RecordBaseUrlConfig {
-    redbox: string;
-    mint: string;
+  redbox: string;
+  mint: string;
 }
 
 export interface RecordAPIEndpoint {
-    method: 'get' | 'post' | 'put' | 'patch' | 'delete';
-    url: string;
-    readTimeout?: number;
+  method: 'get' | 'post' | 'put' | 'patch' | 'delete';
+  url: string;
+  readTimeout?: number;
 }
 
 export interface RecordContextVariableConfig {
-    source: 'request' | 'metadata' | 'record';
-    type?: 'session' | 'param' | 'user' | 'header';
-    field?: string;
-    parseUrl?: boolean;
-    searchParams?: string;
+  source: 'request' | 'metadata' | 'record';
+  type?: 'session' | 'param' | 'user' | 'header';
+  field?: string;
+  parseUrl?: boolean;
+  searchParams?: string;
 }
 
 export interface RecordExportConfig {
-    maxRecords: number;
+  maxRecords: number;
 }
 
 export interface RecordTransferConfig {
-    maxRecordsPerPage: number;
+  maxRecordsPerPage: number;
 }
 
 export interface RecordSearchConfig {
-    returnFields: string[];
-    maxRecordsPerPage: number;
+  returnFields: string[];
+  maxRecordsPerPage: number;
 }
 
 export interface RecordAttachmentsConfig {
-    path: string;
-    store?: 'file' | 's3';
-    file?: {
-        directory: string;
-    };
-    s3?: {
-        bucket: string;
-        region: string;
-        accessKeyId?: string;
-        secretAccessKey?: string;
-        endpoint?: string;
-        partSize?: number;
-    };
-    /** @deprecated Use file.directory instead. */
-    stageDir?: string;
+  path: string;
+  store?: 'file' | 's3';
+  file?: {
+    directory: string;
+  };
+  s3?: {
+    bucket: string;
+    region: string;
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    endpoint?: string;
+    partSize?: number;
+  };
+  /** @deprecated Use file.directory instead. */
+  stageDir?: string;
+  /** Retain conflict-recoverable staged blobs for this bounded interval. */
+  stagingExpiryMs?: number;
 }
 
 export interface RecordFormConfig {
-    htmlSanitizationMode: 'sanitize' | 'reject';
-    returnMetadataOnSave: boolean;
+  htmlSanitizationMode: 'sanitize' | 'reject';
+  returnMetadataOnSave: boolean;
 }
 
 export interface RecordConfig {
-    auditing: RecordAuditingConfig;
-    baseUrl: RecordBaseUrlConfig;
-    maxUploadSize: number;
-    mongodbDisk: string;
-    diskSpaceThreshold: number;
-    checkTotalSizeOfFilesInRecordLogLevel?: string;
-    processRecordCountersLogLevel?: string;
-    api: Record<string, RecordAPIEndpoint>;
-    contextVariables: Record<string, RecordContextVariableConfig>;
-    export: RecordExportConfig;
-    transfer: RecordTransferConfig;
-    search: RecordSearchConfig;
-    attachments: RecordAttachmentsConfig;
-    datastreamService?: string;
-    helpEmail: string;
-    form?: RecordFormConfig;
+  auditing: RecordAuditingConfig;
+  baseUrl: RecordBaseUrlConfig;
+  maxUploadSize: number;
+  mongodbDisk: string;
+  diskSpaceThreshold: number;
+  checkTotalSizeOfFilesInRecordLogLevel?: string;
+  processRecordCountersLogLevel?: string;
+  api: Record<string, RecordAPIEndpoint>;
+  contextVariables: Record<string, RecordContextVariableConfig>;
+  export: RecordExportConfig;
+  transfer: RecordTransferConfig;
+  search: RecordSearchConfig;
+  attachments: RecordAttachmentsConfig;
+  datastreamService?: string;
+  helpEmail: string;
+  form?: RecordFormConfig;
 }
 
 export const record: RecordConfig = {
-    auditing: {
-        enabled: true,
-        recordAuditJobName: 'RecordsService-StoreRecordAudit'
+  auditing: {
+    enabled: true,
+    recordAuditJobName: 'RecordsService-StoreRecordAudit',
+  },
+  baseUrl: {
+    redbox: 'http://localhost:9000/redbox',
+    mint: '',
+  },
+  maxUploadSize: 1073741824,
+  mongodbDisk: '/attachments',
+  diskSpaceThreshold: 10737418240,
+  datastreamService: 'standarddatastreamservice',
+  form: {
+    htmlSanitizationMode: 'sanitize',
+    returnMetadataOnSave: true,
+  },
+  api: {
+    create: { method: 'post', url: '/api/v1/object/$packageType' },
+    search: { method: 'get', url: '/api/v1/search' },
+    query: { method: 'post', url: '/api/v2/query' },
+    getMeta: { method: 'get', url: '/api/v1/recordmetadata/$oid' },
+    info: { method: 'get', url: '/api/v1/info' },
+    updateMeta: { method: 'post', url: '/api/v1/recordmetadata/$oid' },
+    harvest: { method: 'post', url: '/api/v1.1/harvest/$packageType' },
+    getDatastream: { method: 'get', url: '/api/v1/datastream/$oid', readTimeout: 120000 },
+    addDatastream: { method: 'post', url: '/api/v1/datastream/$oid' },
+    removeDatastream: { method: 'delete', url: '/api/v1/datastream/$oid' },
+    addDatastreams: { method: 'put', url: '/api/v1/datastream/$oid' },
+    addAndRemoveDatastreams: { method: 'patch', url: '/api/v1/datastream/$oid' },
+    listDatastreams: { method: 'get', url: '/api/v2/datastream/$oid/list' },
+    getRecordRelationships: { method: 'post', url: '/api/v2/recordmetadata/$oid/relationships' },
+    delete: { method: 'delete', url: '/api/v1/object/$oid/delete' },
+  },
+  contextVariables: {
+    '@branding': {
+      source: 'request',
+      type: 'session',
+      field: 'branding',
     },
-    baseUrl: {
-        redbox: "http://localhost:9000/redbox",
-        mint: ""
+    '@portal': {
+      source: 'request',
+      type: 'session',
+      field: 'portal',
     },
-    maxUploadSize: 1073741824,
-    mongodbDisk: '/attachments',
-    diskSpaceThreshold: 10737418240,
-    datastreamService: 'standarddatastreamservice',
-    form: {
-        htmlSanitizationMode: 'sanitize',
-        returnMetadataOnSave: true,
+    '@oid': {
+      source: 'request',
+      type: 'param',
+      field: 'oid',
     },
-    api: {
-        create: { method: 'post', url: "/api/v1/object/$packageType" },
-        search: { method: 'get', url: "/api/v1/search" },
-        query: { method: 'post', url: "/api/v2/query" },
-        getMeta: { method: 'get', url: "/api/v1/recordmetadata/$oid" },
-        info: { method: 'get', url: "/api/v1/info" },
-        updateMeta: { method: 'post', url: "/api/v1/recordmetadata/$oid" },
-        harvest: { method: 'post', url: "/api/v1.1/harvest/$packageType" },
-        getDatastream: { method: 'get', url: "/api/v1/datastream/$oid", readTimeout: 120000 },
-        addDatastream: { method: 'post', url: "/api/v1/datastream/$oid" },
-        removeDatastream: { method: 'delete', url: "/api/v1/datastream/$oid" },
-        addDatastreams: { method: 'put', url: "/api/v1/datastream/$oid" },
-        addAndRemoveDatastreams: { method: 'patch', url: "/api/v1/datastream/$oid" },
-        listDatastreams: { method: 'get', url: "/api/v2/datastream/$oid/list" },
-        getRecordRelationships: { method: 'post', url: "/api/v2/recordmetadata/$oid/relationships" },
-        delete: { method: 'delete', url: "/api/v1/object/$oid/delete" }
+    '@user_name': {
+      source: 'request',
+      type: 'user',
+      field: 'name',
     },
-    contextVariables: {
-        '@branding': {
-            source: 'request',
-            type: 'session',
-            field: 'branding'
-        },
-        '@portal': {
-            source: 'request',
-            type: 'session',
-            field: 'portal'
-        },
-        '@oid': {
-            source: 'request',
-            type: 'param',
-            field: 'oid'
-        },
-        '@user_name': {
-            source: 'request',
-            type: 'user',
-            field: 'name'
-        },
-        '@user_email': {
-            source: 'request',
-            type: 'user',
-            field: 'email'
-        },
-        '@user_username': {
-            source: 'request',
-            type: 'user',
-            field: 'username'
-        },
-        '@metadata': {
-            source: 'metadata'
-        },
-        '@record': {
-            source: 'record'
-        }
+    '@user_email': {
+      source: 'request',
+      type: 'user',
+      field: 'email',
     },
-    export: {
-        maxRecords: 20
+    '@user_username': {
+      source: 'request',
+      type: 'user',
+      field: 'username',
     },
-    transfer: {
-        maxRecordsPerPage: 1000000
+    '@metadata': {
+      source: 'metadata',
     },
-    search: {
-        returnFields: ['title', 'description', 'storage_id'],
-        maxRecordsPerPage: 1000000
+    '@record': {
+      source: 'record',
     },
-    attachments: {
-        path: '/attach',
-        store: 'file',
-        file: {
-            directory: '/attachments/staging'
-        }
+  },
+  export: {
+    maxRecords: 20,
+  },
+  transfer: {
+    maxRecordsPerPage: 1000000,
+  },
+  search: {
+    returnFields: ['title', 'description', 'storage_id'],
+    maxRecordsPerPage: 1000000,
+  },
+  attachments: {
+    path: '/attach',
+    store: 'file',
+    file: {
+      directory: '/attachments/staging',
     },
-    helpEmail: 'support@redboxresearchdata.com.au'
+    stagingExpiryMs: 604800000,
+  },
+  helpEmail: 'support@redboxresearchdata.com.au',
 };

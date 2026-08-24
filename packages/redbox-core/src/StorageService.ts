@@ -1,7 +1,8 @@
 import { Readable } from 'node:stream';
 import { RecordModel } from './model';
-import { StorageServiceResponse } from './StorageServiceResponse';
+import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from './RecordsService';
+import type { RecordStorageMutationOptions, StorageServiceCapabilities } from './RecordStorageConcurrency';
 
 /**
  * Service interface for Storage operations.
@@ -9,23 +10,107 @@ import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from './Reco
  * Type safety will be improved incrementally in future phases.
  */
 export interface StorageService {
-  create(brand: unknown, record: unknown, recordType: unknown, user?: unknown): Promise<StorageServiceResponse>;
-  updateMeta(brand: unknown, oid: unknown, record: unknown, user?: unknown): Promise<StorageServiceResponse>;
+  create(
+    brand: unknown,
+    record: unknown,
+    recordType: unknown,
+    user?: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageMutationResponse>;
+  updateMeta(
+    brand: unknown,
+    oid: unknown,
+    record: unknown,
+    user?: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageMutationResponse>;
+  /** An absent declaration is unsupported for strict concurrency. */
+  getCapabilities?(): StorageServiceCapabilities;
+  /** Atomic active removal primitive used by staged lifecycle orchestration. */
+  removeActiveRecord?(
+    brand: unknown,
+    oid: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageMutationResponse>;
+  /** Atomic tombstone claim/update primitive used by restore and purge. */
+  updateTombstone?(
+    brand: unknown,
+    oid: unknown,
+    record: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageMutationResponse>;
+  /** Atomic tombstone finalization/removal primitive used by restore and purge. */
+  removeTombstone?(
+    brand: unknown,
+    oid: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageMutationResponse>;
   getMeta(oid: unknown): Promise<RecordModel>;
   createBatch(type: unknown, data: unknown, harvestIdFldName: unknown): Promise<unknown>;
-  provideUserAccessAndRemovePendingAccess(oid: unknown, userid: unknown, pendingValue: unknown): void;
-  getRelatedRecords(oid: unknown, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordRelationshipGraph>;
-  delete(oid: unknown, permanentlyDelete: unknown): Promise<StorageServiceResponse>;
+  /** @deprecated Whole-record permission rewrites must use RecordsService.mutateMetaInternal(). */
+  provideUserAccessAndRemovePendingAccess(
+    oid: unknown,
+    userid: unknown,
+    pendingValue: unknown
+  ): Promise<StorageMutationResponse>;
+  getRelatedRecords(
+    oid: unknown,
+    brand: unknown,
+    options?: RecordRelationshipExpandOptions
+  ): Promise<RecordRelationshipGraph>;
+  delete(
+    oid: unknown,
+    permanentlyDelete: unknown,
+    options?: RecordStorageMutationOptions
+  ): Promise<StorageServiceResponse>;
+  /** @deprecated Persisted notification writes must use RecordsService.mutateMetaInternal(). */
   updateNotificationLog(oid: unknown, record: unknown, options: unknown): Promise<unknown>;
 
-  restoreRecord(oid: unknown): Promise<StorageServiceResponse>;
-  destroyDeletedRecord(oid: unknown): Promise<StorageServiceResponse>;
+  restoreRecord(oid: unknown, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse>;
+  destroyDeletedRecord(oid: unknown, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
 
-  getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
-  getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: unknown, brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;
+  getRecords(
+    workflowState: unknown,
+    recordType: unknown,
+    start: unknown,
+    rows: unknown,
+    username: unknown,
+    roles: unknown,
+    brand: unknown,
+    editAccessOnly: unknown,
+    packageType: unknown,
+    sort: unknown,
+    fieldNames?: unknown,
+    filterString?: unknown,
+    filterMode?: unknown,
+    secondarySort?: unknown
+  ): Promise<StorageServiceResponse>;
+  getDeletedRecords(
+    workflowState: unknown,
+    recordType: unknown,
+    start: unknown,
+    rows: unknown,
+    username: unknown,
+    roles: unknown,
+    brand: unknown,
+    editAccessOnly: unknown,
+    packageType: unknown,
+    sort: unknown,
+    fieldNames?: unknown,
+    filterString?: unknown,
+    filterMode?: unknown
+  ): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
-  exportAllPlans(username: unknown, roles: unknown, brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): Readable;
+  exportAllPlans(
+    username: unknown,
+    roles: unknown,
+    brand: unknown,
+    format: unknown,
+    modBefore: unknown,
+    modAfter: unknown,
+    recType: unknown
+  ): Readable;
 
   /**
    * Persist an audit synchronously and report whether it was durably applied.

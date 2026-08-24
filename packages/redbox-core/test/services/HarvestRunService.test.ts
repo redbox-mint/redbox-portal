@@ -37,7 +37,7 @@ describe('HarvestRunService', function () {
   let recordsService: {
     create: sinon.SinonStub;
     getMeta: sinon.SinonStub;
-    updateMeta: sinon.SinonStub;
+    updateMetaInternal: sinon.SinonStub;
     delete: sinon.SinonStub;
     restoreRecord: sinon.SinonStub;
     setWorkflowStepRelatedMetadata: sinon.SinonStub;
@@ -52,7 +52,7 @@ describe('HarvestRunService', function () {
     recordsService = {
       create: sinon.stub(),
       getMeta: sinon.stub(),
-      updateMeta: sinon.stub(),
+      updateMetaInternal: sinon.stub(),
       delete: sinon.stub(),
       restoreRecord: sinon.stub(),
       setWorkflowStepRelatedMetadata: sinon.stub(),
@@ -244,26 +244,30 @@ describe('HarvestRunService', function () {
       chunksProcessed: 1,
       duplicateChunks: 0,
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([{
-      id: 'chunk-1',
-      runId: 'run-1',
-      brandId: 'brand-1',
-      recordType: 'dataset',
-      sourceRunId: 'source-run-1',
-      contentHash: 'hash-1',
-      attempt: 1,
-      status: 'processed',
-      recordCount: 1,
-      totalProcessed: 1,
-      created: 1,
-      updated: 0,
-      deleted: 0,
-      unchanged: 0,
-      failed: 0,
-      duplicate: false,
-      submittedAt: '2026-05-25T00:00:00.000Z',
-      responseSummary: { totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0 },
-    }]));
+    (global as any).HarvestRunChunk.find.returns(
+      createChainableQuery([
+        {
+          id: 'chunk-1',
+          runId: 'run-1',
+          brandId: 'brand-1',
+          recordType: 'dataset',
+          sourceRunId: 'source-run-1',
+          contentHash: 'hash-1',
+          attempt: 1,
+          status: 'processed',
+          recordCount: 1,
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          duplicate: false,
+          submittedAt: '2026-05-25T00:00:00.000Z',
+          responseSummary: { totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0 },
+        },
+      ])
+    );
     (global as any).HarvestRun.updateOne.returns({
       set: sinon.stub().resolves({
         id: 'run-1',
@@ -320,46 +324,48 @@ describe('HarvestRunService', function () {
       chunksProcessed: 2,
       duplicateChunks: 1,
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([
-      {
-        id: 'chunk-1',
-        runId: 'run-1',
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceRunId: 'source-run-1',
-        contentHash: 'hash-1',
-        attempt: 1,
-        status: 'processed',
-        recordCount: 1,
-        totalProcessed: 2,
-        created: 1,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        duplicate: false,
-        submittedAt: '2026-05-25T00:00:00.000Z',
-      },
-      {
-        id: 'chunk-2',
-        runId: 'run-1',
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceRunId: 'source-run-1',
-        contentHash: 'hash-2',
-        attempt: 1,
-        status: 'processed',
-        recordCount: 1,
-        totalProcessed: 3,
-        created: 0,
-        updated: 2,
-        deleted: 1,
-        unchanged: 0,
-        failed: 0,
-        duplicate: true,
-        submittedAt: '2026-05-25T00:01:00.000Z',
-      },
-    ]));
+    (global as any).HarvestRunChunk.find.returns(
+      createChainableQuery([
+        {
+          id: 'chunk-1',
+          runId: 'run-1',
+          brandId: 'brand-1',
+          recordType: 'dataset',
+          sourceRunId: 'source-run-1',
+          contentHash: 'hash-1',
+          attempt: 1,
+          status: 'processed',
+          recordCount: 1,
+          totalProcessed: 2,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          duplicate: false,
+          submittedAt: '2026-05-25T00:00:00.000Z',
+        },
+        {
+          id: 'chunk-2',
+          runId: 'run-1',
+          brandId: 'brand-1',
+          recordType: 'dataset',
+          sourceRunId: 'source-run-1',
+          contentHash: 'hash-2',
+          attempt: 1,
+          status: 'processed',
+          recordCount: 1,
+          totalProcessed: 3,
+          created: 0,
+          updated: 2,
+          deleted: 1,
+          unchanged: 0,
+          failed: 0,
+          duplicate: true,
+          submittedAt: '2026-05-25T00:01:00.000Z',
+        },
+      ])
+    );
     (global as any).HarvestRecordEvent.find.returns(createChainableQuery([]));
 
     const result = await service.getRun({ id: 'brand-1', name: 'default' }, 'run-1');
@@ -421,19 +427,23 @@ describe('HarvestRunService', function () {
       chunksProcessed: 0,
       duplicateChunks: 0,
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([{
-      id: 'chunk-1',
-      runId: 'run-1',
-      brandId: 'brand-1',
-      recordType: 'dataset',
-      sourceRunId: 'source-run-1',
-      contentHash: 'hash-1',
-      attempt: 1,
-      status: 'processing',
-      recordCount: 1,
-      duplicate: false,
-      submittedAt: new Date().toISOString(),
-    }]));
+    (global as any).HarvestRunChunk.find.returns(
+      createChainableQuery([
+        {
+          id: 'chunk-1',
+          runId: 'run-1',
+          brandId: 'brand-1',
+          recordType: 'dataset',
+          sourceRunId: 'source-run-1',
+          contentHash: 'hash-1',
+          attempt: 1,
+          status: 'processing',
+          recordCount: 1,
+          duplicate: false,
+          submittedAt: new Date().toISOString(),
+        },
+      ])
+    );
 
     try {
       await service.submitChunk(
@@ -472,44 +482,50 @@ describe('HarvestRunService', function () {
       chunksProcessed: 0,
       duplicateChunks: 0,
     });
-    (global as any).HarvestRunChunk.find.returns(createChainableQuery([{
-      id: 'chunk-1',
-      runId: 'run-1',
-      brandId: 'brand-1',
-      recordType: 'dataset',
-      sourceRunId: 'source-run-1',
-      contentHash: 'hash-1',
-      attempt: 1,
-      status: 'failed',
-      recordCount: 2,
-      totalProcessed: 1,
-      created: 1,
-      updated: 0,
-      deleted: 0,
-      unchanged: 0,
-      failed: 0,
-      duplicate: false,
-      submittedAt: '2026-05-25T00:00:00.000Z',
-      completedAt: '2026-05-25T00:01:00.000Z',
-      responseSummary: { totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0 },
-      errorMessage: 'write failed',
-    }]));
-    (global as any).HarvestRecordEvent.find.callsFake((criteria: any) => {
-      if (criteria?.chunkId?.in?.includes('chunk-1')) {
-        return createChainableQuery([{
-          id: 'event-1',
+    (global as any).HarvestRunChunk.find.returns(
+      createChainableQuery([
+        {
+          id: 'chunk-1',
           runId: 'run-1',
-          chunkId: 'chunk-1',
           brandId: 'brand-1',
           recordType: 'dataset',
           sourceRunId: 'source-run-1',
-          harvestId: 'harvest-1',
-          oid: 'record-1',
-          operation: 'create',
-          outcome: 'created',
-          status: true,
-          createdAt: '2026-05-25T00:00:30.000Z',
-        }]);
+          contentHash: 'hash-1',
+          attempt: 1,
+          status: 'failed',
+          recordCount: 2,
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          duplicate: false,
+          submittedAt: '2026-05-25T00:00:00.000Z',
+          completedAt: '2026-05-25T00:01:00.000Z',
+          responseSummary: { totalProcessed: 1, created: 1, updated: 0, deleted: 0, unchanged: 0, failed: 0 },
+          errorMessage: 'write failed',
+        },
+      ])
+    );
+    (global as any).HarvestRecordEvent.find.callsFake((criteria: any) => {
+      if (criteria?.chunkId?.in?.includes('chunk-1')) {
+        return createChainableQuery([
+          {
+            id: 'event-1',
+            runId: 'run-1',
+            chunkId: 'chunk-1',
+            brandId: 'brand-1',
+            recordType: 'dataset',
+            sourceRunId: 'source-run-1',
+            harvestId: 'harvest-1',
+            oid: 'record-1',
+            operation: 'create',
+            outcome: 'created',
+            status: true,
+            createdAt: '2026-05-25T00:00:30.000Z',
+          },
+        ]);
       }
       return createChainableQuery([]);
     });
@@ -558,7 +574,12 @@ describe('HarvestRunService', function () {
     (global as any).HarvestRecordEvent.createEach.resolves([{ id: 'event-2' }]);
     (global as any).Record.find.callsFake(() => ({
       meta: sinon.stub().resolves([
-        { harvestId: 'harvest-1', redboxOid: 'record-1', metadata: { title: 'Existing' }, metaMetadata: { brandId: 'brand-1', type: 'dataset' } },
+        {
+          harvestId: 'harvest-1',
+          redboxOid: 'record-1',
+          metadata: { title: 'Existing' },
+          metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+        },
       ]),
     }));
     recordsService.create.resolves({
@@ -640,7 +661,12 @@ describe('HarvestRunService', function () {
     (global as any).HarvestRecordEvent.createEach.resolves([{ id: 'event-1' }]);
     (global as any).Record.find.callsFake(() => ({
       meta: sinon.stub().resolves([
-        { harvestId: 'harvest-1', redboxOid: 'record-1', metadata: { title: 'Existing' }, metaMetadata: { brandId: 'brand-1', type: 'dataset' } },
+        {
+          harvestId: 'harvest-1',
+          redboxOid: 'record-1',
+          metadata: { title: 'Existing' },
+          metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+        },
       ]),
     }));
     recordsService.delete.resolves({
@@ -757,7 +783,7 @@ describe('HarvestRunService', function () {
       metadata: { title: 'Existing', description: 'To remove' },
       authorization: { edit: true },
     });
-    recordsService.updateMeta.resolves({
+    recordsService.updateMetaInternal.resolves({
       oid: 'record-1',
       message: 'Updated',
       details: '',
@@ -778,7 +804,7 @@ describe('HarvestRunService', function () {
       { username: 'tester' }
     );
 
-    expect(recordsService.updateMeta.calledOnce).to.equal(true);
+    expect(recordsService.updateMetaInternal.calledOnce).to.equal(true);
     expect(response.chunk.responseSummary).to.deep.include({ updated: 1, unchanged: 0 });
   });
 
@@ -885,8 +911,10 @@ describe('HarvestRunService', function () {
       lastChunkAt: '2026-05-25T00:05:00.000Z',
     });
     (global as any).HarvestRun.updateOne
-      .onFirstCall().returns({ set: firstSet })
-      .onSecondCall().returns({ set: secondSet });
+      .onFirstCall()
+      .returns({ set: firstSet })
+      .onSecondCall()
+      .returns({ set: secondSet });
     (global as any).HarvestRun.findOne.onFirstCall().resolves({
       id: 'run-1',
       brandId: 'brand-1',
@@ -963,8 +991,12 @@ describe('HarvestRunService', function () {
   });
 
   it('treats asymmetric metadata field removal as a real change', function () {
-    expect(service.isMetadataEqual({ title: 'Existing' }, { title: 'Existing', description: 'To remove' })).to.equal(false);
-    expect(service.isMetadataEqual({ title: 'Existing', description: 'To remove' }, { title: 'Existing' })).to.equal(false);
+    expect(service.isMetadataEqual({ title: 'Existing' }, { title: 'Existing', description: 'To remove' })).to.equal(
+      false
+    );
+    expect(service.isMetadataEqual({ title: 'Existing', description: 'To remove' }, { title: 'Existing' })).to.equal(
+      false
+    );
   });
 
   it('atomically increments run counters when a datastore manager is available', async function () {
@@ -1041,11 +1073,7 @@ describe('HarvestRunService', function () {
           failed: { $add: [{ $ifNull: ['$failed', 0] }, 1] },
           chunksProcessed: { $add: [{ $ifNull: ['$chunksProcessed', 0] }, 1] },
           status: {
-            $cond: [
-              { $eq: ['$status', 'completed'] },
-              'completed_with_errors',
-              '$status',
-            ],
+            $cond: [{ $eq: ['$status', 'completed'] }, 'completed_with_errors', '$status'],
           },
         },
       },
@@ -1080,14 +1108,17 @@ describe('HarvestRunService', function () {
     });
     (global as any).HarvestRun.getDatastore.returns({
       manager: {
-        collection: sinon.stub().withArgs('harvestrun').returns({
-          findOneAndUpdate,
-          s: {
-            pkFactory: {
-              createPk: () => new ObjectId(),
+        collection: sinon
+          .stub()
+          .withArgs('harvestrun')
+          .returns({
+            findOneAndUpdate,
+            s: {
+              pkFactory: {
+                createPk: () => new ObjectId(),
+              },
             },
-          },
-        }),
+          }),
       },
     });
 
@@ -1132,57 +1163,65 @@ describe('HarvestRunService', function () {
 
   it('lists runs and events with brand-scoped filters', async function () {
     (global as any).HarvestRun.count.resolves(2);
-    (global as any).HarvestRun.find.returns(createChainableQuery([
-      {
-        id: 'run-1',
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceName: 'source-a',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        startedAt: '2026-05-25T00:00:00.000Z',
-        totalProcessed: 1,
-        created: 1,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        chunksProcessed: 1,
-        duplicateChunks: 0,
-      },
-    ]));
+    (global as any).HarvestRun.find.returns(
+      createChainableQuery([
+        {
+          id: 'run-1',
+          brandId: 'brand-1',
+          recordType: 'dataset',
+          sourceName: 'source-a',
+          sourceRunId: 'source-run-1',
+          status: 'running',
+          startedAt: '2026-05-25T00:00:00.000Z',
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 1,
+          duplicateChunks: 0,
+        },
+      ])
+    );
     (global as any).HarvestRecordEvent.count.resolves(1);
-    (global as any).HarvestRecordEvent.find.returns(createChainableQuery([
-      {
-        id: 'event-1',
-        runId: 'run-1',
-        chunkId: 'chunk-1',
-        brandId: 'brand-1',
-        recordType: 'dataset',
-        sourceRunId: 'source-run-1',
-        harvestId: 'harvest-1',
-        oid: 'record-1',
-        operation: 'upsert',
-        outcome: 'created',
-        status: true,
-        message: 'Record created successfully',
-        details: '',
-        createdAt: '2026-05-25T00:01:00.000Z',
-      },
-    ]));
+    (global as any).HarvestRecordEvent.find.returns(
+      createChainableQuery([
+        {
+          id: 'event-1',
+          runId: 'run-1',
+          chunkId: 'chunk-1',
+          brandId: 'brand-1',
+          recordType: 'dataset',
+          sourceRunId: 'source-run-1',
+          harvestId: 'harvest-1',
+          oid: 'record-1',
+          operation: 'upsert',
+          outcome: 'created',
+          status: true,
+          message: 'Record created successfully',
+          details: '',
+          createdAt: '2026-05-25T00:01:00.000Z',
+        },
+      ])
+    );
 
     const runs = await service.listRuns(
       { id: 'brand-1', name: 'default' },
       { brandId: 'brand-1', page: 1, pageSize: 20 }
     );
-    const events = await service.listRunEvents(
-      { id: 'brand-1', name: 'default' },
-      'run-1',
-      { runId: 'run-1', brandId: 'brand-1', page: 1, pageSize: 20 }
-    );
+    const events = await service.listRunEvents({ id: 'brand-1', name: 'default' }, 'run-1', {
+      runId: 'run-1',
+      brandId: 'brand-1',
+      page: 1,
+      pageSize: 20,
+    });
 
     expect((global as any).HarvestRun.find.firstCall.args[0]).to.deep.equal({ brandId: 'brand-1' });
-    expect((global as any).HarvestRecordEvent.find.firstCall.args[0]).to.deep.equal({ runId: 'run-1', brandId: 'brand-1' });
+    expect((global as any).HarvestRecordEvent.find.firstCall.args[0]).to.deep.equal({
+      runId: 'run-1',
+      brandId: 'brand-1',
+    });
     expect(runs.total).to.equal(2);
     expect(runs.rows[0].sourceRunId).to.equal('source-run-1');
     expect(events.total).to.equal(1);

@@ -17,11 +17,16 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom, map } from 'rxjs';
+import {
+  resolveRecordConcurrentModificationConfig,
+  type RecordConcurrentModificationConfig,
+  type RecordConcurrentModificationMode,
+} from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
-
+import { assertStorageConcurrencyCapabilityForMode, type StorageCapabilityProvider } from '../RecordStorageConcurrency';
 
 export namespace Services {
   /**
@@ -31,77 +36,100 @@ export namespace Services {
    *
    */
   export class RecordTypes extends services.Core.Service {
-
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'create',
       'get',
       'getAll',
-      'getAllCache'
+      'getAllCache',
+      'assertConcurrentModificationCapability',
+      'resolveConcurrentModificationMode',
+      'resolveConcurrentModificationPolicy',
     ];
 
-    protected recordTypes!:RecordTypeModel[];
+    protected recordTypes!: RecordTypeModel[];
 
-    public async bootstrap (defBrand:BrandingModel):Promise<RecordTypeModel[]> {
-      let recordTypes:RecordTypeModel[] = await RecordType.find({branding:defBrand.id}) as unknown as RecordTypeModel[];
+    public async bootstrap(defBrand: BrandingModel): Promise<RecordTypeModel[]> {
+      let recordTypes: RecordTypeModel[] = (await RecordType.find({
+        branding: defBrand.id,
+      })) as unknown as RecordTypeModel[];
       if (sails.config.appmode.bootstrapAlways) {
-        await RecordType.destroy({branding:defBrand.id});
-        recordTypes  = [];
+        await RecordType.destroy({ branding: defBrand.id });
+        recordTypes = [];
       }
-        if (_.isUndefined(recordTypes)) {
-          recordTypes = [];
+      if (_.isUndefined(recordTypes)) {
+        recordTypes = [];
+      }
+      sails.log.debug(
+        `RecordTypes found: ${recordTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`
+      );
+      if (_.isEmpty(recordTypes)) {
+        // var rTypesObs = [];
+        sails.log.verbose('Bootstrapping record type definitions... ');
+        // _.forOwn(sails.config.recordtype, (config, recordType) => {
+        //   recordTypes.push(recordType);
+        //   var obs = this.create(defBrand, recordType, config);
+        //   rTypesObs.push(obs);
+        // });
+
+        const rTypes = [];
+        for (const recordType in sails.config.recordtype) {
+          const config: RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
+          rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)));
         }
-        sails.log.debug(`RecordTypes found: ${recordTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
-        if (_.isEmpty(recordTypes)) {
-          // var rTypesObs = [];
-          sails.log.verbose("Bootstrapping record type definitions... ");
-          // _.forOwn(sails.config.recordtype, (config, recordType) => {
-          //   recordTypes.push(recordType);
-          //   var obs = this.create(defBrand, recordType, config);
-          //   rTypesObs.push(obs);
-          // });
-
-          this.recordTypes= recordTypes;
-          const rTypes = [];
-          for(const recordType in sails.config.recordtype) {
-            const config:RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
-            rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)))
-          }    
-          return rTypes;
-        } 
-          sails.log.verbose("Default recordTypes definition(s) exist.");
-          sails.log.verbose(JSON.stringify(recordTypes));
-          this.recordTypes = recordTypes;
-          return recordTypes;
+        this.recordTypes = rTypes;
+        this.assertStrictStorageCapabilities(rTypes);
+        return rTypes;
+      }
+      sails.log.verbose('Default recordTypes definition(s) exist.');
+      sails.log.verbose(JSON.stringify(recordTypes));
+      this.recordTypes = recordTypes;
+      this.assertStrictStorageCapabilities(recordTypes);
+      return recordTypes;
     }
 
-    public create(brand:BrandingModel, name:string, config: RecordTypeModel & { dashboard?: unknown }):Observable<RecordTypeModel> {
-    
-      return super.getObservable(RecordType.create({
-        name: name,
-        branding: brand.id,
-        packageType: config.packageType,
-        searchCore: config.searchCore,
-        searchFilters: config.searchFilters,
-        hooks: config.hooks,
-        transferResponsibility: config.transferResponsibility,
-        relatedTo: config.relatedTo,
-        searchable: config.searchable,
-        dashboard: config.dashboard,
-        recordValidation: config.recordValidation,
-      }));
+    /**
+     * Persist a record type from configuration.  Concurrency policy is
+     * normalized here, at the boundary where configuration enters storage, so
+     * a malformed mode fails the lift instead of being discovered by the first
+     * conditional write.
+     */
+    public create(
+      brand: BrandingModel,
+      name: string,
+      config: RecordTypeModel & { dashboard?: unknown }
+    ): Observable<RecordTypeModel> {
+      const concurrentModification = resolveRecordConcurrentModificationConfig(config.concurrentModification);
+      return super.getObservable(
+        RecordType.create({
+          name: name,
+          branding: brand.id,
+          packageType: config.packageType,
+          searchCore: config.searchCore,
+          searchFilters: config.searchFilters,
+          hooks: config.hooks,
+          transferResponsibility: config.transferResponsibility,
+          relatedTo: config.relatedTo,
+          searchable: config.searchable,
+          dashboard: config.dashboard,
+          recordValidation: config.recordValidation,
+          concurrentModification,
+        }).fetch()
+      );
     }
 
-    public get(brand:BrandingModel, name:string, fields: string[] | null = null): Observable<RecordTypeModel> {
-      const criteria: { where: { branding: string; name: string }; select?: string[] } = {where: {branding: brand.id, name: name}};
+    public get(brand: BrandingModel, name: string, fields: string[] | null = null): Observable<RecordTypeModel> {
+      const criteria: { where: { branding: string; name: string }; select?: string[] } = {
+        where: { branding: brand.id, name: name },
+      };
       if (fields) {
         criteria.select = fields;
       }
       return super.getObservable(RecordType.findOne(criteria));
     }
 
-    public getAll(brand:BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
-      const criteria: { where: { branding: string }; select?: string[] } = {where: {branding: brand.id}};
+    public getAll(brand: BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
+      const criteria: { where: { branding: string }; select?: string[] } = { where: { branding: brand.id } };
       if (fields) {
         criteria.select = fields;
       }
@@ -110,7 +138,56 @@ export namespace Services {
 
     public getAllCache(): RecordTypeModel[] {
       return this.recordTypes;
-        }
+    }
+
+    private configuredStorageService(): StorageCapabilityProvider | undefined {
+      const serviceName = String((sails.config.storage as { serviceName?: string } | undefined)?.serviceName ?? '');
+      return serviceName ? (sails.services?.[serviceName] as StorageCapabilityProvider | undefined) : undefined;
+    }
+
+    private assertStrictStorageCapabilities(recordTypes: RecordTypeModel[]): void {
+      for (const recordType of recordTypes) {
+        const policy = resolveRecordConcurrentModificationConfig(recordType.concurrentModification);
+        this.assertConcurrentModificationCapability(policy.mode);
+      }
+    }
+
+    /** Used both at startup and again when a mutation resolves current policy. */
+    public assertConcurrentModificationCapability(mode: RecordConcurrentModificationMode): void {
+      assertStorageConcurrencyCapabilityForMode(mode, this.configuredStorageService());
+    }
+
+    /**
+     * Resolve concurrency policy from the authoritative stored record type.
+     *
+     * This reads storage on every call, so an administrator's policy change
+     * applies to existing records the next time one of their requests resolves
+     * policy.  Request bodies, headers, and save candidates never reach this
+     * boundary, and an unresolvable or malformed policy fails closed rather
+     * than silently degrading to last-write-wins.
+     */
+    public resolveConcurrentModificationPolicy(
+      brand: BrandingModel,
+      name: string
+    ): Observable<RecordConcurrentModificationConfig> {
+      return this.get(brand, name, ['concurrentModification']).pipe(
+        map(recordType => {
+          if (!recordType) {
+            throw new Error(`Record type '${name}' could not be resolved for concurrency policy.`);
+          }
+          const policy = resolveRecordConcurrentModificationConfig(recordType.concurrentModification);
+          this.assertConcurrentModificationCapability(policy.mode);
+          return policy;
+        })
+      );
+    }
+
+    public resolveConcurrentModificationMode(
+      brand: BrandingModel,
+      name: string
+    ): Observable<RecordConcurrentModificationMode> {
+      return this.resolveConcurrentModificationPolicy(brand, name).pipe(map(policy => policy.mode));
+    }
   }
 }
 
