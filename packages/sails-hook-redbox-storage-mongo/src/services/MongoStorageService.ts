@@ -25,6 +25,7 @@ import {
   IntegrationAuditModel,
   IntegrationAuditParams,
   RecordModel,
+  type DeletedRecordModel,
   BrandingModel,
   UserModel,
   RoleModel,
@@ -34,6 +35,7 @@ import {
   INITIAL_RECORD_REVISION,
   isCanonicalSaveRequestId,
   isDeletedRecordLifecycleOperation,
+  isDeletedRecordLifecycleOperationForState,
   isDeletedRecordLifecycleState,
   isRecordConcurrencyResolution,
   isRecordRevision,
@@ -120,8 +122,12 @@ export namespace Services {
       'updateMeta',
       'getCapabilities',
       'removeActiveRecord',
+      'createTombstone',
       'updateTombstone',
       'removeTombstone',
+      'createActiveRecordFromTombstone',
+      'getTombstone',
+      'getLifecycleTombstones',
       'getMeta',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
@@ -220,7 +226,10 @@ export namespace Services {
     public getCapabilities(): StorageServiceCapabilities {
       const supported =
         this.supportsAtomicMutation(this.getNativeRecordCollection()) &&
-        this.supportsAtomicMutation(this.getNativeTombstoneCollection());
+        this.supportsAtomicMutation(this.getNativeTombstoneCollection()) &&
+        typeof this.getNativeRecordCollection()?.insertOne === 'function' &&
+        typeof this.getNativeTombstoneCollection()?.insertOne === 'function' &&
+        typeof this.getNativeTombstoneCollection()?.find === 'function';
       return supported ? { recordConcurrency: { ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } } : {};
     }
 
@@ -297,6 +306,26 @@ export namespace Services {
       return { $and: [identity, this.revisionSelector(expectedRevision)] } as Filter<MongoRecordDocument>;
     }
 
+    private lifecycleMutationSelector(
+      identity: JsonMap,
+      expectedRevision: number | undefined,
+      options?: RecordStorageMutationOptions
+    ): Filter<MongoRecordDocument> {
+      const selector = this.mutationSelector(identity, expectedRevision) as JsonMap;
+      const predicates = selector.$and as JsonMap[];
+      if (options?.lifecycle?.expectedState) {
+        predicates.push({ lifecycleState: options.lifecycle.expectedState });
+      }
+      if (options?.lifecycle?.operationId) {
+        predicates.push({ 'lifecycleOperation.operationId': options.lifecycle.operationId });
+      }
+      return selector as Filter<MongoRecordDocument>;
+    }
+
+    private isDuplicateKeyError(error: unknown): boolean {
+      return Boolean(error && typeof error === 'object' && Number((error as JsonMap).code) === 11000);
+    }
+
     /**
      * Interpret a `findOneAndUpdate`/`findOneAndDelete` result issued with
      * `includeResultMetadata: false`: `null` is a certified no-match and a
@@ -356,11 +385,17 @@ export namespace Services {
     private tombstoneIdentity(brand: BrandingModel | null | undefined, oid: string): JsonMap {
       const brandId = this.brandIdOf(brand);
       // Tombstones written before the lifecycle wrapper existed only carry the
-      // brand inside the embedded snapshot.
+      // brand inside the embedded snapshot. A present wrapper brand remains
+      // authoritative: an inconsistent snapshot must never widen brand scope.
       return brandId
         ? {
             redboxOid: oid,
-            $or: [{ brandId }, { 'deletedRecordMetadata.metaMetadata.brandId': brandId }],
+            $or: [
+              { brandId },
+              {
+                $and: [{ brandId: { $exists: false } }, { 'deletedRecordMetadata.metaMetadata.brandId': brandId }],
+              },
+            ],
           }
         : { redboxOid: oid };
     }
@@ -436,19 +471,30 @@ export namespace Services {
       return 'not-found';
     }
 
-    private async classifyTombstoneNoMatch(
+    private async classifyLifecycleTombstoneNoMatch(
       brand: BrandingModel | null | undefined,
       oid: string,
-      expectedRevision: number | undefined
+      expectedRevision: number | undefined,
+      options?: RecordStorageMutationOptions
     ): Promise<StorageMutationNonApplicationReason> {
       const current = await this.readCurrentState(oid);
       if (!current) return 'capability-unavailable';
       const requestedBrandId = this.brandIdOf(brand);
       if (current.tombstone) {
         if (!this.isRequestedBrand(current.tombstone, requestedBrandId)) return 'brand-mismatch';
-        return expectedRevision !== undefined ? 'stale-revision' : 'lifecycle-conflict';
+        const currentRevision = isRecordRevision(current.tombstone.revision)
+          ? current.tombstone.revision
+          : INITIAL_RECORD_REVISION;
+        if (expectedRevision !== undefined && currentRevision !== expectedRevision) return 'stale-revision';
+        if (
+          (options?.lifecycle?.expectedState && current.tombstone.lifecycleState !== options.lifecycle.expectedState) ||
+          (options?.lifecycle?.operationId &&
+            _.get(current.tombstone, 'lifecycleOperation.operationId') !== options.lifecycle.operationId)
+        ) {
+          return 'lifecycle-conflict';
+        }
+        return 'capability-unavailable';
       }
-      // The record is live again, so the lifecycle moved on under the caller.
       if (this.isRequestedBrand(current.active, requestedBrandId)) return 'lifecycle-conflict';
       return 'not-found';
     }
@@ -609,7 +655,15 @@ export namespace Services {
       const candidate = _.cloneDeep(record);
       // Identity, creation, and revision are owned by storage, never by the
       // candidate; lastSaveDate is reissued with the committing write.
-      for (const field of ['_id', 'id', 'redboxOid', 'revision', 'dateCreated', 'lastSaveDate']) {
+      for (const field of [
+        '_id',
+        'id',
+        'redboxOid',
+        'revision',
+        'lifecycleOperationId',
+        'dateCreated',
+        'lastSaveDate',
+      ]) {
         _.unset(candidate, field);
       }
 
@@ -723,6 +777,90 @@ export namespace Services {
       });
     }
 
+    public async createTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      record: JsonMap,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      if (expectedRevision === null) return response;
+      if (expectedRevision === undefined || !isCanonicalSaveRequestId(options?.lifecycle?.operationId)) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact lifecycle intent ownership is required');
+      }
+      const collection = this.getNativeTombstoneCollection();
+      if (!this.supportsAtomicMutation(collection) || typeof collection.insertOne !== 'function') {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic tombstone creation is unavailable');
+      }
+
+      const candidate = _.cloneDeep(record);
+      for (const field of ['_id', 'id']) _.unset(candidate, field);
+      const operation = candidate.lifecycleOperation;
+      const targetRevision = nextRecordRevision(expectedRevision);
+      const expectedState = options.lifecycle.expectedState;
+      if (
+        candidate.redboxOid !== oid ||
+        candidate.revision !== targetRevision ||
+        !isDeletedRecordLifecycleState(candidate.lifecycleState) ||
+        !isDeletedRecordLifecycleOperation(operation) ||
+        (expectedState !== 'delete-pending' && expectedState !== 'purge-pending') ||
+        candidate.lifecycleState !== expectedState ||
+        !isDeletedRecordLifecycleOperationForState(candidate.lifecycleState, operation.kind) ||
+        operation.operationId !== options.lifecycle.operationId ||
+        operation.sourceRevision !== expectedRevision ||
+        operation.targetRevision !== targetRevision
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle intent is invalid');
+      }
+      const requestedBrandId = this.brandIdOf(brand);
+      const candidateBrandId = String(candidate.brandId ?? '').trim();
+      const snapshotBrandId = String(_.get(candidate, 'deletedRecordMetadata.metaMetadata.brandId', '') ?? '').trim();
+      if (requestedBrandId && (candidateBrandId !== requestedBrandId || snapshotBrandId !== requestedBrandId)) {
+        return this.notApplied(response, 'brand-mismatch', 'Tombstone was not found');
+      }
+      if (
+        !candidate.deletedRecordMetadata ||
+        typeof candidate.deletedRecordMetadata !== 'object' ||
+        Array.isArray(candidate.deletedRecordMetadata) ||
+        _.get(candidate, 'deletedRecordMetadata.redboxOid') !== oid
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone record snapshot is invalid');
+      }
+      _.unset(candidate, 'deletedRecordMetadata.revision');
+
+      try {
+        await collection.insertOne(candidate);
+        return this.committed(response, candidate, 'updated', expectedRevision);
+      } catch (error) {
+        if (!this.isDuplicateKeyError(error)) {
+          return this.unknownMutation(response, this.getErrorMessage(error));
+        }
+        try {
+          const existing = this.mutationDocument(await collection.findOne({ redboxOid: oid }));
+          if (existing === undefined)
+            return this.unknownMutation(response, 'Tombstone ownership could not be observed');
+          if (existing === null) return this.notApplied(response, 'lifecycle-conflict');
+          if (!this.isRequestedBrand(existing, requestedBrandId)) return this.notApplied(response, 'brand-mismatch');
+          const existingOperation = existing.lifecycleOperation;
+          if (
+            !isRecordRevision(existing.revision) ||
+            existing.revision < targetRevision ||
+            !isDeletedRecordLifecycleState(existing.lifecycleState) ||
+            !isDeletedRecordLifecycleOperation(existingOperation) ||
+            !isDeletedRecordLifecycleOperationForState(existing.lifecycleState, existingOperation.kind) ||
+            existingOperation.operationId !== options.lifecycle.operationId ||
+            existingOperation.kind !== operation.kind
+          ) {
+            return this.notApplied(response, 'lifecycle-conflict');
+          }
+          return this.committed(response, existing, 'updated');
+        } catch (readError) {
+          return this.unknownMutation(response, this.getErrorMessage(readError));
+        }
+      }
+    }
+
     public async updateTombstone(
       brand: BrandingModel | null | undefined,
       oid: string,
@@ -739,6 +877,9 @@ export namespace Services {
       if (!this.supportsAtomicMutation(collection)) {
         return this.notApplied(response, 'capability-unavailable', 'Atomic tombstone update is unavailable');
       }
+      if (expectedRevision === undefined || !options?.lifecycle?.expectedState) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact lifecycle state and revision are required');
+      }
 
       const candidate = _.cloneDeep(record);
       for (const field of ['_id', 'id', 'redboxOid', 'revision', 'dateDeleted']) _.unset(candidate, field);
@@ -746,23 +887,18 @@ export namespace Services {
         sails.log.error(`${this.logHeader} refusing a tombstone update for oid ${oid}: unsupported candidate field`);
         return this.notApplied(response, 'capability-unavailable', 'Tombstone candidate contains an unsupported field');
       }
-      if (candidate.lifecycleState !== undefined && !isDeletedRecordLifecycleState(candidate.lifecycleState)) {
+      if (!isDeletedRecordLifecycleState(candidate.lifecycleState)) {
         return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle state is invalid');
       }
-      if (candidate.lifecycleOperation !== undefined && candidate.lifecycleOperation !== null) {
-        if (typeof candidate.lifecycleOperation !== 'object' || Array.isArray(candidate.lifecycleOperation)) {
-          return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle operation is invalid');
-        }
-        const operation = candidate.lifecycleOperation as JsonMap;
-        if (isCanonicalSaveRequestId(options?.requestId)) operation.requestId = options.requestId;
-        if (
-          !isDeletedRecordLifecycleOperation(operation) ||
-          expectedRevision === undefined ||
-          operation.sourceRevision !== expectedRevision ||
-          operation.targetRevision !== nextRecordRevision(expectedRevision)
-        ) {
-          return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle operation is invalid');
-        }
+      const operation = candidate.lifecycleOperation;
+      if (
+        !isDeletedRecordLifecycleOperation(operation) ||
+        !isDeletedRecordLifecycleOperationForState(candidate.lifecycleState, operation.kind) ||
+        operation.sourceRevision > expectedRevision ||
+        operation.targetRevision !== nextRecordRevision(expectedRevision) ||
+        (options.lifecycle.operationId !== undefined && operation.operationId !== options.lifecycle.operationId)
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle operation is invalid');
       }
       if (
         candidate.deletedRecordMetadata !== undefined &&
@@ -798,11 +934,11 @@ export namespace Services {
         kind: 'updated',
         dispatch: () =>
           collection.findOneAndUpdate(
-            this.mutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision),
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options),
             { $set: candidate, $inc: { revision: 1 } },
             { returnDocument: 'after', includeResultMetadata: false }
           ),
-        classify: () => this.classifyTombstoneNoMatch(brand, oid, expectedRevision),
+        classify: () => this.classifyLifecycleTombstoneNoMatch(brand, oid, expectedRevision, options),
         expectedRevision,
       });
     }
@@ -815,6 +951,13 @@ export namespace Services {
       const response = this.createMutationResponse(oid, options);
       const expectedRevision = this.expectedRevision(options, response);
       if (expectedRevision === null) return response;
+      if (
+        expectedRevision === undefined ||
+        !options?.lifecycle?.expectedState ||
+        !isCanonicalSaveRequestId(options.lifecycle.operationId)
+      ) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact lifecycle removal ownership is required');
+      }
       const collection = this.getNativeTombstoneCollection();
       if (!this.supportsAtomicMutation(collection)) {
         return this.notApplied(response, 'capability-unavailable', 'Atomic tombstone removal is unavailable');
@@ -824,12 +967,152 @@ export namespace Services {
         response,
         kind: 'removed',
         dispatch: () =>
-          collection.findOneAndDelete(this.mutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision), {
-            includeResultMetadata: false,
-          }),
-        classify: () => this.classifyTombstoneNoMatch(brand, oid, expectedRevision),
+          collection.findOneAndDelete(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options),
+            { includeResultMetadata: false }
+          ),
+        classify: () => this.classifyLifecycleTombstoneNoMatch(brand, oid, expectedRevision, options),
         expectedRevision,
       });
+    }
+
+    public async createActiveRecordFromTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      record: JsonMap,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      const operationId = options?.lifecycle?.operationId;
+      if (
+        expectedRevision === null ||
+        expectedRevision === undefined ||
+        !isCanonicalSaveRequestId(operationId) ||
+        (options?.lifecycle?.expectedState !== 'restore-pending' &&
+          options?.lifecycle?.expectedState !== 'recovery-required')
+      ) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact restore ownership is required');
+      }
+      const records = this.getNativeRecordCollection();
+      const tombstones = this.getNativeTombstoneCollection();
+      if (
+        !this.supportsAtomicMutation(records) ||
+        !this.supportsAtomicMutation(tombstones) ||
+        typeof records.insertOne !== 'function'
+      ) {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic restore creation is unavailable');
+      }
+
+      let claimed: JsonMap | null | undefined;
+      try {
+        claimed = this.mutationDocument(
+          await tombstones.findOne(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options)
+          )
+        );
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+      if (claimed === undefined) return this.unknownMutation(response, 'Restore ownership could not be observed');
+      if (claimed === null) {
+        const reason = await this.classifyLifecycleTombstoneNoMatch(brand, oid, expectedRevision, options).catch(
+          () => 'capability-unavailable' as const
+        );
+        return this.notApplied(response, reason);
+      }
+
+      const targetRevision = nextRecordRevision(expectedRevision);
+      const claimedOperation = claimed.lifecycleOperation;
+      const claimedSnapshot = claimed.deletedRecordMetadata;
+      if (
+        !isDeletedRecordLifecycleState(claimed.lifecycleState) ||
+        !isDeletedRecordLifecycleOperation(claimedOperation) ||
+        !isDeletedRecordLifecycleOperationForState(claimed.lifecycleState, claimedOperation.kind) ||
+        claimedOperation.kind !== 'restore' ||
+        claimedOperation.operationId !== operationId ||
+        claimedOperation.targetRevision !== expectedRevision ||
+        !claimedSnapshot ||
+        typeof claimedSnapshot !== 'object' ||
+        Array.isArray(claimedSnapshot)
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Claimed restore state is invalid');
+      }
+
+      const restoredInput = _.cloneDeep(record);
+      const restored = _.cloneDeep(claimedSnapshot as JsonMap);
+      for (const field of ['_id', 'id', 'revision', 'lifecycleOperationId', 'lastSaveDate']) {
+        _.unset(restored, field);
+      }
+      const requestedBrandId = this.brandIdOf(brand);
+      if (
+        restoredInput.redboxOid !== oid ||
+        restored.redboxOid !== oid ||
+        (requestedBrandId &&
+          (String(_.get(restoredInput, 'metaMetadata.brandId', '') ?? '').trim() !== requestedBrandId ||
+            String(_.get(restored, 'metaMetadata.brandId', '') ?? '').trim() !== requestedBrandId))
+      ) {
+        return this.notApplied(response, 'brand-mismatch', 'Record was not found');
+      }
+      if (this.unsafeCandidateField(restored) !== undefined) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Restored record contains an unsupported field');
+      }
+      const candidate = {
+        ...restored,
+        redboxOid: oid,
+        revision: targetRevision,
+        lifecycleOperationId: operationId,
+        lastSaveDate: new Date().toISOString(),
+      };
+      try {
+        await records.insertOne(candidate);
+        return this.committed(response, candidate, 'updated', expectedRevision);
+      } catch (error) {
+        if (!this.isDuplicateKeyError(error)) {
+          return this.unknownMutation(response, this.getErrorMessage(error));
+        }
+        try {
+          const existing = this.mutationDocument(await records.findOne({ redboxOid: oid }));
+          if (existing === undefined)
+            return this.unknownMutation(response, 'Restored active state could not be observed');
+          if (existing === null) return this.notApplied(response, 'lifecycle-conflict');
+          if (!this.isRequestedBrand(existing, requestedBrandId)) return this.notApplied(response, 'brand-mismatch');
+          if (
+            existing.lifecycleOperationId !== operationId ||
+            !isRecordRevision(existing.revision) ||
+            existing.revision < targetRevision
+          ) {
+            return this.notApplied(response, 'lifecycle-conflict');
+          }
+          return this.committed(response, existing, 'updated');
+        } catch (readError) {
+          return this.unknownMutation(response, this.getErrorMessage(readError));
+        }
+      }
+    }
+
+    public async getTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string
+    ): Promise<DeletedRecordModel | null> {
+      if (!oid.trim()) throw new Error(`${this.logHeader} getTombstone() -> refusing to search using an empty OID`);
+      const collection = this.getNativeTombstoneCollection();
+      if (typeof collection?.findOne !== 'function') throw new Error('Tombstone reads are unavailable');
+      const result = this.mutationDocument(await collection.findOne(this.tombstoneIdentity(brand, oid)));
+      if (result === undefined) throw new Error('Storage returned an unrecognized tombstone result');
+      return result as unknown as DeletedRecordModel | null;
+    }
+
+    public async getLifecycleTombstones(states: readonly string[], limit = 100): Promise<DeletedRecordModel[]> {
+      const normalizedStates = states.filter(isDeletedRecordLifecycleState);
+      if (normalizedStates.length === 0) return [];
+      const collection = this.getNativeTombstoneCollection();
+      if (typeof collection?.find !== 'function') throw new Error('Lifecycle recovery scans are unavailable');
+      const boundedLimit = Math.max(1, Math.min(Number.isSafeInteger(limit) ? limit : 100, 1000));
+      return (await collection
+        .find({ lifecycleState: { $in: normalizedStates } })
+        .limit(boundedLimit)
+        .toArray()) as unknown as DeletedRecordModel[];
     }
 
     public async getMeta(oid: string): Promise<RecordModel> {
@@ -1131,73 +1414,16 @@ export namespace Services {
         targetRecordType: relationship.recordType,
       };
     }
-    /**
-     * Build the tombstone for a soft delete. Its lifecycle revision is strictly
-     * newer than the active revision it replaces, so a token issued before the
-     * deletion can never match the tombstone — nor, after a restore advances
-     * the lineage again, the record that comes back.
-     */
-    private buildTombstone(record: JsonMap): JsonMap {
-      const activeRevision = isRecordRevision(record.revision) ? record.revision : INITIAL_RECORD_REVISION;
-      const deletedRecordMetadata = _.cloneDeep(record);
-      for (const field of ['_id', 'id', 'revision']) _.unset(deletedRecordMetadata, field);
-      return {
-        redboxOid: record.redboxOid,
-        revision: nextRecordRevision(activeRevision),
-        brandId: this.storedBrandId(record) || undefined,
-        lifecycleState: 'deleted',
-        deletedRecordMetadata,
-        dateDeleted: new Date().toISOString(),
-      };
-    }
-
     public async delete(
       oid: string,
-      permanentlyDelete: boolean = false,
+      _permanentlyDelete: boolean = false,
       options?: RecordStorageMutationOptions
     ): Promise<StorageServiceResponse> {
-      if (options?.precondition) {
-        return this.notApplied(
-          this.createMutationResponse(oid, options),
-          'capability-unavailable',
-          'Conditional lifecycle delete requires staged lifecycle orchestration'
-        );
-      }
-      const response = new StorageServiceResponse();
-
-      try {
-        if (permanentlyDelete) {
-          const datastreams = await this.listDatastreams(oid, null);
-          if (_.size(datastreams) > 0) {
-            _.each(datastreams, async file => {
-              sails.log.verbose(`Deleting:`);
-              sails.log.verbose(JSON.stringify(file));
-              try {
-                await this.gridFsBucket.delete(file['_id'] as mongodb.ObjectId);
-              } catch (err) {
-                sails.log.error(`Error deleting: ${file['_id']}`);
-                sails.log.error(JSON.stringify(err));
-              }
-            });
-          }
-        } else {
-          const record = (await this.getMeta(oid)) as JsonMap;
-          const tombstones = this.getNativeTombstoneCollection();
-          if (typeof tombstones?.insertOne !== 'function') {
-            throw new Error('Atomic tombstone creation is unavailable');
-          }
-          await tombstones.insertOne(this.buildTombstone(record));
-        }
-        await Record.destroyOne({ redboxOid: oid });
-        response.success = true;
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to delete record: ${oid}`);
-        sails.log.error(JSON.stringify(err));
-        response.success = false;
-        response.message = err.message;
-      }
-
-      return response;
+      return this.notApplied(
+        this.createMutationResponse(oid, options),
+        'capability-unavailable',
+        'Record deletion requires staged lifecycle orchestration'
+      );
     }
 
     public async updateNotificationLog(oid: string, record: JsonMap, options: JsonMap): Promise<unknown> {
@@ -2134,86 +2360,19 @@ export namespace Services {
     }
 
     async restoreRecord(oid: string, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse> {
-      if (options?.precondition) {
-        return this.notApplied(
-          this.createMutationResponse(oid, options),
-          'capability-unavailable',
-          'Conditional restore requires staged lifecycle orchestration'
-        );
-      }
-      const response = new StorageServiceResponse();
-
-      if (_.isEmpty(oid)) {
-        const msg = `${this.logHeader} restoreRecord() -> refusing to search using an empty OID`;
-        sails.log.error(msg);
-        throw new Error(msg);
-      }
-
-      try {
-        sails.log.verbose(`${this.logHeader} Restoring record ${oid} to DB...`);
-        const deletedRecord = await DeletedRecord.findOne({ redboxOid: oid });
-        if (!deletedRecord?.deletedRecordMetadata) {
-          throw new Error('Deleted record metadata was not found');
-        }
-
-        const tombstoneRevision = isRecordRevision(deletedRecord.revision)
-          ? deletedRecord.revision
-          : INITIAL_RECORD_REVISION;
-        const record = _.cloneDeep(deletedRecord.deletedRecordMetadata) as JsonMap;
-        for (const field of ['_id', 'id', 'revision']) _.unset(record, field);
-        const restoredRecord = {
-          ...record,
-          redboxOid: oid,
-          // The restored record continues the lifecycle lineage rather than
-          // reviving the revision the snapshot was taken at.
-          revision: nextRecordRevision(tombstoneRevision),
-          lastSaveDate: new Date().toISOString(),
-        };
-        const records = this.getNativeRecordCollection();
-        if (typeof records?.insertOne !== 'function') {
-          throw new Error('Atomic active record creation is unavailable');
-        }
-        await records.insertOne({ ...restoredRecord });
-        response.metadata = restoredRecord;
-
-        await DeletedRecord.destroyOne({ redboxOid: oid });
-        response.success = true;
-        sails.log.verbose(`${this.logHeader} Record restored...`);
-        return response;
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to create Record:`);
-        sails.log.error(JSON.stringify(err));
-        response.success = false;
-        response.message = this.getErrorMessage(err);
-        return response;
-      }
+      return this.notApplied(
+        this.createMutationResponse(oid, options),
+        'capability-unavailable',
+        'Record restoration requires staged lifecycle orchestration'
+      );
     }
 
     async destroyDeletedRecord(oid: string, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse> {
-      if (options?.precondition) {
-        return this.removeTombstone(null, oid, options);
-      }
-      const response = new StorageServiceResponse();
-
-      if (_.isEmpty(oid)) {
-        const msg = `${this.logHeader} destroyRecord() -> refusing to search using an empty OID`;
-        sails.log.error(msg);
-        throw new Error(msg);
-      }
-
-      try {
-        sails.log.verbose(`${this.logHeader} destroying deleted record ${oid} to DB...`);
-        await DeletedRecord.destroyOne({ redboxOid: oid });
-        response.success = true;
-        sails.log.verbose(`${this.logHeader} deleted record destroyed...`);
-        return response;
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to create Record:`);
-        sails.log.error(JSON.stringify(err));
-        response.success = false;
-        response.message = this.getErrorMessage(err);
-        return response;
-      }
+      return this.notApplied(
+        this.createMutationResponse(oid, options),
+        'capability-unavailable',
+        'Tombstone destruction requires staged lifecycle orchestration'
+      );
     }
 
     protected getFileWithName(fileName: string, options: FindOptions = { limit: 1 }): FindCursor<GridFSFile> {

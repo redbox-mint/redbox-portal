@@ -33,6 +33,12 @@ describe('record revision Waterline models', function () {
 
     expect(runHook(RecordWLDef, 'beforeCreate', { revision: 999 }).revision).to.equal(INITIAL_RECORD_REVISION);
     expect(runHook(RecordWLDef, 'beforeUpdate', { revision: 999, metadata: {} })).to.deep.equal({ metadata: {} });
+    expect(runHook(RecordWLDef, 'beforeCreate', { lifecycleOperationId: 'client-owned' })).not.to.have.property(
+      'lifecycleOperationId'
+    );
+    expect(runHook(RecordWLDef, 'beforeUpdate', { lifecycleOperationId: 'client-owned' })).not.to.have.property(
+      'lifecycleOperationId'
+    );
   });
 
   it('declares wrapper-authoritative tombstone revision and lifecycle fields', function () {
@@ -64,6 +70,8 @@ describe('record revision Waterline models', function () {
 
   it('accepts only bounded request-linked monotonic lifecycle operations', function () {
     const operation = {
+      operationId: '00000000-0000-4000-8000-000000000000',
+      kind: 'restore',
       requestId: '123e4567-e89b-42d3-a456-426614174000',
       sourceRevision: 4,
       targetRevision: 5,
@@ -74,6 +82,8 @@ describe('record revision Waterline models', function () {
     };
     expect(isDeletedRecordLifecycleOperation(operation)).to.equal(true);
     expect(isDeletedRecordLifecycleOperation({ ...operation, requestId: 'raw-client-id' })).to.equal(false);
+    expect(isDeletedRecordLifecycleOperation({ ...operation, operationId: 'raw-client-id' })).to.equal(false);
+    expect(isDeletedRecordLifecycleOperation({ ...operation, kind: 'update' })).to.equal(false);
     expect(isDeletedRecordLifecycleOperation({ ...operation, targetRevision: 4 })).to.equal(false);
   });
 

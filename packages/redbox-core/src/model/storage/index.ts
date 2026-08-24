@@ -29,10 +29,14 @@ export { NamedQueryModel } from './NamedQueryModel';
 export { RecordModel } from './RecordModel';
 export {
   DELETED_RECORD_LIFECYCLE_STATES,
+  DELETED_RECORD_LIFECYCLE_OPERATION_KINDS,
   DeletedRecordModel,
   DeletedRecordLifecycleOperation,
+  DeletedRecordLifecycleOperationKind,
   DeletedRecordLifecycleState,
   isDeletedRecordLifecycleOperation,
+  isDeletedRecordLifecycleOperationForState,
+  isDeletedRecordLifecycleOperationKind,
   isDeletedRecordLifecycleState,
 } from './DeletedRecordModel';
 export { AsynchProgressModel } from './AsynchProgressModel';

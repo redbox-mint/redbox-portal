@@ -1,6 +1,6 @@
 import StorageServiceResponse from './StorageServiceResponse';
 import { DatastreamRequestContext } from './DatastreamService';
-import { RecordModel, UserModel } from './model';
+import { DeletedRecordModel, RecordModel, UserModel } from './model';
 import { NormalizedRecordRelation } from './config/recordtype.config';
 import type { RecordSaveContext, RecordSaveResponse } from './RecordSaveResponse';
 
@@ -186,7 +186,6 @@ export interface RecordsService {
     filterString?: unknown,
     filterMode?: unknown
   ): Promise<StorageServiceResponse>;
-  getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
   getRecords(
     workflowState: unknown,
     recordType: unknown,
@@ -231,9 +230,15 @@ export interface RecordsService {
     permanentlyDelete: boolean,
     record: RecordInput,
     recordType: unknown,
-    user: UserInput
-  ): Promise<StorageServiceResponse>;
-  destroyDeletedRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
+    user: UserInput,
+    context?: RecordSaveContext
+  ): Promise<RecordSaveResponse>;
+  destroyDeletedRecord(
+    oid: unknown,
+    user: UserInput,
+    brand?: unknown,
+    context?: RecordSaveContext
+  ): Promise<RecordSaveResponse>;
   getMeta(oid: string): Promise<RecordModel>;
   /** The sole authoritative form-contract fingerprint used by form delivery and every save. */
   getRecordFormFingerprint(
@@ -242,8 +247,21 @@ export interface RecordsService {
     targetStep?: unknown
   ): Promise<string | undefined>;
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
-  restoreRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
-  getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
+  restoreRecord(
+    oid: unknown,
+    user: UserInput,
+    brand?: unknown,
+    context?: RecordSaveContext
+  ): Promise<RecordSaveResponse>;
+  getDeletedRecord(oid: string, brand?: unknown): Promise<DeletedRecordModel | null>;
+  getDeletedRecordMeta(oid: string, brand?: unknown): Promise<RecordModel | null>;
+  recoverLifecycleOperation(tombstone: DeletedRecordModel): Promise<'completed' | 'cancelled' | 'retained'>;
+  recoverLifecycleOperations(limit?: number): Promise<{
+    inspected: number;
+    completed: number;
+    cancelled: number;
+    retained: number;
+  }>;
   getRecordAudit(params: unknown): Promise<Record<string, unknown>[]>;
   getRelatedRecords(
     oid: unknown,

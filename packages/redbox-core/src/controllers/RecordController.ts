@@ -153,6 +153,7 @@ export namespace Controllers {
       'redirectLegacyConsolidatedDashboard',
       'renderDeletedRecords',
       'getDeletedRecordList',
+      'getDeletedRecord',
       'restoreRecord',
       'destroyDeletedRecord',
       'renderDashboardView',
@@ -366,6 +367,16 @@ export namespace Controllers {
         displayErrors: recordSaveDisplayErrors(result, detail),
         meta: { ...result },
         ...headerOption,
+      });
+    }
+
+    private sendLifecycleResult(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
+      if (!result.wasPersisted()) return this.sendSaveFailure(req, res, result, detail);
+      return this.sendResp(req, res, {
+        data: result.data ?? result,
+        meta: { ...result },
+        v1: this.legacySaveBody(result),
+        headers: recordSaveResultHeaders(result),
       });
     }
 
@@ -1199,23 +1210,17 @@ export namespace Controllers {
 
         if (hasEditAccess) {
           const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
-
-          const response = await this.recordsService.delete(oid, false, currentRec, recordType, user ?? {});
-
-          if (response && response.isSuccessful()) {
-            const resp = {
-              success: true,
-              oid: oid,
-            };
-            sails.log.verbose(`RecordController - delete - Successfully deleted: ${oid}`);
-
-            return this.sendResp(req, res, { data: resp });
-          } else {
-            return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ detail: response.message }],
-            });
-          }
+          const saveRequest = this.mutationSaveContext(req, oid, 'delete');
+          if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+          const response = await this.recordsService.delete(
+            oid,
+            false,
+            currentRec,
+            recordType,
+            user ?? {},
+            saveRequest.context
+          );
+          return this.sendLifecycleResult(req, res, response, TranslationService.t('failed-delete'));
         } else {
           return this.sendResp(req, res, {
             status: 500,
@@ -1228,6 +1233,50 @@ export namespace Controllers {
           displayErrors: [{ code: 'failed-delete' }],
         });
       }
+    }
+
+    public async getDeletedRecord(req: Sails.Req, res: Sails.Res) {
+      const oid = req.param('oid');
+      const brand: BrandingModel = this.getReqBrand(req);
+      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404 });
+      const record = await this.recordsService.getDeletedRecordMeta(oid, brand);
+      if (!record) return this.sendResp(req, res, { status: 404 });
+      if (!(await firstValueFrom(this.hasViewAccess(brand, req.user, record)))) {
+        return this.sendResp(req, res, { status: 403 });
+      }
+      const representation = recordRepresentationConcurrency(record);
+      const formName = String(record.metaMetadata?.['form'] ?? '').trim();
+      if (formName) {
+        try {
+          const clientFormConfig = await this.getEffectiveClientFormConfig(req, brand, record, formName, false, 'edit');
+          if (clientFormConfig) {
+            record.metadata = await FormRecordConsistencyService.projectMetadataClientFormConfig(
+              record.metadata as AnyRecord,
+              clientFormConfig,
+              'edit',
+              sails.config.reusableFormDefinitions
+            );
+          }
+        } catch (error) {
+          sails.log.error(`Failed to filter deleted metadata for record ${oid} using form ${formName}:`, error);
+          return this.sendResp(req, res, {
+            status: 500,
+            displayErrors: [{ detail: 'Failed to filter metadata for this record.' }],
+            meta: { oid },
+          });
+        }
+      }
+      return this.sendResp(req, res, {
+        data: record.metadata,
+        meta: {
+          oid,
+          lifecycleState: record.lifecycleState,
+          lifecycle: record.lifecycle,
+          ...representation.metadata,
+        },
+        v1: record.metadata,
+        headers: representation.headers,
+      });
     }
 
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
@@ -1246,31 +1295,15 @@ export namespace Controllers {
         });
       }
       const user = req.user;
-      const response = await this.recordsService.restoreRecord(oid, user ?? {});
-      if (response && response.isSuccessful()) {
-        const resp = {
-          success: true,
-          oid: oid,
-        };
-        sails.log.verbose(`Successfully restored: ${oid}`);
-        return this.sendResp(req, res, {
-          data: await this.recordsService.getMeta(oid),
-          meta: resp,
-          v1: resp,
-        });
-      } else {
-        const data = {
-          success: false,
-          oid: oid,
-          message: response.message,
-        };
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ code: 'failed-restore', detail: response.message }],
-          meta: { oid: oid },
-          v1: data,
-        });
+      const brand: BrandingModel = this.getReqBrand(req);
+      const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
+      if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
+        return this.sendResp(req, res, { status: 404 });
       }
+      const saveRequest = this.mutationSaveContext(req, oid, 'restore');
+      if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      const response = await this.recordsService.restoreRecord(oid, user ?? {}, brand, saveRequest.context);
+      return this.sendLifecycleResult(req, res, response, msgFailed);
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
@@ -1288,26 +1321,15 @@ export namespace Controllers {
         });
       }
       const user = req.user;
-      const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {});
-      if (response && response.isSuccessful()) {
-        const resp = {
-          success: true,
-          oid: oid,
-        };
-        sails.log.verbose(`Successfully destroyed: ${oid}`);
-        return this.sendResp(req, res, { data: resp });
-      } else {
-        return this.sendResp(req, res, {
-          status: 500,
-          displayErrors: [{ code: 'failed-destroy' }],
-          meta: { oid: oid },
-          v1: {
-            success: false,
-            oid: oid,
-            message: response.message,
-          },
-        });
+      const brand: BrandingModel = this.getReqBrand(req);
+      const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
+      if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
+        return this.sendResp(req, res, { status: 404 });
       }
+      const saveRequest = this.mutationSaveContext(req, oid, 'purge');
+      if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {}, brand, saveRequest.context);
+      return this.sendLifecycleResult(req, res, response, TranslationService.t('failed-destroy'));
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
@@ -2658,6 +2680,17 @@ export namespace Controllers {
         const delRecordMeta = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
         item['oid'] = doc['redboxOid'];
         item['revision'] = recordRepresentationRevision(doc);
+        item['lifecycleState'] = doc['lifecycleState'] ?? 'deleted';
+        const lifecycleOperation = (doc['lifecycleOperation'] ?? {}) as globalThis.Record<string, unknown>;
+        if (Object.keys(lifecycleOperation).length > 0) {
+          item['lifecycle'] = {
+            kind: lifecycleOperation['kind'],
+            attempts: lifecycleOperation['attempts'],
+            startedAt: lifecycleOperation['startedAt'],
+            updatedAt: lifecycleOperation['updatedAt'],
+            ...(lifecycleOperation['errorCode'] ? { errorCode: lifecycleOperation['errorCode'] } : {}),
+          };
+        }
         const delRecordMetadata = (delRecordMeta['metadata'] ?? {}) as globalThis.Record<string, unknown>;
         item['title'] = delRecordMetadata['title'];
         item['dateCreated'] = delRecordMeta['dateCreated'];
