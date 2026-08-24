@@ -23,6 +23,7 @@ describe('form concurrency rebase planning', () => {
   function conflict(overrides: Partial<FormConflictState> = {}): FormConflictState {
     return {
       requestId: '11111111-1111-4111-8111-111111111111',
+      cause: 'record-stale',
       base: { mine: 'base', remote: 'base', roundTrip: 'base' },
       local: { mine: 'local', remote: 'base', roundTrip: 'base' },
       latest: { mine: 'base', remote: 'latest', roundTrip: 'latest' },

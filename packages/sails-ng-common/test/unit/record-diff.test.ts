@@ -62,6 +62,80 @@ describe('record diff and concurrency rebase', () => {
   });
 
   describe('three-way comparison and immutable rebase', () => {
+    it('covers nested, parent/child, add/delete, equal-final, and array overlap matrices', () => {
+      const cases: Array<{
+        name: string;
+        base: unknown;
+        local: unknown;
+        latest: unknown;
+        unresolved: Array<Array<string | number>>;
+        alreadyPresent?: boolean;
+      }> = [
+        {
+          name: 'nested siblings do not overlap',
+          base: { group: { local: 'base', remote: 'base' } },
+          local: { group: { local: 'mine', remote: 'base' } },
+          latest: { group: { local: 'base', remote: 'latest' } },
+          unresolved: [],
+        },
+        {
+          name: 'local parent delete overlaps a remote child change',
+          base: { group: { title: 'base', retained: true } },
+          local: {},
+          latest: { group: { title: 'latest', retained: true } },
+          unresolved: [['group']],
+        },
+        {
+          name: 'local child add overlaps a remote parent replacement',
+          base: { group: {} },
+          local: { group: { title: 'mine' } },
+          latest: { group: 'latest' },
+          unresolved: [['group']],
+        },
+        {
+          name: 'equal object additions are already resolved',
+          base: {},
+          local: { added: { a: 1, b: 2 } },
+          latest: { added: { b: 2, a: 1 } },
+          unresolved: [],
+          alreadyPresent: true,
+        },
+        {
+          name: 'divergent additions overlap',
+          base: {},
+          local: { added: 'mine' },
+          latest: { added: 'latest' },
+          unresolved: [['added']],
+        },
+        {
+          name: 'equal deletions are already resolved',
+          base: { removed: true },
+          local: {},
+          latest: {},
+          unresolved: [],
+          alreadyPresent: true,
+        },
+        {
+          name: 'array descendants remain one atomic overlap',
+          base: { rows: [{ value: 'base' }] },
+          local: { rows: [{ value: 'mine' }] },
+          latest: { rows: [{ value: 'latest' }] },
+          unresolved: [['rows']],
+        },
+      ];
+
+      for (const testCase of cases) {
+        const result = compareThreeWayRecordValues(testCase.base, testCase.local, testCase.latest);
+        expect(
+          result.unresolvedOverlaps.map(overlap => overlap.path),
+          testCase.name
+        ).to.deep.equal(testCase.unresolved);
+        if (testCase.alreadyPresent !== undefined) {
+          expect(result.localChangesAlreadyPresent, testCase.name).to.equal(testCase.alreadyPresent);
+        }
+      }
+    });
+
     it('treats arrays as one atomic conflict domain', () => {
       expect(
         diffRecordValuesForConcurrency(

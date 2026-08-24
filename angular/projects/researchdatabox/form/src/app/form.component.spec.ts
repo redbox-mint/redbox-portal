@@ -63,6 +63,45 @@ function staleSaveResponse(overrides: Partial<RecordActionResult> = {}): RecordA
   return Object.assign(result, overrides);
 }
 
+function conflictSaveResponse(
+  concurrencyOutcome: 'precondition-required' | 'form-changed' | 'deleted' | 'authorization-lost',
+  overrides: Partial<RecordActionResult> = {}
+): RecordActionResult {
+  const result = new RecordActionResult();
+  result.success = false;
+  result.oid = concurrencyOutcome === 'authorization-lost' ? '' : 'oid-123';
+  result.outcome = 'not-saved';
+  result.requestId = '33333333-3333-4333-8333-333333333333';
+  result.concurrencyOutcome = concurrencyOutcome;
+  result.metadata = null;
+  result.problems = [
+    {
+      kind: concurrencyOutcome === 'authorization-lost' ? 'authorization' : 'conflict',
+      phase: 'pre-save',
+      issues: [
+        {
+          code:
+            concurrencyOutcome === 'precondition-required'
+              ? 'record-precondition-required'
+              : concurrencyOutcome === 'form-changed'
+                ? 'form-definition-changed'
+                : concurrencyOutcome === 'deleted'
+                  ? 'record-deleted'
+                  : 'record-validation-edit-unauthorized',
+          message: 'The save was rejected.',
+        },
+      ],
+    },
+  ];
+  result.concurrency = {
+    revision: 5,
+    currentRevision: 5,
+    entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+    formFingerprint: 'sha256:form_1',
+  };
+  return Object.assign(result, overrides);
+}
+
 async function createConcurrencyTestForm() {
   const result = await createFormAndWaitForReady(
     {
@@ -126,13 +165,34 @@ describe('FormComponent', () => {
   beforeEach(async () => {
     setWindowSearch('');
     setFormDebugUrl('1');
-    await createTestbedModule(
+    const { translationService } = await createTestbedModule(
       {
         declarations: {
           "SimpleInputComponent": SimpleInputComponent,
           "GroupFieldComponent": GroupFieldComponent,
         }
       });
+    Object.assign(translationService.translationMap, {
+      '@form-conflict-stale-title': 'This record has changed',
+      '@form-conflict-stale-message': 'Your edits are still available.',
+      '@form-conflict-review-action': 'Review changes',
+      '@form-conflict-discard-action': 'Reload latest and discard mine',
+      '@form-conflict-export-action': 'Download my edits',
+      '@form-conflict-load-current-form-action': 'Load current form',
+      '@form-conflict-review-heading': 'Review changes',
+      '@form-conflict-review-instructions': 'Choose which value to keep.',
+      '@form-conflict-whole-repeatable': 'Whole repeatable',
+      '@form-conflict-whole-repeatable-help': 'Resolve this list as one value.',
+      '@form-conflict-mine': 'Mine',
+      '@form-conflict-latest': 'Latest',
+      '@form-conflict-save-resolution': 'Save resolved changes',
+      '@form-conflict-choices-required': 'Choose every value.',
+      '@form-conflict-discard-warning-title': 'Discard your edits?',
+      '@form-conflict-discard-warning-message': 'Reload and permanently discard your unsaved edits?',
+      '@form-conflict-discard-warning-confirm': 'Discard my edits',
+      '@form-conflict-discard-warning-cancel': 'Keep editing',
+      '@form-conflict-navigation-warning': 'Leaving will discard unresolved changes.',
+    });
   });
 
   afterEach(() => {
@@ -610,7 +670,7 @@ describe('FormComponent', () => {
     expect(formComponent.saveResponse()?.concurrency?.resolution).toBe('already-current');
   });
 
-  it('hands a second race to manual review without a third automatic request', async () => {
+  it('hands a second race to review without a third automatic request, then resubmits a manual resolution', async () => {
     const { formComponent } = await createConcurrencyTestForm();
     formComponent.form?.get('title')?.setValue('Mine');
     formComponent.form?.get('title')?.markAsDirty();
@@ -627,6 +687,20 @@ describe('FormComponent', () => {
             formFingerprint: 'sha256:form_1',
             resolution: 'client-auto-merged',
             resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+          },
+        })
+      ),
+      Promise.resolve(
+        persistedSaveResponse({
+          oid: 'oid-123',
+          requestId: '33333333-3333-4333-8333-333333333333',
+          metadata: { title: 'Mine', notes: 'Second latest' },
+          concurrency: {
+            revision: 7,
+            entityTag: `"rb-record-v1.7.${'d'.repeat(43)}"`,
+            formFingerprint: 'sha256:form_1',
+            resolution: 'client-manually-resolved',
+            resolutionOfRequestId: '22222222-2222-4222-8222-222222222222',
           },
         })
       )
@@ -647,6 +721,25 @@ describe('FormComponent', () => {
         autoRetryAttempted: true,
       })
     );
+
+    expect(formComponent.conflictReview()?.items).toHaveSize(0);
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(await formComponent.submitManualConflictResolution({})).toBeTrue();
+    expect(updateSpy).toHaveBeenCalledTimes(3);
+    expect(updateSpy.calls.argsFor(2)).toEqual([
+      'oid-123',
+      { title: 'Mine', notes: 'Second latest' },
+      '',
+      undefined,
+      {
+        entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+        revision: 6,
+        formFingerprint: 'sha256:form_1',
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: '22222222-2222-4222-8222-222222222222',
+      },
+    ]);
+    expect(formComponent.conflictState()).toBeNull();
   });
 
   it('does not infer named intent complete and retries it only after another explicit save', async () => {
@@ -691,6 +784,205 @@ describe('FormComponent', () => {
       },
     ]);
     expect(formComponent.conflictState()).toBeNull();
+  });
+
+  it('keeps an unversioned tab in comparison-only review after a typed 428', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.formDefMap?.updateConcurrency({});
+    (formComponent as any).captureLoadedRecordBaseline();
+    formComponent.form?.get('title')?.setValue('Mine from old tab');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      conflictSaveResponse('precondition-required', {
+        metadata: { title: 'Latest title', notes: 'Latest notes' },
+      })
+    );
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.calls.argsFor(0)).toEqual([
+      'oid-123',
+      { title: 'Mine from old tab', notes: 'Loaded notes' },
+      '',
+      undefined,
+    ]);
+    expect(formComponent.conflictState()).toEqual(
+      jasmine.objectContaining({
+        cause: 'precondition-required',
+        status: 'reviewing',
+        base: { title: 'Loaded title', notes: 'Loaded notes' },
+        local: { title: 'Mine from old tab', notes: 'Loaded notes' },
+        latest: { title: 'Latest title', notes: 'Latest notes' },
+      })
+    );
+    expect(formComponent.conflictReview()).not.toBeNull();
+    expect(formComponent.manualConflictMergeAllowed).toBeFalse();
+    expect(await formComponent.submitManualConflictResolution({})).toBeFalse();
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns stale fingerprint drift into form-changed state and preserves local values before reload', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({
+        metadata: { title: 'Unsafe to merge through the old form', notes: 'Latest notes' },
+        concurrency: {
+          revision: 5,
+          currentRevision: 5,
+          entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+          formFingerprint: 'sha256:form_2',
+        },
+      })
+    );
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(formComponent.conflictState()).toEqual(
+      jasmine.objectContaining({
+        cause: 'form-changed',
+        status: 'form-changed',
+        local: { title: 'Unsaved title', notes: 'Loaded notes' },
+        baseFormFingerprint: 'sha256:form_1',
+        latestFormFingerprint: 'sha256:form_2',
+      })
+    );
+    expect(formComponent.conflictReview()).toBeNull();
+    expect(formComponent.manualConflictMergeAllowed).toBeFalse();
+    expect(await formComponent.submitManualConflictResolution({})).toBeFalse();
+
+    (formComponent as any).window = null;
+    const exported = JSON.parse(formComponent.exportConflictLocalValues()!);
+    expect(exported).toEqual({
+      oid: 'oid-123',
+      recordType: 'rdmp',
+      formName: 'rdmp-draft',
+      unsavedValues: { title: 'Unsaved title', notes: 'Loaded notes' },
+    });
+    const reloadSteps: string[] = [];
+    spyOn(formComponent, 'exportConflictLocalValues').and.callFake(() => {
+      reloadSteps.push('export');
+      return JSON.stringify(exported);
+    });
+    const reloadSpy = spyOn<any>(formComponent, 'reloadWindow').and.callFake(() => reloadSteps.push('reload'));
+    formComponent.reloadCurrentFormAfterConflict();
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(reloadSteps).toEqual(['export', 'reload']);
+  });
+
+  it('keeps typed form-definition drift non-mergeable even when the response repeats the old fingerprint', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    (formComponent as any).captureConflictResponse(
+      conflictSaveResponse('form-changed', {
+        metadata: { title: 'Latest title' },
+      })
+    );
+
+    expect(formComponent.conflictState()).toEqual(
+      jasmine.objectContaining({ cause: 'form-changed', status: 'form-changed', local: jasmine.any(Object) })
+    );
+    expect(formComponent.manualConflictMergeAllowed).toBeFalse();
+    expect(formComponent.conflictReview()).toBeNull();
+  });
+
+  it('keeps deleted and permission-lost outcomes authoritative and retains no returned latest state', async () => {
+    for (const variant of ['deleted', 'authorization-lost'] as const) {
+      const { fixture, formComponent } = await createConcurrencyTestForm();
+      formComponent.form?.get('title')?.setValue(`Local ${variant}`);
+      const response = conflictSaveResponse(variant, {
+        data: { privateEnvelopeValue: 'PRIVATE_DATA_MUST_NOT_BE_RETAINED' },
+        metadata: { title: 'LATEST_VALUE_MUST_NOT_RENDER', privateField: 'PRIVATE_VALUE_MUST_NOT_RENDER' },
+        concurrency: {
+          revision: 9,
+          currentRevision: 9,
+          entityTag: `"rb-record-v1.9.${'e'.repeat(43)}"`,
+          formFingerprint: 'sha256:drift_must_not_override_privacy_outcome',
+        },
+      });
+      (formComponent as any).captureConflictResponse(response);
+      fixture.detectChanges();
+
+      expect(formComponent.conflictState()).toEqual(
+        jasmine.objectContaining({
+          cause: variant === 'deleted' ? 'deleted' : 'permission-lost',
+          status: variant === 'deleted' ? 'deleted' : 'permission-lost',
+          local: jasmine.objectContaining({ title: `Local ${variant}` }),
+          latest: null,
+        })
+      );
+      expect(formComponent.conflictState()?.latestRevision).toBeUndefined();
+      expect(formComponent.conflictState()?.latestEntityTag).toBeUndefined();
+      expect(formComponent.conflictState()?.latestFormFingerprint).toBeUndefined();
+      expect(formComponent.conflictReview()).toBeNull();
+      expect(response.metadata).toBeNull();
+      expect(response.data).toBeNull();
+      expect(response.concurrency).toBeUndefined();
+      expect(fixture.nativeElement.textContent).not.toContain('LATEST_VALUE_MUST_NOT_RENDER');
+      expect(fixture.nativeElement.textContent).not.toContain('PRIVATE_VALUE_MUST_NOT_RENDER');
+      expect(fixture.nativeElement.querySelector('.rb-form-conflict-review')).toBeNull();
+    }
+  });
+
+  it('exports before reloading when a stale response has no trusted same-form fingerprint', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    (formComponent as any).captureConflictResponse(
+      staleSaveResponse({
+        concurrency: {
+          revision: 5,
+          currentRevision: 5,
+          entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        },
+      })
+    );
+    fixture.detectChanges();
+
+    expect(formComponent.conflictState()?.cause).toBe('record-stale');
+    expect(formComponent.manualConflictMergeAllowed).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Load current form');
+
+    const steps: string[] = [];
+    spyOn(formComponent, 'exportConflictLocalValues').and.callFake(() => {
+      steps.push('export');
+      return '{}';
+    });
+    spyOn<any>(formComponent, 'reloadWindow').and.callFake(() => steps.push('reload'));
+    formComponent.reloadCurrentFormAfterConflict();
+
+    expect(steps).toEqual(['export', 'reload']);
+  });
+
+  it('warns before navigation for unresolved memory-only work and bypasses only the explicit exported reload', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    (formComponent as any).captureConflictResponse(conflictSaveResponse('form-changed'));
+    const localStorageSpy = spyOn(window.localStorage, 'setItem');
+    const sessionStorageSpy = spyOn(window.sessionStorage, 'setItem');
+    (formComponent as any).window = null;
+
+    const firstEvent = { preventDefault: jasmine.createSpy('preventDefault'), returnValue: '' } as any;
+    expect(formComponent.protectUnresolvedConflictNavigation(firstEvent)).toBe(
+      'Leaving will discard unresolved changes.'
+    );
+    expect(firstEvent.preventDefault).toHaveBeenCalledTimes(1);
+    expect(firstEvent.returnValue).toBe('Leaving will discard unresolved changes.');
+
+    spyOn<any>(formComponent, 'reloadWindow');
+    formComponent.reloadCurrentFormAfterConflict();
+    const explicitReloadEvent = { preventDefault: jasmine.createSpy('preventDefault'), returnValue: '' } as any;
+    expect(formComponent.protectUnresolvedConflictNavigation(explicitReloadEvent)).toBeUndefined();
+    expect(explicitReloadEvent.preventDefault).not.toHaveBeenCalled();
+
+    const laterEvent = { preventDefault: jasmine.createSpy('preventDefault'), returnValue: '' } as any;
+    expect(formComponent.protectUnresolvedConflictNavigation(laterEvent)).toBe(
+      'Leaving will discard unresolved changes.'
+    );
+    expect(localStorageSpy).not.toHaveBeenCalled();
+    expect(sessionStorageSpy).not.toHaveBeenCalled();
   });
 
   it('parses request params on startup and exposes accessors', () => {
