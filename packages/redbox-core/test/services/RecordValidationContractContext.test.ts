@@ -229,4 +229,25 @@ describe('RecordValidationService contract-context parity', function () {
     expect(fixture.calls.records).to.deep.equal(['oid-1']);
     expect(contract.publicContext).not.to.have.any.keys('oid', 'existingRecord', 'actor', 'sourceForm');
   });
+
+  it('types a missing update OID before attempting authoritative selection', async function () {
+    const fixture = createRecordValidationFixture({ existingRecord: null });
+    const service = new Services.RecordValidation(fixture.dependencies);
+
+    const missing = await captureContextError(() =>
+      service.resolveContractContext({
+        kind: 'update',
+        brand: 'brand-1',
+        portal: 'portal-1',
+        oid: 'missing-oid',
+        actor: { authenticated: true, roles: ['Researcher'] },
+      })
+    );
+
+    expect(missing.failureKind).to.equal('not-found');
+    expect(missing.diagnosticCodes).to.deep.equal([]);
+    expect(fixture.calls.records).to.deep.equal(['missing-oid']);
+    expect(fixture.calls.recordTypes).to.deep.equal([]);
+    expect(fixture.calls.forms).to.deep.equal([]);
+  });
 });

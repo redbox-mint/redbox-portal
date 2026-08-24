@@ -1248,7 +1248,7 @@ export namespace Services {
       } else {
         resolvedOid = this.contractReference(request.oid, 'oid');
         const loadedRecord = await this.dependencies().loadRecord(resolvedOid);
-        if (!loadedRecord) throw new Error('The record-contract update record could not be resolved.');
+        if (!loadedRecord) throw this.contractContextError('not-found');
         existingRecord = _.cloneDeep(loadedRecord);
         candidate = this.recordContractCandidate(resolvedOid, existingRecord);
       }

@@ -14,12 +14,14 @@ import {
 
 import {
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
+  BrandingModel,
   createCoreRecordContractContributors,
   RecordContractContextResolutionError,
   type RecordContractContributorRegistration,
   type RecordContractCreateContext,
   type RecordContractEffectiveForm,
   RecordContractContributorRegistry,
+  RoleModel,
   RECORD_CONTRACT_REGISTRATION_CODES,
   RECORD_SCHEMA_PROBLEM_CODES,
   RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
@@ -27,6 +29,7 @@ import {
   resetDiscoveredRecordContractContributorRegistry,
   setDiscoveredRecordContractContributorRegistry,
   StorageServiceResponse,
+  UserModel,
 } from '../../src';
 import {
   RECORD_SCHEMA_LIFECYCLE_ERROR_CODE,
@@ -35,6 +38,8 @@ import {
   Services,
 } from '../../src/services/RecordSchemaService';
 import { RecordSchemaService, ServiceExports } from '../../src/services';
+import type { FormRecordAccessContext } from '../../src/services/FormsService';
+import type { RecordContractUpdateContext } from '../../src/record-contract';
 
 const DIGEST = 'a'.repeat(64);
 type RecordSchemaLifecycleOverrides = NonNullable<ConstructorParameters<typeof Services.RecordSchema>[0]>;
@@ -142,6 +147,69 @@ function createContext(
   };
 }
 
+function updateContext(
+  oid = 'oid-1',
+  publicOverrides: Partial<RecordContractUpdateContext['publicContext']> = {},
+  existingRecordOverrides: Readonly<Record<string, unknown>> = {}
+): RecordContractUpdateContext {
+  const publicContext = {
+    brand: 'brand-1',
+    portal: 'portal-1',
+    kind: 'update' as const,
+    recordType: 'dataset',
+    workflowStep: 'draft',
+    form: 'dataset-draft',
+    operation: 'strict-all',
+    unknownProperties: 'allow' as const,
+    enforcement: 'shadow' as const,
+    ...publicOverrides,
+  };
+  return {
+    publicContext,
+    resolution: {
+      sourceFormFingerprint: 'b'.repeat(64),
+      sourceForm: {
+        name: publicContext.form,
+        componentDefinitions: [],
+      },
+      reusableFormDefinitions: {},
+      actor: { authenticated: true, roles: ['Researcher'] },
+      formMode: 'edit',
+      contextVariables: {},
+      oid,
+      existingRecord: {
+        redboxOid: oid,
+        metadata: { title: 'Existing title' },
+        metaMetadata: {
+          brandId: publicContext.brand,
+          type: publicContext.recordType,
+          form: publicContext.form,
+        },
+        workflow: { stage: publicContext.workflowStep },
+        authorization: { edit: ['alice'], editRoles: ['Researcher'] },
+        ...existingRecordOverrides,
+      },
+    },
+  };
+}
+
+function updateCaller(username = 'alice', roleName = 'Researcher', brandId = 'brand-1'): FormRecordAccessContext {
+  const role = new RoleModel();
+  role.id = `role-${roleName.toLowerCase()}`;
+  role.name = roleName;
+  const brand = new BrandingModel();
+  brand.id = brandId;
+  brand.name = brandId;
+  brand.roles = [role];
+  const user = new UserModel();
+  user.id = `user-${username}`;
+  user.username = username;
+  user.name = username;
+  user.email = `${username}@example.test`;
+  user.roles = [role];
+  return { brand, user };
+}
+
 function simpleForm(fieldNames: readonly string[] = ['title']): RecordContractEffectiveForm {
   const componentDefinitions: SimpleInputFormComponentDefinitionFrame[] = fieldNames.map(name => ({
     name,
@@ -245,6 +313,36 @@ function createResolutionFixture(overrides: Partial<RecordSchemaServiceDependenc
     context,
     resolveContractContext,
     buildContractFormConfig,
+    putRecordSchemaArtifact,
+    putRecordSchemaReference,
+  };
+}
+
+function updateResolutionFixture(
+  context: RecordContractUpdateContext = updateContext(),
+  overrides: Partial<RecordSchemaServiceDependencies> = {}
+) {
+  const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
+  const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+  const storageProvider = { putRecordSchemaArtifact, putRecordSchemaReference };
+  const resolveContractContext = sinon.stub().resolves(context);
+  const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
+  const authorizeUpdate = sinon.stub().resolves(true);
+  const service = new Services.RecordSchema({
+    getConfig: () => enabledConfig(),
+    getStorageProvider: () => storageProvider,
+    getContributorRegistry: () => coreRegistry(),
+    resolveContractContext,
+    buildContractFormConfig,
+    authorizeUpdate,
+    ...overrides,
+  });
+  return {
+    service,
+    context,
+    resolveContractContext,
+    buildContractFormConfig,
+    authorizeUpdate,
     putRecordSchemaArtifact,
     putRecordSchemaReference,
   };
@@ -550,6 +648,7 @@ describe('RecordSchemaService lifecycle checks', function () {
     expect(RecordSchemaService.Services.RecordSchema).to.equal(Services.RecordSchema);
     expect(ServiceExports.RecordSchemaService).to.have.property('init').that.is.a('function');
     expect(ServiceExports.RecordSchemaService).to.have.property('resolveCreate').that.is.a('function');
+    expect(ServiceExports.RecordSchemaService).to.have.property('resolveUpdate').that.is.a('function');
   });
 });
 
@@ -803,5 +902,308 @@ describe('RecordSchemaService create resolution', function () {
       stage: 'artifact',
       code: RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_WRITE_FAILED,
     });
+  });
+});
+
+describe('RecordSchemaService update resolution', function () {
+  afterEach(function () {
+    sinon.restore();
+  });
+
+  const caller = updateCaller();
+  const request = {
+    brand: 'brand-1',
+    portal: 'portal-1',
+    oid: 'oid-1',
+    caller,
+  } as const;
+
+  it('authorizes, resolves, and persists a caller-effective partial-delta schema and private update grant', async function () {
+    const fixture = updateResolutionFixture();
+
+    const result = await fixture.service.resolveUpdate(request);
+
+    expect(result.kind).to.equal('resolved');
+    if (result.kind !== 'resolved') {
+      throw new Error('Expected a complete update schema resolution.');
+    }
+    expect(result.document.properties).to.have.property('title');
+    expect(result.document).not.to.have.property('required');
+    expect(result.document['x-redbox-context']).to.deep.include({
+      kind: 'update',
+      workflowStep: 'draft',
+      form: 'dataset-draft',
+      operation: 'strict-all',
+    });
+    expect(result.metadata).to.deep.include({
+      schemaKind: 'update',
+      contractFormat: 'redbox-record-contract/1',
+      completeness: 'complete',
+      context: fixture.context.publicContext,
+    });
+    expect(result.grant).to.deep.include({
+      digest: result.digest,
+      kind: 'grant',
+      schemaKind: 'update',
+      brand: 'brand-1',
+      portal: 'portal-1',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      oid: 'oid-1',
+    });
+    expect(
+      fixture.resolveContractContext.calledOnceWithExactly({
+        kind: 'update',
+        brand: 'brand-1',
+        portal: 'portal-1',
+        oid: 'oid-1',
+        operation: undefined,
+        actor: { authenticated: true, roles: ['Researcher'] },
+      })
+    ).to.equal(true);
+    expect(fixture.authorizeUpdate.calledOnceWithExactly(fixture.context, caller)).to.equal(true);
+    expect(fixture.authorizeUpdate.calledBefore(fixture.buildContractFormConfig)).to.equal(true);
+    expect(fixture.buildContractFormConfig.calledOnceWithExactly(fixture.context, caller)).to.equal(true);
+    expect(fixture.putRecordSchemaArtifact.calledOnce).to.equal(true);
+    expect(fixture.putRecordSchemaReference.calledOnceWithExactly(result.grant)).to.equal(true);
+
+    const serializedDocument = JSON.stringify(result.document);
+    const serializedArtifact = JSON.stringify(fixture.putRecordSchemaArtifact.firstCall.firstArg.document);
+    for (const privateValue of ['oid-1', 'alice', 'alice@example.test', 'role-researcher', 'Researcher']) {
+      expect(serializedDocument).not.to.include(privateValue);
+      expect(serializedArtifact).not.to.include(privateValue);
+    }
+  });
+
+  it('delegates current edit authorization to RecordsService before form construction', async function () {
+    const context = updateContext();
+    const resolveContractContext = sinon.stub().resolves(context);
+    const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
+    const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    const hasEditAccess = sinon.stub().returns(true);
+    const priorServices = sails.services;
+    const serviceRegistry = sails.services ?? {};
+    const priorRecordsService = serviceRegistry.recordsservice;
+    sails.services = serviceRegistry;
+    serviceRegistry.recordsservice = { hasEditAccess };
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
+      getContributorRegistry: () => coreRegistry(),
+      resolveContractContext,
+      buildContractFormConfig,
+    });
+
+    try {
+      const result = await service.resolveUpdate(request);
+
+      expect(result.kind).to.equal('resolved');
+      expect(
+        hasEditAccess.calledOnceWithExactly(
+          caller.brand,
+          caller.user,
+          caller.user.roles,
+          context.resolution.existingRecord
+        )
+      ).to.equal(true);
+      expect(hasEditAccess.calledBefore(buildContractFormConfig)).to.equal(true);
+    } finally {
+      if (priorRecordsService === undefined) {
+        delete serviceRegistry.recordsservice;
+      } else {
+        serviceRegistry.recordsservice = priorRecordsService;
+      }
+      sails.services = priorServices;
+    }
+  });
+
+  it('returns typed denied and missing-OID outcomes without compiling or persisting', async function () {
+    const authorizeUpdate = sinon.stub().resolves(false);
+    const denied = updateResolutionFixture(updateContext(), { authorizeUpdate });
+
+    const deniedResult = await denied.service.resolveUpdate(request);
+
+    expect(deniedResult).to.deep.equal({
+      kind: 'denied',
+      code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
+    });
+    expect(denied.buildContractFormConfig.notCalled).to.equal(true);
+    expect(denied.putRecordSchemaArtifact.notCalled).to.equal(true);
+    expect(denied.putRecordSchemaReference.notCalled).to.equal(true);
+
+    const resolveMissing = sinon.stub().rejects(new RecordContractContextResolutionError('not-found'));
+    const missing = updateResolutionFixture(updateContext(), { resolveContractContext: resolveMissing });
+
+    const missingResult = await missing.service.resolveUpdate(request);
+
+    expect(missingResult).to.deep.equal({
+      kind: 'missing-oid',
+      code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
+    });
+    expect(missing.authorizeUpdate.notCalled).to.equal(true);
+    expect(missing.buildContractFormConfig.notCalled).to.equal(true);
+    expect(missing.putRecordSchemaArtifact.notCalled).to.equal(true);
+    expect(missing.putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('uses the authoritative current workflow stage and form for each record', async function () {
+    const draft = updateResolutionFixture(updateContext('oid-draft'));
+    const reviewContext = updateContext('oid-review', {
+      workflowStep: 'review',
+      form: 'dataset-review',
+    });
+    const review = updateResolutionFixture(reviewContext, {
+      buildContractFormConfig: async () => ({
+        ok: true,
+        effectiveForm: simpleForm(['review_notes']),
+      }),
+    });
+
+    const draftResult = await draft.service.resolveUpdate({ ...request, oid: 'oid-draft' });
+    const reviewResult = await review.service.resolveUpdate({ ...request, oid: 'oid-review' });
+
+    expect(draftResult.kind).to.equal('resolved');
+    expect(reviewResult.kind).to.equal('resolved');
+    if (draftResult.kind !== 'resolved' || reviewResult.kind !== 'resolved') {
+      throw new Error('Expected both update contexts to resolve.');
+    }
+    expect(draftResult.document['x-redbox-context']).to.deep.include({
+      workflowStep: 'draft',
+      form: 'dataset-draft',
+    });
+    expect(reviewResult.document['x-redbox-context']).to.deep.include({
+      workflowStep: 'review',
+      form: 'dataset-review',
+    });
+    expect(reviewResult.document.properties).to.have.property('review_notes');
+    expect(reviewResult.digest).not.to.equal(draftResult.digest);
+  });
+
+  it('persists normalized operations and rejects unauthorized operations before edit authorization', async function () {
+    const normalized = updateResolutionFixture(updateContext('oid-1', { operation: 'submit' }));
+
+    const normalizedResult = await normalized.service.resolveUpdate({ ...request, operation: ' submit ' });
+
+    expect(normalizedResult.kind).to.equal('resolved');
+    if (normalizedResult.kind !== 'resolved') {
+      throw new Error('Expected the normalized update operation to resolve.');
+    }
+    expect(normalized.resolveContractContext.firstCall.firstArg.operation).to.equal(' submit ');
+    expect(normalizedResult.metadata.context.operation).to.equal('submit');
+    expect(normalizedResult.grant.operation).to.equal('submit');
+
+    const resolveUnauthorized = sinon
+      .stub()
+      .rejects(
+        new RecordContractContextResolutionError('forbidden', ['record-validation-operation-role-unauthorized'])
+      );
+    const unauthorized = updateResolutionFixture(updateContext(), {
+      resolveContractContext: resolveUnauthorized,
+    });
+
+    const unauthorizedResult = await unauthorized.service.resolveUpdate({ ...request, operation: 'publish' });
+
+    expect(unauthorizedResult).to.deep.equal({
+      kind: 'context-failed',
+      failureKind: 'forbidden',
+      diagnosticCodes: ['record-validation-operation-role-unauthorized'],
+    });
+    expect(unauthorized.authorizeUpdate.notCalled).to.equal(true);
+    expect(unauthorized.putRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('deduplicates identical public documents while retaining distinct private OIDs in grants', async function () {
+    const firstContext = updateContext('oid-1', {}, { metadata: { title: 'First private value' } });
+    const secondContext = updateContext('oid-2', {}, { metadata: { title: 'Second private value' } });
+    const resolveContractContext = sinon.stub();
+    resolveContractContext.onFirstCall().resolves(firstContext);
+    resolveContractContext.onSecondCall().resolves(secondContext);
+    const fixture = updateResolutionFixture(firstContext, { resolveContractContext });
+
+    const first = await fixture.service.resolveUpdate(request);
+    const second = await fixture.service.resolveUpdate({ ...request, oid: 'oid-2' });
+
+    expect(first.kind).to.equal('resolved');
+    expect(second.kind).to.equal('resolved');
+    if (first.kind !== 'resolved' || second.kind !== 'resolved') {
+      throw new Error('Expected both identical public update contracts to resolve.');
+    }
+    expect(first.digest).to.equal(second.digest);
+    expect(first.document).to.deep.equal(second.document);
+    expect(fixture.putRecordSchemaArtifact.callCount).to.equal(2);
+    expect(fixture.putRecordSchemaArtifact.firstCall.firstArg).to.deep.equal(
+      fixture.putRecordSchemaArtifact.secondCall.firstArg
+    );
+    expect(first.grant.oid).to.equal('oid-1');
+    expect(second.grant.oid).to.equal('oid-2');
+    expect(first.grant.referenceKey).not.to.equal(second.grant.referenceKey);
+    expect(JSON.stringify(first.document)).not.to.include('oid-1');
+    expect(JSON.stringify(second.document)).not.to.include('oid-2');
+  });
+
+  it('returns typed compiler and limit failures without persistence', async function () {
+    const missingContributor = updateResolutionFixture(updateContext(), {
+      getContributorRegistry: () => coreRegistry(['SimpleInputComponent']),
+    });
+
+    const compilerResult = await missingContributor.service.resolveUpdate(request);
+
+    expect(compilerResult.kind).to.equal('compiler-failed');
+    if (compilerResult.kind !== 'compiler-failed') {
+      throw new Error('Expected an update compiler failure.');
+    }
+    expect(compilerResult.code).to.equal(RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT);
+    expect(missingContributor.putRecordSchemaArtifact.notCalled).to.equal(true);
+
+    const limited = updateResolutionFixture(updateContext(), {
+      getConfig: () =>
+        enabledConfig({
+          limits: { ...recordSchema.limits, maxProperties: 1 },
+        }),
+      buildContractFormConfig: async () => ({
+        ok: true,
+        effectiveForm: simpleForm(['title', 'description']),
+      }),
+    });
+
+    const limitResult = await limited.service.resolveUpdate(request);
+
+    expect(limitResult.kind).to.equal('limit-exceeded');
+    if (limitResult.kind !== 'limit-exceeded') {
+      throw new Error('Expected an update schema limit failure.');
+    }
+    expect(limitResult).to.deep.include({
+      stage: 'compiler',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_PROPERTIES,
+    });
+    expect(limited.putRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('distinguishes update artifact and grant persistence failures', async function () {
+    const artifactFailure = updateResolutionFixture();
+    artifactFailure.putRecordSchemaArtifact.resolves(storageResponse(false));
+
+    const artifactResult = await artifactFailure.service.resolveUpdate(request);
+
+    expect(artifactResult).to.deep.equal({
+      kind: 'storage-failed',
+      stage: 'artifact',
+      code: RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_WRITE_FAILED,
+    });
+    expect(artifactFailure.putRecordSchemaReference.notCalled).to.equal(true);
+
+    const grantFailure = updateResolutionFixture();
+    grantFailure.putRecordSchemaReference.resolves(storageResponse(false));
+
+    const grantResult = await grantFailure.service.resolveUpdate(request);
+
+    expect(grantResult).to.deep.equal({
+      kind: 'storage-failed',
+      stage: 'grant',
+      code: RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED,
+    });
+    expect(grantFailure.putRecordSchemaArtifact.calledOnce).to.equal(true);
+    expect(grantFailure.putRecordSchemaReference.calledOnce).to.equal(true);
   });
 });

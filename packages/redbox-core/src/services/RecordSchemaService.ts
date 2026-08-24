@@ -7,7 +7,12 @@ import {
   type RecordSchemaConfigurationProblemReason,
   validateRecordSchemaConfig,
 } from '../config/recordSchema.config';
-import type { RecordSchemaArtifactInput, RecordSchemaCreateGrantReferenceInput } from '../model/storage/record-schema';
+import type {
+  RecordSchemaArtifactInput,
+  RecordSchemaCreateGrantReferenceInput,
+  RecordSchemaGrantReferenceInput,
+  RecordSchemaUpdateGrantReferenceInput,
+} from '../model/storage/record-schema';
 import {
   compileRecordJsonSchemaArtifact,
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
@@ -39,6 +44,8 @@ import {
   type RecordContractFormat,
   type RecordContractRegistrationCode,
   type RecordContractRegistrationIssue,
+  type RecordContractUpdateContext,
+  type RecordContractUpdateContextRequest,
   type RecordJsonSchemaEtag,
   type RecordJsonSchemaValidationIssue,
   type RecordSchemaProblemCode,
@@ -51,6 +58,7 @@ import {
 } from '../StorageService';
 import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
+import type { FormRecordAccessContext } from './FormsService';
 
 declare const RedboxJavaStorageService: unknown;
 
@@ -102,8 +110,14 @@ export interface RecordSchemaServiceDependencies {
   readonly getContributorRegistry: () => RecordContractContributorRegistry | undefined;
   readonly getContributorRegistrationIssues: () => readonly RecordContractRegistrationIssue[];
   readonly getContributorComponentTypes: () => readonly string[];
-  readonly resolveContractContext: (request: RecordContractCreateContextRequest) => Promise<RecordContractContext>;
-  readonly buildContractFormConfig: (context: RecordContractContext) => Promise<RecordContractFormBuildResult>;
+  readonly resolveContractContext: (
+    request: RecordContractCreateContextRequest | RecordContractUpdateContextRequest
+  ) => Promise<RecordContractContext>;
+  readonly buildContractFormConfig: (
+    context: RecordContractContext,
+    recordAccessContext?: FormRecordAccessContext
+  ) => Promise<RecordContractFormBuildResult>;
+  readonly authorizeUpdate: (context: RecordContractUpdateContext, caller: FormRecordAccessContext) => Promise<boolean>;
 }
 
 const CATEGORY_ORDER: Readonly<Record<RecordSchemaLifecycleFinding['category'], number>> = {
@@ -155,6 +169,47 @@ function configuredStorageProvider(): unknown {
   return typeof RedboxJavaStorageService === 'undefined' ? undefined : RedboxJavaStorageService;
 }
 
+interface RecordEditAuthorizationCapability {
+  readonly hasEditAccess: (
+    brand: FormRecordAccessContext['brand'],
+    user: FormRecordAccessContext['user'],
+    roles: FormRecordAccessContext['user']['roles'],
+    record: Readonly<Record<string, unknown>>
+  ) => boolean;
+}
+
+function hasRecordEditAuthorizationCapability(value: unknown): value is RecordEditAuthorizationCapability {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return false;
+  try {
+    return typeof Reflect.get(value, 'hasEditAccess') === 'function';
+  } catch {
+    return false;
+  }
+}
+
+function recordEditAuthorizationService(): RecordEditAuthorizationCapability | undefined {
+  const configured = sails.services?.recordsservice;
+  const candidate = configured === undefined && typeof RecordsService !== 'undefined' ? RecordsService : configured;
+  return hasRecordEditAuthorizationCapability(candidate) ? candidate : undefined;
+}
+
+async function authorizeUpdateWithRecordsService(
+  context: RecordContractUpdateContext,
+  caller: FormRecordAccessContext
+): Promise<boolean> {
+  const recordsService = recordEditAuthorizationService();
+  if (!recordsService) {
+    throw new Error('Record edit authorization is unavailable.');
+  }
+  const username = typeof caller.user?.username === 'string' ? caller.user.username.trim() : '';
+  const brandId = typeof caller.brand?.id === 'string' ? caller.brand.id.trim() : '';
+  if (!username || brandId !== context.publicContext.brand || !context.resolution.actor.authenticated) {
+    return false;
+  }
+  const roles = Array.isArray(caller.user.roles) ? caller.user.roles : [];
+  return recordsService.hasEditAccess(caller.brand, caller.user, roles, context.resolution.existingRecord);
+}
+
 const DEFAULT_DEPENDENCIES: RecordSchemaServiceDependencies = {
   getConfig: configuredRecordSchema,
   getStorageProvider: configuredStorageProvider,
@@ -162,7 +217,9 @@ const DEFAULT_DEPENDENCIES: RecordSchemaServiceDependencies = {
   getContributorRegistrationIssues: getDiscoveredRecordContractContributorRegistrationIssues,
   getContributorComponentTypes: getDiscoveredRecordContractContributorComponentTypes,
   resolveContractContext: request => RecordValidationService.resolveContractContext(request),
-  buildContractFormConfig: context => FormsService.buildContractFormConfig(context),
+  buildContractFormConfig: (context, recordAccessContext) =>
+    FormsService.buildContractFormConfig(context, recordAccessContext),
+  authorizeUpdate: authorizeUpdateWithRecordsService,
 };
 
 function findingSortKey(finding: RecordSchemaLifecycleFinding): string {
@@ -479,6 +536,100 @@ export type ResolveCreateRecordSchemaResult =
   | RecordSchemaCreateStorageFailure
   | RecordSchemaCreateUnavailableFailure;
 
+export interface ResolveUpdateRecordSchemaRequest {
+  readonly brand: string;
+  readonly portal: string;
+  readonly oid: string;
+  readonly operation?: string;
+  /** Trusted current caller and brand used by the existing record-access and form-access paths. */
+  readonly caller: FormRecordAccessContext;
+}
+
+export interface RecordSchemaUpdateResolutionMetadata {
+  readonly schemaKind: 'update';
+  readonly contractFormat: RecordContractFormat;
+  readonly completeness: 'complete' | 'partial';
+  readonly byteLength: number;
+  readonly etag: RecordJsonSchemaEtag;
+  readonly context: RecordContractUpdateContext['publicContext'];
+}
+
+interface RecordSchemaUpdateResolutionSuccessBase {
+  readonly document: PublishedRecordJsonSchemaDocument;
+  readonly digest: string;
+  readonly metadata: RecordSchemaUpdateResolutionMetadata;
+  readonly grant: RecordSchemaUpdateGrantReferenceInput;
+}
+
+export interface CompleteRecordSchemaUpdateResolution extends RecordSchemaUpdateResolutionSuccessBase {
+  readonly kind: 'resolved';
+  readonly metadata: RecordSchemaUpdateResolutionMetadata & { readonly completeness: 'complete' };
+}
+
+export interface PartialRecordSchemaUpdateResolution extends RecordSchemaUpdateResolutionSuccessBase {
+  readonly kind: 'partial';
+  readonly metadata: RecordSchemaUpdateResolutionMetadata & { readonly completeness: 'partial' };
+}
+
+export interface RecordSchemaUpdateDeniedFailure {
+  readonly kind: 'denied';
+  readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN;
+}
+
+export interface RecordSchemaUpdateMissingOidFailure {
+  readonly kind: 'missing-oid';
+  readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND;
+}
+
+export type RecordSchemaUpdateContextFailure = RecordSchemaCreateContextFailure;
+export type RecordSchemaUpdateCompilerFailure = RecordSchemaCreateCompilerFailure;
+export type RecordSchemaUpdateMetaValidationFailure = RecordSchemaCreateMetaValidationFailure;
+export type RecordSchemaUpdateLimitFailure = RecordSchemaCreateLimitFailure;
+export type RecordSchemaUpdateStorageFailure = RecordSchemaCreateStorageFailure;
+export type RecordSchemaUpdateUnavailableFailure = RecordSchemaCreateUnavailableFailure;
+
+export type ResolveUpdateRecordSchemaResult =
+  | CompleteRecordSchemaUpdateResolution
+  | PartialRecordSchemaUpdateResolution
+  | RecordSchemaUpdateDeniedFailure
+  | RecordSchemaUpdateMissingOidFailure
+  | RecordSchemaUpdateContextFailure
+  | RecordSchemaUpdateCompilerFailure
+  | RecordSchemaUpdateMetaValidationFailure
+  | RecordSchemaUpdateLimitFailure
+  | RecordSchemaUpdateStorageFailure
+  | RecordSchemaUpdateUnavailableFailure;
+
+type RecordSchemaResolutionFailure =
+  | RecordSchemaCreateContextFailure
+  | RecordSchemaCreateCompilerFailure
+  | RecordSchemaCreateMetaValidationFailure
+  | RecordSchemaCreateLimitFailure
+  | RecordSchemaCreateStorageFailure
+  | RecordSchemaCreateUnavailableFailure;
+
+interface RecordSchemaPipelineSuccessBase<Grant extends RecordSchemaGrantReferenceInput> {
+  readonly document: PublishedRecordJsonSchemaDocument;
+  readonly digest: string;
+  readonly grant: Grant;
+  readonly contractFormat: RecordContractFormat;
+  readonly byteLength: number;
+  readonly etag: RecordJsonSchemaEtag;
+}
+
+type RecordSchemaPipelineSuccess<Grant extends RecordSchemaGrantReferenceInput> =
+  | (RecordSchemaPipelineSuccessBase<Grant> & {
+      readonly kind: 'resolved';
+      readonly completeness: 'complete';
+    })
+  | (RecordSchemaPipelineSuccessBase<Grant> & {
+      readonly kind: 'partial';
+      readonly completeness: 'partial';
+    });
+
+type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
+  RecordSchemaPipelineSuccess<Grant> | RecordSchemaResolutionFailure;
+
 type RecordSchemaCreateStorageProvider = Required<
   Pick<StorageService, 'putRecordSchemaArtifact' | 'putRecordSchemaReference'>
 >;
@@ -525,6 +676,24 @@ function isCreateContractContext(context: RecordContractContext): context is Rec
   return context.publicContext.kind === 'create';
 }
 
+function isUpdateContractContext(context: RecordContractContext): context is RecordContractUpdateContext {
+  return context.publicContext.kind === 'update';
+}
+
+function callerActor(caller: FormRecordAccessContext): RecordContractContextActor {
+  const username = typeof caller.user?.username === 'string' ? caller.user.username.trim() : '';
+  const rawRoles = Array.isArray(caller.user?.roles) ? caller.user.roles : [];
+  const roles = [
+    ...new Set(
+      rawRoles.map(role => (typeof role?.name === 'string' ? role.name.trim() : '')).filter(role => role.length > 0)
+    ),
+  ].sort(compareText);
+  return Object.freeze({
+    authenticated: username.length > 0,
+    roles: Object.freeze(roles),
+  });
+}
+
 function createGrantReference(
   artifact: Readonly<Pick<RecordSchemaArtifactInput, 'digest'>>,
   context: RecordContractCreateContext['publicContext']
@@ -549,6 +718,31 @@ function createGrantReference(
   });
 }
 
+function createUpdateGrantReference(
+  artifact: Readonly<Pick<RecordSchemaArtifactInput, 'digest'>>,
+  context: RecordContractUpdateContext
+): RecordSchemaUpdateGrantReferenceInput {
+  const common = {
+    digest: artifact.digest,
+    brand: context.publicContext.brand,
+    portal: context.publicContext.portal,
+    recordType: context.publicContext.recordType,
+    operation: context.publicContext.operation,
+    oid: context.resolution.oid,
+  } as const;
+  const identity = serializeRedboxCanonicalJsonV1({
+    ...common,
+    kind: 'grant',
+    schemaKind: 'update',
+  });
+  return Object.freeze({
+    referenceKey: `grant:update:${createHash('sha256').update(identity, 'utf8').digest('hex')}`,
+    ...common,
+    kind: 'grant',
+    schemaKind: 'update',
+  });
+}
+
 function emptyDiagnostics(): readonly RecordContractDiagnostic[] {
   return Object.freeze([]);
 }
@@ -558,9 +752,9 @@ function emptyValidationIssues(): readonly RecordJsonSchemaValidationIssue[] {
 }
 
 export namespace Services {
-  /** Performs record-schema lifecycle checks and caller-effective create resolution. */
+  /** Performs record-schema lifecycle checks and caller-effective create/update resolution. */
   export class RecordSchema extends services.Core.Service {
-    protected override _exportedMethods = ['init', 'resolveCreate'];
+    protected override _exportedMethods = ['init', 'resolveCreate', 'resolveUpdate'];
     protected override logHeader = 'RecordSchemaService::';
     private readonly dependencies: RecordSchemaServiceDependencies;
 
@@ -609,9 +803,154 @@ export namespace Services {
         return this.contextFailure('unavailable');
       }
 
+      const pipeline = await this.compileAndPersist(config, context, artifact =>
+        createGrantReference(artifact, context.publicContext)
+      );
+      if (pipeline.kind !== 'resolved' && pipeline.kind !== 'partial') {
+        return pipeline;
+      }
+      const resolutionBase = {
+        document: pipeline.document,
+        digest: pipeline.digest,
+        grant: pipeline.grant,
+      } as const;
+      if (pipeline.kind === 'partial') {
+        return Object.freeze({
+          kind: 'partial',
+          ...resolutionBase,
+          metadata: Object.freeze({
+            schemaKind: 'create',
+            contractFormat: pipeline.contractFormat,
+            completeness: 'partial',
+            byteLength: pipeline.byteLength,
+            etag: pipeline.etag,
+            context: context.publicContext,
+          }),
+        });
+      }
+      return Object.freeze({
+        kind: 'resolved',
+        ...resolutionBase,
+        metadata: Object.freeze({
+          schemaKind: 'create',
+          contractFormat: pipeline.contractFormat,
+          completeness: 'complete',
+          byteLength: pipeline.byteLength,
+          etag: pipeline.etag,
+          context: context.publicContext,
+        }),
+      });
+    }
+
+    /** Resolve, authorize, compile, persist, and grant one caller-effective update-delta schema. */
+    public async resolveUpdate(request: ResolveUpdateRecordSchemaRequest): Promise<ResolveUpdateRecordSchemaResult> {
+      const config = this.resolveRuntimeConfig();
+      if (!config) {
+        return {
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        };
+      }
+      if (!config.enabled) {
+        return {
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+        };
+      }
+
+      let context: RecordContractUpdateContext;
+      try {
+        const resolvedContext = await this.dependencies.resolveContractContext({
+          kind: 'update',
+          brand: request.brand,
+          portal: request.portal,
+          oid: request.oid,
+          operation: request.operation,
+          actor: callerActor(request.caller),
+        });
+        if (!isUpdateContractContext(resolvedContext)) {
+          return this.contextFailure('not-resolvable');
+        }
+        context = resolvedContext;
+      } catch (error) {
+        if (error instanceof RecordContractContextResolutionError) {
+          if (error.failureKind === 'not-found' && error.diagnosticCodes.length === 0) {
+            return {
+              kind: 'missing-oid',
+              code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
+            };
+          }
+          return this.contextFailure(error.failureKind, error.diagnosticCodes);
+        }
+        return this.contextFailure('unavailable');
+      }
+
+      let authorized: boolean;
+      try {
+        authorized = await this.dependencies.authorizeUpdate(context, request.caller);
+      } catch {
+        return this.contextFailure('unavailable');
+      }
+      if (!authorized) {
+        return {
+          kind: 'denied',
+          code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
+        };
+      }
+
+      const pipeline = await this.compileAndPersist(
+        config,
+        context,
+        artifact => createUpdateGrantReference(artifact, context),
+        request.caller
+      );
+      if (pipeline.kind !== 'resolved' && pipeline.kind !== 'partial') {
+        return pipeline;
+      }
+      const resolutionBase = {
+        document: pipeline.document,
+        digest: pipeline.digest,
+        grant: pipeline.grant,
+      } as const;
+      if (pipeline.kind === 'partial') {
+        return Object.freeze({
+          kind: 'partial',
+          ...resolutionBase,
+          metadata: Object.freeze({
+            schemaKind: 'update',
+            contractFormat: pipeline.contractFormat,
+            completeness: 'partial',
+            byteLength: pipeline.byteLength,
+            etag: pipeline.etag,
+            context: context.publicContext,
+          }),
+        });
+      }
+      return Object.freeze({
+        kind: 'resolved',
+        ...resolutionBase,
+        metadata: Object.freeze({
+          schemaKind: 'update',
+          contractFormat: pipeline.contractFormat,
+          completeness: 'complete',
+          byteLength: pipeline.byteLength,
+          etag: pipeline.etag,
+          context: context.publicContext,
+        }),
+      });
+    }
+
+    private async compileAndPersist<Grant extends RecordSchemaGrantReferenceInput>(
+      config: RecordSchemaConfig,
+      context: RecordContractContext,
+      createGrant: (artifact: Readonly<Pick<RecordSchemaArtifactInput, 'digest'>>) => Grant,
+      recordAccessContext?: FormRecordAccessContext
+    ): Promise<RecordSchemaPipelineResult<Grant>> {
       let formBuild: RecordContractFormBuildResult;
       try {
-        formBuild = await this.dependencies.buildContractFormConfig(context);
+        formBuild = await this.dependencies.buildContractFormConfig(context, recordAccessContext);
       } catch {
         return this.contextFailure('not-resolvable');
       }
@@ -784,7 +1123,7 @@ export namespace Services {
         };
       }
 
-      const grant = createGrantReference(artifactInput, context.publicContext);
+      const grant = createGrant(artifactInput);
       let grantWrite: StorageServiceResponse | undefined;
       try {
         grantWrite = await storage.putRecordSchemaReference(grant);
@@ -807,32 +1146,21 @@ export namespace Services {
         document: artifact.document,
         digest: artifact.digest,
         grant,
+        contractFormat: config.contractFormat,
+        byteLength: artifact.byteLength,
+        etag: artifact.etag,
       } as const;
       if (compileResult.contract.completeness === 'partial') {
         return Object.freeze({
           kind: 'partial',
+          completeness: 'partial',
           ...resolutionBase,
-          metadata: Object.freeze({
-            schemaKind: 'create',
-            contractFormat: config.contractFormat,
-            completeness: 'partial',
-            byteLength: artifact.byteLength,
-            etag: artifact.etag,
-            context: context.publicContext,
-          }),
         });
       }
       return Object.freeze({
         kind: 'resolved',
+        completeness: 'complete',
         ...resolutionBase,
-        metadata: Object.freeze({
-          schemaKind: 'create',
-          contractFormat: config.contractFormat,
-          completeness: 'complete',
-          byteLength: artifact.byteLength,
-          etag: artifact.etag,
-          context: context.publicContext,
-        }),
       });
     }
 
