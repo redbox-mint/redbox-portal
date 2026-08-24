@@ -175,7 +175,7 @@ USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
 RUN npm install --omit=dev --save --package-lock=true \
-    @researchdatabox/sails-hook-redbox-pdfgen@0.0.1-beta.105
+    @researchdatabox/sails-hook-redbox-pdfgen@5.0.0
 USER root
 RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*
