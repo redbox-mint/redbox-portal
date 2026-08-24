@@ -129,15 +129,21 @@ describe('AJV 2020 record JSON Schema compilation', function () {
     }
     expect(result.issues).to.have.length(2);
     expect(result.truncated).to.equal(true);
+    expect(result.issues).to.deep.equal([
+      { code: 'record-schema.additional-property', pointer: '/extra' },
+      { code: 'record-schema.type', pointer: '/count', expected: { type: 'integer' } },
+    ]);
     expect(Object.isFrozen(result)).to.equal(true);
     expect(Object.isFrozen(result.issues)).to.equal(true);
     expect(Object.isFrozen(result.issues[0])).to.equal(true);
-    expect(Object.isFrozen(result.issues[0].parameters)).to.equal(true);
+    expect(Object.isFrozen(result.issues[1].expected)).to.equal(true);
     expect(input).to.deep.equal(before);
+    expect(JSON.stringify(result)).not.to.include('wrong').and.not.to.include('invalid');
   });
 
   it('rejects malformed generated schemas at the metaschema gate before compilation', function () {
-    const malformed = { ...document(), type: 'not-a-json-schema-type' } as unknown as RecordJsonSchemaDocument;
+    const malformed = { ...document() };
+    Object.defineProperty(malformed, 'type', { value: 'not-a-json-schema-type' });
     try {
       compileRecordJsonSchemaArtifact(malformed, {
         maxDocumentBytes: 1_000_000,
@@ -149,7 +155,12 @@ describe('AJV 2020 record JSON Schema compilation', function () {
       const compilationError = error as RecordJsonSchemaCompilationError;
       expect(compilationError.reason).to.equal('metaschema');
       expect(compilationError.issues).not.to.be.empty;
+      expect(compilationError.truncated).to.equal(false);
       expect(Object.isFrozen(compilationError.issues)).to.equal(true);
+      expect(Object.isFrozen(compilationError.issues[0])).to.equal(true);
+      expect(JSON.stringify(compilationError.issues))
+        .not.to.include('schemaPath')
+        .and.not.to.include('not-a-json-schema-type');
     }
   });
 

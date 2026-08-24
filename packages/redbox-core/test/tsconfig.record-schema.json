@@ -8,6 +8,7 @@
     "./services/RecordSchemaService.test.ts",
     "./services/RecordValidationContractContext.test.ts",
     "./unit/record-contract-fixtures.test.ts",
+    "./unit/record-contract/ajv-error-mapper.test.ts",
     "./unit/record-contract/compiler.test.ts",
     "./unit/record-contract/canonical-json.test.ts",
     "./unit/record-contract/contributor-registry.test.ts",

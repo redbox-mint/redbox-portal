@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
-import Ajv2020, { type AnySchema, type AnySchemaObject, type ErrorObject, type ValidateFunction } from 'ajv/dist/2020';
+import Ajv2020, { type AnySchema, type AnySchemaObject, type ValidateFunction } from 'ajv/dist/2020';
 
+import { mapAjvErrorsToRecordSchemaProblems, type RecordSchemaValidationProblem } from './ajv-error-mapper';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
 import { normalizeRedboxCanonicalJsonV1, serializeRedboxCanonicalJsonV1 } from './canonical-json';
 import type { RecordJsonSchemaDocument } from './json-schema-renderer';
@@ -60,12 +61,8 @@ export class RecordJsonSchemaDocumentLimitError extends Error {
   }
 }
 
-export interface RecordJsonSchemaValidationIssue {
-  readonly instancePath: string;
-  readonly schemaPath: string;
-  readonly keyword: string;
-  readonly parameters: ContractJsonObject;
-}
+/** Public validator issue shape containing only safe, mapped structural data. */
+export type RecordJsonSchemaValidationIssue = RecordSchemaValidationProblem;
 
 export type RecordJsonSchemaValidationResult =
   | { readonly valid: true; readonly issues: readonly []; readonly truncated: false }
@@ -90,7 +87,8 @@ export class RecordJsonSchemaCompilationError extends Error {
 
   public constructor(
     public readonly reason: RecordJsonSchemaCompilationErrorReason,
-    public readonly issues: readonly RecordJsonSchemaValidationIssue[]
+    public readonly issues: readonly RecordJsonSchemaValidationIssue[],
+    public readonly truncated = false
   ) {
     super(
       reason === 'metaschema'
@@ -307,27 +305,6 @@ function annotationKeywords(document: PublishedRecordJsonSchemaDocument): readon
   return [...keywords].sort(compareLexicographically);
 }
 
-function validationParameters(error: ErrorObject): ContractJsonObject {
-  const value = normalizeRedboxCanonicalJsonV1(error.params);
-  return isJsonObject(value) ? value : {};
-}
-
-function validationIssues(
-  errors: readonly ErrorObject[] | null | undefined,
-  maximum: number
-): readonly RecordJsonSchemaValidationIssue[] {
-  return Object.freeze(
-    (errors ?? []).slice(0, maximum).map(error =>
-      Object.freeze({
-        instancePath: error.instancePath,
-        schemaPath: error.schemaPath,
-        keyword: error.keyword,
-        parameters: validationParameters(error),
-      })
-    )
-  );
-}
-
 function wrappedValidator(
   validate: ValidateFunction<unknown>,
   maxValidationErrors: number
@@ -343,11 +320,11 @@ function wrappedValidator(
       if (validate(input)) {
         return validResult;
       }
-      const total = validate.errors?.length ?? 0;
+      const mapping = mapAjvErrorsToRecordSchemaProblems(validate.errors, maxValidationErrors);
       return Object.freeze({
         valid: false,
-        issues: validationIssues(validate.errors, maxValidationErrors),
-        truncated: total > maxValidationErrors,
+        issues: mapping.problems,
+        truncated: mapping.truncated,
       });
     },
   });
@@ -378,10 +355,8 @@ export class RecordJsonSchemaArtifactCompiler {
     this.registerAnnotations(identity.document);
 
     if (!this.ajv.validateSchema(identity.document as AnySchemaObject)) {
-      throw new RecordJsonSchemaCompilationError(
-        'metaschema',
-        validationIssues(this.ajv.errors, this.options.maxValidationErrors)
-      );
+      const mapping = mapAjvErrorsToRecordSchemaProblems(this.ajv.errors, this.options.maxValidationErrors);
+      throw new RecordJsonSchemaCompilationError('metaschema', mapping.problems, mapping.truncated);
     }
 
     let validate: ValidateFunction<unknown>;

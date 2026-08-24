@@ -1,4 +1,5 @@
 export * from './codes';
+export * from './ajv-error-mapper';
 export * from './canonical-json';
 export * from './contributor-registry';
 export * from './core-contributors';

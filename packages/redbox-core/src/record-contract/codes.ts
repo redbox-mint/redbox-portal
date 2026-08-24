@@ -29,6 +29,7 @@ export const RECORD_SCHEMA_PROBLEM_CODES = {
 
   TYPE: 'record-schema.type',
   ADDITIONAL_PROPERTY: 'record-schema.additional-property',
+  REQUIRED: 'record-schema.required',
   ENUM: 'record-schema.enum',
   ARRAY_ITEM: 'record-schema.array-item',
   VALIDATION_GENERIC: 'record-schema.validation',
