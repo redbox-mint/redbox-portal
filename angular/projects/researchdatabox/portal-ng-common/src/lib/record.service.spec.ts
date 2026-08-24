@@ -108,6 +108,29 @@ describe('RecordService', () => {
     await retryPromise;
   });
 
+  it('sends a manual resolution as an ordinary conditional update with no force or bypass parameter', async () => {
+    const failedRequestId = '11111111-1111-4111-8111-111111111111';
+    const resolutionPromise = recordService.update('oid-123', { title: 'Mine' }, '', undefined, {
+      entityTag: entityTag(10),
+      formFingerprint: 'sha256:form_1',
+      resolution: 'client-manually-resolved',
+      resolutionOfRequestId: failedRequestId,
+    });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.headers.get('If-Match')).toBe(entityTag(10));
+    expect(request.request.headers.get('X-ReDBox-Concurrency-Resolution')).toBe('client-manually-resolved');
+    expect(request.request.headers.get('X-ReDBox-Resolution-Of-Request-Id')).toBe(failedRequestId);
+    expect(request.request.params.has('force')).toBeFalse();
+    expect(request.request.params.has('bypass')).toBeFalse();
+    expect(request.request.headers.has('X-ReDBox-Force')).toBeFalse();
+    expect(request.request.headers.has('X-ReDBox-Bypass')).toBeFalse();
+    request.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-123' } });
+
+    await resolutionPromise;
+  });
+
   it('sends operation intent on create, update, and target-step transition requests', async () => {
     const createPromise = recordService.create({ title: 'Draft' }, 'rdmp', '', 'draft');
     const createRequest = httpTestingController.expectOne(
