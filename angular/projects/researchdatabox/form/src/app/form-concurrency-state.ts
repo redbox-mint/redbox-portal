@@ -1,9 +1,13 @@
 import {
+  canonicallyEqualRecordValues,
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
+  isRecordSaveRequestId,
+  rebaseRecordValues,
   RECORD_ENTITY_TAG_PATTERN,
 } from '@researchdatabox/sails-ng-common';
+import type { ThreeWayRecordRebase } from '@researchdatabox/sails-ng-common';
 
 /** Parsed server-owned concurrency facts delivered with a generated form. */
 export interface FormLoadConcurrencyState {
@@ -12,10 +16,13 @@ export interface FormLoadConcurrencyState {
   readonly formFingerprint?: string;
 }
 
-export interface FormRecordBaselineState extends FormLoadConcurrencyState {
+export interface FormRecordIdentity {
   readonly oid: string;
   readonly recordType: string;
   readonly formName: string;
+}
+
+export interface FormRecordBaselineState extends FormLoadConcurrencyState, FormRecordIdentity {
   readonly metadata: Readonly<Record<string, unknown>>;
   /** False when a persisted response could not return its authoritative projection. */
   readonly trusted: boolean;
@@ -38,6 +45,27 @@ export interface FormConflictState {
   readonly status: FormConflictStatus;
   readonly autoRetryAttempted: boolean;
 }
+
+export type FormConflictRebaseIneligibility =
+  | 'conflict-not-stale'
+  | 'baseline-untrusted'
+  | 'record-identity-mismatch'
+  | 'baseline-mismatch'
+  | 'latest-unavailable'
+  | 'latest-version-untrusted'
+  | 'form-fingerprint-mismatch'
+  | 'request-linkage-untrusted'
+  | 'overlapping-changes';
+
+export type FormConflictRebasePlan =
+  | {
+      readonly eligible: true;
+      readonly rebase: ThreeWayRecordRebase<Record<string, unknown>>;
+    }
+  | {
+      readonly eligible: false;
+      readonly reason: FormConflictRebaseIneligibility;
+    };
 
 /**
  * Parse only bounded server-owned fields. A valid response ETag takes
@@ -75,11 +103,73 @@ function recordEntityTagRevision(value: unknown): number | undefined {
   return isRecordRevision(revision) ? revision : undefined;
 }
 
+export function isTrustedFormRecordVersion(entityTag: unknown, revision: unknown): boolean {
+  return isRecordEntityTag(entityTag) && isRecordRevision(revision) && recordEntityTagRevision(entityTag) === revision;
+}
+
 /** Clone and recursively freeze JSON-like projected metadata. */
 export function immutableFormMetadata(value: unknown): Readonly<Record<string, unknown>> {
   const source = isPlainRecord(value) ? value : {};
   const cloned = structuredClone(source);
   return freezeJsonValue(cloned) as Readonly<Record<string, unknown>>;
+}
+
+/**
+ * Decide whether a stale form has enough trusted coordinates for a same-form
+ * three-way rebase. A positive plan grants no write authority: its candidate
+ * still goes through the ordinary authorization, validation, and CAS request.
+ */
+export function planFormConflictRebase(
+  baseline: FormRecordBaselineState | null,
+  conflict: FormConflictState | null,
+  local: Record<string, unknown>,
+  currentFormFingerprint: unknown,
+  currentIdentity: FormRecordIdentity
+): FormConflictRebasePlan {
+  if (!conflict || conflict.status !== 'stale') {
+    return { eligible: false, reason: 'conflict-not-stale' };
+  }
+  if (!baseline?.trusted || !isTrustedFormRecordVersion(baseline.entityTag, baseline.revision)) {
+    return { eligible: false, reason: 'baseline-untrusted' };
+  }
+  if (
+    baseline.oid !== currentIdentity.oid ||
+    baseline.recordType !== currentIdentity.recordType ||
+    baseline.formName !== currentIdentity.formName
+  ) {
+    return { eligible: false, reason: 'record-identity-mismatch' };
+  }
+  if (
+    conflict.baseRevision !== baseline.revision ||
+    conflict.baseEntityTag !== baseline.entityTag ||
+    !canonicallyEqualRecordValues(conflict.base, baseline.metadata)
+  ) {
+    return { eligible: false, reason: 'baseline-mismatch' };
+  }
+  if (!conflict.latest) {
+    return { eligible: false, reason: 'latest-unavailable' };
+  }
+  if (!isTrustedFormRecordVersion(conflict.latestEntityTag, conflict.latestRevision)) {
+    return { eligible: false, reason: 'latest-version-untrusted' };
+  }
+  if (
+    !isRecordFormFingerprint(currentFormFingerprint) ||
+    !isRecordFormFingerprint(baseline.formFingerprint) ||
+    conflict.baseFormFingerprint !== baseline.formFingerprint ||
+    conflict.latestFormFingerprint !== baseline.formFingerprint ||
+    currentFormFingerprint !== baseline.formFingerprint
+  ) {
+    return { eligible: false, reason: 'form-fingerprint-mismatch' };
+  }
+  if (!isRecordSaveRequestId(conflict.requestId)) {
+    return { eligible: false, reason: 'request-linkage-untrusted' };
+  }
+
+  const rebase = rebaseRecordValues(conflict.base, local, conflict.latest as Record<string, unknown>);
+  if (rebase.unresolvedOverlaps.length > 0) {
+    return { eligible: false, reason: 'overlapping-changes' };
+  }
+  return { eligible: true, rebase };
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
