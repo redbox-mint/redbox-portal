@@ -18,8 +18,8 @@ export type ResolveRecordSchemaResult =
   | {
       readonly kind: 'resolved';
       readonly artifact: RecordSchemaArtifactModel;
-      readonly notModified: boolean;
     }
+  | { readonly kind: 'not-modified'; readonly artifact: RecordSchemaArtifactModel }
   | { readonly kind: 'invalid-request'; readonly problem: RecordSchemaProblem }
   | { readonly kind: 'not-found'; readonly problem: RecordSchemaProblem }
   | { readonly kind: 'forbidden'; readonly problem: RecordSchemaProblem }

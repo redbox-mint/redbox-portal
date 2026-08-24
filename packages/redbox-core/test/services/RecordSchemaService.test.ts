@@ -1088,6 +1088,130 @@ describe('RecordSchemaService update resolution', function () {
     }
   });
 
+  it('accepts an exact If-Match against the current full-document digest before persisting', async function () {
+    const fixture = updateResolutionFixture();
+    const initial = await fixture.service.resolveUpdate(request);
+    if (initial.kind !== 'resolved') {
+      throw new Error('Expected an initial complete update schema resolution.');
+    }
+    fixture.putRecordSchemaArtifact.resetHistory();
+    fixture.putRecordSchemaReference.resetHistory();
+
+    const result = await fixture.service.resolveUpdate({
+      ...request,
+      ifMatch: `"sha256:${initial.digest}"`,
+    });
+
+    expect(result.kind).to.equal('resolved');
+    expect(fixture.putRecordSchemaArtifact.calledOnce).to.equal(true);
+    expect(fixture.putRecordSchemaReference.calledOnce).to.equal(true);
+  });
+
+  it('returns a typed stale If-Match failure before artifact or grant persistence', async function () {
+    const fixture = updateResolutionFixture();
+
+    const result = await fixture.service.resolveUpdate({
+      ...request,
+      ifMatch: `"sha256:${'b'.repeat(64)}"`,
+    });
+
+    expect(result).to.deep.equal({
+      kind: 'precondition-failed',
+      condition: 'if-match',
+      reason: 'mismatch',
+      code: RECORD_SCHEMA_PROBLEM_CODES.PRECONDITION_FAILED,
+    });
+    expect(fixture.putRecordSchemaArtifact.notCalled).to.equal(true);
+    expect(fixture.putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('compares If-Match with the newly resolved document rather than a prior schema', async function () {
+    const fixture = updateResolutionFixture();
+    const initial = await fixture.service.resolveUpdate(request);
+    if (initial.kind !== 'resolved') {
+      throw new Error('Expected an initial complete update schema resolution.');
+    }
+    fixture.buildContractFormConfig.resolves({ ok: true, effectiveForm: simpleForm(['changed-title']) });
+    fixture.putRecordSchemaArtifact.resetHistory();
+    fixture.putRecordSchemaReference.resetHistory();
+
+    const result = await fixture.service.resolveUpdate({
+      ...request,
+      ifMatch: `"sha256:${initial.digest}"`,
+    });
+
+    expect(result.kind).to.equal('precondition-failed');
+    expect(fixture.putRecordSchemaArtifact.notCalled).to.equal(true);
+    expect(fixture.putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('returns typed invalid If-Match outcomes for malformed, weak, list, and wildcard values without persistence', async function () {
+    const values = [
+      { value: 'arbitrary-tag', reason: 'malformed' },
+      { value: `W/"sha256:${'a'.repeat(64)}"`, reason: 'weak' },
+      {
+        value: `"sha256:${'a'.repeat(64)}", "sha256:${'b'.repeat(64)}"`,
+        reason: 'list',
+      },
+      { value: '*', reason: 'wildcard' },
+    ] as const;
+
+    for (const { value, reason } of values) {
+      const fixture = updateResolutionFixture();
+
+      const result = await fixture.service.resolveUpdate({ ...request, ifMatch: value });
+
+      expect(result).to.deep.equal({
+        kind: 'invalid-precondition',
+        condition: 'if-match',
+        reason,
+        code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+      });
+      expect(fixture.putRecordSchemaArtifact.notCalled, value).to.equal(true);
+      expect(fixture.putRecordSchemaReference.notCalled, value).to.equal(true);
+    }
+  });
+
+  it('does not evaluate If-Match before missing, denied, context, or compiler failures', async function () {
+    let conditionalEvaluations = 0;
+    const conditionalRequest = {
+      ...request,
+      get ifMatch(): string {
+        conditionalEvaluations += 1;
+        return `"sha256:${DIGEST}"`;
+      },
+    };
+    const missing = updateResolutionFixture(updateContext(), {
+      resolveContractContext: sinon.stub().rejects(new RecordContractContextResolutionError('not-found')),
+    });
+    const denied = updateResolutionFixture(updateContext(), { authorizeUpdate: sinon.stub().resolves(false) });
+    const contextFailure = updateResolutionFixture(updateContext(), {
+      resolveContractContext: sinon.stub().rejects(new RecordContractContextResolutionError('not-resolvable')),
+    });
+    const compilerFailure = updateResolutionFixture(updateContext(), {
+      getContributorRegistry: () => coreRegistry(['SimpleInputComponent']),
+    });
+
+    const results = await Promise.all([
+      missing.service.resolveUpdate(conditionalRequest),
+      denied.service.resolveUpdate(conditionalRequest),
+      contextFailure.service.resolveUpdate(conditionalRequest),
+      compilerFailure.service.resolveUpdate(conditionalRequest),
+    ]);
+
+    expect(results.map(result => result.kind)).to.deep.equal([
+      'missing-oid',
+      'denied',
+      'context-failed',
+      'compiler-failed',
+    ]);
+    expect(conditionalEvaluations).to.equal(0);
+    for (const fixture of [missing, denied, contextFailure, compilerFailure]) {
+      expect(fixture.putRecordSchemaArtifact.notCalled).to.equal(true);
+      expect(fixture.putRecordSchemaReference.notCalled).to.equal(true);
+    }
+  });
+
   it('delegates current edit authorization to RecordsService before form construction', async function () {
     const context = updateContext();
     const resolveContractContext = sinon.stub().resolves(context);
@@ -1587,7 +1711,7 @@ describe('RecordSchemaService immutable resolution', function () {
     let conditionalEvaluated = false;
     const request: ResolveImmutableRecordSchemaRequest = {
       ...requestFor(seed),
-      get ifNoneMatch(): RecordJsonSchemaEtag {
+      get ifNoneMatch(): string {
         conditionalEvaluated = true;
         return etagFor(seed);
       },
@@ -1609,7 +1733,7 @@ describe('RecordSchemaService immutable resolution', function () {
     let conditionalEvaluated = false;
     const request: ResolveImmutableRecordSchemaRequest = {
       ...requestFor(seed),
-      get ifNoneMatch(): RecordJsonSchemaEtag {
+      get ifNoneMatch(): string {
         conditionalEvaluated = true;
         return etagFor(seed);
       },
@@ -1641,7 +1765,7 @@ describe('RecordSchemaService immutable resolution', function () {
     });
     const request: ResolveImmutableRecordSchemaRequest = {
       ...requestFor(seed),
-      get ifNoneMatch(): RecordJsonSchemaEtag {
+      get ifNoneMatch(): string {
         events.push('conditional');
         return etagFor(seed);
       },
@@ -1649,11 +1773,10 @@ describe('RecordSchemaService immutable resolution', function () {
 
     const result = await fixture.service.resolveImmutable(request);
 
-    expect(result.kind).to.equal('resolved');
-    if (result.kind !== 'resolved') {
+    expect(result.kind).to.equal('not-modified');
+    if (result.kind !== 'not-modified') {
       throw new Error('Expected an authorized conditional immutable result.');
     }
-    expect(result.notModified).to.equal(true);
     expect(events).to.deep.equal(['authorize', 'form', 'conditional', 'touch']);
     expect(result.artifact).not.to.have.property('grant');
     expect(result.artifact).not.to.have.property('oid');
@@ -1663,5 +1786,52 @@ describe('RecordSchemaService immutable resolution', function () {
     }
     expect(Object.isFrozen(result.artifact)).to.equal(true);
     expect(Object.isFrozen(result.artifact.document)).to.equal(true);
+  });
+
+  it('returns resolved for absent or stale If-None-Match and touches only after evaluation', async function () {
+    const seed = await createImmutableUpdateSeed();
+    const absent = immutableResolutionFixture(seed);
+
+    const absentResult = await absent.service.resolveImmutable(requestFor(seed));
+
+    expect(absentResult.kind).to.equal('resolved');
+    expect(absent.touchRecordSchemaArtifact.calledOnceWithExactly(seed.artifact.digest)).to.equal(true);
+
+    const stale = immutableResolutionFixture(seed);
+    const staleResult = await stale.service.resolveImmutable({
+      ...requestFor(seed),
+      ifNoneMatch: `"sha256:${'b'.repeat(64)}"`,
+    });
+
+    expect(staleResult.kind).to.equal('resolved');
+    expect(stale.touchRecordSchemaArtifact.calledOnceWithExactly(seed.artifact.digest)).to.equal(true);
+  });
+
+  it('rejects malformed, weak, list, and wildcard If-None-Match only after authorization and without touching', async function () {
+    const seed = await createImmutableUpdateSeed();
+    const values = [
+      'arbitrary-tag',
+      `W/"sha256:${seed.artifact.digest}"`,
+      `"sha256:${seed.artifact.digest}", "sha256:${'b'.repeat(64)}"`,
+      '*',
+    ];
+
+    for (const ifNoneMatch of values) {
+      const fixture = immutableResolutionFixture(seed);
+
+      const result = await fixture.service.resolveImmutable({ ...requestFor(seed), ifNoneMatch });
+
+      expect(result.kind, ifNoneMatch).to.equal('invalid-request');
+      if (result.kind !== 'invalid-request') {
+        throw new Error('Expected an invalid immutable conditional result.');
+      }
+      expect(result.problem).to.deep.include({
+        status: 400,
+        code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+      });
+      expect(fixture.authorizeUpdate.calledOnce, ifNoneMatch).to.equal(true);
+      expect(fixture.buildContractFormConfig.calledOnce, ifNoneMatch).to.equal(true);
+      expect(fixture.touchRecordSchemaArtifact.notCalled, ifNoneMatch).to.equal(true);
+    }
   });
 });

@@ -25,6 +25,7 @@ import {
   identifyRecordJsonSchema,
   normalizeRedboxCanonicalJsonV1,
   normalizeRecordJsonSchemaDocument,
+  parseRecordJsonSchemaEtag,
   RecordContractCompiler,
   RecordContractContextResolutionError,
   RecordJsonSchemaCompilationError,
@@ -52,6 +53,7 @@ import {
   type RecordContractUpdateContext,
   type RecordContractUpdateContextRequest,
   type RecordJsonSchemaEtag,
+  type RecordJsonSchemaEtagParseFailureReason,
   type RecordJsonSchemaValidationIssue,
   type RecordSchemaProblemCode,
 } from '../record-contract';
@@ -548,6 +550,8 @@ export interface ResolveUpdateRecordSchemaRequest {
   readonly portal: string;
   readonly oid: string;
   readonly operation?: string;
+  /** Optional raw If-Match value evaluated against the resolved update schema before persistence. */
+  readonly ifMatch?: string;
   /** Trusted current caller and brand used by the existing record-access and form-access paths. */
   readonly caller: FormRecordAccessContext;
 }
@@ -595,6 +599,20 @@ export type RecordSchemaUpdateLimitFailure = RecordSchemaCreateLimitFailure;
 export type RecordSchemaUpdateStorageFailure = RecordSchemaCreateStorageFailure;
 export type RecordSchemaUpdateUnavailableFailure = RecordSchemaCreateUnavailableFailure;
 
+export interface RecordSchemaUpdateInvalidPreconditionFailure {
+  readonly kind: 'invalid-precondition';
+  readonly condition: 'if-match';
+  readonly reason: RecordJsonSchemaEtagParseFailureReason;
+  readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
+}
+
+export interface RecordSchemaUpdatePreconditionFailure {
+  readonly kind: 'precondition-failed';
+  readonly condition: 'if-match';
+  readonly reason: 'mismatch';
+  readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.PRECONDITION_FAILED;
+}
+
 export type ResolveUpdateRecordSchemaResult =
   | CompleteRecordSchemaUpdateResolution
   | PartialRecordSchemaUpdateResolution
@@ -605,7 +623,9 @@ export type ResolveUpdateRecordSchemaResult =
   | RecordSchemaUpdateMetaValidationFailure
   | RecordSchemaUpdateLimitFailure
   | RecordSchemaUpdateStorageFailure
-  | RecordSchemaUpdateUnavailableFailure;
+  | RecordSchemaUpdateUnavailableFailure
+  | RecordSchemaUpdateInvalidPreconditionFailure
+  | RecordSchemaUpdatePreconditionFailure;
 
 export interface ResolveImmutableRecordSchemaRequest {
   readonly brand: string;
@@ -613,8 +633,8 @@ export interface ResolveImmutableRecordSchemaRequest {
   readonly digest: string;
   /** Trusted current caller and brand used by the authoritative context and record-access paths. */
   readonly caller: FormRecordAccessContext;
-  /** One already-parsed exact strong schema ETag. General header parsing belongs to the HTTP precondition phase. */
-  readonly ifNoneMatch?: RecordJsonSchemaEtag;
+  /** Optional raw If-None-Match value evaluated only after current authorization succeeds. */
+  readonly ifNoneMatch?: string;
 }
 
 /** Immutable retrieval uses the shared resolver result contract established for schema endpoints. */
@@ -797,6 +817,21 @@ function invalidDigestResult(request: ResolveImmutableRecordSchemaRequest): Reso
       title: 'Record schema request is invalid',
       status: 400,
       detail: 'The record schema digest must be a lowercase 64-character SHA-256 hexadecimal value.',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+    }),
+  });
+}
+
+function invalidImmutableConditionalResult(
+  request: ResolveImmutableRecordSchemaRequest
+): ResolveImmutableRecordSchemaResult {
+  return Object.freeze({
+    kind: 'invalid-request',
+    problem: immutableProblem(request, {
+      type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
+      title: 'Record schema request is invalid',
+      status: 400,
+      detail: 'If-None-Match must contain one supported strong record schema ETag.',
       code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
     }),
   });
@@ -1103,11 +1138,31 @@ export namespace Services {
         };
       }
 
-      const pipeline = await this.compileAndPersist(
-        config,
-        context,
-        artifact => createUpdateGrantReference(artifact, context),
-        request.caller
+      const compilation = await this.compileContext(config, context, request.caller);
+      if (compilation.kind !== 'resolved' && compilation.kind !== 'partial') {
+        return compilation;
+      }
+
+      const ifMatch = parseRecordJsonSchemaEtag(request.ifMatch);
+      if (ifMatch.kind === 'invalid') {
+        return Object.freeze({
+          kind: 'invalid-precondition',
+          condition: 'if-match',
+          reason: ifMatch.reason,
+          code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+        });
+      }
+      if (ifMatch.kind === 'parsed' && ifMatch.digest !== compilation.digest) {
+        return Object.freeze({
+          kind: 'precondition-failed',
+          condition: 'if-match',
+          reason: 'mismatch',
+          code: RECORD_SCHEMA_PROBLEM_CODES.PRECONDITION_FAILED,
+        });
+      }
+
+      const pipeline = await this.persistCompilation(compilation, artifact =>
+        createUpdateGrantReference(artifact, context)
       );
       if (pipeline.kind !== 'resolved' && pipeline.kind !== 'partial') {
         return pipeline;
@@ -1229,7 +1284,11 @@ export namespace Services {
         return immutableInvalidContractResult(request);
       }
 
-      const notModified = request.ifNoneMatch === authorizedCompilation.etag;
+      const ifNoneMatch = parseRecordJsonSchemaEtag(request.ifNoneMatch);
+      if (ifNoneMatch.kind === 'invalid') {
+        return invalidImmutableConditionalResult(request);
+      }
+      const notModified = ifNoneMatch.kind === 'parsed' && ifNoneMatch.digest === authorizedCompilation.digest;
       let touch: StorageServiceResponse | undefined;
       try {
         touch = await storage.touchRecordSchemaArtifact(request.digest);
@@ -1241,9 +1300,8 @@ export namespace Services {
       }
 
       return Object.freeze({
-        kind: 'resolved',
+        kind: notModified ? 'not-modified' : 'resolved',
         artifact: immutableArtifact,
-        notModified,
       });
     }
 
@@ -1491,6 +1549,13 @@ export namespace Services {
         return compilation;
       }
 
+      return this.persistCompilation(compilation, createGrant);
+    }
+
+    private async persistCompilation<Grant extends RecordSchemaGrantReferenceInput>(
+      compilation: RecordSchemaCompiledContext,
+      createGrant: (artifact: Readonly<Pick<RecordSchemaArtifactInput, 'digest'>>) => Grant
+    ): Promise<RecordSchemaPipelineResult<Grant>> {
       let storageValue: unknown;
       try {
         storageValue = this.dependencies.getStorageProvider();

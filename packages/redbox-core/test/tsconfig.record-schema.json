@@ -16,6 +16,7 @@
     "./unit/record-contract/record-contract-context.test.ts",
     "./unit/record-contract/record-json-schema-ajv.test.ts",
     "./unit/record-contract/record-json-schema-artifact.test.ts",
+    "./unit/record-contract/record-json-schema-etag.test.ts",
     "./unit/record-contract/record-schema-validator-cache.test.ts",
     "./unit/record-schema-contracts.test.ts",
     "./unit/storage-service-record-schema-capability.test.ts"

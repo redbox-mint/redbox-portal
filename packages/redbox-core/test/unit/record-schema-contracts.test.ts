@@ -49,10 +49,12 @@ function visitContractNode(node: ContractNode): string {
   }
 }
 
-function resultStatus(result: ResolveRecordSchemaResult): number {
+function resultOutcome(result: ResolveRecordSchemaResult): number | 'not-modified' {
   switch (result.kind) {
     case 'resolved':
       return 200;
+    case 'not-modified':
+      return 'not-modified';
     case 'invalid-request':
     case 'not-found':
     case 'forbidden':
@@ -255,7 +257,8 @@ describe('record-schema core contracts', function () {
       updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     };
     const results: ResolveRecordSchemaResult[] = [
-      { kind: 'resolved', artifact, notModified: false },
+      { kind: 'resolved', artifact },
+      { kind: 'not-modified', artifact },
       { kind: 'invalid-request', problem: { ...problem, status: 400 } },
       { kind: 'not-found', problem: { ...problem, status: 404 } },
       { kind: 'forbidden', problem: { ...problem, status: 403 } },
@@ -265,6 +268,6 @@ describe('record-schema core contracts', function () {
       { kind: 'unavailable', problem: { ...problem, status: 503 } },
     ];
 
-    expect(results.map(resultStatus)).to.deep.equal([200, 400, 404, 403, 409, 413, 422, 503]);
+    expect(results.map(resultOutcome)).to.deep.equal([200, 'not-modified', 400, 404, 403, 409, 413, 422, 503]);
   });
 });
