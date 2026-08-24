@@ -36,14 +36,12 @@ import {
   recordContractPointerTokens,
 } from './json-pointer';
 import { CORE_RECORD_CONTRACT_COMPONENT_INVENTORY } from './core-contributors';
-import { snapshotRecordContractPublicContext } from './record-contract-context';
+import { snapshotRecordContractPublicContext, type RecordContractEffectiveForm } from './record-contract-context';
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
 export interface RecordContractCompileRequest {
-  readonly form: Readonly<Omit<FormConfigFrame, 'componentDefinitions'>> & {
-    readonly componentDefinitions: readonly FormComponentDefinitionFrame[];
-  };
+  readonly form: RecordContractEffectiveForm;
   readonly context: RecordContractPublicContext;
   readonly reusableFormDefinitions?: Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>;
   readonly extensionMetadata?: Readonly<Record<string, unknown>>;
@@ -156,7 +154,8 @@ function cloneJsonSafe<T>(
   ancestors = new Set<object>(),
   depth = 0,
   maxDepth = Number.MAX_SAFE_INTEGER,
-  allowUndefined = false
+  allowUndefined = false,
+  allowRuntimeFormObjects = false
 ): T {
   if (depth > maxDepth) {
     throw new CloneDepthLimitError();
@@ -186,10 +185,18 @@ function cloneJsonSafe<T>(
         throw new Error(`${path} contains a sparse or extended array.`);
       }
       return value.map((item, index) =>
-        cloneJsonSafe(item, `${path}[${index}]`, ancestors, depth + 1, maxDepth, allowUndefined)
+        cloneJsonSafe(
+          item,
+          `${path}[${index}]`,
+          ancestors,
+          depth + 1,
+          maxDepth,
+          allowUndefined,
+          allowRuntimeFormObjects
+        )
       ) as T;
     }
-    if (!isPlainObject(value)) {
+    if (!allowRuntimeFormObjects && !isPlainObject(value)) {
       throw new Error(`${path} is not a plain JSON object.`);
     }
     if (Object.getOwnPropertySymbols(value).length > 0) {
@@ -200,7 +207,15 @@ function cloneJsonSafe<T>(
       if (!descriptor.enumerable || !('value' in descriptor)) {
         throw new Error(`${path}.${key} is not an enumerable data property.`);
       }
-      clone[key] = cloneJsonSafe(descriptor.value, `${path}.${key}`, ancestors, depth + 1, maxDepth, allowUndefined);
+      clone[key] = cloneJsonSafe(
+        descriptor.value,
+        `${path}.${key}`,
+        ancestors,
+        depth + 1,
+        maxDepth,
+        allowUndefined,
+        allowRuntimeFormObjects
+      );
     }
     return clone as T;
   } finally {
@@ -230,13 +245,17 @@ function freezeDeep<T>(value: T): T {
   return value;
 }
 
-function cloneCompilerInput<T>(value: T, path: string): T {
-  return freezeDeep(cloneJsonSafe(value, path, new Set<object>(), 0, Number.MAX_SAFE_INTEGER, true));
+function cloneCompilerInput<T>(value: T, path: string, allowRuntimeFormObjects = false): T {
+  return freezeDeep(
+    cloneJsonSafe(value, path, new Set<object>(), 0, Number.MAX_SAFE_INTEGER, true, allowRuntimeFormObjects)
+  );
 }
 
 function snapshotCompileRequest(request: RecordContractCompileRequest): RecordContractCompileRequest {
   return Object.freeze({
-    form: cloneCompilerInput(request.form, '$request.form'),
+    // FormsService returns visitor-aware class instances. Snapshot only their
+    // enumerable data; prototype methods never cross the compiler boundary.
+    form: cloneCompilerInput(request.form, '$request.form', true),
     context: snapshotRecordContractPublicContext(request.context),
     ...(request.reusableFormDefinitions === undefined
       ? {}

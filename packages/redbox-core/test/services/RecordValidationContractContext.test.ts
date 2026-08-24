@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
+import { RecordContractContextResolutionError } from '../../src';
 import type {
   RecordValidationResult,
   ResolvedRecordValidationResult,
@@ -13,6 +14,18 @@ function requireResolved(result: RecordValidationResult): ResolvedRecordValidati
   expect(result.status, JSON.stringify(result.diagnostics)).to.equal('resolved');
   if (result.status !== 'resolved') throw new Error('Expected record validation resolution to succeed.');
   return result;
+}
+
+async function captureContextError(run: () => Promise<unknown>): Promise<RecordContractContextResolutionError> {
+  try {
+    await run();
+  } catch (error) {
+    if (error instanceof RecordContractContextResolutionError) {
+      return error;
+    }
+    throw error;
+  }
+  throw new Error('Expected record contract context resolution to fail.');
 }
 
 const candidateDependentBranch = {
@@ -93,6 +106,64 @@ describe('RecordValidationService contract-context parity', function () {
     expect(contract.resolution.sourceFormFingerprint).to.match(/^[a-f0-9]{64}$/);
     expect(contract.resolution).not.to.have.property('oid');
     expect(contract.publicContext).not.to.have.any.keys('actor', 'sourceForm', 'contextVariables');
+  });
+
+  it('selects an explicit create target through the existing workflow and operation rules', async function () {
+    const form = validationForm({ name: 'dataset-2.4-review' });
+    const fixture = createRecordValidationFixture({ form });
+    const service = new Services.RecordValidation(fixture.dependencies);
+
+    const contract = await service.resolveContractContext({
+      kind: 'create',
+      brand: 'brand-1',
+      portal: 'portal-1',
+      recordType: 'dataset',
+      targetStep: 'review',
+      operation: 'submit',
+      actor: { authenticated: true, roles: ['Researcher'] },
+    });
+
+    expect(contract.publicContext).to.include({
+      kind: 'create',
+      workflowStep: 'review',
+      form: 'dataset-2.4-review',
+      operation: 'submit',
+    });
+    expect(fixture.calls.startingSteps).to.equal(0);
+    expect(fixture.calls.workflowSteps).to.deep.equal(['review']);
+  });
+
+  it('types missing record types and unauthorized operations without exposing selection details', async function () {
+    const missingFixture = createRecordValidationFixture({ recordType: null });
+    const missingService = new Services.RecordValidation(missingFixture.dependencies);
+    const missing = await captureContextError(() =>
+      missingService.resolveContractContext({
+        kind: 'create',
+        brand: 'brand-1',
+        portal: 'portal-1',
+        recordType: 'missing',
+        actor: { authenticated: true, roles: ['Researcher'] },
+      })
+    );
+
+    expect(missing.failureKind).to.equal('not-found');
+    expect(missing.diagnosticCodes).to.deep.equal(['record-validation-record-type-not-found']);
+
+    const forbiddenFixture = createRecordValidationFixture();
+    const forbiddenService = new Services.RecordValidation(forbiddenFixture.dependencies);
+    const forbidden = await captureContextError(() =>
+      forbiddenService.resolveContractContext({
+        kind: 'create',
+        brand: 'brand-1',
+        portal: 'portal-1',
+        recordType: 'dataset',
+        operation: 'submit',
+        actor: { authenticated: true, roles: ['Guest'] },
+      })
+    );
+
+    expect(forbidden.failureKind).to.equal('forbidden');
+    expect(forbidden.diagnosticCodes).to.deep.equal(['record-validation-operation-role-unauthorized']);
   });
 
   it('selects the same candidate-owned update form, stage, operation, and mode as validation', async function () {

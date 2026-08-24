@@ -1,7 +1,7 @@
 import type {
   AvailableFormComponentDefinitionFrames,
+  FormComponentDefinitionFrame,
   FormConfigFrame,
-  FormConfigOutline,
 } from '@researchdatabox/sails-ng-common';
 
 import type { ContractJsonObject, RecordContractPublicContext, RecordContractSchemaKind } from './types';
@@ -23,6 +23,8 @@ interface RecordContractContextRequestBase {
 export interface RecordContractCreateContextRequest extends RecordContractContextRequestBase {
   readonly kind: 'create';
   readonly recordType: string;
+  /** Optional actor-authorized workflow target whose configured form becomes authoritative. */
+  readonly targetStep?: string;
   readonly oid?: never;
 }
 
@@ -35,6 +37,23 @@ export interface RecordContractUpdateContextRequest extends RecordContractContex
 
 export type RecordContractContextRequest = RecordContractCreateContextRequest | RecordContractUpdateContextRequest;
 
+export type RecordContractContextFailureKind =
+  'invalid-request' | 'not-found' | 'forbidden' | 'not-resolvable' | 'unavailable';
+
+/** Typed authoritative-context failure that never exposes record or caller values. */
+export class RecordContractContextResolutionError extends Error {
+  public readonly diagnosticCodes: readonly string[];
+
+  public constructor(
+    public readonly failureKind: RecordContractContextFailureKind,
+    diagnosticCodes: readonly string[] = []
+  ) {
+    super(`Record contract context resolution failed (${failureKind}).`);
+    this.name = 'RecordContractContextResolutionError';
+    this.diagnosticCodes = Object.freeze([...new Set(diagnosticCodes)].sort());
+  }
+}
+
 /** Source form retained before caller- and candidate-dependent contract construction. */
 export type RecordContractSourceForm = Readonly<Omit<FormConfigFrame, 'componentDefinitions'>> & {
   readonly componentDefinitions: readonly AvailableFormComponentDefinitionFrames[];
@@ -43,6 +62,11 @@ export type RecordContractSourceForm = Readonly<Omit<FormConfigFrame, 'component
 export type RecordContractReusableFormDefinitions = Readonly<
   Record<string, readonly AvailableFormComponentDefinitionFrames[]>
 >;
+
+/** Class-backed, hook-extensible form data accepted at the compiler boundary. */
+export type RecordContractEffectiveForm = Readonly<Omit<FormConfigFrame, 'componentDefinitions'>> & {
+  readonly componentDefinitions: readonly FormComponentDefinitionFrame[];
+};
 
 interface RecordContractResolutionDataBase {
   readonly sourceFormFingerprint: string;
@@ -89,7 +113,7 @@ export type RecordContractContext = RecordContractCreateContext | RecordContract
 /** A role- and mode-effective form that is safe to pass to contract compilation. */
 export interface RecordContractFormBuildSuccess {
   readonly ok: true;
-  readonly effectiveForm: FormConfigOutline;
+  readonly effectiveForm: RecordContractEffectiveForm;
 }
 
 /** Contract construction cannot continue when no effective form components remain. */

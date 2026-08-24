@@ -43,6 +43,20 @@ const generousLimits: RecordSchemaLimitsConfig = {
   contributorTimeoutMs: 100,
 };
 
+class RuntimeBoundaryValue {
+  public readonly stable = true;
+}
+
+class RuntimeReusableFormComponent implements FormComponentDefinitionFrame {
+  public readonly name = 'runtime-reusable';
+  public readonly component = { class: 'SimpleInputComponent', config: {} };
+}
+
+class RuntimeComponentContribution {
+  public readonly kind = 'node';
+  public readonly node: ContractNode = { kind: 'scalar', nullable: false, scalarType: 'string' };
+}
+
 function registrations(
   additional: readonly (RecordContractComponentContributor | RecordContractExtensionContributor)[] = [],
   excludedCoreType?: string
@@ -251,6 +265,29 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(JSON.stringify(contract.context)).not.to.match(
       /private-(?:oid|user|record-value|request-value|source-form|context-value)/
     );
+  });
+
+  it('keeps the runtime-form bridge isolated from reusable, extension, and contributor inputs', async function () {
+    const reusableResult = await compiler().compile({
+      form: form([]),
+      context: publicContext,
+      reusableFormDefinitions: { runtime: [new RuntimeReusableFormComponent()] },
+    });
+    expectFailure(reusableResult, RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT);
+
+    const extensionResult = await compiler().compile({
+      form: form([]),
+      context: publicContext,
+      extensionMetadata: { 'test:runtime': new RuntimeBoundaryValue() },
+    });
+    expectFailure(extensionResult, RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT);
+
+    const runtimeContributor = hookContributor('RuntimeOutputComponent', () => new RuntimeComponentContribution());
+    const contributorResult = await compiler(generousLimits, [runtimeContributor]).compile({
+      form: form([field('runtime', 'RuntimeOutputComponent')]),
+      context: publicContext,
+    });
+    expectFailure(contributorResult, RECORD_SCHEMA_PROBLEM_CODES.CONTRIBUTOR_FAILED);
   });
 
   it('uses escaped pointers, detects form path collisions, and traverses non-persisting wrappers', async function () {

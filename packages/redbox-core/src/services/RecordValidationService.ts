@@ -49,9 +49,11 @@ import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { WorkflowStageConfig } from '../config/workflow.config';
 import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { RecordMetaMetadata, RecordWorkflow } from '../model/storage/RecordModel';
+import { RecordContractContextResolutionError } from '../record-contract/record-contract-context';
 import type {
   RecordContractContext,
   RecordContractContextActor,
+  RecordContractContextFailureKind,
   RecordContractContextRequest,
   RecordContractCreateContext,
   RecordContractReusableFormDefinitions,
@@ -1214,10 +1216,21 @@ export namespace Services {
      * @returns The selected public context and private construction inputs.
      */
     public async resolveContractContext(request: RecordContractContextRequest): Promise<RecordContractContext> {
+      try {
+        return await this.resolveContractContextOrThrow(request);
+      } catch (error) {
+        if (error instanceof RecordContractContextResolutionError) {
+          throw error;
+        }
+        throw this.contractContextError('unavailable');
+      }
+    }
+
+    private async resolveContractContextOrThrow(request: RecordContractContextRequest): Promise<RecordContractContext> {
       const brand = this.contractReference(request.brand, 'brand');
       const portal = this.contractReference(request.portal, 'portal');
       if (typeof request.actor.authenticated !== 'boolean') {
-        throw new Error('Record-contract actor authentication state is invalid.');
+        throw this.contractContextError('invalid-request');
       }
       const actor: RecordContractContextActor = Object.freeze({
         authenticated: request.actor.authenticated,
@@ -1245,25 +1258,24 @@ export namespace Services {
         writeKind: request.kind,
         validationOperation: request.operation,
         evaluateFormValidators: false,
+        ...(request.kind === 'create' && request.targetStep !== undefined ? { targetStep: request.targetStep } : {}),
         actor,
       };
       const diagnostics: RecordValidationDiagnostic[] = [];
       const progress: ResolutionProgress = { mode: 'shadow' };
       const authoritative = await this.resolveAuthoritativeContext(validationRequest, diagnostics, progress, false);
       if (authoritative.status !== 'resolved') {
-        throw new Error(
-          `Record contract context could not be resolved (${diagnostics.map(diagnostic => diagnostic.code).join(',')}).`
-        );
+        throw this.contractContextError(this.contractContextFailureKind(diagnostics), diagnostics);
       }
       if (authoritative.brand !== brand) {
-        throw new Error('The record-contract brand does not match the authoritative record brand.');
+        throw this.contractContextError('not-resolvable');
       }
       const workflowStep = authoritative.selection.workflowStep;
-      if (!workflowStep) throw new Error('The authoritative record-contract workflow step is unavailable.');
+      if (!workflowStep) throw this.contractContextError('not-resolvable');
 
       const configuredUnknownProperties = sails.config.recordSchema?.unknownProperties;
       if (!isRecordSchemaUnknownProperties(configuredUnknownProperties)) {
-        throw new Error('The record-contract unknown-property policy is invalid.');
+        throw this.contractContextError('unavailable');
       }
       const unknownProperties = resolveRecordSchemaUnknownProperties(
         configuredUnknownProperties,
@@ -1943,12 +1955,48 @@ export namespace Services {
       });
     }
 
-    private contractReference(value: string, kind: 'brand' | 'portal' | 'oid'): string {
+    private contractReference(value: string, _kind: 'brand' | 'portal' | 'oid'): string {
       const normalized = typeof value === 'string' ? value.trim() : '';
       if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(normalized)) {
-        throw new Error(`The record-contract ${kind} reference is invalid.`);
+        throw this.contractContextError('invalid-request');
       }
       return normalized;
+    }
+
+    private contractContextFailureKind(
+      diagnostics: readonly RecordValidationDiagnostic[]
+    ): RecordContractContextFailureKind {
+      const codes = new Set(diagnostics.map(diagnostic => diagnostic.code));
+      if (
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationTargetUnauthorized)
+      ) {
+        return 'forbidden';
+      }
+      if (codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeNotFound)) {
+        return 'not-found';
+      }
+      if (
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMissing) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMalformed) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMissing) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMalformed) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationMalformed) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed)
+      ) {
+        return 'invalid-request';
+      }
+      return 'not-resolvable';
+    }
+
+    private contractContextError(
+      failureKind: RecordContractContextFailureKind,
+      diagnostics: readonly RecordValidationDiagnostic[] = []
+    ): RecordContractContextResolutionError {
+      return new RecordContractContextResolutionError(
+        failureKind,
+        diagnostics.map(diagnostic => diagnostic.code)
+      );
     }
 
     private recordContractCandidate(
@@ -1991,7 +2039,7 @@ export namespace Services {
       actor: RecordContractContextActor
     ): RecordContractPrivateResolutionBase {
       const configuration = authoritative.form.form.configuration;
-      if (!configuration) throw new Error('The authoritative record-contract source form is unavailable.');
+      if (!configuration) throw this.contractContextError('not-resolvable');
       const sourceFormSnapshot = _.cloneDeep(configuration);
       const sourceForm: RecordContractSourceForm = Object.freeze({
         ...sourceFormSnapshot,
