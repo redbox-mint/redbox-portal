@@ -7,6 +7,7 @@ import { FormConflictPresenterComponent } from './form-conflict-presenter.compon
 
 const conflict: FormConflictState = {
   requestId: '11111111-1111-4111-8111-111111111111',
+  cause: 'record-stale',
   base: { contributors: [{ name: 'Base' }] },
   local: { contributors: [{ name: 'Mine' }] },
   latest: { contributors: [{ name: 'Latest' }] },
@@ -33,7 +34,41 @@ const review: FormConflictReviewProjection = {
 
 describe('FormConflictPresenterComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule({});
+    const { translationService } = await createTestbedModule({});
+    Object.assign(translationService.translationMap, {
+      '@form-conflict-stale-title': 'This record has changed',
+      '@form-conflict-stale-message': 'Your edits are still available.',
+      '@form-conflict-reviewing-title': 'Review concurrent changes',
+      '@form-conflict-reviewing-message': 'Review each conflicting value.',
+      '@form-conflict-old-tab-title': 'This tab needs the current form',
+      '@form-conflict-old-tab-message': 'This older tab can compare values only.',
+      '@form-conflict-form-changed-title': 'The form has changed',
+      '@form-conflict-form-changed-message': 'Download a copy before loading the current form.',
+      '@form-conflict-deleted-title': 'This record is no longer available for editing',
+      '@form-conflict-deleted-message': 'Your edits were not saved.',
+      '@form-conflict-permission-lost-title': 'Edit permission is no longer available',
+      '@form-conflict-permission-lost-message': 'Your edits were not saved.',
+      '@form-conflict-repeated-race-title': 'The record changed again',
+      '@form-conflict-repeated-race-message': 'Review the new differences.',
+      '@form-conflict-merging-title': 'Merging your changes',
+      '@form-conflict-merging-message': 'Your edits are being saved.',
+      '@form-conflict-already-current-title': 'Your changes are already current',
+      '@form-conflict-already-current-message': 'No additional save was needed.',
+      '@form-conflict-review-action': 'Review changes',
+      '@form-conflict-discard-action': 'Reload latest and discard mine',
+      '@form-conflict-export-action': 'Download my edits',
+      '@form-conflict-load-current-form-action': 'Load current form',
+      '@form-conflict-review-heading': 'Review changes',
+      '@form-conflict-review-instructions': 'Choose which value to keep.',
+      '@form-conflict-review-only': 'These values are for comparison only.',
+      '@form-conflict-whole-repeatable': 'Whole repeatable',
+      '@form-conflict-whole-repeatable-help': 'Resolve this list as one value.',
+      '@form-conflict-mine': 'Mine',
+      '@form-conflict-latest': 'Latest',
+      '@form-conflict-save-resolution': 'Save resolved changes',
+      '@form-conflict-saving-resolution': 'Saving resolution…',
+      '@form-conflict-choices-required': 'Choose every value.',
+    });
   });
 
   it('renders an accessible persistent banner with generic actions only while unresolved', () => {
@@ -53,7 +88,7 @@ describe('FormConflictPresenterComponent', () => {
     // stay outside it so assistive technology does not re-announce them.
     const notice = fixture.nativeElement.querySelector('[role="alert"]') as HTMLElement;
     expect(notice.getAttribute('aria-live')).toBe('assertive');
-    expect(notice.textContent).toContain('Your edits are still available');
+    expect(notice.textContent).toContain('Review each conflicting value');
     expect(notice.querySelector('button')).toBeNull();
 
     expect(banner.textContent).toContain('Review changes');
@@ -66,6 +101,7 @@ describe('FormConflictPresenterComponent', () => {
     const component = fixture.componentInstance;
     component.conflict = conflict;
     component.review = review;
+    component.mergeAllowed = true;
     component.ngOnChanges();
     const resolutionSpy = spyOn(component.resolutionRequested, 'emit');
     fixture.detectChanges();
@@ -92,11 +128,12 @@ describe('FormConflictPresenterComponent', () => {
     const component = fixture.componentInstance;
     const confirmation = TestBed.inject(ConfirmationDialogService);
     component.conflict = conflict;
+    component.mergeAllowed = true;
     const discardSpy = spyOn(component.discardRequested, 'emit');
     fixture.detectChanges();
 
     const firstAttempt = component.confirmDiscard();
-    expect(confirmation.dialog()?.message).toContain('permanently discard');
+    expect(confirmation.dialog()?.message).toBe('@form-conflict-discard-warning-message');
     confirmation.resolve(false);
     await firstAttempt;
     expect(discardSpy).not.toHaveBeenCalled();
@@ -105,5 +142,73 @@ describe('FormConflictPresenterComponent', () => {
     confirmation.resolve(true);
     await secondAttempt;
     expect(discardSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders translated review-only, drift, deleted, permission, retry, and already-current states safely', () => {
+    const fixture = TestBed.createComponent(FormConflictPresenterComponent);
+    const component = fixture.componentInstance;
+
+    component.conflict = { ...conflict, cause: 'precondition-required' };
+    component.review = review;
+    component.ngOnChanges();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('This tab needs the current form');
+    expect(fixture.nativeElement.textContent).toContain('comparison only');
+    expect(fixture.nativeElement.querySelector('.rb-form-conflict-review__submit')).toBeNull();
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('.rb-form-conflict-review input')).every(
+        input => (input as HTMLInputElement).disabled
+      )
+    ).toBeTrue();
+
+    for (const variant of [
+      { cause: 'form-changed' as const, status: 'form-changed' as const, title: 'The form has changed' },
+      { cause: 'deleted' as const, status: 'deleted' as const, title: 'no longer available for editing' },
+      { cause: 'permission-lost' as const, status: 'permission-lost' as const, title: 'permission is no longer' },
+      { cause: 'record-stale' as const, status: 'retrying' as const, title: 'Merging your changes' },
+    ]) {
+      component.conflict = { ...conflict, cause: variant.cause, status: variant.status, latest: null };
+      component.review = null;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain(variant.title);
+      expect(fixture.nativeElement.textContent).not.toContain('Latest');
+    }
+
+    component.conflict = null;
+    component.resolution = 'already-current';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('already current');
+  });
+
+  it('confirms loading the current form without treating review-only values as a merge', async () => {
+    const fixture = TestBed.createComponent(FormConflictPresenterComponent);
+    const component = fixture.componentInstance;
+    const confirmation = TestBed.inject(ConfirmationDialogService);
+    component.conflict = { ...conflict, cause: 'precondition-required' };
+    component.review = review;
+    const reloadSpy = spyOn(component.reloadRequested, 'emit');
+    fixture.detectChanges();
+
+    const attempt = component.confirmReload();
+    expect(confirmation.dialog()?.message).toBe('@form-conflict-reload-warning-message');
+    confirmation.resolve(true);
+    await attempt;
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(component.canSubmitResolution).toBeFalse();
+  });
+
+  it('offers a current-form reload when a stale response is reviewable but not safe to merge', () => {
+    const fixture = TestBed.createComponent(FormConflictPresenterComponent);
+    const component = fixture.componentInstance;
+    component.conflict = conflict;
+    component.review = review;
+    component.mergeAllowed = false;
+    fixture.detectChanges();
+
+    expect(component.canReview).toBeTrue();
+    expect(component.canSubmitResolution).toBeFalse();
+    expect(component.canReloadForm).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('Load current form');
   });
 });

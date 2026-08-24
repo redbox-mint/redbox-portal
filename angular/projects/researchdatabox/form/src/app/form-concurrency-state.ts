@@ -28,11 +28,20 @@ export interface FormRecordBaselineState extends FormLoadConcurrencyState, FormR
   readonly trusted: boolean;
 }
 
-export type FormConflictStatus = 'stale' | 'reviewing' | 'retrying' | 'form-changed' | 'deleted';
+export type FormConflictStatus = 'stale' | 'reviewing' | 'retrying' | 'form-changed' | 'deleted' | 'permission-lost';
+
+/** The typed server fact that caused the memory-only conflict state. */
+export type FormConflictCause =
+  | 'record-stale'
+  | 'precondition-required'
+  | 'form-changed'
+  | 'deleted'
+  | 'permission-lost';
 
 /** Memory-only state for one FormComponent instance. */
 export interface FormConflictState {
   readonly requestId: string;
+  readonly cause: FormConflictCause;
   readonly base: Readonly<Record<string, unknown>>;
   readonly local: Readonly<Record<string, unknown>>;
   readonly latest: Readonly<Record<string, unknown>> | null;
@@ -127,6 +136,9 @@ export function planFormConflictRebase(
   currentIdentity: FormRecordIdentity
 ): FormConflictRebasePlan {
   if (!conflict || conflict.status !== 'stale') {
+    return { eligible: false, reason: 'conflict-not-stale' };
+  }
+  if (conflict.cause !== 'record-stale') {
     return { eligible: false, reason: 'conflict-not-stale' };
   }
   if (!baseline?.trusted || !isTrustedFormRecordVersion(baseline.entityTag, baseline.revision)) {
