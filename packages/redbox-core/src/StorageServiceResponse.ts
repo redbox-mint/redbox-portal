@@ -17,7 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { ActionResult, StorageMutationApplicationState } from '@researchdatabox/sails-ng-common';
+import {
+  ActionResult,
+  StorageMutationApplicationState,
+  type RecordConcurrencyResolution,
+} from '@researchdatabox/sails-ng-common';
+import type { RecordModel } from './model';
+import type { StorageMutationNonApplicationReason } from './RecordStorageConcurrency';
 
 /**
  * Response class for StorageService methods.
@@ -35,9 +41,7 @@ export class StorageServiceResponse implements ActionResult {
   details?: Record<string, unknown> | string;
   totalItems: number = 0;
   items: Record<string, unknown>[] = [];
-  constructor() {
-
-  }
+  constructor() {}
 
   public isSuccessful(): boolean {
     return this.success === true;
@@ -50,6 +54,12 @@ export class StorageServiceResponse implements ActionResult {
  */
 export class StorageMutationResponse extends StorageServiceResponse {
   applicationState?: StorageMutationApplicationState;
+  nonApplicationReason?: StorageMutationNonApplicationReason;
+  committedRevision?: number;
+  committedRecord?: RecordModel | Record<string, unknown>;
+  removedRecord?: RecordModel | Record<string, unknown>;
+  requestId?: string;
+  resolution?: RecordConcurrencyResolution;
 }
 
-export default StorageServiceResponse
+export default StorageServiceResponse;

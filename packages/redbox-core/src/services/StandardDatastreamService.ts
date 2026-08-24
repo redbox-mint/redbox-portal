@@ -9,6 +9,7 @@ import { Readable } from 'node:stream';
 import type { Services as StorageManagerServices } from './StorageManagerService';
 import type { AttachmentMetadataAttributes } from '../waterline-models';
 import type { Services as AttachmentMetadataServices } from './AttachmentMetadataService';
+import { normalizeAttachmentStagingFileId } from '../AttachmentStagingIdentity';
 
 type IDisk = StorageManagerServices.IDisk;
 type AttachmentAccessAction = 'access' | 'download' | 'list' | 'upload' | 'remove';
@@ -44,6 +45,7 @@ export namespace Services {
       'addDatastreams',
       'updateDatastream',
       'removeDatastream',
+      'removeStagedDatastream',
       'addDatastream',
       'addAndRemoveDatastreams',
       'getDatastream',
@@ -113,7 +115,10 @@ export namespace Services {
       return this.datastreamListEntry(row.storageKey, {
         contentType: row.contentType,
         contentLength: row.contentLength,
-        lastModified: normalizedLastModified && !Number.isNaN(normalizedLastModified.getTime()) ? normalizedLastModified : row.lastModified,
+        lastModified:
+          normalizedLastModified && !Number.isNaN(normalizedLastModified.getTime())
+            ? normalizedLastModified
+            : row.lastModified,
         etag: row.etag,
         metadata: {
           fileId: row.fileId,
@@ -195,7 +200,10 @@ export namespace Services {
       try {
         await metadataService.recordAccess(event);
       } catch (err) {
-        this.logger.error(`${this.logHeader} access audit failed for ${event.action} ${event.storageKey ?? event.oid}`, err);
+        this.logger.error(
+          `${this.logHeader} access audit failed for ${event.action} ${event.storageKey ?? event.oid}`,
+          err
+        );
       }
     }
 
@@ -209,32 +217,34 @@ export namespace Services {
       const metadataBatchSize = 10;
       for (let index = 0; index < fileEntries.length; index += metadataBatchSize) {
         const batch = fileEntries.slice(index, index + metadataBatchSize);
-        const batchResults = await Promise.allSettled(batch.map(async ({ key }) => {
-          const meta = await primaryDisk.getMetaData(key);
-          const fileId = this.fileIdFromStorageKey(key);
-          const row: AttachmentMetadataInput = {
-            oid,
-            fileId,
-            storageKey: key,
-            contentType: meta.contentType,
-            contentLength: meta.contentLength,
-            etag: meta.etag,
-            lastModified: this.safeToISOString(meta.lastModified),
-          };
-          detailsByKey[key] = {
-            contentType: meta.contentType,
-            contentLength: meta.contentLength,
-            etag: meta.etag,
-            lastModified: meta.lastModified,
-          };
-          await this.safelyUpsertMetadata(row);
-          return row;
-        }));
+        const batchResults = await Promise.allSettled(
+          batch.map(async ({ key }) => {
+            const meta = await primaryDisk.getMetaData(key);
+            const fileId = this.fileIdFromStorageKey(key);
+            const row: AttachmentMetadataInput = {
+              oid,
+              fileId,
+              storageKey: key,
+              contentType: meta.contentType,
+              contentLength: meta.contentLength,
+              etag: meta.etag,
+              lastModified: this.safeToISOString(meta.lastModified),
+            };
+            detailsByKey[key] = {
+              contentType: meta.contentType,
+              contentLength: meta.contentLength,
+              etag: meta.etag,
+              lastModified: meta.lastModified,
+            };
+            await this.safelyUpsertMetadata(row);
+            return row;
+          })
+        );
         results.push(...batchResults);
       }
 
       const byKey: Record<string, { row: AttachmentMetadataInput; details: Record<string, unknown> }> = {};
-      results.forEach((result) => {
+      results.forEach(result => {
         if (result.status === 'fulfilled') {
           byKey[result.value.storageKey] = {
             row: result.value,
@@ -277,16 +287,18 @@ export namespace Services {
       const name = storageError.name?.toLowerCase() ?? '';
       const statusCode = storageError.status ?? storageError.statusCode ?? storageError.$metadata?.httpStatusCode;
 
-      return code === 'enoent'
-        || code === 'nosuchkey'
-        || name === 'notfound'
-        || name === 'notfoundexception'
-        || statusCode === 404
-        || message.includes('not found')
-        || message.includes('no such')
-        || message.includes('does not exist')
-        || message.includes('enoent')
-        || (depth < 5 && !!storageError.cause && this.isStorageNotFoundError(storageError.cause, depth + 1));
+      return (
+        code === 'enoent' ||
+        code === 'nosuchkey' ||
+        name === 'notfound' ||
+        name === 'notfoundexception' ||
+        statusCode === 404 ||
+        message.includes('not found') ||
+        message.includes('no such') ||
+        message.includes('does not exist') ||
+        message.includes('enoent') ||
+        (depth < 5 && !!storageError.cause && this.isStorageNotFoundError(storageError.cause, depth + 1))
+      );
     }
 
     private isStorageAlreadyExistsError(err: unknown): boolean {
@@ -302,11 +314,13 @@ export namespace Services {
       };
       const message = storageError.message?.toLowerCase() ?? '';
 
-      return storageError.code === 'EEXIST'
-        || storageError.status === 409
-        || storageError.statusCode === 409
-        || message.includes('already exists')
-        || message.includes('eexist');
+      return (
+        storageError.code === 'EEXIST' ||
+        storageError.status === 409 ||
+        storageError.statusCode === 409 ||
+        message.includes('already exists') ||
+        message.includes('eexist')
+      );
     }
 
     private describeStorageError(err: unknown): string {
@@ -363,14 +377,18 @@ export namespace Services {
 
       const primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
       if (primaryCheck.available) {
-        this.logger.verbose(`${this.logHeader} promoteFromStaging() -> Already present: ${destKey} via ${primaryCheck.via}`);
+        this.logger.verbose(
+          `${this.logHeader} promoteFromStaging() -> Already present: ${destKey} via ${primaryCheck.via}`
+        );
         return true;
       }
 
       const existsInStaging = await stagingDisk.exists(fileId);
       if (!existsInStaging) {
-        return await this.promoteTusPartsFromStaging(stagingDisk, primaryDisk, fileId, destKey)
-          || (await this.checkPrimaryObject(primaryDisk, destKey)).available;
+        return (
+          (await this.promoteTusPartsFromStaging(stagingDisk, primaryDisk, fileId, destKey)) ||
+          (await this.checkPrimaryObject(primaryDisk, destKey)).available
+        );
       }
 
       const metadata = await stagingDisk.getMetaData(fileId);
@@ -380,7 +398,10 @@ export namespace Services {
         await this.putStagedObject(primaryDisk, destKey, stagingDisk, fileId, readable, metadata.contentLength);
       } catch (err) {
         readable.destroy();
-        if (!this.isStorageAlreadyExistsError(err) || !(await this.checkPrimaryObject(primaryDisk, destKey)).available) {
+        if (
+          !this.isStorageAlreadyExistsError(err) ||
+          !(await this.checkPrimaryObject(primaryDisk, destKey)).available
+        ) {
           throw err;
         }
       }
@@ -422,12 +443,12 @@ export namespace Services {
       try {
         await primaryDisk.putStream(destKey, readable, { contentLength });
         for (const prefix of this.tusBasePrefixes(fileId)) {
-          await stagingDisk.deleteAll(this.tusPartsPrefix(prefix)).catch((err) => {
+          await stagingDisk.deleteAll(this.tusPartsPrefix(prefix)).catch(err => {
             if (!this.isStorageNotFoundError(err)) {
               throw err;
             }
           });
-          await stagingDisk.delete(this.tusInfoKey(prefix)).catch((err) => {
+          await stagingDisk.delete(this.tusInfoKey(prefix)).catch(err => {
             if (!this.isStorageNotFoundError(err)) {
               throw err;
             }
@@ -438,7 +459,9 @@ export namespace Services {
         throw err;
       }
 
-      this.logger.verbose(`${this.logHeader} promoteTusPartsFromStaging() -> Promoted incomplete TUS upload parts: ${destKey}`);
+      this.logger.verbose(
+        `${this.logHeader} promoteTusPartsFromStaging() -> Promoted incomplete TUS upload parts: ${destKey}`
+      );
       return true;
     }
 
@@ -452,7 +475,7 @@ export namespace Services {
         const listed = await stagingDisk.listAll(prefix, { recursive: true });
         const partKeys = _.uniq(
           Array.from(listed.objects)
-            .map((object) => this.listedObjectKey(object))
+            .map(object => this.listedObjectKey(object))
             .filter((key): key is string => typeof key === 'string' && key.length > 0)
         ).sort((left, right) => left.localeCompare(right));
         if (partKeys.length) {
@@ -464,7 +487,7 @@ export namespace Services {
         const firstSignature = await this.tusPartSelectionSignature(stagingDisk, firstSelection);
         const allEquivalent = (
           await Promise.all(
-            otherSelections.map(async (selection) =>
+            otherSelections.map(async selection =>
               _.isEqual(firstSignature, await this.tusPartSelectionSignature(stagingDisk, selection))
             )
           )
@@ -472,7 +495,7 @@ export namespace Services {
         if (!allEquivalent) {
           throw new Error(
             `Ambiguous TUS upload parts for fileId '${fileId}': found parts in ${populatedPrefixes
-              .map((selection) => `'${selection.prefix}'`)
+              .map(selection => `'${selection.prefix}'`)
               .join(', ')}`
           );
         }
@@ -527,7 +550,7 @@ export namespace Services {
     }
 
     private tusPartPrefixes(fileId: string): string[] {
-      return this.tusBasePrefixes(fileId).map((prefix) => this.tusPartsPrefix(prefix));
+      return this.tusBasePrefixes(fileId).map(prefix => this.tusPartsPrefix(prefix));
     }
 
     private tusPartsPrefix(tusBasePrefix: string): string {
@@ -590,54 +613,53 @@ export namespace Services {
       const typedRecord = this.coerceRecord(record);
       const typedNewMetadata = this.coerceMetadata(newMetadata);
 
-      return FormsService
-        .getFormByName(typedRecord.metaMetadata.form, true, typedRecord.metaMetadata.brandId)
-        .pipe(
-          mergeMap(form => {
+      return FormsService.getFormByName(typedRecord.metaMetadata.form, true, typedRecord.metaMetadata.brandId).pipe(
+        mergeMap(form => {
+          const reqs: Promise<unknown>[] = [];
+          const attachmentFields = _.get(
+            form,
+            'configuration.attachmentFields',
+            _.get(form, 'attachmentFields', [])
+          ) as string[];
+          if (attachmentFields.length > 0) {
+            typedRecord.metaMetadata.attachmentFields = attachmentFields;
 
-            const reqs: Promise<unknown>[] = [];
-            const attachmentFields = _.get(
-              form,
-              'configuration.attachmentFields',
-              _.get(form, 'attachmentFields', [])
-            ) as string[];
-            if (attachmentFields.length > 0) {
-              typedRecord.metaMetadata.attachmentFields = attachmentFields;
+            for (const attField of attachmentFields) {
+              const perFieldFileIdsAdded: Datastream[] = [];
+              const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
+              const newAttachments = this.getAttachments(typedNewMetadata, attField);
+              const removeIds: Datastream[] = [];
 
-              for (const attField of attachmentFields) {
-                const perFieldFileIdsAdded: Datastream[] = [];
-                const oldAttachments = this.getAttachments(typedRecord.metadata, attField);
-                const newAttachments = this.getAttachments(typedNewMetadata, attField);
-                const removeIds: Datastream[] = [];
-
-                const toRemove = this.diffAttachments(oldAttachments, newAttachments);
-                for (const removeAtt of toRemove) {
-                  if (this.isAttachment(removeAtt)) {
-                    removeIds.push(new Datastream(removeAtt));
-                  }
+              const toRemove = this.diffAttachments(oldAttachments, newAttachments);
+              for (const removeAtt of toRemove) {
+                if (this.isAttachment(removeAtt)) {
+                  removeIds.push(new Datastream(removeAtt));
                 }
+              }
 
-                const toAdd = this.diffAttachments(newAttachments, oldAttachments);
-                for (const addAtt of toAdd) {
-                  if (this.isAttachment(addAtt)) {
-                    perFieldFileIdsAdded.push(new Datastream({
+              const toAdd = this.diffAttachments(newAttachments, oldAttachments);
+              for (const addAtt of toAdd) {
+                if (this.isAttachment(addAtt)) {
+                  perFieldFileIdsAdded.push(
+                    new Datastream({
                       ...addAtt,
                       name: addAtt['name'],
                       mimeType: addAtt['mimeType'],
                       attachmentField: attField,
                       uploadedBy: addAtt['uploadedBy'],
-                    }));
-                  }
+                    })
+                  );
                 }
-
-                fileIdsAdded.push(...perFieldFileIdsAdded);
-
-                reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
               }
+
+              fileIdsAdded.push(...perFieldFileIdsAdded);
+
+              reqs.push(this.addAndRemoveDatastreams(oid, perFieldFileIdsAdded, removeIds, stagingDisk));
             }
-            return of(reqs);
-          })
-        );
+          }
+          return of(reqs);
+        })
+      );
     }
 
     private coerceRecord(record: unknown): RecordWithMetadata {
@@ -699,7 +721,9 @@ export namespace Services {
       if (!existsInStaging) {
         let primaryCheck = await this.checkPrimaryObject(primaryDisk, destKey);
         if (primaryCheck.available) {
-          this.logger.verbose(`${this.logHeader} addDatastream() -> Already present: ${destKey} via ${primaryCheck.via}`);
+          this.logger.verbose(
+            `${this.logHeader} addDatastream() -> Already present: ${destKey} via ${primaryCheck.via}`
+          );
           // This idempotent repair path confirms that a previous promotion already
           // made the file durable. Recording upload access again is intentional:
           // downstream audit can see both the physical promotion and the later
@@ -707,7 +731,12 @@ export namespace Services {
           await this.afterDatastreamPromoted(oid, fileId, destKey, datastream);
           return { success: true, key: destKey };
         }
-        const promotedTusParts = await this.promoteTusPartsFromStaging(effectiveStagingDisk, primaryDisk, fileId, destKey);
+        const promotedTusParts = await this.promoteTusPartsFromStaging(
+          effectiveStagingDisk,
+          primaryDisk,
+          fileId,
+          destKey
+        );
         if (!promotedTusParts) {
           // Re-check primary: a concurrent request may have promoted the file
           // after the initial check but before/while the TUS attempt ran.
@@ -720,9 +749,9 @@ export namespace Services {
             return { success: true, key: destKey };
           }
           throw new Error(
-            `Attachment not found in staging: ${fileId}. Checked staged object '${fileId}' and TUS part prefixes: ${this
-              .tusPartPrefixes(fileId)
-              .join(', ')}. Primary object '${destKey}' available=${primaryCheck.available} via=${primaryCheck.via}${
+            `Attachment not found in staging: ${fileId}. Checked staged object '${fileId}' and TUS part prefixes: ${this.tusPartPrefixes(
+              fileId
+            ).join(', ')}. Primary object '${destKey}' available=${primaryCheck.available} via=${primaryCheck.via}${
               primaryCheck.error ? ` error=${primaryCheck.error}` : ''
             }`
           );
@@ -735,7 +764,14 @@ export namespace Services {
       const metadata = await effectiveStagingDisk.getMetaData(fileId);
       const readable = await effectiveStagingDisk.getStream(fileId);
       try {
-        await this.putStagedObject(primaryDisk, destKey, effectiveStagingDisk, fileId, readable, metadata.contentLength);
+        await this.putStagedObject(
+          primaryDisk,
+          destKey,
+          effectiveStagingDisk,
+          fileId,
+          readable,
+          metadata.contentLength
+        );
       } catch (err) {
         readable.destroy();
         throw err;
@@ -781,18 +817,19 @@ export namespace Services {
     }
 
     private isNonRetryableStreamingWriteError(err: unknown): boolean {
-      const candidates = [
-        err,
-        _.get(err, 'cause'),
-        _.get(err, 'cause.cause'),
-      ];
-      return candidates.some((candidate) => {
+      const candidates = [err, _.get(err, 'cause'), _.get(err, 'cause.cause')];
+      return candidates.some(candidate => {
         const message = String(_.get(candidate, 'message', '')).toLowerCase();
         return message.includes('non-retryable streaming request');
       });
     }
 
-    private async afterDatastreamPromoted(oid: string, fileId: string, destKey: string, datastream: Datastream): Promise<void> {
+    private async afterDatastreamPromoted(
+      oid: string,
+      fileId: string,
+      destKey: string,
+      datastream: Datastream
+    ): Promise<void> {
       try {
         const metadataRow = await this.buildMetadataRow(oid, fileId, destKey, datastream.metadata);
         await this.safelyUpsertMetadata(metadataRow);
@@ -839,7 +876,8 @@ export namespace Services {
           operation: 'delete',
           mutationState: 'applied',
           generation: typeof datastream.metadata.generation === 'string' ? datastream.metadata.generation : undefined,
-          attachmentField: typeof datastream.metadata.attachmentField === 'string' ? datastream.metadata.attachmentField : undefined,
+          attachmentField:
+            typeof datastream.metadata.attachmentField === 'string' ? datastream.metadata.attachmentField : undefined,
         });
         // The object is confirmed absent. Retain the applied tombstone long
         // enough for reconciliation, then reap the physical metadata row.
@@ -849,6 +887,23 @@ export namespace Services {
       }
       await this.safelyRecordAccess({ oid, fileId, storageKey: destKey, action: 'remove' });
       return { success: true };
+    }
+
+    /** Delete only staging objects; committed primary blobs are never addressed. */
+    public async removeStagedDatastream(fileId: string): Promise<void> {
+      const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
+      if (!normalizedFileId) throw new Error('Invalid staged attachment identity.');
+      const stagingDisk = StorageManagerService.stagingDisk();
+      if (await stagingDisk.exists(normalizedFileId)) {
+        await stagingDisk.delete(normalizedFileId);
+      }
+      for (const prefix of this.tusPartPrefixes(normalizedFileId)) {
+        await stagingDisk.deleteAll(prefix);
+      }
+      for (const prefix of this.tusBasePrefixes(normalizedFileId)) {
+        const infoKey = this.tusInfoKey(prefix);
+        if (await stagingDisk.exists(infoKey)) await stagingDisk.delete(infoKey);
+      }
     }
 
     /**
@@ -1015,7 +1070,7 @@ export namespace Services {
         key: string;
         fileObj: Record<string, unknown>;
       };
-      const fileEntries: ListedDatastreamEntry[] = Array.from(result.objects).map((obj) => {
+      const fileEntries: ListedDatastreamEntry[] = Array.from(result.objects).map(obj => {
         const fileObj = obj as Record<string, unknown>;
         const key = String(fileObj['key'] ?? fileObj['name'] ?? obj);
         return {
@@ -1024,7 +1079,7 @@ export namespace Services {
         };
       });
 
-      const metadataRows = await metadataService?.findByOid(oid) ?? [];
+      const metadataRows = (await metadataService?.findByOid(oid)) ?? [];
       const metadataByKey = _.keyBy(metadataRows, 'storageKey');
       const hasCompleteMetadata = fileEntries.length > 0 && fileEntries.every(({ key }) => !!metadataByKey[key]);
 

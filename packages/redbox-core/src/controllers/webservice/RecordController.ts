@@ -67,11 +67,20 @@ import {
   createRecordSaveContext,
   normalizeRecordValidationRequestFacts,
   parsePublicValidationOperation,
+  isRecordConflictStatus,
   readSaveRequestId,
+  recordSaveDisplayErrors,
   recordSaveFailureStatus,
   RecordSaveResponse,
 } from '../../RecordSaveResponse';
-import type { RecordSaveContext, RecordSaveOperation } from '../../RecordSaveResponse';
+import type { RecordConcurrencyContext, RecordSaveContext, RecordSaveOperation } from '../../RecordSaveResponse';
+import {
+  parsePublicRecordConcurrencyRequest,
+  recordRepresentationConcurrency,
+  recordRepresentationRevision,
+  recordSaveResultHeaderOption,
+  recordSaveResultHeaders,
+} from '../../RecordHttpConcurrency';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
@@ -145,7 +154,7 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
@@ -155,7 +164,8 @@ export namespace Controllers {
       req: Sails.Req,
       operation: RecordSaveOperation,
       validationOperation?: string,
-      targetStep?: string
+      targetStep?: string,
+      concurrency?: RecordConcurrencyContext
     ): RecordSaveContext {
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
@@ -169,6 +179,39 @@ export namespace Controllers {
           req.params,
           req.query
         ),
+        ...(concurrency ? { concurrency } : {}),
+      });
+    }
+
+    private mutationSaveContext(
+      req: Sails.Req,
+      oid: string | undefined,
+      operation: RecordSaveOperation,
+      validationOperation?: string,
+      targetStep?: string
+    ) {
+      const parsed = parsePublicRecordConcurrencyRequest(req.headers, oid);
+      if (!parsed.valid) return parsed;
+      return {
+        valid: true as const,
+        context: this.saveContext(req, operation, validationOperation, targetStep, parsed.context),
+      };
+    }
+
+    private sendConcurrencyRequestFailure(
+      req: Sails.Req,
+      res: Sails.Res,
+      failure: { readonly code: string; readonly header: string }
+    ) {
+      if (this.getApiVersion(req) === '1.0') {
+        return this.sendResp(req, res, {
+          status: 400,
+          v1: { message: 'Invalid record concurrency request.' },
+        });
+      }
+      return this.sendResp(req, res, {
+        status: 400,
+        displayErrors: [{ code: failure.code, source: { header: failure.header } }],
       });
     }
 
@@ -187,28 +230,92 @@ export namespace Controllers {
       };
     }
 
-    private sendSaveFailure(
-      req: Sails.Req,
-      res: Sails.Res,
-      result: RecordSaveResponse,
-      detail: string
-    ) {
+    private sendSaveFailure(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
+      const status = recordSaveFailureStatus(result);
+      const headerOption = recordSaveResultHeaderOption(result);
       if (this.getApiVersion(req) === '1.0') {
         return this.sendResp(req, res, {
-          status: 500,
+          status: isRecordConflictStatus(status) ? status : 500,
           v1: { message: detail },
+          ...headerOption,
         });
       }
       return this.sendResp(req, res, {
-        status: recordSaveFailureStatus(result),
-        displayErrors: [{ detail }],
+        status,
+        displayErrors: recordSaveDisplayErrors(result, detail),
         meta: { ...result },
+        ...headerOption,
+      });
+    }
+
+    private async projectSafeSaveFailure(
+      brand: BrandingModel,
+      user: globalThis.Record<string, unknown>,
+      oid: string,
+      result: RecordSaveResponse
+    ): Promise<boolean> {
+      // Only a certified non-write reloads and re-projects current state. An
+      // ambiguous outcome must stay a 5xx rather than be narrowed to a 403.
+      const certifiedNonWrite =
+        result.outcome === 'not-saved' &&
+        result.problems.some(problem => problem.kind === 'conflict' || problem.kind === 'authorization');
+      if (!certifiedNonWrite) {
+        return true;
+      }
+      result.setProjectedMetadata(null);
+      const latest = await this.requireRecordInBrand(oid, brand);
+      if (!latest) {
+        return true;
+      }
+      if (!this.hasViewAccess(brand, user, latest)) {
+        result.setConcurrencyMetadata(undefined);
+        return false;
+      }
+      const representation = recordRepresentationConcurrency(latest);
+      result.setProjectedMetadata(latest.metadata);
+      result.setConcurrencyMetadata({ ...result.concurrency, ...representation.metadata });
+      return true;
+    }
+
+    private sendPrivateSaveFailure(req: Sails.Req, res: Sails.Res) {
+      return this.sendResp(req, res, {
+        status: 403,
+        displayErrors: [{ code: 'not-authorised' }],
+        ...(this.getApiVersion(req) === '1.0' ? { v1: { message: 'Not authorised.' } } : {}),
+      });
+    }
+
+    private async sendPermissionMutationResult(
+      req: Sails.Req,
+      res: Sails.Res,
+      brand: BrandingModel,
+      oid: string,
+      result: RecordSaveResponse
+    ) {
+      if (!result.wasPersisted()) {
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+          return this.sendPrivateSaveFailure(req, res);
+        }
+        return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
+      }
+      const current = await this.requireRecordInBrand(result.oid, brand);
+      const authorization =
+        current && this.hasViewAccess(brand, req.user ?? {}, current) ? current.authorization : null;
+      return this.sendResp(req, res, {
+        data: authorization,
+        meta: { ...result },
+        v1: authorization,
+        headers: recordSaveResultHeaders(result),
       });
     }
 
     private shouldIncludeRelationships(req: Sails.Req): boolean {
-      const include = String(req.param('include') ?? req.query.include ?? '').trim().toLowerCase();
-      const includeRelationships = String(req.param('includeRelationships') ?? req.query.includeRelationships ?? '').trim().toLowerCase();
+      const include = String(req.param('include') ?? req.query.include ?? '')
+        .trim()
+        .toLowerCase();
+      const includeRelationships = String(req.param('includeRelationships') ?? req.query.includeRelationships ?? '')
+        .trim()
+        .toLowerCase();
       return include.split(',').includes('relationships') || includeRelationships === 'true';
     }
 
@@ -218,12 +325,17 @@ export namespace Controllers {
         if (!normalized) {
           return undefined;
         }
-        return normalized.split(',').map((item) => item.trim()).filter(Boolean);
+        return normalized
+          .split(',')
+          .map(item => item.trim())
+          .filter(Boolean);
       };
 
       const depthValue = req.param('relationshipDepth') ?? req.query.relationshipDepth;
       const parsedDepth = Number(depthValue);
-      const fields = String(req.param('fields') ?? req.query.fields ?? '').trim().toLowerCase();
+      const fields = String(req.param('fields') ?? req.query.fields ?? '')
+        .trim()
+        .toLowerCase();
 
       return {
         depth: Number.isFinite(parsedDepth) && parsedDepth >= 0 ? parsedDepth : defaultDepth,
@@ -233,7 +345,11 @@ export namespace Controllers {
       };
     }
 
-    private hasViewAccess(brand: BrandingModel, user: globalThis.Record<string, unknown> | undefined, record: globalThis.Record<string, unknown>): boolean {
+    private hasViewAccess(
+      brand: BrandingModel,
+      user: globalThis.Record<string, unknown> | undefined,
+      record: globalThis.Record<string, unknown>
+    ): boolean {
       const currentUser = user ?? {};
       const roles = (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[];
       return this.RecordsService.hasViewAccess(brand, currentUser, roles, record);
@@ -246,7 +362,9 @@ export namespace Controllers {
     ): Promise<RecordRelationshipGraph> {
       const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
       const allowedTargetOids = new Set<string>();
-      const omittedByAccess: globalThis.Record<string, number> = { ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>) };
+      const omittedByAccess: globalThis.Record<string, number> = {
+        ...((graph.omittedByAccess ?? {}) as globalThis.Record<string, number>),
+      };
 
       for (const [recordType, records] of Object.entries(graph.relatedObjects ?? {})) {
         const keptRecords: unknown[] = [];
@@ -256,7 +374,7 @@ export namespace Controllers {
           if (!recordOid) {
             continue;
           }
-          const hasAccess = recordOid === graph.rootOid || await this.hasViewAccess(brand, user, record);
+          const hasAccess = recordOid === graph.rootOid || (await this.hasViewAccess(brand, user, record));
           if (hasAccess) {
             allowedTargetOids.add(recordOid);
             keptRecords.push(record);
@@ -323,14 +441,19 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
       try {
-        const record = await this.RecordsService.getMeta(oid);
-        if (_.isEmpty(record)) {
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
           return this.sendResp(req, res, { status: 404 });
         }
         if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
           return this.sendResp(req, res, { status: 403 });
         }
-        return this.sendResp(req, res, { data: record['authorization'] });
+        const representation = recordRepresentationConcurrency(record);
+        return this.sendResp(req, res, {
+          data: record.authorization,
+          meta: { oid: record.redboxOid, ...representation.metadata },
+          headers: representation.headers,
+        });
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -343,13 +466,18 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
       const pendingUsers = body['pendingUsers'] as string[] | undefined;
 
-      let record: RecordModel;
+      let record: RecordModel | null;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record.authorization.edit = _.union(record['authorization']['edit'], users);
         }
@@ -364,12 +492,18 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const recordResult = await this.RecordsService.getMeta(result.oid);
-        return this.sendResp(req, res, { data: recordResult['authorization'] });
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
+        );
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -382,13 +516,18 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
       const pendingUsers = body['pendingUsers'] as string[] | undefined;
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['view'] = _.union(record['authorization']['view'], users);
         }
@@ -403,12 +542,18 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const resultRecord = await this.RecordsService.getMeta(result['oid']);
-        return this.sendResp(req, res, { data: resultRecord['authorization'] });
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
+        );
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -421,13 +566,18 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
       const pendingUsers = body['pendingUsers'] as string[] | undefined;
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['edit'] = _.difference(record['authorization']['edit'], users);
         }
@@ -442,12 +592,18 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const resultRecord = await this.RecordsService.getMeta(result['oid']);
-        return this.sendResp(req, res, { data: resultRecord['authorization'] });
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
+        );
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -460,13 +616,18 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['users'] as string[] | undefined;
       const pendingUsers = body['pendingUsers'] as string[] | undefined;
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['view'] = _.difference(record['authorization']['view'], users);
         }
@@ -482,13 +643,17 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(
-          brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update')
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
         );
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const resultRecord = await this.RecordsService.getMeta(result['oid']);
-        return this.sendResp(req, res, { data: resultRecord['authorization'] });
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -503,24 +668,38 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
       try {
-        const record = await this.RecordsService.getMeta(oid);
-        if (_.isEmpty(record)) {
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
           return this.sendResp(req, res, {
-            status: 400,
-            displayErrors: [{ detail: `Failed to get meta, cannot find existing record with oid: ${oid}` }],
+            status: 404,
+            displayErrors: [{ detail: `Cannot find an accessible record with oid: ${oid}` }],
           });
         }
+        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+          return this.sendResp(req, res, { status: 403 });
+        }
+        const representation = recordRepresentationConcurrency(record);
         if (!this.shouldIncludeRelationships(req)) {
-          return this.sendResp(req, res, { data: record["metadata"] });
+          return this.sendResp(req, res, {
+            data: record.metadata,
+            meta: { oid: record.redboxOid, ...representation.metadata },
+            headers: representation.headers,
+          });
         }
 
-        const relationships = await this.RecordsService.getRelatedRecords(oid, brand, this.parseRelationshipExpandOptions(req, 1));
+        const relationships = await this.RecordsService.getRelatedRecords(
+          oid,
+          brand,
+          this.parseRelationshipExpandOptions(req, 1)
+        );
         const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relationships);
         return this.sendResp(req, res, {
           data: {
-            metadata: record["metadata"],
+            metadata: record.metadata,
             relationships: filteredRelationships,
-          }
+          },
+          meta: { oid: record.redboxOid, ...representation.metadata },
+          headers: representation.headers,
         });
       } catch (err) {
         return this.sendResp(req, res, {
@@ -571,7 +750,15 @@ export namespace Controllers {
         if (!record) {
           return this.sendResp(req, res, { status: 404 });
         }
-        return this.sendResp(req, res, { data: record['metaMetadata'] });
+        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+          return this.sendResp(req, res, { status: 403 });
+        }
+        const representation = recordRepresentationConcurrency(record);
+        return this.sendResp(req, res, {
+          data: record.metaMetadata,
+          meta: { oid: record.redboxOid, ...representation.metadata },
+          headers: representation.headers,
+        });
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -595,6 +782,10 @@ export namespace Controllers {
         });
       }
       const validationOperation = parsedOperation.value;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update', validationOperation);
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
 
       let record;
       let updatedMetadata: globalThis.Record<string, unknown>;
@@ -626,7 +817,17 @@ export namespace Controllers {
         });
       }
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, updatedMetadata, this.saveContext(req, 'update', validationOperation));
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          updatedMetadata,
+          saveRequest.context
+        );
         // Attachment work is part of RecordsService's ordered save pipeline.
         // Keep accepting the legacy query parameter for route compatibility,
         // but do not run a second, unjournaled datastream pass here.
@@ -640,7 +841,11 @@ export namespace Controllers {
             data: result,
             meta: { ...result },
             ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
+            headers: recordSaveResultHeaders(result),
           });
+        }
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+          return this.sendPrivateSaveFailure(req, res);
         }
         return this.sendSaveFailure(req, res, result, 'Update Metadata failed');
       } catch (err) {
@@ -656,6 +861,10 @@ export namespace Controllers {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
 
       let record;
       try {
@@ -669,13 +878,27 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        const result = await this.RecordsService.updateMeta(
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
+        );
         if (result.wasPersisted()) {
           return this.sendResp(req, res, {
             data: result,
             meta: { ...result },
             ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
+            headers: recordSaveResultHeaders(result),
           });
+        }
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+          return this.sendPrivateSaveFailure(req, res);
         }
         return this.sendSaveFailure(req, res, result, 'Update Object Metadata failed');
       } catch (err) {
@@ -696,8 +919,20 @@ export namespace Controllers {
         return;
       }
       const validationOperation = parsedOperation.value;
-      const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       const body = validated.body as globalThis.Record<string, unknown>;
+      const workflowStage = body?.['workflowStage'] as string | undefined;
+      const saveRequest = this.mutationSaveContext(
+        req,
+        undefined,
+        workflowStage ? 'transition' : 'create',
+        validationOperation,
+        workflowStage
+      );
+      if (!saveRequest.valid) {
+        this.sendConcurrencyRequestFailure(req, res, saveRequest);
+        return;
+      }
+      const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       const that = this;
       if (body != null) {
         let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
@@ -727,7 +962,6 @@ export namespace Controllers {
         recordTypeObservable.subscribe((recordTypeModel: unknown) => {
           if (recordTypeModel) {
             const metadata = body['metadata'];
-            const workflowStage = body['workflowStage'] as string | undefined;
             const request: globalThis.Record<string, unknown> = {};
 
             //if no metadata field, no authorization
@@ -738,7 +972,16 @@ export namespace Controllers {
             }
             request['authorization'] = authorization;
 
-            const createPromise = this.RecordsService.create(brand, request, recordTypeModel, user, true, true, workflowStage, that.saveContext(req, workflowStage ? 'transition' : 'create', validationOperation, workflowStage));
+            const createPromise = this.RecordsService.create(
+              brand,
+              request,
+              recordTypeModel,
+              user,
+              true,
+              true,
+              workflowStage,
+              saveRequest.context
+            );
 
             const obs = from(createPromise);
             obs.subscribe(
@@ -765,6 +1008,7 @@ export namespace Controllers {
                         BrandingService.getBrandAndPortalPath(req) +
                         '/api/records/metadata/' +
                         response.oid,
+                      ...recordSaveResultHeaders(response),
                     },
                   });
                 } else {
@@ -811,7 +1055,11 @@ export namespace Controllers {
           // Set octet stream as a default
           mimeType = 'application/octet-stream';
         }
-        const fileName = validated.query.fileName ? String(validated.query.fileName) : found.name ? found.name : datastreamId;
+        const fileName = validated.query.fileName
+          ? String(validated.query.fileName)
+          : found.name
+            ? found.name
+            : datastreamId;
         res.set('Content-Type', 'application/octet-stream');
 
         const size = found.size as string | undefined;
@@ -824,7 +1072,9 @@ export namespace Controllers {
         sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 
         try {
-          const response = await this.DatastreamService.getDatastream(oid, datastreamId, { username: String(req.user?.username ?? '') || undefined });
+          const response = await this.DatastreamService.getDatastream(oid, datastreamId, {
+            username: String(req.user?.username ?? '') || undefined,
+          });
           if (response.readstream) {
             response.readstream.on('error', (error: unknown) => {
               // Handle the error here
@@ -1040,6 +1290,7 @@ export namespace Controllers {
         const doc = docs[i] as globalThis.Record<string, unknown>;
         const item: { [key: string]: unknown } = {};
         item['oid'] = doc['redboxOid'];
+        item['revision'] = recordRepresentationRevision(doc);
         const docMetadata = (doc['metadata'] ?? {}) as globalThis.Record<string, unknown>;
         item['title'] = docMetadata['title'];
         item['metadata'] = docMetadata;
@@ -1113,6 +1364,7 @@ export namespace Controllers {
         const deletedRecord = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
         const deletedRecordMetadata = (deletedRecord['metadata'] ?? {}) as globalThis.Record<string, unknown>;
         item['oid'] = doc['redboxOid'];
+        item['revision'] = recordRepresentationRevision(doc);
         item['title'] = deletedRecordMetadata['title'];
         item['deletedRecord'] = deletedRecord;
         item['dateCreated'] = doc['dateCreated'];
@@ -1301,6 +1553,10 @@ export namespace Controllers {
         });
       }
       const validationOperation = parsedOperation.value;
+      const saveRequest = this.mutationSaveContext(req, oid, 'transition', validationOperation, targetStepName);
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       try {
         if (_.isEmpty(oid)) {
           return this.sendResp(req, res, {
@@ -1340,21 +1596,35 @@ export namespace Controllers {
           true,
           nextStep,
           undefined,
-          this.saveContext(req, 'transition', validationOperation, targetStepName)
+          saveRequest.context
         );
-        // This route historically returned the transition result as a normal
-        // v1 response even when the underlying save was refused. Preserve
-        // that literal status/body contract; only v2 uses typed failures.
-        if (this.getApiVersion(req) === '1.0') {
-          return this.sendResp(req, res, {
-            data: response,
-            v1: this.legacySaveBody(response),
-          });
-        }
+        const isLegacyApi = this.getApiVersion(req) === '1.0';
         if (response.wasPersisted()) {
           return this.sendResp(req, res, {
             data: response,
-            meta: { ...response },
+            ...(isLegacyApi ? { v1: this.legacySaveBody(response) } : { meta: { ...response } }),
+            ...recordSaveResultHeaderOption(response),
+          });
+        }
+        // This route historically answered a refused transition with an
+        // ordinary v1 200 body. A certified concurrency refusal is the single
+        // deliberate exception, and only for a record type that opted in.
+        const failureStatus = recordSaveFailureStatus(response);
+        if (isLegacyApi && !isRecordConflictStatus(failureStatus)) {
+          return this.sendResp(req, res, {
+            data: response,
+            v1: this.legacySaveBody(response),
+            ...recordSaveResultHeaderOption(response),
+          });
+        }
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, response))) {
+          return this.sendPrivateSaveFailure(req, res);
+        }
+        if (isLegacyApi) {
+          return this.sendResp(req, res, {
+            status: failureStatus,
+            v1: this.legacySaveBody(response),
+            ...recordSaveResultHeaderOption(response),
           });
         }
         return this.sendSaveFailure(req, res, response, 'Workflow transition failed');
@@ -1376,7 +1646,9 @@ export namespace Controllers {
         });
       }
       try {
-        const attachments = await this.RecordsService.getAttachments(oid, undefined, { username: String(req.user?.username ?? '') || undefined });
+        const attachments = await this.RecordsService.getAttachments(oid, undefined, {
+          username: String(req.user?.username ?? '') || undefined,
+        });
         sails.log.verbose(JSON.stringify(attachments));
         const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(attachments);
@@ -1395,12 +1667,17 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const roles = body['roles'] as string[] | undefined;
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (roles != null && roles.length > 0) {
           record['authorization']['editRoles'] = _.union(record['authorization']['editRoles'], roles);
         }
@@ -1413,13 +1690,17 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(
-          brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update')
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
         );
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const recordResult = await this.RecordsService.getMeta(result.oid);
-        return this.sendResp(req, res, { data: recordResult['authorization'] });
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -1432,12 +1713,17 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const roles = body['roles'] as string[] | undefined;
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (roles != null && roles.length > 0) {
           record['authorization']['viewRoles'] = _.union(record['authorization']['viewRoles'], roles);
         }
@@ -1450,13 +1736,17 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(
-          brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update')
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
         );
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const resultRecord = await this.RecordsService.getMeta(result['oid']);
-        return this.sendResp(req, res, { data: resultRecord['authorization'] });
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -1469,12 +1759,17 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const roles = body['roles'] as string[] | undefined;
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (roles != null && roles.length > 0) {
           record['authorization']['editRoles'] = _.difference(record['authorization']['editRoles'], roles);
         }
@@ -1487,13 +1782,17 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(
-          brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update')
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
         );
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const resultRecord = await this.RecordsService.getMeta(result['oid']);
-        return this.sendResp(req, res, { data: resultRecord['authorization'] });
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -1506,12 +1805,17 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
       const body = validated.body as globalThis.Record<string, unknown>;
       const users = body['roles'] as string[] | undefined;
 
       let record;
       try {
-        record = await this.RecordsService.getMeta(oid);
+        record = await this.requireRecordInBrand(oid, brand);
+        if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['viewRoles'] = _.difference(record['authorization']['viewRoles'], users);
         }
@@ -1524,13 +1828,17 @@ export namespace Controllers {
 
       try {
         const result = await this.RecordsService.updateMeta(
-          brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update')
+          brand,
+          oid,
+          record,
+          req.user ?? {},
+          true,
+          true,
+          {},
+          undefined,
+          saveRequest.context
         );
-        if (!result.wasPersisted()) {
-          return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
-        }
-        const resultRecord = await this.RecordsService.getMeta(result['oid']);
-        return this.sendResp(req, res, { data: resultRecord['authorization'] });
+        return await this.sendPermissionMutationResult(req, res, brand, oid, result);
       } catch (err) {
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
@@ -1544,9 +1852,7 @@ export namespace Controllers {
 
       const validated = getValidatedApiRequest(req);
       const recordType = validated.params.recordType as string;
-      const updateMode = _.isEmpty(validated.query.updateMode)
-        ? 'override'
-        : (validated.query.updateMode as string);
+      const updateMode = _.isEmpty(validated.query.updateMode) ? 'override' : (validated.query.updateMode as string);
       const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
       if (recordTypeModel == null) {

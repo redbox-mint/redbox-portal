@@ -3,6 +3,9 @@ import type { ZodRawShape, ZodType } from 'zod';
 
 import { ApiSchemaField } from '../types';
 import {
+  RECORD_ENTITY_TAG_MAX_LENGTH,
+  RECORD_ENTITY_TAG_PATTERN,
+  RECORD_SAVE_REQUEST_ID_MAX_LENGTH,
   VALIDATION_OPERATION_NAME_MAX_LENGTH,
   VALIDATION_OPERATION_NAME_PATTERN,
 } from '@researchdatabox/sails-ng-common';
@@ -30,7 +33,8 @@ export const anyField = (description?: string): ApiSchemaField =>
   withOpenApi(z.unknown(), { type: 'object', description });
 
 export const validationOperationQueryField: ApiSchemaField = withOpenApi(
-  z.string({ error: 'record-validation-operation-invalid' })
+  z
+    .string({ error: 'record-validation-operation-invalid' })
     .trim()
     .max(VALIDATION_OPERATION_NAME_MAX_LENGTH, { error: 'record-validation-operation-invalid' })
     .regex(VALIDATION_OPERATION_NAME_PATTERN, { error: 'record-validation-operation-invalid' }),
@@ -40,6 +44,35 @@ export const validationOperationQueryField: ApiSchemaField = withOpenApi(
   }
 );
 
+/**
+ * Keep semantic header parsing in RecordHttpConcurrency so weak, wildcard,
+ * list, and wrong-record tags receive the same bounded controller error. The
+ * OpenAPI pattern still describes the strong entity tags clients must send.
+ */
+export const recordIfMatchHeaderField: ApiSchemaField = withOpenApi(
+  z.string().max(RECORD_ENTITY_TAG_MAX_LENGTH, { error: 'record-if-match-invalid' }),
+  {
+    description: 'Exact strong ETag returned by the latest authorized individual record read',
+    pattern: RECORD_ENTITY_TAG_PATTERN.source,
+    example: '"rb-record-v1.7.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"',
+  }
+);
+
+const recordResolutionField: ApiSchemaField = withOpenApi(z.string().max(64), {
+  description: 'Diagnostic resolution label; never authorization or a precondition bypass',
+  enum: ['direct', 'client-auto-merged', 'client-manually-resolved'],
+});
+
+const recordResolutionRequestIdField: ApiSchemaField = withOpenApi(z.string().max(RECORD_SAVE_REQUEST_ID_MAX_LENGTH), {
+  description: 'Canonical UUID of the conflict response this resolution follows',
+  format: 'uuid',
+});
+
+const recordSaveRequestIdField: ApiSchemaField = withOpenApi(z.string().max(RECORD_SAVE_REQUEST_ID_MAX_LENGTH), {
+  description: 'Optional canonical UUID used to correlate this save attempt',
+  format: 'uuid',
+});
+
 export function objectField(
   properties: Record<string, ApiSchemaField>,
   required: readonly string[] = [],
@@ -47,17 +80,20 @@ export function objectField(
   additionalProperties: boolean | ApiSchemaField = false
 ): ApiSchemaField {
   const requiredSet = new Set(required);
-  const shape = Object.entries(properties).reduce((acc, [key, schema]) => {
-    acc[key] = requiredSet.has(key) ? schema : schema.optional();
-    return acc;
-  }, {} as Record<string, ApiSchemaField>) as ZodRawShape;
+  const shape = Object.entries(properties).reduce(
+    (acc, [key, schema]) => {
+      acc[key] = requiredSet.has(key) ? schema : schema.optional();
+      return acc;
+    },
+    {} as Record<string, ApiSchemaField>
+  ) as ZodRawShape;
 
   const objectSchema = additionalProperties === true ? z.object(shape).passthrough() : z.object(shape);
   return description
     ? withOpenApi(
-      objectSchema,
-      additionalProperties === true ? { description, additionalProperties: true } : { description }
-    )
+        objectSchema,
+        additionalProperties === true ? { description, additionalProperties: true } : { description }
+      )
     : objectSchema;
 }
 
@@ -91,6 +127,17 @@ export const oidParams = objectField(
   },
   ['oid']
 );
+
+/**
+ * Public API mutations are form-independent, so they never carry the browser
+ * form fingerprint; only the browser routes bind to a generated form.
+ */
+export const recordMutationHeaders = objectField({
+  'If-Match': recordIfMatchHeaderField,
+  'X-ReDBox-Save-Request-Id': recordSaveRequestIdField,
+  'X-ReDBox-Concurrency-Resolution': recordResolutionField,
+  'X-ReDBox-Resolution-Of-Request-Id': recordResolutionRequestIdField,
+});
 
 export const idParams = objectField(
   {

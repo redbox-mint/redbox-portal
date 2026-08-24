@@ -58,15 +58,25 @@ import { getAppConfigByIdRoute, saveAppConfigByIdRoute } from '../../src/api-rou
 import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
 import {
   createRecordRoute,
+  addUserEditRoute,
+  getMetaRoute,
+  getPermissionsRoute,
   listRecordsRoute,
   transitionWorkflowRoute,
   updateMetaRoute,
+  updateObjectMetaRoute,
 } from '../../src/api-routes/groups/records';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
-import { buildContractApiPolicies, mergeContractApiPolicies, policies, type PoliciesConfig } from '../../src/config/policies.config';
+import {
+  buildContractApiPolicies,
+  mergeContractApiPolicies,
+  policies,
+  type PoliciesConfig,
+} from '../../src/config/policies.config';
+import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 
 let expect: Chai.ExpectStatic;
-import('chai').then((mod) => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 
 type OpenApiSchema = {
   properties?: Record<string, OpenApiSchema>;
@@ -83,7 +93,10 @@ type OpenApiSchema = {
 };
 
 type OpenApiOperation = {
-  responses?: Record<string, { description?: string; content?: Record<string, { schema?: OpenApiSchema }>; headers?: Record<string, unknown> }>;
+  responses?: Record<
+    string,
+    { description?: string; content?: Record<string, { schema?: OpenApiSchema }>; headers?: Record<string, unknown> }
+  >;
   requestBody?: { content?: Record<string, { schema?: OpenApiSchema }> };
   parameters?: Array<OpenApiParameter>;
   summary?: string;
@@ -140,8 +153,8 @@ describe('API routes contract layer', function () {
     const listUsersRoute = document.paths['/default/rdmp/api/users']?.get as globalThis.Record<string, unknown>;
     const pathParameters = (listUsersRoute.parameters as Array<globalThis.Record<string, unknown>>) ?? [];
 
-    expect(pathParameters.some((parameter) => parameter.name === 'branding')).to.equal(false);
-    expect(pathParameters.some((parameter) => parameter.name === 'portal')).to.equal(false);
+    expect(pathParameters.some(parameter => parameter.name === 'branding')).to.equal(false);
+    expect(pathParameters.some(parameter => parameter.name === 'portal')).to.equal(false);
   });
 
   it('should include x-redbox-roles from the default auth rules in OpenAPI', function () {
@@ -221,7 +234,9 @@ describe('API routes contract layer', function () {
 
       const mergedDocument = buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
       expect(mergedDocument.paths).to.have.property('/default/rdmp/api/hooks/example');
-      expect((mergedDocument.paths['/default/rdmp/api/hooks/example']?.get as Record<string, unknown>)?.summary).to.equal('Hook example route');
+      expect(
+        (mergedDocument.paths['/default/rdmp/api/hooks/example']?.get as Record<string, unknown>)?.summary
+      ).to.equal('Hook example route');
 
       const coreDocument = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
       expect(coreDocument.paths).to.not.have.property('/default/rdmp/api/hooks/example');
@@ -259,8 +274,12 @@ describe('API routes contract layer', function () {
     };
 
     try {
-      expect(() => getMergedApiRoutes()).to.throw('Legacy API route in merged runtime route table must declare an HTTP method');
-      expect(() => buildMergedApiRouteConfig()).to.throw('Legacy API route in merged runtime route table must declare an HTTP method');
+      expect(() => getMergedApiRoutes()).to.throw(
+        'Legacy API route in merged runtime route table must declare an HTTP method'
+      );
+      expect(() => buildMergedApiRouteConfig()).to.throw(
+        'Legacy API route in merged runtime route table must declare an HTTP method'
+      );
     } finally {
       if (previousSails === undefined) {
         delete globalWithSails.sails;
@@ -288,7 +307,9 @@ describe('API routes contract layer', function () {
 
     expect(() => toRouteMap(duplicateRoutes)).to.throw('Duplicate API route detected');
     expect(() => buildSailsRouteConfig(duplicateRoutes)).to.throw('Duplicate API route detected');
-    expect(() => buildOpenApiDocument(duplicateRoutes, { title: 'Duplicate routes', version: '1.0.0' })).to.throw('Duplicate API route detected');
+    expect(() => buildOpenApiDocument(duplicateRoutes, { title: 'Duplicate routes', version: '1.0.0' })).to.throw(
+      'Duplicate API route detected'
+    );
     expect(() => buildApiBlueprint(duplicateRoutes)).to.throw('Duplicate API route detected');
   });
 
@@ -322,14 +343,7 @@ describe('API routes contract layer', function () {
   });
 
   it('should leave contract-first route auth to controller policies', function () {
-    const routeConfig = buildSailsRouteConfig([
-      apiRoute(
-        'get',
-        '/api/widgets',
-        'webservice/WidgetController',
-        'list'
-      ),
-    ]);
+    const routeConfig = buildSailsRouteConfig([apiRoute('get', '/api/widgets', 'webservice/WidgetController', 'list')]);
 
     expect(routeConfig['get /api/widgets']).to.deep.equal({
       controller: 'webservice/WidgetController',
@@ -352,11 +366,13 @@ describe('API routes contract layer', function () {
   });
 
   it('should include the legacy integration audit endpoint in generated routes', function () {
-    expect(buildCoreApiRouteConfig()).to.have.property('get /:branding/:portal/api/integration-audit/:oid').that.deep.equals({
-      controller: 'webservice/IntegrationAuditController',
-      action: 'getAuditLog',
-      csrf: false,
-    });
+    expect(buildCoreApiRouteConfig())
+      .to.have.property('get /:branding/:portal/api/integration-audit/:oid')
+      .that.deep.equals({
+        controller: 'webservice/IntegrationAuditController',
+        action: 'getAuditLog',
+        csrf: false,
+      });
   });
 
   it('should map contract-first API actions to request validation policy after default webservice policies', function () {
@@ -458,8 +474,12 @@ describe('API routes contract layer', function () {
     try {
       expect(() => getMergedApiRoutes()).to.throw('Duplicate API route detected');
       expect(() => buildMergedApiRouteConfig()).to.throw('Duplicate API route detected');
-      expect(() => buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' })).to.throw('Duplicate API route detected');
-      expect(() => buildMergedApiBlueprint({ branding: 'default', portal: 'rdmp' })).to.throw('Duplicate API route detected');
+      expect(() => buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' })).to.throw(
+        'Duplicate API route detected'
+      );
+      expect(() => buildMergedApiBlueprint({ branding: 'default', portal: 'rdmp' })).to.throw(
+        'Duplicate API route detected'
+      );
     } finally {
       if (previousSails === undefined) {
         delete globalWithSails.sails;
@@ -492,7 +512,8 @@ describe('API routes contract layer', function () {
 
   it('should document wildcard translation keys as reserved path tails', function () {
     const document = buildCoreApiOpenApiDocument();
-    const operation = document.paths['/{branding}/{portal}/api/i18n/entries/{locale}/{namespace}/{key}']?.get as globalThis.Record<string, unknown>;
+    const operation = document.paths['/{branding}/{portal}/api/i18n/entries/{locale}/{namespace}/{key}']
+      ?.get as globalThis.Record<string, unknown>;
     const parameters = (operation.parameters as Array<globalThis.Record<string, unknown>>) ?? [];
     const keyParameter = parameters.find(parameter => parameter.name === 'key');
 
@@ -503,10 +524,15 @@ describe('API routes contract layer', function () {
 
   it('should document record creation as a 201 response with a Location header', async function () {
     const document = buildCoreApiOpenApiDocument();
-    const route = document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post as globalThis.Record<string, unknown>;
+    const route = document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post as globalThis.Record<
+      string,
+      unknown
+    >;
     const responses = route.responses as globalThis.Record<string, globalThis.Record<string, unknown>>;
     const created = responses['201'];
-    const createdSchema = (created.content as globalThis.Record<string, globalThis.Record<string, unknown>>)['application/json'].schema as globalThis.Record<string, unknown>;
+    const createdSchema = (created.content as globalThis.Record<string, globalThis.Record<string, unknown>>)[
+      'application/json'
+    ].schema as globalThis.Record<string, unknown>;
 
     expect(created).to.exist;
     const variants = (createdSchema.anyOf ?? createdSchema.oneOf) as OpenApiSchema[];
@@ -524,41 +550,53 @@ describe('API routes contract layer', function () {
 
   it('validates and documents the optional operation query on every record save route', function () {
     for (const route of [createRecordRoute, updateMetaRoute, transitionWorkflowRoute]) {
-      const missing = validateApiRouteRequest({
-        params: route === createRecordRoute
-          ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
-          : route === transitionWorkflowRoute
-            ? { targetStep: 'review', oid: 'record-1' }
-            : { oid: 'record-1' },
-        query: {},
-        headers: {},
-        body: {},
-      } as unknown as Sails.Req, route);
+      const missing = validateApiRouteRequest(
+        {
+          params:
+            route === createRecordRoute
+              ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
+              : route === transitionWorkflowRoute
+                ? { targetStep: 'review', oid: 'record-1' }
+                : { oid: 'record-1' },
+          query: {},
+          headers: {},
+          body: {},
+        } as unknown as Sails.Req,
+        route
+      );
       expect(missing.valid).to.equal(true);
 
-      const supplied = validateApiRouteRequest({
-        params: route === createRecordRoute
-          ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
-          : route === transitionWorkflowRoute
-            ? { targetStep: 'review', oid: 'record-1' }
-            : { oid: 'record-1' },
-        query: { operation: ' Submit.v2 ' },
-        headers: {},
-        body: {},
-      } as unknown as Sails.Req, route);
+      const supplied = validateApiRouteRequest(
+        {
+          params:
+            route === createRecordRoute
+              ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
+              : route === transitionWorkflowRoute
+                ? { targetStep: 'review', oid: 'record-1' }
+                : { oid: 'record-1' },
+          query: { operation: ' Submit.v2 ' },
+          headers: {},
+          body: {},
+        } as unknown as Sails.Req,
+        route
+      );
       expect(supplied.valid).to.equal(true);
       if (supplied.valid) expect(supplied.query.operation).to.equal(' Submit.v2 ');
 
-      const malformed = validateApiRouteRequest({
-        params: route === createRecordRoute
-          ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
-          : route === transitionWorkflowRoute
-            ? { targetStep: 'review', oid: 'record-1' }
-            : { oid: 'record-1' },
-        query: { operation: 'bad operation with spaces' },
-        headers: {},
-        body: {},
-      } as unknown as Sails.Req, route);
+      const malformed = validateApiRouteRequest(
+        {
+          params:
+            route === createRecordRoute
+              ? { branding: 'default', portal: 'rdmp', recordType: 'dataset' }
+              : route === transitionWorkflowRoute
+                ? { targetStep: 'review', oid: 'record-1' }
+                : { oid: 'record-1' },
+          query: { operation: 'bad operation with spaces' },
+          headers: {},
+          body: {},
+        } as unknown as Sails.Req,
+        route
+      );
       expect(malformed.valid).to.equal(false);
       if (!malformed.valid) {
         expect(malformed.issues).to.deep.include({
@@ -585,14 +623,133 @@ describe('API routes contract layer', function () {
     }
   });
 
+  it('validates and documents the conflict-aware record HTTP contract', function () {
+    const mutationRoutes = [updateMetaRoute, updateObjectMetaRoute, addUserEditRoute, transitionWorkflowRoute];
+    for (const route of mutationRoutes) {
+      expect(responseStatuses(route)).to.include.members([200, 400, 403, 409, 412, 428, 500]);
+      const headers = route.request?.headers;
+      expect(headers).to.exist;
+      expect(
+        headers?.safeParse({
+          'If-Match': formatRecordEntityTag('record-1', 3),
+          'X-ReDBox-Save-Request-Id': '00000000-0000-4000-8000-000000000031',
+          'X-ReDBox-Concurrency-Resolution': 'client-auto-merged',
+          'X-ReDBox-Resolution-Of-Request-Id': '00000000-0000-4000-8000-000000000032',
+        }).success
+      ).to.equal(true);
+      expect(headers?.safeParse({ 'If-Match': 'x'.repeat(129) }).success).to.equal(false);
+      for (const status of [200, 409, 412, 428]) {
+        expect(route.responses?.[status]?.headers).to.have.property('ETag');
+      }
+    }
+
+    const lowercaseRequest = {
+      params: { oid: 'record-1' },
+      query: {},
+      headers: { 'if-match': formatRecordEntityTag('record-1', 3) },
+      body: {},
+    } as unknown as Sails.Req;
+    const extracted = extractApiRequest(lowercaseRequest, updateMetaRoute.request);
+    expect(extracted.headers).to.deep.include({ 'If-Match': formatRecordEntityTag('record-1', 3) });
+
+    for (const route of [getMetaRoute, getPermissionsRoute]) {
+      expect(route.responses?.[200]?.headers).to.have.property('ETag');
+    }
+    expect(createRecordRoute.responses?.[201]?.headers).to.have.property('ETag');
+
+    const document = buildCoreApiOpenApiDocument();
+    const updateOperation = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put as OpenApiOperation;
+    const ifMatch = updateOperation.parameters?.find(parameter => parameter.name === 'If-Match');
+    expect(ifMatch).to.exist;
+    expect(ifMatch?.schema?.pattern).to.be.a('string').and.not.equal('');
+    expect(updateOperation.responses?.['412']?.headers).to.have.property('ETag');
+    expect(updateOperation.responses?.['428']?.content?.['application/json']?.schema).to.exist;
+  });
+
   it('should model the legacy response envelopes', function () {
     expect(apiErrorResponseSchema.safeParse({ message: 'Boom' }).success).to.equal(true);
     expect(apiErrorResponseSchema.safeParse({ message: 'Boom', details: 'Something failed' }).success).to.equal(true);
     expect(apiActionResponseSchema.safeParse({ message: 'Done', details: '' }).success).to.equal(true);
-    expect(apiObjectActionResponseSchema.safeParse({ oid: 'record-1', message: 'Queued', details: '' }).success).to.equal(true);
-    expect(apiHarvestResponseSchema.safeParse({ harvestId: 'harvest-1', oid: 'record-1', message: 'Created', details: '', status: true }).success).to.equal(true);
-    expect(enhancedHarvestChunkResponseSchema.safeParse({
-      run: {
+    expect(
+      apiObjectActionResponseSchema.safeParse({ oid: 'record-1', message: 'Queued', details: '' }).success
+    ).to.equal(true);
+    expect(
+      apiHarvestResponseSchema.safeParse({
+        harvestId: 'harvest-1',
+        oid: 'record-1',
+        message: 'Created',
+        details: '',
+        status: true,
+      }).success
+    ).to.equal(true);
+    expect(
+      enhancedHarvestChunkResponseSchema.safeParse({
+        run: {
+          id: 'run-1',
+          sourceRunId: 'source-run-1',
+          status: 'running',
+          recordType: 'rdmp',
+          sourceName: 'source-a',
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 1,
+          duplicateChunks: 0,
+        },
+        chunk: {
+          id: 'chunk-1',
+          contentHash: 'hash-1',
+          attempt: 1,
+          status: 'processed',
+          recordCount: 1,
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          duplicate: false,
+        },
+      }).success
+    ).to.equal(true);
+    expect(
+      harvestRouteResponseSchema.safeParse({
+        run: {
+          id: 'run-1',
+          sourceRunId: 'source-run-1',
+          status: 'running',
+          recordType: 'rdmp',
+          sourceName: 'source-a',
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 1,
+          duplicateChunks: 0,
+        },
+        chunk: {
+          id: 'chunk-1',
+          contentHash: 'hash-1',
+          attempt: 1,
+          status: 'processed',
+          recordCount: 1,
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          duplicate: false,
+        },
+      }).success
+    ).to.equal(true);
+    expect(
+      harvestRunSummarySchema.safeParse({
         id: 'run-1',
         sourceRunId: 'source-run-1',
         status: 'running',
@@ -606,163 +763,141 @@ describe('API routes contract layer', function () {
         failed: 0,
         chunksProcessed: 1,
         duplicateChunks: 0,
-      },
-      chunk: {
-        id: 'chunk-1',
-        contentHash: 'hash-1',
-        attempt: 1,
-        status: 'processed',
-        recordCount: 1,
-        totalProcessed: 1,
-        created: 1,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        duplicate: false,
-      },
-    }).success).to.equal(true);
-    expect(harvestRouteResponseSchema.safeParse({
-      run: {
-        id: 'run-1',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        recordType: 'rdmp',
-        sourceName: 'source-a',
-        totalProcessed: 1,
-        created: 1,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        chunksProcessed: 1,
-        duplicateChunks: 0,
-      },
-      chunk: {
-        id: 'chunk-1',
-        contentHash: 'hash-1',
-        attempt: 1,
-        status: 'processed',
-        recordCount: 1,
-        totalProcessed: 1,
-        created: 1,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        duplicate: false,
-      },
-    }).success).to.equal(true);
-    expect(harvestRunSummarySchema.safeParse({
-      id: 'run-1',
-      sourceRunId: 'source-run-1',
-      status: 'running',
-      recordType: 'rdmp',
-      sourceName: 'source-a',
-      totalProcessed: 1,
-      created: 1,
-      updated: 0,
-      deleted: 0,
-      unchanged: 0,
-      failed: 0,
-      chunksProcessed: 1,
-      duplicateChunks: 0,
-    }).success).to.equal(true);
-    expect(harvestRunEventSchema.safeParse({
-      id: 'event-1',
-      harvestId: 'harvest-1',
-      operation: 'upsert',
-      outcome: 'created',
-      status: true,
-      createdAt: '2026-05-25T00:00:00Z',
-    }).success).to.equal(true);
-    expect(harvestRunDetailResponseSchema.safeParse({
-      run: {
-        id: 'run-1',
-        sourceRunId: 'source-run-1',
-        status: 'running',
-        recordType: 'rdmp',
-        sourceName: 'source-a',
-        totalProcessed: 1,
-        created: 1,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        chunksProcessed: 1,
-        duplicateChunks: 0,
-      },
-      chunks: [],
-      events: [],
-      aggregateCounts: {
-        totalProcessed: 1,
-        created: 1,
-        updated: 0,
-        deleted: 0,
-        unchanged: 0,
-        failed: 0,
-        chunksProcessed: 1,
-        duplicateChunks: 0,
-      },
-    }).success).to.equal(true);
-    expect(storageServiceResponseSchema.safeParse({
-      success: true,
-      oid: 'record-1',
-      message: 'Created',
-      metadata: {},
-      details: '',
-      totalItems: 0,
-      items: [],
-    }).success).to.equal(true);
-    expect(validationOperationDiscoverySchema.safeParse({
-      name: 'submit',
-      label: 'Submit',
-      description: 'Send for review',
-      allowedTargetSteps: ['review'],
-    }).success).to.equal(true);
-    expect(validationOperationDiscoverySchema.safeParse({
-      name: 'bad operation',
-      roles: ['Admin'],
-      enabledValidationGroups: ['secret'],
-    }).success).to.equal(false);
-    expect(recordSaveIssueSchema.safeParse({
-      code: 'required',
-      message: '@validation-required',
-      class: 'RequiredValidator',
-      params: { requiredThreshold: 1 },
-      targetField: { dataModel: ['metadata', 'title'] },
-    }).success).to.equal(true);
-    expect(recordSaveIssueSchema.safeParse({
-      message: '@validation-required',
-      exceptionText: 'database password',
-      rawOutput: { title: 'sensitive value' },
-    }).success).to.equal(false);
-    expect(createUserApiResponseSchema.safeParse({ id: '1', username: 'user', name: 'User', email: 'user@example.org', type: 'local', lastLogin: null }).success).to.equal(true);
-    expect(userApiTokenApiResponseSchema.safeParse({ id: '1', username: 'user', token: 'secret' }).success).to.equal(true);
-    expect(listApiResponseSchema(anyField()).safeParse({ summary: { numFound: 1, page: 1, start: 0 }, records: [{ id: 1 }] }).success).to.equal(true);
-    expect(errorResponseItemV2Schema.safeParse({ title: 'Validation failed', detail: 'Missing field' }).success).to.equal(true);
-    expect(errorResponseV2Schema.safeParse({ errors: [{ title: 'Validation failed' }], meta: {} }).success).to.equal(true);
+      }).success
+    ).to.equal(true);
+    expect(
+      harvestRunEventSchema.safeParse({
+        id: 'event-1',
+        harvestId: 'harvest-1',
+        operation: 'upsert',
+        outcome: 'created',
+        status: true,
+        createdAt: '2026-05-25T00:00:00Z',
+      }).success
+    ).to.equal(true);
+    expect(
+      harvestRunDetailResponseSchema.safeParse({
+        run: {
+          id: 'run-1',
+          sourceRunId: 'source-run-1',
+          status: 'running',
+          recordType: 'rdmp',
+          sourceName: 'source-a',
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 1,
+          duplicateChunks: 0,
+        },
+        chunks: [],
+        events: [],
+        aggregateCounts: {
+          totalProcessed: 1,
+          created: 1,
+          updated: 0,
+          deleted: 0,
+          unchanged: 0,
+          failed: 0,
+          chunksProcessed: 1,
+          duplicateChunks: 0,
+        },
+      }).success
+    ).to.equal(true);
+    expect(
+      storageServiceResponseSchema.safeParse({
+        success: true,
+        oid: 'record-1',
+        message: 'Created',
+        metadata: {},
+        details: '',
+        totalItems: 0,
+        items: [],
+      }).success
+    ).to.equal(true);
+    expect(
+      validationOperationDiscoverySchema.safeParse({
+        name: 'submit',
+        label: 'Submit',
+        description: 'Send for review',
+        allowedTargetSteps: ['review'],
+      }).success
+    ).to.equal(true);
+    expect(
+      validationOperationDiscoverySchema.safeParse({
+        name: 'bad operation',
+        roles: ['Admin'],
+        enabledValidationGroups: ['secret'],
+      }).success
+    ).to.equal(false);
+    expect(
+      recordSaveIssueSchema.safeParse({
+        code: 'required',
+        message: '@validation-required',
+        class: 'RequiredValidator',
+        params: { requiredThreshold: 1 },
+        targetField: { dataModel: ['metadata', 'title'] },
+      }).success
+    ).to.equal(true);
+    expect(
+      recordSaveIssueSchema.safeParse({
+        message: '@validation-required',
+        exceptionText: 'database password',
+        rawOutput: { title: 'sensitive value' },
+      }).success
+    ).to.equal(false);
+    expect(
+      createUserApiResponseSchema.safeParse({
+        id: '1',
+        username: 'user',
+        name: 'User',
+        email: 'user@example.org',
+        type: 'local',
+        lastLogin: null,
+      }).success
+    ).to.equal(true);
+    expect(userApiTokenApiResponseSchema.safeParse({ id: '1', username: 'user', token: 'secret' }).success).to.equal(
+      true
+    );
+    expect(
+      listApiResponseSchema(anyField()).safeParse({ summary: { numFound: 1, page: 1, start: 0 }, records: [{ id: 1 }] })
+        .success
+    ).to.equal(true);
+    expect(
+      errorResponseItemV2Schema.safeParse({ title: 'Validation failed', detail: 'Missing field' }).success
+    ).to.equal(true);
+    expect(errorResponseV2Schema.safeParse({ errors: [{ title: 'Validation failed' }], meta: {} }).success).to.equal(
+      true
+    );
     expect(dataResponseV2Schema.safeParse({ data: { ok: true }, meta: {} }).success).to.equal(true);
-    expect(buildResponseTypeSchema.safeParse({
-      data: { ok: true },
-      status: 200,
-      headers: { 'X-Test': '1' },
-      displayErrors: [{ title: 'Display issue' }],
-      errors: [new Error('boom')],
-      meta: {},
-      v1: { ok: true },
-    }).success).to.equal(true);
+    expect(
+      buildResponseTypeSchema.safeParse({
+        data: { ok: true },
+        status: 200,
+        headers: { 'X-Test': '1' },
+        displayErrors: [{ title: 'Display issue' }],
+        errors: [new Error('boom')],
+        meta: {},
+        v1: { ok: true },
+      }).success
+    ).to.equal(true);
   });
 
   it('should document the shared response schemas in OpenAPI', function () {
     const document = buildCoreApiOpenApiDocument();
 
     const brandingDraftRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/branding/draft']?.post);
-    const brandingDraftSchema = asOpenApiSchema(brandingDraftRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const brandingDraftSchema = asOpenApiSchema(
+      brandingDraftRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(brandingDraftSchema.properties).to.have.property('branding');
 
     const brandingPreviewRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/branding/preview']?.post);
-    const brandingPreviewSchema = asOpenApiSchema(brandingPreviewRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const brandingPreviewSchema = asOpenApiSchema(
+      brandingPreviewRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(brandingPreviewSchema.properties).to.have.property('token');
     expect(brandingPreviewSchema.properties).to.have.property('previewToken');
     expect(brandingPreviewSchema.properties).to.have.property('branding');
@@ -780,7 +915,9 @@ describe('API routes contract layer', function () {
     expect(listUsersItemSchema.properties).to.have.property('roles');
 
     const searchIndexRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/search/index']?.post);
-    const searchIndexSchema = asOpenApiSchema(searchIndexRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const searchIndexSchema = asOpenApiSchema(
+      searchIndexRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(searchIndexSchema.properties).to.have.property('oid');
 
     const searchRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/search']?.get);
@@ -790,10 +927,13 @@ describe('API routes contract layer', function () {
     expect(asOpenApiSchema(searchSchema.properties?.records).items?.properties).to.have.property('hasEditAccess');
 
     const recordsListRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/list']?.get);
-    const recordsListSchema = asOpenApiSchema(recordsListRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const recordsListSchema = asOpenApiSchema(
+      recordsListRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(recordsListSchema.properties).to.have.property('summary');
     expect(recordsListSchema.properties).to.have.property('records');
     expect(asOpenApiSchema(recordsListSchema.properties?.records).items?.properties).to.have.property('oid');
+    expect(asOpenApiSchema(recordsListSchema.properties?.records).items?.properties).to.have.property('revision');
     expect(asOpenApiSchema(recordsListSchema.properties?.records).items?.properties).to.have.property('hasEditAccess');
 
     const formRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/forms/get']?.get);
@@ -804,54 +944,78 @@ describe('API routes contract layer', function () {
     expect(operationItem.properties).not.to.have.property('enabledValidationGroups');
 
     const brandingHistoryRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/branding/history']?.get);
-    const brandingHistorySchema = asOpenApiSchema(brandingHistoryRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const brandingHistorySchema = asOpenApiSchema(
+      brandingHistoryRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(asOpenApiSchema(brandingHistorySchema.items).properties).to.have.property('version');
     expect(asOpenApiSchema(brandingHistorySchema.items).properties).to.have.property('hash');
 
     const vocabularyGetRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/vocabulary/{id}']?.get);
-    const vocabularyGetSchema = asOpenApiSchema(vocabularyGetRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const vocabularyGetSchema = asOpenApiSchema(
+      vocabularyGetRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(vocabularyGetSchema.properties).to.have.property('vocabulary');
     expect(vocabularyGetSchema.properties).to.have.property('entries');
     expect(asOpenApiSchema(vocabularyGetSchema.properties?.vocabulary).properties).to.have.property('name');
     expect(asOpenApiSchema(vocabularyGetSchema.properties?.entries).items?.properties).to.have.property('label');
 
     const translationListRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/i18n/entries']?.get);
-    const translationListSchema = asOpenApiSchema(translationListRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const translationListSchema = asOpenApiSchema(
+      translationListRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(asOpenApiSchema(translationListSchema.items).properties).to.have.property('key');
     expect(asOpenApiSchema(translationListSchema.items).properties).to.have.property('value');
 
     const recordTypesListRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/recordtypes']?.get);
-    const recordTypesListSchema = asOpenApiSchema(recordTypesListRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const recordTypesListSchema = asOpenApiSchema(
+      recordTypesListRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(asOpenApiSchema(recordTypesListSchema.properties?.records).items?.properties).to.have.property('name');
-    expect(asOpenApiSchema(recordTypesListSchema.properties?.records).items?.properties).to.have.property('searchFilters');
+    expect(asOpenApiSchema(recordTypesListSchema.properties?.records).items?.properties).to.have.property(
+      'searchFilters'
+    );
 
     const reportRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/report/namedQuery']?.get);
     const reportSchema = asOpenApiSchema(reportRoute.responses?.['200']?.content?.['application/json']?.schema);
     expect(asOpenApiSchema(reportSchema.properties?.records).items?.properties).to.have.property('metadata');
 
-    const integrationAuditRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/integration-audit/{oid}']?.get);
-    const integrationAuditSchema = asOpenApiSchema(integrationAuditRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const integrationAuditRoute = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/integration-audit/{oid}']?.get
+    );
+    const integrationAuditSchema = asOpenApiSchema(
+      integrationAuditRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(integrationAuditSchema.properties).to.have.property('records');
 
-    const harvestRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/harvest/{recordType}']?.post);
+    const harvestRoute = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/records/harvest/{recordType}']?.post
+    );
     const harvestSchema = asOpenApiSchema(harvestRoute.responses?.['200']?.content?.['application/json']?.schema);
     const harvestVariants = (harvestSchema.anyOf ?? harvestSchema.oneOf ?? []) as OpenApiSchema[];
-    const legacyVariant = harvestVariants.find((variant) => variant.type === 'array');
-    const trackedVariant = harvestVariants.find((variant) => variant.properties?.run != null);
+    const legacyVariant = harvestVariants.find(variant => variant.type === 'array');
+    const trackedVariant = harvestVariants.find(variant => variant.properties?.run != null);
     expect(asOpenApiSchema(legacyVariant?.items).properties).to.have.property('harvestId');
     expect(trackedVariant?.properties).to.have.property('run');
 
     const harvestRunsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs']?.get);
-    const harvestRunsSchema = asOpenApiSchema(harvestRunsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const harvestRunsSchema = asOpenApiSchema(
+      harvestRunsRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(asOpenApiSchema(harvestRunsSchema.properties?.records).items?.properties).to.have.property('sourceRunId');
 
     const harvestRunDetailRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/{id}']?.get);
-    const harvestRunDetailSchema = asOpenApiSchema(harvestRunDetailRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const harvestRunDetailSchema = asOpenApiSchema(
+      harvestRunDetailRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(harvestRunDetailSchema.properties).to.have.property('run');
     expect(harvestRunDetailSchema.properties).to.have.property('chunks');
 
-    const harvestRunEventsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/{id}/events']?.get);
-    const harvestRunEventsSchema = asOpenApiSchema(harvestRunEventsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    const harvestRunEventsRoute = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/harvest-runs/{id}/events']?.get
+    );
+    const harvestRunEventsSchema = asOpenApiSchema(
+      harvestRunEventsRoute.responses?.['200']?.content?.['application/json']?.schema
+    );
     expect(asOpenApiSchema(harvestRunEventsSchema.properties?.records).items?.properties).to.have.property('operation');
     expect(harvestRunEventsRoute.responses).to.have.property('404');
   });
@@ -973,13 +1137,15 @@ describe('API routes contract layer', function () {
 
     for (const { path, method } of routeSpecs) {
       const operation = document.paths[path]?.[method] as globalThis.Record<string, unknown> | undefined;
-      const responses = operation?.responses as globalThis.Record<string, globalThis.Record<string, unknown>> | undefined;
+      const responses = operation?.responses as
+        | globalThis.Record<string, globalThis.Record<string, unknown>>
+        | undefined;
 
       expect(responses, `${method.toUpperCase()} ${path}`).to.exist;
       expect(responses, `${method.toUpperCase()} ${path}`).to.not.deep.equal({ 200: { description: 'Success' } });
 
       const statusKeys = Object.keys(responses ?? {});
-      const hasErrorResponse = statusKeys.some((status) => /^[45]\d\d$/.test(status));
+      const hasErrorResponse = statusKeys.some(status => /^[45]\d\d$/.test(status));
       expect(hasErrorResponse, `${method.toUpperCase()} ${path} missing 4xx/5xx response`).to.equal(true);
     }
   });
@@ -1002,12 +1168,15 @@ describe('API routes contract layer', function () {
     const sendNotificationSchema = sendNotificationRoute.responses?.[200]?.content?.['application/json']?.schema;
     expect(sendNotificationSchema?.safeParse({ message: 'Sent', details: '' }).success).to.equal(true);
 
-    const missingTemplateResult = validateApiRouteRequest({
-      params: { branding: 'default', portal: 'rdmp' },
-      query: {},
-      headers: {},
-      body: { to: 'to@example.test', data: {} }
-    } as unknown as Sails.Req, sendNotificationRoute);
+    const missingTemplateResult = validateApiRouteRequest(
+      {
+        params: { branding: 'default', portal: 'rdmp' },
+        query: {},
+        headers: {},
+        body: { to: 'to@example.test', data: {} },
+      } as unknown as Sails.Req,
+      sendNotificationRoute
+    );
     expect(missingTemplateResult.valid).to.equal(true);
 
     const formNotFoundSchema = getFormRoute.responses?.[404]?.content?.['application/json']?.schema;
@@ -1028,31 +1197,41 @@ describe('API routes contract layer', function () {
       expect(parameter, name).to.exist;
       expect((parameter as OpenApiParameter & { required?: boolean }).required).not.to.equal(true);
       expect(parameter?.schema?.type).to.equal('string');
-      expect(parameter?.description ?? parameter?.schema?.description).to.be.a('string').and.not.equal('');
+      expect(parameter?.description ?? parameter?.schema?.description)
+        .to.be.a('string')
+        .and.not.equal('');
     }
 
-    const valid = validateApiRouteRequest({
-      params: { branding: 'default', portal: 'rdmp' },
-      query: { name: 'dataset-draft', oid: 'oid-1', recordType: 'dataset', targetStep: 'review' },
-      headers: {},
-      body: {},
-    } as unknown as Sails.Req, getFormRoute);
+    const valid = validateApiRouteRequest(
+      {
+        params: { branding: 'default', portal: 'rdmp' },
+        query: { name: 'dataset-draft', oid: 'oid-1', recordType: 'dataset', targetStep: 'review' },
+        headers: {},
+        body: {},
+      } as unknown as Sails.Req,
+      getFormRoute
+    );
     expect(valid.valid).to.equal(true);
 
-    const invalid = validateApiRouteRequest({
-      params: { branding: 'default', portal: 'rdmp' },
-      query: { name: 'dataset-draft', oid: 42 },
-      headers: {},
-      body: {},
-    } as unknown as Sails.Req, getFormRoute);
+    const invalid = validateApiRouteRequest(
+      {
+        params: { branding: 'default', portal: 'rdmp' },
+        query: { name: 'dataset-draft', oid: 42 },
+        headers: {},
+        body: {},
+      } as unknown as Sails.Req,
+      getFormRoute
+    );
     expect(invalid.valid).to.equal(false);
   });
 
   it('accepts malformed-v1 request envelopes in record save failure contracts', function () {
-    expect(recordSaveFailureResponseSchema.safeParse({
-      message: 'Request validation failed',
-      details: 'The request did not match the API contract.',
-    }).success).to.equal(true);
+    expect(
+      recordSaveFailureResponseSchema.safeParse({
+        message: 'Request validation failed',
+        details: 'The request did not match the API contract.',
+      }).success
+    ).to.equal(true);
   });
 
   it('accepts both legacy and v2 record-save wire envelopes', function () {
@@ -1066,19 +1245,27 @@ describe('API routes contract layer', function () {
       items: [],
     };
     expect(recordSaveSuccessResponseSchema.safeParse(storageResponse).success).to.equal(true);
-    expect(recordSaveSuccessResponseSchema.safeParse({ data: storageResponse, meta: storageResponse }).success).to.equal(true);
-    expect(recordSaveFailureResponseSchema.safeParse({
-      errors: [{ code: 'record-validation-failed' }],
-      meta: storageResponse,
-    }).success).to.equal(true);
-    expect(recordSaveFailureResponseSchema.safeParse({
-      errors: [{ code: 'request-contract-invalid' }],
-      meta: {},
-    }).success).to.equal(true);
-    expect(recordSaveFailureResponseSchema.safeParse({
-      errors: [{ code: 'record-validation-failed' }],
-      meta: { outcome: 'not-saved' },
-    }).success).to.equal(false);
+    expect(
+      recordSaveSuccessResponseSchema.safeParse({ data: storageResponse, meta: storageResponse }).success
+    ).to.equal(true);
+    expect(
+      recordSaveFailureResponseSchema.safeParse({
+        errors: [{ code: 'record-validation-failed' }],
+        meta: storageResponse,
+      }).success
+    ).to.equal(true);
+    expect(
+      recordSaveFailureResponseSchema.safeParse({
+        errors: [{ code: 'request-contract-invalid' }],
+        meta: {},
+      }).success
+    ).to.equal(true);
+    expect(
+      recordSaveFailureResponseSchema.safeParse({
+        errors: [{ code: 'record-validation-failed' }],
+        meta: { outcome: 'not-saved' },
+      }).success
+    ).to.equal(false);
   });
 
   it('should document vocabulary creation as a 201 response', function () {
@@ -1093,16 +1280,27 @@ describe('API routes contract layer', function () {
   it('should document file-download response media types for export and datastream routes', function () {
     const document = buildCoreApiOpenApiDocument();
 
-    const datastreamRoute = document.paths['/{branding}/{portal}/api/records/datastreams/{oid}/{datastreamId}']?.get as globalThis.Record<string, unknown>;
-    const datastreamResponse = (datastreamRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200'];
-    const datastreamContent = datastreamResponse.content as globalThis.Record<string, globalThis.Record<string, unknown>>;
+    const datastreamRoute = document.paths['/{branding}/{portal}/api/records/datastreams/{oid}/{datastreamId}']
+      ?.get as globalThis.Record<string, unknown>;
+    const datastreamResponse = (
+      datastreamRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>
+    )['200'];
+    const datastreamContent = datastreamResponse.content as globalThis.Record<
+      string,
+      globalThis.Record<string, unknown>
+    >;
 
     expect(datastreamContent).to.have.property('application/octet-stream');
-    expect((datastreamContent['application/octet-stream'].schema as globalThis.Record<string, unknown>).format).to.equal('binary');
+    expect(
+      (datastreamContent['application/octet-stream'].schema as globalThis.Record<string, unknown>).format
+    ).to.equal('binary');
     expect(datastreamResponse.headers).to.have.property('Content-Disposition');
 
-    const exportRoute = document.paths['/{branding}/{portal}/api/export/record/download/{format}']?.get as globalThis.Record<string, unknown>;
-    const exportResponse = (exportRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200'];
+    const exportRoute = document.paths['/{branding}/{portal}/api/export/record/download/{format}']
+      ?.get as globalThis.Record<string, unknown>;
+    const exportResponse = (exportRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)[
+      '200'
+    ];
     const exportContent = exportResponse.content as globalThis.Record<string, globalThis.Record<string, unknown>>;
 
     expect(exportContent).to.have.property('text/csv');
@@ -1115,8 +1313,8 @@ describe('API routes contract layer', function () {
     const document = buildCoreApiOpenApiDocument();
     const searchRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/search']?.get);
     const parameters = searchRoute.parameters ?? [];
-    const exactNames = parameters.find((parameter) => parameter.name === 'exactNames');
-    const facetNames = parameters.find((parameter) => parameter.name === 'facetNames');
+    const exactNames = parameters.find(parameter => parameter.name === 'exactNames');
+    const facetNames = parameters.find(parameter => parameter.name === 'facetNames');
 
     expect(exactNames?.style).to.equal('deepObject');
     expect(exactNames?.explode).to.equal(true);
@@ -1129,9 +1327,14 @@ describe('API routes contract layer', function () {
   it('should document update metadata and user audit response bodies', function () {
     const document = buildCoreApiOpenApiDocument();
 
-    const updateMetaRoute = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put as globalThis.Record<string, unknown>;
-    const updateMetaSchema = ((updateMetaRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']
-      .content as globalThis.Record<string, globalThis.Record<string, unknown>>)['application/json'].schema as globalThis.Record<string, unknown>;
+    const updateMetaRoute = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put as globalThis.Record<
+      string,
+      unknown
+    >;
+    const updateMetaSchema = (
+      (updateMetaRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']
+        .content as globalThis.Record<string, globalThis.Record<string, unknown>>
+    )['application/json'].schema as globalThis.Record<string, unknown>;
     const updateVariants = (updateMetaSchema.anyOf ?? updateMetaSchema.oneOf) as OpenApiSchema[];
     const legacyUpdateSchema = updateVariants.find(schema => schema.properties?.success);
     const v2UpdateSchema = updateVariants.find(schema => schema.properties?.meta);
@@ -1140,9 +1343,14 @@ describe('API routes contract layer', function () {
     expect(v2UpdateSchema?.properties).to.have.property('data');
     expect(v2UpdateSchema?.properties).to.have.property('meta');
 
-    const userAuditRoute = document.paths['/{branding}/{portal}/api/users/{id}/audit']?.get as globalThis.Record<string, unknown>;
-    const userAuditSchema = ((userAuditRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']
-      .content as globalThis.Record<string, globalThis.Record<string, unknown>>)['application/json'].schema as globalThis.Record<string, unknown>;
+    const userAuditRoute = document.paths['/{branding}/{portal}/api/users/{id}/audit']?.get as globalThis.Record<
+      string,
+      unknown
+    >;
+    const userAuditSchema = (
+      (userAuditRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']
+        .content as globalThis.Record<string, globalThis.Record<string, unknown>>
+    )['application/json'].schema as globalThis.Record<string, unknown>;
     expect(userAuditSchema.properties).to.have.property('user');
     expect(userAuditSchema.properties).to.have.property('records');
     expect(userAuditSchema.properties).to.have.property('summary');
@@ -1153,12 +1361,12 @@ describe('API routes contract layer', function () {
       params: {},
       query: { id: 'query-id' },
       headers: {},
-      body: { id: 'body-id' }
+      body: { id: 'body-id' },
     } as unknown as Sails.Req;
 
     const extracted = extractApiRequest(request, {
       params: objectField({ id: stringField() }, ['id']),
-      query: objectField({ id: stringField() }, ['id'])
+      query: objectField({ id: stringField() }, ['id']),
     });
 
     expect(extracted.params.id).to.equal(undefined);
@@ -1166,12 +1374,12 @@ describe('API routes contract layer', function () {
 
     const result = validateApiRequest(request, {
       params: objectField({ id: stringField() }, ['id']),
-      query: objectField({ id: stringField() }, ['id'])
+      query: objectField({ id: stringField() }, ['id']),
     });
 
     expect(result.valid).to.equal(false);
-    expect(result.issues.some((issue) => issue.path === 'params.id')).to.equal(true);
-    expect(result.issues.some((issue) => issue.path === 'query.id')).to.equal(false);
+    expect(result.issues.some(issue => issue.path === 'params.id')).to.equal(true);
+    expect(result.issues.some(issue => issue.path === 'query.id')).to.equal(false);
   });
 
   it('should normalize legacy search query filters into named maps', async function () {
@@ -1205,7 +1413,7 @@ describe('API routes contract layer', function () {
       params: { oid: 'record-1' },
       query: { merge: 'false' },
       headers: {},
-      body: { merge: 'true', datastreams: 'true' }
+      body: { merge: 'true', datastreams: 'true' },
     } as unknown as Sails.Req;
 
     const result = validateApiRequest(request, updateMetaRoute.request);
@@ -1225,7 +1433,7 @@ describe('API routes contract layer', function () {
       },
       body: {
         multipartOnly: 'yes',
-      }
+      },
     } as unknown as Sails.Req;
 
     const apiRequest = {
@@ -1262,8 +1470,8 @@ describe('API routes contract layer', function () {
         packageType: 'archive',
         sort: 'dateCreated',
         filterFields: 'title,creator',
-        filter: 'alpha,beta'
-      }
+        filter: 'alpha,beta',
+      },
     } as unknown as Sails.Req;
 
     const result = validateApiRequest(request, listRecordsRoute.request);
@@ -1282,10 +1490,10 @@ describe('API routes contract layer', function () {
       params: {},
       query: {},
       headers: {},
-      body: {}
+      body: {},
     } as unknown as Sails.Req;
 
-    const result = validateApiRouteRequest(request, brandingApiRoutes.find((route) => route.action === 'logo')!, {
+    const result = validateApiRouteRequest(request, brandingApiRoutes.find(route => route.action === 'logo')!, {
       files: {
         logo: [{ size: 1024 * 1024, type: 'image/gif' }],
       },
@@ -1295,7 +1503,11 @@ describe('API routes contract layer', function () {
     if (result.valid) {
       throw new Error('Expected multipart validation to fail');
     }
-    expect(result.issues.some((issue) => issue.path === 'files.logo[0]' && issue.message === 'File exceeds maxBytes 524288')).to.equal(true);
-    expect(result.issues.some((issue) => issue.path === 'files.logo[0]' && issue.message === 'Unsupported mime type image/gif')).to.equal(true);
+    expect(
+      result.issues.some(issue => issue.path === 'files.logo[0]' && issue.message === 'File exceeds maxBytes 524288')
+    ).to.equal(true);
+    expect(
+      result.issues.some(issue => issue.path === 'files.logo[0]' && issue.message === 'Unsupported mime type image/gif')
+    ).to.equal(true);
   });
 });

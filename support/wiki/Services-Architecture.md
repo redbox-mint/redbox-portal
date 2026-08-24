@@ -355,6 +355,26 @@ public isFeatureEnabled(): boolean {
 }
 ```
 
+### Storage adapter concurrency capability
+
+A hook-provided storage adapter must explicitly declare the complete versioned
+`recordConcurrency` capability before any record type can use strict concurrent
+modification mode. Implement `getCapabilities()` using the contracts exported
+by `@researchdatabox/redbox-core`; an absent or partial declaration is treated
+as unsupported.
+
+The adapter must implement native atomic active update/removal and conditional
+tombstone update/removal, return the committed or removed revision/state, and
+certify bounded non-application reasons. Supplied expected revisions are never
+ignored. A driver throw or unrecognized result after dispatch remains
+`unknown`; do not fall back to an OID-only Waterline write.
+
+Run the reusable `STORAGE_CONCURRENCY_CONFORMANCE_CHECKS` exported by
+`@researchdatabox/redbox-core` against the adapter's real datastore dialect
+before declaring capability. The
+bundled Mongo implementation and migration/deployment notes are documented in
+`packages/sails-hook-redbox-storage-mongo/README.md`.
+
 ## Testing Services
 
 Services have comprehensive unit tests in `packages/redbox-core/test/services/`:

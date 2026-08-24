@@ -365,7 +365,7 @@ describe('FigshareService', function () {
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().resolves(true),
-      updateMeta: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
+      updateMetaInternal: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
     (global as any).UsersService = {
       getUserWithUsername: sinon.stub().returns({
@@ -435,7 +435,13 @@ describe('FigshareService', function () {
 
   it('keeps record oid field precedence over the job id fallback', function () {
     const context = createRunContext(
-      { redboxOid: 'record-oid', id: 'id-oid', oid: 'legacy-oid', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
+      {
+        redboxOid: 'record-oid',
+        id: 'id-oid',
+        oid: 'legacy-oid',
+        metaMetadata: { brandId: 'default' },
+        metadata: {},
+      } as RecordModel,
       buildFigsharePublishingConfig() as FigsharePublishingConfigData,
       'job-id:publish-job'
     );
@@ -1711,7 +1717,7 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.figshare_article_id',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
@@ -1771,7 +1777,11 @@ describe('FigshareService', function () {
       metadata: { title: 'Dataset title' },
       metaMetadata: { brandId: 'named-brand', type: 'dataset' },
     });
-    (global as any).RecordsService.updateMeta.resolves({ isSuccessful: () => true, wasPersisted: () => true, isComplete: () => true });
+    (global as any).RecordsService.updateMetaInternal.resolves({
+      isSuccessful: () => true,
+      wasPersisted: () => true,
+      isComplete: () => true,
+    });
     sinon.stub(service as any, 'isArticleReadyForWorkflowTransition').resolves(true);
 
     await (service as any).transitionWorkflowForRecord(
@@ -1788,11 +1798,11 @@ describe('FigshareService', function () {
     expect((global as any).BrandingService.getBrand.calledWith('named-brand')).to.equal(true);
     expect((global as any).RecordsService.hasEditAccess.firstCall.args[0]).to.equal(namedBrand);
     expect((global as any).RecordTypesService.get.firstCall.args[0]).to.equal(namedBrand);
-    expect((global as any).RecordsService.updateMeta.firstCall.args[0]).to.equal(namedBrand);
+    expect((global as any).RecordsService.updateMetaInternal.firstCall.args[0].brand).to.equal(namedBrand);
   });
 
   it('treats a persisted warning as a successful Figshare state writeback', async function () {
-    (global as any).RecordsService.updateMeta.resolves({
+    (global as any).RecordsService.updateMetaInternal.resolves({
       outcome: 'saved-with-warnings',
       wasPersisted: () => true,
       isComplete: () => false,
@@ -1801,7 +1811,7 @@ describe('FigshareService', function () {
     const persisted = await service.persistSyncRecord(
       'oid-1',
       { metaMetadata: { brandId: 'default' }, metadata: {} } as any,
-      { username: 'figshare-job-user' } as any,
+      { username: 'figshare-job-user' } as any
     );
 
     expect(persisted).to.equal(true);
@@ -1813,14 +1823,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-                  transitionJob: {
+            transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1854,14 +1864,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-                  transitionJob: {
+            transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1897,14 +1907,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-                  transitionJob: {
+            transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -2044,7 +2054,12 @@ describe('FigshareService', function () {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
-      const readstream = new Readable({ read() { /* intentionally empty */ }, emitClose: false });
+      const readstream = new Readable({
+        read() {
+          /* intentionally empty */
+        },
+        emitClose: false,
+      });
       (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
       (global as any).sails.services.datastreamservice = {
         getDatastream: sinon.stub().resolves({ readstream, size: 8 }),
