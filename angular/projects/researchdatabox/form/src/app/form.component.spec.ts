@@ -376,6 +376,174 @@ describe('FormComponent', () => {
     );
   });
 
+  it('always mounts the accessible conflict presenter, keeps controls usable, and confirms discard', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    const shell = fixture.nativeElement as HTMLElement;
+    expect(shell.querySelector('redbox-form-conflict-presenter')).not.toBeNull();
+    expect((shell.querySelector('.rb-form-conflict') as HTMLElement).hidden).toBeTrue();
+
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } })
+    );
+    await formComponent.saveForm();
+    fixture.detectChanges();
+
+    const banner = shell.querySelector('.rb-form-conflict') as HTMLElement;
+    expect(banner).not.toBeNull();
+    expect(banner.querySelector('[role="alert"]')).not.toBeNull();
+    expect(banner.textContent).toContain('This record has changed');
+    const titleInput = shell.querySelector('input[type="text"]') as HTMLInputElement;
+    expect(titleInput.disabled).toBeFalse();
+    titleInput.value = 'Still editing';
+    titleInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(formComponent.form?.get('title')?.value).toBe('Still editing');
+
+    const reviewButton = Array.from(banner.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('Review changes')
+    ) as HTMLButtonElement;
+    reviewButton.click();
+    fixture.detectChanges();
+    expect(shell.querySelector('.rb-form-conflict-review[role="region"]')).not.toBeNull();
+    expect(shell.querySelectorAll('.rb-form-conflict-review input[type="radio"]')).toHaveSize(2);
+
+    const discardButton = Array.from(banner.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('Reload latest')
+    ) as HTMLButtonElement;
+    discardButton.click();
+    fixture.detectChanges();
+    const dialog = shell.querySelector('redbox-confirmation-dialog .modal') as HTMLElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.textContent).toContain('permanently discard');
+    const confirmButton = dialog.querySelector('.btn-danger') as HTMLButtonElement;
+    confirmButton.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(formComponent.form?.get('title')?.value).toBe('Latest title');
+    expect(formComponent.conflictState()).toBeNull();
+    expect((shell.querySelector('.rb-form-conflict') as HTMLElement).hidden).toBeTrue();
+  });
+
+  it('submits mine/latest manual resolution with retained local changes and no force request option', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    formComponent.form?.get('notes')?.setValue('My local notes');
+    formComponent.form?.get('notes')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } })),
+      Promise.resolve(
+        persistedSaveResponse({
+          oid: 'oid-123',
+          requestId: '22222222-2222-4222-8222-222222222222',
+          metadata: { title: 'Mine', notes: 'My local notes' },
+          concurrency: {
+            revision: 6,
+            entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+            formFingerprint: 'sha256:form_1',
+            resolution: 'client-manually-resolved',
+            resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+          },
+        })
+      )
+    );
+
+    await formComponent.saveForm();
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    formComponent.reviewConflictChanges();
+    const review = formComponent.conflictReview();
+    expect(review?.items).toHaveSize(1);
+    expect(review?.candidateWithNonOverlappingChanges).toEqual({
+      title: 'Latest title',
+      notes: 'My local notes',
+    });
+
+    await formComponent.submitManualConflictResolution({ [review!.items[0].id]: 'mine' });
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    const manualArgs = updateSpy.calls.argsFor(1);
+    expect(manualArgs).toEqual([
+      'oid-123',
+      { title: 'Mine', notes: 'My local notes' },
+      '',
+      undefined,
+      {
+        entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        revision: 5,
+        formFingerprint: 'sha256:form_1',
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+      },
+    ]);
+    expect(manualArgs[4]).toBeDefined();
+    expect(Object.hasOwn(manualArgs[4]!, 'force')).toBeFalse();
+    expect(formComponent.conflictState()).toBeNull();
+    expect(formComponent.recordBaseline()?.metadata).toEqual({ title: 'Mine', notes: 'My local notes' });
+  });
+
+  it('keeps the original baseline after invalid manual resolution and submits a corrected retry', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Latest title', notes: 'Loaded notes' } })),
+      Promise.resolve(
+        persistedSaveResponse({
+          oid: 'oid-123',
+          requestId: '22222222-2222-4222-8222-222222222222',
+          metadata: { title: 'Mine', notes: 'Loaded notes' },
+          concurrency: {
+            revision: 6,
+            entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+            formFingerprint: 'sha256:form_1',
+            resolution: 'client-manually-resolved',
+            resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+          },
+        })
+      )
+    );
+
+    await formComponent.saveForm();
+    formComponent.reviewConflictChanges();
+    const review = formComponent.conflictReview();
+    const title = formComponent.form?.get('title');
+    title?.setValidators(Validators.minLength(10));
+    title?.updateValueAndValidity();
+
+    const invalidResult = await formComponent.submitManualConflictResolution({ [review!.items[0].id]: 'mine' });
+
+    expect(invalidResult).toBeFalse();
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(formComponent.form?.invalid).toBeTrue();
+    expect(formComponent.conflictState()?.status).toBe('reviewing');
+    expect(formComponent.recordBaseline()).toEqual(
+      jasmine.objectContaining({
+        metadata: { title: 'Loaded title', notes: 'Loaded notes' },
+        revision: 4,
+        entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
+      })
+    );
+
+    title?.setValidators(Validators.minLength(3));
+    title?.updateValueAndValidity();
+    const correctedResult = await formComponent.submitManualConflictResolution({ [review!.items[0].id]: 'mine' });
+
+    expect(correctedResult).toBeTrue();
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(updateSpy.calls.argsFor(1)[4]).toEqual(
+      jasmine.objectContaining({
+        entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        revision: 5,
+        resolution: 'client-manually-resolved',
+      })
+    );
+    expect(formComponent.conflictState()).toBeNull();
+    expect(formComponent.recordBaseline()?.revision).toBe(6);
+  });
+
   it('automatically rebases one ordinary no-overlap conflict against the latest exact tag', async () => {
     const { formComponent } = await createConcurrencyTestForm();
     formComponent.form?.get('title')?.setValue('Mine');
