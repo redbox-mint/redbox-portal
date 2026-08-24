@@ -239,7 +239,94 @@ The visible `dataLicensingAccess_manager` content in section 3 then reads
 
 ---
 
-## 5. Overriding the read-only rendering
+## 5. Conditional fields with values in view mode
+
+The hidden value-carrier pattern is not quite enough when the conditional field
+itself must be visible in view mode. A common failed approach is to keep one
+definition and add `allowModes: ["view"]`: that disables the automatic
+transform, so the editor can appear in view mode. Removing the field from view
+avoids the editor, but also removes its model and its saved value.
+
+For a conditional field that has both an editor and a read-only value, keep two
+mode-scoped definitions with the same field name and model-backed value:
+
+1. Keep the original definition as `allowModes: ["edit"]`. Put the JSONata
+   visibility and disabled expressions on this copy, and initialise it hidden
+   and disabled. These expressions can use the driving field's
+   `field.value.changed` event in the normal way.
+2. Clone the definition for `allowModes: ["view"]`, remove the edit-mode
+   expressions, and explicitly set
+   `overrides.formModeClasses.view.component` to `ContentComponent`. Give the
+   view copy a template that guards against an empty `content` value.
+
+The view copy remains model-backed, so the form compiler supplies the stored
+value to the read-only component as `content`. This also lets the normal view
+transforms resolve option values to labels. A simplified shape is:
+
+```typescript
+const editField = {
+  name: "conditional_note",
+  constraints: { allowModes: ["edit"] },
+  expressions: [/* field.visible and field.disabled JSONata expressions */],
+  component: { class: "TextAreaComponent", config: { visible: false } },
+  model: { class: "TextAreaModel" },
+  layout: { class: "DefaultLayout", config: { visible: false } }
+};
+
+const viewField = structuredClone(editField);
+delete viewField.expressions;
+viewField.constraints = { allowModes: ["view"] };
+viewField.overrides = {
+  formModeClasses: {
+    view: {
+      component: "ContentComponent",
+      template: "<div class=\"conditional-view-value\">{{#if content}}{{content}}{{/if}}</div>"
+    }
+  }
+};
+```
+
+Do not calculate the view copy's `content` with a `runOnFormReady` JSONata
+expression. Form-ready expressions can run before the loaded record has
+hydrated its values, leaving the view content empty. Let the model-backed view
+component receive its value through the form compiler instead. Also keep the
+empty-value guard: otherwise a conditional field can leave behind a blank
+label, wrapper, or heading in view mode.
+
+### Conditional headings and notices
+
+A standalone view-only `ContentComponent` has no field model or value-change
+event of its own. If its content is computed by a `runOnFormReady` JSONata
+expression, that expression can run before the loaded record has hydrated.
+Keep the original notice or heading as `allowModes: ["edit"]`, then add its
+view markup to the driving field's `formModeClasses.view.template`. Evaluate
+the condition against the driving field's transformed `content`:
+
+```typescript
+{
+  component: {
+    class: "ContentComponent",
+    config: {
+      template: `
+        {{#if content.value}}<span>{{t content.label}}</span>{{/if}}
+        {{#if (eq content.value "planned")}}
+          <div class="notice">{{t "@my-planned-notice"}}</div>
+        {{/if}}`
+    }
+  }
+}
+```
+
+For scalar drivers use `content` directly; for single-select drivers use
+`content.value`; and for multi-select drivers test the transformed array shape
+(for example with `get` and `#each`). Test the machine value, not the displayed
+translated label. This pattern keeps the notice/heading beside the field it
+depends on and avoids duplicate headings or notices that remain visible when
+their condition is false.
+
+---
+
+## 6. Overriding the read-only rendering
 
 When the default input→`ContentComponent` conversion is not what you want, use
 `overrides.formModeClasses.view` to name a different target component (and,
