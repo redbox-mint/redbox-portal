@@ -45,6 +45,8 @@ updates:
     schedule:
       interval: 'daily'
     target-branch: 'develop'
+    # Vitest packages declare exact peer versions, so keep their updates
+    # together to preserve strict-peer-deps installability.
     groups:
       vitest:
         applies-to: 'version-updates'
