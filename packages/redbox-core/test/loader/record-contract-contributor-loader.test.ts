@@ -7,6 +7,9 @@ import {
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
   defineRedboxHook,
   discoverRecordContractContributorRegistry,
+  generateAllShims,
+  getDiscoveredRecordContractContributorComponentTypes,
+  getDiscoveredRecordContractContributorRegistrationIssues,
   getDiscoveredRecordContractContributorRegistry,
   RecordContractContributorRegistrationError,
   RECORD_CONTRACT_REGISTRATION_CODES,
@@ -104,6 +107,7 @@ describe('record-contract contributor loader discovery', function () {
     expect(thrown).to.be.instanceOf(RecordContractContributorRegistrationError);
     expect(thrown?.issues.map(issue => issue.code)).to.include(RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_COMPONENT);
     expect(getDiscoveredRecordContractContributorRegistry()).to.equal(undefined);
+    expect(getDiscoveredRecordContractContributorRegistrationIssues()).to.deep.equal(thrown?.issues);
   });
 
   it('aggregates malformed and throwing hook exports with stable issue ordering', async function () {
@@ -124,7 +128,25 @@ describe('record-contract contributor loader discovery', function () {
       RECORD_CONTRACT_REGISTRATION_CODES.INVALID_EXPORT,
       RECORD_CONTRACT_REGISTRATION_CODES.INVALID_EXPORT,
     ]);
+    expect(getDiscoveredRecordContractContributorRegistrationIssues()).to.deep.equal(thrown?.issues);
     expect(thrown?.message).not.to.include('secret');
+  });
+
+  it('retains coverage and generates the RecordSchemaService shim when discovery finds invalid contributors', async function () {
+    await addHook('@test/non-array', 'module.exports.registerRecordContractContributors = () => ({});');
+
+    const result = await generateAllShims(appPath, { forceRegenerate: true });
+
+    expect(result.skipped).to.equal(false);
+    expect(getDiscoveredRecordContractContributorRegistry()).to.equal(undefined);
+    expect(getDiscoveredRecordContractContributorRegistrationIssues().map(issue => issue.code)).to.deep.equal([
+      RECORD_CONTRACT_REGISTRATION_CODES.INVALID_EXPORT,
+    ]);
+    expect(getDiscoveredRecordContractContributorComponentTypes()).to.deep.equal(
+      Object.keys(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY).sort()
+    );
+    const shim = await fs.readFile(path.join(appPath, 'api', 'services', 'RecordSchemaService.js'), 'utf8');
+    expect(shim).to.include("ServiceExports['RecordSchemaService']");
   });
 
   it('exposes the optional contributor registration through defineRedboxHook', function () {

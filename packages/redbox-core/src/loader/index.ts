@@ -8,7 +8,10 @@ import { getHookProcessingOrder } from '../hooks/hookDiscovery';
 import {
     createCoreRecordContractContributors,
     RecordContractContributorRegistry,
+    RecordContractContributorRegistrationError,
     RECORD_CONTRACT_REGISTRATION_CODES,
+    resetDiscoveredRecordContractContributorRegistry,
+    setDiscoveredRecordContractContributorRegistrationIssues,
     setDiscoveredRecordContractContributorRegistry,
 } from '../record-contract';
 import type {
@@ -349,6 +352,7 @@ function isRecordContractContributor(value: unknown): value is RecordContractCon
 export async function discoverRecordContractContributorRegistry(
     appPath: string
 ): Promise<RecordContractContributorRegistry> {
+    resetDiscoveredRecordContractContributorRegistry();
     const registrations: RecordContractContributorRegistration[] = createCoreRecordContractContributors().map(
         contributor => ({ contributor, source: 'core' })
     );
@@ -401,9 +405,16 @@ export async function discoverRecordContractContributorRegistry(
         }
     }
 
-    const registry = new RecordContractContributorRegistry(registrations, { additionalIssues: issues });
-    setDiscoveredRecordContractContributorRegistry(registry);
-    return registry;
+    try {
+        const registry = new RecordContractContributorRegistry(registrations, { additionalIssues: issues });
+        setDiscoveredRecordContractContributorRegistry(registry);
+        return registry;
+    } catch (error) {
+        if (error instanceof RecordContractContributorRegistrationError) {
+            setDiscoveredRecordContractContributorRegistrationIssues(error.issues, registrations);
+        }
+        throw error;
+    }
 }
 
 export async function findAndRegisterHooks(appPath: string): Promise<HookRegistrations> {
@@ -1228,7 +1239,16 @@ export async function shouldRegenerateShims(appPath: string, forceRegenerate = f
 
 export async function generateAllShims(appPath: string, options: LoaderOptions = {}): Promise<GenerateAllShimsResult> {
     const startTime = performance.now();
-    await discoverRecordContractContributorRegistry(appPath);
+    try {
+        await discoverRecordContractContributorRegistry(appPath);
+    } catch (error) {
+        if (!(error instanceof RecordContractContributorRegistrationError)) {
+            throw error;
+        }
+        log.warn(
+            'Record-contract contributor discovery found invalid registrations; the enabled lifecycle gate will report them.'
+        );
+    }
     const { shouldRegenerate, reason, deleteMarker } = await shouldRegenerateShims(appPath, options.forceRegenerate);
 
     if (!shouldRegenerate) {

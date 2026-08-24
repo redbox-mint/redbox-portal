@@ -37,6 +37,7 @@ import * as RaidServiceModule from './RaidService';
 import * as RDMPServiceModule from './RDMPService';
 import * as RecordsServiceModule from './RecordsService';
 import * as RecordTypesServiceModule from './RecordTypesService';
+import * as RecordSchemaServiceModule from './RecordSchemaService';
 import * as RecordValidationServiceModule from './RecordValidationService';
 import * as ReportsServiceModule from './ReportsService';
 import * as RolesServiceModule from './RolesService';
@@ -91,6 +92,7 @@ export { RaidServiceModule as RaidService };
 export { RDMPServiceModule as RDMPService };
 export { RecordsServiceModule as RecordsService };
 export { RecordTypesServiceModule as RecordTypesService };
+export { RecordSchemaServiceModule as RecordSchemaService };
 export { RecordValidationServiceModule as RecordValidationService };
 export { ReportsServiceModule as ReportsService };
 export { RolesServiceModule as RolesService };
@@ -256,6 +258,11 @@ export const ServiceExports = {
   get RecordTypesService() {
     return getOrCreateService('RecordTypesService', () =>
       new RecordTypesServiceModule.Services.RecordTypes().exports()
+    );
+  },
+  get RecordSchemaService() {
+    return getOrCreateService('RecordSchemaService', () =>
+      new RecordSchemaServiceModule.Services.RecordSchema().exports()
     );
   },
   get RecordValidationService() {

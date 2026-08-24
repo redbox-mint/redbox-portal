@@ -347,15 +347,55 @@ export class RecordContractContributorRegistry {
 }
 
 let discoveredContributorRegistry: RecordContractContributorRegistry | undefined;
+let discoveredContributorRegistrationIssues: readonly RecordContractRegistrationIssue[] = Object.freeze([]);
+let discoveredContributorComponentTypes: readonly string[] = Object.freeze([]);
+
+function componentTypesFromRegistrations(
+  registrations: readonly RecordContractContributorRegistration[]
+): readonly string[] {
+  return Object.freeze(
+    [
+      ...new Set(
+        registrations.flatMap(registration =>
+          registration.contributor.kind === 'component' ? [registration.contributor.componentType] : []
+        )
+      ),
+    ].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+  );
+}
 
 export function setDiscoveredRecordContractContributorRegistry(registry: RecordContractContributorRegistry): void {
   discoveredContributorRegistry = registry;
+  discoveredContributorRegistrationIssues = Object.freeze([]);
+  discoveredContributorComponentTypes = componentTypesFromRegistrations(registry.registrations());
 }
 
 export function getDiscoveredRecordContractContributorRegistry(): RecordContractContributorRegistry | undefined {
   return discoveredContributorRegistry;
 }
 
+export function setDiscoveredRecordContractContributorRegistrationIssues(
+  issues: readonly RecordContractRegistrationIssue[],
+  registrations: readonly RecordContractContributorRegistration[] = []
+): void {
+  discoveredContributorRegistry = undefined;
+  discoveredContributorRegistrationIssues = Object.freeze(
+    sortRegistrationIssues(issues).map(item => Object.freeze({ ...item }))
+  );
+  discoveredContributorComponentTypes = componentTypesFromRegistrations(registrations);
+}
+
+export function getDiscoveredRecordContractContributorRegistrationIssues(): readonly RecordContractRegistrationIssue[] {
+  return discoveredContributorRegistrationIssues;
+}
+
+/** Component coverage retained even when other registrations prevent construction of the full registry. */
+export function getDiscoveredRecordContractContributorComponentTypes(): readonly string[] {
+  return discoveredContributorComponentTypes;
+}
+
 export function resetDiscoveredRecordContractContributorRegistry(): void {
   discoveredContributorRegistry = undefined;
+  discoveredContributorRegistrationIssues = Object.freeze([]);
+  discoveredContributorComponentTypes = Object.freeze([]);
 }
