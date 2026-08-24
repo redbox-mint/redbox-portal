@@ -144,6 +144,7 @@ describe('RecordValidationService', function () {
   it('is registered through the core service export convention', function () {
     expect(ServiceExports).to.have.property('RecordValidationService');
     expect(ServiceExports.RecordValidationService).to.have.property('resolve').that.is.a('function');
+    expect(ServiceExports.RecordValidationService).to.have.property('resolveContractContext').that.is.a('function');
     expect(ServiceExports.RecordValidationService).to.have.property('discoverOperations').that.is.a('function');
     expect(ServiceExports.RecordValidationService).to.have.property('registerMetricsHooks').that.is.a('function');
   });

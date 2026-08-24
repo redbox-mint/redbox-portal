@@ -5,6 +5,7 @@
     "./fixtures/record-contract.fixtures.ts",
     "./unit/build-response-contract.test.ts",
     "./loader/record-contract-contributor-loader.test.ts",
+    "./services/RecordValidationContractContext.test.ts",
     "./unit/record-contract-fixtures.test.ts",
     "./unit/record-contract/compiler.test.ts",
     "./unit/record-contract/canonical-json.test.ts",
