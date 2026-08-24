@@ -26,7 +26,7 @@ import {
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 
 export type RecordSaveRouteFamily = 'browser' | 'api' | 'internal';
-export type RecordSaveOperation = 'create' | 'update' | 'transition';
+export type RecordSaveOperation = 'create' | 'update' | 'transition' | 'delete' | 'restore' | 'purge';
 export type RecordValidationContextJSONValue =
   | string
   | number

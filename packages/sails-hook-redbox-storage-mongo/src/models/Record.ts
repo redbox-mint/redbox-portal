@@ -6,6 +6,7 @@ import {
   BeforeUpdate,
   INITIAL_RECORD_REVISION,
   isRecordRevision,
+  isCanonicalSaveRequestId,
   toWaterlineModelDef,
 } from '@researchdatabox/redbox-core';
 
@@ -19,6 +20,7 @@ export type JsonMap = Record<string, unknown>;
  */
 const normalizeServerRevision = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   record.revision = INITIAL_RECORD_REVISION;
+  delete record.lifecycleOperationId;
   proceed();
 };
 
@@ -29,6 +31,7 @@ const normalizeServerRevision = (record: Record<string, unknown>, proceed: (err?
  */
 const stripServerRevision = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   delete record.revision;
+  delete record.lifecycleOperationId;
   proceed();
 };
 
@@ -47,6 +50,9 @@ export class RecordClass {
   /** Server-owned. Clients must retain the opaque tag rather than assume 0. */
   @Attr({ type: 'number', defaultsTo: INITIAL_RECORD_REVISION, custom: isRecordRevision })
   public revision: number = INITIAL_RECORD_REVISION;
+
+  @Attr({ type: 'string', custom: isCanonicalSaveRequestId })
+  public lifecycleOperationId?: string;
 
   @Attr({ type: 'json' })
   public metaMetadata?: JsonMap;

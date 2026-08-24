@@ -82,10 +82,12 @@ describe('Webservice RecordController body source', () => {
   let originalHarvestRunService: any;
   let recordsService: {
     getMeta: sinon.SinonStub;
+    getDeletedRecord: sinon.SinonStub;
     getDeletedRecordMeta: sinon.SinonStub;
     updateMeta: sinon.SinonStub;
     create: sinon.SinonStub;
     getDeletedRecords: sinon.SinonStub;
+    delete: sinon.SinonStub;
     restoreRecord: sinon.SinonStub;
     destroyDeletedRecord: sinon.SinonStub;
     hasEditAccess: sinon.SinonStub;
@@ -148,10 +150,12 @@ describe('Webservice RecordController body source', () => {
     controller = new Controllers.Record();
     recordsService = {
       getMeta: sinon.stub(),
+      getDeletedRecord: sinon.stub(),
       getDeletedRecordMeta: sinon.stub(),
       updateMeta: sinon.stub(),
       create: sinon.stub(),
       getDeletedRecords: sinon.stub(),
+      delete: sinon.stub(),
       restoreRecord: sinon.stub(),
       destroyDeletedRecord: sinon.stub(),
       hasEditAccess: sinon.stub().returns(true),
@@ -165,13 +169,7 @@ describe('Webservice RecordController body source', () => {
   });
 
   it('restores and permanently destroys deleted records in the active brand', async () => {
-    const deletedRecordResponse = {
-      isSuccessful: () => true,
-      items: [{ redboxOid: 'record-1' }],
-    };
-    const mutationResponse = {
-      isSuccessful: () => true,
-    };
+    const mutationResponse = successResult();
     recordsService.getDeletedRecordMeta.resolves({ redboxOid: 'record-1', metaMetadata: { brandId: 'brand-1' } });
     recordsService.restoreRecord.resolves(mutationResponse);
     recordsService.destroyDeletedRecord.resolves(mutationResponse);
@@ -192,7 +190,8 @@ describe('Webservice RecordController body source', () => {
     await controller.destroyDeletedRecord(req, {} as Sails.Res);
 
     expect(recordsService.getDeletedRecordMeta.callCount).to.equal(2);
-    expect(recordsService.getDeletedRecordMeta.firstCall.args).to.deep.equal(['record-1']);
+    expect(recordsService.getDeletedRecordMeta.firstCall.args[0]).to.equal('record-1');
+    expect(recordsService.getDeletedRecordMeta.firstCall.args[1]).to.include({ id: 'brand-1' });
     expect(recordsService.restoreRecord.calledWith('record-1')).to.be.true;
     expect(recordsService.destroyDeletedRecord.calledWith('record-1')).to.be.true;
     expect(sendRespStub.callCount).to.equal(2);
@@ -1255,6 +1254,112 @@ describe('Webservice RecordController body source', () => {
   });
 
   describe('deleted record handlers', () => {
+    it('returns an authorized tombstone representation with its lifecycle tag and safe metadata', async () => {
+      recordsService.getDeletedRecordMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 9,
+        metadata: { title: 'Deleted record' },
+        metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+        lifecycleState: 'recovery-required',
+        lifecycle: {
+          kind: 'delete',
+          attempts: 2,
+          startedAt: '2026-08-24T00:00:00.000Z',
+          updatedAt: '2026-08-24T00:00:01.000Z',
+          errorCode: 'active-removal-unknown',
+        },
+      });
+      const req = makeThrowingRequest({ params: { oid: 'record-1' }, query: {}, body: {}, files: {} });
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.getDeletedRecord(req, {} as Sails.Res);
+
+      const envelope = sendRespStub.firstCall.args[2];
+      expect(envelope.headers).to.deep.equal({ ETag: formatRecordEntityTag('record-1', 9) });
+      expect(envelope.meta).to.deep.include({
+        oid: 'record-1',
+        revision: 9,
+        lifecycleState: 'recovery-required',
+      });
+      expect(envelope.meta.lifecycle).not.to.have.property('requestId');
+      expect(recordsService.hasViewAccess.calledOnce).to.equal(true);
+    });
+
+    it('passes exact lifecycle revision and fresh resolution linkage to restore', async () => {
+      recordsService.getDeletedRecordMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 9,
+        metadata: {},
+        metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+      });
+      const result = successResult();
+      result.setConcurrencyMetadata({ revision: 11, entityTag: formatRecordEntityTag('record-1', 11) });
+      recordsService.restoreRecord.resolves(result);
+      const requestId = '11111111-1111-4111-8111-111111111111';
+      const conflictRequestId = '22222222-2222-4222-8222-222222222222';
+      const req = makeThrowingRequest(
+        { params: { oid: 'record-1' }, query: {}, body: {}, files: {} },
+        {
+          headers: {
+            'if-match': formatRecordEntityTag('record-1', 9),
+            'x-redbox-save-request-id': requestId,
+            'x-redbox-concurrency-resolution': 'client-manually-resolved',
+            'x-redbox-resolution-of-request-id': conflictRequestId,
+          },
+          user: { username: 'tester', roles: [] },
+        }
+      );
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.restoreRecord(req, {} as Sails.Res);
+
+      const context = recordsService.restoreRecord.firstCall.args[3];
+      expect(context).to.include({ requestId, operation: 'restore', routeFamily: 'api' });
+      expect(context.concurrency).to.deep.include({
+        expectedRevision: 9,
+        resolution: 'client-manually-resolved',
+        resolutionOfRequestId: conflictRequestId,
+      });
+      expect(sendRespStub.firstCall.args[2].headers).to.deep.equal({ ETag: formatRecordEntityTag('record-1', 11) });
+    });
+
+    it('rejects malformed lifecycle tags before tombstone lookup or mutation', async () => {
+      const req = makeThrowingRequest(
+        { params: { oid: 'record-1' }, query: {}, body: {}, files: {} },
+        { headers: { 'if-match': '*', 'x-redbox-api-version': '2.0' } }
+      );
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.restoreRecord(req, {} as Sails.Res);
+
+      expect(sendRespStub.firstCall.args[2]).to.deep.equal({
+        status: 400,
+        displayErrors: [{ code: 'record-if-match-invalid', source: { header: 'If-Match' } }],
+      });
+      expect(recordsService.getDeletedRecordMeta.notCalled).to.equal(true);
+      expect(recordsService.restoreRecord.notCalled).to.equal(true);
+    });
+
+    it('maps the permanent query to the purge lifecycle operation', async () => {
+      recordsService.getMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 7,
+        metadata: {},
+        metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+      });
+      recordsService.delete.resolves(successResult());
+      const req = makeThrowingRequest(
+        { params: { oid: 'record-1' }, query: { permanent: 'true' }, body: {}, files: {} },
+        { headers: { 'if-match': formatRecordEntityTag('record-1', 7) } }
+      );
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.deleteRecord(req, {} as Sails.Res);
+
+      expect(recordsService.delete.firstCall.args[1]).to.equal(true);
+      expect(recordsService.delete.firstCall.args[5]).to.deep.include({ operation: 'purge', routeFamily: 'api' });
+    });
+
     it('does not restore an active record when no deleted record exists', async () => {
       recordsService.getMeta.resolves({
         metaMetadata: { brandId: 'brand-1', type: 'dataset' },
@@ -1270,7 +1375,8 @@ describe('Webservice RecordController body source', () => {
 
       await controller.restoreRecord(req, {} as Sails.Res);
 
-      expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+      expect(recordsService.getDeletedRecordMeta.calledOnce).to.be.true;
+      expect(recordsService.getDeletedRecordMeta.calledWithMatch('record-1', { id: 'brand-1' })).to.be.true;
       expect(recordsService.getMeta.called).to.be.false;
       expect(recordsService.restoreRecord.called).to.be.false;
       expect(sendRespStub.calledOnce).to.be.true;
@@ -1292,7 +1398,8 @@ describe('Webservice RecordController body source', () => {
 
       await controller.destroyDeletedRecord(req, {} as Sails.Res);
 
-      expect(recordsService.getDeletedRecordMeta.calledOnceWithExactly('record-1')).to.be.true;
+      expect(recordsService.getDeletedRecordMeta.calledOnce).to.be.true;
+      expect(recordsService.getDeletedRecordMeta.calledWithMatch('record-1', { id: 'brand-1' })).to.be.true;
       expect(recordsService.getMeta.called).to.be.false;
       expect(recordsService.destroyDeletedRecord.called).to.be.false;
       expect(sendRespStub.calledOnce).to.be.true;

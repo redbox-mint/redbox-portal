@@ -3,6 +3,8 @@ export interface RecordModel {
   redboxOid: string;
   /** Server-owned monotonic aggregate revision. */
   revision?: number;
+  /** Server-owned restore ownership marker used only to finish interrupted lifecycle operations. */
+  lifecycleOperationId?: string;
   harvestId: string;
   metaMetadata: RecordMetaMetadata;
   metadata: {

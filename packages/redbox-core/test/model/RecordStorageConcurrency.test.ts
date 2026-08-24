@@ -23,7 +23,7 @@ describe('record storage concurrency contract', function () {
         getCapabilities: () => ({
           recordConcurrency: {
             ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
-            conditionalActiveRemove: false,
+            conditionalTombstoneCreate: false,
           } as any,
         }),
       })
@@ -71,11 +71,19 @@ describe('record storage concurrency contract', function () {
         precondition: { expectedRevision: 3, requireRevision: true },
         requestId: '123e4567-e89b-42d3-a456-426614174000',
         resolution: 'internal',
+        lifecycle: {
+          expectedState: 'restore-pending',
+          operationId: '00000000-0000-4000-8000-000000000000',
+        },
       })
     ).to.deep.equal({
       precondition: { expectedRevision: 3, requireRevision: true },
       requestId: '123e4567-e89b-42d3-a456-426614174000',
       resolution: 'internal',
+      lifecycle: {
+        expectedState: 'restore-pending',
+        operationId: '00000000-0000-4000-8000-000000000000',
+      },
     });
     expect(
       normalizeRecordStorageMutationOptions({
@@ -92,5 +100,11 @@ describe('record storage concurrency contract', function () {
       TypeError
     );
     expect(() => normalizeRecordStorageMutationOptions({ precondition: 'invalid' } as any)).to.throw(TypeError);
+    expect(() => normalizeRecordStorageMutationOptions({ lifecycle: { expectedState: 'active' } } as any)).to.throw(
+      TypeError
+    );
+    expect(() =>
+      normalizeRecordStorageMutationOptions({ lifecycle: { operationId: 'client-operation' } } as any)
+    ).to.throw(TypeError);
   });
 });

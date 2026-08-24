@@ -36,6 +36,15 @@ import { RBValidationError } from '../model/RBValidationError';
 import { RecordModel } from '../model/storage/RecordModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import {
+  isDeletedRecordLifecycleOperation,
+  isDeletedRecordLifecycleOperationForState,
+  isDeletedRecordLifecycleState,
+  type DeletedRecordLifecycleOperation,
+  type DeletedRecordLifecycleOperationKind,
+  type DeletedRecordLifecycleState,
+  type DeletedRecordModel,
+} from '../model/storage/DeletedRecordModel';
 
 import axios from 'axios';
 import * as fs from 'node:fs/promises';
@@ -270,6 +279,14 @@ export namespace Services {
     readonly candidateCount?: number;
     readonly argumentContract: 'typed-three-argument' | 'legacy-records-only' | 'unrecognized';
   };
+  type LifecycleAuthority = {
+    readonly brand: BrandingModel;
+    readonly recordType: RecordTypeLike;
+  };
+  type LifecyclePhysicalPurgeResult =
+    | { readonly status: 'complete' }
+    | { readonly status: 'incomplete'; readonly remaining: number }
+    | { readonly status: 'unknown' };
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   /**
    * Provides the core record lifecycle, persistence, authorization, and relationship operations.
@@ -718,6 +735,7 @@ export namespace Services {
         | 'record-deleted'
         | 'record-concurrency-capability-unavailable'
         | 'form-definition-changed'
+        | 'record-lifecycle-operation-conflict'
     ): RecordSaveProblem {
       return this.saveProblem(
         phase,
@@ -732,6 +750,280 @@ export namespace Services {
         throw new Error('The authoritative record type is unavailable.');
       }
       return resolveRecordConcurrentModificationConfig(recordType.concurrentModification).mode;
+    }
+
+    private lifecycleContext(
+      operation: 'delete' | 'restore' | 'purge',
+      context?: RecordSaveContext
+    ): RecordSaveContext {
+      return createRecordSaveContext({
+        ...(context ?? {}),
+        routeFamily: context?.routeFamily ?? 'internal',
+        operation,
+        ...(context?.concurrency
+          ? { concurrency: context.concurrency }
+          : {
+              concurrency: {
+                entityTagSupplied: false,
+                resolution: 'internal',
+              },
+            }),
+      });
+    }
+
+    private lifecycleStorageAvailable(): boolean {
+      return (
+        hasFullRecordStorageConcurrencyCapability(this.storageService) &&
+        typeof this.storageService.createTombstone === 'function' &&
+        typeof this.storageService.removeActiveRecord === 'function' &&
+        typeof this.storageService.updateTombstone === 'function' &&
+        typeof this.storageService.removeTombstone === 'function' &&
+        typeof this.storageService.createActiveRecordFromTombstone === 'function' &&
+        typeof this.storageService.getTombstone === 'function' &&
+        typeof this.storageService.getLifecycleTombstones === 'function'
+      );
+    }
+
+    private lifecycleMutationOptions(
+      context: RecordSaveContext,
+      expectedRevision: number,
+      expectedState?: DeletedRecordLifecycleState,
+      operationId?: string
+    ): RecordStorageMutationOptions {
+      return {
+        ...this.recordMutationOptions(context, expectedRevision, true),
+        ...(expectedState || operationId
+          ? {
+              lifecycle: {
+                ...(expectedState ? { expectedState } : {}),
+                ...(operationId ? { operationId } : {}),
+              },
+            }
+          : {}),
+      };
+    }
+
+    private newLifecycleOperation(
+      context: RecordSaveContext,
+      kind: DeletedRecordLifecycleOperationKind,
+      sourceRevision: number,
+      targetRevision: number,
+      operationId = randomUUID()
+    ): DeletedRecordLifecycleOperation {
+      const now = new Date().toISOString();
+      return {
+        operationId,
+        kind,
+        requestId: context.requestId,
+        sourceRevision,
+        targetRevision,
+        startedAt: now,
+        updatedAt: now,
+        attempts: 1,
+        resolution: this.effectiveConcurrencyResolution(context),
+        ...(context.concurrency?.resolutionOfRequestId
+          ? { resolutionOfRequestId: context.concurrency.resolutionOfRequestId }
+          : {}),
+      };
+    }
+
+    private advanceLifecycleOperation(
+      operation: DeletedRecordLifecycleOperation,
+      targetRevision: number,
+      errorCode?: string
+    ): DeletedRecordLifecycleOperation {
+      const { errorCode: _previousError, ...current } = operation;
+      return {
+        ...current,
+        targetRevision,
+        updatedAt: new Date().toISOString(),
+        attempts: operation.attempts + 1,
+        ...(errorCode ? { errorCode } : {}),
+      };
+    }
+
+    private lifecycleSnapshot(record: AnyRecord): AnyRecord {
+      const snapshot = _.cloneDeep(record) as AnyRecord;
+      for (const field of ['_id', 'id', 'revision', 'lifecycleOperationId']) _.unset(snapshot, field);
+      return snapshot;
+    }
+
+    private async lifecycleAuthority(
+      record: AnyRecord,
+      suppliedBrand?: BrandingModel,
+      _suppliedRecordType?: RecordTypeLike
+    ): Promise<LifecycleAuthority | undefined> {
+      const brandId = String(this.recordObject(record.metaMetadata).brandId ?? '').trim();
+      const recordTypeName = String(this.recordObject(record.metaMetadata).type ?? '').trim();
+      if (!brandId || !recordTypeName) return undefined;
+      const suppliedBrandId = String(suppliedBrand?.id ?? '').trim();
+      if (suppliedBrandId && suppliedBrandId !== brandId) return undefined;
+      let brand = suppliedBrand;
+      if (!brand) {
+        brand = (await Promise.resolve(BrandingService.getBrandById(brandId))) as BrandingModel | undefined;
+      }
+      if (!brand) {
+        brand = BrandingService.getBrand(brandId) as BrandingModel | undefined;
+      }
+      if (!brand || String(brand.id ?? '').trim() !== brandId) return undefined;
+      // Record-type policy is always reloaded from the authoritative brand.
+      // A controller/internal caller may pass a convenient object, but it can
+      // never select lifecycle concurrency mode or hook configuration.
+      const recordType = (await firstValueFrom(RecordTypesService.get(brand, recordTypeName))) as RecordTypeLike | null;
+      return recordType ? { brand, recordType } : undefined;
+    }
+
+    private lifecycleEditAuthorized(
+      context: RecordSaveContext,
+      authority: LifecycleAuthority,
+      user: AnyRecord,
+      record: AnyRecord
+    ): boolean {
+      if (context.routeFamily === 'internal') return true;
+      const roles = Array.isArray(user.roles) ? (user.roles as AnyRecord[]) : [];
+      return this.hasEditAccess(authority.brand, user, roles, record);
+    }
+
+    private lifecyclePolicyReady(
+      tracker: RecordSaveTracker,
+      oid: string,
+      recordType: RecordTypeLike,
+      currentRevision: number
+    ): RecordConcurrentModificationMode | undefined {
+      let mode: RecordConcurrentModificationMode;
+      try {
+        mode = this.resolveConcurrencyMode(recordType);
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(
+          this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
+        );
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return undefined;
+      }
+      this.setConcurrencyMetadata(tracker, oid, mode, currentRevision);
+      if (!this.lifecycleStorageAvailable()) {
+        tracker.recordPrimaryNotApplied(
+          this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
+        );
+        return undefined;
+      }
+      const expectedRevision = tracker.context.concurrency?.expectedRevision;
+      if (mode === 'strict' && expectedRevision === undefined) {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-precondition-required'));
+        return undefined;
+      }
+      if (expectedRevision !== undefined && expectedRevision !== currentRevision) {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-revision-stale'));
+        return undefined;
+      }
+      return mode;
+    }
+
+    private recordLifecycleStorageFailure(
+      tracker: RecordSaveTracker,
+      oid: string,
+      mode: RecordConcurrentModificationMode,
+      currentRevision: number | undefined,
+      response: StorageMutationResponse,
+      phase: 'persistence' = 'persistence'
+    ): void {
+      this.setConcurrencyMetadata(tracker, oid, mode, currentRevision);
+      const state = resolveStorageMutationState(response, this.logLegacyMutationResponse);
+      if (state === 'unknown') {
+        tracker.recordPrimaryUnknown(
+          this.saveProblem(phase, '@record-save-record-lifecycle-unknown', 'system', 'record-lifecycle-unknown')
+        );
+        return;
+      }
+      if (response.nonApplicationReason === 'stale-revision') {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-revision-stale'));
+      } else if (response.nonApplicationReason === 'deleted') {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-deleted'));
+      } else if (response.nonApplicationReason === 'lifecycle-conflict') {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-lifecycle-operation-conflict'));
+      } else if (response.nonApplicationReason === 'capability-unavailable') {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-concurrency-capability-unavailable'));
+      } else if (response.nonApplicationReason === 'brand-mismatch' || response.nonApplicationReason === 'not-found') {
+        tracker.setConcurrencyMetadata(undefined);
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', phase, RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+      } else {
+        tracker.recordPrimaryNotApplied(
+          this.saveProblem(
+            phase,
+            '@record-save-record-lifecycle-not-applied',
+            'processing',
+            'record-lifecycle-not-applied'
+          )
+        );
+      }
+    }
+
+    private async dispatchLifecycleMutation(
+      oid: string,
+      context: RecordSaveContext,
+      dispatch: () => Promise<StorageMutationResponse>
+    ): Promise<StorageMutationResponse> {
+      try {
+        const response = (await dispatch()) as StorageMutationResponse | undefined;
+        if (response) return response;
+      } catch {
+        // Once a provider call is dispatched, an exception is not evidence
+        // that the mutation did not commit. Recovery owns reconciliation.
+      }
+      const unknown = new StorageMutationResponse();
+      unknown.oid = oid;
+      unknown.applicationState = 'unknown';
+      unknown.requestId = context.requestId;
+      unknown.resolution = this.effectiveConcurrencyResolution(context);
+      return unknown;
+    }
+
+    private async markLifecycleRecoveryRequired(
+      brand: BrandingModel,
+      tombstone: DeletedRecordModel,
+      errorCode: string,
+      context: RecordSaveContext
+    ): Promise<StorageMutationResponse | undefined> {
+      const operation = tombstone.lifecycleOperation;
+      if (!operation || !isDeletedRecordLifecycleOperation(operation) || !this.storageService.updateTombstone) {
+        return undefined;
+      }
+      const targetRevision = nextRecordRevision(tombstone.revision);
+      return await this.dispatchLifecycleMutation(tombstone.redboxOid, context, () =>
+        this.storageService.updateTombstone!(
+          brand,
+          tombstone.redboxOid,
+          {
+            lifecycleState: 'recovery-required',
+            lifecycleOperation: this.advanceLifecycleOperation(operation, targetRevision, errorCode),
+          },
+          this.lifecycleMutationOptions(context, tombstone.revision, tombstone.lifecycleState, operation.operationId)
+        )
+      );
+    }
+
+    private async purgePhysicalDatastreams(oid: string): Promise<LifecyclePhysicalPurgeResult> {
+      let datastreams: AnyRecord[];
+      try {
+        datastreams = (await this.datastreamService.listDatastreams(oid, '')) as AnyRecord[];
+      } catch {
+        return { status: 'unknown' };
+      }
+      const deletions = await Promise.allSettled(
+        datastreams.map(datastream => this.datastreamService.removeDatastream(oid, new Datastream(datastream)))
+      );
+      let remaining: AnyRecord[];
+      try {
+        remaining = (await this.datastreamService.listDatastreams(oid, '')) as AnyRecord[];
+      } catch {
+        return { status: 'unknown' };
+      }
+      if (remaining.length > 0 || deletions.some(result => result.status === 'rejected')) {
+        return { status: 'incomplete', remaining: remaining.length };
+      }
+      return { status: 'complete' };
     }
 
     /**
@@ -2523,6 +2815,11 @@ export namespace Services {
         ['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready'],
         function () {
           that.getServices(that);
+          void that.recoverLifecycleOperations().catch(() => {
+            sails.log.warn('record_lifecycle_recovery_startup_failed', {
+              event: 'record_lifecycle_recovery_startup_failed',
+            });
+          });
         }
       );
       this.registerSailsHook('on', 'lower', function () {
@@ -2585,7 +2882,10 @@ export namespace Services {
       'restoreRecord',
       'destroyDeletedRecord',
       'getDeletedRecords',
+      'getDeletedRecord',
       'getDeletedRecordMeta',
+      'recoverLifecycleOperation',
+      'recoverLifecycleOperations',
       'updateNotificationLog',
       'triggerPreSaveTriggers',
       'triggerPostSaveTriggers',
@@ -5017,84 +5317,382 @@ export namespace Services {
       };
     }
 
-    async delete(oid: string, permanentlyDelete: boolean, currentRec: unknown, recordType: unknown, user: AnyRecord) {
-      let currentRecObj = currentRec as AnyRecord;
-      const recordTypeObj = recordType as RecordTypeLike;
-      const userObj = this.recordObject(user);
-      const hookOperation = this.createHookExecutionOperation('onDelete', undefined, oid);
-      const preTriggerResponse = new StorageServiceResponse();
-      const failedMessage = 'Failed to delete record, please check server logs.';
+    private async finishConfirmedDelete(
+      tracker: RecordSaveTracker,
+      oid: string,
+      user: AnyRecord,
+      recordType: RecordTypeLike,
+      hookRecord: AnyRecord,
+      hookOperation: ActionExecutionOperation,
+      primaryResponse: StorageMutationResponse,
+      action: RecordAuditActionType
+    ): Promise<RecordSaveResponse> {
+      tracker.confirmPrimaryPersistence(oid, primaryResponse);
+      hookOperation.completedThrough = 'persistence';
+      await this.auditRecord(
+        oid,
+        {
+          revision: tracker.result.concurrency?.revision,
+          resolution: tracker.result.concurrency?.resolution,
+        },
+        user,
+        action,
+        projectRecordHookExecutionAuditSummary(hookOperation, { partial: true, completedThrough: 'persistence' })
+      );
+      this.searchService.remove(oid);
+
+      let postHookRecord = hookRecord;
       try {
-        this.validateHookConfiguration(recordTypeObj, ['onDelete']);
-        sails.log.verbose('RecordsService - delete - triggerPreSaveTriggers onDelete');
-        preTriggerResponse.oid = oid;
-        currentRecObj = await this.triggerPreSaveTriggers(
+        const hookOutcome = await this.runPostSaveSyncTriggers({
           oid,
-          currentRecObj,
-          recordTypeObj,
+          record: postHookRecord,
+          recordType,
+          mode: 'onDelete',
+          user,
+          response: tracker.result as unknown as AnyRecord,
+          operation: hookOperation,
+        });
+        postHookRecord = hookOutcome.record;
+        if (this.hookResponseFailed(hookOutcome.response as unknown as StorageServiceResponse)) {
+          tracker.recordPostPersistenceProblem(
+            this.saveProblem(
+              'post-save',
+              '@record-save-delete-post-sync-failed',
+              'processing',
+              'delete-post-sync-failed'
+            )
+          );
+        }
+      } catch (error) {
+        tracker.recordPostPersistenceProblem(
+          this.saveProblemFromError(
+            error,
+            'post-save',
+            '@record-save-delete-post-sync-failed',
+            'processing',
+            'delete-post-sync-failed'
+          )
+        );
+      }
+      this.triggerPostSaveTriggers(oid, postHookRecord, recordType, 'onDelete', user, hookOperation);
+      this.completeHookOperation(hookOperation, true);
+      return tracker.toResponse();
+    }
+
+    async delete(
+      oid: string,
+      permanentlyDelete: boolean | AnyRecord,
+      currentRec?: unknown,
+      recordType?: unknown,
+      user: AnyRecord = {},
+      context?: RecordSaveContext
+    ): Promise<RecordSaveResponse> {
+      // Preserve the historical two-argument internal call while ensuring it
+      // still uses the staged CAS path.
+      if (typeof permanentlyDelete !== 'boolean') {
+        user = this.recordObject(permanentlyDelete);
+        permanentlyDelete = false;
+      }
+      const tracker = new RecordSaveTracker(this.lifecycleContext(permanentlyDelete ? 'purge' : 'delete', context));
+      tracker.result.oid = oid;
+      const userObj = this.recordObject(user);
+
+      let authoritative: AnyRecord;
+      try {
+        authoritative = (await this.storageService.getMeta(oid)) as unknown as AnyRecord;
+      } catch {
+        authoritative = {};
+      }
+      if (!this.isUsableRecordSnapshot(authoritative)) {
+        const suppliedBrandId = String(
+          this.recordObject((currentRec as AnyRecord | undefined)?.metaMetadata).brandId ?? ''
+        ).trim();
+        const suppliedBrand = suppliedBrandId
+          ? ((await Promise.resolve(BrandingService.getBrandById(suppliedBrandId))) as BrandingModel | undefined)
+          : undefined;
+        try {
+          const tombstone = await this.storageService.getTombstone?.(suppliedBrand, oid);
+          if (tombstone?.deletedRecordMetadata) {
+            const authority = await this.lifecycleAuthority(
+              tombstone.deletedRecordMetadata as unknown as AnyRecord,
+              suppliedBrand
+            );
+            if (
+              authority &&
+              this.lifecycleEditAuthorized(
+                tracker.context,
+                authority,
+                userObj,
+                tombstone.deletedRecordMetadata as unknown as AnyRecord
+              )
+            ) {
+              const mode = this.resolveConcurrencyMode(authority.recordType);
+              this.setConcurrencyMetadata(tracker, oid, mode, tombstone.revision);
+              tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-deleted'));
+              return tracker.toResponse();
+            }
+          }
+        } catch {
+          // Missing, cross-brand, and unobservable records share one private result.
+        }
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        return tracker.toResponse();
+      }
+
+      const supplied = this.recordObject(currentRec);
+      const suppliedBrandId = String(this.recordObject(supplied.metaMetadata).brandId ?? '').trim();
+      const authoritativeBrandId = String(this.recordObject(authoritative.metaMetadata).brandId ?? '').trim();
+      if (suppliedBrandId && suppliedBrandId !== authoritativeBrandId) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        return tracker.toResponse();
+      }
+      const authority = await this.lifecycleAuthority(
+        authoritative,
+        undefined,
+        this.recordObject(recordType) as RecordTypeLike
+      );
+      if (!authority || !this.lifecycleEditAuthorized(tracker.context, authority, userObj, authoritative)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        return tracker.toResponse();
+      }
+      const activeRevision = this.recordRevision(authoritative);
+      if (activeRevision === undefined) {
+        tracker.recordPrimaryNotApplied(
+          this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
+        );
+        return tracker.toResponse();
+      }
+      const mode = this.lifecyclePolicyReady(tracker, oid, authority.recordType, activeRevision);
+      if (!mode) return tracker.toResponse();
+
+      const hookOperation = this.createHookExecutionOperation('onDelete', tracker.context.requestId, oid);
+      let hookRecord = _.cloneDeep(authoritative) as AnyRecord;
+      try {
+        this.validateHookConfiguration(authority.recordType, ['onDelete']);
+        hookRecord = await this.triggerPreSaveTriggers(
+          oid,
+          hookRecord,
+          authority.recordType,
           'onDelete',
           userObj,
           hookOperation
         );
-      } catch (err) {
-        sails.log.verbose('RecordsService - delete - triggerPreSaveTriggers onDelete error');
-        sails.log.error(JSON.stringify(err));
-        preTriggerResponse.success = false;
-        preTriggerResponse.message = RBValidationError.displayMessage({
-          t: TranslationService,
-          errors: [this.asError(err)],
-          defaultMessage: failedMessage,
-        });
-        return preTriggerResponse;
-      }
-
-      let response = await this.storageService.delete(oid, permanentlyDelete);
-      if (response.isSuccessful()) {
-        const action: RecordAuditActionType = permanentlyDelete
-          ? RecordAuditActionType.destroyed
-          : RecordAuditActionType.deleted;
-        await this.auditRecord(
-          oid,
-          {},
-          userObj,
-          action,
-          projectRecordHookExecutionAuditSummary(hookOperation, { partial: true, completedThrough: 'persistence' })
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(
+          this.saveProblemFromError(
+            error,
+            'pre-save',
+            '@record-save-delete-pre-hook-failed',
+            'processing',
+            'delete-pre-hook-failed'
+          )
         );
-        this.searchService.remove(oid);
-
-        try {
-          sails.log.verbose('RecordsService - delete - calling triggerPostSaveSyncTriggers');
-          const hookOutcome = await this.runPostSaveSyncTriggers({
-            oid,
-            record: currentRecObj,
-            recordType: recordTypeObj,
-            mode: 'onDelete',
-            user: userObj,
-            response: response as unknown as AnyRecord,
-            operation: hookOperation,
-          });
-          currentRecObj = hookOutcome.record;
-          response = hookOutcome.response as unknown as StorageServiceResponse;
-        } catch (err) {
-          sails.log.error(`RecordsService - delete - Exception while running post delate sync hooks when updating:`);
-          sails.log.error(JSON.stringify(err));
-          response.success = false;
-          response.message = RBValidationError.displayMessage({
-            t: TranslationService,
-            errors: [this.asError(err)],
-            defaultMessage: failedMessage,
-          });
-          const metadata = { postSaveSyncWarning: 'true' };
-          response.metadata = metadata;
-          sails.log.error('RecordsService - delete - error - triggerPostSaveSyncTriggers ' + JSON.stringify(response));
-          return response;
-        }
-        sails.log.verbose('RecordService - delete - calling triggerPostSaveTriggers');
-
-        this.triggerPostSaveTriggers(oid, currentRecObj, recordTypeObj, 'onDelete', userObj, hookOperation);
-        this.completeHookOperation(hookOperation, true);
+        return tracker.toResponse();
       }
-      return response;
+
+      const pendingRevision = nextRecordRevision(activeRevision);
+      const operation = this.newLifecycleOperation(
+        tracker.context,
+        permanentlyDelete ? 'purge' : 'delete',
+        activeRevision,
+        pendingRevision
+      );
+      const pendingState: DeletedRecordLifecycleState = permanentlyDelete ? 'purge-pending' : 'delete-pending';
+      const tombstone: DeletedRecordModel = {
+        redboxOid: oid,
+        revision: pendingRevision,
+        brandId: String(authority.brand.id),
+        lifecycleState: pendingState,
+        lifecycleOperation: operation,
+        deletedRecordMetadata: this.lifecycleSnapshot(authoritative) as unknown as RecordModel,
+        dateDeleted: new Date().toISOString(),
+      };
+
+      const intentResponse = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+        this.storageService.createTombstone!(
+          authority.brand,
+          oid,
+          tombstone,
+          this.lifecycleMutationOptions(tracker.context, activeRevision, pendingState, operation.operationId)
+        )
+      );
+      if (resolveStorageMutationState(intentResponse, this.logLegacyMutationResponse) !== 'applied') {
+        this.recordLifecycleStorageFailure(tracker, oid, mode, activeRevision, intentResponse);
+        return tracker.toResponse();
+      }
+
+      const removalResponse = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+        this.storageService.removeActiveRecord!(
+          authority.brand,
+          oid,
+          this.lifecycleMutationOptions(tracker.context, activeRevision)
+        )
+      );
+      const removalState = resolveStorageMutationState(removalResponse, this.logLegacyMutationResponse);
+      if (removalState !== 'applied') {
+        if (removalState === 'not-applied') {
+          // A stale active revision certifies that update won, and not-found
+          // certifies there is no owned intent left to recover. `deleted`, by
+          // contrast, can mean another worker removed the active record for
+          // this very operation; deleting its pending tombstone here would
+          // erase the only durable recovery state.
+          if (
+            removalResponse.nonApplicationReason === 'stale-revision' ||
+            removalResponse.nonApplicationReason === 'not-found' ||
+            removalResponse.nonApplicationReason === 'brand-mismatch'
+          ) {
+            await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+              this.storageService.removeTombstone!(
+                authority.brand,
+                oid,
+                this.lifecycleMutationOptions(tracker.context, pendingRevision, pendingState, operation.operationId)
+              )
+            );
+          }
+          this.recordLifecycleStorageFailure(tracker, oid, mode, activeRevision, removalResponse);
+        } else {
+          await this.markLifecycleRecoveryRequired(
+            authority.brand,
+            tombstone,
+            'active-removal-unknown',
+            tracker.context
+          );
+          this.recordLifecycleStorageFailure(tracker, oid, mode, pendingRevision, removalResponse);
+        }
+        return tracker.toResponse();
+      }
+
+      const removedRecord = this.recordObject(removalResponse.removedRecord);
+      if (!this.isUsableRecordSnapshot(removedRecord)) {
+        const recovery = await this.markLifecycleRecoveryRequired(
+          authority.brand,
+          tombstone,
+          'active-removal-result-invalid',
+          tracker.context
+        );
+        this.setConcurrencyMetadata(
+          tracker,
+          oid,
+          mode,
+          this.committedRevision(recovery ?? new StorageMutationResponse()) ?? pendingRevision
+        );
+        tracker.setProjectedMetadata(this.recordObject(authoritative.metadata));
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'persistence',
+            '@record-save-record-lifecycle-recovery-required',
+            'system',
+            'record-lifecycle-recovery-required'
+          )
+        );
+        return await this.finishConfirmedDelete(
+          tracker,
+          oid,
+          userObj,
+          authority.recordType,
+          hookRecord,
+          hookOperation,
+          removalResponse,
+          permanentlyDelete ? RecordAuditActionType.destroyed : RecordAuditActionType.deleted
+        );
+      }
+      const authoritativeRemoved = removedRecord;
+      if (!permanentlyDelete) {
+        const deletedRevision = nextRecordRevision(pendingRevision);
+        const finalized = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+          this.storageService.updateTombstone!(
+            authority.brand,
+            oid,
+            {
+              lifecycleState: 'deleted',
+              lifecycleOperation: this.advanceLifecycleOperation(operation, deletedRevision),
+              deletedRecordMetadata: this.lifecycleSnapshot(authoritativeRemoved),
+            },
+            this.lifecycleMutationOptions(tracker.context, pendingRevision, pendingState, operation.operationId)
+          )
+        );
+        const finalState = resolveStorageMutationState(finalized, this.logLegacyMutationResponse);
+        const knownRevision = this.committedRevision(finalized) ?? pendingRevision;
+        this.setConcurrencyMetadata(tracker, oid, mode, knownRevision);
+        tracker.setProjectedMetadata(this.recordObject(authoritativeRemoved.metadata));
+        if (finalState !== 'applied') {
+          tracker.recordPostPersistenceProblem(
+            this.saveProblem(
+              'persistence',
+              '@record-save-record-lifecycle-recovery-required',
+              finalState === 'unknown' ? 'system' : 'processing',
+              'record-lifecycle-recovery-required'
+            )
+          );
+        }
+        return await this.finishConfirmedDelete(
+          tracker,
+          oid,
+          userObj,
+          authority.recordType,
+          hookRecord,
+          hookOperation,
+          removalResponse,
+          RecordAuditActionType.deleted
+        );
+      }
+
+      const physical = await this.purgePhysicalDatastreams(oid);
+      let purgeRevision = pendingRevision;
+      let purgeCompleted = false;
+      if (physical.status === 'complete') {
+        const removedTombstone = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+          this.storageService.removeTombstone!(
+            authority.brand,
+            oid,
+            this.lifecycleMutationOptions(tracker.context, pendingRevision, pendingState, operation.operationId)
+          )
+        );
+        purgeCompleted = resolveStorageMutationState(removedTombstone, this.logLegacyMutationResponse) === 'applied';
+        if (!purgeCompleted) {
+          tracker.recordPostPersistenceProblem(
+            this.saveProblem(
+              'persistence',
+              '@record-save-record-lifecycle-recovery-required',
+              'processing',
+              'record-lifecycle-recovery-required'
+            )
+          );
+        }
+      } else {
+        const recovery = await this.markLifecycleRecoveryRequired(
+          authority.brand,
+          tombstone,
+          physical.status === 'unknown' ? 'physical-purge-unknown' : 'physical-purge-incomplete',
+          tracker.context
+        );
+        purgeRevision = this.committedRevision(recovery ?? new StorageMutationResponse()) ?? pendingRevision;
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'attachments',
+            '@record-save-record-physical-purge-incomplete',
+            physical.status === 'unknown' ? 'system' : 'processing',
+            physical.status === 'unknown' ? 'record-physical-purge-unknown' : 'record-physical-purge-incomplete'
+          )
+        );
+      }
+      this.setConcurrencyMetadata(tracker, oid, mode, purgeCompleted ? undefined : purgeRevision);
+      return await this.finishConfirmedDelete(
+        tracker,
+        oid,
+        userObj,
+        authority.recordType,
+        hookRecord,
+        hookOperation,
+        removalResponse,
+        RecordAuditActionType.destroyed
+      );
     }
 
     async updateNotificationLog(oid: string, record: AnyRecord, options: AnyRecord): Promise<unknown> {
@@ -5685,47 +6283,561 @@ export namespace Services {
       // });
     }
 
-    async restoreRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
-      const recordStorageServiceResponse = await this.storageService.restoreRecord(oid);
-      if (recordStorageServiceResponse.isSuccessful() && !_.isNil(recordStorageServiceResponse.metadata)) {
-        const record = recordStorageServiceResponse.metadata as RecordModel;
-        const metaMetadata = (record?.metaMetadata ?? {}) as unknown as Record<string, unknown>;
-        const brandId = _.get(metaMetadata, 'brandId');
-        const recordTypeName = _.get(metaMetadata, 'type');
-
-        if (!_.isNil(brandId) && !_.isNil(recordTypeName)) {
-          const brand = await BrandingService.getBrandById(String(brandId));
-          const recordType = await firstValueFrom(RecordTypesService.get(brand, String(recordTypeName)));
-          if (
-            this.searchService &&
-            typeof this.searchService.index === 'function' &&
-            recordType?.searchable !== false
-          ) {
-            this.searchService.index(oid, record as unknown as Record<string, unknown>);
-          }
-        }
+    async restoreRecord(
+      oid: string,
+      user: AnyRecord,
+      suppliedBrand?: BrandingModel,
+      context?: RecordSaveContext
+    ): Promise<RecordSaveResponse> {
+      const tracker = new RecordSaveTracker(this.lifecycleContext('restore', context));
+      tracker.result.oid = oid;
+      const userObj = this.recordObject(user);
+      let tombstone: DeletedRecordModel | null = null;
+      try {
+        tombstone = (await this.storageService.getTombstone?.(suppliedBrand, oid)) ?? null;
+      } catch {
+        tombstone = null;
       }
+      if (
+        !tombstone?.deletedRecordMetadata ||
+        !this.isUsableRecordSnapshot(tombstone.deletedRecordMetadata as AnyRecord)
+      ) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        return tracker.toResponse();
+      }
+      const snapshot = tombstone.deletedRecordMetadata as unknown as AnyRecord;
+      const authority = await this.lifecycleAuthority(snapshot, suppliedBrand);
+      if (!authority || !this.lifecycleEditAuthorized(tracker.context, authority, userObj, snapshot)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        return tracker.toResponse();
+      }
+      if (!isRecordRevision(tombstone.revision)) {
+        tracker.recordPrimaryNotApplied(
+          this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
+        );
+        return tracker.toResponse();
+      }
+      const mode = this.lifecyclePolicyReady(tracker, oid, authority.recordType, tombstone.revision);
+      if (!mode) return tracker.toResponse();
+      if (tombstone.lifecycleState !== 'deleted') {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-lifecycle-operation-conflict'));
+        return tracker.toResponse();
+      }
+
+      const claimedRevision = nextRecordRevision(tombstone.revision);
+      const operation = this.newLifecycleOperation(tracker.context, 'restore', tombstone.revision, claimedRevision);
+      const claimResponse = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+        this.storageService.updateTombstone!(
+          authority.brand,
+          oid,
+          {
+            lifecycleState: 'restore-pending',
+            lifecycleOperation: operation,
+          },
+          this.lifecycleMutationOptions(tracker.context, tombstone.revision, 'deleted')
+        )
+      );
+      if (resolveStorageMutationState(claimResponse, this.logLegacyMutationResponse) !== 'applied') {
+        this.recordLifecycleStorageFailure(tracker, oid, mode, tombstone.revision, claimResponse);
+        return tracker.toResponse();
+      }
+
+      const claimedTombstone: DeletedRecordModel = {
+        ...tombstone,
+        revision: this.committedRevision(claimResponse) ?? claimedRevision,
+        lifecycleState: 'restore-pending',
+        lifecycleOperation: operation,
+      };
+      const createResponse = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+        this.storageService.createActiveRecordFromTombstone!(
+          authority.brand,
+          oid,
+          { ...this.lifecycleSnapshot(snapshot), redboxOid: oid },
+          this.lifecycleMutationOptions(
+            tracker.context,
+            claimedTombstone.revision,
+            'restore-pending',
+            operation.operationId
+          )
+        )
+      );
+      const createState = resolveStorageMutationState(createResponse, this.logLegacyMutationResponse);
+      if (createState !== 'applied') {
+        await this.markLifecycleRecoveryRequired(
+          authority.brand,
+          claimedTombstone,
+          createState === 'unknown' ? 'restore-create-unknown' : 'restore-create-conflict',
+          tracker.context
+        );
+        this.recordLifecycleStorageFailure(tracker, oid, mode, claimedTombstone.revision, createResponse);
+        return tracker.toResponse();
+      }
+
+      const activeRevision = this.committedRevision(createResponse);
+      const activeRecord = this.recordObject(createResponse.committedRecord);
+      if (activeRevision === undefined || !this.isUsableRecordSnapshot(activeRecord)) {
+        tracker.recordPrimaryUnknown(
+          this.saveProblem('persistence', '@record-save-record-lifecycle-unknown', 'system', 'record-lifecycle-unknown')
+        );
+        return tracker.toResponse();
+      }
+      const tombstoneRemoval = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+        this.storageService.removeTombstone!(
+          authority.brand,
+          oid,
+          this.lifecycleMutationOptions(
+            tracker.context,
+            claimedTombstone.revision,
+            'restore-pending',
+            operation.operationId
+          )
+        )
+      );
+      this.setConcurrencyMetadata(tracker, oid, mode, activeRevision);
+      tracker.setProjectedMetadata(this.recordObject(activeRecord.metadata));
+      tracker.confirmPrimaryPersistence(oid, createResponse);
+      tracker.result.data = _.cloneDeep(activeRecord);
+      if (resolveStorageMutationState(tombstoneRemoval, this.logLegacyMutationResponse) !== 'applied') {
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'persistence',
+            '@record-save-record-lifecycle-recovery-required',
+            'processing',
+            'record-lifecycle-recovery-required'
+          )
+        );
+      }
+      if (authority.recordType.searchable !== false) this.searchService.index(oid, activeRecord);
       await this.auditRecord(
         oid,
-        recordStorageServiceResponse as unknown as AnyRecord,
-        user,
+        { revision: activeRevision, resolution: tracker.result.concurrency?.resolution },
+        userObj,
         RecordAuditActionType.restored
       );
-      return recordStorageServiceResponse as unknown as StorageServiceResponse;
+      return tracker.toResponse();
     }
 
-    async destroyDeletedRecord(oid: string, user: AnyRecord): Promise<StorageServiceResponse> {
-      const record = await this.storageService.destroyDeletedRecord(oid);
-      await this.auditRecord(oid, record as unknown as AnyRecord, user, RecordAuditActionType.destroyed);
-      return record;
+    async destroyDeletedRecord(
+      oid: string,
+      user: AnyRecord,
+      suppliedBrand?: BrandingModel,
+      context?: RecordSaveContext
+    ): Promise<RecordSaveResponse> {
+      const tracker = new RecordSaveTracker(this.lifecycleContext('purge', context));
+      tracker.result.oid = oid;
+      const userObj = this.recordObject(user);
+      let tombstone: DeletedRecordModel | null = null;
+      try {
+        tombstone = (await this.storageService.getTombstone?.(suppliedBrand, oid)) ?? null;
+      } catch {
+        tombstone = null;
+      }
+      if (
+        !tombstone?.deletedRecordMetadata ||
+        !this.isUsableRecordSnapshot(tombstone.deletedRecordMetadata as AnyRecord)
+      ) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        return tracker.toResponse();
+      }
+      const snapshot = tombstone.deletedRecordMetadata as unknown as AnyRecord;
+      const authority = await this.lifecycleAuthority(snapshot, suppliedBrand);
+      if (!authority || !this.lifecycleEditAuthorized(tracker.context, authority, userObj, snapshot)) {
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        return tracker.toResponse();
+      }
+      if (!isRecordRevision(tombstone.revision)) {
+        tracker.recordPrimaryNotApplied(
+          this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
+        );
+        return tracker.toResponse();
+      }
+      const mode = this.lifecyclePolicyReady(tracker, oid, authority.recordType, tombstone.revision);
+      if (!mode) return tracker.toResponse();
+      if (tombstone.lifecycleState !== 'deleted') {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-lifecycle-operation-conflict'));
+        return tracker.toResponse();
+      }
+
+      const claimedRevision = nextRecordRevision(tombstone.revision);
+      const operation = this.newLifecycleOperation(tracker.context, 'purge', tombstone.revision, claimedRevision);
+      const claimResponse = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+        this.storageService.updateTombstone!(
+          authority.brand,
+          oid,
+          { lifecycleState: 'purge-pending', lifecycleOperation: operation },
+          this.lifecycleMutationOptions(tracker.context, tombstone.revision, 'deleted')
+        )
+      );
+      if (resolveStorageMutationState(claimResponse, this.logLegacyMutationResponse) !== 'applied') {
+        this.recordLifecycleStorageFailure(tracker, oid, mode, tombstone.revision, claimResponse);
+        return tracker.toResponse();
+      }
+      const claimedTombstone: DeletedRecordModel = {
+        ...tombstone,
+        revision: this.committedRevision(claimResponse) ?? claimedRevision,
+        lifecycleState: 'purge-pending',
+        lifecycleOperation: operation,
+      };
+      const physical = await this.purgePhysicalDatastreams(oid);
+      if (physical.status !== 'complete') {
+        const recovery = await this.markLifecycleRecoveryRequired(
+          authority.brand,
+          claimedTombstone,
+          physical.status === 'unknown' ? 'physical-purge-unknown' : 'physical-purge-incomplete',
+          tracker.context
+        );
+        const recoveryRevision = this.committedRevision(recovery ?? new StorageMutationResponse()) ?? claimedRevision;
+        this.setConcurrencyMetadata(tracker, oid, mode, recoveryRevision);
+        tracker.confirmPrimaryPersistence(oid, claimResponse);
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'attachments',
+            '@record-save-record-physical-purge-incomplete',
+            physical.status === 'unknown' ? 'system' : 'processing',
+            physical.status === 'unknown' ? 'record-physical-purge-unknown' : 'record-physical-purge-incomplete'
+          )
+        );
+        return tracker.toResponse();
+      }
+
+      const removalResponse = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
+        this.storageService.removeTombstone!(
+          authority.brand,
+          oid,
+          this.lifecycleMutationOptions(
+            tracker.context,
+            claimedTombstone.revision,
+            'purge-pending',
+            operation.operationId
+          )
+        )
+      );
+      const removalState = resolveStorageMutationState(removalResponse, this.logLegacyMutationResponse);
+      if (removalState !== 'applied') {
+        this.setConcurrencyMetadata(tracker, oid, mode, claimedTombstone.revision);
+        tracker.confirmPrimaryPersistence(oid, claimResponse);
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'persistence',
+            '@record-save-record-lifecycle-recovery-required',
+            removalState === 'unknown' ? 'system' : 'processing',
+            'record-lifecycle-recovery-required'
+          )
+        );
+        return tracker.toResponse();
+      }
+      tracker.setConcurrencyMetadata(this.concurrencyMetadata(oid, tracker.context, mode, undefined));
+      tracker.confirmPrimaryPersistence(oid, removalResponse);
+      await this.auditRecord(
+        oid,
+        { resolution: tracker.result.concurrency?.resolution },
+        userObj,
+        RecordAuditActionType.destroyed
+      );
+      return tracker.toResponse();
+    }
+
+    async getDeletedRecord(oid: string, brand?: BrandingModel): Promise<DeletedRecordModel | null> {
+      if (!oid.trim() || typeof this.storageService.getTombstone !== 'function') return null;
+      return await this.storageService.getTombstone(brand, oid);
     }
 
     /** Metadata of a soft deleted record, or null when no deleted record exists for the oid. */
-    async getDeletedRecordMeta(oid: string): Promise<RecordModel | null> {
-      if (_.isEmpty(oid)) {
-        return null;
+    async getDeletedRecordMeta(oid: string, brand?: BrandingModel): Promise<RecordModel | null> {
+      if (_.isEmpty(oid)) return null;
+      if (typeof this.storageService.getTombstone === 'function') {
+        const tombstone = await this.storageService.getTombstone(brand, oid);
+        if (!tombstone?.deletedRecordMetadata) return null;
+        const operation = tombstone.lifecycleOperation;
+        return {
+          ..._.cloneDeep(tombstone.deletedRecordMetadata),
+          revision: tombstone.revision,
+          lifecycleState: tombstone.lifecycleState,
+          ...(operation
+            ? {
+                lifecycle: {
+                  kind: operation.kind,
+                  attempts: operation.attempts,
+                  startedAt: operation.startedAt,
+                  updatedAt: operation.updatedAt,
+                  ...(operation.errorCode ? { errorCode: operation.errorCode } : {}),
+                },
+              }
+            : {}),
+        } as RecordModel;
       }
       return await this.storageService.getDeletedRecordMeta(oid);
+    }
+
+    private lifecycleRecoveryContext(operation: DeletedRecordLifecycleOperation): RecordSaveContext {
+      return createRecordSaveContext({
+        routeFamily: 'internal',
+        operation: operation.kind,
+        concurrency: {
+          entityTagSupplied: false,
+          resolution: 'internal',
+          resolutionOfRequestId: operation.requestId,
+        },
+      });
+    }
+
+    private async retainLifecycleRecovery(
+      authority: LifecycleAuthority,
+      tombstone: DeletedRecordModel,
+      errorCode: string,
+      context: RecordSaveContext
+    ): Promise<void> {
+      if (tombstone.lifecycleState === 'recovery-required' && tombstone.lifecycleOperation?.errorCode === errorCode) {
+        return;
+      }
+      await this.markLifecycleRecoveryRequired(authority.brand, tombstone, errorCode, context);
+    }
+
+    async recoverLifecycleOperation(
+      tombstoneInput: DeletedRecordModel
+    ): Promise<'completed' | 'cancelled' | 'retained'> {
+      const inputOperation = tombstoneInput?.lifecycleOperation;
+      if (!inputOperation || !isDeletedRecordLifecycleOperation(inputOperation)) return 'retained';
+      const context = this.lifecycleRecoveryContext(inputOperation);
+      const inputSnapshot = tombstoneInput.deletedRecordMetadata as unknown as AnyRecord;
+      const inputAuthority = this.isUsableRecordSnapshot(inputSnapshot)
+        ? await this.lifecycleAuthority(inputSnapshot)
+        : undefined;
+      if (!inputAuthority || !this.lifecycleStorageAvailable()) return 'retained';
+
+      let tombstone: DeletedRecordModel | null;
+      try {
+        tombstone = (await this.storageService.getTombstone!(inputAuthority.brand, tombstoneInput.redboxOid)) ?? null;
+      } catch {
+        sails.log.warn('record_lifecycle_recovery_observation_unknown', {
+          event: 'record_lifecycle_recovery_observation_unknown',
+          lifecycle_kind: inputOperation.kind,
+        });
+        return 'retained';
+      }
+      if (!tombstone) return 'cancelled';
+      const operation = tombstone?.lifecycleOperation;
+      const snapshot = tombstone.deletedRecordMetadata as unknown as AnyRecord;
+      if (
+        !isRecordRevision(tombstone.revision) ||
+        !isDeletedRecordLifecycleState(tombstone.lifecycleState) ||
+        !operation ||
+        !isDeletedRecordLifecycleOperation(operation) ||
+        !isDeletedRecordLifecycleOperationForState(tombstone.lifecycleState, operation.kind) ||
+        operation.operationId !== inputOperation.operationId ||
+        operation.kind !== inputOperation.kind ||
+        operation.targetRevision !== tombstone.revision ||
+        !this.isUsableRecordSnapshot(snapshot)
+      ) {
+        sails.log.warn('record_lifecycle_recovery_state_invalid', {
+          event: 'record_lifecycle_recovery_state_invalid',
+          lifecycle_kind: inputOperation.kind,
+        });
+        return 'retained';
+      }
+      const authority = await this.lifecycleAuthority(snapshot, inputAuthority.brand);
+      if (!authority) return 'retained';
+
+      // A finalized delete is already a completed idempotent delivery. Never
+      // advance it again merely because a stale scan item was retried.
+      if (operation.kind === 'delete' && tombstone.lifecycleState === 'deleted') return 'completed';
+
+      let active: AnyRecord | null;
+      try {
+        const observed = (await this.storageService.getMeta(tombstone.redboxOid)) as unknown;
+        if (observed == null) {
+          active = null;
+        } else if (this.isUsableRecordSnapshot(observed)) {
+          active = observed;
+        } else {
+          await this.retainLifecycleRecovery(authority, tombstone, 'active-observation-invalid', context);
+          return 'retained';
+        }
+      } catch {
+        await this.retainLifecycleRecovery(authority, tombstone, 'lifecycle-observation-unknown', context);
+        sails.log.warn('record_lifecycle_recovery_observation_unknown', {
+          event: 'record_lifecycle_recovery_observation_unknown',
+          lifecycle_kind: operation.kind,
+        });
+        return 'retained';
+      }
+
+      if (operation.kind === 'restore') {
+        if (active && active.lifecycleOperationId !== operation.operationId) {
+          await this.retainLifecycleRecovery(authority, tombstone, 'restore-active-collision', context);
+          return 'retained';
+        }
+        if (!active) {
+          const create = await this.dispatchLifecycleMutation(tombstone.redboxOid, context, () =>
+            this.storageService.createActiveRecordFromTombstone!(
+              authority.brand,
+              tombstone.redboxOid,
+              { ...this.lifecycleSnapshot(snapshot), redboxOid: tombstone.redboxOid },
+              this.lifecycleMutationOptions(
+                context,
+                tombstone.revision,
+                tombstone.lifecycleState,
+                operation.operationId
+              )
+            )
+          );
+          if (resolveStorageMutationState(create, this.logLegacyMutationResponse) !== 'applied') {
+            await this.retainLifecycleRecovery(
+              authority,
+              tombstone,
+              create.applicationState === 'unknown' ? 'restore-create-unknown' : 'restore-active-collision',
+              context
+            );
+            return 'retained';
+          }
+          active = this.recordObject(create.committedRecord);
+        }
+        const removed = await this.dispatchLifecycleMutation(tombstone.redboxOid, context, () =>
+          this.storageService.removeTombstone!(
+            authority.brand,
+            tombstone.redboxOid,
+            this.lifecycleMutationOptions(context, tombstone.revision, tombstone.lifecycleState, operation.operationId)
+          )
+        );
+        return resolveStorageMutationState(removed, this.logLegacyMutationResponse) === 'applied'
+          ? 'completed'
+          : 'retained';
+      }
+
+      if (active) {
+        const activeRevision = this.recordRevision(active);
+        if (activeRevision === undefined) {
+          await this.retainLifecycleRecovery(authority, tombstone, 'active-revision-invalid', context);
+          return 'retained';
+        }
+        if (activeRevision > operation.sourceRevision) {
+          const cancelled = await this.dispatchLifecycleMutation(tombstone.redboxOid, context, () =>
+            this.storageService.removeTombstone!(
+              authority.brand,
+              tombstone.redboxOid,
+              this.lifecycleMutationOptions(
+                context,
+                tombstone.revision,
+                tombstone.lifecycleState,
+                operation.operationId
+              )
+            )
+          );
+          return resolveStorageMutationState(cancelled, this.logLegacyMutationResponse) === 'applied'
+            ? 'cancelled'
+            : 'retained';
+        }
+        if (activeRevision !== operation.sourceRevision) {
+          await this.retainLifecycleRecovery(authority, tombstone, 'active-revision-diverged', context);
+          return 'retained';
+        }
+        const removal = await this.dispatchLifecycleMutation(tombstone.redboxOid, context, () =>
+          this.storageService.removeActiveRecord!(
+            authority.brand,
+            tombstone.redboxOid,
+            this.lifecycleMutationOptions(context, operation.sourceRevision)
+          )
+        );
+        const removalState = resolveStorageMutationState(removal, this.logLegacyMutationResponse);
+        if (removalState !== 'applied') {
+          await this.retainLifecycleRecovery(
+            authority,
+            tombstone,
+            removalState === 'unknown' ? 'active-removal-unknown' : 'active-removal-conflict',
+            context
+          );
+          return 'retained';
+        }
+      }
+
+      if (operation.kind === 'delete') {
+        const targetRevision = nextRecordRevision(tombstone.revision);
+        const finalized = await this.dispatchLifecycleMutation(tombstone.redboxOid, context, () =>
+          this.storageService.updateTombstone!(
+            authority.brand,
+            tombstone.redboxOid,
+            {
+              lifecycleState: 'deleted',
+              lifecycleOperation: this.advanceLifecycleOperation(operation, targetRevision),
+              deletedRecordMetadata: this.lifecycleSnapshot(snapshot),
+            },
+            this.lifecycleMutationOptions(context, tombstone.revision, tombstone.lifecycleState, operation.operationId)
+          )
+        );
+        return resolveStorageMutationState(finalized, this.logLegacyMutationResponse) === 'applied'
+          ? 'completed'
+          : 'retained';
+      }
+
+      if (operation.kind !== 'purge') {
+        await this.retainLifecycleRecovery(authority, tombstone, 'lifecycle-operation-invalid', context);
+        return 'retained';
+      }
+      const physical = await this.purgePhysicalDatastreams(tombstone.redboxOid);
+      if (physical.status !== 'complete') {
+        await this.retainLifecycleRecovery(
+          authority,
+          tombstone,
+          physical.status === 'unknown' ? 'physical-purge-unknown' : 'physical-purge-incomplete',
+          context
+        );
+        return 'retained';
+      }
+      const removed = await this.dispatchLifecycleMutation(tombstone.redboxOid, context, () =>
+        this.storageService.removeTombstone!(
+          authority.brand,
+          tombstone.redboxOid,
+          this.lifecycleMutationOptions(context, tombstone.revision, tombstone.lifecycleState, operation.operationId)
+        )
+      );
+      return resolveStorageMutationState(removed, this.logLegacyMutationResponse) === 'applied'
+        ? 'completed'
+        : 'retained';
+    }
+
+    async recoverLifecycleOperations(limit = 100): Promise<{
+      inspected: number;
+      completed: number;
+      cancelled: number;
+      retained: number;
+    }> {
+      const result = { inspected: 0, completed: 0, cancelled: 0, retained: 0 };
+      if (typeof this.storageService.getLifecycleTombstones !== 'function') return result;
+      const boundedLimit = Math.max(1, Math.min(Number.isSafeInteger(limit) ? limit : 100, 1000));
+      let tombstones: DeletedRecordModel[];
+      try {
+        tombstones = await this.storageService.getLifecycleTombstones(
+          ['delete-pending', 'restore-pending', 'purge-pending', 'recovery-required'],
+          boundedLimit
+        );
+      } catch {
+        sails.log.warn('record_lifecycle_recovery_scan_unknown', {
+          event: 'record_lifecycle_recovery_scan_unknown',
+        });
+        return result;
+      }
+      for (const tombstone of tombstones) {
+        result.inspected += 1;
+        let status: 'completed' | 'cancelled' | 'retained';
+        try {
+          status = await this.recoverLifecycleOperation(tombstone);
+        } catch {
+          sails.log.warn('record_lifecycle_recovery_item_failed', {
+            event: 'record_lifecycle_recovery_item_failed',
+          });
+          status = 'retained';
+        }
+        result[status] += 1;
+      }
+      return result;
     }
 
     async getDeletedRecords(
