@@ -114,12 +114,24 @@ export namespace Services {
 
     private async persistRecord(oid: string, record: OniRecordModel, user: OniUserModel): Promise<void> {
       const brand = getBrand(record);
-      const response = await RecordsService.updateMeta(brand, oid, record as AnyRecord, user as AnyRecord, true, false);
+      const response = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'OniService.persistRecord' },
+        authorization: { kind: 'service' },
+        mutationClass: 'external-side-effect',
+        brand,
+        oid,
+        record: record as AnyRecord,
+        user: user as AnyRecord,
+        triggerPreSaveTriggers: true,
+        triggerPostSaveTriggers: false,
+      });
       if (!response.wasPersisted()) {
         throw new Error(String(response.message ?? response.outcome));
       }
       if (response.outcome === 'saved-with-warnings') {
-        sails.log.warn(`OniService - metadata writeback persisted with warnings for ${oid}`, { requestId: response.requestId });
+        sails.log.warn(`OniService - metadata writeback persisted with warnings for ${oid}`, {
+          requestId: response.requestId,
+        });
       }
     }
 

@@ -1,6 +1,13 @@
 import * as sinon from 'sinon';
 import { of, throwError } from 'rxjs';
-import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
+import { UserWLDef } from '../../src/waterline-models/User';
+import {
+  setupServiceTestGlobals,
+  cleanupServiceTestGlobals,
+  createMockSails,
+  createQueryObject,
+  configureModelMethod,
+} from './testHelper';
 
 let expect: Chai.ExpectStatic;
 
@@ -23,13 +30,8 @@ describe('UsersService', function () {
       config: {
         appPath: '/app',
         auth: {
-          roles: [
-            { name: 'Admin' },
-            { name: 'Maintainer' },
-            { name: 'Researcher' },
-            { name: 'Guest' }
-          ],
-          postLogoutRedir: '/logout'
+          roles: [{ name: 'Admin' }, { name: 'Maintainer' }, { name: 'Researcher' }, { name: 'Guest' }],
+          postLogoutRedir: '/logout',
         },
         brandingAware: sinon.stub().returns({
           authorizedDomainsEmails: {
@@ -37,17 +39,17 @@ describe('UsersService', function () {
             domainsAaf: ['example.edu.au'],
             emailsAaf: ['allowed@other.com'],
             domainsOidc: ['uni.edu'],
-            emailsOidc: ['special@third.com']
-          }
-        })
+            emailsOidc: ['special@third.com'],
+          },
+        }),
       },
       log: {
         verbose: sinon.stub(),
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        error: sinon.stub()
-      }
+        error: sinon.stub(),
+      },
     });
 
     mockUser = {
@@ -57,41 +59,41 @@ describe('UsersService', function () {
       update: sinon.stub().returns(createQueryObject([{ id: 'user-1' }])),
       destroy: sinon.stub().returns(createQueryObject([])),
       addToCollection: sinon.stub().returns({
-        members: sinon.stub().returns(createQueryObject([]))
+        members: sinon.stub().returns(createQueryObject([])),
       }),
       replaceCollection: sinon.stub().returns({
-        members: sinon.stub().returns(createQueryObject([]))
-      })
+        members: sinon.stub().returns(createQueryObject([])),
+      }),
     };
 
     mockUserAudit = {
       find: sinon.stub().returns(createQueryObject([])),
-      create: sinon.stub().returns(createQueryObject({ id: 'audit-1' }))
+      create: sinon.stub().returns(createQueryObject({ id: 'audit-1' })),
     };
 
     mockUserLink = {
       find: sinon.stub().returns(createQueryObject([])),
       findOne: sinon.stub().returns(createQueryObject(null)),
-      create: sinon.stub().returns(createQueryObject({ id: 'link-1' }))
+      create: sinon.stub().returns(createQueryObject({ id: 'link-1' })),
     };
 
     mockRecord = {
       find: sinon.stub().returns({
         meta: sinon.stub().returns({
-          then: sinon.stub().callsFake((cb) => {
+          then: sinon.stub().callsFake(cb => {
             cb([]);
             return { catch: sinon.stub() };
-          })
-        })
-      })
+          }),
+        }),
+      }),
     };
 
     mockRole = {
       find: sinon.stub().returns(createQueryObject([])),
       findOne: sinon.stub().returns(createQueryObject(null)),
       addToCollection: sinon.stub().returns({
-        members: sinon.stub().returns(createQueryObject([]))
-      })
+        members: sinon.stub().returns(createQueryObject([])),
+      }),
     };
 
     setupServiceTestGlobals(mockSails);
@@ -105,13 +107,13 @@ describe('UsersService', function () {
       getAdminFromRoles: sinon.stub().returns({ id: 'role-admin', name: 'Admin', users: [] }),
       getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
       getDefAuthenticatedRole: sinon.stub().returns({ id: 'role-auth', name: 'Researcher' }),
-      getNestedRoles: sinon.stub().returns([{ id: 'role-1' }])
+      getNestedRoles: sinon.stub().returns([{ id: 'role-1' }]),
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default', roles: [] }),
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default', roles: [] }),
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
-      getBrandNameFromReq: sinon.stub().returns('default')
+      getBrandNameFromReq: sinon.stub().returns('default'),
     };
     (global as any).ConfigService = {
       getBrand: sinon.stub().returns({
@@ -121,20 +123,27 @@ describe('UsersService', function () {
           default: {
             adminUser: 'admin',
             adminPw: 'adminpass',
-            email: 'admin@test.com'
-          }
+            email: 'admin@test.com',
+          },
         },
         active: ['local'],
         aaf: {
           attributesField: 'attributes',
           usernameField: 'sub',
-          defaultRole: 'Researcher'
-        }
-      })
+          defaultRole: 'Researcher',
+        },
+      }),
     };
     (global as any).RecordsService = {
-      provideUserAccessAndRemovePendingAccess: sinon.stub(),
-      updateMeta: sinon.stub().resolves({ isSuccessful: () => true, wasPersisted: () => true, isComplete: () => true })
+      provideUserAccessAndRemovePendingAccess: sinon.stub().resolves({
+        requestId: '00000000-0000-4000-8000-000000000001',
+        wasPersisted: () => true,
+      }),
+      mutateMetaInternal: sinon.stub().resolves({
+        isSuccessful: () => true,
+        wasPersisted: () => true,
+        isComplete: () => true,
+      }),
     };
     (global as any).FormVocabularyService = {};
 
@@ -161,7 +170,10 @@ describe('UsersService', function () {
   describe('hasRole', function () {
     it('should return role object when user has the role', function () {
       const user = {
-        roles: [{ id: 'role-1', name: 'Admin' }, { id: 'role-2', name: 'Researcher' }]
+        roles: [
+          { id: 'role-1', name: 'Admin' },
+          { id: 'role-2', name: 'Researcher' },
+        ],
       };
       const targetRole = { id: 'role-1', name: 'Admin' };
 
@@ -172,7 +184,7 @@ describe('UsersService', function () {
 
     it('should return undefined when user does not have the role', function () {
       const user = {
-        roles: [{ id: 'role-2', name: 'Researcher' }]
+        roles: [{ id: 'role-2', name: 'Researcher' }],
       };
       const targetRole = { id: 'role-1', name: 'Admin' };
 
@@ -203,7 +215,9 @@ describe('UsersService', function () {
     it('should handle function properties by replacing them', function () {
       const obj = {
         name: 'test',
-        callback: function () { return 'hello'; }
+        callback: function () {
+          return 'hello';
+        },
       };
 
       const result = UsersService.stringifyObject(obj);
@@ -217,8 +231,8 @@ describe('UsersService', function () {
       const obj = {
         user: {
           name: 'test',
-          details: { age: 30 }
-        }
+          details: { age: 30 },
+        },
       };
 
       const result = UsersService.stringifyObject(obj);
@@ -255,8 +269,8 @@ describe('UsersService', function () {
     it('should return true when authorization is disabled', function () {
       mockSails.config.brandingAware.returns({
         authorizedDomainsEmails: {
-          enabled: 'false'
-        }
+          enabled: 'false',
+        },
       });
 
       const result = UsersService.checkAuthorizedEmail('test@any.com', 'default', 'aaf');
@@ -311,8 +325,8 @@ describe('UsersService', function () {
         authorizedDomainsEmails: {
           enabled: 'true',
           domainsAaf: [],
-          emailsAaf: []
-        }
+          emailsAaf: [],
+        },
       });
 
       const result = UsersService.checkAuthorizedEmail('any@email.com', 'default', 'aaf');
@@ -325,7 +339,7 @@ describe('UsersService', function () {
     it('should generate a unique state while preserving default and configured parameters', async function () {
       const passportUse = sinon.stub();
       mockSails.config.passport = {
-        use: passportUse
+        use: passportUse,
       };
       (global as any).ConfigService.getBrand.returns({
         active: ['oidc'],
@@ -337,23 +351,23 @@ describe('UsersService', function () {
               authorization_endpoint: 'https://example.okta.com/oauth2/default/v1/authorize',
               token_endpoint: 'https://example.okta.com/oauth2/default/v1/token',
               jwks_uri: 'https://example.okta.com/oauth2/default/v1/keys',
-              code_challenge_methods_supported: ['S256']
+              code_challenge_methods_supported: ['S256'],
             },
             client: {
               client_id: 'test-client',
               client_secret: 'test-secret',
-              redirect_uris: ['https://portal.example.com/user/login_oidc']
+              redirect_uris: ['https://portal.example.com/user/login_oidc'],
             },
             params: {
               scope: 'openid profile email',
               claims: {
                 userinfo: {
-                  email: { essential: true }
-                }
-              }
-            }
-          }
-        }
+                  email: { essential: true },
+                },
+              },
+            },
+          },
+        },
       });
 
       (UsersService as any).openIdConnectAuth();
@@ -369,11 +383,13 @@ describe('UsersService', function () {
       expect(secondParams.get('state')).to.be.a('string').and.not.be.empty;
       expect(firstParams.get('state')).to.not.equal(secondParams.get('state'));
       expect(firstParams.get('prompt')).to.equal('login');
-      expect(firstParams.get('claims')).to.equal(JSON.stringify({
-        userinfo: {
-          email: { essential: true }
-        }
-      }));
+      expect(firstParams.get('claims')).to.equal(
+        JSON.stringify({
+          userinfo: {
+            email: { essential: true },
+          },
+        })
+      );
     });
   });
 
@@ -414,7 +430,7 @@ describe('UsersService', function () {
     it('should find users matching name', async function () {
       const users = [
         { id: 'user-1', name: 'John Doe', roles: [{ branding: 'brand-1' }] },
-        { id: 'user-2', name: 'John Smith', roles: [{ branding: 'brand-1' }] }
+        { id: 'user-2', name: 'John Smith', roles: [{ branding: 'brand-1' }] },
       ];
       configureModelMethod(mockUser.find, users);
 
@@ -426,7 +442,7 @@ describe('UsersService', function () {
     it('should filter by brand', async function () {
       const users = [
         { id: 'user-1', name: 'John Doe', roles: [{ branding: 'brand-1' }] },
-        { id: 'user-2', name: 'John Smith', roles: [{ branding: 'brand-2' }] }
+        { id: 'user-2', name: 'John Smith', roles: [{ branding: 'brand-2' }] },
       ];
       configureModelMethod(mockUser.find, users);
 
@@ -439,9 +455,7 @@ describe('UsersService', function () {
 
   describe('findUsersWithEmail', function () {
     it('should find users matching email', async function () {
-      const users = [
-        { id: 'user-1', email: 'john@test.com', roles: [{ branding: 'brand-1' }] }
-      ];
+      const users = [{ id: 'user-1', email: 'john@test.com', roles: [{ branding: 'brand-1' }] }];
       configureModelMethod(mockUser.find, users);
 
       const result = await UsersService.findUsersWithEmail('john@test.com', 'brand-1', null).toPromise();
@@ -453,12 +467,14 @@ describe('UsersService', function () {
 
   describe('findUsersWithQuery', function () {
     it('should find users with custom query', async function () {
-      const users = [
-        { id: 'user-1', name: 'Test', type: 'local', roles: [{ branding: 'brand-1' }] }
-      ];
+      const users = [{ id: 'user-1', name: 'Test', type: 'local', roles: [{ branding: 'brand-1' }] }];
       configureModelMethod(mockUser.find, users);
 
-      const result = await UsersService.findUsersWithQuery({ name: { contains: 'Test' } }, 'brand-1', 'local').toPromise();
+      const result = await UsersService.findUsersWithQuery(
+        { name: { contains: 'Test' } },
+        'brand-1',
+        'local'
+      ).toPromise();
 
       expect(result).to.have.length(1);
     });
@@ -466,7 +482,7 @@ describe('UsersService', function () {
     it('should return all users when no brand filter', async function () {
       const users = [
         { id: 'user-1', name: 'Test1', roles: [] },
-        { id: 'user-2', name: 'Test2', roles: [] }
+        { id: 'user-2', name: 'Test2', roles: [] },
       ];
       configureModelMethod(mockUser.find, users);
 
@@ -477,28 +493,31 @@ describe('UsersService', function () {
   });
 
   describe('findAndAssignAccessToRecords', function () {
-    it('should not crash when no pending records found', function () {
-      // This method doesn't return anything, just verify it doesn't throw
-      expect(() => {
-        UsersService.findAndAssignAccessToRecords('pending-email@test.com', 'user-1');
-      }).to.not.throw();
+    it('should not crash when no pending records found', async function () {
+      const result = await UsersService.findAndAssignAccessToRecords('pending-email@test.com', 'user-1');
+      expect(result).to.equal(0);
     });
 
-    it('should call RecordsService for found records', function () {
+    it('should call RecordsService for found records', async function () {
       const records = [{ redboxOid: 'record-1' }, { redboxOid: 'record-2' }];
-      mockRecord.find.returns({
-        meta: sinon.stub().returns({
-          then: sinon.stub().callsFake((cb) => {
-            cb(records);
-            return { catch: sinon.stub() };
-          })
-        })
+      configureModelMethod(mockRecord.find, records);
+
+      const result = await UsersService.findAndAssignAccessToRecords('pending@test.com', 'user-1');
+
+      expect(mockRecord.find.called).to.be.true;
+      expect((global as any).RecordsService.provideUserAccessAndRemovePendingAccess.callCount).to.equal(2);
+      expect(result).to.equal(2);
+    });
+
+    it('propagates pending-access mutation failures through the user lifecycle hook', async function () {
+      const failure = new Error('conditional mutation failed');
+      mockUser.assignAccessToPendingRecords = sinon.stub().rejects(failure);
+
+      const hookError = await new Promise<Error | undefined>(resolve => {
+        UserWLDef.afterCreate?.({ email: 'pending@test.com', username: 'user-1', name: 'Test User' }, resolve);
       });
 
-      UsersService.findAndAssignAccessToRecords('pending@test.com', 'user-1');
-
-      // The actual calls happen asynchronously, so we just verify setup
-      expect(mockRecord.find.called).to.be.true;
+      expect(hookError).to.equal(failure);
     });
   });
 
@@ -546,7 +565,7 @@ describe('UsersService', function () {
     it('should return all users', async function () {
       const users = [
         { id: 'user-1', username: 'user1', roles: [] },
-        { id: 'user-2', username: 'user2', roles: [] }
+        { id: 'user-2', username: 'user2', roles: [] },
       ];
       configureModelMethod(mockUser.find, users);
 
@@ -568,7 +587,7 @@ describe('UsersService', function () {
     it('should return users for specific brand', async function () {
       const users = [
         { id: 'user-1', username: 'user1', roles: [{ branding: 'brand-1' }] },
-        { id: 'user-2', username: 'user2', roles: [{ branding: 'brand-2' }] }
+        { id: 'user-2', username: 'user2', roles: [{ branding: 'brand-2' }] },
       ];
       configureModelMethod(mockUser.find, users);
 
@@ -585,9 +604,7 @@ describe('UsersService', function () {
     });
 
     it('should accept brand object', async function () {
-      const users = [
-        { id: 'user-1', username: 'user1', roles: [{ branding: 'brand-1' }] }
-      ];
+      const users = [{ id: 'user-1', username: 'user1', roles: [{ branding: 'brand-1' }] }];
       configureModelMethod(mockUser.find, users);
 
       const result = await UsersService.getUsersForBrand({ id: 'brand-1', name: 'default' }).toPromise();
@@ -598,10 +615,10 @@ describe('UsersService', function () {
     it('should include linked alias users for the brand even when they no longer have brand roles', async function () {
       configureModelMethod(mockUser.find, [
         { id: 'primary-1', username: 'primary', roles: [{ branding: 'brand-1' }] },
-        { id: 'alias-1', username: 'alias', linkedPrimaryUserId: 'primary-1', roles: [] }
+        { id: 'alias-1', username: 'alias', linkedPrimaryUserId: 'primary-1', roles: [] },
       ]);
       configureModelMethod(mockUserLink.find, [
-        { primaryUserId: 'primary-1', secondaryUserId: 'alias-1', brandId: 'brand-1', status: 'active' }
+        { primaryUserId: 'primary-1', secondaryUserId: 'alias-1', brandId: 'brand-1', status: 'active' },
       ]);
 
       const result = await UsersService.getUsersForBrand('brand-1').toPromise();
@@ -612,17 +629,21 @@ describe('UsersService', function () {
 
   describe('getEffectiveUser', function () {
     it('should resolve a linked alias to its primary user', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'alias-1',
-        username: 'alias',
-        linkedPrimaryUserId: 'primary-1',
-        roles: []
-      }));
-      mockUser.findOne.onSecondCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'primary',
-        roles: []
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'alias-1',
+          username: 'alias',
+          linkedPrimaryUserId: 'primary-1',
+          roles: [],
+        })
+      );
+      mockUser.findOne.onSecondCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary',
+          roles: [],
+        })
+      );
 
       const result = await UsersService.getEffectiveUser('alias-1').toPromise();
 
@@ -637,28 +658,36 @@ describe('UsersService', function () {
     });
 
     it('should return linked account data for a seeded primary user', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'primary-user',
-        name: 'Primary User',
-        email: 'primary@test.com',
-        type: 'local',
-        roles: []
-      }));
-      configureModelMethod(mockUserLink.find, [{
-        primaryUserId: 'primary-1',
-        secondaryUserId: 'secondary-1',
-        status: 'active',
-        createdAt: '2026-03-26T00:00:00.000Z'
-      }]);
-      mockUser.find.onFirstCall().returns(createQueryObject([{
-        id: 'secondary-1',
-        username: 'secondary-user',
-        name: 'Secondary User',
-        email: 'secondary@test.com',
-        type: 'local',
-        roles: []
-      }]));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary-user',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          type: 'local',
+          roles: [],
+        })
+      );
+      configureModelMethod(mockUserLink.find, [
+        {
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          status: 'active',
+          createdAt: '2026-03-26T00:00:00.000Z',
+        },
+      ]);
+      mockUser.find.onFirstCall().returns(
+        createQueryObject([
+          {
+            id: 'secondary-1',
+            username: 'secondary-user',
+            name: 'Secondary User',
+            email: 'secondary@test.com',
+            type: 'local',
+            roles: [],
+          },
+        ])
+      );
 
       const result = await UsersService.getLinkedAccounts('primary-1').toPromise();
 
@@ -668,14 +697,16 @@ describe('UsersService', function () {
     });
 
     it('should return an empty linkedAccounts array when no links exist', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'primary-user',
-        name: 'Primary User',
-        email: 'primary@test.com',
-        type: 'local',
-        roles: []
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary-user',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          type: 'local',
+          roles: [],
+        })
+      );
       configureModelMethod(mockUserLink.find, []);
 
       const result = await UsersService.getLinkedAccounts('primary-1').toPromise();
@@ -684,14 +715,16 @@ describe('UsersService', function () {
     });
 
     it('should surface repository failures from linked account lookups', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'primary-user',
-        name: 'Primary User',
-        email: 'primary@test.com',
-        type: 'local',
-        roles: []
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary-user',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          type: 'local',
+          roles: [],
+        })
+      );
       mockUserLink.find = sinon.stub().throws(new Error('Permission denied'));
 
       try {
@@ -706,10 +739,38 @@ describe('UsersService', function () {
   describe('searchLinkCandidates', function () {
     it('should return active matching users in the brand or with no roles', async function () {
       configureModelMethod(mockUser.find, [
-        { id: 'user-1', username: 'primary', name: 'Primary User', email: 'primary@test.com', accountLinkState: 'active', roles: [{ branding: 'brand-1' }] },
-        { id: 'user-2', username: 'orphan', name: 'Orphan User', email: 'orphan@test.com', accountLinkState: 'active', roles: [] },
-        { id: 'user-3', username: 'linked', name: 'Linked User', email: 'linked@test.com', accountLinkState: 'linked-alias', roles: [{ branding: 'brand-1' }] },
-        { id: 'user-4', username: 'other', name: 'Other User', email: 'other@test.com', accountLinkState: 'active', roles: [{ branding: 'brand-2' }] }
+        {
+          id: 'user-1',
+          username: 'primary',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          accountLinkState: 'active',
+          roles: [{ branding: 'brand-1' }],
+        },
+        {
+          id: 'user-2',
+          username: 'orphan',
+          name: 'Orphan User',
+          email: 'orphan@test.com',
+          accountLinkState: 'active',
+          roles: [],
+        },
+        {
+          id: 'user-3',
+          username: 'linked',
+          name: 'Linked User',
+          email: 'linked@test.com',
+          accountLinkState: 'linked-alias',
+          roles: [{ branding: 'brand-1' }],
+        },
+        {
+          id: 'user-4',
+          username: 'other',
+          name: 'Other User',
+          email: 'other@test.com',
+          accountLinkState: 'active',
+          roles: [{ branding: 'brand-2' }],
+        },
       ]);
       configureModelMethod(mockUserLink.find, []);
 
@@ -719,11 +780,7 @@ describe('UsersService', function () {
         accountLinkState: 'active',
         loginDisabled: { '!=': true },
         id: { '!=': 'user-1' },
-        or: [
-          { username: { contains: 'user' } },
-          { name: { contains: 'user' } },
-          { email: { contains: 'user' } }
-        ]
+        or: [{ username: { contains: 'user' } }, { name: { contains: 'user' } }, { email: { contains: 'user' } }],
       });
       expect(result).to.have.length(1);
       expect(result[0].username).to.equal('orphan');
@@ -731,19 +788,40 @@ describe('UsersService', function () {
 
     it('should exclude users who already have linked accounts of their own', async function () {
       configureModelMethod(mockUser.find, [
-        { id: 'user-1', username: 'primary', name: 'Primary User', email: 'primary@test.com', accountLinkState: 'active', roles: [{ branding: 'brand-1' }] },
-        { id: 'user-2', username: 'candidate', name: 'Candidate User', email: 'candidate@test.com', accountLinkState: 'active', roles: [] },
-        { id: 'user-3', username: 'alias', name: 'Alias User', email: 'alias@test.com', accountLinkState: 'linked-alias', roles: [] }
+        {
+          id: 'user-1',
+          username: 'primary',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          accountLinkState: 'active',
+          roles: [{ branding: 'brand-1' }],
+        },
+        {
+          id: 'user-2',
+          username: 'candidate',
+          name: 'Candidate User',
+          email: 'candidate@test.com',
+          accountLinkState: 'active',
+          roles: [],
+        },
+        {
+          id: 'user-3',
+          username: 'alias',
+          name: 'Alias User',
+          email: 'alias@test.com',
+          accountLinkState: 'linked-alias',
+          roles: [],
+        },
       ]);
       configureModelMethod(mockUserLink.find, [
-        { primaryUserId: 'user-1', secondaryUserId: 'user-3', status: 'active' }
+        { primaryUserId: 'user-1', secondaryUserId: 'user-3', status: 'active' },
       ]);
 
       const result = await UsersService.searchLinkCandidates('user', 'brand-1').toPromise();
 
       expect(mockUserLink.find.firstCall.args[0]).to.deep.equal({
         status: 'active',
-        primaryUserId: ['user-1', 'user-2', 'user-3']
+        primaryUserId: ['user-1', 'user-2', 'user-3'],
       });
       expect(result).to.have.length(1);
       expect(result[0].username).to.equal('candidate');
@@ -752,19 +830,35 @@ describe('UsersService', function () {
 
   describe('getLinkedAccounts (detailed scenarios)', function () {
     it('should return linked accounts for a primary user', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'primary-user',
-        name: 'Primary User',
-        email: 'primary@test.com',
-        type: 'local',
-        roles: []
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary-user',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          type: 'local',
+          roles: [],
+        })
+      );
       configureModelMethod(mockUserLink.find, [
-        { primaryUserId: 'primary-1', secondaryUserId: 'secondary-1', brandId: 'brand-1', status: 'active', createdAt: '2026-03-26T00:00:00.000Z' }
+        {
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          brandId: 'brand-1',
+          status: 'active',
+          createdAt: '2026-03-26T00:00:00.000Z',
+        },
       ]);
       configureModelMethod(mockUser.find, [
-        { id: 'secondary-1', username: 'secondary-user', name: 'Secondary User', email: 'secondary@test.com', type: 'local', accountLinkState: 'linked-alias', roles: [] }
+        {
+          id: 'secondary-1',
+          username: 'secondary-user',
+          name: 'Secondary User',
+          email: 'secondary@test.com',
+          type: 'local',
+          accountLinkState: 'linked-alias',
+          roles: [],
+        },
       ]);
 
       const result = await UsersService.getLinkedAccounts('primary-1').toPromise();
@@ -776,14 +870,16 @@ describe('UsersService', function () {
     });
 
     it('should return empty linked accounts when none exist', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'user-with-no-links',
-        username: 'primary-user',
-        name: 'Primary User',
-        email: 'primary@test.com',
-        type: 'local',
-        roles: []
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'user-with-no-links',
+          username: 'primary-user',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          type: 'local',
+          roles: [],
+        })
+      );
       configureModelMethod(mockUserLink.find, []);
       configureModelMethod(mockUser.find, []);
 
@@ -794,14 +890,16 @@ describe('UsersService', function () {
     });
 
     it('should handle errors gracefully', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'primary-user',
-        name: 'Primary User',
-        email: 'primary@test.com',
-        type: 'local',
-        roles: []
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary-user',
+          name: 'Primary User',
+          email: 'primary@test.com',
+          type: 'local',
+          roles: [],
+        })
+      );
       (mockUserLink.find as sinon.SinonStub).throws(new Error('Database error'));
 
       try {
@@ -815,50 +913,62 @@ describe('UsersService', function () {
 
   describe('linkAccounts', function () {
     it('should create links and rewrite authorization references', async function () {
-      (global as any).RecordsService.updateMeta.resolves({
+      (global as any).RecordsService.mutateMetaInternal.resolves({
         outcome: 'saved-with-warnings',
         wasPersisted: () => true,
         isComplete: () => false,
       });
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'primary-user',
-        accountLinkState: 'active',
-        roles: [{ id: 'role-primary', branding: 'brand-1' }]
-      }));
-      mockUser.findOne.onSecondCall().returns(createQueryObject({
-        id: 'secondary-1',
-        username: 'secondary-user',
-        email: 'secondary@test.com',
-        accountLinkState: 'active',
-        roles: [{ id: 'role-secondary', branding: 'brand-1' }]
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary-user',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-primary', branding: 'brand-1' }],
+        })
+      );
+      mockUser.findOne.onSecondCall().returns(
+        createQueryObject({
+          id: 'secondary-1',
+          username: 'secondary-user',
+          email: 'secondary@test.com',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-secondary', branding: 'brand-1' }],
+        })
+      );
       configureModelMethod(mockUserLink.findOne, null);
-      configureModelMethod(mockRecord.find, [{
-        redboxOid: 'record-1',
-        metaMetadata: { brandId: 'brand-1' },
-        authorization: {
-          edit: ['secondary-user'],
-          view: [],
-          editPending: ['secondary@test.com'],
-          viewPending: []
-        }
-      }]);
-      configureModelMethod(mockUserLink.find, [{
-        primaryUserId: 'primary-1',
-        secondaryUserId: 'secondary-1',
-        createdAt: '2026-03-26T00:00:00.000Z',
-        status: 'active'
-      }]);
-      mockUser.find.onFirstCall().returns(createQueryObject([{
-        id: 'secondary-1',
-        username: 'secondary-user',
-        name: 'Secondary User',
-        email: 'secondary@test.com',
-        type: 'local',
-        accountLinkState: 'linked-alias',
-        roles: []
-      }]));
+      configureModelMethod(mockRecord.find, [
+        {
+          redboxOid: 'record-1',
+          metaMetadata: { brandId: 'brand-1' },
+          authorization: {
+            edit: ['secondary-user'],
+            view: [],
+            editPending: ['secondary@test.com'],
+            viewPending: [],
+          },
+        },
+      ]);
+      configureModelMethod(mockUserLink.find, [
+        {
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          createdAt: '2026-03-26T00:00:00.000Z',
+          status: 'active',
+        },
+      ]);
+      mockUser.find.onFirstCall().returns(
+        createQueryObject([
+          {
+            id: 'secondary-1',
+            username: 'secondary-user',
+            name: 'Secondary User',
+            email: 'secondary@test.com',
+            type: 'local',
+            accountLinkState: 'linked-alias',
+            roles: [],
+          },
+        ])
+      );
 
       const result = await UsersService.linkAccounts('primary-1', 'secondary-1', 'admin-user', 'brand-1').toPromise();
 
@@ -866,31 +976,37 @@ describe('UsersService', function () {
       expect(mockUser.addToCollection.calledOnce).to.be.true;
       expect(mockUser.replaceCollection.calledOnce).to.be.true;
       expect(mockUser.update.called).to.be.true;
-      expect((global as any).RecordsService.updateMeta.calledOnce).to.be.true;
+      expect((global as any).RecordsService.mutateMetaInternal.calledOnce).to.be.true;
       expect(result.impact?.rolesMerged).to.equal(1);
       expect(result.impact?.recordsRewritten).to.equal(1);
     });
 
     it('should reject linking a secondary user that already has linked accounts', async function () {
-      mockUser.findOne.onFirstCall().returns(createQueryObject({
-        id: 'primary-2',
-        username: 'other-primary',
-        accountLinkState: 'active',
-        roles: [{ id: 'role-primary', branding: 'brand-1' }]
-      }));
-      mockUser.findOne.onSecondCall().returns(createQueryObject({
-        id: 'primary-1',
-        username: 'current-primary',
-        email: 'primary@test.com',
-        accountLinkState: 'active',
-        roles: [{ id: 'role-secondary', branding: 'brand-1' }]
-      }));
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-2',
+          username: 'other-primary',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-primary', branding: 'brand-1' }],
+        })
+      );
+      mockUser.findOne.onSecondCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'current-primary',
+          email: 'primary@test.com',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-secondary', branding: 'brand-1' }],
+        })
+      );
       mockUserLink.findOne.onFirstCall().returns(createQueryObject(null));
-      mockUserLink.findOne.onSecondCall().returns(createQueryObject({
-        primaryUserId: 'primary-1',
-        secondaryUserId: 'secondary-1',
-        status: 'active'
-      }));
+      mockUserLink.findOne.onSecondCall().returns(
+        createQueryObject({
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          status: 'active',
+        })
+      );
 
       try {
         await UsersService.linkAccounts('primary-2', 'primary-1', 'admin-user', 'brand-1').toPromise();
@@ -981,11 +1097,11 @@ describe('UsersService', function () {
       const profile = {
         department: 'IT',
         employeeId: '12345',
-        customField: 'value'
+        customField: 'value',
       };
       const mappings = {
         department: 'dept',
-        employeeId: 'empId'
+        employeeId: 'empId',
       };
 
       // The mapAdditionalAttributes is protected, we can test it indirectly
@@ -1010,11 +1126,9 @@ describe('UsersService', function () {
       const config = {
         hooks: {
           onUpdate: {
-            pre: [
-              { function: 'someFunction', options: {} }
-            ]
-          }
-        }
+            pre: [{ function: 'someFunction', options: {} }],
+          },
+        },
       };
 
       const result = (UsersService as any).hasPreSaveTriggerConfigured(config, 'onUpdate');
@@ -1034,11 +1148,9 @@ describe('UsersService', function () {
       const config = {
         hooks: {
           onUpdate: {
-            post: [
-              { function: 'someFunction', options: {} }
-            ]
-          }
-        }
+            post: [{ function: 'someFunction', options: {} }],
+          },
+        },
       };
 
       const result = (UsersService as any).hasPostSaveTriggerConfigured(config, 'onUpdate');
@@ -1058,11 +1170,9 @@ describe('UsersService', function () {
       const config = {
         hooks: {
           onUpdate: {
-            postSync: [
-              { function: 'someFunction', options: {} }
-            ]
-          }
-        }
+            postSync: [{ function: 'someFunction', options: {} }],
+          },
+        },
       };
 
       const result = (UsersService as any).hasPostSaveSyncTriggerConfigured(config, 'onUpdate');
@@ -1082,10 +1192,7 @@ describe('UsersService', function () {
 
     it('should return true when all triggers succeed', function () {
       const user = {
-        additionalInfoFound: [
-          { isSuccess: true },
-          { isSuccess: true }
-        ]
+        additionalInfoFound: [{ isSuccess: true }, { isSuccess: true }],
       };
 
       const result = (UsersService as any).checkAllTriggersSuccessOrFailure(user);
@@ -1095,10 +1202,7 @@ describe('UsersService', function () {
 
     it('should return false when any trigger fails', function () {
       const user = {
-        additionalInfoFound: [
-          { isSuccess: true },
-          { isSuccess: false }
-        ]
+        additionalInfoFound: [{ isSuccess: true }, { isSuccess: false }],
       };
 
       const result = (UsersService as any).checkAllTriggersSuccessOrFailure(user);
@@ -1143,11 +1247,9 @@ describe('UsersService', function () {
       const config = {
         hooks: {
           onUpdate: {
-            post: [
-              { function: 'testTriggerFunction', options: { key: 'value' } }
-            ]
-          }
-        }
+            post: [{ function: 'testTriggerFunction', options: { key: 'value' } }],
+          },
+        },
       };
 
       expect(() => {
@@ -1203,119 +1305,125 @@ describe('UsersService', function () {
 
   describe('getUserAudit', function () {
     it('should merge, deduplicate, sort, redact, and summarize audit rows for a selected user', async function () {
-      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser', name: 'Test User', email: 'test@example.com' });
-      mockUserAudit.find.onFirstCall().returns(createQueryObject([
-        {
-          id: 'audit-login-1',
-          action: 'login',
-          user: { id: 'user-1', username: 'testuser', name: 'Test User', email: 'test@example.com' },
-          additionalContext: JSON.stringify({
-            ip: '127.0.0.1',
-            headers: {
-              cookie: 'secret-cookie',
-              authorization: 'Bearer secret',
-              'x-forwarded-for': '10.0.0.1'
-            },
-            rawHeaders: [
-              'Host',
-              'localhost:1500',
-              'Cookie',
-              'secret-cookie',
-              'Authorization',
-              'Bearer secret',
-              'X-Forwarded-For',
-              '10.0.0.1'
-            ],
-            cookies: {
-              lng: 'en',
-              'redbox.sid': 'secret-session'
-            },
-            password: 'hidden'
-          }),
-          createdAt: '2026-03-27T10:00:00.000Z'
-        },
-        {
-          id: 'audit-logout-1',
-          action: 'logout',
-          user: { id: 'someone-else', username: 'otheruser' },
-          additionalContext: JSON.stringify({ ip: '127.0.0.2' }),
-          createdAt: '2026-03-27T09:00:00.000Z'
-        },
-        {
-          id: 'audit-shared',
-          action: 'login',
-          user: { id: 'user-1', username: 'testuser' },
-          additionalContext: JSON.stringify({ ip: '127.0.0.3' }),
-          createdAt: new Date('2026-03-27T08:00:00.000Z')
-        }
-      ]));
-      mockUserAudit.find.onSecondCall().returns(createQueryObject([
-        {
-          id: 'audit-disable-1',
-          action: 'disable-user',
-          user: { username: 'admin-user' },
-          additionalContext: JSON.stringify({ userId: 'user-1', brandId: 'brand-1' }),
-          createdAt: '2026-03-27T12:00:00.000Z'
-        },
-        {
-          id: 'audit-enable-1',
-          action: 'enable-user',
-          user: { username: 'admin-user' },
-          additionalContext: JSON.stringify({ userId: 'someone-else', brandId: 'brand-1' }),
-          createdAt: '2026-03-27T11:00:00.000Z'
-        },
-        {
-          id: 'audit-link-1',
-          action: 'link-accounts',
-          user: { username: 'admin-user' },
-          additionalContext: JSON.stringify({ primaryUserId: 'user-1', secondaryUserId: 'alias-1' }),
-          createdAt: '2026-03-27T13:00:00.000Z'
-        },
-        {
-          id: 'audit-link-2',
-          action: 'link-accounts',
-          user: { username: 'admin-user' },
-          additionalContext: '{"broken"',
-          createdAt: '2026-03-27T07:00:00.000Z'
-        },
-        {
-          id: 'audit-shared',
-          action: 'disable-user',
-          user: { username: 'admin-user' },
-          additionalContext: JSON.stringify({ userId: 'user-1', brandId: 'brand-1' }),
-          createdAt: '2026-03-27T08:30:00.000Z'
-        }
-      ]));
+      configureModelMethod(mockUser.findOne, {
+        id: 'user-1',
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+      });
+      mockUserAudit.find.onFirstCall().returns(
+        createQueryObject([
+          {
+            id: 'audit-login-1',
+            action: 'login',
+            user: { id: 'user-1', username: 'testuser', name: 'Test User', email: 'test@example.com' },
+            additionalContext: JSON.stringify({
+              ip: '127.0.0.1',
+              headers: {
+                cookie: 'secret-cookie',
+                authorization: 'Bearer secret',
+                'x-forwarded-for': '10.0.0.1',
+              },
+              rawHeaders: [
+                'Host',
+                'localhost:1500',
+                'Cookie',
+                'secret-cookie',
+                'Authorization',
+                'Bearer secret',
+                'X-Forwarded-For',
+                '10.0.0.1',
+              ],
+              cookies: {
+                lng: 'en',
+                'redbox.sid': 'secret-session',
+              },
+              password: 'hidden',
+            }),
+            createdAt: '2026-03-27T10:00:00.000Z',
+          },
+          {
+            id: 'audit-logout-1',
+            action: 'logout',
+            user: { id: 'someone-else', username: 'otheruser' },
+            additionalContext: JSON.stringify({ ip: '127.0.0.2' }),
+            createdAt: '2026-03-27T09:00:00.000Z',
+          },
+          {
+            id: 'audit-shared',
+            action: 'login',
+            user: { id: 'user-1', username: 'testuser' },
+            additionalContext: JSON.stringify({ ip: '127.0.0.3' }),
+            createdAt: new Date('2026-03-27T08:00:00.000Z'),
+          },
+        ])
+      );
+      mockUserAudit.find.onSecondCall().returns(
+        createQueryObject([
+          {
+            id: 'audit-disable-1',
+            action: 'disable-user',
+            user: { username: 'admin-user' },
+            additionalContext: JSON.stringify({ userId: 'user-1', brandId: 'brand-1' }),
+            createdAt: '2026-03-27T12:00:00.000Z',
+          },
+          {
+            id: 'audit-enable-1',
+            action: 'enable-user',
+            user: { username: 'admin-user' },
+            additionalContext: JSON.stringify({ userId: 'someone-else', brandId: 'brand-1' }),
+            createdAt: '2026-03-27T11:00:00.000Z',
+          },
+          {
+            id: 'audit-link-1',
+            action: 'link-accounts',
+            user: { username: 'admin-user' },
+            additionalContext: JSON.stringify({ primaryUserId: 'user-1', secondaryUserId: 'alias-1' }),
+            createdAt: '2026-03-27T13:00:00.000Z',
+          },
+          {
+            id: 'audit-link-2',
+            action: 'link-accounts',
+            user: { username: 'admin-user' },
+            additionalContext: '{"broken"',
+            createdAt: '2026-03-27T07:00:00.000Z',
+          },
+          {
+            id: 'audit-shared',
+            action: 'disable-user',
+            user: { username: 'admin-user' },
+            additionalContext: JSON.stringify({ userId: 'user-1', brandId: 'brand-1' }),
+            createdAt: '2026-03-27T08:30:00.000Z',
+          },
+        ])
+      );
 
       const result = await UsersService.getUserAudit('user-1');
 
       expect(mockUserAudit.find.calledTwice).to.be.true;
       expect(mockUserAudit.find.firstCall.args[0]).to.deep.equal({
         action: ['login', 'logout'],
-        or: [
-          { 'user.id': 'user-1' },
-          { 'user.username': 'testuser' }
-        ]
+        or: [{ 'user.id': 'user-1' }, { 'user.username': 'testuser' }],
       });
       expect(mockUserAudit.find.secondCall.args[0]).to.deep.equal({
         action: ['disable-user', 'enable-user', 'link-accounts'],
         or: [
           {
             additionalContext: {
-              contains: '"userId":"user-1"'
-            }
+              contains: '"userId":"user-1"',
+            },
           },
           {
             additionalContext: {
-              contains: '"primaryUserId":"user-1"'
-            }
+              contains: '"primaryUserId":"user-1"',
+            },
           },
           {
             additionalContext: {
-              contains: '"secondaryUserId":"user-1"'
-            }
-          }
-        ]
+              contains: '"secondaryUserId":"user-1"',
+            },
+          },
+        ],
       });
       expect(result.summary.returnedCount).to.equal(4);
       expect(result.summary.truncated).to.equal(false);
@@ -1323,22 +1431,24 @@ describe('UsersService', function () {
         'audit-link-1',
         'audit-disable-1',
         'audit-login-1',
-        'audit-shared'
+        'audit-shared',
       ]);
-      expect(result.records[0].details).to.equal('This account was chosen as the primary account during account linking');
+      expect(result.records[0].details).to.equal(
+        'This account was chosen as the primary account during account linking'
+      );
       expect(result.records[1].details).to.equal('Admin disabled this account');
       expect(result.records[2].details).to.equal('User logged in');
       expect(result.records[2].actor).to.deep.equal({
         username: 'testuser',
         name: 'Test User',
-        email: 'test@example.com'
+        email: 'test@example.com',
       });
       expect(result.records[2].parsedAdditionalContext).to.deep.equal({
         ip: '127.0.0.1',
         headers: {
           cookie: '[REDACTED]',
           authorization: '[REDACTED]',
-          'x-forwarded-for': '[REDACTED]'
+          'x-forwarded-for': '[REDACTED]',
         },
         rawHeaders: [
           'Host',
@@ -1348,51 +1458,55 @@ describe('UsersService', function () {
           'Authorization',
           '[REDACTED]',
           'X-Forwarded-For',
-          '[REDACTED]'
+          '[REDACTED]',
         ],
         cookies: {
           lng: '[REDACTED]',
-          'redbox.sid': '[REDACTED]'
+          'redbox.sid': '[REDACTED]',
         },
-        password: '[REDACTED]'
+        password: '[REDACTED]',
       });
-      expect(result.records[2].rawAdditionalContext).to.equal(JSON.stringify({
-        ip: '127.0.0.1',
-        headers: {
-          cookie: '[REDACTED]',
-          authorization: '[REDACTED]',
-          'x-forwarded-for': '[REDACTED]'
-        },
-        rawHeaders: [
-          'Host',
-          'localhost:1500',
-          'Cookie',
-          '[REDACTED]',
-          'Authorization',
-          '[REDACTED]',
-          'X-Forwarded-For',
-          '[REDACTED]'
-        ],
-        cookies: {
-          lng: '[REDACTED]',
-          'redbox.sid': '[REDACTED]'
-        },
-        password: '[REDACTED]'
-      }));
+      expect(result.records[2].rawAdditionalContext).to.equal(
+        JSON.stringify({
+          ip: '127.0.0.1',
+          headers: {
+            cookie: '[REDACTED]',
+            authorization: '[REDACTED]',
+            'x-forwarded-for': '[REDACTED]',
+          },
+          rawHeaders: [
+            'Host',
+            'localhost:1500',
+            'Cookie',
+            '[REDACTED]',
+            'Authorization',
+            '[REDACTED]',
+            'X-Forwarded-For',
+            '[REDACTED]',
+          ],
+          cookies: {
+            lng: '[REDACTED]',
+            'redbox.sid': '[REDACTED]',
+          },
+          password: '[REDACTED]',
+        })
+      );
     });
 
     it('should fall back to the generic link summary for malformed or unmatched link context', async function () {
       configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser' });
       mockUserAudit.find.onFirstCall().returns(createQueryObject([]));
-      mockUserAudit.find.onSecondCall().returns(createQueryObject([
-        {
-          id: 'audit-link-1',
-          action: 'link-accounts',
-          user: { username: 'admin-user' },
-          additionalContext: '{"broken"',
-          createdAt: '2026-03-27T13:00:00.000Z'
-        }
-      ]));
+      mockUserAudit.find.onSecondCall().returns(
+        createQueryObject([
+          {
+            id: 'audit-link-1',
+            action: 'link-accounts',
+            user: { username: 'admin-user' },
+            additionalContext: '{"broken"',
+            createdAt: '2026-03-27T13:00:00.000Z',
+          },
+        ])
+      );
 
       const result = await UsersService.getUserAudit('user-1');
 
@@ -1406,7 +1520,7 @@ describe('UsersService', function () {
         action: 'login',
         user: { id: 'user-1', username: 'testuser' },
         additionalContext: JSON.stringify({ ip: `127.0.0.${index}` }),
-        createdAt: new Date(Date.UTC(2026, 2, 27, 0, 0, index)).toISOString()
+        createdAt: new Date(Date.UTC(2026, 2, 27, 0, 0, index)).toISOString(),
       }));
       mockUserAudit.find.onFirstCall().returns(createQueryObject(directRows));
       mockUserAudit.find.onSecondCall().returns(createQueryObject([]));
@@ -1434,7 +1548,12 @@ describe('UsersService', function () {
     });
 
     it('should reject disabling a linked alias user', async function () {
-      configureModelMethod(mockUser.findOne, { id: 'alias-1', username: 'alias', accountLinkState: 'linked-alias', linkedPrimaryUserId: 'primary-1' });
+      configureModelMethod(mockUser.findOne, {
+        id: 'alias-1',
+        username: 'alias',
+        accountLinkState: 'linked-alias',
+        linkedPrimaryUserId: 'primary-1',
+      });
 
       try {
         await UsersService.disableUser('alias-1', 'admin', 'brand-1');
@@ -1470,7 +1589,12 @@ describe('UsersService', function () {
     });
 
     it('should reject enabling a linked alias user', async function () {
-      configureModelMethod(mockUser.findOne, { id: 'alias-1', username: 'alias', accountLinkState: 'linked-alias', linkedPrimaryUserId: 'primary-1' });
+      configureModelMethod(mockUser.findOne, {
+        id: 'alias-1',
+        username: 'alias',
+        accountLinkState: 'linked-alias',
+        linkedPrimaryUserId: 'primary-1',
+      });
 
       try {
         await UsersService.enableUser('alias-1', 'admin', 'brand-1');
@@ -1483,9 +1607,7 @@ describe('UsersService', function () {
 
   describe('enrichUsersWithEffectiveDisabledState', function () {
     it('should mark directly disabled users', async function () {
-      const users = [
-        { id: 'user-1', username: 'test', loginDisabled: true }
-      ] as any[];
+      const users = [{ id: 'user-1', username: 'test', loginDisabled: true }] as any[];
       configureModelMethod(mockUser.find, []);
 
       const result = await UsersService.enrichUsersWithEffectiveDisabledState(users);
@@ -1495,7 +1617,7 @@ describe('UsersService', function () {
 
     it('should mark users disabled via primary', async function () {
       const users = [
-        { id: 'alias-1', username: 'alias', loginDisabled: false, linkedPrimaryUserId: 'primary-1' }
+        { id: 'alias-1', username: 'alias', loginDisabled: false, linkedPrimaryUserId: 'primary-1' },
       ] as any[];
       configureModelMethod(mockUser.find, [{ id: 'primary-1', username: 'primary-user', loginDisabled: true }]);
 
@@ -1507,9 +1629,7 @@ describe('UsersService', function () {
     });
 
     it('should mark enabled users as not disabled', async function () {
-      const users = [
-        { id: 'user-1', username: 'test', loginDisabled: false }
-      ] as any[];
+      const users = [{ id: 'user-1', username: 'test', loginDisabled: false }] as any[];
       configureModelMethod(mockUser.find, []);
 
       const result = await UsersService.enrichUsersWithEffectiveDisabledState(users);

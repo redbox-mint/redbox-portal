@@ -1,12 +1,61 @@
-import StorageServiceResponse from "./StorageServiceResponse";
+import StorageServiceResponse from './StorageServiceResponse';
 import { DatastreamRequestContext } from './DatastreamService';
-import { RecordModel, UserModel } from "./model";
-import { NormalizedRecordRelation } from "./config/recordtype.config";
+import { RecordModel, UserModel } from './model';
+import { NormalizedRecordRelation } from './config/recordtype.config';
 import type { RecordSaveContext, RecordSaveResponse } from './RecordSaveResponse';
 
 type AnyRecord = Record<string, unknown>;
 type RecordInput = RecordModel | Record<string, unknown>;
 type UserInput = UserModel | Record<string, unknown>;
+
+export interface InternalRecordWriterIdentity {
+  readonly kind: 'service';
+  readonly id: string;
+}
+
+export type InternalRecordMutationAuthorization = { readonly kind: 'service' } | { readonly kind: 'record-edit' };
+
+export type InternalRecordSnapshotMutationClass = 'full-record' | 'transition' | 'external-side-effect';
+
+export interface InternalRecordSnapshotSaveOptions {
+  readonly actor: InternalRecordWriterIdentity;
+  readonly authorization: InternalRecordMutationAuthorization;
+  readonly mutationClass: InternalRecordSnapshotMutationClass;
+  readonly oid: string;
+  /** Candidate derived from the authoritative snapshot whose revision it still carries. */
+  readonly record: RecordInput;
+  readonly brand?: unknown;
+  readonly user?: UserInput;
+  readonly triggerPreSaveTriggers?: boolean;
+  readonly triggerPostSaveTriggers?: boolean;
+  readonly targetStep?: unknown;
+  readonly metadata?: AnyRecord;
+  readonly operation?: 'update' | 'transition';
+  /** Diagnostic causation only; never an idempotency key. */
+  readonly causedByRequestId?: string;
+}
+
+export interface InternalRecomputableMutationRetry {
+  readonly idempotent: true;
+  readonly recomputable: true;
+  /** Includes the first attempt and is capped by the core service. */
+  readonly maxAttempts: number;
+}
+
+export interface InternalRecomputableMutationOptions {
+  readonly actor: InternalRecordWriterIdentity;
+  readonly authorization: InternalRecordMutationAuthorization;
+  readonly oid: string;
+  readonly brand?: unknown;
+  readonly user?: UserInput;
+  /** Must be synchronous and side-effect-free; it is rerun from each freshly loaded snapshot. */
+  readonly mutate: (authoritativeSnapshot: RecordModel) => RecordInput;
+  readonly retry?: InternalRecomputableMutationRetry;
+  readonly triggerPreSaveTriggers?: boolean;
+  readonly triggerPostSaveTriggers?: boolean;
+  readonly causedByRequestId?: string;
+}
+
 export type ResolvedPermissionUser = { username: string; name: string; email: string };
 export type ResolvedRecordPermissions = {
   edit: ResolvedPermissionUser[];
@@ -62,33 +111,159 @@ export interface RecordTypeLookupSummary {
  * Type safety will be improved incrementally in future phases.
  */
 export interface RecordsService {
-  triggerPreSaveTriggers(oid: string, record: RecordInput, recordType: Record<string, unknown>, mode: string, user: UserInput): Promise<RecordInput>;
-  triggerPostSaveTriggers(oid: string, record: RecordInput, recordType: Record<string, unknown>, mode: string, user: UserInput): void;
-  triggerPostSaveSyncTriggers(oid: string, record: AnyRecord, recordType: unknown, mode: string, user: Record<string, unknown>, response: unknown): unknown;
+  triggerPreSaveTriggers(
+    oid: string,
+    record: RecordInput,
+    recordType: Record<string, unknown>,
+    mode: string,
+    user: UserInput
+  ): Promise<RecordInput>;
+  triggerPostSaveTriggers(
+    oid: string,
+    record: RecordInput,
+    recordType: Record<string, unknown>,
+    mode: string,
+    user: UserInput
+  ): void;
+  triggerPostSaveSyncTriggers(
+    oid: string,
+    record: AnyRecord,
+    recordType: unknown,
+    mode: string,
+    user: Record<string, unknown>,
+    response: unknown
+  ): unknown;
   hasEditAccess(brand: unknown, user: UserInput, roles: AnyRecord[], record: RecordInput): boolean;
   hasTransitionRoleAuthorization(step: unknown, user: UserInput): boolean;
   hasViewAccess(brand: unknown, user: UserInput, roles: object[], record: RecordInput): boolean;
-  appendToRecord(targetRecordOid: string, linkData: AnyRecord, fieldName: string, fieldType: string, targetRecord: RecordInput): Promise<unknown>;
+  appendToRecord(
+    targetRecordOid: string,
+    linkData: AnyRecord,
+    fieldName: string,
+    fieldType: string,
+    targetRecord: RecordInput
+  ): Promise<unknown>;
   setWorkflowStepRelatedMetadata(currentRec: RecordInput, nextStep: AnyRecord): void;
   transitionWorkflowStepMetadata(currentRec: RecordInput, nextStep: AnyRecord): void;
-  triggerPreSaveTransitionWorkflowTriggers(oid: string, record: RecordInput, recordType: Record<string, unknown>, nextStep: AnyRecord, user: Record<string, unknown>): Promise<RecordInput>;
-  triggerPostSaveTransitionWorkflowTriggers(oid: string, record: RecordInput, recordType: unknown, nextStep: AnyRecord, user: Record<string, unknown>, response: unknown): unknown;
-  getAttachments(oid: string, labelFilterStr?: string, requestContext?: DatastreamRequestContext): Promise<Record<string, unknown>[]>;
-  getDeletedRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown): Promise<StorageServiceResponse>;
+  triggerPreSaveTransitionWorkflowTriggers(
+    oid: string,
+    record: RecordInput,
+    recordType: Record<string, unknown>,
+    nextStep: AnyRecord,
+    user: Record<string, unknown>
+  ): Promise<RecordInput>;
+  triggerPostSaveTransitionWorkflowTriggers(
+    oid: string,
+    record: RecordInput,
+    recordType: unknown,
+    nextStep: AnyRecord,
+    user: Record<string, unknown>,
+    response: unknown
+  ): unknown;
+  getAttachments(
+    oid: string,
+    labelFilterStr?: string,
+    requestContext?: DatastreamRequestContext
+  ): Promise<Record<string, unknown>[]>;
+  cleanupAbandonedAttachmentStaging(now?: Date): Promise<{
+    claimed: number;
+    removed: number;
+    retained: number;
+    failed: number;
+  }>;
+  getDeletedRecords(
+    workflowState: unknown,
+    recordType: unknown,
+    start: unknown,
+    rows: unknown,
+    username: unknown,
+    roles: AnyRecord[],
+    brand: unknown,
+    editAccessOnly: unknown,
+    packageType: unknown,
+    sort: unknown,
+    fieldNames?: unknown,
+    filterString?: unknown,
+    filterMode?: unknown
+  ): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
-  getRecords(workflowState: unknown, recordType: unknown, start: unknown, rows: unknown, username: unknown, roles: AnyRecord[], brand: unknown, editAccessOnly: unknown, packageType: unknown, sort: unknown, fieldNames?: unknown, filterString?: unknown, filterMode?: unknown, secondarySort?: unknown): Promise<StorageServiceResponse>;
-  create(brand: unknown, record: RecordInput, recordType: unknown, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, context?: RecordSaveContext): Promise<RecordSaveResponse>;
-  updateMeta(brand: unknown, oid: string, record: RecordInput, user?: UserInput, triggerPreSaveTriggers?: boolean, triggerPostSaveTriggers?: boolean, targetStep?: unknown, metadata?: AnyRecord, context?: RecordSaveContext): Promise<RecordSaveResponse>;
-  delete(oid: string, permanentlyDelete: boolean, record: RecordInput, recordType: unknown, user: UserInput): Promise<StorageServiceResponse>;
+  getRecords(
+    workflowState: unknown,
+    recordType: unknown,
+    start: unknown,
+    rows: unknown,
+    username: unknown,
+    roles: AnyRecord[],
+    brand: unknown,
+    editAccessOnly: unknown,
+    packageType: unknown,
+    sort: unknown,
+    fieldNames?: unknown,
+    filterString?: unknown,
+    filterMode?: unknown,
+    secondarySort?: unknown
+  ): Promise<StorageServiceResponse>;
+  create(
+    brand: unknown,
+    record: RecordInput,
+    recordType: unknown,
+    user?: UserInput,
+    triggerPreSaveTriggers?: boolean,
+    triggerPostSaveTriggers?: boolean,
+    targetStep?: unknown,
+    context?: RecordSaveContext
+  ): Promise<RecordSaveResponse>;
+  updateMeta(
+    brand: unknown,
+    oid: string,
+    record: RecordInput,
+    user?: UserInput,
+    triggerPreSaveTriggers?: boolean,
+    triggerPostSaveTriggers?: boolean,
+    targetStep?: unknown,
+    metadata?: AnyRecord,
+    context?: RecordSaveContext
+  ): Promise<RecordSaveResponse>;
+  updateMetaInternal(options: InternalRecordSnapshotSaveOptions): Promise<RecordSaveResponse>;
+  mutateMetaInternal(options: InternalRecomputableMutationOptions): Promise<RecordSaveResponse>;
+  delete(
+    oid: string,
+    permanentlyDelete: boolean,
+    record: RecordInput,
+    recordType: unknown,
+    user: UserInput
+  ): Promise<StorageServiceResponse>;
   destroyDeletedRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
   getMeta(oid: string): Promise<RecordModel>;
+  /** The sole authoritative form-contract fingerprint used by form delivery and every save. */
+  getRecordFormFingerprint(
+    record: RecordInput,
+    recordType: Record<string, unknown>,
+    targetStep?: unknown
+  ): Promise<string | undefined>;
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
   restoreRecord(oid: unknown, user: UserInput): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: string): Promise<RecordModel | null>;
   getRecordAudit(params: unknown): Promise<Record<string, unknown>[]>;
-  getRelatedRecords(oid: unknown, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordRelationshipGraph>;
-  getMetaWithRelationships(oid: string, brand: unknown, options?: RecordRelationshipExpandOptions): Promise<RecordMetaWithRelationships>;
-  exportAllPlans(username: unknown, roles: AnyRecord[], brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): unknown;
+  getRelatedRecords(
+    oid: unknown,
+    brand: unknown,
+    options?: RecordRelationshipExpandOptions
+  ): Promise<RecordRelationshipGraph>;
+  getMetaWithRelationships(
+    oid: string,
+    brand: unknown,
+    options?: RecordRelationshipExpandOptions
+  ): Promise<RecordMetaWithRelationships>;
+  exportAllPlans(
+    username: unknown,
+    roles: AnyRecord[],
+    brand: unknown,
+    format: unknown,
+    modBefore: unknown,
+    modAfter: unknown,
+    recType: unknown
+  ): unknown;
   bootstrapData(): Promise<void>;
   // Probably to be retired or reimplemented in a different service
   checkRedboxRunning(): Promise<unknown>;

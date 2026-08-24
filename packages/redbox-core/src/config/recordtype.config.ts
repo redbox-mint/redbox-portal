@@ -6,58 +6,77 @@
  */
 
 import type { ActionExecutionPolicy } from '../action-execution/types';
-import type { ValidationMode, ValidationOperationOverride } from '@researchdatabox/sails-ng-common';
+import type {
+  RecordConcurrentModificationConfig,
+  ValidationMode,
+  ValidationOperationOverride,
+} from '@researchdatabox/sails-ng-common';
+
+// Re-exported for configuration authors typing `sails.config.recordtype`.
+// The runtime guards live on the package index, beside the other shared
+// record-save contracts.
+export type {
+  RecordConcurrentModificationConfig,
+  RecordConcurrentModificationMode,
+} from '@researchdatabox/sails-ng-common';
 
 export interface RecordHookOptions {
-    [key: string]: unknown;
+  [key: string]: unknown;
 }
 
 export interface RecordHookDefinition {
-    id?: string;
-    function: string;
-    options?: RecordHookOptions;
-    execution?: ActionExecutionPolicy;
+  id?: string;
+  function: string;
+  options?: RecordHookOptions;
+  execution?: ActionExecutionPolicy;
 }
 
 export interface RecordHookModeConfig {
-    pre?: RecordHookDefinition[];
-    post?: RecordHookDefinition[];
-    postSync?: RecordHookDefinition[];
+  /**
+   * Runs before the authoritative storage CAS. Implementations must therefore
+   * be side-effect-free or independently idempotent: a later CAS loss means
+   * the candidate is not persisted and core cannot roll external work back.
+   */
+  pre?: RecordHookDefinition[];
+  /** Runs only after primary persistence has been confirmed. */
+  post?: RecordHookDefinition[];
+  /** Runs after primary persistence; returned record changes use chained CAS. */
+  postSync?: RecordHookDefinition[];
 }
 
 export interface RecordHooksConfig {
-    onCreate?: RecordHookModeConfig;
-    onUpdate?: RecordHookModeConfig;
-    onDelete?: RecordHookModeConfig;
-    onTransitionWorkflow?: RecordHookModeConfig;
+  onCreate?: RecordHookModeConfig;
+  onUpdate?: RecordHookModeConfig;
+  onDelete?: RecordHookModeConfig;
+  onTransitionWorkflow?: RecordHookModeConfig;
 }
 
 export interface RecordRelation {
-    id?: string;
-    label?: string;
-    recordType: string;
-    localField?: string;
-    foreignField: string;
-    cardinality?: 'one' | 'many';
-    direction?: 'outbound' | 'inbound';
-    formHints?: {
-        componentNames?: string[];
-        sourceField?: string;
-        targetField?: string;
-        inferWhen?: 'missingConfigOnly' | 'always';
-    };
-    dashboard?: {
-        rowLevel?: number;
-        compareField?: string;
-    };
-    includeByDefault?: boolean;
+  id?: string;
+  label?: string;
+  recordType: string;
+  localField?: string;
+  foreignField: string;
+  cardinality?: 'one' | 'many';
+  direction?: 'outbound' | 'inbound';
+  formHints?: {
+    componentNames?: string[];
+    sourceField?: string;
+    targetField?: string;
+    inferWhen?: 'missingConfigOnly' | 'always';
+  };
+  dashboard?: {
+    rowLevel?: number;
+    compareField?: string;
+  };
+  includeByDefault?: boolean;
 }
 
 export interface NormalizedRecordRelation extends RecordRelation {
-    id: string;
-    localField: string;
-    cardinality: 'one' | 'many';
-    direction: 'outbound' | 'inbound';
+  id: string;
+  localField: string;
+  cardinality: 'one' | 'many';
+  direction: 'outbound' | 'inbound';
 }
 
 export const DEFAULT_RECORD_RELATION_LOCAL_FIELD = 'redboxOid' as const;
@@ -65,145 +84,147 @@ export const DEFAULT_RECORD_RELATION_CARDINALITY = 'many' as const;
 export const DEFAULT_RECORD_RELATION_DIRECTION = 'outbound' as const;
 
 function normalizeRelationIdPart(value: string): string {
-    const input = String(value ?? '').trim();
-    let normalized = '';
-    let lastWasUnderscore = false;
+  const input = String(value ?? '').trim();
+  let normalized = '';
+  let lastWasUnderscore = false;
 
-    for (const char of input) {
-        const isAlphaNumeric =
-            (char >= 'a' && char <= 'z') ||
-            (char >= 'A' && char <= 'Z') ||
-            (char >= '0' && char <= '9');
+  for (const char of input) {
+    const isAlphaNumeric = (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9');
 
-        if (isAlphaNumeric) {
-            normalized += char;
-            lastWasUnderscore = false;
-            continue;
-        }
-
-        if (!lastWasUnderscore) {
-            normalized += '_';
-            lastWasUnderscore = true;
-        }
+    if (isAlphaNumeric) {
+      normalized += char;
+      lastWasUnderscore = false;
+      continue;
     }
 
-    let start = 0;
-    let end = normalized.length;
-    while (start < end && normalized[start] === '_') {
-        start += 1;
+    if (!lastWasUnderscore) {
+      normalized += '_';
+      lastWasUnderscore = true;
     }
-    while (end > start && normalized[end - 1] === '_') {
-        end -= 1;
-    }
+  }
 
-    const trimmed = normalized.slice(start, end);
-    return trimmed || 'relationship';
+  let start = 0;
+  let end = normalized.length;
+  while (start < end && normalized[start] === '_') {
+    start += 1;
+  }
+  while (end > start && normalized[end - 1] === '_') {
+    end -= 1;
+  }
+
+  const trimmed = normalized.slice(start, end);
+  return trimmed || 'relationship';
 }
 
 export function buildRecordRelationId(sourceRecordType: string, relation: RecordRelation): string {
-    const explicitId = String(relation.id ?? '').trim();
-    if (explicitId) {
-        return explicitId;
-    }
+  const explicitId = String(relation.id ?? '').trim();
+  if (explicitId) {
+    return explicitId;
+  }
 
-    return [
-        normalizeRelationIdPart(sourceRecordType),
-        normalizeRelationIdPart(String(relation.recordType ?? '')),
-        normalizeRelationIdPart(String(relation.foreignField ?? '')),
-    ].join('__');
+  return [
+    normalizeRelationIdPart(sourceRecordType),
+    normalizeRelationIdPart(String(relation.recordType ?? '')),
+    normalizeRelationIdPart(String(relation.foreignField ?? '')),
+  ].join('__');
 }
 
 export function normalizeRecordRelation(sourceRecordType: string, relation: RecordRelation): NormalizedRecordRelation {
-    const recordType = String(relation.recordType ?? '').trim();
-    const foreignField = String(relation.foreignField ?? '').trim();
-    if (!recordType) {
-        throw new Error(`Record relation for '${sourceRecordType}' is missing 'recordType'.`);
-    }
-    if (!foreignField) {
-        throw new Error(`Record relation '${recordType}' for '${sourceRecordType}' is missing 'foreignField'.`);
-    }
+  const recordType = String(relation.recordType ?? '').trim();
+  const foreignField = String(relation.foreignField ?? '').trim();
+  if (!recordType) {
+    throw new Error(`Record relation for '${sourceRecordType}' is missing 'recordType'.`);
+  }
+  if (!foreignField) {
+    throw new Error(`Record relation '${recordType}' for '${sourceRecordType}' is missing 'foreignField'.`);
+  }
 
-    const localField = String(relation.localField ?? DEFAULT_RECORD_RELATION_LOCAL_FIELD).trim() || DEFAULT_RECORD_RELATION_LOCAL_FIELD;
-    const cardinality = relation.cardinality === 'one' ? 'one' : DEFAULT_RECORD_RELATION_CARDINALITY;
-    const direction = relation.direction === 'inbound' ? 'inbound' : DEFAULT_RECORD_RELATION_DIRECTION;
+  const localField =
+    String(relation.localField ?? DEFAULT_RECORD_RELATION_LOCAL_FIELD).trim() || DEFAULT_RECORD_RELATION_LOCAL_FIELD;
+  const cardinality = relation.cardinality === 'one' ? 'one' : DEFAULT_RECORD_RELATION_CARDINALITY;
+  const direction = relation.direction === 'inbound' ? 'inbound' : DEFAULT_RECORD_RELATION_DIRECTION;
 
-    return {
-        ...relation,
-        id: buildRecordRelationId(sourceRecordType, relation),
-        recordType,
-        localField,
-        foreignField,
-        cardinality,
-        direction,
-    };
+  return {
+    ...relation,
+    id: buildRecordRelationId(sourceRecordType, relation),
+    recordType,
+    localField,
+    foreignField,
+    cardinality,
+    direction,
+  };
 }
 
 export function normalizeRecordRelations(sourceRecordType: string, relations: unknown): NormalizedRecordRelation[] {
-    if (!Array.isArray(relations)) {
-        return [];
-    }
+  if (!Array.isArray(relations)) {
+    return [];
+  }
 
-    return relations.map((relation) => normalizeRecordRelation(sourceRecordType, relation as RecordRelation));
+  return relations.map(relation => normalizeRecordRelation(sourceRecordType, relation as RecordRelation));
 }
 
-export function findNormalizedRecordRelation(sourceRecordType: string, relations: unknown, relationId: string): NormalizedRecordRelation | undefined {
-    const normalizedRelationId = String(relationId ?? '').trim();
-    if (!normalizedRelationId) {
-        return undefined;
-    }
+export function findNormalizedRecordRelation(
+  sourceRecordType: string,
+  relations: unknown,
+  relationId: string
+): NormalizedRecordRelation | undefined {
+  const normalizedRelationId = String(relationId ?? '').trim();
+  if (!normalizedRelationId) {
+    return undefined;
+  }
 
-    return normalizeRecordRelations(sourceRecordType, relations)
-        .find((relation) => relation.id === normalizedRelationId);
+  return normalizeRecordRelations(sourceRecordType, relations).find(relation => relation.id === normalizedRelationId);
 }
 
 export interface TransferResponsibilityField {
-    label: string;
-    updateField?: string;
-    updateAlso?: string[];
-    fieldNames?: Record<string, string>;
+  label: string;
+  updateField?: string;
+  updateAlso?: string[];
+  fieldNames?: Record<string, string>;
 }
 
 export interface TransferResponsibilityConfig {
-    fields: Record<string, TransferResponsibilityField>;
-    canEdit: Record<string, string[]>;
+  fields: Record<string, TransferResponsibilityField>;
+  canEdit: Record<string, string[]>;
 }
 
 export interface SearchFilterConfig {
-    name: string;
-    title: string;
-    type: 'exact' | 'facet';
-    typeLabel: string | null;
-    alwaysActive?: boolean;
+  name: string;
+  title: string;
+  type: 'exact' | 'facet';
+  typeLabel: string | null;
+  alwaysActive?: boolean;
 }
 
 export interface RecordTypeLabels {
-    name: string;
-    namePlural: string;
+  name: string;
+  namePlural: string;
 }
 
 /** Record-type validation policy layered over form operation defaults. */
 export interface RecordTypeValidationConfig {
-    /** Rollout mode for this record type. */
-    mode?: ValidationMode;
-    /** Per-operation replacement/restriction values. */
-    operations?: Record<string, ValidationOperationOverride>;
+  /** Rollout mode for this record type. */
+  mode?: ValidationMode;
+  /** Per-operation replacement/restriction values. */
+  operations?: Record<string, ValidationOperationOverride>;
 }
 
 export interface RecordTypeDefinition {
-    packageType: string;
-    packageName?: string;
-    searchable?: boolean;
-    labels?: RecordTypeLabels;
-    hooks?: RecordHooksConfig;
-    relatedTo?: RecordRelation[];
-    transferResponsibility?: TransferResponsibilityConfig;
-    searchFilters?: SearchFilterConfig[];
-    dashboard?: Record<string, unknown>;
-    recordValidation?: RecordTypeValidationConfig;
+  packageType: string;
+  packageName?: string;
+  searchable?: boolean;
+  labels?: RecordTypeLabels;
+  hooks?: RecordHooksConfig;
+  relatedTo?: RecordRelation[];
+  transferResponsibility?: TransferResponsibilityConfig;
+  searchFilters?: SearchFilterConfig[];
+  dashboard?: Record<string, unknown>;
+  recordValidation?: RecordTypeValidationConfig;
+  concurrentModification?: RecordConcurrentModificationConfig;
 }
 
 export interface RecordTypeConfig {
-    [recordTypeName: string]: RecordTypeDefinition;
+  [recordTypeName: string]: RecordTypeDefinition;
 }
 
 /**

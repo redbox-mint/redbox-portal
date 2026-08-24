@@ -1,13 +1,13 @@
-import { APP_BASE_HREF } from "@angular/common";
-import { HttpClientTestingModule, HttpTestingController } from "@angular/common/http/testing";
-import { TestBed } from "@angular/core/testing";
-import { ConfigService } from "./config.service";
-import { getStubConfigService } from "./helper.spec";
-import { LoggerService } from "./logger.service";
-import { RecordActionResult, RecordService } from "./record.service";
-import { UtilityService } from "./utility.service";
+import { APP_BASE_HREF } from '@angular/common';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { ConfigService } from './config.service';
+import { getStubConfigService } from './helper.spec';
+import { LoggerService } from './logger.service';
+import { RecordActionResult, RecordService } from './record.service';
+import { UtilityService } from './utility.service';
 
-describe("RecordService", () => {
+describe('RecordService', () => {
   let httpTestingController: HttpTestingController;
   let recordService: RecordService;
 
@@ -17,16 +17,16 @@ describe("RecordService", () => {
       providers: [
         {
           provide: APP_BASE_HREF,
-          useValue: "base"
+          useValue: 'base',
         },
         {
           provide: ConfigService,
-          useValue: getStubConfigService()
+          useValue: getStubConfigService(),
         },
         LoggerService,
         UtilityService,
-        RecordService
-      ]
+        RecordService,
+      ],
     });
 
     httpTestingController = TestBed.inject(HttpTestingController);
@@ -39,209 +39,289 @@ describe("RecordService", () => {
     httpTestingController.verify();
   });
 
-  it("creates a UUID save request header", async () => {
-    const createPromise = recordService.create({ title: "Test record" }, "rdmp");
+  it('creates a UUID save request header', async () => {
+    const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
-    const requestId = request.request.headers.get("X-ReDBox-Save-Request-Id");
+    const requestId = request.request.headers.get('X-ReDBox-Save-Request-Id');
 
-    expect(request.request.method).toBe("POST");
+    expect(request.request.method).toBe('POST');
     expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 
-    request.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
-    await expectAsync(createPromise).toBeResolvedTo(jasmine.objectContaining({
-      outcome: "saved",
-      oid: "oid-123"
-    }));
+    request.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-123' } });
+    await expectAsync(createPromise).toBeResolvedTo(
+      jasmine.objectContaining({
+        outcome: 'saved',
+        oid: 'oid-123',
+      })
+    );
   });
 
-  it("requests API v2 and keeps the CSRF context on saves", async () => {
-    const updatePromise = recordService.update("oid-123", { title: "Test record" });
+  it('requests API v2 and keeps the CSRF context on saves', async () => {
+    const updatePromise = recordService.update('oid-123', { title: 'Test record' });
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
 
-    expect(request.request.method).toBe("PUT");
-    expect(request.request.headers.get("X-ReDBox-Api-Version")).toBe("2.0");
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
     expect(request.request.context).toBeTruthy();
 
-    request.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    request.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-123' } });
     await updatePromise;
   });
 
-  it("sends operation intent on create, update, and target-step transition requests", async () => {
-    const createPromise = recordService.create({ title: "Draft" }, "rdmp", "", "draft");
-    const createRequest = httpTestingController.expectOne(request =>
-      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/rdmp` &&
-      request.params.get("operation") === "draft" &&
-      !request.params.has("targetStep")
+  it('sends operation intent on create, update, and target-step transition requests', async () => {
+    const createPromise = recordService.create({ title: 'Draft' }, 'rdmp', '', 'draft');
+    const createRequest = httpTestingController.expectOne(
+      request =>
+        request.url === `${recordService.brandingAndPortalUrl}/recordmeta/rdmp` &&
+        request.params.get('operation') === 'draft' &&
+        !request.params.has('targetStep')
     );
-    expect(createRequest.request.method).toBe("POST");
-    expect(createRequest.request.params.keys()).toEqual(["operation"]);
-    createRequest.flush({ meta: { outcome: "saved", success: true, oid: "oid-created" } });
+    expect(createRequest.request.method).toBe('POST');
+    expect(createRequest.request.params.keys()).toEqual(['operation']);
+    createRequest.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-created' } });
     await createPromise;
 
-    const updatePromise = recordService.update("oid-123", { title: "Saved" }, "", "save");
-    const updateRequest = httpTestingController.expectOne(request =>
-      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
-      request.params.get("operation") === "save" &&
-      !request.params.has("targetStep")
+    const updatePromise = recordService.update('oid-123', { title: 'Saved' }, '', 'save');
+    const updateRequest = httpTestingController.expectOne(
+      request =>
+        request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
+        request.params.get('operation') === 'save' &&
+        !request.params.has('targetStep')
     );
-    expect(updateRequest.request.method).toBe("PUT");
-    updateRequest.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    expect(updateRequest.request.method).toBe('PUT');
+    updateRequest.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-123' } });
     await updatePromise;
 
-    const transitionPromise = recordService.update(
-      "oid-123",
-      { title: "Submitted" },
-      "review",
-      "submit"
+    const transitionPromise = recordService.update('oid-123', { title: 'Submitted' }, 'review', 'submit');
+    const transitionRequest = httpTestingController.expectOne(
+      request =>
+        request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
+        request.params.get('targetStep') === 'review' &&
+        request.params.get('operation') === 'submit'
     );
-    const transitionRequest = httpTestingController.expectOne(request =>
-      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
-      request.params.get("targetStep") === "review" &&
-      request.params.get("operation") === "submit"
-    );
-    expect(transitionRequest.request.method).toBe("PUT");
-    expect(transitionRequest.request.params.has("enabledValidationGroups")).toBeFalse();
-    transitionRequest.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    expect(transitionRequest.request.method).toBe('PUT');
+    expect(transitionRequest.request.params.has('enabledValidationGroups')).toBeFalse();
+    transitionRequest.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-123' } });
     await transitionPromise;
   });
 
-  it("keeps no-operation save requests compatible", async () => {
-    const updatePromise = recordService.update("oid-123", { title: "Legacy" }, "review");
-    const request = httpTestingController.expectOne(request =>
-      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
-      request.params.get("targetStep") === "review" &&
-      !request.params.has("operation")
+  it('keeps no-operation save requests compatible', async () => {
+    const updatePromise = recordService.update('oid-123', { title: 'Legacy' }, 'review');
+    const request = httpTestingController.expectOne(
+      request =>
+        request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123` &&
+        request.params.get('targetStep') === 'review' &&
+        !request.params.has('operation')
     );
-    expect(request.request.method).toBe("PUT");
-    expect(request.request.params.has("operation")).toBeFalse();
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.params.has('operation')).toBeFalse();
 
-    request.flush({ meta: { outcome: "saved", success: true, oid: "oid-123" } });
+    request.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-123' } });
     await updatePromise;
   });
 
-  it("normalises a persisted warning without losing the oid", async () => {
-    const updatePromise = recordService.update("oid-123", { title: "Test record" });
+  it('normalises a persisted warning without losing the oid', async () => {
+    const updatePromise = recordService.update('oid-123', { title: 'Test record' });
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
     request.flush({
-      data: { oid: "oid-123" },
+      data: { oid: 'oid-123' },
       meta: {
-        outcome: "saved-with-warnings",
+        outcome: 'saved-with-warnings',
         success: true,
-        oid: "oid-123",
-        requestId: "11111111-1111-4111-8111-111111111111",
-        problems: [{ kind: "processing", phase: "post-save", issues: [{ message: "hook failed" }] }],
-        completion: { attachments: { status: "incomplete", items: [] } },
+        oid: 'oid-123',
+        requestId: '11111111-1111-4111-8111-111111111111',
+        problems: [{ kind: 'processing', phase: 'post-save', issues: [{ message: 'hook failed' }] }],
+        completion: { attachments: { status: 'incomplete', items: [] } },
       },
     });
 
     const result = await updatePromise;
-    expect(result.outcome).toBe("saved-with-warnings");
+    expect(result.outcome).toBe('saved-with-warnings');
     expect(result.wasPersisted()).toBeTrue();
     expect(result.isComplete()).toBeFalse();
-    expect(result.oid).toBe("oid-123");
-    expect(result.requestId).toBe("11111111-1111-4111-8111-111111111111");
+    expect(result.oid).toBe('oid-123');
+    expect(result.requestId).toBe('11111111-1111-4111-8111-111111111111');
     expect(result.problems.length).toBe(1);
   });
 
-  it("synthesises a confirmed non-save for a policy-level 403", async () => {
-    const createPromise = recordService.create({ title: "Test record" }, "rdmp");
-    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
-    request.flush({ errors: [{ detail: "Not allowed" }] }, { status: 403, statusText: "Forbidden" });
+  it('normalises only bounded concurrency result metadata', async () => {
+    const updatePromise = recordService.update('oid-123', { title: 'Test record' });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+    request.flush({
+      meta: {
+        outcome: 'saved',
+        success: true,
+        oid: 'oid-123',
+        concurrency: {
+          mode: 'strict',
+          revision: 9,
+          entityTag: `"rb-record-v1.9.${'a'.repeat(43)}"`,
+          formFingerprint: 'sha256:form_1',
+          resolution: 'direct',
+          resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+          rawRequest: { authorization: 'secret' },
+        },
+      },
+    });
 
-    const result = await createPromise;
-    expect(result.outcome).toBe("not-saved");
-    expect(result.wasPersisted()).toBeFalse();
-    expect(result.problems[0].kind).toBe("authorization");
-    expect(result.problems[0].issues[0].message).toBe("Not allowed");
+    const result = await updatePromise;
+    expect(result.outcome).toBe('saved');
+    expect(result.concurrency).toEqual({
+      mode: 'strict',
+      revision: 9,
+      entityTag: `"rb-record-v1.9.${'a'.repeat(43)}"`,
+      formFingerprint: 'sha256:form_1',
+      resolution: 'direct',
+      resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+    });
+    expect(JSON.stringify(result.concurrency)).not.toContain('secret');
   });
 
-  it("maps a validation 400 onto safe field issues", async () => {
-    const createPromise = recordService.create({ title: "Test record" }, "rdmp");
+  it('keeps untyped precondition rejections unknown', async () => {
+    for (const status of [409, 412, 428]) {
+      const updatePromise = recordService.update('oid-123', { title: 'Test record' });
+      const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+      request.flush(
+        { errors: [{ code: 'record-revision-stale', detail: 'The record changed.' }] },
+        { status, statusText: 'Conflict' }
+      );
+
+      const result = await updatePromise;
+      expect(result.outcome).toBe('unknown');
+      expect(result.problems.length).toBe(1);
+      expect(result.problems[0].kind).toBe('system');
+      expect(result.problems[0].phase).toBe('transport');
+      expect(result.problems[0].issues[0].code).toBe('record-revision-stale');
+    }
+  });
+
+  it('keeps a typed conflict envelope verbatim rather than re-deriving it from the status', async () => {
+    const updatePromise = recordService.update('oid-123', { title: 'Test record' });
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+    request.flush(
+      {
+        errors: [{ code: 'record-revision-stale', detail: 'The record changed.' }],
+        meta: {
+          outcome: 'not-saved',
+          success: false,
+          oid: 'oid-123',
+          problems: [
+            { kind: 'conflict', phase: 'persistence', issues: [{ code: 'record-revision-stale', message: 'stale' }] },
+          ],
+          concurrency: { mode: 'strict', expectedRevision: 7, currentRevision: 9 },
+        },
+      },
+      { status: 412, statusText: 'Precondition Failed' }
+    );
+
+    const result = await updatePromise;
+    expect(result.outcome).toBe('not-saved');
+    expect(result.problems[0].phase).toBe('persistence');
+    expect(result.concurrency).toEqual({ mode: 'strict', expectedRevision: 7, currentRevision: 9 });
+  });
+
+  it('synthesises a confirmed non-save for a policy-level 403', async () => {
+    const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
+    request.flush({ errors: [{ detail: 'Not allowed' }] }, { status: 403, statusText: 'Forbidden' });
+
+    const result = await createPromise;
+    expect(result.outcome).toBe('not-saved');
+    expect(result.wasPersisted()).toBeFalse();
+    expect(result.problems[0].kind).toBe('authorization');
+    expect(result.problems[0].issues[0].message).toBe('Not allowed');
+  });
+
+  it('maps a validation 400 onto safe field issues', async () => {
+    const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
     request.flush(
-      { errors: [{ detail: "Title is required", code: "required", source: { pointer: "/metadata/title" } }] },
-      { status: 400, statusText: "Bad Request" }
+      { errors: [{ detail: 'Title is required', code: 'required', source: { pointer: '/metadata/title' } }] },
+      { status: 400, statusText: 'Bad Request' }
     );
 
     const result = await createPromise;
-    expect(result.outcome).toBe("not-saved");
-    expect(result.problems[0].kind).toBe("validation");
-    expect(result.problems[0].issues[0].pointer).toBe("/metadata/title");
-    expect(result.problems[0].issues[0].code).toBe("required");
+    expect(result.outcome).toBe('not-saved');
+    expect(result.problems[0].kind).toBe('validation');
+    expect(result.problems[0].issues[0].pointer).toBe('/metadata/title');
+    expect(result.problems[0].issues[0].code).toBe('required');
   });
 
-  it("preserves safe validator ownership and lineage from validation errors", async () => {
-    const createPromise = recordService.create({ title: "Test record" }, "rdmp", "", "submit");
-    const request = httpTestingController.expectOne(request =>
-      request.url === `${recordService.brandingAndPortalUrl}/recordmeta/rdmp` &&
-      request.params.get("operation") === "submit"
+  it('preserves safe validator ownership and lineage from validation errors', async () => {
+    const createPromise = recordService.create({ title: 'Test record' }, 'rdmp', '', 'submit');
+    const request = httpTestingController.expectOne(
+      request =>
+        request.url === `${recordService.brandingAndPortalUrl}/recordmeta/rdmp` &&
+        request.params.get('operation') === 'submit'
     );
     request.flush(
       {
-        errors: [{
-          detail: "@validator-error-required",
-          code: "record-validation-failed",
-          class: "required",
-          params: { required: true },
-          targetField: { dataModel: ["title"] },
-          lineagePaths: {
-            dataModel: ["contributors", 0, "name"],
-            angularComponents: ["contributors", 0, "name"],
+        errors: [
+          {
+            detail: '@validator-error-required',
+            code: 'record-validation-failed',
+            class: 'required',
+            params: { required: true },
+            targetField: { dataModel: ['title'] },
+            lineagePaths: {
+              dataModel: ['contributors', 0, 'name'],
+              angularComponents: ['contributors', 0, 'name'],
+            },
+            rawException: 'must not survive',
           },
-          rawException: "must not survive",
-        }],
+        ],
       },
-      { status: 400, statusText: "Bad Request" }
+      { status: 400, statusText: 'Bad Request' }
     );
 
     const issue = (await createPromise).problems[0].issues[0];
     expect(issue).toEqual({
-      message: "@validator-error-required",
-      code: "record-validation-failed",
-      class: "required",
+      message: '@validator-error-required',
+      code: 'record-validation-failed',
+      class: 'required',
       params: { required: true },
-      targetField: { dataModel: ["title"] },
+      targetField: { dataModel: ['title'] },
       lineagePaths: {
-        dataModel: ["contributors", 0, "name"],
-        angularComponents: ["contributors", 0, "name"],
+        dataModel: ['contributors', 0, 'name'],
+        angularComponents: ['contributors', 0, 'name'],
       },
     });
-    expect(JSON.stringify(issue)).not.toContain("must not survive");
+    expect(JSON.stringify(issue)).not.toContain('must not survive');
   });
 
-  it("keeps a dispatched save uncertain when the response cannot be interpreted", async () => {
+  it('keeps a dispatched save uncertain when the response cannot be interpreted', async () => {
     const requestIds: string[] = [];
 
-    const networkPromise = recordService.create({ title: "Test record" }, "rdmp");
+    const networkPromise = recordService.create({ title: 'Test record' }, 'rdmp');
     const networkRequest = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
-    requestIds.push(networkRequest.request.headers.get("X-ReDBox-Save-Request-Id")!);
-    networkRequest.error(new ProgressEvent("network error"));
+    requestIds.push(networkRequest.request.headers.get('X-ReDBox-Save-Request-Id')!);
+    networkRequest.error(new ProgressEvent('network error'));
     const networkResult = await networkPromise;
-    expect(networkResult.outcome).toBe("unknown");
-    expect(networkResult.problems[0].kind).toBe("network");
+    expect(networkResult.outcome).toBe('unknown');
+    expect(networkResult.problems[0].kind).toBe('network');
     expect(networkResult.requestId).toBe(requestIds[0]);
 
-    const serverPromise = recordService.create({ title: "Test record" }, "rdmp");
+    const serverPromise = recordService.create({ title: 'Test record' }, 'rdmp');
     const serverRequest = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
-    requestIds.push(serverRequest.request.headers.get("X-ReDBox-Save-Request-Id")!);
-    serverRequest.flush("gateway exploded", { status: 502, statusText: "Bad Gateway" });
+    requestIds.push(serverRequest.request.headers.get('X-ReDBox-Save-Request-Id')!);
+    serverRequest.flush('gateway exploded', { status: 502, statusText: 'Bad Gateway' });
     const serverResult = await serverPromise;
     // A 5xx without a typed result proves nothing about persistence.
-    expect(serverResult.outcome).toBe("unknown");
-    expect(serverResult.problems[0].kind).toBe("system");
+    expect(serverResult.outcome).toBe('unknown');
+    expect(serverResult.problems[0].kind).toBe('system');
 
     expect(requestIds[0]).not.toBe(requestIds[1]);
   });
 
-  it("treats a legacy success envelope as a complete save", async () => {
-    const updatePromise = recordService.update("oid-123", { title: "Test record" });
+  it('treats a legacy success envelope as a complete save', async () => {
+    const updatePromise = recordService.update('oid-123', { title: 'Test record' });
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
-    request.flush({ success: true, oid: "oid-123", message: "ok" });
+    request.flush({ success: true, oid: 'oid-123', message: 'ok' });
 
     const result = await updatePromise;
-    expect(result.outcome).toBe("saved");
+    expect(result.outcome).toBe('saved');
     expect(result.isComplete()).toBeTrue();
-    expect(result.completion.attachments.status).toBe("completed");
+    expect(result.completion.attachments.status).toBe('completed');
   });
 
   it("normalises a legacy post-save warning as persisted but incomplete", () => {
@@ -315,231 +395,293 @@ describe("RecordService", () => {
     const attachmentsPromise = recordService.getAttachments("oid-123");
 
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/oid-123/attachments`);
-    expect(request.request.method).toBe("GET");
+    expect(request.request.method).toBe('GET');
     request.flush({
-      data: [
-        { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" }
-      ]
+      data: [{ label: 'rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf', dateUpdated: '2024-03-01T09:00:00Z' }],
     });
 
     await expectAsync(attachmentsPromise).toBeResolvedTo([
-      { label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-03-01T09:00:00Z" }
+      { label: 'rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf', dateUpdated: '2024-03-01T09:00:00Z' },
     ]);
   });
 
-  it("accepts attachment responses returned as a raw array", async () => {
-    const attachmentsPromise = recordService.getAttachments("oid-456");
+  it('accepts attachment responses returned as a raw array', async () => {
+    const attachmentsPromise = recordService.getAttachments('oid-456');
 
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/oid-456/attachments`);
-    expect(request.request.method).toBe("GET");
-    request.flush([
-      { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-03-02T09:00:00Z" }
-    ]);
+    expect(request.request.method).toBe('GET');
+    request.flush([{ label: 'rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf', dateUpdated: '2024-03-02T09:00:00Z' }]);
 
     await expectAsync(attachmentsPromise).toBeResolvedTo([
-      { label: "rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf", dateUpdated: "2024-03-02T09:00:00Z" }
+      { label: 'rdmp-pdf-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2.pdf', dateUpdated: '2024-03-02T09:00:00Z' },
     ]);
   });
 
-  it("unwraps record audit tab responses", async () => {
-    const auditPromise = recordService.getRecordAuditTab("oid-789");
+  it('unwraps record audit tab responses', async () => {
+    const auditPromise = recordService.getRecordAuditTab('oid-789');
 
-    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/viewAudit/oid-789/audit`);
-    expect(request.request.method).toBe("GET");
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-789/audit`
+    );
+    expect(request.request.method).toBe('GET');
     request.flush({
       data: {
         summary: { returnedCount: 1 },
-        rawAuditUrl: "/default/rdmp/api/records/audit/oid-789",
-        records: [{ id: "audit-1", action: "updated" }]
-      }
+        rawAuditUrl: '/default/rdmp/api/records/audit/oid-789',
+        records: [{ id: 'audit-1', action: 'updated' }],
+      },
     });
 
     await expectAsync(auditPromise).toBeResolvedTo({
       summary: { returnedCount: 1 },
-      rawAuditUrl: "/default/rdmp/api/records/audit/oid-789",
-      records: [{ id: "audit-1", action: "updated" }]
+      rawAuditUrl: '/default/rdmp/api/records/audit/oid-789',
+      records: [{ id: 'audit-1', action: 'updated' }],
     } as any);
   });
 
-  it("accepts record audit tab responses returned without the data envelope", async () => {
-    const auditPromise = recordService.getRecordAuditTab("oid-790");
+  it('accepts record audit tab responses returned without the data envelope', async () => {
+    const auditPromise = recordService.getRecordAuditTab('oid-790');
 
-    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/viewAudit/oid-790/audit`);
-    expect(request.request.method).toBe("GET");
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-790/audit`
+    );
+    expect(request.request.method).toBe('GET');
     request.flush({
       summary: { returnedCount: 1 },
-      rawAuditUrl: "/default/rdmp/api/records/audit/oid-790",
-      records: [{ id: "audit-2", action: "created" }]
+      rawAuditUrl: '/default/rdmp/api/records/audit/oid-790',
+      records: [{ id: 'audit-2', action: 'created' }],
     });
 
     await expectAsync(auditPromise).toBeResolvedTo({
       summary: { returnedCount: 1 },
-      rawAuditUrl: "/default/rdmp/api/records/audit/oid-790",
-      records: [{ id: "audit-2", action: "created" }]
+      rawAuditUrl: '/default/rdmp/api/records/audit/oid-790',
+      records: [{ id: 'audit-2', action: 'created' }],
     } as any);
   });
 
-  it("includes filter query parameters for record audit requests", async () => {
-    const auditPromise = recordService.getRecordAuditTab("oid-791", {
-      dateFrom: "2026-03-01",
-      dateTo: "2026-03-31",
-      action: "updated",
-      workflowState: "Draft"
+  it('includes filter query parameters for record audit requests', async () => {
+    const auditPromise = recordService.getRecordAuditTab('oid-791', {
+      dateFrom: '2026-03-01',
+      dateTo: '2026-03-31',
+      action: 'updated',
+      workflowState: 'Draft',
     });
 
-    const request = httpTestingController.expectOne(req =>
-      req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-791/audit` &&
-      req.params.get("dateFrom") === "2026-03-01" &&
-      req.params.get("dateTo") === "2026-03-31" &&
-      req.params.get("action") === "updated" &&
-      req.params.get("workflowState") === "Draft"
+    const request = httpTestingController.expectOne(
+      req =>
+        req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-791/audit` &&
+        req.params.get('dateFrom') === '2026-03-01' &&
+        req.params.get('dateTo') === '2026-03-31' &&
+        req.params.get('action') === 'updated' &&
+        req.params.get('workflowState') === 'Draft'
     );
-    expect(request.request.method).toBe("GET");
+    expect(request.request.method).toBe('GET');
     request.flush({
       data: {
         summary: { returnedCount: 0 },
-        rawAuditUrl: "/default/rdmp/api/records/audit/oid-791",
-        records: []
-      }
+        rawAuditUrl: '/default/rdmp/api/records/audit/oid-791',
+        records: [],
+      },
     });
 
     await expectAsync(auditPromise).toBeResolvedTo({
       summary: { returnedCount: 0 },
-      rawAuditUrl: "/default/rdmp/api/records/audit/oid-791",
-      records: []
+      rawAuditUrl: '/default/rdmp/api/records/audit/oid-791',
+      records: [],
     } as any);
   });
 
-  it("unwraps record permissions responses", async () => {
-    const permissionsPromise = recordService.getRecordPermissionsTab("oid-321");
+  it('unwraps record permissions responses', async () => {
+    const permissionsPromise = recordService.getRecordPermissionsTab('oid-321');
 
-    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/viewAudit/oid-321/permissions`);
-    expect(request.request.method).toBe("GET");
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-321/permissions`
+    );
+    expect(request.request.method).toBe('GET');
     request.flush({
       data: {
-        edit: [{ username: "editor", name: "Editor", email: "editor@example.com" }],
+        edit: [{ username: 'editor', name: 'Editor', email: 'editor@example.com' }],
         view: [],
-        editPending: ["pending-editor"],
+        editPending: ['pending-editor'],
         viewPending: [],
-        editRoles: ["Admin"],
-        viewRoles: ["Researcher"]
-      }
+        editRoles: ['Admin'],
+        viewRoles: ['Researcher'],
+      },
     });
 
     await expectAsync(permissionsPromise).toBeResolvedTo({
-      edit: [{ username: "editor", name: "Editor", email: "editor@example.com" }],
+      edit: [{ username: 'editor', name: 'Editor', email: 'editor@example.com' }],
       view: [],
-      editPending: ["pending-editor"],
+      editPending: ['pending-editor'],
       viewPending: [],
-      editRoles: ["Admin"],
-      viewRoles: ["Researcher"]
+      editRoles: ['Admin'],
+      viewRoles: ['Researcher'],
     });
   });
 
-  it("accepts record permissions responses returned without the data envelope", async () => {
-    const permissionsPromise = recordService.getRecordPermissionsTab("oid-322");
+  it('accepts record permissions responses returned without the data envelope', async () => {
+    const permissionsPromise = recordService.getRecordPermissionsTab('oid-322');
 
-    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/viewAudit/oid-322/permissions`);
-    expect(request.request.method).toBe("GET");
+    const request = httpTestingController.expectOne(
+      `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-322/permissions`
+    );
+    expect(request.request.method).toBe('GET');
     request.flush({
-      edit: [{ username: "editor", name: "Editor", email: "editor@example.com" }],
+      edit: [{ username: 'editor', name: 'Editor', email: 'editor@example.com' }],
       view: [],
-      editPending: ["pending-editor"],
+      editPending: ['pending-editor'],
       viewPending: [],
-      editRoles: ["Admin"],
-      viewRoles: ["Researcher"]
+      editRoles: ['Admin'],
+      viewRoles: ['Researcher'],
     });
 
     await expectAsync(permissionsPromise).toBeResolvedTo({
-      edit: [{ username: "editor", name: "Editor", email: "editor@example.com" }],
+      edit: [{ username: 'editor', name: 'Editor', email: 'editor@example.com' }],
       view: [],
-      editPending: ["pending-editor"],
+      editPending: ['pending-editor'],
       viewPending: [],
-      editRoles: ["Admin"],
-      viewRoles: ["Researcher"]
+      editRoles: ['Admin'],
+      viewRoles: ['Researcher'],
     });
   });
 
-  it("includes paging query parameters for integration audit requests", async () => {
-    const integrationPromise = recordService.getRecordIntegrationAuditTab("oid-654", {
+  it('includes paging query parameters for integration audit requests', async () => {
+    const integrationPromise = recordService.getRecordIntegrationAuditTab('oid-654', {
       page: 2,
       pageSize: 15,
-      status: "success",
-      integrationName: "figshare",
-      dateFrom: "2026-01-01",
-      dateTo: "2026-01-31"
+      status: 'success',
+      integrationName: 'figshare',
+      dateFrom: '2026-01-01',
+      dateTo: '2026-01-31',
     });
 
-    const request = httpTestingController.expectOne(req =>
-      req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-654/integration-audit` &&
-      req.params.get("page") === "2" &&
-      req.params.get("pageSize") === "15" &&
-      req.params.get("status") === "success" &&
-      req.params.get("integrationName") === "figshare" &&
-      req.params.get("dateFrom") === "2026-01-01" &&
-      req.params.get("dateTo") === "2026-01-31"
+    const request = httpTestingController.expectOne(
+      req =>
+        req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-654/integration-audit` &&
+        req.params.get('page') === '2' &&
+        req.params.get('pageSize') === '15' &&
+        req.params.get('status') === 'success' &&
+        req.params.get('integrationName') === 'figshare' &&
+        req.params.get('dateFrom') === '2026-01-01' &&
+        req.params.get('dateTo') === '2026-01-31'
     );
-    expect(request.request.method).toBe("GET");
+    expect(request.request.method).toBe('GET');
     request.flush({
       data: {
         summary: { numFound: 3, page: 2, pageSize: 15, totalPages: 1 },
-        records: [{
-          id: "trace-1",
-          traceId: "trace-1",
-          startedAt: "2026-01-01T00:00:00Z",
-          status: "success",
-          actions: ["publish"],
-          eventCount: 1,
-          events: [{ id: "integration-1", redboxOid: "oid-654", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-1", spanId: "span-1", depth: 0, hasChildren: false }]
-        }]
-      }
+        records: [
+          {
+            id: 'trace-1',
+            traceId: 'trace-1',
+            startedAt: '2026-01-01T00:00:00Z',
+            status: 'success',
+            actions: ['publish'],
+            eventCount: 1,
+            events: [
+              {
+                id: 'integration-1',
+                redboxOid: 'oid-654',
+                startedAt: '2026-01-01T00:00:00Z',
+                status: 'success',
+                integrationAction: 'publish',
+                traceId: 'trace-1',
+                spanId: 'span-1',
+                depth: 0,
+                hasChildren: false,
+              },
+            ],
+          },
+        ],
+      },
     });
 
     await expectAsync(integrationPromise).toBeResolvedTo({
       summary: { numFound: 3, page: 2, pageSize: 15, totalPages: 1 },
-      records: [{
-        id: "trace-1",
-        traceId: "trace-1",
-        startedAt: "2026-01-01T00:00:00Z",
-        status: "success",
-        actions: ["publish"],
-        eventCount: 1,
-        events: [{ id: "integration-1", redboxOid: "oid-654", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-1", spanId: "span-1", depth: 0, hasChildren: false }]
-      }]
+      records: [
+        {
+          id: 'trace-1',
+          traceId: 'trace-1',
+          startedAt: '2026-01-01T00:00:00Z',
+          status: 'success',
+          actions: ['publish'],
+          eventCount: 1,
+          events: [
+            {
+              id: 'integration-1',
+              redboxOid: 'oid-654',
+              startedAt: '2026-01-01T00:00:00Z',
+              status: 'success',
+              integrationAction: 'publish',
+              traceId: 'trace-1',
+              spanId: 'span-1',
+              depth: 0,
+              hasChildren: false,
+            },
+          ],
+        },
+      ],
     } as any);
   });
 
-  it("accepts integration audit responses returned without the data envelope", async () => {
-    const integrationPromise = recordService.getRecordIntegrationAuditTab("oid-655");
+  it('accepts integration audit responses returned without the data envelope', async () => {
+    const integrationPromise = recordService.getRecordIntegrationAuditTab('oid-655');
 
-    const request = httpTestingController.expectOne(req =>
-      req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-655/integration-audit`
+    const request = httpTestingController.expectOne(
+      req => req.url === `${recordService.brandingAndPortalUrl}/record/viewAudit/oid-655/integration-audit`
     );
-    expect(request.request.method).toBe("GET");
+    expect(request.request.method).toBe('GET');
     request.flush({
       summary: { numFound: 1, page: 1, pageSize: 20, totalPages: 1 },
-      records: [{
-        id: "trace-2",
-        traceId: "trace-2",
-        startedAt: "2026-01-01T00:00:00Z",
-        status: "success",
-        actions: ["publish"],
-        eventCount: 1,
-        events: [{ id: "integration-2", redboxOid: "oid-655", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-2", spanId: "span-2", depth: 0, hasChildren: false }]
-      }]
+      records: [
+        {
+          id: 'trace-2',
+          traceId: 'trace-2',
+          startedAt: '2026-01-01T00:00:00Z',
+          status: 'success',
+          actions: ['publish'],
+          eventCount: 1,
+          events: [
+            {
+              id: 'integration-2',
+              redboxOid: 'oid-655',
+              startedAt: '2026-01-01T00:00:00Z',
+              status: 'success',
+              integrationAction: 'publish',
+              traceId: 'trace-2',
+              spanId: 'span-2',
+              depth: 0,
+              hasChildren: false,
+            },
+          ],
+        },
+      ],
     });
 
     await expectAsync(integrationPromise).toBeResolvedTo({
       summary: { numFound: 1, page: 1, pageSize: 20, totalPages: 1 },
-      records: [{
-        id: "trace-2",
-        traceId: "trace-2",
-        startedAt: "2026-01-01T00:00:00Z",
-        status: "success",
-        actions: ["publish"],
-        eventCount: 1,
-        events: [{ id: "integration-2", redboxOid: "oid-655", startedAt: "2026-01-01T00:00:00Z", status: "success", integrationAction: "publish", traceId: "trace-2", spanId: "span-2", depth: 0, hasChildren: false }]
-      }]
+      records: [
+        {
+          id: 'trace-2',
+          traceId: 'trace-2',
+          startedAt: '2026-01-01T00:00:00Z',
+          status: 'success',
+          actions: ['publish'],
+          eventCount: 1,
+          events: [
+            {
+              id: 'integration-2',
+              redboxOid: 'oid-655',
+              startedAt: '2026-01-01T00:00:00Z',
+              status: 'success',
+              integrationAction: 'publish',
+              traceId: 'trace-2',
+              spanId: 'span-2',
+              depth: 0,
+              hasChildren: false,
+            },
+          ],
+        },
+      ],
     } as any);
   });
 });

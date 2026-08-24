@@ -2,9 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { cloneDeep as _cloneDeep } from 'lodash';
 import {
   emptyRecordSaveCompletion,
+  isRecordConcurrencyResolution,
+  isRecordFormFingerprint,
+  isRecordRevision,
+  isRecordSaveRequestId,
   reduceAttachmentStatus,
+  sanitizeRecordConcurrencyMetadata,
   sanitizeRecordSaveIssue,
   RecordAttachmentCompletionItem,
+  RecordConcurrencyMetadata,
+  RecordConcurrencyProblemCode,
+  RecordConcurrencyResolution,
   RecordSaveIssue,
   RecordSavePhase,
   RecordSaveProblem,
@@ -86,14 +94,25 @@ export interface RecordSaveContext {
   validationRuntimeContext?: Readonly<Record<string, RecordValidationContextJSONValue>>;
   /** Accepted only when routeFamily is explicitly `internal`. */
   validationBypass?: InternalRecordValidationBypass;
+  /** Trusted transport-neutral optimistic-concurrency facts. */
+  concurrency?: RecordConcurrencyContext;
 }
 
-export const RECORD_VALIDATION_REQUEST_FACT_NAMES = [
-  'recordType',
-  'targetStep',
-  'merge',
-  'datastreams',
-] as const;
+/**
+ * Normalized concurrency facts supplied by a controller or trusted internal
+ * helper. Raw requests, headers, users, and record candidates must not cross
+ * this boundary.
+ */
+export interface RecordConcurrencyContext {
+  readonly expectedRevision?: number;
+  readonly entityTagSupplied: boolean;
+  readonly formFingerprint?: string;
+  readonly resolution?: RecordConcurrencyResolution;
+  /** Diagnostic linkage only; this is not an idempotency key. */
+  readonly resolutionOfRequestId?: string;
+}
+
+export const RECORD_VALIDATION_REQUEST_FACT_NAMES = ['recordType', 'targetStep', 'merge', 'datastreams'] as const;
 
 /**
  * Project the same bounded request facts for browser and API transports.
@@ -134,7 +153,7 @@ export function recordValidationRuntimeFacts(
 ): Readonly<Record<string, RecordValidationContextJSONValue>> {
   const routeFamily = context.routeFamily ?? 'internal';
   return {
-    ...(routeFamily === 'internal' ? context.validationRuntimeContext ?? {} : {}),
+    ...(routeFamily === 'internal' ? (context.validationRuntimeContext ?? {}) : {}),
     routeFamily,
     writeKind,
     saveOperation: context.operation ?? writeKind,
@@ -150,9 +169,7 @@ export function parsePublicValidationOperation(value: unknown): PublicValidation
   if (value === undefined || value === null) return { valid: true };
   if (typeof value !== 'string') return { valid: false };
   const normalized = value.trim();
-  return VALIDATION_OPERATION_NAME_PATTERN.test(normalized)
-    ? { valid: true, value: normalized }
-    : { valid: false };
+  return VALIDATION_OPERATION_NAME_PATTERN.test(normalized) ? { valid: true, value: normalized } : { valid: false };
 }
 
 /** A typed response for record metadata save operations. */
@@ -161,6 +178,7 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   problems: RecordSaveProblem[] = [];
   completion = emptyRecordSaveCompletion();
   requestId: string;
+  concurrency?: RecordConcurrencyMetadata;
   /** Legacy API v1 fields populated by the RDMP workspace post-save hook. */
   workspaceOid?: string;
   workspaceData?: unknown;
@@ -200,6 +218,11 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
 
   public setProjectedMetadata(metadata: Record<string, unknown> | null): void {
     this.metadata = _cloneDeep(metadata);
+  }
+
+  /** Retain only bounded server-owned concurrency diagnostics. */
+  public setConcurrencyMetadata(metadata: unknown): void {
+    this.concurrency = sanitizeRecordConcurrencyMetadata(metadata);
   }
 
   /**
@@ -272,6 +295,10 @@ export class RecordSaveTracker {
     this.response.setProjectedMetadata(metadata);
   }
 
+  public setConcurrencyMetadata(metadata: unknown): void {
+    this.response.setConcurrencyMetadata(metadata);
+  }
+
   /** Preserve the narrowly scoped legacy fields without exposing tracked save state to hooks. */
   public mergeLegacyHookFields(source: unknown): void {
     if (!source || typeof source !== 'object') {
@@ -305,12 +332,16 @@ export class RecordSaveTracker {
         items: _cloneDeep(this.response.completion.attachments.items),
       },
     };
+    copy.setConcurrencyMetadata(this.response.concurrency);
     copy.workspaceOid = this.response.workspaceOid;
     copy.workspaceData = _cloneDeep(this.response.workspaceData);
     return copy;
   }
 
-  private recordPrimaryFailure(outcome: Extract<RecordSaveOutcome, 'not-saved' | 'unknown'>, problem?: RecordSaveProblem): void {
+  private recordPrimaryFailure(
+    outcome: Extract<RecordSaveOutcome, 'not-saved' | 'unknown'>,
+    problem?: RecordSaveProblem
+  ): void {
     if (this.response.wasPersisted()) {
       return;
     }
@@ -326,12 +357,14 @@ function cloneProblem(problem: RecordSaveProblem): RecordSaveProblem {
   return { ...problem, issues: problem.issues.map(sanitizeRecordSaveIssue) };
 }
 
-export function isCanonicalSaveRequestId(value: unknown): value is string {
-  return typeof value === 'string'
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
+/**
+ * One canonical save request-correlation UUID. The format lives in the shared
+ * package so browser, controller, and concurrency diagnostics agree.
+ */
+export const isCanonicalSaveRequestId = isRecordSaveRequestId;
 
 export function createRecordSaveContext(context: Partial<RecordSaveContext> = {}): RecordSaveContext {
+  const concurrency = normalizeRecordConcurrencyContext(context.concurrency);
   return {
     requestId: isCanonicalSaveRequestId(context.requestId) ? context.requestId : randomUUID(),
     routeFamily: context.routeFamily,
@@ -341,6 +374,34 @@ export function createRecordSaveContext(context: Partial<RecordSaveContext> = {}
     validationRequestParameters: context.validationRequestParameters,
     validationRuntimeContext: context.validationRuntimeContext,
     validationBypass: context.validationBypass,
+    ...(concurrency ? { concurrency } : {}),
+  };
+}
+
+/** Drop every field outside the bounded server-owned concurrency allowlist. */
+export function normalizeRecordConcurrencyContext(value: unknown): RecordConcurrencyContext | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const ownValue = (name: string): unknown => {
+    const descriptor = descriptors[name];
+    return descriptor && 'value' in descriptor ? descriptor.value : undefined;
+  };
+  const expectedRevisionValue = ownValue('expectedRevision');
+  const formFingerprintValue = ownValue('formFingerprint');
+  const resolutionValue = ownValue('resolution');
+  const resolutionOfRequestIdValue = ownValue('resolutionOfRequestId');
+  const expectedRevision = isRecordRevision(expectedRevisionValue) ? expectedRevisionValue : undefined;
+  const formFingerprint = isRecordFormFingerprint(formFingerprintValue) ? formFingerprintValue : undefined;
+  const resolution = isRecordConcurrencyResolution(resolutionValue) ? resolutionValue : undefined;
+  const resolutionOfRequestId = isRecordSaveRequestId(resolutionOfRequestIdValue)
+    ? resolutionOfRequestIdValue
+    : undefined;
+  return {
+    entityTagSupplied: ownValue('entityTagSupplied') === true,
+    ...(expectedRevision !== undefined ? { expectedRevision } : {}),
+    ...(formFingerprint ? { formFingerprint } : {}),
+    ...(resolution ? { resolution } : {}),
+    ...(resolutionOfRequestId ? { resolutionOfRequestId } : {}),
   };
 }
 
@@ -355,22 +416,98 @@ export function readSaveRequestId(headers: Record<string, unknown> | undefined):
 }
 
 /**
+ * Transport status for each certified concurrency failure, in the precedence
+ * the service resolves them.  A conflict is a definitive non-write, so it must
+ * never be reported as a generic 500: the browser treats a 5xx as an ambiguous
+ * `unknown` result that may not be rebased or retried.
+ */
+const RECORD_CONFLICT_STATUS_PRECEDENCE: ReadonlyArray<readonly [RecordConcurrencyProblemCode, number]> = [
+  ['record-precondition-required', 428],
+  ['record-revision-stale', 412],
+  ['record-deleted', 412],
+  ['form-definition-changed', 409],
+  ['record-lifecycle-operation-conflict', 409],
+];
+
+/** Generic conflict status for a conflict problem without a recognised code. */
+const RECORD_CONFLICT_DEFAULT_STATUS = 409;
+
+/**
+ * The statuses a certified concurrency refusal uses. API v1 keeps its legacy
+ * body but must not collapse these to 500: a strict record type is an
+ * intentional opt-in status change, and a 5xx would read as an ambiguous
+ * `unknown` result that a client may retry.
+ */
+const RECORD_CONFLICT_HTTP_STATUSES: ReadonlySet<number> = new Set([409, 412, 428]);
+
+export function isRecordConflictStatus(status: number): boolean {
+  return RECORD_CONFLICT_HTTP_STATUSES.has(status);
+}
+
+/** Kinds that certify no write occurred, and therefore map below a 5xx. */
+const CERTIFIED_NON_WRITE_KINDS: ReadonlySet<RecordSaveProblemKind> = new Set([
+  'validation',
+  'authorization',
+  'conflict',
+]);
+
+function conflictFailureStatus(problems: readonly RecordSaveProblem[]): number | undefined {
+  const conflicts = problems.filter(problem => problem.kind === 'conflict');
+  if (conflicts.length === 0) {
+    return undefined;
+  }
+  const codes = new Set(conflicts.flatMap(problem => problem.issues.map(issue => issue.code)));
+  const match = RECORD_CONFLICT_STATUS_PRECEDENCE.find(([code]) => codes.has(code));
+  return match ? match[1] : RECORD_CONFLICT_DEFAULT_STATUS;
+}
+
+/**
  * HTTP status for a save that did not persist.  Persisted outcomes never
  * reach here: once primary metadata is applied the route family decides the
  * success status and the warnings travel in the typed result.
  */
-export function recordSaveFailureStatus(result: Pick<RecordSaveResult, 'outcome' | 'problems'> | null | undefined): number {
+export function recordSaveFailureStatus(
+  result: Pick<RecordSaveResult, 'outcome' | 'problems'> | null | undefined
+): number {
   if (result?.outcome !== 'not-saved') {
     // `unknown` is deliberately a 5xx: the client must not assume a non-write.
     return 500;
   }
   // Select the most severe transport classification independently of problem
-  // insertion order: system-like failures outrank authorization, which
-  // outranks ordinary validation failures.
-  if (result.problems.some(problem => problem.kind !== 'validation' && problem.kind !== 'authorization')) return 500;
+  // insertion order: system-like failures outrank authorization, which outranks
+  // a certified conflict, which outranks ordinary validation failures.
+  if (result.problems.some(problem => !CERTIFIED_NON_WRITE_KINDS.has(problem.kind))) return 500;
   if (result.problems.some(problem => problem.kind === 'authorization')) return 403;
+  const conflictStatus = conflictFailureStatus(result.problems);
+  if (conflictStatus !== undefined) return conflictStatus;
   if (result.problems.some(problem => problem.kind === 'validation')) return 400;
   return 500;
+}
+
+export interface RecordSaveDisplayError {
+  readonly code?: string;
+  readonly title?: string;
+  readonly detail?: string;
+  readonly source?: { readonly pointer?: string };
+}
+
+/**
+ * Project only the safe issue contract into the v2 JSON:API error array. The
+ * complete typed result remains in `meta`; raw exceptions and candidates are
+ * never used to infer a conflict.
+ */
+export function recordSaveDisplayErrors(
+  result: Pick<RecordSaveResult, 'problems'> | null | undefined,
+  fallbackDetail: string
+): RecordSaveDisplayError[] {
+  const errors = (result?.problems ?? []).flatMap(problem =>
+    problem.issues.map(issue => ({
+      ...(issue.code ? { code: issue.code } : {}),
+      title: issue.message,
+      ...(issue.pointer ? { source: { pointer: issue.pointer } } : {}),
+    }))
+  );
+  return errors.length > 0 ? errors : [{ detail: fallbackDetail }];
 }
 
 export type StorageMutationLogger = (message: string, details?: Record<string, unknown>) => void;
@@ -382,7 +519,7 @@ export type StorageMutationLogger = (message: string, details?: Record<string, u
  */
 export function resolveStorageMutationState(
   response: StorageServiceResponse | StorageMutationResponse | null | undefined,
-  logDeprecation?: StorageMutationLogger,
+  logDeprecation?: StorageMutationLogger
 ): StorageMutationApplicationState {
   const explicit = (response as StorageMutationResponse | null | undefined)?.applicationState;
   if (explicit === 'applied' || explicit === 'not-applied' || explicit === 'unknown') {
@@ -400,7 +537,7 @@ export function recordSaveProblem(
   phase: RecordSavePhase,
   message: string,
   code?: string,
-  issue: Partial<RecordSaveIssue> = {},
+  issue: Partial<RecordSaveIssue> = {}
 ): RecordSaveProblem {
   return {
     kind,

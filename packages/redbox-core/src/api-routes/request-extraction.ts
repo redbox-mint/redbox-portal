@@ -1,7 +1,13 @@
 import { ZodType } from 'zod';
 
 import { ApiRequestDefinition, ApiRequestSource } from './types';
-import { coerceValueForSchema, getObjectSchemaShape, getRequestFiles, isPassthroughObjectSchema, isRecord } from './helpers';
+import {
+  coerceValueForSchema,
+  getObjectSchemaShape,
+  getRequestFiles,
+  isPassthroughObjectSchema,
+  isRecord,
+} from './helpers';
 
 export interface ApiRequestExtraction {
   params: Record<string, unknown>;
@@ -12,7 +18,11 @@ export interface ApiRequestExtraction {
   raw: unknown;
 }
 
-function getRequestSourceValue(req: Sails.Req, request: ApiRequestDefinition | undefined, source: ApiRequestSource): unknown {
+function getRequestSourceValue(
+  req: Sails.Req,
+  request: ApiRequestDefinition | undefined,
+  source: ApiRequestSource
+): unknown {
   const requestRecord = req as unknown as Record<string, unknown>;
   switch (source) {
     case 'params':
@@ -45,9 +55,10 @@ function getLegacyFallbackSources(request: ApiRequestDefinition | undefined, key
 
 function getHeaderValue(req: Sails.Req, name: string): string | undefined {
   const headers = req.headers as Record<string, string | string[] | undefined> | undefined;
-  const value = headers == null
-    ? undefined
-    : Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
+  const value =
+    headers == null
+      ? undefined
+      : Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
   if (Array.isArray(value)) {
     return value[0];
   }
@@ -69,7 +80,12 @@ export function getRequestValue(
   source: ApiRequestSource,
   key: string
 ): unknown {
-  const primaryValue = getFieldValue(getRequestSourceValue(req, request, source), key);
+  const sourceValue = getRequestSourceValue(req, request, source);
+  let primaryValue = getFieldValue(sourceValue, key);
+  if (primaryValue === undefined && source === 'headers' && isRecord(sourceValue)) {
+    const match = Object.keys(sourceValue).find(headerName => headerName.toLowerCase() === key.toLowerCase());
+    primaryValue = match === undefined ? undefined : getFieldValue(sourceValue, match);
+  }
   if (primaryValue !== undefined) {
     return primaryValue;
   }

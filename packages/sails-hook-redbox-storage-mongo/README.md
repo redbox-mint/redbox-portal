@@ -23,3 +23,47 @@ This package provides the MongoDB-backed storage service, models, and config reg
 
 - The storage models use the Sails datastore named `redboxStorage`
 - Datastore connection details still live in the host portal’s Sails config
+
+## Record revision migration
+
+This hook registers the restart-safe
+`@researchdatabox/sails-hook-redbox-storage-mongo:20260823T000000-backfill-record-revisions`
+migration. It installs the initial server-owned revision on active records and
+the revision plus `deleted` lifecycle state on legacy tombstones. It does not
+touch record metadata, workflow, authorization, `lastSaveDate`, or search
+documents.
+
+Run an upgrade with exactly one lifting portal instance, let migrations finish,
+and only then start the remaining instances. The repository migration runner
+has no distributed migration lock. Back up the database first; do not use
+`REDBOX_SKIP_MIGRATIONS=true` for a strict-concurrency rollout.
+
+## Storage concurrency capability
+
+Strict record types require a storage adapter to expose `getCapabilities()` and
+return the complete versioned `recordConcurrency` declaration from
+`@researchdatabox/redbox-core`. An absent method, absent field, partial field
+set, unknown capability version, or a non-Mongo dialect without native atomic
+operations is unsupported and fails closed.
+
+The capability covers these adapter methods:
+
+- `create(..., options?)`: strips client revision and initializes a server revision;
+- `updateMeta(..., options?)`: atomic active compare-and-set plus increment;
+- `removeActiveRecord(..., options?)`: atomic conditional removal returning the removed state;
+- `updateTombstone(..., options?)`: atomic restore/purge claim plus increment;
+- `removeTombstone(..., options?)`: atomic conditional restore finalization/purge.
+
+Every existing signature keeps its optional concurrency options last for source
+compatibility. A supplied `expectedRevision` must always be honored. A
+certified no-match returns `not-applied` with a bounded
+`nonApplicationReason`; a thrown or unrecognized fact after dispatch returns
+`unknown`. Adapters must never fall back to an OID-only Waterline success path
+after advertising strict capability.
+
+Hook-provided adapters should run the reusable
+`STORAGE_CONCURRENCY_CONFORMANCE_CHECKS` exported by
+`@researchdatabox/redbox-core` against their real datastore/dialect before
+declaring capability. The fixture
+covers update, active removal, tombstone restore claim, purge removal, stale/
+deleted classification, revision advancement, and ambiguous dispatch errors.

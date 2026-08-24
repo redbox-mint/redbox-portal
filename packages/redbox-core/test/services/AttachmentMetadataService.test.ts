@@ -1,5 +1,5 @@
 let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
 
@@ -65,15 +65,136 @@ describe('AttachmentMetadataService mutation journal', function () {
   });
 
   it('increments attempts when pending and preserves the count when applied', async function () {
-    model.findOne.resolves({ id: 'journal-1', attemptCount: 2 });
-    const set = sinon.stub().resolves();
+    model.findOne.onFirstCall().resolves({ id: 'journal-1', attemptCount: 2, mutationState: 'prepared' });
+    model.findOne.onSecondCall().resolves({ id: 'journal-1', attemptCount: 3, mutationState: 'pending' });
+    const set = sinon.stub().resolves({ id: 'journal-1' });
     model.updateOne.returns({ set });
 
-    await service.markMutation('oid-1', 'a', 'generation-1', 'pending');
+    expect(await service.markMutation('oid-1', 'a', 'generation-1', 'pending')).to.equal(true);
     expect(set.firstCall.args[0]).to.include({ mutationState: 'pending', attemptCount: 3 });
 
-    await service.markMutation('oid-1', 'a', 'generation-1', 'applied');
-    expect(set.secondCall.args[0]).to.include({ mutationState: 'applied', attemptCount: 2, lastSafeErrorCode: undefined });
+    expect(await service.markMutation('oid-1', 'a', 'generation-1', 'applied')).to.equal(true);
+    expect(set.secondCall.args[0]).to.include({
+      mutationState: 'applied',
+      attemptCount: 3,
+      lastSafeErrorCode: undefined,
+    });
+  });
+
+  it('does not let an older generation complete after its state CAS loses', async function () {
+    model.findOne.onFirstCall().resolves({
+      id: 'old-generation-row',
+      attemptCount: 1,
+      mutationState: 'pending',
+    });
+    model.findOne.onSecondCall().resolves({
+      id: 'new-generation-row',
+      attemptCount: 1,
+      mutationState: 'pending',
+    });
+    const set = sinon.stub();
+    set.onFirstCall().resolves(null);
+    set.onSecondCall().resolves({ id: 'new-generation-row' });
+    model.updateOne.returns({ set });
+
+    expect(await service.markMutation('oid-1', 'a', 'old-generation', 'applied')).to.equal(false);
+    expect(await service.markMutation('oid-1', 'a', 'new-generation', 'applied')).to.equal(true);
+    expect(model.updateOne.firstCall.args[0]).to.deep.equal({
+      id: 'old-generation-row',
+      mutationState: 'pending',
+    });
+  });
+
+  it('holds an applied physical mutation as unknown when reference persistence is ambiguous', async function () {
+    model.findOne.resolves({
+      id: 'journal-1',
+      attemptCount: 1,
+      mutationState: 'applied',
+    });
+    const set = sinon.stub().resolves({ id: 'journal-1' });
+    model.updateOne.returns({ set });
+
+    expect(await service.markMutation('oid-1', 'a', 'generation-1', 'unknown')).to.equal(true);
+    expect(set.firstCall.args[0]).to.include({
+      mutationState: 'unknown',
+      attemptCount: 1,
+    });
+  });
+
+  it('refuses preparation while cleanup owns the same staged blob', async function () {
+    model.findOne.resolves({ id: 'cleanup-row', mutationState: 'cleanup-pending' });
+
+    let failure: unknown;
+    try {
+      await service.prepareMutations([
+        {
+          oid: 'oid-1',
+          fileId: 'file-1',
+          storageKey: 'journal/oid-1/a/new-generation',
+          attachmentId: 'a',
+          operation: 'finalize',
+          generation: 'new-generation',
+        },
+      ]);
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).to.be.instanceOf(Error);
+    expect((failure as Error).message).to.equal('Attachment staging cleanup already owns this mutation.');
+    expect(model.create.notCalled).to.equal(true);
+  });
+
+  it('claims only bounded expired cancelled rows and exposes no storage path', async function () {
+    const limit = sinon.stub().resolves([
+      {
+        id: 'journal-1',
+        oid: 'oid-1',
+        attachmentId: 'a',
+        mutationFileId: 'file-1',
+        generation: 'generation-1',
+        mutationState: 'cancelled',
+        storageKey: '/private/staging/path',
+      },
+      {
+        id: 'journal-unsafe',
+        oid: 'oid-1',
+        attachmentId: 'b',
+        mutationFileId: '../../outside-staging',
+        generation: 'generation-2',
+        mutationState: 'cancelled',
+      },
+    ]);
+    const sort = sinon.stub().returns({ limit });
+    model.find.returns({ sort });
+    const set = sinon.stub().resolves({ id: 'journal-1' });
+    model.updateOne.returns({ set });
+
+    const claims = await service.claimExpiredStagingCleanup('2026-08-01T00:00:00.000Z', 5_000);
+
+    expect(
+      model.find.calledOnceWithExactly({
+        isJournal: true,
+        mutationState: 'cancelled',
+        updatedAt: { '<': '2026-08-01T00:00:00.000Z' },
+      })
+    ).to.equal(true);
+    expect(limit.calledOnceWithExactly(1000)).to.equal(true);
+    expect(model.updateOne.firstCall.args[0]).to.deep.equal({
+      id: 'journal-1',
+      mutationState: 'cancelled',
+      updatedAt: { '<': '2026-08-01T00:00:00.000Z' },
+    });
+    expect(claims).to.deep.equal([
+      {
+        oid: 'oid-1',
+        attachmentId: 'a',
+        fileId: 'file-1',
+        generation: 'generation-1',
+      },
+    ]);
+    expect(JSON.stringify(claims)).not.to.contain('private/staging');
+    expect(JSON.stringify(claims)).not.to.contain('outside-staging');
   });
 
   it('creates a separate journal row instead of overwriting physical attachment metadata', async function () {
@@ -82,14 +203,16 @@ describe('AttachmentMetadataService mutation journal', function () {
     const fetch = sinon.stub().resolves();
     model.create.returns({ fetch });
 
-    await service.prepareMutations([{
-      oid: 'oid-1',
-      fileId: 'file-1',
-      storageKey: 'journal/oid-1/a/generation-1',
-      attachmentId: 'a',
-      operation: 'delete',
-      generation: 'generation-1',
-    }]);
+    await service.prepareMutations([
+      {
+        oid: 'oid-1',
+        fileId: 'file-1',
+        storageKey: 'journal/oid-1/a/generation-1',
+        attachmentId: 'a',
+        operation: 'delete',
+        generation: 'generation-1',
+      },
+    ]);
 
     expect(model.find.notCalled).to.equal(true);
     expect(model.updateOne.notCalled).to.equal(true);

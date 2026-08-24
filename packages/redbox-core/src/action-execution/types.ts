@@ -76,6 +76,10 @@ export interface ActionExecutionReport {
 
 export interface ActionExecutionPolicy {
   timeoutMs?: number;
+  /**
+   * Retries only this hook action. `idempotent: true` does not make the
+   * enclosing record request replayable and never authorizes a CAS retry.
+   */
   retry?: {
     maxAttempts: number;
     retryOn?: ActionFailureKind[];
