@@ -63,6 +63,41 @@ function staleSaveResponse(overrides: Partial<RecordActionResult> = {}): RecordA
   return Object.assign(result, overrides);
 }
 
+async function createConcurrencyTestForm() {
+  const result = await createFormAndWaitForReady(
+    {
+      name: 'concurrency-rebase',
+      type: 'rdmp',
+      componentDefinitions: [
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: 'Loaded title' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+        {
+          name: 'notes',
+          model: { class: 'SimpleInputModel', config: { value: 'Loaded notes' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    },
+    {
+      oid: 'oid-123',
+      recordType: 'rdmp',
+      editMode: true,
+      formName: 'rdmp-draft',
+      downloadAndCreateOnInit: false,
+    }
+  );
+  result.formComponent.formDefMap?.updateConcurrency({
+    entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
+    revision: 4,
+    formFingerprint: 'sha256:form_1',
+  });
+  (result.formComponent as any).captureLoadedRecordBaseline();
+  return result;
+}
+
 describe('FormComponent', () => {
   const setWindowSearch = (search?: string) => {
     const url = new URL(window.location.href);
@@ -247,7 +282,7 @@ describe('FormComponent', () => {
     formComponent.form?.get('title')?.markAsDirty();
 
     let resolveSave!: (value: RecordActionResult) => void;
-    spyOn(formComponent.recordService, 'update').and.callFake(
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.callFake(
       () => new Promise<RecordActionResult>(resolve => (resolveSave = resolve))
     );
     const savePromise = formComponent.saveForm();
@@ -258,6 +293,7 @@ describe('FormComponent', () => {
     await savePromise;
 
     expect(formComponent.form?.get('title')?.value).toBe('Edited while saving');
+    expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(formComponent.form?.dirty).toBeTrue();
     expect(formComponent.conflictState()).toEqual(
       jasmine.objectContaining({
@@ -338,6 +374,155 @@ describe('FormComponent', () => {
     expect(formComponent.recordBaseline()).toEqual(
       jasmine.objectContaining({ metadata: { title: 'Latest title' }, revision: 5 })
     );
+  });
+
+  it('automatically rebases one ordinary no-overlap conflict against the latest exact tag', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const retryRequestId = '22222222-2222-4222-8222-222222222222';
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })),
+      Promise.resolve(
+        persistedSaveResponse({
+          oid: 'oid-123',
+          requestId: retryRequestId,
+          metadata: { title: 'Mine', notes: 'Latest notes' },
+          concurrency: {
+            revision: 6,
+            entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+            formFingerprint: 'sha256:form_1',
+            resolution: 'client-auto-merged',
+            resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+          },
+        })
+      )
+    );
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(updateSpy.calls.argsFor(1)).toEqual([
+      'oid-123',
+      { title: 'Mine', notes: 'Latest notes' },
+      '',
+      undefined,
+      {
+        entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        revision: 5,
+        formFingerprint: 'sha256:form_1',
+        resolution: 'client-auto-merged',
+        resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+      },
+    ]);
+    expect(formComponent.saveResponse()?.requestId).toBe(retryRequestId);
+    expect(formComponent.recordBaseline()).toEqual(
+      jasmine.objectContaining({ metadata: { title: 'Mine', notes: 'Latest notes' }, revision: 6 })
+    );
+    expect(formComponent.conflictState()).toBeNull();
+  });
+
+  it('adopts latest without a retry when an ordinary local value is already current', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Mine', notes: 'Latest notes' } })
+    );
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(formComponent.form?.value).toEqual({ title: 'Mine', notes: 'Latest notes' });
+    expect(formComponent.form?.pristine).toBeTrue();
+    expect(formComponent.recordBaseline()).toEqual(
+      jasmine.objectContaining({ metadata: { title: 'Mine', notes: 'Latest notes' }, revision: 5 })
+    );
+    expect(formComponent.conflictState()).toBeNull();
+    expect(formComponent.saveResponse()?.concurrency?.resolution).toBe('already-current');
+  });
+
+  it('hands a second race to manual review without a third automatic request', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'First latest' } })),
+      Promise.resolve(
+        staleSaveResponse({
+          requestId: '22222222-2222-4222-8222-222222222222',
+          metadata: { title: 'Loaded title', notes: 'Second latest' },
+          concurrency: {
+            revision: 6,
+            currentRevision: 6,
+            entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+            formFingerprint: 'sha256:form_1',
+            resolution: 'client-auto-merged',
+            resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+          },
+        })
+      )
+    );
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(formComponent.conflictState()).toEqual(
+      jasmine.objectContaining({
+        requestId: '22222222-2222-4222-8222-222222222222',
+        base: { title: 'Loaded title', notes: 'First latest' },
+        local: { title: 'Mine', notes: 'First latest' },
+        latest: { title: 'Loaded title', notes: 'Second latest' },
+        baseRevision: 5,
+        latestRevision: 6,
+        status: 'reviewing',
+        autoRetryAttempted: true,
+      })
+    );
+  });
+
+  it('does not infer named intent complete and retries it only after another explicit save', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Mine', notes: 'Latest notes' } })),
+      Promise.resolve(
+        persistedSaveResponse({
+          oid: 'oid-123',
+          requestId: '22222222-2222-4222-8222-222222222222',
+          metadata: { title: 'Mine', notes: 'Latest notes' },
+          concurrency: {
+            revision: 6,
+            entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+            formFingerprint: 'sha256:form_1',
+          },
+        })
+      )
+    );
+
+    await formComponent.saveForm({ force: true, operation: 'submit' });
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(formComponent.conflictState()?.status).toBe('stale');
+
+    await formComponent.saveForm({ force: true, operation: 'submit' });
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(updateSpy.calls.argsFor(1)).toEqual([
+      'oid-123',
+      { title: 'Mine', notes: 'Latest notes' },
+      '',
+      'submit',
+      {
+        entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        revision: 5,
+        formFingerprint: 'sha256:form_1',
+        resolution: 'client-auto-merged',
+        resolutionOfRequestId: '11111111-1111-4111-8111-111111111111',
+      },
+    ]);
+    expect(formComponent.conflictState()).toBeNull();
   });
 
   it('parses request params on startup and exposes accessors', () => {
