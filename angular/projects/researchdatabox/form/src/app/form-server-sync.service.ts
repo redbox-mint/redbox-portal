@@ -24,6 +24,26 @@ export class FormServerSyncService {
     form: FormGroup,
     mode: ServerSyncMode
   ): Promise<ServerSyncResult> {
+    return this.syncServerMetadata(sentValue, serverValue, formDefMap, form, mode, false);
+  }
+
+  /** Replace every projected form control after an explicit discard/adopt decision. */
+  public async replaceWithServerMetadata(
+    serverValue: Record<string, unknown>,
+    formDefMap: FormComponentsMap,
+    form: FormGroup
+  ): Promise<ServerSyncResult> {
+    return this.syncServerMetadata({}, serverValue, formDefMap, form, 'always', true);
+  }
+
+  private async syncServerMetadata(
+    sentValue: Record<string, unknown>,
+    serverValue: Record<string, unknown>,
+    formDefMap: FormComponentsMap,
+    form: FormGroup,
+    mode: ServerSyncMode,
+    replaceMissing: boolean
+  ): Promise<ServerSyncResult> {
     const result: ServerSyncResult = { patched: [], skipped: [] };
     if (mode === 'never') {
       return result;
@@ -31,10 +51,14 @@ export class FormServerSyncService {
 
     const completeGroupMap = formDefMap.completeGroupMap ?? {};
     const controls = formDefMap.withFormControl ?? {};
-    const names = new Set([...Object.keys(sentValue), ...Object.keys(serverValue)]);
+    const names = new Set([
+      ...Object.keys(sentValue),
+      ...Object.keys(serverValue),
+      ...(replaceMissing ? Object.keys(controls) : []),
+    ]);
 
     for (const name of names) {
-      if (!(name in serverValue)) {
+      if (!(name in serverValue) && !replaceMissing) {
         result.skipped.push({ name, reason: 'not-in-server' });
         continue;
       }
@@ -51,8 +75,8 @@ export class FormServerSyncService {
       }
 
       const sent = sentValue[name];
-      const server = serverValue[name];
-      if (isEqual(sent, server)) {
+      const server = name in serverValue ? serverValue[name] : undefined;
+      if (isEqual(sent, server) && (!replaceMissing || name in serverValue)) {
         result.skipped.push({ name, reason: 'unchanged' });
         continue;
       }
