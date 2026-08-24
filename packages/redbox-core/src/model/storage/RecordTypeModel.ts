@@ -1,5 +1,6 @@
 import type { RecordTypeValidationConfig } from '../../config/recordtype.config';
 import type { RecordConcurrentModificationConfig } from '@researchdatabox/sails-ng-common';
+import type { RecordTypeRecordSchemaConfig } from '../../config/recordSchema.config';
 
 export class RecordTypeModel {
   packageType: string = '';
@@ -11,6 +12,7 @@ export class RecordTypeModel {
   searchable = false as const;
   recordValidation?: RecordTypeValidationConfig;
   concurrentModification?: RecordConcurrentModificationConfig;
+  recordSchema?: RecordTypeRecordSchemaConfig;
 }
 
 export class SearchFilter {

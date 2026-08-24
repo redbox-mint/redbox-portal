@@ -1,21 +1,16 @@
 import {ErrorResponseItemV2} from "./api";
 import {MetaResponseItemV2} from "./api/APIResponseVersion2";
+import type { ContractJsonObject } from '../record-contract/types';
 
-export const BuildResponseFormat = ['json',] as const;
+export const BuildResponseFormat = ['json', 'raw-json'] as const;
 export type BuildResponseFormatType = typeof BuildResponseFormat[number];
+export const RawJsonResponseMediaTypes = ['application/schema+json', 'application/problem+json'] as const;
+export type RawJsonResponseMediaType = typeof RawJsonResponseMediaTypes[number];
 
 /**
- * The parts that can be specified to build a response.
+ * Common response controls retained by both enveloped and raw JSON responses.
  */
-export interface BuildResponseType {
-  /**
-   * The format of the content of the response.
-   */
-  format?: BuildResponseFormatType;
-  /**
-   * The response payload data.
-   */
-  data?: unknown;
+interface BuildResponseCommon {
   /**
    * The overall HTTP response status.
    */
@@ -30,6 +25,13 @@ export interface BuildResponseType {
    * They are not included in the response.
    */
   errors?: Error[];
+}
+
+/** The existing API-version-aware JSON response contract. */
+export interface BuildJsonResponseType extends BuildResponseCommon {
+  format?: 'json';
+  data?: unknown;
+  mediaType?: never;
   /**
    * Structured detail errors.
    * These are included in the response.
@@ -48,3 +50,16 @@ export interface BuildResponseType {
    */
   prehydrate?: unknown;
 }
+
+/** A deliberately narrow raw JSON response for schema and Problem Details documents. */
+export interface BuildRawJsonResponseType extends BuildResponseCommon {
+  format: 'raw-json';
+  mediaType: RawJsonResponseMediaType;
+  data: ContractJsonObject;
+  displayErrors?: never;
+  meta?: never;
+  v1?: never;
+  prehydrate?: never;
+}
+
+export type BuildResponseType = BuildJsonResponseType | BuildRawJsonResponseType;

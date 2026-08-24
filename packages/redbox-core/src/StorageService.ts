@@ -3,6 +3,28 @@ import { DeletedRecordModel, RecordModel } from './model';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from './RecordsService';
 import type { RecordStorageMutationOptions, StorageServiceCapabilities } from './RecordStorageConcurrency';
+import type {
+  RecordSchemaArtifactInput,
+  RecordSchemaArtifactModel,
+  RecordSchemaDeleteRequest,
+  RecordSchemaDeleteResult,
+  RecordSchemaGrantQuery,
+  RecordSchemaReferenceInput,
+  RecordSchemaReferenceModel,
+  RecordSchemaReferenceQuery,
+} from './model/storage/record-schema';
+
+export const RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS = [
+  'putRecordSchemaArtifact',
+  'getRecordSchemaArtifact',
+  'touchRecordSchemaArtifact',
+  'putRecordSchemaReference',
+  'listRecordSchemaGrants',
+  'listRecordSchemaReferences',
+  'deleteRecordSchemaArtifactIfUnreferenced',
+] as const;
+
+export type RecordSchemaStorageCapabilityMethod = (typeof RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS)[number];
 
 /**
  * Service interface for Storage operations.
@@ -140,8 +162,27 @@ export interface StorageService {
    */
   createRecordAudit?(record: unknown): Promise<StorageServiceResponse>;
   createIntegrationAudit?(record: unknown): Promise<StorageServiceResponse>;
+  /** Optional so existing storage hooks remain compatible while record-schema support is disabled. */
+  putRecordSchemaArtifact?(artifact: RecordSchemaArtifactInput): Promise<StorageServiceResponse>;
+  getRecordSchemaArtifact?(digest: string): Promise<RecordSchemaArtifactModel | null>;
+  touchRecordSchemaArtifact?(digest: string): Promise<StorageServiceResponse>;
+  putRecordSchemaReference?(reference: RecordSchemaReferenceInput): Promise<StorageServiceResponse>;
+  listRecordSchemaGrants?(query: string | RecordSchemaGrantQuery): Promise<RecordSchemaReferenceModel[]>;
+  listRecordSchemaReferences?(query: RecordSchemaReferenceQuery): Promise<RecordSchemaReferenceModel[]>;
+  deleteRecordSchemaArtifactIfUnreferenced?(
+    request: RecordSchemaDeleteRequest
+  ): Promise<StorageServiceResponse<RecordSchemaDeleteResult>>;
   exists(oid: unknown): Promise<boolean>;
   getRecordAudit(params: unknown): Promise<unknown>;
   getIntegrationAudit(params: unknown): Promise<unknown>;
   countIntegrationAudit?(params: unknown): Promise<number>;
+}
+
+/** Returns every missing durable schema method in stable capability order. */
+export function getMissingRecordSchemaStorageCapabilities(provider: unknown): RecordSchemaStorageCapabilityMethod[] {
+  if (provider === null || (typeof provider !== 'object' && typeof provider !== 'function')) {
+    return [...RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS];
+  }
+
+  return RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS.filter(method => typeof Reflect.get(provider, method) !== 'function');
 }

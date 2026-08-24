@@ -5,6 +5,17 @@ import { performance } from 'perf_hooks';
 
 import type { ApiRouteDefinition } from '../api-routes';
 import { getHookProcessingOrder } from '../hooks/hookDiscovery';
+import {
+    createCoreRecordContractContributors,
+    RecordContractContributorRegistry,
+    RECORD_CONTRACT_REGISTRATION_CODES,
+    setDiscoveredRecordContractContributorRegistry,
+} from '../record-contract';
+import type {
+    RecordContractContributor,
+    RecordContractContributorRegistration,
+    RecordContractRegistrationIssue,
+} from '../record-contract';
 import type { RedboxMigration } from './MigrationRunner';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
@@ -309,6 +320,90 @@ function resolveDependencyModulePath(depName: string, appPath: string): string |
     } catch {
         return null;
     }
+}
+
+function isRecordContractContributor(value: unknown): value is RecordContractContributor {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+    const contributor = value as Record<string, unknown>;
+    if (
+        (contributor.kind !== 'component' && contributor.kind !== 'extension')
+        || typeof contributor.key !== 'string'
+        || typeof contributor.version !== 'string'
+        || !['non-null', 'nullable', 'configuration', 'legacy-permissive'].includes(String(contributor.nullability))
+        || typeof contributor.compile !== 'function'
+    ) {
+        return false;
+    }
+    return contributor.kind === 'component'
+        ? typeof contributor.componentType === 'string' && Array.isArray(contributor.ownedPointers)
+        : typeof contributor.namespace === 'string' && typeof contributor.root === 'string';
+}
+
+/**
+ * Discover executable hook contributors on every process start, including when
+ * generated shims are reused. The immutable registry is retained for the later
+ * schema-service startup gate; hook precedence cannot affect its ordering.
+ */
+export async function discoverRecordContractContributorRegistry(
+    appPath: string
+): Promise<RecordContractContributorRegistry> {
+    const registrations: RecordContractContributorRegistration[] = createCoreRecordContractContributors().map(
+        contributor => ({ contributor, source: 'core' })
+    );
+    const issues: RecordContractRegistrationIssue[] = [];
+
+    for (const hookPackage of getHookProcessingOrder(appPath)) {
+        const depModulePath = resolveDependencyModulePath(hookPackage.name, appPath);
+        if (!depModulePath) {
+            continue;
+        }
+        let hookModule: { registerRecordContractContributors?: () => unknown };
+        try {
+            hookModule = require(depModulePath) as { registerRecordContractContributors?: () => unknown };
+        } catch {
+            continue;
+        }
+        if (typeof hookModule.registerRecordContractContributors !== 'function') {
+            continue;
+        }
+
+        let contributed: unknown;
+        try {
+            contributed = hookModule.registerRecordContractContributors();
+        } catch {
+            issues.push({
+                code: RECORD_CONTRACT_REGISTRATION_CODES.INVALID_EXPORT,
+                key: hookPackage.name,
+                detail: 'Contributor registration threw during static discovery.',
+            });
+            continue;
+        }
+        if (!Array.isArray(contributed)) {
+            issues.push({
+                code: RECORD_CONTRACT_REGISTRATION_CODES.INVALID_EXPORT,
+                key: hookPackage.name,
+                detail: 'registerRecordContractContributors() must return an array synchronously.',
+            });
+            continue;
+        }
+        for (const [index, contributor] of contributed.entries()) {
+            if (!isRecordContractContributor(contributor)) {
+                issues.push({
+                    code: RECORD_CONTRACT_REGISTRATION_CODES.INVALID_EXPORT,
+                    key: `${hookPackage.name}:${index}`,
+                    detail: 'Contributor export does not match a component or extension contributor contract.',
+                });
+                continue;
+            }
+            registrations.push({ contributor, source: 'hook', packageName: hookPackage.name });
+        }
+    }
+
+    const registry = new RecordContractContributorRegistry(registrations, { additionalIssues: issues });
+    setDiscoveredRecordContractContributorRegistry(registry);
+    return registry;
 }
 
 export async function findAndRegisterHooks(appPath: string): Promise<HookRegistrations> {
@@ -1133,6 +1228,7 @@ export async function shouldRegenerateShims(appPath: string, forceRegenerate = f
 
 export async function generateAllShims(appPath: string, options: LoaderOptions = {}): Promise<GenerateAllShimsResult> {
     const startTime = performance.now();
+    await discoverRecordContractContributorRegistry(appPath);
     const { shouldRegenerate, reason, deleteMarker } = await shouldRegenerateShims(appPath, options.forceRegenerate);
 
     if (!shouldRegenerate) {

@@ -1,5 +1,6 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
+import { Readable } from 'node:stream';
 import * as sinon from 'sinon';
 import { Controllers } from '../../src/CoreController';
 import {BuildResponseType} from "../../src";
@@ -160,5 +161,141 @@ describe('CoreController sendResp wrappers', () => {
     expect(res.json.calledOnce).to.be.true;
     const arg = res.json.firstCall.args[0];
     expect(arg).to.have.property('errors');
+  });
+
+  it('sends schema JSON raw for v1 with exact headers and status', () => {
+    const req: any = { headers: { 'X-ReDBox-Api-Version': '1.0' }, query: {} };
+    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+    const schema = {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: { title: { type: 'string' } },
+    };
+    const buildResponse: BuildResponseType = {
+      format: 'raw-json',
+      mediaType: 'application/schema+json',
+      status: 201,
+      headers: { ETag: '"sha256:digest"', Vary: 'Authorization' },
+      data: schema,
+    };
+
+    controller.callSendResp(req, res, buildResponse);
+
+    expect(res.status.calledOnceWithExactly(201)).to.be.true;
+    expect(res.set.firstCall.calledWithExactly({ ETag: '"sha256:digest"', Vary: 'Authorization' })).to.be.true;
+    expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/schema+json')).to.be.true;
+    expect(res.json.calledOnceWithExactly(schema)).to.be.true;
+    expect(res.json.firstCall.args[0]).not.to.have.property('data');
+    expect(res.json.firstCall.args[0]).not.to.have.property('meta');
+  });
+
+  it('sends Problem Details raw for v2 without an API envelope', () => {
+    const req: any = { headers: { 'X-ReDBox-Api-Version': '2.0' }, query: {} };
+    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+    const problem = {
+      type: 'https://redboxresearchdata.com/problems/record-schema-not-found',
+      title: 'Record schema was not found',
+      status: 404,
+      detail: 'No accessible schema was found.',
+      instance: '/default/default/api/records/schemas/missing',
+      code: 'record-schema.not-found',
+    };
+    const buildResponse: BuildResponseType = {
+      format: 'raw-json',
+      mediaType: 'application/problem+json',
+      status: 404,
+      data: problem,
+    };
+
+    controller.callSendResp(req, res, buildResponse);
+
+    expect(res.status.calledOnceWithExactly(404)).to.be.true;
+    expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/problem+json')).to.be.true;
+    expect(res.json.calledOnceWithExactly(problem)).to.be.true;
+    expect(res.json.firstCall.args[0]).not.to.have.property('errors');
+    expect(res.json.firstCall.args[0]).not.to.have.property('meta');
+  });
+
+  it('logs raw response errors and promotes the status without replacing the raw body', () => {
+    const req: any = { headers: { 'X-ReDBox-Api-Version': '2.0' }, query: {} };
+    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+    const problem = {
+      type: 'https://redboxresearchdata.com/problems/record-schema-unavailable',
+      title: 'Record schema is unavailable',
+      status: 503,
+      detail: 'The schema capability is temporarily unavailable.',
+      instance: '/default/default/api/records/schemas/create/dataset',
+      code: 'record-schema.storage-unavailable',
+    };
+    const internalError = new Error('internal-only');
+    const buildResponse: BuildResponseType = {
+      format: 'raw-json',
+      mediaType: 'application/problem+json',
+      errors: [internalError],
+      data: problem,
+    };
+
+    controller.callSendResp(req, res, buildResponse);
+
+    expect((global as any).sails.log.error.calledWith('Collected error in sendResp:', internalError)).to.be.true;
+    expect(res.status.calledOnceWithExactly(500)).to.be.true;
+    expect(res.json.calledOnceWithExactly(problem)).to.be.true;
+  });
+
+  it('rejects unsupported raw media types at runtime', () => {
+    const req: any = { headers: { 'X-ReDBox-Api-Version': '2.0' }, query: {} };
+    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+
+    controller.callSendResp(req, res, {
+      format: 'raw-json',
+      mediaType: 'text/html',
+      headers: { 'Content-Type': 'text/html' },
+      data: { unsafe: true },
+    });
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.set.lastCall.calledWithExactly('Content-Type', 'application/json')).to.be.true;
+    expect(res.json.calledOnceWithExactly({ errors: [{ detail: 'Check server logs.' }], meta: {} })).to.be.true;
+    expect((global as any).sails.log.error.calledWithMatch('Rejected unsupported raw JSON response')).to.be.true;
+  });
+
+  it('rejects raw strings and stream-like objects at runtime', () => {
+    const req: any = { headers: { 'X-ReDBox-Api-Version': '1.0' }, query: {} };
+
+    for (const data of [
+      'not-json-object',
+      new Date('2026-01-01T00:00:00.000Z'),
+      Readable.from(['not-a-json-document']),
+    ]) {
+      const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+      controller.callSendResp(req, res, {
+        format: 'raw-json',
+        mediaType: 'application/schema+json',
+        data,
+      });
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.set.neverCalledWith('Content-Type', 'application/schema+json')).to.be.true;
+      expect(res.json.calledOnceWithExactly({ errors: [{ detail: 'Check server logs.' }], meta: {} })).to.be.true;
+    }
+  });
+
+  it('rejects nested values that JSON serialization would silently rewrite', () => {
+    const req: any = { headers: { 'X-ReDBox-Api-Version': '1.0' }, query: {} };
+    const sparseArray = new Array(1);
+    const accessorObject = {};
+    Object.defineProperty(accessorObject, 'value', { enumerable: true, get: () => 'hidden execution' });
+
+    for (const data of [{ values: sparseArray }, { nested: accessorObject }, { value: Number.NaN }]) {
+      const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+      controller.callSendResp(req, res, {
+        format: 'raw-json',
+        mediaType: 'application/schema+json',
+        data,
+      });
+
+      expect(res.status.calledWith(500)).to.be.true;
+      expect(res.json.calledOnceWithExactly({ errors: [{ detail: 'Check server logs.' }], meta: {} })).to.be.true;
+    }
   });
 });

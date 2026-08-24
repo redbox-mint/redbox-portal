@@ -7,6 +7,7 @@ import { resolveHookViewFile } from './hooks/hookResources';
 import type { ResolvedHookFile } from './hooks/hookResources';
 import {
   BuildResponseType,
+  RawJsonResponseMediaTypes,
   APIErrorResponse,
   ApiVersion,
   ApiVersionStrings,
@@ -575,7 +576,7 @@ export namespace Controllers.Core {
       // Destructure build response properties and set defaults.
       const {
         format = "json",
-        data = {},
+        data: suppliedData,
         headers = {},
         errors = [],
         displayErrors = [],
@@ -583,6 +584,7 @@ export namespace Controllers.Core {
         prehydrate = undefined,
         v1 = null,
       } = buildResponse ?? {};
+      const data = suppliedData === undefined ? {} : suppliedData;
       // Response status defaults to 200.
       let { status = 200 } = buildResponse ?? {};
 
@@ -593,6 +595,10 @@ export namespace Controllers.Core {
 
       this.applyResponseHeaders(res, headers);
       this.applyResponseStatus(res, status);
+
+      if (format === 'raw-json') {
+        return this.sendRawJsonResponse(res, buildResponse?.mediaType, suppliedData);
+      }
 
       // Delegate full version-specific responses (success + errors) to wrapper handlers.
       if (apiVersion === ApiVersion.VERSION_1_0) {
@@ -695,6 +701,90 @@ export namespace Controllers.Core {
       } else {
         res.status(500);
       }
+    }
+
+    private isApprovedRawJsonMediaType(value: unknown): value is typeof RawJsonResponseMediaTypes[number] {
+      return RawJsonResponseMediaTypes.some(mediaType => mediaType === value);
+    }
+
+    private isJsonSafeValue(value: unknown, ancestors: Set<object>): boolean {
+      if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+        return true;
+      }
+      if (typeof value === 'number') {
+        return Number.isFinite(value);
+      }
+      if (typeof value !== 'object') {
+        return false;
+      }
+
+      if (ancestors.has(value)) {
+        return false;
+      }
+      ancestors.add(value);
+      try {
+        if (Array.isArray(value)) {
+          if (Object.getOwnPropertySymbols(value).length > 0) {
+            return false;
+          }
+          const descriptors = Object.getOwnPropertyDescriptors(value);
+          if (Object.keys(descriptors).length !== value.length + 1) {
+            return false;
+          }
+          for (let index = 0; index < value.length; index += 1) {
+            const descriptor = descriptors[index];
+            if (
+              !descriptor ||
+              descriptor.enumerable !== true ||
+              !('value' in descriptor) ||
+              !this.isJsonSafeValue(descriptor.value, ancestors)
+            ) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        const prototype = Object.getPrototypeOf(value);
+        if (prototype !== Object.prototype && prototype !== null) {
+          return false;
+        }
+        if (Object.getOwnPropertySymbols(value).length > 0) {
+          return false;
+        }
+
+        return Object.values(Object.getOwnPropertyDescriptors(value)).every(descriptor =>
+          descriptor.enumerable === true &&
+          'value' in descriptor &&
+          this.isJsonSafeValue(descriptor.value, ancestors)
+        );
+      } finally {
+        ancestors.delete(value);
+      }
+    }
+
+    private isRawJsonObject(value: unknown): value is Record<string, unknown> {
+      try {
+        return value !== null && typeof value === 'object' && !Array.isArray(value) &&
+          this.isJsonSafeValue(value, new Set<object>());
+      } catch {
+        return false;
+      }
+    }
+
+    private sendRawJsonResponse(res: Response, mediaType: unknown, data: unknown): Response {
+      if (!this.isApprovedRawJsonMediaType(mediaType) || !this.isRawJsonObject(data)) {
+        sails.log.error('Rejected unsupported raw JSON response in sendResp', {
+          mediaType: typeof mediaType === 'string' ? mediaType : typeof mediaType,
+          bodyKind: data === null ? 'null' : Array.isArray(data) ? 'array' : typeof data,
+        });
+        res.set('Content-Type', 'application/json');
+        return res.status(500).json({ errors: [{ detail: "Check server logs." }], meta: {} });
+      }
+
+      res.set('Content-Type', mediaType);
+      sails.log.verbose(`Send raw JSON response with media type ${mediaType}.`);
+      return res.json(data);
     }
 
     private shouldSendSuccessJson(

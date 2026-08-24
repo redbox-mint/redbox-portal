@@ -114,6 +114,7 @@ export namespace Services {
           dashboard: config.dashboard,
           recordValidation: config.recordValidation,
           concurrentModification,
+          recordSchema: config.recordSchema,
         }).fetch()
       );
     }

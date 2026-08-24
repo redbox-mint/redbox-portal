@@ -5526,6 +5526,62 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
+    it('characterizes pre-save hooks receiving metadata already merged by the caller', async function () {
+      const stored = {
+        ...baseRecord(),
+        metadata: {
+          title: 'Original',
+          retained: 'keep',
+          nested: { retained: true, values: [{ id: 'stored' }] },
+        },
+      };
+      const callerMergedMetadata = {
+        title: 'Merged',
+        retained: 'keep',
+        nested: {
+          retained: true,
+          incoming: true,
+          values: [{ id: 'stored' }, { id: 'incoming' }],
+        },
+      };
+      mockStorageService.getMeta.resolves(stored);
+      (globalThis as Record<string, unknown>).__recordContractMergeHookInput = undefined;
+      (global as any).RecordTypesService.get.returns(of({
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            pre: [{
+              function:
+                '(_oid, record) => { globalThis.__recordContractMergeHookInput = structuredClone(record.metadata); return record; }',
+            }],
+          },
+        },
+        searchable: false,
+      }));
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+
+      try {
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          stored,
+          { username: 'user-1' },
+          true,
+          false,
+          {},
+          callerMergedMetadata
+        );
+
+        expect(result.wasPersisted()).to.equal(true);
+        expect((globalThis as Record<string, unknown>).__recordContractMergeHookInput).to.deep.equal(
+          callerMergedMetadata
+        );
+        expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(callerMergedMetadata);
+      } finally {
+        delete (globalThis as Record<string, unknown>).__recordContractMergeHookInput;
+      }
+    });
+
     it('resolves brand and record type from the stored snapshot after object-metadata replacement', async function () {
       mockSails.config.recordtype = { rdmp: { recordValidation: { mode: 'enforce' } } };
       const stored = baseRecord();

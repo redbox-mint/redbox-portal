@@ -30,7 +30,9 @@ describe('RecordTypesService', function () {
           },
         },
         concurrentModification: { mode: 'observe' },
+        recordSchema: { unknownProperties: 'declared' },
       },
+      }
     };
     mockSails.config.appmode = { bootstrapAlways: false };
     mockSails.config.storage = { serviceName: 'teststorage' };
@@ -109,6 +111,9 @@ describe('RecordTypesService', function () {
       });
       expect((global as any).RecordType.create.firstCall.args[0].concurrentModification).to.deep.equal({
         mode: 'observe',
+      });
+      expect((global as any).RecordType.create.firstCall.args[0].recordSchema).to.deep.equal({
+        unknownProperties: 'declared'
       });
     });
 

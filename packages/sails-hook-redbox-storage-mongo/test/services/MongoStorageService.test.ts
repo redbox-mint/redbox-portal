@@ -26,6 +26,8 @@ describe('MongoStorageService', function () {
   let recordCollection: any;
   let deletedRecordCollection: any;
   let recordIdentityCollection: any;
+  let RecordSchemaArtifact: any;
+  let RecordSchemaReference: any;
 
   beforeEach(function () {
     sandbox = sinon.createSandbox();
@@ -137,6 +139,14 @@ describe('MongoStorageService', function () {
         then: (onFulfilled: (value: unknown) => unknown) => Promise.resolve(onFulfilled([])),
       }),
     };
+    RecordSchemaArtifact = {
+      tableName: 'recordschemaartifact',
+      getDatastore: sandbox.stub().returns({ manager: mockDb }),
+    };
+    RecordSchemaReference = {
+      tableName: 'recordschemareference',
+      getDatastore: sandbox.stub().returns({ manager: mockDb }),
+    };
 
     mockBucket = {
       find: sandbox.stub(),
@@ -150,6 +160,8 @@ describe('MongoStorageService', function () {
     (global as any).DeletedRecord = DeletedRecord;
     (global as any).RecordAudit = RecordAudit;
     (global as any).IntegrationAudit = IntegrationAudit;
+    (global as any).RecordSchemaArtifact = RecordSchemaArtifact;
+    (global as any).RecordSchemaReference = RecordSchemaReference;
     (global as any).TranslationService = { t: sandbox.stub().returns('missing attachment') };
     (global as any).RecordTypesService = { get: sandbox.stub().returns(of({ relatedTo: [] })) };
     (global as any).FormsService = { getFormByName: sandbox.stub().returns(of({ attachmentFields: [] })) };
@@ -175,6 +187,8 @@ describe('MongoStorageService', function () {
     delete (global as any).DeletedRecord;
     delete (global as any).RecordAudit;
     delete (global as any).IntegrationAudit;
+    delete (global as any).RecordSchemaArtifact;
+    delete (global as any).RecordSchemaReference;
     delete (global as any).TranslationService;
     delete (global as any).RecordTypesService;
     delete (global as any).FormsService;
@@ -196,6 +210,8 @@ describe('MongoStorageService', function () {
     const identityCollection = {
       createIndexes: sandbox.stub().resolves([]),
     };
+    const artifactCollection = { createIndexes: sandbox.stub().resolves([]) };
+    const referenceCollection = { createIndexes: sandbox.stub().resolves([]) };
     mockDb.collection.callsFake((name: string, options?: any) => {
       if (options?.strict) {
         return { ok: 1 };
@@ -203,7 +219,15 @@ describe('MongoStorageService', function () {
       if (name === 'record') {
         return recordCollection;
       }
-      return name === 'deletedrecord' ? deletedCollection : identityCollection;
+      if (name === 'deletedrecord') return deletedCollection;
+      if (name === 'recordidentity') return identityCollection;
+      if (name === 'recordschemaartifact') {
+        return artifactCollection;
+      }
+      if (name === 'recordschemareference') {
+        return referenceCollection;
+      }
+      return deletedCollection;
     });
 
     await service.performInit();
@@ -215,6 +239,8 @@ describe('MongoStorageService', function () {
     expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
     expect(deletedCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.deletedRecordIndices)).to.be
       .true;
+    expect(artifactCollection.createIndexes.calledOnce).to.be.true;
+    expect(referenceCollection.createIndexes.calledOnce).to.be.true;
   });
 
   it('creates the collection through a seed record when strict lookup fails', async function () {
@@ -222,6 +248,8 @@ describe('MongoStorageService', function () {
       indexes: sandbox.stub().resolves([]),
       createIndexes: sandbox.stub().resolves([]),
     };
+    const artifactCollection = { createIndexes: sandbox.stub().resolves([]) };
+    const referenceCollection = { createIndexes: sandbox.stub().resolves([]) };
     mockDb.collection.callsFake((name: string, options?: any) => {
       if (options?.strict) {
         throw new Error('missing');
@@ -230,6 +258,16 @@ describe('MongoStorageService', function () {
         return recordCollection;
       }
       return { createIndexes: sandbox.stub().resolves([]) };
+      if (name === 'recordidentity') {
+        return { createIndexes: sandbox.stub().resolves([]) };
+      }
+      if (name === 'recordschemaartifact') {
+        return artifactCollection;
+      }
+      if (name === 'recordschemareference') {
+        return referenceCollection;
+      }
+      return {};
     });
 
     await service.performInit();
