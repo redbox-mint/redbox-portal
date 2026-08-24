@@ -9,17 +9,22 @@ import {
 } from '../config/recordSchema.config';
 import type {
   RecordSchemaArtifactInput,
+  RecordSchemaArtifactModel,
   RecordSchemaCreateGrantReferenceInput,
   RecordSchemaGrantReferenceInput,
+  RecordSchemaReferenceModel,
   RecordSchemaUpdateGrantReferenceInput,
 } from '../model/storage/record-schema';
+import type { RecordSchemaProblem, ResolveRecordSchemaResult } from '../model/record-contract';
 import {
   compileRecordJsonSchemaArtifact,
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
   getDiscoveredRecordContractContributorComponentTypes,
   getDiscoveredRecordContractContributorRegistrationIssues,
   getDiscoveredRecordContractContributorRegistry,
+  identifyRecordJsonSchema,
   normalizeRedboxCanonicalJsonV1,
+  normalizeRecordJsonSchemaDocument,
   RecordContractCompiler,
   RecordContractContextResolutionError,
   RecordJsonSchemaCompilationError,
@@ -136,6 +141,8 @@ const DUPLICATE_REGISTRATION_CODES: ReadonlySet<RecordContractRegistrationCode> 
 
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_DIAGNOSTIC_IDENTIFIER = /^[A-Za-z0-9@._:/-]{1,200}$/;
+const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
+const RECORD_SCHEMA_STRICT_ALL_OPERATION = 'strict-all';
 
 function unreadableConfigurationFinding(): RecordSchemaLifecycleFinding {
   return {
@@ -600,6 +607,19 @@ export type ResolveUpdateRecordSchemaResult =
   | RecordSchemaUpdateStorageFailure
   | RecordSchemaUpdateUnavailableFailure;
 
+export interface ResolveImmutableRecordSchemaRequest {
+  readonly brand: string;
+  readonly portal: string;
+  readonly digest: string;
+  /** Trusted current caller and brand used by the authoritative context and record-access paths. */
+  readonly caller: FormRecordAccessContext;
+  /** One already-parsed exact strong schema ETag. General header parsing belongs to the HTTP precondition phase. */
+  readonly ifNoneMatch?: RecordJsonSchemaEtag;
+}
+
+/** Immutable retrieval uses the shared resolver result contract established for schema endpoints. */
+export type ResolveImmutableRecordSchemaResult = ResolveRecordSchemaResult;
+
 type RecordSchemaResolutionFailure =
   | RecordSchemaCreateContextFailure
   | RecordSchemaCreateCompilerFailure
@@ -630,8 +650,33 @@ type RecordSchemaPipelineSuccess<Grant extends RecordSchemaGrantReferenceInput> 
 type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
   RecordSchemaPipelineSuccess<Grant> | RecordSchemaResolutionFailure;
 
+interface RecordSchemaCompiledContextBase {
+  readonly document: PublishedRecordJsonSchemaDocument;
+  readonly digest: string;
+  readonly artifactInput: RecordSchemaArtifactInput;
+  readonly contractFormat: RecordContractFormat;
+  readonly byteLength: number;
+  readonly etag: RecordJsonSchemaEtag;
+}
+
+type RecordSchemaCompiledContext =
+  | (RecordSchemaCompiledContextBase & {
+      readonly kind: 'resolved';
+      readonly completeness: 'complete';
+    })
+  | (RecordSchemaCompiledContextBase & {
+      readonly kind: 'partial';
+      readonly completeness: 'partial';
+    });
+
+type RecordSchemaCompilationResult = RecordSchemaCompiledContext | RecordSchemaResolutionFailure;
+
 type RecordSchemaCreateStorageProvider = Required<
   Pick<StorageService, 'putRecordSchemaArtifact' | 'putRecordSchemaReference'>
+>;
+
+type RecordSchemaImmutableStorageProvider = Required<
+  Pick<StorageService, 'getRecordSchemaArtifact' | 'listRecordSchemaReferences' | 'touchRecordSchemaArtifact'>
 >;
 
 function createStorageProvider(value: unknown): RecordSchemaCreateStorageProvider | undefined {
@@ -645,6 +690,21 @@ function createStorageProvider(value: unknown): RecordSchemaCreateStorageProvide
       : undefined;
   } catch {
     return undefined;
+  }
+}
+
+function isImmutableStorageProvider(value: unknown): value is RecordSchemaImmutableStorageProvider {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+    return false;
+  }
+  try {
+    return (
+      typeof Reflect.get(value, 'getRecordSchemaArtifact') === 'function' &&
+      typeof Reflect.get(value, 'listRecordSchemaReferences') === 'function' &&
+      typeof Reflect.get(value, 'touchRecordSchemaArtifact') === 'function'
+    );
+  } catch {
+    return false;
   }
 }
 
@@ -692,6 +752,149 @@ function callerActor(caller: FormRecordAccessContext): RecordContractContextActo
     authenticated: username.length > 0,
     roles: Object.freeze(roles),
   });
+}
+
+type RecordSchemaGrantReferenceModel = RecordSchemaGrantReferenceInput &
+  Readonly<Pick<RecordSchemaReferenceModel, 'createdAt' | 'updatedAt'>>;
+
+function isEquivalentGrant(
+  reference: RecordSchemaReferenceModel,
+  request: ResolveImmutableRecordSchemaRequest
+): reference is RecordSchemaGrantReferenceModel {
+  return (
+    reference.kind === 'grant' &&
+    reference.digest === request.digest &&
+    reference.brand === request.brand &&
+    reference.portal === request.portal
+  );
+}
+
+function immutableProblemInstance(request: ResolveImmutableRecordSchemaRequest): string {
+  return `/${encodeURIComponent(request.brand)}/${encodeURIComponent(request.portal)}/api/records/schemas/${encodeURIComponent(request.digest)}`;
+}
+
+function immutableProblem(
+  request: ResolveImmutableRecordSchemaRequest,
+  values: Readonly<{
+    type: string;
+    title: string;
+    status: RecordSchemaProblem['status'];
+    detail: string;
+    code: RecordSchemaProblem['code'];
+  }>
+): RecordSchemaProblem {
+  return Object.freeze({
+    ...values,
+    instance: immutableProblemInstance(request),
+  });
+}
+
+function invalidDigestResult(request: ResolveImmutableRecordSchemaRequest): ResolveImmutableRecordSchemaResult {
+  return Object.freeze({
+    kind: 'invalid-request',
+    problem: immutableProblem(request, {
+      type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
+      title: 'Record schema request is invalid',
+      status: 400,
+      detail: 'The record schema digest must be a lowercase 64-character SHA-256 hexadecimal value.',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+    }),
+  });
+}
+
+function immutableNotFoundResult(request: ResolveImmutableRecordSchemaRequest): ResolveImmutableRecordSchemaResult {
+  return Object.freeze({
+    kind: 'not-found',
+    problem: immutableProblem(request, {
+      type: 'https://redboxresearchdata.com/problems/record-schema-not-found',
+      title: 'Record schema was not found',
+      status: 404,
+      detail: 'No accessible schema was found.',
+      code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
+    }),
+  });
+}
+
+function immutableUnavailableResult(
+  request: ResolveImmutableRecordSchemaRequest,
+  code:
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE
+): ResolveImmutableRecordSchemaResult {
+  return Object.freeze({
+    kind: 'unavailable',
+    problem: immutableProblem(request, {
+      type: 'https://redboxresearchdata.com/problems/record-schema-unavailable',
+      title: 'Record schema is unavailable',
+      status: 503,
+      detail: 'Record schema retrieval is currently unavailable.',
+      code,
+    }),
+  });
+}
+
+function immutableInvalidContractResult(
+  request: ResolveImmutableRecordSchemaRequest
+): ResolveImmutableRecordSchemaResult {
+  return Object.freeze({
+    kind: 'invalid-contract',
+    problem: immutableProblem(request, {
+      type: 'https://redboxresearchdata.com/problems/record-schema-invalid-contract',
+      title: 'Record schema contract is invalid',
+      status: 422,
+      detail: 'The stored schema artifact failed its immutable identity check.',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+    }),
+  });
+}
+
+function immutableGrantOperation(operation: string): string | undefined {
+  return operation === RECORD_SCHEMA_STRICT_ALL_OPERATION ? undefined : operation;
+}
+
+function immutableCreateTargetStep(artifact: RecordSchemaArtifactModel): string | undefined {
+  const context = artifact.document['x-redbox-context'];
+  if (!isObjectRecord(context) || context.kind !== 'create') {
+    return undefined;
+  }
+  return typeof context.workflowStep === 'string' ? context.workflowStep : undefined;
+}
+
+function verifiedImmutableArtifact(
+  artifact: RecordSchemaArtifactModel,
+  expected: RecordSchemaCompiledContext
+): RecordSchemaArtifactModel | undefined {
+  try {
+    const normalized = normalizeRecordJsonSchemaDocument(artifact.document);
+    const identity = identifyRecordJsonSchema(normalized, Number.MAX_SAFE_INTEGER);
+    if (
+      artifact.digest !== expected.digest ||
+      identity.digest !== expected.digest ||
+      serializeRedboxCanonicalJsonV1(identity.document) !== serializeRedboxCanonicalJsonV1(expected.document) ||
+      artifact.contractFormat !== expected.contractFormat ||
+      artifact.completeness !== expected.completeness ||
+      artifact.byteLength !== identity.byteLength
+    ) {
+      return undefined;
+    }
+    const immutableDocument = normalizeRedboxCanonicalJsonV1(identity.document);
+    if (!isContractJsonObject(immutableDocument)) {
+      return undefined;
+    }
+    return Object.freeze({
+      digest: artifact.digest,
+      document: immutableDocument,
+      contractFormat: artifact.contractFormat,
+      completeness: artifact.completeness,
+      byteLength: artifact.byteLength,
+      createdAt: artifact.createdAt,
+      updatedAt: artifact.updatedAt,
+      ...(artifact.lastAccessedAt ? { lastAccessedAt: artifact.lastAccessedAt } : {}),
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 function createGrantReference(
@@ -752,9 +955,9 @@ function emptyValidationIssues(): readonly RecordJsonSchemaValidationIssue[] {
 }
 
 export namespace Services {
-  /** Performs record-schema lifecycle checks and caller-effective create/update resolution. */
+  /** Performs record-schema lifecycle checks and caller-effective create/update/immutable resolution. */
   export class RecordSchema extends services.Core.Service {
-    protected override _exportedMethods = ['init', 'resolveCreate', 'resolveUpdate'];
+    protected override _exportedMethods = ['init', 'resolveCreate', 'resolveUpdate', 'resolveImmutable'];
     protected override logHeader = 'RecordSchemaService::';
     private readonly dependencies: RecordSchemaServiceDependencies;
 
@@ -942,12 +1145,179 @@ export namespace Services {
       });
     }
 
-    private async compileAndPersist<Grant extends RecordSchemaGrantReferenceInput>(
+    /** Retrieve one immutable artifact only after current equivalent authorization succeeds. */
+    public async resolveImmutable(
+      request: ResolveImmutableRecordSchemaRequest
+    ): Promise<ResolveImmutableRecordSchemaResult> {
+      if (typeof request.digest !== 'string' || !DIGEST_PATTERN.test(request.digest)) {
+        return invalidDigestResult(request);
+      }
+
+      const actor = callerActor(request.caller);
+      const callerBrand = typeof request.caller.brand?.id === 'string' ? request.caller.brand.id.trim() : '';
+      if (callerBrand !== request.brand) {
+        return immutableNotFoundResult(request);
+      }
+
+      const config = this.resolveRuntimeConfig();
+      if (!config) {
+        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID);
+      }
+      if (!config.enabled) {
+        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      let storageValue: unknown;
+      try {
+        storageValue = this.dependencies.getStorageProvider();
+      } catch {
+        storageValue = undefined;
+      }
+      if (!isImmutableStorageProvider(storageValue)) {
+        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+      }
+      const storage = storageValue;
+
+      let artifact: RecordSchemaArtifactModel | null;
+      try {
+        artifact = await storage.getRecordSchemaArtifact(request.digest);
+      } catch {
+        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+      }
+      if (!artifact || artifact.digest !== request.digest) {
+        return immutableNotFoundResult(request);
+      }
+
+      let authorizedCompilation: RecordSchemaCompiledContext | undefined;
+      let grantOffset = 0;
+      while (!authorizedCompilation) {
+        let grants: RecordSchemaReferenceModel[];
+        try {
+          grants = await storage.listRecordSchemaReferences({
+            digest: request.digest,
+            kind: 'grant',
+            brand: request.brand,
+            portal: request.portal,
+            limit: RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE,
+            offset: grantOffset,
+          });
+        } catch {
+          return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+        }
+
+        for (const grant of grants) {
+          if (!isEquivalentGrant(grant, request)) {
+            continue;
+          }
+          authorizedCompilation = await this.resolveImmutableGrant(config, artifact, grant, request.caller, actor);
+          if (authorizedCompilation) {
+            break;
+          }
+        }
+
+        if (grants.length < RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE) {
+          break;
+        }
+        grantOffset += grants.length;
+      }
+      if (!authorizedCompilation) {
+        return immutableNotFoundResult(request);
+      }
+
+      const immutableArtifact = verifiedImmutableArtifact(artifact, authorizedCompilation);
+      if (!immutableArtifact) {
+        return immutableInvalidContractResult(request);
+      }
+
+      const notModified = request.ifNoneMatch === authorizedCompilation.etag;
+      let touch: StorageServiceResponse | undefined;
+      try {
+        touch = await storage.touchRecordSchemaArtifact(request.digest);
+      } catch {
+        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+      }
+      if (!storageResponseSucceeded(touch)) {
+        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+      }
+
+      return Object.freeze({
+        kind: 'resolved',
+        artifact: immutableArtifact,
+        notModified,
+      });
+    }
+
+    private async resolveImmutableGrant(
+      config: RecordSchemaConfig,
+      artifact: RecordSchemaArtifactModel,
+      grant: RecordSchemaGrantReferenceModel,
+      caller: FormRecordAccessContext,
+      actor: RecordContractContextActor
+    ): Promise<RecordSchemaCompiledContext | undefined> {
+      let context: RecordContractContext;
+      try {
+        context = await this.dependencies.resolveContractContext(
+          grant.schemaKind === 'create'
+            ? {
+                kind: 'create',
+                brand: grant.brand,
+                portal: grant.portal,
+                recordType: grant.recordType,
+                operation: immutableGrantOperation(grant.operation),
+                targetStep: immutableCreateTargetStep(artifact),
+                actor,
+              }
+            : {
+                kind: 'update',
+                brand: grant.brand,
+                portal: grant.portal,
+                oid: grant.oid,
+                operation: immutableGrantOperation(grant.operation),
+                actor,
+              }
+        );
+      } catch {
+        return undefined;
+      }
+
+      if (
+        context.publicContext.kind !== grant.schemaKind ||
+        context.publicContext.brand !== grant.brand ||
+        context.publicContext.portal !== grant.portal ||
+        context.publicContext.recordType !== grant.recordType ||
+        context.publicContext.operation !== grant.operation
+      ) {
+        return undefined;
+      }
+
+      let recordAccessContext: FormRecordAccessContext | undefined;
+      if (grant.schemaKind === 'update') {
+        if (!isUpdateContractContext(context) || context.resolution.oid !== grant.oid) {
+          return undefined;
+        }
+        try {
+          if (!(await this.dependencies.authorizeUpdate(context, caller))) {
+            return undefined;
+          }
+        } catch {
+          return undefined;
+        }
+        recordAccessContext = caller;
+      } else if (!isCreateContractContext(context)) {
+        return undefined;
+      }
+
+      const compilation = await this.compileContext(config, context, recordAccessContext);
+      return (compilation.kind === 'resolved' || compilation.kind === 'partial') && compilation.digest === grant.digest
+        ? compilation
+        : undefined;
+    }
+
+    private async compileContext(
       config: RecordSchemaConfig,
       context: RecordContractContext,
-      createGrant: (artifact: Readonly<Pick<RecordSchemaArtifactInput, 'digest'>>) => Grant,
       recordAccessContext?: FormRecordAccessContext
-    ): Promise<RecordSchemaPipelineResult<Grant>> {
+    ): Promise<RecordSchemaCompilationResult> {
       let formBuild: RecordContractFormBuildResult;
       try {
         formBuild = await this.dependencies.buildContractFormConfig(context, recordAccessContext);
@@ -1080,6 +1450,47 @@ export namespace Services {
         };
       }
 
+      const artifactInput: RecordSchemaArtifactInput = Object.freeze({
+        digest: artifact.digest,
+        document: persistedDocumentValue,
+        contractFormat: config.contractFormat,
+        completeness: compileResult.contract.completeness,
+        byteLength: artifact.byteLength,
+      });
+
+      const compilationBase = {
+        document: artifact.document,
+        digest: artifact.digest,
+        artifactInput,
+        contractFormat: config.contractFormat,
+        byteLength: artifact.byteLength,
+        etag: artifact.etag,
+      } as const;
+      if (compileResult.contract.completeness === 'partial') {
+        return Object.freeze({
+          kind: 'partial',
+          completeness: 'partial',
+          ...compilationBase,
+        });
+      }
+      return Object.freeze({
+        kind: 'resolved',
+        completeness: 'complete',
+        ...compilationBase,
+      });
+    }
+
+    private async compileAndPersist<Grant extends RecordSchemaGrantReferenceInput>(
+      config: RecordSchemaConfig,
+      context: RecordContractContext,
+      createGrant: (artifact: Readonly<Pick<RecordSchemaArtifactInput, 'digest'>>) => Grant,
+      recordAccessContext?: FormRecordAccessContext
+    ): Promise<RecordSchemaPipelineResult<Grant>> {
+      const compilation = await this.compileContext(config, context, recordAccessContext);
+      if (compilation.kind !== 'resolved' && compilation.kind !== 'partial') {
+        return compilation;
+      }
+
       let storageValue: unknown;
       try {
         storageValue = this.dependencies.getStorageProvider();
@@ -1095,16 +1506,9 @@ export namespace Services {
         };
       }
 
-      const artifactInput: RecordSchemaArtifactInput = Object.freeze({
-        digest: artifact.digest,
-        document: persistedDocumentValue,
-        contractFormat: config.contractFormat,
-        completeness: compileResult.contract.completeness,
-        byteLength: artifact.byteLength,
-      });
       let artifactWrite: StorageServiceResponse | undefined;
       try {
-        artifactWrite = await storage.putRecordSchemaArtifact(artifactInput);
+        artifactWrite = await storage.putRecordSchemaArtifact(compilation.artifactInput);
       } catch {
         return {
           kind: 'storage-failed',
@@ -1123,7 +1527,7 @@ export namespace Services {
         };
       }
 
-      const grant = createGrant(artifactInput);
+      const grant = createGrant(compilation.artifactInput);
       let grantWrite: StorageServiceResponse | undefined;
       try {
         grantWrite = await storage.putRecordSchemaReference(grant);
@@ -1143,14 +1547,14 @@ export namespace Services {
       }
 
       const resolutionBase = {
-        document: artifact.document,
-        digest: artifact.digest,
+        document: compilation.document,
+        digest: compilation.digest,
         grant,
-        contractFormat: config.contractFormat,
-        byteLength: artifact.byteLength,
-        etag: artifact.etag,
+        contractFormat: compilation.contractFormat,
+        byteLength: compilation.byteLength,
+        etag: compilation.etag,
       } as const;
-      if (compileResult.contract.completeness === 'partial') {
+      if (compilation.kind === 'partial') {
         return Object.freeze({
           kind: 'partial',
           completeness: 'partial',
