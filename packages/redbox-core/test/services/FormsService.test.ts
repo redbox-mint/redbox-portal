@@ -4,8 +4,10 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
 import { FormConfigFrame, FormModesConfig } from "@researchdatabox/sails-ng-common";
+import type { AvailableFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
 import { formConfigExample1 } from "../unit/example-data";
 import { reusableFormDefinitions, TemplateFormConfigVisitor } from "../../src";
+import type { RecordContractContext } from '../../src/record-contract/record-contract-context';
 
 function findComponentDefinitionByName(componentDefinitions: unknown[] | undefined, targetName: string): any {
   for (const componentDefinition of componentDefinitions ?? []) {
@@ -785,6 +787,292 @@ describe('FormsService', function () {
       expect(metadataDisplay.content).to.deep.equal({
         title: 'Should inject'
       });
+    });
+  });
+
+  describe('buildContractFormConfig', function () {
+    it('should delegate authoritative context through the client form construction path', async function () {
+      const sourceForm: FormConfigFrame = {
+        name: 'contract-form',
+        componentDefinitions: [
+          {
+            name: 'title',
+            component: { class: 'SimpleInputComponent', config: {} },
+            model: { class: 'SimpleInputModel', config: {} }
+          }
+        ]
+      };
+      const context: RecordContractContext = {
+        publicContext: {
+          brand: 'brand-1',
+          portal: 'portal-1',
+          kind: 'update',
+          recordType: 'dataset',
+          workflowStep: 'draft',
+          form: 'contract-form',
+          operation: 'update',
+          unknownProperties: 'allow',
+          enforcement: 'shadow'
+        },
+        resolution: {
+          sourceFormFingerprint: 'fingerprint',
+          sourceForm,
+          reusableFormDefinitions: {
+            common: sourceForm.componentDefinitions
+          },
+          actor: { authenticated: true, roles: ['researcher'] },
+          formMode: 'view',
+          contextVariables: { '@user_name': 'Alice' },
+          oid: 'record-1',
+          existingRecord: { title: 'Existing title' }
+        }
+      };
+      const effectiveForm = {
+        name: 'contract-form',
+        componentDefinitions: [{
+          name: 'title',
+          component: { class: 'SimpleInputComponent', config: {} },
+          model: { class: 'SimpleInputModel', config: {} }
+        }]
+      };
+      const recordAccessContext = {
+        user: { id: 'user-1' },
+        brand: { id: 'brand-1' }
+      };
+      const buildClientFormConfig = sinon.stub(FormsService, 'buildClientFormConfig').resolves(effectiveForm);
+
+      const result = await FormsService.buildContractFormConfig(context, recordAccessContext);
+
+      expect(result).to.deep.equal({ ok: true, effectiveForm });
+      expect(buildClientFormConfig.calledOnce).to.be.true;
+      const [
+        delegatedSourceForm,
+        formMode,
+        roles,
+        recordMetadata,
+        delegatedReusableDefinitions,
+        branding,
+        contextVariables,
+        delegatedAccessContext
+      ] = buildClientFormConfig.firstCall.args;
+      expect(delegatedSourceForm).to.deep.equal(sourceForm);
+      expect(delegatedSourceForm).to.not.equal(sourceForm);
+      expect(formMode).to.equal('view');
+      expect(roles).to.deep.equal(['researcher']);
+      expect(recordMetadata).to.deep.equal({ title: 'Existing title' });
+      expect(delegatedReusableDefinitions).to.deep.equal(context.resolution.reusableFormDefinitions);
+      expect(branding).to.equal('brand-1');
+      expect(contextVariables).to.deep.equal({ '@user_name': 'Alice' });
+      expect(delegatedAccessContext).to.equal(recordAccessContext);
+    });
+
+    it('should retain candidate-dependent component branches for create contracts', async function () {
+      const context: RecordContractContext = {
+        publicContext: {
+          brand: 'default',
+          portal: 'portal-1',
+          kind: 'create',
+          recordType: 'dataset',
+          workflowStep: 'draft',
+          form: 'conditional-contract-form',
+          operation: 'create',
+          unknownProperties: 'allow',
+          enforcement: 'shadow'
+        },
+        resolution: {
+          sourceFormFingerprint: 'fingerprint',
+          sourceForm: {
+            name: 'conditional-contract-form',
+            componentDefinitions: [
+              {
+                name: 'branch-a',
+                expressions: [{
+                  name: 'show-branch-a',
+                  config: { template: 'kind = "a"' }
+                }],
+                component: { class: 'SimpleInputComponent', config: {} },
+                model: { class: 'SimpleInputModel', config: {} }
+              },
+              {
+                name: 'branch-b',
+                expressions: [{
+                  name: 'show-branch-b',
+                  config: { template: 'kind = "b"' }
+                }],
+                component: { class: 'SimpleInputComponent', config: {} },
+                model: { class: 'SimpleInputModel', config: {} }
+              }
+            ]
+          },
+          reusableFormDefinitions: {},
+          actor: { authenticated: true, roles: [] },
+          formMode: 'edit',
+          contextVariables: {}
+        }
+      };
+      const buildClientFormConfig = sinon.spy(FormsService, 'buildClientFormConfig');
+
+      const result = await FormsService.buildContractFormConfig(context);
+
+      expect(result.ok).to.be.true;
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+      expect(buildClientFormConfig.firstCall.args[3]).to.equal(null);
+      expect(result.effectiveForm.componentDefinitions.map(
+        (component: AvailableFormComponentDefinitionOutlines) => component.name
+      )).to.deep.equal([
+        'branch-a',
+        'branch-b'
+      ]);
+      expect(result.effectiveForm.componentDefinitions.map(
+        (component: AvailableFormComponentDefinitionOutlines) => component.expressions?.[0]?.config.hasTemplate
+      ))
+        .to.deep.equal([true, true]);
+    });
+
+    it('should remove components the caller cannot submit while retaining submittable nested fields', async function () {
+      const context: RecordContractContext = {
+        publicContext: {
+          brand: 'default',
+          portal: 'portal-1',
+          kind: 'create',
+          recordType: 'dataset',
+          workflowStep: 'draft',
+          form: 'mixed-contract-form',
+          operation: 'create',
+          unknownProperties: 'allow',
+          enforcement: 'shadow'
+        },
+        resolution: {
+          sourceFormFingerprint: 'fingerprint',
+          sourceForm: {
+            name: 'mixed-contract-form',
+            componentDefinitions: [
+              {
+                name: 'guidance',
+                component: { class: 'ContentComponent', config: { content: 'Guidance only' } }
+              },
+              {
+                name: 'admin-only',
+                constraints: { authorization: { allowRoles: ['admin'] } },
+                component: { class: 'SimpleInputComponent', config: {} },
+                model: { class: 'SimpleInputModel', config: {} }
+              },
+              {
+                name: 'details',
+                component: {
+                  class: 'TabComponent',
+                  config: {
+                    tabs: [{
+                      name: 'details-tab',
+                      component: {
+                        class: 'TabContentComponent',
+                        config: {
+                          componentDefinitions: [
+                            {
+                              name: 'nested-guidance',
+                              component: { class: 'ContentComponent', config: { content: 'Nested guidance' } }
+                            },
+                            {
+                              name: 'title',
+                              component: { class: 'SimpleInputComponent', config: {} },
+                              model: {
+                                class: 'SimpleInputModel',
+                                config: { defaultValue: 'Title for @user_name' }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }]
+                  }
+                }
+              }
+            ]
+          },
+          reusableFormDefinitions: {},
+          actor: { authenticated: true, roles: ['researcher'] },
+          formMode: 'edit',
+          contextVariables: { '@user_name': 'Alice' }
+        }
+      };
+
+      const result = await FormsService.buildContractFormConfig(context);
+
+      expect(result.ok).to.be.true;
+      if (!result.ok) {
+        throw new Error(result.reason);
+      }
+      expect(result.effectiveForm.componentDefinitions).to.have.length(1);
+      const tab = result.effectiveForm.componentDefinitions[0];
+      expect(tab.component.class).to.equal('TabComponent');
+      if (tab.component.class !== 'TabComponent') {
+        throw new Error(`Unexpected contract component: ${tab.component.class}`);
+      }
+      expect(tab.component.config?.tabs).to.have.length(1);
+      const tabContent = tab.component.config?.tabs[0];
+      expect(tabContent?.component.config?.componentDefinitions).to.have.length(1);
+      expect(tabContent?.component.config?.componentDefinitions[0].name).to.equal('title');
+      expect(tabContent?.component.config?.componentDefinitions[0].model?.config?.value).to.equal('Title for Alice');
+    });
+
+    it('should return a typed failure when no submittable components remain', async function () {
+      const context: RecordContractContext = {
+        publicContext: {
+          brand: 'default',
+          portal: 'portal-1',
+          kind: 'create',
+          recordType: 'dataset',
+          workflowStep: 'draft',
+          form: 'empty-contract-form',
+          operation: 'create',
+          unknownProperties: 'allow',
+          enforcement: 'shadow'
+        },
+        resolution: {
+          sourceFormFingerprint: 'fingerprint',
+          sourceForm: {
+            name: 'empty-contract-form',
+            componentDefinitions: [
+              {
+                name: 'guidance',
+                component: { class: 'ContentComponent', config: { content: 'Guidance only' } }
+              },
+              {
+                name: 'empty-tabs',
+                component: {
+                  class: 'TabComponent',
+                  config: {
+                    tabs: [{
+                      name: 'display-tab',
+                      component: {
+                        class: 'TabContentComponent',
+                        config: {
+                          componentDefinitions: [{
+                            name: 'nested-guidance',
+                            component: { class: 'ContentComponent', config: { content: 'Nested guidance' } }
+                          }]
+                        }
+                      }
+                    }]
+                  }
+                }
+              }
+            ]
+          },
+          reusableFormDefinitions: {},
+          actor: { authenticated: true, roles: [] },
+          formMode: 'edit',
+          contextVariables: {}
+        }
+      };
+
+      const result = await FormsService.buildContractFormConfig(context);
+
+      expect(result).to.deep.equal({ ok: false, reason: 'empty-effective-form' });
+      expect(result).to.not.deep.equal({});
+      expect('effectiveForm' in result).to.be.false;
     });
   });
 });

@@ -1,4 +1,8 @@
-import type { FormComponentDefinitionFrame, FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import type {
+  AvailableFormComponentDefinitionFrames,
+  FormConfigFrame,
+  FormConfigOutline,
+} from '@researchdatabox/sails-ng-common';
 
 import type { ContractJsonObject, RecordContractPublicContext, RecordContractSchemaKind } from './types';
 
@@ -33,10 +37,12 @@ export type RecordContractContextRequest = RecordContractCreateContextRequest | 
 
 /** Source form retained before caller- and candidate-dependent contract construction. */
 export type RecordContractSourceForm = Readonly<Omit<FormConfigFrame, 'componentDefinitions'>> & {
-  readonly componentDefinitions: readonly FormComponentDefinitionFrame[];
+  readonly componentDefinitions: readonly AvailableFormComponentDefinitionFrames[];
 };
 
-export type RecordContractReusableFormDefinitions = Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>;
+export type RecordContractReusableFormDefinitions = Readonly<
+  Record<string, readonly AvailableFormComponentDefinitionFrames[]>
+>;
 
 interface RecordContractResolutionDataBase {
   readonly sourceFormFingerprint: string;
@@ -79,6 +85,20 @@ export interface RecordContractUpdateContext {
  * compiler/renderer boundary; `resolution` remains private service data.
  */
 export type RecordContractContext = RecordContractCreateContext | RecordContractUpdateContext;
+
+/** A role- and mode-effective form that is safe to pass to contract compilation. */
+export interface RecordContractFormBuildSuccess {
+  readonly ok: true;
+  readonly effectiveForm: FormConfigOutline;
+}
+
+/** Contract construction cannot continue when no effective form components remain. */
+export interface RecordContractFormBuildFailure {
+  readonly ok: false;
+  readonly reason: 'empty-effective-form';
+}
+
+export type RecordContractFormBuildResult = RecordContractFormBuildSuccess | RecordContractFormBuildFailure;
 
 const PUBLIC_CONTEXT_STRING_FIELDS = ['brand', 'portal', 'recordType', 'workflowStep', 'form', 'operation'] as const;
 

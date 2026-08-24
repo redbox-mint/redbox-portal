@@ -27,7 +27,7 @@ import { createSchema } from 'genson-js';
 import * as path from 'path';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
-  FormConfigFrame, FormConfigOutline,
+  AvailableFormComponentDefinitionOutlines, FormConfigFrame, FormConfigOutline,
   FormModesConfig, ReusableFormDefinitions, ValidationOperationDiscovery,
   compareRecordValidationIdentifiers,
   RECORD_VALIDATION_REFERENCE_PATTERN,
@@ -42,6 +42,10 @@ import type {
   RecordValidationCandidate,
   RecordValidationOperationDiscoveryRequest,
 } from './RecordValidationService';
+import type {
+  RecordContractContext,
+  RecordContractFormBuildResult,
+} from '../record-contract/record-contract-context';
 
 type WorkflowStepLike = {
   id: string;
@@ -80,7 +84,10 @@ type FormComponentNodeLike = {
     };
   };
 };
-type RecordAccessContext = { user: UserModel; brand: BrandingModel };
+export interface FormRecordAccessContext {
+  readonly user: UserModel;
+  readonly brand: BrandingModel;
+}
 
 export interface ValidationOperationDiscoveryOptions {
   readonly brand: BrandingModel;
@@ -121,6 +128,7 @@ export namespace Services {
       'generateFormFromSchema',
       'getFormByStartingWorkflowStep',
       'buildClientFormConfig',
+      'buildContractFormConfig',
       'discoverValidationOperations',
       'toPublicForm',
     ];
@@ -806,7 +814,7 @@ export namespace Services {
       reusableFormDefs?: ReusableFormDefinitions,
       branding?: string,
       contextVariablesMap?: Record<string, unknown>,
-      recordAccessContext?: RecordAccessContext
+      recordAccessContext?: FormRecordAccessContext
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({
@@ -846,6 +854,120 @@ export namespace Services {
       }
 
       return result;
+    }
+
+    /**
+     * Build the effective form used to compile a record contract.
+     *
+     * Create contracts deliberately use the form defaults rather than a synthetic
+     * record candidate. This keeps candidate-dependent form branches available to
+     * the contract compiler. Update contracts use the authoritative existing record.
+     */
+    public async buildContractFormConfig(
+      context: RecordContractContext,
+      recordAccessContext?: FormRecordAccessContext
+    ): Promise<RecordContractFormBuildResult> {
+      const { resolution } = context;
+      const sourceForm: FormConfigFrame = _.cloneDeep({
+        ...resolution.sourceForm,
+        componentDefinitions: [...resolution.sourceForm.componentDefinitions],
+      });
+      const reusableFormDefinitions: ReusableFormDefinitions = {};
+      for (const [name, definitions] of Object.entries(resolution.reusableFormDefinitions)) {
+        reusableFormDefinitions[name] = _.cloneDeep([...definitions]);
+      }
+      const recordMetadata = context.publicContext.kind === 'update'
+        ? _.cloneDeep(context.resolution.existingRecord)
+        : null;
+
+      const effectiveForm = await this.buildClientFormConfig(
+        sourceForm,
+        resolution.formMode,
+        [...resolution.actor.roles],
+        recordMetadata,
+        reusableFormDefinitions,
+        context.publicContext.brand,
+        _.cloneDeep(resolution.contextVariables),
+        recordAccessContext
+      );
+      effectiveForm.componentDefinitions = this.removeNonSubmittableContractComponents(
+        effectiveForm.componentDefinitions ?? []
+      );
+
+      if (effectiveForm.componentDefinitions.length === 0) {
+        return { ok: false, reason: 'empty-effective-form' };
+      }
+
+      return { ok: true, effectiveForm };
+    }
+
+    /** Remove display-only leaves and structural containers with no submittable descendants. */
+    private removeNonSubmittableContractComponents(
+      componentDefinitions: AvailableFormComponentDefinitionOutlines[]
+    ): AvailableFormComponentDefinitionOutlines[] {
+      return componentDefinitions.filter(componentDefinition =>
+        this.pruneAndShouldRetainContractComponent(componentDefinition)
+      );
+    }
+
+    private pruneAndShouldRetainContractComponent(
+      componentDefinition: AvailableFormComponentDefinitionOutlines
+    ): boolean {
+      switch (componentDefinition.component.class) {
+        case 'AccordionComponent': {
+          const config = componentDefinition.component.config;
+          if (!config) {
+            return false;
+          }
+          config.panels = config.panels.filter(panel => this.pruneAndShouldRetainContractComponent(panel));
+          return config.panels.length > 0;
+        }
+        case 'AccordionPanelComponent':
+        case 'GroupComponent':
+        case 'ReusableComponent':
+        case 'TabContentComponent': {
+          const config = componentDefinition.component.config;
+          if (!config) {
+            return false;
+          }
+          config.componentDefinitions = this.removeNonSubmittableContractComponents(config.componentDefinitions);
+          return config.componentDefinitions.length > 0;
+        }
+        case 'PublishDataLocationSelectorComponent': {
+          const config = componentDefinition.component.config;
+          if (config?.headerActions) {
+            config.headerActions = this.removeNonSubmittableContractComponents(config.headerActions);
+          }
+          return componentDefinition.model !== undefined;
+        }
+        case 'QuestionTreeComponent': {
+          const config = componentDefinition.component.config;
+          if (config) {
+            config.componentDefinitions = this.removeNonSubmittableContractComponents(config.componentDefinitions);
+          }
+          return componentDefinition.model !== undefined;
+        }
+        case 'RepeatableComponent': {
+          const config = componentDefinition.component.config;
+          if (
+            !config?.elementTemplate ||
+            !this.pruneAndShouldRetainContractComponent(config.elementTemplate)
+          ) {
+            return false;
+          }
+          return componentDefinition.model !== undefined;
+        }
+        case 'TabComponent': {
+          const config = componentDefinition.component.config;
+          if (!config) {
+            return false;
+          }
+          config.tabs = config.tabs.filter(tab => this.pruneAndShouldRetainContractComponent(tab));
+          return config.tabs.length > 0;
+        }
+        default:
+          return componentDefinition.model !== undefined;
+      }
     }
 
     private findComponentDefinitionByName(
