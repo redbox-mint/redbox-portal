@@ -34,6 +34,7 @@ import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from "./service/vocab-tree.service";
 import { setUpDynamicAssets } from "./helpers.spec";
 import { FormControl } from "@angular/forms";
+import { parseFormLoadConcurrency } from './form-concurrency-state';
 
 
 describe('The FormService', () => {
@@ -42,6 +43,20 @@ describe('The FormService', () => {
   let service: FormService;
   let httpTesting: HttpTestingController;
   const waitForAsyncValidation = () => new Promise(resolve => setTimeout(resolve, 0));
+
+  it('rejects inconsistent form-load entity-tag coordinates', () => {
+    const result = parseFormLoadConcurrency(
+      {
+        revision: 4,
+        entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
+        formFingerprint: 'sha256:form_1',
+      },
+      `"rb-record-v1.5.${'b'.repeat(43)}"`
+    );
+
+    expect(result).toEqual({ formFingerprint: 'sha256:form_1' });
+  });
+
   beforeEach(() => {
     (window as any).redboxClientScript = { formValidatorDefinitions: formValidatorsSharedDefinitions };
     TestBed.configureTestingModule({
@@ -524,6 +539,9 @@ describe('The FormService', () => {
     const meta: Record<string, unknown> = {
       workflow: { stage: 'draft', stageLabel: 'Draft' },
       contextVariables: { 'one': 1 },
+      revision: 4,
+      entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
+      formFingerprint: 'sha256:form_1',
     };
     setUpDynamicAssets();
     const oid = "oid", recordType = "auto", editMode = false, formName = "", modulePaths: string[] = [];
@@ -531,8 +549,14 @@ describe('The FormService', () => {
     const req = httpTesting.expectOne((request) =>
       request.url.startsWith(`http://localhost/default/rdmp/record/form/${recordType}/${oid}`));
     expect(req.request.method).toBe('GET');
-    req.flush({ data: basicFormConfig, meta: meta });
-    expect((await result).formConfigMeta).toEqual(meta);
+    expect(req.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
+    const headerTag = meta['entityTag'] as string;
+    req.flush({ data: basicFormConfig, meta: meta }, { headers: { ETag: headerTag } });
+    const formMap = await result;
+    expect(formMap.formConfigMeta).toEqual(meta);
+    expect(formMap.recordEntityTag).toBe(headerTag);
+    expect(formMap.recordRevision).toBe(4);
+    expect(formMap.formFingerprint).toBe('sha256:form_1');
   });
 
   it("should seed vocab-tree prehydrate payload before creating form components", async function () {

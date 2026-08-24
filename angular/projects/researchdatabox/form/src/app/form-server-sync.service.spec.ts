@@ -119,4 +119,22 @@ describe('FormServerSyncService', () => {
     expect(control.value).toBe('local');
     expect(result).toEqual({ patched: [], skipped: [] });
   });
+
+  it('replaces local and missing projected values after an explicit adopt decision', async () => {
+    const title = new FormControl('mine');
+    const removed = new FormControl('local-only');
+    const form = new FormGroup({ title, removed });
+    title.markAsDirty();
+    removed.markAsDirty();
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { title, removed };
+
+    const result = await service.replaceWithServerMetadata({ title: 'latest' }, formDefMap, form);
+
+    expect(title.value).toBe('latest');
+    expect(removed.value).toBeUndefined();
+    expect(title.pristine).toBeTrue();
+    expect(removed.pristine).toBeTrue();
+    expect(result.patched).toEqual(['title', 'removed']);
+  });
 });

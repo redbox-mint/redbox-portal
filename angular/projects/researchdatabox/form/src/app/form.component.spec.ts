@@ -3,6 +3,7 @@ import { Location } from '@angular/common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
 import { GroupFieldComponent } from './component/group.component';
 import {
@@ -36,6 +37,30 @@ function persistedSaveResponse(overrides: Record<string, unknown> = {}): any {
     wasPersisted: () => true,
     ...overrides,
   };
+}
+
+function staleSaveResponse(overrides: Partial<RecordActionResult> = {}): RecordActionResult {
+  const result = new RecordActionResult();
+  result.success = false;
+  result.oid = 'oid-123';
+  result.outcome = 'not-saved';
+  result.requestId = '11111111-1111-4111-8111-111111111111';
+  result.concurrencyOutcome = 'stale';
+  result.metadata = { title: 'Latest title' };
+  result.problems = [
+    {
+      kind: 'conflict',
+      phase: 'persistence',
+      issues: [{ code: 'record-revision-stale', message: 'The record changed.' }],
+    },
+  ];
+  result.concurrency = {
+    revision: 5,
+    currentRevision: 5,
+    entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+    formFingerprint: 'sha256:form_1',
+  };
+  return Object.assign(result, overrides);
 }
 
 describe('FormComponent', () => {
@@ -114,6 +139,205 @@ describe('FormComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const inputElement = compiled.querySelector('input[type="text"]');
     expect(inputElement).toBeTruthy();
+  });
+
+  it('retains an immutable loaded baseline and sends its exact tag, revision, and fingerprint', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'concurrency-load',
+      type: 'rdmp',
+      componentDefinitions: [
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: 'Loaded title' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(formConfig, {
+      oid: 'oid-123',
+      recordType: 'rdmp',
+      editMode: true,
+      formName: 'rdmp-draft',
+      downloadAndCreateOnInit: false,
+    });
+    const loadedTag = `"rb-record-v1.4.${'a'.repeat(43)}"`;
+    formComponent.formDefMap?.updateConcurrency({
+      entityTag: loadedTag,
+      revision: 4,
+      formFingerprint: 'sha256:form_1',
+    });
+    (formComponent as any).captureLoadedRecordBaseline();
+
+    const baseline = formComponent.recordBaseline();
+    expect(baseline).toEqual(
+      jasmine.objectContaining({
+        oid: 'oid-123',
+        recordType: 'rdmp',
+        formName: 'rdmp-draft',
+        metadata: { title: 'Loaded title' },
+        entityTag: loadedTag,
+        revision: 4,
+        formFingerprint: 'sha256:form_1',
+        trusted: true,
+      })
+    );
+    expect(Object.isFrozen(baseline?.metadata)).toBeTrue();
+
+    formComponent.form?.get('title')?.setValue('Local title');
+    formComponent.form?.get('title')?.markAsDirty();
+    expect(formComponent.recordBaseline()?.metadata['title']).toBe('Loaded title');
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      persistedSaveResponse({
+        oid: 'oid-123',
+        metadata: { title: 'Local title' },
+        concurrency: {
+          revision: 5,
+          entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+          formFingerprint: 'sha256:form_1',
+        },
+      })
+    );
+
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledOnceWith(
+      'oid-123',
+      { title: 'Local title' },
+      '',
+      undefined,
+      { entityTag: loadedTag, revision: 4, formFingerprint: 'sha256:form_1' }
+    );
+    expect(formComponent.recordBaseline()).toEqual(
+      jasmine.objectContaining({
+        metadata: { title: 'Local title' },
+        revision: 5,
+        entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+      })
+    );
+    expect(formComponent.conflictState()).toBeNull();
+  });
+
+  it('captures base/local/latest conflict state without losing edits made in flight', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'concurrency-conflict',
+      type: 'rdmp',
+      componentDefinitions: [
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: 'Loaded title' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(formConfig, {
+      oid: 'oid-123',
+      recordType: 'rdmp',
+      editMode: true,
+      formName: 'rdmp-draft',
+      downloadAndCreateOnInit: false,
+    });
+    const loadedTag = `"rb-record-v1.4.${'a'.repeat(43)}"`;
+    formComponent.formDefMap?.updateConcurrency({
+      entityTag: loadedTag,
+      revision: 4,
+      formFingerprint: 'sha256:form_1',
+    });
+    (formComponent as any).captureLoadedRecordBaseline();
+    formComponent.form?.get('title')?.setValue('Sent title');
+    formComponent.form?.get('title')?.markAsDirty();
+
+    let resolveSave!: (value: RecordActionResult) => void;
+    spyOn(formComponent.recordService, 'update').and.callFake(
+      () => new Promise<RecordActionResult>(resolve => (resolveSave = resolve))
+    );
+    const savePromise = formComponent.saveForm();
+    await Promise.resolve();
+    formComponent.form?.get('title')?.setValue('Edited while saving');
+    formComponent.form?.get('title')?.markAsDirty();
+    resolveSave(staleSaveResponse());
+    await savePromise;
+
+    expect(formComponent.form?.get('title')?.value).toBe('Edited while saving');
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.conflictState()).toEqual(
+      jasmine.objectContaining({
+        requestId: '11111111-1111-4111-8111-111111111111',
+        base: { title: 'Loaded title' },
+        local: { title: 'Edited while saving' },
+        latest: { title: 'Latest title' },
+        baseRevision: 4,
+        latestRevision: 5,
+        baseEntityTag: loadedTag,
+        latestEntityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        baseFormFingerprint: 'sha256:form_1',
+        latestFormFingerprint: 'sha256:form_1',
+        status: 'stale',
+        autoRetryAttempted: false,
+      })
+    );
+    expect(formComponent.recordBaseline()?.metadata).toEqual({ title: 'Loaded title' });
+  });
+
+  it('keeps conflict state component-scoped and never creates it for unknown outcomes', () => {
+    const firstFixture = TestBed.createComponent(FormComponent);
+    const secondFixture = TestBed.createComponent(FormComponent);
+    const first = firstFixture.componentInstance;
+    const second = secondFixture.componentInstance;
+    first.form = new FormGroup({ title: new FormControl('First local') });
+    second.form = new FormGroup({ title: new FormControl('Second local') });
+    first.oid.set('oid-first');
+    second.oid.set('oid-second');
+    (first as any).captureLoadedRecordBaseline();
+    (second as any).captureLoadedRecordBaseline();
+
+    (first as any).captureConflictResponse(staleSaveResponse({ oid: 'oid-first' }));
+    const unknown = new RecordActionResult();
+    unknown.outcome = 'unknown';
+    unknown.concurrencyOutcome = 'unknown';
+    (second as any).captureConflictResponse(unknown);
+    (second as any).captureConflictResponse(staleSaveResponse({ oid: '' }));
+
+    expect(first.conflictState()?.local).toEqual({ title: 'First local' });
+    expect(second.conflictState()).toBeNull();
+  });
+
+  it('adopts latest state only through an explicit recovery decision', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'concurrency-adopt',
+      type: 'rdmp',
+      componentDefinitions: [
+        {
+          name: 'title',
+          model: { class: 'SimpleInputModel', config: { value: 'Loaded title' } },
+          component: { class: 'SimpleInputComponent' },
+        },
+      ],
+    };
+    const { formComponent } = await createFormAndWaitForReady(formConfig, {
+      oid: 'oid-123',
+      recordType: 'rdmp',
+      editMode: true,
+      formName: 'rdmp-draft',
+      downloadAndCreateOnInit: false,
+    });
+    formComponent.formDefMap?.updateConcurrency({
+      entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`,
+      revision: 4,
+      formFingerprint: 'sha256:form_1',
+    });
+    (formComponent as any).captureLoadedRecordBaseline();
+    formComponent.form?.get('title')?.setValue('Mine');
+    (formComponent as any).captureConflictResponse(staleSaveResponse());
+
+    expect(formComponent.conflictState()).not.toBeNull();
+    expect(formComponent.form?.get('title')?.value).toBe('Mine');
+    expect(await formComponent.adoptLatestConflict('discard')).toBeTrue();
+    expect(formComponent.form?.get('title')?.value).toBe('Latest title');
+    expect(formComponent.form?.pristine).toBeTrue();
+    expect(formComponent.conflictState()).toBeNull();
+    expect(formComponent.recordBaseline()).toEqual(
+      jasmine.objectContaining({ metadata: { title: 'Latest title' }, revision: 5 })
+    );
   });
 
   it('parses request params on startup and exposes accessors', () => {

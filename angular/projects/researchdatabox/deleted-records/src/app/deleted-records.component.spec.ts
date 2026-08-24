@@ -171,7 +171,9 @@ describe('DeletedRecordsComponent', () => {
     expect(app.deletedRecordsResult.total).toEqual(2);
 
     // set up recordService.destroyDeletedRecord
-    recordService.restoreDeletedRecord = async function (oid: string) {
+    let selectedRevision: number | undefined;
+    recordService.restoreDeletedRecord = async function (oid: string, revision: number) {
+      selectedRevision = revision;
       const index = mockData.deletedRecords.items.findIndex((item: any) => item.oid == oid);
       if (index > -1) {
         mockData.deletedRecords.items.splice(index, 1);
@@ -181,7 +183,8 @@ describe('DeletedRecordsComponent', () => {
     };
 
     // trigger restore
-    await app.recordTableAction(undefined, {oid: 'rdmp-record-1'}, 'restore');
+    await app.recordTableAction(undefined, {oid: 'rdmp-record-1', revision: 4}, 'restore');
+    expect(selectedRevision).toBe(4);
     expect(app.deletedRecordsResult.total).toEqual(1);
   });
   it('should destroy a deleted record', async function () {
@@ -196,7 +199,9 @@ describe('DeletedRecordsComponent', () => {
     expect(app.deletedRecordsResult.total).toEqual(2);
 
     // set up recordService.destroyDeletedRecord
-    recordService.destroyDeletedRecord = async function (oid: string) {
+    let selectedRevision: number | undefined;
+    recordService.destroyDeletedRecord = async function (oid: string, revision: number) {
+      selectedRevision = revision;
       const index = mockData.deletedRecords.items.findIndex((item: any) => item.oid == oid);
       if (index > -1) {
         mockData.deletedRecords.items.splice(index, 1);
@@ -206,11 +211,12 @@ describe('DeletedRecordsComponent', () => {
     };
 
     // trigger destroy
-    await app.recordTableAction(undefined, {oid: 'rdmp-record-1'}, 'destroy');
+    await app.recordTableAction(undefined, {oid: 'rdmp-record-1', revision: 4}, 'destroy');
     expect(app.isDestroyRecordModalShown).toEqual(true);
     expect(app.currentDestroyRecordModalOid).toEqual('rdmp-record-1');
 
     await app.confirmDestroyRecordModal(undefined);
+    expect(selectedRevision).toBe(4);
     expect(app.currentDestroyRecordModalOid).toBeUndefined();
     expect(app.deletedRecordsResult.total).toEqual(1);
   });
