@@ -61,6 +61,12 @@ validate_inputs() {
       [[ -n "$PIPELINE_NUMBER" ]] \
         || fail "CIRCLE_PIPELINE_NUMBER is required to generate beta package versions."
       ;;
+    rc)
+      [[ "${CIRCLE_TAG:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-[Rr][Cc][0-9]+$ ]] \
+        || fail "CIRCLE_TAG must match vMAJOR.MINOR.PATCH-RCN for RC publishes."
+      [[ "$DIST_TAG" == "next" ]] \
+        || fail "RC publishes must use the next dist-tag."
+      ;;
     release)
       [[ "${CIRCLE_TAG:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
         || fail "CIRCLE_TAG must match vMAJOR.MINOR.PATCH for release publishes."
@@ -68,7 +74,7 @@ validate_inputs() {
         || fail "Release publishes must use the latest dist-tag."
       ;;
     *)
-      fail "NPM_RELEASE_KIND must be beta or release."
+      fail "NPM_RELEASE_KIND must be beta, rc, or release."
       ;;
   esac
 
@@ -81,6 +87,9 @@ final_version() {
   case "$RELEASE_KIND" in
     beta)
       printf '%s-%s.%s\n' "$REQUESTED_VERSION" "$DIST_TAG" "$PIPELINE_NUMBER"
+      ;;
+    rc)
+      printf '%s\n' "${CIRCLE_TAG#v}"
       ;;
     release)
       printf '%s\n' "${CIRCLE_TAG#v}"
@@ -328,4 +337,6 @@ main() {
   log "Completed $RELEASE_KIND publish preparation for version $version."
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
