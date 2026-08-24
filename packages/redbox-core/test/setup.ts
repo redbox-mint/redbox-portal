@@ -65,7 +65,7 @@ const capturingMeter: Meter = new Proxy(noopMeter, {
   },
 });
 const capturingMeterProvider: MeterProvider = {
-  getMeter: name => name === 'redbox.record-validation' ? capturingMeter : noopMeter,
+  getMeter: name => name === 'redbox.record-validation' || name === 'redbox.record-schema' ? capturingMeter : noopMeter,
 };
 if (!metrics.setGlobalMeterProvider(capturingMeterProvider)) {
   throw new Error('The core test suite could not install its OpenTelemetry meter provider.');

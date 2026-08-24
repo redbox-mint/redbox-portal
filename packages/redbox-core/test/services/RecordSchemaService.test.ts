@@ -42,6 +42,7 @@ import {
 } from '../../src';
 import {
   RECORD_SCHEMA_LIFECYCLE_ERROR_CODE,
+  RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX,
   RecordSchemaLifecycleError,
   type ResolveImmutableRecordSchemaRequest,
   type RecordSchemaServiceDependencies,
@@ -50,6 +51,7 @@ import {
 import { RecordSchemaService, ServiceExports } from '../../src/services';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import type { RecordContractUpdateContext } from '../../src/record-contract';
+import { clearCapturedOpenTelemetryMeasurements, getCapturedOpenTelemetryMeasurements } from '../setup';
 
 const DIGEST = 'a'.repeat(64);
 type RecordSchemaLifecycleOverrides = NonNullable<ConstructorParameters<typeof Services.RecordSchema>[0]>;
@@ -2418,6 +2420,467 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       { digest: digestB, includeExpiredPins: true, limit: 1_000, offset: 0 },
       { digest: digestC, includeExpiredPins: true, limit: 1_000, offset: 0 },
     ]);
+  });
+});
+
+describe('RecordSchemaService telemetry', function () {
+  const createRequest = {
+    brand: 'brand-1',
+    portal: 'portal-1',
+    recordType: 'dataset',
+    actor: { authenticated: true, roles: ['Researcher'] },
+  } as const;
+
+  beforeEach(function () {
+    clearCapturedOpenTelemetryMeasurements();
+  });
+
+  afterEach(function () {
+    sinon.restore();
+    clearCapturedOpenTelemetryMeasurements();
+  });
+
+  it('emits exact low-cardinality compile, cache, resolver, validation, and persistence metrics', async function () {
+    const resolutionClock = sinon.stub();
+    resolutionClock.onFirstCall().returns(10);
+    resolutionClock.onSecondCall().returns(17);
+    const fixture = createResolutionFixture({ clock: resolutionClock });
+
+    const resolved = await fixture.service.resolveCreate(createRequest);
+    if (resolved.kind !== 'resolved') throw new Error('Expected a resolved schema for telemetry coverage.');
+
+    const validationClock = sinon.stub();
+    validationClock.onFirstCall().returns(20);
+    validationClock.onSecondCall().returns(25);
+    const validator = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      clock: validationClock,
+    });
+    const validationRequest = {
+      digest: resolved.digest,
+      schemaKind: 'create',
+      document: resolved.document,
+    } as const;
+
+    expect(validator.validateResolvedArtifact({ ...validationRequest, input: { title: 'safe' } })).to.deep.equal({
+      kind: 'validated',
+      valid: true,
+      issues: [],
+      truncated: false,
+    });
+    const invalid = validator.validateResolvedArtifact({ ...validationRequest, input: { title: 42 } });
+    expect(invalid.kind).to.equal('validated');
+    if (invalid.kind !== 'validated' || invalid.valid)
+      throw new Error('Expected a typed structural validation failure.');
+    expect(invalid.issues.map(issue => issue.code)).to.deep.equal([RECORD_SCHEMA_PROBLEM_CODES.TYPE]);
+
+    expect(getCapturedOpenTelemetryMeasurements()).to.deep.equal([
+      {
+        name: 'redbox.record_schema.compile.duration',
+        value: 7,
+        attributes: { schema_kind: 'create', phase: 'resolution', outcome: 'resolved' },
+      },
+      {
+        name: 'redbox.record_schema.compile.outcomes',
+        value: 1,
+        attributes: { schema_kind: 'create', phase: 'resolution', outcome: 'resolved' },
+      },
+      {
+        name: 'redbox.record_schema.persistence',
+        value: 1,
+        attributes: { resource: 'artifact', outcome: 'persisted', code: 'none' },
+      },
+      {
+        name: 'redbox.record_schema.persistence',
+        value: 1,
+        attributes: { resource: 'grant', outcome: 'persisted', code: 'none' },
+      },
+      {
+        name: 'redbox.record_schema.resolver.outcomes',
+        value: 1,
+        attributes: { schema_kind: 'create', outcome: 'resolved' },
+      },
+      {
+        name: 'redbox.record_schema.completeness',
+        value: 1,
+        attributes: { schema_kind: 'create', completeness: 'complete' },
+      },
+      {
+        name: 'redbox.record_schema.cache.results',
+        value: 1,
+        attributes: { schema_kind: 'create', result: 'miss' },
+      },
+      {
+        name: 'redbox.record_schema.compile.duration',
+        value: 5,
+        attributes: { schema_kind: 'create', phase: 'validation', outcome: 'resolved' },
+      },
+      {
+        name: 'redbox.record_schema.compile.outcomes',
+        value: 1,
+        attributes: { schema_kind: 'create', phase: 'validation', outcome: 'resolved' },
+      },
+      {
+        name: 'redbox.record_schema.validation.results',
+        value: 1,
+        attributes: { schema_kind: 'create', result: 'valid' },
+      },
+      {
+        name: 'redbox.record_schema.cache.results',
+        value: 1,
+        attributes: { schema_kind: 'create', result: 'hit' },
+      },
+      {
+        name: 'redbox.record_schema.validation.results',
+        value: 1,
+        attributes: { schema_kind: 'create', result: 'invalid' },
+      },
+      {
+        name: 'redbox.record_schema.validation.problems',
+        value: 1,
+        attributes: { schema_kind: 'create', code: RECORD_SCHEMA_PROBLEM_CODES.TYPE },
+      },
+    ]);
+  });
+
+  it('emits precondition and usage-reference metrics without sensitive attributes', async function () {
+    const update = updateResolutionFixture();
+    const precondition = await update.service.resolveUpdate({
+      brand: 'brand-1',
+      portal: 'portal-1',
+      oid: 'private-oid',
+      caller: updateCaller(),
+      ifMatch: `"sha256:${'b'.repeat(64)}"`,
+    });
+    expect(precondition.kind).to.equal('precondition-failed');
+
+    const save = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ putRecordSchemaReference: async () => storageResponse(true) }),
+    });
+    const usage = await save.persistSaveUsageReference({
+      digest: DIGEST,
+      brand: 'brand',
+      portal: 'portal',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      operation: 'publish',
+      oid: 'private-oid',
+      saveIdentity: 'private-save-identity',
+    });
+    expect(usage.kind).to.equal('recorded');
+
+    const relevant = getCapturedOpenTelemetryMeasurements().filter(measurement =>
+      ['redbox.record_schema.precondition.mismatches', 'redbox.record_schema.usage_references'].includes(
+        measurement.name
+      )
+    );
+    expect(relevant).to.deep.equal([
+      {
+        name: 'redbox.record_schema.precondition.mismatches',
+        value: 1,
+        attributes: { schema_kind: 'update', condition: 'if-match' },
+      },
+      {
+        name: 'redbox.record_schema.usage_references',
+        value: 1,
+        attributes: { reference_kind: 'save', outcome: 'recorded', code: 'none' },
+      },
+    ]);
+    expect(JSON.stringify(relevant)).not.to.include('private-oid');
+    expect(JSON.stringify(relevant)).not.to.include(DIGEST);
+    expect(JSON.stringify(relevant)).not.to.include('private-save-identity');
+  });
+
+  it('logs unexpected maintenance and startup failures with safe fixed context only', async function () {
+    const telemetryLogger = { info: sinon.stub(), error: sinon.stub() };
+    const secret = 'private-oid alice@example.test secret-save-identity';
+    lifecycleService({ telemetryLogger }).init();
+    const maintenance = new Services.RecordSchema({
+      telemetryLogger,
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({
+        putRecordSchemaReference: async () => {
+          throw new Error(secret);
+        },
+      }),
+    });
+    await maintenance.persistSaveUsageReference({
+      digest: DIGEST,
+      brand: 'brand',
+      portal: 'portal',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      operation: 'publish',
+      oid: 'private-oid',
+      saveIdentity: 'secret-save-identity',
+    });
+
+    const startup = lifecycleService({
+      telemetryLogger,
+      getConfig: () => {
+        throw new Error(secret);
+      },
+    });
+    captureLifecycleError(() => startup.init());
+
+    expect(telemetryLogger.error.args).to.deep.equal([
+      [
+        'record_schema_unexpected_failure',
+        {
+          event: 'record_schema_unexpected_failure',
+          context: 'save-reference-storage',
+          error_type: 'error',
+        },
+      ],
+      [
+        'record_schema_unexpected_failure',
+        {
+          event: 'record_schema_unexpected_failure',
+          context: 'startup-configuration',
+          error_type: 'error',
+        },
+      ],
+    ]);
+    expect(telemetryLogger.info.args).to.deep.equal([
+      [
+        'record_schema_startup_check',
+        { event: 'record_schema_startup_check', context: 'lifecycle', status: 'passed', finding_count: 0 },
+      ],
+      [
+        'record_schema_startup_check',
+        { event: 'record_schema_startup_check', context: 'lifecycle', status: 'failed', finding_count: 1 },
+      ],
+    ]);
+    expect(JSON.stringify({ errors: telemetryLogger.error.args, info: telemetryLogger.info.args })).not.to.include(
+      secret
+    );
+  });
+
+  it('caps startup finding counts and marks overflow without changing lifecycle findings', function () {
+    const telemetryLogger = { info: sinon.stub(), error: sinon.stub() };
+    const findingTotal = RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX + 1;
+    const service = lifecycleService({
+      telemetryLogger,
+      getContributorRegistrationIssues: () =>
+        Array.from({ length: findingTotal }, (_, index) => ({
+          code: RECORD_CONTRACT_REGISTRATION_CODES.DUPLICATE_COMPONENT,
+          key: `DuplicateComponent${index}`,
+          detail: 'Duplicate component registration.',
+        })),
+    });
+
+    const error = captureLifecycleError(() => service.init());
+
+    expect(error.findings).to.have.length(findingTotal);
+    expect(telemetryLogger.info.args).to.deep.equal([
+      [
+        'record_schema_startup_check',
+        {
+          event: 'record_schema_startup_check',
+          context: 'lifecycle',
+          status: 'failed',
+          finding_count: RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX,
+          finding_count_bucket: 'overflow',
+        },
+      ],
+    ]);
+  });
+
+  it('logs every converted resolver and storage exception with an exact safe context', async function () {
+    const telemetryLogger = { info: sinon.stub(), error: sinon.stub() };
+    const secret = 'private-oid alice@example.test raw-error-text';
+    const caller = updateCaller();
+    const seed = await createImmutableSeed();
+    const request: ResolveImmutableRecordSchemaRequest = {
+      brand: 'brand-1',
+      portal: 'portal-1',
+      digest: seed.artifact.digest,
+      caller,
+    };
+    const immutableStorage = (
+      getRecordSchemaArtifact: () => Promise<RecordSchemaArtifactModel>,
+      listRecordSchemaReferences: () => Promise<unknown[]>,
+      touchRecordSchemaArtifact: () => Promise<StorageServiceResponse>
+    ) => ({ getRecordSchemaArtifact, listRecordSchemaReferences, touchRecordSchemaArtifact });
+
+    await new Services.RecordSchema({
+      telemetryLogger,
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => {
+        throw new Error(secret);
+      },
+    }).resolveImmutable(request);
+    await new Services.RecordSchema({
+      telemetryLogger,
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () =>
+        immutableStorage(
+          async () => {
+            throw new Error(secret);
+          },
+          async () => [],
+          async () => storageResponse(true)
+        ),
+    }).resolveImmutable(request);
+    await new Services.RecordSchema({
+      telemetryLogger,
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () =>
+        immutableStorage(
+          async () => seed.artifact,
+          async () => {
+            throw new Error(secret);
+          },
+          async () => storageResponse(true)
+        ),
+    }).resolveImmutable(request);
+    const touchFailure = immutableResolutionFixture(seed, {
+      telemetryLogger,
+      getStorageProvider: () =>
+        immutableStorage(
+          async () => seed.artifact,
+          async () => [seed.grant],
+          async () => {
+            throw new Error(secret);
+          }
+        ),
+    });
+    await touchFailure.service.resolveImmutable(request);
+
+    await new Services.RecordSchema({
+      telemetryLogger,
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => {
+        throw new Error(secret);
+      },
+    }).persistSaveUsageReference({
+      digest: DIGEST,
+      brand: 'brand',
+      portal: 'portal',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      operation: 'publish',
+      oid: 'private-oid',
+      saveIdentity: 'private-save-identity',
+    });
+    await new Services.RecordSchema({
+      telemetryLogger,
+      getConfig: () => enabledConfig({ integrationPins: [validPin()] }),
+      getStorageProvider: () => {
+        throw new Error(secret);
+      },
+    }).materializeIntegrationPins();
+    await createResolutionFixture({
+      telemetryLogger,
+      getStorageProvider: () => {
+        throw new Error(secret);
+      },
+    }).service.resolveCreate(createRequest);
+
+    expect(telemetryLogger.error.args).to.deep.equal(
+      [
+        'resolve-immutable-storage-provider',
+        'resolve-immutable-artifact-read',
+        'resolve-immutable-grant-list',
+        'resolve-immutable-artifact-touch',
+        'save-reference-storage-provider',
+        'integration-pin-storage-provider',
+        'persist-storage-provider',
+      ].map(context => [
+        'record_schema_unexpected_failure',
+        { event: 'record_schema_unexpected_failure', context, error_type: 'error' },
+      ])
+    );
+    expect(telemetryLogger.info.args).to.deep.equal([]);
+    expect(JSON.stringify(telemetryLogger.error.args)).not.to.include(secret);
+    expect(JSON.stringify(telemetryLogger.error.args)).not.to.include(DIGEST);
+  });
+
+  it('keeps typed results, lifecycle errors, and startup ordering when CoreService logger acquisition throws', async function () {
+    const safeLogger = { info: sinon.stub(), error: sinon.stub() };
+    const secret = 'logger-factory private-oid raw-error-text';
+    const saveRequest = {
+      digest: DIGEST,
+      brand: 'brand',
+      portal: 'portal',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      operation: 'publish',
+      oid: 'private-oid',
+      saveIdentity: 'private-save-identity',
+    } as const;
+    const storageFailure = () => ({
+      putRecordSchemaReference: async () => {
+        throw new Error(secret);
+      },
+    });
+    const priorLogConfig = Reflect.get(sails.config, 'log');
+    Reflect.set(sails.config, 'log', {});
+    try {
+      const baselineSave = new Services.RecordSchema({
+        telemetryLogger: safeLogger,
+        getConfig: () => enabledConfig(),
+        getStorageProvider: storageFailure,
+      });
+      const throwingSave = new Services.RecordSchema({
+        getConfig: () => enabledConfig(),
+        getStorageProvider: storageFailure,
+      });
+      const baselineLifecycle = lifecycleService({
+        telemetryLogger: safeLogger,
+        getConfig: () => {
+          throw new Error(secret);
+        },
+      });
+      const throwingLifecycle = lifecycleService({
+        getConfig: () => {
+          throw new Error(secret);
+        },
+      });
+      const startupEvents: string[] = [];
+      const throwingStartup = lifecycleService({
+        getConfig: () => enabledConfig({ integrationPins: [validPin()] }),
+        getStorageProvider: () => ({
+          putRecordSchemaReference: async () => {
+            startupEvents.push('pin-write');
+            throw new Error(secret);
+          },
+        }),
+      });
+
+      await new Promise<void>(resolve => setImmediate(resolve));
+      const throwingLoggerFactory = sinon.stub().throws(new Error(secret));
+      Reflect.set(sails.config, 'log', {
+        createNamespaceLogger: throwingLoggerFactory,
+        customLogger: {},
+      });
+      const baselineResult = await baselineSave.persistSaveUsageReference(saveRequest);
+      const throwingResult = await throwingSave.persistSaveUsageReference(saveRequest);
+      expect(throwingResult).to.deep.equal(baselineResult);
+
+      const baselineError = captureLifecycleError(() => baselineLifecycle.init());
+      const throwingError = captureLifecycleError(() => throwingLifecycle.init());
+      expect({
+        code: throwingError.code,
+        message: throwingError.message,
+        findings: throwingError.findings,
+      }).to.deep.equal({
+        code: baselineError.code,
+        message: baselineError.message,
+        findings: baselineError.findings,
+      });
+
+      const startupError = await captureAsyncError(() => throwingStartup.bootstrapIntegrationPins());
+      startupEvents.push('startup-rejected');
+      expect(startupEvents).to.deep.equal(['pin-write', 'startup-rejected']);
+      expect(startupError.message).to.equal(
+        'Configured record schema integration pins were not materialized (record-schema.storage-unavailable).'
+      );
+      expect(throwingLoggerFactory.callCount).to.equal(5);
+    } finally {
+      Reflect.set(sails.config, 'log', priorLogConfig);
+    }
   });
 });
 

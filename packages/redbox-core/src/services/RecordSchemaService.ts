@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { metrics, type Attributes } from '@opentelemetry/api';
 import { VALIDATION_OPERATION_NAME_PATTERN } from '@researchdatabox/sails-ng-common';
 
 import { Services as services } from '../CoreService';
@@ -39,6 +40,7 @@ import {
   RecordJsonSchemaDocumentLimitError,
   RecordJsonSchemaIdentityError,
   RecordJsonSchemaRendererError,
+  RecordSchemaValidatorCache,
   RECORD_CONTRACT_REGISTRATION_CODES,
   renderRecordJsonSchema,
   serializeRedboxCanonicalJsonV1,
@@ -62,6 +64,7 @@ import {
   type RecordJsonSchemaEtag,
   type RecordJsonSchemaEtagParseFailureReason,
   type RecordJsonSchemaValidationIssue,
+  type RecordJsonSchemaValidationResult,
   type RecordSchemaProblemCode,
 } from '../record-contract';
 import {
@@ -73,6 +76,7 @@ import {
 import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
 import type { FormRecordAccessContext } from './FormsService';
+import type { ILogger } from '../Logger';
 
 declare const RedboxJavaStorageService: unknown;
 
@@ -133,6 +137,8 @@ export interface RecordSchemaServiceDependencies {
     recordAccessContext?: FormRecordAccessContext
   ) => Promise<RecordContractFormBuildResult>;
   readonly authorizeUpdate: (context: RecordContractUpdateContext, caller: FormRecordAccessContext) => Promise<boolean>;
+  readonly telemetryLogger?: Pick<ILogger, 'info' | 'error'>;
+  readonly clock: () => number;
 }
 
 const CATEGORY_ORDER: Readonly<Record<RecordSchemaLifecycleFinding['category'], number>> = {
@@ -157,6 +163,175 @@ const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
 const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
 const RECORD_SCHEMA_STRICT_ALL_OPERATION = 'strict-all';
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
+/** Maximum exact startup finding count exposed in one structured log event. */
+export const RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX = 100;
+
+const recordSchemaMeter = metrics.getMeter('redbox.record-schema');
+const recordSchemaCompileDuration = recordSchemaMeter.createHistogram('redbox.record_schema.compile.duration', {
+  description: 'Record-schema compilation duration.',
+  unit: 'ms',
+});
+const recordSchemaCompileOutcomes = recordSchemaMeter.createCounter('redbox.record_schema.compile.outcomes', {
+  description: 'Record-schema compilation outcomes.',
+  unit: '{compile}',
+});
+const recordSchemaCacheResults = recordSchemaMeter.createCounter('redbox.record_schema.cache.results', {
+  description: 'Record-schema validator cache results.',
+  unit: '{lookup}',
+});
+const recordSchemaCompleteness = recordSchemaMeter.createCounter('redbox.record_schema.completeness', {
+  description: 'Resolved record-schema completeness.',
+  unit: '{schema}',
+});
+const recordSchemaResolverOutcomes = recordSchemaMeter.createCounter('redbox.record_schema.resolver.outcomes', {
+  description: 'Record-schema resolver outcomes.',
+  unit: '{resolution}',
+});
+const recordSchemaValidationResults = recordSchemaMeter.createCounter('redbox.record_schema.validation.results', {
+  description: 'Record-schema structural validation results.',
+  unit: '{validation}',
+});
+const recordSchemaValidationProblems = recordSchemaMeter.createCounter('redbox.record_schema.validation.problems', {
+  description: 'Record-schema structural validation problems by stable code.',
+  unit: '{problem}',
+});
+const recordSchemaPreconditionMismatches = recordSchemaMeter.createCounter(
+  'redbox.record_schema.precondition.mismatches',
+  { description: 'Record-schema update precondition mismatches.', unit: '{mismatch}' }
+);
+const recordSchemaPersistence = recordSchemaMeter.createCounter('redbox.record_schema.persistence', {
+  description: 'Record-schema artifact and grant persistence outcomes.',
+  unit: '{write}',
+});
+const recordSchemaUsageReferences = recordSchemaMeter.createCounter('redbox.record_schema.usage_references', {
+  description: 'Record-schema save and pin usage-reference outcomes.',
+  unit: '{reference}',
+});
+const recordSchemaTelemetryCodes: ReadonlySet<string> = new Set(Object.values(RECORD_SCHEMA_PROBLEM_CODES));
+const RECORD_SCHEMA_RESOLVER_OUTCOMES: ReadonlySet<string> = new Set([
+  'resolved',
+  'partial',
+  'unavailable',
+  'context-failed',
+  'limit-exceeded',
+  'compiler-failed',
+  'meta-validation-failed',
+  'storage-failed',
+  'denied',
+  'missing-oid',
+  'invalid-precondition',
+  'precondition-failed',
+  'invalid-request',
+  'not-found',
+  'invalid-contract',
+  'not-modified',
+]);
+const RECORD_SCHEMA_COMPILE_OUTCOMES: ReadonlySet<string> = new Set([
+  'resolved',
+  'context-failed',
+  'unavailable',
+  'limit-exceeded',
+  'compiler-failed',
+  'meta-validation-failed',
+  'unexpected-failure',
+]);
+const RECORD_SCHEMA_USAGE_REFERENCE_OUTCOMES: ReadonlySet<string> = new Set([
+  'recorded',
+  'write-failed',
+  'invalid-input',
+  'disabled',
+  'unavailable',
+  'materialized',
+  'failed',
+  'limit-exceeded',
+]);
+
+type RecordSchemaTelemetryKind = 'create' | 'update' | 'unknown';
+type RecordSchemaLogContext =
+  | 'resolve-create'
+  | 'resolve-create-context'
+  | 'resolve-update'
+  | 'resolve-update-context'
+  | 'resolve-update-authorization'
+  | 'resolve-immutable'
+  | 'resolve-immutable-storage-provider'
+  | 'resolve-immutable-artifact-read'
+  | 'resolve-immutable-grant-list'
+  | 'resolve-immutable-artifact-touch'
+  | 'validation-compile'
+  | 'validation-run'
+  | 'save-reference'
+  | 'save-reference-storage-provider'
+  | 'save-reference-storage'
+  | 'integration-pin-maintenance'
+  | 'integration-pin-storage-provider'
+  | 'integration-pin-write'
+  | 'integration-pin-startup'
+  | 'integration-pins'
+  | 'retention-artifact-read'
+  | 'retention-storage-provider'
+  | 'retention-reference-read'
+  | 'retention-reference-overflow-read'
+  | 'compile'
+  | 'compile-form-build'
+  | 'compile-contributors'
+  | 'compile-renderer'
+  | 'compile-artifact'
+  | 'cache-populate'
+  | 'compile-normalization'
+  | 'persist-artifact'
+  | 'persist-grant'
+  | 'persist-storage-provider'
+  | 'runtime-configuration'
+  | 'startup-configuration'
+  | 'startup-storage'
+  | 'startup-contributors'
+  | 'startup-registry'
+  | 'startup-coverage'
+  | 'lifecycle';
+type RecordSchemaSafeLogValues =
+  | Readonly<{ error_type: 'error' | 'non-error' }>
+  | Readonly<{
+      status: 'passed' | 'failed' | 'disabled';
+      finding_count?: number;
+      finding_count_bucket?: 'overflow';
+    }>
+  | Readonly<Record<string, never>>;
+
+function metricKind(value: unknown): RecordSchemaTelemetryKind {
+  return value === 'create' || value === 'update' ? value : 'unknown';
+}
+
+function recordCounter(
+  counter: Readonly<{ add: (value: number, attributes?: Attributes) => void }>,
+  attributes: Attributes
+): void {
+  try {
+    counter.add(1, attributes);
+  } catch {
+    // Telemetry must never alter service results.
+  }
+}
+
+function recordDuration(durationMs: number, attributes: Attributes): void {
+  try {
+    recordSchemaCompileDuration.record(Number.isFinite(durationMs) && durationMs >= 0 ? durationMs : 0, attributes);
+  } catch {
+    // Telemetry must never alter service results.
+  }
+}
+
+function telemetryCode(value: unknown): string {
+  return typeof value === 'string' && recordSchemaTelemetryCodes.has(value) ? value : 'none';
+}
+
+function telemetryDimension(value: unknown, allowlist: ReadonlySet<string>, fallback: string): string {
+  return typeof value === 'string' && allowlist.has(value) ? value : fallback;
+}
+
+function safeErrorType(error: unknown): 'error' | 'non-error' {
+  return error instanceof Error ? 'error' : 'non-error';
+}
 
 function unreadableConfigurationFinding(): RecordSchemaLifecycleFinding {
   return {
@@ -245,6 +420,7 @@ const DEFAULT_DEPENDENCIES: RecordSchemaServiceDependencies = {
   buildContractFormConfig: (context, recordAccessContext) =>
     FormsService.buildContractFormConfig(context, recordAccessContext),
   authorizeUpdate: authorizeUpdateWithRecordsService,
+  clock: () => Date.now(),
 };
 
 function findingSortKey(finding: RecordSchemaLifecycleFinding): string {
@@ -756,6 +932,20 @@ export type PersistRecordSchemaSaveUsageResult =
       readonly reference: RecordSchemaReferenceIdentity;
     } & RecordSchemaReferenceWriteFailure);
 
+export type ValidateResolvedRecordSchemaResult =
+  | ({ readonly kind: 'validated' } & RecordJsonSchemaValidationResult)
+  | {
+      readonly kind: 'invalid-input';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
+    }
+  | {
+      readonly kind: 'unavailable';
+      readonly code:
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+    };
+
 export type RecordSchemaPinMaterializationEntry = RecordSchemaReferenceIdentity &
   ({ readonly status: 'materialized' } | ({ readonly status: 'write-failed' } & RecordSchemaReferenceWriteFailure));
 
@@ -1156,6 +1346,40 @@ function parseSaveUsageRequest(value: unknown): PersistRecordSchemaSaveUsageRequ
       oid,
       operation,
       saveIdentity,
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+interface ParsedResolvedSchemaValidationRequest {
+  readonly digest: string;
+  readonly schemaKind: 'create' | 'update';
+  readonly document: PublishedRecordJsonSchemaDocument;
+  readonly input: unknown;
+}
+
+function parseResolvedSchemaValidationRequest(value: unknown): ParsedResolvedSchemaValidationRequest | undefined {
+  try {
+    if (!isObjectRecord(value)) return undefined;
+    const digest = ownDataProperty(value, 'digest');
+    const schemaKind = ownDataProperty(value, 'schemaKind');
+    const document = ownDataProperty(value, 'document');
+    const input = ownDataProperty(value, 'input');
+    if (
+      typeof digest !== 'string' ||
+      !DIGEST_PATTERN.test(digest) ||
+      (schemaKind !== 'create' && schemaKind !== 'update') ||
+      !isObjectRecord(document) ||
+      input === INVALID_DATA_PROPERTY
+    ) {
+      return undefined;
+    }
+    return Object.freeze({
+      digest,
+      schemaKind,
+      document: document as PublishedRecordJsonSchemaDocument,
+      input,
     });
   } catch {
     return undefined;
@@ -1647,6 +1871,7 @@ export namespace Services {
       'resolveCreate',
       'resolveUpdate',
       'resolveImmutable',
+      'validateResolvedArtifact',
       'persistSaveUsageReference',
       'materializeIntegrationPins',
       'bootstrapIntegrationPins',
@@ -1654,14 +1879,78 @@ export namespace Services {
     ];
     protected override logHeader = 'RecordSchemaService::';
     private readonly dependencies: RecordSchemaServiceDependencies;
+    private validatorCache: RecordSchemaValidatorCache | undefined;
+    private validatorCacheMaximum: number | undefined;
 
     public constructor(overrides: Partial<RecordSchemaServiceDependencies> = {}) {
       super();
       this.dependencies = { ...DEFAULT_DEPENDENCIES, ...overrides };
     }
 
+    private safeLog(
+      level: 'info' | 'error',
+      event: 'record_schema_unexpected_failure' | 'record_schema_startup_check',
+      context: RecordSchemaLogContext,
+      values: RecordSchemaSafeLogValues = {}
+    ): void {
+      try {
+        const logger = this.dependencies.telemetryLogger ?? this.logger;
+        logger[level](event, Object.freeze({ event, context, ...values }));
+      } catch {
+        // Logging must never alter service results or startup failure ordering.
+      }
+    }
+
+    private logUnexpected(context: RecordSchemaLogContext, error: unknown): void {
+      this.safeLog('error', 'record_schema_unexpected_failure', context, {
+        error_type: safeErrorType(error),
+      });
+    }
+
+    private clock(): number {
+      try {
+        const value = this.dependencies.clock();
+        return Number.isFinite(value) ? value : 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    private cacheFor(maximum: number): RecordSchemaValidatorCache {
+      if (!this.validatorCache || this.validatorCacheMaximum !== maximum) {
+        this.validatorCache = new RecordSchemaValidatorCache(maximum);
+        this.validatorCacheMaximum = maximum;
+      }
+      return this.validatorCache;
+    }
+
+    private observeResolver<T extends { readonly kind: string }>(schemaKind: RecordSchemaTelemetryKind, result: T): T {
+      recordCounter(recordSchemaResolverOutcomes, {
+        schema_kind: schemaKind,
+        outcome: telemetryDimension(result.kind, RECORD_SCHEMA_RESOLVER_OUTCOMES, 'unexpected-failure'),
+      });
+      if (schemaKind !== 'unknown' && (result.kind === 'resolved' || result.kind === 'partial')) {
+        recordCounter(recordSchemaCompleteness, {
+          schema_kind: schemaKind,
+          completeness: result.kind === 'partial' ? 'partial' : 'complete',
+        });
+      }
+      return result;
+    }
+
     /** Resolve, compile, persist, and grant one caller-effective create schema. */
     public async resolveCreate(request: ResolveCreateRecordSchemaRequest): Promise<ResolveCreateRecordSchemaResult> {
+      try {
+        return this.observeResolver('create', await this.resolveCreateInternal(request));
+      } catch (error) {
+        this.logUnexpected('resolve-create', error);
+        throw error;
+      }
+    }
+
+    private async resolveCreateInternal(
+      request: ResolveCreateRecordSchemaRequest
+    ): Promise<ResolveCreateRecordSchemaResult> {
       const config = this.resolveRuntimeConfig();
       if (!config) {
         return {
@@ -1697,6 +1986,7 @@ export namespace Services {
         if (error instanceof RecordContractContextResolutionError) {
           return this.contextFailure(error.failureKind, error.diagnosticCodes);
         }
+        this.logUnexpected('resolve-create-context', error);
         return this.contextFailure('unavailable');
       }
 
@@ -1741,6 +2031,17 @@ export namespace Services {
 
     /** Resolve, authorize, compile, persist, and grant one caller-effective update-delta schema. */
     public async resolveUpdate(request: ResolveUpdateRecordSchemaRequest): Promise<ResolveUpdateRecordSchemaResult> {
+      try {
+        return this.observeResolver('update', await this.resolveUpdateInternal(request));
+      } catch (error) {
+        this.logUnexpected('resolve-update', error);
+        throw error;
+      }
+    }
+
+    private async resolveUpdateInternal(
+      request: ResolveUpdateRecordSchemaRequest
+    ): Promise<ResolveUpdateRecordSchemaResult> {
       const config = this.resolveRuntimeConfig();
       if (!config) {
         return {
@@ -1781,13 +2082,15 @@ export namespace Services {
           }
           return this.contextFailure(error.failureKind, error.diagnosticCodes);
         }
+        this.logUnexpected('resolve-update-context', error);
         return this.contextFailure('unavailable');
       }
 
       let authorized: boolean;
       try {
         authorized = await this.dependencies.authorizeUpdate(context, request.caller);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('resolve-update-authorization', error);
         return this.contextFailure('unavailable');
       }
       if (!authorized) {
@@ -1812,6 +2115,10 @@ export namespace Services {
         });
       }
       if (ifMatch.kind === 'parsed' && ifMatch.digest !== compilation.digest) {
+        recordCounter(recordSchemaPreconditionMismatches, {
+          schema_kind: 'update',
+          condition: 'if-match',
+        });
         return Object.freeze({
           kind: 'precondition-failed',
           condition: 'if-match',
@@ -1863,6 +2170,17 @@ export namespace Services {
     public async resolveImmutable(
       request: ResolveImmutableRecordSchemaRequest
     ): Promise<ResolveImmutableRecordSchemaResult> {
+      try {
+        return this.observeResolver('unknown', await this.resolveImmutableInternal(request));
+      } catch (error) {
+        this.logUnexpected('resolve-immutable', error);
+        throw error;
+      }
+    }
+
+    private async resolveImmutableInternal(
+      request: ResolveImmutableRecordSchemaRequest
+    ): Promise<ResolveImmutableRecordSchemaResult> {
       if (typeof request.digest !== 'string' || !DIGEST_PATTERN.test(request.digest)) {
         return invalidDigestResult(request);
       }
@@ -1884,7 +2202,8 @@ export namespace Services {
       let storageValue: unknown;
       try {
         storageValue = this.dependencies.getStorageProvider();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('resolve-immutable-storage-provider', error);
         storageValue = undefined;
       }
       if (!isImmutableStorageProvider(storageValue)) {
@@ -1895,7 +2214,8 @@ export namespace Services {
       let artifact: RecordSchemaArtifactModel | null;
       try {
         artifact = await storage.getRecordSchemaArtifact(request.digest);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('resolve-immutable-artifact-read', error);
         return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
       }
       if (!artifact || artifact.digest !== request.digest) {
@@ -1915,7 +2235,8 @@ export namespace Services {
             limit: RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE,
             offset: grantOffset,
           });
-        } catch {
+        } catch (error) {
+          this.logUnexpected('resolve-immutable-grant-list', error);
           return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
         }
 
@@ -1951,7 +2272,8 @@ export namespace Services {
       let touch: StorageServiceResponse | undefined;
       try {
         touch = await storage.touchRecordSchemaArtifact(request.digest);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('resolve-immutable-artifact-touch', error);
         return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
       }
       if (!storageResponseSucceeded(touch)) {
@@ -1964,8 +2286,149 @@ export namespace Services {
       });
     }
 
+    /** Validate raw input against an already resolved immutable artifact without exposing validator internals. */
+    public validateResolvedArtifact(request: unknown): ValidateResolvedRecordSchemaResult {
+      const parsed = parseResolvedSchemaValidationRequest(request);
+      if (!parsed) {
+        recordCounter(recordSchemaValidationResults, { schema_kind: 'unknown', result: 'invalid-input' });
+        return Object.freeze({ kind: 'invalid-input', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST });
+      }
+
+      const config = this.resolveRuntimeConfig();
+      if (!config || !config.enabled) {
+        recordCounter(recordSchemaValidationResults, {
+          schema_kind: parsed.schemaKind,
+          result: 'unavailable',
+        });
+        return Object.freeze({
+          kind: 'unavailable',
+          code: config ? RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE : RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+
+      let identity: ReturnType<typeof identifyRecordJsonSchema>;
+      try {
+        identity = identifyRecordJsonSchema(parsed.document, config.limits.maxDocumentBytes);
+      } catch {
+        recordCounter(recordSchemaValidationResults, {
+          schema_kind: parsed.schemaKind,
+          result: 'unavailable',
+        });
+        recordCounter(recordSchemaValidationProblems, {
+          schema_kind: parsed.schemaKind,
+          code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+        });
+        return Object.freeze({ kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
+      }
+      if (identity.digest !== parsed.digest) {
+        recordCounter(recordSchemaValidationResults, {
+          schema_kind: parsed.schemaKind,
+          result: 'unavailable',
+        });
+        recordCounter(recordSchemaValidationProblems, {
+          schema_kind: parsed.schemaKind,
+          code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+        });
+        return Object.freeze({ kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
+      }
+
+      const cache = this.cacheFor(config.cacheMaxEntries);
+      let cached = cache.get(parsed.digest);
+      recordCounter(recordSchemaCacheResults, {
+        schema_kind: parsed.schemaKind,
+        result: cached ? 'hit' : 'miss',
+      });
+      if (!cached) {
+        const startedAt = this.clock();
+        try {
+          const artifact = compileRecordJsonSchemaArtifact(identity.document, {
+            maxDocumentBytes: config.limits.maxDocumentBytes,
+            maxValidationErrors: config.limits.maxDiagnostics,
+          });
+          cache.set(artifact);
+          cached = cache.get(parsed.digest);
+          recordDuration(this.clock() - startedAt, {
+            schema_kind: parsed.schemaKind,
+            phase: 'validation',
+            outcome: 'resolved',
+          });
+          recordCounter(recordSchemaCompileOutcomes, {
+            schema_kind: parsed.schemaKind,
+            phase: 'validation',
+            outcome: 'resolved',
+          });
+        } catch (error) {
+          this.logUnexpected('validation-compile', error);
+          recordDuration(this.clock() - startedAt, {
+            schema_kind: parsed.schemaKind,
+            phase: 'validation',
+            outcome: 'failed',
+          });
+          recordCounter(recordSchemaCompileOutcomes, {
+            schema_kind: parsed.schemaKind,
+            phase: 'validation',
+            outcome: 'failed',
+          });
+          recordCounter(recordSchemaValidationResults, {
+            schema_kind: parsed.schemaKind,
+            result: 'unavailable',
+          });
+          return Object.freeze({ kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
+        }
+      }
+      if (!cached) {
+        recordCounter(recordSchemaValidationResults, {
+          schema_kind: parsed.schemaKind,
+          result: 'unavailable',
+        });
+        return Object.freeze({ kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
+      }
+
+      let validation: RecordJsonSchemaValidationResult;
+      try {
+        validation = cached.validator.validate(parsed.input);
+      } catch (error) {
+        this.logUnexpected('validation-run', error);
+        recordCounter(recordSchemaValidationResults, {
+          schema_kind: parsed.schemaKind,
+          result: 'unavailable',
+        });
+        return Object.freeze({ kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
+      }
+      recordCounter(recordSchemaValidationResults, {
+        schema_kind: parsed.schemaKind,
+        result: validation.valid ? 'valid' : 'invalid',
+      });
+      if (!validation.valid) {
+        for (const code of new Set(validation.issues.map(issue => telemetryCode(issue.code)))) {
+          recordCounter(recordSchemaValidationProblems, { schema_kind: parsed.schemaKind, code });
+        }
+      }
+      return Object.freeze({ kind: 'validated', ...validation });
+    }
+
     /** Persist or refresh one post-save usage reference without changing the normal record-save path. */
     public async persistSaveUsageReference(request: unknown): Promise<PersistRecordSchemaSaveUsageResult> {
+      let result: PersistRecordSchemaSaveUsageResult;
+      try {
+        result = await this.persistSaveUsageReferenceInternal(request);
+      } catch (error) {
+        this.logUnexpected('save-reference', error);
+        result = Object.freeze({
+          kind: 'unavailable',
+          stage: 'storage',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
+      }
+      recordCounter(recordSchemaUsageReferences, {
+        reference_kind: 'save',
+        outcome: telemetryDimension(result.kind, RECORD_SCHEMA_USAGE_REFERENCE_OUTCOMES, 'unavailable'),
+        code: telemetryCode('code' in result ? result.code : undefined),
+      });
+      return result;
+    }
+
+    private async persistSaveUsageReferenceInternal(request: unknown): Promise<PersistRecordSchemaSaveUsageResult> {
       const parsed = parseSaveUsageRequest(request);
       if (!parsed) {
         return Object.freeze({
@@ -1992,7 +2455,8 @@ export namespace Services {
       let storageValue: unknown;
       try {
         storageValue = this.dependencies.getStorageProvider();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('save-reference-storage-provider', error);
         storageValue = undefined;
       }
       if (!isReferenceStorageProvider(storageValue)) {
@@ -2008,7 +2472,8 @@ export namespace Services {
       let response: StorageServiceResponse | undefined;
       try {
         response = await storageValue.putRecordSchemaReference(reference);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('save-reference-storage', error);
         return Object.freeze({
           kind: 'write-failed',
           stage: 'save-reference',
@@ -2029,6 +2494,36 @@ export namespace Services {
 
     /** Idempotently materialize the allowlisted fields of configured integration pins. */
     public async materializeIntegrationPins(): Promise<MaterializeRecordSchemaIntegrationPinsResult> {
+      let result: MaterializeRecordSchemaIntegrationPinsResult;
+      try {
+        result = await this.materializeIntegrationPinsInternal();
+      } catch (error) {
+        this.logUnexpected('integration-pin-maintenance', error);
+        result = Object.freeze({
+          kind: 'unavailable',
+          stage: 'storage',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
+      }
+      if (result.kind === 'materialized' || result.kind === 'failed') {
+        for (const pin of result.pins) {
+          recordCounter(recordSchemaUsageReferences, {
+            reference_kind: 'pin',
+            outcome: telemetryDimension(pin.status, RECORD_SCHEMA_USAGE_REFERENCE_OUTCOMES, 'unavailable'),
+            code: telemetryCode(pin.status === 'write-failed' ? pin.code : undefined),
+          });
+        }
+      } else {
+        recordCounter(recordSchemaUsageReferences, {
+          reference_kind: 'pin',
+          outcome: telemetryDimension(result.kind, RECORD_SCHEMA_USAGE_REFERENCE_OUTCOMES, 'unavailable'),
+          code: telemetryCode(result.code),
+        });
+      }
+      return result;
+    }
+
+    private async materializeIntegrationPinsInternal(): Promise<MaterializeRecordSchemaIntegrationPinsResult> {
       let rawConfig: unknown;
       try {
         rawConfig = this.dependencies.getConfig();
@@ -2108,7 +2603,8 @@ export namespace Services {
       let storageValue: unknown;
       try {
         storageValue = this.dependencies.getStorageProvider();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('integration-pin-storage-provider', error);
         storageValue = undefined;
       }
       if (!isReferenceStorageProvider(storageValue)) {
@@ -2136,7 +2632,8 @@ export namespace Services {
         let response: StorageServiceResponse | undefined;
         try {
           response = await storageValue.putRecordSchemaReference(reference);
-        } catch {
+        } catch (error) {
+          this.logUnexpected('integration-pin-write', error);
           response = undefined;
         }
         if (storageResponseSucceeded(response)) {
@@ -2166,8 +2663,21 @@ export namespace Services {
 
     /** Awaited during core bootstrap so configured pins exist before application readiness. */
     public async bootstrapIntegrationPins(): Promise<void> {
-      const result = await this.materializeIntegrationPins();
-      if (result.kind === 'materialized' || result.kind === 'disabled') return;
+      let result: MaterializeRecordSchemaIntegrationPinsResult;
+      try {
+        result = await this.materializeIntegrationPins();
+      } catch (error) {
+        this.logUnexpected('integration-pin-startup', error);
+        this.safeLog('info', 'record_schema_startup_check', 'integration-pins', { status: 'failed' });
+        throw error;
+      }
+      if (result.kind === 'materialized' || result.kind === 'disabled') {
+        this.safeLog('info', 'record_schema_startup_check', 'integration-pins', {
+          status: result.kind === 'disabled' ? 'disabled' : 'passed',
+        });
+        return;
+      }
+      this.safeLog('info', 'record_schema_startup_check', 'integration-pins', { status: 'failed' });
       const codes =
         result.kind === 'failed'
           ? result.pins
@@ -2213,7 +2723,8 @@ export namespace Services {
       let storageValue: unknown;
       try {
         storageValue = this.dependencies.getStorageProvider();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('retention-storage-provider', error);
         storageValue = undefined;
       }
       if (!isRetentionStorageProvider(storageValue)) {
@@ -2230,7 +2741,8 @@ export namespace Services {
         let artifact: unknown;
         try {
           artifact = await storageValue.getRecordSchemaArtifact(digest);
-        } catch {
+        } catch (error) {
+          this.logUnexpected('retention-artifact-read', error);
           return Object.freeze({
             kind: 'unavailable',
             stage: 'storage',
@@ -2250,7 +2762,8 @@ export namespace Services {
             limit: RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT,
             offset: 0,
           });
-        } catch {
+        } catch (error) {
+          this.logUnexpected('retention-reference-read', error);
           return Object.freeze({
             kind: 'unavailable',
             stage: 'storage',
@@ -2282,7 +2795,8 @@ export namespace Services {
               limit: 1,
               offset: RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT,
             });
-          } catch {
+          } catch (error) {
+            this.logUnexpected('retention-reference-overflow-read', error);
             return Object.freeze({
               kind: 'unavailable',
               stage: 'storage',
@@ -2401,10 +2915,38 @@ export namespace Services {
       context: RecordContractContext,
       recordAccessContext?: FormRecordAccessContext
     ): Promise<RecordSchemaCompilationResult> {
+      const schemaKind = metricKind(context.publicContext.kind);
+      const startedAt = this.clock();
+      try {
+        const result = await this.compileContextUnobserved(config, context, recordAccessContext);
+        const outcome = telemetryDimension(
+          result.kind === 'resolved' || result.kind === 'partial' ? 'resolved' : result.kind,
+          RECORD_SCHEMA_COMPILE_OUTCOMES,
+          'unexpected-failure'
+        );
+        const attributes = { schema_kind: schemaKind, phase: 'resolution', outcome } as const;
+        recordDuration(this.clock() - startedAt, attributes);
+        recordCounter(recordSchemaCompileOutcomes, attributes);
+        return result;
+      } catch (error) {
+        this.logUnexpected('compile', error);
+        const attributes = { schema_kind: schemaKind, phase: 'resolution', outcome: 'unexpected-failure' } as const;
+        recordDuration(this.clock() - startedAt, attributes);
+        recordCounter(recordSchemaCompileOutcomes, attributes);
+        throw error;
+      }
+    }
+
+    private async compileContextUnobserved(
+      config: RecordSchemaConfig,
+      context: RecordContractContext,
+      recordAccessContext?: FormRecordAccessContext
+    ): Promise<RecordSchemaCompilationResult> {
       let formBuild: RecordContractFormBuildResult;
       try {
         formBuild = await this.dependencies.buildContractFormConfig(context, recordAccessContext);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('compile-form-build', error);
         return this.contextFailure('not-resolvable');
       }
       if (!formBuild.ok) {
@@ -2414,7 +2956,8 @@ export namespace Services {
       let registry: RecordContractContributorRegistry | undefined;
       try {
         registry = this.dependencies.getContributorRegistry();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('compile-contributors', error);
         registry = undefined;
       }
       if (!registry) {
@@ -2455,6 +2998,9 @@ export namespace Services {
       try {
         rendered = renderRecordJsonSchema(compileResult.contract);
       } catch (error) {
+        if (!(error instanceof RecordJsonSchemaRendererError)) {
+          this.logUnexpected('compile-renderer', error);
+        }
         return {
           kind: 'compiler-failed',
           failureKind: 'renderer',
@@ -2505,6 +3051,7 @@ export namespace Services {
             diagnostics: emptyDiagnostics(),
           };
         }
+        this.logUnexpected('compile-artifact', error);
         return {
           kind: 'meta-validation-failed',
           reason: error instanceof RecordJsonSchemaIdentityError ? 'identity' : 'artifact',
@@ -2513,10 +3060,17 @@ export namespace Services {
         };
       }
 
+      try {
+        this.cacheFor(config.cacheMaxEntries).set(artifact);
+      } catch (error) {
+        this.logUnexpected('cache-populate', error);
+      }
+
       let persistedDocumentValue: ContractJsonValue;
       try {
         persistedDocumentValue = normalizeRedboxCanonicalJsonV1(artifact.document);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('compile-normalization', error);
         return {
           kind: 'meta-validation-failed',
           reason: 'artifact',
@@ -2584,11 +3138,17 @@ export namespace Services {
       let storageValue: unknown;
       try {
         storageValue = this.dependencies.getStorageProvider();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('persist-storage-provider', error);
         storageValue = undefined;
       }
       const storage = createStorageProvider(storageValue);
       if (!storage) {
+        recordCounter(recordSchemaPersistence, {
+          resource: 'artifact',
+          outcome: 'failed',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
         return {
           kind: 'storage-failed',
           stage: 'artifact',
@@ -2599,7 +3159,13 @@ export namespace Services {
       let artifactWrite: StorageServiceResponse | undefined;
       try {
         artifactWrite = await storage.putRecordSchemaArtifact(compilation.artifactInput);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('persist-artifact', error);
+        recordCounter(recordSchemaPersistence, {
+          resource: 'artifact',
+          outcome: 'failed',
+          code: RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_WRITE_FAILED,
+        });
         return {
           kind: 'storage-failed',
           stage: 'artifact',
@@ -2607,21 +3173,30 @@ export namespace Services {
         };
       }
       if (!storageResponseSucceeded(artifactWrite)) {
+        const code =
+          storageResponseCode(artifactWrite) === RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION
+            ? RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION
+            : RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_WRITE_FAILED;
+        recordCounter(recordSchemaPersistence, { resource: 'artifact', outcome: 'failed', code });
         return {
           kind: 'storage-failed',
           stage: 'artifact',
-          code:
-            storageResponseCode(artifactWrite) === RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION
-              ? RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION
-              : RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_WRITE_FAILED,
+          code,
         };
       }
+      recordCounter(recordSchemaPersistence, { resource: 'artifact', outcome: 'persisted', code: 'none' });
 
       const grant = createGrant(compilation.artifactInput);
       let grantWrite: StorageServiceResponse | undefined;
       try {
         grantWrite = await storage.putRecordSchemaReference(grant);
-      } catch {
+      } catch (error) {
+        this.logUnexpected('persist-grant', error);
+        recordCounter(recordSchemaPersistence, {
+          resource: 'grant',
+          outcome: 'failed',
+          code: RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED,
+        });
         return {
           kind: 'storage-failed',
           stage: 'grant',
@@ -2631,14 +3206,21 @@ export namespace Services {
         };
       }
       if (!storageResponseSucceeded(grantWrite)) {
+        const failure = referenceWriteFailure(grantWrite, RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED);
+        recordCounter(recordSchemaPersistence, {
+          resource: 'grant',
+          outcome: 'failed',
+          code: telemetryCode(failure.code),
+        });
         return {
           kind: 'storage-failed',
           stage: 'grant',
-          ...referenceWriteFailure(grantWrite, RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED),
+          ...failure,
           artifact: Object.freeze({ digest: compilation.digest, persisted: true }),
           grantReferenceKey: grant.referenceKey,
         };
       }
+      recordCounter(recordSchemaPersistence, { resource: 'grant', outcome: 'persisted', code: 'none' });
 
       const resolutionBase = {
         document: compilation.document,
@@ -2668,7 +3250,8 @@ export namespace Services {
         if (snapshot.kind !== 'snapshot') return undefined;
         const validation = validateRecordSchemaConfig(snapshot.value);
         return validation.valid ? validation.config : undefined;
-      } catch {
+      } catch (error) {
+        this.logUnexpected('runtime-configuration', error);
         return undefined;
       }
     }
@@ -2692,9 +3275,14 @@ export namespace Services {
       try {
         config = this.dependencies.getConfig();
         if (isDisabled(config)) {
+          this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
+            status: 'disabled',
+            finding_count: 0,
+          });
           return;
         }
-      } catch {
+      } catch (error) {
+        this.logUnexpected('startup-configuration', error);
         configReadFailed = true;
       }
 
@@ -2709,7 +3297,8 @@ export namespace Services {
       let storageProvider: unknown;
       try {
         storageProvider = this.dependencies.getStorageProvider();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('startup-storage', error);
         storageProvider = undefined;
       }
       findings.push(...storageFindings(storageProvider));
@@ -2718,7 +3307,8 @@ export namespace Services {
       let registrationIssues: readonly RecordContractRegistrationIssue[] = [];
       try {
         registrationIssues = this.dependencies.getContributorRegistrationIssues();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('startup-contributors', error);
         contributorStateUnavailable = true;
       }
       findings.push(...contributorFindings(registrationIssues));
@@ -2726,7 +3316,8 @@ export namespace Services {
       let registry: RecordContractContributorRegistry | undefined;
       try {
         registry = this.dependencies.getContributorRegistry();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('startup-registry', error);
         registry = undefined;
         contributorStateUnavailable = true;
       }
@@ -2737,7 +3328,8 @@ export namespace Services {
       let componentTypes: readonly string[] = [];
       try {
         componentTypes = this.dependencies.getContributorComponentTypes();
-      } catch {
+      } catch (error) {
+        this.logUnexpected('startup-coverage', error);
         contributorStateUnavailable = true;
       }
       if (contributorStateUnavailable) {
@@ -2746,8 +3338,19 @@ export namespace Services {
       findings.push(...coverageFindings(componentTypes));
 
       if (findings.length > 0) {
+        this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
+          status: 'failed',
+          finding_count: Math.min(findings.length, RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX),
+          ...(findings.length > RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX
+            ? { finding_count_bucket: 'overflow' as const }
+            : {}),
+        });
         throw new RecordSchemaLifecycleError(findings);
       }
+      this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
+        status: 'passed',
+        finding_count: 0,
+      });
       this.logger.verbose(`${this.logHeader} lifecycle checks passed.`);
     }
   }
