@@ -15,6 +15,7 @@ import {
 import {
   CORE_RECORD_CONTRACT_COMPONENT_INVENTORY,
   BrandingModel,
+  MAX_RECORD_SCHEMA_INTEGRATION_PINS,
   type ContractJsonObject,
   type ContractJsonValue,
   createCoreRecordContractContributors,
@@ -33,6 +34,7 @@ import {
   type RecordJsonSchemaEtag,
   type RecordSchemaArtifactModel,
   type RecordSchemaGrantReferenceInput,
+  type RecordSchemaReferenceModel,
   resetDiscoveredRecordContractContributorRegistry,
   setDiscoveredRecordContractContributorRegistry,
   StorageServiceResponse,
@@ -57,6 +59,23 @@ function enabledConfig(overrides: Record<string, unknown> = {}): Record<string, 
     ...structuredClone(recordSchema),
     enabled: true,
     ...overrides,
+  };
+}
+
+function zeroLengthArrayYielding(values: readonly unknown[]): unknown[] {
+  const deceptive: unknown[] = [];
+  Object.defineProperty(deceptive, Symbol.iterator, {
+    value: () => values[Symbol.iterator](),
+  });
+  return deceptive;
+}
+
+function ensureTestSails(): () => void {
+  const prior = Reflect.get(global, 'sails');
+  if (prior === undefined) Reflect.set(global, 'sails', { config: {}, services: {} });
+  return () => {
+    if (prior === undefined) Reflect.deleteProperty(global, 'sails');
+    else Reflect.set(global, 'sails', prior);
   };
 }
 
@@ -103,6 +122,16 @@ function captureLifecycleError(run: () => void): RecordSchemaLifecycleError {
   throw new Error('Expected RecordSchemaService initialization to fail.');
 }
 
+async function captureAsyncError(run: () => Promise<unknown>): Promise<Error> {
+  try {
+    await run();
+  } catch (error) {
+    if (error instanceof Error) return error;
+    throw new Error('Expected an Error rejection.');
+  }
+  throw new Error('Expected the operation to reject.');
+}
+
 function validPin(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     digest: DIGEST,
@@ -110,7 +139,7 @@ function validPin(overrides: Record<string, unknown> = {}): Record<string, unkno
     portal: 'rdmp',
     schemaKind: 'create',
     recordType: 'rdmp',
-    operation: '__strict_all__',
+    operation: 'strict-all',
     owner: 'integration-owner',
     purpose: 'Retain the contract used by the integration.',
     expiresAt: '2027-01-01T00:00:00.000Z',
@@ -118,9 +147,10 @@ function validPin(overrides: Record<string, unknown> = {}): Record<string, unkno
   };
 }
 
-function storageResponse(success: boolean): StorageServiceResponse {
+function storageResponse(success: boolean, code?: string): StorageServiceResponse {
   const response = new StorageServiceResponse();
   response.success = success;
+  if (code) response.details = { code };
   return response;
 }
 
@@ -500,18 +530,55 @@ describe('RecordSchemaService lifecycle checks', function () {
     );
   });
 
+  it('awaits configured integration-pin writes and fails before startup can complete', async function () {
+    const storage = completeStorageProvider();
+    let completeWrite: ((response: StorageServiceResponse) => void) | undefined;
+    storage.putRecordSchemaReference.callsFake(
+      () =>
+        new Promise<StorageServiceResponse>(resolve => {
+          completeWrite = resolve;
+        })
+    );
+    const service = lifecycleService({
+      getConfig: () => enabledConfig({ integrationPins: [validPin()] }),
+      getStorageProvider: () => storage,
+    });
+
+    service.init();
+    let settled = false;
+    const startup = service.bootstrapIntegrationPins().then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).to.equal(false);
+    if (!completeWrite) {
+      throw new Error('Expected startup to await a configured pin write.');
+    }
+    completeWrite(storageResponse(true));
+    await startup;
+    expect(settled).to.equal(true);
+
+    storage.putRecordSchemaReference.resolves(storageResponse(false, 'record-schema.artifact-not-found'));
+    const error = await captureAsyncError(() => service.bootstrapIntegrationPins());
+    expect(error.message).to.include('record-schema.artifact-not-found');
+  });
+
   it('uses the configured Sails storage service and discovered contributor state', function () {
+    const restoreSails = ensureTestSails();
     const serviceName = 'recordSchemaLifecycleTestStorage';
+    const priorServices = sails.services;
+    const serviceRegistry = sails.services ?? {};
+    sails.services = serviceRegistry;
     const originalRecordSchema = Reflect.get(sails.config, 'recordSchema');
     const originalStorage = Reflect.get(sails.config, 'storage');
-    const originalStorageService = Reflect.get(sails.services, serviceName);
+    const originalStorageService = Reflect.get(serviceRegistry, serviceName);
     const hadRecordSchema = Reflect.has(sails.config, 'recordSchema');
     const hadStorage = Reflect.has(sails.config, 'storage');
-    const hadStorageService = Reflect.has(sails.services, serviceName);
+    const hadStorageService = Reflect.has(serviceRegistry, serviceName);
 
     Reflect.set(sails.config, 'recordSchema', enabledConfig({ integrationPins: [validPin()] }));
     Reflect.set(sails.config, 'storage', { serviceName });
-    Reflect.set(sails.services, serviceName, completeStorageProvider());
+    Reflect.set(serviceRegistry, serviceName, completeStorageProvider());
     setDiscoveredRecordContractContributorRegistry(coreRegistry());
 
     try {
@@ -524,8 +591,10 @@ describe('RecordSchemaService lifecycle checks', function () {
         ? Reflect.set(sails.config, 'storage', originalStorage)
         : Reflect.deleteProperty(sails.config, 'storage');
       hadStorageService
-        ? Reflect.set(sails.services, serviceName, originalStorageService)
-        : Reflect.deleteProperty(sails.services, serviceName);
+        ? Reflect.set(serviceRegistry, serviceName, originalStorageService)
+        : Reflect.deleteProperty(serviceRegistry, serviceName);
+      sails.services = priorServices;
+      restoreSails();
     }
   });
 
@@ -762,6 +831,9 @@ describe('RecordSchemaService lifecycle checks', function () {
     expect(ServiceExports.RecordSchemaService).to.have.property('resolveCreate').that.is.a('function');
     expect(ServiceExports.RecordSchemaService).to.have.property('resolveUpdate').that.is.a('function');
     expect(ServiceExports.RecordSchemaService).to.have.property('resolveImmutable').that.is.a('function');
+    expect(ServiceExports.RecordSchemaService).to.have.property('persistSaveUsageReference').that.is.a('function');
+    expect(ServiceExports.RecordSchemaService).to.have.property('materializeIntegrationPins').that.is.a('function');
+    expect(ServiceExports.RecordSchemaService).to.have.property('reportRetention').that.is.a('function');
   });
 });
 
@@ -826,6 +898,43 @@ describe('RecordSchemaService create resolution', function () {
     });
     expect(fixture.putRecordSchemaReference.callCount).to.equal(2);
     expect(fixture.putRecordSchemaReference.firstCall.firstArg).to.deep.equal(first.grant);
+  });
+
+  it('persists the artifact before every grant attempt and converges after a retry', async function () {
+    const events: string[] = [];
+    const putRecordSchemaArtifact = sinon.stub().callsFake(async () => {
+      events.push('artifact');
+      return storageResponse(true);
+    });
+    const putRecordSchemaReference = sinon.stub();
+    putRecordSchemaReference.onFirstCall().callsFake(async () => {
+      events.push('grant');
+      return storageResponse(false);
+    });
+    putRecordSchemaReference.onSecondCall().callsFake(async () => {
+      events.push('grant');
+      return storageResponse(true);
+    });
+    const fixture = createResolutionFixture({
+      getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
+    });
+
+    const failed = await fixture.service.resolveCreate(request);
+    const retried = await fixture.service.resolveCreate(request);
+
+    expect(failed.kind).to.equal('storage-failed');
+    if (failed.kind !== 'storage-failed' || failed.stage !== 'grant') {
+      throw new Error('Expected a grant-stage storage failure.');
+    }
+    expect(retried.kind).to.equal('resolved');
+    if (retried.kind !== 'resolved') {
+      throw new Error('Expected the idempotent retry to resolve.');
+    }
+    expect(events).to.deep.equal(['artifact', 'grant', 'artifact', 'grant']);
+    expect(failed.artifact).to.deep.equal({ digest: retried.digest, persisted: true });
+    expect(failed.grantReferenceKey).to.equal(retried.grant.referenceKey);
+    expect(putRecordSchemaArtifact.firstCall.firstArg).to.deep.equal(putRecordSchemaArtifact.secondCall.firstArg);
+    expect(putRecordSchemaReference.firstCall.firstArg).to.deep.equal(putRecordSchemaReference.secondCall.firstArg);
   });
 
   it('keeps a representable conditional create form stable across resolutions', async function () {
@@ -971,9 +1080,37 @@ describe('RecordSchemaService create resolution', function () {
       kind: 'storage-failed',
       stage: 'grant',
       code: RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED,
+      failureKind: 'storage-unavailable',
+      retryable: true,
+      artifact: {
+        digest: grantFailure.putRecordSchemaArtifact.firstCall.firstArg.digest,
+        persisted: true,
+      },
+      grantReferenceKey: grantFailure.putRecordSchemaReference.firstCall.firstArg.referenceKey,
     });
     expect(grantFailure.putRecordSchemaArtifact.calledOnce).to.equal(true);
     expect(grantFailure.putRecordSchemaReference.calledOnce).to.equal(true);
+  });
+
+  it('preserves permanent grant-reference storage failures after artifact persistence', async function () {
+    for (const [code, failureKind] of [
+      [RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_NOT_FOUND, 'artifact-not-found'],
+      [RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_INVALID, 'invalid-reference'],
+      [RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_KEY_COLLISION, 'reference-key-collision'],
+      [RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT, 'invalid-state'],
+    ] as const) {
+      const fixture = createResolutionFixture();
+      fixture.putRecordSchemaReference.resolves(storageResponse(false, code));
+
+      const result = await fixture.service.resolveCreate(request);
+
+      expect(result.kind).to.equal('storage-failed');
+      if (result.kind !== 'storage-failed' || result.stage !== 'grant') {
+        throw new Error('Expected a grant storage failure.');
+      }
+      expect(result).to.deep.include({ failureKind, code, retryable: false });
+      expect(fixture.putRecordSchemaArtifact.calledBefore(fixture.putRecordSchemaReference)).to.equal(true);
+    }
   });
 
   it('returns a typed unavailable result when storage capability inspection throws', async function () {
@@ -1213,6 +1350,7 @@ describe('RecordSchemaService update resolution', function () {
   });
 
   it('delegates current edit authorization to RecordsService before form construction', async function () {
+    const restoreSails = ensureTestSails();
     const context = updateContext();
     const resolveContractContext = sinon.stub().resolves(context);
     const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
@@ -1252,6 +1390,7 @@ describe('RecordSchemaService update resolution', function () {
         serviceRegistry.recordsservice = priorRecordsService;
       }
       sails.services = priorServices;
+      restoreSails();
     }
   });
 
@@ -1439,9 +1578,846 @@ describe('RecordSchemaService update resolution', function () {
       kind: 'storage-failed',
       stage: 'grant',
       code: RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED,
+      failureKind: 'storage-unavailable',
+      retryable: true,
+      artifact: {
+        digest: grantFailure.putRecordSchemaArtifact.firstCall.firstArg.digest,
+        persisted: true,
+      },
+      grantReferenceKey: grantFailure.putRecordSchemaReference.firstCall.firstArg.referenceKey,
     });
     expect(grantFailure.putRecordSchemaArtifact.calledOnce).to.equal(true);
     expect(grantFailure.putRecordSchemaReference.calledOnce).to.equal(true);
+  });
+});
+
+describe('RecordSchemaService reference orchestration and retention reporting', function () {
+  afterEach(function () {
+    sinon.restore();
+  });
+
+  it('creates an idempotent post-save usage reference without persisting the raw save identity', async function () {
+    const putRecordSchemaReference = sinon.stub();
+    putRecordSchemaReference.onFirstCall().resolves(storageResponse(false));
+    putRecordSchemaReference.onSecondCall().resolves(storageResponse(true));
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+    const request = {
+      digest: DIGEST,
+      brand: 'brand-1',
+      portal: 'portal-1',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      oid: 'oid-1',
+      operation: 'submit',
+      saveIdentity: 'audit-123',
+      rawSecret: 'never-persist-this-secret',
+    };
+
+    const failed = await service.persistSaveUsageReference(request);
+    const retried = await service.persistSaveUsageReference(request);
+
+    expect(failed.kind).to.equal('write-failed');
+    expect(retried.kind).to.equal('recorded');
+    if (failed.kind !== 'write-failed' || retried.kind !== 'recorded') {
+      throw new Error('Expected a failed save-reference write followed by an idempotent retry.');
+    }
+    expect(failed.reference).to.deep.equal(retried.reference);
+    expect(putRecordSchemaReference.firstCall.firstArg).to.deep.equal(putRecordSchemaReference.secondCall.firstArg);
+    expect(putRecordSchemaReference.firstCall.firstArg).to.deep.include({
+      digest: DIGEST,
+      kind: 'save',
+      schemaKind: 'update',
+      oid: 'oid-1',
+    });
+    expect(putRecordSchemaReference.firstCall.firstArg).not.to.have.property('saveIdentity');
+    expect(JSON.stringify(putRecordSchemaReference.firstCall.firstArg)).not.to.include('never-persist-this-secret');
+
+    const invalid = await service.persistSaveUsageReference({
+      ...request,
+      saveIdentity: 'x'.repeat(513),
+    });
+    expect(invalid).to.deep.equal({
+      kind: 'invalid-input',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+    });
+    expect(putRecordSchemaReference.callCount).to.equal(2);
+  });
+
+  it('preserves typed save-reference storage failure semantics and contains hostile responses', async function () {
+    const putRecordSchemaReference = sinon.stub();
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+    const request = {
+      digest: DIGEST,
+      brand: 'brand-1',
+      portal: 'portal-1',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      oid: 'oid-1',
+      operation: 'submit',
+      saveIdentity: 'audit-123',
+    };
+    putRecordSchemaReference.onFirstCall().resolves(storageResponse(false, 'record-schema.artifact-not-found'));
+    putRecordSchemaReference.onSecondCall().resolves(
+      new Proxy(new StorageServiceResponse(), {
+        get: () => {
+          throw new Error('hostile response');
+        },
+      })
+    );
+
+    const missingArtifact = await service.persistSaveUsageReference(request);
+    const unreadableResponse = await service.persistSaveUsageReference(request);
+
+    expect(missingArtifact).to.deep.include({
+      kind: 'write-failed',
+      stage: 'save-reference',
+      failureKind: 'artifact-not-found',
+      code: 'record-schema.artifact-not-found',
+      retryable: false,
+    });
+    expect(unreadableResponse).to.deep.include({
+      kind: 'write-failed',
+      stage: 'save-reference',
+      failureKind: 'storage-unavailable',
+      code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+      retryable: true,
+    });
+    expect(putRecordSchemaReference.firstCall.firstArg).to.deep.equal(putRecordSchemaReference.secondCall.firstArg);
+  });
+
+  it('rejects the literal invalid save-reference operation publish now before storage', async function () {
+    const putRecordSchemaReference = sinon.stub();
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+
+    expect(
+      await service.persistSaveUsageReference({
+        digest: DIGEST,
+        brand: 'brand-1',
+        portal: 'portal-1',
+        schemaKind: 'update',
+        recordType: 'dataset',
+        oid: 'oid-1',
+        operation: 'publish now',
+        saveIdentity: 'audit-123',
+      })
+    ).to.deep.equal({ kind: 'invalid-input', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST });
+    expect(putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('snapshots config before validation so later hostile reads cannot escape typed results', async function () {
+    const liveConfig = () => {
+      const config = enabledConfig({ integrationPins: [] });
+      let reads = 0;
+      return new Proxy(config, {
+        get: (target, property, receiver) => {
+          reads += 1;
+          if (reads > 1) throw new Error('config became hostile');
+          return Reflect.get(target, property, receiver);
+        },
+      });
+    };
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    const service = new Services.RecordSchema({
+      getConfig: liveConfig,
+      getStorageProvider: () => ({
+        putRecordSchemaReference,
+        getRecordSchemaArtifact: async () => null,
+        listRecordSchemaReferences: async () => [],
+      }),
+    });
+
+    expect(
+      await service.persistSaveUsageReference({
+        digest: DIGEST,
+        brand: 'brand-1',
+        portal: 'portal-1',
+        schemaKind: 'update',
+        recordType: 'dataset',
+        oid: 'oid-1',
+        operation: 'publish',
+        saveIdentity: 'audit-123',
+      })
+    ).to.deep.include({ kind: 'recorded' });
+    expect(await service.materializeIntegrationPins()).to.deep.equal({ kind: 'materialized', pins: [] });
+    expect(
+      await service.reportRetention({ digests: [DIGEST], now: new Date('2026-08-24T00:00:00.000Z') })
+    ).to.deep.include({ kind: 'reported', missingDigests: [DIGEST] });
+  });
+
+  it('returns total typed config outcomes for disabled, invalid, and hostile maintenance config', async function () {
+    const putRecordSchemaReference = sinon.stub();
+    const reportRequest = { digests: [DIGEST], now: new Date('2026-08-24T00:00:00.000Z') };
+    const disabled = new Services.RecordSchema({
+      getConfig: () => ({ ...enabledConfig(), enabled: false }),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+    const invalid = new Services.RecordSchema({
+      getConfig: () => enabledConfig({ cacheMaxEntries: 0 }),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+    const hostileConfig = new Proxy(enabledConfig(), {
+      get: () => {
+        throw new Error('hostile config');
+      },
+    });
+    const hostile = new Services.RecordSchema({
+      getConfig: () => hostileConfig,
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+
+    expect(await disabled.materializeIntegrationPins()).to.deep.equal({
+      kind: 'disabled',
+      code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+    });
+    expect(await disabled.reportRetention(reportRequest)).to.deep.equal({
+      kind: 'disabled',
+      code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+    });
+    expect(await invalid.materializeIntegrationPins()).to.deep.equal({
+      kind: 'unavailable',
+      stage: 'configuration',
+      code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+    });
+    expect(await hostile.materializeIntegrationPins()).to.deep.equal({
+      kind: 'unavailable',
+      stage: 'configuration',
+      code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+    });
+    expect(await hostile.reportRetention(reportRequest)).to.deep.equal({
+      kind: 'unavailable',
+      stage: 'configuration',
+      code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+    });
+    expect(putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('caps configured pins before hashing or storage work', async function () {
+    const putRecordSchemaReference = sinon.stub();
+    const integrationPins = Array.from({ length: MAX_RECORD_SCHEMA_INTEGRATION_PINS + 1 }, (_, index) =>
+      validPin({ owner: `owner-${index}` })
+    );
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig({ integrationPins }),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+
+    expect(await service.materializeIntegrationPins()).to.deep.equal({
+      kind: 'limit-exceeded',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+      maximum: MAX_RECORD_SCHEMA_INTEGRATION_PINS,
+    });
+    expect(putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('caps actual configured pin iteration when array length is deceptive', async function () {
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    const integrationPins = zeroLengthArrayYielding(
+      Array.from({ length: MAX_RECORD_SCHEMA_INTEGRATION_PINS + 1 }, (_, index) =>
+        validPin({ owner: `owner-${index}` })
+      )
+    );
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig({ integrationPins }),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+
+    expect(await service.materializeIntegrationPins()).to.deep.equal({
+      kind: 'limit-exceeded',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+      maximum: MAX_RECORD_SCHEMA_INTEGRATION_PINS,
+    });
+    expect(putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('requires canonical timezone-qualified pin expiries and canonical operation names', async function () {
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    for (const pin of [
+      validPin({ expiresAt: '2027-01-01T00:00:00.000', operation: 'strict-all' }),
+      validPin({ expiresAt: '2027-01-01T00:00:00.000Z', operation: '__strict_all__' }),
+      validPin({ expiresAt: '2027-01-01T00:00:00.000Z', operation: 'publish now' }),
+    ]) {
+      const service = new Services.RecordSchema({
+        getConfig: () => enabledConfig({ integrationPins: [pin] }),
+        getStorageProvider: () => ({ putRecordSchemaReference }),
+      });
+      expect(await service.materializeIntegrationPins()).to.deep.equal({
+        kind: 'unavailable',
+        stage: 'configuration',
+        code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+      });
+    }
+
+    const priorTimezone = process.env.TZ;
+    try {
+      const references: RecordSchemaReferenceModel[] = [];
+      const captureReference = sinon.stub().callsFake(async reference => {
+        references.push({
+          ...reference,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        });
+        return storageResponse(true);
+      });
+      const config = enabledConfig({
+        integrationPins: [
+          validPin({ expiresAt: '2027-01-01T00:00:00.000Z', operation: ' strict-all ' }),
+          validPin({ expiresAt: '2027-01-01T10:30:00.000+10:30', operation: 'strict-all' }),
+        ],
+      });
+      process.env.TZ = 'UTC';
+      await new Services.RecordSchema({
+        getConfig: () => config,
+        getStorageProvider: () => ({ putRecordSchemaReference: captureReference }),
+      }).materializeIntegrationPins();
+      process.env.TZ = 'Australia/Adelaide';
+      await new Services.RecordSchema({
+        getConfig: () => config,
+        getStorageProvider: () => ({ putRecordSchemaReference: captureReference }),
+      }).materializeIntegrationPins();
+
+      expect(captureReference.callCount).to.equal(2);
+      expect(captureReference.firstCall.firstArg).to.deep.equal(captureReference.secondCall.firstArg);
+      expect(captureReference.firstCall.firstArg.operation).to.equal('strict-all');
+      expect(captureReference.firstCall.firstArg.expiresAt).to.deep.equal(new Date('2027-01-01T00:00:00.000Z'));
+    } finally {
+      process.env.TZ = priorTimezone;
+    }
+    expect(JSON.stringify(putRecordSchemaReference.args)).not.to.include('2027-01-01T00:00:00.000');
+  });
+
+  it('materializes configured pins in stable order, deduplicates retries, and redacts extra secret fields', async function () {
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    const secondDigest = 'b'.repeat(64);
+    const firstPin = validPin({
+      owner: 'owner-a',
+      purpose: 'Retain integration A.',
+      rawClientSecret: 'pin-secret-must-not-leak',
+    });
+    const secondPin = validPin({
+      digest: secondDigest,
+      owner: 'owner-b',
+      purpose: 'Retain integration B.',
+      expiresAt: undefined,
+    });
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig({ integrationPins: [secondPin, firstPin, { ...secondPin }] }),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+
+    const first = await service.materializeIntegrationPins();
+    const second = await service.materializeIntegrationPins();
+
+    expect(first.kind).to.equal('materialized');
+    expect(second).to.deep.equal(first);
+    if (first.kind !== 'materialized') {
+      throw new Error('Expected configured integration pins to materialize.');
+    }
+    expect(first.pins).to.have.length(2);
+    expect(first.pins.map(pin => pin.referenceKey)).to.deep.equal([...first.pins.map(pin => pin.referenceKey)].sort());
+    expect(putRecordSchemaReference.callCount).to.equal(4);
+    expect(putRecordSchemaReference.firstCall.firstArg.referenceKey).to.equal(first.pins[0].referenceKey);
+    expect(putRecordSchemaReference.secondCall.firstArg.referenceKey).to.equal(first.pins[1].referenceKey);
+    expect(putRecordSchemaReference.thirdCall.firstArg).to.deep.equal(putRecordSchemaReference.firstCall.firstArg);
+    expect(putRecordSchemaReference.getCall(3).firstArg).to.deep.equal(putRecordSchemaReference.secondCall.firstArg);
+    expect(JSON.stringify(first)).not.to.include('pin-secret-must-not-leak');
+    expect(JSON.stringify(putRecordSchemaReference.args)).not.to.include('pin-secret-must-not-leak');
+  });
+
+  it('reports partial pin writes with their exact permanent and retryable failure semantics', async function () {
+    const putRecordSchemaReference = sinon.stub();
+    putRecordSchemaReference.onFirstCall().resolves(storageResponse(false, 'record-schema.reference-key-collision'));
+    putRecordSchemaReference.onSecondCall().rejects(new Error('temporary outage'));
+    const service = new Services.RecordSchema({
+      getConfig: () =>
+        enabledConfig({
+          integrationPins: [validPin({ owner: 'one' }), validPin({ owner: 'two' })],
+        }),
+      getStorageProvider: () => ({ putRecordSchemaReference }),
+    });
+
+    const result = await service.materializeIntegrationPins();
+
+    expect(result.kind).to.equal('failed');
+    if (result.kind !== 'failed') throw new Error('Expected partial pin write failure.');
+    expect(
+      result.pins.map(pin => ({
+        status: pin.status,
+        ...('code' in pin
+          ? {
+              code: pin.code,
+              failureKind: pin.failureKind,
+              retryable: pin.retryable,
+            }
+          : {}),
+      }))
+    ).to.deep.equal([
+      {
+        status: 'write-failed',
+        code: RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_KEY_COLLISION,
+        failureKind: 'reference-key-collision',
+        retryable: false,
+      },
+      {
+        status: 'write-failed',
+        code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        failureKind: 'storage-unavailable',
+        retryable: true,
+      },
+    ]);
+    expect(putRecordSchemaReference.callCount).to.equal(2);
+  });
+
+  it('bounds retention input and reference overflow without destructive or excess reads', async function () {
+    const digest = 'e'.repeat(64);
+    const getRecordSchemaArtifact = sinon.stub().resolves({
+      digest,
+      document: { type: 'object' },
+      contractFormat: 'redbox-record-contract/1',
+      completeness: 'complete',
+      byteLength: 17,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    const reference = {
+      referenceKey: 'save',
+      digest,
+      brand: 'brand',
+      portal: 'portal',
+      kind: 'save' as const,
+      schemaKind: 'update' as const,
+      recordType: 'dataset',
+      operation: 'submit',
+      oid: 'oid',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    };
+    const listRecordSchemaReferences = sinon.stub();
+    listRecordSchemaReferences.onFirstCall().resolves(Array.from({ length: 1_000 }, () => reference));
+    listRecordSchemaReferences.onSecondCall().resolves([reference]);
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ getRecordSchemaArtifact, listRecordSchemaReferences }),
+    });
+
+    expect(
+      await service.reportRetention({
+        digests: Array.from({ length: 101 }, (_, index) => index.toString(16).padStart(64, '0')),
+        now: new Date('2026-08-24T00:00:00.000Z'),
+      })
+    ).to.deep.equal({
+      kind: 'invalid-input',
+      reason: 'limit',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+    });
+    expect(getRecordSchemaArtifact.notCalled).to.equal(true);
+
+    expect(
+      await service.reportRetention({ digests: [digest], now: new Date('2026-08-24T00:00:00.000Z') })
+    ).to.deep.equal({
+      kind: 'limit-exceeded',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+      digest,
+    });
+    expect(listRecordSchemaReferences.args.map(args => args[0])).to.deep.equal([
+      { digest, includeExpiredPins: true, limit: 1_000, offset: 0 },
+      { digest, includeExpiredPins: true, limit: 1, offset: 1_000 },
+    ]);
+  });
+
+  it('bounds actual digest and reference iteration when array lengths are deceptive', async function () {
+    const getRecordSchemaArtifact = sinon.stub().resolves(null);
+    const noReadService = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ getRecordSchemaArtifact, listRecordSchemaReferences: sinon.stub() }),
+    });
+    const deceptiveDigests = zeroLengthArrayYielding(
+      Array.from({ length: 101 }, (_, index) => index.toString(16).padStart(64, '0'))
+    );
+
+    expect(
+      await noReadService.reportRetention({
+        digests: deceptiveDigests,
+        now: new Date('2026-08-24T00:00:00.000Z'),
+      })
+    ).to.deep.equal({
+      kind: 'invalid-input',
+      reason: 'limit',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+    });
+    expect(getRecordSchemaArtifact.notCalled).to.equal(true);
+
+    const reference = {
+      referenceKey: 'grant',
+      digest: DIGEST,
+      brand: 'brand',
+      portal: 'portal',
+      kind: 'grant' as const,
+      schemaKind: 'create' as const,
+      recordType: 'dataset',
+      operation: 'strict-all',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    };
+    const listRecordSchemaReferences = sinon
+      .stub()
+      .resolves(zeroLengthArrayYielding(Array.from({ length: 1_001 }, () => reference)));
+    const boundedService = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({
+        getRecordSchemaArtifact: async () => ({
+          digest: DIGEST,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+        listRecordSchemaReferences,
+      }),
+    });
+
+    expect(
+      await boundedService.reportRetention({
+        digests: [DIGEST],
+        now: new Date('2026-08-24T00:00:00.000Z'),
+      })
+    ).to.deep.equal({
+      kind: 'limit-exceeded',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+      digest: DIGEST,
+    });
+    expect(listRecordSchemaReferences.calledOnce).to.equal(true);
+  });
+
+  it('rejects incomplete persisted references instead of treating them as retention evidence', async function () {
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({
+        getRecordSchemaArtifact: async () => ({
+          digest: DIGEST,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+        listRecordSchemaReferences: async () => [{ digest: DIGEST, kind: 'grant' }],
+      }),
+    });
+
+    expect(
+      await service.reportRetention({
+        digests: [DIGEST],
+        now: new Date('2026-08-24T00:00:00.000Z'),
+      })
+    ).to.deep.equal({ kind: 'invalid-state', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
+  });
+
+  it('rejects discriminator-specific forbidden reference fields', async function () {
+    const storedAt = new Date('2026-01-01T00:00:00.000Z');
+    const common = {
+      digest: DIGEST,
+      brand: 'brand',
+      portal: 'portal',
+      recordType: 'dataset',
+      operation: 'publish',
+      createdAt: storedAt,
+      updatedAt: storedAt,
+    };
+    const save = {
+      ...common,
+      referenceKey: `save:${'a'.repeat(64)}`,
+      kind: 'save',
+      schemaKind: 'update',
+      oid: 'oid',
+    };
+    const malformedReferences = [
+      { ...save, owner: 'forbidden-owner' },
+      { ...save, purpose: 'forbidden-purpose' },
+      { ...save, expiresAt: new Date('2027-01-01T00:00:00.000Z') },
+      {
+        ...common,
+        referenceKey: 'grant:create:forbidden-oid',
+        kind: 'grant',
+        schemaKind: 'create',
+        oid: 'forbidden-oid',
+      },
+      {
+        ...common,
+        referenceKey: 'pin:forbidden-oid',
+        kind: 'pin',
+        schemaKind: 'update',
+        oid: 'forbidden-oid',
+        owner: 'integration-owner',
+        purpose: 'integration-purpose',
+      },
+    ];
+
+    const results = await Promise.all(
+      malformedReferences.map(reference =>
+        new Services.RecordSchema({
+          getConfig: () => enabledConfig(),
+          getStorageProvider: () => ({
+            getRecordSchemaArtifact: async () => ({ digest: DIGEST, createdAt: storedAt }),
+            listRecordSchemaReferences: async () => [reference],
+          }),
+        }).reportRetention({
+          digests: [DIGEST],
+          now: new Date('2026-08-24T00:00:00.000Z'),
+        })
+      )
+    );
+
+    expect(results).to.deep.equal(
+      malformedReferences.map(() => ({
+        kind: 'invalid-state',
+        code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+      }))
+    );
+  });
+
+  it('rejects a persisted referenceKey outside the canonical storage grammar', async function () {
+    const storedAt = new Date('2026-01-01T00:00:00.000Z');
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({
+        getRecordSchemaArtifact: async () => ({ digest: DIGEST, createdAt: storedAt }),
+        listRecordSchemaReferences: async () => [
+          {
+            referenceKey: 'bad key',
+            digest: DIGEST,
+            brand: 'brand',
+            portal: 'portal',
+            kind: 'save',
+            schemaKind: 'update',
+            recordType: 'dataset',
+            operation: 'publish',
+            oid: 'oid',
+            createdAt: storedAt,
+            updatedAt: storedAt,
+          },
+        ],
+      }),
+    });
+
+    expect(
+      await service.reportRetention({
+        digests: [DIGEST],
+        now: new Date('2026-08-24T00:00:00.000Z'),
+      })
+    ).to.deep.equal({ kind: 'invalid-state', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT });
+  });
+
+  it('contains throwing storage and hostile artifact/reference models as typed retention results', async function () {
+    const request = { digests: [DIGEST], now: new Date('2026-08-24T00:00:00.000Z') };
+    const throwing = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({
+        getRecordSchemaArtifact: async () => {
+          throw new Error('storage failed');
+        },
+        listRecordSchemaReferences: sinon.stub(),
+      }),
+    });
+    expect(await throwing.reportRetention(request)).to.deep.equal({
+      kind: 'unavailable',
+      stage: 'storage',
+      code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+    });
+
+    const hostileArtifact = new Proxy(
+      {},
+      {
+        getOwnPropertyDescriptor: () => {
+          throw new Error('hostile artifact');
+        },
+      }
+    );
+    const malformedArtifact = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({
+        getRecordSchemaArtifact: async () => hostileArtifact,
+        listRecordSchemaReferences: async () => [],
+      }),
+    });
+    expect(await malformedArtifact.reportRetention(request)).to.deep.equal({
+      kind: 'invalid-state',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+    });
+
+    const hostileReferences = new Proxy([], {
+      get: (target, property, receiver) => {
+        if (property === 'length') throw new Error('hostile references');
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const malformedReferences = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({
+        getRecordSchemaArtifact: async () => ({
+          digest: DIGEST,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+        listRecordSchemaReferences: async () => hostileReferences,
+      }),
+    });
+    expect(await malformedReferences.reportRetention(request)).to.deep.equal({
+      kind: 'invalid-state',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+    });
+  });
+
+  it('reports retention reasons and deletion eligibility deterministically without documents or deletion calls', async function () {
+    const now = new Date('2026-08-24T00:00:00.000Z');
+    const digestA = 'a'.repeat(64);
+    const digestB = 'b'.repeat(64);
+    const digestC = 'c'.repeat(64);
+    const missingDigest = 'd'.repeat(64);
+    const artifact = (digest: string, createdAt: string): RecordSchemaArtifactModel => ({
+      digest,
+      document: { type: 'object', title: `private-${digest.slice(0, 1)}` },
+      contractFormat: 'redbox-record-contract/1',
+      completeness: 'complete',
+      byteLength: 37,
+      createdAt: new Date(createdAt),
+      updatedAt: new Date(createdAt),
+    });
+    const artifacts = new Map<string, RecordSchemaArtifactModel>([
+      [digestA, artifact(digestA, '2026-08-14T00:00:00.000Z')],
+      [digestB, artifact(digestB, '2026-01-01T00:00:00.000Z')],
+      [digestC, artifact(digestC, '2026-01-01T00:00:00.000Z')],
+    ]);
+    const storedAt = new Date('2026-01-01T00:00:00.000Z');
+    const references = new Map<string, RecordSchemaReferenceModel[]>([
+      [
+        digestA,
+        [
+          {
+            referenceKey: 'save-a',
+            digest: digestA,
+            brand: 'brand-1',
+            portal: 'portal-1',
+            kind: 'save',
+            schemaKind: 'update',
+            recordType: 'dataset',
+            operation: 'submit',
+            oid: 'private-oid',
+            createdAt: storedAt,
+            updatedAt: storedAt,
+          },
+          {
+            referenceKey: 'grant-a',
+            digest: digestA,
+            brand: 'brand-1',
+            portal: 'portal-1',
+            kind: 'grant',
+            schemaKind: 'create',
+            recordType: 'dataset',
+            operation: 'strict-all',
+            createdAt: storedAt,
+            updatedAt: storedAt,
+          },
+          {
+            referenceKey: 'pin-a',
+            digest: digestA,
+            brand: 'brand-1',
+            portal: 'portal-1',
+            kind: 'pin',
+            schemaKind: 'create',
+            recordType: 'dataset',
+            operation: 'strict-all',
+            owner: 'integration-owner',
+            purpose: 'private-pin-purpose',
+            expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+            createdAt: storedAt,
+            updatedAt: storedAt,
+          },
+        ],
+      ],
+      [
+        digestB,
+        [
+          {
+            referenceKey: 'expired-pin-b',
+            digest: digestB,
+            brand: 'brand-1',
+            portal: 'portal-1',
+            kind: 'pin',
+            schemaKind: 'create',
+            recordType: 'dataset',
+            operation: 'strict-all',
+            owner: 'integration-owner',
+            purpose: 'expired-private-purpose',
+            expiresAt: new Date('2026-01-02T00:00:00.000Z'),
+            createdAt: storedAt,
+            updatedAt: storedAt,
+          },
+        ],
+      ],
+      [digestC, []],
+    ]);
+    const getRecordSchemaArtifact = sinon.stub().callsFake(async (digest: string) => artifacts.get(digest) ?? null);
+    const listRecordSchemaReferences = sinon
+      .stub()
+      .callsFake(async (query: { digest?: string }) => references.get(query.digest ?? '') ?? []);
+    const deleteRecordSchemaArtifactIfUnreferenced = sinon.stub();
+    const service = new Services.RecordSchema({
+      getConfig: () =>
+        enabledConfig({
+          retention: { minimumAgeDays: 30 },
+        }),
+      getStorageProvider: () => ({
+        getRecordSchemaArtifact,
+        listRecordSchemaReferences,
+        deleteRecordSchemaArtifactIfUnreferenced,
+      }),
+    });
+    const request = {
+      digests: [digestC, digestA, missingDigest, digestB, digestA],
+      now,
+    };
+
+    const first = await service.reportRetention(request);
+    const second = await service.reportRetention(request);
+
+    expect(first.kind).to.equal('reported');
+    expect(second).to.deep.equal(first);
+    if (first.kind !== 'reported') {
+      throw new Error('Expected a deterministic retention report.');
+    }
+    expect(first.entries.map(entry => entry.digest)).to.deep.equal([digestA, digestB, digestC]);
+    expect(first.missingDigests).to.deep.equal([missingDigest]);
+    expect(first.entries[0]).to.deep.include({
+      ageDays: 10,
+      grantCount: 1,
+      saveCount: 1,
+      activePinCount: 1,
+      reasons: ['minimum-age', 'grant-reference', 'save-reference', 'active-pin'],
+      eligibleForDeletion: false,
+    });
+    expect(first.entries[1]).to.deep.include({
+      grantCount: 0,
+      saveCount: 0,
+      activePinCount: 0,
+      reasons: [],
+      eligibleForDeletion: true,
+    });
+    expect(first.entries[2]).to.deep.include({
+      reasons: [],
+      eligibleForDeletion: true,
+    });
+    expect(JSON.stringify(first)).not.to.include('private-pin-purpose');
+    expect(JSON.stringify(first)).not.to.include('private-oid');
+    expect(deleteRecordSchemaArtifactIfUnreferenced.notCalled).to.equal(true);
+    expect(listRecordSchemaReferences.args.map(args => args[0])).to.deep.equal([
+      { digest: digestA, includeExpiredPins: true, limit: 1_000, offset: 0 },
+      { digest: digestB, includeExpiredPins: true, limit: 1_000, offset: 0 },
+      { digest: digestC, includeExpiredPins: true, limit: 1_000, offset: 0 },
+      { digest: digestA, includeExpiredPins: true, limit: 1_000, offset: 0 },
+      { digest: digestB, includeExpiredPins: true, limit: 1_000, offset: 0 },
+      { digest: digestC, includeExpiredPins: true, limit: 1_000, offset: 0 },
+    ]);
   });
 });
 

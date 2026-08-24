@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
+import { VALIDATION_OPERATION_NAME_PATTERN } from '@researchdatabox/sails-ng-common';
 
 import { Services as services } from '../CoreService';
 import {
   recordSchema as defaultRecordSchemaConfig,
   type RecordSchemaConfig,
   type RecordSchemaConfigurationProblemReason,
+  type RecordSchemaIntegrationPinConfig,
+  MAX_RECORD_SCHEMA_INTEGRATION_PINS,
   validateRecordSchemaConfig,
 } from '../config/recordSchema.config';
 import type {
@@ -12,7 +15,11 @@ import type {
   RecordSchemaArtifactModel,
   RecordSchemaCreateGrantReferenceInput,
   RecordSchemaGrantReferenceInput,
+  RecordSchemaPinReferenceInput,
   RecordSchemaReferenceModel,
+  RecordSchemaRetentionReason,
+  RecordSchemaRetentionReportEntry,
+  RecordSchemaSaveReferenceInput,
   RecordSchemaUpdateGrantReferenceInput,
 } from '../model/storage/record-schema';
 import type { RecordSchemaProblem, ResolveRecordSchemaResult } from '../model/record-contract';
@@ -77,7 +84,8 @@ export type RecordSchemaPinProblemReason =
   | 'maximum-length'
   | 'digest'
   | 'schema-kind'
-  | 'datetime';
+  | 'datetime'
+  | 'operation';
 
 export type RecordSchemaLifecycleFinding =
   | {
@@ -143,8 +151,12 @@ const DUPLICATE_REGISTRATION_CODES: ReadonlySet<RecordContractRegistrationCode> 
 
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_DIAGNOSTIC_IDENTIFIER = /^[A-Za-z0-9@._:/-]{1,200}$/;
+const RECORD_SCHEMA_REFERENCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$/;
 const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
+const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
+const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
 const RECORD_SCHEMA_STRICT_ALL_OPERATION = 'strict-all';
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
 function unreadableConfigurationFinding(): RecordSchemaLifecycleFinding {
   return {
@@ -161,6 +173,10 @@ function compareText(left: string, right: string): number {
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isReflectable(value: unknown): value is object {
+  return value !== null && (typeof value === 'object' || typeof value === 'function');
 }
 
 function configuredRecordSchema(): unknown {
@@ -360,13 +376,16 @@ function integrationPinFindings(value: unknown): RecordSchemaLifecycleFinding[] 
   if (!isObjectRecord(value) || !Array.isArray(value.integrationPins)) {
     return [];
   }
+  if (value.integrationPins.length > MAX_RECORD_SCHEMA_INTEGRATION_PINS) {
+    return [];
+  }
 
   const findings: RecordSchemaLifecycleFinding[] = [];
   value.integrationPins.forEach((candidate, index) => {
     if (!isObjectRecord(candidate)) {
       return;
     }
-    for (const property of ['digest', 'brand', 'portal', 'recordType', 'operation', 'owner'] as const) {
+    for (const property of ['digest', 'brand', 'portal', 'recordType', 'owner'] as const) {
       findings.push(...validatePinText(candidate, index, property, 512));
     }
     findings.push(...validatePinText(candidate, index, 'purpose', 2_048));
@@ -383,19 +402,41 @@ function integrationPinFindings(value: unknown): RecordSchemaLifecycleFinding[] 
         )
       );
     }
+    const operation = candidate.operation;
+    if (operation === undefined) {
+      findings.push(pinFinding(`recordSchema.integrationPins.${index}.operation`, 'required'));
+    } else if (typeof operation !== 'string' || !VALIDATION_OPERATION_NAME_PATTERN.test(operation.trim())) {
+      findings.push(pinFinding(`recordSchema.integrationPins.${index}.operation`, 'operation'));
+    }
     if (candidate.expiresAt !== undefined) {
       const expiresAt = candidate.expiresAt;
       if (
         typeof expiresAt !== 'string' ||
         expiresAt.length === 0 ||
         expiresAt !== expiresAt.trim() ||
-        Number.isNaN(Date.parse(expiresAt))
+        !canonicalInstant(expiresAt)
       ) {
         findings.push(pinFinding(`recordSchema.integrationPins.${index}.expiresAt`, 'datetime'));
       }
     }
   });
   return findings;
+}
+
+const RFC_3339_INSTANT_PATTERN =
+  /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
+
+function canonicalInstant(value: string): Date | undefined {
+  if (!RFC_3339_INSTANT_PATTERN.test(value)) return undefined;
+  const [year, month, day] = value
+    .slice(0, 10)
+    .split('-')
+    .map(component => Number(component));
+  if (day > new Date(Date.UTC(year, month, 0)).getUTCDate()) return undefined;
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) return undefined;
+  const date = new Date(milliseconds);
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 function configuredFindings(value: unknown): RecordSchemaLifecycleFinding[] {
@@ -519,15 +560,29 @@ export interface RecordSchemaCreateLimitFailure {
   readonly maximum?: number;
 }
 
-export interface RecordSchemaCreateStorageFailure {
+export interface RecordSchemaArtifactStorageFailure {
   readonly kind: 'storage-failed';
-  readonly stage: 'artifact' | 'grant';
+  readonly stage: 'artifact';
   readonly code:
     | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE
     | typeof RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_WRITE_FAILED
-    | typeof RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED
     | typeof RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION;
 }
+
+export interface RecordSchemaGrantStorageFailure {
+  readonly kind: 'storage-failed';
+  readonly stage: 'grant';
+  /** The artifact write succeeded before the grant was attempted. Retrying reuses this immutable identity. */
+  readonly artifact: Readonly<{
+    digest: string;
+    persisted: true;
+  }>;
+  readonly grantReferenceKey: string;
+}
+
+export type RecordSchemaGrantWriteFailure = RecordSchemaGrantStorageFailure & RecordSchemaReferenceWriteFailure;
+
+export type RecordSchemaCreateStorageFailure = RecordSchemaArtifactStorageFailure | RecordSchemaGrantWriteFailure;
 
 export interface RecordSchemaCreateUnavailableFailure {
   readonly kind: 'unavailable';
@@ -640,6 +695,134 @@ export interface ResolveImmutableRecordSchemaRequest {
 /** Immutable retrieval uses the shared resolver result contract established for schema endpoints. */
 export type ResolveImmutableRecordSchemaResult = ResolveRecordSchemaResult;
 
+export interface PersistRecordSchemaSaveUsageRequest {
+  readonly digest: string;
+  readonly brand: string;
+  readonly portal: string;
+  readonly schemaKind: 'create' | 'update';
+  readonly recordType: string;
+  readonly oid: string;
+  readonly operation: string;
+  /** Stable save/audit identity. It contributes only to the hashed reference key and is never persisted raw. */
+  readonly saveIdentity: string;
+}
+
+export interface RecordSchemaReferenceIdentity {
+  readonly digest: string;
+  readonly referenceKey: string;
+}
+
+export type RecordSchemaReferenceWriteFailure = {
+  readonly failureKind:
+    | 'storage-unavailable'
+    | 'artifact-not-found'
+    | 'invalid-reference'
+    | 'reference-key-collision'
+    | 'digest-collision'
+    | 'invalid-state';
+  readonly code:
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_NOT_FOUND
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_INVALID
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_KEY_COLLISION
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED;
+  readonly retryable: boolean;
+};
+
+export type PersistRecordSchemaSaveUsageResult =
+  | {
+      readonly kind: 'recorded';
+      readonly reference: RecordSchemaReferenceIdentity;
+    }
+  | {
+      readonly kind: 'invalid-input';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
+    }
+  | {
+      readonly kind: 'disabled';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+    }
+  | {
+      readonly kind: 'unavailable';
+      readonly stage: 'configuration' | 'storage';
+      readonly code:
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+    }
+  | ({
+      readonly kind: 'write-failed';
+      readonly stage: 'save-reference';
+      readonly reference: RecordSchemaReferenceIdentity;
+    } & RecordSchemaReferenceWriteFailure);
+
+export type RecordSchemaPinMaterializationEntry = RecordSchemaReferenceIdentity &
+  ({ readonly status: 'materialized' } | ({ readonly status: 'write-failed' } & RecordSchemaReferenceWriteFailure));
+
+export type MaterializeRecordSchemaIntegrationPinsResult =
+  | {
+      readonly kind: 'materialized';
+      readonly pins: readonly RecordSchemaPinMaterializationEntry[];
+    }
+  | {
+      readonly kind: 'failed';
+      readonly pins: readonly RecordSchemaPinMaterializationEntry[];
+    }
+  | {
+      readonly kind: 'disabled';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+    }
+  | {
+      readonly kind: 'unavailable';
+      readonly stage: 'configuration' | 'storage';
+      readonly code:
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+    }
+  | {
+      readonly kind: 'limit-exceeded';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+      readonly maximum: number;
+    };
+
+export interface RecordSchemaRetentionReportRequest {
+  readonly digests: readonly string[];
+  readonly now: Date;
+}
+
+export type RecordSchemaRetentionReportResult =
+  | {
+      readonly kind: 'reported';
+      readonly now: Date;
+      readonly minimumAgeDays: number;
+      readonly entries: readonly RecordSchemaRetentionReportEntry[];
+      readonly missingDigests: readonly string[];
+    }
+  | {
+      readonly kind: 'invalid-input';
+      readonly reason: 'shape' | 'digest' | 'datetime' | 'limit';
+      readonly code:
+        typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+    }
+  | {
+      readonly kind: 'disabled';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+    }
+  | {
+      readonly kind: 'unavailable';
+      readonly stage: 'configuration' | 'storage';
+      readonly code:
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+    }
+  | {
+      readonly kind: 'invalid-state';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT;
+    }
+  | {
+      readonly kind: 'limit-exceeded';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+      readonly digest: string;
+    };
+
 type RecordSchemaResolutionFailure =
   | RecordSchemaCreateContextFailure
   | RecordSchemaCreateCompilerFailure
@@ -699,6 +882,12 @@ type RecordSchemaImmutableStorageProvider = Required<
   Pick<StorageService, 'getRecordSchemaArtifact' | 'listRecordSchemaReferences' | 'touchRecordSchemaArtifact'>
 >;
 
+type RecordSchemaReferenceStorageProvider = Required<Pick<StorageService, 'putRecordSchemaReference'>>;
+
+type RecordSchemaRetentionStorageProvider = Required<
+  Pick<StorageService, 'getRecordSchemaArtifact' | 'listRecordSchemaReferences'>
+>;
+
 function createStorageProvider(value: unknown): RecordSchemaCreateStorageProvider | undefined {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
     return undefined;
@@ -728,6 +917,31 @@ function isImmutableStorageProvider(value: unknown): value is RecordSchemaImmuta
   }
 }
 
+function isReferenceStorageProvider(value: unknown): value is RecordSchemaReferenceStorageProvider {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+    return false;
+  }
+  try {
+    return typeof Reflect.get(value, 'putRecordSchemaReference') === 'function';
+  } catch {
+    return false;
+  }
+}
+
+function isRetentionStorageProvider(value: unknown): value is RecordSchemaRetentionStorageProvider {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+    return false;
+  }
+  try {
+    return (
+      typeof Reflect.get(value, 'getRecordSchemaArtifact') === 'function' &&
+      typeof Reflect.get(value, 'listRecordSchemaReferences') === 'function'
+    );
+  } catch {
+    return false;
+  }
+}
+
 function storageResponseSucceeded(response: StorageServiceResponse | null | undefined): boolean {
   try {
     return response?.success === true;
@@ -743,6 +957,442 @@ function storageResponseCode(response: StorageServiceResponse | null | undefined
       return undefined;
     }
     return typeof details.code === 'string' ? details.code : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function referenceWriteFailure(
+  response?: StorageServiceResponse,
+  unavailableCode:
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE
+    | typeof RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED = RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE
+): RecordSchemaReferenceWriteFailure {
+  switch (storageResponseCode(response)) {
+    case RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_NOT_FOUND:
+      return {
+        failureKind: 'artifact-not-found',
+        code: RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_NOT_FOUND,
+        retryable: false,
+      };
+    case RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_INVALID:
+      return {
+        failureKind: 'invalid-reference',
+        code: RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_INVALID,
+        retryable: false,
+      };
+    case RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_KEY_COLLISION:
+      return {
+        failureKind: 'reference-key-collision',
+        code: RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_KEY_COLLISION,
+        retryable: false,
+      };
+    case RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION:
+      return { failureKind: 'digest-collision', code: RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION, retryable: false };
+    case RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT:
+      return { failureKind: 'invalid-state', code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT, retryable: false };
+    default:
+      return {
+        failureKind: 'storage-unavailable',
+        code: unavailableCode,
+        retryable: true,
+      };
+  }
+}
+
+const INVALID_DATA_PROPERTY = Symbol('invalid-data-property');
+
+function ownDataProperty(value: Record<string, unknown>, property: string): unknown | typeof INVALID_DATA_PROPERTY {
+  const descriptor = Object.getOwnPropertyDescriptor(value, property);
+  return descriptor && 'value' in descriptor ? descriptor.value : INVALID_DATA_PROPERTY;
+}
+
+type BoundedArraySnapshot =
+  | { readonly kind: 'values'; readonly values: readonly unknown[] }
+  | { readonly kind: 'overflow' }
+  | { readonly kind: 'invalid' };
+
+/** Consume at most maximum + 1 actual iterator values; array length is not trusted. */
+function boundedArraySnapshot(value: unknown, maximum: number): BoundedArraySnapshot {
+  if (!Array.isArray(value)) return { kind: 'invalid' };
+  try {
+    const iteratorFactory = Reflect.get(value, Symbol.iterator);
+    if (typeof iteratorFactory !== 'function') return { kind: 'invalid' };
+    const iterator: unknown = Reflect.apply(iteratorFactory, value, []);
+    if (!isReflectable(iterator)) return { kind: 'invalid' };
+    const next = Reflect.get(iterator, 'next');
+    if (typeof next !== 'function') return { kind: 'invalid' };
+    const values: unknown[] = [];
+    for (let index = 0; index <= maximum; index += 1) {
+      const step: unknown = Reflect.apply(next, iterator, []);
+      if (!isReflectable(step)) return { kind: 'invalid' };
+      const done = Reflect.get(step, 'done');
+      if (done === true) return { kind: 'values', values: Object.freeze(values) };
+      if (done !== false && done !== undefined) return { kind: 'invalid' };
+      if (index === maximum) {
+        const close = Reflect.get(iterator, 'return');
+        if (typeof close === 'function') {
+          try {
+            Reflect.apply(close, iterator, []);
+          } catch {
+            // Overflow is already deterministic; iterator cleanup failure cannot change it.
+          }
+        }
+        return { kind: 'overflow' };
+      }
+      values.push(Reflect.get(step, 'value'));
+    }
+    return { kind: 'overflow' };
+  } catch {
+    return { kind: 'invalid' };
+  }
+}
+
+type RecordSchemaConfigSnapshot =
+  | { readonly kind: 'snapshot'; readonly value: unknown }
+  | { readonly kind: 'pin-limit' }
+  | { readonly kind: 'unreadable' };
+
+function snapshotProperties(source: Record<string, unknown>, properties: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(properties.map(property => [property, ownDataProperty(source, property)]));
+}
+
+/** Copy only configured contract fields so later getters/iterators cannot mutate validated state. */
+function snapshotRecordSchemaConfig(value: unknown): RecordSchemaConfigSnapshot {
+  try {
+    if (!isObjectRecord(value)) return { kind: 'snapshot', value };
+    const enabled = Reflect.get(value, 'enabled');
+    const snapshot = snapshotProperties(value, ['unknownProperties', 'contractFormat', 'cacheMaxEntries']);
+    snapshot.enabled = enabled;
+    const limits = ownDataProperty(value, 'limits');
+    snapshot.limits = isObjectRecord(limits)
+      ? snapshotProperties(limits, [
+          'maxDepth',
+          'maxProperties',
+          'maxDocumentBytes',
+          'maxDiagnostics',
+          'contributorTimeoutMs',
+        ])
+      : limits;
+    const retention = ownDataProperty(value, 'retention');
+    snapshot.retention = isObjectRecord(retention) ? snapshotProperties(retention, ['minimumAgeDays']) : retention;
+
+    const integrationPins = ownDataProperty(value, 'integrationPins');
+    if (integrationPins !== INVALID_DATA_PROPERTY && integrationPins !== undefined) {
+      const bounded = boundedArraySnapshot(integrationPins, MAX_RECORD_SCHEMA_INTEGRATION_PINS);
+      if (bounded.kind === 'overflow') return { kind: 'pin-limit' };
+      if (bounded.kind === 'invalid') return { kind: 'unreadable' };
+      snapshot.integrationPins = bounded.values.map(pin => {
+        if (!isObjectRecord(pin)) return pin;
+        const pinSnapshot = snapshotProperties(pin, [
+          'digest',
+          'brand',
+          'portal',
+          'schemaKind',
+          'recordType',
+          'operation',
+          'owner',
+          'purpose',
+        ]);
+        const expiresAt = ownDataProperty(pin, 'expiresAt');
+        if (expiresAt !== INVALID_DATA_PROPERTY) pinSnapshot.expiresAt = expiresAt;
+        return pinSnapshot;
+      });
+    }
+    return { kind: 'snapshot', value: snapshot };
+  } catch {
+    return { kind: 'unreadable' };
+  }
+}
+
+function boundedNormalizedText(
+  value: Record<string, unknown>,
+  property: string,
+  maximumLength = 512
+): string | undefined {
+  const candidate = ownDataProperty(value, property);
+  return typeof candidate === 'string' &&
+    candidate.length > 0 &&
+    candidate.length <= maximumLength &&
+    candidate === candidate.trim()
+    ? candidate
+    : undefined;
+}
+
+function parseSaveUsageRequest(value: unknown): PersistRecordSchemaSaveUsageRequest | undefined {
+  try {
+    if (!isObjectRecord(value)) {
+      return undefined;
+    }
+    const digest = boundedNormalizedText(value, 'digest', 64);
+    const brand = boundedNormalizedText(value, 'brand');
+    const portal = boundedNormalizedText(value, 'portal');
+    const recordType = boundedNormalizedText(value, 'recordType');
+    const oid = boundedNormalizedText(value, 'oid');
+    const operation = boundedNormalizedText(value, 'operation');
+    const saveIdentity = boundedNormalizedText(value, 'saveIdentity');
+    const schemaKind = ownDataProperty(value, 'schemaKind');
+    if (
+      !digest ||
+      !DIGEST_PATTERN.test(digest) ||
+      !brand ||
+      !portal ||
+      !recordType ||
+      !oid ||
+      !operation ||
+      !VALIDATION_OPERATION_NAME_PATTERN.test(operation) ||
+      !saveIdentity ||
+      !RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(saveIdentity) ||
+      (schemaKind !== 'create' && schemaKind !== 'update')
+    ) {
+      return undefined;
+    }
+    return Object.freeze({
+      digest,
+      brand,
+      portal,
+      schemaKind,
+      recordType,
+      oid,
+      operation,
+      saveIdentity,
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+function hashedReferenceKey(prefix: 'save' | 'pin', identity: ContractJsonObject): string {
+  return `${prefix}:${createHash('sha256').update(serializeRedboxCanonicalJsonV1(identity), 'utf8').digest('hex')}`;
+}
+
+function createSaveReference(request: PersistRecordSchemaSaveUsageRequest): RecordSchemaSaveReferenceInput {
+  const persisted = {
+    digest: request.digest,
+    brand: request.brand,
+    portal: request.portal,
+    schemaKind: request.schemaKind,
+    recordType: request.recordType,
+    operation: request.operation,
+    oid: request.oid,
+  } as const;
+  return Object.freeze({
+    referenceKey: hashedReferenceKey('save', {
+      ...persisted,
+      kind: 'save',
+      saveIdentity: request.saveIdentity,
+    }),
+    ...persisted,
+    kind: 'save',
+  });
+}
+
+function integrationPinReference(pin: RecordSchemaIntegrationPinConfig): RecordSchemaPinReferenceInput {
+  const expiresAt = pin.expiresAt === undefined ? undefined : canonicalInstant(pin.expiresAt);
+  if (pin.expiresAt !== undefined && !expiresAt) {
+    throw new Error('Integration pin expiry is invalid.');
+  }
+  const persisted = {
+    digest: pin.digest,
+    brand: pin.brand,
+    portal: pin.portal,
+    schemaKind: pin.schemaKind,
+    recordType: pin.recordType,
+    operation: pin.operation.trim(),
+    owner: pin.owner,
+    purpose: pin.purpose,
+    ...(expiresAt ? { expiresAt } : {}),
+  } as const;
+  return Object.freeze({
+    referenceKey: hashedReferenceKey('pin', {
+      digest: persisted.digest,
+      brand: persisted.brand,
+      portal: persisted.portal,
+      schemaKind: persisted.schemaKind,
+      recordType: persisted.recordType,
+      operation: persisted.operation,
+      owner: persisted.owner,
+      purpose: persisted.purpose,
+      ...(expiresAt ? { expiresAt: expiresAt.toISOString() } : {}),
+      kind: 'pin',
+    }),
+    ...persisted,
+    kind: 'pin',
+  });
+}
+
+function configuredPinReferences(config: RecordSchemaConfig): readonly RecordSchemaPinReferenceInput[] {
+  const referencesByKey = new Map<string, RecordSchemaPinReferenceInput>();
+  for (const pin of config.integrationPins ?? []) {
+    const reference = integrationPinReference(pin);
+    referencesByKey.set(reference.referenceKey, reference);
+  }
+  return Object.freeze(
+    [...referencesByKey.values()].sort((left, right) => compareText(left.referenceKey, right.referenceKey))
+  );
+}
+
+type ParsedRetentionReportRequest =
+  | { readonly ok: true; readonly request: RecordSchemaRetentionReportRequest }
+  | { readonly ok: false; readonly reason: 'shape' | 'digest' | 'datetime' | 'limit' };
+
+function parseRetentionReportRequest(value: unknown): ParsedRetentionReportRequest {
+  try {
+    if (!isObjectRecord(value)) {
+      return { ok: false, reason: 'shape' };
+    }
+    const rawDigests = ownDataProperty(value, 'digests');
+    const rawNow = ownDataProperty(value, 'now');
+    const boundedDigests = boundedArraySnapshot(rawDigests, RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS);
+    if (boundedDigests.kind === 'invalid') {
+      return { ok: false, reason: 'shape' };
+    }
+    if (boundedDigests.kind === 'overflow') {
+      return { ok: false, reason: 'limit' };
+    }
+    const uniqueDigests = [...new Set(boundedDigests.values)];
+    if (uniqueDigests.some(digest => typeof digest !== 'string' || !DIGEST_PATTERN.test(digest))) {
+      return { ok: false, reason: 'digest' };
+    }
+    const digests = uniqueDigests.filter((digest): digest is string => typeof digest === 'string');
+    if (!(rawNow instanceof Date) || Number.isNaN(rawNow.getTime())) {
+      return { ok: false, reason: 'datetime' };
+    }
+    return {
+      ok: true,
+      request: Object.freeze({
+        digests: Object.freeze(digests.sort(compareText)),
+        now: new Date(rawNow.getTime()),
+      }),
+    };
+  } catch {
+    return { ok: false, reason: 'shape' };
+  }
+}
+
+function isValidDate(value: unknown): value is Date {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
+function hasOwnReferenceField(reference: Record<string, unknown>, field: string): boolean {
+  return Object.getOwnPropertyDescriptor(reference, field) !== undefined;
+}
+
+type RetentionReferenceEvidence = 'grant' | 'save' | 'active-pin' | 'expired-pin';
+
+function retentionReferenceEvidence(
+  reference: unknown,
+  expectedDigest: string,
+  now: Date
+): RetentionReferenceEvidence | undefined {
+  if (!isObjectRecord(reference)) return undefined;
+  const referenceKey = boundedNormalizedText(reference, 'referenceKey');
+  const digest = boundedNormalizedText(reference, 'digest', 64);
+  const brand = boundedNormalizedText(reference, 'brand');
+  const portal = boundedNormalizedText(reference, 'portal');
+  const recordType = boundedNormalizedText(reference, 'recordType');
+  const operation = boundedNormalizedText(reference, 'operation', 64);
+  const schemaKind = ownDataProperty(reference, 'schemaKind');
+  const kind = ownDataProperty(reference, 'kind');
+  const createdAt = ownDataProperty(reference, 'createdAt');
+  const updatedAt = ownDataProperty(reference, 'updatedAt');
+  if (
+    !referenceKey ||
+    !RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(referenceKey) ||
+    digest !== expectedDigest ||
+    !brand ||
+    !portal ||
+    !recordType ||
+    !operation ||
+    !VALIDATION_OPERATION_NAME_PATTERN.test(operation) ||
+    (schemaKind !== 'create' && schemaKind !== 'update') ||
+    !isValidDate(createdAt) ||
+    !isValidDate(updatedAt)
+  ) {
+    return undefined;
+  }
+  if (kind === 'grant') {
+    if (
+      hasOwnReferenceField(reference, 'owner') ||
+      hasOwnReferenceField(reference, 'purpose') ||
+      hasOwnReferenceField(reference, 'expiresAt') ||
+      (schemaKind === 'create' && hasOwnReferenceField(reference, 'oid')) ||
+      (schemaKind === 'update' && !boundedNormalizedText(reference, 'oid'))
+    ) {
+      return undefined;
+    }
+    return 'grant';
+  }
+  if (kind === 'save') {
+    if (
+      hasOwnReferenceField(reference, 'owner') ||
+      hasOwnReferenceField(reference, 'purpose') ||
+      hasOwnReferenceField(reference, 'expiresAt')
+    ) {
+      return undefined;
+    }
+    return boundedNormalizedText(reference, 'oid') ? 'save' : undefined;
+  }
+  if (
+    kind !== 'pin' ||
+    hasOwnReferenceField(reference, 'oid') ||
+    !boundedNormalizedText(reference, 'owner') ||
+    !boundedNormalizedText(reference, 'purpose', 2_048)
+  ) {
+    return undefined;
+  }
+  const expiresAt = ownDataProperty(reference, 'expiresAt');
+  if (expiresAt === INVALID_DATA_PROPERTY || expiresAt === undefined) return 'active-pin';
+  if (!isValidDate(expiresAt)) return undefined;
+  return expiresAt.getTime() > now.getTime() ? 'active-pin' : 'expired-pin';
+}
+
+function retentionEntry(
+  artifact: unknown,
+  references: unknown,
+  expectedDigest: string,
+  now: Date,
+  minimumAgeDays: number
+): RecordSchemaRetentionReportEntry | undefined {
+  try {
+    if (!isObjectRecord(artifact) || !Array.isArray(references)) return undefined;
+    const digest = ownDataProperty(artifact, 'digest');
+    const createdAt = ownDataProperty(artifact, 'createdAt');
+    if (digest !== expectedDigest || !isValidDate(createdAt)) {
+      return undefined;
+    }
+    let grantCount = 0;
+    let saveCount = 0;
+    let activePinCount = 0;
+    for (const reference of references) {
+      const evidence = retentionReferenceEvidence(reference, digest, now);
+      if (evidence === 'grant') {
+        grantCount += 1;
+      } else if (evidence === 'save') {
+        saveCount += 1;
+      } else if (evidence === 'active-pin') {
+        activePinCount += 1;
+      } else if (evidence !== 'expired-pin') {
+        return undefined;
+      }
+    }
+
+    const ageDays = Math.max(0, Math.floor((now.getTime() - createdAt.getTime()) / MILLISECONDS_PER_DAY));
+    const reasons: RecordSchemaRetentionReason[] = [];
+    if (ageDays < minimumAgeDays) reasons.push('minimum-age');
+    if (grantCount > 0) reasons.push('grant-reference');
+    if (saveCount > 0) reasons.push('save-reference');
+    if (activePinCount > 0) reasons.push('active-pin');
+    return Object.freeze({
+      digest,
+      createdAt: new Date(createdAt.getTime()),
+      ageDays,
+      grantCount,
+      saveCount,
+      activePinCount,
+      reasons: Object.freeze(reasons),
+      eligibleForDeletion: reasons.length === 0,
+    });
   } catch {
     return undefined;
   }
@@ -992,7 +1642,16 @@ function emptyValidationIssues(): readonly RecordJsonSchemaValidationIssue[] {
 export namespace Services {
   /** Performs record-schema lifecycle checks and caller-effective create/update/immutable resolution. */
   export class RecordSchema extends services.Core.Service {
-    protected override _exportedMethods = ['init', 'resolveCreate', 'resolveUpdate', 'resolveImmutable'];
+    protected override _exportedMethods = [
+      'init',
+      'resolveCreate',
+      'resolveUpdate',
+      'resolveImmutable',
+      'persistSaveUsageReference',
+      'materializeIntegrationPins',
+      'bootstrapIntegrationPins',
+      'reportRetention',
+    ];
     protected override logHeader = 'RecordSchemaService::';
     private readonly dependencies: RecordSchemaServiceDependencies;
 
@@ -1305,6 +1964,372 @@ export namespace Services {
       });
     }
 
+    /** Persist or refresh one post-save usage reference without changing the normal record-save path. */
+    public async persistSaveUsageReference(request: unknown): Promise<PersistRecordSchemaSaveUsageResult> {
+      const parsed = parseSaveUsageRequest(request);
+      if (!parsed) {
+        return Object.freeze({
+          kind: 'invalid-input',
+          code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+        });
+      }
+
+      const config = this.resolveRuntimeConfig();
+      if (!config) {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+      if (!config.enabled) {
+        return Object.freeze({
+          kind: 'disabled',
+          code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+        });
+      }
+
+      let storageValue: unknown;
+      try {
+        storageValue = this.dependencies.getStorageProvider();
+      } catch {
+        storageValue = undefined;
+      }
+      if (!isReferenceStorageProvider(storageValue)) {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'storage',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
+      }
+
+      const reference = createSaveReference(parsed);
+      const identity = Object.freeze({ digest: reference.digest, referenceKey: reference.referenceKey });
+      let response: StorageServiceResponse | undefined;
+      try {
+        response = await storageValue.putRecordSchemaReference(reference);
+      } catch {
+        return Object.freeze({
+          kind: 'write-failed',
+          stage: 'save-reference',
+          ...referenceWriteFailure(),
+          reference: identity,
+        });
+      }
+      if (!storageResponseSucceeded(response)) {
+        return Object.freeze({
+          kind: 'write-failed',
+          stage: 'save-reference',
+          ...referenceWriteFailure(response),
+          reference: identity,
+        });
+      }
+      return Object.freeze({ kind: 'recorded', reference: identity });
+    }
+
+    /** Idempotently materialize the allowlisted fields of configured integration pins. */
+    public async materializeIntegrationPins(): Promise<MaterializeRecordSchemaIntegrationPinsResult> {
+      let rawConfig: unknown;
+      try {
+        rawConfig = this.dependencies.getConfig();
+      } catch {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+      const configSnapshot = snapshotRecordSchemaConfig(rawConfig);
+      if (configSnapshot.kind === 'pin-limit') {
+        return Object.freeze({
+          kind: 'limit-exceeded',
+          code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+          maximum: MAX_RECORD_SCHEMA_INTEGRATION_PINS,
+        });
+      }
+      if (configSnapshot.kind === 'unreadable') {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+      rawConfig = configSnapshot.value;
+      let validation: ReturnType<typeof validateRecordSchemaConfig>;
+      try {
+        validation = validateRecordSchemaConfig(rawConfig);
+      } catch {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+      if (!validation.valid) {
+        const capped = validation.problems.some(
+          problem => problem.path === 'recordSchema.integrationPins' && problem.reason === 'maximum-items'
+        );
+        return capped
+          ? Object.freeze({
+              kind: 'limit-exceeded' as const,
+              code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+              maximum: MAX_RECORD_SCHEMA_INTEGRATION_PINS,
+            })
+          : Object.freeze({
+              kind: 'unavailable' as const,
+              stage: 'configuration' as const,
+              code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+            });
+      }
+      let findings: readonly RecordSchemaLifecycleFinding[];
+      try {
+        findings = configuredFindings(rawConfig);
+      } catch {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+      if (findings.length > 0) {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+      if (!validation.config.enabled) {
+        return Object.freeze({
+          kind: 'disabled',
+          code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+        });
+      }
+
+      let storageValue: unknown;
+      try {
+        storageValue = this.dependencies.getStorageProvider();
+      } catch {
+        storageValue = undefined;
+      }
+      if (!isReferenceStorageProvider(storageValue)) {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'storage',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
+      }
+
+      let references: readonly RecordSchemaPinReferenceInput[];
+      try {
+        references = configuredPinReferences(validation.config);
+      } catch {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+
+      const pins: RecordSchemaPinMaterializationEntry[] = [];
+      let failed = false;
+      for (const reference of references) {
+        let response: StorageServiceResponse | undefined;
+        try {
+          response = await storageValue.putRecordSchemaReference(reference);
+        } catch {
+          response = undefined;
+        }
+        if (storageResponseSucceeded(response)) {
+          pins.push(
+            Object.freeze({ digest: reference.digest, referenceKey: reference.referenceKey, status: 'materialized' })
+          );
+        } else {
+          failed = true;
+          pins.push(
+            Object.freeze({
+              digest: reference.digest,
+              referenceKey: reference.referenceKey,
+              status: 'write-failed',
+              ...referenceWriteFailure(response),
+            })
+          );
+        }
+      }
+      const immutablePins = Object.freeze(pins);
+      return failed
+        ? Object.freeze({
+            kind: 'failed',
+            pins: immutablePins,
+          })
+        : Object.freeze({ kind: 'materialized', pins: immutablePins });
+    }
+
+    /** Awaited during core bootstrap so configured pins exist before application readiness. */
+    public async bootstrapIntegrationPins(): Promise<void> {
+      const result = await this.materializeIntegrationPins();
+      if (result.kind === 'materialized' || result.kind === 'disabled') return;
+      const codes =
+        result.kind === 'failed'
+          ? result.pins
+              .filter(
+                (pin): pin is Extract<RecordSchemaPinMaterializationEntry, { status: 'write-failed' }> =>
+                  pin.status === 'write-failed'
+              )
+              .map(pin => pin.code)
+              .sort(compareText)
+          : [result.code];
+      throw new Error(`Configured record schema integration pins were not materialized (${codes.join(',')}).`);
+    }
+
+    /** Produce a deterministic, non-destructive retention dry run for a bounded candidate digest set. */
+    public async reportRetention(request: unknown): Promise<RecordSchemaRetentionReportResult> {
+      const parsed = parseRetentionReportRequest(request);
+      if (!parsed.ok) {
+        return Object.freeze({
+          kind: 'invalid-input',
+          reason: parsed.reason,
+          code:
+            parsed.reason === 'limit'
+              ? RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED
+              : RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+        });
+      }
+
+      const config = this.resolveRuntimeConfig();
+      if (!config) {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'configuration',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+        });
+      }
+      if (!config.enabled) {
+        return Object.freeze({
+          kind: 'disabled',
+          code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+        });
+      }
+
+      let storageValue: unknown;
+      try {
+        storageValue = this.dependencies.getStorageProvider();
+      } catch {
+        storageValue = undefined;
+      }
+      if (!isRetentionStorageProvider(storageValue)) {
+        return Object.freeze({
+          kind: 'unavailable',
+          stage: 'storage',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
+      }
+
+      const entries: RecordSchemaRetentionReportEntry[] = [];
+      const missingDigests: string[] = [];
+      for (const digest of parsed.request.digests) {
+        let artifact: unknown;
+        try {
+          artifact = await storageValue.getRecordSchemaArtifact(digest);
+        } catch {
+          return Object.freeze({
+            kind: 'unavailable',
+            stage: 'storage',
+            code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+          });
+        }
+        if (artifact === null) {
+          missingDigests.push(digest);
+          continue;
+        }
+
+        let references: unknown;
+        try {
+          references = await storageValue.listRecordSchemaReferences({
+            digest,
+            includeExpiredPins: true,
+            limit: RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT,
+            offset: 0,
+          });
+        } catch {
+          return Object.freeze({
+            kind: 'unavailable',
+            stage: 'storage',
+            code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+          });
+        }
+
+        const boundedReferences = boundedArraySnapshot(references, RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT);
+        if (boundedReferences.kind === 'invalid') {
+          return Object.freeze({
+            kind: 'invalid-state',
+            code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+          });
+        }
+        if (boundedReferences.kind === 'overflow') {
+          return Object.freeze({
+            kind: 'limit-exceeded',
+            code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+            digest,
+          });
+        }
+        const referenceCount = boundedReferences.values.length;
+        if (referenceCount === RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT) {
+          let overflow: unknown;
+          try {
+            overflow = await storageValue.listRecordSchemaReferences({
+              digest,
+              includeExpiredPins: true,
+              limit: 1,
+              offset: RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT,
+            });
+          } catch {
+            return Object.freeze({
+              kind: 'unavailable',
+              stage: 'storage',
+              code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+            });
+          }
+          const boundedOverflow = boundedArraySnapshot(overflow, 0);
+          if (boundedOverflow.kind === 'invalid') {
+            return Object.freeze({
+              kind: 'invalid-state',
+              code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+            });
+          }
+          if (boundedOverflow.kind === 'overflow') {
+            return Object.freeze({
+              kind: 'limit-exceeded',
+              code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+              digest,
+            });
+          }
+        }
+
+        const entry = retentionEntry(
+          artifact,
+          boundedReferences.values,
+          digest,
+          parsed.request.now,
+          config.retention.minimumAgeDays
+        );
+        if (!entry) {
+          return Object.freeze({
+            kind: 'invalid-state',
+            code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+          });
+        }
+        entries.push(entry);
+      }
+
+      return Object.freeze({
+        kind: 'reported',
+        now: new Date(parsed.request.now.getTime()),
+        minimumAgeDays: config.retention.minimumAgeDays,
+        entries: Object.freeze(entries),
+        missingDigests: Object.freeze(missingDigests),
+      });
+    }
+
     private async resolveImmutableGrant(
       config: RecordSchemaConfig,
       artifact: RecordSchemaArtifactModel,
@@ -1600,14 +2625,18 @@ export namespace Services {
         return {
           kind: 'storage-failed',
           stage: 'grant',
-          code: RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED,
+          ...referenceWriteFailure(undefined, RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED),
+          artifact: Object.freeze({ digest: compilation.digest, persisted: true }),
+          grantReferenceKey: grant.referenceKey,
         };
       }
       if (!storageResponseSucceeded(grantWrite)) {
         return {
           kind: 'storage-failed',
           stage: 'grant',
-          code: RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED,
+          ...referenceWriteFailure(grantWrite, RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED),
+          artifact: Object.freeze({ digest: compilation.digest, persisted: true }),
+          grantReferenceKey: grant.referenceKey,
         };
       }
 
@@ -1635,7 +2664,9 @@ export namespace Services {
 
     private resolveRuntimeConfig(): RecordSchemaConfig | undefined {
       try {
-        const validation = validateRecordSchemaConfig(this.dependencies.getConfig());
+        const snapshot = snapshotRecordSchemaConfig(this.dependencies.getConfig());
+        if (snapshot.kind !== 'snapshot') return undefined;
+        const validation = validateRecordSchemaConfig(snapshot.value);
         return validation.valid ? validation.config : undefined;
       } catch {
         return undefined;
@@ -1667,9 +2698,13 @@ export namespace Services {
         configReadFailed = true;
       }
 
-      const findings: RecordSchemaLifecycleFinding[] = configReadFailed
-        ? [unreadableConfigurationFinding()]
-        : configuredFindings(config);
+      const snapshot = configReadFailed ? undefined : snapshotRecordSchemaConfig(config);
+      const findings: RecordSchemaLifecycleFinding[] =
+        !snapshot || snapshot.kind === 'unreadable'
+          ? [unreadableConfigurationFinding()]
+          : snapshot.kind === 'pin-limit'
+            ? [pinFinding('recordSchema.integrationPins', 'maximum-items')]
+            : configuredFindings(snapshot.value);
 
       let storageProvider: unknown;
       try {

@@ -13,6 +13,9 @@ export const RECORD_SCHEMA_PROBLEM_CODES = {
   ARTIFACT_WRITE_FAILED: 'record-schema.artifact-write-failed',
   GRANT_WRITE_FAILED: 'record-schema.grant-write-failed',
   DIGEST_COLLISION: 'record-schema.digest-collision',
+  REFERENCE_INVALID: 'record-schema.reference-invalid',
+  REFERENCE_KEY_COLLISION: 'record-schema.reference-key-collision',
+  ARTIFACT_NOT_FOUND: 'record-schema.artifact-not-found',
 
   LIMIT_DEPTH: 'record-schema.limit-depth',
   LIMIT_PROPERTIES: 'record-schema.limit-properties',

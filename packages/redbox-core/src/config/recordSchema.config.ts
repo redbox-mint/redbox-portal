@@ -45,7 +45,8 @@ export interface RecordTypeRecordSchemaConfig {
   readonly unknownProperties?: RecordSchemaUnknownProperties;
 }
 
-export type RecordSchemaConfigurationProblemReason = 'required' | 'type' | 'positive-integer' | 'unsupported-value';
+export type RecordSchemaConfigurationProblemReason =
+  'required' | 'type' | 'positive-integer' | 'unsupported-value' | 'maximum-items';
 
 export interface RecordSchemaConfigurationProblem {
   readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID;
@@ -64,6 +65,8 @@ export const DEFAULT_RECORD_SCHEMA_MAX_DOCUMENT_BYTES = 1_048_576;
 export const DEFAULT_RECORD_SCHEMA_MAX_DIAGNOSTICS = 1_000;
 export const DEFAULT_RECORD_SCHEMA_CONTRIBUTOR_TIMEOUT_MS = 1_000;
 export const DEFAULT_RECORD_SCHEMA_MINIMUM_AGE_DAYS = 365;
+/** Bounds deterministic startup and maintenance work before any pin is hashed or persisted. */
+export const MAX_RECORD_SCHEMA_INTEGRATION_PINS = 100;
 
 export const recordSchema: RecordSchemaConfig = {
   enabled: false,
@@ -144,7 +147,9 @@ function isValidatedRecordSchemaConfig(
     isObjectRecord(retention) &&
     isPositiveInteger(retention.minimumAgeDays) &&
     (value.integrationPins === undefined ||
-      (Array.isArray(value.integrationPins) && value.integrationPins.every(isRecordSchemaIntegrationPinConfig)))
+      (Array.isArray(value.integrationPins) &&
+        value.integrationPins.length <= MAX_RECORD_SCHEMA_INTEGRATION_PINS &&
+        value.integrationPins.every(isRecordSchemaIntegrationPinConfig)))
   );
 }
 
@@ -230,6 +235,8 @@ export function validateRecordSchemaConfig(value: unknown): RecordSchemaConfigVa
   if (value.integrationPins !== undefined) {
     if (!Array.isArray(value.integrationPins)) {
       problems.push(configurationProblem('recordSchema.integrationPins', 'type'));
+    } else if (value.integrationPins.length > MAX_RECORD_SCHEMA_INTEGRATION_PINS) {
+      problems.push(configurationProblem('recordSchema.integrationPins', 'maximum-items'));
     } else {
       value.integrationPins.forEach((pin, index) => {
         if (!isRecordSchemaIntegrationPinConfig(pin)) {

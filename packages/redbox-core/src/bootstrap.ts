@@ -27,6 +27,15 @@ export interface BootstrapProvider {
     bootstrap: () => Promise<void>;
 }
 
+/** Await the storage-dependent record-schema startup operation before Sails can become ready. */
+export async function bootstrapRecordSchemaIntegrationPins(): Promise<void> {
+    const service = sails.services.recordschemaservice as { bootstrapIntegrationPins?: () => Promise<void> } | undefined;
+    if (!service || typeof service.bootstrapIntegrationPins !== 'function') {
+        throw new Error('Record schema integration-pin bootstrap is unavailable.');
+    }
+    await service.bootstrapIntegrationPins();
+}
+
 /**
  * Core bootstrap function - initializes all ReDBox services
  *
@@ -157,6 +166,7 @@ export async function coreBootstrap(): Promise<void> {
 
     const response = await sails.services.recordsservice.checkRedboxRunning();
     if (response === true) {
+        await bootstrapRecordSchemaIntegrationPins();
         sails.log.verbose("Bootstrap complete!");
     } else {
         throw new Error('ReDBox Storage failed to start');

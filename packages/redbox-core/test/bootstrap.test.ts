@@ -1,8 +1,13 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { of } from 'rxjs';
 
-import { preLiftSetup } from '../src/bootstrap';
+import {
+    bootstrapRecordSchemaIntegrationPins,
+    coreBootstrap,
+    preLiftSetup,
+} from '../src/bootstrap';
 import {
     ApiRouteDefinition,
     resetResolvedApiRouteCache,
@@ -97,5 +102,135 @@ describe('bootstrap pre-lift setup', function () {
         expect(resolvedRoute?.path).to.equal(lateHookRoute.path);
         expect(resolvedRoute?.controller).to.equal(lateHookRoute.controller);
         expect(resolvedRoute?.action).to.equal(lateHookRoute.action);
+    });
+});
+
+describe('record schema bootstrap lifecycle', function () {
+    let originalSails: unknown;
+    let originalLodash: unknown;
+    let originalAppConfigService: unknown;
+
+    before(async function () {
+        const chai = await import('chai');
+        expect = chai.expect;
+    });
+
+    beforeEach(function () {
+        originalSails = (global as Record<string, unknown>).sails;
+        originalLodash = (global as Record<string, unknown>)._;
+        originalAppConfigService = (global as Record<string, unknown>).AppConfigService;
+    });
+
+    afterEach(function () {
+        sinon.restore();
+        (global as Record<string, unknown>).sails = originalSails;
+        (global as Record<string, unknown>)._ = originalLodash;
+        (global as Record<string, unknown>).AppConfigService = originalAppConfigService;
+    });
+
+    it('awaits integration-pin materialization and propagates startup failure', async function () {
+        let complete: (() => void) | undefined;
+        const pending = new Promise<void>(resolve => {
+            complete = resolve;
+        });
+        const bootstrapIntegrationPins = sinon.stub().returns(pending);
+        (global as Record<string, unknown>).sails = {
+            services: { recordschemaservice: { bootstrapIntegrationPins } },
+        };
+        let settled = false;
+        const startup = bootstrapRecordSchemaIntegrationPins().then(() => {
+            settled = true;
+        });
+
+        await Promise.resolve();
+        expect(settled).to.equal(false);
+        complete?.();
+        await startup;
+        expect(bootstrapIntegrationPins.calledOnce).to.equal(true);
+
+        const failure = new Error('pin write failed');
+        bootstrapIntegrationPins.rejects(failure);
+        let caught: unknown;
+        try {
+            await bootstrapRecordSchemaIntegrationPins();
+        } catch (error) {
+            caught = error;
+        }
+        expect(caught).to.equal(failure);
+    });
+
+    it('keeps the real core bootstrap pending until integration pins finish after storage readiness', async function () {
+        const events: string[] = [];
+        let finishPins: (() => void) | undefined;
+        const pinWrite = new Promise<void>(resolve => {
+            finishPins = resolve;
+        });
+        const immediate = async () => undefined;
+        const brandingservice = {
+            bootstrap: () => of({ id: 'default' }),
+            getDefault: () => ({ id: 'default' }),
+        };
+        const log = {
+            verbose: sinon.stub().callsFake((message: string) => {
+                if (message === 'Bootstrap complete!') events.push('ready');
+            }),
+            debug: sinon.stub(),
+            info: sinon.stub(),
+            error: sinon.stub(),
+        };
+        (global as Record<string, unknown>)._ = require('lodash');
+        (global as Record<string, unknown>).AppConfigService = {
+            getAppConfigurationForBrand: sinon.stub(),
+        };
+        (global as Record<string, unknown>).sails = {
+            config: { crontab: { enabled: false } },
+            log,
+            services: {
+                brandingservice,
+                rolesservice: { bootstrap: () => of([]), getRolesWithBrand: () => of([]) },
+                reportsservice: { bootstrapData: immediate },
+                namedqueryservice: { bootstrapData: immediate },
+                usersservice: { bootstrap: () => of({ defUser: {}, defRoles: [] }) },
+                pathrulesservice: { bootstrap: () => of(undefined) },
+                recordtypesservice: { bootstrap: async () => [] },
+                dashboardtypesservice: { bootstrap: immediate },
+                workflowstepsservice: { bootstrap: async () => [] },
+                formsservice: { bootstrap: immediate },
+                recordsservice: {
+                    auditRecordValidationRollout: immediate,
+                    bootstrapData: immediate,
+                    checkRedboxRunning: async () => {
+                        events.push('storage-ready');
+                        return true;
+                    },
+                },
+                vocabularyservice: { bootstrapData: immediate },
+                i18nentriesservice: { bootstrap: immediate },
+                translationservice: { bootstrap: immediate },
+                appconfigservice: { bootstrap: immediate },
+                figsharevocabularyservice: { bootstrapData: immediate },
+                agendaqueueservice: { init: immediate },
+                workspacetypesservice: { bootstrap: () => of(undefined) },
+                cacheservice: { bootstrap: immediate },
+                recordschemaservice: {
+                    bootstrapIntegrationPins: async () => {
+                        events.push('pins-started');
+                        await pinWrite;
+                        events.push('pins-finished');
+                    },
+                },
+            },
+        };
+
+        let settled = false;
+        const startup = coreBootstrap().then(() => {
+            settled = true;
+        });
+        await new Promise<void>(resolve => setImmediate(resolve));
+        expect(events).to.deep.equal(['storage-ready', 'pins-started']);
+        expect(settled).to.equal(false);
+        finishPins?.();
+        await startup;
+        expect(events).to.deep.equal(['storage-ready', 'pins-started', 'pins-finished', 'ready']);
     });
 });

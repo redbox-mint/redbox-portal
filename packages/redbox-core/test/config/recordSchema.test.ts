@@ -8,6 +8,7 @@ import {
   DEFAULT_RECORD_SCHEMA_MAX_DOCUMENT_BYTES,
   DEFAULT_RECORD_SCHEMA_MAX_PROPERTIES,
   DEFAULT_RECORD_SCHEMA_MINIMUM_AGE_DAYS,
+  MAX_RECORD_SCHEMA_INTEGRATION_PINS,
   RECORD_CONTRACT_FORMAT_V1,
   RECORD_SCHEMA_PROBLEM_CODES,
   RecordTypeModel,
@@ -132,6 +133,27 @@ describe('record-schema configuration', function () {
       valid: false,
       problems: [{ code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID, path: 'recordSchema', reason: 'type' }],
     });
+  });
+
+  it('rejects integration pin arrays above the documented deterministic bound', function () {
+    const pin = {
+      digest: 'a'.repeat(64),
+      brand: 'brand',
+      portal: 'portal',
+      schemaKind: 'create',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      owner: 'owner',
+      purpose: 'retention',
+    };
+    expectInvalidAt(
+      withConfigValue(
+        'integrationPins',
+        Array.from({ length: MAX_RECORD_SCHEMA_INTEGRATION_PINS + 1 }, () => pin)
+      ),
+      'integrationPins',
+      'maximum-items'
+    );
   });
 
   it('reports absent required settings without supplying fallback values', function () {
