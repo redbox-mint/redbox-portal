@@ -111,6 +111,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   // destroy record confirm modal
   currentDestroyRecordModalOid: string | undefined;
+  currentDestroyRecordModalRevision: number | undefined;
   isDestroyRecordModalShown: boolean = false;
   @ViewChild('destroyRecordModal') destroyRecordModal?: ModalDirective;
 
@@ -162,13 +163,15 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   public async recordTableAction(event: any, data: any, actionName: string) {
     const oid = data.oid;
+    const revision = data.revision;
     if (actionName === 'restore') {
-      const result = await this.recordService.restoreDeletedRecord(oid);
+      const result = await this.recordService.restoreDeletedRecord(oid, revision);
       this.loggerService.debug(`Record table action ${actionName} data ${JSON.stringify(data)} result ${JSON.stringify(result)}.`);
       await this.gotoPage(this.currentPageNumber);
 
     } else if (actionName === 'destroy') {
       this.currentDestroyRecordModalOid = oid;
+      this.currentDestroyRecordModalRevision = revision;
       this.showDestroyRecordModal();
 
     } else {
@@ -185,6 +188,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   public hideDestroyRecordModal(): void {
     this.destroyRecordModal?.hide();
     this.currentDestroyRecordModalOid = undefined;
+    this.currentDestroyRecordModalRevision = undefined;
   }
 
   public onDestroyRecordModalHidden(): void {
@@ -197,11 +201,13 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       return;
     }
     const oid = this.currentDestroyRecordModalOid;
-    const result = await this.recordService.destroyDeletedRecord(oid);
+    const revision = this.currentDestroyRecordModalRevision;
+    const result = await this.recordService.destroyDeletedRecord(oid, revision ?? {});
     this.loggerService.debug(`Record table action destroy result ${JSON.stringify(result)}.`);
 
     this.destroyRecordModal?.hide();
     this.currentDestroyRecordModalOid = undefined;
+    this.currentDestroyRecordModalRevision = undefined;
 
     await this.gotoPage(this.currentPageNumber);
   }
