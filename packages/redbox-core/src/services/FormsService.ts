@@ -27,25 +27,23 @@ import { createSchema } from 'genson-js';
 import * as path from 'path';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import {
-  AvailableFormComponentDefinitionOutlines, FormConfigFrame, FormConfigOutline,
-  FormModesConfig, ReusableFormDefinitions, ValidationOperationDiscovery,
+  AvailableFormComponentDefinitionOutlines,
+  FormConfigFrame,
+  FormConfigOutline,
+  FormModesConfig,
+  ReusableFormDefinitions,
+  ValidationOperationDiscovery,
   compareRecordValidationIdentifiers,
   RECORD_VALIDATION_REFERENCE_PATTERN,
   sanitizeValidationOperationDiscovery,
-} from "@researchdatabox/sails-ng-common";
+} from '@researchdatabox/sails-ng-common';
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 import { RelatedObjectDataInlineFormConfigVisitor } from '../visitor/related-object-data-inline.visitor';
 import type { RecordsService } from '../RecordsService';
-import type {
-  RecordValidationCandidate,
-  RecordValidationOperationDiscoveryRequest,
-} from './RecordValidationService';
-import type {
-  RecordContractContext,
-  RecordContractFormBuildResult,
-} from '../record-contract/record-contract-context';
+import type { RecordValidationCandidate, RecordValidationOperationDiscoveryRequest } from './RecordValidationService';
+import type { RecordContractContext, RecordContractFormBuildResult } from '../record-contract/record-contract-context';
 
 type WorkflowStepLike = {
   id: string;
@@ -99,6 +97,13 @@ export interface ValidationOperationDiscoveryOptions {
   readonly targetStep?: string;
 }
 
+/** Detached configured-form input for candidate-independent record-contract startup compilation. */
+export interface ConfiguredRecordContractFormCandidate {
+  readonly name: string;
+  readonly form: unknown;
+  readonly reusableFormDefinitions: unknown;
+}
+
 export type PublicFormAttributes = FormAttributes & {
   validationOperations?: ValidationOperationDiscovery[];
 };
@@ -129,68 +134,71 @@ export namespace Services {
       'getFormByStartingWorkflowStep',
       'buildClientFormConfig',
       'buildContractFormConfig',
+      'listConfiguredRecordContractForms',
       'discoverValidationOperations',
       'toPublicForm',
     ];
 
     public async bootstrap(workflowStep: WorkflowStepLike, brandingId: string): Promise<unknown> {
-      this.logger.verbose(`Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`);
+      this.logger.verbose(
+        `Bootstrapping form for workflow step: ${workflowStep.id} with form config: ${workflowStep.config.form}`
+      );
       let form = await Form.find({
         name: workflowStep.config.form,
-        branding: brandingId
-      })
+        branding: brandingId,
+      });
       if (sails.config.appmode.bootstrapAlways) {
         this.logger.verbose(`Destroying existing form definitions: ${workflowStep.config.form}`);
         await Form.destroyOne({
           name: workflowStep.config.form,
-          branding: brandingId
-        })
+          branding: brandingId,
+        });
         form = null;
       }
       let formDefs: string[] = [];
       let formName: string | null = null;
       const formRegistry = this.getFormConfigRegistry();
-      this.logger.verbose("Form registry: ");
+      this.logger.verbose('Form registry: ');
       this.logger.verbose(JSON.stringify(formRegistry));
-      this.logger.verbose("Found : ");
+      this.logger.verbose('Found : ');
       this.logger.verbose(form);
       if (!form || (Array.isArray(form) && form.length == 0)) {
-        this.logger.verbose("Bootstrapping form definitions..");
+        this.logger.verbose('Bootstrapping form definitions..');
         // only bootstrap the form for this workflow step
         _.forOwn(formRegistry, (_formDef: unknown, formName: string) => {
           if (formName == workflowStep.config.form) {
             formDefs.push(formName);
           }
         });
-        formDefs = _.uniq(formDefs)
+        formDefs = _.uniq(formDefs);
         this.logger.verbose(JSON.stringify(formDefs));
         const firstFormDef = _.isArray(formDefs) ? formDefs[0] : null;
         formName = firstFormDef ?? null;
       } else {
-        this.logger.verbose("Not Bootstrapping form definitions... ");
-
+        this.logger.verbose('Not Bootstrapping form definitions... ');
       }
       // check now if the form already exists, if it does, ignore...
-      const existingFormDef = await Form.find({
+      const existingFormDef = (await Form.find({
         name: formName,
-        branding: brandingId
-      }) as unknown as FormAttributes[];
+        branding: brandingId,
+      })) as unknown as FormAttributes[];
       const existCheck: { formName: string | null; existingFormDef: FormAttributes[] } = {
         formName: formName,
-        existingFormDef: existingFormDef
+        existingFormDef: existingFormDef,
       };
 
       this.logger.verbose(`Existing form check: ${existCheck.formName}`);
       this.logger.verbose(JSON.stringify(existCheck));
       formName = null;
       if (_.isUndefined(existCheck.existingFormDef) || _.isEmpty(existCheck.existingFormDef)) {
-        formName = existCheck.formName
+        formName = existCheck.formName;
       } else {
-        this.logger.verbose(`Existing form definition for form name: ${existCheck.existingFormDef[0]?.name}, ignoring bootstrap.`);
+        this.logger.verbose(
+          `Existing form definition for form name: ${existCheck.existingFormDef[0]?.name}, ignoring bootstrap.`
+        );
       }
 
-
-      this.logger.verbose("FormName is:");
+      this.logger.verbose('FormName is:');
       this.logger.verbose(formName);
       let result = null;
       if (formName) {
@@ -235,8 +243,8 @@ export namespace Services {
           configuration: formConfig,
         };
 
-        result = await Form.create(formObj) as unknown as FormAttributes;
-        this.logger.verbose("Created form record: ");
+        result = (await Form.create(formObj)) as unknown as FormAttributes;
+        this.logger.verbose('Created form record: ');
         this.logger.verbose(result);
       }
 
@@ -244,9 +252,9 @@ export namespace Services {
         this.logger.verbose(`Updating workflowstep ${workflowStep.id} to form: ${result.id}`);
         // update the workflow step to reference the form
         return await WorkflowStep.update({
-          id: workflowStep.id
+          id: workflowStep.id,
         }).set({
-          form: result.id
+          form: result.id,
         });
       }
 
@@ -256,7 +264,9 @@ export namespace Services {
     private getFormConfigRegistry(): Record<string, unknown> {
       const appPath = _.get(sails, 'config.appPath', process.cwd());
       try {
-        this.logger.verbose(`Attempting to load form config registry from file system at path: ${appPath}/api/form-config`);
+        this.logger.verbose(
+          `Attempting to load form config registry from file system at path: ${appPath}/api/form-config`
+        );
         const registryModule = require(path.join(appPath, 'api', 'form-config')) as { forms?: Record<string, unknown> };
         return registryModule?.forms ?? {};
       } catch (error) {
@@ -266,31 +276,59 @@ export namespace Services {
       }
     }
 
+    /**
+     * Snapshot every registered form without selecting a record, actor, workflow,
+     * or operation. RecordSchemaService owns validation and compilation of these
+     * detached candidates during its awaited startup phase.
+     */
+    public listConfiguredRecordContractForms(): readonly ConfiguredRecordContractFormCandidate[] {
+      const reusableFormDefinitions = _.cloneDeep(sails.config.reusableFormDefinitions ?? {});
+      return Object.entries(this.getFormConfigRegistry())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([name, form]) =>
+          Object.freeze({
+            name,
+            form: _.cloneDeep(form),
+            reusableFormDefinitions: _.cloneDeep(reusableFormDefinitions),
+          })
+        );
+    }
+
     public listForms = (brandingId?: string): Observable<FormAttributes[]> => {
       const query: Record<string, unknown> = {};
       if (brandingId) {
         query.branding = brandingId;
       }
       return super.getObservable<FormAttributes[]>(Form.find(query));
-    }
+    };
 
-
-    public getFormByName = (formName: string, editMode: boolean, brandingId?: string): Observable<FormAttributes | null> => {
+    public getFormByName = (
+      formName: string,
+      editMode: boolean,
+      brandingId?: string
+    ): Observable<FormAttributes | null> => {
       const query: Record<string, unknown> = { name: formName };
       const resolvedBrandingId = brandingId?.trim() || BrandingService.getDefault()?.id?.toString().trim() || '';
       if (resolvedBrandingId) {
         query.branding = resolvedBrandingId;
       }
-      return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(flatMap(form => {
-        if (form) {
-          return of(form);
-        }
-        return of(null);
-      }));
-    }
+      return super.getObservable<FormAttributes | null>(Form.findOne(query)).pipe(
+        flatMap(form => {
+          if (form) {
+            return of(form);
+          }
+          return of(null);
+        })
+      );
+    };
 
-    public async getForm(branding: BrandingModel, formParam: string, editMode: boolean, recordType: string, currentRec: RecordLike): Promise<FormAttributes | null> {
-
+    public async getForm(
+      branding: BrandingModel,
+      formParam: string,
+      editMode: boolean,
+      recordType: string,
+      currentRec: RecordLike
+    ): Promise<FormAttributes | null> {
       // allow client to set the form name to use
       const formName = _.isUndefined(formParam) || _.isEmpty(formParam) ? currentRec.metaMetadata?.form : formParam;
 
@@ -314,8 +352,8 @@ export namespace Services {
         ...form,
         configuration: {
           ...form.configuration,
-          type: resolvedRecordType
-        }
+          type: resolvedRecordType,
+        },
       } as FormAttributes;
     }
 
@@ -336,9 +374,11 @@ export namespace Services {
       return {
         ...form,
         ...(configuration ? { configuration: publicConfiguration as FormConfigFrame } : {}),
-        ...(safeOperations ? {
-          validationOperations: safeOperations,
-        } : {}),
+        ...(safeOperations
+          ? {
+              validationOperations: safeOperations,
+            }
+          : {}),
       };
     }
 
@@ -369,9 +409,15 @@ export namespace Services {
         }
 
         const actorRoles = Array.isArray(user.roles) ? user.roles : [];
-        const normalizedActorRoles = [...new Set(actorRoles
-          .map(role => typeof role === 'string' ? role.trim() : String((role as Record<string, unknown>)?.name ?? '').trim())
-          .filter(Boolean))].sort(compareRecordValidationIdentifiers);
+        const normalizedActorRoles = [
+          ...new Set(
+            actorRoles
+              .map(role =>
+                typeof role === 'string' ? role.trim() : String((role as Record<string, unknown>)?.name ?? '').trim()
+              )
+              .filter(Boolean)
+          ),
+        ].sort(compareRecordValidationIdentifiers);
         const record = options.record ?? null;
         const canEdit = record
           ? recordsService.hasEditAccess(options.brand, user, actorRoles as Record<string, unknown>[], record)
@@ -399,7 +445,7 @@ export namespace Services {
           const contextConfig = requestedContextStep?.config;
           const contextFormName = String(
             contextConfig && typeof contextConfig === 'object' && !Array.isArray(contextConfig)
-              ? (contextConfig as Record<string, unknown>).form ?? ''
+              ? ((contextConfig as Record<string, unknown>).form ?? '')
               : ''
           ).trim();
           if (!contextFormName || contextFormName !== formName) return [];
@@ -425,7 +471,7 @@ export namespace Services {
         };
         const operations = await validationService.discoverOperations({
           candidate,
-          writeKind: targetStep ? (record ? 'transition' : 'create') : (record ? 'update' : 'create'),
+          writeKind: targetStep ? (record ? 'transition' : 'create') : record ? 'update' : 'create',
           ...(targetStep ? { targetStep } : {}),
           actor: { authenticated: true, roles: normalizedActorRoles },
           canEdit: true,
@@ -437,65 +483,78 @@ export namespace Services {
           const safeOperation = sanitizeValidationOperationDiscovery(operation, transportTargets);
           if (safeOperation) merged.set(safeOperation.name, safeOperation);
         }
-        return [...merged.values()].sort((left, right) =>
-          compareRecordValidationIdentifiers(left.name, right.name)
-        );
+        return [...merged.values()].sort((left, right) => compareRecordValidationIdentifiers(left.name, right.name));
       } catch (error: unknown) {
         const errorType = error instanceof Error ? error.name : typeof error;
         const recordType = String(options.record?.metaMetadata?.type ?? options.recordType ?? '').trim();
         const formName = String(options.record?.metaMetadata?.form ?? options.form.name ?? '').trim();
         this.logger.warn(
           `Validation operation discovery was safely omitted` +
-          ` (recordType=${RECORD_VALIDATION_REFERENCE_PATTERN.test(recordType) ? recordType : 'unavailable'},` +
-          ` form=${RECORD_VALIDATION_REFERENCE_PATTERN.test(formName) ? formName : 'unavailable'},` +
-          ` errorType=${errorType}).`
+            ` (recordType=${RECORD_VALIDATION_REFERENCE_PATTERN.test(recordType) ? recordType : 'unavailable'},` +
+            ` form=${RECORD_VALIDATION_REFERENCE_PATTERN.test(formName) ? formName : 'unavailable'},` +
+            ` errorType=${errorType}).`
         );
         return [];
       }
     }
 
-    public getFormByStartingWorkflowStep(branding: BrandingModel, recordType: string, _editMode: boolean): Observable<FormAttributes> {
-
+    public getFormByStartingWorkflowStep(
+      branding: BrandingModel,
+      recordType: string,
+      _editMode: boolean
+    ): Observable<FormAttributes> {
       const starting = true;
 
-      return super.getObservable<Record<string, unknown> | null>(RecordType.findOne({
-        key: branding.id + "_" + recordType
-      })).pipe(
-        flatMap(recordTypeRecord => {
-          const recordTypeId = String((recordTypeRecord as Record<string, unknown>)?.id ?? '');
-          return super.getObservable<WorkflowStepLike | null>(WorkflowStep.findOne({
-            recordType: recordTypeId,
-            starting: starting
-          }));
-        }),
-        flatMap(workflowStep => {
-          if (workflowStep?.starting == true) {
-            return super.getObservable<FormAttributes | null>(Form.findOne({
-              name: workflowStep.config.form,
-              branding: branding.id
-            }));
-          }
-          return of(null);
-        }),
-        flatMap(form => {
-          if (form) {
-            return of(form);
-          }
-          return of(null);
-        }),
-        take(1),
-        tap((form) => {
-          if (!form) {
-            this.logger.warn(`No starting form found for branding '${String(branding?.id ?? '')}', recordType '${recordType}'`);
-          }
-        }),
-        map((form) => form as unknown as FormAttributes),
-        catchError((error: unknown) => {
-          const message = error instanceof Error ? error.message : String(error);
-          this.logger.error(`Error loading starting workflow form for branding '${String(branding?.id ?? '')}', recordType '${recordType}': ${message}`);
-          return of(null as unknown as FormAttributes);
-        })
-      );
+      return super
+        .getObservable<Record<string, unknown> | null>(
+          RecordType.findOne({
+            key: branding.id + '_' + recordType,
+          })
+        )
+        .pipe(
+          flatMap(recordTypeRecord => {
+            const recordTypeId = String((recordTypeRecord as Record<string, unknown>)?.id ?? '');
+            return super.getObservable<WorkflowStepLike | null>(
+              WorkflowStep.findOne({
+                recordType: recordTypeId,
+                starting: starting,
+              })
+            );
+          }),
+          flatMap(workflowStep => {
+            if (workflowStep?.starting == true) {
+              return super.getObservable<FormAttributes | null>(
+                Form.findOne({
+                  name: workflowStep.config.form,
+                  branding: branding.id,
+                })
+              );
+            }
+            return of(null);
+          }),
+          flatMap(form => {
+            if (form) {
+              return of(form);
+            }
+            return of(null);
+          }),
+          take(1),
+          tap(form => {
+            if (!form) {
+              this.logger.warn(
+                `No starting form found for branding '${String(branding?.id ?? '')}', recordType '${recordType}'`
+              );
+            }
+          }),
+          map(form => form as unknown as FormAttributes),
+          catchError((error: unknown) => {
+            const message = error instanceof Error ? error.message : String(error);
+            this.logger.error(
+              `Error loading starting workflow form for branding '${String(branding?.id ?? '')}', recordType '${recordType}': ${message}`
+            );
+            return of(null as unknown as FormAttributes);
+          })
+        );
     }
 
     public inferSchemaFromMetadata(record: RecordLike): Record<string, unknown> {
@@ -503,15 +562,17 @@ export namespace Services {
       return schema;
     }
 
-    public async generateFormFromSchema(branding: BrandingModel, recordType: string, record: RecordLike): Promise<FormConfigFrame | Record<string, unknown>> {
-
+    public async generateFormFromSchema(
+      branding: BrandingModel,
+      recordType: string,
+      record: RecordLike
+    ): Promise<FormConfigFrame | Record<string, unknown>> {
       if (recordType == '') {
         recordType = String(_.get(record, 'metaMetadata.type', ''));
         if (recordType == '') {
           return {};
         }
       }
-
 
       const schema = this.inferSchemaFromMetadata(record) as { properties?: Record<string, unknown> };
 
@@ -526,9 +587,9 @@ export namespace Services {
             label: '@view-record-audit-link',
             value: '/@branding/@portal/record/viewAudit/@oid',
             cssClasses: 'btn btn-large btn-info margin-15',
-            controlType: 'anchor'
+            controlType: 'anchor',
           },
-          variableSubstitutionFields: ['value']
+          variableSubstitutionFields: ['value'],
         },
         {
           class: 'SaveButton',
@@ -545,10 +606,10 @@ export namespace Services {
             cancelButtonMessage: '@dataPublication-cancelButtonMessage',
             confirmButtonMessage: '@dataPublication-confirmButtonMessage',
             isDelete: true,
-            isSubmissionButton: true
+            isSubmissionButton: true,
           },
-          variableSubstitutionFields: ['redirectLocation']
-        }
+          variableSubstitutionFields: ['redirectLocation'],
+        },
       ];
 
       const textFieldTemplate = {
@@ -560,15 +621,17 @@ export namespace Services {
           help: '',
           type: 'text',
           subscribe: {
-            'form': {
-              onFormLoaded: [{
-                action: 'utilityService.runTemplate',
-                template: '',
-                includeFieldInFnCall: true
-              }]
-            }
-          }
-        }
+            form: {
+              onFormLoaded: [
+                {
+                  action: 'utilityService.runTemplate',
+                  template: '',
+                  includeFieldInFnCall: true,
+                },
+              ],
+            },
+          },
+        },
       };
 
       const groupComponentTemplate = {
@@ -577,8 +640,8 @@ export namespace Services {
         definition: {
           name: '',
           cssClasses: 'form-inline',
-          fields: []
-        }
+          fields: [],
+        },
       };
 
       const groupTextFieldTemplate = {
@@ -589,8 +652,8 @@ export namespace Services {
           type: 'text',
           groupName: '',
           groupClasses: 'width-30',
-          cssClasses: "width-80 form-control"
-        }
+          cssClasses: 'width-80 form-control',
+        },
       };
 
       const repeatableGroupComponentTemplate = {
@@ -601,8 +664,8 @@ export namespace Services {
           label: '',
           help: '',
           forceClone: ['fields'],
-          fields: []
-        }
+          fields: [],
+        },
       };
 
       const objectFieldHeadingTemplate = {
@@ -610,44 +673,55 @@ export namespace Services {
         compClass: 'TextBlockComponent',
         definition: {
           value: '',
-          type: 'h3'
-        }
+          type: 'h3',
+        },
       };
 
       const mainTitleFieldName = 'title';
 
-      const fieldList = [
-      ];
+      const fieldList = [];
 
       for (const fieldKey of fieldKeys) {
-
-        const schemaProperty = (schema.properties?.[fieldKey] as {
-          type?: string;
-          items?: { type?: string; properties?: Record<string, { type?: string }> };
-          properties?: Record<string, { type?: string }>;
-        }) ?? {};
+        const schemaProperty =
+          (schema.properties?.[fieldKey] as {
+            type?: string;
+            items?: { type?: string; properties?: Record<string, { type?: string }> };
+            properties?: Record<string, { type?: string }>;
+          }) ?? {};
 
         const schemaType = schemaProperty.type;
         if (schemaType === 'string') {
-
           const textField = _.cloneDeep(textFieldTemplate);
           _.set(textField.definition, 'name', fieldKey);
           _.set(textField.definition, 'label', fieldKey);
-          _.set(textField.definition, 'subscribe.form.onFormLoaded[0].template', '<%= _.trim(field.fieldMap["' + fieldKey + '"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["' + fieldKey + '"].field.value %>');
+          _.set(
+            textField.definition,
+            'subscribe.form.onFormLoaded[0].template',
+            '<%= _.trim(field.fieldMap["' +
+              fieldKey +
+              '"].field.value) == "" ? field.translationService.t("@lookup-record-field-empty") : field.fieldMap["' +
+              fieldKey +
+              '"].field.value %>'
+          );
           fieldList.push(textField);
-
-        } if (schemaType === 'array') {
+        }
+        if (schemaType === 'array') {
           const itemType = schemaProperty.items?.type;
           if (itemType === 'string') {
-
             const textField = _.cloneDeep(textFieldTemplate);
             _.set(textField.definition, 'name', fieldKey);
             _.set(textField.definition, 'label', fieldKey);
-            _.set(textField.definition, 'subscribe.form.onFormLoaded[0].template', '<%= _.isEmpty(_.trim(field.fieldMap["' + fieldKey + '"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["' + fieldKey + '"].field.value %>');
+            _.set(
+              textField.definition,
+              'subscribe.form.onFormLoaded[0].template',
+              '<%= _.isEmpty(_.trim(field.fieldMap["' +
+                fieldKey +
+                '"].field.value)) ? [field.translationService.t("@lookup-record-field-empty")] : field.fieldMap["' +
+                fieldKey +
+                '"].field.value %>'
+            );
             fieldList.push(textField);
-
           } else if (itemType === 'object') {
-
             const objectFieldKeys = _.keys(schemaProperty.items?.properties ?? {});
             const repeatableGroupField = _.cloneDeep(repeatableGroupComponentTemplate);
             const groupField = _.cloneDeep(groupComponentTemplate);
@@ -671,9 +745,7 @@ export namespace Services {
             _.set(repeatableGroupField.definition, 'fields', [groupField]);
             fieldList.push(repeatableGroupField);
           }
-
         } else if (schemaType === 'object') {
-
           const objectFieldKeys = _.keys(schemaProperty.properties ?? {});
           const groupField = _.cloneDeep(groupComponentTemplate);
           const groupFieldList = [];
@@ -714,16 +786,16 @@ export namespace Services {
             viewOnly: true,
             definition: {
               name: mainTitleFieldName,
-              type: 'h1'
-            }
+              type: 'h1',
+            },
           },
           {
             class: 'Container',
             compClass: 'GenericGroupComponent',
             definition: {
-              cssClasses: "form-inline",
-              fields: buttonsList
-            }
+              cssClasses: 'form-inline',
+              fields: buttonsList,
+            },
           },
           {
             class: 'TabOrAccordionContainer',
@@ -740,12 +812,13 @@ export namespace Services {
                     id: 'main',
                     label: '@lookup-record-details-' + recordType,
                     active: true,
-                    fields: fieldList
-                  }
-                }
-              ]
-            }
-          }]
+                    fields: fieldList,
+                  },
+                },
+              ],
+            },
+          },
+        ],
       };
 
       const form: FormConfigFrame = formObject as FormConfigFrame;
@@ -818,12 +891,15 @@ export namespace Services {
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({
-        data: item, reusableFormDefs, formMode, record: recordMetadata,
+        data: item,
+        reusableFormDefs,
+        formMode,
+        record: recordMetadata,
         translate: this.buildFormConfigTranslator(branding),
       });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding, {
-        includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined
+        includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
       });
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
       await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
@@ -836,10 +912,16 @@ export namespace Services {
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
       if (!result) {
-        throw new Error(`The form config is invalid because all form fields were removed, ` +
-          `the form config must have at least one field the current user can view: ${JSON.stringify({
-            item, formMode, userRoles, recordData: recordMetadata, reusableFormDefs
-          })}`);
+        throw new Error(
+          `The form config is invalid because all form fields were removed, ` +
+            `the form config must have at least one field the current user can view: ${JSON.stringify({
+              item,
+              formMode,
+              userRoles,
+              recordData: recordMetadata,
+              reusableFormDefs,
+            })}`
+        );
       }
 
       const componentDefinitions = result.componentDefinitions as unknown[] | undefined;
@@ -876,9 +958,8 @@ export namespace Services {
       for (const [name, definitions] of Object.entries(resolution.reusableFormDefinitions)) {
         reusableFormDefinitions[name] = _.cloneDeep([...definitions]);
       }
-      const recordMetadata = context.publicContext.kind === 'update'
-        ? _.cloneDeep(context.resolution.existingRecord)
-        : null;
+      const recordMetadata =
+        context.publicContext.kind === 'update' ? _.cloneDeep(context.resolution.existingRecord) : null;
 
       const effectiveForm = await this.buildClientFormConfig(
         sourceForm,
@@ -949,10 +1030,7 @@ export namespace Services {
         }
         case 'RepeatableComponent': {
           const config = componentDefinition.component.config;
-          if (
-            !config?.elementTemplate ||
-            !this.pruneAndShouldRetainContractComponent(config.elementTemplate)
-          ) {
+          if (!config?.elementTemplate || !this.pruneAndShouldRetainContractComponent(config.elementTemplate)) {
             return false;
           }
           return componentDefinition.model !== undefined;

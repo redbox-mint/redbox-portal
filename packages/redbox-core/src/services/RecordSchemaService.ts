@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { metrics, type Attributes } from '@opentelemetry/api';
-import { VALIDATION_OPERATION_NAME_PATTERN } from '@researchdatabox/sails-ng-common';
+import { VALIDATION_OPERATION_NAME_PATTERN, type FormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
 
 import { Services as services } from '../CoreService';
 import {
@@ -17,7 +17,6 @@ import type {
   RecordSchemaCreateGrantReferenceInput,
   RecordSchemaGrantReferenceInput,
   RecordSchemaPinReferenceInput,
-  RecordSchemaReferenceModel,
   RecordSchemaRetentionReason,
   RecordSchemaRetentionReportEntry,
   RecordSchemaSaveReferenceInput,
@@ -56,6 +55,7 @@ import {
   type RecordContractContributorRegistry,
   type RecordContractDiagnostic,
   type RecordContractFormBuildResult,
+  type RecordContractEffectiveForm,
   type RecordContractFormat,
   type RecordContractRegistrationCode,
   type RecordContractRegistrationIssue,
@@ -75,7 +75,7 @@ import {
 } from '../StorageService';
 import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
-import type { FormRecordAccessContext } from './FormsService';
+import type { ConfiguredRecordContractFormCandidate, FormRecordAccessContext } from './FormsService';
 import type { ILogger } from '../Logger';
 
 declare const RedboxJavaStorageService: unknown;
@@ -117,6 +117,12 @@ export type RecordSchemaLifecycleFinding =
       readonly componentType: string;
     }
   | {
+      readonly category: 'form';
+      readonly code: RecordSchemaProblemCode;
+      readonly form: string;
+      readonly stage: 'candidate' | 'compiler' | 'renderer' | 'artifact';
+    }
+  | {
       readonly category: 'pin';
       readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID;
       readonly path: string;
@@ -129,6 +135,7 @@ export interface RecordSchemaServiceDependencies {
   readonly getContributorRegistry: () => RecordContractContributorRegistry | undefined;
   readonly getContributorRegistrationIssues: () => readonly RecordContractRegistrationIssue[];
   readonly getContributorComponentTypes: () => readonly string[];
+  readonly getConfiguredFormCandidates: () => readonly ConfiguredRecordContractFormCandidate[];
   readonly resolveContractContext: (
     request: RecordContractCreateContextRequest | RecordContractUpdateContextRequest
   ) => Promise<RecordContractContext>;
@@ -146,7 +153,8 @@ const CATEGORY_ORDER: Readonly<Record<RecordSchemaLifecycleFinding['category'], 
   storage: 1,
   contributor: 2,
   coverage: 3,
-  pin: 4,
+  form: 4,
+  pin: 5,
 };
 
 const DUPLICATE_REGISTRATION_CODES: ReadonlySet<RecordContractRegistrationCode> = new Set([
@@ -158,7 +166,9 @@ const DUPLICATE_REGISTRATION_CODES: ReadonlySet<RecordContractRegistrationCode> 
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_DIAGNOSTIC_IDENTIFIER = /^[A-Za-z0-9@._:/-]{1,200}$/;
 const RECORD_SCHEMA_REFERENCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$/;
-const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
+export const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
+export const RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES = 10;
+export const RECORD_SCHEMA_CONFIGURED_FORM_MAX_CANDIDATES = 1_000;
 const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
 const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
 const RECORD_SCHEMA_STRICT_ALL_OPERATION = 'strict-all';
@@ -288,6 +298,7 @@ type RecordSchemaLogContext =
   | 'startup-contributors'
   | 'startup-registry'
   | 'startup-coverage'
+  | 'startup-configured-forms'
   | 'lifecycle';
 type RecordSchemaSafeLogValues =
   | Readonly<{ error_type: 'error' | 'non-error' }>
@@ -416,6 +427,7 @@ const DEFAULT_DEPENDENCIES: RecordSchemaServiceDependencies = {
   getContributorRegistry: getDiscoveredRecordContractContributorRegistry,
   getContributorRegistrationIssues: getDiscoveredRecordContractContributorRegistrationIssues,
   getContributorComponentTypes: getDiscoveredRecordContractContributorComponentTypes,
+  getConfiguredFormCandidates: () => FormsService.listConfiguredRecordContractForms(),
   resolveContractContext: request => RecordValidationService.resolveContractContext(request),
   buildContractFormConfig: (context, recordAccessContext) =>
     FormsService.buildContractFormConfig(context, recordAccessContext),
@@ -435,6 +447,8 @@ function findingSortKey(finding: RecordSchemaLifecycleFinding): string {
       return `${finding.registrationCode}\u0000${finding.key}`;
     case 'coverage':
       return finding.componentType;
+    case 'form':
+      return `${finding.form}\u0000${finding.stage}\u0000${finding.code}`;
     case 'pin':
       return `${finding.path}\u0000${finding.reason}`;
   }
@@ -462,6 +476,8 @@ function findingMessage(finding: RecordSchemaLifecycleFinding): string {
       return `${finding.code} [${diagnosticIdentifier(finding.key)}]: contributor registration is invalid (${finding.registrationCode}).`;
     case 'coverage':
       return `${finding.code} [${finding.componentType}]: core component has no registered record-contract contributor.`;
+    case 'form':
+      return `${finding.code} [${finding.form}]: configured form compilation failed (${finding.stage}).`;
     case 'pin':
       return `${finding.code} [${finding.path}]: configured integration pin is invalid (${finding.reason}).`;
   }
@@ -924,7 +940,8 @@ export type PersistRecordSchemaSaveUsageResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | ({
       readonly kind: 'write-failed';
@@ -966,7 +983,8 @@ export type MaterializeRecordSchemaIntegrationPinsResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'limit-exceeded';
@@ -991,7 +1009,8 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'invalid-input';
       readonly reason: 'shape' | 'digest' | 'datetime' | 'limit';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
     }
   | {
       readonly kind: 'disabled';
@@ -1001,7 +1020,8 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'invalid-state';
@@ -1041,7 +1061,8 @@ type RecordSchemaPipelineSuccess<Grant extends RecordSchemaGrantReferenceInput> 
     });
 
 type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
-  RecordSchemaPipelineSuccess<Grant> | RecordSchemaResolutionFailure;
+  | RecordSchemaPipelineSuccess<Grant>
+  | RecordSchemaResolutionFailure;
 
 interface RecordSchemaCompiledContextBase {
   readonly document: PublishedRecordJsonSchemaDocument;
@@ -1307,6 +1328,61 @@ function boundedNormalizedText(
     candidate === candidate.trim()
     ? candidate
     : undefined;
+}
+
+interface ParsedConfiguredFormCandidate {
+  readonly name: string;
+  readonly form: RecordContractEffectiveForm;
+  readonly reusableFormDefinitions: Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>;
+}
+
+function isConfiguredForm(value: unknown): value is RecordContractEffectiveForm {
+  if (!isObjectRecord(value)) return false;
+  return Array.isArray(ownDataProperty(value, 'componentDefinitions'));
+}
+
+function isReusableFormDefinitions(
+  value: unknown
+): value is Readonly<Record<string, readonly FormComponentDefinitionFrame[]>> {
+  if (!isObjectRecord(value)) return false;
+  try {
+    return Object.keys(value).every(name => Array.isArray(ownDataProperty(value, name)));
+  } catch {
+    return false;
+  }
+}
+
+function parseConfiguredFormCandidate(value: unknown): ParsedConfiguredFormCandidate | undefined {
+  try {
+    if (!isObjectRecord(value)) return undefined;
+    const name = boundedNormalizedText(value, 'name', 200);
+    const form = ownDataProperty(value, 'form');
+    const reusableFormDefinitions = ownDataProperty(value, 'reusableFormDefinitions');
+    if (
+      !name ||
+      !SAFE_DIAGNOSTIC_IDENTIFIER.test(name) ||
+      !isConfiguredForm(form) ||
+      !isReusableFormDefinitions(reusableFormDefinitions)
+    ) {
+      return undefined;
+    }
+    return Object.freeze({ name, form, reusableFormDefinitions });
+  } catch {
+    return undefined;
+  }
+}
+
+function configuredFormFinding(
+  form: string,
+  stage: Extract<RecordSchemaLifecycleFinding, { category: 'form' }>['stage'],
+  code: RecordSchemaProblemCode
+): RecordSchemaLifecycleFinding {
+  return Object.freeze({
+    category: 'form',
+    code,
+    form: diagnosticIdentifier(form),
+    stage,
+  });
 }
 
 function parseSaveUsageRequest(value: unknown): PersistRecordSchemaSaveUsageRequest | undefined {
@@ -1648,19 +1724,82 @@ function callerActor(caller: FormRecordAccessContext): RecordContractContextActo
   });
 }
 
-type RecordSchemaGrantReferenceModel = RecordSchemaGrantReferenceInput &
-  Readonly<Pick<RecordSchemaReferenceModel, 'createdAt' | 'updatedAt'>>;
+type RecordSchemaGrantReferenceModel = RecordSchemaGrantReferenceInput;
 
-function isEquivalentGrant(
-  reference: RecordSchemaReferenceModel,
-  request: ResolveImmutableRecordSchemaRequest
-): reference is RecordSchemaGrantReferenceModel {
-  return (
-    reference.kind === 'grant' &&
-    reference.digest === request.digest &&
-    reference.brand === request.brand &&
-    reference.portal === request.portal
-  );
+type ParsedImmutableGrant =
+  | { readonly kind: 'grant'; readonly grant: RecordSchemaGrantReferenceModel }
+  | { readonly kind: 'irrelevant' }
+  | { readonly kind: 'invalid' };
+
+function parseImmutableGrant(value: unknown, request: ResolveImmutableRecordSchemaRequest): ParsedImmutableGrant {
+  try {
+    if (!isObjectRecord(value)) return { kind: 'invalid' };
+    const referenceKey = boundedNormalizedText(value, 'referenceKey');
+    const digest = boundedNormalizedText(value, 'digest', 64);
+    const brand = boundedNormalizedText(value, 'brand');
+    const portal = boundedNormalizedText(value, 'portal');
+    const recordType = boundedNormalizedText(value, 'recordType');
+    const operation = boundedNormalizedText(value, 'operation', 64);
+    const kind = ownDataProperty(value, 'kind');
+    const schemaKind = ownDataProperty(value, 'schemaKind');
+    if (
+      !referenceKey ||
+      !RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(referenceKey) ||
+      !digest ||
+      !DIGEST_PATTERN.test(digest) ||
+      !brand ||
+      !portal ||
+      !recordType ||
+      !operation ||
+      !VALIDATION_OPERATION_NAME_PATTERN.test(operation) ||
+      kind !== 'grant' ||
+      (schemaKind !== 'create' && schemaKind !== 'update') ||
+      hasOwnReferenceField(value, 'owner') ||
+      hasOwnReferenceField(value, 'purpose') ||
+      hasOwnReferenceField(value, 'expiresAt')
+    ) {
+      return { kind: 'invalid' };
+    }
+    if (digest !== request.digest || brand !== request.brand || portal !== request.portal) {
+      return { kind: 'irrelevant' };
+    }
+    const oid = ownDataProperty(value, 'oid');
+    if (schemaKind === 'create') {
+      if (oid !== INVALID_DATA_PROPERTY) return { kind: 'invalid' };
+      return {
+        kind: 'grant',
+        grant: Object.freeze({
+          referenceKey,
+          digest,
+          brand,
+          portal,
+          kind: 'grant',
+          schemaKind: 'create',
+          recordType,
+          operation,
+        }),
+      };
+    }
+    if (typeof oid !== 'string' || !oid || oid !== oid.trim() || oid.length > 512) {
+      return { kind: 'invalid' };
+    }
+    return {
+      kind: 'grant',
+      grant: Object.freeze({
+        referenceKey,
+        digest,
+        brand,
+        portal,
+        kind: 'grant',
+        schemaKind: 'update',
+        recordType,
+        operation,
+        oid,
+      }),
+    };
+  } catch {
+    return { kind: 'invalid' };
+  }
 }
 
 function immutableProblemInstance(request: ResolveImmutableRecordSchemaRequest): string {
@@ -1754,6 +1893,36 @@ function immutableInvalidContractResult(
       status: 422,
       detail: 'The stored schema artifact failed its immutable identity check.',
       code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+    }),
+  });
+}
+
+function immutableGrantInvalidContractResult(
+  request: ResolveImmutableRecordSchemaRequest
+): ResolveImmutableRecordSchemaResult {
+  return Object.freeze({
+    kind: 'invalid-contract',
+    problem: immutableProblem(request, {
+      type: 'https://redboxresearchdata.com/problems/record-schema-invalid-contract',
+      title: 'Record schema contract is invalid',
+      status: 422,
+      detail: 'Stored schema authorization data is invalid.',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+    }),
+  });
+}
+
+function immutableGrantLookupLimitResult(
+  request: ResolveImmutableRecordSchemaRequest
+): ResolveImmutableRecordSchemaResult {
+  return Object.freeze({
+    kind: 'limit-exceeded',
+    problem: immutableProblem(request, {
+      type: 'https://redboxresearchdata.com/problems/record-schema-limit-exceeded',
+      title: 'Record schema lookup limit exceeded',
+      status: 413,
+      detail: 'The bounded schema authorization lookup could not be completed.',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
     }),
   });
 }
@@ -1868,6 +2037,7 @@ export namespace Services {
   export class RecordSchema extends services.Core.Service {
     protected override _exportedMethods = [
       'init',
+      'bootstrap',
       'resolveCreate',
       'resolveUpdate',
       'resolveImmutable',
@@ -2218,16 +2388,19 @@ export namespace Services {
         this.logUnexpected('resolve-immutable-artifact-read', error);
         return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
       }
-      if (!artifact || artifact.digest !== request.digest) {
+      if (!artifact) {
         return immutableNotFoundResult(request);
+      }
+      if (!isObjectRecord(artifact) || ownDataProperty(artifact, 'digest') !== request.digest) {
+        return immutableInvalidContractResult(request);
       }
 
       let authorizedCompilation: RecordSchemaCompiledContext | undefined;
       let grantOffset = 0;
-      while (!authorizedCompilation) {
-        let grants: RecordSchemaReferenceModel[];
+      for (let page = 0; page < RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES && !authorizedCompilation; page += 1) {
+        let rawGrants: unknown;
         try {
-          grants = await storage.listRecordSchemaReferences({
+          rawGrants = await storage.listRecordSchemaReferences({
             digest: request.digest,
             kind: 'grant',
             brand: request.brand,
@@ -2239,23 +2412,46 @@ export namespace Services {
           this.logUnexpected('resolve-immutable-grant-list', error);
           return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
         }
+        const grants = boundedArraySnapshot(rawGrants, RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE);
+        if (grants.kind === 'invalid') {
+          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-list', {
+            error_type: 'non-error',
+          });
+          return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+        }
+        if (grants.kind === 'overflow') {
+          return immutableGrantLookupLimitResult(request);
+        }
 
-        for (const grant of grants) {
-          if (!isEquivalentGrant(grant, request)) {
+        for (const value of grants.values) {
+          const parsedGrant = parseImmutableGrant(value, request);
+          if (parsedGrant.kind === 'invalid') {
+            return immutableGrantInvalidContractResult(request);
+          }
+          if (parsedGrant.kind === 'irrelevant') {
             continue;
           }
-          authorizedCompilation = await this.resolveImmutableGrant(config, artifact, grant, request.caller, actor);
+          authorizedCompilation = await this.resolveImmutableGrant(
+            config,
+            artifact,
+            parsedGrant.grant,
+            request.caller,
+            actor
+          );
           if (authorizedCompilation) {
             break;
           }
         }
 
-        if (grants.length < RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE) {
+        if (grants.values.length < RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE) {
           break;
         }
-        grantOffset += grants.length;
+        grantOffset += grants.values.length;
       }
       if (!authorizedCompilation) {
+        if (grantOffset >= RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE * RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES) {
+          return immutableGrantLookupLimitResult(request);
+        }
         return immutableNotFoundResult(request);
       }
 
@@ -3244,6 +3440,165 @@ export namespace Services {
       });
     }
 
+    private async bootstrapConfiguredForms(): Promise<void> {
+      const config = this.resolveRuntimeConfig();
+      if (!config) {
+        const error = new RecordSchemaLifecycleError([unreadableConfigurationFinding()]);
+        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
+          status: 'failed',
+          finding_count: error.findings.length,
+        });
+        throw error;
+      }
+      if (!config.enabled) {
+        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
+          status: 'disabled',
+          finding_count: 0,
+        });
+        return;
+      }
+
+      let registry: RecordContractContributorRegistry | undefined;
+      try {
+        registry = this.dependencies.getContributorRegistry();
+      } catch (error) {
+        this.logUnexpected('startup-registry', error);
+      }
+      if (!registry) {
+        const error = new RecordSchemaLifecycleError(contributorFindings([unavailableContributorStateIssue()]));
+        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
+          status: 'failed',
+          finding_count: error.findings.length,
+        });
+        throw error;
+      }
+
+      let rawCandidates: unknown;
+      try {
+        rawCandidates = this.dependencies.getConfiguredFormCandidates();
+      } catch (error) {
+        this.logUnexpected('startup-configured-forms', error);
+        rawCandidates = undefined;
+      }
+      const candidates = boundedArraySnapshot(rawCandidates, RECORD_SCHEMA_CONFIGURED_FORM_MAX_CANDIDATES);
+      if (candidates.kind !== 'values') {
+        const code =
+          candidates.kind === 'overflow'
+            ? RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED
+            : RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT;
+        const error = new RecordSchemaLifecycleError([configuredFormFinding('registry', 'candidate', code)]);
+        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
+          status: 'failed',
+          finding_count: error.findings.length,
+        });
+        throw error;
+      }
+
+      const compiler = new RecordContractCompiler(registry, config.limits);
+      const findings: RecordSchemaLifecycleFinding[] = [];
+      for (const [index, value] of candidates.values.entries()) {
+        const parsed = parseConfiguredFormCandidate(value);
+        const fallbackName = `candidate-${index}`;
+        if (!parsed) {
+          findings.push(configuredFormFinding(fallbackName, 'candidate', RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT));
+          continue;
+        }
+
+        const startedAt = this.clock();
+        let outcome = 'resolved';
+        try {
+          const compiled = await compiler.compile({
+            form: parsed.form,
+            reusableFormDefinitions: parsed.reusableFormDefinitions,
+            context: {
+              brand: 'startup',
+              portal: 'startup',
+              kind: 'create',
+              recordType: 'configured-form',
+              workflowStep: 'startup',
+              form: parsed.name,
+              operation: RECORD_SCHEMA_STRICT_ALL_OPERATION,
+              unknownProperties: config.unknownProperties,
+              enforcement: 'shadow',
+            },
+          });
+          if (compiled.kind === 'failed') {
+            outcome = compiled.failureKind === 'limit-exceeded' ? 'limit-exceeded' : 'compiler-failed';
+            findings.push(configuredFormFinding(parsed.name, 'compiler', compiled.code));
+            continue;
+          }
+          if (Object.keys(compiled.contract.root.properties).length === 0) {
+            outcome = 'compiler-failed';
+            findings.push(configuredFormFinding(parsed.name, 'compiler', RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT));
+            continue;
+          }
+
+          let rendered: ReturnType<typeof renderRecordJsonSchema>;
+          try {
+            rendered = renderRecordJsonSchema(compiled.contract);
+          } catch (error) {
+            if (!(error instanceof RecordJsonSchemaRendererError)) {
+              this.logUnexpected('compile-renderer', error);
+            }
+            outcome = 'compiler-failed';
+            findings.push(configuredFormFinding(parsed.name, 'renderer', RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT));
+            continue;
+          }
+          try {
+            compileRecordJsonSchemaArtifact(rendered, {
+              maxDocumentBytes: config.limits.maxDocumentBytes,
+              maxValidationErrors: config.limits.maxDiagnostics,
+            });
+          } catch (error) {
+            outcome = error instanceof RecordJsonSchemaDocumentLimitError ? 'limit-exceeded' : 'meta-validation-failed';
+            findings.push(
+              configuredFormFinding(
+                parsed.name,
+                'artifact',
+                error instanceof RecordJsonSchemaDocumentLimitError
+                  ? error.code
+                  : RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT
+              )
+            );
+          }
+        } catch (error) {
+          this.logUnexpected('startup-configured-forms', error);
+          outcome = 'unexpected-failure';
+          findings.push(configuredFormFinding(parsed.name, 'compiler', RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT));
+        } finally {
+          const attributes = {
+            schema_kind: 'unknown',
+            phase: 'startup',
+            outcome: telemetryDimension(outcome, RECORD_SCHEMA_COMPILE_OUTCOMES, 'unexpected-failure'),
+          } as const;
+          recordDuration(this.clock() - startedAt, attributes);
+          recordCounter(recordSchemaCompileOutcomes, attributes);
+        }
+      }
+
+      if (findings.length > 0) {
+        const error = new RecordSchemaLifecycleError(findings);
+        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
+          status: 'failed',
+          finding_count: Math.min(error.findings.length, RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX),
+          ...(error.findings.length > RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX
+            ? { finding_count_bucket: 'overflow' as const }
+            : {}),
+        });
+        throw error;
+      }
+      this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
+        status: 'passed',
+        finding_count: 0,
+      });
+    }
+
+    /** Await all asynchronous record-schema startup checks before readiness. */
+    public async bootstrap(): Promise<void> {
+      await this.bootstrapConfiguredForms();
+      await this.bootstrapIntegrationPins();
+    }
+
     private resolveRuntimeConfig(): RecordSchemaConfig | undefined {
       try {
         const snapshot = snapshotRecordSchemaConfig(this.dependencies.getConfig());
@@ -3351,7 +3706,6 @@ export namespace Services {
         status: 'passed',
         finding_count: 0,
       });
-      this.logger.verbose(`${this.logHeader} lifecycle checks passed.`);
     }
   }
 }

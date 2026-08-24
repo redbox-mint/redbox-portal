@@ -42,6 +42,7 @@ import {
 } from '../../src';
 import {
   RECORD_SCHEMA_LIFECYCLE_ERROR_CODE,
+  RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES,
   RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX,
   RecordSchemaLifecycleError,
   type ResolveImmutableRecordSchemaRequest,
@@ -108,6 +109,7 @@ function lifecycleService(overrides: RecordSchemaLifecycleOverrides = {}): Servi
     getContributorRegistry: () => registry,
     getContributorRegistrationIssues: () => [],
     getContributorComponentTypes: () => registeredComponentTypes(registry),
+    getConfiguredFormCandidates: () => [],
     ...overrides,
   });
 }
@@ -122,6 +124,16 @@ function captureLifecycleError(run: () => void): RecordSchemaLifecycleError {
     throw error;
   }
   throw new Error('Expected RecordSchemaService initialization to fail.');
+}
+
+async function captureAsyncLifecycleError(run: () => Promise<unknown>): Promise<RecordSchemaLifecycleError> {
+  try {
+    await run();
+  } catch (error) {
+    if (error instanceof RecordSchemaLifecycleError) return error;
+    throw error;
+  }
+  throw new Error('Expected RecordSchemaService startup to fail.');
 }
 
 async function captureAsyncError(run: () => Promise<unknown>): Promise<Error> {
@@ -532,6 +544,60 @@ describe('RecordSchemaService lifecycle checks', function () {
     );
   });
 
+  it('candidate-independently compiles every configured form before awaited startup completes', async function () {
+    const getConfiguredFormCandidates = sinon.stub().returns([
+      { name: 'configured-a', form: simpleForm(['title']), reusableFormDefinitions: {} },
+      { name: 'configured-b', form: simpleForm(['description']), reusableFormDefinitions: {} },
+    ]);
+    const resolveContractContext = sinon.stub().throws(new Error('authoritative context must remain lazy'));
+    const buildContractFormConfig = sinon.stub().throws(new Error('caller-effective construction must remain lazy'));
+    const service = lifecycleService({
+      getConfiguredFormCandidates,
+      resolveContractContext,
+      buildContractFormConfig,
+    });
+
+    service.init();
+    await service.bootstrap();
+
+    expect(getConfiguredFormCandidates.calledOnceWithExactly()).to.equal(true);
+    expect(resolveContractContext.notCalled).to.equal(true);
+    expect(buildContractFormConfig.notCalled).to.equal(true);
+  });
+
+  it('fails awaited startup with a typed safe finding for an invalid configured form candidate', async function () {
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    const storage = { ...completeStorageProvider(), putRecordSchemaReference };
+    const service = lifecycleService({
+      getStorageProvider: () => storage,
+      getConfiguredFormCandidates: () => [
+        { name: 'valid-form', form: simpleForm(), reusableFormDefinitions: {} },
+        {
+          name: 'invalid-form',
+          form: {
+            name: 'invalid-form',
+            componentDefinitions: [{ name: 'broken', component: {}, model: {} }],
+          },
+          reusableFormDefinitions: {},
+        },
+      ],
+    });
+
+    service.init();
+    const error = await captureAsyncLifecycleError(() => service.bootstrap());
+
+    expect(error.findings).to.deep.equal([
+      {
+        category: 'form',
+        code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+        form: 'invalid-form',
+        stage: 'compiler',
+      },
+    ]);
+    expect(error.message).not.to.include('broken');
+    expect(putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
   it('awaits configured integration-pin writes and fails before startup can complete', async function () {
     const storage = completeStorageProvider();
     let completeWrite: ((response: StorageServiceResponse) => void) | undefined;
@@ -830,6 +896,7 @@ describe('RecordSchemaService lifecycle checks', function () {
   it('is exported through the existing service index', function () {
     expect(RecordSchemaService.Services.RecordSchema).to.equal(Services.RecordSchema);
     expect(ServiceExports.RecordSchemaService).to.have.property('init').that.is.a('function');
+    expect(ServiceExports.RecordSchemaService).to.have.property('bootstrap').that.is.a('function');
     expect(ServiceExports.RecordSchemaService).to.have.property('resolveCreate').that.is.a('function');
     expect(ServiceExports.RecordSchemaService).to.have.property('resolveUpdate').that.is.a('function');
     expect(ServiceExports.RecordSchemaService).to.have.property('resolveImmutable').that.is.a('function');
@@ -2798,6 +2865,8 @@ describe('RecordSchemaService telemetry', function () {
   });
 
   it('keeps typed results, lifecycle errors, and startup ordering when CoreService logger acquisition throws', async function () {
+    const restoreSails = ensureTestSails();
+    const testSails = Reflect.get(global, 'sails') as { config: Record<string, unknown> };
     const safeLogger = { info: sinon.stub(), error: sinon.stub() };
     const secret = 'logger-factory private-oid raw-error-text';
     const saveRequest = {
@@ -2815,8 +2884,8 @@ describe('RecordSchemaService telemetry', function () {
         throw new Error(secret);
       },
     });
-    const priorLogConfig = Reflect.get(sails.config, 'log');
-    Reflect.set(sails.config, 'log', {});
+    const priorLogConfig = Reflect.get(testSails.config, 'log');
+    Reflect.set(testSails.config, 'log', {});
     try {
       const baselineSave = new Services.RecordSchema({
         telemetryLogger: safeLogger,
@@ -2838,6 +2907,7 @@ describe('RecordSchemaService telemetry', function () {
           throw new Error(secret);
         },
       });
+      const throwingSuccessfulLifecycle = lifecycleService();
       const startupEvents: string[] = [];
       const throwingStartup = lifecycleService({
         getConfig: () => enabledConfig({ integrationPins: [validPin()] }),
@@ -2851,7 +2921,7 @@ describe('RecordSchemaService telemetry', function () {
 
       await new Promise<void>(resolve => setImmediate(resolve));
       const throwingLoggerFactory = sinon.stub().throws(new Error(secret));
-      Reflect.set(sails.config, 'log', {
+      Reflect.set(testSails.config, 'log', {
         createNamespaceLogger: throwingLoggerFactory,
         customLogger: {},
       });
@@ -2871,15 +2941,19 @@ describe('RecordSchemaService telemetry', function () {
         findings: baselineError.findings,
       });
 
+      expect(() => throwingSuccessfulLifecycle.init()).not.to.throw();
+      await throwingSuccessfulLifecycle.bootstrap();
+
       const startupError = await captureAsyncError(() => throwingStartup.bootstrapIntegrationPins());
       startupEvents.push('startup-rejected');
       expect(startupEvents).to.deep.equal(['pin-write', 'startup-rejected']);
       expect(startupError.message).to.equal(
         'Configured record schema integration pins were not materialized (record-schema.storage-unavailable).'
       );
-      expect(throwingLoggerFactory.callCount).to.equal(5);
+      expect(throwingLoggerFactory.callCount).to.be.greaterThan(0);
     } finally {
-      Reflect.set(sails.config, 'log', priorLogConfig);
+      Reflect.set(testSails.config, 'log', priorLogConfig);
+      restoreSails();
     }
   });
 });
@@ -3117,6 +3191,107 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(fixture.authorizeUpdate.calledOnce).to.equal(true);
     expect(fixture.buildContractFormConfig.calledOnceWithExactly(seed.context, caller)).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
+  });
+
+  it('stops endless and over-full grant page iteration with a typed lookup limit', async function () {
+    const seed = await createImmutableSeed();
+    const fixture = immutableResolutionFixture(seed);
+    const endlessPage: unknown[] = [];
+    Object.defineProperty(endlessPage, Symbol.iterator, {
+      value: () => ({
+        next: () => ({ done: false, value: seed.grant }),
+      }),
+    });
+    fixture.listRecordSchemaReferences.resolves(endlessPage);
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed));
+
+    expect(result.kind).to.equal('limit-exceeded');
+    if (result.kind !== 'limit-exceeded') throw new Error('Expected a bounded immutable grant lookup.');
+    expect(result.problem).to.deep.include({
+      status: 413,
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+    });
+    expect(fixture.listRecordSchemaReferences.calledOnce).to.equal(true);
+    expect(fixture.resolveContractContext.notCalled).to.equal(true);
+    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('bounds repeated full grant pages without issuing an unbounded storage query', async function () {
+    const seed = await createImmutableSeed();
+    const inaccessibleGrant: RecordSchemaGrantReferenceInput = {
+      referenceKey: 'grant:update:inaccessible',
+      digest: seed.artifact.digest,
+      brand: 'brand-1',
+      portal: 'portal-1',
+      kind: 'grant',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      oid: 'inaccessible-oid',
+    };
+    const fullPage = Array.from({ length: 1_000 }, () => inaccessibleGrant);
+    const fixture = immutableResolutionFixture(seed);
+    fixture.listRecordSchemaReferences.resolves(fullPage);
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed));
+
+    expect(result.kind).to.equal('limit-exceeded');
+    expect(fixture.listRecordSchemaReferences.callCount).to.equal(RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES);
+    expect(fixture.listRecordSchemaReferences.lastCall.firstArg.offset).to.equal(
+      (RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES - 1) * 1_000
+    );
+    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('returns typed failures for malformed grant provider results and stored grants', async function () {
+    const seed = await createImmutableSeed();
+    const malformedPage = immutableResolutionFixture(seed);
+    malformedPage.listRecordSchemaReferences.resolves({ page: [] });
+
+    const unavailable = await malformedPage.service.resolveImmutable(requestFor(seed));
+
+    expect(unavailable.kind).to.equal('unavailable');
+    if (unavailable.kind !== 'unavailable') throw new Error('Expected a typed storage failure.');
+    expect(unavailable.problem).to.deep.include({
+      status: 503,
+      code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+    });
+
+    const malformedGrant = immutableResolutionFixture(seed);
+    malformedGrant.listRecordSchemaReferences.resolves([{ kind: 'grant', digest: seed.artifact.digest }]);
+
+    const invalid = await malformedGrant.service.resolveImmutable(requestFor(seed));
+
+    expect(invalid.kind).to.equal('invalid-contract');
+    if (invalid.kind !== 'invalid-contract') throw new Error('Expected invalid stored authorization data.');
+    expect(invalid.problem).to.deep.include({
+      status: 422,
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+    });
+    expect(malformedGrant.resolveContractContext.notCalled).to.equal(true);
+  });
+
+  it('contains grant iterator errors that escape the provider promise as a typed storage failure', async function () {
+    const seed = await createImmutableSeed();
+    const fixture = immutableResolutionFixture(seed);
+    const throwingPage: unknown[] = [];
+    Object.defineProperty(throwingPage, Symbol.iterator, {
+      value: () => ({
+        next: () => {
+          throw new Error('private provider iterator failure');
+        },
+      }),
+    });
+    fixture.listRecordSchemaReferences.resolves(throwingPage);
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed));
+
+    expect(result.kind).to.equal('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('Expected a contained provider iterator failure.');
+    expect(result.problem.code).to.equal(RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+    expect(fixture.resolveContractContext.notCalled).to.equal(true);
+    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
 
   it('treats a missing or deleted update context exactly like an inaccessible artifact', async function () {

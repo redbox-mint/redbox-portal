@@ -400,6 +400,15 @@ describe('RecordSchemaService configured-form integration', function () {
     trackPersistedArtifact(updateResolution);
     expect(updateResolution.kind).to.equal('partial');
     if (updateResolution.kind !== 'partial') throw new Error('Expected the persisted update schema to be partial.');
+    expect(updateResolution.metadata.context).to.deep.include({
+      brand: brandId,
+      portal: 'rdmp',
+      kind: 'update',
+      recordType: 'rdmp',
+      workflowStep: 'draft',
+      form: 'default-1.0-draft',
+      operation: 'strict-all',
+    });
     expect(updateResolution.grant).to.deep.include({
       digest: updateResolution.digest,
       kind: 'grant',
