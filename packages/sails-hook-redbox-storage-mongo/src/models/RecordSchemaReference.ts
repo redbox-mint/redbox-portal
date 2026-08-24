@@ -20,14 +20,14 @@ export class RecordSchemaReferenceClass {
     type: 'string',
     required: true,
     unique: true,
-    validations: { is: RECORD_SCHEMA_REFERENCE_KEY_PATTERN },
+    validations: { regex: RECORD_SCHEMA_REFERENCE_KEY_PATTERN },
   })
   public referenceKey!: string;
 
   @Attr({
     type: 'string',
     required: true,
-    validations: { is: RECORD_SCHEMA_DIGEST_PATTERN },
+    validations: { regex: RECORD_SCHEMA_DIGEST_PATTERN },
   })
   public digest!: string;
 

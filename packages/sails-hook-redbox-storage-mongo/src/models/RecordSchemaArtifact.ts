@@ -18,7 +18,7 @@ export class RecordSchemaArtifactClass {
     type: 'string',
     required: true,
     unique: true,
-    validations: { is: RECORD_SCHEMA_DIGEST_PATTERN },
+    validations: { regex: RECORD_SCHEMA_DIGEST_PATTERN },
   })
   public digest!: string;
 

@@ -18,7 +18,7 @@ describe('record-schema Mongo models', function () {
         type: 'string',
         required: true,
         unique: true,
-        validations: { is: /^[a-f0-9]{64}$/ },
+        validations: { regex: /^[a-f0-9]{64}$/ },
       },
       document: { type: 'json', required: true },
       contractFormat: {
@@ -46,10 +46,16 @@ describe('record-schema Mongo models', function () {
       datastore: 'redboxStorage',
     });
     expect(RecordSchemaReferenceWLDef.attributes).to.deep.include({
+      referenceKey: {
+        type: 'string',
+        required: true,
+        unique: true,
+        validations: { regex: /^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$/ },
+      },
       digest: {
         type: 'string',
         required: true,
-        validations: { is: /^[a-f0-9]{64}$/ },
+        validations: { regex: /^[a-f0-9]{64}$/ },
       },
       kind: { type: 'string', required: true, isIn: ['grant', 'save', 'pin'] },
       brand: { type: 'string', required: true, validations: { maxLength: 512 } },
