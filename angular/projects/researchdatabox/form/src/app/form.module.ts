@@ -85,6 +85,7 @@ import { FormDebugModelTabComponent } from './form-debug/form-debug-model-tab.co
 import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.component';
 import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
 import { RecordAuditLauncherComponent } from './record-audit/record-audit-launcher.component';
+import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
 @NgModule({
   declarations: [
     FieldErrorSummaryComponent,
@@ -137,6 +138,7 @@ import { RecordAuditLauncherComponent } from './record-audit/record-audit-launch
     FormDebugConfigTabComponent,
     FormDebugEventsTabComponent,
     ConfirmationDialogComponent,
+    FormConflictPresenterComponent,
     RecordAuditLauncherComponent,
   ],
   imports: [
