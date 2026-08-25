@@ -121,7 +121,10 @@ export namespace Services {
       }
       return createRecordSaveContext({
         requestId: context.requestId,
-        routeFamily: context.routeFamily,
+        // Harvest saves predate public-route candidate ACL checks. Preserve
+        // that compatibility contract while schema validation is disabled,
+        // but retain the public context for enabled pre-schema authorization.
+        routeFamily: sails.config.recordSchema?.enabled === true ? context.routeFamily : undefined,
         operation,
         portal: context.portal,
         validationOperation: context.validationOperation,

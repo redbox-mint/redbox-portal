@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import { ObjectId } from 'mongodb';
+import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
 import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
@@ -116,10 +117,164 @@ describe('HarvestRunService', function () {
     (global as any).HarvestRunChunk = originalHarvestRunChunk;
     (global as any).HarvestRecordEvent = originalHarvestRecordEvent;
     delete (global as any).WorkflowStepsService;
+    delete (global as any).FormsService;
+    delete (global as any).RolesService;
+    delete (global as any).UsersService;
+    delete (global as any).RecordValidationService;
+    delete (global as any).TranslationService;
+    delete (global as any).BrandingService;
+    delete (global as any).RedboxJavaStorageService;
+    delete (global as any).SolrSearchService;
     sinon.restore();
   });
 
+  function useRealRecordsService(recordSchemaEnabled: boolean) {
+    const persistedRecords = new Map<string, any>();
+    const storageService = {
+      create: sinon.stub().callsFake(async (_brand: unknown, candidate: any) => {
+        persistedRecords.set(candidate.redboxOid, structuredClone(candidate));
+        return { success: true, applicationState: 'applied' };
+      }),
+      updateMeta: sinon.stub().callsFake(async (_brand: unknown, oid: string, candidate: any) => {
+        persistedRecords.set(oid, structuredClone(candidate));
+        return { success: true, applicationState: 'applied', oid };
+      }),
+      getMeta: sinon.stub().callsFake(async (oid: string) => structuredClone(persistedRecords.get(oid))),
+      createRecordAudit: sinon.stub().resolves({ success: true }),
+    };
+    const schemaResolver = {
+      resolveCreate: sinon.stub().rejects(new Error('authorization must run before schema resolution')),
+      validateResolvedArtifact: sinon.stub(),
+    };
+    const workflowStep = {
+      name: 'draft',
+      config: {
+        form: 'default-form',
+        workflow: { stage: 'draft' },
+        authorization: {
+          viewRoles: [],
+          editRoles: ['HarvestEditor'],
+          transitionRoles: [],
+        },
+      },
+    };
+
+    mockSails.config.recordSchema = { enabled: recordSchemaEnabled };
+    mockSails.config.recordValidation = { mode: 'shadow' };
+    mockSails.config.record = {
+      auditing: { enabled: false, recordAuditJobName: 'RecordAudit' },
+    };
+    mockSails.config.jsonld = { addJsonLdContext: false, contexts: {} };
+    mockSails.services.recordschemaservice = schemaResolver;
+    (global as any).WorkflowStepsService = {
+      getFirst: sinon.stub().returns(of(workflowStep)),
+      get: sinon.stub().returns(of(workflowStep)),
+    };
+    (global as any).FormsService = {
+      getForm: sinon.stub().resolves({ name: 'default-form', attachmentFields: [] }),
+      getFormByName: sinon.stub().returns(of({ name: 'default-form', attachmentFields: [] })),
+    };
+    (global as any).RolesService = {
+      getRole: sinon.stub().callsFake((_brand: unknown, name: string) => ({ id: `role-${name}` })),
+    };
+    (global as any).UsersService = {
+      getUserWithUsername: sinon.stub().returns(of(null)),
+    };
+    const recordValidationService = {
+      resolve: sinon.stub().callsFake(async (request: any) => ({
+        status: 'resolved',
+        shouldBlock: false,
+        mode: 'shadow',
+        formName: 'default-form',
+        effectiveGroups: [],
+        resolved: {},
+        blockingErrors: [],
+        advisoryErrors: [],
+        advisoryGroups: [],
+        diagnostics: [],
+        transformedCandidate: request.candidate,
+      })),
+    };
+    (global as any).RecordValidationService = recordValidationService;
+    mockSails.services.recordvalidationservice = recordValidationService;
+    (global as any).TranslationService = {
+      t: sinon.stub().callsFake((key: string) => key),
+    };
+    (global as any).BrandingService = {
+      getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+    };
+    (global as any).RedboxJavaStorageService = storageService;
+    (global as any).SolrSearchService = { index: sinon.stub() };
+
+    const recordsModule = require('../../src/services/RecordsService');
+    const realRecordsService = new recordsModule.Services.Records();
+    realRecordsService.storageService = storageService;
+    realRecordsService.searchService = { index: sinon.stub() };
+    realRecordsService.queueService = { now: sinon.stub() };
+    realRecordsService.datastreamService = {};
+    (global as any).RecordsService = realRecordsService;
+    mockSails.services.recordsservice = realRecordsService;
+
+    return {
+      realRecordsService,
+      schemaResolver,
+      storageService,
+    };
+  }
+
+  function configureTrackedCreateChunk() {
+    const run = {
+      id: 'run-1',
+      brandId: 'brand-1',
+      recordType: 'dataset',
+      sourceName: 'source-a',
+      sourceRunId: 'source-run-1',
+      status: 'running',
+      startedAt: '2026-05-25T00:00:00.000Z',
+      totalProcessed: 0,
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      unchanged: 0,
+      failed: 0,
+      chunksProcessed: 0,
+      duplicateChunks: 0,
+    };
+    const chunk = {
+      id: 'chunk-1',
+      runId: 'run-1',
+      brandId: 'brand-1',
+      recordType: 'dataset',
+      sourceRunId: 'source-run-1',
+      contentHash: 'hash-1',
+      attempt: 1,
+      status: 'processing',
+      recordCount: 2,
+      totalProcessed: 0,
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      unchanged: 0,
+      failed: 0,
+      duplicate: false,
+      submittedAt: '2026-05-25T00:00:00.000Z',
+    };
+
+    (global as any).HarvestRun.findOne.resolves(null);
+    (global as any).HarvestRun.create.returns({ fetch: sinon.stub().resolves(run) });
+    (global as any).HarvestRunChunk.find.returns(createChainableQuery([]));
+    (global as any).HarvestRunChunk.create.returns({ fetch: sinon.stub().resolves(chunk) });
+    (global as any).HarvestRunChunk.updateOne.callsFake(() => ({
+      set: sinon.stub().callsFake(async (updates: any) => ({ ...chunk, ...updates })),
+    }));
+    (global as any).HarvestRun.updateOne.callsFake(() => ({
+      set: sinon.stub().callsFake(async (updates: any) => ({ ...run, ...updates })),
+    }));
+    (global as any).HarvestRecordEvent.createEach.callsFake(async (events: any[]) => events);
+  }
+
   it('threads authoritative contexts through compatibility and legacy creates in shadow and enforce', async function () {
+    mockSails.config.recordSchema = { enabled: true };
     (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
     recordsService.create.resolves({
       oid: 'record-1',
@@ -164,6 +319,124 @@ describe('HarvestRunService', function () {
           portal: 'tenant-portal',
         });
       }
+    }
+  });
+
+  it('preserves disabled compatibility and legacy harvest create ACL semantics through real RecordsService', async function () {
+    const { realRecordsService, schemaResolver, storageService } = useRealRecordsService(false);
+    const hasEditAccess = sinon.spy(realRecordsService, 'hasEditAccess');
+    const user = { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] };
+    const brand = { id: 'brand-1', name: 'default' };
+    const recordType = { name: 'dataset', hooks: {}, searchable: false };
+    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+
+    const compatibility = await service.submitCompatibilityRecords(
+      brand,
+      recordType,
+      { records: [{ harvestId: 'compat-1', recordRequest: { metadata: { title: 'Compatibility' } } }] },
+      'override',
+      user,
+      harvestSaveContext()
+    );
+    const legacy = await service.submitLegacyRecords(
+      brand,
+      recordType,
+      { records: [{ harvest_id: 'legacy-1', metadata: { data: { title: 'Legacy' } } }] },
+      false,
+      user,
+      harvestSaveContext()
+    );
+
+    expect(compatibility[0].status).to.equal(true);
+    expect(legacy[0].status).to.equal(true);
+    expect(storageService.create.callCount).to.equal(2);
+    expect(hasEditAccess.notCalled).to.equal(true);
+    expect(schemaResolver.resolveCreate.notCalled).to.equal(true);
+    for (const call of storageService.create.getCalls()) {
+      expect(call.args[1].authorization.editRoles).to.deep.equal(['HarvestEditor']);
+    }
+  });
+
+  it('preserves disabled tracked harvest create and upsert ACL semantics through real RecordsService', async function () {
+    const { realRecordsService, schemaResolver, storageService } = useRealRecordsService(false);
+    const hasEditAccess = sinon.spy(realRecordsService, 'hasEditAccess');
+    configureTrackedCreateChunk();
+    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+
+    const response = await service.submitChunk(
+      { id: 'brand-1', name: 'default' },
+      { name: 'dataset', hooks: {}, searchable: false },
+      {
+        sourceRunId: 'source-run-1',
+        sourceName: 'source-a',
+        finalChunk: true,
+        chunk: { index: 1 },
+        records: [
+          { harvestId: 'tracked-create', operation: 'create', recordRequest: { metadata: { title: 'Create' } } },
+          { harvestId: 'tracked-upsert', operation: 'upsert', recordRequest: { metadata: { title: 'Upsert' } } },
+        ],
+      },
+      { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] },
+      harvestSaveContext()
+    );
+
+    expect(response.chunk.responseSummary).to.deep.include({ created: 2, failed: 0 });
+    expect(storageService.create.callCount).to.equal(2);
+    expect(hasEditAccess.notCalled).to.equal(true);
+    expect(schemaResolver.resolveCreate.notCalled).to.equal(true);
+  });
+
+  it('keeps enabled harvest creates authorized against workflow ACLs before schema resolution', async function () {
+    const { realRecordsService, schemaResolver, storageService } = useRealRecordsService(true);
+    const hasEditAccess = sinon.spy(realRecordsService, 'hasEditAccess');
+    const user = { username: 'harvester', roles: [{ id: 'role-Researcher', name: 'Researcher' }] };
+    const brand = { id: 'brand-1', name: 'default' };
+    const recordType = { name: 'dataset', hooks: {}, searchable: false };
+    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+
+    const compatibility = await service.submitCompatibilityRecords(
+      brand,
+      recordType,
+      { records: [{ harvestId: 'compat-1', recordRequest: { metadata: { title: 'Compatibility' } } }] },
+      'override',
+      user,
+      harvestSaveContext()
+    );
+    const legacy = await service.submitLegacyRecords(
+      brand,
+      recordType,
+      { records: [{ harvest_id: 'legacy-1', metadata: { data: { title: 'Legacy' } } }] },
+      false,
+      user,
+      harvestSaveContext()
+    );
+
+    configureTrackedCreateChunk();
+    const tracked = await service.submitChunk(
+      brand,
+      recordType,
+      {
+        sourceRunId: 'source-run-1',
+        sourceName: 'source-a',
+        finalChunk: true,
+        chunk: { index: 1 },
+        records: [
+          { harvestId: 'tracked-create', operation: 'create', recordRequest: { metadata: { title: 'Create' } } },
+          { harvestId: 'tracked-upsert', operation: 'upsert', recordRequest: { metadata: { title: 'Upsert' } } },
+        ],
+      },
+      user,
+      harvestSaveContext()
+    );
+
+    expect(compatibility[0].status).to.equal(false);
+    expect(legacy[0].status).to.equal(false);
+    expect(tracked.chunk.responseSummary).to.deep.include({ created: 0, failed: 2 });
+    expect(storageService.create.notCalled).to.equal(true);
+    expect(schemaResolver.resolveCreate.notCalled).to.equal(true);
+    expect(hasEditAccess.callCount).to.equal(4);
+    for (const call of hasEditAccess.getCalls()) {
+      expect(call.args[3].authorization.editRoles).to.deep.equal(['HarvestEditor']);
     }
   });
 
