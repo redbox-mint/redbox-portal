@@ -2422,7 +2422,11 @@ describe('Webservice RecordController body source', () => {
       expect(saveOptions.record).to.deep.include({
         redboxOid: 'record-1',
         revision: 7,
+        metadata: { title: 'Before harvest' },
+      });
+      expect(saveOptions).to.deep.include({
         metadata: { title: 'Harvested title' },
+        metadataMode: 'replace',
       });
       expect(result).to.deep.include({
         harvestId: 'harvest-1',
@@ -2430,6 +2434,52 @@ describe('Webservice RecordController body source', () => {
         status: false,
         message: 'Record update was not persisted: not-saved',
         details: 'record-revision-stale',
+      });
+    });
+
+    it('passes a raw legacy harvest merge delta into RecordsService without pre-applying it', async () => {
+      const record = {
+        redboxOid: 'record-1',
+        revision: 7,
+        metadata: {
+          title: 'Before harvest',
+          nested: { retained: true },
+          keywords: ['stored'],
+        },
+        metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+      };
+      const rawDelta = {
+        nested: { added: true },
+        keywords: ['incoming'],
+      };
+      recordsService.getMeta.resolves(record);
+      recordsService.updateMetaInternal.resolves(successResult());
+
+      const result: unknown = await Reflect.apply(Reflect.get(controller, 'updateHarvestRecord'), controller, [
+        { id: 'brand-1' },
+        { id: 'record-type-1', name: 'dataset' },
+        'merge',
+        rawDelta,
+        'record-1',
+        'harvest-1',
+        { username: 'harvester' },
+      ]);
+
+      expect(recordsService.updateMetaInternal.calledOnce).to.equal(true);
+      const saveOptions = recordsService.updateMetaInternal.firstCall.args[0];
+      expect(saveOptions.record.metadata).to.deep.equal(record.metadata);
+      expect(saveOptions.metadata).to.equal(rawDelta);
+      expect(saveOptions.metadataMode).to.equal('merge');
+      expect(record.metadata).to.deep.equal({
+        title: 'Before harvest',
+        nested: { retained: true },
+        keywords: ['stored'],
+      });
+      expect(result).to.deep.include({
+        harvestId: 'harvest-1',
+        oid: 'record-1',
+        status: true,
+        message: 'Record merged successfully',
       });
     });
   });

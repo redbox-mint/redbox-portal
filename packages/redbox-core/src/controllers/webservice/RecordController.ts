@@ -207,9 +207,7 @@ export namespace Controllers {
           validationOperation,
           targetStep,
           parsed.context,
-          this.validatedRecordSchemaIfMatch(
-            req.apiRequest?.headers as globalThis.Record<string, unknown> | undefined
-          )
+          this.validatedRecordSchemaIfMatch(req.apiRequest?.headers as globalThis.Record<string, unknown> | undefined)
         ),
       };
     }
@@ -254,9 +252,9 @@ export namespace Controllers {
     private recordSchemaPreconditionFailureStatus(result: RecordSaveResponse): 400 | 412 | undefined {
       const status = recordSaveFailureStatus(result);
       if (status === 412) return status;
-      const malformed = result.problems.some(problem =>
-        problem.kind === 'validation' &&
-        problem.issues.some(issue => issue.code === 'record-schema.invalid-request')
+      const malformed = result.problems.some(
+        problem =>
+          problem.kind === 'validation' && problem.issues.some(issue => issue.code === 'record-schema.invalid-request')
       );
       return malformed ? 400 : undefined;
     }
@@ -2163,17 +2161,6 @@ export namespace Controllers {
           );
         }
         try {
-          if (shouldMerge) {
-            // behavior modified from replacing arrays to appending to arrays:
-            record['metadata'] = _.mergeWith(record.metadata, body, (objValue: unknown, srcValue: unknown) => {
-              if (_.isArray(objValue)) {
-                return (objValue as unknown[]).concat(srcValue as unknown[]);
-              }
-              return undefined;
-            });
-          } else {
-            record['metadata'] = body;
-          }
           const sourceMetadata = body['sourceMetadata'];
           if (!_.isEmpty(sourceMetadata)) {
             //Force this to be stored as a string
@@ -2189,7 +2176,7 @@ export namespace Controllers {
             record,
             user,
             metadata: body,
-            metadataMode: 'pre-applied',
+            metadataMode: shouldMerge ? 'merge' : 'replace',
           });
 
           if (!response.wasPersisted()) {

@@ -4958,19 +4958,31 @@ describe('RecordsService', function () {
         searchable: false,
       };
       (global as any).RecordTypesService.get.returns(of(recordType));
+      const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
+      const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
       const transitionPreSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
       const businessValidation = mockRecordValidationService.resolve;
       const paths = [
         {
-          name: 'update',
+          name: 'api-update',
+          routeFamily: 'api' as const,
           operation: 'update' as const,
           targetStep: undefined,
           expectedHookModes: ['onUpdate'],
           expectedHookMetadata: { updateRunBeforeValidatorCount: 1 },
         },
         {
-          name: 'transition',
+          name: 'browser-update',
+          routeFamily: 'browser' as const,
+          operation: 'update' as const,
+          targetStep: undefined,
+          expectedHookModes: ['onUpdate'],
+          expectedHookMetadata: { updateRunBeforeValidatorCount: 1 },
+        },
+        {
+          name: 'api-transition',
+          routeFamily: 'api' as const,
           operation: 'transition' as const,
           targetStep: 'submitted',
           expectedHookModes: ['onTransitionWorkflow', 'onUpdate'],
@@ -5008,9 +5020,12 @@ describe('RecordsService', function () {
           mockStorageService.getMeta.resolves(structuredClone(stored));
           resolveUpdate.resetHistory();
           validateResolvedArtifact.resetHistory();
+          authorize.resetHistory();
+          applySubmission.resetHistory();
           preSaveHook.resetHistory();
           transitionPreSaveHook.resetHistory();
           businessValidation.resetHistory();
+          persistSaveUsageReference.resetHistory();
           mockStorageService.updateMeta.resetHistory();
           businessValidation.callsFake(async (request: RecordValidationRequest): Promise<RecordValidationResult> => {
             const invalid = request.candidate.metadata.approval !== 'approved';
@@ -5048,7 +5063,7 @@ describe('RecordsService', function () {
             path.targetStep ? { name: path.targetStep } : {},
             { metadata: rawDelta, mode: 'merge' },
             recordSchemaContext({
-              routeFamily: 'api',
+              routeFamily: path.routeFamily,
               operation: path.operation,
               ...(path.targetStep ? { targetStep: path.targetStep } : {}),
             })
@@ -5064,6 +5079,10 @@ describe('RecordsService', function () {
           ).to.deep.equal(path.expectedHookModes);
           expect(transitionPreSaveHook.callCount, label).to.equal(path.operation === 'transition' ? 1 : 0);
           expect(businessValidation.calledOnce, label).to.equal(true);
+          expect(authorize.calledBefore(resolveUpdate), label).to.equal(true);
+          expect(resolveUpdate.calledBefore(validateResolvedArtifact), label).to.equal(true);
+          expect(validateResolvedArtifact.calledBefore(applySubmission), label).to.equal(true);
+          expect(applySubmission.calledBefore(preSaveHook), label).to.equal(true);
           expect(validateResolvedArtifact.calledBefore(preSaveHook), label).to.equal(true);
           if (path.operation === 'transition') {
             expect(validateResolvedArtifact.calledBefore(transitionPreSaveHook), label).to.equal(true);
@@ -5087,8 +5106,11 @@ describe('RecordsService', function () {
           if (testCase.expectedOutcome === 'saved') {
             expect(mockStorageService.updateMeta.calledOnce, label).to.equal(true);
             expect(businessValidation.calledBefore(mockStorageService.updateMeta), label).to.equal(true);
+            expect(persistSaveUsageReference.calledOnce, label).to.equal(true);
+            expect(mockStorageService.updateMeta.calledBefore(persistSaveUsageReference), label).to.equal(true);
           } else {
             expect(mockStorageService.updateMeta.notCalled, label).to.equal(true);
+            expect(persistSaveUsageReference.notCalled, label).to.equal(true);
             expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
             expect(result.problems[0]).not.to.have.property('source');
             expect(
@@ -7972,7 +7994,7 @@ describe('RecordsService', function () {
       expect(rawDelta).to.deep.equal({ title: 42 });
     });
 
-    it('validates a pre-applied internal metadata delta without replaying the legacy mutation', async function () {
+    it('orders an internal pre-applied delta through authorization, schema, hooks, validation, storage, and usage', async function () {
       enableRecordSchema();
       mockSails.config.recordValidation = { mode: 'enforce' };
       const stored = {
@@ -7993,15 +8015,23 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const persistSaveUsageReference = recordedSchemaUsage();
+      mockSails.services.recordschemaservice = {
+        resolveUpdate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+      const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
+      const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
         'record-123',
         requestedRecord,
         { username: 'service-user' },
-        false,
+        true,
         false,
         {},
         { metadata: rawDelta, mode: 'pre-applied' },
@@ -8011,6 +8041,13 @@ describe('RecordsService', function () {
       expect(result.wasPersisted()).to.equal(true);
       expect(validateResolvedArtifact.calledOnce).to.equal(true);
       expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal(rawDelta);
+      expect(authorize.calledBefore(resolveUpdate)).to.equal(true);
+      expect(resolveUpdate.calledBefore(validateResolvedArtifact)).to.equal(true);
+      expect(validateResolvedArtifact.calledBefore(applySubmission)).to.equal(true);
+      expect(applySubmission.calledBefore(preSaveHook)).to.equal(true);
+      expect(preSaveHook.calledBefore(mockRecordValidationService.resolve)).to.equal(true);
+      expect(mockRecordValidationService.resolve.calledBefore(mockStorageService.updateMeta)).to.equal(true);
+      expect(mockStorageService.updateMeta.calledBefore(persistSaveUsageReference)).to.equal(true);
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal({
         retained: 'keep',
         nested: { retained: true, values: [{ id: 'incoming' }] },
