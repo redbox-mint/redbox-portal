@@ -1244,11 +1244,12 @@ describe('FormComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(
+    const { fixture, formComponent } = await createFormAndWaitForReady(
       formConfig,
       undefined,
       { formDebugParam: 'off' }
     );
+    formComponent.debugState.isDebugEnabled.set(false);
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelectorAll('redbox-form-debug-panel').length).toBe(0);
