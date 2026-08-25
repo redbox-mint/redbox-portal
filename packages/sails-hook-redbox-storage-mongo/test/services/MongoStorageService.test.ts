@@ -219,6 +219,18 @@ describe('MongoStorageService', function () {
     expect(Record.create.firstCall.args[0]).to.include({ redboxOid: '12345678901234567890123456789012' });
   });
 
+  it('preserves a preassigned record oid instead of generating a replacement', async function () {
+    const getUuid = sandbox.stub(service as any, 'getUuid').throws(new Error('unexpected generated oid'));
+    const redboxOid = 'preassigned-record-oid';
+
+    const response = await service.create(null, { redboxOid, metadata: {} }, null);
+
+    expect(response.success).to.equal(true);
+    expect(response.oid).to.equal(redboxOid);
+    expect(getUuid.notCalled).to.equal(true);
+    expect(Record.create.firstCall.args[0]).to.include({ redboxOid });
+  });
+
   it('returns a failed response when create throws', async function () {
     sandbox.stub(service as any, 'getUuid').returns('12345678901234567890123456789012');
     Record.create.rejects(new Error('create failed'));
