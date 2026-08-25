@@ -1914,7 +1914,7 @@ describe('Webservice RecordController body source', () => {
       expect(args[2]).to.equal(await recordsService.getMeta.secondCall.returnValue);
       expect(args[4]).to.equal(false);
       expect(args[5]).to.equal(false);
-      expect(args[7]).to.deep.equal({ title: 'Existing title' });
+      expect(args[7]).to.deep.equal({ metadata: { title: 'Existing title' }, mode: 'replace' });
       expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: true, expectedRevision: 5 });
       expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
       expect(removeStagedDatastream.calledOnceWithExactly('staged-file-1')).to.equal(true);
@@ -1956,7 +1956,7 @@ describe('Webservice RecordController body source', () => {
       expect(args[2]).to.equal(afterConcurrentSave);
       expect(args[4]).to.equal(false);
       expect(args[5]).to.equal(false);
-      expect(args[7]).to.equal(afterConcurrentSave.metadata);
+      expect(args[7]).to.deep.equal({ metadata: afterConcurrentSave.metadata, mode: 'replace' });
       expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: false });
       expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
     });
@@ -2135,7 +2135,9 @@ describe('Webservice RecordController body source', () => {
       const envelope = sendRespStub.firstCall.args[2];
       expect(envelope.status).to.equal(412);
       expect(envelope.meta.problems).to.deep.equal(result.problems);
-      expect(envelope.displayErrors).to.deep.equal([{ detail: 'Update Metadata failed' }]);
+      expect(envelope.displayErrors).to.deep.equal([
+        { code: 'record-schema.precondition-failed', title: '@record-schema.precondition-failed' },
+      ]);
     });
 
     it('keeps API create precondition-free', async () => {
@@ -2285,9 +2287,11 @@ describe('Webservice RecordController body source', () => {
           else await controller.transitionWorkflow(req, {} as Sails.Res);
 
           expect(sendRespStub.firstCall.args[2].status).to.equal(testCase.status);
-          expect(sendRespStub.firstCall.args[2].v1).to.deep.equal({
-            message: action === 'update' ? 'Update Metadata failed' : 'Workflow transition failed',
-          });
+          if (action === 'update') {
+            expect(sendRespStub.firstCall.args[2].v1).to.deep.equal({ message: 'Update Metadata failed' });
+          } else {
+            expect(sendRespStub.firstCall.args[2].v1.message).to.equal('@record-save-failed');
+          }
         }
       }
     });

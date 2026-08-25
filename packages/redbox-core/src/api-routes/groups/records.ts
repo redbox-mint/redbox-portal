@@ -22,6 +22,7 @@ import {
   recordListItemSchema,
   recordDeleteQuery,
   recordMetadataReadResponseSchema,
+  recordMutationHeaderFields,
   recordMutationHeaders,
   recordOperationQuery,
   recordSaveFailureResponseSchema,
@@ -70,7 +71,8 @@ const recordLifecycleMutationResponses = {
   500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Lifecycle persistence outcome is unknown'),
 };
 
-const recordMutationWithSchemaHeaders = recordMutationHeaders.extend({
+const recordMutationWithSchemaHeaders = objectField({
+  ...recordMutationHeaderFields,
   'X-ReDBox-Record-Schema-If-Match': stringField('Strong record-schema ETag for conditional updates'),
 });
 

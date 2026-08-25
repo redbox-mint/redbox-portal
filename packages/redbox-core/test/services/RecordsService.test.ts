@@ -2482,12 +2482,12 @@ describe('RecordsService', function () {
         triggerPostSaveTriggers,
         {},
         undefined,
-        {
+        createRecordSaveContext({
           requestId: saveRequestId,
           routeFamily: 'browser',
           operation: 'update',
           concurrency: { entityTagSupplied: false, ...concurrency },
-        }
+        })
       );
 
     it('enforces strict missing while observe and last-write-wins accept tokenless writes', async function () {
@@ -9812,6 +9812,7 @@ describe('RecordsService', function () {
 
       const appendStored = {
         ...baseRecord(),
+        revision: 1,
         authorization: { edit: ['owner'], view: [], editRoles: [], viewRoles: [] },
       };
       mockStorageService.getMeta.resolves(appendStored);
@@ -9831,6 +9832,7 @@ describe('RecordsService', function () {
       mockStorageService.updateMeta.resetHistory();
       const removeStored = {
         ...baseRecord(),
+        revision: 1,
         metadata: { title: 'Original', relatedRecords: ['record-456', 'record-789'] },
         authorization: { edit: ['owner'], view: [], editRoles: [], viewRoles: [] },
       };
@@ -9855,6 +9857,7 @@ describe('RecordsService', function () {
       const actor = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
       const stored = {
         ...baseRecord(),
+        revision: 1,
         metadata: { title: 'Original', relatedRecords: ['record-456'] },
         authorization: { edit: ['owner'], view: [], editRoles: [], viewRoles: [] },
       };
@@ -9936,6 +9939,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-2', name: 'faculty' };
       const stored = {
         ...baseRecord(),
+        revision: 1,
         metaMetadata: { ...baseRecord().metaMetadata, brandId: 'brand-2' },
       };
       const candidate = structuredClone(stored);

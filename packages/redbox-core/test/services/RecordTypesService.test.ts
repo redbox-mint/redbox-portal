@@ -32,7 +32,6 @@ describe('RecordTypesService', function () {
         concurrentModification: { mode: 'observe' },
         recordSchema: { unknownProperties: 'declared' },
       },
-      }
     };
     mockSails.config.appmode = { bootstrapAlways: false };
     mockSails.config.storage = { serviceName: 'teststorage' };

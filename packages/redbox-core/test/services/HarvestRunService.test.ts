@@ -1349,6 +1349,7 @@ describe('HarvestRunService', function () {
     const resolveUpdate = rejectNonArrayTagUpdates(schemaResolver);
     const originalRecord = {
       redboxOid: 'record-1',
+      revision: 1,
       harvestId: 'harvest-1',
       metadata: { title: 'Original', tags: ['stored'] },
       metaMetadata: {
@@ -1471,6 +1472,7 @@ describe('HarvestRunService', function () {
     rejectNonArrayTagUpdates(schemaResolver);
     const original = {
       redboxOid: 'record-1',
+      revision: 1,
       harvestId: 'harvest-1',
       metadata: { title: 'Original', score: 12, approval: 'approved', tags: ['stored'] },
       metaMetadata: {
@@ -1745,6 +1747,7 @@ describe('HarvestRunService', function () {
       const { persistedRecords, storageService } = useRealRecordsService(true);
       const originalRecord = {
         redboxOid: 'record-1',
+        revision: 1,
         harvestId: 'harvest-1',
         metadata: { title: 'Original' },
         metaMetadata: {
@@ -1827,6 +1830,7 @@ describe('HarvestRunService', function () {
     const validationResolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
     const originalRecord = {
       redboxOid: 'record-1',
+      revision: 1,
       harvestId: 'harvest-1',
       metadata: { title: 'Original' },
       metaMetadata: {

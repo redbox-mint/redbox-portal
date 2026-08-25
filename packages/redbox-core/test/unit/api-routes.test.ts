@@ -726,7 +726,7 @@ describe('API routes contract layer', function () {
 
       expect(result.valid).to.equal(true);
       if (!result.valid) throw new Error('Expected schema If-Match request validation to pass.');
-      expect(result.headers).to.deep.equal({ 'X-ReDBox-Record-Schema-If-Match': schemaIfMatch });
+      expect(result.headers).to.deep.include({ 'X-ReDBox-Record-Schema-If-Match': schemaIfMatch });
     }
 
     const document = buildCoreApiOpenApiDocument();

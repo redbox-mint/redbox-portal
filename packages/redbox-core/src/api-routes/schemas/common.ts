@@ -132,12 +132,14 @@ export const oidParams = objectField(
  * Public API mutations are form-independent, so they never carry the browser
  * form fingerprint; only the browser routes bind to a generated form.
  */
-export const recordMutationHeaders = objectField({
+export const recordMutationHeaderFields = {
   'If-Match': recordIfMatchHeaderField,
   'X-ReDBox-Save-Request-Id': recordSaveRequestIdField,
   'X-ReDBox-Concurrency-Resolution': recordResolutionField,
   'X-ReDBox-Resolution-Of-Request-Id': recordResolutionRequestIdField,
-});
+};
+
+export const recordMutationHeaders = objectField(recordMutationHeaderFields);
 
 export const idParams = objectField(
   {

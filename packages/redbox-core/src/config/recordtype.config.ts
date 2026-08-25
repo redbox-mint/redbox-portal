@@ -19,7 +19,6 @@ export type {
   RecordConcurrentModificationConfig,
   RecordConcurrentModificationMode,
 } from '@researchdatabox/sails-ng-common';
-import type { ValidationMode, ValidationOperationOverride } from '@researchdatabox/sails-ng-common';
 import type { RecordTypeRecordSchemaConfig } from './recordSchema.config';
 
 export interface RecordHookOptions {
