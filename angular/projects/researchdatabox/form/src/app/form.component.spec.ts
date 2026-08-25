@@ -1228,7 +1228,6 @@ describe('FormComponent', () => {
   });
 
   it('does not enable debug UI for invalid formDebug query param values', async () => {
-    setFormDebugUrl('off');
     const formConfig: FormConfigFrame = {
       name: 'debug-query-disabled',
       componentDefinitions: [
@@ -1245,8 +1244,11 @@ describe('FormComponent', () => {
       ]
     };
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    formComponent.debugState.refreshFromUrl();
+    const { fixture } = await createFormAndWaitForReady(
+      formConfig,
+      undefined,
+      { formDebugParam: 'off' }
+    );
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelectorAll('redbox-form-debug-panel').length).toBe(0);
