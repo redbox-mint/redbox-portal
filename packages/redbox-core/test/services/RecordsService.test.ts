@@ -4374,6 +4374,11 @@ describe('RecordsService', function () {
         authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
       };
       const resolution = createSchemaResolution('resolved', 'shadow', 'tenant-portal');
+      resolution.document['x-private-test-marker'] = 'private-schema-document-marker';
+      resolution.grant = {
+        privateGrantData: 'private-grant-marker',
+        authorizationContext: { subject: 'private-authorization-context-marker' },
+      };
       const resolveCreate = sinon.stub().resolves(resolution);
       const validateResolvedArtifact = sinon.stub().returns({
         kind: 'validated',
@@ -4457,7 +4462,32 @@ describe('RecordsService', function () {
         completeness: 'complete',
         enforcement: 'shadow',
       });
-      expect(JSON.stringify(persistSaveUsageReference.firstCall.args[0])).not.to.include('issues');
+      const storageCandidates = [
+        ...mockStorageService.create.getCalls().map(call => call.args[1]),
+        ...mockStorageService.updateMeta.getCalls().map(call => call.args[2]),
+      ];
+      expect(storageCandidates).to.have.length.greaterThan(0);
+      for (const candidate of storageCandidates) {
+        const persisted = JSON.stringify(candidate);
+        expect(persisted).not.to.include('private-schema-document-marker');
+        expect(persisted).not.to.include('private-grant-marker');
+        expect(persisted).not.to.include('private-authorization-context-marker');
+        expect(persisted).not.to.include('"schemaOutcome"');
+        expect(persisted).not.to.include('"immutableUrl"');
+        expect(persisted).not.to.include('"completeness"');
+        expect(persisted).not.to.include('"enforcement"');
+        expect(persisted).not.to.include('a'.repeat(64));
+      }
+      expect(persistSaveUsageReference.firstCall.args[0]).to.have.all.keys(
+        'digest',
+        'brand',
+        'portal',
+        'schemaKind',
+        'recordType',
+        'oid',
+        'operation',
+        'saveIdentity'
+      );
       expect(JSON.stringify(result.problems)).not.to.include(result.schemaOutcome?.digest);
     });
 
@@ -4519,18 +4549,53 @@ describe('RecordsService', function () {
           message: '@record-schema-save-usage-failed',
         }],
       }]);
-      expect(mockSails.log.error.calledWithMatch(
-        'record schema save usage persistence failed',
-        sinon.match({
-          event: 'record_schema_save_usage_persistence_failed',
-          request_id: result.requestId,
-          schema_kind: 'create',
-          result: 'write-failed',
-          code: 'record-schema.storage-unavailable',
-        })
-      )).to.equal(true);
+      expect(mockSails.log.error.lastCall.args[1]).to.deep.equal({
+        event: 'record_schema_save_usage_persistence_failed',
+        schema_kind: 'create',
+        result: 'write-failed',
+        code: 'record-schema.storage-unavailable',
+      });
       expect(JSON.stringify(mockSails.log.error.lastCall.args)).not.to.include('Persisted before usage failure');
       expect(JSON.stringify(mockSails.log.error.lastCall.args)).not.to.include('a'.repeat(64));
+    });
+
+    it('normalizes a malformed fulfilled schema usage result after persistence', async function () {
+      enableRecordSchema();
+      const persistSaveUsageReference = sinon.stub().resolves({ kind: 'recorded' });
+      mockSails.services.recordschemaservice = {
+        resolveCreate: sinon.stub().resolves(createSchemaResolution('resolved', 'enforce')),
+        validateResolvedArtifact: sinon.stub().returns({
+          kind: 'validated',
+          valid: true,
+          issues: [],
+          truncated: false,
+        }),
+        persistSaveUsageReference,
+      };
+      (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Persist despite malformed usage result' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false,
+        undefined,
+        recordSchemaContext()
+      );
+
+      expect(mockStorageService.create.calledOnce).to.equal(true);
+      expect(persistSaveUsageReference.calledOnce).to.equal(true);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'post-save' });
+      expect(mockSails.log.error.lastCall.args[1]).to.deep.equal({
+        event: 'record_schema_save_usage_persistence_failed',
+        schema_kind: 'create',
+        result: 'unavailable',
+        code: 'record-schema.storage-unavailable',
+      });
     });
 
     it('keeps required, range, and custom validator summaries annotation-only in a generated schema artifact', async function () {
@@ -5203,6 +5268,24 @@ describe('RecordsService', function () {
       expect(result.problems).to.deep.equal([]);
       expect(validateResolvedArtifact.calledOnce).to.equal(true);
       expect(mockStorageService.create.calledOnce).to.equal(true);
+      expect(
+        persistSaveUsageReference.calledOnceWithExactly({
+          digest: 'a'.repeat(64),
+          brand: 'brand-1',
+          portal: 'portal',
+          schemaKind: 'create',
+          recordType: 'rdmp',
+          oid: result.oid,
+          operation: 'publish',
+          saveIdentity: result.requestId,
+        })
+      ).to.equal(true);
+      expect(result.schemaOutcome).to.deep.equal({
+        digest: 'a'.repeat(64),
+        immutableUrl: `/brand-1/portal/api/records/schemas/${'a'.repeat(64)}`,
+        completeness: 'partial',
+        enforcement: 'enforce',
+      });
     });
 
     it('applies the existing rollout precedence to unavailable create schemas using the normalized operation', async function () {

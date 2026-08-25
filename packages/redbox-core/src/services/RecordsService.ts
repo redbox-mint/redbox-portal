@@ -206,6 +206,82 @@ interface DeferredSavePostHookDispatch {
   readonly user: unknown;
 }
 
+function isUnknownRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isRecordSchemaReferenceIdentity(
+  value: unknown
+): value is Readonly<{ digest: string; referenceKey: string }> {
+  return isUnknownRecord(value) && typeof value.digest === 'string' && typeof value.referenceKey === 'string';
+}
+
+type PersistRecordSchemaSaveUsageWriteFailure = Extract<
+  PersistRecordSchemaSaveUsageResult,
+  { readonly kind: 'write-failed' }
+>;
+
+function isRecordSchemaSaveUsageFailureKind(
+  value: unknown
+): value is PersistRecordSchemaSaveUsageWriteFailure['failureKind'] {
+  switch (value) {
+    case 'storage-unavailable':
+    case 'artifact-not-found':
+    case 'invalid-reference':
+    case 'reference-key-collision':
+    case 'digest-collision':
+    case 'invalid-state':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function isRecordSchemaSaveUsageFailureCode(
+  value: unknown
+): value is PersistRecordSchemaSaveUsageWriteFailure['code'] {
+  switch (value) {
+    case RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE:
+    case RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_NOT_FOUND:
+    case RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_INVALID:
+    case RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_KEY_COLLISION:
+    case RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION:
+    case RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT:
+    case RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED:
+      return true;
+    default:
+      return false;
+  }
+}
+
+function isPersistRecordSchemaSaveUsageResult(value: unknown): value is PersistRecordSchemaSaveUsageResult {
+  if (!isUnknownRecord(value)) return false;
+
+  switch (value.kind) {
+    case 'recorded':
+      return isRecordSchemaReferenceIdentity(value.reference);
+    case 'invalid-input':
+      return value.code === RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
+    case 'disabled':
+      return value.code === RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+    case 'unavailable':
+      return (
+        (value.stage === 'configuration' && value.code === RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID) ||
+        (value.stage === 'storage' && value.code === RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE)
+      );
+    case 'write-failed':
+      return (
+        value.stage === 'save-reference' &&
+        isRecordSchemaReferenceIdentity(value.reference) &&
+        typeof value.retryable === 'boolean' &&
+        isRecordSchemaSaveUsageFailureKind(value.failureKind) &&
+        isRecordSchemaSaveUsageFailureCode(value.code)
+      );
+    default:
+      return false;
+  }
+}
+
 function safeValidationLogReference(value: unknown): string {
   if (typeof value !== 'string') return 'unavailable';
   const normalized = value.trim();
@@ -304,7 +380,7 @@ export namespace Services {
   type RecordSchemaSaveUsageWriter = {
     persistSaveUsageReference(
       request: PersistRecordSchemaSaveUsageRequest
-    ): Promise<PersistRecordSchemaSaveUsageResult>;
+    ): Promise<unknown>;
   };
   type RecordSchemaSaveIssue = {
     readonly code: RecordSchemaProblemCode;
@@ -840,11 +916,18 @@ export namespace Services {
         };
       } else {
         try {
-          result = await writer.persistSaveUsageReference({
+          const fulfilled = await writer.persistSaveUsageReference({
             ...usage.request,
             oid,
             saveIdentity: tracker.context.requestId,
           });
+          result = isPersistRecordSchemaSaveUsageResult(fulfilled)
+            ? fulfilled
+            : {
+                kind: 'unavailable',
+                stage: 'storage',
+                code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+              };
         } catch {
           result = {
             kind: 'unavailable',
@@ -861,7 +944,6 @@ export namespace Services {
       try {
         sails.log.error(`${this.logHeader} record schema save usage persistence failed`, {
           event: 'record_schema_save_usage_persistence_failed',
-          request_id: tracker.context.requestId,
           schema_kind: usage.request.schemaKind,
           result: result.kind,
           code: 'code' in result ? result.code : RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,

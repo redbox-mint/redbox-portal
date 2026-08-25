@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
 import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
+import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
 import type {
   PersistRecordSchemaSaveUsageRequest,
   PersistRecordSchemaSaveUsageResult,
@@ -161,15 +162,22 @@ describe('HarvestRunService', function () {
     const persistedRecords = new Map<string, any>();
     const storageService = {
       create: sinon.stub().callsFake(async (_brand: unknown, candidate: any) => {
-        persistedRecords.set(candidate.redboxOid, structuredClone(candidate));
-        return { success: true, applicationState: 'applied' };
+        const committedRevision = 0;
+        const committedRecord = { ...structuredClone(candidate), revision: committedRevision };
+        persistedRecords.set(candidate.redboxOid, committedRecord);
+        return { success: true, applicationState: 'applied', committedRevision, committedRecord };
       }),
       updateMeta: sinon.stub().callsFake(async (_brand: unknown, oid: string, candidate: any) => {
-        persistedRecords.set(oid, structuredClone(candidate));
-        return { success: true, applicationState: 'applied', oid };
+        const committedRevision = candidate.revision + 1;
+        const committedRecord = { ...structuredClone(candidate), revision: committedRevision };
+        persistedRecords.set(oid, committedRecord);
+        return { success: true, applicationState: 'applied', oid, committedRevision, committedRecord };
       }),
       getMeta: sinon.stub().callsFake(async (oid: string) => structuredClone(persistedRecords.get(oid))),
       createRecordAudit: sinon.stub().resolves({ success: true }),
+      getCapabilities: sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      }),
     };
     const schemaResolver: {
       resolveCreate: sinon.SinonStub;
@@ -1651,6 +1659,7 @@ describe('HarvestRunService', function () {
           tags: ['stored', 'incoming'],
           harvestRunBeforeValidatorCount: 1,
         });
+        expect(persistedRecords.get('record-1').revision, testCase.name).to.equal(2);
       } else {
         expect(storageService.updateMeta.notCalled, testCase.name).to.equal(true);
         expect(schemaResolver.persistSaveUsageReference.notCalled, testCase.name).to.equal(true);
