@@ -20,6 +20,9 @@ export class RecordAuditClass {
 
   @Attr({ type: 'json' })
   public executionSummary?: Record<string, unknown>;
+
+  @Attr({ type: 'json' })
+  public concurrency?: Record<string, unknown>;
 }
 
 export const RecordAuditWLDef = toWaterlineModelDef(RecordAuditClass);

@@ -1,6 +1,7 @@
 import StorageServiceResponse from './StorageServiceResponse';
 import { DatastreamRequestContext } from './DatastreamService';
 import { DeletedRecordModel, RecordModel, UserModel } from './model';
+import type { FormAttributes } from './waterline-models';
 import { NormalizedRecordRelation } from './config/recordtype.config';
 import type { RecordSaveContext, RecordSaveResponse } from './RecordSaveResponse';
 
@@ -244,7 +245,8 @@ export interface RecordsService {
   getRecordFormFingerprint(
     record: RecordInput,
     recordType: Record<string, unknown>,
-    targetStep?: unknown
+    targetStep?: unknown,
+    sourceForm?: FormAttributes
   ): Promise<string | undefined>;
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;
   restoreRecord(

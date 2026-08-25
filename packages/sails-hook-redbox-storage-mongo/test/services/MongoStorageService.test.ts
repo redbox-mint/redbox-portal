@@ -25,6 +25,7 @@ describe('MongoStorageService', function () {
   let IntegrationAudit: any;
   let recordCollection: any;
   let deletedRecordCollection: any;
+  let recordIdentityCollection: any;
 
   beforeEach(function () {
     sandbox = sinon.createSandbox();
@@ -93,7 +94,17 @@ describe('MongoStorageService', function () {
       }),
       insertOne: sandbox.stub().resolves({ acknowledged: true }),
     };
-    mockDb.collection.callsFake((name: string) => (name === 'record' ? recordCollection : deletedRecordCollection));
+    recordIdentityCollection = {
+      findOne: sandbox.stub().resolves(null),
+      insertOne: sandbox.stub().resolves({ acknowledged: true }),
+      deleteOne: sandbox.stub().resolves({ acknowledged: true, deletedCount: 1 }),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) => {
+      if (name === 'record') return recordCollection;
+      if (name === 'deletedrecord') return deletedRecordCollection;
+      return recordIdentityCollection;
+    });
 
     Record = {
       tableName: 'record',
@@ -182,6 +193,9 @@ describe('MongoStorageService', function () {
     const deletedCollection = {
       createIndexes: sandbox.stub().resolves([]),
     };
+    const identityCollection = {
+      createIndexes: sandbox.stub().resolves([]),
+    };
     mockDb.collection.callsFake((name: string, options?: any) => {
       if (options?.strict) {
         return { ok: 1 };
@@ -189,7 +203,7 @@ describe('MongoStorageService', function () {
       if (name === 'record') {
         return recordCollection;
       }
-      return deletedCollection;
+      return name === 'deletedrecord' ? deletedCollection : identityCollection;
     });
 
     await service.performInit();
@@ -197,6 +211,7 @@ describe('MongoStorageService', function () {
     expect(service.gridFsBucket).to.be.ok;
     expect(service.recordCol).to.equal(recordCollection);
     expect(service.deletedRecordCol).to.equal(deletedCollection);
+    expect(service.recordIdentityCol).to.equal(identityCollection);
     expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
     expect(deletedCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.deletedRecordIndices)).to.be
       .true;
@@ -214,7 +229,7 @@ describe('MongoStorageService', function () {
       if (name === 'record') {
         return recordCollection;
       }
-      return {};
+      return { createIndexes: sandbox.stub().resolves([]) };
     });
 
     await service.performInit();
@@ -223,16 +238,21 @@ describe('MongoStorageService', function () {
     expect(Record.destroyOne.calledOnce).to.be.true;
   });
 
-  it('logs index creation failures without throwing', async function () {
+  it('fails closed without advertising readiness or capability when a required index cannot be created', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([]),
       createIndexes: sandbox.stub().rejects(new Error('boom')),
+      findOneAndUpdate: sandbox.stub(),
+      findOneAndDelete: sandbox.stub(),
+      findOne: sandbox.stub(),
+      insertOne: sandbox.stub(),
     };
     mockDb.collection.returns(recordCollection);
 
-    await (service as any).createIndices(mockDb);
+    await expectRejects(() => service.performInit(), 'boom');
 
-    expect(mockSails.log.error.called).to.be.true;
+    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
+    expect(service.getCapabilities()).to.deep.equal({});
   });
 
   it('creates a record and assigns a generated oid', async function () {
@@ -243,19 +263,26 @@ describe('MongoStorageService', function () {
     expect(response.success).to.equal(true);
     expect(response.oid).to.equal('12345678901234567890123456789012');
     expect(response.committedRevision).to.equal(0);
-    expect(Record.create.firstCall.args[0]).to.include({
+    expect(recordCollection.insertOne.firstCall.args[0]).to.include({
       redboxOid: '12345678901234567890123456789012',
       revision: 0,
     });
+    expect(recordCollection.insertOne.firstCall.args[0].incarnationId).to.match(/^[0-9a-f-]{36}$/);
   });
 
   it('overwrites a client-supplied create revision', async function () {
-    const candidate = { redboxOid: 'oid-client', revision: 72, metadata: {} };
+    const candidate = {
+      redboxOid: 'oid-client',
+      revision: 72,
+      incarnationId: '22222222-2222-4222-8222-222222222222',
+      metadata: {},
+    };
 
     const response = await service.create(null, candidate, null);
 
     expect(response.committedRevision).to.equal(0);
-    expect(Record.create.firstCall.args[0].revision).to.equal(0);
+    expect(recordCollection.insertOne.firstCall.args[0].revision).to.equal(0);
+    expect(recordCollection.insertOne.firstCall.args[0].incarnationId).not.to.equal(candidate.incarnationId);
     expect(candidate.revision).to.equal(72);
   });
 
@@ -273,12 +300,111 @@ describe('MongoStorageService', function () {
 
   it('returns a failed response when create throws', async function () {
     sandbox.stub(service as any, 'getUuid').returns('12345678901234567890123456789012');
-    Record.create.rejects(new Error('create failed'));
+    recordCollection.insertOne.rejects(new Error('create failed'));
 
     const response = await service.create(null, { metadata: {} }, null);
 
     expect(response.success).to.equal(false);
-    expect(response.message).to.equal('create failed');
+    expect(response.message).to.equal('Record creation could not be confirmed');
+    expect(response.message).not.to.include('create failed');
+  });
+
+  it('releases only this failed create reservation and permits an explicit-OID retry', async function () {
+    recordCollection.insertOne
+      .onFirstCall()
+      .rejects(new mongodb.MongoServerError({ message: 'document validation rejected', code: 121 }));
+    recordCollection.insertOne.onSecondCall().resolves({ acknowledged: true });
+
+    const first = await service.create(null, { redboxOid: 'retryable-oid', metadata: {} }, null);
+    const firstReservation = recordIdentityCollection.insertOne.firstCall.args[0];
+    const second = await service.create(null, { redboxOid: 'retryable-oid', metadata: {} }, null);
+
+    expect(first).to.include({ applicationState: 'unknown', success: false });
+    expect(first.message).not.to.include('document validation rejected');
+    expect(
+      recordIdentityCollection.deleteOne.calledOnceWith({
+        redboxOid: 'retryable-oid',
+        incarnationId: firstReservation.incarnationId,
+      })
+    ).to.equal(true);
+    expect(second).to.include({ applicationState: 'applied', success: true });
+    expect(recordIdentityCollection.insertOne.callCount).to.equal(2);
+  });
+
+  it('keeps a failed create reservation when competing active state is observed', async function () {
+    recordCollection.findOne.onFirstCall().resolves(null);
+    recordCollection.findOne.onSecondCall().resolves({
+      redboxOid: 'raced-oid',
+      revision: 0,
+      incarnationId: '22222222-2222-4222-8222-222222222222',
+    });
+    recordCollection.insertOne.rejects(new Error('ambiguous insert failure'));
+
+    const response = await service.create(null, { redboxOid: 'raced-oid', metadata: {} }, null);
+
+    expect(response).to.include({ applicationState: 'unknown', success: false });
+    expect(recordIdentityCollection.deleteOne.notCalled).to.equal(true);
+  });
+
+  it('retains an ambiguous unused reservation so a retry cannot race a late commit', async function () {
+    recordCollection.insertOne.rejects(new mongodb.MongoNetworkError('connection reset after dispatch'));
+    recordIdentityCollection.findOne
+      .onSecondCall()
+      .callsFake(() => Promise.resolve(recordIdentityCollection.insertOne.firstCall.args[0]));
+
+    const first = await service.create(null, { redboxOid: 'ambiguous-oid', metadata: {} }, null);
+    const retry = await service.create(null, { redboxOid: 'ambiguous-oid', metadata: {} }, null);
+
+    expect(first).to.include({ applicationState: 'unknown', success: false });
+    expect(recordIdentityCollection.deleteOne.notCalled).to.equal(true);
+    expect(retry).to.include({ applicationState: 'not-applied', nonApplicationReason: 'lifecycle-conflict' });
+    expect(recordCollection.insertOne.calledOnce).to.equal(true);
+  });
+
+  it('reconciles an ambiguous insert as applied when the active record carries this reservation', async function () {
+    recordCollection.insertOne.rejects(new mongodb.MongoNetworkError('connection reset after dispatch'));
+    recordCollection.findOne.onSecondCall().callsFake(() => {
+      const reservation = recordIdentityCollection.insertOne.firstCall.args[0];
+      return Promise.resolve({
+        redboxOid: 'reconciled-oid',
+        revision: 0,
+        incarnationId: reservation.incarnationId,
+        metadata: {},
+      });
+    });
+
+    const response = await service.create(null, { redboxOid: 'reconciled-oid', metadata: {} }, null);
+
+    expect(response).to.include({ applicationState: 'applied', success: true, committedRevision: 0 });
+    expect(recordIdentityCollection.deleteOne.notCalled).to.equal(true);
+  });
+
+  it('refuses an explicit OID that already has a durable owner without issuing an active create', async function () {
+    recordIdentityCollection.findOne.resolves({
+      redboxOid: 'owned-oid',
+      incarnationId: '11111111-1111-4111-8111-111111111111',
+    });
+
+    const response = await service.create(null, { redboxOid: 'owned-oid', metadata: {} }, null);
+
+    expect(response).to.include({ applicationState: 'not-applied', nonApplicationReason: 'lifecycle-conflict' });
+    expect(recordCollection.insertOne.notCalled).to.equal(true);
+  });
+
+  it('durably reserves a legacy tombstone OID before rejecting explicit recreation', async function () {
+    deletedRecordCollection.findOne.resolves({
+      redboxOid: 'deleted-oid',
+      revision: 7,
+      lifecycleState: 'deleted',
+      deletedRecordMetadata: { redboxOid: 'deleted-oid' },
+    });
+
+    const response = await service.create(null, { redboxOid: 'deleted-oid', metadata: {} }, null);
+
+    expect(response).to.include({ applicationState: 'not-applied', nonApplicationReason: 'lifecycle-conflict' });
+    expect(recordIdentityCollection.insertOne.calledOnce).to.equal(true);
+    expect(recordIdentityCollection.insertOne.firstCall.args[0]).to.include({ redboxOid: 'deleted-oid' });
+    expect(recordCollection.insertOne.notCalled).to.equal(true);
   });
 
   it('strips immutable fields before updateMeta persists', async function () {
@@ -365,7 +491,9 @@ describe('MongoStorageService', function () {
     expect(mockSails.log.error.calledWithMatch('updateMeta() failed for oid oid-1: update failed')).to.equal(true);
   });
 
-  it('declares full concurrency capability only for native atomic collections', function () {
+  it('declares full concurrency capability only after required indices and native atomic collections are ready', function () {
+    expect(service.getCapabilities()).to.deep.equal({});
+    service._requiredIndicesReady = true;
     expect(service.getCapabilities().recordConcurrency).to.deep.include({
       version: 1,
       conditionalActiveUpdate: true,
@@ -943,7 +1071,7 @@ describe('MongoStorageService', function () {
           attempts: 1,
           resolution: 'direct',
         },
-        deletedRecordMetadata: { metaMetadata: { brandId: 'brand-1' }, metadata: {} },
+        deletedRecordMetadata: { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1' }, metadata: {} },
       },
       {
         precondition: { expectedRevision: 1, requireRevision: true },
@@ -993,7 +1121,7 @@ describe('MongoStorageService', function () {
   });
 
   it('prepares batch items before dispatching create calls', async function () {
-    const createStub = sandbox.stub(service, 'create').resolves({ success: true });
+    const createStub = sandbox.stub(service, 'create').resolves({ success: true, applicationState: 'applied' });
     const data = [
       { externalId: 'ext-1', metaMetadata: {} },
       { externalId: 'ext-2', metaMetadata: {} },
@@ -1002,6 +1130,7 @@ describe('MongoStorageService', function () {
     const response = await service.createBatch('rdmp', data, 'externalId');
 
     expect(response.success).to.equal(true);
+    expect(response.applicationState).to.equal('applied');
     expect(createStub.callCount).to.equal(2);
     expect(data[0]).to.include({ harvestId: 'ext-1' });
     expect(data[0].metaMetadata).to.include({ type: 'rdmp' });
@@ -1012,11 +1141,51 @@ describe('MongoStorageService', function () {
     const data = [{ externalId: 'ext-1', metaMetadata: {} }];
 
     const response = await service.createBatch('rdmp', data, 'externalId');
-    await Promise.resolve();
-    await Promise.resolve();
 
-    expect(response.success).to.equal(true);
-    expect(response.message).to.include('bad row');
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('unknown');
+    expect(response.message).to.equal('Batch create incomplete (0 not applied, 1 unknown).');
+    expect(response.message).not.to.include('bad row');
+  });
+
+  it('reports a typed non-applied create as a definite batch failure and still awaits later rows', async function () {
+    const createStub = sandbox.stub(service, 'create');
+    createStub.onFirstCall().resolves({
+      success: false,
+      applicationState: 'not-applied',
+      nonApplicationReason: 'lifecycle-conflict',
+    });
+    createStub.onSecondCall().resolves({ success: true, applicationState: 'applied' });
+    const data = [
+      { externalId: 'ext-1', metaMetadata: {} },
+      { externalId: 'ext-2', metaMetadata: {} },
+    ];
+
+    const response = await service.createBatch('rdmp', data, 'externalId');
+
+    expect(createStub.callCount).to.equal(2);
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('not-applied');
+    expect(response.message).to.equal('Batch create incomplete (1 not applied, 0 unknown).');
+  });
+
+  it('lets a typed unknown create take precedence in the aggregate batch result', async function () {
+    const createStub = sandbox.stub(service, 'create');
+    createStub.onFirstCall().resolves({ success: false, applicationState: 'not-applied' });
+    createStub.onSecondCall().resolves({ success: false, applicationState: 'unknown' });
+
+    const response = await service.createBatch(
+      'rdmp',
+      [
+        { externalId: 'ext-1', metaMetadata: {} },
+        { externalId: 'ext-2', metaMetadata: {} },
+      ],
+      'externalId'
+    );
+
+    expect(response.success).to.equal(false);
+    expect(response.applicationState).to.equal('unknown');
+    expect(response.message).to.equal('Batch create incomplete (1 not applied, 1 unknown).');
   });
 
   it('walks related records recursively when record types define relationships', async function () {

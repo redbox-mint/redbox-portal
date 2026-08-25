@@ -85,6 +85,7 @@ describe('Webservice RecordController body source', () => {
     getDeletedRecord: sinon.SinonStub;
     getDeletedRecordMeta: sinon.SinonStub;
     updateMeta: sinon.SinonStub;
+    updateMetaInternal: sinon.SinonStub;
     create: sinon.SinonStub;
     getDeletedRecords: sinon.SinonStub;
     delete: sinon.SinonStub;
@@ -92,6 +93,7 @@ describe('Webservice RecordController body source', () => {
     destroyDeletedRecord: sinon.SinonStub;
     hasEditAccess: sinon.SinonStub;
     hasViewAccess: sinon.SinonStub;
+    getAttachments: sinon.SinonStub;
     setWorkflowStepRelatedMetadata: sinon.SinonStub;
   };
 
@@ -153,6 +155,7 @@ describe('Webservice RecordController body source', () => {
       getDeletedRecord: sinon.stub(),
       getDeletedRecordMeta: sinon.stub(),
       updateMeta: sinon.stub(),
+      updateMetaInternal: sinon.stub(),
       create: sinon.stub(),
       getDeletedRecords: sinon.stub(),
       delete: sinon.stub(),
@@ -160,6 +163,7 @@ describe('Webservice RecordController body source', () => {
       destroyDeletedRecord: sinon.stub(),
       hasEditAccess: sinon.stub().returns(true),
       hasViewAccess: sinon.stub().returns(true),
+      getAttachments: sinon.stub().resolves([]),
       setWorkflowStepRelatedMetadata: sinon.stub(),
     };
     controller.RecordsService = recordsService as never;
@@ -756,6 +760,45 @@ describe('Webservice RecordController body source', () => {
       expect(result.concurrency).to.equal(undefined);
     });
 
+    it('returns a private API lifecycle conflict when tombstone view permission was revoked', async () => {
+      const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000025');
+      result.outcome = 'not-saved';
+      result.problems = [
+        {
+          kind: 'conflict',
+          phase: 'persistence',
+          issues: [{ code: 'record-lifecycle-operation-conflict', message: '@record-lifecycle-operation-conflict' }],
+        },
+      ];
+      result.setProjectedMetadata({ staleDeletedValue: 'must-not-return' });
+      result.setConcurrencyMetadata({ revision: 7, entityTag: formatRecordEntityTag('record-1', 7) });
+      recordsService.getMeta.resolves(null);
+      recordsService.getDeletedRecordMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 13,
+        metaMetadata: { brandId: 'brand-1' },
+        metadata: { deletedSecret: 'must-not-return' },
+      });
+      recordsService.hasViewAccess.returns(false);
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+
+      await (controller as any).sendLifecycleResult(
+        { user: { username: 'tester' }, headers: { 'x-redbox-api-version': '2.0' } },
+        {},
+        { id: 'brand-1' },
+        'record-1',
+        result,
+        'Lifecycle conflict'
+      );
+
+      expect(sendResp.firstCall.args[2]).to.deep.equal({
+        status: 403,
+        displayErrors: [{ code: 'not-authorised' }],
+      });
+      expect(result.metadata).to.equal(null);
+      expect(result.concurrency).to.equal(undefined);
+    });
+
     it('returns only the latest authorized projection when edit access is lost but view remains', async () => {
       const record = {
         redboxOid: 'record-1',
@@ -1323,6 +1366,83 @@ describe('Webservice RecordController body source', () => {
       expect(sendRespStub.firstCall.args[2].headers).to.deep.equal({ ETag: formatRecordEntityTag('record-1', 11) });
     });
 
+    for (const mode of ['last-write-wins', 'observe'] as const) {
+      it(`keeps tokenless ${mode} lifecycle requests compatible and returns the committed tag`, async () => {
+        recordsService.getDeletedRecordMeta.resolves({
+          redboxOid: 'record-1',
+          revision: 9,
+          metadata: {},
+          metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+        });
+        const result = successResult();
+        result.setConcurrencyMetadata({
+          mode,
+          revision: 11,
+          currentRevision: 11,
+          entityTag: formatRecordEntityTag('record-1', 11),
+        });
+        recordsService.restoreRecord.resolves(result);
+        const req = makeThrowingRequest(
+          { params: { oid: 'record-1' }, query: {}, body: {}, files: {} },
+          { headers: { 'x-redbox-api-version': '2.0' } }
+        );
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+        await controller.restoreRecord(req, {} as Sails.Res);
+
+        expect(recordsService.restoreRecord.firstCall.args[3].concurrency).to.deep.equal({
+          entityTagSupplied: false,
+        });
+        expect(sendRespStub.firstCall.args[2].status).to.equal(undefined);
+        expect(sendRespStub.firstCall.args[2].headers).to.deep.equal({
+          ETag: formatRecordEntityTag('record-1', 11),
+        });
+        expect(sendRespStub.firstCall.args[2].meta.concurrency.mode).to.equal(mode);
+      });
+    }
+
+    it('preserves strict lifecycle 428 status and the current tombstone tag', async () => {
+      const tombstone = {
+        redboxOid: 'record-1',
+        revision: 9,
+        metadata: {},
+        metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+      };
+      recordsService.getMeta.resolves(null);
+      recordsService.getDeletedRecordMeta.resolves(tombstone);
+      const result = notSavedResult();
+      result.problems = [
+        {
+          kind: 'conflict',
+          phase: 'pre-save',
+          issues: [{ code: 'record-precondition-required', message: '@record-precondition-required' }],
+        },
+      ];
+      result.setConcurrencyMetadata({
+        mode: 'strict',
+        revision: 9,
+        currentRevision: 9,
+        entityTag: formatRecordEntityTag('record-1', 9),
+      });
+      recordsService.restoreRecord.resolves(result);
+      const req = makeThrowingRequest(
+        { params: { oid: 'record-1' }, query: {}, body: {}, files: {} },
+        { headers: { 'x-redbox-api-version': '2.0' } }
+      );
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.restoreRecord(req, {} as Sails.Res);
+
+      expect(recordsService.restoreRecord.calledOnce).to.equal(true);
+      expect(sendRespStub.firstCall.args[2].status).to.equal(428);
+      expect(sendRespStub.firstCall.args[2].headers).to.deep.equal({
+        ETag: formatRecordEntityTag('record-1', 9),
+      });
+      expect(sendRespStub.firstCall.args[2].displayErrors).to.deep.equal([
+        { code: 'record-precondition-required', title: '@record-precondition-required' },
+      ]);
+    });
+
     it('rejects malformed lifecycle tags before tombstone lookup or mutation', async () => {
       const req = makeThrowingRequest(
         { params: { oid: 'record-1' }, query: {}, body: {}, files: {} },
@@ -1444,6 +1564,308 @@ describe('Webservice RecordController body source', () => {
 
       expect(caught).to.be.an('error').with.property('message', 'storage unavailable');
       expect(recordsService.restoreRecord.called).to.be.false;
+    });
+  });
+
+  describe('datastream read authorization boundary', () => {
+    const readRequest = (list: boolean): Sails.Req =>
+      makeThrowingRequest({
+        params: list ? { oid: 'record-1' } : { oid: 'record-1', datastreamId: 'file-1' },
+        query: {},
+        body: {},
+        files: {},
+      });
+
+    for (const testCase of [
+      { name: 'download', invoke: (req: Sails.Req) => controller.getDataStream(req, {} as Sails.Res) },
+      { name: 'list', invoke: (req: Sails.Req) => controller.listDatastreams(req, {} as Sails.Res) },
+    ]) {
+      it(`returns non-disclosing 404/403 responses before ${testCase.name} attachment access`, async () => {
+        const sendResp = sinon.stub(controller as any, 'sendResp');
+        recordsService.getMeta.resolves({
+          redboxOid: 'record-1',
+          metaMetadata: { brandId: 'different-brand' },
+          metadata: { privateValue: 'must-not-return' },
+          authorization: {},
+        });
+
+        await testCase.invoke(readRequest(testCase.name === 'list'));
+        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 404 });
+        expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
+        expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
+
+        recordsService.getMeta.resolves({
+          redboxOid: 'record-1',
+          metaMetadata: { brandId: 'brand-1' },
+          metadata: { privateValue: 'must-not-return' },
+          authorization: {},
+        });
+        recordsService.hasViewAccess.returns(false);
+        sendResp.resetHistory();
+
+        await testCase.invoke(readRequest(testCase.name === 'list'));
+        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 403 });
+        expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
+        expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
+      });
+    }
+
+    it('lists attachments only after current active-brand view authorization', async () => {
+      recordsService.getMeta.resolves({
+        redboxOid: 'record-1',
+        metaMetadata: { brandId: 'brand-1' },
+        metadata: {},
+        authorization: { view: ['tester'] },
+      });
+      recordsService.hasViewAccess.returns(true);
+      recordsService.getAttachments.resolves([{ fileId: 'file-1', name: 'safe.txt' }]);
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+
+      await controller.listDatastreams(readRequest(true), {} as Sails.Res);
+
+      expect(recordsService.getAttachments.calledOnceWith('record-1', undefined, { username: 'tester' })).to.equal(
+        true
+      );
+      expect(sendResp.firstCall.args[2].data.records).to.deep.equal([{ fileId: 'file-1', name: 'safe.txt' }]);
+    });
+  });
+
+  describe('datastream upload mutation boundary', () => {
+    const activeRecord = () => ({
+      redboxOid: 'record-1',
+      revision: 5,
+      metadata: { title: 'Existing title' },
+      metaMetadata: { attachmentFields: [], brandId: 'brand-1', type: 'dataset' },
+      authorization: { edit: ['tester'], view: ['tester'] },
+    });
+
+    function uploadRequest(headers: Record<string, unknown>, fileSpy = sinon.stub()): Sails.Req {
+      fileSpy.returns({
+        upload: (_options: unknown, done: (error: unknown, uploaded: Array<Record<string, unknown>>) => void) =>
+          void done(undefined, [
+            {
+              fd: '/tmp/staged-file-1',
+              filename: 'attachment.txt',
+              type: 'text/plain',
+              size: 12,
+            },
+          ]),
+      });
+      return makeThrowingRequest({ params: { oid: 'record-1' }, query: {}, body: {}, files: {} }, {
+        headers,
+        file: fileSpy,
+      } as unknown as Partial<Sails.Req>);
+    }
+
+    it('rejects malformed preconditions and missing edit authority before accepting upload bytes', async () => {
+      const malformedFile = sinon.stub();
+      const malformedSend = sinon.stub(controller as any, 'sendResp');
+      await controller.addDataStreams(
+        uploadRequest({ 'if-match': '*', 'x-redbox-api-version': '2.0' }, malformedFile),
+        {} as Sails.Res
+      );
+      expect(malformedFile.notCalled).to.equal(true);
+      expect(recordsService.getMeta.notCalled).to.equal(true);
+      expect(malformedSend.firstCall.args[2]).to.deep.equal({
+        status: 400,
+        displayErrors: [{ code: 'record-if-match-invalid', source: { header: 'If-Match' } }],
+      });
+
+      malformedSend.restore();
+      recordsService.getMeta.resolves(activeRecord());
+      recordsService.hasEditAccess.returns(false);
+      const unauthorizedFile = sinon.stub();
+      const unauthorizedSend = sinon.stub(controller as any, 'sendResp');
+      await controller.addDataStreams(
+        uploadRequest({ 'if-match': formatRecordEntityTag('record-1', 5) }, unauthorizedFile),
+        {} as Sails.Res
+      );
+      expect(unauthorizedFile.notCalled).to.equal(true);
+      expect(recordsService.updateMeta.notCalled).to.equal(true);
+      expect(unauthorizedSend.firstCall.args[2]).to.deep.include({ status: 403 });
+    });
+
+    it('routes a standalone upload through RecordsService CAS before finalizing bytes', async () => {
+      recordsService.getMeta.resolves(activeRecord());
+      const save = successResult();
+      save.setConcurrencyMetadata({
+        revision: 6,
+        entityTag: formatRecordEntityTag('record-1', 6),
+      });
+      recordsService.updateMeta.resolves(save);
+      const addDatastreams = sinon.stub().resolves({
+        success: true,
+        message: 'uploaded',
+        isSuccessful: () => true,
+      });
+      const removeStagedDatastream = sinon.stub().resolves();
+      controller.DatastreamService = { addDatastreams, removeStagedDatastream } as never;
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+
+      await controller.addDataStreams(
+        uploadRequest({ 'if-match': formatRecordEntityTag('record-1', 5) }),
+        {} as Sails.Res
+      );
+      await flushPromises();
+
+      expect(recordsService.updateMeta.calledOnce).to.equal(true);
+      expect(recordsService.getMeta.callCount).to.equal(2);
+      const args = recordsService.updateMeta.firstCall.args;
+      expect(args[0]).to.deep.include({ id: 'brand-1' });
+      expect(args[1]).to.equal('record-1');
+      expect(args[2]).to.equal(await recordsService.getMeta.secondCall.returnValue);
+      expect(args[4]).to.equal(false);
+      expect(args[5]).to.equal(false);
+      expect(args[7]).to.deep.equal({ title: 'Existing title' });
+      expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: true, expectedRevision: 5 });
+      expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
+      expect(removeStagedDatastream.calledOnceWithExactly('staged-file-1')).to.equal(true);
+      expect(removeStagedDatastream.calledAfter(addDatastreams)).to.equal(true);
+      expect(sendResp.firstCall.args[2].meta).to.deep.include({ outcome: 'saved' });
+      expect(sendResp.firstCall.args[2].headers).to.deep.equal({
+        ETag: formatRecordEntityTag('record-1', 6),
+      });
+    });
+
+    it('uses metadata reloaded after a tokenless upload and skips the onUpdate hook chain', async () => {
+      const beforeUpload = activeRecord();
+      const afterConcurrentSave = {
+        ...activeRecord(),
+        revision: 6,
+        metadata: { title: 'Concurrent title', concurrentValue: 'must survive' },
+      };
+      recordsService.getMeta.onFirstCall().resolves(beforeUpload);
+      recordsService.getMeta.onSecondCall().resolves(afterConcurrentSave);
+      const save = successResult();
+      save.setConcurrencyMetadata({
+        revision: 7,
+        entityTag: formatRecordEntityTag('record-1', 7),
+      });
+      recordsService.updateMeta.resolves(save);
+      const addDatastreams = sinon.stub().resolves({
+        success: true,
+        message: 'uploaded',
+        isSuccessful: () => true,
+      });
+      controller.DatastreamService = { addDatastreams } as never;
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.addDataStreams(uploadRequest({}), {} as Sails.Res);
+      await flushPromises();
+
+      const args = recordsService.updateMeta.firstCall.args;
+      expect(recordsService.getMeta.callCount).to.equal(2);
+      expect(args[2]).to.equal(afterConcurrentSave);
+      expect(args[4]).to.equal(false);
+      expect(args[5]).to.equal(false);
+      expect(args[7]).to.equal(afterConcurrentSave.metadata);
+      expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: false });
+      expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
+    });
+
+    it('keeps a supplied stale tag after the post-upload reload and removes staging', async () => {
+      const afterConcurrentSave = {
+        ...activeRecord(),
+        revision: 6,
+        metadata: { title: 'Concurrent title', concurrentValue: 'must survive' },
+      };
+      recordsService.getMeta.onFirstCall().resolves(activeRecord());
+      recordsService.getMeta.onSecondCall().resolves(afterConcurrentSave);
+      recordsService.getMeta.onThirdCall().resolves(afterConcurrentSave);
+      const failure = notSavedResult();
+      failure.problems = [
+        {
+          kind: 'conflict',
+          phase: 'pre-save',
+          issues: [{ code: 'record-revision-stale', message: '@record-revision-stale' }],
+        },
+      ];
+      failure.setConcurrencyMetadata({
+        revision: 6,
+        currentRevision: 6,
+        entityTag: formatRecordEntityTag('record-1', 6),
+      });
+      recordsService.updateMeta.resolves(failure);
+      const removeStagedDatastream = sinon.stub().resolves();
+      const addDatastreams = sinon.stub();
+      controller.DatastreamService = { addDatastreams, removeStagedDatastream } as never;
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+
+      await controller.addDataStreams(
+        uploadRequest({ 'if-match': formatRecordEntityTag('record-1', 5) }),
+        {} as Sails.Res
+      );
+      await flushPromises();
+
+      const args = recordsService.updateMeta.firstCall.args;
+      expect(args[2]).to.equal(afterConcurrentSave);
+      expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: true, expectedRevision: 5 });
+      expect(addDatastreams.notCalled).to.equal(true);
+      expect(removeStagedDatastream.calledWith('staged-file-1')).to.equal(true);
+      expect(sendResp.firstCall.args[2].status).to.equal(412);
+    });
+
+    it('rechecks edit authority after upload without disclosing the current record', async () => {
+      const currentRecord = {
+        ...activeRecord(),
+        revision: 6,
+        metadata: { privateValue: 'must-not-return' },
+      };
+      recordsService.getMeta.onFirstCall().resolves(activeRecord());
+      recordsService.getMeta.onSecondCall().resolves(currentRecord);
+      recordsService.hasEditAccess.onFirstCall().returns(true);
+      recordsService.hasEditAccess.onSecondCall().returns(false);
+      const removeStagedDatastream = sinon.stub().resolves();
+      const addDatastreams = sinon.stub();
+      controller.DatastreamService = { addDatastreams, removeStagedDatastream } as never;
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+
+      await controller.addDataStreams(uploadRequest({}), {} as Sails.Res);
+      await flushPromises();
+
+      expect(recordsService.updateMeta.notCalled).to.equal(true);
+      expect(addDatastreams.notCalled).to.equal(true);
+      expect(removeStagedDatastream.calledWith('staged-file-1')).to.equal(true);
+      expect(sendResp.firstCall.args[2]).to.deep.equal({
+        status: 403,
+        displayErrors: [{ code: 'not-authorised' }],
+        v1: { message: 'Not authorised.' },
+      });
+      expect(JSON.stringify(sendResp.firstCall.args[2])).not.to.include('must-not-return');
+    });
+
+    it('does not finalize a strict missing or stale upload claim and removes certified abandoned staging', async () => {
+      recordsService.getMeta.resolves(activeRecord());
+      const removeStagedDatastream = sinon.stub().resolves();
+      const addDatastreams = sinon.stub();
+      controller.DatastreamService = { addDatastreams, removeStagedDatastream } as never;
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+
+      for (const testCase of [
+        { headers: {}, code: 'record-precondition-required', status: 428 },
+        {
+          headers: { 'if-match': formatRecordEntityTag('record-1', 4) },
+          code: 'record-revision-stale',
+          status: 412,
+        },
+      ]) {
+        const failure = notSavedResult();
+        failure.problems = [
+          {
+            kind: 'conflict',
+            phase: 'pre-save',
+            issues: [{ code: testCase.code, message: `@${testCase.code}` }],
+          },
+        ];
+        recordsService.updateMeta.resolves(failure);
+
+        await controller.addDataStreams(uploadRequest(testCase.headers), {} as Sails.Res);
+        await flushPromises();
+
+        expect(addDatastreams.notCalled).to.equal(true);
+        expect(removeStagedDatastream.calledWith('staged-file-1')).to.equal(true);
+        expect(sendResp.lastCall.args[2].status).to.equal(testCase.status);
+      }
     });
   });
 
@@ -1581,6 +2003,57 @@ describe('Webservice RecordController body source', () => {
       expect((global as any).HarvestRunService.submitLegacyRecords.calledOnce).to.be.true;
       expect((global as any).HarvestRunService.submitLegacyRecords.firstCall.args[2]).to.deep.equal(body);
       expect(sendRespStub.calledOnce).to.be.true;
+    });
+
+    it('uses the authoritative harvest snapshot revision and surfaces a non-persisted conflict per record', async () => {
+      const record = {
+        redboxOid: 'record-1',
+        revision: 7,
+        metadata: { title: 'Before harvest' },
+        metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+      };
+      recordsService.getMeta.resolves(record);
+      const stale = notSavedResult();
+      stale.problems = [
+        {
+          kind: 'conflict',
+          phase: 'persistence',
+          issues: [{ code: 'record-revision-stale', message: '@record-revision-stale' }],
+        },
+      ];
+      recordsService.updateMetaInternal.resolves(stale);
+
+      const result = await (controller as any).updateHarvestRecord(
+        { id: 'brand-1' },
+        { id: 'record-type-1', name: 'dataset' },
+        'override',
+        { title: 'Harvested title' },
+        'record-1',
+        'harvest-1',
+        { username: 'harvester' }
+      );
+
+      expect(recordsService.updateMeta.notCalled).to.equal(true);
+      expect(recordsService.updateMetaInternal.calledOnce).to.equal(true);
+      const saveOptions = recordsService.updateMetaInternal.firstCall.args[0];
+      expect(saveOptions).to.deep.include({
+        actor: { kind: 'service', id: 'RecordController.updateHarvestRecord' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        oid: 'record-1',
+      });
+      expect(saveOptions.record).to.deep.include({
+        redboxOid: 'record-1',
+        revision: 7,
+        metadata: { title: 'Harvested title' },
+      });
+      expect(result).to.deep.include({
+        harvestId: 'harvest-1',
+        oid: 'record-1',
+        status: false,
+        message: 'Record update was not persisted: not-saved',
+        details: 'record-revision-stale',
+      });
     });
   });
 });

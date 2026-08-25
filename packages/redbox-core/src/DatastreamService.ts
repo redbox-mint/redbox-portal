@@ -24,6 +24,8 @@ export interface DatastreamService {
   removeDatastream(oid: string, datastream: Datastream): Promise<unknown>;
   /** Delete an abandoned upload from staging without touching primary data. */
   removeStagedDatastream?(fileId: string): Promise<void>;
+  /** Probe all final/TUS objects for one normalized staging identity. */
+  stagingDatastreamExists?(fileId: string): Promise<boolean>;
   addDatastream(oid: string, datastream: Datastream, stagingDisk?: StorageManagerServices.IDisk): Promise<unknown>;
   addAndRemoveDatastreams(
     oid: string,

@@ -1,7 +1,7 @@
 meta {
   name: Add attachment to Datarecord
   type: http
-  seq: 27
+  seq: 28
 }
 
 post {
@@ -12,6 +12,7 @@ post {
 
 headers {
   Authorization: Bearer {{token}}
+  If-Match: {{attDataRecordEtag}}
   ~Content-Type: application/json
 }
 
@@ -34,6 +35,9 @@ tests {
 
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
+      const etag = res.getHeader("etag");
+      expect(etag).to.match(/^".+"$/);
+      expect(etag).not.to.equal(bru.getEnvVar("attDataRecordEtag"));
   });
 
 }

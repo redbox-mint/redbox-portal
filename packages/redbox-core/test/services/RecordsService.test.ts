@@ -13,6 +13,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../../src/StorageService';
 import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
+import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { createRecordSaveContext } from '../../src/RecordSaveResponse';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
@@ -43,7 +44,11 @@ describe('RecordsService', function () {
     mockStorageService = {
       create: sinon.stub().resolves({ success: true, oid: 'new-record-123', isSuccessful: () => true }),
       updateMeta: sinon.stub().resolves({ success: true, oid: 'record-123', isSuccessful: () => true }),
-      getMeta: sinon.stub().resolves({ redboxOid: 'record-123', metadata: { title: 'Test' } }),
+      getMeta: sinon.stub().resolves({
+        redboxOid: 'record-123',
+        metadata: { title: 'Test' },
+        metaMetadata: { type: 'rdmp' },
+      }),
       getDeletedRecordMeta: sinon.stub().resolves({ redboxOid: 'deleted-record-123' }),
       createTombstone: sinon.stub().callsFake(async (_brand: any, oid: string, tombstone: any) => ({
         success: true,
@@ -94,7 +99,7 @@ describe('RecordsService', function () {
     };
 
     mockSearchService = {
-      index: sinon.stub(),
+      index: sinon.stub().resolves(true),
       remove: sinon.stub(),
     };
 
@@ -195,6 +200,12 @@ describe('RecordsService', function () {
       getUserWithUsername: sinon.stub().returns(of(null)),
     };
     (global as any).WorkflowStepsService = {
+      getAllForRecordType: sinon.stub().returns(
+        of([
+          { name: 'draft', starting: true, config: { form: 'default-form' } },
+          { name: 'published', config: { form: 'published-form' } },
+        ])
+      ),
       getFirst: sinon.stub().returns(
         of({
           name: 'draft',
@@ -1202,6 +1213,14 @@ describe('RecordsService', function () {
       expect(mockStorageService.removeActiveRecord.calledOnce).to.be.true;
       expect(mockStorageService.updateTombstone.calledOnce).to.be.true;
       expect(mockStorageService.delete.notCalled).to.be.true;
+      expect(mockStorageService.createTombstone.firstCall.args[3].precondition).to.deep.equal({
+        requireRevision: true,
+        expectedRevision: 1,
+      });
+      expect(mockStorageService.removeActiveRecord.firstCall.args[2].precondition).to.deep.equal({
+        requireRevision: true,
+        expectedRevision: 1,
+      });
       expect(mockSearchService.remove.calledWith('record-123')).to.be.true;
       expect(result).to.have.property('success', true);
 
@@ -1265,7 +1284,7 @@ describe('RecordsService', function () {
       });
 
     const setMode = (mode: 'strict' | 'observe' | 'last-write-wins') => {
-      mockStorageService.getCapabilities.returns({
+      mockStorageService.getCapabilities = sinon.stub().returns({
         recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
       });
       (global as any).RecordTypesService.get.returns(
@@ -1273,7 +1292,7 @@ describe('RecordsService', function () {
       );
     };
 
-    it('enforces strict, observe, and last-write-wins lifecycle preconditions before storage dispatch', async function () {
+    it('requires strict lifecycle tags while tokenless observe and last-write-wins derive an authoritative CAS', async function () {
       mockStorageService.getMeta.resolves(lifecycleRecord());
       sinon.stub(RecordsService, 'hasEditAccess').returns(true);
 
@@ -1290,17 +1309,30 @@ describe('RecordsService', function () {
       expect(strictMissing.problems[0].issues[0].code).to.equal('record-precondition-required');
       expect(mockStorageService.createTombstone.notCalled).to.equal(true);
 
-      setMode('observe');
-      const observeTokenless = await RecordsService.delete(
-        'record-123',
-        false,
-        lifecycleRecord(),
-        undefined,
-        { username: 'user-1' },
-        publicContext('delete')
-      );
-      expect(observeTokenless.outcome).to.equal('saved');
-      expect(mockStorageService.removeActiveRecord.firstCall.args[2].precondition.expectedRevision).to.equal(7);
+      for (const mode of ['observe', 'last-write-wins'] as const) {
+        mockStorageService.createTombstone.resetHistory();
+        mockStorageService.removeActiveRecord.resetHistory();
+        mockStorageService.updateTombstone.resetHistory();
+        setMode(mode);
+        const tokenless = await RecordsService.delete(
+          'record-123',
+          false,
+          lifecycleRecord(),
+          undefined,
+          { username: 'user-1' },
+          publicContext('delete')
+        );
+        expect(tokenless.outcome, mode).to.equal('saved');
+        expect(mockStorageService.createTombstone.calledOnce, mode).to.equal(true);
+        expect(mockStorageService.createTombstone.firstCall.args[3].precondition, mode).to.deep.equal({
+          requireRevision: true,
+          expectedRevision: 7,
+        });
+        expect(mockStorageService.removeActiveRecord.firstCall.args[2].precondition, mode).to.deep.equal({
+          requireRevision: true,
+          expectedRevision: 7,
+        });
+      }
 
       mockStorageService.createTombstone.resetHistory();
       setMode('last-write-wins');
@@ -1344,7 +1376,7 @@ describe('RecordsService', function () {
             lifecycleRecord(),
             undefined,
             { username: 'user-1' },
-            publicContext('delete')
+            publicContext('delete', 7)
           )
         )
       );
@@ -1381,18 +1413,93 @@ describe('RecordsService', function () {
       });
 
       const [restore, purge] = await Promise.all([
-        RecordsService.restoreRecord('record-123', { username: 'user-1' }, { id: 'brand-1' }, publicContext('restore')),
+        RecordsService.restoreRecord(
+          'record-123',
+          { username: 'user-1' },
+          { id: 'brand-1' },
+          publicContext('restore', 9)
+        ),
         RecordsService.destroyDeletedRecord(
           'record-123',
           { username: 'user-1' },
           { id: 'brand-1' },
-          publicContext('purge')
+          publicContext('purge', 9)
         ),
       ]);
 
       expect([restore.outcome, purge.outcome].sort()).to.deep.equal(['not-saved', 'saved']);
       expect(mockStorageService.createActiveRecordFromTombstone.calledOnce).to.equal(true);
       expect(mockDatastreamService.listDatastreams.notCalled).to.equal(true);
+    });
+
+    it('reloads and reauthorizes the winning state before projecting a lifecycle CAS loss', async function () {
+      setMode('observe');
+      const initial = lifecycleRecord(7);
+      const accessLost = {
+        ...lifecycleRecord(12),
+        authorization: { edit: ['other-user'], view: ['other-user'], editRoles: [], viewRoles: [] },
+      };
+      mockStorageService.getMeta.onFirstCall().resolves(initial);
+      mockStorageService.getMeta.onSecondCall().resolves(accessLost);
+      mockStorageService.createTombstone.resolves({
+        oid: 'record-123',
+        applicationState: 'not-applied',
+        nonApplicationReason: 'lifecycle-conflict',
+      });
+      const editAccess = sinon.stub(RecordsService, 'hasEditAccess');
+      editAccess.onFirstCall().returns(true);
+      editAccess.onSecondCall().returns(false);
+
+      const result = await RecordsService.delete(
+        'record-123',
+        false,
+        initial,
+        undefined,
+        { username: 'user-1' },
+        publicContext('delete', 7)
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
+      expect(result.concurrency).to.equal(undefined);
+      expect(result.metadata).to.equal(null);
+      expect(mockStorageService.getMeta.calledTwice).to.equal(true);
+      expect(mockStorageService.removeActiveRecord.notCalled).to.equal(true);
+    });
+
+    it('uses the final authoritative active reload for restore response metadata and indexing', async function () {
+      setMode('observe');
+      (global as any).RecordTypesService.get.returns(
+        of({ name: 'rdmp', hooks: {}, searchable: true, concurrentModification: { mode: 'observe' } })
+      );
+      const tombstone = {
+        redboxOid: 'record-123',
+        revision: 9,
+        brandId: 'brand-1',
+        lifecycleState: 'deleted',
+        deletedRecordMetadata: lifecycleRecord(7),
+      };
+      const finalActive = {
+        ...lifecycleRecord(12),
+        metadata: { title: 'Advanced immediately after restore' },
+      };
+      mockStorageService.getTombstone.resolves(tombstone);
+      mockStorageService.getMeta.resolves(finalActive);
+      sinon.stub(RecordsService, 'hasEditAccess').returns(true);
+      sinon.stub(RecordsService, 'hasViewAccess').returns(true);
+
+      const result = await RecordsService.restoreRecord(
+        'record-123',
+        { username: 'user-1' },
+        { id: 'brand-1' },
+        publicContext('restore', 9)
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.concurrency?.revision).to.equal(12);
+      expect(result.metadata).to.deep.equal(finalActive.metadata);
+      expect(result.data).to.deep.equal(finalActive);
+      expect(mockSearchService.index.calledOnceWithExactly('record-123', finalActive)).to.equal(true);
     });
 
     it('keeps missing, cross-brand, and access-denied lifecycle failures private', async function () {
@@ -1603,6 +1710,145 @@ describe('RecordsService', function () {
         expectedState: 'delete-pending',
         operationId: operation.operationId,
       });
+    });
+
+    it('retains recovery without lifecycle mutations when incarnation identity is unsafe', async function () {
+      const operation = {
+        operationId: '77777777-7777-4777-8777-777777777777',
+        kind: 'delete',
+        requestId: '88888888-8888-4888-8888-888888888888',
+        sourceRevision: 7,
+        targetRevision: 8,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:01.000Z',
+        attempts: 1,
+        resolution: 'direct',
+      };
+      const incarnationId = '99999999-9999-4999-8999-999999999999';
+      const differentIncarnationId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const baseTombstone = {
+        redboxOid: 'record-123',
+        revision: 8,
+        incarnationId,
+        brandId: 'brand-1',
+        lifecycleState: 'delete-pending',
+        lifecycleOperation: operation,
+        deletedRecordMetadata: { ...lifecycleRecord(7), incarnationId },
+      };
+
+      const unsafeObservations = [
+        { inputId: undefined, wrapperId: undefined, snapshotId: undefined, activeId: incarnationId },
+        { inputId: incarnationId, wrapperId: incarnationId, snapshotId: incarnationId, activeId: undefined },
+        {
+          inputId: incarnationId,
+          wrapperId: incarnationId,
+          snapshotId: incarnationId,
+          activeId: differentIncarnationId,
+        },
+        {
+          inputId: differentIncarnationId,
+          wrapperId: incarnationId,
+          snapshotId: incarnationId,
+          activeId: incarnationId,
+        },
+        {
+          inputId: incarnationId,
+          wrapperId: differentIncarnationId,
+          snapshotId: incarnationId,
+          activeId: incarnationId,
+        },
+        {
+          inputId: incarnationId,
+          wrapperId: incarnationId,
+          snapshotId: differentIncarnationId,
+          activeId: incarnationId,
+        },
+      ];
+
+      for (const observation of unsafeObservations) {
+        const input = { ...baseTombstone, incarnationId: observation.inputId };
+        const reloaded = {
+          ...baseTombstone,
+          incarnationId: observation.wrapperId,
+          deletedRecordMetadata: {
+            ...baseTombstone.deletedRecordMetadata,
+            incarnationId: observation.snapshotId,
+          },
+        };
+        mockStorageService.getTombstone.resolves(structuredClone(reloaded));
+        mockStorageService.getMeta.resolves({ ...lifecycleRecord(9), incarnationId: observation.activeId });
+        mockStorageService.updateTombstone.resetHistory();
+
+        const recovered = await RecordsService.recoverLifecycleOperation(input);
+
+        expect(recovered).to.equal('retained');
+        expect(mockStorageService.updateTombstone.calledOnce).to.equal(true);
+        expect(mockStorageService.updateTombstone.firstCall.args[2]).to.deep.include({
+          lifecycleState: 'recovery-required',
+        });
+        expect(mockStorageService.updateTombstone.firstCall.args[2].lifecycleOperation.errorCode).to.equal(
+          'lifecycle-incarnation-inconsistent'
+        );
+        expect(mockStorageService.removeActiveRecord.notCalled).to.equal(true);
+        expect(mockStorageService.removeTombstone.notCalled).to.equal(true);
+        expect(mockStorageService.createActiveRecordFromTombstone.notCalled).to.equal(true);
+      }
+    });
+
+    it('validates finalized-delete incarnation lineage before returning completed', async function () {
+      const operation = {
+        operationId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        kind: 'delete',
+        requestId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        sourceRevision: 7,
+        targetRevision: 8,
+        startedAt: '2026-08-24T00:00:00.000Z',
+        updatedAt: '2026-08-24T00:00:01.000Z',
+        attempts: 1,
+        resolution: 'direct',
+      };
+      const incarnationId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+      const differentIncarnationId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+      const finalized = {
+        redboxOid: 'record-123',
+        revision: 8,
+        brandId: 'brand-1',
+        lifecycleState: 'deleted',
+        lifecycleOperation: operation,
+        deletedRecordMetadata: lifecycleRecord(7),
+      };
+
+      for (const lineage of [
+        { tombstoneId: undefined, activeId: incarnationId },
+        { tombstoneId: incarnationId, activeId: undefined },
+        { tombstoneId: incarnationId, activeId: differentIncarnationId },
+      ]) {
+        const tombstone = {
+          ...finalized,
+          incarnationId: lineage.tombstoneId,
+          deletedRecordMetadata: { ...finalized.deletedRecordMetadata, incarnationId: lineage.tombstoneId },
+        };
+        mockStorageService.getTombstone.resolves(structuredClone(tombstone));
+        mockStorageService.getMeta.resolves({ ...lifecycleRecord(9), incarnationId: lineage.activeId });
+        mockStorageService.updateTombstone.resetHistory();
+
+        const recovered = await RecordsService.recoverLifecycleOperation(tombstone);
+
+        expect(recovered).to.equal('retained');
+        expect(mockStorageService.updateTombstone.calledOnce).to.equal(true);
+        expect(mockStorageService.updateTombstone.firstCall.args[2].lifecycleOperation.errorCode).to.equal(
+          'lifecycle-incarnation-inconsistent'
+        );
+      }
+
+      mockStorageService.getTombstone.resolves(structuredClone(finalized));
+      mockStorageService.getMeta.resolves(null);
+      mockStorageService.updateTombstone.resetHistory();
+
+      expect(await RecordsService.recoverLifecycleOperation(finalized)).to.equal('completed');
+      expect(mockStorageService.updateTombstone.notCalled).to.equal(true);
+      expect(mockStorageService.removeActiveRecord.notCalled).to.equal(true);
+      expect(mockStorageService.removeTombstone.notCalled).to.equal(true);
     });
 
     it('resumes an interruption after active removal but before tombstone finalization', async function () {
@@ -2201,9 +2447,14 @@ describe('RecordsService', function () {
           attachments: [{ attachmentId: 'attachment-1', fileId: 'staged-1', pending: true }],
         },
       };
-      const stale = await update(staleCandidate, { expectedRevision: 3 });
+      const issuedFingerprint = await RecordsService.getRecordFormFingerprint(record(), { name: 'rdmp' });
+      const stale = await update(staleCandidate, {
+        expectedRevision: 3,
+        formFingerprint: issuedFingerprint!,
+      });
       expect(stale.problems[0].issues[0].code).to.equal('record-revision-stale');
       expect(stale.concurrency).to.include({ expectedRevision: 3, currentRevision: 4 });
+      expect(stale.concurrency?.formFingerprint).to.equal(issuedFingerprint);
 
       const fingerprint = await update(record(4, 'Form drift'), {
         expectedRevision: 4,
@@ -2233,11 +2484,18 @@ describe('RecordsService', function () {
       const recordType = { name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode: 'strict' } };
 
       // What the browser form route now emits for this record.
-      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType);
+      const deliveredForm = {
+        id: 'default-form-id',
+        name: 'default-form',
+        branding: 'brand-1',
+        configuration: { componentDefinitions: [] },
+      };
+      (global as any).FormsService.getFormByName.returns(of(deliveredForm));
+      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType, undefined, deliveredForm);
       expect(issued).to.match(/^sha256:[0-9a-f]{64}$/);
 
-      // A caller-selected form object cannot change it: the service resolves
-      // the authoritative form by name, so a save recomputes the same value.
+      // Save recomputation resolves the same authoritative form identity and
+      // contract again, producing exactly the value issued at delivery.
       (global as any).FormsService.getFormByName.resetHistory();
       const result = await update(record(4, 'Fingerprinted edit'), {
         expectedRevision: 4,
@@ -2253,7 +2511,20 @@ describe('RecordsService', function () {
       ]);
     });
 
-    it('keeps the issued source-form fingerprint stable across a workflow transition', async function () {
+    it('refuses to fingerprint a delivered form outside the authoritative stored form identity', async function () {
+      const stored = record();
+      const fingerprint = await RecordsService.getRecordFormFingerprint(stored, { name: 'rdmp' }, undefined, {
+        id: 'other-id',
+        name: 'other-form',
+        branding: 'brand-1',
+        configuration: {},
+      });
+
+      expect(fingerprint).to.equal(undefined);
+      expect((global as any).FormsService.getFormByName.notCalled).to.equal(true);
+    });
+
+    it('binds target workflow mappings while keeping one fingerprint stable across a transition', async function () {
       installMode('strict');
       const stored = record();
       const recordType = { name: 'rdmp', hooks: {}, searchable: false };
@@ -2272,6 +2543,15 @@ describe('RecordsService', function () {
       expect((global as any).FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(
         true
       );
+
+      (global as any).WorkflowStepsService.getAllForRecordType.returns(
+        of([
+          { name: 'draft', starting: true, config: { form: 'default-form' } },
+          { name: 'published', config: { form: 'changed-published-form' } },
+        ])
+      );
+      const drifted = await RecordsService.getRecordFormFingerprint(stored, recordType);
+      expect(drifted).not.to.equal(current);
     });
 
     it('uses the loaded revision at a deterministic final-CAS race and runs no post-persistence work', async function () {
@@ -2793,30 +3073,48 @@ describe('RecordsService', function () {
 
     it('cleans only expired abandoned staging and keeps logs free of blob identifiers and provider errors', async function () {
       const claims = [
-        { oid: 'active-record', attachmentId: 'active-attachment', fileId: 'active-file', generation: 'old-1' },
-        { oid: 'retry-record', attachmentId: 'retry-attachment', fileId: 'retry-file', generation: 'old-2' },
+        {
+          oid: 'active-record',
+          attachmentId: 'active-attachment',
+          fileId: 'active-file',
+          generation: 'old-1',
+          token: 'cleanup-1',
+        },
+        {
+          oid: 'retry-record',
+          attachmentId: 'retry-attachment',
+          fileId: 'retry-file',
+          generation: 'old-2',
+          token: 'cleanup-2',
+        },
         {
           oid: 'abandoned-record',
           attachmentId: 'abandoned-attachment',
           fileId: 'abandoned-file',
           generation: 'old-3',
+          token: 'cleanup-3',
         },
         {
           oid: 'failed-record',
           attachmentId: 'failed-attachment',
           fileId: 'private-provider-token',
           generation: 'old-4',
+          token: 'cleanup-4',
         },
       ];
       const journal = {
         prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
         claimExpiredStagingCleanup: sinon.stub().resolves(claims),
+        beginStagingCleanup: sinon.stub().resolves(true),
+        authorizeStagingCleanup: sinon.stub().resolves(true),
         releaseStagingCleanup: sinon.stub().resolves(true),
         completeStagingCleanup: sinon.stub().resolves(true),
-        findUnresolvedByOid: sinon
+        recoverStagingCleanup: sinon.stub().resolves('retained'),
+        findUnresolvedByStagingFileId: sinon
           .stub()
-          .callsFake(async (oid: string) =>
-            oid === 'retry-record'
+          .callsFake(async (fileId: string) =>
+            fileId === 'retry-file'
               ? [{ mutationFileId: 'retry-file', generation: 'new-generation', mutationState: 'prepared' }]
               : []
           ),
@@ -2829,6 +3127,7 @@ describe('RecordsService', function () {
               metadata: {
                 nested: [{ attachmentId: 'active-attachment', fileId: 'active-file', pending: true }],
               },
+              metaMetadata: { type: 'rdmp' },
             }
           : null
       );
@@ -2850,7 +3149,15 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.notCalled).to.equal(true);
       expect(journal.releaseStagingCleanup.calledWith(claims[0], 'attachment-cleanup-reference-active')).to.equal(true);
       expect(journal.releaseStagingCleanup.calledWith(claims[1], 'attachment-cleanup-reference-active')).to.equal(true);
-      expect(journal.releaseStagingCleanup.calledWith(claims[3], 'attachment-cleanup-failed')).to.equal(true);
+      expect(journal.releaseStagingCleanup.calledWith(claims[3])).to.equal(false);
+      const abandonedScan = journal.findUnresolvedByStagingFileId
+        .getCalls()
+        .find((call: sinon.SinonSpyCall) => call.args[0] === 'abandoned-file')!;
+      expect(journal.beginStagingCleanup.getCall(2).calledBefore(abandonedScan)).to.equal(true);
+      expect(abandonedScan.calledBefore(journal.authorizeStagingCleanup.firstCall)).to.equal(true);
+      expect(
+        journal.authorizeStagingCleanup.firstCall.calledBefore(mockDatastreamService.removeStagedDatastream.firstCall)
+      ).to.equal(true);
       const cleanupLogs = JSON.stringify([
         ...mockSails.log.info.getCalls().map((call: sinon.SinonSpyCall) => call.args),
         ...mockSails.log.warn.getCalls().map((call: sinon.SinonSpyCall) => call.args),
@@ -2858,6 +3165,39 @@ describe('RecordsService', function () {
       expect(cleanupLogs).not.to.contain('private-provider-token');
       expect(cleanupLogs).not.to.contain('/private/provider/path');
       expect(cleanupLogs).not.to.contain('token=secret');
+    });
+
+    it('retains staging when storage returns a non-null malformed record snapshot', async function () {
+      const claim = {
+        oid: 'malformed-record',
+        attachmentId: 'attachment-1',
+        fileId: 'staged-file',
+        generation: 'old-generation',
+        token: 'cleanup-malformed',
+      };
+      const journal = {
+        prepareMutations: sinon.stub().resolves(),
+        findUnresolvedByOid: sinon.stub().resolves([]),
+        claimExpiredStagingCleanup: sinon.stub().resolves([claim]),
+        beginStagingCleanup: sinon.stub().resolves(true),
+        authorizeStagingCleanup: sinon.stub().resolves(true),
+        releaseStagingCleanup: sinon.stub().resolves(true),
+        completeStagingCleanup: sinon.stub().resolves(true),
+        recoverStagingCleanup: sinon.stub().resolves('retained'),
+        findUnresolvedByStagingFileId: sinon.stub().resolves([]),
+      };
+      mockSails.services.attachmentmetadataservice = journal;
+      mockStorageService.getMeta.resolves({ metadata: { partial: true } });
+      mockDatastreamService.removeStagedDatastream = sinon.stub().resolves();
+
+      const result = await RecordsService.cleanupAbandonedAttachmentStaging(new Date('2026-08-23T12:00:00.000Z'));
+
+      expect(result).to.deep.equal({ claimed: 1, removed: 0, retained: 1, failed: 0 });
+      expect(
+        journal.releaseStagingCleanup.calledOnceWithExactly(claim, 'attachment-cleanup-record-state-unknown')
+      ).to.equal(true);
+      expect(journal.findUnresolvedByStagingFileId.calledOnce).to.equal(true);
+      expect(mockDatastreamService.removeStagedDatastream.notCalled).to.equal(true);
     });
   });
 
@@ -2967,6 +3307,12 @@ describe('RecordsService', function () {
 
     it('ignores wrong and blank adapter OIDs on the bootstrap-safe create path', async function () {
       const createOid = 'bootstrap-authoritative-oid';
+      mockSearchService.index.resolves(true);
+      mockStorageService.getMeta.callsFake(async (oid: string) => ({
+        redboxOid: oid,
+        metadata: { title: 'Bootstrap record' },
+        metaMetadata: { type: 'bootstrap-record' },
+      }));
       for (const adapterOid of ['wrong-bootstrap-adapter-oid', '']) {
         mockStorageService.create.resetHistory();
         mockSearchService.index.resetHistory();
@@ -2975,6 +3321,11 @@ describe('RecordsService', function () {
           success: true,
           oid: adapterOid,
           applicationState: 'applied',
+          message: 'created',
+          data: { compatibility: 'preserved' },
+          metadata: { projection: 'preserved' },
+          totalItems: 1,
+          items: [{ compatibility: 'preserved' }],
         });
 
         const result = await RecordsService.create(
@@ -2988,12 +3339,135 @@ describe('RecordsService', function () {
 
         expect(result.outcome, JSON.stringify({ adapterOid })).to.equal('saved');
         expect(result.oid, JSON.stringify({ adapterOid })).to.equal(createOid);
+        expect(result.message, JSON.stringify({ adapterOid })).to.equal('created');
+        expect(result.data, JSON.stringify({ adapterOid })).to.deep.equal({ compatibility: 'preserved' });
+        expect(result.metadata, JSON.stringify({ adapterOid })).to.deep.equal({ projection: 'preserved' });
+        expect(result.totalItems, JSON.stringify({ adapterOid })).to.equal(1);
+        expect(result.items, JSON.stringify({ adapterOid })).to.deep.equal([{ compatibility: 'preserved' }]);
         expect(mockStorageService.create.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid })).to.equal(
           createOid
         );
-        expect(mockSearchService.index.calledWith(createOid), JSON.stringify({ adapterOid })).to.equal(true);
+        expect(
+          mockSearchService.index.calledWithExactly(
+            createOid,
+            sinon.match({ redboxOid: createOid, metadata: { title: 'Bootstrap record' } })
+          ),
+          JSON.stringify({ adapterOid })
+        ).to.equal(true);
         expect(mockQueueService.now.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid })).to.equal(createOid);
       }
+    });
+
+    it('waits for bootstrap-safe index acceptance before returning the successful response', async function () {
+      const createOid = 'bootstrap-awaited-index';
+      mockStorageService.create.resolves({
+        success: true,
+        oid: createOid,
+        applicationState: 'applied',
+        message: 'created',
+      });
+      mockStorageService.getMeta.resolves({
+        redboxOid: createOid,
+        metadata: { title: 'Bootstrap record' },
+        metaMetadata: { type: 'bootstrap-record' },
+      });
+      sinon.stub(RecordsService, 'auditRecord').resolves();
+      let resolveAcceptance!: (accepted: boolean) => void;
+      const acceptance = new Promise<boolean>(resolve => {
+        resolveAcceptance = resolve;
+      });
+      let signalIndexCalled!: () => void;
+      const indexCalled = new Promise<void>(resolve => {
+        signalIndexCalled = resolve;
+      });
+      mockSearchService.index.callsFake(() => {
+        signalIndexCalled();
+        return acceptance;
+      });
+
+      let returned = false;
+      const resultPromise = RecordsService.create(
+        { id: 'brand-1' },
+        { redboxOid: createOid, metadata: { title: 'Bootstrap record' } },
+        {},
+        { username: 'bootstrap-service' },
+        false,
+        false
+      ).then((result: any) => {
+        returned = true;
+        return result;
+      });
+
+      await indexCalled;
+      await Promise.resolve();
+      expect(returned).to.equal(false);
+      resolveAcceptance(true);
+      const result = await resultPromise;
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.message).to.equal('created');
+    });
+
+    it('reports bounded bootstrap-safe indexing warnings for false, rejection, and unavailability', async function () {
+      const createOid = 'bootstrap-index-warning';
+      mockStorageService.create.resolves({
+        success: true,
+        oid: createOid,
+        applicationState: 'applied',
+        message: 'created',
+      });
+      mockStorageService.getMeta.resolves({
+        redboxOid: createOid,
+        metadata: { title: 'Bootstrap record' },
+        metaMetadata: { type: 'bootstrap-record' },
+      });
+      sinon.stub(RecordsService, 'auditRecord').resolves();
+      const scenarios = [
+        { name: 'false acceptance', configure: () => mockSearchService.index.resolves(false), called: true },
+        {
+          name: 'rejection',
+          configure: () => mockSearchService.index.rejects(new Error('private index failure')),
+          called: true,
+        },
+        {
+          name: 'unavailable service',
+          configure: () => {
+            RecordsService.searchService = undefined;
+          },
+          called: false,
+        },
+      ];
+
+      for (const scenario of scenarios) {
+        mockStorageService.create.resetHistory();
+        mockStorageService.getMeta.resetHistory();
+        mockSearchService.index.resetHistory();
+        RecordsService.searchService = mockSearchService;
+        scenario.configure();
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { redboxOid: createOid, metadata: { title: 'Bootstrap record' } },
+          {},
+          { username: 'bootstrap-service' },
+          false,
+          false
+        );
+
+        expect(result.wasPersisted(), scenario.name).to.equal(true);
+        expect(result.outcome, scenario.name).to.equal('saved-with-warnings');
+        expect(result.message, scenario.name).to.equal('created');
+        expect(result.problems, scenario.name).to.deep.equal([
+          {
+            kind: 'processing',
+            phase: 'post-save',
+            issues: [{ code: 'record-index-failed', message: '@record-save-record-index-failed' }],
+          },
+        ]);
+        expect(mockSearchService.index.called, scenario.name).to.equal(scenario.called);
+      }
+      RecordsService.searchService = mockSearchService;
+      expect(JSON.stringify(mockSails.log.warn.args)).not.to.contain('private index failure');
     });
   });
 
@@ -3187,6 +3661,36 @@ describe('RecordsService', function () {
         ...overrides,
       });
 
+    const installAuthoritativeStorage = (initialRecord?: any) => {
+      let committedRecord = initialRecord === undefined ? undefined : structuredClone(initialRecord);
+      const storageIdentity = initialRecord
+        ? {
+            ...(initialRecord.id !== undefined ? { id: initialRecord.id } : {}),
+            ...(initialRecord._id !== undefined ? { _id: initialRecord._id } : {}),
+          }
+        : {};
+      const commit = (oid: string, candidate: any) => {
+        committedRecord = {
+          ...structuredClone(candidate),
+          redboxOid: oid,
+          ...storageIdentity,
+        };
+      };
+      mockStorageService.getMeta.callsFake(async () =>
+        committedRecord === undefined ? null : structuredClone(committedRecord)
+      );
+      mockStorageService.create.callsFake(async (_brand: unknown, candidate: any) => {
+        const oid = String(candidate.redboxOid);
+        commit(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      mockStorageService.updateMeta.callsFake(async (_brand: unknown, oid: string, candidate: any) => {
+        commit(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      return { commit };
+    };
+
     const richHtmlForm = (name = 'default-form'): FormConfigFrame => ({
       name,
       type: 'rdmp',
@@ -3285,6 +3789,61 @@ describe('RecordsService', function () {
         expect(result.problems[0].issues[0].code).to.equal('record-validation-form-resolution-failed');
       }
       expect(preHook.notCalled).to.equal(true);
+      expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('keeps tokenless browser creates compatible unless the record type opts into strict form binding', async function () {
+      const candidate = {
+        metadata: { title: 'Compatibility create' },
+        authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+      };
+      const context = createRecordSaveContext({
+        routeFamily: 'browser',
+        operation: 'create',
+        concurrency: { entityTagSupplied: false },
+      });
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+
+      for (const mode of ['last-write-wins', 'observe'] as const) {
+        mockStorageService.create.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          candidate,
+          { name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode } },
+          { username: 'user-1' },
+          true,
+          false,
+          undefined,
+          context
+        );
+
+        expect(mockStorageService.create.calledOnce, mode).to.equal(true);
+        expect(
+          result.problems.flatMap((problem: any) => problem.issues).map((issue: any) => issue.code),
+          mode
+        ).not.to.include('form-definition-changed');
+      }
+
+      mockStorageService.create.resetHistory();
+      (global as any).RecordValidationService.resolve.resetHistory();
+      const strict = await RecordsService.create(
+        { id: 'brand-1' },
+        candidate,
+        { name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode: 'strict' } },
+        { username: 'user-1' },
+        true,
+        false,
+        undefined,
+        context
+      );
+
+      expect(strict.outcome).to.equal('not-saved');
+      expect(strict.problems[0].issues[0].code).to.equal('form-definition-changed');
+      expect(strict.concurrency?.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
       expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.create.notCalled).to.equal(true);
     });
@@ -3670,6 +4229,7 @@ describe('RecordsService', function () {
         id: 'waterline-adapter-id',
         _id: 'mongo-adapter-id',
         metadata: { title: 'Explicit' },
+        metaMetadata: { type: 'rdmp' },
       });
       const recordType = {
         name: 'rdmp',
@@ -3746,6 +4306,7 @@ describe('RecordsService', function () {
       mockStorageService.getMeta.resolves({
         redboxOid: 'route-create-oid',
         metadata: { title: 'Committed route record' },
+        metaMetadata: { type: 'rdmp' },
       });
       const recordType = {
         name: 'rdmp',
@@ -3857,11 +4418,12 @@ describe('RecordsService', function () {
     it('preserves distinct storage IDs through snapshots and hooks while stripping them from update writes', async function () {
       (globalThis as any).__identitySeenAfterStorage = undefined;
       const stored = { ...baseRecord(), id: 'waterline-storage-id', _id: 'mongo-storage-id' };
-      mockStorageService.getMeta.resolves(stored);
+      const authoritativeStorage = installAuthoritativeStorage(stored);
       mockStorageService.updateMeta.callsFake(async (_brand: unknown, _oid: string, candidate: any) => {
         expect(candidate.redboxOid).to.equal('record-123');
         expect(candidate).not.to.have.property('id');
         expect(candidate).not.to.have.property('_id');
+        authoritativeStorage.commit('record-123', candidate);
         delete candidate.redboxOid;
         return { success: true, oid: 'record-123', applicationState: 'applied' };
       });
@@ -4529,6 +5091,7 @@ describe('RecordsService', function () {
 
     it('persists and dispatches the sanitized candidate returned by postSync validation', async function () {
       (globalThis as any).__sanitizedPostSyncRecord = undefined;
+      installAuthoritativeStorage();
       const { resolve } = installRichHtmlValidation('enforce');
       const recordType = {
         name: 'rdmp',
@@ -5619,6 +6182,7 @@ describe('RecordsService', function () {
 
     it('uses one complete candidate for create postSync validation, persistence, and detached hooks', async function () {
       (globalThis as any).__createPartialPostRecord = undefined;
+      installAuthoritativeStorage();
       const recordType = {
         name: 'rdmp',
         hooks: {
@@ -5670,6 +6234,7 @@ describe('RecordsService', function () {
 
     it('uses one complete candidate for targeted-create transition postSync processing', async function () {
       (globalThis as any).__createTransitionPartialPostRecord = undefined;
+      installAuthoritativeStorage();
       const targetStep = {
         name: 'published',
         config: {
@@ -5781,12 +6346,7 @@ describe('RecordsService', function () {
     it('persists the complete authoritative candidate validated after a partial postSync replacement', async function () {
       (globalThis as any).__updatePartialPostRecord = undefined;
       const stored = baseRecord();
-      mockStorageService.getMeta.resolves(stored);
-      mockStorageService.updateMeta.resolves({
-        success: true,
-        oid: 'record-123',
-        applicationState: 'applied',
-      });
+      installAuthoritativeStorage(stored);
       (global as any).RecordTypesService.get.returns(
         of({
           name: 'rdmp',
@@ -6108,15 +6668,15 @@ describe('RecordsService', function () {
     });
 
     it('requires detached post-hook writes to enter RecordsService validation independently', async function () {
-      mockStorageService.getMeta.resolves(baseRecord());
+      installAuthoritativeStorage();
       const resolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       resolve.resolves(allowResult());
       let detachedWrite: Promise<any> | undefined;
-      (globalThis as any).__detachedValidatedWrite = () => {
+      (globalThis as any).__detachedValidatedWrite = (oid: string) => {
         detachedWrite = RecordsService.updateMeta(
           { id: 'brand-1' },
-          'record-123',
-          baseRecord('Detached mutation'),
+          oid,
+          { ...baseRecord('Detached mutation'), redboxOid: oid },
           { username: 'internal-service' },
           false,
           false
@@ -6129,7 +6689,7 @@ describe('RecordsService', function () {
           { metadata: { title: 'Created' } },
           {
             name: 'rdmp',
-            hooks: { onCreate: { post: [{ function: '() => globalThis.__detachedValidatedWrite()' }] } },
+            hooks: { onCreate: { post: [{ function: '(oid) => globalThis.__detachedValidatedWrite(oid)' }] } },
             searchable: false,
           },
           { username: 'user-1' }
@@ -6677,16 +7237,44 @@ describe('RecordsService', function () {
       return { name: 'rdmp', searchable: false, hooks };
     }
 
+    let committedEffectRecord: any;
+    const commitEffectRecord = (oid: string, candidate: any) => {
+      committedEffectRecord = { ...structuredClone(candidate), redboxOid: oid };
+    };
+
+    beforeEach(function () {
+      committedEffectRecord = {
+        redboxOid: 'record-123',
+        metadata: { title: 'Test' },
+        metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+        workflow: { stage: 'draft' },
+        authorization: { edit: ['user-1'], view: [], editRoles: [], viewRoles: [] },
+      };
+      mockStorageService.getMeta.callsFake(async () => structuredClone(committedEffectRecord));
+      mockStorageService.create.callsFake(async (_brand: unknown, candidate: any) => {
+        const oid = String(candidate.redboxOid);
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      mockStorageService.updateMeta.callsFake(async (_brand: unknown, oid: string, candidate: any) => {
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+    });
+
     it('preserves create ordering and keeps execution metadata out of the business record', async function () {
       const order: string[] = [];
       (globalThis as any).__effectHookOrder = order;
-      mockStorageService.create.callsFake(async () => {
+      mockStorageService.create.callsFake(async (_brand: unknown, candidate: any) => {
         order.push('persistence');
-        return { success: true, oid: 'created-1', applicationState: 'applied' };
+        const oid = String(candidate.redboxOid);
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
       });
-      mockStorageService.updateMeta.callsFake(async () => {
+      mockStorageService.updateMeta.callsFake(async (_brand: unknown, oid: string, candidate: any) => {
         order.push('postSync-persistence');
-        return { success: true, oid: 'created-1', applicationState: 'applied' };
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
       });
       const recordType = recordTypeWithHooks({
         onCreate: {
@@ -7127,20 +7715,279 @@ describe('RecordsService', function () {
       expect((tracker.result.workspaceData as any).nested.value).to.equal('workspace');
     });
 
-    it('does not substitute fallback metadata when the committed snapshot cannot be loaded', async function () {
+    it('returns saved-with-warnings and retains committed concurrency when final reconciliation reload fails', async function () {
       mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
       const audit = sinon.stub(RecordsService, 'auditRecord');
+      const tracker = persistedTracker();
+      tracker.setProjectedMetadata({ stale: true });
+      tracker.result.data = { stale: true };
+      tracker.result.details = { stale: true };
+      tracker.result.totalItems = 1;
+      tracker.result.items = [{ stale: true }];
+      tracker.mergeLegacyHookFields({
+        workspaceOid: 'stale-workspace',
+        workspaceData: { stale: true },
+      });
+      tracker.setConcurrencyMetadata({
+        mode: 'strict',
+        revision: 8,
+        currentRevision: 8,
+        entityTag: formatRecordEntityTag('tracker-oid', 8),
+      });
+
+      const result = await (RecordsService as any).finishSave(
+        tracker,
+        {
+          id: 'user-id',
+          username: 'user-1',
+          password: 'secret-password',
+          token: 'secret-token',
+          headers: { authorization: 'Bearer secret-token' },
+        },
+        'updated',
+        true
+      );
+
+      expect(result.oid).to.equal('tracker-oid');
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.isComplete()).to.equal(false);
+      expect(result.metadata).to.equal(null);
+      expect(result.data).to.equal(undefined);
+      expect(result.details).to.equal(undefined);
+      expect(result.totalItems).to.equal(0);
+      expect(result.items).to.deep.equal([]);
+      expect(result.workspaceOid).to.equal(undefined);
+      expect(result.workspaceData).to.equal(undefined);
+      expect(result.problems[0]).to.deep.include({ kind: 'system', phase: 'response' });
+      expect(result.problems[0].issues[0].code).to.equal('record-post-commit-reconciliation-deferred');
+      expect(result.concurrency).to.deep.include({
+        mode: 'strict',
+        revision: 8,
+        currentRevision: 8,
+        entityTag: formatRecordEntityTag('tracker-oid', 8),
+      });
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(audit.notCalled).to.equal(true);
+      expect(mockQueueService.now.calledOnce).to.equal(true);
+      expect(mockQueueService.now.firstCall.args[0]).to.equal('RecordsService-ReconcilePostCommitSave');
+      expect(mockQueueService.now.firstCall.args[1]).to.deep.equal({
+        schemaVersion: 1,
+        oid: 'tracker-oid',
+        searchable: true,
+        action: 'updated',
+        actor: { id: 'user-id', username: 'user-1' },
+        resolution: 'direct',
+        committedRevision: 8,
+      });
+      expect(JSON.stringify(mockQueueService.now.firstCall.args[1])).not.to.contain('secret');
+    });
+
+    it('keeps reconciliation explicitly deferred when durable enqueue fails', async function () {
+      mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
+      mockQueueService.now.rejects(new Error('private queue failure'));
 
       const result = await (RecordsService as any).finishSave(persistedTracker(), {}, 'updated', true);
 
-      expect(result.oid).to.equal('tracker-oid');
-      expect(mockSearchService.index.notCalled).to.equal(true);
-      expect(audit.notCalled).to.equal(true);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.metadata).to.equal(null);
+      expect(result.data).to.equal(undefined);
+      expect(result.problems[0].issues[0].code).to.equal('record-post-commit-reconciliation-deferred');
+      const deferredLog = mockSails.log.warn
+        .getCalls()
+        .find((call: any) => call.args[1]?.event === 'record_post_commit_reconciliation_deferred');
+      expect(deferredLog).not.to.equal(undefined);
+      expect(deferredLog!.args[1]).to.deep.include({ handoff: 'unknown', error_type: 'Error' });
+      expect(JSON.stringify(mockSails.log.warn.args)).not.to.contain('private queue failure');
     });
 
-    it('uses the tracker oid and does not await index or audit submissions', async function () {
-      mockStorageService.getMeta.resolves({ redboxOid: 'tracker-oid', metadata: { committed: true } });
-      mockSearchService.index.callsFake(() => new Promise(() => undefined));
+    it('dispatches save-owned detached hooks only after reload and with the authoritative record', async function () {
+      const tracker = persistedTracker();
+      const operation = (RecordsService as any).registerSaveHookOperation(
+        tracker,
+        (RecordsService as any).createHookExecutionOperation('onUpdate', undefined, 'tracker-oid')
+      );
+      const dispatchPost = sinon.stub();
+      sinon.stub(RecordsService as any, 'hookCoordinator').returns({ dispatchPost });
+      sinon.stub(RecordsService, 'auditRecord');
+      const authoritative = {
+        redboxOid: 'tracker-oid',
+        revision: 9,
+        metadata: { title: 'Authoritative' },
+        metaMetadata: { type: 'rdmp' },
+      };
+      const recordType = { hooks: { onUpdate: { post: [{ function: 'async () => undefined' }] } } };
+      const user = { username: 'user-1' };
+
+      RecordsService.triggerPostSaveTriggers(
+        'tracker-oid',
+        { redboxOid: 'tracker-oid', metadata: { title: 'Stale projection' } },
+        recordType,
+        'onUpdate',
+        user,
+        operation
+      );
+      expect(dispatchPost.notCalled).to.equal(true);
+      mockStorageService.getMeta.resolves(authoritative);
+
+      await (RecordsService as any).finishSave(tracker, user, 'updated', false);
+
+      expect(dispatchPost.calledOnceWithExactly('tracker-oid', authoritative, recordType, 'onUpdate', user)).to.equal(
+        true
+      );
+    });
+
+    it('discards save-owned detached hooks when the authoritative reload fails', async function () {
+      const tracker = persistedTracker();
+      const operation = (RecordsService as any).registerSaveHookOperation(
+        tracker,
+        (RecordsService as any).createHookExecutionOperation('onUpdate', undefined, 'tracker-oid')
+      );
+      const dispatchPost = sinon.stub();
+      sinon.stub(RecordsService as any, 'hookCoordinator').returns({ dispatchPost });
+      RecordsService.triggerPostSaveTriggers(
+        'tracker-oid',
+        { redboxOid: 'tracker-oid', metadata: { title: 'Untrusted projection' } },
+        { hooks: {} },
+        'onUpdate',
+        {},
+        operation
+      );
+      mockStorageService.getMeta.rejects(new Error('snapshot unavailable'));
+
+      const result = await (RecordsService as any).finishSave(tracker, {}, 'updated', false);
+
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(dispatchPost.notCalled).to.equal(true);
+      expect(mockQueueService.now.calledOnce).to.equal(true);
+    });
+
+    for (const [description, reloaded] of [
+      ['null', null],
+      ['undefined', undefined],
+      ['an incomplete object', { metadata: { stale: true } }],
+    ] as const) {
+      it(`defers reconciliation and clears projections when the committed reload returns ${description}`, async function () {
+        mockStorageService.getMeta.resolves(reloaded);
+        const audit = sinon.stub(RecordsService, 'auditRecord');
+        const tracker = persistedTracker();
+        tracker.setProjectedMetadata({ stale: true });
+        tracker.result.data = { stale: true };
+        tracker.mergeLegacyHookFields({ workspaceData: { stale: true } });
+
+        const result = await (RecordsService as any).finishSave(tracker, {}, 'updated', true);
+
+        expect(result.outcome).to.equal('saved-with-warnings');
+        expect(result.metadata).to.equal(null);
+        expect(result.data).to.equal(undefined);
+        expect(result.workspaceData).to.equal(undefined);
+        expect(result.problems[0].issues[0].code).to.equal('record-post-commit-reconciliation-deferred');
+        expect(mockQueueService.now.calledOnce).to.equal(true);
+        expect(mockSearchService.index.notCalled).to.equal(true);
+        expect(audit.notCalled).to.equal(true);
+      });
+    }
+
+    it('reloads and reconciles indexing and audit from the bounded durable job payload', async function () {
+      mockSearchService.index.resolves(true);
+      const payload = {
+        schemaVersion: 1,
+        oid: 'tracker-oid',
+        searchable: true,
+        action: 'updated',
+        actor: {
+          id: 'user-id',
+          username: 'user-1',
+          password: 'must-not-persist',
+          arbitrary: 'must-not-persist',
+        },
+        resolution: 'direct',
+        committedRevision: 8,
+        record: { metadata: { title: 'must-not-persist' } },
+      };
+      const authoritative = {
+        redboxOid: 'tracker-oid',
+        revision: 9,
+        metadata: { title: 'Authoritative' },
+        metaMetadata: { type: 'rdmp' },
+      };
+      mockStorageService.getMeta.resolves(authoritative);
+
+      await RecordsService.reconcilePostCommitSave({ attrs: { data: payload } });
+
+      expect(mockSearchService.index.calledOnceWithExactly('tracker-oid', authoritative)).to.equal(true);
+      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+      const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(audit.record).to.equal(authoritative);
+      expect(audit.user).to.deep.equal({ id: 'user-id', username: 'user-1' });
+      expect(audit.concurrency).to.deep.equal({ revision: 9, resolution: 'direct' });
+      expect(JSON.stringify(audit.user)).not.to.contain('must-not-persist');
+    });
+
+    it('rejects reconciliation when index submission is not acknowledged', async function () {
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'tracker-oid',
+        metadata: { title: 'Authoritative' },
+        metaMetadata: { type: 'rdmp' },
+      });
+      mockSearchService.index.resolves(false);
+
+      let rejection: unknown;
+      try {
+        await RecordsService.reconcilePostCommitSave({
+          attrs: {
+            data: {
+              schemaVersion: 1,
+              oid: 'tracker-oid',
+              searchable: true,
+              action: 'updated',
+              actor: {},
+              resolution: 'direct',
+            },
+          },
+        });
+      } catch (error) {
+        rejection = error;
+      }
+
+      expect(rejection).to.be.instanceOf(Error);
+      expect(mockStorageService.createRecordAudit.notCalled).to.equal(true);
+    });
+
+    it('rejects an unusable reconciliation reload before indexing or auditing', async function () {
+      mockStorageService.getMeta.resolves({ redboxOid: 'tracker-oid', metadata: { incomplete: true } });
+
+      let rejection: unknown;
+      try {
+        await RecordsService.reconcilePostCommitSave({
+          attrs: {
+            data: {
+              schemaVersion: 1,
+              oid: 'tracker-oid',
+              searchable: true,
+              action: 'updated',
+              actor: {},
+              resolution: 'direct',
+            },
+          },
+        });
+      } catch (error) {
+        rejection = error;
+      }
+
+      expect(rejection).to.be.instanceOf(Error);
+      expect((rejection as Error).message).to.equal('Record post-commit reconciliation failed.');
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(mockStorageService.createRecordAudit.notCalled).to.equal(true);
+    });
+
+    it('uses the tracker oid and waits for index acceptance before returning', async function () {
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'tracker-oid',
+        metadata: { committed: true },
+        metaMetadata: { type: 'rdmp' },
+      });
+      mockSearchService.index.resolves(true);
       sinon.stub(RecordsService, 'auditRecord').callsFake(() => new Promise(() => undefined));
 
       const result = await (RecordsService as any).finishSave(persistedTracker(), {}, 'updated', true);
@@ -7151,6 +7998,22 @@ describe('RecordsService', function () {
       expect(
         mockSearchService.index.calledWith('tracker-oid', sinon.match({ metadata: { committed: true } }))
       ).to.equal(true);
+    });
+
+    it('reports a persisted save with warnings when index acceptance is false', async function () {
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'tracker-oid',
+        metadata: { committed: true },
+        metaMetadata: { type: 'rdmp' },
+      });
+      mockSearchService.index.resolves(false);
+      sinon.stub(RecordsService, 'auditRecord');
+
+      const result = await (RecordsService as any).finishSave(persistedTracker(), {}, 'updated', true);
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.problems.some((problem: any) => problem.issues[0]?.code === 'record-index-failed')).to.equal(true);
     });
   });
 
@@ -7267,6 +8130,10 @@ describe('RecordsService', function () {
         expect(result.concurrency).to.include({ mode, revision: 8, resolution: 'internal' });
         expect(mockSearchService.index.calledWith('internal-record-1', sinon.match({ revision: 8 }))).to.equal(true);
         expect(mockQueueService.now.calledWith('RecordAudit')).to.equal(true);
+        expect(mockQueueService.now.lastCall.args[1].concurrency).to.deep.equal({
+          revision: 8,
+          resolution: 'internal',
+        });
       });
     }
 

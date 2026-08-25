@@ -1,7 +1,7 @@
 meta {
   name: Create Datarecord for Attachments
   type: http
-  seq: 26
+  seq: 27
 }
 
 post {
@@ -117,6 +117,9 @@ tests {
   
   test("Status code is 201", function () {
       expect(res.getStatus()).to.equal(201);
+      const etag = res.getHeader("etag");
+      expect(etag).to.match(/^".+"$/);
+      bru.setEnvVar("attDataRecordEtag", etag);
   });
   
   test("Test oid exists", function () {

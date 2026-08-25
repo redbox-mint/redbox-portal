@@ -47,12 +47,81 @@ describe('FormServerSyncService', () => {
     expect(result.skipped).toEqual([{ name: 'localControl', reason: 'local-edit' }]);
   });
 
+  it('restores an edit emitted while an asynchronous control replacement is pending', async () => {
+    let releaseReplacement!: () => void;
+    const replacementGate = new Promise<void>(resolve => (releaseReplacement = resolve));
+    let firstReplacement = true;
+    class AsyncFormControl extends FormControl<string> {
+      public async setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void> {
+        if (firstReplacement) {
+          firstReplacement = false;
+          await replacementGate;
+        }
+        this.setValue(value, options);
+      }
+    }
+    const control = new AsyncFormControl('local');
+    const form = new FormGroup({ control });
+    form.markAsPristine();
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { control };
+
+    const sync = service.applyServerMetadata(
+      { control: 'local' },
+      { control: 'server' },
+      formDefMap,
+      form,
+      'preserveLocalEdits'
+    );
+    await Promise.resolve();
+    control.setValue('edited-during-replacement');
+    control.markAsDirty();
+    releaseReplacement();
+    const result = await sync;
+
+    expect(control.value).toBe('edited-during-replacement');
+    expect(control.dirty).toBeTrue();
+    expect(result.patched).toEqual([]);
+    expect(result.skipped).toEqual([{ name: 'control', reason: 'local-edit-during-sync' }]);
+  });
+
+  it('reports and preserves an edit that arrives during an explicit asynchronous replacement', async () => {
+    let releaseReplacement!: () => void;
+    const replacementGate = new Promise<void>(resolve => (releaseReplacement = resolve));
+    let firstReplacement = true;
+    class AsyncFormControl extends FormControl<string> {
+      public async setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void> {
+        if (firstReplacement) {
+          firstReplacement = false;
+          await replacementGate;
+        }
+        this.setValue(value, options);
+      }
+    }
+    const control = new AsyncFormControl('local');
+    const form = new FormGroup({ control });
+    const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
+    formDefMap.withFormControl = { control };
+
+    const sync = service.replaceWithServerMetadata({ control: 'server' }, formDefMap, form);
+    await Promise.resolve();
+    control.setValue('edited-during-replacement');
+    releaseReplacement();
+    const result = await sync;
+
+    expect(control.value).toBe('edited-during-replacement');
+    expect(control.dirty).toBeTrue();
+    expect(result.patched).toEqual([]);
+    expect(result.skipped).toEqual([{ name: 'control', reason: 'local-edit-during-sync' }]);
+  });
+
   it('reports controls that cannot be synchronized', async () => {
     const unchanged = new FormControl('same');
     const excluded = new FormControl('old');
     const failed = {
       dirty: false,
       pristine: true,
+      markAsDirty: jasmine.createSpy('markAsDirty'),
       markAsPristine: () => undefined,
       setCustomValue: () => Promise.reject(new Error('cannot set')),
     } as any;
@@ -100,6 +169,7 @@ describe('FormServerSyncService', () => {
       { name: 'excluded', reason: 'excluded' },
       { name: 'failed', reason: 'set-failed' },
     ]);
+    expect(failed.markAsDirty).toHaveBeenCalled();
   });
 
   it('does nothing when server synchronization is disabled', async () => {

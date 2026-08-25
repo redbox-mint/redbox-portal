@@ -25,6 +25,7 @@ import {
   createFormValidationGroupsChangeRequestEvent,
   FormComponentEventType,
   FormRedirectRequestedEvent,
+  FormSaveFailureEvent,
   FormSaveSuccessEvent,
   FormValidationBroadcastEvent,
 } from './form-state';
@@ -61,6 +62,19 @@ function staleSaveResponse(overrides: Partial<RecordActionResult> = {}): RecordA
     formFingerprint: 'sha256:form_1',
   };
   return Object.assign(result, overrides);
+}
+
+function retryFailureResponse(outcome: 'not-saved' | 'unknown'): RecordActionResult {
+  const result = new RecordActionResult();
+  result.success = false;
+  result.oid = 'oid-123';
+  result.outcome = outcome;
+  result.requestId = '22222222-2222-4222-8222-222222222222';
+  result.concurrencyOutcome = outcome === 'unknown' ? 'unknown' : 'none';
+  result.problems = outcome === 'unknown'
+    ? [{ kind: 'system', phase: 'response', issues: [{ code: 'save-outcome-unknown', message: 'Reload required.' }] }]
+    : [{ kind: 'validation', phase: 'validation', issues: [{ code: 'title-invalid', message: 'Fix title.', field: 'title' }] }];
+  return result;
 }
 
 function conflictSaveResponse(
@@ -436,6 +450,50 @@ describe('FormComponent', () => {
     );
   });
 
+  it('does not clear an explicit discard conflict when a required replacement fails', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    (formComponent as any).captureConflictResponse(staleSaveResponse());
+    spyOn((formComponent as any).serverSyncService, 'replaceWithServerMetadata').and.resolveTo({
+      patched: ['notes'],
+      skipped: [{ name: 'title', reason: 'set-failed' }],
+    });
+
+    expect(await formComponent.adoptLatestConflict('discard')).toBeFalse();
+    expect(formComponent.conflictState()?.status).toBe('reviewing');
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({ revision: 4 }));
+  });
+
+  it('does not let an obsolete async discard clear a replacement conflict or baseline', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    (formComponent as any).captureConflictResponse(staleSaveResponse());
+    let finishSync!: (value: { patched: string[]; skipped: never[] }) => void;
+    spyOn((formComponent as any).serverSyncService, 'replaceWithServerMetadata').and.returnValue(
+      new Promise(resolve => {
+        finishSync = resolve;
+      })
+    );
+    const adoption = formComponent.adoptLatestConflict('discard');
+    await Promise.resolve();
+    const replacementConflict = {
+      ...formComponent.conflictState()!,
+      latestRevision: 6,
+      status: 'stale' as const,
+    };
+    (formComponent as any).formConflictState.set(replacementConflict);
+    const replacementBaseline = { ...formComponent.recordBaseline()!, revision: 6 };
+    (formComponent as any).recordBaselineState.set(replacementBaseline);
+
+    finishSync({ patched: ['title'], skipped: [] });
+
+    expect(await adoption).toBeFalse();
+    expect(formComponent.conflictState()).toBe(replacementConflict);
+    expect(formComponent.recordBaseline()).toBe(replacementBaseline);
+  });
+
   it('always mounts the accessible conflict presenter, keeps controls usable, and confirms discard', async () => {
     const { fixture, formComponent } = await createConcurrencyTestForm();
     const shell = fixture.nativeElement as HTMLElement;
@@ -650,6 +708,138 @@ describe('FormComponent', () => {
     expect(formComponent.conflictState()).toBeNull();
   });
 
+  it('parks an automatic rebase when a required server control patch fails', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })
+    );
+    spyOn((formComponent as any).serverSyncService, 'applyServerMetadata').and.resolveTo({
+      patched: ['title'],
+      skipped: [{ name: 'notes', reason: 'set-failed' }],
+    });
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const successSub = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe(event => successEvents.push(event));
+
+    try {
+      await formComponent.saveForm();
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(successEvents).toEqual([]);
+      expect(formComponent.conflictState()?.status).toBe('reviewing');
+      expect(formComponent.form?.dirty).toBeTrue();
+      expect(formComponent.recordBaseline()).toEqual(
+        jasmine.objectContaining({ metadata: { title: 'Loaded title', notes: 'Loaded notes' }, revision: 4 })
+      );
+    } finally {
+      successSub.unsubscribe();
+    }
+  });
+
+  it('replans an automatic rebase without overwriting an edit made during asynchronous replacement', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })),
+      Promise.resolve(
+        persistedSaveResponse({
+          oid: 'oid-123',
+          metadata: { title: 'Mine after stale', notes: 'Latest notes' },
+          concurrency: {
+            revision: 6,
+            entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`,
+            formFingerprint: 'sha256:form_1',
+          },
+        })
+      )
+    );
+    const serverSync = (formComponent as any).serverSyncService;
+    const originalApply = serverSync.applyServerMetadata.bind(serverSync);
+    let releaseReplacement!: () => void;
+    let replacementStarted!: () => void;
+    const replacementGate = new Promise<void>(resolve => (releaseReplacement = resolve));
+    const started = new Promise<void>(resolve => (replacementStarted = resolve));
+    let firstReplacement = true;
+    spyOn(serverSync, 'applyServerMetadata').and.callFake(async (...args: any[]) => {
+      if (firstReplacement) {
+        firstReplacement = false;
+        replacementStarted();
+        await replacementGate;
+      }
+      return originalApply(...args);
+    });
+
+    const saving = formComponent.saveForm();
+    await started;
+    formComponent.form?.get('title')?.setValue('Mine after stale');
+    formComponent.form?.get('title')?.markAsDirty();
+    releaseReplacement();
+    await saving;
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(updateSpy.calls.argsFor(1)[1]).toEqual({ title: 'Mine after stale', notes: 'Latest notes' });
+    expect(formComponent.form?.value).toEqual({ title: 'Mine after stale', notes: 'Latest notes' });
+    expect(formComponent.conflictState()).toBeNull();
+  });
+
+  it('returns a rejected automatic retry to an actionable review state', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })),
+      Promise.resolve(retryFailureResponse('not-saved'))
+    );
+
+    await formComponent.saveForm();
+    fixture.detectChanges();
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(formComponent.conflictState()?.status).toBe('reviewing');
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.saveResponse()?.outcome).toBe('not-saved');
+    expect(fixture.nativeElement.textContent).toContain('Download my edits');
+  });
+
+  it('requires reload after an unknown automatic retry without leaving recovery disabled', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.returnValues(
+      Promise.resolve(staleSaveResponse({ metadata: { title: 'Loaded title', notes: 'Latest notes' } })),
+      Promise.resolve(retryFailureResponse('unknown'))
+    );
+
+    await formComponent.saveForm();
+    fixture.detectChanges();
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(formComponent.conflictState()).toEqual(
+      jasmine.objectContaining({ status: 'reviewing', retryRecovery: 'reload-required' })
+    );
+    expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({ trusted: false }));
+    expect(formComponent.recordBaseline()?.entityTag).toBeUndefined();
+    expect(formComponent.recordBaseline()?.revision).toBeUndefined();
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.manualConflictMergeAllowed).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Download my edits');
+    expect(fixture.nativeElement.textContent).toContain('Load current form');
+
+    const recoverySteps: string[] = [];
+    spyOn(formComponent, 'exportConflictLocalValues').and.callFake(() => {
+      recoverySteps.push('export');
+      (formComponent as any).conflictExportCompleted = true;
+      return '{}';
+    });
+    spyOn<any>(formComponent, 'reloadWindow').and.callFake(() => recoverySteps.push('reload'));
+    formComponent.reloadCurrentFormAfterConflict();
+    expect(recoverySteps).toEqual(['export', 'reload']);
+  });
+
   it('adopts latest without a retry when an ordinary local value is already current', async () => {
     const { formComponent } = await createConcurrencyTestForm();
     formComponent.form?.get('title')?.setValue('Mine');
@@ -657,17 +847,150 @@ describe('FormComponent', () => {
     const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
       staleSaveResponse({ metadata: { title: 'Mine', notes: 'Latest notes' } })
     );
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const successSub = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe(event => successEvents.push(event));
 
-    await formComponent.saveForm();
+    try {
+      await formComponent.saveForm();
 
-    expect(updateSpy).toHaveBeenCalledTimes(1);
-    expect(formComponent.form?.value).toEqual({ title: 'Mine', notes: 'Latest notes' });
-    expect(formComponent.form?.pristine).toBeTrue();
-    expect(formComponent.recordBaseline()).toEqual(
-      jasmine.objectContaining({ metadata: { title: 'Mine', notes: 'Latest notes' }, revision: 5 })
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(formComponent.form?.value).toEqual({ title: 'Mine', notes: 'Latest notes' });
+      expect(formComponent.form?.pristine).toBeTrue();
+      expect(formComponent.recordBaseline()).toEqual(
+        jasmine.objectContaining({ metadata: { title: 'Mine', notes: 'Latest notes' }, revision: 5 })
+      );
+      expect(formComponent.conflictState()).toBeNull();
+      expect(formComponent.saveResponse()?.concurrency?.resolution).toBe('already-current');
+      expect(successEvents).toHaveSize(1);
+      expect(successEvents[0].response?.concurrency?.resolution).toBe('already-current');
+    } finally {
+      successSub.unsubscribe();
+    }
+  });
+
+  it('keeps already-current adoption actionable when sync reports an edit during replacement', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Mine', notes: 'Latest notes' } })
     );
-    expect(formComponent.conflictState()).toBeNull();
-    expect(formComponent.saveResponse()?.concurrency?.resolution).toBe('already-current');
+    spyOn((formComponent as any).serverSyncService, 'applyServerMetadata').and.resolveTo({
+      patched: ['notes'],
+      skipped: [{ name: 'title', reason: 'local-edit-during-sync' }],
+    });
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const successSub = TestBed.inject(FormComponentEventBus)
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe(event => successEvents.push(event));
+
+    try {
+      await formComponent.saveForm();
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(successEvents).toEqual([]);
+      expect(formComponent.conflictState()?.status).toBe('reviewing');
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({ revision: 4 }));
+      expect(formComponent.saveResponse()?.concurrency?.resolution).not.toBe('already-current');
+    } finally {
+      successSub.unsubscribe();
+    }
+  });
+
+  it('does not publish save success or advance the baseline when post-save server sync requires review', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const response = persistedSaveResponse({
+      oid: 'oid-123',
+      metadata: { title: 'Server-normalized', notes: 'Loaded notes' },
+      concurrency: {
+        revision: 5,
+        entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`,
+        formFingerprint: 'sha256:form_1',
+      },
+    });
+    spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+    spyOn((formComponent as any).serverSyncService, 'applyServerMetadata').and.resolveTo({
+      patched: [],
+      skipped: [{ name: 'title', reason: 'set-failed' }],
+    });
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const failureEvents: FormSaveFailureEvent[] = [];
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const successSub = eventBus
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe(event => successEvents.push(event));
+    const failureSub = eventBus
+      .select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(event => failureEvents.push(event));
+
+    try {
+      await formComponent.saveForm();
+
+      expect(successEvents).toEqual([]);
+      expect(failureEvents).toHaveSize(1);
+      expect(failureEvents[0].error).toBe('@form-server-sync-review-message');
+      expect(formComponent.recordBaseline()).toEqual(jasmine.objectContaining({ revision: 4 }));
+      expect(formComponent.form?.dirty).toBeTrue();
+      expect(formComponent.saveResponse()).toBe(response);
+    } finally {
+      successSub.unsubscribe();
+      failureSub.unsubscribe();
+    }
+  });
+
+  it('parks an already-current conflict when an edit arrives during adoption without publishing save success', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Mine');
+    formComponent.form?.get('title')?.markAsDirty();
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(
+      staleSaveResponse({ metadata: { title: 'Mine', notes: 'Latest notes' } })
+    );
+    const serverSync = (formComponent as any).serverSyncService;
+    const originalApply = serverSync.applyServerMetadata.bind(serverSync);
+    let releaseAdoption!: () => void;
+    let adoptionStarted!: () => void;
+    const adoptionGate = new Promise<void>(resolve => (releaseAdoption = resolve));
+    const started = new Promise<void>(resolve => (adoptionStarted = resolve));
+    spyOn(serverSync, 'applyServerMetadata').and.callFake(async (...args: any[]) => {
+      adoptionStarted();
+      await adoptionGate;
+      return originalApply(...args);
+    });
+    const successEvents: FormSaveSuccessEvent[] = [];
+    const failureEvents: FormSaveFailureEvent[] = [];
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    const successSub = eventBus
+      .select$(FormComponentEventType.FORM_SAVE_SUCCESS)
+      .subscribe(event => successEvents.push(event));
+    const failureSub = eventBus
+      .select$(FormComponentEventType.FORM_SAVE_FAILURE)
+      .subscribe(event => failureEvents.push(event));
+
+    try {
+      const saving = formComponent.saveForm();
+      await started;
+      formComponent.form?.get('title')?.setValue('Edited during adoption');
+      formComponent.form?.get('title')?.markAsDirty();
+      releaseAdoption();
+      await saving;
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(successEvents).toHaveSize(0);
+      expect(failureEvents).toHaveSize(1);
+      expect(failureEvents[0].error).toBe('@form-conflict-reviewing-message');
+      expect(formComponent.conflictState()?.status).toBe('reviewing');
+      expect(formComponent.form?.dirty).toBeTrue();
+      expect(formComponent.form?.get('title')?.value).toBe('Edited during adoption');
+      expect(formComponent.saveResponse()?.outcome).toBe('not-saved');
+      expect(formComponent.saveResponse()?.concurrency?.resolution).not.toBe('already-current');
+    } finally {
+      successSub.unsubscribe();
+      failureSub.unsubscribe();
+    }
   });
 
   it('hands a second race to review without a third automatic request, then resubmits a manual resolution', async () => {
@@ -865,6 +1188,7 @@ describe('FormComponent', () => {
     const reloadSteps: string[] = [];
     spyOn(formComponent, 'exportConflictLocalValues').and.callFake(() => {
       reloadSteps.push('export');
+      (formComponent as any).conflictExportCompleted = true;
       return JSON.stringify(exported);
     });
     const reloadSpy = spyOn<any>(formComponent, 'reloadWindow').and.callFake(() => reloadSteps.push('reload'));
@@ -948,6 +1272,7 @@ describe('FormComponent', () => {
     const steps: string[] = [];
     spyOn(formComponent, 'exportConflictLocalValues').and.callFake(() => {
       steps.push('export');
+      (formComponent as any).conflictExportCompleted = true;
       return '{}';
     });
     spyOn<any>(formComponent, 'reloadWindow').and.callFake(() => steps.push('reload'));
@@ -971,11 +1296,14 @@ describe('FormComponent', () => {
     expect(firstEvent.preventDefault).toHaveBeenCalledTimes(1);
     expect(firstEvent.returnValue).toBe('Leaving will discard unresolved changes.');
 
-    spyOn<any>(formComponent, 'reloadWindow');
+    const reloadSpy = spyOn<any>(formComponent, 'reloadWindow');
     formComponent.reloadCurrentFormAfterConflict();
+    expect(reloadSpy).not.toHaveBeenCalled();
     const explicitReloadEvent = { preventDefault: jasmine.createSpy('preventDefault'), returnValue: '' } as any;
-    expect(formComponent.protectUnresolvedConflictNavigation(explicitReloadEvent)).toBeUndefined();
-    expect(explicitReloadEvent.preventDefault).not.toHaveBeenCalled();
+    expect(formComponent.protectUnresolvedConflictNavigation(explicitReloadEvent)).toBe(
+      'Leaving will discard unresolved changes.'
+    );
+    expect(explicitReloadEvent.preventDefault).toHaveBeenCalledTimes(1);
 
     const laterEvent = { preventDefault: jasmine.createSpy('preventDefault'), returnValue: '' } as any;
     expect(formComponent.protectUnresolvedConflictNavigation(laterEvent)).toBe(
@@ -983,6 +1311,30 @@ describe('FormComponent', () => {
     );
     expect(localStorageSpy).not.toHaveBeenCalled();
     expect(sessionStorageSpy).not.toHaveBeenCalled();
+  });
+
+  it('exposes the decision required by a host-registered Angular route guard', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    (formComponent as any).captureConflictResponse(conflictSaveResponse('form-changed'));
+    const confirmSpy = spyOn(window, 'confirm').and.returnValue(false);
+
+    expect(formComponent.canDeactivate()).toBeFalse();
+    expect(confirmSpy).toHaveBeenCalledOnceWith('Leaving will discard unresolved changes.');
+    expect(formComponent.conflictState()).not.toBeNull();
+
+    confirmSpy.and.returnValue(true);
+    expect(formComponent.canDeactivate()).toBeTrue();
+    expect(formComponent.conflictState()).not.toBeNull();
+  });
+
+  it('cleans one-shot navigation state on destroy', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+
+    (formComponent as any).allowConflictNavigationOnce = true;
+    fixture.destroy();
+    expect((formComponent as any).allowConflictNavigationOnce).toBeFalse();
+    expect((formComponent as any).window).toBeNull();
   });
 
   it('parses request params on startup and exposes accessors', () => {

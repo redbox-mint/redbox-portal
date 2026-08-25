@@ -17,6 +17,7 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
   let secondService: any;
   let records: any;
   let tombstones: any;
+  let identities: any;
 
   before(async function () {
     client = new MongoClient(mongoUrl!, { serverSelectionTimeoutMS: 5_000 });
@@ -25,15 +26,19 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     const db = client.db(databaseName);
     records = db.collection('record');
     tombstones = db.collection('deletedrecord');
+    identities = db.collection('recordidentity');
     await records.createIndex({ redboxOid: 1 }, { unique: true });
     await tombstones.createIndex({ redboxOid: 1 }, { unique: true });
+    await identities.createIndex({ redboxOid: 1 }, { unique: true });
 
     firstService = new Services.MongoStorageService();
     secondService = new Services.MongoStorageService();
     firstService.recordCol = records;
     firstService.deletedRecordCol = tombstones;
+    firstService.recordIdentityCol = identities;
     secondService.recordCol = records;
     secondService.deletedRecordCol = tombstones;
+    secondService.recordIdentityCol = identities;
   });
 
   after(async function () {
@@ -100,6 +105,72 @@ describeMongo('MongoStorageService shared Mongo integration', function () {
     expect(results.filter(result => result.nonApplicationReason === 'stale-revision')).to.have.length(1);
     const stored = await records.findOne({ redboxOid: oid });
     expect(stored.revision).to.equal(1);
+  });
+
+  it('gives one durable incarnation to simultaneous explicit-OID creates', async function () {
+    const oid = `explicit-${randomUUID()}`;
+    const candidate = {
+      redboxOid: oid,
+      revision: 99,
+      metaMetadata: { brandId: 'brand-1', type: 'rdmp' },
+      metadata: { title: 'created' },
+      workflow: { stage: 'draft' },
+      authorization: {},
+    };
+
+    const results = await Promise.all([
+      firstService.create({ id: 'brand-1' }, { ...candidate }, { name: 'rdmp' }),
+      secondService.create({ id: 'brand-1' }, { ...candidate }, { name: 'rdmp' }),
+    ]);
+
+    expect(results.filter(result => result.applicationState === 'applied')).to.have.length(1);
+    expect(results.filter(result => result.nonApplicationReason === 'lifecycle-conflict')).to.have.length(1);
+    expect(await records.countDocuments({ redboxOid: oid })).to.equal(1);
+    expect(await identities.countDocuments({ redboxOid: oid })).to.equal(1);
+    const active = await records.findOne({ redboxOid: oid });
+    const owner = await identities.findOne({ redboxOid: oid });
+    expect(active).to.include({ revision: 0, incarnationId: owner.incarnationId });
+  });
+
+  it('serializes explicit creation against a deleted incarnation and keeps ownership after purge', async function () {
+    const oid = `deleted-create-${randomUUID()}`;
+    const operation = lifecycleOperation('purge', 5, 6);
+    await tombstones.insertOne({
+      redboxOid: oid,
+      revision: 6,
+      brandId: 'brand-1',
+      lifecycleState: 'purge-pending',
+      lifecycleOperation: operation,
+      deletedRecordMetadata: {
+        ...activeRecord(oid),
+        revision: undefined,
+      },
+    });
+    const createCandidate = {
+      ...activeRecord(oid),
+      revision: 91,
+      metadata: { title: 'must not recreate' },
+    };
+
+    const [createResult, purgeResult] = await Promise.all([
+      firstService.create({ id: 'brand-1' }, createCandidate, { name: 'rdmp' }),
+      secondService.removeTombstone({ id: 'brand-1' }, oid, {
+        precondition: { expectedRevision: 6, requireRevision: true },
+        lifecycle: { expectedState: 'purge-pending', operationId: operation.operationId },
+      }),
+    ]);
+
+    expect(createResult).to.include({
+      applicationState: 'not-applied',
+      nonApplicationReason: 'lifecycle-conflict',
+    });
+    expect(purgeResult.applicationState).to.equal('applied');
+    expect(await tombstones.findOne({ redboxOid: oid })).to.equal(null);
+    expect(await identities.countDocuments({ redboxOid: oid })).to.equal(1);
+
+    const recreate = await firstService.create({ id: 'brand-1' }, createCandidate, { name: 'rdmp' });
+    expect(recreate).to.include({ applicationState: 'not-applied', nonApplicationReason: 'lifecycle-conflict' });
+    expect(await records.findOne({ redboxOid: oid })).to.equal(null);
   });
 
   it('has one winner for an active update/removal race', async function () {

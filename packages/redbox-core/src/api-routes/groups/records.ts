@@ -599,6 +599,7 @@ export const addDataStreamsRoute = apiRoute(
   'addDataStreams',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: { content: { 'multipart/form-data': { schema: datastreamUploadBody } } },
     files: {
       attachmentFields: {
@@ -613,7 +614,12 @@ export const addDataStreamsRoute = apiRoute(
     tags: ['Records'],
     summary: 'Upload record datastreams',
     responses: {
-      200: responseField(datastreamUploadResponseSchema, 'Datastreams uploaded'),
+      200: recordResponseWithTag(datastreamUploadResponseSchema, 'Datastreams uploaded'),
+      400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid upload or concurrency request'),
+      403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record edit authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+      ...recordConcurrencyFailureResponses,
+      500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Upload or persistence failure'),
     },
   }
 );
@@ -643,6 +649,8 @@ export const getDataStreamRoute = apiRoute(
           },
         },
       },
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record or datastream not found in the active brand'),
     },
   }
 );
@@ -656,7 +664,11 @@ export const listDatastreamsRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'List datastreams',
-    responses: { 200: responseField(listApiResponseSchema(datastreamSummarySchema), 'Datastream list') },
+    responses: {
+      200: responseField(listApiResponseSchema(datastreamSummarySchema), 'Datastream list'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+    },
   }
 );
 

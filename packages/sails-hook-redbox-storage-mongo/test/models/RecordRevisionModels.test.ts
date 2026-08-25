@@ -7,6 +7,8 @@ import {
 } from '@researchdatabox/redbox-core';
 import { RecordWLDef } from '../../src/models/Record';
 import { DeletedRecordWLDef } from '../../src/models/DeletedRecord';
+import { RecordAuditWLDef } from '../../src/models/RecordAudit';
+import { storage } from '../../src/config/storage';
 
 type HookName = 'beforeCreate' | 'beforeUpdate';
 
@@ -24,6 +26,8 @@ function runHook(definition: any, hook: HookName, values: Record<string, unknown
 
 describe('record revision Waterline models', function () {
   it('declares a constrained server-owned active revision', function () {
+    expect(RecordWLDef.attributes.redboxOid).to.include({ unique: true });
+    expect(storage.mongodb.indices).to.deep.include({ key: { redboxOid: 1 }, unique: true });
     expect(RecordWLDef.attributes.revision).to.include({
       type: 'number',
       defaultsTo: INITIAL_RECORD_REVISION,
@@ -31,8 +35,19 @@ describe('record revision Waterline models', function () {
     expect((RecordWLDef.attributes.revision.custom as (value: unknown) => boolean)(0)).to.equal(true);
     expect((RecordWLDef.attributes.revision.custom as (value: unknown) => boolean)(-1)).to.equal(false);
 
-    expect(runHook(RecordWLDef, 'beforeCreate', { revision: 999 }).revision).to.equal(INITIAL_RECORD_REVISION);
-    expect(runHook(RecordWLDef, 'beforeUpdate', { revision: 999, metadata: {} })).to.deep.equal({ metadata: {} });
+    expect(
+      runHook(RecordWLDef, 'beforeCreate', {
+        revision: 999,
+        incarnationId: '11111111-1111-4111-8111-111111111111',
+      })
+    ).to.deep.equal({ revision: INITIAL_RECORD_REVISION });
+    expect(
+      runHook(RecordWLDef, 'beforeUpdate', {
+        revision: 999,
+        incarnationId: '11111111-1111-4111-8111-111111111111',
+        metadata: {},
+      })
+    ).to.deep.equal({ metadata: {} });
     expect(runHook(RecordWLDef, 'beforeCreate', { lifecycleOperationId: 'client-owned' })).not.to.have.property(
       'lifecycleOperationId'
     );
@@ -49,6 +64,7 @@ describe('record revision Waterline models', function () {
     expect(
       runHook(DeletedRecordWLDef, 'beforeCreate', {
         revision: 12,
+        incarnationId: '11111111-1111-4111-8111-111111111111',
         deletedRecordMetadata: { redboxOid: 'oid-1', revision: 11 },
       })
     ).to.deep.include({
@@ -59,6 +75,7 @@ describe('record revision Waterline models', function () {
     expect(
       runHook(DeletedRecordWLDef, 'beforeUpdate', {
         revision: 12,
+        incarnationId: '11111111-1111-4111-8111-111111111111',
         lifecycleState: 'restore-pending',
         deletedRecordMetadata: { redboxOid: 'oid-1', revision: 11 },
       })
@@ -66,6 +83,10 @@ describe('record revision Waterline models', function () {
       lifecycleState: 'restore-pending',
       deletedRecordMetadata: { redboxOid: 'oid-1' },
     });
+  });
+
+  it('persists bounded mutation concurrency coordinates in protected audit rows', function () {
+    expect(RecordAuditWLDef.attributes.concurrency).to.include({ type: 'json' });
   });
 
   it('accepts only bounded request-linked monotonic lifecycle operations', function () {

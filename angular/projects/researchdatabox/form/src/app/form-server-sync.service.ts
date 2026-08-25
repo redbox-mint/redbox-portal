@@ -6,10 +6,18 @@ import { FormComponentsMap, FormService } from './form.service';
 import { setControlValue } from './form-state/custom-set-value.control';
 
 export type ServerSyncMode = 'always' | 'preserveLocalEdits' | 'never';
+export type ServerSyncSkipReason =
+  | 'not-in-server'
+  | 'no-control'
+  | 'excluded'
+  | 'unchanged'
+  | 'local-edit'
+  | 'local-edit-during-sync'
+  | 'set-failed';
 
 export interface ServerSyncResult {
   patched: string[];
-  skipped: Array<{ name: string; reason: string }>;
+  skipped: Array<{ name: string; reason: ServerSyncSkipReason }>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -86,8 +94,30 @@ export class FormServerSyncService {
         continue;
       }
 
+      let concurrentEditVersion = 0;
+      let concurrentEditValue: unknown;
+      const concurrentEditSubscription = control.valueChanges.subscribe(value => {
+        concurrentEditVersion += 1;
+        concurrentEditValue = structuredClone(value);
+      });
       try {
         await setControlValue(control, server, { emitEvent: false });
+        if (concurrentEditVersion > 0) {
+          // A custom control may await while replacing its value. If the user
+          // edits that same control during the await, the late server write
+          // must not win. Keep restoring the newest emitted edit until one
+          // replacement completes without a newer user value arriving.
+          let restoredVersion = 0;
+          while (restoredVersion !== concurrentEditVersion) {
+            const versionToRestore = concurrentEditVersion;
+            const valueToRestore = structuredClone(concurrentEditValue);
+            await setControlValue(control, valueToRestore, { emitEvent: false });
+            restoredVersion = versionToRestore;
+          }
+          control.markAsDirty();
+          result.skipped.push({ name, reason: 'local-edit-during-sync' });
+          continue;
+        }
         // Only a control whose value was accepted from the server is clean.
         // A control skipped above may have been edited while the request was
         // in flight and must remain dirty for a subsequent save/navigation
@@ -95,8 +125,11 @@ export class FormServerSyncService {
         control.markAsPristine();
         result.patched.push(name);
       } catch (error) {
+        control.markAsDirty();
         result.skipped.push({ name, reason: 'set-failed' });
         this.logger.warn(`Failed to sync server value for form control '${name}'.`, error);
+      } finally {
+        concurrentEditSubscription?.unsubscribe();
       }
     }
 

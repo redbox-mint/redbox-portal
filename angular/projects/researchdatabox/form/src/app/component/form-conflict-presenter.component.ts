@@ -1,7 +1,11 @@
 import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { ConfirmationDialogService } from '../confirmation-dialog.service';
 import { FormConflictState } from '../form-concurrency-state';
-import { FormConflictChoice, FormConflictReviewProjection } from '../form-conflict-review.service';
+import {
+  FormConflictChoice,
+  FormConflictReviewItem,
+  FormConflictReviewProjection,
+} from '../form-conflict-review.service';
 
 @Component({
   selector: 'redbox-form-conflict-presenter',
@@ -88,45 +92,67 @@ import { FormConflictChoice, FormConflictReviewProjection } from '../form-confli
                         {{ '@form-conflict-whole-repeatable-help' | i18next }}
                       </p>
                     }
+                    <!--
+                      A radio's accessible name is its label content, which may
+                      only be phrasing content. The rendered value list is
+                      therefore a sibling of the label and is attached as a
+                      description instead of being read as part of the name.
+                    -->
                     <div class="rb-form-conflict-review__choices">
-                      <label
+                      <div
                         class="rb-form-conflict-review__choice"
                         [class.rb-form-conflict-review__choice--selected]="choiceFor(item.id) === 'mine'"
                       >
-                        <span class="rb-form-conflict-review__choice-heading">
+                        <label class="rb-form-conflict-review__choice-heading">
                           <input
                             type="radio"
                             [name]="controlId(itemIndex, 'choice')"
                             [checked]="choiceFor(item.id) === 'mine'"
-                            [attr.aria-describedby]="item.wholeValue ? controlId(itemIndex, 'help') : null"
+                            [attr.aria-describedby]="choiceDescribedBy(itemIndex, 'mine', item)"
                             [disabled]="resolving || !canSubmitResolution"
                             (change)="choose(item.id, 'mine')"
                           />
                           <strong>{{ '@form-conflict-mine' | i18next }}</strong>
-                        </span>
-                        <ng-container
-                          *ngTemplateOutlet="renderedValue; context: { $implicit: item.mine }"
-                        ></ng-container>
-                      </label>
-                      <label
+                          <span class="rb-form-conflict-review__value-summary">{{ item.mine.summary }}</span>
+                        </label>
+                        @if (item.mine.details.length > 0) {
+                          <ul
+                            class="rb-form-conflict-review__value-details"
+                            [id]="controlId(itemIndex, 'mine-details')"
+                          >
+                            @for (detail of item.mine.details; track $index) {
+                              <li>{{ detail }}</li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                      <div
                         class="rb-form-conflict-review__choice"
                         [class.rb-form-conflict-review__choice--selected]="choiceFor(item.id) === 'latest'"
                       >
-                        <span class="rb-form-conflict-review__choice-heading">
+                        <label class="rb-form-conflict-review__choice-heading">
                           <input
                             type="radio"
                             [name]="controlId(itemIndex, 'choice')"
                             [checked]="choiceFor(item.id) === 'latest'"
-                            [attr.aria-describedby]="item.wholeValue ? controlId(itemIndex, 'help') : null"
+                            [attr.aria-describedby]="choiceDescribedBy(itemIndex, 'latest', item)"
                             [disabled]="resolving || !canSubmitResolution"
                             (change)="choose(item.id, 'latest')"
                           />
                           <strong>{{ '@form-conflict-latest' | i18next }}</strong>
-                        </span>
-                        <ng-container
-                          *ngTemplateOutlet="renderedValue; context: { $implicit: item.latest }"
-                        ></ng-container>
-                      </label>
+                          <span class="rb-form-conflict-review__value-summary">{{ item.latest.summary }}</span>
+                        </label>
+                        @if (item.latest.details.length > 0) {
+                          <ul
+                            class="rb-form-conflict-review__value-details"
+                            [id]="controlId(itemIndex, 'latest-details')"
+                          >
+                            @for (detail of item.latest.details; track $index) {
+                              <li>{{ detail }}</li>
+                            }
+                          </ul>
+                        }
+                      </div>
                     </div>
                   </fieldset>
                 }
@@ -156,17 +182,6 @@ import { FormConflictChoice, FormConflictReviewProjection } from '../form-confli
         }
       }
     </section>
-
-    <ng-template #renderedValue let-value>
-      <span class="rb-form-conflict-review__value-summary">{{ value.summary }}</span>
-      @if (value.details.length > 0) {
-        <ul class="rb-form-conflict-review__value-details">
-          @for (detail of value.details; track $index) {
-            <li>{{ detail }}</li>
-          }
-        </ul>
-      }
-    </ng-template>
   `,
   standalone: false,
 })
@@ -355,5 +370,20 @@ export class FormConflictPresenterComponent implements OnChanges {
 
   public controlId(itemIndex: number, suffix: string): string {
     return `rb-form-conflict-${this.instanceId}-${itemIndex}-${suffix}`;
+  }
+
+  /**
+   * Descriptions for one choice: the whole-repeatable help when present, and
+   * the rendered value list, which cannot live inside the radio's label.
+   */
+  public choiceDescribedBy(itemIndex: number, side: FormConflictChoice, item: FormConflictReviewItem): string | null {
+    const ids: string[] = [];
+    if (item.wholeValue) {
+      ids.push(this.controlId(itemIndex, 'help'));
+    }
+    if ((side === 'mine' ? item.mine : item.latest).details.length > 0) {
+      ids.push(this.controlId(itemIndex, `${side}-details`));
+    }
+    return ids.length > 0 ? ids.join(' ') : null;
   }
 }
