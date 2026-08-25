@@ -19,7 +19,12 @@ import type {
 import { joinRecordContractPointer } from './json-pointer';
 
 export type CoreRecordContractComponentClassification =
-  'scalar' | 'object' | 'array' | 'specialized' | 'container' | 'non-persisting';
+  | 'scalar'
+  | 'object'
+  | 'array'
+  | 'specialized'
+  | 'container'
+  | 'non-persisting';
 
 /** Closed inventory used by startup/CI coverage checks. */
 export const CORE_RECORD_CONTRACT_COMPONENT_INVENTORY = {
@@ -447,10 +452,7 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
       const itemName = element.name || ANONYMOUS_REPEATABLE_ITEM_NAME;
       const namedElement = element.name ? element : { ...element, name: itemName };
       const wrapper = await context.compileChildren([namedElement], context.pointer);
-      const item =
-        Object.keys(wrapper.properties).length === 1
-          ? (wrapper.properties[itemName] ?? wrapper)
-          : wrapper;
+      const item = Object.keys(wrapper.properties).length === 1 ? (wrapper.properties[itemName] ?? wrapper) : wrapper;
       return { kind: 'node', node: array(item, nullableFromDefault(context.component)) };
     }),
     nonPersisting('ReusableComponent'),

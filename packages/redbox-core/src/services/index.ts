@@ -57,10 +57,7 @@ import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
 import * as RvaImportServiceModule from './RvaImportService';
 import * as StorageManagerServiceModule from './StorageManagerService';
 import * as StandardDatastreamServiceModule from './StandardDatastreamService';
-import {
-  RecordContractContributorRegistry,
-  type RecordContractContributorDiscoveryState,
-} from '../record-contract';
+import { RecordContractContributorRegistry, type RecordContractContributorDiscoveryState } from '../record-contract';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
@@ -238,10 +235,14 @@ export const ServiceExports = {
     );
   },
   get IntegrationAuditService() {
-    return getOrCreateService('IntegrationAuditService', () => new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports());
+    return getOrCreateService('IntegrationAuditService', () =>
+      new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports()
+    );
   },
   get IntegrationNotificationService() {
-    return getOrCreateService('IntegrationNotificationService', () => new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports());
+    return getOrCreateService('IntegrationNotificationService', () =>
+      new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports()
+    );
   },
   get FormRecordConsistencyService() {
     return getOrCreateService('FormRecordConsistencyService', () =>
