@@ -1,0 +1,32 @@
+meta {
+  name: Reject Stale RDMP Metadata Update
+  type: http
+  seq: 34
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/{{dmpOid}}?merge=true
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  If-Match: {{dmpInitialEtag}}
+}
+
+body:json {
+  {
+    "title": "This stale value must not persist"
+  }
+}
+
+tests {
+  test("A stale exact tag is rejected without overwriting", function () {
+    expect(res.getStatus()).to.equal(412);
+    expect(JSON.stringify(res.getBody())).to.include("record-revision-stale");
+    expect(res.getHeader("etag")).to.equal(bru.getEnvVar("dmpAuthoritativeEtag"));
+  });
+}

@@ -123,6 +123,43 @@ describe('FormConflictPresenterComponent', () => {
     expect(resolutionSpy).toHaveBeenCalledOnceWith({ 's-contributors': 'mine' });
   });
 
+  it('keeps repeatable detail lists outside radio labels and links them as unique descriptions', () => {
+    const firstFixture = TestBed.createComponent(FormConflictPresenterComponent);
+    firstFixture.componentInstance.conflict = conflict;
+    firstFixture.componentInstance.review = review;
+    firstFixture.componentInstance.mergeAllowed = true;
+    firstFixture.componentInstance.ngOnChanges();
+    firstFixture.detectChanges();
+
+    const radios = Array.from(
+      firstFixture.nativeElement.querySelectorAll<HTMLInputElement>('.rb-form-conflict-review input[type="radio"]')
+    );
+    expect(radios).toHaveSize(2);
+    expect(radios[0].name).toBe(radios[1].name);
+    for (const radio of radios) {
+      const label = radio.closest('label') as HTMLLabelElement;
+      expect(label).not.toBeNull();
+      expect(label.querySelector('ul')).toBeNull();
+      expect(label.textContent).toContain(radio === radios[0] ? 'Mine' : 'Latest');
+      const describedBy = (radio.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+      expect(describedBy.length).toBeGreaterThan(0);
+      for (const id of describedBy) {
+        const description = firstFixture.nativeElement.querySelector(`#${id}`) as HTMLElement;
+        expect(description).not.toBeNull();
+        expect(label.contains(description)).toBeFalse();
+      }
+    }
+
+    const secondFixture = TestBed.createComponent(FormConflictPresenterComponent);
+    secondFixture.componentInstance.conflict = conflict;
+    secondFixture.componentInstance.review = review;
+    secondFixture.detectChanges();
+    const secondRadio = secondFixture.nativeElement.querySelector(
+      '.rb-form-conflict-review input[type="radio"]'
+    ) as HTMLInputElement;
+    expect(secondRadio.name).not.toBe(radios[0].name);
+  });
+
   it('emits discard only after the shared confirmation dialog is accepted', async () => {
     const fixture = TestBed.createComponent(FormConflictPresenterComponent);
     const component = fixture.componentInstance;

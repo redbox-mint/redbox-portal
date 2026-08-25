@@ -46,6 +46,7 @@ export namespace Services {
       'updateDatastream',
       'removeDatastream',
       'removeStagedDatastream',
+      'stagingDatastreamExists',
       'addDatastream',
       'addAndRemoveDatastreams',
       'getDatastream',
@@ -887,6 +888,22 @@ export namespace Services {
       }
       await this.safelyRecordAccess({ oid, fileId, storageKey: destKey, action: 'remove' });
       return { success: true };
+    }
+
+    /** Check only staging objects; committed primary blobs are never addressed. */
+    public async stagingDatastreamExists(fileId: string): Promise<boolean> {
+      const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
+      if (!normalizedFileId) throw new Error('Invalid staged attachment identity.');
+      const stagingDisk = StorageManagerService.stagingDisk();
+      if (await stagingDisk.exists(normalizedFileId)) return true;
+      for (const prefix of this.tusBasePrefixes(normalizedFileId)) {
+        if (await stagingDisk.exists(this.tusInfoKey(prefix))) return true;
+      }
+      for (const prefix of this.tusPartPrefixes(normalizedFileId)) {
+        const listed = await stagingDisk.listAll(prefix, { recursive: true });
+        for (const _entry of listed.objects) return true;
+      }
+      return false;
     }
 
     /** Delete only staging objects; committed primary blobs are never addressed. */

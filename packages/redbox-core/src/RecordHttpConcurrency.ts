@@ -127,6 +127,15 @@ export function parsePublicRecordConcurrencyRequest(
   if (suppliedFingerprint !== undefined && formFingerprint === undefined) {
     return { valid: false, code: 'record-form-fingerprint-invalid', header: RECORD_HTTP_HEADERS.formFingerprint };
   }
+  // Once an update caller adopts the exact entity-tag protocol it must also
+  // bind the generated form contract. A truly old update with neither header
+  // is allowed through so strict policy can produce the specified review-only
+  // 428 response. Create has no prior representation; a missing fingerprint
+  // is therefore left to the record-type policy in RecordsService so default
+  // last-write-wins/observe callers remain compatible.
+  if (options.formBacked && !formFingerprint && parsedTag.valid) {
+    return { valid: false, code: 'record-form-fingerprint-invalid', header: RECORD_HTTP_HEADERS.formFingerprint };
+  }
 
   const suppliedResolution = trimmedHeader(readHeader(headers, RECORD_HTTP_HEADERS.resolution));
   const resolution = isPublicMutationResolution(suppliedResolution) ? suppliedResolution : undefined;

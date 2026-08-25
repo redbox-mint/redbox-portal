@@ -72,6 +72,7 @@ import {
   readSaveRequestId,
   recordSaveDisplayErrors,
   recordSaveFailureStatus,
+  recordSaveProblem,
   RecordSaveResponse,
 } from '../../RecordSaveResponse';
 import type { RecordConcurrencyContext, RecordSaveContext, RecordSaveOperation } from '../../RecordSaveResponse';
@@ -265,13 +266,28 @@ export namespace Controllers {
         return true;
       }
       result.setProjectedMetadata(null);
-      const latest = await this.requireRecordInBrand(oid, brand);
+      let latest = await this.requireRecordInBrand(oid, brand);
       if (!latest) {
-        return true;
+        try {
+          latest = await this.RecordsService.getDeletedRecordMeta(oid, brand);
+        } catch {
+          latest = null;
+        }
+        if (!latest) return false;
       }
       if (!this.hasViewAccess(brand, user, latest)) {
         result.setConcurrencyMetadata(undefined);
         return false;
+      }
+      if (!this.hasEditAccess(brand, user, latest)) {
+        result.problems = [
+          recordSaveProblem(
+            'authorization',
+            'response',
+            '@record-save-record-validation-edit-unauthorized',
+            'record-validation-edit-unauthorized'
+          ),
+        ];
       }
       const representation = recordRepresentationConcurrency(latest);
       result.setProjectedMetadata(latest.metadata);
@@ -357,6 +373,16 @@ export namespace Controllers {
       return this.RecordsService.hasViewAccess(brand, currentUser, roles, record);
     }
 
+    private hasEditAccess(
+      brand: BrandingModel,
+      user: globalThis.Record<string, unknown> | undefined,
+      record: globalThis.Record<string, unknown>
+    ): boolean {
+      const currentUser = user ?? {};
+      const roles = (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[];
+      return this.RecordsService.hasEditAccess(brand, currentUser, roles, record);
+    }
+
     private async filterRelationshipGraphByAccess(
       brand: BrandingModel,
       user: globalThis.Record<string, unknown> | undefined,
@@ -439,8 +465,20 @@ export namespace Controllers {
       return this.RecordsService.hasEditAccess(brand, user, roles, deletedRecord);
     }
 
-    private sendLifecycleResult(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
-      if (!result.wasPersisted()) return this.sendSaveFailure(req, res, result, detail);
+    private async sendLifecycleResult(
+      req: Sails.Req,
+      res: Sails.Res,
+      brand: BrandingModel,
+      oid: string,
+      result: RecordSaveResponse,
+      detail: string
+    ) {
+      if (!result.wasPersisted()) {
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+          return this.sendPrivateSaveFailure(req, res);
+        }
+        return this.sendSaveFailure(req, res, result, detail);
+      }
       return this.sendResp(req, res, {
         data: result.data ?? result,
         meta: { ...result },
@@ -1051,10 +1089,22 @@ export namespace Controllers {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const datastreamId = validated.params.datastreamId as string;
-      sails.log.debug(`getDataStream ${oid} ${datastreamId}`);
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       try {
+        // Attachment bytes follow the same current-authorization boundary as
+        // the record metadata they belong to. The bundled datastream adapter
+        // ignores the request context, so this is the only view-access check.
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+          return this.sendResp(req, res, { status: 403 });
+        }
         let found: globalThis.Record<string, unknown> | null = null;
-        const attachments = await this.RecordsService.getAttachments(oid);
+        const attachments = await this.RecordsService.getAttachments(oid, undefined, {
+          username: String(req.user?.username ?? '') || undefined,
+        });
         for (const attachment of attachments) {
           if (attachment.fileId == datastreamId) {
             found = attachment;
@@ -1081,18 +1131,17 @@ export namespace Controllers {
           res.set('Content-Length', size!);
         }
 
-        sails.log.verbose('fileName ' + fileName);
         res.attachment(fileName as string);
-        sails.log.info(`Returning datastream observable of ${oid}: ${fileName}, datastreamId: ${datastreamId}`);
 
         try {
           const response = await this.DatastreamService.getDatastream(oid, datastreamId, {
             username: String(req.user?.username ?? '') || undefined,
           });
           if (response.readstream) {
-            response.readstream.on('error', (error: unknown) => {
-              // Handle the error here
-              sails.log.error('Error reading stream:', error);
+            response.readstream.on('error', () => {
+              sails.log.error('record_datastream_stream_failed', {
+                event: 'record_datastream_stream_failed',
+              });
               return;
             });
             response.readstream.pipe(res);
@@ -1102,15 +1151,15 @@ export namespace Controllers {
             res.end(buffer, 'binary');
           }
           return;
-        } catch (error) {
+        } catch {
           return this.sendResp(req, res, {
-            errors: [this.asError(error)],
+            status: 500,
             displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
           });
         }
-      } catch (error) {
+      } catch {
         return this.sendResp(req, res, {
-          errors: [this.asError(error)],
+          status: 500,
           displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
         });
       }
@@ -1119,6 +1168,23 @@ export namespace Controllers {
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const saveRequest = this.mutationSaveContext(req, oid, 'update');
+      if (!saveRequest.valid) {
+        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+      }
+
+      // Reject an inaccessible target before accepting bytes into staging.
+      // RecordsService repeats this authorization against its authoritative
+      // snapshot and owns the final compare-and-set below.
+      const record = await this.requireRecordInBrand(oid, brand);
+      if (!record) {
+        return this.sendResp(req, res, { status: 404 });
+      }
+      if (!this.hasEditAccess(brand, req.user ?? {}, record)) {
+        return this.sendPrivateSaveFailure(req, res);
+      }
+
       const self = this;
       const attachmentsDir =
         sails.config.record.attachments.file?.directory ?? sails.config.record.attachments.stageDir;
@@ -1154,18 +1220,34 @@ export namespace Controllers {
             },
           },
           async function (error: unknown, UploadedFileMetadata: unknown[]) {
+            const uploadedFiles = Array.isArray(UploadedFileMetadata)
+              ? (UploadedFileMetadata as globalThis.Record<string, unknown>[])
+              : [];
+            const stagedFileIds = uploadedFiles
+              .map(descriptor => {
+                const stagedPath = typeof descriptor.fd === 'string' ? descriptor.fd : '';
+                return stagedPath ? path.relative(attachmentsDir, stagedPath).trim() : '';
+              })
+              .filter(Boolean);
+            const cleanupStagedFiles = async () => {
+              if (!self.DatastreamService.removeStagedDatastream) return;
+              await Promise.allSettled(
+                stagedFileIds.map(fileId => self.DatastreamService.removeStagedDatastream!(fileId))
+              );
+            };
             if (error) {
+              await cleanupStagedFiles();
               return self.sendResp(req, res, {
                 errors: [self.asError(error)],
                 displayErrors: [{ detail: `There was a problem adding datastream(s) to: ${attachmentsDir}` }],
                 headers: self.getNoCacheHeaders(),
               });
             }
-            const uploadedFiles = Array.isArray(UploadedFileMetadata) ? UploadedFileMetadata : [];
             const fileValidation = validateApiRouteFiles(addDataStreamsRoute, {
-              attachmentFields: uploadedFiles as globalThis.Record<string, unknown>[],
+              attachmentFields: uploadedFiles,
             });
             if (!fileValidation.valid) {
+              await cleanupStagedFiles();
               return self.sendResp(req, res, {
                 status: 400,
                 displayErrors: fileValidation.issues.map(i => ({ title: i.path, detail: i.message })),
@@ -1175,39 +1257,99 @@ export namespace Controllers {
             const validated = getValidatedApiRequest(req);
             req.apiRequest = {
               ...validated,
-              files: { attachmentFields: uploadedFiles as globalThis.Record<string, unknown>[] },
+              files: { attachmentFields: uploadedFiles },
             };
             sails.log.verbose(UploadedFileMetadata);
             sails.log.verbose('Succesfully uploaded all file metadata. Sending locations downstream....');
-            const fileIds: Datastream[] = (UploadedFileMetadata as globalThis.Record<string, unknown>[]).map(
-              function (nextDescriptor) {
-                return new Datastream({
-                  fileId: path.relative(attachmentsDir, nextDescriptor.fd as string),
-                  name: nextDescriptor.filename as string,
-                  mimeType: nextDescriptor.type as string,
-                  size: nextDescriptor.size as number,
-                });
-              }
-            );
+            const fileIds: Datastream[] = uploadedFiles.map(function (nextDescriptor) {
+              return new Datastream({
+                fileId: path.relative(attachmentsDir, nextDescriptor.fd as string),
+                name: nextDescriptor.filename as string,
+                mimeType: nextDescriptor.type as string,
+                size: nextDescriptor.size as number,
+              });
+            });
             sails.log.verbose('files to send upstream are:');
             sails.log.verbose(_.toString(fileIds));
             const defaultErrorMessage = 'Error sending datastreams upstream.';
+            let saveResult: RecordSaveResponse | undefined;
             try {
+              // A standalone upload still mutates the protected record
+              // aggregate. Reload after the potentially long byte transfer so
+              // a tokenless compatible request cannot write an old metadata
+              // snapshot. The original request context remains unchanged so a
+              // supplied stale If-Match is still rejected by RecordsService.
+              const authoritativeRecord = await self.requireRecordInBrand(oid, brand);
+              if (!authoritativeRecord) {
+                await cleanupStagedFiles();
+                return self.sendResp(req, res, { status: 404 });
+              }
+              if (!self.hasEditAccess(brand, req.user ?? {}, authoritativeRecord)) {
+                await cleanupStagedFiles();
+                return self.sendPrivateSaveFailure(req, res);
+              }
+              saveResult = await self.RecordsService.updateMeta(
+                brand,
+                oid,
+                authoritativeRecord,
+                req.user ?? {},
+                false,
+                false,
+                {},
+                authoritativeRecord.metadata,
+                saveRequest.context
+              );
+              if (!saveResult.wasPersisted()) {
+                await cleanupStagedFiles();
+                if (!(await self.projectSafeSaveFailure(brand, req.user ?? {}, oid, saveResult))) {
+                  return self.sendPrivateSaveFailure(req, res);
+                }
+                return self.sendSaveFailure(req, res, saveResult, defaultErrorMessage);
+              }
+
               const result: DatastreamServiceResponse = await self.DatastreamService.addDatastreams(oid, fileIds);
 
               sails.log.verbose(`Done with updating streams and returning response...`);
               if (result.isSuccessful()) {
                 sails.log.verbose('Presuming success...');
                 _.merge(result, { fileIds: fileIds });
-                return self.sendResp(req, res, { data: { message: result } });
-              } else {
+                // Finalization has copied/promoted the primary blobs. Remove
+                // only their adapter-owned staging objects and sidecars.
+                await cleanupStagedFiles();
                 return self.sendResp(req, res, {
-                  status: 500,
+                  data: { message: result },
+                  meta: { ...saveResult },
+                  headers: recordSaveResultHeaders(saveResult),
+                });
+              } else {
+                saveResult.addProblem({
+                  kind: 'processing',
+                  phase: 'attachments',
+                  issues: [{ code: 'datastream-finalization-failed', message: '@datastream-finalization-failed' }],
+                });
+                await cleanupStagedFiles();
+                return self.sendResp(req, res, {
+                  data: { message: result },
                   displayErrors: [{ detail: defaultErrorMessage + ' ' + result.message }],
-                  headers: self.getNoCacheHeaders(),
+                  meta: { ...saveResult },
+                  headers: { ...self.getNoCacheHeaders(), ...recordSaveResultHeaders(saveResult) },
                 });
               }
             } catch (error) {
+              await cleanupStagedFiles();
+              if (saveResult?.wasPersisted()) {
+                saveResult.addProblem({
+                  kind: 'processing',
+                  phase: 'attachments',
+                  issues: [{ code: 'datastream-finalization-failed', message: '@datastream-finalization-failed' }],
+                });
+                return self.sendResp(req, res, {
+                  data: { message: defaultErrorMessage },
+                  displayErrors: [{ detail: defaultErrorMessage }],
+                  meta: { ...saveResult },
+                  headers: { ...self.getNoCacheHeaders(), ...recordSaveResultHeaders(saveResult) },
+                });
+              }
               return self.sendResp(req, res, {
                 errors: [self.asError(error)],
                 displayErrors: [{ detail: defaultErrorMessage }],
@@ -1509,7 +1651,7 @@ export namespace Controllers {
       }
 
       const response = await this.RecordsService.restoreRecord(oid, user, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, response, `Restore attempt failed for OID: ${oid}`);
+      return this.sendLifecycleResult(req, res, brand, oid, response, `Restore attempt failed for OID: ${oid}`);
     }
 
     public async deleteRecord(req: Sails.Req, res: Sails.Res) {
@@ -1548,7 +1690,7 @@ export namespace Controllers {
         user,
         saveRequest.context
       );
-      return this.sendLifecycleResult(req, res, response, `Delete attempt failed for OID: ${oid}`);
+      return this.sendLifecycleResult(req, res, brand, oid, response, `Delete attempt failed for OID: ${oid}`);
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
@@ -1568,7 +1710,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { status: 404 });
       }
       const response = await this.RecordsService.destroyDeletedRecord(oid, user, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, response, `Destroy attempt failed for OID: ${oid}`);
+      return this.sendLifecycleResult(req, res, brand, oid, response, `Destroy attempt failed for OID: ${oid}`);
     }
 
     public async transitionWorkflow(req: Sails.Req, res: Sails.Res) {
@@ -1675,20 +1817,29 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       try {
+        // Listing a record's attachments discloses record content, so it uses
+        // the same current-authorization boundary as the metadata read.
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+          return this.sendResp(req, res, { status: 403 });
+        }
         const attachments = await this.RecordsService.getAttachments(oid, undefined, {
           username: String(req.user?.username ?? '') || undefined,
         });
-        sails.log.verbose(JSON.stringify(attachments));
         const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(attachments);
         response.summary.page = 1;
         response.records = attachments;
         return this.sendResp(req, res, { data: response });
-      } catch (err) {
+      } catch {
         return this.sendResp(req, res, {
-          errors: [this.asError(err)],
-          displayErrors: [{ detail: `Failed to list attachments for ${oid}, pleas.` }],
+          status: 500,
+          displayErrors: [{ detail: 'Failed to list attachments.' }],
         });
       }
     }
@@ -2001,7 +2152,32 @@ export namespace Controllers {
             (record['metaMetadata'] as unknown as globalThis.Record<string, unknown>)['sourceMetadata'] =
               '' + sourceMetadata;
           }
-          await this.RecordsService.updateMeta(brand, oid, record, user);
+          const response = await this.RecordsService.updateMetaInternal({
+            actor: { kind: 'service', id: 'RecordController.updateHarvestRecord' },
+            authorization: { kind: 'service' },
+            mutationClass: 'full-record',
+            brand,
+            oid,
+            record,
+            user,
+          });
+
+          if (!response.wasPersisted()) {
+            const problemCodes = _.uniq(
+              response.problems.flatMap(problem =>
+                problem.issues
+                  .map(issue => issue.code)
+                  .filter((code): code is string => typeof code === 'string' && code.length > 0)
+              )
+            );
+            return new APIHarvestResponse(
+              harvestId,
+              oid,
+              false,
+              `Record update was not persisted: ${response.outcome}`,
+              problemCodes.join(',')
+            );
+          }
 
           let updateMessage = 'Record updated successfully';
           if (shouldMerge) {

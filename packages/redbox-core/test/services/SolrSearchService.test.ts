@@ -344,39 +344,46 @@ describe('SolrSearchService', function() {
   });
 
   describe('index', function() {
-    it('should queue indexing job', function() {
+    it('should acknowledge a queued indexing job', async function() {
       const data: any = {
         metadata: { title: 'Test Record' },
         metaMetadata: { brandId: 'brand-1' }
       };
       
-      SolrSearchService.index('record-123', data);
+      expect(await SolrSearchService.index('record-123', data)).to.equal(true);
       
       expect(mockQueueService.now.called).to.be.true;
       expect(mockQueueService.now.firstCall.args[0]).to.equal('SolrAddOrUpdate');
     });
 
-    it('should set id on data before queueing', function() {
+    it('should set id on data before queueing', async function() {
       const data: any = {
         metadata: { title: 'Test' }
       };
       
-      SolrSearchService.index('my-oid', data);
+      await SolrSearchService.index('my-oid', data);
       
       expect(data.id).to.equal('my-oid');
     });
 
-    it('should run inline when queue service is unavailable', function() {
+    it('should run inline when queue service is unavailable', async function() {
       const solrAddOrUpdateStub = sinon.stub(SolrSearchService, 'solrAddOrUpdate').resolves();
       SolrSearchService.queueService = undefined;
       const data: any = {
         metadata: { title: 'Inline Test' }
       };
 
-      SolrSearchService.index('inline-oid', data);
+      expect(await SolrSearchService.index('inline-oid', data)).to.equal(true);
 
       expect(solrAddOrUpdateStub.calledOnce).to.be.true;
       expect(solrAddOrUpdateStub.firstCall.args[0].attrs.data.id).to.equal('inline-oid');
+    });
+
+    it('does not acknowledge a failed queue submission', async function() {
+      mockQueueService.now.rejects(new Error('queue unavailable'));
+
+      expect(await SolrSearchService.index('record-123', { metadata: {} })).to.equal(false);
+      expect(mockSails.log.error.called).to.equal(true);
     });
   });
 

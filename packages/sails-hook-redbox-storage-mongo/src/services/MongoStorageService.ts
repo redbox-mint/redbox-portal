@@ -85,6 +85,7 @@ type MongoRecordDocument = Document;
 type WaterlineModel = Model;
 type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
 type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
+const RECORD_IDENTITY_COLLECTION = 'recordidentity';
 
 declare const Record: WaterlineModel;
 declare const DeletedRecord: WaterlineModel;
@@ -114,7 +115,9 @@ export namespace Services {
     db!: Db;
     recordCol!: Collection<MongoRecordDocument>;
     deletedRecordCol!: Collection<MongoRecordDocument>;
+    recordIdentityCol!: Collection<MongoRecordDocument>;
     private _readyHookRegistered = false;
+    private _requiredIndicesReady = false;
 
     protected _exportedMethods: string[] = [
       'init',
@@ -213,6 +216,21 @@ export namespace Services {
       return this.getNativeCollection(DeletedRecord, 'deletedRecordCol');
     }
 
+    private getNativeRecordIdentityCollection(): Collection<MongoRecordDocument> | undefined {
+      if (this.recordIdentityCol) return this.recordIdentityCol;
+      try {
+        const manager = (this.db ?? (Record.getDatastore()?.manager as Db | undefined)) as Db | undefined;
+        if (manager && typeof manager.collection === 'function') {
+          this.db = manager;
+          this.recordIdentityCol = manager.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
+          return this.recordIdentityCol;
+        }
+      } catch {
+        // Capability discovery is deliberately non-throwing and fail-closed.
+      }
+      return undefined;
+    }
+
     private supportsAtomicMutation(
       collection: Collection<MongoRecordDocument> | undefined
     ): collection is Collection<MongoRecordDocument> {
@@ -225,8 +243,12 @@ export namespace Services {
 
     public getCapabilities(): StorageServiceCapabilities {
       const supported =
+        this._requiredIndicesReady &&
         this.supportsAtomicMutation(this.getNativeRecordCollection()) &&
         this.supportsAtomicMutation(this.getNativeTombstoneCollection()) &&
+        typeof this.getNativeRecordIdentityCollection()?.findOne === 'function' &&
+        typeof this.getNativeRecordIdentityCollection()?.insertOne === 'function' &&
+        typeof this.getNativeRecordIdentityCollection()?.deleteOne === 'function' &&
         typeof this.getNativeRecordCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.find === 'function';
@@ -324,6 +346,121 @@ export namespace Services {
 
     private isDuplicateKeyError(error: unknown): boolean {
       return Boolean(error && typeof error === 'object' && Number((error as JsonMap).code) === 11000);
+    }
+
+    /**
+     * Whether the driver fact proves that `insertOne` did not commit. Local
+     * argument rejection and a server command error without retry/write-
+     * concern ambiguity are definitive. Network, selection, timeout, and
+     * write-concern failures retain the reservation for later reconciliation.
+     */
+    private isCertifiedCreateNonApplication(error: unknown): boolean {
+      if (error instanceof mongodb.MongoInvalidArgumentError) return true;
+      if (!(error instanceof mongodb.MongoServerError) || error instanceof mongodb.MongoWriteConcernError) {
+        return false;
+      }
+      const serverError = error as mongodb.MongoServerError & {
+        writeConcernError?: unknown;
+        hasErrorLabel?: (label: string) => boolean;
+      };
+      if (serverError.writeConcernError) return false;
+      if (serverError.hasErrorLabel?.('RetryableWriteError')) return false;
+      if (serverError.hasErrorLabel?.('UnknownTransactionCommitResult')) return false;
+      return true;
+    }
+
+    private storedIncarnationId(record: JsonMap | null | undefined): string | undefined {
+      const value = String(record?.incarnationId ?? '').trim();
+      return isCanonicalSaveRequestId(value) ? value : undefined;
+    }
+
+    /**
+     * Establish the permanent OID owner for a state that already exists. The
+     * ledger outlives active records and tombstones, so purge cannot reopen a
+     * revision-zero alias. Duplicate insertion is an ordinary concurrent
+     * winner; its durable identity is re-read and adopted.
+     */
+    private async ensureRecordIdentity(oid: string, source?: JsonMap | null): Promise<string | undefined> {
+      const identities = this.getNativeRecordIdentityCollection();
+      if (typeof identities?.findOne !== 'function' || typeof identities?.insertOne !== 'function') return undefined;
+      const existing = this.mutationDocument(await identities.findOne({ redboxOid: oid }));
+      if (existing === undefined) return undefined;
+      const existingId = this.storedIncarnationId(existing);
+      if (existing !== null) return existingId;
+
+      const incarnationId = this.storedIncarnationId(source) ?? randomUUID();
+      try {
+        await identities.insertOne({ redboxOid: oid, incarnationId, createdAt: new Date().toISOString() });
+        return incarnationId;
+      } catch (error) {
+        if (!this.isDuplicateKeyError(error)) return undefined;
+        const winner = this.mutationDocument(await identities.findOne({ redboxOid: oid }));
+        return winner === undefined ? undefined : this.storedIncarnationId(winner);
+      }
+    }
+
+    /** Claim a never-before-used OID. Any durable owner or active/tombstone state is a collision. */
+    private async claimNewRecordIdentity(
+      oid: string
+    ): Promise<{ incarnationId: string } | { collision: true } | undefined> {
+      const identities = this.getNativeRecordIdentityCollection();
+      if (
+        typeof identities?.findOne !== 'function' ||
+        typeof identities?.insertOne !== 'function' ||
+        typeof identities?.deleteOne !== 'function'
+      )
+        return undefined;
+      const existingOwner = this.mutationDocument(await identities.findOne({ redboxOid: oid }));
+      if (existingOwner === undefined) return undefined;
+      if (existingOwner !== null) return { collision: true };
+
+      // Legacy state may predate the ledger. Seed its owner before returning a
+      // collision so a concurrent purge cannot make the OID reusable.
+      const current = await this.readCurrentState(oid);
+      if (!current) return undefined;
+      const existingState = current.active ?? current.tombstone;
+      if (existingState) {
+        return (await this.ensureRecordIdentity(oid, existingState)) ? { collision: true } : undefined;
+      }
+
+      const incarnationId = randomUUID();
+      try {
+        await identities.insertOne({ redboxOid: oid, incarnationId, createdAt: new Date().toISOString() });
+        return { incarnationId };
+      } catch (error) {
+        return this.isDuplicateKeyError(error) ? { collision: true } : undefined;
+      }
+    }
+
+    /**
+     * Compensate an ownership claim this call made but never used.
+     *
+     * The ledger is otherwise permanent, and deliberately so: a purge must not
+     * let an old revision-zero tag alias a recreated incarnation. Releasing is
+     * only safe — and only necessary — for a row that still carries the
+     * incarnation this call minted and that no active record or tombstone
+     * refers to. That is exactly the state a create leaves behind when its
+     * insert never reached the collection, and without this the caller-selected
+     * OID would be permanently unusable with no operator recovery path. While
+     * this row exists its unique index prevents another ordinary create from
+     * becoming owner; the exact incarnation selector also cannot remove a row
+     * replaced during an operator recovery race.
+     */
+    private async releaseUnusedRecordIdentity(oid: string, incarnationId: string): Promise<void> {
+      const identities = this.getNativeRecordIdentityCollection();
+      if (typeof identities?.deleteOne !== 'function') return;
+      try {
+        const current = await this.readCurrentState(oid);
+        // Unobservable or still-owned state keeps the claim: a permanent row is
+        // always safer than one released while something still refers to it.
+        if (!current || current.active || current.tombstone) return;
+        await identities.deleteOne({ redboxOid: oid, incarnationId });
+      } catch {
+        sails.log.error(`${this.logHeader} record_identity_reservation_release_failed`, {
+          event: 'record_identity_reservation_release_failed',
+          outcome: 'unknown',
+        });
+      }
     }
 
     /**
@@ -501,7 +638,12 @@ export namespace Services {
 
     public init(): void {
       this.registerReadyHook();
-      void this.performInit();
+      void this.performInit().catch(() => {
+        sails.log.error(`${this.logHeader} storage_initialization_failed`, {
+          event: 'storage_initialization_failed',
+          outcome: 'not-ready',
+        });
+      });
     }
 
     private registerReadyHook(): void {
@@ -511,7 +653,12 @@ export namespace Services {
       this._readyHookRegistered = true;
       const that = this;
       this.registerSailsHook('on', 'ready', function () {
-        void that.performInit();
+        void that.performInit().catch(() => {
+          sails.log.error(`${that.logHeader} storage_initialization_failed`, {
+            event: 'storage_initialization_failed',
+            outcome: 'not-ready',
+          });
+        });
       });
     }
 
@@ -537,7 +684,13 @@ export namespace Services {
     }
 
     private async performInit(): Promise<void> {
-      if (this.recordCol && this.deletedRecordCol && this.gridFsBucket) {
+      if (
+        this._requiredIndicesReady &&
+        this.recordCol &&
+        this.deletedRecordCol &&
+        this.recordIdentityCol &&
+        this.gridFsBucket
+      ) {
         return;
       }
       this.db = Record.getDatastore().manager as Db;
@@ -551,35 +704,37 @@ export namespace Services {
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
       this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
+      this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
       await this.createIndices(this.db);
+      this._requiredIndicesReady = true;
       sails.emit('hook:redbox:storage:ready');
       sails.emit('hook:redbox:datastream:ready');
       sails.log.verbose(`${this.logHeader} Ready!`);
     }
 
-    private async createIndices(db: Db) {
+    private async createIndices(db: Db): Promise<void> {
       sails.log.verbose(`${this.logHeader} Existing indices:`);
       const currentIndices = await db.collection<MongoRecordDocument>(Record.tableName).indexes();
       sails.log.verbose(JSON.stringify(currentIndices));
-      try {
-        const storageConfig = sails.config.storage as {
-          mongodb?: {
-            indices?: mongodb.IndexDescription[];
-            deletedRecordIndices?: mongodb.IndexDescription[];
-          };
+      const storageConfig = sails.config.storage as {
+        mongodb?: {
+          indices?: mongodb.IndexDescription[];
+          deletedRecordIndices?: mongodb.IndexDescription[];
+          recordIdentityIndices?: mongodb.IndexDescription[];
         };
-        const indices = storageConfig.mongodb?.indices ?? [];
-        if (_.size(indices) > 0) {
-          await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
-        }
-        const deletedRecordIndices = storageConfig.mongodb?.deletedRecordIndices ?? [];
-        if (_.size(deletedRecordIndices) > 0) {
-          await db.collection<MongoRecordDocument>(DeletedRecord.tableName).createIndexes(deletedRecordIndices);
-        }
-      } catch (err) {
-        sails.log.error(`Failed to create indices:`);
-        sails.log.error(JSON.stringify(err));
+      };
+      const indices = storageConfig.mongodb?.indices ?? [];
+      if (_.size(indices) > 0) {
+        await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
       }
+      const deletedRecordIndices = storageConfig.mongodb?.deletedRecordIndices ?? [];
+      if (_.size(deletedRecordIndices) > 0) {
+        await db.collection<MongoRecordDocument>(DeletedRecord.tableName).createIndexes(deletedRecordIndices);
+      }
+      const recordIdentityIndices = storageConfig.mongodb?.recordIdentityIndices ?? [
+        { key: { redboxOid: 1 }, unique: true },
+      ];
+      await db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION).createIndexes(recordIdentityIndices);
     }
 
     public async create(
@@ -608,23 +763,63 @@ export namespace Services {
       serverRecord.revision = INITIAL_RECORD_REVISION;
       _.unset(serverRecord, '_id');
       _.unset(serverRecord, 'id');
+      _.unset(serverRecord, 'incarnationId');
+      _.unset(serverRecord, 'lifecycleOperationId');
+
+      const records = this.getNativeRecordCollection();
+      if (typeof records?.insertOne !== 'function') {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic active record creation is unavailable');
+      }
+
+      let identity: { incarnationId: string } | { collision: true } | undefined;
+      try {
+        identity = await this.claimNewRecordIdentity(String(record.redboxOid));
+      } catch {
+        return this.unknownMutation(response, 'Durable record identity ownership could not be confirmed');
+      }
+      if (!identity) {
+        return this.notApplied(response, 'capability-unavailable', 'Durable record identity ownership is unavailable');
+      }
+      if ('collision' in identity) {
+        return this.notApplied(response, 'lifecycle-conflict', 'The record OID already has a durable incarnation');
+      }
+      const now = new Date().toISOString();
+      const claimedIncarnationId = identity.incarnationId;
+      serverRecord.incarnationId = claimedIncarnationId;
+      serverRecord.dateCreated = serverRecord.dateCreated ?? now;
+      serverRecord.lastSaveDate = now;
 
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
-        const deferred = Record.create(serverRecord) as unknown as {
-          fetch?: () => Promise<JsonMap>;
-          then: Promise<JsonMap>['then'];
-        };
-        const created = typeof deferred.fetch === 'function' ? await deferred.fetch() : await deferred;
-        this.committed(response, { ...serverRecord, ...(created ?? {}), revision: INITIAL_RECORD_REVISION }, 'updated');
+        await records.insertOne(serverRecord);
+        this.committed(response, serverRecord, 'updated');
         sails.log.verbose(`${this.logHeader} Record created...`);
       } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to create Record:`);
-        sails.log.error(JSON.stringify(err));
-        this.unknownMutation(response, this.getErrorMessage(err));
+        if (this.isDuplicateKeyError(err)) {
+          // Another writer owns this OID's state, so its ledger row is correct.
+          return this.notApplied(response, 'lifecycle-conflict', 'The record OID already exists');
+        }
+        sails.log.error(`${this.logHeader} record_create_outcome_unknown`, {
+          event: 'record_create_outcome_unknown',
+          error_type: err instanceof Error ? err.name : 'unknown',
+        });
+        let observed: { active: JsonMap | null; tombstone: JsonMap | null } | undefined;
+        try {
+          observed = await this.readCurrentState(String(record.redboxOid));
+        } catch {
+          observed = undefined;
+        }
+        if (observed?.active && this.storedIncarnationId(observed.active) === claimedIncarnationId) {
+          return this.committed(response, observed.active, 'updated');
+        }
+        // A dispatched/ambiguous failure may still materialize later, so only
+        // a definitive driver rejection is eligible for compensating release.
+        if (this.isCertifiedCreateNonApplication(err)) {
+          await this.releaseUnusedRecordIdentity(String(record.redboxOid), claimedIncarnationId);
+        }
+        this.unknownMutation(response, 'Record creation could not be confirmed');
         return response;
       }
-      sails.log.verbose(JSON.stringify(response));
       sails.log.verbose(`${this.logHeader} create() -> End`);
       return response;
     }
@@ -660,6 +855,7 @@ export namespace Services {
         'id',
         'redboxOid',
         'revision',
+        'incarnationId',
         'lifecycleOperationId',
         'dateCreated',
         'lastSaveDate',
@@ -765,6 +961,22 @@ export namespace Services {
         return this.notApplied(response, 'capability-unavailable', 'Atomic active record removal is unavailable');
       }
 
+      let current: JsonMap | null | undefined;
+      try {
+        current = this.mutationDocument(
+          await collection.findOne(this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision))
+        );
+        if (current && !(await this.ensureRecordIdentity(oid, current))) {
+          return this.notApplied(
+            response,
+            'capability-unavailable',
+            'Durable record identity ownership is unavailable'
+          );
+        }
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+
       return this.commitConditionalMutation({
         response,
         kind: 'removed',
@@ -828,6 +1040,22 @@ export namespace Services {
         return this.notApplied(response, 'lifecycle-conflict', 'Tombstone record snapshot is invalid');
       }
       _.unset(candidate, 'deletedRecordMetadata.revision');
+      let incarnationId: string | undefined;
+      try {
+        incarnationId = await this.ensureRecordIdentity(oid, candidate.deletedRecordMetadata as JsonMap);
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+      if (!incarnationId) {
+        return this.notApplied(response, 'capability-unavailable', 'Durable record identity ownership is unavailable');
+      }
+      const suppliedIncarnationId =
+        this.storedIncarnationId(candidate) ?? this.storedIncarnationId(candidate.deletedRecordMetadata as JsonMap);
+      if (suppliedIncarnationId && suppliedIncarnationId !== incarnationId) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone incarnation identity diverged');
+      }
+      candidate.incarnationId = incarnationId;
+      (candidate.deletedRecordMetadata as JsonMap).incarnationId = incarnationId;
 
       try {
         await collection.insertOne(candidate);
@@ -882,7 +1110,8 @@ export namespace Services {
       }
 
       const candidate = _.cloneDeep(record);
-      for (const field of ['_id', 'id', 'redboxOid', 'revision', 'dateDeleted']) _.unset(candidate, field);
+      for (const field of ['_id', 'id', 'redboxOid', 'revision', 'incarnationId', 'dateDeleted'])
+        _.unset(candidate, field);
       if (this.unsafeCandidateField(candidate) !== undefined) {
         sails.log.error(`${this.logHeader} refusing a tombstone update for oid ${oid}: unsupported candidate field`);
         return this.notApplied(response, 'capability-unavailable', 'Tombstone candidate contains an unsupported field');
@@ -912,6 +1141,29 @@ export namespace Services {
         // The wrapper is the sole current lifecycle revision authority. Source
         // lineage lives in lifecycleOperation.sourceRevision.
         _.unset(candidate, 'deletedRecordMetadata.revision');
+      }
+
+      try {
+        const current = this.mutationDocument(
+          await collection.findOne(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options)
+          )
+        );
+        if (current) {
+          const incarnationId = await this.ensureRecordIdentity(oid, current);
+          if (!incarnationId) {
+            return this.notApplied(
+              response,
+              'capability-unavailable',
+              'Durable record identity ownership is unavailable'
+            );
+          }
+          if (candidate.deletedRecordMetadata && typeof candidate.deletedRecordMetadata === 'object') {
+            (candidate.deletedRecordMetadata as JsonMap).incarnationId = incarnationId;
+          }
+        }
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
       }
 
       const activeBrandId = this.brandIdOf(brand);
@@ -961,6 +1213,23 @@ export namespace Services {
       const collection = this.getNativeTombstoneCollection();
       if (!this.supportsAtomicMutation(collection)) {
         return this.notApplied(response, 'capability-unavailable', 'Atomic tombstone removal is unavailable');
+      }
+
+      try {
+        const current = this.mutationDocument(
+          await collection.findOne(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options)
+          )
+        );
+        if (current && !(await this.ensureRecordIdentity(oid, current))) {
+          return this.notApplied(
+            response,
+            'capability-unavailable',
+            'Durable record identity ownership is unavailable'
+          );
+        }
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
       }
 
       return this.commitConditionalMutation({
@@ -1038,10 +1307,24 @@ export namespace Services {
       ) {
         return this.notApplied(response, 'lifecycle-conflict', 'Claimed restore state is invalid');
       }
+      let incarnationId: string | undefined;
+      try {
+        incarnationId = await this.ensureRecordIdentity(oid, claimed);
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+      if (!incarnationId) {
+        return this.notApplied(response, 'capability-unavailable', 'Durable record identity ownership is unavailable');
+      }
+      const claimedIncarnationId =
+        this.storedIncarnationId(claimed) ?? this.storedIncarnationId(claimedSnapshot as JsonMap);
+      if (claimedIncarnationId && claimedIncarnationId !== incarnationId) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Restore incarnation identity diverged');
+      }
 
       const restoredInput = _.cloneDeep(record);
       const restored = _.cloneDeep(claimedSnapshot as JsonMap);
-      for (const field of ['_id', 'id', 'revision', 'lifecycleOperationId', 'lastSaveDate']) {
+      for (const field of ['_id', 'id', 'revision', 'incarnationId', 'lifecycleOperationId', 'lastSaveDate']) {
         _.unset(restored, field);
       }
       const requestedBrandId = this.brandIdOf(brand);
@@ -1061,6 +1344,7 @@ export namespace Services {
         ...restored,
         redboxOid: oid,
         revision: targetRevision,
+        incarnationId,
         lifecycleOperationId: operationId,
         lastSaveDate: new Date().toISOString(),
       };
@@ -1144,25 +1428,48 @@ export namespace Services {
       return { ...deletedRecord.deletedRecordMetadata, revision } as RecordModel;
     }
 
-    public async createBatch(type: string, data: JsonMap[], harvestIdFldName: string): Promise<unknown> {
-      const response = new StorageServiceResponse();
-      response.message = '';
-      let failFlag = false;
-      _.each(data, async (dataItem: JsonMap) => {
+    public async createBatch(
+      type: string,
+      data: JsonMap[],
+      harvestIdFldName: string
+    ): Promise<StorageMutationResponse> {
+      const response = new StorageMutationResponse();
+      let notAppliedCount = 0;
+      let unknownCount = 0;
+      for (const [rowIndex, dataItem] of data.entries()) {
         dataItem.harvestId = _.get(dataItem, harvestIdFldName, '');
         _.set(dataItem, 'metaMetadata.type', type);
         try {
-          await this.create(null, dataItem, null, null);
-        } catch (err) {
-          failFlag = true;
-          sails.log.error(`${this.logHeader} Failed createBatch entry: `);
-          sails.log.error(JSON.stringify(dataItem));
-          sails.log.error(`${this.logHeader} Failed createBatch error: `);
-          sails.log.error(JSON.stringify(err));
-          response.message = `${response.message}, ${err.message}`;
+          const rowResponse = await this.create(null, dataItem, null, null);
+          if (rowResponse.applicationState === 'applied' && rowResponse.success === true) {
+            continue;
+          }
+          if (rowResponse.applicationState === 'not-applied') {
+            notAppliedCount += 1;
+            sails.log.error(`${this.logHeader} createBatch row was not applied`, {
+              event: 'record_batch_create_row_not_applied',
+              row_index: rowIndex,
+            });
+            continue;
+          }
+          unknownCount += 1;
+          sails.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
+            event: 'record_batch_create_row_unknown',
+            row_index: rowIndex,
+          });
+        } catch {
+          unknownCount += 1;
+          sails.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
+            event: 'record_batch_create_row_unknown',
+            row_index: rowIndex,
+          });
         }
-      });
-      response.success = failFlag === false;
+      }
+      response.success = notAppliedCount === 0 && unknownCount === 0;
+      response.applicationState = unknownCount > 0 ? 'unknown' : notAppliedCount > 0 ? 'not-applied' : 'applied';
+      response.message = response.success
+        ? ''
+        : `Batch create incomplete (${notAppliedCount} not applied, ${unknownCount} unknown).`;
       return response;
     }
 

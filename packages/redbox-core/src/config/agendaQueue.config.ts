@@ -106,6 +106,8 @@ export interface AgendaQueueConfig {
     jobs: AgendaJobsConfig;
 }
 
+export const RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME = 'RecordsService-ReconcilePostCommitSave';
+
 export const agendaQueue: AgendaQueueConfig = {
     options: {
         backend: parseAgendaQueueBackend(process.env['sails__agendaQueue_options_backend'], 'sails__agendaQueue_options_backend') ?? 'mongodb',
@@ -133,6 +135,14 @@ export const agendaQueue: AgendaQueueConfig = {
         },
         'RecordsService-StoreRecordAudit': {
             fnName: 'recordsservice.storeRecordAudit',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            }
+        },
+        [RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME]: {
+            fnName: 'recordsservice.reconcilePostCommitSave',
             options: {
                 lockLifetime: 30 * 1000,
                 lockLimit: 1,

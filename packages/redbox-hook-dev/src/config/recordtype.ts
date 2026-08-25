@@ -580,6 +580,11 @@ export const recordtype: RecordTypeConfig = {
       },
     },
   },
+  concurrencyTest: {
+    packageType: 'concurrencyTest',
+    searchable: false,
+    concurrentModification: { mode: 'strict' },
+  },
   party: {
     packageType: 'party',
     dashboard: {
