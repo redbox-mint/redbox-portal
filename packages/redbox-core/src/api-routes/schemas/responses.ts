@@ -9,6 +9,7 @@ import {
   RECORD_ENTITY_TAG_PATTERN,
   RECORD_FORM_FINGERPRINT_MAX_LENGTH,
   RECORD_REVISION_MAX,
+  RECORD_SAVE_EXPECTED_JSON_TYPES,
   RECORD_SAVE_LINEAGE_LIMITS,
   RECORD_SAVE_MESSAGE_MAX_LENGTH,
   RECORD_SAVE_PROBLEM_KINDS,
@@ -16,6 +17,7 @@ import {
   RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN,
   RECORD_SAVE_REQUEST_ID_PATTERN,
   RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
+  isRecordSaveJsonPointer,
   RECORD_VALIDATION_REFERENCE_PATTERN,
   VALIDATION_OPERATION_DESCRIPTION_MAX_LENGTH,
   VALIDATION_OPERATION_LABEL_MAX_LENGTH,
@@ -351,7 +353,17 @@ export const recordSaveIssueSchema = withOpenApi(
         .max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength)
         .regex(RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN)
         .optional(),
-      pointer: z.string().startsWith('/').max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength).optional(),
+      pointer: z
+        .string()
+        .max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength)
+        .refine(isRecordSaveJsonPointer)
+        .optional(),
+      expected: z
+        .object({
+          type: z.enum(RECORD_SAVE_EXPECTED_JSON_TYPES),
+        })
+        .strict()
+        .optional(),
       attachmentId: z
         .string()
         .max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxAttachmentIdLength)
@@ -423,7 +435,6 @@ export const recordConcurrencyMetadataSchema = withOpenApi(
     })
     .strict(),
   { description: 'Bounded diagnostic concurrency facts; resolution labels are never authority' }
-);
 );
 
 const recordAttachmentCompletionItemSchema = withOpenApi(

@@ -22,6 +22,7 @@ describe('record-save issue response schema', function () {
       message: '@validator-error-min-length',
       field: 'title',
       pointer: '/metadata/title',
+      expected: { type: 'string' },
       class: 'minLength',
       params: { actualLength: 2, requiredLength: 3 },
       targetField: { dataModel: ['title'] },
@@ -36,7 +37,7 @@ describe('record-save issue response schema', function () {
   });
 
   it('accepts root and nested RFC 6901 pointers', function () {
-    for (const pointer of ['', '/metadata/title']) {
+    for (const pointer of ['', '/metadata/title', '/a~0b/~1']) {
       expect(
         recordSaveIssueSchema.safeParse({
           code: 'record-schema.type',
@@ -45,6 +46,27 @@ describe('record-save issue response schema', function () {
         }).success
       ).to.equal(true);
     }
+  });
+
+  it('rejects malformed RFC 6901 pointer escapes', function () {
+    for (const pointer of ['/a~2b', '/a~']) {
+      expect(recordSaveIssueSchema.safeParse({ message: '@record-schema.type', pointer }).success).to.equal(false);
+    }
+  });
+
+  it('accepts only the allowlisted expected type shape', function () {
+    expect(recordSaveIssueSchema.safeParse({
+      message: '@record-schema.type',
+      expected: { type: 'integer' },
+    }).success).to.equal(true);
+    expect(recordSaveIssueSchema.safeParse({
+      message: '@record-schema.type',
+      expected: { type: 'custom' },
+    }).success).to.equal(false);
+    expect(recordSaveIssueSchema.safeParse({
+      message: '@record-schema.type',
+      expected: { type: 'string', submitted: 'secret' },
+    }).success).to.equal(false);
   });
 
   it('accepts schema source, phase, and code metadata in a typed save problem', function () {

@@ -3,6 +3,7 @@ import('chai').then(mod => (expect = mod.expect));
 import { ObjectId } from 'mongodb';
 import * as sinon from 'sinon';
 
+import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
 type QueryLike = {
@@ -24,6 +25,14 @@ function createChainableQuery(result: unknown): QueryLike {
     },
   } as QueryLike;
   return query;
+}
+
+function harvestSaveContext(): RecordSaveContext {
+  return createRecordSaveContext({
+    routeFamily: 'api',
+    operation: 'create',
+    portal: 'tenant-portal',
+  });
 }
 
 describe('HarvestRunService', function () {
@@ -108,6 +117,54 @@ describe('HarvestRunService', function () {
     (global as any).HarvestRecordEvent = originalHarvestRecordEvent;
     delete (global as any).WorkflowStepsService;
     sinon.restore();
+  });
+
+  it('threads authoritative contexts through compatibility and legacy creates in shadow and enforce', async function () {
+    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    recordsService.create.resolves({
+      oid: 'record-1',
+      message: 'Created',
+      wasPersisted: () => true,
+    });
+    const submissions = [
+      () =>
+        service.submitCompatibilityRecords(
+          { id: 'brand-1', name: 'default' },
+          { name: 'dataset' },
+          { records: [{ harvestId: 'harvest-1', recordRequest: { metadata: { title: 'Test' } } }] },
+          'override',
+          { username: 'tester' },
+          harvestSaveContext()
+        ),
+      () =>
+        service.submitLegacyRecords(
+          { id: 'brand-1', name: 'default' },
+          { name: 'dataset' },
+          { records: [{ harvest_id: 'harvest-1', metadata: { data: { title: 'Test' } } }] },
+          false,
+          { username: 'tester' },
+          harvestSaveContext()
+        ),
+    ];
+
+    for (const mode of ['shadow', 'enforce'] as const) {
+      mockSails.config.recordValidation = { mode };
+      for (const submit of submissions) {
+        recordsService.create.resetHistory();
+
+        const response = await submit();
+
+        expect(response[0].status, mode).to.equal(true);
+        expect(recordsService.create.calledOnce, mode).to.equal(true);
+        const context = recordsService.create.firstCall.args[7];
+        expect(isRecordSaveContext(context), mode).to.equal(true);
+        expect(context).to.include({
+          routeFamily: 'api',
+          operation: 'create',
+          portal: 'tenant-portal',
+        });
+      }
+    }
   });
 
   it('creates a tracked harvest run, chunk, and events', async function () {
@@ -215,10 +272,14 @@ describe('HarvestRunService', function () {
         chunk: { index: 1, label: 'part-1' },
         records: [{ harvestId: 'harvest-1', operation: 'upsert', recordRequest: { metadata: { title: 'Test' } } }],
       },
-      { username: 'tester' }
+      { username: 'tester' },
+      harvestSaveContext()
     );
 
     expect(recordsService.create.calledOnce).to.equal(true);
+    const createContext = recordsService.create.firstCall.args[7];
+    expect(isRecordSaveContext(createContext)).to.equal(true);
+    expect(createContext).to.include({ operation: 'create', portal: 'tenant-portal' });
     expect((global as any).HarvestRecordEvent.createEach.calledOnce).to.equal(true);
     expect((global as any).Record.find.calledOnce).to.equal(true);
     expect(response.run.sourceRunId).to.equal('source-run-1');
@@ -297,7 +358,8 @@ describe('HarvestRunService', function () {
         chunk: { index: 1 },
         records: [{ harvestId: 'harvest-1', recordRequest: { metadata: { title: 'Test' } } }],
       },
-      { username: 'tester' }
+      { username: 'tester' },
+      harvestSaveContext()
     );
 
     expect(recordsService.create.called).to.equal(false);
@@ -400,7 +462,8 @@ describe('HarvestRunService', function () {
             { harvestId: 'harvest-2', recordRequest: { metadata: { title: 'Two' } } },
           ],
         },
-        { username: 'tester' }
+        { username: 'tester' },
+        harvestSaveContext()
       );
       throw new Error('Expected submitChunk to reject oversized chunk');
     } catch (error) {
@@ -455,7 +518,8 @@ describe('HarvestRunService', function () {
           chunk: { index: 1 },
           records: [{ harvestId: 'harvest-1', recordRequest: { metadata: { title: 'Test' } } }],
         },
-        { username: 'tester' }
+        { username: 'tester' },
+        harvestSaveContext()
       );
       throw new Error('Expected submitChunk to reject duplicate processing chunk');
     } catch (error) {
@@ -605,7 +669,8 @@ describe('HarvestRunService', function () {
           { harvestId: 'harvest-2', operation: 'create', recordRequest: { metadata: { title: 'New' } } },
         ],
       },
-      { username: 'tester' }
+      { username: 'tester' },
+      harvestSaveContext()
     );
 
     expect(recordsService.create.calledOnce).to.equal(true);
@@ -684,7 +749,8 @@ describe('HarvestRunService', function () {
         chunk: { index: 1 },
         records: [{ harvestId: 'harvest-1', operation: 'delete' }],
       },
-      { username: 'tester' }
+      { username: 'tester' },
+      harvestSaveContext()
     );
 
     expect(recordsService.delete.calledOnce).to.equal(true);
@@ -801,10 +867,14 @@ describe('HarvestRunService', function () {
         chunk: { index: 1 },
         records: [{ harvestId: 'harvest-1', operation: 'upsert', recordRequest: { metadata: { title: 'Existing' } } }],
       },
-      { username: 'tester' }
+      { username: 'tester' },
+      harvestSaveContext()
     );
 
     expect(recordsService.updateMetaInternal.calledOnce).to.equal(true);
+    const updateContext = recordsService.updateMetaInternal.firstCall.args[0].context;
+    expect(isRecordSaveContext(updateContext)).to.equal(true);
+    expect(updateContext).to.include({ operation: 'update', portal: 'tenant-portal' });
     expect(response.chunk.responseSummary).to.deep.include({ updated: 1, unchanged: 0 });
   });
 
@@ -878,7 +948,8 @@ describe('HarvestRunService', function () {
           chunk: { index: 1 },
           records: [{ harvestId: 'harvest-1', operation: 'create', recordRequest: { metadata: { title: 'Test' } } }],
         },
-        { username: 'tester' }
+        { username: 'tester' },
+        harvestSaveContext()
       );
       throw new Error('Expected submitChunk to fail when event persistence fails');
     } catch (error) {

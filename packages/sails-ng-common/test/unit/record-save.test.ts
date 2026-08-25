@@ -87,7 +87,7 @@ describe('record-save contracts', function () {
   });
 
   it('preserves root and nested RFC 6901 pointers', function () {
-    for (const pointer of ['', '/metadata/title']) {
+    for (const pointer of ['', '/metadata/title', '/a~0b/~1']) {
       expect(
         sanitizeRecordSaveIssue({
           code: 'record-schema.type',
@@ -100,6 +100,26 @@ describe('record-save contracts', function () {
         pointer,
       });
     }
+  });
+
+  it('drops malformed RFC 6901 pointer escapes', function () {
+    for (const pointer of ['/a~2b', '/a~']) {
+      expect(sanitizeRecordSaveIssue({ message: 'safe', pointer })).to.deep.equal({ message: 'safe' });
+    }
+  });
+
+  it('preserves only allowlisted schema expected types', function () {
+    expect(sanitizeRecordSaveIssue({
+      message: '@record-schema.type',
+      expected: { type: 'string', submitted: 'secret' },
+    })).to.deep.equal({
+      message: '@record-schema.type',
+      expected: { type: 'string' },
+    });
+    expect(sanitizeRecordSaveIssue({
+      message: '@record-schema.type',
+      expected: { type: 'custom', submitted: 'secret' },
+    })).to.deep.equal({ message: '@record-schema.type' });
   });
 
   it('drops raw exception/request data and nested validator values', function () {

@@ -5,7 +5,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
-import { RecordSaveResponse } from '../../../src/RecordSaveResponse';
+import { isRecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 
 type PermissionCase = {
@@ -1112,6 +1112,37 @@ describe('Webservice RecordController body source', () => {
       });
     });
 
+    it('snapshots unwrapped metadata before server authorization shaping without mutating the body', async () => {
+      const body = { title: 'Raw unwrapped submission' };
+      const bodySnapshot = structuredClone(body);
+      recordsService.create.resolves(successResult('created-record'));
+      const req = makeThrowingRequest(
+        {
+          params: { recordType: 'dataset' },
+          query: {},
+          body,
+          files: {},
+        },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.create(req, {} as Sails.Res);
+      await flushPromises();
+
+      expect(recordsService.create.calledOnce).to.equal(true);
+      const createRequest = recordsService.create.firstCall.args[1] as any;
+      expect(createRequest.metadata).to.deep.equal(bodySnapshot);
+      expect(createRequest.metadata).not.to.have.property('authorization');
+      expect(createRequest.authorization).to.deep.equal({
+        edit: ['tester'],
+        view: ['tester'],
+        editPending: undefined,
+        viewPending: undefined,
+      });
+      expect(body).to.deep.equal(bodySnapshot);
+    });
+
     it('keeps omitted operations optional on create and update', async () => {
       recordsService.create.resolves(successResult('created-record'));
       const createReq = makeThrowingRequest({
@@ -1983,18 +2014,19 @@ describe('Webservice RecordController body source', () => {
           },
         ],
       };
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: {},
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        { params: { recordType: 'dataset' }, query: {}, body, files: {} },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.harvest(req, {} as Sails.Res);
 
       expect((global as any).HarvestRunService.submitCompatibilityRecords.calledOnce).to.be.true;
       expect((global as any).HarvestRunService.submitCompatibilityRecords.firstCall.args[2]).to.deep.equal(body);
+      const context = (global as any).HarvestRunService.submitCompatibilityRecords.firstCall.args[5];
+      expect(isRecordSaveContext(context)).to.equal(true);
+      expect(context).to.include({ operation: 'create', portal: 'tenant-portal' });
       expect(sendRespStub.calledOnce).to.be.true;
     });
 
@@ -2042,18 +2074,19 @@ describe('Webservice RecordController body source', () => {
           },
         ],
       };
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: {},
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        { params: { recordType: 'dataset' }, query: {}, body, files: {} },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.harvest(req, {} as Sails.Res);
 
       expect((global as any).HarvestRunService.submitChunk.calledOnce).to.be.true;
       expect((global as any).HarvestRunService.submitChunk.firstCall.args[2]).to.deep.equal(body);
+      const context = (global as any).HarvestRunService.submitChunk.firstCall.args[4];
+      expect(isRecordSaveContext(context)).to.equal(true);
+      expect(context).to.include({ operation: 'create', portal: 'tenant-portal' });
       expect(sendRespStub.calledOnce).to.be.true;
     });
 
@@ -2090,18 +2123,19 @@ describe('Webservice RecordController body source', () => {
           },
         ],
       };
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: {},
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        { params: { recordType: 'dataset' }, query: {}, body, files: {} },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.legacyHarvest(req, {} as Sails.Res);
 
       expect((global as any).HarvestRunService.submitLegacyRecords.calledOnce).to.be.true;
       expect((global as any).HarvestRunService.submitLegacyRecords.firstCall.args[2]).to.deep.equal(body);
+      const context = (global as any).HarvestRunService.submitLegacyRecords.firstCall.args[5];
+      expect(isRecordSaveContext(context)).to.equal(true);
+      expect(context).to.include({ operation: 'create', portal: 'tenant-portal' });
       expect(sendRespStub.calledOnce).to.be.true;
     });
 

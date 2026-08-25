@@ -1190,15 +1190,9 @@ describe('RecordsService', function () {
       }
     });
 
-    it('seeds in enforce mode through a direct durable internal bypass audit', async function () {
-      const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), 'records-bootstrap-enforce-'));
-      const recordsPath = path.join(bootstrapPath, 'records');
-      await fs.mkdir(recordsPath, { recursive: true });
-      await fs.writeFile(path.join(recordsPath, 'party.json'), JSON.stringify([{ title: 'Enforced seed' }]));
-      mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
-      mockSails.config.recordValidation = { mode: 'enforce' };
+    it('seeds in shadow and enforce schema modes through a direct durable internal bypass audit', async function () {
+      mockSails.config.recordSchema = { enabled: true };
       mockSails.config.record.auditing.enabled = false;
-      mockRecord.findOne.returns(createQueryObject(null));
       (global as any).RecordTypesService.get = sinon
         .stub()
         .returns(of({ name: 'party', hooks: {}, searchable: false }));
@@ -1208,25 +1202,43 @@ describe('RecordsService', function () {
         mode: 'enforce',
         diagnostics: [],
       });
+      const resolveCreate = sinon.stub().rejects(new Error('structural schema resolution must be bypassed'));
+      const validateResolvedArtifact = sinon.stub();
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
 
-      try {
-        await RecordsService.bootstrapData();
+      for (const mode of ['shadow', 'enforce'] as const) {
+        const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), `records-bootstrap-${mode}-`));
+        const recordsPath = path.join(bootstrapPath, 'records');
+        await fs.mkdir(recordsPath, { recursive: true });
+        await fs.writeFile(path.join(recordsPath, 'party.json'), JSON.stringify([{ title: `${mode} seed` }]));
+        mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
+        mockSails.config.recordValidation = { mode };
+        mockRecord.findOne.reset();
+        mockRecord.findOne.returns(createQueryObject(null));
+        mockStorageService.create.resetHistory();
+        mockStorageService.createRecordAudit.resetHistory();
 
-        expect(mockStorageService.create.calledOnce).to.equal(true);
-        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
-        expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
-        const audit = mockStorageService.createRecordAudit.firstCall.args[0];
-        expect(audit.action).to.equal('validation-bypassed');
-        expect(audit.record.validationBypass).to.deep.include({
-          reason: 'trusted-data-migration',
-          operation: 'create',
-        });
-        expect(audit.record.validationBypass.actor).to.deep.equal({
-          kind: 'service',
-          id: 'RecordsService.bootstrapData',
-        });
-      } finally {
-        await fs.rm(bootstrapPath, { recursive: true, force: true });
+        try {
+          await RecordsService.bootstrapData();
+
+          expect(mockStorageService.create.calledOnce, mode).to.equal(true);
+          expect((global as any).RecordValidationService.resolve.notCalled, mode).to.equal(true);
+          expect(resolveCreate.notCalled, mode).to.equal(true);
+          expect(validateResolvedArtifact.notCalled, mode).to.equal(true);
+          expect(mockStorageService.createRecordAudit.calledOnce, mode).to.equal(true);
+          const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+          expect(audit.action).to.equal('validation-bypassed');
+          expect(audit.record.validationBypass).to.deep.include({
+            reason: 'trusted-data-migration',
+            operation: 'create',
+          });
+          expect(audit.record.validationBypass.actor).to.deep.equal({
+            kind: 'service',
+            id: 'RecordsService.bootstrapData',
+          });
+        } finally {
+          await fs.rm(bootstrapPath, { recursive: true, force: true });
+        }
       }
     });
 
@@ -4230,6 +4242,7 @@ describe('RecordsService', function () {
             message: '@record-schema.type',
             code: 'record-schema.type',
             pointer: '/title',
+            expected: { type: 'string' },
           },
         ]);
         expect(preSaveHook.called, mode).to.equal(mode === 'shadow');
@@ -4238,6 +4251,60 @@ describe('RecordsService', function () {
         if (mode === 'enforce') {
           expect((global as any).FormsService.getForm.notCalled).to.equal(true);
         }
+      }
+    });
+
+    it('marks truncated schema diagnostics within the configured issue limit in shadow and enforce', async function () {
+      enableRecordSchema();
+      mockSails.config.recordSchema.limits = { maxDiagnostics: 2 };
+      const resolveCreate = sinon.stub();
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [
+          { code: 'record-schema.type', pointer: '/title', expected: { type: 'string' } },
+          { code: 'record-schema.required', pointer: '/description' },
+        ],
+        truncated: true,
+      });
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+
+      for (const mode of ['shadow', 'enforce'] as const) {
+        resolveCreate.reset();
+        resolveCreate.resolves(createSchemaResolution('resolved', mode));
+        (global as any).RecordValidationService.resolve.resetHistory();
+        (global as any).RecordValidationService.resolve.resolves(allowResult({ mode }));
+        mockStorageService.create.resetHistory();
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 42 } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1' },
+          false,
+          false,
+          undefined,
+          recordSchemaContext()
+        );
+
+        expect(result.outcome, mode).to.equal(mode === 'shadow' ? 'saved-with-warnings' : 'not-saved');
+        expect(result.problems[0].issues, mode).to.deep.equal([
+          {
+            code: 'record-schema.type',
+            message: '@record-schema.type',
+            pointer: '/title',
+            expected: { type: 'string' },
+          },
+          {
+            code: 'record-schema.limit-diagnostics',
+            message: '@record-schema.limit-diagnostics',
+            pointer: '',
+          },
+        ]);
+        expect(result.problems[0].issues).to.have.length.at.most(
+          mockSails.config.recordSchema.limits.maxDiagnostics
+        );
+        expect(mockStorageService.create.called, mode).to.equal(mode === 'shadow');
       }
     });
 

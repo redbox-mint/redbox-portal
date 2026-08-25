@@ -296,6 +296,7 @@ describe('RecordSaveResponse', function () {
             code: 'record-schema.type',
             message: '@record-schema.type',
             pointer: '',
+            expected: { type: 'object' },
           },
         ],
       });
@@ -309,6 +310,7 @@ describe('RecordSaveResponse', function () {
             code: 'record-schema.type',
             message: '@record-schema.type',
             pointer: '',
+            expected: { type: 'object' },
           },
         ],
       });

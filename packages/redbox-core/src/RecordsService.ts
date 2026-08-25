@@ -32,6 +32,8 @@ export interface InternalRecordSnapshotSaveOptions {
   readonly targetStep?: unknown;
   readonly metadata?: AnyRecord;
   readonly operation?: 'update' | 'transition';
+  /** Trusted transport schema facts to retain while concurrency remains internal and revision-based. */
+  readonly context?: RecordSaveContext;
   /** Diagnostic causation only; never an idempotency key. */
   readonly causedByRequestId?: string;
 }

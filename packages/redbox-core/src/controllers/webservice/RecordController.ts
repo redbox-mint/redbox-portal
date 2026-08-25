@@ -977,6 +977,7 @@ export namespace Controllers {
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       const that = this;
       if (body != null) {
+        const rawSubmittedMetadata = _.cloneDeep(body['metadata'] == null ? body : body['metadata']);
         let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
         const authorizationBody = body['authorization'] as globalThis.Record<string, unknown> | undefined;
         if (authorizationBody != null) {
@@ -986,7 +987,6 @@ export namespace Controllers {
           authorizationViewPending = authorizationBody['viewPending'];
         } else {
           // If no authorization block set to user
-          body['authorization'] = [];
           authorizationEdit = [];
           authorizationView = [];
           authorizationEdit.push((req.user ?? ({} as globalThis.Record<string, unknown>)).username);
@@ -1003,15 +1003,9 @@ export namespace Controllers {
 
         recordTypeObservable.subscribe((recordTypeModel: unknown) => {
           if (recordTypeModel) {
-            const metadata = body['metadata'];
+            const workflowStage = body['workflowStage'] as string | undefined;
             const request: globalThis.Record<string, unknown> = {};
-
-            //if no metadata field, no authorization
-            if (metadata == null) {
-              request['metadata'] = body;
-            } else {
-              request['metadata'] = metadata;
-            }
+            request['metadata'] = rawSubmittedMetadata;
             request['authorization'] = authorization;
 
             const createPromise = this.RecordsService.create(
@@ -2043,7 +2037,13 @@ export namespace Controllers {
                 displayErrors: [{ detail: 'updateMode is not supported for tracked harvest requests.' }],
               });
             }
-            const trackedResponse = await HarvestRunService.submitChunk(brand, recordTypeModel, body, user);
+            const trackedResponse = await HarvestRunService.submitChunk(
+              brand,
+              recordTypeModel,
+              body,
+              user,
+              this.saveContext(req, 'create')
+            );
             return this.sendResp(req, res, { data: trackedResponse });
           }
 
@@ -2052,7 +2052,8 @@ export namespace Controllers {
             recordTypeModel,
             body,
             updateMode,
-            user
+            user,
+            this.saveContext(req, 'create')
           );
           return this.sendResp(req, res, { data: recordResponses });
         } catch (error) {
@@ -2089,7 +2090,8 @@ export namespace Controllers {
             recordTypeModel,
             body,
             validated.query.merge === true,
-            user
+            user,
+            this.saveContext(req, 'create')
           );
           return this.sendResp(req, res, { data: recordResponses });
         } catch (error) {

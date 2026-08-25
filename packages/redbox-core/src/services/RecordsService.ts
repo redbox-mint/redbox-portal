@@ -285,6 +285,11 @@ export namespace Services {
       }>
     ): ValidateResolvedRecordSchemaResult;
   };
+  type RecordSchemaSaveIssue = {
+    readonly code: RecordSchemaProblemCode;
+    readonly pointer: RecordJsonSchemaValidationIssue['pointer'];
+    readonly expected?: RecordJsonSchemaValidationIssue['expected'];
+  };
   type BootstrapRecordMetadata = Record<string, unknown>;
   type RecordWithMeta = AnyRecord & {
     metaMetadata?: AnyRecord;
@@ -737,7 +742,7 @@ export namespace Services {
     private recordSchemaProblem(
       kind: RecordSaveProblemKind,
       code: RecordSchemaProblemCode,
-      issues: readonly RecordJsonSchemaValidationIssue[] = []
+      issues: readonly RecordSchemaSaveIssue[] = []
     ): RecordSaveProblem {
       const safeIssues =
         issues.length > 0
@@ -746,6 +751,7 @@ export namespace Services {
                 code: issue.code,
                 message: `@${issue.code}`,
                 pointer: issue.pointer,
+                expected: issue.expected,
               })
             )
           : [
@@ -881,10 +887,17 @@ export namespace Services {
         );
       }
       if (validation.valid) return { allowed: true, warnings: [] };
-      const issues =
+      let issues: readonly RecordSchemaSaveIssue[] =
         validation.issues.length > 0
           ? validation.issues
           : [{ code: RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, pointer: recordContractPointer('') }];
+      if (validation.truncated) {
+        const truncationIssue: RecordSchemaSaveIssue = {
+          code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_DIAGNOSTICS,
+          pointer: recordContractPointer(''),
+        };
+        issues = issues.length > 1 ? [...issues.slice(0, issues.length - 1), truncationIssue] : [truncationIssue];
+      }
       return this.applyCreateSchemaPolicy(
         resolution.metadata.context.enforcement,
         this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues)
@@ -3866,12 +3879,14 @@ export namespace Services {
 
       const schemaEnabled = this.recordSchemaEnabled();
       if (schemaEnabled) {
-        if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
-          tracker.recordPrimaryNotApplied(
-            this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
-          );
-          this.logSaveOutcome(tracker, 'pre-save');
-          return tracker.toResponse();
+        const structuralBypass = tracker.context.validationBypass;
+        if (structuralBypass !== undefined) {
+          const bypassError = this.bypassErrorCode(tracker.context, structuralBypass);
+          if (bypassError) {
+            tracker.recordPrimaryNotApplied(this.validationProblem('system', 'pre-save', bypassError));
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
         }
         if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
           tracker.recordPrimaryNotApplied(
@@ -3888,22 +3903,27 @@ export namespace Services {
           return tracker.toResponse();
         }
 
-        const structuralValidation = await this.validateCreateMetadataStructure({
-          metadata: rawSubmittedMetadata,
-          brand: brandObj,
-          portal: tracker.context.portal,
-          recordType: recordTypeObj,
-          recordTypeName,
-          user: userObj,
-          context: tracker.context,
-          targetStep: targetStepName,
-        });
-        if (!structuralValidation.allowed) {
-          tracker.recordPrimaryNotApplied(structuralValidation.problem);
-          this.logSaveOutcome(tracker, 'pre-save');
-          return tracker.toResponse();
+        // A valid internal capability bypasses both structural and form
+        // validation, then validateCandidate durably audits that decision
+        // before any persistence can occur.
+        if (structuralBypass === undefined) {
+          const structuralValidation = await this.validateCreateMetadataStructure({
+            metadata: rawSubmittedMetadata,
+            brand: brandObj,
+            portal: tracker.context.portal,
+            recordType: recordTypeObj,
+            recordTypeName,
+            user: userObj,
+            context: tracker.context,
+            targetStep: targetStepName,
+          });
+          if (!structuralValidation.allowed) {
+            tracker.recordPrimaryNotApplied(structuralValidation.problem);
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
+          for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
         }
-        for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
       }
 
       if (!schemaEnabled) {
@@ -4546,6 +4566,7 @@ export namespace Services {
         );
       }
 
+      const suppliedContext = isRecordSaveContext(options.context) ? options.context : undefined;
       return await this.updateMeta(
         brand,
         oid,
@@ -4558,14 +4579,20 @@ export namespace Services {
         createRecordSaveContext({
           routeFamily: 'internal',
           operation: options.operation ?? 'update',
+          portal: suppliedContext?.portal,
           targetStep:
             options.operation === 'transition'
               ? this.workflowStepName(options.targetStep as WorkflowStepLike)
               : undefined,
+          validationOperation: suppliedContext?.validationOperation,
+          validationRequestParameters: suppliedContext?.validationRequestParameters,
           validationRuntimeContext: {
+            ...suppliedContext?.validationRuntimeContext,
             internalWriterId: writerId,
             internalMutationClass: mutationClass,
           },
+          validationBypass: suppliedContext?.validationBypass,
+          recordSchemaIfMatch: suppliedContext?.ifMatch,
           concurrency: {
             expectedRevision,
             entityTagSupplied: false,

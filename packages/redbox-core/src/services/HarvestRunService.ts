@@ -33,6 +33,12 @@ import {
   HarvestRunStatus,
 } from '../model/storage/HarvestRunModel';
 import { HarvestRunsConfig } from '../config/harvestRuns.config';
+import {
+  createRecordSaveContext,
+  isRecordSaveContext,
+  type RecordSaveContext,
+  type RecordSaveOperation,
+} from '../RecordSaveResponse';
 import { HarvestRecordEventAttributes } from '../waterline-models/HarvestRecordEvent';
 import { HarvestRunChunkAttributes } from '../waterline-models/HarvestRunChunk';
 import { HarvestRunAttributes } from '../waterline-models/HarvestRun';
@@ -105,6 +111,25 @@ export namespace Services {
 
     private resolveRecordTypeName(recordTypeModel: RecordTypeWithName | Partial<RecordTypeWithName>): string {
       return String((recordTypeModel as RecordTypeWithName | undefined)?.name ?? '').trim();
+    }
+
+    private recordSaveContext(context: RecordSaveContext, operation: RecordSaveOperation): RecordSaveContext {
+      if (!isRecordSaveContext(context)) {
+        throw new HarvestRunServiceError(
+          'Harvest record saves require a context created by createRecordSaveContext().'
+        );
+      }
+      return createRecordSaveContext({
+        requestId: context.requestId,
+        routeFamily: context.routeFamily,
+        operation,
+        portal: context.portal,
+        validationOperation: context.validationOperation,
+        validationRequestParameters: context.validationRequestParameters,
+        validationRuntimeContext: context.validationRuntimeContext,
+        validationBypass: context.validationBypass,
+        recordSchemaIfMatch: context.ifMatch,
+      });
     }
 
     private nowIso(): string {
@@ -476,7 +501,8 @@ export namespace Services {
       body: AnyRecord,
       oid: string,
       harvestId: string,
-      user: UserModel
+      user: UserModel,
+      context: RecordSaveContext
     ): Promise<APIHarvestResponse> {
       const shouldMerge = updateMode === 'merge';
       try {
@@ -513,6 +539,7 @@ export namespace Services {
           record,
           user,
           metadata: updatedMetadata,
+          context: this.recordSaveContext(context, 'update'),
         });
         if (!response.wasPersisted()) {
           return new APIHarvestResponse(
@@ -541,7 +568,8 @@ export namespace Services {
       body: AnyRecord,
       harvestId: string,
       updateMode: string,
-      user: UserModel
+      user: UserModel,
+      context: RecordSaveContext
     ): Promise<APIHarvestResponse> {
       const metadata = body?.['metadata'];
       const workflowStage = body?.['workflowStage'];
@@ -553,7 +581,16 @@ export namespace Services {
       request['metadata'] = metadata == null ? body : metadata;
 
       try {
-        const response = await RecordsService.create(brand, request, recordTypeModel, user);
+        const response = await RecordsService.create(
+          brand,
+          request,
+          recordTypeModel,
+          user,
+          true,
+          true,
+          undefined,
+          this.recordSaveContext(context, 'create')
+        );
         if (workflowStage) {
           try {
             const wfStep = await firstValueFrom(
@@ -600,7 +637,8 @@ export namespace Services {
       recordTypeModel: RecordTypeModel,
       recordRequest: AnyRecord,
       harvestId: string,
-      user: UserModel
+      user: UserModel,
+      context: RecordSaveContext
     ): Promise<HarvestTrackedRecordResponse> {
       const request: AnyRecord = {
         harvestId,
@@ -608,7 +646,16 @@ export namespace Services {
       };
 
       try {
-        const response = await RecordsService.create(brand, request, recordTypeModel, user);
+        const response = await RecordsService.create(
+          brand,
+          request,
+          recordTypeModel,
+          user,
+          true,
+          true,
+          undefined,
+          this.recordSaveContext(context, 'create')
+        );
         if (response.wasPersisted()) {
           return {
             harvestId,
@@ -638,7 +685,8 @@ export namespace Services {
       metadata: AnyRecord,
       oid: string,
       user: UserModel,
-      strategy: TrackedUpdateStrategy
+      strategy: TrackedUpdateStrategy,
+      context: RecordSaveContext
     ): Promise<{
       success: boolean;
       message: string;
@@ -682,6 +730,7 @@ export namespace Services {
           record,
           user,
           metadata: updatedMetadata,
+          context: this.recordSaveContext(context, 'update'),
         });
         if (!response.wasPersisted()) {
           return {
@@ -724,7 +773,8 @@ export namespace Services {
       oid: string,
       previousRecord: RecordModel,
       committedRevision: number,
-      user: UserModel
+      user: UserModel,
+      context: RecordSaveContext
     ): Promise<void> {
       const rollbackCandidate = _.cloneDeep(previousRecord);
       rollbackCandidate.revision = committedRevision;
@@ -736,6 +786,7 @@ export namespace Services {
         oid,
         record: rollbackCandidate,
         user,
+        context: this.recordSaveContext(context, 'update'),
       });
       if (!response.wasPersisted()) {
         throw new Error(String(response.message ?? `Failed to rollback updated record ${oid}.`));
@@ -1100,6 +1151,7 @@ export namespace Services {
       chunk: HarvestRunChunkRow,
       request: HarvestTrackedRecordRequest,
       user: UserModel,
+      saveContext: RecordSaveContext,
       context: ProcessingContext
     ): Promise<ProcessTrackedRecordResult> {
       const recordTypeName = String(run.recordType ?? '');
@@ -1168,7 +1220,14 @@ export namespace Services {
             this.bufferTrackedEvent(context, run, chunk, recordTypeName, request, response, 'record-exists');
             return { response };
           }
-          const response = await this.createTrackedRecord(brand, recordTypeModel, recordRequest, harvestId, user);
+          const response = await this.createTrackedRecord(
+            brand,
+            recordTypeModel,
+            recordRequest,
+            harvestId,
+            user,
+            saveContext
+          );
           this.bufferTrackedEvent(
             context,
             run,
@@ -1221,7 +1280,8 @@ export namespace Services {
             metadata,
             oid,
             user,
-            updateStrategy
+            updateStrategy,
+            saveContext
           );
           const response: HarvestTrackedRecordResponse = {
             harvestId,
@@ -1251,7 +1311,8 @@ export namespace Services {
                       oid,
                       updateResult.previousRecord!,
                       updateResult.committedRevision!,
-                      user
+                      user,
+                      saveContext
                     )
                 : undefined,
           };
@@ -1315,7 +1376,14 @@ export namespace Services {
         case HarvestOperation.upsert:
         default: {
           if (existingRecords.length === 0) {
-            const response = await this.createTrackedRecord(brand, recordTypeModel, recordRequest, harvestId, user);
+            const response = await this.createTrackedRecord(
+              brand,
+              recordTypeModel,
+              recordRequest,
+              harvestId,
+              user,
+              saveContext
+            );
             response.operation = HarvestOperation.upsert;
             this.bufferTrackedEvent(
               context,
@@ -1372,7 +1440,8 @@ export namespace Services {
             metadata,
             oid,
             user,
-            updateStrategy
+            updateStrategy,
+            saveContext
           );
           const response: HarvestTrackedRecordResponse = {
             harvestId,
@@ -1402,7 +1471,8 @@ export namespace Services {
                       oid,
                       updateResult.previousRecord!,
                       updateResult.committedRevision!,
-                      user
+                      user,
+                      saveContext
                     )
                 : undefined,
           };
@@ -1415,7 +1485,8 @@ export namespace Services {
       recordTypeModel: RecordTypeModel,
       body: Record<string, unknown> | undefined,
       updateMode: string,
-      user: UserModel
+      user: UserModel,
+      context: RecordSaveContext
     ): Promise<APIHarvestResponse[]> {
       if (body == null || _.isEmpty(body['records'])) {
         throw new HarvestRunServiceError('Invalid request body', 400);
@@ -1443,7 +1514,8 @@ export namespace Services {
               (recordRequest ?? {}) as AnyRecord,
               harvestId,
               updateMode,
-              user
+              user,
+              context
             )
           );
           continue;
@@ -1474,7 +1546,8 @@ export namespace Services {
             (recordRequest?.metadata ?? {}) as AnyRecord,
             oid,
             harvestId,
-            user
+            user,
+            context
           )
         );
       }
@@ -1486,7 +1559,8 @@ export namespace Services {
       recordTypeModel: RecordTypeModel,
       body: Record<string, unknown> | undefined,
       merge: boolean,
-      user: UserModel
+      user: UserModel,
+      context: RecordSaveContext
     ): Promise<APIHarvestResponse[]> {
       if (body == null || _.isEmpty(body['records'])) {
         throw new HarvestRunServiceError('Invalid request body', 400);
@@ -1514,7 +1588,8 @@ export namespace Services {
               (metadata?.data ?? {}) as AnyRecord,
               harvestId,
               'update',
-              user
+              user,
+              context
             )
           );
           continue;
@@ -1537,7 +1612,16 @@ export namespace Services {
         }
 
         responses.push(
-          await this.legacyUpdateHarvestRecord(brand, recordTypeModel, updateMode, newMetadata, oid, harvestId, user)
+          await this.legacyUpdateHarvestRecord(
+            brand,
+            recordTypeModel,
+            updateMode,
+            newMetadata,
+            oid,
+            harvestId,
+            user,
+            context
+          )
         );
       }
 
@@ -1585,7 +1669,8 @@ export namespace Services {
       brand: BrandingModel,
       recordTypeModel: RecordTypeModel,
       requestBody: Record<string, unknown> | undefined,
-      user: UserModel
+      user: UserModel,
+      saveContext: RecordSaveContext
     ): Promise<HarvestTrackedChunkResponse> {
       const request = this.validateTrackedChunkRequest(requestBody);
       const brandId = this.resolveBrandId(brand);
@@ -1674,6 +1759,7 @@ export namespace Services {
             createdChunk,
             record,
             user,
+            saveContext,
             context
           );
           try {
