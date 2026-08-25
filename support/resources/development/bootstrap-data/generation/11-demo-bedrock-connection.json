@@ -1,0 +1,14 @@
+{
+  "kind": "connection",
+  "key": "demo-bedrock-generation",
+  "name": "Amazon Bedrock demo provider",
+  "adapterId": "bedrock",
+  "enabled": true,
+  "endpoint": "https://bedrock-runtime.ap-southeast-2.amazonaws.com",
+  "authStrategy": "aws-default-chain",
+  "dataPolicy": {
+    "classification": "development-demo",
+    "retention": "provider-policy"
+  },
+  "timeoutMs": 90000
+}

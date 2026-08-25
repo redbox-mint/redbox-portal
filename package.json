@@ -99,6 +99,7 @@
     "compile:dev-tools": "cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "compile:agenda-sqs": "cd ./packages/agenda-sqs-backend && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build && cd ../../",
     "dev:run": "docker compose -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-mount",
+    "dev:run:bedrock": "bash ./support/development/runBedrockDev.sh",
     "dev:run:build": "docker compose --profile build -f ./support/development/docker-compose.yml up --menu=false --abort-on-container-exit --exit-code-from rbportal-build",
     "dev:run:clean": "docker compose -f ./support/development/docker-compose.yml down",
     "dev:all": "npm run compile:sails && npm run compile:ng && npm run dev:run",

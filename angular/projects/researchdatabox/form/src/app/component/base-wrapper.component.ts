@@ -42,7 +42,7 @@ const VALUE_CHANGE_CONSUMER_EXCLUDED_COMPONENTS = new Set<string>([
   selector: 'redbox-form-base-wrapper',
   template: `
     <ng-template redboxFormBaseWrapper></ng-template>
-    @if (metadataPointer) {
+    @if (renderProvenanceBadge && metadataPointer) {
       <redbox-generation-provenance-badge [metadataPointer]="metadataPointer" />
     }
   `,
@@ -52,6 +52,7 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
   protected override logName = 'FormBaseWrapperComponent';
   @Input() componentClass?: typeof FormFieldBaseComponent<ValueType>;
   @Input() defaultComponentConfig?: KeyValueStringNested = null;
+  public renderProvenanceBadge = false;
 
   @ViewChild(FormBaseWrapperDirective, { static: true }) formFieldDirective!: FormBaseWrapperDirective;
 
@@ -104,6 +105,9 @@ export class FormBaseWrapperComponent<ValueType> extends FormFieldBaseComponent<
 
     // Store the form field details.
     this.formFieldCompMapEntry = formFieldCompMapEntry;
+    // Layouts create a second wrapper around the same field. Render provenance only
+    // on the inner wrapper that owns the actual control.
+    this.renderProvenanceBadge = omitLayout;
     const componentName = this.formFieldConfigName();
     this.loggerService.debug(`${this.logName}: Starting initWrapperComponent for '${componentName}'.`, this.formFieldCompMapEntry);
     this.componentClass = this.formFieldCompMapEntry.componentClass as typeof FormFieldBaseComponent<ValueType>;

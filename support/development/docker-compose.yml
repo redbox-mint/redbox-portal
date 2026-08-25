@@ -14,7 +14,15 @@ x-rbportal-env: &rbportal-env
   sails_enableNewForm: 'true'
   # AI-assisted form generation remains disabled unless explicitly enabled for a local demo.
   sails__generation_enabled: '${REDBOX_GENERATION_ENABLED:-false}'
-  sails__generation_adapters: '${REDBOX_GENERATION_ADAPTERS:-openrouter,fake}'
+  sails__generation_adapters: '${REDBOX_GENERATION_ADAPTERS:-bedrock,fake}'
+  # Local development can use a Bedrock API key. In AWS, the provider falls
+  # back to the standard credential chain so an ECS/EC2 task role can be used.
+  AWS_BEARER_TOKEN_BEDROCK: '${AWS_BEARER_TOKEN_BEDROCK:-}'
+  AWS_REGION: '${AWS_REGION:-ap-southeast-2}'
+  AWS_DEFAULT_REGION: '${AWS_DEFAULT_REGION:-ap-southeast-2}'
+  AWS_ACCESS_KEY_ID: '${AWS_ACCESS_KEY_ID:-}'
+  AWS_SECRET_ACCESS_KEY: '${AWS_SECRET_ACCESS_KEY:-}'
+  AWS_SESSION_TOKEN: '${AWS_SESSION_TOKEN:-}'
   # Keep local demo runs from exhausting production-oriented generation quotas.
   sails__generation_limits_perUserConcurrentRuns: '${REDBOX_GENERATION_PER_USER_CONCURRENT_RUNS:-1000}'
   sails__generation_limits_perBrandConcurrentRuns: '${REDBOX_GENERATION_PER_BRAND_CONCURRENT_RUNS:-10000}'

@@ -1,6 +1,7 @@
 import { Services as services } from '../CoreService';
 import type { GenerationProviderAdapter, GenerationProviderFactory } from '../model/generation';
 import { GenerationError } from '../model/generation';
+import { BedrockGenerationProvider } from './generation/providers/BedrockGenerationProvider';
 import { FakeGenerationProvider } from './generation/providers/FakeGenerationProvider';
 import { OpenRouterGenerationProvider } from './generation/providers/OpenRouterGenerationProvider';
 
@@ -11,6 +12,7 @@ export namespace Services {
 
     public override init(): void {
       const configured = new Set(sails.config.generation.adapters);
+      if (configured.has('bedrock')) this.register('bedrock', () => new BedrockGenerationProvider());
       if (configured.has('openrouter')) this.register('openrouter', () => new OpenRouterGenerationProvider());
       if (configured.has('fake')) this.register('fake', () => new FakeGenerationProvider());
     }

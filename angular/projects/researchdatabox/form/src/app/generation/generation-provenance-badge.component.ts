@@ -40,7 +40,10 @@ import { GenerationProvenanceStoreService } from './generation-provenance-store.
 })
 export class GenerationProvenanceBadgeComponent {
   readonly metadataPointer = input.required<string>();
-  readonly field = computed(() => this.store.byPointer()[this.metadataPointer()]);
+  readonly field = computed(() => {
+    const field = this.store.byPointer()[this.metadataPointer()];
+    return field?.displayState === 'generated' ? field : undefined;
+  });
 
   constructor(private readonly store: GenerationProvenanceStoreService) {}
 
@@ -48,4 +51,3 @@ export class GenerationProvenanceBadgeComponent {
     await this.store.markReviewed(this.metadataPointer());
   }
 }
-

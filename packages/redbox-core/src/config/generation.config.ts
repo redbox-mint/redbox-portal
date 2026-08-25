@@ -74,7 +74,7 @@ function envList(name: string, fallback: string[]): string[] {
 
 export const generation: GenerationConfig = {
   enabled: envBoolean('sails__generation_enabled', false),
-  adapters: envList('sails__generation_adapters', ['openrouter', 'fake']),
+  adapters: envList('sails__generation_adapters', ['bedrock', 'openrouter', 'fake']),
   bootstrap: {
     enabled: envBoolean('sails__generation_bootstrap_enabled', true),
     directory: process.env['sails__generation_bootstrap_directory'] ?? 'generation',

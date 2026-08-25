@@ -3,7 +3,7 @@
   "key": "research-activity-to-demo-rdmp",
   "name": "Research Activity to demo RDMP",
   "description": "POC profile using an explicit activity allowlist and stable RDMP target fields.",
-  "modelDeploymentKey": "demo-fake-rdmp-v1",
+  "modelDeploymentKey": "demo-bedrock-rdmp-v1",
   "knowledgeCollectionKeys": ["fictional-rdmp-guidance"],
   "definition": {
     "purpose": "Draft an editable RDMP from reviewed synthetic Research Activity context.",

@@ -54,18 +54,12 @@ export class GenerationProvenanceStoreService {
     }));
   }
 
-  public markEdited(pointer: string, value: unknown): void {
-    const field = this.byPointerState()[pointer];
-    if (!field) return;
-    const displayState = value === undefined || value === null || value === '' ? 'removed' : 'edited';
-    this.byPointerState.update((current) => ({
-      ...current,
-      [pointer]: {
-        ...field,
-        displayState,
-        reviewRequired: false,
-        reviewedAt: field.reviewRequired ? new Date().toISOString() : field.reviewedAt,
-      },
-    }));
+  public markEdited(pointer: string, _value: unknown): void {
+    if (!this.byPointerState()[pointer]) return;
+    this.byPointerState.update((current) => {
+      const next = { ...current };
+      delete next[pointer];
+      return next;
+    });
   }
 }

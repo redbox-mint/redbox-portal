@@ -71,11 +71,8 @@
           }
           <div class="rb-generation-panel__actions">
             <button type="submit" class="btn btn-primary" [disabled]="!effectiveSession() || busy() || questionForm.invalid">
-              {{ (busy() ? 'generation-generating' : 'generation-generate') | i18next }}
+              {{ (busy() ? 'generation-generating' : restartRequired() ? 'generation-retry' : 'generation-generate') | i18next }}
             </button>
-            @if (error() && run()?.retryable) {
-              <button type="button" class="btn btn-outline-secondary" [disabled]="busy()" (click)="retry()">{{ 'generation-retry' | i18next }}</button>
-            }
             <button type="button" class="btn btn-link" (click)="cancel()">{{ 'cancel' | i18next }}</button>
           </div>
         </form>

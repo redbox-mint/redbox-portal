@@ -22,7 +22,7 @@ describe('GenerationProvenanceStoreService', () => {
     service = new GenerationProvenanceStoreService(api);
   });
 
-  it('tracks pending generated provenance and clears review state after an edit', () => {
+  it('tracks pending generated provenance and clears it after an edit', () => {
     service.setPending(pendingCandidate());
     expect(service.byPointer()['/sharing']).toEqual(jasmine.objectContaining({
       id: 'pending:run-1:sharing', displayState: 'generated', reviewRequired: true,
@@ -30,20 +30,17 @@ describe('GenerationProvenanceStoreService', () => {
 
     service.markEdited('/sharing', 'User-authored sharing statement');
 
-    expect(service.byPointer()['/sharing']).toEqual(jasmine.objectContaining({
-      displayState: 'edited', reviewRequired: false,
-    }));
-    expect(service.byPointer()['/sharing'].reviewedAt).toBeDefined();
+    expect(service.byPointer()['/sharing']).toBeUndefined();
   });
 
-  it('marks removed values distinctly and reviews pending fields locally', async () => {
+  it('reviews pending fields locally and clears provenance when the value is removed', async () => {
     service.setPending(pendingCandidate());
     await service.markReviewed('/sharing');
     expect(api.review).not.toHaveBeenCalled();
     expect(service.byPointer()['/sharing'].reviewRequired).toBeFalse();
 
     service.markEdited('/sharing', '');
-    expect(service.byPointer()['/sharing'].displayState).toBe('removed');
+    expect(service.byPointer()['/sharing']).toBeUndefined();
   });
 
   it('loads committed provenance and persists review through the API', async () => {
@@ -61,5 +58,8 @@ describe('GenerationProvenanceStoreService', () => {
     expect(api.provenance).toHaveBeenCalledOnceWith('record-1');
     expect(api.review).toHaveBeenCalledOnceWith('provenance-1');
     expect(service.byPointer()['/summary'].reviewRequired).toBeFalse();
+
+    service.markEdited('/summary', 'Researcher-authored summary');
+    expect(service.byPointer()['/summary']).toBeUndefined();
   });
 });

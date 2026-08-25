@@ -11,6 +11,7 @@ import { Services as PromptServices } from '../../src/services/GenerationPromptS
 import { Services as SchemaServices } from '../../src/services/GenerationSchemaService';
 import { Services as KnowledgeServices } from '../../src/services/GenerationKnowledgeService';
 import { Services as RegistryServices } from '../../src/services/GenerationProviderRegistryService';
+import { BedrockGenerationProvider } from '../../src/services/generation/providers/BedrockGenerationProvider';
 import { FakeGenerationProvider } from '../../src/services/generation/providers/FakeGenerationProvider';
 import { OpenRouterGenerationProvider } from '../../src/services/generation/providers/OpenRouterGenerationProvider';
 import { WaterlineModels } from '../../src/waterline-models';
@@ -84,6 +85,7 @@ describe('Generation core primitives and services', () => {
 
   afterEach(() => {
     sinon.restore();
+    delete process.env.AWS_BEARER_TOKEN_BEDROCK;
     delete process.env.REDBOX_GENERATION_TEST_KEY;
   });
 
@@ -262,6 +264,76 @@ describe('Generation core primitives and services', () => {
       messages: [], responseSchema: {}, correlationId: 'run-1',
     }, new AbortController().signal);
     expect(JSON.parse(response.content)).to.deep.equal({ answers: {} });
+  });
+
+  it('registers the native Amazon Bedrock provider when configured', () => {
+    sails.config.generation.adapters = ['bedrock', 'fake'];
+    const registry = new RegistryServices.GenerationProviderRegistry();
+    registry.init();
+    expect(registry.list()).to.deep.equal(['bedrock', 'fake']);
+    expect(registry.get('bedrock')).to.be.instanceOf(BedrockGenerationProvider);
+  });
+
+  it('builds a guarded native Bedrock Converse request using bearer authentication', async () => {
+    process.env.AWS_BEARER_TOKEN_BEDROCK = 'bedrock-test-token';
+    const fetchStub = sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({
+      output: {
+        message: {
+          role: 'assistant',
+          content: [{ toolUse: { toolUseId: 'tool-1', name: 'json', input: { answers: {} } } }],
+        },
+      },
+      stopReason: 'tool_use',
+      usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+    }), { status: 200 }));
+    const provider = new BedrockGenerationProvider();
+    const response = await provider.invoke({
+      connection: {
+        endpoint: 'https://bedrock-runtime.ap-southeast-2.amazonaws.com/',
+        timeoutMs: 1000,
+        nonSecretHeaders: { Authorization: 'attacker', 'X-ReDBox-Test': 'allowed' },
+      },
+      deployment: {
+        modelId: 'amazon.nova-lite-v1:0',
+        parameters: {
+          maxOutputTokens: 512,
+          temperature: 0.2,
+          model: 'attacker/model',
+          tools: [{ type: 'attacker' }],
+        },
+      },
+      messages: [
+        { role: 'system', content: 'Use only the supplied evidence.' },
+        { role: 'user', content: 'Synthetic input' },
+      ],
+      responseSchema: { type: 'object' },
+      correlationId: 'run-bedrock-1',
+    }, new AbortController().signal);
+    const request = fetchStub.firstCall.args[1] as RequestInit;
+    const body = JSON.parse(String(request.body));
+    const headers = new Headers(request.headers);
+    expect(fetchStub.firstCall.args[0]).to.equal(
+      'https://bedrock-runtime.ap-southeast-2.amazonaws.com/model/amazon.nova-lite-v1%3A0/converse',
+    );
+    expect(request.redirect).to.equal('error');
+    expect(headers.get('authorization')).to.equal('Bearer bedrock-test-token');
+    expect(headers.get('x-redbox-test')).to.equal('allowed');
+    expect(body.inferenceConfig).to.include({ maxTokens: 512, temperature: 0.2 });
+    expect(body.system).to.deep.equal([{ text: 'Use only the supplied evidence.' }]);
+    expect(body.messages).to.have.length(1);
+    expect(body.toolConfig.toolChoice).to.deep.equal({ any: {} });
+    expect(body.toolConfig.tools[0].toolSpec.name).to.equal('json');
+    expect(JSON.stringify(body)).not.to.contain('attacker/model');
+    expect(response.content).to.equal('{"answers":{}}');
+    expect(response.actualProvider).to.equal('amazon-bedrock');
+    expect(response.usage).to.deep.equal({ inputTokens: 1, outputTokens: 2, totalTokens: 3 });
+    await expectRejection(provider.invoke({
+      connection: { endpoint: 'https://bedrock-runtime.ap-southeast-2.amazonaws.com.evil.example', timeoutMs: 1000 },
+      deployment: { modelId: 'amazon.nova-lite-v1:0' },
+      messages: [],
+      responseSchema: {},
+      correlationId: 'run-bedrock-2',
+    }, new AbortController().signal), 'endpoint is not allowed');
   });
 
   it('builds a strict OpenRouter request without allowing endpoint/header/body overrides', async () => {

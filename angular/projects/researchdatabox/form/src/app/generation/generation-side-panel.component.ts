@@ -60,6 +60,10 @@ export class GenerationSidePanelComponent implements OnDestroy {
     return hasContent && (this.inline() ? this.inlineOpen() : this.isOpen());
   });
   readonly completed = computed(() => this.candidate() !== null);
+  readonly restartRequired = computed(() => {
+    const status = this.run()?.status;
+    return status !== undefined && ['failed', 'cancelled', 'expired'].includes(status);
+  });
   readonly progressLabel = computed(() => {
     const current = this.run();
     return current ? `generation-phase-${current.phase}` : 'generation-phase-context';
@@ -105,12 +109,20 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.subscriptions.add(this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe((event) => {
       if (event.origin === 'generation') return;
       void this.maybeLaunchFromSelection(event.fieldId);
-      const item = this.candidate()?.items.find((candidateItem) => this.pointerFieldId(candidateItem.metadataPointer) === event.fieldId);
-      if (item) {
-        this.provenance.markEdited(item.metadataPointer, event.value);
-        if (item.reviewRequired) this.store.dispatch(GenerationActions.fieldReviewed({ fieldId: item.fieldId }));
+      const item = this.candidate()?.items.find((candidateItem) => this.pointerMatchesFieldId(candidateItem.metadataPointer, event.fieldId));
+      const provenancePointer = item?.metadataPointer
+        ?? Object.keys(this.provenance.byPointer()).find((pointer) => this.pointerMatchesFieldId(pointer, event.fieldId));
+      if (provenancePointer) {
+        this.provenance.markEdited(provenancePointer, event.value);
+      }
+      if (item?.reviewRequired) {
+        this.store.dispatch(GenerationActions.fieldReviewed({ fieldId: item.fieldId }));
       }
     }));
+  }
+
+  private pointerMatchesFieldId(pointer: string, fieldId: string): boolean {
+    return pointer === fieldId || this.pointerFieldId(pointer) === fieldId;
   }
 
   public ngOnDestroy(): void {
@@ -118,13 +130,15 @@ export class GenerationSidePanelComponent implements OnDestroy {
   }
 
   public async generate(): Promise<void> {
-    const session = this.effectiveSession();
+    const currentSession = this.effectiveSession();
     const form = this.form();
-    if (!session || !form || this.busy() || this.completed() || this.questionForm.invalid) return;
+    if (!currentSession || !form || this.busy() || this.completed() || this.questionForm.invalid) return;
     this.busy.set(true);
     this.error.set(null);
     this.executionSnapshot = structuredClone(form.getRawValue());
     try {
+      const retainedAnswers = this.questionValues();
+      const session = await this.ensureExecutableSession(currentSession, form, retainedAnswers);
       const run = await this.api.execute(session.runId, {
         answers: this.questions().map((question) => ({ id: question.id, value: this.questionForm.get(question.id)?.value })),
         targetForm: {
@@ -159,10 +173,6 @@ export class GenerationSidePanelComponent implements OnDestroy {
     queueMicrotask(() => this.restoreFocusTo?.focus());
   }
 
-  public async retry(): Promise<void> {
-    await this.generate();
-  }
-
   public async markReviewed(fieldId: string, pointer: string): Promise<void> {
     await this.provenance.markReviewed(pointer);
     this.store.dispatch(GenerationActions.fieldReviewed({ fieldId }));
@@ -187,15 +197,55 @@ export class GenerationSidePanelComponent implements OnDestroy {
     }
   }
 
-  private configureQuestions(questions: GenerationQuestion[]): void {
+  private configureQuestions(
+    questions: GenerationQuestion[],
+    retainedAnswers: ReadonlyMap<string, GenerationQuestionValue> = new Map(),
+  ): void {
     this.questions.set(questions);
     for (const existing of Object.keys(this.questionForm.controls)) this.questionForm.removeControl(existing);
     for (const question of questions) {
       this.questionForm.addControl(question.id, new FormControl<GenerationQuestionValue>(
-        question.defaultValue ?? null,
+        retainedAnswers.has(question.id) ? retainedAnswers.get(question.id) ?? null : question.defaultValue ?? null,
         this.questionValidators(question),
       ));
     }
+  }
+
+  private questionValues(): ReadonlyMap<string, GenerationQuestionValue> {
+    return new Map(this.questions().map((question) => [
+      question.id,
+      this.questionForm.get(question.id)?.value as GenerationQuestionValue,
+    ]));
+  }
+
+  private async ensureExecutableSession(
+    session: GenerationRuntimeSession,
+    form: FormGroup,
+    retainedAnswers: ReadonlyMap<string, GenerationQuestionValue>,
+  ): Promise<GenerationRuntimeSession> {
+    if (!this.restartRequired()) return session;
+
+    const launch = this.launches().find((candidate) => candidate.bindingKey === session.bindingKey);
+    if (!launch) throw new Error('generation-request-failed');
+    const selectedSource = this.readPointer(form.getRawValue(), launch.sourcePointer)
+      ?? session.initialValues.find((value) => value.metadataPointer === launch.sourcePointer)?.value;
+    if (typeof selectedSource !== 'string' || !selectedSource.trim()) {
+      throw new Error('generation-request-failed');
+    }
+
+    const result = await this.api.launch({ bindingKey: launch.bindingKey, sourceOid: selectedSource.trim() });
+    const replacement: GenerationRuntimeSession = {
+      runId: result.runId,
+      bindingKey: launch.bindingKey,
+      autoOpen: true,
+      initialValues: [{ metadataPointer: launch.sourcePointer, value: selectedSource.trim() }],
+    };
+    const freshRun = await this.api.getRun(replacement.runId);
+    this.activeSession.set(replacement);
+    this.initialisedRunId = replacement.runId;
+    this.configureQuestions(freshRun.questions, retainedAnswers);
+    this.updateRun(freshRun);
+    return replacement;
   }
 
   private async pollUntilSettled(runId: string): Promise<void> {
