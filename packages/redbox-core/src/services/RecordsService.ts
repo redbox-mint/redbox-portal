@@ -721,11 +721,6 @@ export namespace Services {
       }
     }
 
-    private recordSchemaPortal(): string | undefined {
-      const portal = String(sails.config.auth?.defaultPortal ?? '').trim();
-      return RECORD_VALIDATION_REFERENCE_PATTERN.test(portal) ? portal : undefined;
-    }
-
     /** Resolve on every structural boundary so late service registration is observed. */
     private resolveRecordSchemaService(): RecordSchemaResolver | undefined {
       try {
@@ -823,8 +818,6 @@ export namespace Services {
         targetStep?: string;
       }>
     ): Promise<CreateStructuralPhaseResult> {
-      if (!this.recordSchemaEnabled()) return { allowed: true, warnings: [] };
-
       const fallbackMode = this.fallbackValidationMode(
         options.recordType,
         options.context.schemaOperation,
@@ -3629,8 +3622,9 @@ export namespace Services {
       );
       const brandObj = brand as BrandingModel;
       const recordTypeObj = recordType as RecordTypeLike;
-      let recordObj = this.normalizeRecord(_.cloneDeep(record) as AnyRecord);
-      const rawSubmittedMetadata = _.cloneDeep(recordObj.metadata);
+      const requestedRecord = _.cloneDeep(record) as AnyRecord;
+      const rawSubmittedMetadata = _.cloneDeep(requestedRecord.metadata);
+      let recordObj = this.normalizeRecord(requestedRecord);
       const userObj = this.recordObject(user);
       const configuredRecordTypeName = typeof recordTypeObj?.name === 'string' ? recordTypeObj.name.trim() : '';
       const isPublicRoute = tracker.context.routeFamily === 'api' || tracker.context.routeFamily === 'browser';
@@ -3865,45 +3859,64 @@ export namespace Services {
       );
       _.set(recordObj, 'metaMetadata', metaMetadata);
 
-      if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
-        tracker.recordPrimaryNotApplied(
-          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
-        );
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
-      }
-      if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
-        tracker.recordPrimaryNotApplied(
-          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
-        );
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
-      }
-      if (targetStepName && !this.hasTransitionRoleAuthorization(wfStep, userObj)) {
-        tracker.recordPrimaryNotApplied(
-          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
-        );
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
+      const schemaEnabled = this.recordSchemaEnabled();
+      if (schemaEnabled) {
+        if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        if (targetStepName && !this.hasTransitionRoleAuthorization(wfStep, userObj)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+
+        const structuralValidation = await this.validateCreateMetadataStructure({
+          metadata: rawSubmittedMetadata,
+          brand: brandObj,
+          portal: tracker.context.portal,
+          recordType: recordTypeObj,
+          recordTypeName,
+          user: userObj,
+          context: tracker.context,
+          targetStep: targetStepName,
+        });
+        if (!structuralValidation.allowed) {
+          tracker.recordPrimaryNotApplied(structuralValidation.problem);
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
       }
 
-      const structuralValidation = await this.validateCreateMetadataStructure({
-        metadata: rawSubmittedMetadata,
-        brand: brandObj,
-        portal: this.recordSchemaPortal(),
-        recordType: recordTypeObj,
-        recordTypeName,
-        user: userObj,
-        context: tracker.context,
-        targetStep: targetStepName,
-      });
-      if (!structuralValidation.allowed) {
-        tracker.recordPrimaryNotApplied(structuralValidation.problem);
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
+      if (!schemaEnabled) {
+        if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
       }
-      for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
-
       let currentFormFingerprint: string | undefined;
       const suppliedFormFingerprint = tracker.context.concurrency?.formFingerprint;
       const formFingerprintRequired = tracker.context.routeFamily === 'browser' && concurrencyMode === 'strict';
@@ -3950,6 +3963,13 @@ export namespace Services {
       }
 
       if (targetStepName) {
+        if (!schemaEnabled && !this.hasTransitionRoleAuthorization(wfStep, userObj)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
         try {
           recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
             createOid,

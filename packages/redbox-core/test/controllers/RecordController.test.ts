@@ -403,8 +403,10 @@ describe('RecordController getWorkflowSteps', () => {
       params: { targetStep: 'route-step' },
       query: { operation: ' submit ' },
       headers: {},
+      options: { locals: { portal: '  tenant-portal  ' } },
       body: {
         operation: 'body-must-not-control-validation',
+        portal: 'forged-body-portal',
         targetStep: 'body-step',
         validationBypass: { mode: 'bypass' },
         schemaOperation: 'forged-operation',
@@ -420,6 +422,7 @@ describe('RecordController getWorkflowSteps', () => {
     expect(context.operation).to.equal('transition');
     expect(context.validationOperation).to.equal('submit');
     expect(context.schemaOperation).to.equal('submit');
+    expect(context.portal).to.equal('tenant-portal');
     expect(context.ifMatch).to.equal(undefined);
     expect(context).not.to.have.property('schemaOutcome');
     expect(context.validationBypass).to.equal(undefined);

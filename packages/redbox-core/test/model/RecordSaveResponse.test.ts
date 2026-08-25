@@ -403,11 +403,13 @@ describe('RecordSaveResponse', function () {
       const ifMatch = `"sha256:${'a'.repeat(64)}"`;
       const context = createRecordSaveContext({
         validationOperation: '  publish  ',
+        portal: '  tenant-portal  ',
         recordSchemaIfMatch: ifMatch,
       });
 
       expect(context.validationOperation).to.equal('  publish  ');
       expect(context.schemaOperation).to.equal('publish');
+      expect(context.portal).to.equal('tenant-portal');
       expect(context.ifMatch).to.equal(ifMatch);
       expect(Object.isFrozen(context)).to.equal(true);
       expect(isRecordSaveContext(context)).to.equal(true);
@@ -449,6 +451,7 @@ describe('RecordSaveResponse', function () {
       expect(context.validationOperation).to.equal('  publish  ');
       expect(context.schemaOperation).to.equal('publish');
       expect(context.ifMatch).to.equal(firstIfMatch);
+      expect(createRecordSaveContext({ portal: '../invalid-portal' }).portal).to.equal(undefined);
     });
 
     it('detaches and deeply freezes caller-owned validation context values', function () {

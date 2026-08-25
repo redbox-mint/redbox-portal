@@ -108,6 +108,8 @@ export interface RecordSaveContext {
   readonly requestId: string;
   readonly routeFamily?: RecordSaveRouteFamily;
   readonly operation?: RecordSaveOperation;
+  /** Factory-normalized portal copied from the server-owned matched request context. */
+  readonly portal?: string;
   /** Server-owned workflow target copied from the matched route, not inferred from a resolved step object. */
   readonly targetStep?: string;
   /** Server-owned business intent; never conflated with the CRUD operation. */
@@ -131,6 +133,8 @@ export interface RecordSaveContextOptions {
   readonly requestId?: string;
   readonly routeFamily?: RecordSaveRouteFamily;
   readonly operation?: RecordSaveOperation;
+  /** Server-owned portal selected by the trusted transport adapter. */
+  readonly portal?: string;
   readonly targetStep?: string;
   readonly validationOperation?: string;
   readonly validationRequestParameters?: Readonly<Record<string, RecordValidationContextJSONValue>>;
@@ -589,6 +593,7 @@ export function createRecordSaveContext(context: RecordSaveContextOptions = {}):
     requestId,
     routeFamily,
     operation,
+    portal,
     targetStep,
     validationOperation,
     validationRequestParameters,
@@ -603,6 +608,8 @@ export function createRecordSaveContext(context: RecordSaveContextOptions = {}):
     requestId: isCanonicalSaveRequestId(requestId) ? requestId : randomUUID(),
     routeFamily,
     operation,
+    portal:
+      typeof portal === 'string' && RECORD_VALIDATION_REFERENCE_PATTERN.test(portal.trim()) ? portal.trim() : undefined,
     targetStep,
     validationOperation,
     schemaOperation: parsedSchemaOperation.valid

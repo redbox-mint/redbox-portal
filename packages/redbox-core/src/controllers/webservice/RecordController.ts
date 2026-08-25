@@ -170,10 +170,12 @@ export namespace Controllers {
       targetStep?: string,
       concurrency?: RecordConcurrencyContext
     ): RecordSaveContext {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'api',
         operation,
+        portal: typeof locals?.portal === 'string' ? locals.portal : undefined,
         targetStep: typeof targetStep === 'string' ? targetStep.trim() : undefined,
         validationOperation,
         validationRequestParameters: normalizeRecordValidationRequestFacts(

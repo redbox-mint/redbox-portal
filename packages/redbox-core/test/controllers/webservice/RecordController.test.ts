@@ -1051,12 +1051,15 @@ describe('Webservice RecordController body source', () => {
         },
       };
       recordsService.create.resolves(successResult('created-record'));
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: { operation: 'publish' },
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        {
+          params: { recordType: 'dataset' },
+          query: { operation: 'publish' },
+          body,
+          files: {},
+        },
+        { options: { locals: { portal: '  tenant-portal  ' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.create(req, {} as Sails.Res);
@@ -1072,6 +1075,7 @@ describe('Webservice RecordController body source', () => {
       expect(context.operation).to.equal('create');
       expect(context.validationOperation).to.equal('publish');
       expect(context.schemaOperation).to.equal('publish');
+      expect(context.portal).to.equal('tenant-portal');
       expect(context.ifMatch).to.equal(undefined);
       expect(context).not.to.have.property('schemaOutcome');
       expect(context.validationBypass).to.equal(undefined);

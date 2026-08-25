@@ -16,7 +16,6 @@ import { createRecordSaveContext, type RecordSaveContext } from '../../src/Recor
 import type { StorageService } from '../../src/StorageService';
 import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
-import { createRecordSaveContext } from '../../src/RecordSaveResponse';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
@@ -3827,7 +3826,11 @@ describe('RecordsService', function () {
       return { commit };
     };
 
-    const createSchemaResolution = (kind: 'resolved' | 'partial', enforcement: 'shadow' | 'enforce' = 'shadow') => ({
+    const createSchemaResolution = (
+      kind: 'resolved' | 'partial',
+      enforcement: 'shadow' | 'enforce' = 'shadow',
+      portal = 'portal'
+    ) => ({
       kind,
       document: { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object' },
       digest: 'a'.repeat(64),
@@ -3840,7 +3843,7 @@ describe('RecordsService', function () {
         etag: `"sha256:${'a'.repeat(64)}"`,
         context: {
           brand: 'brand-1',
-          portal: 'portal',
+          portal,
           kind: 'create',
           recordType: 'rdmp',
           workflowStep: 'draft',
@@ -3856,6 +3859,9 @@ describe('RecordsService', function () {
       mockSails.config.recordSchema = { enabled: true };
       mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
     };
+
+    const recordSchemaContext = (options: Parameters<typeof createRecordSaveContext>[0] = {}): RecordSaveContext =>
+      createRecordSaveContext({ portal: 'portal', ...options });
 
     const richHtmlForm = (name = 'default-form'): FormConfigFrame => ({
       name,
@@ -4069,7 +4075,7 @@ describe('RecordsService', function () {
         metadata: structuredClone(rawMetadata),
         authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
       };
-      const resolution = createSchemaResolution('resolved');
+      const resolution = createSchemaResolution('resolved', 'shadow', 'tenant-portal');
       const resolveCreate = sinon.stub().resolves(resolution);
       const validateResolvedArtifact = sinon.stub().returns({
         kind: 'validated',
@@ -4093,9 +4099,10 @@ describe('RecordsService', function () {
         true,
         false,
         undefined,
-        createRecordSaveContext({
+        recordSchemaContext({
           routeFamily: 'api',
           operation: 'create',
+          portal: '  tenant-portal  ',
           validationOperation: '  publish  ',
         })
       );
@@ -4104,7 +4111,7 @@ describe('RecordsService', function () {
       expect(
         resolveCreate.calledOnceWithExactly({
           brand: 'brand-1',
-          portal: 'portal',
+          portal: 'tenant-portal',
           recordType: 'rdmp',
           operation: 'publish',
           targetStep: undefined,
@@ -4128,6 +4135,44 @@ describe('RecordsService', function () {
       expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
     });
+
+    for (const testCase of [
+      { name: 'missing', record: {}, expectedInput: undefined },
+      { name: 'null', record: { metadata: null }, expectedInput: null },
+    ] as const) {
+      it(`rejects ${testCase.name} raw create metadata instead of validating normalized empty metadata`, async function () {
+        enableRecordSchema();
+        const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
+        const validateResolvedArtifact = sinon.stub().callsFake((request: unknown) => {
+          assertUnknownRecord(request);
+          const input = request.input;
+          const valid = input !== null && typeof input === 'object' && !Array.isArray(input);
+          return {
+            kind: 'validated',
+            valid,
+            issues: valid ? [] : [{ code: 'record-schema.type', pointer: '' }],
+            truncated: false,
+          };
+        });
+        mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          testCase.record,
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1' },
+          false,
+          false,
+          undefined,
+          recordSchemaContext()
+        );
+
+        expect(result.outcome).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code).to.equal('record-schema.type');
+        expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(testCase.expectedInput);
+        expect(mockStorageService.create.notCalled).to.equal(true);
+      });
+    }
 
     it('continues with advisory schema issues in shadow and stops before defaults or side effects in enforce', async function () {
       enableRecordSchema();
@@ -4157,7 +4202,9 @@ describe('RecordsService', function () {
           { name: 'rdmp', hooks: {}, searchable: false },
           { username: 'user-1' },
           true,
-          false
+          false,
+          undefined,
+          recordSchemaContext()
         );
 
         expect(result.outcome, mode).to.equal(mode === 'shadow' ? 'saved-with-warnings' : 'not-saved');
@@ -4197,7 +4244,9 @@ describe('RecordsService', function () {
         { name: 'rdmp', hooks: {}, searchable: false },
         { username: 'user-1' },
         false,
-        false
+        false,
+        undefined,
+        recordSchemaContext()
       );
 
       expect(result.outcome).to.equal('saved');
@@ -4219,7 +4268,7 @@ describe('RecordsService', function () {
       });
       const validateResolvedArtifact = sinon.stub();
       mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
-      const context = createRecordSaveContext({ validationOperation: '  publish  ' });
+      const context = recordSchemaContext({ validationOperation: '  publish  ' });
       const recordType = {
         name: 'rdmp',
         hooks: {},
@@ -4292,7 +4341,7 @@ describe('RecordsService', function () {
           true,
           false,
           undefined,
-          createRecordSaveContext({ validationOperation: 'publish' })
+          recordSchemaContext({ validationOperation: 'publish' })
         );
 
         expect(result.outcome, mode).to.equal('not-saved');
@@ -4313,6 +4362,8 @@ describe('RecordsService', function () {
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const transitionMetadata = sinon.spy(RecordsService as any, 'transitionWorkflowStepMetadata');
       const initializeMetadata = sinon.spy(RecordsService as any, 'initRecordMetaMetadata');
+      const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
+      const transitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
       const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
       businessValidation.resolves(allowResult());
@@ -4323,18 +4374,59 @@ describe('RecordsService', function () {
         { name: 'rdmp', hooks: {}, searchable: false },
         { username: 'user-1' },
         true,
-        false
+        false,
+        'published'
       );
 
       expect(result.outcome).to.equal('saved');
       expect(resolveCreate.notCalled).to.equal(true);
       expect(validateResolvedArtifact.notCalled).to.equal(true);
-      expect(authorize.calledBefore(transitionMetadata)).to.equal(true);
       expect(transitionMetadata.calledBefore((global as any).FormsService.getForm)).to.equal(true);
       expect((global as any).FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
+      expect(initializeMetadata.calledBefore(authorize)).to.equal(true);
+      expect(authorize.calledBefore(transitionAuthorization)).to.equal(true);
+      expect(transitionAuthorization.calledBefore(transitionHook)).to.equal(true);
+      expect(transitionHook.calledBefore(preSaveHook)).to.equal(true);
       expect(initializeMetadata.calledBefore(preSaveHook)).to.equal(true);
       expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
+    });
+
+    it('preserves schema-disabled hook failure precedence over transition authorization', async function () {
+      mockSails.config.recordSchema = { enabled: false };
+      const workflowStepsService = Reflect.get(globalThis, 'WorkflowStepsService') as {
+        get: sinon.SinonStub;
+      };
+      workflowStepsService.get.returns(
+        of({
+          name: 'published',
+          config: {
+            form: 'published-form',
+            workflow: { stage: 'published' },
+            authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+          },
+        })
+      );
+      const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Baseline precedence' } },
+        {
+          name: 'rdmp',
+          hooks: { onCreate: { pre: [{ function: '({ invalid: true })' }] } },
+          searchable: false,
+        },
+        { username: 'user-1', roles: [{ name: 'Researcher' }] },
+        true,
+        false,
+        'published'
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0].code).to.equal('invalid-hook-configuration');
+      expect(transitionAuthorization.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
     });
 
     it('exposes current attachmentFields to create hooks and normalizes the final workflow form', async function () {
