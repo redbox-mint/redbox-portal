@@ -82,7 +82,7 @@
     "passport-jwt": "4.0.1",
     "passport-local": "1.0.0",
     "pino": "10.3.1",
-    "pino-logfmt": "1.1.4",
+    "pino-logfmt": "1.1.5",
     "reflect-metadata": "0.2.2",
     "resolve-url-loader": "5.0.0",
     "ro-crate": "3.7.2",
