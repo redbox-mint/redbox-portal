@@ -4148,6 +4148,133 @@ describe('RecordsService', function () {
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
     });
 
+    it('authorizes public no-ACL harvest creates from workflow roles in disabled, shadow, and enforce modes', async function () {
+      const harvesterRole = { id: 'role-harvester', name: 'Harvester' };
+      (global as any).RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
+        roleName === harvesterRole.name ? harvesterRole : null
+      );
+      (global as any).WorkflowStepsService.getFirst.returns(
+        of({
+          name: 'draft',
+          config: {
+            form: 'default-form',
+            addJsonLdContext: false,
+            authorization: { viewRoles: ['Harvester'], editRoles: ['Harvester'] },
+          },
+        })
+      );
+      const resolveCreate = sinon.stub();
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+
+      for (const mode of ['disabled', 'shadow', 'enforce'] as const) {
+        mockSails.config.recordSchema = { enabled: mode !== 'disabled' };
+        mockSails.config.recordValidation = { mode: mode === 'disabled' ? 'shadow' : mode };
+        resolveCreate.resetHistory();
+        if (mode !== 'disabled') {
+          resolveCreate.resolves(createSchemaResolution('resolved', mode));
+        }
+        validateResolvedArtifact.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+        (global as any).RecordValidationService.resolve.resolves(
+          allowResult({ mode: mode === 'disabled' ? 'shadow' : mode })
+        );
+        mockStorageService.create.resetHistory();
+
+        const rawMetadata = { title: `Harvest ${mode}`, nested: { retained: true } };
+        const harvestRequest = {
+          harvestId: `harvest-${mode}`,
+          metadata: structuredClone(rawMetadata),
+        };
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          harvestRequest,
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'harvester', roles: [harvesterRole] },
+          false,
+          false,
+          undefined,
+          recordSchemaContext({ routeFamily: 'api', operation: 'create' })
+        );
+
+        expect(result.outcome, mode).to.equal('saved');
+        expect(harvestRequest, mode).to.deep.equal({
+          harvestId: `harvest-${mode}`,
+          metadata: rawMetadata,
+        });
+        expect(mockStorageService.create.calledOnce, mode).to.equal(true);
+        expect(mockStorageService.create.firstCall.args[1].authorization, mode).to.deep.include({
+          viewRoles: ['Harvester'],
+          editRoles: ['Harvester'],
+        });
+        expect(resolveCreate.called, mode).to.equal(mode !== 'disabled');
+        expect(validateResolvedArtifact.called, mode).to.equal(mode !== 'disabled');
+      }
+    });
+
+    it('rejects unauthorized public no-ACL harvest creates before schema resolution in every mode', async function () {
+      const harvesterRole = { id: 'role-harvester', name: 'Harvester' };
+      (global as any).RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
+        roleName === harvesterRole.name ? harvesterRole : null
+      );
+      (global as any).WorkflowStepsService.getFirst.returns(
+        of({
+          name: 'draft',
+          config: {
+            form: 'default-form',
+            addJsonLdContext: false,
+            authorization: { viewRoles: ['Harvester'], editRoles: ['Harvester'] },
+          },
+        })
+      );
+      const resolveCreate = sinon.stub();
+      const validateResolvedArtifact = sinon.stub();
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+
+      for (const mode of ['disabled', 'shadow', 'enforce'] as const) {
+        mockSails.config.recordSchema = { enabled: mode !== 'disabled' };
+        mockSails.config.recordValidation = { mode: mode === 'disabled' ? 'shadow' : mode };
+        resolveCreate.resetHistory();
+        if (mode !== 'disabled') {
+          resolveCreate.resolves(createSchemaResolution('resolved', mode));
+        }
+        validateResolvedArtifact.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+        mockStorageService.create.resetHistory();
+
+        const harvestRequest = {
+          harvestId: `unauthorized-${mode}`,
+          metadata: { title: `Unauthorized harvest ${mode}` },
+        };
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          harvestRequest,
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'researcher', roles: [{ id: 'role-researcher', name: 'Researcher' }] },
+          false,
+          false,
+          undefined,
+          recordSchemaContext({ routeFamily: 'api', operation: 'create' })
+        );
+
+        expect(result.outcome, mode).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code, mode).to.equal('record-validation-edit-unauthorized');
+        expect(resolveCreate.notCalled, mode).to.equal(true);
+        expect(validateResolvedArtifact.notCalled, mode).to.equal(true);
+        expect((global as any).RecordValidationService.resolve.notCalled, mode).to.equal(true);
+        expect(mockStorageService.create.notCalled, mode).to.equal(true);
+        expect(harvestRequest, mode).to.deep.equal({
+          harvestId: `unauthorized-${mode}`,
+          metadata: { title: `Unauthorized harvest ${mode}` },
+        });
+      }
+    });
+
     for (const testCase of [
       { name: 'missing', record: {}, expectedInput: undefined },
       { name: 'null', record: { metadata: null }, expectedInput: null },

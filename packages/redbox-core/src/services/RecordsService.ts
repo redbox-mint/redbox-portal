@@ -1825,6 +1825,24 @@ export namespace Services {
       return Boolean(record && this.hasEditAccess(brand, user, roles, record));
     }
 
+    /**
+     * Project only the submitted ACL through the resolved create workflow.
+     * This detached view mirrors the later workflow authorization defaults
+     * without exposing metadata to pre-schema mutation.
+     */
+    private createAuthorizationProjection(record: AnyRecord, workflowSteps: readonly WorkflowStepLike[]): AnyRecord {
+      const projection = {
+        authorization: _.cloneDeep(record.authorization),
+      } as AnyRecord;
+      const authorization = projection.authorization as AnyRecord;
+      for (const workflowStep of workflowSteps) {
+        const configured = this.recordObject(_.get(workflowStep, 'config.authorization'));
+        authorization.viewRoles = authorization.viewRoles ?? _.cloneDeep(configured.viewRoles);
+        authorization.editRoles = authorization.editRoles ?? _.cloneDeep(configured.editRoles);
+      }
+      return projection;
+    }
+
     public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
       const configured = _.get(step, 'config.authorization.transitionRoles') as unknown;
       if (!Array.isArray(configured) || configured.length === 0) return true;
@@ -3879,6 +3897,10 @@ export namespace Services {
 
       const schemaEnabled = this.recordSchemaEnabled();
       if (schemaEnabled) {
+        const authorizationProjection = this.createAuthorizationProjection(
+          recordObj,
+          targetStepName ? [startingWfStep, wfStep] : [startingWfStep]
+        );
         const structuralBypass = tracker.context.validationBypass;
         if (structuralBypass !== undefined) {
           const bypassError = this.bypassErrorCode(tracker.context, structuralBypass);
@@ -3888,7 +3910,7 @@ export namespace Services {
             return tracker.toResponse();
           }
         }
-        if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
+        if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, authorizationProjection)) {
           tracker.recordPrimaryNotApplied(
             this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
           );
