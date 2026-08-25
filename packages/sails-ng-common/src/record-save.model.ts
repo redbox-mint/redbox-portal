@@ -38,13 +38,23 @@ export const RECORD_SAVE_PROBLEM_KINDS = [
 
 export type RecordSaveProblemKind = (typeof RECORD_SAVE_PROBLEM_KINDS)[number];
 
-export type RecordSavePhase = 'pre-save' | 'persistence' | 'attachments' | 'post-save' | 'response' | 'transport';
+export type RecordSaveProblemSource = 'schema';
+
+export type RecordSavePhase =
+  | 'schema'
+  | 'pre-save'
+  | 'persistence'
+  | 'attachments'
+  | 'post-save'
+  | 'response'
+  | 'transport';
 
 export type RecordSaveValidatorParameterPrimitive = string | number | boolean | null;
 export type RecordSaveValidatorParameterValue =
   | RecordSaveValidatorParameterPrimitive
   | RecordSaveValidatorParameterPrimitive[];
 export type RecordSaveValidatorParameters = Record<string, RecordSaveValidatorParameterValue>;
+export type RecordSaveProblemSource = 'schema';
 
 export const RECORD_SAVE_VALIDATOR_PARAMETER_LIMITS = {
   maxEntries: 16,
@@ -235,7 +245,7 @@ export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
   const pointer = item.pointer;
   if (
     typeof pointer === 'string' &&
-    pointer.startsWith('/') &&
+    (pointer === '' || pointer.startsWith('/')) &&
     pointer.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength
   )
     issue.pointer = pointer;
@@ -270,6 +280,8 @@ export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
 
 export interface RecordSaveProblem {
   kind: RecordSaveProblemKind;
+  /** Distinct validation layer that produced this problem. */
+  source?: RecordSaveProblemSource;
   phase: RecordSavePhase;
   issues: RecordSaveIssue[];
 }

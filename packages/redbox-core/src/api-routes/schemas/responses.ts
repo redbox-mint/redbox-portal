@@ -375,7 +375,8 @@ const recordSaveProblemSchema = withOpenApi(
     // Derived from the shared union so the documented contract cannot drift
     // from the kinds the server is able to emit.
     kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
-    phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
+    source: z.literal('schema').optional(),
+    phase: z.enum(['schema', 'pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
     issues: z.array(recordSaveIssueSchema),
   }),
   { description: 'A save phase problem and its safe display issues' }
@@ -422,6 +423,7 @@ export const recordConcurrencyMetadataSchema = withOpenApi(
     })
     .strict(),
   { description: 'Bounded diagnostic concurrency facts; resolution labels are never authority' }
+);
 );
 
 const recordAttachmentCompletionItemSchema = withOpenApi(

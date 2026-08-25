@@ -2,7 +2,11 @@ import {
   RECORD_SAVE_MESSAGE_MAX_LENGTH,
   RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
 } from '@researchdatabox/sails-ng-common';
-import { recordConcurrencyMetadataSchema, recordSaveIssueSchema } from '../../src/api-routes/schemas/responses';
+import {
+  recordConcurrencyMetadataSchema,
+  recordSaveIssueSchema,
+  storageServiceResponseSchema,
+} from '../../src/api-routes/schemas/responses';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 
 describe('record-save issue response schema', function () {
@@ -26,6 +30,46 @@ describe('record-save issue response schema', function () {
         dataModel: ['title'],
         angularComponentsJsonPointer: '/title',
       },
+    });
+
+    expect(result.success).to.equal(true);
+  });
+
+  it('accepts root and nested RFC 6901 pointers', function () {
+    for (const pointer of ['', '/metadata/title']) {
+      expect(
+        recordSaveIssueSchema.safeParse({
+          code: 'record-schema.type',
+          message: '@record-schema.type',
+          pointer,
+        }).success
+      ).to.equal(true);
+    }
+  });
+
+  it('accepts schema source, phase, and code metadata in a typed save problem', function () {
+    const result = storageServiceResponseSchema.safeParse({
+      success: false,
+      oid: '',
+      message: '',
+      metadata: null,
+      totalItems: 0,
+      items: [],
+      outcome: 'not-saved',
+      problems: [
+        {
+          kind: 'validation',
+          source: 'schema',
+          phase: 'schema',
+          issues: [
+            {
+              code: 'record-schema.type',
+              message: '@record-schema.type',
+              pointer: '',
+            },
+          ],
+        },
+      ],
     });
 
     expect(result.success).to.equal(true);

@@ -284,6 +284,35 @@ describe('RecordSaveResponse', function () {
       expect(JSON.stringify(serialized)).not.to.contain('raw database failure');
       expect(JSON.stringify(serialized)).not.to.contain('secret');
     });
+
+    it('preserves safe schema metadata and an RFC 6901 root pointer', function () {
+      const saveTracker = tracker();
+      saveTracker.recordPrimaryNotApplied({
+        kind: 'validation',
+        source: 'schema',
+        phase: 'schema',
+        issues: [
+          {
+            code: 'record-schema.type',
+            message: '@record-schema.type',
+            pointer: '',
+          },
+        ],
+      });
+
+      expect(saveTracker.toResponse().problems[0]).to.deep.equal({
+        kind: 'validation',
+        source: 'schema',
+        phase: 'schema',
+        issues: [
+          {
+            code: 'record-schema.type',
+            message: '@record-schema.type',
+            pointer: '',
+          },
+        ],
+      });
+    });
   });
 
   describe('attachment completion', function () {

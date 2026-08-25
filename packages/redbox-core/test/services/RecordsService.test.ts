@@ -4168,7 +4168,18 @@ describe('RecordsService', function () {
         );
 
         expect(result.outcome).to.equal('not-saved');
-        expect(result.problems[0].issues[0].code).to.equal('record-schema.type');
+        expect(result.problems[0]).to.deep.include({
+          kind: 'validation',
+          source: 'schema',
+          phase: 'schema',
+        });
+        expect(result.problems[0].issues).to.deep.equal([
+          {
+            code: 'record-schema.type',
+            message: '@record-schema.type',
+            pointer: '',
+          },
+        ]);
         expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(testCase.expectedInput);
         expect(mockStorageService.create.notCalled).to.equal(true);
       });
@@ -4209,7 +4220,11 @@ describe('RecordsService', function () {
 
         expect(result.outcome, mode).to.equal(mode === 'shadow' ? 'saved-with-warnings' : 'not-saved');
         expect(result.problems).to.have.length(1);
-        expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+        expect(result.problems[0]).to.deep.include({
+          kind: 'validation',
+          source: 'schema',
+          phase: 'schema',
+        });
         expect(result.problems[0].issues).to.deep.equal([
           {
             message: '@record-schema.type',
@@ -4291,8 +4306,15 @@ describe('RecordsService', function () {
       );
 
       expect(shadowResult.outcome).to.equal('saved-with-warnings');
-      expect(shadowResult.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
-      expect(shadowResult.problems[0].issues[0].code).to.equal('record-schema.unavailable');
+      expect(shadowResult.problems[0]).to.deep.include({
+        kind: 'system',
+        source: 'schema',
+        phase: 'schema',
+      });
+      expect(shadowResult.problems[0].issues[0]).to.deep.equal({
+        code: 'record-schema.unavailable',
+        message: '@record-schema.unavailable',
+      });
       expect(resolveCreate.firstCall.args[0].operation).to.equal('publish');
       expect(validateResolvedArtifact.notCalled).to.equal(true);
 

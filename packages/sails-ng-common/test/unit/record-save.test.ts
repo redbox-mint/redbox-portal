@@ -86,6 +86,22 @@ describe('record-save contracts', function () {
     });
   });
 
+  it('preserves root and nested RFC 6901 pointers', function () {
+    for (const pointer of ['', '/metadata/title']) {
+      expect(
+        sanitizeRecordSaveIssue({
+          code: 'record-schema.type',
+          message: '@record-schema.type',
+          pointer,
+        })
+      ).to.deep.equal({
+        code: 'record-schema.type',
+        message: '@record-schema.type',
+        pointer,
+      });
+    }
+  });
+
   it('drops raw exception/request data and nested validator values', function () {
     const issue = sanitizeRecordSaveIssue({
       message: '@validator-error',

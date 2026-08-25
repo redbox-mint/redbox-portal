@@ -748,8 +748,13 @@ export namespace Services {
                 pointer: issue.pointer,
               })
             )
-          : [sanitizeRecordSaveIssue({ code, message: `@${code}` })];
-      return { kind, phase: 'pre-save', issues: safeIssues };
+          : [
+              sanitizeRecordSaveIssue({
+                code,
+                message: `@${code}`,
+              }),
+            ];
+      return { kind, source: 'schema', phase: 'schema', issues: safeIssues };
     }
 
     private recordSchemaFailureCode(
