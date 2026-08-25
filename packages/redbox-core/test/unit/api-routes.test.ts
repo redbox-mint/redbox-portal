@@ -1045,6 +1045,24 @@ describe('API routes contract layer', function () {
     );
     expect(asOpenApiSchema(harvestRunEventsSchema.properties?.records).items?.properties).to.have.property('operation');
     expect(harvestRunEventsRoute.responses).to.have.property('404');
+
+    const recordCreateRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post);
+    const recordCreateSchema = asOpenApiSchema(recordCreateRoute.responses?.['201']?.content?.['application/json']?.schema);
+    const storageResponseVariant = ((recordCreateSchema.anyOf ?? []) as OpenApiSchema[])
+      .find(variant => variant.properties?.problems != null);
+    const problemSchema = asOpenApiSchema(asOpenApiSchema(storageResponseVariant?.properties?.problems).items);
+    const problemVariants = (problemSchema.anyOf ?? problemSchema.oneOf ?? []) as OpenApiSchema[];
+    const schemaProblemVariant = problemVariants.find(variant => variant.properties?.source != null);
+    const lifecycleProblemVariant = problemVariants.find(variant => variant.properties?.source == null);
+
+    expect(problemVariants).to.have.length(2);
+    expect(schemaProblemVariant?.required).to.include.members(['source', 'phase']);
+    expect(asOpenApiSchema(schemaProblemVariant?.properties?.source).enum).to.deep.equal(['schema']);
+    expect(asOpenApiSchema(schemaProblemVariant?.properties?.phase).enum).to.deep.equal(['schema']);
+    expect(schemaProblemVariant?.additionalProperties).to.equal(false);
+    expect(lifecycleProblemVariant?.required).to.include('phase');
+    expect(lifecycleProblemVariant?.properties).not.to.have.property('source');
+    expect(lifecycleProblemVariant?.additionalProperties).to.equal(false);
   });
 
   it('should include shared 400 and 500 error envelopes in OpenAPI', function () {

@@ -136,6 +136,37 @@ describe('record-save issue response schema', function () {
     expect(result.success).to.equal(false);
   });
 
+  it('rejects unknown properties on both problem provenance branches', function () {
+    for (const problem of [
+      {
+        kind: 'validation',
+        source: 'schema',
+        phase: 'schema',
+        issues: [{ message: '@record-schema.type' }],
+        internalDetails: 'sensitive schema detail',
+      },
+      {
+        kind: 'processing',
+        phase: 'pre-save',
+        issues: [{ message: '@record-save-failed' }],
+        internalDetails: 'sensitive lifecycle detail',
+      },
+    ]) {
+      const result = storageServiceResponseSchema.safeParse({
+        success: false,
+        oid: '',
+        message: '',
+        metadata: null,
+        totalItems: 0,
+        items: [],
+        outcome: 'not-saved',
+        problems: [problem],
+      });
+
+      expect(result.success).to.equal(false);
+    }
+  });
+
   it('rejects nested, unknown, or excessive validator parameters', function () {
     expect(
       recordSaveIssueSchema.safeParse({

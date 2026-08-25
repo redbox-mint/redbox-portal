@@ -384,18 +384,21 @@ export const recordSaveIssueSchema = withOpenApi(
 
 const recordSaveProblemSchema = withOpenApi(
   z.union([
-    z.object({
-      kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
-      source: z.literal('schema'),
-      phase: z.literal('schema'),
-      issues: z.array(recordSaveIssueSchema),
-    }),
-    z.object({
-      kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
-      source: z.never().optional(),
-      phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
-      issues: z.array(recordSaveIssueSchema),
-    }),
+    z
+      .object({
+        kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
+        source: z.literal('schema'),
+        phase: z.literal('schema'),
+        issues: z.array(recordSaveIssueSchema),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
+        phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
+        issues: z.array(recordSaveIssueSchema),
+      })
+      .strict(),
   ]),
   { description: 'A save phase problem and its safe display issues' }
 );
