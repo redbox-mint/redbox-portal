@@ -51,16 +51,16 @@ describe('FormServerSyncService', () => {
     let releaseReplacement!: () => void;
     const replacementGate = new Promise<void>(resolve => (releaseReplacement = resolve));
     let firstReplacement = true;
-    class AsyncFormControl extends FormControl<string> {
-      public async setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void> {
-        if (firstReplacement) {
-          firstReplacement = false;
-          await replacementGate;
-        }
-        this.setValue(value, options);
+    const control = new FormControl('local', { nonNullable: true }) as FormControl<string> & {
+      setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void>;
+    };
+    control.setCustomValue = async (value, options) => {
+      if (firstReplacement) {
+        firstReplacement = false;
+        await replacementGate;
       }
-    }
-    const control = new AsyncFormControl('local');
+      control.setValue(value, options);
+    };
     const form = new FormGroup({ control });
     form.markAsPristine();
     const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
@@ -89,16 +89,16 @@ describe('FormServerSyncService', () => {
     let releaseReplacement!: () => void;
     const replacementGate = new Promise<void>(resolve => (releaseReplacement = resolve));
     let firstReplacement = true;
-    class AsyncFormControl extends FormControl<string> {
-      public async setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void> {
-        if (firstReplacement) {
-          firstReplacement = false;
-          await replacementGate;
-        }
-        this.setValue(value, options);
+    const control = new FormControl('local', { nonNullable: true }) as FormControl<string> & {
+      setCustomValue(value: string, options?: { emitEvent?: boolean }): Promise<void>;
+    };
+    control.setCustomValue = async (value, options) => {
+      if (firstReplacement) {
+        firstReplacement = false;
+        await replacementGate;
       }
-    }
-    const control = new AsyncFormControl('local');
+      control.setValue(value, options);
+    };
     const form = new FormGroup({ control });
     const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
     formDefMap.withFormControl = { control };
@@ -118,13 +118,11 @@ describe('FormServerSyncService', () => {
   it('reports controls that cannot be synchronized', async () => {
     const unchanged = new FormControl('same');
     const excluded = new FormControl('old');
-    const failed = {
-      dirty: false,
-      pristine: true,
-      markAsDirty: jasmine.createSpy('markAsDirty'),
-      markAsPristine: () => undefined,
-      setCustomValue: () => Promise.reject(new Error('cannot set')),
-    } as any;
+    const failed = new FormControl('old') as FormControl<string | null> & {
+      setCustomValue(): Promise<void>;
+    };
+    failed.setCustomValue = () => Promise.reject(new Error('cannot set'));
+    spyOn(failed, 'markAsDirty').and.callThrough();
     const form = new FormGroup({ unchanged, excluded });
     const formDefMap = new FormComponentsMap([], {} as FormConfigFrame);
     formDefMap.withFormControl = {

@@ -533,14 +533,14 @@ describe('RecordService', () => {
       success: true,
       oid: "oid-warning",
       metadata: { postSaveSyncWarning: "true" }
-    }, 200, "request-warning");
+    }, 200, "33333333-3333-4333-8333-333333333333");
 
     expect(result.outcome).toBe("saved-with-warnings");
     expect(result.wasPersisted()).toBeTrue();
     expect(result.isComplete()).toBeFalse();
     expect(result.isSuccessful()).toBeTrue();
     expect(result.completion.attachments.status).toBe("unknown");
-    expect(result.requestId).toBe("request-warning");
+    expect(result.requestId).toBe("33333333-3333-4333-8333-333333333333");
   });
 
   it("keeps malformed dispatched responses uncertain and maps safe issue fields", () => {
@@ -590,9 +590,9 @@ describe('RecordService', () => {
     expect(notDispatched.problems[0].phase).toBe("transport");
 
     const nonHttpError = RecordActionResult.fromHttpError(new Error("request failed"), "request-2");
-    expect(nonHttpError.outcome).toBe("unknown");
+    expect(nonHttpError.outcome).toBe("not-saved");
     expect(nonHttpError.requestId).toBe("request-2");
-    expect(nonHttpError.problems[0].kind).toBe("network");
+    expect(nonHttpError.problems[0].kind).toBe("system");
   });
 
   it('uses selected list revisions to fetch and send exact lifecycle entity tags', async () => {
