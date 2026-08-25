@@ -40,6 +40,7 @@ import { RBValidationError } from '../model/RBValidationError';
 import { RecordModel } from '../model/storage/RecordModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import type { UserModel } from '../model/storage/UserModel';
 import {
   isDeletedRecordLifecycleOperation,
   isDeletedRecordLifecycleOperationForState,
@@ -159,6 +160,8 @@ import {
 import type {
   ResolveCreateRecordSchemaRequest,
   ResolveCreateRecordSchemaResult,
+  ResolveUpdateRecordSchemaRequest,
+  ResolveUpdateRecordSchemaResult,
   ValidateResolvedRecordSchemaResult,
 } from './RecordSchemaService';
 
@@ -275,16 +278,21 @@ export namespace Services {
     | { readonly ok: true; readonly name?: string }
     | { readonly ok: false; readonly diagnosticCode: WorkflowTargetDiagnosticCode };
   type RecordValidationResolver = Pick<RecordValidationServices.RecordValidation, 'resolve'>;
-  type RecordSchemaResolver = {
-    resolveCreate(request: ResolveCreateRecordSchemaRequest): Promise<ResolveCreateRecordSchemaResult>;
+  type RecordSchemaArtifactValidator = {
     validateResolvedArtifact(
       request: Readonly<{
         digest: string;
-        schemaKind: 'create';
+        schemaKind: 'create' | 'update';
         document: PublishedRecordJsonSchemaDocument;
         input: unknown;
       }>
     ): ValidateResolvedRecordSchemaResult;
+  };
+  type CreateRecordSchemaResolver = RecordSchemaArtifactValidator & {
+    resolveCreate(request: ResolveCreateRecordSchemaRequest): Promise<ResolveCreateRecordSchemaResult>;
+  };
+  type UpdateRecordSchemaResolver = RecordSchemaArtifactValidator & {
+    resolveUpdate(request: ResolveUpdateRecordSchemaRequest): Promise<ResolveUpdateRecordSchemaResult>;
   };
   type RecordSchemaSaveIssue = {
     readonly code: RecordSchemaProblemCode;
@@ -320,6 +328,7 @@ export namespace Services {
   type CreateStructuralPhaseResult =
     | { readonly allowed: true; readonly warnings: readonly RecordSaveProblem[] }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
+  type UpdateStructuralPhaseResult = CreateStructuralPhaseResult;
   type ValidateCandidateOptions = {
     readonly candidate: AnyRecord;
     readonly original?: AnyRecord;
@@ -728,12 +737,25 @@ export namespace Services {
     }
 
     /** Resolve on every structural boundary so late service registration is observed. */
-    private resolveRecordSchemaService(): RecordSchemaResolver | undefined {
+    private resolveRecordSchemaService(): CreateRecordSchemaResolver | undefined {
       try {
-        const registered = sails.services?.recordschemaservice as Partial<RecordSchemaResolver> | undefined;
+        const registered = sails.services?.recordschemaservice as Partial<CreateRecordSchemaResolver> | undefined;
         return typeof registered?.resolveCreate === 'function' &&
           typeof registered.validateResolvedArtifact === 'function'
-          ? (registered as RecordSchemaResolver)
+          ? (registered as CreateRecordSchemaResolver)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+
+    /** Keep update resolution optional until the schema service is registered during lift. */
+    private resolveUpdateRecordSchemaService(): UpdateRecordSchemaResolver | undefined {
+      try {
+        const registered = sails.services?.recordschemaservice as Partial<UpdateRecordSchemaResolver> | undefined;
+        return typeof registered?.resolveUpdate === 'function' &&
+          typeof registered.validateResolvedArtifact === 'function'
+          ? (registered as UpdateRecordSchemaResolver)
           : undefined;
       } catch {
         return undefined;
@@ -810,6 +832,10 @@ export namespace Services {
     }
 
     private applyCreateSchemaPolicy(mode: ValidationMode, problem: RecordSaveProblem): CreateStructuralPhaseResult {
+      return mode === 'shadow' ? { allowed: true, warnings: [problem] } : { allowed: false, problem };
+    }
+
+    private applyUpdateSchemaPolicy(mode: ValidationMode, problem: RecordSaveProblem): UpdateStructuralPhaseResult {
       return mode === 'shadow' ? { allowed: true, warnings: [problem] } : { allowed: false, problem };
     }
 
@@ -900,6 +926,115 @@ export namespace Services {
         issues = issues.length > 1 ? [...issues.slice(0, issues.length - 1), truncationIssue] : [truncationIssue];
       }
       return this.applyCreateSchemaPolicy(
+        resolution.metadata.context.enforcement,
+        this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues)
+      );
+    }
+
+    /**
+     * Resolve the caller-effective update contract, evaluate its optional
+     * precondition, and validate the untouched partial metadata submission.
+     */
+    private async validateUpdateRecordSchema(
+      options: Readonly<{
+        metadata: unknown;
+        brand: BrandingModel;
+        portal?: string;
+        oid: string;
+        recordType: RecordTypeLike | null;
+        recordTypeName: string;
+        user: AnyRecord;
+        context: RecordSaveContext;
+      }>
+    ): Promise<UpdateStructuralPhaseResult> {
+      const fallbackMode = this.fallbackValidationMode(
+        options.recordType,
+        options.context.schemaOperation,
+        options.recordTypeName
+      );
+      const unavailable = (code: RecordSchemaProblemCode): UpdateStructuralPhaseResult =>
+        this.applyUpdateSchemaPolicy(fallbackMode, this.recordSchemaProblem('system', code));
+      const service = this.resolveUpdateRecordSchemaService();
+      if (!service) return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      const brand = String(options.brand.id ?? '').trim();
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !options.portal) {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      let resolution: ResolveUpdateRecordSchemaResult;
+      try {
+        resolution = await service.resolveUpdate({
+          brand,
+          portal: options.portal,
+          oid: options.oid,
+          operation: options.context.schemaOperation,
+          ifMatch: options.context.ifMatch,
+          caller: {
+            brand: options.brand,
+            user: options.user as UserModel,
+          },
+        });
+      } catch {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      if (resolution.kind === 'precondition-failed' || resolution.kind === 'invalid-precondition') {
+        return {
+          allowed: false,
+          problem: this.recordSchemaProblem('validation', resolution.code),
+        };
+      }
+      if (resolution.kind === 'denied') {
+        return {
+          allowed: false,
+          problem: this.recordSchemaProblem('authorization', resolution.code),
+        };
+      }
+      if (resolution.kind === 'missing-oid') {
+        return {
+          allowed: false,
+          problem: this.recordSchemaProblem('system', resolution.code),
+        };
+      }
+      if (resolution.kind !== 'resolved' && resolution.kind !== 'partial') {
+        const operationFailure = this.recordSchemaOperationFailure(resolution);
+        if (operationFailure) return { allowed: false, problem: operationFailure };
+        return this.applyUpdateSchemaPolicy(
+          fallbackMode,
+          this.recordSchemaProblem('system', this.recordSchemaFailureCode(resolution))
+        );
+      }
+
+      let validation: ValidateResolvedRecordSchemaResult;
+      try {
+        validation = service.validateResolvedArtifact({
+          digest: resolution.digest,
+          schemaKind: 'update',
+          document: resolution.document,
+          input: options.metadata,
+        });
+      } catch {
+        validation = { kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE };
+      }
+      if (validation.kind !== 'validated') {
+        return this.applyUpdateSchemaPolicy(
+          resolution.metadata.context.enforcement,
+          this.recordSchemaProblem('system', validation.code)
+        );
+      }
+      if (validation.valid) return { allowed: true, warnings: [] };
+      let issues: readonly RecordSchemaSaveIssue[] =
+        validation.issues.length > 0
+          ? validation.issues
+          : [{ code: RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, pointer: recordContractPointer('') }];
+      if (validation.truncated) {
+        const truncationIssue: RecordSchemaSaveIssue = {
+          code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_DIAGNOSTICS,
+          pointer: recordContractPointer(''),
+        };
+        issues = issues.length > 1 ? [...issues.slice(0, issues.length - 1), truncationIssue] : [truncationIssue];
+      }
+      return this.applyUpdateSchemaPolicy(
         resolution.metadata.context.enforcement,
         this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues)
       );
@@ -5049,18 +5184,49 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      // Keep the submitted metadata raw through authoritative context and
-      // authorization. A structural rejection must stop before merge, hooks,
-      // business validation, attachment work, or storage.
-      if (submission !== undefined) {
-        const structuralValidation = await this.validateUpdateMetadataStructure(submission.metadata);
-        if (!structuralValidation.valid) {
-          tracker.recordPrimaryNotApplied(structuralValidation.problem);
+      const schemaEnabled = this.recordSchemaEnabled();
+      const structuralBypass = tracker.context.validationBypass;
+      if (schemaEnabled && structuralBypass !== undefined) {
+        const bypassError = this.bypassErrorCode(tracker.context, structuralBypass);
+        if (bypassError) {
+          tracker.recordPrimaryNotApplied(this.validationProblem('system', 'pre-save', bypassError));
           this.logSaveOutcome(tracker, 'pre-save');
           return tracker.toResponse();
         }
-        this.applySubmittedMetadata(recordObj, submission);
       }
+
+      // Keep the submitted metadata raw through authoritative context and
+      // authorization. A structural rejection must stop before merge, hooks,
+      // business validation, attachment work, or storage.
+      if (submission !== undefined && (!schemaEnabled || structuralBypass === undefined)) {
+        if (schemaEnabled) {
+          const structuralValidation = await this.validateUpdateRecordSchema({
+            metadata: submission.metadata,
+            brand: brandObj,
+            portal: tracker.context.portal,
+            oid,
+            recordType,
+            recordTypeName,
+            user: userObj,
+            context: tracker.context,
+          });
+          if (!structuralValidation.allowed) {
+            tracker.recordPrimaryNotApplied(structuralValidation.problem);
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
+          for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
+        } else {
+          const structuralValidation = await this.validateUpdateMetadataStructure(submission.metadata);
+          if (!structuralValidation.valid) {
+            tracker.recordPrimaryNotApplied(structuralValidation.problem);
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
+        }
+      }
+      if (submission !== undefined) this.applySubmittedMetadata(recordObj, submission);
+
       if (transitionRequested) {
         if (!_.isEmpty(recordType)) {
           try {
