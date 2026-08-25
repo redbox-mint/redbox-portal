@@ -63,20 +63,15 @@ async function exportPostBootstrapSnapshot(): Promise<void> {
 }
 
 export function createGeneratedBootstrap(
-    preLiftSetup: () => void,
+    preLiftSetup: () => void | Promise<void>,
     coreBootstrap: () => Promise<void>,
     hookBootstraps: GeneratedHookBootstrap[],
     migrations: RedboxMigration[] = []
 ): (cb: BootstrapCallback) => void {
     return function bootstrap(cb: BootstrapCallback): void {
-        try {
-            preLiftSetup();
-        } catch (error) {
-            cb(error as Error);
-            return;
-        }
-
         (async () => {
+            await preLiftSetup();
+
             if (migrations.length > 0) {
                 await runPendingMigrations(migrations);
                 sails.log.verbose('Data migrations complete.');

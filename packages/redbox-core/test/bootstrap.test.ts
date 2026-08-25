@@ -44,7 +44,7 @@ describe('bootstrap pre-lift setup', function () {
     (global as Record<string, unknown>)._ = originalLodash;
   });
 
-  it('clears the resolved route cache after init registers a hook provider', function () {
+  it('awaits service initialization before clearing the resolved route cache', async function () {
     const lateHookRoute: ApiRouteDefinition = {
       method: 'get',
       path: '/:branding/:portal/api/hooks/late',
@@ -64,7 +64,8 @@ describe('bootstrap pre-lift setup', function () {
       apiRoutesHooks: [],
     };
 
-    const init = sinon.stub().callsFake(() => {
+    const init = sinon.stub().callsFake(async () => {
+      await Promise.resolve();
       expect(resolveApiRouteForRequest(lateHookReq)).to.equal(undefined);
       sailsConfig.apiRoutesHooks = [() => [lateHookRoute]];
     });
@@ -86,7 +87,7 @@ describe('bootstrap pre-lift setup', function () {
     };
     (global as Record<string, unknown>)._ = require('lodash');
 
-    preLiftSetup();
+    await preLiftSetup();
 
     const resolvedRoute = resolveApiRouteForRequest(lateHookReq);
 

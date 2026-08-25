@@ -193,7 +193,7 @@ export async function coreBootstrap(): Promise<void> {
  * Called before coreBootstrap to configure Sails settings
  * that need to be in place before services bootstrap.
  */
-export function preLiftSetup(): void {
+export async function preLiftSetup(): Promise<void> {
   const csrfSetting = sails.config.security.csrf as boolean | string;
   if (csrfSetting === 'false') {
     sails.config.security.csrf = false;
@@ -223,7 +223,7 @@ export function preLiftSetup(): void {
   for (const serviceName of Object.keys(sails.services)) {
     const service = sails.services[serviceName];
     if (service && typeof service.init === 'function') {
-      service.init();
+      await service.init();
       sails.log.verbose(`${serviceName} service, initialized.`);
     }
   }

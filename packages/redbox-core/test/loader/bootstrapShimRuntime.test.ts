@@ -203,4 +203,30 @@ describe('bootstrapShimRuntime', function () {
         expect(caughtError).to.equal(failure);
         expect(coreBootstrap.called).to.be.false;
     });
+
+    it('should await preLift setup and propagate its asynchronous failure before migrations', async function () {
+        const failure = new Error('service initialization failed');
+        const coreBootstrap = sinon.stub().resolves();
+        const migration = {
+            name: '2026.08.26T00.00.00-must-not-run',
+            up: sinon.stub().resolves()
+        };
+        const bootstrap = createGeneratedBootstrap(
+            sinon.stub().rejects(failure),
+            coreBootstrap,
+            [],
+            [migration]
+        );
+
+        let caughtError: unknown;
+        try {
+            await runBootstrap(bootstrap);
+        } catch (error) {
+            caughtError = error;
+        }
+
+        expect(caughtError).to.equal(failure);
+        expect(migration.up.called).to.be.false;
+        expect(coreBootstrap.called).to.be.false;
+    });
 });

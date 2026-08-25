@@ -121,7 +121,9 @@ declare const RecordSchemaReference: WaterlineModel;
 export const RECORD_SCHEMA_ARTIFACT_INDEXES: mongodb.IndexDescription[] = [
   {
     key: { digest: 1 },
-    name: 'record_schema_artifact_digest_unique',
+    // Match the index Sails Mongo creates for `@Attr({ unique: true })` so
+    // native readiness initialization is idempotent after Waterline setup.
+    name: 'digest_1',
     unique: true,
   },
 ];
@@ -129,7 +131,7 @@ export const RECORD_SCHEMA_ARTIFACT_INDEXES: mongodb.IndexDescription[] = [
 export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
   {
     key: { referenceKey: 1 },
-    name: 'record_schema_reference_key_unique',
+    name: 'referenceKey_1',
     unique: true,
   },
   {
@@ -178,6 +180,7 @@ export namespace Services {
     recordSchemaReferenceCol!: Collection<MongoRecordDocument>;
     private _readyHookRegistered = false;
     private _requiredIndicesReady = false;
+    private _initializationPromise?: Promise<void>;
 
     protected _exportedMethods: string[] = [
       'init',
@@ -703,14 +706,22 @@ export namespace Services {
       return 'not-found';
     }
 
-    public init(): void {
+    public async init(): Promise<void> {
       this.registerReadyHook();
-      void this.performInit().catch(() => {
-        sails.log.error(`${this.logHeader} storage_initialization_failed`, {
-          event: 'storage_initialization_failed',
-          outcome: 'not-ready',
-        });
-      });
+      const initialization = this._initializationPromise ?? this.performInit();
+      this._initializationPromise = initialization;
+      try {
+        await initialization;
+      } catch (error) {
+        if (this._initializationPromise === initialization) {
+          this._initializationPromise = undefined;
+          sails.log.error(`${this.logHeader} storage_initialization_failed: ${this.getErrorMessage(error)}`, {
+            event: 'storage_initialization_failed',
+            outcome: 'not-ready',
+          });
+        }
+        throw error;
+      }
     }
 
     private registerReadyHook(): void {
@@ -719,13 +730,8 @@ export namespace Services {
       }
       this._readyHookRegistered = true;
       const that = this;
-      this.registerSailsHook('on', 'ready', function () {
-        void that.performInit().catch(() => {
-          sails.log.error(`${that.logHeader} storage_initialization_failed`, {
-            event: 'storage_initialization_failed',
-            outcome: 'not-ready',
-          });
-        });
+      this.registerSailsHook('on', 'ready', async function () {
+        await that.init();
       });
     }
 

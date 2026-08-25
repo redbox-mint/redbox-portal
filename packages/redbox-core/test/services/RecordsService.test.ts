@@ -71,6 +71,8 @@ type FormsServiceStub = {
   >;
 };
 
+type StorageUpdateCandidate = Record<string, unknown> & { revision?: number };
+
 function assertUnknownRecord(value: unknown): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new TypeError('Expected a captured record object.');
@@ -8012,13 +8014,15 @@ describe('RecordsService', function () {
         recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
       });
       mockStorageService.getMeta.resolves(stored);
-      mockStorageService.updateMeta.callsFake(async (_brand: unknown, oid: string, candidate: any) => ({
-        success: true,
-        oid,
-        applicationState: 'applied',
-        committedRevision: 2,
-        committedRecord: { ...structuredClone(candidate), revision: 2 },
-      }));
+      mockStorageService.updateMeta.callsFake(
+        async (_brand: unknown, oid: string, candidate: StorageUpdateCandidate) => ({
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: 2,
+          committedRecord: { ...structuredClone(candidate), revision: 2 },
+        })
+      );
       const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
       const validateResolvedArtifact = sinon.stub().returns({
         kind: 'validated',

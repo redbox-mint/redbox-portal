@@ -81,14 +81,14 @@ describe('record-schema Mongo models', function () {
     expect(RECORD_SCHEMA_ARTIFACT_INDEXES).to.deep.equal([
       {
         key: { digest: 1 },
-        name: 'record_schema_artifact_digest_unique',
+        name: 'digest_1',
         unique: true,
       },
     ]);
     expect(RECORD_SCHEMA_REFERENCE_INDEXES).to.deep.equal([
       {
         key: { referenceKey: 1 },
-        name: 'record_schema_reference_key_unique',
+        name: 'referenceKey_1',
         unique: true,
       },
       {

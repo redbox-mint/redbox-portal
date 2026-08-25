@@ -190,11 +190,7 @@ describe('The RecordsService', function () {
     expect(createResponse.success).to.equal(true);
     createdOids.push(oid);
 
-    storage.init();
-    const capabilityDeadline = Date.now() + 10_000;
-    while (!storage.getCapabilities().recordConcurrency && Date.now() < capabilityDeadline) {
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
+    await storage.init();
     expect(storage.getCapabilities().recordConcurrency).to.deep.include({
       version: 1,
       conditionalActiveUpdate: true,

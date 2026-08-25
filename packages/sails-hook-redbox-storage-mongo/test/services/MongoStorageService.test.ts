@@ -199,6 +199,29 @@ describe('MongoStorageService', function () {
     expect(mockSails.on.calledOnceWith('ready')).to.be.true;
   });
 
+  it('awaits one shared initialization and propagates the real failure before allowing a retry', async function () {
+    const failure = new Error('required index creation failed');
+    let rejectInitialization: ((error: Error) => void) | undefined;
+    const pendingInitialization = new Promise<void>((_resolve, reject) => {
+      rejectInitialization = reject;
+    });
+    const performInit = sandbox.stub(service, 'performInit');
+    performInit.onFirstCall().returns(pendingInitialization);
+    performInit.onSecondCall().resolves();
+
+    const first = service.init();
+    const concurrent = service.init();
+    expect(performInit.calledOnce).to.equal(true);
+
+    rejectInitialization?.(failure);
+    await expectRejects(() => first, failure.message);
+    await expectRejects(() => concurrent, failure.message);
+    expect(mockSails.log.error.calledOnceWithMatch(`storage_initialization_failed: ${failure.message}`)).to.equal(true);
+
+    await service.init();
+    expect(performInit.calledTwice).to.equal(true);
+  });
+
   it('initializes collections and indices when they already exist', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([{ name: '_id_' }]),
