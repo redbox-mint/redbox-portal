@@ -1,7 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { Services as services } from '../CoreService';
 import { AttachmentAccessAuditAttributes, AttachmentMetadataAttributes } from '../waterline-models';
-import { createHash } from 'node:crypto';
 import { normalizeAttachmentStagingFileId } from '../AttachmentStagingIdentity';
 
 export namespace Services {
@@ -42,9 +41,6 @@ export namespace Services {
       attachmentId: string,
       generation: string,
       state: AttachmentMutationState,
-      code?: string,
-      mutationFileId?: string,
-    ) => Promise<boolean>;
       code?: string,
       mutationFileId?: string,
     ) => Promise<boolean>;

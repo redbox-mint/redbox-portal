@@ -1063,8 +1063,8 @@ describe('RecordsService', function () {
 
       const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan);
 
-      expect(result[0].status).to.equal('unknown');
-      expect(result[0].code).to.equal('attachment-operation-unknown');
+      expect(result[0].status).to.equal('incomplete');
+      expect(result[0].code).to.equal('attachment-generation-not-current');
       expect(mockSails.log.error.called).to.equal(true);
       expect((RecordsService as any).incompleteAttachmentItems(
         [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' }],
@@ -3558,6 +3558,11 @@ describe('RecordsService', function () {
     });
 
     beforeEach(function () {
+      mockStorageService.getMeta.resolves({
+        redboxOid: 'record-123',
+        ...updateRecord(),
+        revision: 1,
+      });
       (global as any).FormsService.getFormByName.returns(
         of({ name: 'default-form', configuration: { attachmentFields: [] } })
       );
