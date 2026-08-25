@@ -50,6 +50,7 @@ import {
   Services,
 } from '../../src/services/RecordSchemaService';
 import { RecordSchemaService, ServiceExports } from '../../src/services';
+import { Services as RecordsServices } from '../../src/services/RecordsService';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import type { RecordContractUpdateContext } from '../../src/record-contract';
 import { clearCapturedOpenTelemetryMeasurements, getCapturedOpenTelemetryMeasurements } from '../setup';
@@ -1452,6 +1453,69 @@ describe('RecordSchemaService update resolution', function () {
         )
       ).to.equal(true);
       expect(hasEditAccess.calledBefore(buildContractFormConfig)).to.equal(true);
+    } finally {
+      if (priorRecordsService === undefined) {
+        delete serviceRegistry.recordsservice;
+      } else {
+        serviceRegistry.recordsservice = priorRecordsService;
+      }
+      sails.services = priorServices;
+      restoreSails();
+    }
+  });
+
+  it('authorizes DOI, Workspace, and RAiD initiating actors through the real update resolver flow', async function () {
+    const restoreSails = ensureTestSails();
+    const context = updateContext('oid-1', {}, {
+      authorization: {
+        edit: ['doi-owner', 'workspace-owner', 'raid-owner'],
+        editRoles: [],
+      },
+    });
+    const resolveContractContext = sinon.stub().resolves(context);
+    const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
+    const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    const recordsService = new RecordsServices.Records();
+    const hasEditAccess = sinon.spy(recordsService, 'hasEditAccess');
+    const priorServices = sails.services;
+    const serviceRegistry = sails.services ?? {};
+    const priorRecordsService = serviceRegistry.recordsservice;
+    sails.services = serviceRegistry;
+    serviceRegistry.recordsservice = recordsService;
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
+      getContributorRegistry: () => coreRegistry(),
+      resolveContractContext,
+      buildContractFormConfig,
+    });
+
+    try {
+      for (const username of ['doi-owner', 'workspace-owner', 'raid-owner']) {
+        const result = await service.resolveUpdate({
+          ...request,
+          caller: updateCaller(username),
+        });
+        expect(result.kind, username).to.equal('resolved');
+      }
+
+      const missingActor = await service.resolveUpdate({
+        ...request,
+        caller: updateCaller(''),
+      });
+      const unauthorizedActor = await service.resolveUpdate({
+        ...request,
+        caller: updateCaller('ordinary-caller'),
+      });
+      expect(missingActor).to.deep.equal({
+        kind: 'denied',
+        code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
+      });
+      expect(unauthorizedActor).to.deep.equal(missingActor);
+      expect(hasEditAccess.callCount).to.equal(4);
+      expect(buildContractFormConfig.callCount).to.equal(3);
+      expect(putRecordSchemaArtifact.callCount).to.equal(3);
     } finally {
       if (priorRecordsService === undefined) {
         delete serviceRegistry.recordsservice;

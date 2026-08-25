@@ -196,10 +196,18 @@ export interface RecordsService {
   hasViewAccess(brand: unknown, user: UserInput, roles: object[], record: RecordInput): boolean;
   appendToRecord(
     targetRecordOid: string,
-    linkData: AnyRecord,
+    linkData: unknown,
     fieldName: string,
-    fieldType: string,
-    targetRecord: RecordInput
+    fieldType?: string,
+    targetRecord?: RecordInput,
+    initiatingUser?: UserInput
+  ): Promise<unknown>;
+  removeFromRecord(
+    targetRecordOid: string,
+    dataToRemove: unknown,
+    fieldName: string,
+    targetRecord?: RecordInput,
+    initiatingUser?: UserInput
   ): Promise<unknown>;
   setWorkflowStepRelatedMetadata(currentRec: RecordInput, nextStep: AnyRecord): void;
   transitionWorkflowStepMetadata(currentRec: RecordInput, nextStep: AnyRecord): void;

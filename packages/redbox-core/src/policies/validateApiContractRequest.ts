@@ -71,6 +71,7 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
     req.apiRequest = {
       params: validated.params,
       query: validated.query,
+      headers: validated.headers,
       body: validated.body,
       files: validated.files,
     };

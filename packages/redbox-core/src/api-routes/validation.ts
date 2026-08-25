@@ -164,6 +164,8 @@ export interface ValidatedApiRequest {
   valid: true;
   params: Record<string, unknown>;
   query: Record<string, unknown>;
+  /** Present for contract-validated HTTP requests; optional for legacy in-process adapters. */
+  headers?: Record<string, unknown>;
   body: unknown;
   files: Record<string, unknown[]>;
 }
@@ -191,6 +193,7 @@ export function validateApiRouteRequest(
     valid: true,
     params: extracted.params,
     query: extracted.query,
+    headers: extracted.headers,
     body: extracted.body,
     files: options.files ?? extracted.files,
   };

@@ -70,6 +70,9 @@ const recordLifecycleMutationResponses = {
   500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Lifecycle persistence outcome is unknown'),
 };
 
+const recordMutationWithSchemaHeaders = recordMutationHeaders.extend({
+  'X-ReDBox-Record-Schema-If-Match': stringField('Strong record-schema ETag for conditional updates'),
+});
 const recordListLegacyFallbacks = {
   editOnly: bodyFallback,
   recordType: bodyFallback,
@@ -135,7 +138,7 @@ export const updateMetaRoute = apiRoute(
   {
     params: oidParams,
     query: recordUpdateQuery,
-    headers: recordMutationHeaders,
+    headers: recordMutationWithSchemaHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Record metadata payload', true) } },
@@ -680,7 +683,7 @@ export const transitionWorkflowRoute = apiRoute(
   {
     params: objectField({ targetStep: stringField(), oid: stringField() }, ['targetStep', 'oid']),
     query: recordOperationQuery,
-    headers: recordMutationHeaders,
+    headers: recordMutationWithSchemaHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Workflow transition payload', true) } },

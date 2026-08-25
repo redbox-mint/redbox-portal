@@ -448,7 +448,8 @@ export namespace Services {
     public async publishDoiTrigger(
       oid: string,
       record: DoiRecordModel,
-      options: Record<string, unknown>
+      options: Record<string, unknown>,
+      user: Record<string, unknown> = {}
     ): Promise<unknown> {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'publishDoiTrigger');
@@ -469,6 +470,7 @@ export namespace Services {
                 mutationClass: 'external-side-effect',
                 oid,
                 record,
+                user,
                 metadata: createRecordMetadataDelta(previousMetadata, record.metadata),
                 metadataMode: 'pre-applied',
               });

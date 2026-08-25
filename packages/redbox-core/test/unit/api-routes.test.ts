@@ -676,6 +676,10 @@ describe('API routes contract layer', function () {
     const ifMatch = updateOperation.parameters?.find(parameter => parameter.name === 'If-Match');
     expect(ifMatch).to.exist;
     expect(ifMatch?.schema?.pattern).to.be.a('string').and.not.equal('');
+    const schemaIfMatch = updateOperation.parameters?.find(
+      parameter => parameter.name === 'X-ReDBox-Record-Schema-If-Match'
+    );
+    expect(schemaIfMatch).to.exist;
     expect(updateOperation.responses?.['412']?.headers).to.have.property('ETag');
     expect(updateOperation.responses?.['428']?.content?.['application/json']?.schema).to.exist;
     expect(updateOperation.responses?.['412']?.description).to.equal('Record revision or schema precondition failed');
@@ -703,6 +707,36 @@ describe('API routes contract layer', function () {
     for (const operation of [deletedPath?.put, deletedPath?.delete] as OpenApiOperation[]) {
       expect(operation.parameters?.find(parameter => parameter.name === 'If-Match')).to.exist;
       expect(operation.responses).to.include.all.keys('200', '409', '412', '428');
+    }
+  });
+
+  it('validates, extracts, and documents schema digest headers separately from revision If-Match', function () {
+    const schemaIfMatch = `"sha256:${'a'.repeat(64)}"`;
+    for (const route of [updateMetaRoute, transitionWorkflowRoute]) {
+      const request = {
+        params: route === updateMetaRoute
+          ? { oid: 'record-1' }
+          : { targetStep: 'review', oid: 'record-1' },
+        query: {},
+        headers: { 'x-redbox-record-schema-if-match': schemaIfMatch },
+        body: {},
+      } as unknown as Sails.Req;
+      const result = validateApiRouteRequest(request, route);
+
+      expect(result.valid).to.equal(true);
+      if (!result.valid) throw new Error('Expected schema If-Match request validation to pass.');
+      expect(result.headers).to.deep.equal({ 'X-ReDBox-Record-Schema-If-Match': schemaIfMatch });
+    }
+
+    const document = buildCoreApiOpenApiDocument();
+    const operations = [
+      asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put),
+      asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/workflow/step/{targetStep}/{oid}']?.post),
+    ];
+    for (const operation of operations) {
+      const parameter = operation.parameters?.find(item => item.name === 'X-ReDBox-Record-Schema-If-Match');
+      expect(parameter).to.deep.include({ in: 'header', required: false });
+      expect(parameter?.schema?.description).to.equal('Strong record-schema ETag for conditional updates');
     }
   });
 

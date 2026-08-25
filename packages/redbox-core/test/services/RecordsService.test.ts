@@ -8886,6 +8886,62 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.notCalled).to.equal(true);
     });
 
+    it('keeps append/remove structural validation active while authorizing the initiating actor', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+      const resolveUpdate = sinon.stub().callsFake(async (request: any) => {
+        expect(request.caller.user).to.deep.include({ username: 'owner' });
+        return updateSchemaResolution('enforce');
+      });
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
+
+      const appendStored = {
+        ...baseRecord(),
+        authorization: { edit: ['owner'], view: [], editRoles: [], viewRoles: [] },
+      };
+      mockStorageService.getMeta.resolves(appendStored);
+      const appendResult = await RecordsService.appendToRecord(
+        'record-123',
+        'record-456',
+        'metadata.relatedRecords',
+        'array',
+        structuredClone(appendStored),
+        user
+      );
+      expect(appendResult.wasPersisted()).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({ relatedRecords: ['record-456'] });
+
+      resolveUpdate.resetHistory();
+      validateResolvedArtifact.resetHistory();
+      mockStorageService.updateMeta.resetHistory();
+      const removeStored = {
+        ...baseRecord(),
+        metadata: { title: 'Original', relatedRecords: ['record-456', 'record-789'] },
+        authorization: { edit: ['owner'], view: [], editRoles: [], viewRoles: [] },
+      };
+      mockStorageService.getMeta.reset();
+      mockStorageService.getMeta.resolves(removeStored);
+      const removeResult = await RecordsService.removeFromRecord(
+        'record-123',
+        'record-456',
+        'metadata.relatedRecords',
+        structuredClone(removeStored),
+        user
+      );
+      expect(removeResult.wasPersisted()).to.equal(true);
+      expect(resolveUpdate.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({ relatedRecords: ['record-789'] });
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+    });
+
     it('resolves authoritative brand and fails closed for append/remove when validation is unavailable', async function () {
       mockSails.config.recordValidation = { mode: 'shadow' };
       mockStorageService.getCapabilities = sinon.stub().returns({

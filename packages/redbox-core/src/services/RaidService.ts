@@ -11,12 +11,27 @@ import { makeLoggerLayer } from './raid-v2/logger';
 import { mintRaidProgram, runRaidProgram } from './raid-v2/runtime';
 import { RaidConfigTag, RaidQueueTag, RaidRecordRepositoryTag, RaidRunContextTag } from './raid-v2/tags';
 import { RaidQueueError, RaidSourceRecordError } from './raid-v2/errors';
-import type { RaidOptions as BaseRaidOptions, RaidRuntimeInput, SerializableRaidOptions } from './raid-v2/types';
+import type {
+  RaidInitiatingActor,
+  RaidOptions as BaseRaidOptions,
+  RaidRuntimeInput,
+  SerializableRaidOptions,
+} from './raid-v2/types';
 
 export namespace Services {
   export type RecordLike = RecordModel | Record<string, unknown>;
   export interface RaidOptions extends BaseRaidOptions {}
-  type MintRetryJob = { attrs: { data: { oid: string; options: SerializableRaidOptions; attemptCount?: number; traceId?: string } } };
+  type MintRetryJob = {
+    attrs: {
+      data: {
+        oid: string;
+        options: SerializableRaidOptions;
+        attemptCount?: number;
+        traceId?: string;
+        initiatingActor?: RaidInitiatingActor;
+      };
+    };
+  };
   type AnyRecord = Record<string, any>;
 
   function getPath(value: unknown, path: string): unknown {
@@ -72,6 +87,26 @@ export namespace Services {
 
     constructor() { super(); this.logHeader = 'RaidService::'; }
 
+    private initiatingActor(user: unknown): RaidInitiatingActor | undefined {
+      if (!user || typeof user !== 'object' || Array.isArray(user)) return undefined;
+      const userRecord = user as Record<string, unknown>;
+      const username = typeof userRecord.username === 'string' ? userRecord.username.trim() : '';
+      if (!username) return undefined;
+      const rawRoles = Array.isArray(userRecord.roles) ? userRecord.roles : [];
+      const roles = rawRoles.flatMap(role => {
+        if (typeof role === 'string') {
+          const name = role.trim();
+          return name ? [{ name }] : [];
+        }
+        if (!role || typeof role !== 'object' || Array.isArray(role)) return [];
+        const roleRecord = role as Record<string, unknown>;
+        const id = typeof roleRecord.id === 'string' ? roleRecord.id.trim() : '';
+        const name = typeof roleRecord.name === 'string' ? roleRecord.name.trim() : '';
+        return id || name ? [{ ...(id ? { id } : {}), ...(name ? { name } : {}) }] : [];
+      });
+      return { username, roles };
+    }
+
     private resolveBrand(record: RecordLike): { id: string; name: string } {
       const brandId = String(getPath(record, 'metaMetadata.brandId') ?? '');
       if (!brandId) throw new RBValidationError({ message: 'Brand id not found for RAiD record', displayErrors: [{ code: 'raid-mint-transform-validation-error' }] });
@@ -96,10 +131,26 @@ export namespace Services {
       const base = Layer.merge(Layer.succeed(RaidConfigTag, input.config), Layer.succeed(RaidRunContextTag, input.context));
       const records = Layer.succeed(RaidRecordRepositoryTag, {
         getMeta: (oid: string) => Effect.tryPromise({ try: () => RecordsService.getMeta(oid), catch: cause => new RaidSourceRecordError({ message: `Failed to load record '${oid}'`, cause }) }),
-        appendToRecord: (oid: string, value: unknown, path: string) => Effect.tryPromise({ try: async () => { const result = await RecordsService.appendToRecord(oid, value, path); if (!result?.isSuccessful?.()) throw new Error(String(result?.message ?? 'append failed')); }, catch: cause => cause })
+        appendToRecord: (oid: string, value: unknown, path: string) => Effect.tryPromise({ try: async () => {
+          const result = await RecordsService.appendToRecord(
+            oid,
+            value,
+            path,
+            undefined,
+            undefined,
+            input.context.initiatingActor
+          );
+          if (!result?.isSuccessful?.()) throw new Error(String(result?.message ?? 'append failed'));
+        }, catch: cause => cause })
       });
       const queue = Layer.succeed(RaidQueueTag, {
-        schedule: (data: { oid: string; options: SerializableRaidOptions; attemptCount: number; traceId?: string }) => Effect.tryPromise({
+        schedule: (data: {
+          oid: string;
+          options: SerializableRaidOptions;
+          attemptCount: number;
+          traceId?: string;
+          initiatingActor?: RaidInitiatingActor;
+        }) => Effect.tryPromise({
           try: async () => { await AgendaQueueService.schedule(input.config.durableRetry.jobName, input.config.durableRetry.schedule, data); },
           catch: cause => new RaidQueueError({ message: 'Failed to schedule RAiD retry', cause })
         })
@@ -108,10 +159,29 @@ export namespace Services {
       return Layer.mergeAll(base, records, queue, servicesLayer, makeLoggerLayer(sails.log));
     }
 
-    private async mintRaid(oid: string, record: RecordLike, options: RaidOptions, attemptCount = 0): Promise<RecordLike> {
+    private async mintRaid(
+      oid: string,
+      record: RecordLike,
+      options: RaidOptions,
+      attemptCount = 0,
+      initiatingUser: unknown = {}
+    ): Promise<RecordLike> {
       const { brand, config } = this.resolveConfig(record);
       if (!config.enabled) return record;
-      const input: RaidRuntimeInput = { record, options, config, context: { oid, brandId: brand.id, brandName: brand.name, triggerSource: String(options.triggerSource ?? 'mintTrigger'), attemptCount } };
+      const initiatingActor = this.initiatingActor(initiatingUser);
+      const input: RaidRuntimeInput = {
+        record,
+        options,
+        config,
+        context: {
+          oid,
+          brandId: brand.id,
+          brandName: brand.name,
+          triggerSource: String(options.triggerSource ?? 'mintTrigger'),
+          attemptCount,
+          ...(initiatingActor ? { initiatingActor } : {}),
+        },
+      };
       const program = mintRaidProgram(input).pipe(Effect.provide(this.buildLayer(input)));
       try { return await runRaidProgram(program, options.signal); }
       catch (error) {
@@ -120,24 +190,48 @@ export namespace Services {
       }
     }
 
-    public async mintTrigger(oid: string, record: RecordLike, options: RaidOptions): Promise<RecordLike> {
-      if (this.metTriggerCondition(oid, record as AnyRecord, options) === 'true') await this.mintRaid(oid, record, options);
+    public async mintTrigger(
+      oid: string,
+      record: RecordLike,
+      options: RaidOptions,
+      user: unknown = {}
+    ): Promise<RecordLike> {
+      if (this.metTriggerCondition(oid, record as AnyRecord, options) === 'true') {
+        await this.mintRaid(oid, record, options, 0, user);
+      }
       return record;
     }
 
     public async mintRetryJob(job: MintRetryJob) {
       const data = job.attrs.data; const record = await RecordsService.getMeta(data.oid);
-      await this.mintRaid(data.oid, record, { ...(data.options ?? {}), triggerSource: 'mintRetryJob' }, data.attemptCount ?? 0);
+      await this.mintRaid(
+        data.oid,
+        record,
+        { ...(data.options ?? {}), triggerSource: 'mintRetryJob' },
+        data.attemptCount ?? 0,
+        data.initiatingActor
+      );
     }
 
-    public async mintPostCreateRetryHandler(oid: string, record: RecordLike, _options: RaidOptions) {
+    public async mintPostCreateRetryHandler(
+      oid: string,
+      record: RecordLike,
+      _options: RaidOptions,
+      user: unknown = {}
+    ) {
       const attemptCount = Number(getPath(record, 'metaMetadata.raid.attemptCount') ?? 0);
       if (oid && attemptCount > 0) {
         const options = (getPath(record, 'metaMetadata.raid.options') ?? {}) as SerializableRaidOptions;
         const config = getPath(record, 'metaMetadata.brandId')
           ? this.resolveConfig(record).config
           : legacyConfigToPublishing(sails.config.raid as AnyRecord);
-        await AgendaQueueService.schedule(config.durableRetry.jobName, config.durableRetry.schedule, { oid, options, attemptCount });
+        const initiatingActor = this.initiatingActor(user);
+        await AgendaQueueService.schedule(config.durableRetry.jobName, config.durableRetry.schedule, {
+          oid,
+          options,
+          attemptCount,
+          ...(initiatingActor ? { initiatingActor } : {}),
+        });
       }
     }
 

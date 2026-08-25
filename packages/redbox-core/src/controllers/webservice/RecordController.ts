@@ -168,7 +168,8 @@ export namespace Controllers {
       operation: RecordSaveOperation,
       validationOperation?: string,
       targetStep?: string,
-      concurrency?: RecordConcurrencyContext
+      concurrency?: RecordConcurrencyContext,
+      recordSchemaIfMatch?: string
     ): RecordSaveContext {
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       return createRecordSaveContext({
@@ -178,6 +179,7 @@ export namespace Controllers {
         portal: typeof locals?.portal === 'string' ? locals.portal : undefined,
         targetStep: typeof targetStep === 'string' ? targetStep.trim() : undefined,
         validationOperation,
+        recordSchemaIfMatch,
         validationRequestParameters: normalizeRecordValidationRequestFacts(
           req.apiRequest?.params,
           req.apiRequest?.query,
@@ -199,7 +201,16 @@ export namespace Controllers {
       if (!parsed.valid) return parsed;
       return {
         valid: true as const,
-        context: this.saveContext(req, operation, validationOperation, targetStep, parsed.context),
+        context: this.saveContext(
+          req,
+          operation,
+          validationOperation,
+          targetStep,
+          parsed.context,
+          this.validatedRecordSchemaIfMatch(
+            req.apiRequest?.headers as globalThis.Record<string, unknown> | undefined
+          )
+        ),
       };
     }
 
@@ -235,12 +246,28 @@ export namespace Controllers {
       };
     }
 
+    private validatedRecordSchemaIfMatch(headers: globalThis.Record<string, unknown> | undefined): string | undefined {
+      const value = headers?.['X-ReDBox-Record-Schema-If-Match'];
+      return typeof value === 'string' ? value : undefined;
+    }
+
+    private recordSchemaPreconditionFailureStatus(result: RecordSaveResponse): 400 | 412 | undefined {
+      const status = recordSaveFailureStatus(result);
+      if (status === 412) return status;
+      const malformed = result.problems.some(problem =>
+        problem.kind === 'validation' &&
+        problem.issues.some(issue => issue.code === 'record-schema.invalid-request')
+      );
+      return malformed ? 400 : undefined;
+    }
+
     private sendSaveFailure(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
       const status = recordSaveFailureStatus(result);
+      const schemaStatus = this.recordSchemaPreconditionFailureStatus(result);
       const headerOption = recordSaveResultHeaderOption(result);
       if (this.getApiVersion(req) === '1.0') {
         return this.sendResp(req, res, {
-          status: isRecordConflictStatus(status) ? status : 500,
+          status: schemaStatus ?? (isRecordConflictStatus(status) ? status : 500),
           v1: { message: detail },
           ...headerOption,
         });
@@ -1774,7 +1801,8 @@ export namespace Controllers {
         // ordinary v1 200 body. A certified concurrency refusal is the single
         // deliberate exception, and only for a record type that opted in.
         const failureStatus = recordSaveFailureStatus(response);
-        if (isLegacyApi && !isRecordConflictStatus(failureStatus)) {
+        const schemaFailureStatus = this.recordSchemaPreconditionFailureStatus(response);
+        if (isLegacyApi && !isRecordConflictStatus(failureStatus) && schemaFailureStatus === undefined) {
           return this.sendResp(req, res, {
             data: response,
             v1: this.legacySaveBody(response),
@@ -1786,7 +1814,7 @@ export namespace Controllers {
         }
         if (isLegacyApi) {
           return this.sendResp(req, res, {
-            status: failureStatus,
+            status: schemaFailureStatus ?? failureStatus,
             v1: this.legacySaveBody(response),
             ...recordSaveResultHeaderOption(response),
           });

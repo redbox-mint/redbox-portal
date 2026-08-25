@@ -687,10 +687,12 @@ describe('RDMPService', function () {
         metadata: { rdmpOid: 'rdmp-123' }
       };
       const response = {};
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
-      const result = await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, {}, {}, response);
+      const result = await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, {}, user, response);
 
       expect((global as any).WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
+      expect((global as any).WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
       expect(response).to.have.property('workspaceOid', 'ws-1');
     });
 
@@ -726,10 +728,12 @@ describe('RDMPService', function () {
         metadata: { rdmpOid: 'rdmp-123' }
       };
       const response = {};
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
-      const result = await RDMPService.removeWorkspaceFromRecord('ws-1', workspaceData, {}, {}, response);
+      const result = await RDMPService.removeWorkspaceFromRecord('ws-1', workspaceData, {}, user, response);
 
       expect((global as any).WorkspaceService.removeWorkspaceFromRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
+      expect((global as any).WorkspaceService.removeWorkspaceFromRecord.firstCall.args[4]).to.equal(user);
       expect(response).to.have.property('workspaceOid', 'ws-1');
     });
 

@@ -6982,13 +6982,15 @@ export namespace Services {
       linkData: unknown,
       fieldName: string,
       fieldType: string | undefined = undefined,
-      _targetRecord: unknown = undefined
+      _targetRecord: unknown = undefined,
+      initiatingUser: unknown = {}
     ) {
       sails.log.verbose(`RecordsService::Appending to record:${targetRecordOid}`);
       return await this.mutateMetaInternal({
         actor: { kind: 'service', id: 'RecordsService.appendToRecord' },
         authorization: { kind: 'service' },
         oid: targetRecordOid,
+        user: this.recordObject(initiatingUser),
         mutate: snapshot => {
           const targetRecordObj = snapshot as unknown as AnyRecord;
           let nextData = _.cloneDeep(linkData);
@@ -7026,13 +7028,15 @@ export namespace Services {
       targetRecordOid: string,
       dataToRemove: unknown,
       fieldName: string,
-      _targetRecord: unknown = undefined
+      _targetRecord: unknown = undefined,
+      initiatingUser: unknown = {}
     ) {
       sails.log.verbose(`RecordsService::Removing field from record:${targetRecordOid}`);
       return await this.mutateMetaInternal({
         actor: { kind: 'service', id: 'RecordsService.removeFromRecord' },
         authorization: { kind: 'service' },
         oid: targetRecordOid,
+        user: this.recordObject(initiatingUser),
         mutate: snapshot => {
           const targetRecordObj = snapshot as unknown as AnyRecord;
           const existingData = _.get(targetRecordObj, fieldName);

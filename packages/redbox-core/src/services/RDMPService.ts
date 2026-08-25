@@ -836,7 +836,13 @@ export namespace Services {
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      await WorkspaceService.addWorkspaceToRecord(workspaceMetadata.rdmpOid as string, oid);
+      await WorkspaceService.addWorkspaceToRecord(
+        workspaceMetadata.rdmpOid as string,
+        oid,
+        {},
+        undefined,
+        user
+      );
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;
@@ -853,7 +859,13 @@ export namespace Services {
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      await WorkspaceService.removeWorkspaceFromRecord(rdmpOid as string, oid);
+      await WorkspaceService.removeWorkspaceFromRecord(
+        rdmpOid as string,
+        oid,
+        {},
+        undefined,
+        user
+      );
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;

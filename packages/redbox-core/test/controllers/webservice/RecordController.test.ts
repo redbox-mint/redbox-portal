@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
 import { isRecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
+import { transitionWorkflowRoute, updateMetaRoute, validateApiRouteRequest } from '../../../src/api-routes';
 
 type PermissionCase = {
   name: string;
@@ -43,6 +44,26 @@ function makeThrowingRequest(apiRequest: Sails.Req['apiRequest'], extra: Partial
   return request as Sails.Req;
 }
 
+function makeValidatedRequest(
+  route: Parameters<typeof validateApiRouteRequest>[1],
+  raw: Pick<Sails.Req, 'params' | 'query' | 'headers' | 'body'>,
+  extra: Partial<Sails.Req> = {}
+): Sails.Req {
+  const validated = validateApiRouteRequest(raw as Sails.Req, route);
+  assert.equal(validated.valid, true, validated.valid ? undefined : JSON.stringify(validated.issues));
+  if (!validated.valid) throw new Error('Expected request contract validation to succeed.');
+  return makeThrowingRequest(
+    {
+      params: validated.params,
+      query: validated.query,
+      headers: validated.headers,
+      body: validated.body,
+      files: validated.files,
+    },
+    { params: raw.params, query: raw.query, headers: raw.headers, ...extra }
+  );
+}
+
 function successResult(oid = 'record-1') {
   const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000000');
   result.oid = oid;
@@ -56,6 +77,19 @@ function notSavedResult() {
   result.success = false;
   result.outcome = 'not-saved';
   result.message = '@record-save-failed';
+  return result;
+}
+
+function schemaPreconditionFailure(code: 'record-schema.precondition-failed' | 'record-schema.invalid-request') {
+  const result = notSavedResult();
+  result.problems = [
+    {
+      kind: 'validation',
+      source: 'schema',
+      phase: 'schema',
+      issues: [{ code, message: `@${code}` }],
+    },
+  ];
   return result;
 }
 
@@ -2129,6 +2163,127 @@ describe('Webservice RecordController body source', () => {
         status: 400,
         displayErrors: [{ code: 'record-if-match-invalid', source: { header: 'If-Match' } }],
       });
+    });
+
+    it('keeps record revision and schema digest preconditions separate in update and transition contexts', async () => {
+      const revisionTag = formatRecordEntityTag('record-1', 7);
+      const schemaTag = `"sha256:${'a'.repeat(64)}"`;
+      const record = {
+        redboxOid: 'record-1',
+        revision: 7,
+        metadata: { title: 'Stored' },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+        workflow: { stage: 'draft' },
+      };
+      recordsService.getMeta.resolves(record);
+      recordsService.updateMeta.resolves(successResult());
+      (global as any).WorkflowStepsService.get.returns(of({
+        name: 'published',
+        config: { form: 'dataset-published' },
+      }));
+      sinon.stub(controller as any, 'sendResp');
+
+      const headers = {
+        'if-match': revisionTag,
+        'x-redbox-record-schema-if-match': schemaTag,
+        'x-redbox-api-version': '1.0',
+      };
+      const updateReq = makeValidatedRequest(updateMetaRoute, {
+        params: { oid: 'record-1' },
+        query: {},
+        headers,
+        body: { title: 'Updated' },
+      });
+      await controller.updateMeta(updateReq, {} as Sails.Res);
+
+      const transitionReq = makeValidatedRequest(
+        transitionWorkflowRoute,
+        {
+          params: { oid: 'record-1', targetStep: 'published' },
+          query: {},
+          headers,
+          body: {},
+        },
+        { user: { username: 'tester', roles: [{ name: 'Publisher' }] } }
+      );
+      await controller.transitionWorkflow(transitionReq, {} as Sails.Res);
+
+      for (const call of [recordsService.updateMeta.firstCall, recordsService.updateMeta.secondCall]) {
+        const context = call.args[8] as any;
+        expect(context.ifMatch).to.equal(schemaTag);
+        expect(context.concurrency.expectedRevision).to.equal(7);
+      }
+    });
+
+    it('does not trust a schema digest precondition absent from the validated request context', async () => {
+      recordsService.getMeta.resolves({
+        revision: 0,
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.resolves(successResult());
+      const req = makeThrowingRequest(
+        { params: { oid: 'record-1' }, query: {}, body: { title: 'Updated' }, files: {} },
+        { headers: { 'x-redbox-record-schema-if-match': `"sha256:${'c'.repeat(64)}"` } }
+      );
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      expect((recordsService.updateMeta.firstCall.args[8] as any).ifMatch).to.equal(undefined);
+    });
+
+    it('keeps schema digest precondition failures typed for v1 update and transition', async () => {
+      const record = {
+        redboxOid: 'record-1',
+        revision: 0,
+        metadata: { title: 'Stored' },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+        workflow: { stage: 'draft' },
+      };
+      recordsService.getMeta.resolves(record);
+      (global as any).WorkflowStepsService.get.returns(of({
+        name: 'published',
+        config: { form: 'dataset-published' },
+      }));
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      for (const testCase of [
+        { header: `"sha256:${'b'.repeat(64)}"`, code: 'record-schema.precondition-failed' as const, status: 412 },
+        { header: 'malformed-etag', code: 'record-schema.invalid-request' as const, status: 400 },
+      ]) {
+        for (const action of ['update', 'transition'] as const) {
+          recordsService.updateMeta.resetHistory();
+          sendRespStub.resetHistory();
+          recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+            expect((args[8] as any).ifMatch).to.equal(testCase.header);
+            return schemaPreconditionFailure(testCase.code);
+          });
+          const route = action === 'update' ? updateMetaRoute : transitionWorkflowRoute;
+          const params = action === 'update' ? { oid: 'record-1' } : { oid: 'record-1', targetStep: 'published' };
+          const req = makeValidatedRequest(
+            route,
+            {
+              params,
+              query: {},
+              headers: {
+                'x-redbox-record-schema-if-match': testCase.header,
+                'x-redbox-api-version': '1.0',
+              },
+              body: action === 'update' ? { title: 'Changed' } : {},
+            },
+            { user: { username: 'tester', roles: [{ name: 'Publisher' }] } }
+          );
+
+          if (action === 'update') await controller.updateMeta(req, {} as Sails.Res);
+          else await controller.transitionWorkflow(req, {} as Sails.Res);
+
+          expect(sendRespStub.firstCall.args[2].status).to.equal(testCase.status);
+          expect(sendRespStub.firstCall.args[2].v1).to.deep.equal({
+            message: action === 'update' ? 'Update Metadata failed' : 'Workflow transition failed',
+          });
+        }
+      }
     });
 
     it('delegates tracked harvest bodies to HarvestRunService.submitChunk', async () => {
