@@ -7999,6 +7999,7 @@ describe('RecordsService', function () {
       mockSails.config.recordValidation = { mode: 'enforce' };
       const stored = {
         ...baseRecord(),
+        revision: 1,
         metadata: {
           retained: 'keep',
           nested: { retained: true, values: [{ id: 'stored' }] },
@@ -8007,7 +8008,17 @@ describe('RecordsService', function () {
       const requestedRecord = structuredClone(stored);
       requestedRecord.metadata.nested.values = [{ id: 'incoming' }];
       const rawDelta = { nested: { values: [{ id: 'incoming' }] } };
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
       mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.callsFake(async (_brand: unknown, oid: string, candidate: any) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+        committedRevision: 2,
+        committedRecord: { ...structuredClone(candidate), revision: 2 },
+      }));
       const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
       const validateResolvedArtifact = sinon.stub().returns({
         kind: 'validated',
@@ -8022,23 +8033,26 @@ describe('RecordsService', function () {
         persistSaveUsageReference,
       };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
-      const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
+      const authorize = sinon.spy(RecordsService, 'hasEditAccess');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
-      const result = await RecordsService.updateMeta(
-        { id: 'brand-1' },
-        'record-123',
-        requestedRecord,
-        { username: 'service-user' },
-        true,
-        false,
-        {},
-        { metadata: rawDelta, mode: 'pre-applied' },
-        recordSchemaContext({ routeFamily: 'internal', operation: 'update' })
-      );
+      const result = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'RecordsServiceTest.internalOrdering' },
+        authorization: { kind: 'record-edit' },
+        mutationClass: 'full-record',
+        brand: { id: 'brand-1' },
+        oid: 'record-123',
+        record: requestedRecord,
+        user: { username: 'user-1', roles: [] },
+        triggerPostSaveTriggers: false,
+        metadata: rawDelta,
+        metadataMode: 'pre-applied',
+        context: recordSchemaContext({ routeFamily: 'internal', operation: 'update' }),
+      });
 
-      expect(result.wasPersisted()).to.equal(true);
+      expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+      expect(authorize.calledOnce).to.equal(true);
       expect(validateResolvedArtifact.calledOnce).to.equal(true);
       expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal(rawDelta);
       expect(authorize.calledBefore(resolveUpdate)).to.equal(true);

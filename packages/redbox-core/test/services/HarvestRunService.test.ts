@@ -1529,6 +1529,8 @@ describe('HarvestRunService', function () {
       searchable: false,
     };
     (global as any).RecordTypesService = { get: sinon.stub().returns(of(recordType)) };
+    const internalSave = sinon.spy(realRecordsService, 'updateMetaInternal');
+    const applySubmittedMetadata = sinon.spy(realRecordsService, 'applySubmittedMetadata');
     const preSaveHook = sinon.spy(realRecordsService, 'triggerPreSaveTriggers');
     const cases = [
       {
@@ -1575,6 +1577,8 @@ describe('HarvestRunService', function () {
       if (testCase.tracked) configureTrackedCreateChunk();
       schemaResolver.validateResolvedArtifact.resetHistory();
       schemaResolver.persistSaveUsageReference.resetHistory();
+      internalSave.resetHistory();
+      applySubmittedMetadata.resetHistory();
       preSaveHook.resetHistory();
       storageService.updateMeta.resetHistory();
       recordValidationService.resolve.resetHistory();
@@ -1652,11 +1656,31 @@ describe('HarvestRunService', function () {
       }
 
       expect(persisted, testCase.name).to.equal(testCase.expectedPersisted);
+      expect(internalSave.calledOnce, testCase.name).to.equal(true);
+      expect(internalSave.firstCall.args[0], testCase.name).to.deep.include({
+        actor: {
+          kind: 'service',
+          id: testCase.tracked
+            ? 'HarvestRunService.updateTrackedRecord'
+            : 'HarvestRunService.legacyUpdateHarvestRecord',
+        },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        metadata: rawDelta,
+        metadataMode: 'merge',
+      });
+      expect(internalSave.firstCall.args[0].record.metadata, testCase.name).to.deep.equal(original.metadata);
       expect(schemaResolver.validateResolvedArtifact.calledOnce, testCase.name).to.equal(true);
       expect(schemaResolver.validateResolvedArtifact.firstCall.args[0].input, testCase.name).to.equal(rawDelta);
+      expect(applySubmittedMetadata.calledOnce, testCase.name).to.equal(true);
       expect(preSaveHook.calledOnce, testCase.name).to.equal(true);
       expect(recordValidationService.resolve.calledOnce, testCase.name).to.equal(true);
+      expect(internalSave.calledBefore(schemaResolver.validateResolvedArtifact), testCase.name).to.equal(true);
       expect(schemaResolver.validateResolvedArtifact.calledBefore(preSaveHook), testCase.name).to.equal(true);
+      expect(schemaResolver.validateResolvedArtifact.calledBefore(applySubmittedMetadata), testCase.name).to.equal(
+        true
+      );
+      expect(applySubmittedMetadata.calledBefore(preSaveHook), testCase.name).to.equal(true);
       expect(preSaveHook.calledBefore(recordValidationService.resolve), testCase.name).to.equal(true);
       const validationRequest: RecordValidationRequest = recordValidationService.resolve.firstCall.args[0];
       expect(validationRequest.writeKind, testCase.name).to.equal('update');
