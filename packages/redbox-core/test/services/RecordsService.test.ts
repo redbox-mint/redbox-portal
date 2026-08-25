@@ -3985,6 +3985,32 @@ describe('RecordsService', function () {
       mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
     };
 
+    const installDisabledRecordSchemaHarness = () => {
+      const schemaService = {
+        resolveCreate: sinon.stub(),
+        resolveUpdate: sinon.stub(),
+        validateResolvedArtifact: sinon.stub(),
+        persistSaveUsageReference: sinon.stub(),
+      };
+      const schemaStorage = {
+        putRecordSchemaArtifact: sinon.stub(),
+        putRecordSchemaReference: sinon.stub(),
+      };
+      mockSails.config.recordSchema = { enabled: false };
+      mockSails.services.recordschemaservice = schemaService;
+      Object.assign(mockStorageService, schemaStorage);
+      return { schemaService, schemaStorage };
+    };
+
+    const expectDisabledRecordSchemaInert = (harness: ReturnType<typeof installDisabledRecordSchemaHarness>): void => {
+      expect(harness.schemaService.resolveCreate.notCalled).to.equal(true);
+      expect(harness.schemaService.resolveUpdate.notCalled).to.equal(true);
+      expect(harness.schemaService.validateResolvedArtifact.notCalled).to.equal(true);
+      expect(harness.schemaService.persistSaveUsageReference.notCalled).to.equal(true);
+      expect(harness.schemaStorage.putRecordSchemaArtifact.notCalled).to.equal(true);
+      expect(harness.schemaStorage.putRecordSchemaReference.notCalled).to.equal(true);
+    };
+
     const recordedSchemaUsageResult = (
       request: PersistRecordSchemaSaveUsageRequest
     ): Extract<PersistRecordSchemaSaveUsageResult, { readonly kind: 'recorded' }> => ({
@@ -5438,15 +5464,7 @@ describe('RecordsService', function () {
     });
 
     it('leaves the non-schema create chain unchanged while record schemas are disabled', async function () {
-      mockSails.config.recordSchema = { enabled: false };
-      const resolveCreate = sinon.stub();
-      const validateResolvedArtifact = sinon.stub();
-      const persistSaveUsageReference = sinon.stub();
-      mockSails.services.recordschemaservice = {
-        resolveCreate,
-        validateResolvedArtifact,
-        persistSaveUsageReference,
-      };
+      const schemaHarness = installDisabledRecordSchemaHarness();
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const transitionMetadata = sinon.spy(RecordsService as any, 'transitionWorkflowStepMetadata');
       const initializeMetadata = sinon.spy(RecordsService as any, 'initRecordMetaMetadata');
@@ -5467,10 +5485,10 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('saved');
+      expect(result.success).to.equal(true);
+      expect(result.problems).to.deep.equal([]);
       expect(result.schemaOutcome).to.equal(undefined);
-      expect(resolveCreate.notCalled).to.equal(true);
-      expect(validateResolvedArtifact.notCalled).to.equal(true);
-      expect(persistSaveUsageReference.notCalled).to.equal(true);
+      expectDisabledRecordSchemaInert(schemaHarness);
       expect(mockStorageService.create.firstCall.args[1]).not.to.have.any.keys(
         'schemaKey',
         'schemaVersion',
@@ -5485,6 +5503,141 @@ describe('RecordsService', function () {
       expect(initializeMetadata.calledBefore(preSaveHook)).to.equal(true);
       expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
+    });
+
+    it('preserves baseline update outputs and legacy structural validation while record schemas are disabled', async function () {
+      const schemaHarness = installDisabledRecordSchemaHarness();
+      const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
+      const rawDelta = { title: 'Updated' };
+      mockStorageService.getMeta.resolves(stored);
+      const legacyStructuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
+      mockRecordValidationService.resolve.resolves(allowResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'merge' },
+        recordSchemaContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.success).to.equal(true);
+      expect(result.problems).to.deep.equal([]);
+      expect(result.schemaOutcome).to.equal(undefined);
+      expect(result.oid).to.equal('record-123');
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal({
+        title: 'Updated',
+        retained: 'keep',
+      });
+      expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
+      expect(rawDelta).to.deep.equal({ title: 'Updated' });
+      expectDisabledRecordSchemaInert(schemaHarness);
+    });
+
+    it('preserves baseline transition outputs and workflow semantics while record schemas are disabled', async function () {
+      const schemaHarness = installDisabledRecordSchemaHarness();
+      const stored = baseRecord();
+      const rawDelta = { title: 'Published' };
+      mockStorageService.getMeta.resolves(stored);
+      const transitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
+      const legacyStructuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
+      mockRecordValidationService.resolve.resolves(allowResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1', roles: [{ name: 'Publisher' }] },
+        true,
+        false,
+        { name: 'published' },
+        { metadata: rawDelta, mode: 'merge' },
+        recordSchemaContext({
+          routeFamily: 'api',
+          operation: 'transition',
+          targetStep: 'published',
+        })
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.success).to.equal(true);
+      expect(result.problems).to.deep.equal([]);
+      expect(result.schemaOutcome).to.equal(undefined);
+      expect(result.oid).to.equal('record-123');
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2]).to.deep.include({
+        metadata: { title: 'Published' },
+        workflow: { stage: 'published' },
+      });
+      expect(mockStorageService.updateMeta.firstCall.args[2].metaMetadata).to.include({
+        type: 'rdmp',
+        form: 'published-form',
+        brandId: 'brand-1',
+      });
+      expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
+      expect(transitionHook.calledOnce).to.equal(true);
+      expect(rawDelta).to.deep.equal({ title: 'Published' });
+      expectDisabledRecordSchemaInert(schemaHarness);
+    });
+
+    it('preserves baseline browser merge and array replacement while record schemas are disabled', async function () {
+      const schemaHarness = installDisabledRecordSchemaHarness();
+      const stored = {
+        ...baseRecord(),
+        metadata: {
+          retained: 'keep',
+          nested: { retained: true, values: [{ id: 'stored-nested' }] },
+          values: [{ id: 'stored' }],
+        },
+      };
+      const rawDelta = {
+        nested: { incoming: true, values: [{ id: 'incoming-nested' }] },
+        values: [{ id: 'incoming' }],
+      };
+      const baselineMetadata = {
+        retained: 'keep',
+        nested: {
+          retained: true,
+          incoming: true,
+          values: [{ id: 'incoming-nested' }],
+        },
+        values: [{ id: 'incoming' }],
+      };
+      mockStorageService.getMeta.resolves(stored);
+      const legacyStructuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
+      mockRecordValidationService.resolve.resolves(allowResult());
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'merge', arrayMergeMode: 'replace' },
+        recordSchemaContext({ routeFamily: 'browser', operation: 'update' })
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.success).to.equal(true);
+      expect(result.problems).to.deep.equal([]);
+      expect(result.schemaOutcome).to.equal(undefined);
+      expect(result.oid).to.equal('record-123');
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(baselineMetadata);
+      expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
+      expect(rawDelta).to.deep.equal({
+        nested: { incoming: true, values: [{ id: 'incoming-nested' }] },
+        values: [{ id: 'incoming' }],
+      });
+      expectDisabledRecordSchemaInert(schemaHarness);
     });
 
     it('preserves schema-disabled hook failure precedence over transition authorization', async function () {
