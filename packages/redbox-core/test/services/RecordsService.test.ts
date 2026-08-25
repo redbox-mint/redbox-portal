@@ -6333,6 +6333,94 @@ describe('RecordsService', function () {
       }
     });
 
+    it('rejects invalid structural operations on no-submission transitions before workflow mutation or hooks', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const stored = baseRecord();
+      mockStorageService.getMeta.resolves(stored);
+      const publishedStep = {
+        name: 'published',
+        config: {
+          form: 'published-form',
+          workflow: { stage: 'published' },
+          authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
+        },
+      };
+      (global as any).WorkflowStepsService.get.returns(of(publishedStep));
+      const resolveUpdate = sinon.stub();
+      const validateResolvedArtifact = sinon.stub();
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
+      const transitionAuthorization = sinon.spy(RecordsService, 'hasTransitionRoleAuthorization');
+      const transitionMetadata = sinon.spy(RecordsService, 'transitionWorkflowStepMetadata');
+      const transitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
+      const updateHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      for (const testCase of [
+        {
+          validationOperation: '../malformed',
+          schemaOperation: undefined,
+          failureKind: 'invalid-request',
+          diagnostic: 'record-validation-operation-malformed',
+        },
+        {
+          validationOperation: 'unknown-operation',
+          schemaOperation: 'unknown-operation',
+          failureKind: 'not-resolvable',
+          diagnostic: 'record-validation-operation-unknown',
+        },
+      ] as const) {
+        resolveUpdate.resetHistory();
+        validateResolvedArtifact.resetHistory();
+        authorize.resetHistory();
+        transitionAuthorization.resetHistory();
+        transitionMetadata.resetHistory();
+        transitionHook.resetHistory();
+        updateHook.resetHistory();
+        mockRecordValidationService.resolve.resetHistory();
+        mockStorageService.getMeta.resetHistory();
+        mockStorageService.updateMeta.resetHistory();
+        (global as any).RecordTypesService.get.resetHistory();
+        resolveUpdate.resolves({
+          kind: 'context-failed',
+          failureKind: testCase.failureKind,
+          diagnosticCodes: [testCase.diagnostic],
+        });
+
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          'record-123',
+          structuredClone(stored),
+          { username: 'user-1', roles: [{ name: 'Publisher' }] },
+          true,
+          true,
+          publishedStep,
+          undefined,
+          recordSchemaContext({
+            routeFamily: 'api',
+            operation: 'transition',
+            targetStep: 'published',
+            validationOperation: testCase.validationOperation,
+          })
+        );
+
+        expect(result.outcome, testCase.diagnostic).to.equal('not-saved');
+        expect(result.problems[0].issues[0].code, testCase.diagnostic).to.equal('record-validation-operation-invalid');
+        expect(resolveUpdate.calledOnce, testCase.diagnostic).to.equal(true);
+        expect(resolveUpdate.firstCall.args[0].operation, testCase.diagnostic).to.equal(testCase.schemaOperation);
+        expect(mockStorageService.getMeta.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
+        expect(authorize.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
+        expect(transitionAuthorization.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
+        expect((global as any).RecordTypesService.get.calledBefore(resolveUpdate), testCase.diagnostic).to.equal(true);
+        expect(validateResolvedArtifact.notCalled, testCase.diagnostic).to.equal(true);
+        expect(transitionMetadata.notCalled, testCase.diagnostic).to.equal(true);
+        expect(transitionHook.notCalled, testCase.diagnostic).to.equal(true);
+        expect(updateHook.notCalled, testCase.diagnostic).to.equal(true);
+        expect(mockRecordValidationService.resolve.notCalled, testCase.diagnostic).to.equal(true);
+        expect(mockStorageService.updateMeta.notCalled, testCase.diagnostic).to.equal(true);
+      }
+    });
+
     it('blocks a stale update precondition before delta validation or any record mutation', async function () {
       enableRecordSchema();
       mockSails.config.recordValidation = { mode: 'shadow' };

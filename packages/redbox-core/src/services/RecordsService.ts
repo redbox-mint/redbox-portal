@@ -4733,7 +4733,9 @@ export namespace Services {
         options.triggerPreSaveTriggers ?? true,
         options.triggerPostSaveTriggers ?? true,
         options.targetStep ?? {},
-        options.metadata === undefined ? undefined : { metadata: options.metadata, mode: 'replace' },
+        options.metadata === undefined
+          ? undefined
+          : { metadata: options.metadata, mode: options.metadataMode ?? 'replace' },
         createRecordSaveContext({
           routeFamily: 'internal',
           operation: options.operation ?? 'update',
@@ -5196,12 +5198,16 @@ export namespace Services {
       }
 
       // Keep the submitted metadata raw through authoritative context and
-      // authorization. A structural rejection must stop before merge, hooks,
-      // business validation, attachment work, or storage.
-      if (submission !== undefined && (!schemaEnabled || structuralBypass === undefined)) {
+      // authorization. A schema-enabled body-less transition still has an
+      // empty structural delta, while an omitted update submission retains
+      // the legacy whole-record update path. A structural rejection must stop
+      // before merge, transition mutation, hooks, business validation,
+      // attachment work, or storage.
+      const structuralMetadata = submission?.metadata ?? (schemaEnabled && transitionRequested ? {} : undefined);
+      if (structuralMetadata !== undefined && (!schemaEnabled || structuralBypass === undefined)) {
         if (schemaEnabled) {
           const structuralValidation = await this.validateUpdateRecordSchema({
-            metadata: submission.metadata,
+            metadata: structuralMetadata,
             brand: brandObj,
             portal: tracker.context.portal,
             oid,
@@ -5217,7 +5223,7 @@ export namespace Services {
           }
           for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
         } else {
-          const structuralValidation = await this.validateUpdateMetadataStructure(submission.metadata);
+          const structuralValidation = await this.validateUpdateMetadataStructure(structuralMetadata);
           if (!structuralValidation.valid) {
             tracker.recordPrimaryNotApplied(structuralValidation.problem);
             this.logSaveOutcome(tracker, 'pre-save');

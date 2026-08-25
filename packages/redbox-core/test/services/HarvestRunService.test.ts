@@ -149,7 +149,11 @@ describe('HarvestRunService', function () {
       getMeta: sinon.stub().callsFake(async (oid: string) => structuredClone(persistedRecords.get(oid))),
       createRecordAudit: sinon.stub().resolves({ success: true }),
     };
-    const schemaResolver = {
+    const schemaResolver: {
+      resolveCreate: sinon.SinonStub;
+      resolveUpdate?: sinon.SinonStub;
+      validateResolvedArtifact: sinon.SinonStub;
+    } = {
       resolveCreate: sinon.stub().rejects(new Error('authorization must run before schema resolution')),
       validateResolvedArtifact: sinon.stub(),
     };
@@ -281,6 +285,51 @@ describe('HarvestRunService', function () {
     (global as any).HarvestRecordEvent.createEach.callsFake(async (events: any[]) => events);
   }
 
+  function rejectNonArrayTagUpdates(schemaResolver: {
+    resolveUpdate?: sinon.SinonStub;
+    validateResolvedArtifact: sinon.SinonStub;
+  }): sinon.SinonStub {
+    const resolveUpdate = sinon.stub().resolves({
+      kind: 'resolved',
+      document: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        properties: { tags: { type: 'array', items: { type: 'string' } } },
+      },
+      digest: 'b'.repeat(64),
+      grant: {},
+      metadata: {
+        schemaKind: 'update',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'complete',
+        byteLength: 128,
+        etag: `"sha256:${'b'.repeat(64)}"`,
+        context: {
+          brand: 'brand-1',
+          portal: 'tenant-portal',
+          kind: 'update',
+          recordType: 'dataset',
+          workflowStep: 'draft',
+          form: 'default-form',
+          operation: 'strict-all',
+          unknownProperties: 'allow',
+          enforcement: 'enforce',
+        },
+      },
+    });
+    schemaResolver.resolveUpdate = resolveUpdate;
+    schemaResolver.validateResolvedArtifact.callsFake((request: { input?: { tags?: unknown } }) => {
+      const valid = Array.isArray(request.input?.tags);
+      return {
+        kind: 'validated',
+        valid,
+        issues: valid ? [] : [{ code: 'record-schema.type', pointer: '/tags', expected: { type: 'array' } }],
+        truncated: false,
+      };
+    });
+    return resolveUpdate;
+  }
+
   it('threads authoritative contexts through compatibility and legacy creates in shadow and enforce', async function () {
     mockSails.config.recordSchema = { enabled: true };
     (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
@@ -362,9 +411,7 @@ describe('HarvestRunService', function () {
         sourceRunId: 'source-run-1',
         sourceName: 'source-a',
         chunk: { index: 1 },
-        records: [
-          { harvestId: 'tracked-1', operation: 'create', recordRequest: { metadata: { title: 'Tracked' } } },
-        ],
+        records: [{ harvestId: 'tracked-1', operation: 'create', recordRequest: { metadata: { title: 'Tracked' } } }],
       },
       { username: 'tester' }
     );
@@ -400,14 +447,15 @@ describe('HarvestRunService', function () {
       validationRequestParameters: { recordType: 'dataset', merge: true },
       validationRuntimeContext: { transport: 'harvest' },
     });
-    const submit = () => service.submitCompatibilityRecords(
-      { id: 'brand-1', name: 'default' },
-      { name: 'dataset' },
-      { records: [{ harvestId: 'compat-1', recordRequest: { metadata: { title: 'Compatibility' } } }] },
-      'override',
-      { username: 'tester' },
-      context
-    );
+    const submit = () =>
+      service.submitCompatibilityRecords(
+        { id: 'brand-1', name: 'default' },
+        { name: 'dataset' },
+        { records: [{ harvestId: 'compat-1', recordRequest: { metadata: { title: 'Compatibility' } } }] },
+        'override',
+        { username: 'tester' },
+        context
+      );
 
     mockSails.config.recordSchema = { enabled: false };
     await submit();
@@ -1264,6 +1312,97 @@ describe('HarvestRunService', function () {
     expect(response.chunk.responseSummary).to.deep.include({ updated: 1, unchanged: 0 });
   });
 
+  it('rejects a raw merge type failure before hooks or mutation in legacy and tracked updates', async function () {
+    const { persistedRecords, realRecordsService, schemaResolver, storageService } = useRealRecordsService(true);
+    const resolveUpdate = rejectNonArrayTagUpdates(schemaResolver);
+    const originalRecord = {
+      redboxOid: 'record-1',
+      harvestId: 'harvest-1',
+      metadata: { title: 'Original', tags: ['stored'] },
+      metaMetadata: {
+        brandId: 'brand-1',
+        type: 'dataset',
+        form: 'default-form',
+        attachmentFields: [],
+      },
+      workflow: { stage: 'draft' },
+      authorization: {
+        edit: ['harvester'],
+        view: ['harvester'],
+        editRoles: [],
+        viewRoles: [],
+      },
+    };
+    persistedRecords.set('record-1', structuredClone(originalRecord));
+    const recordType = { name: 'dataset', hooks: {}, searchable: false };
+    (global as any).RecordTypesService = {
+      get: sinon.stub().returns(of(recordType)),
+    };
+    (global as any).Record.find.returns({
+      meta: sinon.stub().resolves([structuredClone(originalRecord)]),
+    });
+    const preSaveHook = sinon.spy(realRecordsService, 'triggerPreSaveTriggers');
+    const rawDelta = { tags: 'invalid-scalar' };
+
+    const legacyResponse = await service.submitLegacyRecords(
+      { id: 'brand-1', name: 'default' },
+      recordType,
+      {
+        records: [
+          {
+            harvest_id: 'harvest-1',
+            metadata: { data: rawDelta },
+          },
+        ],
+      },
+      true,
+      { username: 'harvester', roles: [] },
+      harvestSaveContext()
+    );
+
+    expect(legacyResponse[0].status).to.equal(false);
+    expect(schemaResolver.validateResolvedArtifact.calledOnce).to.equal(true);
+    expect(schemaResolver.validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+    expect(preSaveHook.notCalled).to.equal(true);
+    expect(storageService.updateMeta.notCalled).to.equal(true);
+    expect(persistedRecords.get('record-1')).to.deep.equal(originalRecord);
+
+    persistedRecords.set('record-1', structuredClone(originalRecord));
+    resolveUpdate.resetHistory();
+    schemaResolver.validateResolvedArtifact.resetHistory();
+    preSaveHook.resetHistory();
+    storageService.updateMeta.resetHistory();
+    configureTrackedCreateChunk();
+
+    const trackedResponse = await service.submitChunk(
+      { id: 'brand-1', name: 'default' },
+      recordType,
+      {
+        sourceRunId: 'source-run-1',
+        sourceName: 'source-a',
+        chunk: { index: 1 },
+        records: [
+          {
+            harvestId: 'harvest-1',
+            operation: 'update',
+            updateStrategy: 'merge',
+            recordRequest: { metadata: rawDelta },
+          },
+        ],
+      },
+      { username: 'harvester', roles: [] },
+      harvestSaveContext()
+    );
+
+    expect(trackedResponse.chunk.responseSummary).to.deep.include({ updated: 0, failed: 1 });
+    expect(schemaResolver.validateResolvedArtifact.calledOnce).to.equal(true);
+    expect(schemaResolver.validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+    expect(preSaveHook.notCalled).to.equal(true);
+    expect(storageService.updateMeta.notCalled).to.equal(true);
+    expect(persistedRecords.get('record-1')).to.deep.equal(originalRecord);
+    expect(rawDelta).to.deep.equal({ tags: 'invalid-scalar' });
+  });
+
   it('rolls back created records when event persistence fails before checkpointing', async function () {
     (global as any).HarvestRun.findOne.resolves(null);
     (global as any).HarvestRun.create.returns({
@@ -1373,10 +1512,12 @@ describe('HarvestRunService', function () {
         name: 'dataset',
         hooks: {
           onUpdate: {
-            pre: [{
-              function:
-                '(_oid, record) => ({ ...record, authorization: { ...record.authorization, edit: ["replacement-owner"] } })',
-            }],
+            pre: [
+              {
+                function:
+                  '(_oid, record) => ({ ...record, authorization: { ...record.authorization, edit: ["replacement-owner"] } })',
+              },
+            ],
           },
         },
         searchable: false,
@@ -1399,11 +1540,13 @@ describe('HarvestRunService', function () {
             sourceRunId: 'source-run-1',
             sourceName: 'source-a',
             chunk: { index: 1 },
-            records: [{
-              harvestId: 'harvest-1',
-              operation,
-              recordRequest: { metadata: { title: 'Changed' } },
-            }],
+            records: [
+              {
+                harvestId: 'harvest-1',
+                operation,
+                recordRequest: { metadata: { title: 'Changed' } },
+              },
+            ],
           },
           { username: 'harvester', roles: [] },
           harvestSaveContext()

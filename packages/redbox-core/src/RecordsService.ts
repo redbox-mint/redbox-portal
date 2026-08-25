@@ -31,6 +31,7 @@ export interface InternalRecordSnapshotSaveOptions {
   readonly triggerPostSaveTriggers?: boolean;
   readonly targetStep?: unknown;
   readonly metadata?: AnyRecord;
+  readonly metadataMode?: 'merge' | 'replace';
   readonly operation?: 'update' | 'transition';
   /** Trusted transport schema facts to retain while concurrency remains internal and revision-based. */
   readonly context?: RecordSaveContext;

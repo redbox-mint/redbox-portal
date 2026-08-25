@@ -530,15 +530,6 @@ export namespace Services {
           );
         }
 
-        const updatedMetadata = shouldMerge
-          ? _.mergeWith(_.cloneDeep(record.metadata), body, (objValue: unknown, srcValue: unknown) => {
-              if (_.isArray(objValue)) {
-                return (objValue as unknown[]).concat(srcValue as unknown[]);
-              }
-              return undefined;
-            })
-          : body;
-
         const sourceMetadata = body?.['sourceMetadata'];
         if (!_.isEmpty(sourceMetadata)) {
           (record['metaMetadata'] as unknown as AnyRecord)['sourceMetadata'] = `${sourceMetadata}`;
@@ -552,7 +543,8 @@ export namespace Services {
           oid,
           record,
           user,
-          metadata: updatedMetadata,
+          metadata: body,
+          metadataMode: shouldMerge ? 'merge' : 'replace',
           context: this.recordSaveContext(context, 'update'),
         });
         if (!response.wasPersisted()) {
@@ -708,7 +700,6 @@ export namespace Services {
       previousRecord?: RecordModel;
       committedRevision?: number;
     }> {
-      const shouldMerge = strategy === 'merge';
       try {
         const record: RecordModel = await RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
@@ -720,15 +711,6 @@ export namespace Services {
         }
 
         const previousRecord = _.cloneDeep(record);
-
-        const updatedMetadata = shouldMerge
-          ? _.mergeWith(_.cloneDeep(record.metadata), metadata, (objValue: unknown, srcValue: unknown) => {
-              if (_.isArray(objValue)) {
-                return (objValue as unknown[]).concat(srcValue as unknown[]);
-              }
-              return undefined;
-            })
-          : metadata;
 
         const sourceMetadata = metadata['sourceMetadata'];
         if (!_.isEmpty(sourceMetadata)) {
@@ -743,7 +725,8 @@ export namespace Services {
           oid,
           record,
           user,
-          metadata: updatedMetadata,
+          metadata,
+          metadataMode: strategy === 'merge' ? 'merge' : 'replace',
           context: this.recordSaveContext(context, 'update'),
         });
         if (!response.wasPersisted()) {
