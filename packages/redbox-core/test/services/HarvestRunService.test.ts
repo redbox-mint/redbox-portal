@@ -1,19 +1,12 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
-import { FormConfig } from '@researchdatabox/sails-ng-common';
 import { ObjectId } from 'mongodb';
 import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
-import {
-  createRecordSaveContext,
-  isRecordSaveContext,
-  type RecordSaveContext,
-} from '../../src/RecordSaveResponse';
-import type {
-  RecordValidationRequest,
-  RecordValidationResult,
-} from '../../src/services/RecordValidationService';
+import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
+import type { RecordValidationRequest, RecordValidationResult } from '../../src/services/RecordValidationService';
+import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
 type QueryLike = {
@@ -47,32 +40,18 @@ function harvestSaveContext(): RecordSaveContext {
 
 function recordValidationResult(
   request: RecordValidationRequest,
-  blockingErrors: readonly { message: string; field: string; class: string }[] = [],
+  blockingErrors: readonly {
+    message: string;
+    field: string;
+    class: string;
+  }[] = [],
   mode: 'shadow' | 'enforce' = 'shadow'
 ): RecordValidationResult {
-  const constructedForm = new FormConfig();
-  constructedForm.name = 'default-form';
-  constructedForm.componentDefinitions = [];
-  return {
-    status: 'resolved',
+  return buildResolvedRecordValidationResult(request, {
     shouldBlock: mode === 'enforce' && blockingErrors.length > 0,
     mode,
-    formName: 'default-form',
-    effectiveGroups: [],
-    resolved: {
-      constructedForm,
-      formName: 'default-form',
-      recordType: 'dataset',
-      brand: 'brand-1',
-      workflowStep: 'draft',
-      conditionalGroups: [],
-    },
     blockingErrors,
-    advisoryErrors: [],
-    advisoryGroups: [],
-    diagnostics: [],
-    transformedCandidate: request.candidate,
-  };
+  });
 }
 
 describe('HarvestRunService', function () {
@@ -233,7 +212,8 @@ describe('HarvestRunService', function () {
     const recordValidationService: {
       resolve: sinon.SinonStub<[request: RecordValidationRequest], Promise<RecordValidationResult>>;
     } = {
-      resolve: sinon.stub<[request: RecordValidationRequest], Promise<RecordValidationResult>>()
+      resolve: sinon
+        .stub<[request: RecordValidationRequest], Promise<RecordValidationResult>>()
         .callsFake(async request => recordValidationResult(request)),
     };
     (global as any).RecordValidationService = recordValidationService;
@@ -1344,13 +1324,8 @@ describe('HarvestRunService', function () {
   });
 
   it('rejects a raw merge type failure before hooks or mutation in legacy and tracked updates', async function () {
-    const {
-      persistedRecords,
-      realRecordsService,
-      recordValidationService,
-      schemaResolver,
-      storageService,
-    } = useRealRecordsService(true);
+    const { persistedRecords, realRecordsService, recordValidationService, schemaResolver, storageService } =
+      useRealRecordsService(true);
     const resolveUpdate = rejectNonArrayTagUpdates(schemaResolver);
     const originalRecord = {
       redboxOid: 'record-1',
@@ -1442,7 +1417,10 @@ describe('HarvestRunService', function () {
       harvestSaveContext()
     );
 
-    expect(trackedResponse.chunk.responseSummary).to.deep.include({ updated: 0, failed: 1 });
+    expect(trackedResponse.chunk.responseSummary).to.deep.include({
+      updated: 0,
+      failed: 1,
+    });
     expect(resolveUpdate.calledOnce).to.equal(true);
     expect(schemaResolver.validateResolvedArtifact.calledOnce).to.equal(true);
     expect(schemaResolver.validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
@@ -1504,7 +1482,12 @@ describe('HarvestRunService', function () {
       {
         name: 'legacy/business-valid',
         tracked: false,
-        metadata: { title: 'Approved', score: 10, approval: 'approved', tags: ['incoming'] },
+        metadata: {
+          title: 'Approved',
+          score: 10,
+          approval: 'approved',
+          tags: ['incoming'],
+        },
         expectedPersisted: true,
       },
       {
@@ -1522,7 +1505,12 @@ describe('HarvestRunService', function () {
       {
         name: 'tracked/business-invalid',
         tracked: true,
-        metadata: { title: '', score: 9, approval: 'rejected', tags: ['incoming'] },
+        metadata: {
+          title: '',
+          score: 9,
+          approval: 'rejected',
+          tags: ['incoming'],
+        },
         expectedPersisted: false,
       },
     ] as const;
@@ -1537,26 +1525,34 @@ describe('HarvestRunService', function () {
       preSaveHook.resetHistory();
       storageService.updateMeta.resetHistory();
       recordValidationService.resolve.resetHistory();
-      recordValidationService.resolve.callsFake(async (
-        request: RecordValidationRequest
-      ): Promise<RecordValidationResult> => {
-        const invalid = request.candidate.metadata.approval !== 'approved';
-        return recordValidationResult(
-          request,
-          invalid
-            ? [
-                { message: '@validator-error-required', field: 'title', class: 'required' },
-                { message: '@validator-error-min', field: 'score', class: 'min' },
-                {
-                  message: '@validator-error-jsonata-expression',
-                  field: 'approval',
-                  class: 'jsonata-expression',
-                },
-              ]
-            : [],
-          'enforce'
-        );
-      });
+      recordValidationService.resolve.callsFake(
+        async (request: RecordValidationRequest): Promise<RecordValidationResult> => {
+          const invalid = request.candidate.metadata.approval !== 'approved';
+          return recordValidationResult(
+            request,
+            invalid
+              ? [
+                  {
+                    message: '@validator-error-required',
+                    field: 'title',
+                    class: 'required',
+                  },
+                  {
+                    message: '@validator-error-min',
+                    field: 'score',
+                    class: 'min',
+                  },
+                  {
+                    message: '@validator-error-jsonata-expression',
+                    field: 'approval',
+                    class: 'jsonata-expression',
+                  },
+                ]
+              : [],
+            'enforce'
+          );
+        }
+      );
       const rawDelta = structuredClone(testCase.metadata);
 
       let persisted: boolean;

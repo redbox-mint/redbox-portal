@@ -1,12 +1,60 @@
-import type { FormConfigFrame, FormConfigOutline, ValidationMode } from '@researchdatabox/sails-ng-common';
+import {
+  FormConfig,
+  type FormConfigFrame,
+  type FormConfigOutline,
+  type ValidationMode,
+} from '@researchdatabox/sails-ng-common';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type {
   RecordValidationCandidate,
   RecordValidationMetricsHooks,
   RecordValidationRequest,
+  RecordValidationResult,
   RecordValidationResolutionMetric,
   RecordValidationServiceDependencies,
 } from '../../src/services/RecordValidationService';
+
+type ResolvedRecordValidationResult = Extract<RecordValidationResult, { status: 'resolved' }>;
+
+export function buildResolvedRecordValidationResult(
+  request: RecordValidationRequest,
+  overrides: Partial<Omit<ResolvedRecordValidationResult, 'status'>> = {}
+): ResolvedRecordValidationResult {
+  const formName =
+    typeof request.candidate.metaMetadata.form === 'string' ? request.candidate.metaMetadata.form : 'default-form';
+  const recordType =
+    typeof request.candidate.metaMetadata.type === 'string' ? request.candidate.metaMetadata.type : 'dataset';
+  const brand =
+    typeof request.candidate.metaMetadata.brandId === 'string' ? request.candidate.metaMetadata.brandId : 'brand-1';
+  const candidateWorkflowStep = request.candidate.workflow?.stage;
+  const workflowStep =
+    request.currentStep ?? (typeof candidateWorkflowStep === 'string' ? candidateWorkflowStep : 'draft');
+  const constructedForm = new FormConfig();
+  constructedForm.name = formName;
+  constructedForm.componentDefinitions = [];
+
+  return {
+    status: 'resolved',
+    shouldBlock: false,
+    mode: 'shadow',
+    formName,
+    effectiveGroups: [],
+    resolved: {
+      constructedForm,
+      formName,
+      recordType,
+      brand,
+      workflowStep,
+      conditionalGroups: [],
+    },
+    blockingErrors: [],
+    advisoryErrors: [],
+    advisoryGroups: [],
+    diagnostics: [],
+    transformedCandidate: request.candidate,
+    ...overrides,
+  };
+}
 
 export interface RecordValidationFixtureOptions {
   mode?: ValidationMode;

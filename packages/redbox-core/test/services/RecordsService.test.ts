@@ -8,7 +8,6 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { rejects } from 'node:assert/strict';
 import {
-  FormConfig,
   formValidatorsSharedDefinitions,
   type FormConfigFrame,
   type RecordSaveIssue,
@@ -28,11 +27,10 @@ import type {
   ResolvedRecordValidationResult,
   UnresolvedRecordValidationResult,
 } from '../../src/services/RecordValidationService';
+import type { Services as FormsServiceTypes } from '../../src/services/FormsService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
-import {
-  createCoreRecordContractContributors,
-  RecordContractContributorRegistry,
-} from '../../src/record-contract';
+import { createCoreRecordContractContributors, RecordContractContributorRegistry } from '../../src/record-contract';
+import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
 import {
   setupServiceTestGlobals,
   cleanupServiceTestGlobals,
@@ -43,10 +41,21 @@ import {
 
 const { Services: RecordValidationServices } =
   require('../../src/services/RecordValidationService') as typeof import('../../src/services/RecordValidationService');
-const { Services: RecordSchemaServices } = require('../../src/services/RecordSchemaService') as
-  typeof import('../../src/services/RecordSchemaService');
-const DomSanitizerServices = require('../../src/services/DomSanitizerService').default as
-  typeof import('../../src/services/DomSanitizerService').default;
+const { Services: RecordSchemaServices } =
+  require('../../src/services/RecordSchemaService') as typeof import('../../src/services/RecordSchemaService');
+const DomSanitizerServices = require('../../src/services/DomSanitizerService')
+  .default as typeof import('../../src/services/DomSanitizerService').default;
+
+type FormsServiceStub = {
+  getForm: sinon.SinonStub<
+    Parameters<FormsServiceTypes.Forms['getForm']>,
+    ReturnType<FormsServiceTypes.Forms['getForm']>
+  >;
+  getFormByName: sinon.SinonStub<
+    Parameters<FormsServiceTypes.Forms['getFormByName']>,
+    ReturnType<FormsServiceTypes.Forms['getFormByName']>
+  >;
+};
 
 function assertUnknownRecord(value: unknown): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -62,6 +71,7 @@ describe('RecordsService', function () {
   let mockSearchService: any;
   let mockQueueService: any;
   let mockDatastreamService: any;
+  let mockFormsService: FormsServiceStub;
   let mockRecordValidationService: {
     resolve: sinon.SinonStub<[request: RecordValidationRequest], Promise<RecordValidationResult>>;
   };
@@ -213,10 +223,24 @@ describe('RecordsService', function () {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
-    (global as any).FormsService = {
-      getForm: sinon.stub().resolves({ name: 'default-form', attachmentFields: [] }),
-      getFormByName: sinon.stub().returns(of({ name: 'default-form', attachmentFields: [] })),
+    const defaultForm: FormAttributes = {
+      id: 'form-default-form',
+      name: 'default-form',
+      branding: 'brand-1',
+      attachmentFields: [],
     };
+    mockFormsService = {
+      getForm: sinon
+        .stub<Parameters<FormsServiceTypes.Forms['getForm']>, ReturnType<FormsServiceTypes.Forms['getForm']>>()
+        .resolves(defaultForm),
+      getFormByName: sinon
+        .stub<
+          Parameters<FormsServiceTypes.Forms['getFormByName']>,
+          ReturnType<FormsServiceTypes.Forms['getFormByName']>
+        >()
+        .returns(of(defaultForm)),
+    };
+    Object.assign(globalThis, { FormsService: mockFormsService });
     (global as any).RolesService = {
       getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
       getRole: sinon.stub().returns(null),
@@ -256,10 +280,7 @@ describe('RecordsService', function () {
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
     };
-    const recordValidationResolve = sinon.stub<
-      [request: RecordValidationRequest],
-      Promise<RecordValidationResult>
-    >();
+    const recordValidationResolve = sinon.stub<[request: RecordValidationRequest], Promise<RecordValidationResult>>();
     recordValidationResolve.resolves({
       status: 'unresolved',
       shouldBlock: false,
@@ -3817,35 +3838,22 @@ describe('RecordsService', function () {
 
     const resolvedResult = (
       overrides: Partial<Omit<ResolvedRecordValidationResult, 'status'>> = {}
-    ): ResolvedRecordValidationResult => {
-      const constructedForm = new FormConfig();
-      constructedForm.name = 'default-form';
-      constructedForm.componentDefinitions = [];
-      return {
-        status: 'resolved',
-        shouldBlock: false,
-        mode: 'shadow',
-        formName: 'default-form',
-        effectiveGroups: [],
-        resolved: {
-          constructedForm,
-          formName: 'default-form',
-          recordType: 'rdmp',
-          brand: 'brand-1',
-          workflowStep: 'draft',
-          conditionalGroups: [],
+    ): ResolvedRecordValidationResult =>
+      buildResolvedRecordValidationResult(
+        {
+          candidate: {
+            metadata: {},
+            metaMetadata: {
+              brandId: 'brand-1',
+              type: 'rdmp',
+              form: 'default-form',
+            },
+          },
+          writeKind: 'create',
+          actor: { authenticated: true, roles: [] },
         },
-        blockingErrors: [],
-        advisoryErrors: [],
-        advisoryGroups: [],
-        diagnostics: [],
-        transformedCandidate: {
-          metadata: {},
-          metaMetadata: { brandId: 'brand-1', type: 'rdmp', form: 'default-form' },
-        },
-        ...overrides,
-      };
-    };
+        overrides
+      );
 
     const blockingResult = (
       overrides: Partial<Omit<ResolvedRecordValidationResult, 'status'>> = {}
@@ -3978,13 +3986,16 @@ describe('RecordsService', function () {
       ],
     });
 
-    const task65Form = (): FormConfigFrame => ({
+    const businessValidationForm = (): FormConfigFrame => ({
       name: 'default-form',
       type: 'rdmp',
       componentDefinitions: [
         {
           name: 'title',
-          component: { class: 'SimpleInputComponent', config: { type: 'text' } },
+          component: {
+            class: 'SimpleInputComponent',
+            config: { type: 'text' },
+          },
           model: {
             class: 'SimpleInputModel',
             config: { validators: [{ class: 'required' }] },
@@ -3992,7 +4003,10 @@ describe('RecordsService', function () {
         },
         {
           name: 'score',
-          component: { class: 'SimpleInputComponent', config: { type: 'number' } },
+          component: {
+            class: 'SimpleInputComponent',
+            config: { type: 'number' },
+          },
           model: {
             class: 'SimpleInputModel',
             config: { validators: [{ class: 'min', config: { min: 10 } }] },
@@ -4000,14 +4014,19 @@ describe('RecordsService', function () {
         },
         {
           name: 'approval',
-          component: { class: 'SimpleInputComponent', config: { type: 'text' } },
+          component: {
+            class: 'SimpleInputComponent',
+            config: { type: 'text' },
+          },
           model: {
             class: 'SimpleInputModel',
             config: {
-              validators: [{
-                class: 'jsonata-expression',
-                config: { expression: '$ = "approved"' },
-              }],
+              validators: [
+                {
+                  class: 'jsonata-expression',
+                  config: { expression: '$ = "approved"' },
+                },
+              ],
             },
           },
         },
@@ -4020,15 +4039,17 @@ describe('RecordsService', function () {
       return response;
     };
 
-    const installTask65ValidationPipeline = () => {
-      const form = task65Form();
+    const installGeneratedSchemaValidationPipeline = () => {
+      const form = businessValidationForm();
       mockSails.config.recordSchema = { ...recordSchema, enabled: true };
       mockSails.config.recordValidation = {
         mode: 'enforce',
         timeoutMs: 5_000,
         allowedRequestParameters: [],
       };
-      mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
+      mockSails.config.validators = {
+        definitions: formValidatorsSharedDefinitions,
+      };
       mockSails.config.reusableFormDefinitions = {};
 
       const validationDependencies: Partial<RecordValidationServiceDependencies> = {
@@ -4061,17 +4082,20 @@ describe('RecordsService', function () {
       const businessValidation = sinon.spy(validationService, 'resolve');
       mockSails.services.recordvalidationservice = validationService;
 
-      (global as any).FormsService.getForm.resolves({
+      const formRecord: FormAttributes = {
+        id: 'form-default-form',
         name: 'default-form',
+        branding: 'brand-1',
         configuration: form,
-      });
-      (global as any).FormsService.getFormByName.returns(of({
-        name: 'default-form',
-        configuration: form,
-      }));
+      };
+      mockFormsService.getForm.resolves(formRecord);
+      mockFormsService.getFormByName.returns(of(formRecord));
 
       const registry = new RecordContractContributorRegistry(
-        createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' as const }))
+        createCoreRecordContractContributors().map(contributor => ({
+          contributor,
+          source: 'core' as const,
+        }))
       );
       const schemaStorage = {
         putRecordSchemaArtifact: sinon.stub().callsFake(async () => successfulStorageResponse()),
@@ -4105,7 +4129,10 @@ describe('RecordsService', function () {
             },
           };
         },
-        buildContractFormConfig: async () => ({ ok: true, effectiveForm: form }),
+        buildContractFormConfig: async () => ({
+          ok: true,
+          effectiveForm: form,
+        }),
       });
       const resolveCreate = sinon.spy(schemaService, 'resolveCreate');
       const validateResolvedArtifact = sinon.spy(schemaService, 'validateResolvedArtifact');
@@ -4381,7 +4408,7 @@ describe('RecordsService', function () {
     });
 
     it('keeps required, range, and custom validator summaries annotation-only in a generated schema artifact', async function () {
-      const { schemaService } = installTask65ValidationPipeline();
+      const { schemaService } = installGeneratedSchemaValidationPipeline();
       const resolution = await schemaService.resolveCreate({
         brand: 'brand-1',
         portal: 'portal',
@@ -4394,8 +4421,20 @@ describe('RecordsService', function () {
       expect(resolution.document).not.to.have.property('required');
       expect(resolution.document.properties?.score).not.to.have.property('minimum');
       expect(resolution.document['x-redbox-validation']).to.deep.include.members([
-        { code: 'form.required', pointers: ['/title'], groups: [], operations: [], blocking: true },
-        { code: 'form.min', pointers: ['/score'], groups: [], operations: [], blocking: true },
+        {
+          code: 'form.required',
+          pointers: ['/title'],
+          groups: [],
+          operations: [],
+          blocking: true,
+        },
+        {
+          code: 'form.min',
+          pointers: ['/score'],
+          groups: [],
+          operations: [],
+          blocking: true,
+        },
         {
           code: 'form.custom',
           pointers: ['/approval'],
@@ -4404,12 +4443,14 @@ describe('RecordsService', function () {
           blocking: true,
         },
       ]);
-      expect(schemaService.validateResolvedArtifact({
-        document: resolution.document,
-        digest: resolution.digest,
-        schemaKind: 'create',
-        input: { title: '', score: 9, approval: 'rejected' },
-      })).to.deep.equal({
+      expect(
+        schemaService.validateResolvedArtifact({
+          document: resolution.document,
+          digest: resolution.digest,
+          schemaKind: 'create',
+          input: { title: '', score: 9, approval: 'rejected' },
+        })
+      ).to.deep.equal({
         kind: 'validated',
         valid: true,
         issues: [],
@@ -4418,11 +4459,8 @@ describe('RecordsService', function () {
     });
 
     it('runs the create business validator once after schema validation and configured pre-save hooks', async function () {
-      const {
-        businessValidation,
-        resolveCreate,
-        validateResolvedArtifact,
-      } = installTask65ValidationPipeline();
+      const { businessValidation, resolveCreate, validateResolvedArtifact } =
+        installGeneratedSchemaValidationPipeline();
       const recordType = {
         name: 'rdmp',
         hooks: {
@@ -4499,8 +4537,10 @@ describe('RecordsService', function () {
           throw new Error(`Expected resolved business validation for ${testCase.name}.`);
         }
         expect(validationResult.shouldBlock, testCase.name).to.equal(testCase.expectedOutcome === 'not-saved');
-        expect(validationResult.blockingErrors.map(issue => issue.class), testCase.name)
-          .to.deep.equal(testCase.expectedClasses);
+        expect(
+          validationResult.blockingErrors.map(issue => issue.class),
+          testCase.name
+        ).to.deep.equal(testCase.expectedClasses);
 
         if (testCase.expectedOutcome === 'saved') {
           expect(mockStorageService.create.calledOnce, testCase.name).to.equal(true);
@@ -4600,16 +4640,22 @@ describe('RecordsService', function () {
           transitionPreSaveHook.resetHistory();
           businessValidation.resetHistory();
           mockStorageService.updateMeta.resetHistory();
-          businessValidation.callsFake(async (
-            request: RecordValidationRequest
-          ): Promise<RecordValidationResult> => {
+          businessValidation.callsFake(async (request: RecordValidationRequest): Promise<RecordValidationResult> => {
             const invalid = request.candidate.metadata.approval !== 'approved';
             return invalid
               ? blockingResult({
                   transformedCandidate: request.candidate,
                   blockingErrors: [
-                    { message: '@validator-error-required', field: 'title', class: 'required' },
-                    { message: '@validator-error-min', field: 'score', class: 'min' },
+                    {
+                      message: '@validator-error-required',
+                      field: 'title',
+                      class: 'required',
+                    },
+                    {
+                      message: '@validator-error-min',
+                      field: 'score',
+                      class: 'min',
+                    },
                     {
                       message: '@validator-error-jsonata-expression',
                       field: 'approval',
@@ -6049,12 +6095,19 @@ describe('RecordsService', function () {
 
     it('keeps shadow validation failures response-neutral and preserves successful create', async function () {
       (global as any).RecordValidationService.resolve.resolves(
-        resolvedAllowResult({
-          metadata: { title: '' },
-          metaMetadata: { brandId: 'brand-1', type: 'rdmp', form: 'default-form' },
-        }, {
-          blockingErrors: [{ message: '@validator-required', field: 'title' }],
-        })
+        resolvedAllowResult(
+          {
+            metadata: { title: '' },
+            metaMetadata: {
+              brandId: 'brand-1',
+              type: 'rdmp',
+              form: 'default-form',
+            },
+          },
+          {
+            blockingErrors: [{ message: '@validator-required', field: 'title' }],
+          }
+        )
       );
 
       const result = await RecordsService.create(
@@ -6076,10 +6129,17 @@ describe('RecordsService', function () {
         class: 'required',
       }];
       (global as any).RecordValidationService.resolve.resolves(
-        resolvedAllowResult({
-          metadata: { title: 'Valid primary record' },
-          metaMetadata: { brandId: 'brand-1', type: 'rdmp', form: 'default-form' },
-        }, { mode: 'enforce', advisoryErrors })
+        resolvedAllowResult(
+          {
+            metadata: { title: 'Valid primary record' },
+            metaMetadata: {
+              brandId: 'brand-1',
+              type: 'rdmp',
+              form: 'default-form',
+            },
+          },
+          { mode: 'enforce', advisoryErrors }
+        )
       );
 
       const result = await RecordsService.create(
