@@ -452,11 +452,17 @@ export namespace Services {
       return true;
     }
 
+    /** Generate public record OIDs in the historical ReDBox format. */
+    private generateRecordOid(): string {
+      // ReDBox record OIDs historically use UUID bytes without separators.
+      return randomUUID().replace(/-/g, '');
+    }
+
     /** `redboxOid` alone selects an explicit create OID; storage IDs are generated independently. */
     private normalizeCreateCandidateIdentity(candidate: AnyRecord): string | undefined {
       const suppliedOid = candidate.redboxOid;
       if (suppliedOid !== undefined && (typeof suppliedOid !== 'string' || !suppliedOid.trim())) return undefined;
-      const oid = typeof suppliedOid === 'string' && suppliedOid.trim() ? suppliedOid.trim() : randomUUID();
+      const oid = typeof suppliedOid === 'string' && suppliedOid.trim() ? suppliedOid.trim() : this.generateRecordOid();
       if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(oid)) return undefined;
       candidate.redboxOid = oid;
       return oid;
