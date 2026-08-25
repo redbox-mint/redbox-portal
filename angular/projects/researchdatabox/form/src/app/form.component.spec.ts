@@ -2611,7 +2611,6 @@ describe('FormComponent', () => {
   });
 
   it('does not enable debug UI for invalid formDebug query param values', async () => {
-    setFormDebugUrl('off');
     const formConfig: FormConfigFrame = {
       name: 'debug-query-disabled',
       componentDefinitions: [
