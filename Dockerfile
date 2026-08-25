@@ -75,6 +75,7 @@ RUN cp -a node_modules /tmp/test-node_modules \
 RUN npm prune --omit=dev \
  && npm cache clean --force \
  && rm -rf \
+    node_modules/redbox-hook-dev \
     packages/redbox-core/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
