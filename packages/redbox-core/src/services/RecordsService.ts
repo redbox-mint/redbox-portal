@@ -4943,6 +4943,7 @@ export namespace Services {
       } catch (error) {
         sails.log.warn(`${this.logHeader} unable to load pre-update snapshot; validation will be required`, error);
       }
+      const storedMetadataSnapshot = _.cloneDeep(originalRecord?.metadata);
       const storedBrandId = String(this.recordObject(originalRecord?.metaMetadata).brandId ?? '').trim();
       if (!String(brandObj?.id ?? '').trim() && storedBrandId) {
         brandObj = BrandingService.getBrandById(storedBrandId);
@@ -5208,16 +5209,26 @@ export namespace Services {
       // validate them without reapplying the already-present mutation. A
       // structural rejection must stop before merge, transition mutation,
       // hooks, business validation, attachment work, or storage.
-      const legacyMetadataChanged =
-        submission === undefined &&
-        (originalRecord === undefined || !_.isEqual(originalRecord.metadata, requestedRecord.metadata));
-      const structuralMetadata =
-        submission?.metadata ??
-        (schemaEnabled && legacyMetadataChanged
-          ? createRecordMetadataDelta(originalRecord?.metadata, requestedRecord.metadata)
-          : schemaEnabled && transitionRequested
-            ? {}
-            : undefined);
+      const legacyMetadataChanged = submission === undefined && (
+        originalRecord === undefined || !_.isEqual(storedMetadataSnapshot, recordObj.metadata)
+      );
+      let structuralMetadata: Record<string, unknown> | undefined;
+      if (submission?.mode === 'pre-applied') {
+        structuralMetadata = createRecordMetadataDelta(storedMetadataSnapshot, recordObj.metadata);
+        if (!_.isEqual(structuralMetadata, submission.metadata)) {
+          sails.log.warn(
+            `${this.logHeader} pre-applied metadata delta did not match the persisted candidate; validating the derived delta`
+          );
+        }
+      } else {
+        structuralMetadata = submission?.metadata ?? (
+          schemaEnabled && legacyMetadataChanged
+            ? createRecordMetadataDelta(storedMetadataSnapshot, recordObj.metadata)
+            : schemaEnabled && transitionRequested
+              ? {}
+              : undefined
+          );
+      }
       if (structuralMetadata !== undefined && (!schemaEnabled || structuralBypass === undefined)) {
         if (schemaEnabled) {
           const structuralValidation = await this.validateUpdateRecordSchema({

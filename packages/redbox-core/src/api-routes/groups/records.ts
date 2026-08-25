@@ -73,6 +73,29 @@ const recordLifecycleMutationResponses = {
 const recordMutationWithSchemaHeaders = recordMutationHeaders.extend({
   'X-ReDBox-Record-Schema-If-Match': stringField('Strong record-schema ETag for conditional updates'),
 });
+
+function recordSchemaResolverExtension(schemaKind: 'create' | 'update'): Record<string, unknown> {
+  const resourceParameter = schemaKind === 'create' ? 'recordType' : 'oid';
+  return {
+    'x-redbox-record-schema-resolver': {
+      routeTemplate: `/{branding}/{portal}/api/records/schemas/${schemaKind}/{${resourceParameter}}`,
+      schemaKind,
+      operationParameter: { name: 'operation', required: false },
+      mediaType: 'application/schema+json',
+      etag: {
+        format: '"sha256:<64-lowercase-hex>"',
+        responseHeader: 'ETag',
+        revalidationRequestHeader: 'If-None-Match',
+        ...(schemaKind === 'update'
+          ? {
+              recordWritePreconditionRequestHeader: 'X-ReDBox-Record-Schema-If-Match',
+              comparison: 'current-resolved-full-document',
+            }
+          : {}),
+      },
+    },
+  };
+}
 const recordListLegacyFallbacks = {
   editOnly: bodyFallback,
   recordType: bodyFallback,
@@ -114,6 +137,7 @@ export const createRecordRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Create record metadata',
+    extensions: recordSchemaResolverExtension('create'),
     responses: {
       201: {
         description: 'Record created',
@@ -151,6 +175,7 @@ export const updateMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update record metadata',
+    extensions: recordSchemaResolverExtension('update'),
     responses: {
       200: recordResponseWithTag(recordSaveSuccessResponseSchema, 'Record metadata updated'),
       400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),

@@ -2233,7 +2233,7 @@ describe('Webservice RecordController body source', () => {
       expect((recordsService.updateMeta.firstCall.args[8] as any).ifMatch).to.equal(undefined);
     });
 
-    it('keeps schema digest precondition failures typed for v1 update and transition', async () => {
+    it('keeps stale, malformed, and multi-value schema digest failures typed for v1 update and transition', async () => {
       const record = {
         redboxOid: 'record-1',
         revision: 0,
@@ -2251,6 +2251,11 @@ describe('Webservice RecordController body source', () => {
       for (const testCase of [
         { header: `"sha256:${'b'.repeat(64)}"`, code: 'record-schema.precondition-failed' as const, status: 412 },
         { header: 'malformed-etag', code: 'record-schema.invalid-request' as const, status: 400 },
+        {
+          header: `"sha256:${'a'.repeat(64)}", "sha256:${'b'.repeat(64)}"`,
+          code: 'record-schema.invalid-request' as const,
+          status: 400,
+        },
       ]) {
         for (const action of ['update', 'transition'] as const) {
           recordsService.updateMeta.resetHistory();

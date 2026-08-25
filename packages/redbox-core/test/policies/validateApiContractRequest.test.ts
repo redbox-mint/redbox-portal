@@ -148,6 +148,48 @@ describe('validateApiContractRequest policy', function () {
         }
     });
 
+    it('returns 400 for repeated If-Match values on update and transition routes', function () {
+        const ifMatch = `"sha256:${'a'.repeat(64)}"`;
+        for (const apiVersion of ['1.0', '2.0']) {
+            for (const action of ['update', 'transition'] as const) {
+                const transition = action === 'transition';
+                const path = transition
+                    ? '/default/rdmp/api/records/workflow/step/published/record-1'
+                    : '/default/rdmp/api/records/metadata/record-1';
+                const routePath = transition
+                    ? '/:branding/:portal/api/records/workflow/step/:targetStep/:oid'
+                    : '/:branding/:portal/api/records/metadata/:oid';
+                const req = createReq({
+                    method: transition ? 'POST' : 'PUT',
+                    path,
+                    originalUrl: path,
+                    url: path,
+                    route: { path: routePath },
+                    params: {
+                        branding: 'default',
+                        portal: 'rdmp',
+                        oid: 'record-1',
+                        ...(transition ? { targetStep: 'published' } : {}),
+                    },
+                    query: {},
+                    headers: {
+                        'if-match': [ifMatch, ifMatch],
+                        'x-redbox-api-version': apiVersion,
+                    } as Sails.Req['headers'],
+                    body: {},
+                });
+                const res = createRes();
+                let nextCalled = false;
+
+                validateApiContractRequest(req, res, () => { nextCalled = true; });
+
+                expect(res.statusCode, `${apiVersion} ${action}`).to.equal(400);
+                expect(nextCalled, `${apiVersion} ${action}`).to.equal(false);
+                expect(JSON.stringify(res.body), `${apiVersion} ${action}`).to.include('If-Match');
+            }
+        }
+    });
+
     it('returns 400 for invalid body', function () {
         const req = createReq({
             method: 'POST',

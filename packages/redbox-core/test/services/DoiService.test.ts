@@ -569,6 +569,24 @@ describe('DoiService', function () {
       });
     });
 
+    it('preserves a non-default record brand on the authoritative internal DOI writeback', async function () {
+      const record = {
+        metaMetadata: { brandId: 'brand-2' },
+        metadata: {
+          creators: [{ given_name: 'First', family_name: 'Last' }],
+          citation_title: 'My Title',
+          citation_publisher: 'My Publisher',
+          citation_publication_date: '2023-04-01',
+        },
+      };
+
+      await service.publishDoiTrigger('oid1', record, { forceRun: true }, { username: 'owner' });
+
+      const writeback = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+      expect(writeback.record.metaMetadata.brandId).to.equal('brand-2');
+      expect(writeback.authorization).to.deep.equal({ kind: 'service' });
+    });
+
     it('should keep trigger and publish spans inside the same trace', async function () {
       (global as any).RecordsService.updateMetaInternal.resolves({
         outcome: 'saved-with-warnings',

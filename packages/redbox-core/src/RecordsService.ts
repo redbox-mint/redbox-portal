@@ -135,8 +135,8 @@ function isMetadataObject(value: unknown): value is Record<string, unknown> {
 /**
  * Build a detached structural delta from a legacy in-place metadata mutation.
  * Arrays and scalar values remain replacements; unchanged sibling fields are
- * omitted. Removed keys have no JSON value to validate and are intentionally
- * absent from the structural delta.
+ * omitted. Removed keys use the JSON Merge Patch `null` deletion marker so a
+ * structural validator observes deletions instead of receiving an empty delta.
  */
 export function createRecordMetadataDelta(
   previousMetadata: unknown,
@@ -146,7 +146,12 @@ export function createRecordMetadataDelta(
   const updated = isMetadataObject(updatedMetadata) ? updatedMetadata : {};
   const delta: Record<string, unknown> = {};
 
-  for (const key of Object.keys(updated)) {
+  for (const key of new Set([...Object.keys(previous), ...Object.keys(updated)])) {
+    if (!Object.prototype.hasOwnProperty.call(updated, key)) {
+      delta[key] = null;
+      continue;
+    }
+
     const previousValue = previous[key];
     const updatedValue = updated[key];
     if (isEqual(previousValue, updatedValue)) continue;

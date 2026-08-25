@@ -740,6 +740,62 @@ describe('API routes contract layer', function () {
     }
   });
 
+  it('rejects repeated schema If-Match header values without selecting the first value', function () {
+    const ifMatch = `"sha256:${'a'.repeat(64)}"`;
+    for (const route of [updateMetaRoute, transitionWorkflowRoute]) {
+      const result = validateApiRouteRequest({
+        params: route === updateMetaRoute
+          ? { oid: 'record-1' }
+          : { targetStep: 'review', oid: 'record-1' },
+        query: {},
+        headers: { 'x-redbox-record-schema-if-match': [ifMatch, ifMatch] },
+        body: {},
+      } as unknown as Sails.Req, route);
+
+      expect(result.valid).to.equal(false);
+      if (result.valid) throw new Error('Expected repeated schema If-Match request validation to fail.');
+      expect(result.issues.some(issue => issue.path === 'headers.X-ReDBox-Record-Schema-If-Match')).to.equal(true);
+    }
+  });
+
+  it('publishes bounded dynamic record-schema resolver metadata for create and update writes', function () {
+    const document = buildCoreApiOpenApiDocument();
+    const createOperation = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post
+    );
+    const updateOperation = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put
+    );
+    const createExtension = createOperation['x-redbox-record-schema-resolver'];
+    const updateExtension = updateOperation['x-redbox-record-schema-resolver'];
+
+    expect(createExtension).to.deep.equal({
+      routeTemplate: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+      schemaKind: 'create',
+      operationParameter: { name: 'operation', required: false },
+      mediaType: 'application/schema+json',
+      etag: {
+        format: '"sha256:<64-lowercase-hex>"',
+        responseHeader: 'ETag',
+        revalidationRequestHeader: 'If-None-Match',
+      },
+    });
+    expect(updateExtension).to.deep.equal({
+      routeTemplate: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+      schemaKind: 'update',
+      operationParameter: { name: 'operation', required: false },
+      mediaType: 'application/schema+json',
+      etag: {
+        format: '"sha256:<64-lowercase-hex>"',
+        responseHeader: 'ETag',
+        revalidationRequestHeader: 'If-None-Match',
+        recordWritePreconditionRequestHeader: 'X-ReDBox-Record-Schema-If-Match',
+        comparison: 'current-resolved-full-document',
+      },
+    });
+    expect(JSON.stringify([createExtension, updateExtension]).length).to.be.lessThan(1_000);
+  });
+
   it('should model the legacy response envelopes', function () {
     expect(apiErrorResponseSchema.safeParse({ message: 'Boom' }).success).to.equal(true);
     expect(apiErrorResponseSchema.safeParse({ message: 'Boom', details: 'Something failed' }).success).to.equal(true);

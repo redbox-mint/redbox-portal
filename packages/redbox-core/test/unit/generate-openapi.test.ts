@@ -84,8 +84,20 @@ describe('generate-openapi script', function () {
             paths?: Record<string, Record<string, { [key: string]: unknown }>>;
         };
         const operation = generatedDocument.paths?.['/default/rdmp/api/users']?.get;
+        const createRecordOperation = generatedDocument.paths?.['/default/rdmp/api/records/metadata/{recordType}']?.post;
+        const updateRecordOperation = generatedDocument.paths?.['/default/rdmp/api/records/metadata/{oid}']?.put;
 
         expect(operation?.['x-redbox-roles']).to.deep.equal(['DocsRole']);
+        expect(createRecordOperation?.['x-redbox-record-schema-resolver']).to.deep.include({
+            routeTemplate: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+            schemaKind: 'create',
+            mediaType: 'application/schema+json',
+        });
+        expect(updateRecordOperation?.['x-redbox-record-schema-resolver']).to.deep.include({
+            routeTemplate: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+            schemaKind: 'update',
+            mediaType: 'application/schema+json',
+        });
         expect(validate.calledOnce).to.equal(true);
     });
 

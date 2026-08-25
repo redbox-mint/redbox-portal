@@ -714,11 +714,12 @@ describe('RDMPService', function () {
       };
       const options = { rdmpOidField: 'customRdmpField' };
       const response = {};
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
-      await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, options, {}, response);
+      await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, options, user, response);
 
-      // The method uses rdmpOid from metadata regardless of rdmpOidField in the WorkspaceService call
-      expect((global as any).WorkspaceService.addWorkspaceToRecord.called).to.be.true;
+      expect((global as any).WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-custom', 'ws-1')).to.be.true;
+      expect((global as any).WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
     });
   });
 

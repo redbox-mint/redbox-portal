@@ -6753,12 +6753,88 @@ describe('RecordsService', function () {
 
       expect(result.wasPersisted()).to.equal(true);
       expect(validateResolvedArtifact.calledOnce).to.equal(true);
-      expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal(rawDelta);
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal({
         retained: 'keep',
         nested: { retained: true, values: [{ id: 'incoming' }] },
       });
       expect(rawDelta).to.deep.equal({ nested: { values: [{ id: 'incoming' }] } });
+    });
+
+    it('derives pre-applied validation from the persisted candidate and safely retries a stale mismatch', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const stored = {
+        ...baseRecord(),
+        metadata: { title: 'Current', retained: 'concurrent-value' },
+      };
+      const staleCandidate = {
+        ...structuredClone(stored),
+        metadata: { title: 42, retained: 'stale-value' },
+      };
+      const retryCandidate = structuredClone(stored);
+      retryCandidate.metadata.title = 'Retried';
+      const actor = { username: 'service-user', roles: [{ name: 'Researcher' }] };
+      mockStorageService.getMeta.resolves(stored);
+      const resolveUpdate = sinon.stub().callsFake(async (request: any) => {
+        expect(request.caller.user).to.equal(actor);
+        return updateSchemaResolution('enforce');
+      });
+      const validateResolvedArtifact = sinon.stub();
+      validateResolvedArtifact.onFirstCall().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [{ code: 'record-schema.type', pointer: '/title' }],
+        truncated: false,
+      });
+      validateResolvedArtifact.onSecondCall().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const staleResult = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        staleCandidate,
+        actor,
+        false,
+        false,
+        {},
+        { metadata: {}, mode: 'pre-applied' },
+        recordSchemaContext({ routeFamily: 'internal', operation: 'update' })
+      );
+
+      expect(staleResult.outcome).to.equal('not-saved');
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({
+        title: 42,
+        retained: 'stale-value',
+      });
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(staleCandidate.metadata).to.deep.equal({ title: 42, retained: 'stale-value' });
+
+      const retryResult = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        retryCandidate,
+        actor,
+        false,
+        false,
+        {},
+        { metadata: { title: 'Retried' }, mode: 'pre-applied' },
+        recordSchemaContext({ routeFamily: 'internal', operation: 'update' })
+      );
+
+      expect(retryResult.wasPersisted()).to.equal(true);
+      expect(validateResolvedArtifact.secondCall.args[0].input).to.deep.equal({ title: 'Retried' });
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal({
+        title: 'Retried',
+        retained: 'concurrent-value',
+      });
+      expect(resolveUpdate.callCount).to.equal(2);
     });
 
     it('does not let an omitted submission bypass schema validation for changed legacy metadata', async function () {
@@ -8940,6 +9016,125 @@ describe('RecordsService', function () {
       expect(resolveUpdate.calledOnce).to.equal(true);
       expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({ relatedRecords: ['record-789'] });
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+    });
+
+    it('detaches append/remove candidates, exposes scalar deletions, and retries without duplicate mutation', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const actor = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
+      const stored = {
+        ...baseRecord(),
+        metadata: { title: 'Original', relatedRecords: ['record-456'] },
+        authorization: { edit: ['owner'], view: [], editRoles: [], viewRoles: [] },
+      };
+      const appendCaller = structuredClone(stored);
+      const removeCaller = structuredClone(stored);
+      mockStorageService.getMeta.resolves(stored);
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+      const resolveUpdate = sinon.stub().callsFake(async (request: any) => {
+        expect(request.caller.user).to.equal(actor);
+        return updateSchemaResolution('enforce');
+      });
+      const validateResolvedArtifact = sinon.stub();
+      validateResolvedArtifact.onFirstCall().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [{ code: 'record-schema.type', pointer: '/relatedRecords' }],
+        truncated: false,
+      });
+      validateResolvedArtifact.onSecondCall().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      validateResolvedArtifact.onThirdCall().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [{ code: 'record-schema.type', pointer: '/title' }],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+
+      const rejectedAppend = await RecordsService.appendToRecord(
+        'record-123',
+        'record-789',
+        'metadata.relatedRecords',
+        'array',
+        appendCaller,
+        actor
+      );
+      expect(rejectedAppend.outcome).to.equal('not-saved');
+      expect(appendCaller).to.deep.equal(stored);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({
+        relatedRecords: ['record-456', 'record-789'],
+      });
+
+      const retriedAppend = await RecordsService.appendToRecord(
+        'record-123',
+        'record-789',
+        'metadata.relatedRecords',
+        'array',
+        appendCaller,
+        actor
+      );
+      expect(retriedAppend.wasPersisted()).to.equal(true);
+      expect(appendCaller).to.deep.equal(stored);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata.relatedRecords).to.deep.equal([
+        'record-456',
+        'record-789',
+      ]);
+
+      const rejectedRemove = await RecordsService.removeFromRecord(
+        'record-123',
+        'Original',
+        'metadata.title',
+        removeCaller,
+        actor
+      );
+      expect(rejectedRemove.outcome).to.equal('not-saved');
+      expect(removeCaller).to.deep.equal(stored);
+      expect(validateResolvedArtifact.thirdCall.args[0].input).to.deep.equal({ title: null });
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(resolveUpdate.callCount).to.equal(3);
+    });
+
+    it('resolves a brandless internal write against the stored non-default brand schema', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const brand = { id: 'brand-2', name: 'faculty' };
+      const stored = {
+        ...baseRecord(),
+        metaMetadata: { ...baseRecord().metaMetadata, brandId: 'brand-2' },
+      };
+      const candidate = structuredClone(stored);
+      candidate.metadata.title = 'DOI writeback';
+      (global as any).BrandingService.getBrandById.withArgs('brand-2').returns(brand);
+      mockStorageService.getMeta.resolves(stored);
+      const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const result = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'test.non-default-brand-writeback' },
+        authorization: { kind: 'service' },
+        oid: 'record-123',
+        record: candidate,
+        user: { username: 'owner' },
+        metadata: { title: 'DOI writeback' },
+        metadataMode: 'pre-applied',
+      });
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(resolveUpdate.firstCall.args[0]).to.include({ brand: 'brand-2' });
+      expect(resolveUpdate.firstCall.args[0].caller.brand).to.equal(brand);
+      expect(mockStorageService.updateMeta.firstCall.args[0]).to.equal(brand);
     });
 
     it('resolves authoritative brand and fails closed for append/remove when validation is unavailable', async function () {
