@@ -2239,7 +2239,10 @@ describe('RecordsService', function () {
         true,
         true,
         {},
-        { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] }
+        {
+          metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'file-1', pending: true }] },
+          mode: 'replace',
+        }
       );
 
       expect(result.wasPersisted()).to.equal(true);
@@ -2291,7 +2294,10 @@ describe('RecordsService', function () {
         true,
         true,
         {},
-        { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file' }] }
+        {
+          metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file' }] },
+          mode: 'replace',
+        }
       );
 
       expect(result.wasPersisted()).to.equal(true);
@@ -2352,7 +2358,7 @@ describe('RecordsService', function () {
         false,
         false,
         {},
-        { attachments: [replacement] }
+        { metadata: { attachments: [replacement] }, mode: 'replace' }
       );
 
       expect(result.wasPersisted()).to.equal(true);
@@ -3748,7 +3754,10 @@ describe('RecordsService', function () {
         false,
         false,
         {},
-        { attachments: [{ attachmentId: 'a', fileId: 'new-file' }] }
+        {
+          metadata: { attachments: [{ attachmentId: 'a', fileId: 'new-file' }] },
+          mode: 'replace',
+        }
       );
 
       expect(result.outcome).to.equal('saved-with-warnings');
@@ -4741,7 +4750,7 @@ describe('RecordsService', function () {
         true,
         false,
         {},
-        callerMetadata
+        { metadata: callerMetadata, mode: 'replace' }
       );
 
       expect(result.outcome).to.equal('not-saved');
@@ -5404,7 +5413,7 @@ describe('RecordsService', function () {
         true,
         false,
         {},
-        { title: 'Replacement' }
+        { metadata: { title: 'Replacement' }, mode: 'replace' }
       );
 
       expect(resolve.calledOnce).to.equal(true);
@@ -5577,7 +5586,51 @@ describe('RecordsService', function () {
       }
     });
 
-    it('builds the authoritative update candidate from the raw merge delta inside RecordsService', async function () {
+    it('stops a structurally invalid raw delta before merge, hooks, business validation, or storage', async function () {
+      const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
+      const rawDelta = { title: 42 };
+      mockStorageService.getMeta.resolves(stored);
+      const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
+      const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const structuralValidation = sinon.stub(RecordsService, 'validateUpdateMetadataStructure').resolves({
+        valid: false,
+        problem: {
+          kind: 'validation',
+          phase: 'pre-save',
+          issues: [{ message: '@record-schema-type', code: 'record-schema.type', pointer: '/title' }],
+        },
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'merge' },
+        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0]).to.deep.include({
+        code: 'record-schema.type',
+        pointer: '/title',
+      });
+      expect(structuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
+      expect(mockStorageService.getMeta.calledBefore(structuralValidation)).to.equal(true);
+      expect(authorize.calledBefore(structuralValidation)).to.equal(true);
+      expect((global as any).RecordTypesService.get.calledBefore(structuralValidation)).to.equal(true);
+      expect(applySubmission.notCalled).to.equal(true);
+      expect(preSaveHook.notCalled).to.equal(true);
+      expect(mockRecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(rawDelta).to.deep.equal({ title: 42 });
+    });
+
+    it('runs post-merge business validation against the authoritative merged candidate', async function () {
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const rawDelta = { title: 'Merged' };
       mockStorageService.getMeta.resolves(stored);
@@ -5595,9 +5648,8 @@ describe('RecordsService', function () {
         false,
         false,
         {},
-        rawDelta,
-        createRecordSaveContext(),
-        true
+        { metadata: rawDelta, mode: 'merge' },
+        createRecordSaveContext()
       );
 
       expect(result.outcome).to.equal('not-saved');
@@ -5670,9 +5722,8 @@ describe('RecordsService', function () {
           true,
           false,
           {},
-          rawDelta,
-          createRecordSaveContext(),
-          true
+          { metadata: rawDelta, mode: 'merge' },
+          createRecordSaveContext()
         );
 
         expect(result.wasPersisted()).to.equal(true);
@@ -5712,6 +5763,7 @@ describe('RecordsService', function () {
       };
       mockStorageService.getMeta.resolves(stored);
       (global as any).RecordValidationService.resolve.resolves(allowResult());
+      const structuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
 
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
@@ -5721,13 +5773,14 @@ describe('RecordsService', function () {
         false,
         false,
         {},
-        rawReplacement,
-        createRecordSaveContext(),
-        false
+        { metadata: rawReplacement, mode: 'replace' },
+        createRecordSaveContext()
       );
 
       expect(result.wasPersisted()).to.equal(true);
+      expect(structuralValidation.calledOnceWithExactly(rawReplacement)).to.equal(true);
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(rawReplacement);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).not.to.equal(rawReplacement);
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata).not.to.have.property('retained');
       expect(rawReplacement).to.deep.equal({
         title: 'Replacement',
@@ -7216,7 +7269,7 @@ describe('RecordsService', function () {
             true,
             true,
             {},
-            { title: 'Rejected update' },
+            { metadata: { title: 'Rejected update' }, mode: 'replace' },
             modifiedUpdateContext
           ),
         {
@@ -7281,7 +7334,7 @@ describe('RecordsService', function () {
         false,
         false,
         {},
-        { title: 'Updated', ...internalLookingUserMetadata },
+        { metadata: { title: 'Updated', ...internalLookingUserMetadata }, mode: 'replace' },
         createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
       );
 

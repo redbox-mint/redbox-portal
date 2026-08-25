@@ -134,6 +134,7 @@ export type {
   RecordRelationshipEdge,
   RecordMetaWithRelationships,
   LegacyRelatedRecordsResponse,
+  RecordMetadataSubmission,
   RecordTypeLookupSummary,
 } from './RecordsService';
 export { classifyRecordWrite, recordWriteRequiresFormValidation } from './RecordWriteClassification';

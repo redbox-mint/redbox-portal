@@ -75,6 +75,7 @@ import type {
   InternalRecordMutationAuthorization,
   InternalRecordSnapshotSaveOptions,
   InternalRecordWriterIdentity,
+  RecordMetadataSubmission,
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,
   RecordMetaWithRelationships,
@@ -284,6 +285,9 @@ export namespace Services {
         readonly warnings: readonly RecordSaveProblem[];
       }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
+  type StructuralMetadataValidationResult =
+    | { readonly valid: true }
+    | { readonly valid: false; readonly problem: RecordSaveProblem };
   type ValidateCandidateOptions = {
     readonly candidate: AnyRecord;
     readonly original?: AnyRecord;
@@ -672,20 +676,19 @@ export namespace Services {
     }
 
     /**
-     * Apply raw submitted metadata at the single update mutation boundary.
-     * Structural schema validation belongs immediately before this boundary so
-     * it always observes the unmerged delta, while hooks retain the established
-     * post-merge contract.
+     * Structural validation seam at the update boundary. Schema resolution and
+     * rollout policy remain separate from the merge relocation.
      */
-    private applySubmittedMetadata(
-      candidate: RecordWithMeta,
-      submittedMetadata: AnyRecord | undefined,
-      mergeMetadata: boolean
-    ): void {
-      if (submittedMetadata === undefined) return;
+    protected validateUpdateMetadataStructure(
+      _metadata: Readonly<AnyRecord>
+    ): Promise<StructuralMetadataValidationResult> {
+      return Promise.resolve({ valid: true });
+    }
 
-      const detachedMetadata = _.cloneDeep(submittedMetadata) as AnyRecord;
-      if (mergeMetadata !== true) {
+    /** Apply a validated submission at the single update metadata mutation boundary. */
+    private applySubmittedMetadata(candidate: RecordWithMeta, submission: RecordMetadataSubmission): void {
+      const detachedMetadata = _.cloneDeep(submission.metadata) as AnyRecord;
+      if (submission.mode === 'replace') {
         candidate.metadata = detachedMetadata;
         return;
       }
@@ -4301,7 +4304,7 @@ export namespace Services {
         options.triggerPreSaveTriggers ?? true,
         options.triggerPostSaveTriggers ?? true,
         options.targetStep ?? {},
-        options.metadata,
+        options.metadata === undefined ? undefined : { metadata: options.metadata, mode: 'replace' },
         createRecordSaveContext({
           routeFamily: 'internal',
           operation: options.operation ?? 'update',
@@ -4465,9 +4468,8 @@ export namespace Services {
       triggerPreSaveTriggers: boolean = true,
       triggerPostSaveTriggers: boolean = true,
       nextStep: unknown = {},
-      metadata?: AnyRecord,
-      context?: RecordSaveContext,
-      mergeMetadata: boolean = false
+      submission?: RecordMetadataSubmission,
+      context?: RecordSaveContext
     ): Promise<RecordSaveResponse> {
       const suppliedContext = requireRecordSaveContext(context);
       const transitionRequested =
@@ -4747,11 +4749,18 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      // Keep the transport-provided metadata delta raw through authoritative
-      // context and authorization resolution. This is the only metadata
-      // mutation boundary before hooks, allowing structural validation to run
-      // immediately before it without observing a controller-merged value.
-      this.applySubmittedMetadata(recordObj, metadata, mergeMetadata);
+      // Keep the submitted metadata raw through authoritative context and
+      // authorization. A structural rejection must stop before merge, hooks,
+      // business validation, attachment work, or storage.
+      if (submission !== undefined) {
+        const structuralValidation = await this.validateUpdateMetadataStructure(submission.metadata);
+        if (!structuralValidation.valid) {
+          tracker.recordPrimaryNotApplied(structuralValidation.problem);
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        this.applySubmittedMetadata(recordObj, submission);
+      }
       if (transitionRequested) {
         if (!_.isEmpty(recordType)) {
           try {

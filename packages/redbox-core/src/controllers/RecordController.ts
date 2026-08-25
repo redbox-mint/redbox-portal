@@ -1485,7 +1485,7 @@ export namespace Controllers {
           true,
           true,
           nextStepResp,
-          metadata,
+          { metadata, mode: 'replace' },
           saveRequest.context
         );
         sails.log.verbose(JSON.stringify(response));
@@ -1655,7 +1655,7 @@ export namespace Controllers {
           true,
           true,
           nextStep,
-          metadata,
+          { metadata, mode: 'replace' },
           saveRequest.context
         );
         if (response.wasPersisted()) {

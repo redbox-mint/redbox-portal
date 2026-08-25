@@ -1174,7 +1174,10 @@ describe('RecordController getWorkflowSteps', () => {
       true,
       true,
       nextStep,
-      { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
+      {
+        metadata: { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
+        mode: 'replace',
+      },
     ]);
     expect(currentRecord.workflow.stage).to.equal('draft');
     expect(currentRecord.metaMetadata.form).to.equal('dataset-draft');
@@ -1244,6 +1247,8 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect((global as any).WorkflowStepsService.get.notCalled).to.equal(true);
     expect(updateMeta.calledOnce).to.equal(true);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({ metadata: req.body, mode: 'replace' });
+    expect(updateMeta.firstCall.args[7].metadata).to.equal(req.body);
     const context = updateMeta.firstCall.args[8];
     expect(context).to.include({ routeFamily: 'browser', operation: 'update' });
     expect(context.concurrency).to.deep.equal({ entityTagSupplied: false });

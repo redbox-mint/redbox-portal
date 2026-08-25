@@ -508,9 +508,10 @@ describe('Webservice RecordController body source', () => {
 
       await controller.updateMeta(req, {} as Sails.Res);
 
-      expect(recordsService.updateMeta.firstCall.args[7]).to.equal(body);
-      expect(recordsService.updateMeta.firstCall.args[7]).not.to.have.property('retained');
-      expect(recordsService.updateMeta.firstCall.args[9]).to.equal(false);
+      const submission = recordsService.updateMeta.firstCall.args[7];
+      expect(submission).to.deep.include({ mode: 'replace' });
+      expect(submission.metadata).to.equal(body);
+      expect(submission.metadata).not.to.have.property('retained');
       expect(record.metadata).to.deep.equal({
         title: 'Stored',
         retained: 'not retained',
@@ -555,9 +556,10 @@ describe('Webservice RecordController body source', () => {
 
       await controller.updateMeta(req, {} as Sails.Res);
 
-      expect(recordsService.updateMeta.firstCall.args[7]).to.equal(body);
-      expect(recordsService.updateMeta.firstCall.args[7]).to.deep.equal(body);
-      expect(recordsService.updateMeta.firstCall.args[9]).to.equal(true);
+      const submission = recordsService.updateMeta.firstCall.args[7];
+      expect(submission).to.deep.include({ mode: 'merge' });
+      expect(submission.metadata).to.equal(body);
+      expect(submission.metadata).to.deep.equal(body);
       expect(record.metadata.values).to.deep.equal([{ id: 'stored' }]);
       expect(body.values).to.deep.equal([{ id: 'incoming' }]);
     });
@@ -598,16 +600,17 @@ describe('Webservice RecordController body source', () => {
 
       expect(recordsService.updateMeta.calledOnce).to.be.true;
       const updatedRecord = recordsService.updateMeta.firstCall.args[2] as any;
-      const updatedMetadata = recordsService.updateMeta.firstCall.args[7] as any;
+      const submission = recordsService.updateMeta.firstCall.args[7] as any;
+      const updatedMetadata = submission.metadata;
       expect(updatedRecord.metadata.tags).to.deep.equal(['existing']);
       expect(updatedMetadata).to.equal(body);
       expect(updatedMetadata.tags).to.deep.equal(['incoming']);
       expect(updatedMetadata.nested.value).to.equal(2);
+      expect(submission.mode).to.equal('merge');
       const context = recordsService.updateMeta.firstCall.args[8] as any;
       expect(context.operation).to.equal('update');
       expect(context.validationOperation).to.equal('submit');
       expect(context.concurrency).to.deep.equal({ entityTagSupplied: true, expectedRevision: 5 });
-      expect(recordsService.updateMeta.firstCall.args[9]).to.equal(true);
       expect(context).not.to.have.property('enabledValidationGroups');
       expect(sendRespStub.calledOnce).to.be.true;
     });

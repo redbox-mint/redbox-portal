@@ -865,9 +865,8 @@ export namespace Controllers {
           true,
           true,
           {},
-          body,
-          saveRequest.context,
-          shouldMerge
+          { metadata: body, mode: shouldMerge ? 'merge' : 'replace' },
+          saveRequest.context
         );
         // Attachment work is part of RecordsService's ordered save pipeline.
         // Keep accepting the legacy query parameter for route compatibility,
@@ -1285,7 +1284,7 @@ export namespace Controllers {
                 false,
                 false,
                 {},
-                authoritativeRecord.metadata,
+                { metadata: authoritativeRecord.metadata, mode: 'replace' },
                 saveRequest.context
               );
               if (!saveResult.wasPersisted()) {

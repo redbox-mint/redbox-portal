@@ -106,6 +106,11 @@ export interface RecordTypeLookupSummary {
   relatedTo?: NormalizedRecordRelation[];
 }
 
+export interface RecordMetadataSubmission {
+  readonly metadata: Record<string, unknown>;
+  readonly mode: 'merge' | 'replace';
+}
+
 /**
  * Service interface for Records operations.
  * Note: This interface uses `unknown` types extensively for backward compatibility.
@@ -221,9 +226,8 @@ export interface RecordsService {
     triggerPreSaveTriggers?: boolean,
     triggerPostSaveTriggers?: boolean,
     targetStep?: unknown,
-    metadata?: AnyRecord,
-    context?: RecordSaveContext,
-    mergeMetadata?: boolean
+    submission?: RecordMetadataSubmission,
+    context?: RecordSaveContext
   ): Promise<RecordSaveResponse>;
   updateMetaInternal(options: InternalRecordSnapshotSaveOptions): Promise<RecordSaveResponse>;
   mutateMetaInternal(options: InternalRecomputableMutationOptions): Promise<RecordSaveResponse>;
