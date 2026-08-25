@@ -4008,10 +4008,36 @@ describe('RecordsService', function () {
       >;
     };
 
-    const recordSchemaStorageSpy = <
-      Method extends RecordSchemaStorageCapabilityMethod,
-    >(): RecordSchemaStorageSpies[Method] =>
-      sinon.stub<Parameters<NonNullable<StorageService[Method]>>, ReturnType<NonNullable<StorageService[Method]>>>();
+    const recordSchemaStorageSpies = (): RecordSchemaStorageSpies => ({
+      putRecordSchemaArtifact: sinon.stub<
+        Parameters<NonNullable<StorageService['putRecordSchemaArtifact']>>,
+        ReturnType<NonNullable<StorageService['putRecordSchemaArtifact']>>
+      >(),
+      getRecordSchemaArtifact: sinon.stub<
+        Parameters<NonNullable<StorageService['getRecordSchemaArtifact']>>,
+        ReturnType<NonNullable<StorageService['getRecordSchemaArtifact']>>
+      >(),
+      touchRecordSchemaArtifact: sinon.stub<
+        Parameters<NonNullable<StorageService['touchRecordSchemaArtifact']>>,
+        ReturnType<NonNullable<StorageService['touchRecordSchemaArtifact']>>
+      >(),
+      putRecordSchemaReference: sinon.stub<
+        Parameters<NonNullable<StorageService['putRecordSchemaReference']>>,
+        ReturnType<NonNullable<StorageService['putRecordSchemaReference']>>
+      >(),
+      listRecordSchemaGrants: sinon.stub<
+        Parameters<NonNullable<StorageService['listRecordSchemaGrants']>>,
+        ReturnType<NonNullable<StorageService['listRecordSchemaGrants']>>
+      >(),
+      listRecordSchemaReferences: sinon.stub<
+        Parameters<NonNullable<StorageService['listRecordSchemaReferences']>>,
+        ReturnType<NonNullable<StorageService['listRecordSchemaReferences']>>
+      >(),
+      deleteRecordSchemaArtifactIfUnreferenced: sinon.stub<
+        Parameters<NonNullable<StorageService['deleteRecordSchemaArtifactIfUnreferenced']>>,
+        ReturnType<NonNullable<StorageService['deleteRecordSchemaArtifactIfUnreferenced']>>
+      >(),
+    });
 
     const installDisabledRecordSchemaHarness = () => {
       const disabledResolution = {
@@ -4044,15 +4070,7 @@ describe('RecordsService', function () {
         }),
         persistSaveUsageReference: sinon.stub(),
       };
-      const schemaStorage: RecordSchemaStorageSpies = {
-        putRecordSchemaArtifact: recordSchemaStorageSpy<'putRecordSchemaArtifact'>(),
-        getRecordSchemaArtifact: recordSchemaStorageSpy<'getRecordSchemaArtifact'>(),
-        touchRecordSchemaArtifact: recordSchemaStorageSpy<'touchRecordSchemaArtifact'>(),
-        putRecordSchemaReference: recordSchemaStorageSpy<'putRecordSchemaReference'>(),
-        listRecordSchemaGrants: recordSchemaStorageSpy<'listRecordSchemaGrants'>(),
-        listRecordSchemaReferences: recordSchemaStorageSpy<'listRecordSchemaReferences'>(),
-        deleteRecordSchemaArtifactIfUnreferenced: recordSchemaStorageSpy<'deleteRecordSchemaArtifactIfUnreferenced'>(),
-      };
+      const schemaStorage = recordSchemaStorageSpies();
       mockSails.config.recordSchema = { enabled: false };
       mockSails.services.recordschemaservice = schemaService;
       Object.assign(mockStorageService, schemaStorage);
