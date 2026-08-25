@@ -73,7 +73,7 @@ function retryFailureResponse(outcome: 'not-saved' | 'unknown'): RecordActionRes
   result.concurrencyOutcome = outcome === 'unknown' ? 'unknown' : 'none';
   result.problems = outcome === 'unknown'
     ? [{ kind: 'system', phase: 'response', issues: [{ code: 'save-outcome-unknown', message: 'Reload required.' }] }]
-    : [{ kind: 'validation', phase: 'validation', issues: [{ code: 'title-invalid', message: 'Fix title.', field: 'title' }] }];
+    : [{ kind: 'validation', phase: 'pre-save', issues: [{ code: 'title-invalid', message: 'Fix title.', field: 'title' }] }];
   return result;
 }
 

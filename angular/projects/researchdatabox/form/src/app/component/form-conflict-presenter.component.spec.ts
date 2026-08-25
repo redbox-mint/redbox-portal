@@ -132,7 +132,9 @@ describe('FormConflictPresenterComponent', () => {
     firstFixture.detectChanges();
 
     const radios = Array.from(
-      firstFixture.nativeElement.querySelectorAll<HTMLInputElement>('.rb-form-conflict-review input[type="radio"]')
+      (firstFixture.nativeElement as HTMLElement).querySelectorAll<HTMLInputElement>(
+        '.rb-form-conflict-review input[type="radio"]'
+      )
     );
     expect(radios).toHaveSize(2);
     expect(radios[0].name).toBe(radios[1].name);

@@ -70,7 +70,7 @@ describe('Webservice SearchController', () => {
             const res = {} as unknown as Sails.Res;
             const mockRecord = { id: '123', metadata: { title: 'Test' } };
             mockSails.services.recordsservice.getMeta.resolves(mockRecord);
-            mockSails.services.solrsearchservice.index.resolves();
+            mockSails.services.solrsearchservice.index.resolves(true);
             const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
 
             await controller.index(req, res);

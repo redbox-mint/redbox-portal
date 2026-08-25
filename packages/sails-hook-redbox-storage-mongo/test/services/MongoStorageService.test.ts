@@ -295,7 +295,7 @@ describe('MongoStorageService', function () {
     expect(response.success).to.equal(true);
     expect(response.oid).to.equal(redboxOid);
     expect(getUuid.notCalled).to.equal(true);
-    expect(Record.create.firstCall.args[0]).to.include({ redboxOid });
+    expect(recordCollection.insertOne.firstCall.args[0]).to.include({ redboxOid });
   });
 
   it('returns a failed response when create throws', async function () {
