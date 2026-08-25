@@ -4018,9 +4018,8 @@ describe('RecordsService', function () {
         .stub<[request: PersistRecordSchemaSaveUsageRequest], Promise<PersistRecordSchemaSaveUsageResult>>()
         .callsFake(async request => recordedSchemaUsageResult(request));
 
-    const recordSchemaContext = (
-      options: Parameters<typeof createRecordSaveContext>[0] = {}
-    ): RecordSaveContext => createRecordSaveContext({ portal: 'portal', ...options });
+    const recordSchemaContext = (options: Parameters<typeof createRecordSaveContext>[0] = {}): RecordSaveContext =>
+      createRecordSaveContext({ portal: 'portal', ...options });
 
     const richHtmlForm = (name = 'default-form'): FormConfigFrame => ({
       name,
@@ -4467,16 +4466,18 @@ describe('RecordsService', function () {
       expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
       expect(mockStorageService.create.calledBefore(persistSaveUsageReference)).to.equal(true);
-      expect(persistSaveUsageReference.calledOnceWithExactly({
-        digest: 'a'.repeat(64),
-        brand: 'brand-1',
-        portal: 'tenant-portal',
-        schemaKind: 'create',
-        recordType: 'rdmp',
-        oid: result.oid,
-        operation: 'publish',
-        saveIdentity: result.requestId,
-      })).to.equal(true);
+      expect(
+        persistSaveUsageReference.calledOnceWithExactly({
+          digest: 'a'.repeat(64),
+          brand: 'brand-1',
+          portal: 'tenant-portal',
+          schemaKind: 'create',
+          recordType: 'rdmp',
+          oid: result.oid,
+          operation: 'publish',
+          saveIdentity: result.requestId,
+        })
+      ).to.equal(true);
       expect(result.schemaOutcome).to.deep.equal({
         digest: 'a'.repeat(64),
         immutableUrl: `/brand-1/tenant-portal/api/records/schemas/${'a'.repeat(64)}`,
@@ -4562,14 +4563,18 @@ describe('RecordsService', function () {
         completeness: 'complete',
         enforcement: 'enforce',
       });
-      expect(result.problems).to.deep.equal([{
-        kind: 'system',
-        phase: 'post-save',
-        issues: [{
-          code: 'record-schema-save-usage-failed',
-          message: '@record-schema-save-usage-failed',
-        }],
-      }]);
+      expect(result.problems).to.deep.equal([
+        {
+          kind: 'system',
+          phase: 'post-save',
+          issues: [
+            {
+              code: 'record-schema-save-usage-failed',
+              message: '@record-schema-save-usage-failed',
+            },
+          ],
+        },
+      ]);
       expect(mockSails.log.error.lastCall.args[1]).to.deep.equal({
         event: 'record_schema_save_usage_persistence_failed',
         schema_kind: 'create',
@@ -4683,10 +4688,12 @@ describe('RecordsService', function () {
         name: 'rdmp',
         hooks: {
           onCreate: {
-            pre: [{
-              function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1 } })',
-            }],
+            pre: [
+              {
+                function:
+                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1 } })',
+              },
+            ],
           },
         },
         searchable: false,
@@ -4785,10 +4792,14 @@ describe('RecordsService', function () {
           expect(result.schemaOutcome, testCase.name).to.equal(undefined);
           expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
           expect(result.problems[0]).not.to.have.property('source');
-          expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.code), testCase.name)
-            .to.deep.equal(testCase.expectedClasses.map(() => 'record-validation-failed'));
-          expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class), testCase.name)
-            .to.deep.equal(testCase.expectedClasses);
+          expect(
+            result.problems[0].issues.map((issue: RecordSaveIssue) => issue.code),
+            testCase.name
+          ).to.deep.equal(testCase.expectedClasses.map(() => 'record-validation-failed'));
+          expect(
+            result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class),
+            testCase.name
+          ).to.deep.equal(testCase.expectedClasses);
         }
       }
     });
@@ -4812,16 +4823,20 @@ describe('RecordsService', function () {
         name: 'rdmp',
         hooks: {
           onUpdate: {
-            pre: [{
-              function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1 } })',
-            }],
+            pre: [
+              {
+                function:
+                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1 } })',
+              },
+            ],
           },
           onTransitionWorkflow: {
-            pre: [{
-              function:
-                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1 } })',
-            }],
+            pre: [
+              {
+                function:
+                  '(_oid, record) => ({ ...record, metadata: { ...record.metadata, transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1 } })',
+              },
+            ],
           },
         },
         searchable: false,
@@ -4927,7 +4942,10 @@ describe('RecordsService', function () {
           expect(result.outcome, label).to.equal(testCase.expectedOutcome);
           expect(validateResolvedArtifact.calledOnce, label).to.equal(true);
           expect(validateResolvedArtifact.firstCall.args[0].input, label).to.deep.equal(testCase.metadata);
-          expect(preSaveHook.getCalls().map(call => call.args[3]), label).to.deep.equal(path.expectedHookModes);
+          expect(
+            preSaveHook.getCalls().map(call => call.args[3]),
+            label
+          ).to.deep.equal(path.expectedHookModes);
           expect(transitionPreSaveHook.callCount, label).to.equal(path.operation === 'transition' ? 1 : 0);
           expect(businessValidation.calledOnce, label).to.equal(true);
           expect(validateResolvedArtifact.calledBefore(preSaveHook), label).to.equal(true);
@@ -4957,12 +4975,10 @@ describe('RecordsService', function () {
             expect(mockStorageService.updateMeta.notCalled, label).to.equal(true);
             expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
             expect(result.problems[0]).not.to.have.property('source');
-            expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.code), label)
-              .to.deep.equal([
-                'record-validation-failed',
-                'record-validation-failed',
-                'record-validation-failed',
-              ]);
+            expect(
+              result.problems[0].issues.map((issue: RecordSaveIssue) => issue.code),
+              label
+            ).to.deep.equal(['record-validation-failed', 'record-validation-failed', 'record-validation-failed']);
           }
         }
       }
@@ -6409,11 +6425,13 @@ describe('RecordsService', function () {
     });
 
     it('reports advisory failures without blocking an enforced save', async function () {
-      const advisoryErrors: RecordSaveIssue[] = [{
-        message: '@validator-error-recommended',
-        field: 'description',
-        class: 'required',
-      }];
+      const advisoryErrors: RecordSaveIssue[] = [
+        {
+          message: '@validator-error-recommended',
+          field: 'description',
+          class: 'required',
+        },
+      ];
       (global as any).RecordValidationService.resolve.resolves(
         resolvedAllowResult(
           {

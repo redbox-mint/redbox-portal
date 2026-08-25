@@ -259,9 +259,7 @@ function isRecordSchemaSaveUsageFailureKind(
   }
 }
 
-function isRecordSchemaSaveUsageFailureCode(
-  value: unknown
-): value is PersistRecordSchemaSaveUsageWriteFailure['code'] {
+function isRecordSchemaSaveUsageFailureCode(value: unknown): value is PersistRecordSchemaSaveUsageWriteFailure['code'] {
   switch (value) {
     case RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE:
     case RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_NOT_FOUND:
@@ -403,9 +401,7 @@ export namespace Services {
     | Extract<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
     | Extract<ResolveUpdateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>;
   type RecordSchemaSaveUsageWriter = {
-    persistSaveUsageReference(
-      request: PersistRecordSchemaSaveUsageRequest
-    ): Promise<unknown>;
+    persistSaveUsageReference(request: PersistRecordSchemaSaveUsageRequest): Promise<unknown>;
   };
   type RecordSchemaSaveIssue = {
     readonly code: RecordSchemaProblemCode;
@@ -896,9 +892,7 @@ export namespace Services {
     }
 
     /** Retain only durable reference fields and safe response metadata from a resolved artifact. */
-    private resolvedRecordSchemaSaveUsage(
-      resolution: SuccessfulRecordSchemaResolution
-    ): ResolvedRecordSchemaSaveUsage {
+    private resolvedRecordSchemaSaveUsage(resolution: SuccessfulRecordSchemaResolution): ResolvedRecordSchemaSaveUsage {
       const context = resolution.metadata.context;
       return {
         request: {
@@ -5443,9 +5437,9 @@ export namespace Services {
       // validate them without reapplying the already-present mutation. A
       // structural rejection must stop before merge, transition mutation,
       // hooks, business validation, attachment work, or storage.
-      const legacyMetadataChanged = submission === undefined && (
-        originalRecord === undefined || !_.isEqual(storedMetadataSnapshot, recordObj.metadata)
-      );
+      const legacyMetadataChanged =
+        submission === undefined &&
+        (originalRecord === undefined || !_.isEqual(storedMetadataSnapshot, recordObj.metadata));
       let structuralMetadata: Record<string, unknown> | undefined;
       if (submission?.mode === 'pre-applied') {
         structuralMetadata = createRecordMetadataDelta(storedMetadataSnapshot, recordObj.metadata);
@@ -5455,13 +5449,13 @@ export namespace Services {
           );
         }
       } else {
-        structuralMetadata = submission?.metadata ?? (
-          schemaEnabled && legacyMetadataChanged
+        structuralMetadata =
+          submission?.metadata ??
+          (schemaEnabled && legacyMetadataChanged
             ? createRecordMetadataDelta(storedMetadataSnapshot, recordObj.metadata)
             : schemaEnabled && transitionRequested
               ? {}
-              : undefined
-          );
+              : undefined);
       }
       if (structuralMetadata !== undefined && (!schemaEnabled || structuralBypass === undefined)) {
         if (schemaEnabled) {

@@ -2179,10 +2179,12 @@ describe('Webservice RecordController body source', () => {
       };
       recordsService.getMeta.resolves(record);
       recordsService.updateMeta.resolves(successResult());
-      (global as any).WorkflowStepsService.get.returns(of({
-        name: 'published',
-        config: { form: 'dataset-published' },
-      }));
+      (global as any).WorkflowStepsService.get.returns(
+        of({
+          name: 'published',
+          config: { form: 'dataset-published' },
+        })
+      );
       sinon.stub(controller as any, 'sendResp');
 
       const headers = {
@@ -2244,10 +2246,12 @@ describe('Webservice RecordController body source', () => {
         workflow: { stage: 'draft' },
       };
       recordsService.getMeta.resolves(record);
-      (global as any).WorkflowStepsService.get.returns(of({
-        name: 'published',
-        config: { form: 'dataset-published' },
-      }));
+      (global as any).WorkflowStepsService.get.returns(
+        of({
+          name: 'published',
+          config: { form: 'dataset-published' },
+        })
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       for (const testCase of [

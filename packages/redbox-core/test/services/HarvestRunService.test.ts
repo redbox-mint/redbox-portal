@@ -1,11 +1,14 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
+import { createHash } from 'node:crypto';
+
 import { ObjectId } from 'mongodb';
 import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
 import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
 import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
+import { serializeRedboxCanonicalJsonV1 } from '../../src/record-contract/canonical-json';
 import type {
   PersistRecordSchemaSaveUsageRequest,
   PersistRecordSchemaSaveUsageResult,
@@ -41,6 +44,31 @@ function harvestSaveContext(): RecordSaveContext {
     operation: 'create',
     portal: 'tenant-portal',
   });
+}
+
+function recordedSchemaUsageResult(
+  request: PersistRecordSchemaSaveUsageRequest
+): Extract<PersistRecordSchemaSaveUsageResult, { readonly kind: 'recorded' }> {
+  const referenceIdentity = {
+    digest: request.digest,
+    brand: request.brand,
+    portal: request.portal,
+    schemaKind: request.schemaKind,
+    recordType: request.recordType,
+    operation: request.operation,
+    oid: request.oid,
+    kind: 'save',
+    saveIdentity: request.saveIdentity,
+  } as const;
+  return {
+    kind: 'recorded',
+    reference: {
+      digest: request.digest,
+      referenceKey: `save:${createHash('sha256')
+        .update(serializeRedboxCanonicalJsonV1(referenceIdentity), 'utf8')
+        .digest('hex')}`,
+    },
+  };
 }
 
 function recordValidationResult(
@@ -192,13 +220,7 @@ describe('HarvestRunService', function () {
       validateResolvedArtifact: sinon.stub(),
       persistSaveUsageReference: sinon
         .stub<[request: PersistRecordSchemaSaveUsageRequest], Promise<PersistRecordSchemaSaveUsageResult>>()
-        .callsFake(async request => ({
-          kind: 'recorded',
-          reference: {
-            digest: request.digest,
-            referenceKey: `save:${'f'.repeat(64)}`,
-          },
-        })),
+        .callsFake(async request => recordedSchemaUsageResult(request)),
     };
     const workflowStep = {
       name: 'draft',
@@ -1470,13 +1492,8 @@ describe('HarvestRunService', function () {
   });
 
   it('runs schema-valid legacy and tracked harvest updates through the business validator exactly once', async function () {
-    const {
-      persistedRecords,
-      realRecordsService,
-      recordValidationService,
-      schemaResolver,
-      storageService,
-    } = useRealRecordsService(true);
+    const { persistedRecords, realRecordsService, recordValidationService, schemaResolver, storageService } =
+      useRealRecordsService(true);
     rejectNonArrayTagUpdates(schemaResolver);
     const original = {
       redboxOid: 'record-1',
@@ -1501,10 +1518,12 @@ describe('HarvestRunService', function () {
       name: 'dataset',
       hooks: {
         onUpdate: {
-          pre: [{
-            function:
-              '(_oid, record) => ({ ...record, metadata: { ...record.metadata, harvestRunBeforeValidatorCount: (record.metadata.harvestRunBeforeValidatorCount ?? 0) + 1 } })',
-          }],
+          pre: [
+            {
+              function:
+                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, harvestRunBeforeValidatorCount: (record.metadata.harvestRunBeforeValidatorCount ?? 0) + 1 } })',
+            },
+          ],
         },
       },
       searchable: false,
@@ -1598,16 +1617,23 @@ describe('HarvestRunService', function () {
             sourceRunId: 'source-run-1',
             sourceName: 'source-a',
             chunk: { index: 1 },
-            records: [{
-              harvestId: 'harvest-1',
-              operation: 'update',
-              updateStrategy: 'merge',
-              recordRequest: { metadata: rawDelta },
-            }],
+            records: [
+              {
+                harvestId: 'harvest-1',
+                operation: 'update',
+                updateStrategy: 'merge',
+                recordRequest: { metadata: rawDelta },
+              },
+            ],
           },
           { username: 'harvester', roles: [] },
           harvestSaveContext()
         );
+        expect(response.chunk.status, testCase.name).to.equal('processed');
+        expect(response.chunk.responseSummary, testCase.name).to.deep.include({
+          updated: testCase.expectedPersisted ? 1 : 0,
+          failed: testCase.expectedPersisted ? 0 : 1,
+        });
         persisted = response.chunk.responseSummary.updated === 1;
       } else {
         const response = await service.submitLegacyRecords(
@@ -1618,6 +1644,10 @@ describe('HarvestRunService', function () {
           { username: 'harvester', roles: [] },
           harvestSaveContext()
         );
+        expect(response[0].status, testCase.name).to.equal(testCase.expectedPersisted);
+        if (testCase.expectedPersisted) {
+          expect(response[0].message, testCase.name).to.equal('saved');
+        }
         persisted = response[0].status;
       }
 
@@ -1654,6 +1684,13 @@ describe('HarvestRunService', function () {
           oid: 'record-1',
           operation: 'strict-all',
         });
+        expect(
+          mockSails.log.error.neverCalledWithMatch(
+            sinon.match('record schema save usage persistence failed'),
+            sinon.match.has('event', 'record_schema_save_usage_persistence_failed')
+          ),
+          testCase.name
+        ).to.equal(true);
         expect(persistedRecords.get('record-1').metadata, testCase.name).to.deep.include({
           ...testCase.metadata,
           tags: ['stored', 'incoming'],
@@ -1876,11 +1913,13 @@ describe('HarvestRunService', function () {
           sourceRunId: 'source-run-1',
           sourceName: 'source-a',
           chunk: { index: 1 },
-          records: [{
-            harvestId: 'harvest-1',
-            operation: 'update',
-            recordRequest: { metadata: { title: 'Changed' } },
-          }],
+          records: [
+            {
+              harvestId: 'harvest-1',
+              operation: 'update',
+              recordRequest: { metadata: { title: 'Changed' } },
+            },
+          ],
         },
         { username: 'harvester', roles: [] },
         harvestSaveContext()
