@@ -2063,6 +2063,47 @@ describe('Webservice RecordController body source', () => {
       expect(sendRespStub.calledOnce).to.be.true;
     });
 
+    it('returns a stale schema precondition as HTTP 412 with typed failure metadata intact', async () => {
+      const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000004');
+      result.outcome = 'not-saved';
+      result.success = false;
+      result.problems = [
+        {
+          kind: 'validation',
+          source: 'schema',
+          phase: 'schema',
+          issues: [
+            {
+              message: '@record-schema.precondition-failed',
+              code: 'record-schema.precondition-failed',
+            },
+          ],
+        },
+      ];
+      recordsService.getMeta.resolves({
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.resolves(result);
+      const req = makeThrowingRequest(
+        {
+          params: { oid: 'record-1' },
+          query: { merge: false, datastreams: false },
+          body: { title: 'Stale update' },
+          files: {},
+        },
+        { headers: { 'x-redbox-api-version': '2.0' } }
+      );
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      const envelope = sendRespStub.firstCall.args[2];
+      expect(envelope.status).to.equal(412);
+      expect(envelope.meta.problems).to.deep.equal(result.problems);
+      expect(envelope.displayErrors).to.deep.equal([{ detail: 'Update Metadata failed' }]);
+    });
+
     it('keeps API create precondition-free', async () => {
       const req = makeThrowingRequest(
         {

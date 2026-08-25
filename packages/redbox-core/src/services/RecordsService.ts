@@ -71,16 +71,17 @@ import {
   emitRecordConcurrencyEvent,
   type RecordConcurrencyPreconditionResult,
 } from '../RecordConcurrencyObservability';
-import type {
-  InternalRecomputableMutationOptions,
-  InternalRecordMutationAuthorization,
-  InternalRecordSnapshotSaveOptions,
-  InternalRecordWriterIdentity,
-  RecordMetadataSubmission,
-  RecordRelationshipExpandOptions,
-  RecordRelationshipGraph,
-  RecordMetaWithRelationships,
-  RecordTypeLookupSummary,
+import {
+  createRecordMetadataDelta,
+  type InternalRecomputableMutationOptions,
+  type InternalRecordMutationAuthorization,
+  type InternalRecordSnapshotSaveOptions,
+  type InternalRecordWriterIdentity,
+  type RecordMetadataSubmission,
+  type RecordRelationshipExpandOptions,
+  type RecordRelationshipGraph,
+  type RecordMetaWithRelationships,
+  type RecordTypeLookupSummary,
 } from '../RecordsService';
 import {
   createRecordSaveContext,
@@ -957,7 +958,8 @@ export namespace Services {
       const service = this.resolveUpdateRecordSchemaService();
       if (!service) return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
       const brand = String(options.brand.id ?? '').trim();
-      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !options.portal) {
+      const portal = String(options.portal ?? sails.config.auth?.defaultPortal ?? '').trim();
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !RECORD_VALIDATION_REFERENCE_PATTERN.test(portal)) {
         return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
       }
 
@@ -965,7 +967,7 @@ export namespace Services {
       try {
         resolution = await service.resolveUpdate({
           brand,
-          portal: options.portal,
+          portal,
           oid: options.oid,
           operation: options.context.schemaOperation,
           ifMatch: options.context.ifMatch,
@@ -1042,6 +1044,7 @@ export namespace Services {
 
     /** Apply a validated submission at the single update metadata mutation boundary. */
     private applySubmittedMetadata(candidate: RecordWithMeta, submission: RecordMetadataSubmission): void {
+      if (submission.mode === 'pre-applied') return;
       const detachedMetadata = _.cloneDeep(submission.metadata) as AnyRecord;
       if (submission.mode === 'replace') {
         candidate.metadata = detachedMetadata;
@@ -5199,11 +5202,22 @@ export namespace Services {
 
       // Keep the submitted metadata raw through authoritative context and
       // authorization. A schema-enabled body-less transition still has an
-      // empty structural delta, while an omitted update submission retains
-      // the legacy whole-record update path. A structural rejection must stop
-      // before merge, transition mutation, hooks, business validation,
-      // attachment work, or storage.
-      const structuralMetadata = submission?.metadata ?? (schemaEnabled && transitionRequested ? {} : undefined);
+      // empty structural delta. Legacy callers that omit the typed submission
+      // seam cannot bypass structural enforcement when their metadata differs
+      // from the stored snapshot: derive only the changed resulting values and
+      // validate them without reapplying the already-present mutation. A
+      // structural rejection must stop before merge, transition mutation,
+      // hooks, business validation, attachment work, or storage.
+      const legacyMetadataChanged =
+        submission === undefined &&
+        (originalRecord === undefined || !_.isEqual(originalRecord.metadata, requestedRecord.metadata));
+      const structuralMetadata =
+        submission?.metadata ??
+        (schemaEnabled && legacyMetadataChanged
+          ? createRecordMetadataDelta(originalRecord?.metadata, requestedRecord.metadata)
+          : schemaEnabled && transitionRequested
+            ? {}
+            : undefined);
       if (structuralMetadata !== undefined && (!schemaEnabled || structuralBypass === undefined)) {
         if (schemaEnabled) {
           const structuralValidation = await this.validateUpdateRecordSchema({

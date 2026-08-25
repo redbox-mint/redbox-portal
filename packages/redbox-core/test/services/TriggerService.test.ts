@@ -264,6 +264,8 @@ describe('TriggerService', function () {
       const updateOptions = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
       expect(updateOptions.oid).to.equal('related-oid');
       expect(updateOptions.record.metadata.updated).to.equal('true');
+      expect(updateOptions.metadataMode).to.equal('pre-applied');
+      expect(updateOptions.metadata).to.deep.equal({ updated: 'true' });
     });
   });
 });

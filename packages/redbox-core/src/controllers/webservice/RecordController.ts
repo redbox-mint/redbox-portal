@@ -978,9 +978,10 @@ export namespace Controllers {
       const that = this;
       if (body != null) {
         const isUnwrappedMetadata = body['metadata'] == null;
-        const rawSubmittedMetadata = _.cloneDeep(
-          isUnwrappedMetadata ? body : body['metadata']
-        ) as globalThis.Record<string, unknown>;
+        const rawSubmittedMetadata = _.cloneDeep(isUnwrappedMetadata ? body : body['metadata']) as globalThis.Record<
+          string,
+          unknown
+        >;
         const persistenceMetadata = _.cloneDeep(rawSubmittedMetadata);
         if (isUnwrappedMetadata && sails.config.recordSchema?.enabled !== true) {
           persistenceMetadata['authorization'] = [];
@@ -2159,6 +2160,8 @@ export namespace Controllers {
             oid,
             record,
             user,
+            metadata: body,
+            metadataMode: 'pre-applied',
           });
 
           if (!response.wasPersisted()) {

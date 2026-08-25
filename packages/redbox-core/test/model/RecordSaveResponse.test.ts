@@ -743,6 +743,24 @@ describe('RecordSaveResponse', function () {
       validation.addProblem(recordSaveProblem('validation', 'pre-save', 'bad field'));
       expect(recordSaveFailureStatus(validation)).to.equal(400);
 
+      const stalePrecondition = new RecordSaveResponse(requestId);
+      stalePrecondition.addProblem(recordSaveProblem(
+        'validation',
+        'pre-save',
+        '@record-schema.precondition-failed',
+        'record-schema.precondition-failed'
+      ));
+      expect(recordSaveFailureStatus(stalePrecondition)).to.equal(412);
+
+      const malformedPrecondition = new RecordSaveResponse(requestId);
+      malformedPrecondition.addProblem(recordSaveProblem(
+        'validation',
+        'pre-save',
+        '@record-schema.invalid-request',
+        'record-schema.invalid-request'
+      ));
+      expect(recordSaveFailureStatus(malformedPrecondition)).to.equal(400);
+
       const authorization = new RecordSaveResponse(requestId);
       authorization.addProblem(recordSaveProblem('authorization', 'pre-save', 'denied'));
       expect(recordSaveFailureStatus(authorization)).to.equal(403);

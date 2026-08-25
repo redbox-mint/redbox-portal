@@ -1926,11 +1926,30 @@ describe('FigshareService', function () {
 
     const persisted = await service.persistSyncRecord(
       'oid-1',
-      { metaMetadata: { brandId: 'default' }, metadata: {} } as any,
-      { username: 'figshare-job-user' } as any
+      {
+        metaMetadata: { brandId: 'default' },
+        metadata: {
+          figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
+          untouched: 'keep',
+        },
+      } as any,
+      { username: 'figshare-job-user' } as any,
+      {
+        figshare: { status: 'pending', retained: true, files: [{ id: 'old' }] },
+        untouched: 'keep',
+      }
     );
 
     expect(persisted).to.equal(true);
+    const updateOptions = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+    expect(updateOptions.metadataMode).to.equal('pre-applied');
+    expect(updateOptions.metadata).to.deep.equal({
+      figshare: { status: 'complete', files: [{ id: 'new' }] },
+    });
+    expect(updateOptions.record.metadata).to.deep.equal({
+      figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
+      untouched: 'keep',
+    });
   });
 
   it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {

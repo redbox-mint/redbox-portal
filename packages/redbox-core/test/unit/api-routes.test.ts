@@ -678,6 +678,19 @@ describe('API routes contract layer', function () {
     expect(ifMatch?.schema?.pattern).to.be.a('string').and.not.equal('');
     expect(updateOperation.responses?.['412']?.headers).to.have.property('ETag');
     expect(updateOperation.responses?.['428']?.content?.['application/json']?.schema).to.exist;
+    expect(updateOperation.responses?.['412']?.description).to.equal('Record revision or schema precondition failed');
+    expect(updateOperation.responses?.['412']?.content?.['application/json']?.schema).to.deep.equal(
+      updateOperation.responses?.['400']?.content?.['application/json']?.schema
+    );
+
+    const transitionOperation = document.paths['/{branding}/{portal}/api/records/workflow/step/{targetStep}/{oid}']
+      ?.post as OpenApiOperation;
+    expect(transitionOperation.responses?.['412']?.description).to.equal(
+      'Record revision or schema precondition failed'
+    );
+    expect(transitionOperation.responses?.['412']?.content?.['application/json']?.schema).to.deep.equal(
+      transitionOperation.responses?.['400']?.content?.['application/json']?.schema
+    );
 
     const deleteOperation = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']
       ?.delete as OpenApiOperation;
@@ -1046,10 +1059,15 @@ describe('API routes contract layer', function () {
     expect(asOpenApiSchema(harvestRunEventsSchema.properties?.records).items?.properties).to.have.property('operation');
     expect(harvestRunEventsRoute.responses).to.have.property('404');
 
-    const recordCreateRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post);
-    const recordCreateSchema = asOpenApiSchema(recordCreateRoute.responses?.['201']?.content?.['application/json']?.schema);
-    const storageResponseVariant = ((recordCreateSchema.anyOf ?? []) as OpenApiSchema[])
-      .find(variant => variant.properties?.problems != null);
+    const recordCreateRoute = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post
+    );
+    const recordCreateSchema = asOpenApiSchema(
+      recordCreateRoute.responses?.['201']?.content?.['application/json']?.schema
+    );
+    const storageResponseVariant = ((recordCreateSchema.anyOf ?? []) as OpenApiSchema[]).find(
+      variant => variant.properties?.problems != null
+    );
     const problemSchema = asOpenApiSchema(asOpenApiSchema(storageResponseVariant?.properties?.problems).items);
     const problemVariants = (problemSchema.anyOf ?? problemSchema.oneOf ?? []) as OpenApiSchema[];
     const schemaProblemVariant = problemVariants.find(variant => variant.properties?.source != null);

@@ -1,4 +1,5 @@
 import StorageServiceResponse from './StorageServiceResponse';
+import { cloneDeep, isEqual } from 'lodash';
 import { DatastreamRequestContext } from './DatastreamService';
 import { DeletedRecordModel, RecordModel, UserModel } from './model';
 import type { FormAttributes } from './waterline-models';
@@ -31,7 +32,7 @@ export interface InternalRecordSnapshotSaveOptions {
   readonly triggerPostSaveTriggers?: boolean;
   readonly targetStep?: unknown;
   readonly metadata?: AnyRecord;
-  readonly metadataMode?: 'merge' | 'replace';
+  readonly metadataMode?: 'merge' | 'replace' | 'pre-applied';
   readonly operation?: 'update' | 'transition';
   /** Trusted transport schema facts to retain while concurrency remains internal and revision-based. */
   readonly context?: RecordSaveContext;
@@ -109,10 +110,57 @@ export interface RecordTypeLookupSummary {
   relatedTo?: NormalizedRecordRelation[];
 }
 
-export interface RecordMetadataSubmission {
+export interface AppliedRecordMetadataSubmission {
   readonly metadata: Record<string, unknown>;
   readonly mode: 'merge' | 'replace';
   readonly arrayMergeMode?: 'concat' | 'replace';
+}
+
+/**
+ * A raw metadata delta whose mutation is already present on the caller-owned
+ * record. This keeps legacy internal write-back behavior while still routing
+ * the untouched structural input through record-schema validation.
+ */
+export interface PreAppliedRecordMetadataSubmission {
+  readonly metadata: Record<string, unknown>;
+  readonly mode: 'pre-applied';
+}
+
+export type RecordMetadataSubmission = AppliedRecordMetadataSubmission | PreAppliedRecordMetadataSubmission;
+
+function isMetadataObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Build a detached structural delta from a legacy in-place metadata mutation.
+ * Arrays and scalar values remain replacements; unchanged sibling fields are
+ * omitted. Removed keys have no JSON value to validate and are intentionally
+ * absent from the structural delta.
+ */
+export function createRecordMetadataDelta(
+  previousMetadata: unknown,
+  updatedMetadata: unknown
+): Record<string, unknown> {
+  const previous = isMetadataObject(previousMetadata) ? previousMetadata : {};
+  const updated = isMetadataObject(updatedMetadata) ? updatedMetadata : {};
+  const delta: Record<string, unknown> = {};
+
+  for (const key of Object.keys(updated)) {
+    const previousValue = previous[key];
+    const updatedValue = updated[key];
+    if (isEqual(previousValue, updatedValue)) continue;
+
+    if (isMetadataObject(previousValue) && isMetadataObject(updatedValue)) {
+      const nestedDelta = createRecordMetadataDelta(previousValue, updatedValue);
+      delta[key] = Object.keys(nestedDelta).length > 0 ? nestedDelta : cloneDeep(updatedValue);
+      continue;
+    }
+
+    delta[key] = cloneDeep(updatedValue);
+  }
+
+  return delta;
 }
 
 /**

@@ -1596,7 +1596,16 @@ export namespace Controllers {
       metaMetadata['lastSaveDate'] = DateTime.local().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
-      return from(this.recordsService.updateMeta(brand, oid, currentRec, user ?? {}));
+      return from(this.recordsService.updateMeta(
+        brand,
+        oid,
+        currentRec,
+        user ?? {},
+        true,
+        true,
+        {},
+        { metadata: currentRec.metadata as AnyRecord, mode: 'pre-applied' }
+      ));
     }
 
     protected updateAuthorization(

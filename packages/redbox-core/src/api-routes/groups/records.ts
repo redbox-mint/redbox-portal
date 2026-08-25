@@ -49,7 +49,7 @@ const recordResponseWithTag = (schema: Parameters<typeof responseField>[0], desc
 
 const recordConcurrencyFailureResponses = {
   409: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record or form-definition conflict'),
-  412: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record revision is stale or no longer active'),
+  412: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record revision or schema precondition failed'),
   428: recordResponseWithTag(recordSaveFailureResponseSchema, 'Strict record precondition is required'),
 };
 

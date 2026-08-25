@@ -6715,6 +6715,94 @@ describe('RecordsService', function () {
       expect(rawDelta).to.deep.equal({ title: 42 });
     });
 
+    it('validates a pre-applied internal metadata delta without replaying the legacy mutation', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const stored = {
+        ...baseRecord(),
+        metadata: {
+          retained: 'keep',
+          nested: { retained: true, values: [{ id: 'stored' }] },
+        },
+      };
+      const requestedRecord = structuredClone(stored);
+      requestedRecord.metadata.nested.values = [{ id: 'incoming' }];
+      const rawDelta = { nested: { values: [{ id: 'incoming' }] } };
+      mockStorageService.getMeta.resolves(stored);
+      const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        requestedRecord,
+        { username: 'service-user' },
+        false,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'pre-applied' },
+        recordSchemaContext({ routeFamily: 'internal', operation: 'update' })
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal({
+        retained: 'keep',
+        nested: { retained: true, values: [{ id: 'incoming' }] },
+      });
+      expect(rawDelta).to.deep.equal({ nested: { values: [{ id: 'incoming' }] } });
+    });
+
+    it('does not let an omitted submission bypass schema validation for changed legacy metadata', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const stored = {
+        ...baseRecord(),
+        metadata: {
+          retained: 'keep',
+          nested: { retained: true, values: [{ id: 'stored' }] },
+        },
+      };
+      const requestedRecord = structuredClone(stored);
+      requestedRecord.metadata.nested.values = [{ id: 'incoming' }];
+      mockStorageService.getMeta.resolves(stored);
+      const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [{ code: 'record-schema.array-item', pointer: '/nested/values/0' }],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        requestedRecord,
+        { username: 'legacy-service-user' },
+        true,
+        true
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({
+        nested: { values: [{ id: 'incoming' }] },
+      });
+      expect(preSaveHook.notCalled).to.equal(true);
+      expect(mockRecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
     it('runs post-merge business validation against the authoritative merged candidate', async function () {
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const rawDelta = { title: 'Merged' };
@@ -6832,6 +6920,8 @@ describe('RecordsService', function () {
     });
 
     it('preserves browser recursive merge with array replacement after raw delta validation', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
       const stored = {
         ...baseRecord(),
         metadata: {
@@ -6850,26 +6940,7 @@ describe('RecordsService', function () {
         },
         values: [{ id: 'incoming' }],
       };
-      mockStorageService.getMeta.resolves(stored);
-      (global as any).RecordValidationService.resolve.resolves(allowResult());
-      const structuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
-
-      const result = await RecordsService.updateMeta(
-        { id: 'brand-1' },
-        'record-123',
-        stored,
-        { username: 'user-1' },
-        false,
-        false,
-        {},
-        { metadata: rawDelta, mode: 'merge', arrayMergeMode: 'replace' },
-        createRecordSaveContext({ routeFamily: 'browser', operation: 'update' })
-      );
-
-      expect(result.wasPersisted()).to.equal(true);
-      expect(structuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
-      expect(structuralValidation.calledBefore(mockStorageService.updateMeta)).to.equal(true);
-      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal({
+      const expectedMergedMetadata = {
         retained: 'keep',
         nested: {
           retained: true,
@@ -6877,7 +6948,57 @@ describe('RecordsService', function () {
           values: [{ id: 'nested-incoming' }],
         },
         values: [{ id: 'incoming' }],
+      };
+      mockStorageService.getMeta.resolves(stored);
+      const resolution = updateSchemaResolution('enforce');
+      const resolveUpdate = sinon.stub().resolves(resolution);
+      const validateResolvedArtifact = sinon.stub().callsFake((request: any) => {
+        expect(request.input).to.equal(rawDelta);
+        expect(request.input).to.deep.equal({
+          nested: {
+            incoming: true,
+            values: [{ id: 'nested-incoming' }],
+          },
+          values: [{ id: 'incoming' }],
+        });
+        return { kind: 'validated', valid: true, issues: [], truncated: false };
       });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      businessValidation.callsFake(async (request: any) => {
+        expect(request.candidate.metadata).to.deep.equal(expectedMergedMetadata);
+        return allowResult({ mode: 'enforce' });
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'merge', arrayMergeMode: 'replace' },
+        recordSchemaContext({ routeFamily: 'browser', operation: 'update' })
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(resolveUpdate.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0]).to.deep.include({
+        digest: 'b'.repeat(64),
+        schemaKind: 'update',
+        input: rawDelta,
+      });
+      expect(validateResolvedArtifact.firstCall.args[0].document).to.equal(resolution.document);
+      expect(resolveUpdate.calledBefore(validateResolvedArtifact)).to.equal(true);
+      expect(validateResolvedArtifact.calledBefore(applySubmission)).to.equal(true);
+      expect(validateResolvedArtifact.calledBefore(preSaveHook)).to.equal(true);
+      expect(validateResolvedArtifact.calledBefore(businessValidation)).to.equal(true);
+      expect(validateResolvedArtifact.calledBefore(mockStorageService.updateMeta)).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(expectedMergedMetadata);
       expect(rawDelta).to.deep.equal({
         nested: {
           incoming: true,

@@ -24,6 +24,7 @@ import {
   VALIDATION_OPERATION_NAME_PATTERN,
 } from '@researchdatabox/sails-ng-common';
 import type { RecordContractCompleteness, RecordContractEnforcement } from './record-contract/types';
+import { RECORD_SCHEMA_PROBLEM_CODES } from './record-contract/codes';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 
 export type RecordSaveRouteFamily = 'browser' | 'api' | 'internal';
@@ -703,6 +704,14 @@ export function recordSaveFailureStatus(
   if (result.problems.some(problem => problem.kind === 'authorization')) return 403;
   const conflictStatus = conflictFailureStatus(result.problems);
   if (conflictStatus !== undefined) return conflictStatus;
+  if (
+    result.problems.some(
+      problem =>
+        problem.kind === 'validation' &&
+        problem.issues.some(issue => issue.code === RECORD_SCHEMA_PROBLEM_CODES.PRECONDITION_FAILED)
+    )
+  )
+    return 412;
   if (result.problems.some(problem => problem.kind === 'validation')) return 400;
   return 500;
 }

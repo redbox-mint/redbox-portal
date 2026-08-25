@@ -34,6 +34,7 @@ import type { DoiRecordModel } from './doi-v2/types';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import { DoiPublishing } from '../configmodels/DoiPublishing';
 import type { IntegrationAuditContext } from './IntegrationAuditService';
+import { createRecordMetadataDelta } from '../RecordsService';
 
 type DoiAction = 'create' | 'update';
 type DoiAuditOptions = Record<string, unknown> & {
@@ -459,6 +460,7 @@ export namespace Services {
             auditContext: auditCtx,
           });
           if (doi != null) {
+            const previousMetadata = _.cloneDeep(record.metadata);
             record = await this.addDoiDataToRecord(oid, record, doi, options);
             try {
               const response = await RecordsService.updateMetaInternal({
@@ -467,6 +469,8 @@ export namespace Services {
                 mutationClass: 'external-side-effect',
                 oid,
                 record,
+                metadata: createRecordMetadataDelta(previousMetadata, record.metadata),
+                metadataMode: 'pre-applied',
               });
               if (!response.wasPersisted()) {
                 throw new Error(String(response.message ?? response.outcome));

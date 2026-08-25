@@ -126,7 +126,7 @@ export { DatastreamServiceResponse } from './DatastreamServiceResponse';
 
 export { DatastreamService } from './DatastreamService';
 export { QueueService } from './QueueService';
-export { RecordsService } from './RecordsService';
+export { RecordsService, createRecordMetadataDelta } from './RecordsService';
 export { HarvestRunService } from './HarvestRunService';
 export type {
   RecordRelationshipExpandOptions,
