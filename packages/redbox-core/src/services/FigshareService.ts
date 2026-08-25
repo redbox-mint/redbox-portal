@@ -469,7 +469,6 @@ export namespace Services {
       }
 
       const nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
-      const metadata = currentRec.metadata;
       const recordUpdateResult = await RecordsService.updateMetaInternal({
         actor: { kind: 'service', id: 'FigshareService.transitionWorkflowForRecord' },
         authorization: { kind: 'record-edit' },
@@ -480,7 +479,6 @@ export namespace Services {
         record: currentRec as Record<string, unknown>,
         user,
         targetStep: nextStepResp,
-        metadata: metadata as Record<string, unknown>,
       });
       if (recordUpdateResult.wasPersisted()) {
         if (recordUpdateResult.outcome === 'saved-with-warnings') {

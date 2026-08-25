@@ -1567,6 +1567,68 @@ describe('HarvestRunService', function () {
     });
   }
 
+  it('uses baseline validation for schema-disabled tracked update rollback without audit storage', async function () {
+    const { persistedRecords, storageService } = useRealRecordsService(false);
+    Reflect.deleteProperty(storageService, 'createRecordAudit');
+    const validationResolve = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+    const originalRecord = {
+      redboxOid: 'record-1',
+      harvestId: 'harvest-1',
+      metadata: { title: 'Original' },
+      metaMetadata: {
+        brandId: 'brand-1',
+        type: 'dataset',
+        form: 'default-form',
+        attachmentFields: [],
+      },
+      workflow: { stage: 'draft' },
+      authorization: {
+        edit: ['harvester'],
+        view: ['harvester'],
+        editRoles: [],
+        viewRoles: [],
+      },
+    };
+    persistedRecords.set('record-1', structuredClone(originalRecord));
+    const recordType = { name: 'dataset', hooks: {}, searchable: false };
+    (global as any).RecordTypesService = {
+      get: sinon.stub().returns(of(recordType)),
+    };
+    configureTrackedCreateChunk();
+    (global as any).HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
+    (global as any).Record.find.returns({
+      meta: sinon.stub().resolves([structuredClone(originalRecord)]),
+    });
+
+    let caught: unknown;
+    try {
+      await service.submitChunk(
+        { id: 'brand-1', name: 'default' },
+        recordType,
+        {
+          sourceRunId: 'source-run-1',
+          sourceName: 'source-a',
+          chunk: { index: 1 },
+          records: [{
+            harvestId: 'harvest-1',
+            operation: 'update',
+            recordRequest: { metadata: { title: 'Changed' } },
+          }],
+        },
+        { username: 'harvester', roles: [] },
+        harvestSaveContext()
+      );
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).to.be.an('error').with.property('message', 'event write failed');
+    expect(validationResolve.callCount).to.equal(2);
+    expect(storageService.updateMeta.callCount).to.equal(2);
+    const restoredRecord = await storageService.getMeta('record-1');
+    expect(restoredRecord.metadata).to.deep.equal(originalRecord.metadata);
+  });
+
   it('retries non-atomic run counter updates when the row changes concurrently', async function () {
     const firstSet = sinon.stub().resolves(null);
     const secondSet = sinon.stub().resolves({
