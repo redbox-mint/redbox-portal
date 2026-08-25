@@ -1486,6 +1486,50 @@ describe('RecordsService', function () {
   });
 
   describe('create save pipeline', function () {
+    it('generates a historical hyphenless OID for a configured create before storage', async function () {
+      mockStorageService.create.resolves({
+        success: true,
+        oid: 'adapter-create-oid',
+        applicationState: 'applied',
+      });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Generated OID' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      const persisted = mockStorageService.create.firstCall.args[1];
+      expect(result.outcome).to.equal('saved');
+      expect(persisted.redboxOid).to.match(/^[0-9a-f]{32}$/);
+      expect(result.oid).to.equal(persisted.redboxOid);
+    });
+
+    it('generates a historical hyphenless OID for a bootstrap-safe create before storage', async function () {
+      mockStorageService.create.resolves({
+        success: true,
+        oid: 'adapter-bootstrap-oid',
+        applicationState: 'applied',
+      });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Generated bootstrap OID' } },
+        {},
+        { username: 'bootstrap-service' },
+        false,
+        false
+      );
+
+      const persisted = mockStorageService.create.firstCall.args[1];
+      expect(result.outcome).to.equal('saved');
+      expect(persisted.redboxOid).to.match(/^[0-9a-f]{32}$/);
+      expect(result.oid).to.equal(persisted.redboxOid);
+    });
+
     it('keeps the preselected create OID authoritative for attachments, reload, index, audit, and response', async function () {
       const createOid = 'authoritative-create-123';
       const journal = {
