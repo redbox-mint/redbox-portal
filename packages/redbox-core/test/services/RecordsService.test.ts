@@ -3827,6 +3827,36 @@ describe('RecordsService', function () {
       return { commit };
     };
 
+    const createSchemaResolution = (kind: 'resolved' | 'partial', enforcement: 'shadow' | 'enforce' = 'shadow') => ({
+      kind,
+      document: { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object' },
+      digest: 'a'.repeat(64),
+      grant: {},
+      metadata: {
+        schemaKind: 'create',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: kind === 'partial' ? 'partial' : 'complete',
+        byteLength: 128,
+        etag: `"sha256:${'a'.repeat(64)}"`,
+        context: {
+          brand: 'brand-1',
+          portal: 'portal',
+          kind: 'create',
+          recordType: 'rdmp',
+          workflowStep: 'draft',
+          form: 'default-form',
+          operation: 'publish',
+          unknownProperties: 'allow',
+          enforcement,
+        },
+      },
+    });
+
+    const enableRecordSchema = () => {
+      mockSails.config.recordSchema = { enabled: true };
+      mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
+    };
+
     const richHtmlForm = (name = 'default-form'): FormConfigFrame => ({
       name,
       type: 'rdmp',
@@ -4029,6 +4059,282 @@ describe('RecordsService', function () {
       expect(journal.prepareMutations.notCalled).to.equal(true);
       expect(mockStorageService.create.notCalled).to.equal(true);
       expect(mockDatastreamService.addDatastream?.notCalled ?? true).to.equal(true);
+    });
+
+    it('runs create structural validation on the normalized operation and raw metadata in the exact save order', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'shadow' };
+      const rawMetadata = { title: 'Raw title', nested: { count: 1 } };
+      const callerRecord = {
+        metadata: structuredClone(rawMetadata),
+        authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+      };
+      const resolution = createSchemaResolution('resolved');
+      const resolveCreate = sinon.stub().resolves(resolution);
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
+      const transitionMetadata = sinon.spy(RecordsService as any, 'transitionWorkflowStepMetadata');
+      const initializeMetadata = sinon.spy(RecordsService as any, 'initRecordMetaMetadata');
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      businessValidation.resolves(allowResult());
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        callerRecord,
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1', roles: [{ name: 'Researcher' }, { name: 'Publisher' }] },
+        true,
+        false,
+        undefined,
+        createRecordSaveContext({
+          routeFamily: 'api',
+          operation: 'create',
+          validationOperation: '  publish  ',
+        })
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(
+        resolveCreate.calledOnceWithExactly({
+          brand: 'brand-1',
+          portal: 'portal',
+          recordType: 'rdmp',
+          operation: 'publish',
+          targetStep: undefined,
+          actor: { authenticated: true, roles: ['Researcher', 'Publisher'] },
+        })
+      ).to.equal(true);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0]).to.deep.include({
+        digest: 'a'.repeat(64),
+        schemaKind: 'create',
+        input: rawMetadata,
+      });
+      expect(validateResolvedArtifact.firstCall.args[0].document).to.equal(resolution.document);
+      expect(callerRecord.metadata).to.deep.equal(rawMetadata);
+      expect(authorize.calledBefore(resolveCreate)).to.equal(true);
+      expect(resolveCreate.calledBefore(validateResolvedArtifact)).to.equal(true);
+      expect(validateResolvedArtifact.calledBefore(transitionMetadata)).to.equal(true);
+      expect(transitionMetadata.calledBefore((global as any).FormsService.getForm)).to.equal(true);
+      expect((global as any).FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
+      expect(initializeMetadata.calledBefore(preSaveHook)).to.equal(true);
+      expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
+      expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
+    });
+
+    it('continues with advisory schema issues in shadow and stops before defaults or side effects in enforce', async function () {
+      enableRecordSchema();
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [{ code: 'record-schema.type', pointer: '/title', expected: { type: 'string' } }],
+        truncated: false,
+      });
+      const resolveCreate = sinon.stub();
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      for (const mode of ['shadow', 'enforce'] as const) {
+        resolveCreate.reset();
+        resolveCreate.resolves(createSchemaResolution('resolved', mode));
+        validateResolvedArtifact.resetHistory();
+        preSaveHook.resetHistory();
+        (global as any).FormsService.getForm.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+        (global as any).RecordValidationService.resolve.resolves(allowResult({ mode }));
+        mockStorageService.create.resetHistory();
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 42 } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1' },
+          true,
+          false
+        );
+
+        expect(result.outcome, mode).to.equal(mode === 'shadow' ? 'saved-with-warnings' : 'not-saved');
+        expect(result.problems).to.have.length(1);
+        expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+        expect(result.problems[0].issues).to.deep.equal([
+          {
+            message: '@record-schema.type',
+            code: 'record-schema.type',
+            pointer: '/title',
+          },
+        ]);
+        expect(preSaveHook.called, mode).to.equal(mode === 'shadow');
+        expect((global as any).RecordValidationService.resolve.called, mode).to.equal(mode === 'shadow');
+        expect(mockStorageService.create.called, mode).to.equal(mode === 'shadow');
+        if (mode === 'enforce') {
+          expect((global as any).FormsService.getForm.notCalled).to.equal(true);
+        }
+      }
+    });
+
+    it('validates a partial create artifact without treating completeness as a save warning', async function () {
+      enableRecordSchema();
+      const resolveCreate = sinon.stub().resolves(createSchemaResolution('partial', 'enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Partial but valid' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(result.problems).to.deep.equal([]);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(mockStorageService.create.calledOnce).to.equal(true);
+    });
+
+    it('applies the existing rollout precedence to unavailable create schemas using the normalized operation', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = {
+        mode: 'enforce',
+        operations: { publish: { mode: 'enforce' } },
+      };
+      const resolveCreate = sinon.stub().resolves({
+        kind: 'unavailable',
+        stage: 'configuration',
+        code: 'record-schema.unavailable',
+      });
+      const validateResolvedArtifact = sinon.stub();
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const context = createRecordSaveContext({ validationOperation: '  publish  ' });
+      const recordType = {
+        name: 'rdmp',
+        hooks: {},
+        searchable: false,
+        recordValidation: {
+          mode: 'enforce',
+          operations: { publish: { mode: 'shadow' } },
+        },
+      };
+
+      const shadowResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Shadow unavailable' } },
+        recordType,
+        { username: 'user-1' },
+        false,
+        false,
+        undefined,
+        context
+      );
+
+      expect(shadowResult.outcome).to.equal('saved-with-warnings');
+      expect(shadowResult.problems[0]).to.deep.include({ kind: 'system', phase: 'pre-save' });
+      expect(shadowResult.problems[0].issues[0].code).to.equal('record-schema.unavailable');
+      expect(resolveCreate.firstCall.args[0].operation).to.equal('publish');
+      expect(validateResolvedArtifact.notCalled).to.equal(true);
+
+      resolveCreate.resetHistory();
+      mockStorageService.create.resetHistory();
+      recordType.recordValidation.operations.publish.mode = 'enforce';
+      const enforceResult = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Enforce unavailable' } },
+        recordType,
+        { username: 'user-1' },
+        false,
+        false,
+        undefined,
+        context
+      );
+
+      expect(enforceResult.outcome).to.equal('not-saved');
+      expect(enforceResult.problems[0].issues[0].code).to.equal('record-schema.unavailable');
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
+    it('rejects schema operation authorization failures in both rollout modes before create side effects', async function () {
+      enableRecordSchema();
+      const resolveCreate = sinon.stub().resolves({
+        kind: 'context-failed',
+        failureKind: 'forbidden',
+        diagnosticCodes: ['record-validation-operation-role-unauthorized'],
+      });
+      const validateResolvedArtifact = sinon.stub();
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      for (const mode of ['shadow', 'enforce'] as const) {
+        mockSails.config.recordValidation = { mode };
+        resolveCreate.resetHistory();
+        preSaveHook.resetHistory();
+        (global as any).RecordValidationService.resolve.resetHistory();
+        mockStorageService.create.resetHistory();
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Unauthorized operation' } },
+          { name: 'rdmp', hooks: {}, searchable: false },
+          { username: 'user-1', roles: [{ name: 'Researcher' }] },
+          true,
+          false,
+          undefined,
+          createRecordSaveContext({ validationOperation: 'publish' })
+        );
+
+        expect(result.outcome, mode).to.equal('not-saved');
+        expect(result.problems[0]).to.deep.include({ kind: 'authorization', phase: 'pre-save' });
+        expect(result.problems[0].issues[0].code).to.equal('record-validation-operation-unauthorized');
+        expect(validateResolvedArtifact.notCalled).to.equal(true);
+        expect(preSaveHook.notCalled).to.equal(true);
+        expect((global as any).RecordValidationService.resolve.notCalled).to.equal(true);
+        expect(mockStorageService.create.notCalled).to.equal(true);
+      }
+    });
+
+    it('leaves the non-schema create chain unchanged while record schemas are disabled', async function () {
+      mockSails.config.recordSchema = { enabled: false };
+      const resolveCreate = sinon.stub();
+      const validateResolvedArtifact = sinon.stub();
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
+      const transitionMetadata = sinon.spy(RecordsService as any, 'transitionWorkflowStepMetadata');
+      const initializeMetadata = sinon.spy(RecordsService as any, 'initRecordMetaMetadata');
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const businessValidation = (global as any).RecordValidationService.resolve as sinon.SinonStub;
+      businessValidation.resolves(allowResult());
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { title: 'Schema disabled' } },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        true,
+        false
+      );
+
+      expect(result.outcome).to.equal('saved');
+      expect(resolveCreate.notCalled).to.equal(true);
+      expect(validateResolvedArtifact.notCalled).to.equal(true);
+      expect(authorize.calledBefore(transitionMetadata)).to.equal(true);
+      expect(transitionMetadata.calledBefore((global as any).FormsService.getForm)).to.equal(true);
+      expect((global as any).FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
+      expect(initializeMetadata.calledBefore(preSaveHook)).to.equal(true);
+      expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
+      expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
     });
 
     it('exposes current attachmentFields to create hooks and normalizes the final workflow form', async function () {

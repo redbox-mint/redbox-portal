@@ -148,6 +148,18 @@ import {
   type RecordValidationResult,
   type RecordValidationWriteKind,
 } from './RecordValidationService';
+import {
+  RECORD_SCHEMA_PROBLEM_CODES,
+  recordContractPointer,
+  type PublishedRecordJsonSchemaDocument,
+  type RecordJsonSchemaValidationIssue,
+  type RecordSchemaProblemCode,
+} from '../record-contract';
+import type {
+  ResolveCreateRecordSchemaRequest,
+  ResolveCreateRecordSchemaResult,
+  ValidateResolvedRecordSchemaResult,
+} from './RecordSchemaService';
 
 /**
  * Detached post hooks remain fire-and-forget to the save caller, but audit
@@ -262,6 +274,17 @@ export namespace Services {
     | { readonly ok: true; readonly name?: string }
     | { readonly ok: false; readonly diagnosticCode: WorkflowTargetDiagnosticCode };
   type RecordValidationResolver = Pick<RecordValidationServices.RecordValidation, 'resolve'>;
+  type RecordSchemaResolver = {
+    resolveCreate(request: ResolveCreateRecordSchemaRequest): Promise<ResolveCreateRecordSchemaResult>;
+    validateResolvedArtifact(
+      request: Readonly<{
+        digest: string;
+        schemaKind: 'create';
+        document: PublishedRecordJsonSchemaDocument;
+        input: unknown;
+      }>
+    ): ValidateResolvedRecordSchemaResult;
+  };
   type BootstrapRecordMetadata = Record<string, unknown>;
   type RecordWithMeta = AnyRecord & {
     metaMetadata?: AnyRecord;
@@ -288,6 +311,9 @@ export namespace Services {
   type StructuralMetadataValidationResult =
     | { readonly valid: true }
     | { readonly valid: false; readonly problem: RecordSaveProblem };
+  type CreateStructuralPhaseResult =
+    | { readonly allowed: true; readonly warnings: readonly RecordSaveProblem[] }
+    | { readonly allowed: false; readonly problem: RecordSaveProblem };
   type ValidateCandidateOptions = {
     readonly candidate: AnyRecord;
     readonly original?: AnyRecord;
@@ -683,6 +709,188 @@ export namespace Services {
       _metadata: Readonly<AnyRecord>
     ): Promise<StructuralMetadataValidationResult> {
       return Promise.resolve({ valid: true });
+    }
+
+    private recordSchemaEnabled(): boolean {
+      try {
+        return sails.config.recordSchema?.enabled === true;
+      } catch {
+        // An unreadable enabled configuration must not silently disable an
+        // enforce rollout if the lifecycle check has not stopped the app.
+        return true;
+      }
+    }
+
+    private recordSchemaPortal(): string | undefined {
+      const portal = String(sails.config.auth?.defaultPortal ?? '').trim();
+      return RECORD_VALIDATION_REFERENCE_PATTERN.test(portal) ? portal : undefined;
+    }
+
+    /** Resolve on every structural boundary so late service registration is observed. */
+    private resolveRecordSchemaService(): RecordSchemaResolver | undefined {
+      try {
+        const registered = sails.services?.recordschemaservice as Partial<RecordSchemaResolver> | undefined;
+        return typeof registered?.resolveCreate === 'function' &&
+          typeof registered.validateResolvedArtifact === 'function'
+          ? (registered as RecordSchemaResolver)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+
+    private recordSchemaProblem(
+      kind: RecordSaveProblemKind,
+      code: RecordSchemaProblemCode,
+      issues: readonly RecordJsonSchemaValidationIssue[] = []
+    ): RecordSaveProblem {
+      const safeIssues =
+        issues.length > 0
+          ? issues.map(issue =>
+              sanitizeRecordSaveIssue({
+                code: issue.code,
+                message: `@${issue.code}`,
+                pointer: issue.pointer,
+              })
+            )
+          : [sanitizeRecordSaveIssue({ code, message: `@${code}` })];
+      return { kind, phase: 'pre-save', issues: safeIssues };
+    }
+
+    private recordSchemaFailureCode(
+      result: Exclude<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+    ): RecordSchemaProblemCode {
+      if (result.kind !== 'context-failed') return result.code;
+      switch (result.failureKind) {
+        case 'invalid-request':
+          return RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
+        case 'not-found':
+          return RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND;
+        case 'forbidden':
+          return RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN;
+        case 'not-resolvable':
+          return RECORD_SCHEMA_PROBLEM_CODES.NOT_RESOLVABLE;
+        case 'unavailable':
+          return RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+      }
+    }
+
+    /** Operation policy failures remain authorization/request failures in every rollout mode. */
+    private recordSchemaOperationFailure(
+      result: Exclude<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+    ): RecordSaveProblem | undefined {
+      if (result.kind !== 'context-failed') return undefined;
+      const diagnosticCodes = new Set(result.diagnosticCodes);
+      if (
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized) ||
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationTargetUnauthorized)
+      ) {
+        return this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.operationUnauthorized);
+      }
+      if (
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationMalformed) ||
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationUnknown)
+      ) {
+        return this.validationProblem('validation', 'pre-save', RECORD_VALIDATION_SAVE_CODES.operationInvalid);
+      }
+      if (result.failureKind === 'forbidden') {
+        return this.recordSchemaProblem('authorization', RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN);
+      }
+      if (result.failureKind === 'invalid-request') {
+        return this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST);
+      }
+      return undefined;
+    }
+
+    private applyCreateSchemaPolicy(mode: ValidationMode, problem: RecordSaveProblem): CreateStructuralPhaseResult {
+      return mode === 'shadow' ? { allowed: true, warnings: [problem] } : { allowed: false, problem };
+    }
+
+    /**
+     * Resolve and validate the exact create artifact before metadata defaults,
+     * transformations, hooks, business validation, or storage can observe the
+     * submission.
+     */
+    private async validateCreateMetadataStructure(
+      options: Readonly<{
+        metadata: unknown;
+        brand: BrandingModel;
+        portal?: string;
+        recordType: RecordTypeLike;
+        recordTypeName: string;
+        user: AnyRecord;
+        context: RecordSaveContext;
+        targetStep?: string;
+      }>
+    ): Promise<CreateStructuralPhaseResult> {
+      if (!this.recordSchemaEnabled()) return { allowed: true, warnings: [] };
+
+      const fallbackMode = this.fallbackValidationMode(
+        options.recordType,
+        options.context.schemaOperation,
+        options.recordTypeName
+      );
+      const unavailable = (code: RecordSchemaProblemCode): CreateStructuralPhaseResult =>
+        this.applyCreateSchemaPolicy(fallbackMode, this.recordSchemaProblem('system', code));
+      const service = this.resolveRecordSchemaService();
+      if (!service) return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      const brand = String(options.brand.id ?? '').trim();
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !options.portal) {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      let resolution: ResolveCreateRecordSchemaResult;
+      try {
+        resolution = await service.resolveCreate({
+          brand,
+          portal: options.portal,
+          recordType: options.recordTypeName,
+          operation: options.context.schemaOperation,
+          targetStep: options.targetStep,
+          actor: {
+            authenticated: Boolean(String(options.user.username ?? '').trim()),
+            roles: this.actorRoles(options.user),
+          },
+        });
+      } catch {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      if (resolution.kind !== 'resolved' && resolution.kind !== 'partial') {
+        const operationFailure = this.recordSchemaOperationFailure(resolution);
+        if (operationFailure) return { allowed: false, problem: operationFailure };
+        return this.applyCreateSchemaPolicy(
+          fallbackMode,
+          this.recordSchemaProblem('system', this.recordSchemaFailureCode(resolution))
+        );
+      }
+
+      let validation: ValidateResolvedRecordSchemaResult;
+      try {
+        validation = service.validateResolvedArtifact({
+          digest: resolution.digest,
+          schemaKind: 'create',
+          document: resolution.document,
+          input: options.metadata,
+        });
+      } catch {
+        validation = { kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE };
+      }
+      if (validation.kind !== 'validated') {
+        return this.applyCreateSchemaPolicy(
+          resolution.metadata.context.enforcement,
+          this.recordSchemaProblem('system', validation.code)
+        );
+      }
+      if (validation.valid) return { allowed: true, warnings: [] };
+      const issues =
+        validation.issues.length > 0
+          ? validation.issues
+          : [{ code: RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, pointer: recordContractPointer('') }];
+      return this.applyCreateSchemaPolicy(
+        resolution.metadata.context.enforcement,
+        this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues)
+      );
     }
 
     /** Apply a validated submission at the single update metadata mutation boundary. */
@@ -3422,6 +3630,7 @@ export namespace Services {
       const brandObj = brand as BrandingModel;
       const recordTypeObj = recordType as RecordTypeLike;
       let recordObj = this.normalizeRecord(_.cloneDeep(record) as AnyRecord);
+      const rawSubmittedMetadata = _.cloneDeep(recordObj.metadata);
       const userObj = this.recordObject(user);
       const configuredRecordTypeName = typeof recordTypeObj?.name === 'string' ? recordTypeObj.name.trim() : '';
       const isPublicRoute = tracker.context.routeFamily === 'api' || tracker.context.routeFamily === 'browser';
@@ -3626,7 +3835,6 @@ export namespace Services {
           return tracker.toResponse();
         }
       }
-
       // A create form is delivered from the starting workflow step. The
       // target step is selected by the save button and is not part of the
       // form contract the browser received, so retain a server-owned copy of
@@ -3678,6 +3886,23 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
+
+      const structuralValidation = await this.validateCreateMetadataStructure({
+        metadata: rawSubmittedMetadata,
+        brand: brandObj,
+        portal: this.recordSchemaPortal(),
+        recordType: recordTypeObj,
+        recordTypeName,
+        user: userObj,
+        context: tracker.context,
+        targetStep: targetStepName,
+      });
+      if (!structuralValidation.allowed) {
+        tracker.recordPrimaryNotApplied(structuralValidation.problem);
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
 
       let currentFormFingerprint: string | undefined;
       const suppliedFormFingerprint = tracker.context.concurrency?.formFingerprint;
