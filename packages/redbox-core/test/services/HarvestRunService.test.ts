@@ -36,6 +36,25 @@ function harvestSaveContext(): RecordSaveContext {
   });
 }
 
+function recordValidationRequest(value: unknown): {
+  candidate: Record<string, unknown> & { metadata: Record<string, unknown> };
+  writeKind: unknown;
+} {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Expected validation request.');
+  const candidate = Reflect.get(value, 'candidate');
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    throw new TypeError('Expected validation candidate.');
+  }
+  const metadata = Reflect.get(candidate, 'metadata');
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw new TypeError('Expected validation metadata.');
+  }
+  return {
+    candidate: candidate as Record<string, unknown> & { metadata: Record<string, unknown> },
+    writeKind: Reflect.get(value, 'writeKind'),
+  };
+}
+
 describe('HarvestRunService', function () {
   let HarvestRunServiceClass: any;
   let service: any;
@@ -229,6 +248,7 @@ describe('HarvestRunService', function () {
     return {
       persistedRecords,
       realRecordsService,
+      recordValidationService,
       schemaResolver,
       storageService,
     };
@@ -1401,6 +1421,164 @@ describe('HarvestRunService', function () {
     expect(storageService.updateMeta.notCalled).to.equal(true);
     expect(persistedRecords.get('record-1')).to.deep.equal(originalRecord);
     expect(rawDelta).to.deep.equal({ tags: 'invalid-scalar' });
+  });
+
+  it('runs schema-valid legacy and tracked harvest updates through the business validator exactly once', async function () {
+    const {
+      persistedRecords,
+      realRecordsService,
+      recordValidationService,
+      schemaResolver,
+      storageService,
+    } = useRealRecordsService(true);
+    rejectNonArrayTagUpdates(schemaResolver);
+    const original = {
+      redboxOid: 'record-1',
+      harvestId: 'harvest-1',
+      metadata: { title: 'Original', score: 12, approval: 'approved', tags: ['stored'] },
+      metaMetadata: {
+        brandId: 'brand-1',
+        type: 'dataset',
+        form: 'default-form',
+        attachmentFields: [],
+      },
+      workflow: { stage: 'draft' },
+      authorization: {
+        edit: ['harvester'],
+        view: ['harvester'],
+        editRoles: [],
+        viewRoles: [],
+      },
+    };
+    const recordType = {
+      name: 'dataset',
+      hooks: {
+        onUpdate: {
+          pre: [{
+            function:
+              '(_oid, record) => ({ ...record, metadata: { ...record.metadata, harvestRunBeforeValidatorCount: (record.metadata.harvestRunBeforeValidatorCount ?? 0) + 1 } })',
+          }],
+        },
+      },
+      searchable: false,
+    };
+    (global as any).RecordTypesService = { get: sinon.stub().returns(of(recordType)) };
+    const preSaveHook = sinon.spy(realRecordsService, 'triggerPreSaveTriggers');
+    const cases = [
+      {
+        name: 'legacy/business-invalid',
+        tracked: false,
+        metadata: { title: '', score: 9, approval: 'rejected', tags: ['incoming'] },
+        expectedPersisted: false,
+      },
+      {
+        name: 'tracked/business-valid',
+        tracked: true,
+        metadata: { title: 'Approved', score: 10, approval: 'approved', tags: ['incoming'] },
+        expectedPersisted: true,
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      persistedRecords.set('record-1', structuredClone(original));
+      (global as any).Record.find.returns({
+        meta: sinon.stub().resolves([structuredClone(original)]),
+      });
+      if (testCase.tracked) configureTrackedCreateChunk();
+      schemaResolver.validateResolvedArtifact.resetHistory();
+      preSaveHook.resetHistory();
+      storageService.updateMeta.resetHistory();
+      recordValidationService.resolve.resetHistory();
+      recordValidationService.resolve.callsFake(async (value: unknown) => {
+        const request = recordValidationRequest(value);
+        const invalid = request.candidate.metadata.approval !== 'approved';
+        return {
+          status: 'resolved',
+          shouldBlock: invalid,
+          mode: 'enforce',
+          formName: 'default-form',
+          effectiveGroups: [],
+          resolved: {},
+          blockingErrors: invalid
+            ? [
+                { message: '@validator-error-required', field: 'title', class: 'required' },
+                { message: '@validator-error-min', field: 'score', class: 'min' },
+                {
+                  message: '@validator-error-jsonata-expression',
+                  field: 'approval',
+                  class: 'jsonata-expression',
+                },
+              ]
+            : [],
+          advisoryErrors: [],
+          advisoryGroups: [],
+          diagnostics: [],
+          transformedCandidate: request.candidate,
+        };
+      });
+      const rawDelta = structuredClone(testCase.metadata);
+
+      let persisted: boolean;
+      if (testCase.tracked) {
+        const response = await service.submitChunk(
+          { id: 'brand-1', name: 'default' },
+          recordType,
+          {
+            sourceRunId: 'source-run-1',
+            sourceName: 'source-a',
+            chunk: { index: 1 },
+            records: [{
+              harvestId: 'harvest-1',
+              operation: 'update',
+              updateStrategy: 'merge',
+              recordRequest: { metadata: rawDelta },
+            }],
+          },
+          { username: 'harvester', roles: [] },
+          harvestSaveContext()
+        );
+        persisted = response.chunk.responseSummary.updated === 1;
+      } else {
+        const response = await service.submitLegacyRecords(
+          { id: 'brand-1', name: 'default' },
+          recordType,
+          { records: [{ harvest_id: 'harvest-1', metadata: { data: rawDelta } }] },
+          true,
+          { username: 'harvester', roles: [] },
+          harvestSaveContext()
+        );
+        persisted = response[0].status;
+      }
+
+      expect(persisted, testCase.name).to.equal(testCase.expectedPersisted);
+      expect(schemaResolver.validateResolvedArtifact.calledOnce, testCase.name).to.equal(true);
+      expect(schemaResolver.validateResolvedArtifact.firstCall.args[0].input, testCase.name).to.equal(rawDelta);
+      expect(preSaveHook.calledOnce, testCase.name).to.equal(true);
+      expect(recordValidationService.resolve.calledOnce, testCase.name).to.equal(true);
+      expect(schemaResolver.validateResolvedArtifact.calledBefore(preSaveHook), testCase.name).to.equal(true);
+      expect(preSaveHook.calledBefore(recordValidationService.resolve), testCase.name).to.equal(true);
+      const validationRequest = recordValidationRequest(recordValidationService.resolve.firstCall.args[0]);
+      expect(validationRequest.writeKind, testCase.name).to.equal('update');
+      expect(validationRequest.candidate.metadata, testCase.name).to.deep.include({
+        ...testCase.metadata,
+        tags: ['stored', 'incoming'],
+        harvestRunBeforeValidatorCount: 1,
+      });
+      expect(rawDelta, testCase.name).to.deep.equal(testCase.metadata);
+
+      if (testCase.expectedPersisted) {
+        expect(storageService.updateMeta.calledOnce, testCase.name).to.equal(true);
+        expect(recordValidationService.resolve.calledBefore(storageService.updateMeta), testCase.name).to.equal(true);
+        expect(persistedRecords.get('record-1').metadata, testCase.name).to.deep.include({
+          ...testCase.metadata,
+          tags: ['stored', 'incoming'],
+          harvestRunBeforeValidatorCount: 1,
+        });
+      } else {
+        expect(storageService.updateMeta.notCalled, testCase.name).to.equal(true);
+        expect(persistedRecords.get('record-1'), testCase.name).to.deep.equal(original);
+      }
+    }
   });
 
   it('rolls back created records when event persistence fails before checkpointing', async function () {

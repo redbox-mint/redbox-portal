@@ -20,6 +20,11 @@ import type { FormAttributes } from '../../src/waterline-models/Form';
 import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import {
+  compileRecordJsonSchemaArtifact,
+  recordContractPointer,
+  type RecordJsonSchemaDocument,
+} from '../../src/record-contract';
+import {
   setupServiceTestGlobals,
   cleanupServiceTestGlobals,
   createMockSails,
@@ -4179,6 +4184,351 @@ describe('RecordsService', function () {
       expect(initializeMetadata.calledBefore(preSaveHook)).to.equal(true);
       expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
+    });
+
+    it('keeps required, range, and custom validator summaries annotation-only in the structural schema', function () {
+      const document: RecordJsonSchemaDocument = {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          score: { type: 'number' },
+          approval: { type: 'string' },
+        },
+        'x-redbox-contract-format': 'redbox-record-contract/1',
+        'x-redbox-context': {
+          brand: 'brand-1',
+          portal: 'portal',
+          kind: 'create',
+          recordType: 'rdmp',
+          workflowStep: 'draft',
+          form: 'default-form',
+          operation: 'strict-all',
+          unknownProperties: 'allow',
+          enforcement: 'enforce',
+        },
+        'x-redbox-completeness': 'complete',
+        'x-redbox-validation': [
+          {
+            code: 'form.required',
+            pointers: [recordContractPointer('/title')],
+            groups: [],
+            operations: [],
+            blocking: true,
+          },
+          {
+            code: 'form.min',
+            pointers: [recordContractPointer('/score')],
+            groups: [],
+            operations: [],
+            blocking: true,
+          },
+          {
+            code: 'form.jsonata-expression',
+            pointers: [recordContractPointer('/approval')],
+            groups: [],
+            operations: [],
+            blocking: true,
+          },
+        ],
+        'x-redbox-diagnostics': [],
+      };
+      const artifact = compileRecordJsonSchemaArtifact(document, {
+        maxDocumentBytes: 1_048_576,
+        maxValidationErrors: 100,
+      });
+
+      expect(artifact.document).not.to.have.property('required');
+      expect(artifact.document.properties?.score).not.to.have.property('minimum');
+      expect(artifact.validator.validate({ title: '', score: 9, approval: 'rejected' })).to.deep.equal({
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+    });
+
+    it('runs the create business validator once after schema validation and configured pre-save hooks', async function () {
+      enableRecordSchema();
+      const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const recordType = {
+        name: 'rdmp',
+        hooks: {
+          onCreate: {
+            pre: [{
+              function:
+                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, runBeforeValidatorCount: (record.metadata.runBeforeValidatorCount ?? 0) + 1 } })',
+            }],
+          },
+        },
+        searchable: false,
+      };
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const businessValidation = mockRecordValidationService.resolve;
+      const cases: readonly {
+        name: string;
+        metadata: Readonly<Record<string, unknown>>;
+        expectedOutcome: 'saved' | 'not-saved';
+        expectedClasses: readonly string[];
+      }[] = [
+        {
+          name: 'business-valid',
+          metadata: { title: 'Approved', score: 10, approval: 'approved' },
+          expectedOutcome: 'saved',
+          expectedClasses: [],
+        },
+        {
+          name: 'business-invalid',
+          metadata: { title: '', score: 9, approval: 'rejected' },
+          expectedOutcome: 'not-saved',
+          expectedClasses: ['required', 'min', 'jsonata-expression'],
+        },
+      ];
+
+      for (const testCase of cases) {
+        resolveCreate.resetHistory();
+        validateResolvedArtifact.resetHistory();
+        preSaveHook.resetHistory();
+        businessValidation.resetHistory();
+        mockStorageService.create.resetHistory();
+        businessValidation.callsFake(async (value: unknown) => {
+          assertUnknownRecord(value);
+          assertUnknownRecord(value.candidate);
+          assertUnknownRecord(value.candidate.metadata);
+          const invalid = value.candidate.metadata.approval !== 'approved';
+          return invalid
+            ? blockingResult({
+                blockingErrors: [
+                  { message: '@validator-error-required', field: 'title', class: 'required' },
+                  { message: '@validator-error-min', field: 'score', class: 'min' },
+                  {
+                    message: '@validator-error-jsonata-expression',
+                    field: 'approval',
+                    class: 'jsonata-expression',
+                  },
+                ],
+              })
+            : allowResult({ mode: 'enforce' });
+        });
+        const callerRecord = {
+          metadata: structuredClone(testCase.metadata),
+          authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+        };
+
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          callerRecord,
+          recordType,
+          { username: 'user-1' },
+          true,
+          false,
+          undefined,
+          recordSchemaContext({ routeFamily: 'api', operation: 'create' })
+        );
+
+        expect(result.outcome, testCase.name).to.equal(testCase.expectedOutcome);
+        expect(validateResolvedArtifact.calledOnce, testCase.name).to.equal(true);
+        expect(validateResolvedArtifact.firstCall.args[0].input, testCase.name).to.deep.equal(testCase.metadata);
+        expect(preSaveHook.calledOnce, testCase.name).to.equal(true);
+        expect(businessValidation.calledOnce, testCase.name).to.equal(true);
+        expect(validateResolvedArtifact.calledBefore(preSaveHook), testCase.name).to.equal(true);
+        expect(preSaveHook.calledBefore(businessValidation), testCase.name).to.equal(true);
+        const validationRequest = businessValidation.firstCall.args[0];
+        assertUnknownRecord(validationRequest);
+        assertUnknownRecord(validationRequest.candidate);
+        assertUnknownRecord(validationRequest.candidate.metadata);
+        expect(validationRequest.candidate.metadata, testCase.name).to.deep.include({
+          ...testCase.metadata,
+          runBeforeValidatorCount: 1,
+        });
+        expect(callerRecord.metadata, testCase.name).to.deep.equal(testCase.metadata);
+
+        if (testCase.expectedOutcome === 'saved') {
+          expect(mockStorageService.create.calledOnce, testCase.name).to.equal(true);
+          expect(businessValidation.calledBefore(mockStorageService.create), testCase.name).to.equal(true);
+        } else {
+          expect(mockStorageService.create.notCalled, testCase.name).to.equal(true);
+          expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+          expect(result.problems[0]).not.to.have.property('source');
+          expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.code), testCase.name)
+            .to.deep.equal(testCase.expectedClasses.map(() => 'record-validation-failed'));
+          expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.class), testCase.name)
+            .to.deep.equal(testCase.expectedClasses);
+        }
+      }
+    });
+
+    it('runs update and transition business validation once after raw-delta validation, merge, and hooks', async function () {
+      enableRecordSchema();
+      const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const recordType = {
+        name: 'rdmp',
+        hooks: {
+          onUpdate: {
+            pre: [{
+              function:
+                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, updateRunBeforeValidatorCount: (record.metadata.updateRunBeforeValidatorCount ?? 0) + 1 } })',
+            }],
+          },
+          onTransitionWorkflow: {
+            pre: [{
+              function:
+                '(_oid, record) => ({ ...record, metadata: { ...record.metadata, transitionRunBeforeValidatorCount: (record.metadata.transitionRunBeforeValidatorCount ?? 0) + 1 } })',
+            }],
+          },
+        },
+        searchable: false,
+      };
+      (global as any).RecordTypesService.get.returns(of(recordType));
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const transitionPreSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
+      const businessValidation = mockRecordValidationService.resolve;
+      const paths = [
+        {
+          name: 'update',
+          operation: 'update' as const,
+          targetStep: undefined,
+          expectedHookModes: ['onUpdate'],
+          expectedHookMetadata: { updateRunBeforeValidatorCount: 1 },
+        },
+        {
+          name: 'transition',
+          operation: 'transition' as const,
+          targetStep: 'submitted',
+          expectedHookModes: ['onTransitionWorkflow', 'onUpdate'],
+          expectedHookMetadata: {
+            transitionRunBeforeValidatorCount: 1,
+            updateRunBeforeValidatorCount: 1,
+          },
+        },
+      ] as const;
+      const cases = [
+        {
+          name: 'business-valid',
+          metadata: { title: 'Approved', score: 10, approval: 'approved' },
+          expectedOutcome: 'saved',
+        },
+        {
+          name: 'business-invalid',
+          metadata: { title: '', score: 9, approval: 'rejected' },
+          expectedOutcome: 'not-saved',
+        },
+      ] as const;
+
+      for (const path of paths) {
+        for (const testCase of cases) {
+          const stored = {
+            ...baseRecord('Stored'),
+            metadata: {
+              title: 'Stored',
+              score: 12,
+              approval: 'approved',
+              retained: 'keep',
+            },
+          };
+          const rawDelta = structuredClone(testCase.metadata);
+          mockStorageService.getMeta.resolves(structuredClone(stored));
+          resolveUpdate.resetHistory();
+          validateResolvedArtifact.resetHistory();
+          preSaveHook.resetHistory();
+          transitionPreSaveHook.resetHistory();
+          businessValidation.resetHistory();
+          mockStorageService.updateMeta.resetHistory();
+          businessValidation.callsFake(async (value: unknown) => {
+            assertUnknownRecord(value);
+            assertUnknownRecord(value.candidate);
+            assertUnknownRecord(value.candidate.metadata);
+            const invalid = value.candidate.metadata.approval !== 'approved';
+            return invalid
+              ? blockingResult({
+                  blockingErrors: [
+                    { message: '@validator-error-required', field: 'title', class: 'required' },
+                    { message: '@validator-error-min', field: 'score', class: 'min' },
+                    {
+                      message: '@validator-error-jsonata-expression',
+                      field: 'approval',
+                      class: 'jsonata-expression',
+                    },
+                  ],
+                })
+              : allowResult({ mode: 'enforce' });
+          });
+
+          const result = await RecordsService.updateMeta(
+            { id: 'brand-1' },
+            'record-123',
+            structuredClone(stored),
+            { username: 'user-1' },
+            true,
+            false,
+            path.targetStep ? { name: path.targetStep } : {},
+            { metadata: rawDelta, mode: 'merge' },
+            recordSchemaContext({
+              routeFamily: 'api',
+              operation: path.operation,
+              ...(path.targetStep ? { targetStep: path.targetStep } : {}),
+            })
+          );
+
+          const label = `${path.name}/${testCase.name}`;
+          expect(result.outcome, label).to.equal(testCase.expectedOutcome);
+          expect(validateResolvedArtifact.calledOnce, label).to.equal(true);
+          expect(validateResolvedArtifact.firstCall.args[0].input, label).to.deep.equal(testCase.metadata);
+          expect(preSaveHook.getCalls().map(call => call.args[3]), label).to.deep.equal(path.expectedHookModes);
+          expect(transitionPreSaveHook.callCount, label).to.equal(path.operation === 'transition' ? 1 : 0);
+          expect(businessValidation.calledOnce, label).to.equal(true);
+          expect(validateResolvedArtifact.calledBefore(preSaveHook), label).to.equal(true);
+          if (path.operation === 'transition') {
+            expect(validateResolvedArtifact.calledBefore(transitionPreSaveHook), label).to.equal(true);
+          }
+          expect(preSaveHook.calledBefore(businessValidation), label).to.equal(true);
+          const validationRequest = businessValidation.firstCall.args[0];
+          assertUnknownRecord(validationRequest);
+          assertUnknownRecord(validationRequest.candidate);
+          assertUnknownRecord(validationRequest.candidate.metadata);
+          expect(validationRequest.writeKind, label).to.equal(path.operation);
+          expect(validationRequest.candidate.metadata, label).to.deep.include({
+            retained: 'keep',
+            ...testCase.metadata,
+            ...path.expectedHookMetadata,
+          });
+          expect(rawDelta, label).to.deep.equal(testCase.metadata);
+          expect(stored.metadata, label).to.deep.equal({
+            title: 'Stored',
+            score: 12,
+            approval: 'approved',
+            retained: 'keep',
+          });
+
+          if (testCase.expectedOutcome === 'saved') {
+            expect(mockStorageService.updateMeta.calledOnce, label).to.equal(true);
+            expect(businessValidation.calledBefore(mockStorageService.updateMeta), label).to.equal(true);
+          } else {
+            expect(mockStorageService.updateMeta.notCalled, label).to.equal(true);
+            expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+            expect(result.problems[0]).not.to.have.property('source');
+            expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.code), label)
+              .to.deep.equal([
+                'record-validation-failed',
+                'record-validation-failed',
+                'record-validation-failed',
+              ]);
+          }
+        }
+      }
     });
 
     it('authorizes public no-ACL harvest creates from workflow roles in disabled, shadow, and enforce modes', async function () {
