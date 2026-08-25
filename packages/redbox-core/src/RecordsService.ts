@@ -145,10 +145,18 @@ export function createRecordMetadataDelta(
   const previous = isMetadataObject(previousMetadata) ? previousMetadata : {};
   const updated = isMetadataObject(updatedMetadata) ? updatedMetadata : {};
   const delta: Record<string, unknown> = {};
+  const setDeltaValue = (key: string, value: unknown): void => {
+    Object.defineProperty(delta, key, {
+      value,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  };
 
   for (const key of new Set([...Object.keys(previous), ...Object.keys(updated)])) {
     if (!Object.prototype.hasOwnProperty.call(updated, key)) {
-      delta[key] = null;
+      setDeltaValue(key, null);
       continue;
     }
 
@@ -158,11 +166,11 @@ export function createRecordMetadataDelta(
 
     if (isMetadataObject(previousValue) && isMetadataObject(updatedValue)) {
       const nestedDelta = createRecordMetadataDelta(previousValue, updatedValue);
-      delta[key] = Object.keys(nestedDelta).length > 0 ? nestedDelta : cloneDeep(updatedValue);
+      setDeltaValue(key, Object.keys(nestedDelta).length > 0 ? nestedDelta : cloneDeep(updatedValue));
       continue;
     }
 
-    delta[key] = cloneDeep(updatedValue);
+    setDeltaValue(key, cloneDeep(updatedValue));
   }
 
   return delta;

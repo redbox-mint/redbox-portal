@@ -6879,6 +6879,53 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
+    it('retains an own __proto__ key in a derived legacy delta and validates it before hooks or storage', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const stored = { ...baseRecord(), metadata: { title: 'Original' } };
+      const requestedRecord = structuredClone(stored);
+      Object.defineProperty(requestedRecord.metadata, '__proto__', {
+        value: { unexpected: true },
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+      mockStorageService.getMeta.resolves(stored);
+      const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [{ code: 'record-schema.type', pointer: '/__proto__', expected: { type: 'object' } }],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        requestedRecord,
+        { username: 'legacy-service-user' },
+        true,
+        true
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0].issues[0]).to.deep.include({
+        code: 'record-schema.type',
+        pointer: '/__proto__',
+      });
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      const derivedDelta = validateResolvedArtifact.firstCall.args[0].input;
+      expect(Object.keys(derivedDelta)).to.deep.equal(['__proto__']);
+      expect(Object.getPrototypeOf(derivedDelta)).to.equal(Object.prototype);
+      expect(derivedDelta).to.deep.equal(JSON.parse('{"__proto__":{"unexpected":true}}'));
+      expect(JSON.stringify(derivedDelta)).to.equal('{"__proto__":{"unexpected":true}}');
+      expect(preSaveHook.notCalled).to.equal(true);
+      expect(mockRecordValidationService.resolve.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+
     it('runs post-merge business validation against the authoritative merged candidate', async function () {
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const rawDelta = { title: 'Merged' };
