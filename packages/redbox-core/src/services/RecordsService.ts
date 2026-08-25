@@ -155,6 +155,7 @@ import {
 import {
   RECORD_SCHEMA_PROBLEM_CODES,
   recordContractPointer,
+  serializeRedboxCanonicalJsonV1,
   type PublishedRecordJsonSchemaDocument,
   type RecordJsonSchemaValidationIssue,
   type RecordSchemaProblemCode,
@@ -211,9 +212,30 @@ function isUnknownRecord(value: unknown): value is Readonly<Record<string, unkno
 }
 
 function isRecordSchemaReferenceIdentity(
-  value: unknown
+  value: unknown,
+  expected: Readonly<{ digest: string; referenceKey: string }>
 ): value is Readonly<{ digest: string; referenceKey: string }> {
-  return isUnknownRecord(value) && typeof value.digest === 'string' && typeof value.referenceKey === 'string';
+  return isUnknownRecord(value) && value.digest === expected.digest && value.referenceKey === expected.referenceKey;
+}
+
+function expectedRecordSchemaSaveReferenceIdentity(
+  request: PersistRecordSchemaSaveUsageRequest
+): Readonly<{ digest: string; referenceKey: string }> {
+  const identity = {
+    digest: request.digest,
+    brand: request.brand,
+    portal: request.portal,
+    schemaKind: request.schemaKind,
+    recordType: request.recordType,
+    operation: request.operation,
+    oid: request.oid,
+    kind: 'save',
+    saveIdentity: request.saveIdentity,
+  } as const;
+  return {
+    digest: request.digest,
+    referenceKey: `save:${createHash('sha256').update(serializeRedboxCanonicalJsonV1(identity), 'utf8').digest('hex')}`,
+  };
 }
 
 type PersistRecordSchemaSaveUsageWriteFailure = Extract<
@@ -254,12 +276,15 @@ function isRecordSchemaSaveUsageFailureCode(
   }
 }
 
-function isPersistRecordSchemaSaveUsageResult(value: unknown): value is PersistRecordSchemaSaveUsageResult {
+function isPersistRecordSchemaSaveUsageResult(
+  value: unknown,
+  expectedReference: Readonly<{ digest: string; referenceKey: string }>
+): value is PersistRecordSchemaSaveUsageResult {
   if (!isUnknownRecord(value)) return false;
 
   switch (value.kind) {
     case 'recorded':
-      return isRecordSchemaReferenceIdentity(value.reference);
+      return isRecordSchemaReferenceIdentity(value.reference, expectedReference);
     case 'invalid-input':
       return value.code === RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
     case 'disabled':
@@ -272,7 +297,7 @@ function isPersistRecordSchemaSaveUsageResult(value: unknown): value is PersistR
     case 'write-failed':
       return (
         value.stage === 'save-reference' &&
-        isRecordSchemaReferenceIdentity(value.reference) &&
+        isRecordSchemaReferenceIdentity(value.reference, expectedReference) &&
         typeof value.retryable === 'boolean' &&
         isRecordSchemaSaveUsageFailureKind(value.failureKind) &&
         isRecordSchemaSaveUsageFailureCode(value.code)
@@ -916,12 +941,13 @@ export namespace Services {
         };
       } else {
         try {
-          const fulfilled = await writer.persistSaveUsageReference({
+          const request = {
             ...usage.request,
             oid,
             saveIdentity: tracker.context.requestId,
-          });
-          result = isPersistRecordSchemaSaveUsageResult(fulfilled)
+          };
+          const fulfilled = await writer.persistSaveUsageReference(request);
+          result = isPersistRecordSchemaSaveUsageResult(fulfilled, expectedRecordSchemaSaveReferenceIdentity(request))
             ? fulfilled
             : {
                 kind: 'unavailable',

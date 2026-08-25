@@ -6,6 +6,7 @@ import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createHash } from 'node:crypto';
 import { rejects } from 'node:assert/strict';
 import {
   formValidatorsSharedDefinitions,
@@ -33,7 +34,11 @@ import type {
   PersistRecordSchemaSaveUsageResult,
 } from '../../src/services/RecordSchemaService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
-import { createCoreRecordContractContributors, RecordContractContributorRegistry } from '../../src/record-contract';
+import {
+  createCoreRecordContractContributors,
+  RecordContractContributorRegistry,
+  serializeRedboxCanonicalJsonV1,
+} from '../../src/record-contract';
 import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
 import {
   setupServiceTestGlobals,
@@ -3980,19 +3985,38 @@ describe('RecordsService', function () {
       mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
     };
 
+    const recordedSchemaUsageResult = (
+      request: PersistRecordSchemaSaveUsageRequest
+    ): Extract<PersistRecordSchemaSaveUsageResult, { readonly kind: 'recorded' }> => ({
+      kind: 'recorded',
+      reference: {
+        digest: request.digest,
+        referenceKey: `save:${createHash('sha256')
+          .update(
+            serializeRedboxCanonicalJsonV1({
+              digest: request.digest,
+              brand: request.brand,
+              portal: request.portal,
+              schemaKind: request.schemaKind,
+              recordType: request.recordType,
+              operation: request.operation,
+              oid: request.oid,
+              kind: 'save',
+              saveIdentity: request.saveIdentity,
+            }),
+            'utf8'
+          )
+          .digest('hex')}`,
+      },
+    });
+
     const recordedSchemaUsage = (): sinon.SinonStub<
       [request: PersistRecordSchemaSaveUsageRequest],
       Promise<PersistRecordSchemaSaveUsageResult>
     > =>
       sinon
         .stub<[request: PersistRecordSchemaSaveUsageRequest], Promise<PersistRecordSchemaSaveUsageResult>>()
-        .callsFake(async request => ({
-          kind: 'recorded',
-          reference: {
-            digest: request.digest,
-            referenceKey: `save:${'f'.repeat(64)}`,
-          },
-        }));
+        .callsFake(async request => recordedSchemaUsageResult(request));
 
     const recordSchemaContext = (
       options: Parameters<typeof createRecordSaveContext>[0] = {}
@@ -4386,10 +4410,7 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      const persistSaveUsageReference = sinon.stub().resolves({
-        kind: 'recorded',
-        reference: { digest: 'a'.repeat(64), referenceKey: `save:${'c'.repeat(64)}` },
-      });
+      const persistSaveUsageReference = recordedSchemaUsage();
       mockSails.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
@@ -4501,14 +4522,14 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      const persistSaveUsageReference = sinon.stub().resolves({
+      const persistSaveUsageReference = sinon.stub().callsFake((request: PersistRecordSchemaSaveUsageRequest) => ({
         kind: 'write-failed',
         stage: 'save-reference',
         failureKind: 'storage-unavailable',
         code: 'record-schema.storage-unavailable',
         retryable: true,
-        reference: { digest: 'a'.repeat(64), referenceKey: `save:${'d'.repeat(64)}` },
-      });
+        reference: recordedSchemaUsageResult(request).reference,
+      }));
       mockSails.services.recordschemaservice = {
         resolveCreate,
         validateResolvedArtifact,
@@ -4559,9 +4580,15 @@ describe('RecordsService', function () {
       expect(JSON.stringify(mockSails.log.error.lastCall.args)).not.to.include('a'.repeat(64));
     });
 
-    it('normalizes a malformed fulfilled schema usage result after persistence', async function () {
+    it('normalizes a mismatched schema usage reference after persistence', async function () {
       enableRecordSchema();
-      const persistSaveUsageReference = sinon.stub().resolves({ kind: 'recorded' });
+      const persistSaveUsageReference = sinon.stub().callsFake((request: PersistRecordSchemaSaveUsageRequest) => ({
+        kind: 'recorded',
+        reference: {
+          ...recordedSchemaUsageResult(request).reference,
+          digest: 'b'.repeat(64),
+        },
+      }));
       mockSails.services.recordschemaservice = {
         resolveCreate: sinon.stub().resolves(createSchemaResolution('resolved', 'enforce')),
         validateResolvedArtifact: sinon.stub().returns({
@@ -4572,11 +4599,11 @@ describe('RecordsService', function () {
         }),
         persistSaveUsageReference,
       };
-      (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.create(
         { id: 'brand-1' },
-        { metadata: { title: 'Persist despite malformed usage result' } },
+        { metadata: { title: 'Persist despite mismatched usage reference' } },
         { name: 'rdmp', hooks: {}, searchable: false },
         { username: 'user-1' },
         false,
@@ -7321,10 +7348,7 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/title', expected: { type: 'string' } }],
         truncated: false,
       });
-      const persistSaveUsageReference = sinon.stub().resolves({
-        kind: 'recorded',
-        reference: { digest: 'b'.repeat(64), referenceKey: `save:${'e'.repeat(64)}` },
-      });
+      const persistSaveUsageReference = recordedSchemaUsage();
       mockSails.services.recordschemaservice = {
         resolveUpdate,
         validateResolvedArtifact,
