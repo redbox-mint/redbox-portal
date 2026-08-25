@@ -67,9 +67,11 @@ const { generateAllShims } = require('@researchdatabox/redbox-core');
 generateAllShims(__dirname, {
   forceRegenerate: process.env.REGENERATE_SHIMS === 'true',
   verbose: process.env.SHIM_VERBOSE === 'true'
-}).then(() => {
+}).then(({ recordContractContributorState }) => {
   // Start server
-  sails.lift(rc('sails'));
+  const sailsConfig = rc('sails');
+  sailsConfig.recordContractContributorState = recordContractContributorState;
+  sails.lift(sailsConfig);
 
   // In the integrationtest env, start a simple server to listen for GET / on a separate port.
   // This is needed to ensure the server is shut down when the bruno tests finish and that it shuts down correctly so that code coverage reports are written.

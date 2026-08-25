@@ -213,6 +213,26 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(serialized).not.to.include('additionalProperties');
   });
 
+  it('compiles an anonymous repeatable element template without changing the form input', async function () {
+    const repeatable = field('aliases', 'RepeatableComponent', {
+      elementTemplate: field('', 'SimpleInputComponent'),
+    });
+    const request = {
+      form: form([repeatable]),
+      context: publicContext,
+    };
+    const before = structuredClone(request);
+
+    const contract = expectCompiled(await compiler().compile(request));
+
+    expect(request).to.deep.equal(before);
+    expect(contract.root.properties.aliases).to.deep.include({ kind: 'array', nullable: false });
+    if (contract.root.properties.aliases.kind === 'array') {
+      expect(contract.root.properties.aliases.items).to.include({ kind: 'scalar', scalarType: 'string' });
+    }
+    expect(contract.fieldOwners).to.have.property('/aliases/__record_schema_item');
+  });
+
   it('snapshots compiler inputs and exposes only an immutable allowlisted public context', async function () {
     let observedContextKeys: string[] = [];
     let componentMutationAccepted = true;

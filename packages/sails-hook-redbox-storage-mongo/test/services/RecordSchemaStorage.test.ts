@@ -18,6 +18,13 @@ type MongoStorageService = import('../../src/services/MongoStorageService').Serv
 
 type FakeDocument = { [key: string]: unknown };
 type TestContractJsonObject = { readonly [key: string]: ContractJsonValue };
+type FakeIndexDescription = {
+  readonly name?: string;
+  readonly key: Readonly<Record<string, unknown>>;
+  readonly unique?: boolean;
+  readonly sparse?: boolean;
+  readonly partialFilterExpression?: FakeDocument;
+};
 
 function valueAtPath(document: FakeDocument, path: string): unknown {
   let value: unknown = document;
@@ -149,14 +156,23 @@ class FakeCursor {
 }
 
 class FakeCollection {
-  public readonly createIndexes = sinon.stub().resolves([]);
+  public readonly createIndexes: Sinon.SinonStub;
   public afterFindOneAndUpdate?: () => void;
   public readonly documents: FakeDocument[];
+  private readonly indexDefinitions: FakeIndexDescription[] = [{ name: '_id_', key: { _id: 1 } }];
   private readonly uniqueField?: string;
 
   public constructor(documents: FakeDocument[] = [], uniqueField?: string) {
     this.documents = documents;
     this.uniqueField = uniqueField;
+    this.createIndexes = sinon.stub().callsFake(async (indexes: readonly FakeIndexDescription[]) => {
+      this.indexDefinitions.push(...structuredClone(indexes));
+      return indexes.map((index, position) => index.name ?? `index-${position}`);
+    });
+  }
+
+  public async indexes(): Promise<FakeIndexDescription[]> {
+    return structuredClone(this.indexDefinitions);
   }
 
   public async findOne(criteria: FakeDocument): Promise<FakeDocument | null> {
@@ -292,10 +308,8 @@ describe('MongoStorageService record-schema persistence', function () {
     await initializeIndexes();
     await initializeIndexes();
 
-    expect(artifacts.createIndexes.calledTwice).to.equal(true);
-    expect(artifacts.createIndexes.alwaysCalledWith(RECORD_SCHEMA_ARTIFACT_INDEXES)).to.equal(true);
-    expect(references.createIndexes.calledTwice).to.equal(true);
-    expect(references.createIndexes.alwaysCalledWith(RECORD_SCHEMA_REFERENCE_INDEXES)).to.equal(true);
+    expect(artifacts.createIndexes.calledOnceWith(RECORD_SCHEMA_ARTIFACT_INDEXES)).to.equal(true);
+    expect(references.createIndexes.calledOnceWith(RECORD_SCHEMA_REFERENCE_INDEXES)).to.equal(true);
   });
 
   it('inserts artifacts once and treats equivalent object-key order as an idempotent retry', async function () {

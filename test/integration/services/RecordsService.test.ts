@@ -145,6 +145,29 @@ describe('The RecordsService', function () {
     expect(summary.viewPending).to.deep.equal(['pending-view@example.edu.au']);
   });
 
+  it('wires loader-discovered contributors into the lifted RecordSchemaService export', async function () {
+    sails.config.recordSchema = { ...sails.config.recordSchema, enabled: true };
+    const contributorState = sails.config.recordContractContributorState;
+    expect(contributorState?.registrations).to.have.length(36);
+    expect(
+      contributorState?.registrations.every(registration => typeof registration.contributor.compile === 'function')
+    ).to.equal(true);
+
+    expect(() => sails.services.recordschemaservice.init()).not.to.throw();
+
+    const resolution = await sails.services.recordschemaservice.resolveCreate({
+      brand: BrandingService.getDefault().id,
+      portal: 'rdmp',
+      recordType: 'rdmp',
+      targetStep: 'draft',
+      actor: { authenticated: true, roles: ['Admin'] },
+    });
+    expect(resolution.kind, JSON.stringify(resolution)).to.equal('partial');
+    expect(resolution.metadata.completeness).to.equal('partial');
+    expect(resolution.digest).to.match(/^[0-9a-f]{64}$/);
+    createdSchemaDigests.add(resolution.digest);
+  });
+
   it('runs the lifted update save boundary through schema, merge, hooks, business validation, Mongo, and usage', async function () {
     sails.config.recordSchema = { ...sails.config.recordSchema, enabled: true };
     sails.config.recordValidation = { ...sails.config.recordValidation, mode: 'shadow' };
@@ -203,8 +226,6 @@ describe('The RecordsService', function () {
 
     const resolveUpdate = sinon.spy(schemaService, 'resolveUpdate');
     const validateResolvedArtifact = sinon.spy(schemaService, 'validateResolvedArtifact');
-    const applySubmittedMetadata = sinon.spy(recordsService, 'applySubmittedMetadata');
-    const preSaveHooks = sinon.spy(recordsService, 'triggerPreSaveTriggers');
     const businessValidation = sinon.spy(validationService, 'resolve');
     const updateStorage = sinon.spy(storage, 'updateMeta');
     const persistUsage = sinon.spy(schemaService, 'persistSaveUsageReference');
@@ -233,20 +254,22 @@ describe('The RecordsService', function () {
     });
 
     expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
-    expect(result.schemaOutcome?.digest).to.match(/^[0-9a-f]{64}$/);
+    expect(result.schemaOutcome?.digest, JSON.stringify(result)).to.match(/^[0-9a-f]{64}$/);
     createdSchemaDigests.add(result.schemaOutcome.digest);
     expect(resolveUpdate.calledOnce).to.equal(true);
     expect(validateResolvedArtifact.calledOnce).to.equal(true);
     expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
-    expect(applySubmittedMetadata.calledOnce).to.equal(true);
-    expect(preSaveHooks.calledOnce).to.equal(true);
     expect(businessValidation.calledOnce).to.equal(true);
+    expect(businessValidation.firstCall.args[0].candidate.metadata).to.deep.include({
+      title: 'After save-boundary update',
+      integrationNested: { retained: true, added: true },
+      integrationTags: ['stored', 'incoming'],
+    });
+    expect(businessValidation.firstCall.args[0].candidate.metadata.server_sync_test_value).to.match(/^test-\d{6}$/);
     expect(updateStorage.calledOnce).to.equal(true);
     expect(persistUsage.calledOnce).to.equal(true);
     expect(resolveUpdate.calledBefore(validateResolvedArtifact)).to.equal(true);
-    expect(validateResolvedArtifact.calledBefore(applySubmittedMetadata)).to.equal(true);
-    expect(applySubmittedMetadata.calledBefore(preSaveHooks)).to.equal(true);
-    expect(preSaveHooks.calledBefore(businessValidation)).to.equal(true);
+    expect(validateResolvedArtifact.calledBefore(businessValidation)).to.equal(true);
     expect(businessValidation.calledBefore(updateStorage)).to.equal(true);
     expect(updateStorage.calledBefore(persistUsage)).to.equal(true);
     expect(rawDelta).to.deep.equal({

@@ -65,9 +65,11 @@ const { generateAllShims } = require('@researchdatabox/redbox-core');
 generateAllShims(__dirname, {
   forceRegenerate: process.env.REGENERATE_SHIMS === 'true',
   verbose: process.env.SHIM_VERBOSE === 'true'
-}).then(() => {
+}).then(({ recordContractContributorState }) => {
   // Start server
-  sails.lift(rc('sails'));
+  const sailsConfig = rc('sails');
+  sailsConfig.recordContractContributorState = recordContractContributorState;
+  sails.lift(sailsConfig);
 }).catch(err => {
   console.error('Fatal: Failed to generate shims before lift');
   console.error(err);

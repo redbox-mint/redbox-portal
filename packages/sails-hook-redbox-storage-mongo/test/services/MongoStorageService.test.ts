@@ -5,12 +5,14 @@ const { PassThrough, Readable } = require('node:stream');
 const mongodb = require('mongodb');
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
+  let rejection: unknown;
   try {
     await fn();
-    throw new Error(`Expected rejection containing: ${message}`);
   } catch (error) {
-    expect(String(error.message || error)).to.include(message);
+    rejection = error;
   }
+  expect(rejection, `Expected rejection containing: ${message}`).not.to.equal(undefined);
+  expect(rejection instanceof Error ? rejection.message : String(rejection)).to.include(message);
 }
 
 describe('MongoStorageService', function () {
@@ -233,8 +235,14 @@ describe('MongoStorageService', function () {
     const identityCollection = {
       createIndexes: sandbox.stub().resolves([]),
     };
-    const artifactCollection = { createIndexes: sandbox.stub().resolves([]) };
-    const referenceCollection = { createIndexes: sandbox.stub().resolves([]) };
+    const artifactCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const referenceCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
     mockDb.collection.callsFake((name: string, options?: any) => {
       if (options?.strict) {
         return { ok: 1 };
@@ -271,16 +279,21 @@ describe('MongoStorageService', function () {
       indexes: sandbox.stub().resolves([]),
       createIndexes: sandbox.stub().resolves([]),
     };
-    const artifactCollection = { createIndexes: sandbox.stub().resolves([]) };
-    const referenceCollection = { createIndexes: sandbox.stub().resolves([]) };
-    mockDb.collection.callsFake((name: string, options?: any) => {
+    const artifactCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const referenceCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string, options?: { strict?: boolean }) => {
       if (options?.strict) {
         throw new Error('missing');
       }
       if (name === 'record') {
         return recordCollection;
       }
-      return { createIndexes: sandbox.stub().resolves([]) };
       if (name === 'recordidentity') {
         return { createIndexes: sandbox.stub().resolves([]) };
       }
@@ -290,7 +303,7 @@ describe('MongoStorageService', function () {
       if (name === 'recordschemareference') {
         return referenceCollection;
       }
-      return {};
+      return { createIndexes: sandbox.stub().resolves([]) };
     });
 
     await service.performInit();
@@ -314,6 +327,110 @@ describe('MongoStorageService', function () {
 
     expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
     expect(service.getCapabilities()).to.deep.equal({});
+  });
+
+  it('accepts equivalent record-schema indexes with legacy names without recreating them', async function () {
+    const standardCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const artifactCollection = {
+      indexes: sandbox.stub().resolves([
+        { name: '_id_', key: { _id: 1 } },
+        {
+          name: 'record_schema_artifact_digest_unique',
+          key: { digest: 1 },
+          unique: true,
+        },
+      ]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const referenceCollection = {
+      indexes: sandbox.stub().resolves([
+        { name: '_id_', key: { _id: 1 } },
+        {
+          name: 'record_schema_reference_key_unique',
+          key: { referenceKey: 1 },
+          unique: true,
+        },
+        {
+          name: 'digest_1_kind_1',
+          key: { digest: 1, kind: 1 },
+        },
+        {
+          name: 'oid_1_kind_1',
+          key: { oid: 1, kind: 1 },
+          sparse: true,
+        },
+        {
+          name: 'kind_1_expiresAt_1',
+          key: { kind: 1, expiresAt: 1 },
+          partialFilterExpression: { kind: 'pin' },
+        },
+      ]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) => {
+      if (name === 'recordschemaartifact') return artifactCollection;
+      if (name === 'recordschemareference') return referenceCollection;
+      return standardCollection;
+    });
+
+    await service.performInit();
+
+    expect(artifactCollection.createIndexes.called).to.equal(false);
+    expect(referenceCollection.createIndexes.called).to.equal(false);
+    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
+  });
+
+  it('accepts an equivalent Waterline digest_1 index definition', async function () {
+    const standardCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const artifactCollection = {
+      indexes: sandbox.stub().resolves([
+        { name: '_id_', key: { _id: 1 } },
+        { name: 'digest_1', key: { digest: 1 }, unique: true },
+      ]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) =>
+      name === 'recordschemaartifact' ? artifactCollection : standardCollection
+    );
+
+    await service.performInit();
+
+    expect(artifactCollection.createIndexes.called).to.equal(false);
+  });
+
+  it('fails initialization when an existing record-schema index has mismatched options', async function () {
+    const standardCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const artifactCollection = {
+      indexes: sandbox.stub().resolves([
+        { name: '_id_', key: { _id: 1 } },
+        {
+          name: 'record_schema_artifact_digest_unique',
+          key: { digest: 1 },
+          unique: false,
+        },
+      ]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) =>
+      name === 'recordschemaartifact' ? artifactCollection : standardCollection
+    );
+
+    await expectRejects(
+      () => service.performInit(),
+      'Existing index record_schema_artifact_digest_unique has options that do not match required index digest_1'
+    );
+
+    expect(artifactCollection.createIndexes.called).to.equal(false);
+    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(false);
   });
 
   it('creates a record and assigns a generated oid', async function () {

@@ -65,6 +65,8 @@ export type CoreRecordContractComponentType = keyof typeof CORE_RECORD_CONTRACT_
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
+const ANONYMOUS_REPEATABLE_ITEM_NAME = '__record_schema_item';
+
 function asRecord(value: unknown): UnknownRecord {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as UnknownRecord) : {};
 }
@@ -442,10 +444,12 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
         };
       }
       const element = template as FormComponentDefinitionFrame;
-      const wrapper = await context.compileChildren([element], context.pointer);
+      const itemName = element.name || ANONYMOUS_REPEATABLE_ITEM_NAME;
+      const namedElement = element.name ? element : { ...element, name: itemName };
+      const wrapper = await context.compileChildren([namedElement], context.pointer);
       const item =
-        Object.keys(wrapper.properties).length === 1 && element.name
-          ? (wrapper.properties[element.name] ?? wrapper)
+        Object.keys(wrapper.properties).length === 1
+          ? (wrapper.properties[itemName] ?? wrapper)
           : wrapper;
       return { kind: 'node', node: array(item, nullableFromDefault(context.component)) };
     }),

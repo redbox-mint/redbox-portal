@@ -79,6 +79,7 @@ export * from './recordSchema.config';
 export * from './harvestRuns.config';
 
 import type { ApiRouteProvider } from '../api-routes';
+import type { RecordContractContributorDiscoveryState } from '../record-contract/contributor-registry';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -283,6 +284,7 @@ export interface SailsConfig {
 
     // Runtime state (can be set at runtime)
     startupMinute?: number;
+    recordContractContributorState?: RecordContractContributorDiscoveryState;
 }
 
 /**

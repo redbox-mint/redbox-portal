@@ -145,6 +145,15 @@ describe('record-contract contributor loader discovery', function () {
     expect(getDiscoveredRecordContractContributorComponentTypes()).to.deep.equal(
       Object.keys(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY).sort()
     );
+    expect(result.recordContractContributorState.registrations).to.have.length(
+      Object.keys(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY).length
+    );
+    expect(result.recordContractContributorState.registrationIssues.map(issue => issue.code)).to.deep.equal([
+      RECORD_CONTRACT_REGISTRATION_CODES.INVALID_EXPORT,
+    ]);
+    expect(result.recordContractContributorState.componentTypes).to.deep.equal(
+      Object.keys(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY).sort()
+    );
     const shim = await fs.readFile(path.join(appPath, 'api', 'services', 'RecordSchemaService.js'), 'utf8');
     expect(shim).to.include("ServiceExports['RecordSchemaService']");
   });

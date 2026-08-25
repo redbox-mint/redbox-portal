@@ -22,9 +22,10 @@ before(function (this: Mocha.Context, done) {
 			forceRegenerate: process.env.REGENERATE_SHIMS === 'true',
 			verbose: process.env.SHIM_VERBOSE === 'true'
 		})
-			.then(() => {
+			.then(({ recordContractContributorState }) => {
 				(sails as any).lift(
 					{
+						recordContractContributorState,
 						log: {
 							level: 'verbose'
 						},

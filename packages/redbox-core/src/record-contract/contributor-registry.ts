@@ -346,9 +346,20 @@ export class RecordContractContributorRegistry {
   }
 }
 
+export interface RecordContractContributorDiscoveryState {
+  readonly registrations: readonly RecordContractContributorRegistration[];
+  readonly registrationIssues: readonly RecordContractRegistrationIssue[];
+  readonly componentTypes: readonly string[];
+}
+
+const EMPTY_DISCOVERY_STATE: RecordContractContributorDiscoveryState = Object.freeze({
+  registrations: Object.freeze([]),
+  registrationIssues: Object.freeze([]),
+  componentTypes: Object.freeze([]),
+});
+
 let discoveredContributorRegistry: RecordContractContributorRegistry | undefined;
-let discoveredContributorRegistrationIssues: readonly RecordContractRegistrationIssue[] = Object.freeze([]);
-let discoveredContributorComponentTypes: readonly string[] = Object.freeze([]);
+let discoveredContributorState = EMPTY_DISCOVERY_STATE;
 
 function componentTypesFromRegistrations(
   registrations: readonly RecordContractContributorRegistration[]
@@ -366,8 +377,11 @@ function componentTypesFromRegistrations(
 
 export function setDiscoveredRecordContractContributorRegistry(registry: RecordContractContributorRegistry): void {
   discoveredContributorRegistry = registry;
-  discoveredContributorRegistrationIssues = Object.freeze([]);
-  discoveredContributorComponentTypes = componentTypesFromRegistrations(registry.registrations());
+  discoveredContributorState = Object.freeze({
+    registrations: registry.registrations(),
+    registrationIssues: Object.freeze([]),
+    componentTypes: componentTypesFromRegistrations(registry.registrations()),
+  });
 }
 
 export function getDiscoveredRecordContractContributorRegistry(): RecordContractContributorRegistry | undefined {
@@ -379,23 +393,28 @@ export function setDiscoveredRecordContractContributorRegistrationIssues(
   registrations: readonly RecordContractContributorRegistration[] = []
 ): void {
   discoveredContributorRegistry = undefined;
-  discoveredContributorRegistrationIssues = Object.freeze(
-    sortRegistrationIssues(issues).map(item => Object.freeze({ ...item }))
-  );
-  discoveredContributorComponentTypes = componentTypesFromRegistrations(registrations);
+  discoveredContributorState = Object.freeze({
+    registrations: Object.freeze([...registrations]),
+    registrationIssues: Object.freeze(sortRegistrationIssues(issues).map(item => Object.freeze({ ...item }))),
+    componentTypes: componentTypesFromRegistrations(registrations),
+  });
 }
 
 export function getDiscoveredRecordContractContributorRegistrationIssues(): readonly RecordContractRegistrationIssue[] {
-  return discoveredContributorRegistrationIssues;
+  return discoveredContributorState.registrationIssues;
 }
 
 /** Component coverage retained even when other registrations prevent construction of the full registry. */
 export function getDiscoveredRecordContractContributorComponentTypes(): readonly string[] {
-  return discoveredContributorComponentTypes;
+  return discoveredContributorState.componentTypes;
+}
+
+/** Immutable discovery result passed explicitly from the loader to the exported service runtime. */
+export function getDiscoveredRecordContractContributorState(): RecordContractContributorDiscoveryState {
+  return discoveredContributorState;
 }
 
 export function resetDiscoveredRecordContractContributorRegistry(): void {
   discoveredContributorRegistry = undefined;
-  discoveredContributorRegistrationIssues = Object.freeze([]);
-  discoveredContributorComponentTypes = Object.freeze([]);
+  discoveredContributorState = EMPTY_DISCOVERY_STATE;
 }

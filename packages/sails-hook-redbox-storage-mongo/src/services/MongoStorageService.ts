@@ -1,12 +1,23 @@
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 import { randomUUID } from 'crypto';
+import { isDeepStrictEqual } from 'node:util';
 
 import type { Model } from 'sails';
 import { DateTime } from 'luxon';
 
 import mongodb = require('mongodb');
-import type { Collection, Db, Document, Filter, FindCursor, FindOptions, GridFSFile } from 'mongodb';
+import type {
+  Collection,
+  Db,
+  Document,
+  Filter,
+  FindCursor,
+  FindOptions,
+  GridFSFile,
+  IndexDescriptionInfo,
+  IndexDirection,
+} from 'mongodb';
 import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
@@ -149,6 +160,65 @@ export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
     partialFilterExpression: { kind: 'pin' },
   },
 ];
+
+type PersistentIndexBooleanOption = 'unique' | 'sparse' | 'hidden';
+type PersistentIndexValueOption =
+  | 'partialFilterExpression'
+  | 'expireAfterSeconds'
+  | 'storageEngine'
+  | 'weights'
+  | 'default_language'
+  | 'language_override'
+  | 'textIndexVersion'
+  | '2dsphereIndexVersion'
+  | 'bits'
+  | 'min'
+  | 'max'
+  | 'bucketSize'
+  | 'wildcardProjection'
+  | 'collation';
+
+const PERSISTENT_INDEX_BOOLEAN_OPTIONS: readonly PersistentIndexBooleanOption[] = ['unique', 'sparse', 'hidden'];
+const PERSISTENT_INDEX_VALUE_OPTIONS: readonly PersistentIndexValueOption[] = [
+  'partialFilterExpression',
+  'expireAfterSeconds',
+  'storageEngine',
+  'weights',
+  'default_language',
+  'language_override',
+  'textIndexVersion',
+  '2dsphereIndexVersion',
+  'bits',
+  'min',
+  'max',
+  'bucketSize',
+  'wildcardProjection',
+  'collation',
+];
+
+function indexKeyEntries(
+  key: mongodb.IndexDescription['key'] | IndexDescriptionInfo['key']
+): readonly (readonly [string, IndexDirection])[] {
+  if (key instanceof Map) return [...key.entries()];
+  return Object.keys(key).map(name => [name, key[name]] as const);
+}
+
+function indexKeysEqual(existing: IndexDescriptionInfo, required: mongodb.IndexDescription): boolean {
+  return isDeepStrictEqual(indexKeyEntries(existing.key), indexKeyEntries(required.key));
+}
+
+function indexOptionsEqual(existing: IndexDescriptionInfo, required: mongodb.IndexDescription): boolean {
+  for (const option of PERSISTENT_INDEX_BOOLEAN_OPTIONS) {
+    if (Boolean(existing[option]) !== Boolean(required[option])) return false;
+  }
+  return PERSISTENT_INDEX_VALUE_OPTIONS.every(option =>
+    isDeepStrictEqual(existing[option], required[option])
+  );
+}
+
+function indexDisplayName(index: mongodb.IndexDescription | IndexDescriptionInfo): string {
+  return typeof index.name === 'string' && index.name.trim() !== '' ? index.name : '<unnamed>';
+}
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
@@ -818,8 +888,39 @@ export namespace Services {
     }
 
     private async createRecordSchemaIndices(): Promise<void> {
-      await this.recordSchemaArtifactCol.createIndexes(RECORD_SCHEMA_ARTIFACT_INDEXES);
-      await this.recordSchemaReferenceCol.createIndexes(RECORD_SCHEMA_REFERENCE_INDEXES);
+      await this.createRequiredIndexes(this.recordSchemaArtifactCol, RECORD_SCHEMA_ARTIFACT_INDEXES);
+      await this.createRequiredIndexes(this.recordSchemaReferenceCol, RECORD_SCHEMA_REFERENCE_INDEXES);
+    }
+
+    private async createRequiredIndexes(
+      collection: Collection<MongoRecordDocument>,
+      requiredIndexes: readonly mongodb.IndexDescription[]
+    ): Promise<void> {
+      const existingIndexes = await collection.indexes();
+      const missingIndexes: mongodb.IndexDescription[] = [];
+
+      for (const required of requiredIndexes) {
+        const matchingKeys = existingIndexes.filter(existing => indexKeysEqual(existing, required));
+        if (matchingKeys.some(existing => indexOptionsEqual(existing, required))) continue;
+
+        if (matchingKeys.length > 0) {
+          throw new Error(
+            `Existing index ${indexDisplayName(matchingKeys[0])} has options that do not match required index ${indexDisplayName(required)}.`
+          );
+        }
+
+        const matchingName = existingIndexes.find(existing => existing.name === required.name);
+        if (matchingName) {
+          throw new Error(
+            `Existing index ${indexDisplayName(matchingName)} has keys that do not match the required definition.`
+          );
+        }
+        missingIndexes.push(required);
+      }
+
+      if (missingIndexes.length > 0) {
+        await collection.createIndexes(missingIndexes);
+      }
     }
 
     private recordSchemaSuccess<TData>(data: TData): StorageServiceResponse<TData> {

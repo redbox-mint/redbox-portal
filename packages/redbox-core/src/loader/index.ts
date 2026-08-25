@@ -7,6 +7,7 @@ import type { ApiRouteDefinition } from '../api-routes';
 import { getHookProcessingOrder } from '../hooks/hookDiscovery';
 import {
     createCoreRecordContractContributors,
+    getDiscoveredRecordContractContributorState,
     RecordContractContributorRegistry,
     RecordContractContributorRegistrationError,
     RECORD_CONTRACT_REGISTRATION_CODES,
@@ -16,6 +17,7 @@ import {
 } from '../record-contract';
 import type {
     RecordContractContributor,
+    RecordContractContributorDiscoveryState,
     RecordContractContributorRegistration,
     RecordContractRegistrationIssue,
 } from '../record-contract';
@@ -119,6 +121,7 @@ export interface GenerateAllShimsStats {
 export interface GenerateAllShimsSkippedResult {
     skipped: true;
     reason: string;
+    recordContractContributorState: RecordContractContributorDiscoveryState;
 }
 
 export interface GenerateAllShimsSuccessResult {
@@ -126,6 +129,7 @@ export interface GenerateAllShimsSuccessResult {
     reason: string;
     stats: GenerateAllShimsStats;
     totalTimeMs: number;
+    recordContractContributorState: RecordContractContributorDiscoveryState;
 }
 
 export type GenerateAllShimsResult = GenerateAllShimsSkippedResult | GenerateAllShimsSuccessResult;
@@ -1249,11 +1253,12 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             'Record-contract contributor discovery found invalid registrations; the enabled lifecycle gate will report them.'
         );
     }
+    const recordContractContributorState = getDiscoveredRecordContractContributorState();
     const { shouldRegenerate, reason, deleteMarker } = await shouldRegenerateShims(appPath, options.forceRegenerate);
 
     if (!shouldRegenerate) {
         log.info(`Skipping shim generation (${reason})`);
-        return { skipped: true, reason };
+        return { skipped: true, reason, recordContractContributorState };
     }
 
     log.info(`Starting shim generation (${reason})...`);
@@ -1370,6 +1375,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
                 migrationStats,
             },
             totalTimeMs: Number.parseFloat(totalTime),
+            recordContractContributorState,
         };
     } catch (err) {
         log.error('Failed to generate shims:', err);
