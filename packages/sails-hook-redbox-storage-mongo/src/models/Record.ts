@@ -20,6 +20,7 @@ export type JsonMap = Record<string, unknown>;
  */
 const normalizeServerRevision = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   record.revision = INITIAL_RECORD_REVISION;
+  delete record.incarnationId;
   delete record.lifecycleOperationId;
   proceed();
 };
@@ -31,6 +32,7 @@ const normalizeServerRevision = (record: Record<string, unknown>, proceed: (err?
  */
 const stripServerRevision = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   delete record.revision;
+  delete record.incarnationId;
   delete record.lifecycleOperationId;
   proceed();
 };
@@ -50,6 +52,10 @@ export class RecordClass {
   /** Server-owned. Clients must retain the opaque tag rather than assume 0. */
   @Attr({ type: 'number', defaultsTo: INITIAL_RECORD_REVISION, custom: isRecordRevision })
   public revision: number = INITIAL_RECORD_REVISION;
+
+  /** Assigned only by the native conditional-create storage boundary. */
+  @Attr({ type: 'string', custom: isCanonicalSaveRequestId })
+  public incarnationId?: string;
 
   @Attr({ type: 'string', custom: isCanonicalSaveRequestId })
   public lifecycleOperationId?: string;

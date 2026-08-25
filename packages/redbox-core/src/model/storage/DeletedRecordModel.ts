@@ -95,6 +95,8 @@ export interface DeletedRecordModel {
   redboxOid: string;
   /** Sole authority for the current tombstone lifecycle revision. */
   revision: number;
+  /** Durable server-owned identity shared with the active lifecycle lineage. */
+  incarnationId?: string;
   brandId?: string;
   lifecycleState: DeletedRecordLifecycleState;
   lifecycleOperation?: DeletedRecordLifecycleOperation;

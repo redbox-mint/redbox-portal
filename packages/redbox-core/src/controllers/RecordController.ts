@@ -240,8 +240,12 @@ export namespace Controllers {
       brand: BrandingModel,
       currentRec: RecordModel | null,
       requestedRecordType: string | undefined,
-      formConfig: FormConfigFrame
+      sourceForm: FormAttributes
     ): Promise<string> {
+      const formConfig = sourceForm.configuration;
+      if (!formConfig) {
+        throw new Error('The current form configuration is unavailable.');
+      }
       const recordTypeName = String(
         currentRec?.metaMetadata?.type ?? requestedRecordType ?? formConfig.type ?? ''
       ).trim();
@@ -270,7 +274,8 @@ export namespace Controllers {
       const fingerprint = await this.recordsService.getRecordFormFingerprint(
         fingerprintRecord,
         recordType,
-        targetStep ?? undefined
+        targetStep ?? undefined,
+        sourceForm
       );
       if (!fingerprint) {
         throw new Error('The current form concurrency fingerprint could not be generated.');
@@ -370,8 +375,20 @@ export namespace Controllers {
       });
     }
 
-    private sendLifecycleResult(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
-      if (!result.wasPersisted()) return this.sendSaveFailure(req, res, result, detail);
+    private async sendLifecycleResult(
+      req: Sails.Req,
+      res: Sails.Res,
+      brand: BrandingModel,
+      oid: string,
+      result: RecordSaveResponse,
+      detail: string
+    ) {
+      if (!result.wasPersisted()) {
+        if (!(await this.projectSafeSaveFailure(req, brand, oid, result))) {
+          return this.sendPrivateSaveFailure(req, res);
+        }
+        return this.sendSaveFailure(req, res, result, detail);
+      }
       return this.sendResp(req, res, {
         data: result.data ?? result,
         meta: { ...result },
@@ -401,15 +418,21 @@ export namespace Controllers {
       }
 
       result.setProjectedMetadata(null);
-      let current: RecordModel;
+      let current: RecordModel | null = null;
       try {
         current = await this.recordsService.getMeta(oid);
       } catch {
-        // Deleted/missing state has no representation to disclose. Its bounded
-        // typed lifecycle problem may still be returned.
-        return true;
+        current = null;
+      }
+      if (!current || _.isEmpty(current)) {
+        try {
+          current = await this.recordsService.getDeletedRecordMeta(oid, brand);
+        } catch {
+          return false;
+        }
       }
       if (
+        !current ||
         _.isEmpty(current) ||
         !this.recordBelongsToBrand(current as AnyRecord, brand) ||
         !(await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, current)))
@@ -418,24 +441,45 @@ export namespace Controllers {
         return false;
       }
 
+      const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, current));
+      if (!hasEditAccess) {
+        result.problems = [
+          recordSaveProblem(
+            'authorization',
+            'response',
+            '@record-save-record-validation-edit-unauthorized',
+            'record-validation-edit-unauthorized'
+          ),
+        ];
+      }
       const representation = recordRepresentationConcurrency(current);
       result.setConcurrencyMetadata({ ...result.concurrency, ...representation.metadata });
       const formName = String(current.metaMetadata?.form ?? '').trim();
       if (!formName) {
-        result.setProjectedMetadata(current.metadata);
+        // Without an authoritative form there is no safe field-level
+        // projection. Keep the bounded conflict coordinates, but never fall
+        // back to the unrestricted stored metadata.
         return true;
       }
       try {
-        const clientFormConfig = await this.getEffectiveClientFormConfig(req, brand, current, formName, false, 'edit');
-        const projected = clientFormConfig
-          ? await FormRecordConsistencyService.projectMetadataClientFormConfig(
-              current.metadata as AnyRecord,
-              clientFormConfig,
-              'edit',
-              sails.config.reusableFormDefinitions
-            )
-          : current.metadata;
-        result.setProjectedMetadata(projected);
+        const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
+        const clientFormConfig = await this.getEffectiveClientFormConfig(
+          req,
+          brand,
+          current,
+          formName,
+          hasEditAccess,
+          formMode
+        );
+        if (!clientFormConfig) return true;
+        result.setProjectedMetadata(
+          await FormRecordConsistencyService.projectMetadataClientFormConfig(
+            current.metadata as AnyRecord,
+            clientFormConfig,
+            formMode,
+            sails.config.reusableFormDefinitions
+          )
+        );
       } catch {
         // A projection failure must not fall back to unrestricted metadata.
         result.setProjectedMetadata(null);
@@ -679,20 +723,22 @@ export namespace Controllers {
           const formName = record.metaMetadata?.['form'] as string | undefined;
           if (formName) {
             try {
+              const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
+              const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
               const clientFormConfig = await this.getEffectiveClientFormConfig(
                 req,
                 brand,
                 record,
                 formName,
-                false,
-                'edit'
+                hasEditAccess,
+                formMode
               );
               if (clientFormConfig) {
                 const reusableFormDefs = sails.config.reusableFormDefinitions;
                 record.metadata = await FormRecordConsistencyService.projectMetadataClientFormConfig(
                   record.metadata as AnyRecord,
                   clientFormConfig,
-                  'edit',
+                  formMode,
                   reusableFormDefs
                 );
               }
@@ -998,10 +1044,29 @@ export namespace Controllers {
             });
           }
 
-          // get the form config
+          const authoritativeFormName = String(currentRec.metaMetadata?.form ?? '').trim();
+          const requestedFormName = typeof formParam === 'string' ? formParam.trim() : '';
+          if (!authoritativeFormName) {
+            return this.sendResp(req, res, {
+              status: 500,
+              displayErrors: [{ detail: `The authoritative form is unavailable for OID: ${oid}` }],
+              v1: { message: `The authoritative form is unavailable for OID: ${oid}` },
+            });
+          }
+          if (requestedFormName && requestedFormName !== authoritativeFormName) {
+            return this.sendResp(req, res, {
+              status: 409,
+              displayErrors: [{ code: 'form-definition-changed' }],
+              v1: { message: TranslationService.t('form-definition-changed') },
+            });
+          }
+
+          // The stored workflow/form reference owns the delivered contract.
+          // A route parameter may confirm that identity but cannot select a
+          // different form for an existing record.
           form = (await FormsService.getForm(
             brand,
-            formParam,
+            authoritativeFormName,
             editMode,
             '',
             currentRec as RecordModel
@@ -1061,7 +1126,7 @@ export namespace Controllers {
           formConfig: mergedForm,
         });
 
-        const formFingerprint = await this.generatedFormFingerprint(req, brand, currentRec, recordType, formConfig);
+        const formFingerprint = await this.generatedFormFingerprint(req, brand, currentRec, recordType, form);
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
 
         // return the form config
@@ -1069,7 +1134,7 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             data: mergedForm,
             meta: {
-              formName: formParam,
+              formName: String(form.name ?? currentRec?.metaMetadata?.form ?? formParam ?? ''),
               recordType: recordType,
               oid: oid,
               workflow: recordData?.workflow,
@@ -1204,30 +1269,41 @@ export namespace Controllers {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const user = req.user;
-      const currentRec = await firstValueFrom(this.getRecord(oid));
-      if (!_.isEmpty(brand)) {
-        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
+      if (!oid || _.isEmpty(brand)) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+      }
 
-        if (hasEditAccess) {
-          const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
-          const saveRequest = this.mutationSaveContext(req, oid, 'delete');
-          if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
-          const response = await this.recordsService.delete(
-            oid,
-            false,
-            currentRec,
-            recordType,
-            user ?? {},
-            saveRequest.context
-          );
-          return this.sendLifecycleResult(req, res, response, TranslationService.t('failed-delete'));
-        } else {
+      let currentRec: RecordModel;
+      try {
+        currentRec = await firstValueFrom(this.getRecord(oid));
+      } catch {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+      }
+      if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+      }
+
+      try {
+        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
+        if (!hasEditAccess) {
           return this.sendResp(req, res, {
-            status: 500,
+            status: 403,
             displayErrors: [{ code: 'edit-error-no-permissions' }],
           });
         }
-      } else {
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
+        const saveRequest = this.mutationSaveContext(req, oid, 'delete');
+        if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+        const response = await this.recordsService.delete(
+          oid,
+          false,
+          currentRec,
+          recordType,
+          user ?? {},
+          saveRequest.context
+        );
+        return this.sendLifecycleResult(req, res, brand, oid, response, TranslationService.t('failed-delete'));
+      } catch {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'failed-delete' }],
@@ -1248,12 +1324,21 @@ export namespace Controllers {
       const formName = String(record.metaMetadata?.['form'] ?? '').trim();
       if (formName) {
         try {
-          const clientFormConfig = await this.getEffectiveClientFormConfig(req, brand, record, formName, false, 'edit');
+          const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
+          const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
+          const clientFormConfig = await this.getEffectiveClientFormConfig(
+            req,
+            brand,
+            record,
+            formName,
+            hasEditAccess,
+            formMode
+          );
           if (clientFormConfig) {
             record.metadata = await FormRecordConsistencyService.projectMetadataClientFormConfig(
               record.metadata as AnyRecord,
               clientFormConfig,
-              'edit',
+              formMode,
               sails.config.reusableFormDefinitions
             );
           }
@@ -1303,7 +1388,7 @@ export namespace Controllers {
       const saveRequest = this.mutationSaveContext(req, oid, 'restore');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       const response = await this.recordsService.restoreRecord(oid, user ?? {}, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, response, msgFailed);
+      return this.sendLifecycleResult(req, res, brand, oid, response, msgFailed);
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
@@ -1329,11 +1414,13 @@ export namespace Controllers {
       const saveRequest = this.mutationSaveContext(req, oid, 'purge');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {}, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, response, TranslationService.t('failed-destroy'));
+      return this.sendLifecycleResult(req, res, brand, oid, response, TranslationService.t('failed-destroy'));
     }
 
     public update(req: Sails.Req, res: Sails.Res) {
-      this.updateInternal(req, res).then(() => {});
+      void this.updateInternal(req, res).catch(error => {
+        this.sendUnexpectedSaveFailure(req, res, 'update', error);
+      });
     }
 
     private async updateInternal(req: Sails.Req, res: Sails.Res) {
@@ -1365,7 +1452,12 @@ export namespace Controllers {
       let metadata = req.body;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
-      const currentRec = await firstValueFrom(this.getRecord(oid));
+      let currentRec: RecordModel;
+      try {
+        currentRec = await firstValueFrom(this.getRecord(oid));
+      } catch {
+        return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+      }
       if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
       }

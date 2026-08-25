@@ -62,7 +62,9 @@ export namespace Controllers {
       const { query } = validated;
       const oid = query.oid as string;
       const record: RecordModel = await this.RecordsService.getMeta(oid);
-      await this.searchService.index(oid, record);
+      if (!(await this.searchService.index(oid, record))) {
+        throw new Error('Index request was not accepted.');
+      }
 
       return this.apiRespond(
         req,
@@ -109,7 +111,9 @@ export namespace Controllers {
         for (const responseRec of response.items) {
           const responseRecObj = responseRec as Record<string, unknown> & { redboxOid?: string };
           _.unset(responseRecObj, '_id');
-          await this.searchService.index(String(responseRecObj.redboxOid ?? ''), responseRecObj);
+          if (!(await this.searchService.index(String(responseRecObj.redboxOid ?? ''), responseRecObj))) {
+            throw new Error('Index request was not accepted.');
+          }
         }
       } while (itemsRead < totalItems);
 

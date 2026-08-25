@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+- Added concurrent-record modification protection across browser, API v1/v2,
+  datastream, internal-writer, and delete/restore/purge paths. Record types can
+  use compatible `last-write-wins`, migration `observe`, or enforcing `strict`
+  policy; supplied opaque ETags are always honored, successful writes advance
+  server-owned revisions, and bundled Mongo storage provides atomic CAS plus
+  permanent explicit-OID incarnation ownership. Generated forms are bound to
+  the authoritative form/workflow fingerprint, conflicts use private typed
+  projections, and unresolved in-memory browser work is protected on native
+  navigation in the shipped bootstrap-only form host. An SPA host can opt into
+  the same decision through the exported route guard, but must register it on
+  its form route. This release also adds lifecycle recovery, bounded
+  privacy-safe telemetry/counters, final revision/resolution audit fields, API
+  contract updates, Bruno fixtures, and an operator rollout/rollback runbook.
+  Tokenless legacy lifecycle and browser-create callers remain compatible in
+  `last-write-wins` and `observe`; `strict` requires the applicable exact tag or
+  authoritative browser form fingerprint. Supplied tokens are enforced in
+  every mode. Public API datastream download and listing now enforce the same
+  brand and view-access boundary as the metadata read, answering `404`/`403`
+  instead of serving an inaccessible OID. Mongo startup also requires unique
+  active, tombstone, and incarnation-ledger OID indexes before advertising the
+  concurrency capability.
+  Automatic browser rebasing now preserves edits made after its candidate
+  snapshot or during asynchronous control replacement, and failed retries
+  return to an export/reload/resubmit-capable state. A failed mandatory
+  post-commit reload is reported as saved-with-warnings with deferred
+  projection/index/audit reconciliation instead of as a clean save. Routine
+  successful concurrency telemetry is emitted at INFO rather than WARN.
 - Added authoritative server-side execution of form-defined validators across
   record create, metadata update, workflow transition, and awaited postSync
   secondary writes. The server independently resolves exact forms, conditional

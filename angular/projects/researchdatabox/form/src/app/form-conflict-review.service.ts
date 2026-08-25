@@ -1,5 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { FormFieldCompMapEntry, TranslationService } from '@researchdatabox/portal-ng-common';
+import {
+  FormFieldCompMapEntry,
+  ITranslationOptions,
+  TranslationService,
+} from '@researchdatabox/portal-ng-common';
 import {
   applyRecordValueChanges,
   canonicallyEqualRecordValues,
@@ -177,7 +181,11 @@ export class FormConflictReviewService {
     }
     const entryName = entry?.compConfigJson?.name?.trim();
     const fallbackSegment = [...path].reverse().find(segment => typeof segment === 'string');
-    const fallback = entryName || (typeof fallbackSegment === 'string' ? fallbackSegment : 'Changed field');
+    const fallback =
+      entryName ||
+      (typeof fallbackSegment === 'string'
+        ? fallbackSegment
+        : this.translateKey('@form-conflict-value-changed-field', 'Changed field'));
     return this.humanize(fallback);
   }
 
@@ -188,25 +196,32 @@ export class FormConflictReviewService {
     wholeValue: boolean
   ): FormConflictRenderedValue {
     if (!located.exists) {
-      return { summary: 'Not present', details: [] };
+      return { summary: this.translateKey('@form-conflict-value-not-present', 'Not present'), details: [] };
     }
     if (located.value === undefined || located.value === null) {
-      return { summary: 'No value', details: [] };
+      return { summary: this.translateKey('@form-conflict-value-no-value', 'No value'), details: [] };
     }
     if (located.value === '') {
-      return { summary: 'Empty text', details: [] };
+      return { summary: this.translateKey('@form-conflict-value-empty-text', 'Empty text'), details: [] };
     }
 
     if (Array.isArray(located.value)) {
       return {
-        summary: `${located.value.length} ${located.value.length === 1 ? 'item' : 'items'}`,
+        summary: this.translateKey(
+          '@form-conflict-value-item-count',
+          `${located.value.length} ${located.value.length === 1 ? 'item' : 'items'}`,
+          { count: located.value.length }
+        ),
         details: located.value.map(
           (value, index) => `${index + 1}. ${this.renderValueAtPath(value, [...path, index], entries)}`
         ),
       };
     }
     if (wholeValue && this.asRecord(located.value)) {
-      return { summary: '1 item', details: [this.renderValueAtPath(located.value, path, entries)] };
+      return {
+        summary: this.translateKey('@form-conflict-value-item-count', '1 item', { count: 1 }),
+        details: [this.renderValueAtPath(located.value, path, entries)],
+      };
     }
     return { summary: this.renderValueAtPath(located.value, path, entries), details: [] };
   }
@@ -222,7 +237,9 @@ export class FormConflictReviewService {
       return this.translate(option.label);
     }
     if (typeof value === 'string') {
-      return value.length > 0 ? value : 'Not provided';
+      return value.length > 0
+        ? value
+        : this.translateKey('@form-conflict-value-not-provided', 'Not provided');
     }
     if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
       return String(value);
@@ -234,7 +251,7 @@ export class FormConflictReviewService {
     if (record) {
       const recordEntries = Object.entries(record);
       if (recordEntries.length === 0) {
-        return 'Not provided';
+        return this.translateKey('@form-conflict-value-not-provided', 'Not provided');
       }
       return recordEntries
         .map(([key, child]) => {
@@ -309,12 +326,20 @@ export class FormConflictReviewService {
     return text || value;
   }
 
+  private translateKey(key: string, fallback: string, options?: ITranslationOptions): string {
+    const translated = this.translationService.t(key, fallback, options);
+    const text = translated?.toString().trim();
+    return text || fallback;
+  }
+
   private humanize(value: string): string {
     const spaced = value
       .replace(/[_-]+/g, ' ')
       .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
       .trim();
-    return spaced.length > 0 ? `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}` : 'Changed field';
+    return spaced.length > 0
+      ? `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`
+      : this.translateKey('@form-conflict-value-changed-field', 'Changed field');
   }
 
   private asRecord(value: unknown): Record<string, unknown> | null {

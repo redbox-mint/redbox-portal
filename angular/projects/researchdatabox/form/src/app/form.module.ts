@@ -86,6 +86,13 @@ import { FormDebugConfigTabComponent } from './form-debug/form-debug-config-tab.
 import { FormDebugEventsTabComponent } from './form-debug/form-debug-events-tab.component';
 import { RecordAuditLauncherComponent } from './record-audit/record-audit-launcher.component';
 import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
+
+/**
+ * Bootstrap-only form application hosted by the server-rendered edit/view
+ * pages. Those pages own navigation, so this module deliberately has no
+ * Angular Router configuration; native exits are protected by FormComponent's
+ * `beforeunload` listener.
+ */
 @NgModule({
   declarations: [
     FieldErrorSummaryComponent,
@@ -173,3 +180,7 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
   bootstrap: [FormComponent],
 })
 export class FormModule {}
+
+// Integration contract only: an SPA host must register this on its form route.
+export { formConflictCanDeactivateGuard } from './form-conflict-navigation.guard';
+export type { ConflictNavigationAwareForm } from './form-conflict-navigation.guard';

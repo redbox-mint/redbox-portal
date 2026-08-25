@@ -3259,6 +3259,11 @@
     "description": "Record save warning when the saved response projection fails",
     "contentFormat": "plain"
   },
+  "@record-save-post-commit-reconciliation-deferred": {
+    "category": "rdmp",
+    "description": "Record save warning when final projection, indexing, and audit reconciliation is deferred",
+    "contentFormat": "plain"
+  },
   "@record-save-not-dispatched": {
     "category": "rdmp",
     "description": "Record save error when the request could not be dispatched",
@@ -6562,6 +6567,11 @@
   "@form-typeahead-unable-to-fetch": {
     "category": "form",
     "description": "Error text shown when typeahead matches cannot be fetched",
+    "contentFormat": "plain"
+  },
+  "@form-server-sync-review-message": {
+    "category": "form",
+    "description": "Warning shown when authoritative server values cannot be safely synchronized into the current form",
     "contentFormat": "plain"
   },
   "@form-conflict-stale-title": {

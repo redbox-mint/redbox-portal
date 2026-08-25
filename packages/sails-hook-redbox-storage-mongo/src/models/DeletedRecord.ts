@@ -6,6 +6,7 @@ import {
   BeforeUpdate,
   DELETED_RECORD_LIFECYCLE_STATES,
   INITIAL_RECORD_REVISION,
+  isCanonicalSaveRequestId,
   isDeletedRecordLifecycleOperation,
   isDeletedRecordLifecycleState,
   isRecordRevision,
@@ -21,6 +22,7 @@ import {
  */
 const normalizeTombstoneLifecycle = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   record.revision = INITIAL_RECORD_REVISION;
+  delete record.incarnationId;
   if (!isDeletedRecordLifecycleState(record.lifecycleState)) {
     record.lifecycleState = 'deleted';
   }
@@ -33,6 +35,7 @@ const normalizeTombstoneLifecycle = (record: Record<string, unknown>, proceed: (
 /** Tombstone revisions only advance through the atomic tombstone primitives. */
 const stripTombstoneRevision = (record: Record<string, unknown>, proceed: (err?: Error) => void) => {
   delete record.revision;
+  delete record.incarnationId;
   if (record.deletedRecordMetadata && typeof record.deletedRecordMetadata === 'object') {
     delete (record.deletedRecordMetadata as Record<string, unknown>).revision;
   }
@@ -49,6 +52,10 @@ export class DeletedRecordClass {
   /** Sole authority for the current tombstone lifecycle revision. */
   @Attr({ type: 'number', defaultsTo: INITIAL_RECORD_REVISION, custom: isRecordRevision })
   public revision: number = INITIAL_RECORD_REVISION;
+
+  /** Assigned only by native lifecycle storage from the durable OID owner. */
+  @Attr({ type: 'string', custom: isCanonicalSaveRequestId })
+  public incarnationId?: string;
 
   @Attr({ type: 'string' })
   public brandId?: string;

@@ -53,6 +53,8 @@ export interface FormConflictState {
   readonly latestFormFingerprint?: string;
   readonly status: FormConflictStatus;
   readonly autoRetryAttempted: boolean;
+  /** An ambiguous retry may only recover through an authoritative reload. */
+  readonly retryRecovery?: 'reload-required';
 }
 
 export type FormConflictRebaseIneligibility =

@@ -229,10 +229,15 @@ export function compareThreeWayRecordValues(base: unknown, local: unknown, lates
   };
 }
 
-/** Clone latest and apply the supplied changes without mutating any snapshot. */
+/**
+ * Clone latest and apply the supplied structural changes without mutating any
+ * snapshot. Numeric deletes against the same array are applied from the
+ * highest index down, so a compatible `diffRecordValues()` result cannot
+ * shift a later delete onto the wrong item.
+ */
 export function applyRecordValueChanges<T>(latest: T, changes: readonly RecordValueChange[]): T {
   let result: unknown = cloneRecordValue(latest);
-  for (const change of changes) {
+  for (const change of changesInApplicationOrder(changes)) {
     if (change.path.length === 0) {
       result = change.kind === 'delete' ? undefined : cloneRecordValue(change.changed);
       continue;
@@ -240,6 +245,55 @@ export function applyRecordValueChanges<T>(latest: T, changes: readonly RecordVa
     result = applyChangeAtPath(result, change);
   }
   return result as T;
+}
+
+function changesInApplicationOrder(changes: readonly RecordValueChange[]): readonly RecordValueChange[] {
+  const arrayDeleteGroups = new Map<string, RecordValueChange[]>();
+  for (const change of changes) {
+    const key = arrayDeleteParentKey(change);
+    if (key === undefined) continue;
+    const group = arrayDeleteGroups.get(key) ?? [];
+    group.push(change);
+    arrayDeleteGroups.set(key, group);
+  }
+  for (const group of arrayDeleteGroups.values()) {
+    group.sort((first, second) => {
+      const firstIndex = first.path[first.path.length - 1] as number;
+      const secondIndex = second.path[second.path.length - 1] as number;
+      return secondIndex - firstIndex;
+    });
+    for (let index = 1; index < group.length; index += 1) {
+      const previousIndex = group[index - 1].path[group[index - 1].path.length - 1];
+      const currentIndex = group[index].path[group[index].path.length - 1];
+      if (previousIndex === currentIndex) {
+        throw new TypeError('A record change set cannot delete the same array index more than once.');
+      }
+    }
+  }
+
+  const emittedGroups = new Set<string>();
+  const ordered: RecordValueChange[] = [];
+  for (const change of changes) {
+    const key = arrayDeleteParentKey(change);
+    if (key === undefined) {
+      ordered.push(change);
+      continue;
+    }
+    if (emittedGroups.has(key)) continue;
+    emittedGroups.add(key);
+    ordered.push(...(arrayDeleteGroups.get(key) ?? []));
+  }
+  return ordered;
+}
+
+function arrayDeleteParentKey(change: RecordValueChange): string | undefined {
+  if (change.kind !== 'delete' || change.path.length === 0) return undefined;
+  const finalSegment = change.path[change.path.length - 1];
+  if (typeof finalSegment !== 'number') return undefined;
+  if (!Number.isSafeInteger(finalSegment) || finalSegment < 0) {
+    throw new TypeError('A record change array index must be a non-negative safe integer.');
+  }
+  return JSON.stringify(change.path.slice(0, -1));
 }
 
 /** Build latest-plus-local while retaining divergent overlaps for later review. */
@@ -282,7 +336,10 @@ function applyChangeAtPath(root: unknown, change: RecordValueChange): unknown {
   for (let index = 0; index < change.path.length - 1; index += 1) {
     const segment = change.path[index];
     const nextSegment = change.path[index + 1];
-    const existing = parent[segment];
+    // Never traverse an inherited container. In particular, `__proto__` on a
+    // normal object resolves to Object.prototype; reusing it would let an
+    // otherwise ordinary record change mutate the global prototype.
+    const existing = hasOwn(parent, segment) ? parent[segment] : undefined;
     const next = isContainer(existing) ? existing : containerFor(nextSegment);
     defineValue(parent, segment, next);
     parent = next as Record<string | number, unknown>;

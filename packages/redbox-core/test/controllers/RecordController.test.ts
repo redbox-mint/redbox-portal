@@ -79,7 +79,9 @@ describe('RecordController getWorkflowSteps', () => {
     controller = new Controllers.Record();
     controller.recordsService = {
       getMeta: sinon.stub(),
+      getDeletedRecordMeta: sinon.stub(),
       hasViewAccess: sinon.stub().returns(true),
+      hasEditAccess: sinon.stub().returns(true),
       getAttachments: sinon.stub(),
       getResolvedPermissionsSummary: sinon.stub(),
     } as any;
@@ -549,11 +551,15 @@ describe('RecordController getWorkflowSteps', () => {
     const latest = {
       redboxOid: 'oid-1',
       revision: 4,
-      metaMetadata: { brandId: 'brand-1' },
-      metadata: { title: 'Latest' },
+      metaMetadata: { brandId: 'brand-1', form: 'form-1' },
+      metadata: { title: 'Latest', hidden: 'must-not-return' },
     };
     (controller.recordsService.getMeta as sinon.SinonStub).resolves(latest);
     (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(true);
+    (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
+    (global as any).FormsService.getFormByName.returns(of({ configuration: { componentDefinitions: [] } }));
+    (global as any).FormsService.buildClientFormConfig.resolves({ componentDefinitions: [] });
+    (global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.resolves({ title: 'Latest' });
 
     expect(
       await (controller as any).projectSafeSaveFailure(
@@ -565,6 +571,10 @@ describe('RecordController getWorkflowSteps', () => {
     ).to.equal(true);
     expect(result.metadata).to.deep.equal({ title: 'Latest' });
     expect(result.concurrency?.revision).to.equal(4);
+    expect((global as any).FormsService.buildClientFormConfig.firstCall.args[1]).to.equal('view');
+    expect((global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.firstCall.args[2]).to.equal(
+      'view'
+    );
 
     (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
     result.setProjectedMetadata({ attackerCandidate: 'must-not-return' });
@@ -576,6 +586,78 @@ describe('RecordController getWorkflowSteps', () => {
         result
       )
     ).to.equal(false);
+    expect(result.metadata).to.equal(null);
+    expect(result.concurrency).to.equal(undefined);
+  });
+
+  it('never falls back to unrestricted conflict metadata when no safe form projection exists', async function () {
+    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000016');
+    result.outcome = 'not-saved';
+    result.problems = [
+      {
+        kind: 'conflict',
+        phase: 'pre-save',
+        issues: [{ code: 'record-revision-stale', message: '@record-revision-stale' }],
+      },
+    ];
+    result.setProjectedMetadata({ candidateSecret: true });
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      revision: 5,
+      metaMetadata: { brandId: 'brand-1', form: 'missing-form' },
+      metadata: { unrestrictedSecret: true },
+    });
+    (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(true);
+    (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
+    (global as any).FormsService.getFormByName.returns(of(undefined));
+
+    expect(
+      await (controller as any).projectSafeSaveFailure(
+        { user: { username: 'alice' } },
+        { id: 'brand-1' },
+        'oid-1',
+        result
+      )
+    ).to.equal(true);
+    expect(result.metadata).to.equal(null);
+    expect(result.concurrency?.revision).to.equal(5);
+  });
+
+  it('returns a private browser lifecycle conflict when tombstone view permission was revoked', async function () {
+    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000017');
+    result.outcome = 'not-saved';
+    result.problems = [
+      {
+        kind: 'conflict',
+        phase: 'persistence',
+        issues: [{ code: 'record-lifecycle-operation-conflict', message: '@record-lifecycle-operation-conflict' }],
+      },
+    ];
+    result.setProjectedMetadata({ staleDeletedValue: 'must-not-return' });
+    result.setConcurrencyMetadata({ revision: 7, entityTag: formatRecordEntityTag('oid-1', 7) });
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves(null);
+    (controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      revision: 13,
+      metaMetadata: { brandId: 'brand-1', form: 'form-1' },
+      metadata: { deletedSecret: 'must-not-return' },
+    });
+    (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await (controller as any).sendLifecycleResult(
+      { user: { username: 'alice' }, headers: { 'x-redbox-api-version': '2.0' } },
+      {},
+      { id: 'brand-1' },
+      'oid-1',
+      result,
+      'Lifecycle conflict'
+    );
+
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 403,
+      displayErrors: [{ code: 'not-authorised' }],
+    });
     expect(result.metadata).to.equal(null);
     expect(result.concurrency).to.equal(undefined);
   });
@@ -626,9 +708,10 @@ describe('RecordController getWorkflowSteps', () => {
     });
     expect(createArgs[1]).to.deep.equal({ name: 'dataset' });
     expect(createArgs[2]).to.equal(undefined);
+    expect(createArgs[3]).to.equal(form);
   });
 
-  it('fingerprints the authoritative record context and preserves target intent outside the delivered form', async function () {
+  it('fingerprints the authoritative delivered form and preserves target intent', async function () {
     const currentRec = {
       redboxOid: 'oid-1',
       revision: 3,
@@ -646,7 +729,7 @@ describe('RecordController getWorkflowSteps', () => {
     (controller.recordsService as any).hasEditAccess = sinon.stub().returns(true);
     (global as any).FormsService.getForm = sinon
       .stub()
-      .resolves({ id: 'other', name: 'client-selected', branding: 'brand-1', configuration: { type: 'dataset' } });
+      .resolves({ id: 'form-1', name: 'dataset-draft', branding: 'brand-1', configuration: { type: 'dataset' } });
     (global as any).FormsService.buildClientFormConfig.resolves({ type: 'dataset' });
     (global as any).FormsService.discoverValidationOperations.resolves([]);
     (global as any).RecordTypesService.get.returns(of(recordType));
@@ -656,7 +739,7 @@ describe('RecordController getWorkflowSteps', () => {
       param: sinon
         .stub()
         .callsFake((name: string) =>
-          name === 'oid' ? 'oid-1' : name === 'formName' ? 'client-selected' : name === 'name' ? 'dataset' : undefined
+          name === 'oid' ? 'oid-1' : name === 'formName' ? 'dataset-draft' : name === 'name' ? 'dataset' : undefined
         ),
       query: { edit: 'true', targetStep: 'published' },
       session: { branding: 'default' },
@@ -670,12 +753,47 @@ describe('RecordController getWorkflowSteps', () => {
     expect(args[0]).to.equal(currentRec);
     expect(args[1]).to.deep.equal(recordType);
     expect(args[2]).to.deep.equal(targetStep);
+    expect(args[3]).to.deep.include({ id: 'form-1', name: 'dataset-draft', branding: 'brand-1' });
     expect(sendResp.firstCall.args[2].meta).to.deep.include({
       formFingerprint: 'form-fingerprint-2',
       revision: 3,
       entityTag: formatRecordEntityTag('oid-1', 3),
     });
     expect(sendResp.firstCall.args[2].headers).to.deep.equal({ ETag: formatRecordEntityTag('oid-1', 3) });
+  });
+
+  it('rejects a caller-selected form that differs from the stored authoritative form', async function () {
+    const currentRec = {
+      redboxOid: 'oid-1',
+      revision: 3,
+      metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+      metadata: { title: 'Current' },
+      workflow: { stage: 'draft' },
+    };
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves(currentRec);
+    (controller.recordsService as any).hasEditAccess = sinon.stub().returns(true);
+    (controller.recordsService as any).getRecordFormFingerprint = sinon.stub();
+    (global as any).FormsService.getForm = sinon.stub();
+    const req = {
+      param: sinon
+        .stub()
+        .callsFake((name: string) =>
+          name === 'oid' ? 'oid-1' : name === 'formName' ? 'client-selected' : name === 'name' ? 'dataset' : undefined
+        ),
+      query: { edit: 'true' },
+      session: { branding: 'default' },
+      user: { username: 'alice', roles: [] },
+    } as unknown as Sails.Req;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.getForm(req, {} as Sails.Res);
+
+    expect(sendResp.firstCall.args[2]).to.deep.include({
+      status: 409,
+      displayErrors: [{ code: 'form-definition-changed' }],
+    });
+    expect((global as any).FormsService.getForm.notCalled).to.equal(true);
+    expect((controller.recordsService as any).getRecordFormFingerprint.notCalled).to.equal(true);
   });
 
   it('includes the authoritative revision on browser actionable list rows', async function () {
@@ -1016,7 +1134,10 @@ describe('RecordController getWorkflowSteps', () => {
     };
     const req = {
       body: { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
-      headers: { 'if-match': formatRecordEntityTag('oid-1', 4) },
+      headers: {
+        'if-match': formatRecordEntityTag('oid-1', 4),
+        'x-redbox-form-fingerprint': 'current-form-fingerprint',
+      },
       params,
       query: { operation: 'submit' },
       session: { branding: 'default' },
@@ -1056,6 +1177,7 @@ describe('RecordController getWorkflowSteps', () => {
     expect(updateMeta.firstCall.args[8].concurrency).to.deep.equal({
       entityTagSupplied: true,
       expectedRevision: 4,
+      formFingerprint: 'current-form-fingerprint',
     });
     expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
     expect(sendResp.calledOnce).to.equal(true);
@@ -1126,7 +1248,10 @@ describe('RecordController getWorkflowSteps', () => {
       {
         code: 'record-revision-stale',
         status: 412,
-        headers: { 'if-match': formatRecordEntityTag('oid-1', 4) },
+        headers: {
+          'if-match': formatRecordEntityTag('oid-1', 4),
+          'x-redbox-form-fingerprint': 'current-form-fingerprint',
+        },
       },
       {
         code: 'form-definition-changed',
@@ -1256,6 +1381,86 @@ describe('RecordController getWorkflowSteps', () => {
     expect(context.validationOperation).to.equal(undefined);
     expect(context.validationRequestParameters).to.deep.equal({ recordType: 'dataset' });
     expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
+  });
+
+  it('returns safe missing and authorization responses for browser update and delete lookups', async () => {
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    sinon.stub(controller as any, 'getApiVersion').returns('2.0');
+    const updateMeta = sinon.stub();
+    const deleteRecord = sinon.stub();
+    const getMeta = sinon.stub().resolves(null);
+    const hasEditAccess = sinon.stub().returns(true);
+    controller.recordsService = {
+      getMeta,
+      hasEditAccess,
+      updateMeta,
+      delete: deleteRecord,
+    } as any;
+    const baseRequest = {
+      body: { title: 'Rejected' },
+      headers: {},
+      params: { oid: 'oid-1' },
+      query: {},
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+      param: sinon.stub().withArgs('oid').returns('oid-1'),
+    } as unknown as Sails.Req;
+
+    await (controller as any).updateInternal(baseRequest, {} as Sails.Res);
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 404,
+      displayErrors: [{ code: 'missing-record' }],
+    });
+
+    sendResp.resetHistory();
+    await controller.delete(baseRequest, {} as Sails.Res);
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 404,
+      displayErrors: [{ code: 'missing-record' }],
+    });
+    expect(updateMeta.notCalled).to.equal(true);
+    expect(deleteRecord.notCalled).to.equal(true);
+
+    getMeta.resetBehavior();
+    getMeta.rejects(new Error('private lookup failure'));
+    sendResp.resetHistory();
+    await (controller as any).updateInternal(baseRequest, {} as Sails.Res);
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 404,
+      displayErrors: [{ code: 'missing-record' }],
+    });
+
+    sendResp.resetHistory();
+    await controller.delete(baseRequest, {} as Sails.Res);
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 404,
+      displayErrors: [{ code: 'missing-record' }],
+    });
+    expect(JSON.stringify(sendResp.args)).not.to.include('private lookup failure');
+
+    getMeta.resetBehavior();
+    getMeta.resolves({
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1', type: 'dataset' },
+      metadata: {},
+      authorization: {},
+    });
+    hasEditAccess.returns(false);
+    sendResp.resetHistory();
+    await (controller as any).updateInternal(baseRequest, {} as Sails.Res);
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 403,
+      displayErrors: [{ code: 'not-authorised' }],
+    });
+
+    sendResp.resetHistory();
+    await controller.delete(baseRequest, {} as Sails.Res);
+    expect(sendResp.firstCall.args[2]).to.deep.equal({
+      status: 403,
+      displayErrors: [{ code: 'edit-error-no-permissions' }],
+    });
+    expect(updateMeta.notCalled).to.equal(true);
+    expect(deleteRecord.notCalled).to.equal(true);
   });
 
   it('sanitizes unexpected browser update and transition failures', function () {

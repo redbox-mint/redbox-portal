@@ -1,11 +1,17 @@
+import { createHash, randomUUID } from 'node:crypto';
 import { Services as services } from '../CoreService';
 import { AttachmentAccessAuditAttributes, AttachmentMetadataAttributes } from '../waterline-models';
 import { createHash } from 'node:crypto';
 import { normalizeAttachmentStagingFileId } from '../AttachmentStagingIdentity';
 
 export namespace Services {
+  const STAGING_COORDINATOR_OID = '__global_attachment_staging__';
+  const STAGING_COORDINATOR_LEASE_MS = 5 * 60 * 1000;
   export type AttachmentAccessAction = 'access' | 'download' | 'list' | 'upload' | 'remove';
-  export type AttachmentMutationState = NonNullable<AttachmentMetadataAttributes['mutationState']>;
+  export type AttachmentMutationState = Exclude<
+    NonNullable<AttachmentMetadataAttributes['mutationState']>,
+    'cleanup-checking' | 'staging-available' | 'staging-preparing' | 'staging-cleanup'
+  >;
   export type AttachmentMetadataInput = Omit<AttachmentMetadataAttributes, 'id' | 'createdAt' | 'updatedAt'>;
   export type AttachmentAccessAuditInput = Omit<AttachmentAccessAuditAttributes, 'id' | 'createdAt' | 'updatedAt'>;
   export type AttachmentAccessEvent = {
@@ -21,11 +27,14 @@ export namespace Services {
     attachmentId: string;
     fileId: string;
     generation: string;
+    token: string;
+    phase?: 'checking' | 'removing';
   };
   export type AttachmentMetadataServiceContract = {
     upsert: (row: AttachmentMetadataInput) => Promise<void>;
     findByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
     findUnresolvedByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
+    findUnresolvedByStagingFileId: (fileId: string) => Promise<AttachmentMetadataAttributes[]>;
     findOneByStorageKey: (storageKey: string) => Promise<AttachmentMetadataAttributes | undefined>;
     prepareMutations: (rows: readonly AttachmentMetadataInput[]) => Promise<void>;
     markMutation: (
@@ -41,8 +50,14 @@ export namespace Services {
     ) => Promise<boolean>;
     hasCleanupClaim: (oid: string, fileId: string) => Promise<boolean>;
     claimExpiredStagingCleanup: (before: string, limit?: number) => Promise<AttachmentStagingCleanupClaim[]>;
+    beginStagingCleanup: (claim: AttachmentStagingCleanupClaim) => Promise<boolean>;
+    authorizeStagingCleanup: (claim: AttachmentStagingCleanupClaim) => Promise<boolean>;
     releaseStagingCleanup: (claim: AttachmentStagingCleanupClaim, code: string) => Promise<boolean>;
     completeStagingCleanup: (claim: AttachmentStagingCleanupClaim) => Promise<boolean>;
+    recoverStagingCleanup: (
+      claim: AttachmentStagingCleanupClaim,
+      stagedObjectExists: boolean
+    ) => Promise<'completed' | 'retained' | 'lost'>;
     rebindOid: (fromOid: string, toOid: string) => Promise<void>;
     markDeleted: (row: AttachmentMetadataInput) => Promise<void>;
     deleteByStorageKey: (storageKey: string) => Promise<void>;
@@ -54,13 +69,17 @@ export namespace Services {
       'upsert',
       'findByOid',
       'findUnresolvedByOid',
+      'findUnresolvedByStagingFileId',
       'findOneByStorageKey',
       'prepareMutations',
       'markMutation',
       'hasCleanupClaim',
       'claimExpiredStagingCleanup',
+      'beginStagingCleanup',
+      'authorizeStagingCleanup',
       'releaseStagingCleanup',
       'completeStagingCleanup',
+      'recoverStagingCleanup',
       'rebindOid',
       'markDeleted',
       'deleteByStorageKey',
@@ -145,6 +164,16 @@ export namespace Services {
       );
     }
 
+    public async findUnresolvedByStagingFileId(fileId: string): Promise<AttachmentMetadataAttributes[]> {
+      const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
+      if (!normalizedFileId) return [];
+      return (await AttachmentMetadata.find({
+        mutationFileId: normalizedFileId,
+        isJournal: true,
+        mutationState: { in: ['prepared', 'pending', 'incomplete', 'unknown'] },
+      })) as AttachmentMetadataAttributes[];
+    }
+
     public async prepareMutations(rows: readonly AttachmentMetadataInput[]): Promise<void> {
       for (const row of rows) {
         const attachmentId = String(row.attachmentId ?? '').trim();
@@ -157,18 +186,63 @@ export namespace Services {
         if (await this.hasCleanupClaim(oid, mutationFileId)) {
           throw new Error('Attachment staging cleanup already owns this mutation.');
         }
-        const storageKey = String(row.storageKey ?? '').trim();
-        const existing = (await AttachmentMetadata.findOne({ storageKey })) as AttachmentMetadataAttributes | null;
-        if (existing) {
-          throw new Error('Attachment mutation generation already exists.');
+        const token = randomUUID();
+        if (
+          !(await this.acquireStagingCoordinator(
+            oid,
+            mutationFileId,
+            attachmentId,
+            generation,
+            token,
+            'staging-preparing'
+          ))
+        ) {
+          throw new Error('Attachment staging identity is already reserved.');
         }
-        await this.upsert({
-          ...row,
-          fileId: this.journalFileId(attachmentId, generation, mutationFileId),
-          mutationFileId,
-          isJournal: true,
-          mutationState: 'prepared',
-        });
+        try {
+          // The coordinator is held until the prepared row is durable. Cleanup
+          // must acquire the same row before its reference scan, so it cannot
+          // pass that scan and remove the blob during this preparation window.
+          if (await this.hasCleanupClaim(oid, mutationFileId)) {
+            throw new Error('Attachment staging cleanup already owns this mutation.');
+          }
+          const storageKey = String(row.storageKey ?? '').trim();
+          const existing = (await AttachmentMetadata.findOne({ storageKey })) as AttachmentMetadataAttributes | null;
+          if (existing) {
+            throw new Error('Attachment mutation generation already exists.');
+          }
+          if (
+            !(await this.acquireStagingCoordinator(
+              oid,
+              mutationFileId,
+              attachmentId,
+              generation,
+              token,
+              'staging-preparing'
+            ))
+          ) {
+            throw new Error('Attachment staging preparation lease was lost.');
+          }
+          await this.upsert({
+            ...row,
+            fileId: this.journalFileId(attachmentId, generation, mutationFileId),
+            mutationFileId,
+            isJournal: true,
+            mutationState: 'prepared',
+          });
+        } finally {
+          if (
+            !(await this.releaseStagingCoordinator(
+              mutationFileId,
+              attachmentId,
+              generation,
+              token,
+              'staging-preparing'
+            ))
+          ) {
+            throw new Error('Attachment staging preparation ownership could not be released safely.');
+          }
+        }
       }
     }
 
@@ -204,8 +278,11 @@ export namespace Services {
         unknown: ['prepared', 'pending', 'applied'],
         cancelled: ['prepared', 'incomplete'],
         'cleanup-pending': ['cancelled'],
+        'cleanup-removing': [],
+        cleaned: [],
       };
-      if (!existing.mutationState || !allowedSources[mutationState].includes(existing.mutationState)) {
+      const existingState = existing.mutationState as AttachmentMutationState | undefined;
+      if (!existingState || !allowedSources[mutationState].includes(existingState)) {
         return false;
       }
       const updated = await AttachmentMetadata.updateOne({
@@ -226,15 +303,13 @@ export namespace Services {
     }
 
     public async hasCleanupClaim(oid: string, fileId: string): Promise<boolean> {
-      const normalizedOid = String(oid ?? '').trim();
-      const normalizedFileId = String(fileId ?? '').trim();
-      if (!normalizedOid || !normalizedFileId) return false;
+      const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
+      if (!String(oid ?? '').trim() || !normalizedFileId) return false;
       return Boolean(
         await AttachmentMetadata.findOne({
-          oid: normalizedOid,
           mutationFileId: normalizedFileId,
           isJournal: true,
-          mutationState: 'cleanup-pending',
+          mutationState: { in: ['cleanup-pending', 'cleanup-checking', 'cleanup-removing', 'cleaned'] },
         })
       );
     }
@@ -259,47 +334,233 @@ export namespace Services {
         const fileId = normalizeAttachmentStagingFileId(row.mutationFileId);
         const generation = String(row.generation ?? '').trim();
         if (!row.id || !oid || !attachmentId || !fileId || !generation) continue;
+        const token = randomUUID();
         const claimed = await AttachmentMetadata.updateOne({
           id: row.id,
           mutationState: 'cancelled',
           updatedAt: { '<': beforeIso },
         } as never).set({
           mutationState: 'cleanup-pending',
+          coordinationToken: token,
+          coordinationLeaseExpiresAt: this.coordinationLeaseExpiresAt(),
           lastAttemptAt: new Date().toISOString(),
           lastSafeErrorCode: undefined,
         });
-        if (claimed) claims.push({ oid, attachmentId, fileId, generation });
+        if (claimed) claims.push({ oid, attachmentId, fileId, generation, token, phase: 'checking' });
+      }
+      const staleQuery = AttachmentMetadata.find({
+        isJournal: true,
+        mutationState: { in: ['cleanup-pending', 'cleanup-checking', 'cleanup-removing'] },
+        coordinationLeaseExpiresAt: { '<': new Date().toISOString() },
+      }) as unknown as {
+        sort: (sort: unknown) => { limit: (count: number) => Promise<AttachmentMetadataAttributes[]> };
+      };
+      const staleRows = await staleQuery.sort([{ coordinationLeaseExpiresAt: 'ASC' }]).limit(boundedLimit);
+      for (const row of staleRows) {
+        if (claims.length >= boundedLimit) break;
+        const oid = String(row.oid ?? '').trim();
+        const attachmentId = String(row.attachmentId ?? '').trim();
+        const fileId = normalizeAttachmentStagingFileId(row.mutationFileId);
+        const generation = String(row.generation ?? '').trim();
+        const previousToken = String(row.coordinationToken ?? '').trim();
+        const previousLease = row.coordinationLeaseExpiresAt
+          ? new Date(row.coordinationLeaseExpiresAt).toISOString()
+          : undefined;
+        if (!row.id || !oid || !attachmentId || !fileId || !generation || !previousToken || !previousLease) continue;
+        const token = randomUUID();
+        const phase = row.mutationState === 'cleanup-removing' ? 'removing' : 'checking';
+        const reclaimed = await AttachmentMetadata.updateOne({
+          id: row.id,
+          mutationState: row.mutationState,
+          coordinationToken: previousToken,
+          coordinationLeaseExpiresAt: previousLease,
+        }).set({
+          mutationState: phase === 'removing' ? 'cleanup-removing' : 'cleanup-pending',
+          coordinationToken: token,
+          coordinationLeaseExpiresAt: this.coordinationLeaseExpiresAt(),
+          lastAttemptAt: new Date().toISOString(),
+        });
+        if (reclaimed) claims.push({ oid, attachmentId, fileId, generation, token, phase });
       }
       return claims;
     }
 
-    public async releaseStagingCleanup(claim: AttachmentStagingCleanupClaim, code: string): Promise<boolean> {
-      const safeCode = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(code) ? code : 'attachment-cleanup-failed';
+    public async beginStagingCleanup(claim: AttachmentStagingCleanupClaim): Promise<boolean> {
+      const normalized = this.normalizeCleanupClaim(claim);
+      if (!normalized) return false;
+      if (
+        !(await this.acquireStagingCoordinator(
+          normalized.oid,
+          normalized.fileId,
+          normalized.attachmentId,
+          normalized.generation,
+          normalized.token,
+          'staging-cleanup'
+        ))
+      ) {
+        return false;
+      }
       const updated = await AttachmentMetadata.updateOne({
-        oid: claim.oid,
-        attachmentId: claim.attachmentId,
-        generation: claim.generation,
-        mutationFileId: claim.fileId,
+        ...this.cleanupClaimCriteria(normalized),
         isJournal: true,
         mutationState: 'cleanup-pending',
       }).set({
+        mutationState: 'cleanup-checking',
+        coordinationLeaseExpiresAt: this.coordinationLeaseExpiresAt(),
+        lastAttemptAt: new Date().toISOString(),
+      });
+      if (updated) return true;
+      const alreadyBegun = await AttachmentMetadata.findOne({
+        ...this.cleanupClaimCriteria(normalized),
+        isJournal: true,
+        mutationState: { in: ['cleanup-checking', 'cleanup-removing'] },
+      });
+      if (alreadyBegun) return true;
+      await this.releaseStagingCoordinator(
+        normalized.fileId,
+        normalized.attachmentId,
+        normalized.generation,
+        normalized.token,
+        'staging-cleanup'
+      );
+      return false;
+    }
+
+    public async authorizeStagingCleanup(claim: AttachmentStagingCleanupClaim): Promise<boolean> {
+      const normalized = this.normalizeCleanupClaim(claim);
+      if (
+        !normalized ||
+        !(await this.acquireStagingCoordinator(
+          normalized.oid,
+          normalized.fileId,
+          normalized.attachmentId,
+          normalized.generation,
+          normalized.token,
+          'staging-cleanup'
+        ))
+      ) {
+        return false;
+      }
+      const updated = await AttachmentMetadata.updateOne({
+        ...this.cleanupClaimCriteria(normalized),
+        isJournal: true,
+        mutationState: 'cleanup-checking',
+      }).set({
+        mutationState: 'cleanup-removing',
+        coordinationLeaseExpiresAt: this.coordinationLeaseExpiresAt(),
+        lastAttemptAt: new Date().toISOString(),
+      });
+      if (updated) return true;
+      return Boolean(
+        await AttachmentMetadata.findOne({
+          ...this.cleanupClaimCriteria(normalized),
+          isJournal: true,
+          mutationState: 'cleanup-removing',
+        })
+      );
+    }
+
+    public async releaseStagingCleanup(claim: AttachmentStagingCleanupClaim, code: string): Promise<boolean> {
+      const normalized = this.normalizeCleanupClaim(claim);
+      if (!normalized) return false;
+      const safeCode = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(code) ? code : 'attachment-cleanup-failed';
+      const updated = await AttachmentMetadata.updateOne({
+        ...this.cleanupClaimCriteria(normalized),
+        isJournal: true,
+        mutationState: { in: ['cleanup-pending', 'cleanup-checking'] },
+      }).set({
         mutationState: 'cancelled',
+        coordinationLeaseExpiresAt: undefined,
         lastAttemptAt: new Date().toISOString(),
         lastSafeErrorCode: safeCode,
       });
-      return Boolean(updated);
+      const claimReleased =
+        Boolean(updated) ||
+        Boolean(
+          await AttachmentMetadata.findOne({
+            ...this.cleanupClaimCriteria(normalized),
+            isJournal: true,
+            mutationState: 'cancelled',
+          })
+        );
+      if (!claimReleased) return false;
+      return this.releaseStagingCoordinator(
+        normalized.fileId,
+        normalized.attachmentId,
+        normalized.generation,
+        normalized.token,
+        'staging-cleanup'
+      );
     }
 
     public async completeStagingCleanup(claim: AttachmentStagingCleanupClaim): Promise<boolean> {
-      const destroyed = await AttachmentMetadata.destroy({
-        oid: claim.oid,
-        attachmentId: claim.attachmentId,
-        generation: claim.generation,
-        mutationFileId: claim.fileId,
+      const normalized = this.normalizeCleanupClaim(claim);
+      if (!normalized) return false;
+      const completed = await AttachmentMetadata.updateOne({
+        ...this.cleanupClaimCriteria(normalized),
         isJournal: true,
-        mutationState: 'cleanup-pending',
+        mutationState: 'cleanup-removing',
+      }).set({
+        mutationState: 'cleaned',
+        coordinationLeaseExpiresAt: undefined,
+        lastAttemptAt: new Date().toISOString(),
+        lastSafeErrorCode: 'attachment-cleanup-completed',
       });
-      return Array.isArray(destroyed) ? destroyed.length > 0 : Boolean(destroyed);
+      const claimCompleted =
+        Boolean(completed) ||
+        Boolean(
+          await AttachmentMetadata.findOne({
+            ...this.cleanupClaimCriteria(normalized),
+            isJournal: true,
+            mutationState: 'cleaned',
+          })
+        );
+      if (!claimCompleted) return false;
+      return this.releaseStagingCoordinator(
+        normalized.fileId,
+        normalized.attachmentId,
+        normalized.generation,
+        normalized.token,
+        'staging-cleanup'
+      );
+    }
+
+    public async recoverStagingCleanup(
+      claim: AttachmentStagingCleanupClaim,
+      stagedObjectExists: boolean
+    ): Promise<'completed' | 'retained' | 'lost'> {
+      const normalized = this.normalizeCleanupClaim(claim);
+      if (
+        !normalized ||
+        !(await this.acquireStagingCoordinator(
+          normalized.oid,
+          normalized.fileId,
+          normalized.attachmentId,
+          normalized.generation,
+          normalized.token,
+          'staging-cleanup'
+        ))
+      ) {
+        return 'lost';
+      }
+      if (!stagedObjectExists) {
+        return (await this.completeStagingCleanup(normalized)) ? 'completed' : 'lost';
+      }
+      // Presence is ambiguous after a crash: it may be the old object or a
+      // newly uploaded object using the same key. Never delete or release the
+      // global identity in that state. The bounded lease allows another
+      // worker to reconcile it later, while hasCleanupClaim keeps preparation
+      // fail-closed until absence is observed.
+      const retained = await AttachmentMetadata.updateOne({
+        ...this.cleanupClaimCriteria(normalized),
+        isJournal: true,
+        mutationState: 'cleanup-removing',
+      }).set({
+        coordinationLeaseExpiresAt: this.coordinationLeaseExpiresAt(),
+        lastAttemptAt: new Date().toISOString(),
+        lastSafeErrorCode: 'attachment-cleanup-removal-unconfirmed',
+      });
+      return retained ? 'retained' : 'lost';
     }
 
     private journalFileId(attachmentId: string, generation: string, mutationFileId: string): string {
@@ -374,6 +635,215 @@ export namespace Services {
       }
     }
 
+    private async acquireStagingCoordinator(
+      oid: string,
+      fileId: string,
+      attachmentId: string,
+      generation: string,
+      token: string,
+      ownerState: 'staging-preparing' | 'staging-cleanup'
+    ): Promise<boolean> {
+      const identity = this.stagingCoordinatorIdentity(fileId);
+      const coordinator = await this.ensureStagingCoordinator(fileId, identity);
+      if (
+        coordinator.mutationState === ownerState &&
+        coordinator.coordinationToken === token &&
+        coordinator.attachmentId === attachmentId &&
+        coordinator.generation === generation
+      ) {
+        return this.renewStagingCoordinator(coordinator, token, ownerState);
+      }
+      const reclaiming = coordinator.mutationState !== 'staging-available';
+      if (reclaiming && !this.coordinationLeaseExpired(coordinator.coordinationLeaseExpiresAt)) return false;
+      const updated = await AttachmentMetadata.updateOne({
+        id: coordinator.id,
+        oid: STAGING_COORDINATOR_OID,
+        fileId: identity.fileId,
+        storageKey: identity.storageKey,
+        mutationFileId: fileId,
+        isJournal: true,
+        mutationState: coordinator.mutationState,
+        ...(reclaiming
+          ? {
+              coordinationToken: coordinator.coordinationToken,
+              coordinationLeaseExpiresAt: coordinator.coordinationLeaseExpiresAt,
+            }
+          : {}),
+      }).set({
+        mutationState: ownerState,
+        attachmentId,
+        generation,
+        coordinationToken: token,
+        coordinationLeaseExpiresAt: this.coordinationLeaseExpiresAt(),
+        lastAttemptAt: new Date().toISOString(),
+      });
+      if (updated) return true;
+      const raced = (await AttachmentMetadata.findOne({ storageKey: identity.storageKey })) as
+        | AttachmentMetadataAttributes
+        | null;
+      return Boolean(
+        this.isExpectedStagingCoordinator(raced, fileId, identity) &&
+        raced?.mutationState === ownerState &&
+        raced.coordinationToken === token &&
+        raced.attachmentId === attachmentId &&
+        raced.generation === generation
+      );
+    }
+
+    private async ensureStagingCoordinator(
+      fileId: string,
+      identity: { fileId: string; storageKey: string }
+    ): Promise<AttachmentMetadataAttributes> {
+      let coordinator = (await AttachmentMetadata.findOne({
+        storageKey: identity.storageKey,
+      })) as AttachmentMetadataAttributes | null;
+      if (!coordinator) {
+        try {
+          coordinator = (await AttachmentMetadata.create({
+            oid: STAGING_COORDINATOR_OID,
+            fileId: identity.fileId,
+            storageKey: identity.storageKey,
+            mutationFileId: fileId,
+            isJournal: true,
+            mutationState: 'staging-available',
+          }).fetch()) as AttachmentMetadataAttributes;
+        } catch (error) {
+          if (!this.isUniqueConstraintError(error)) throw error;
+          coordinator = (await AttachmentMetadata.findOne({
+            storageKey: identity.storageKey,
+          })) as AttachmentMetadataAttributes | null;
+        }
+      }
+      if (!coordinator || !this.isExpectedStagingCoordinator(coordinator, fileId, identity)) {
+        throw new Error('Attachment staging coordinator is unavailable or malformed.');
+      }
+      return coordinator;
+    }
+
+    private async releaseStagingCoordinator(
+      fileId: string,
+      attachmentId: string,
+      generation: string,
+      token: string,
+      ownerState: 'staging-preparing' | 'staging-cleanup'
+    ): Promise<boolean> {
+      const identity = this.stagingCoordinatorIdentity(fileId);
+      const coordinator = (await AttachmentMetadata.findOne({
+        storageKey: identity.storageKey,
+      })) as AttachmentMetadataAttributes | null;
+      if (!coordinator || !this.isExpectedStagingCoordinator(coordinator, fileId, identity)) return false;
+      const leaseExpiresAt = coordinator.coordinationLeaseExpiresAt;
+      if (
+        coordinator.mutationState !== ownerState ||
+        coordinator.coordinationToken !== token ||
+        coordinator.attachmentId !== attachmentId ||
+        coordinator.generation !== generation ||
+        !leaseExpiresAt ||
+        this.coordinationLeaseExpired(leaseExpiresAt)
+      ) {
+        return false;
+      }
+      const released = await AttachmentMetadata.updateOne({
+        id: coordinator.id,
+        oid: STAGING_COORDINATOR_OID,
+        fileId: identity.fileId,
+        storageKey: identity.storageKey,
+        mutationFileId: fileId,
+        isJournal: true,
+        mutationState: ownerState,
+        coordinationToken: token,
+        coordinationLeaseExpiresAt: leaseExpiresAt,
+        attachmentId,
+        generation,
+      }).set({
+        mutationState: 'staging-available',
+        coordinationToken: undefined,
+        coordinationLeaseExpiresAt: undefined,
+        lastAttemptAt: new Date().toISOString(),
+      });
+      return Boolean(released);
+    }
+
+    private stagingCoordinatorIdentity(fileId: string): { fileId: string; storageKey: string } {
+      const digest = createHash('sha256').update(fileId).digest('hex');
+      return {
+        fileId: `staging-coordinator-${digest}`,
+        storageKey: `journal/staging-coordinator/${digest}`,
+      };
+    }
+
+    private isExpectedStagingCoordinator(
+      row: AttachmentMetadataAttributes | null,
+      fileId: string,
+      identity: { fileId: string; storageKey: string }
+    ): boolean {
+      return Boolean(
+        row?.id &&
+        row.oid === STAGING_COORDINATOR_OID &&
+        row.fileId === identity.fileId &&
+        row.storageKey === identity.storageKey &&
+        row.mutationFileId === fileId &&
+        row.isJournal === true &&
+        (row.mutationState === 'staging-available' ||
+          row.mutationState === 'staging-preparing' ||
+          row.mutationState === 'staging-cleanup')
+      );
+    }
+
+    private coordinationLeaseExpiresAt(): string {
+      return new Date(Date.now() + STAGING_COORDINATOR_LEASE_MS).toISOString();
+    }
+
+    private coordinationLeaseExpired(value: unknown): boolean {
+      const expiresAt = new Date(value as string | number | Date).getTime();
+      return !Number.isFinite(expiresAt) || expiresAt <= Date.now();
+    }
+
+    private async renewStagingCoordinator(
+      coordinator: AttachmentMetadataAttributes,
+      token: string,
+      ownerState: 'staging-preparing' | 'staging-cleanup'
+    ): Promise<boolean> {
+      const currentExpiry = new Date(coordinator.coordinationLeaseExpiresAt as string | number | Date).getTime();
+      if (Number.isFinite(currentExpiry) && currentExpiry > Date.now() + 60_000) return true;
+      return Boolean(
+        await AttachmentMetadata.updateOne({
+          id: coordinator.id,
+          mutationState: ownerState,
+          coordinationToken: token,
+          coordinationLeaseExpiresAt: coordinator.coordinationLeaseExpiresAt,
+        }).set({
+          coordinationLeaseExpiresAt: this.coordinationLeaseExpiresAt(),
+          lastAttemptAt: new Date().toISOString(),
+        })
+      );
+    }
+
+    private isUniqueConstraintError(error: unknown): boolean {
+      const details = error as { code?: unknown; raw?: { code?: unknown }; cause?: { code?: unknown } } | null;
+      return details?.code === 'E_UNIQUE' || details?.raw?.code === 11000 || details?.cause?.code === 11000;
+    }
+
+    private normalizeCleanupClaim(claim: AttachmentStagingCleanupClaim): AttachmentStagingCleanupClaim | undefined {
+      const oid = String(claim?.oid ?? '').trim();
+      const attachmentId = this.optionalIdentifier(claim?.attachmentId);
+      const fileId = normalizeAttachmentStagingFileId(claim?.fileId);
+      const generation = this.optionalIdentifier(claim?.generation);
+      const token = this.optionalIdentifier(claim?.token);
+      if (!oid || !attachmentId || !fileId || !generation || !token) return undefined;
+      return { oid, attachmentId, fileId, generation, token, phase: claim.phase };
+    }
+
+    private cleanupClaimCriteria(claim: AttachmentStagingCleanupClaim): Record<string, unknown> {
+      return {
+        oid: claim.oid,
+        attachmentId: claim.attachmentId,
+        generation: claim.generation,
+        mutationFileId: claim.fileId,
+        coordinationToken: claim.token,
+      };
+    }
+
     private shouldIncrementAccessCount(action: string): boolean {
       return action === 'download' || action === 'access';
     }
@@ -423,6 +893,10 @@ export namespace Services {
       if (mutationFileId) {
         journal.mutationFileId = mutationFileId;
       }
+      const coordinationToken = this.optionalIdentifier(row.coordinationToken);
+      if (coordinationToken) {
+        journal.coordinationToken = coordinationToken;
+      }
       const attemptCount = this.optionalNumber(row.attemptCount);
       if (attemptCount !== undefined) {
         journal.attemptCount = attemptCount;
@@ -454,7 +928,13 @@ export namespace Services {
         value === 'incomplete' ||
         value === 'unknown' ||
         value === 'cancelled' ||
-        value === 'cleanup-pending'
+        value === 'cleanup-pending' ||
+        value === 'cleanup-checking' ||
+        value === 'cleanup-removing' ||
+        value === 'cleaned' ||
+        value === 'staging-available' ||
+        value === 'staging-preparing' ||
+        value === 'staging-cleanup'
         ? value
         : undefined;
     }

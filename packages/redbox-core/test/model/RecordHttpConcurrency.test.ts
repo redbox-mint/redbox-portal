@@ -49,6 +49,10 @@ describe('RecordHttpConcurrency', function () {
   });
 
   it('keeps create precondition-free while accepting browser form binding', function () {
+    expect(parsePublicRecordConcurrencyRequest({}, undefined, { formBacked: true })).to.deep.equal({
+      valid: true,
+      context: { entityTagSupplied: false },
+    });
     expect(
       parsePublicRecordConcurrencyRequest({ 'x-redbox-form-fingerprint': 'fingerprint-1' }, undefined, {
         formBacked: true,
@@ -84,6 +88,19 @@ describe('RecordHttpConcurrency', function () {
     expect(
       parsePublicRecordConcurrencyRequest({ 'x-redbox-form-fingerprint': 'contains whitespace' }, oid)
     ).to.deep.equal({ valid: true, context: { entityTagSupplied: false } });
+    expect(
+      parsePublicRecordConcurrencyRequest({ 'if-match': formatRecordEntityTag(oid, 7) }, oid, { formBacked: true })
+    ).to.deep.equal({
+      valid: false,
+      code: 'record-form-fingerprint-invalid',
+      header: 'X-ReDBox-Form-Fingerprint',
+    });
+    // Preserve the old-tab path: with neither concurrency header, strict mode
+    // reaches RecordsService and returns typed 428 review-only semantics.
+    expect(parsePublicRecordConcurrencyRequest({}, oid, { formBacked: true })).to.deep.equal({
+      valid: true,
+      context: { entityTagSupplied: false },
+    });
   });
 
   it('enforces public resolution labels and canonical request linkage', function () {

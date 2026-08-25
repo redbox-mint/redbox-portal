@@ -243,5 +243,62 @@ describe('record diff and concurrency rebase', () => {
       expect(latest).to.deep.equal({ keep: true, remove: 'latest' });
       expect(added).to.deep.equal({ nested: true });
     });
+
+    it('applies multiple array deletes against original indices without shift corruption', () => {
+      const latest = {
+        left: ['keep', 'remove-one', 'remove-two', 'remove-three'],
+        right: ['remove-four', 'remove-five'],
+      };
+      const desired = { left: ['keep'], right: [] as string[] };
+      const changes = diffRecordValues(latest, desired);
+
+      expect(changes.filter(change => change.kind === 'delete').map(change => change.path)).to.deep.equal([
+        ['left', 1],
+        ['left', 2],
+        ['left', 3],
+        ['right', 0],
+        ['right', 1],
+      ]);
+      expect(applyRecordValueChanges(latest, changes)).to.deep.equal(desired);
+      expect(latest).to.deep.equal({
+        left: ['keep', 'remove-one', 'remove-two', 'remove-three'],
+        right: ['remove-four', 'remove-five'],
+      });
+    });
+
+    it('rejects duplicate array-delete coordinates instead of silently deleting another item', () => {
+      expect(() =>
+        applyRecordValueChanges(
+          ['keep', 'first', 'second'],
+          [
+            { kind: 'delete', path: [1], original: 'first', changed: undefined },
+            { kind: 'delete', path: [1], original: 'first', changed: undefined },
+          ]
+        )
+      ).to.throw(TypeError, 'cannot delete the same array index');
+    });
+
+    it('never traverses inherited containers while applying hostile paths', () => {
+      const pollutedKey = `recordDiffPollution${Date.now()}`;
+      const objectPrototype = Object.prototype as Record<string, unknown>;
+
+      try {
+        const result = applyRecordValueChanges({}, [
+          {
+            kind: 'add',
+            path: ['__proto__', pollutedKey],
+            original: undefined,
+            changed: 'must stay local',
+          },
+        ]) as Record<string, unknown>;
+
+        expect(objectPrototype).not.to.have.own.property(pollutedKey);
+        expect(({} as Record<string, unknown>)[pollutedKey]).to.equal(undefined);
+        expect(result).to.have.own.property('__proto__');
+        expect(result['__proto__']).to.deep.equal({ [pollutedKey]: 'must stay local' });
+      } finally {
+        delete objectPrototype[pollutedKey];
+      }
+    });
   });
 });

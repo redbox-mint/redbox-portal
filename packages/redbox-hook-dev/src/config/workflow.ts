@@ -149,6 +149,22 @@ export const workflow: WorkflowConfig = {
             starting: true
         }
     },
+    "concurrencyTest": {
+        "draft": {
+            config: {
+                workflow: {
+                    stage: 'draft',
+                    stageLabel: 'Draft',
+                },
+                authorization: {
+                    viewRoles: ['Admin'],
+                    editRoles: ['Admin']
+                },
+                form: 'generated-view-only'
+            },
+            starting: true
+        }
+    },
     "party": {
         "draft": {
             config: {

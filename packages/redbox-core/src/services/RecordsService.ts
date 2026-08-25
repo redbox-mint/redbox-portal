@@ -23,7 +23,11 @@ import { concatMap, last, catchError } from 'rxjs/operators';
 import { DatastreamService } from '../DatastreamService';
 import { Datastream } from '../Datastream';
 import { QueueService } from '../QueueService';
-import { RecordAuditModel, RecordAuditActionType } from '../model/storage/RecordAuditModel';
+import {
+  RecordAuditModel,
+  RecordAuditActionType,
+  type RecordMutationAuditConcurrency,
+} from '../model/storage/RecordAuditModel';
 import { RecordsService } from '../RecordsService';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
@@ -61,6 +65,11 @@ import { Readable } from 'node:stream';
 import { createHash, randomUUID } from 'node:crypto';
 import type { FormAttributes } from '../waterline-models';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import { RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME } from '../config/agendaQueue.config';
+import {
+  emitRecordConcurrencyEvent,
+  type RecordConcurrencyPreconditionResult,
+} from '../RecordConcurrencyObservability';
 import type {
   InternalRecomputableMutationOptions,
   InternalRecordMutationAuthorization,
@@ -83,6 +92,7 @@ import {
   resolveStorageMutationState,
 } from '../RecordSaveResponse';
 import {
+  isRecordSaveRequestId,
   isRecordRevision,
   resolveRecordConcurrentModificationConfig,
   sanitizeRecordSaveIssue,
@@ -99,6 +109,9 @@ import {
   compareRecordValidationIdentifiers,
   RECORD_VALIDATION_REFERENCE_PATTERN,
   VALIDATION_OPERATION_NAME_PATTERN,
+  RECORD_CONCURRENCY_RESOLUTIONS,
+  RECORD_ENTITY_TAG_RECORD_ID_MAX_LENGTH,
+  type RecordConcurrencyResolution,
 } from '@researchdatabox/sails-ng-common';
 import { formatRecordEntityTag } from '../RecordEntityTag';
 import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
@@ -144,6 +157,32 @@ const RECORD_VALIDATION_ROLLOUT_AUDIT_SCHEMA_VERSION = 1;
 const RECORD_VALIDATION_STRICT_ALL_OPERATION = 'strict-all';
 const INTERNAL_RECORD_WRITER_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
 const INTERNAL_RECORD_MUTATION_MAX_ATTEMPTS = 3;
+const RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION = 1;
+const RECORD_POST_COMMIT_ACTOR_FIELD_MAX_LENGTH = 256;
+const RECORD_POST_COMMIT_ACTOR_FIELDS = ['id', 'username', 'name', 'service'] as const;
+
+export interface RecordPostCommitReconciliationData {
+  readonly schemaVersion: typeof RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION;
+  readonly oid: string;
+  readonly searchable: boolean;
+  readonly action: RecordAuditActionType;
+  readonly actor: Readonly<Partial<Record<(typeof RECORD_POST_COMMIT_ACTOR_FIELDS)[number], string>>>;
+  readonly resolution: RecordConcurrencyResolution;
+  readonly committedRevision?: number;
+}
+
+export interface RecordPostCommitReconciliationJob {
+  readonly attrs?: {
+    readonly data?: unknown;
+  };
+}
+
+interface DeferredSavePostHookDispatch {
+  readonly oid: string | null;
+  readonly recordType: unknown;
+  readonly mode: ActionExecutionOperation['mode'];
+  readonly user: unknown;
+}
 
 function safeValidationLogReference(value: unknown): string {
   if (typeof value !== 'string') return 'unavailable';
@@ -294,8 +333,9 @@ export namespace Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    *
    * @extensionPoint Register a subclass as `RecordsService` from a hook to replace or extend record behaviour while preserving the exported-method contract.
-   * @remarks This service depends on Waterline models and storage services after Sails bootstrap; avoid performing Sails-dependent work in the constructor.
+   * @remarks This service depends on Waterline models and storage services after Sails bootstrap; replacements must preserve authorization-before-disclosure, exact public preconditions, storage CAS, permanent OID incarnation ownership, and value-free concurrency observability.
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture
+   * @see https://github.com/redbox-mint/redbox-portal/wiki/Concurrent-Record-Modifications
    */
   export class Records extends services.Core.Service implements RecordsService {
     storageService!: StorageService;
@@ -308,6 +348,10 @@ export namespace Services {
       { expression: string; fn: (...args: unknown[]) => unknown }
     >();
     private readonly saveHookOperations = new WeakMap<RecordSaveTracker, ActionExecutionOperation>();
+    private readonly deferredSavePostHookDispatches = new WeakMap<
+      ActionExecutionOperation,
+      DeferredSavePostHookDispatch[]
+    >();
     private readonly hookExecutionSupervisor = createActionExecutionSupervisor();
     constructor() {
       super();
@@ -335,6 +379,39 @@ export namespace Services {
       recordOid?: string
     ): ActionExecutionOperation {
       return createActionExecutionOperation(mode, requestId, recordOid, this.hookExecutionDependencies());
+    }
+
+    private registerSaveHookOperation(
+      tracker: RecordSaveTracker,
+      operation: ActionExecutionOperation
+    ): ActionExecutionOperation {
+      this.saveHookOperations.set(tracker, operation);
+      this.deferredSavePostHookDispatches.set(operation, []);
+      return operation;
+    }
+
+    private flushDeferredSavePostHooks(operation: ActionExecutionOperation, record: AnyRecord): void {
+      const dispatches = this.deferredSavePostHookDispatches.get(operation);
+      this.deferredSavePostHookDispatches.delete(operation);
+      if (!dispatches || dispatches.length === 0) return;
+
+      for (const dispatch of dispatches) {
+        try {
+          this.hookCoordinator(operation, true).dispatchPost(
+            dispatch.oid,
+            record,
+            dispatch.recordType,
+            dispatch.mode,
+            dispatch.user
+          );
+        } catch (error) {
+          sails.log.error(
+            `Invalid post-save trigger configuration for ${dispatch.mode}; skipping fire-and-forget hook`,
+            error
+          );
+        }
+      }
+      operation.completedThrough = 'post-dispatch';
     }
 
     private hookCoordinator(
@@ -908,7 +985,13 @@ export namespace Services {
         return undefined;
       }
       const expectedRevision = tracker.context.concurrency?.expectedRevision;
-      if (mode === 'strict' && expectedRevision === undefined) {
+      // Missing-token policy is operation-independent: compatible and observe
+      // callers derive the semantic expected revision from the authoritative
+      // active/tombstone snapshot loaded above, while strict public callers
+      // must supply the exact representation tag. Internal callers likewise
+      // derive from that snapshot. Every path still passes `currentRevision`
+      // to the staged lifecycle CAS operations below.
+      if (mode === 'strict' && expectedRevision === undefined && tracker.context.routeFamily !== 'internal') {
         tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-precondition-required'));
         return undefined;
       }
@@ -919,31 +1002,91 @@ export namespace Services {
       return mode;
     }
 
-    private recordLifecycleStorageFailure(
+    private async recordLifecycleStorageFailure(
       tracker: RecordSaveTracker,
       oid: string,
-      mode: RecordConcurrentModificationMode,
-      currentRevision: number | undefined,
+      suppliedBrand: BrandingModel,
+      user: AnyRecord,
       response: StorageMutationResponse,
       phase: 'persistence' = 'persistence'
-    ): void {
-      this.setConcurrencyMetadata(tracker, oid, mode, currentRevision);
+    ): Promise<void> {
       const state = resolveStorageMutationState(response, this.logLegacyMutationResponse);
       if (state === 'unknown') {
+        tracker.setProjectedMetadata(null);
+        tracker.setConcurrencyMetadata(undefined);
         tracker.recordPrimaryUnknown(
           this.saveProblem(phase, '@record-save-record-lifecycle-unknown', 'system', 'record-lifecycle-unknown')
         );
+        this.logSaveOutcome(tracker, phase);
         return;
       }
+
+      // A certified lifecycle CAS loss invalidates every coordinate and
+      // authorization decision made before dispatch. Observe both collections
+      // again and authorize the representation that owns the OID now.
+      let active: AnyRecord | null = null;
+      let tombstone: DeletedRecordModel | null = null;
+      try {
+        const current = (await this.storageService.getMeta(oid)) as unknown;
+        active = this.isUsableRecordSnapshot(current) ? (current as AnyRecord) : null;
+      } catch {
+        active = null;
+      }
+      try {
+        tombstone = (await this.storageService.getTombstone?.(suppliedBrand, oid)) ?? null;
+      } catch {
+        tombstone = null;
+      }
+
+      const currentRecord =
+        active ??
+        (tombstone?.deletedRecordMetadata &&
+        this.isUsableRecordSnapshot(tombstone.deletedRecordMetadata as unknown as AnyRecord)
+          ? (tombstone.deletedRecordMetadata as unknown as AnyRecord)
+          : null);
+      const currentRevision = active
+        ? this.recordRevision(active)
+        : tombstone && isRecordRevision(tombstone.revision)
+          ? tombstone.revision
+          : undefined;
+      const authority = currentRecord ? await this.lifecycleAuthority(currentRecord, suppliedBrand) : undefined;
+      if (
+        !authority ||
+        currentRevision === undefined ||
+        !this.lifecycleEditAuthorized(tracker.context, authority, user, currentRecord!)
+      ) {
+        tracker.setProjectedMetadata(null);
+        tracker.setConcurrencyMetadata(undefined);
+        tracker.recordPrimaryNotApplied(
+          this.validationProblem('authorization', phase, RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+        );
+        this.logSaveOutcome(tracker, phase);
+        return;
+      }
+
+      let mode: RecordConcurrentModificationMode;
+      try {
+        mode = this.resolveConcurrencyMode(authority.recordType);
+      } catch {
+        tracker.setProjectedMetadata(null);
+        tracker.setConcurrencyMetadata(undefined);
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-concurrency-capability-unavailable'));
+        this.logSaveOutcome(tracker, phase);
+        return;
+      }
+      this.setConcurrencyMetadata(tracker, oid, mode, currentRevision);
+      tracker.setProjectedMetadata(this.recordObject(currentRecord!.metadata));
+
       if (response.nonApplicationReason === 'stale-revision') {
         tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-revision-stale'));
-      } else if (response.nonApplicationReason === 'deleted') {
+      } else if (!active && tombstone && response.nonApplicationReason === 'deleted') {
         tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-deleted'));
       } else if (response.nonApplicationReason === 'lifecycle-conflict') {
         tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-lifecycle-operation-conflict'));
       } else if (response.nonApplicationReason === 'capability-unavailable') {
         tracker.recordPrimaryNotApplied(this.concurrencyProblem(phase, 'record-concurrency-capability-unavailable'));
       } else if (response.nonApplicationReason === 'brand-mismatch' || response.nonApplicationReason === 'not-found') {
+        tracker.setProjectedMetadata(null);
         tracker.setConcurrencyMetadata(undefined);
         tracker.recordPrimaryNotApplied(
           this.validationProblem('authorization', phase, RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
@@ -958,6 +1101,7 @@ export namespace Services {
           )
         );
       }
+      this.logSaveOutcome(tracker, phase);
     }
 
     private async dispatchLifecycleMutation(
@@ -1031,12 +1175,12 @@ export namespace Services {
      *
      * Form delivery, create, and update all call this one routine so a value
      * issued with a generated form is compared against an identically composed
-     * value at save. Resolving the form here — rather than accepting one a
-     * caller already loaded — is what keeps the two sides identical. The
-     * fingerprint binds the source form delivered to the browser. A workflow
-     * target is authorized and resolved separately, and must not substitute
-     * its destination form during recomputation: the browser retains and
-     * resends the one source-form fingerprint across a transition.
+     * value at save. Form delivery supplies the exact authoritative form it
+     * loaded; save recomputation resolves that same identity again. The
+     * fingerprint binds the source form delivered to the browser plus the
+     * authoritative workflow-form contract. Binding the sorted workflow map
+     * keeps one fingerprint stable across a later transition while still
+     * detecting administrator changes to current or target form selection.
      *
      * The fingerprint describes configuration only: no record values, actor
      * identity, or generated defaults enter it.
@@ -1044,14 +1188,32 @@ export namespace Services {
     public async getRecordFormFingerprint(
       record: AnyRecord,
       recordType: RecordTypeLike,
-      _targetStep?: WorkflowStepLike
+      _targetStep?: WorkflowStepLike,
+      sourceForm?: FormAttributes
     ): Promise<string | undefined> {
       const metaMetadata = this.recordObject(record.metaMetadata);
       const formName = String(metaMetadata.form ?? '').trim();
       const brandId = String(metaMetadata.brandId ?? '').trim();
       if (!formName || !brandId) return undefined;
-      const form = await firstValueFrom(FormsService.getFormByName(formName, true, brandId));
+      const suppliedFormName = String(sourceForm?.name ?? '').trim();
+      const suppliedBrandId = String(sourceForm?.branding ?? '').trim();
+      if (sourceForm && (suppliedFormName !== formName || (!!suppliedBrandId && suppliedBrandId !== brandId))) {
+        return undefined;
+      }
+      const form = sourceForm ?? (await firstValueFrom(FormsService.getFormByName(formName, true, brandId)));
       if (!form) return undefined;
+      const workflowSteps = (await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType))) ?? [];
+      const workflowFormContract = workflowSteps
+        .map(step => {
+          const workflowStep = step as unknown as WorkflowStepLike;
+          return {
+            name: String(workflowStep.name ?? '').trim(),
+            starting: workflowStep['starting'] === true,
+            hidden: workflowStep['hidden'] === true,
+            config: workflowStep.config ?? {},
+          };
+        })
+        .sort((first, second) => first.name.localeCompare(second.name));
       return formatRecordFormFingerprint({
         recordType: String(recordType.name ?? '').trim(),
         recordValidation: recordType.recordValidation,
@@ -1059,6 +1221,7 @@ export namespace Services {
           stage: this.candidateWorkflowStep(record),
           form: String(metaMetadata.form ?? '').trim(),
         },
+        workflowFormContract,
         form: {
           id: form.id,
           name: form.name,
@@ -1932,23 +2095,175 @@ export namespace Services {
     };
 
     /**
-     * Structured save log.  Only safe scalars are recorded here; exception
-     * objects are logged separately so they never reach a typed issue.
+     * Structured save observation. Only bounded scalars are recorded; raw
+     * exception objects and record identifiers never enter the event.
      */
     private logSaveOutcome(tracker: RecordSaveTracker, phase: RecordSavePhase, error?: unknown): void {
       const result = tracker.result;
-      sails.log.warn(`${this.logHeader} record-save-outcome`, {
-        event: 'record-save-outcome',
-        operation: tracker.context.operation,
-        routeFamily: tracker.context.routeFamily,
-        requestId: result.requestId,
-        oid: result.oid,
+      const problem = result.problems[result.problems.length - 1];
+      const problemCode = problem?.issues[0]?.code;
+      const operation = tracker.context.operation ?? 'update';
+      const expectedRevision = tracker.context.concurrency?.expectedRevision;
+      const currentRevision = result.concurrency?.currentRevision ?? result.concurrency?.revision;
+      const precondition: RecordConcurrencyPreconditionResult =
+        operation === 'create'
+          ? 'not-applicable'
+          : problemCode === 'record-revision-stale'
+            ? 'stale'
+            : tracker.context.concurrency?.entityTagSupplied
+              ? 'matching'
+              : 'missing';
+      emitRecordConcurrencyEvent({
+        kind: 'save-outcome',
+        writeKind: operation,
+        routeFamily: tracker.context.routeFamily ?? 'internal',
+        ...(typeof tracker.context.validationRequestParameters?.recordType === 'string'
+          ? { recordType: safeValidationLogReference(tracker.context.validationRequestParameters.recordType) }
+          : {}),
         outcome: result.outcome,
         phase,
-        problemKind: result.problems[result.problems.length - 1]?.kind,
+        mode: result.concurrency?.mode,
+        expectedRevision,
+        currentRevision,
+        precondition,
+        problemKind: problem?.kind,
+        problemCode,
+        resolution: result.concurrency?.resolution ?? tracker.context.concurrency?.resolution,
+        ...(error === undefined ? {} : { errorType: safeExceptionType(error) }),
       });
-      if (error !== undefined) {
-        sails.log.error(`${this.logHeader} save failure detail (requestId ${result.requestId})`, error);
+    }
+
+    private postCommitAuditActor(user: AnyRecord): RecordPostCommitReconciliationData['actor'] {
+      const actor: Partial<Record<(typeof RECORD_POST_COMMIT_ACTOR_FIELDS)[number], string>> = {};
+      for (const field of RECORD_POST_COMMIT_ACTOR_FIELDS) {
+        const value = user[field];
+        if (typeof value !== 'string') continue;
+        const normalized = value.trim();
+        if (normalized) actor[field] = normalized.slice(0, RECORD_POST_COMMIT_ACTOR_FIELD_MAX_LENGTH);
+      }
+      return actor;
+    }
+
+    private postCommitReconciliationData(
+      oid: string,
+      searchable: boolean,
+      action: RecordAuditActionType,
+      user: AnyRecord,
+      tracker: RecordSaveTracker
+    ): RecordPostCommitReconciliationData | undefined {
+      if (!oid || oid.length > RECORD_ENTITY_TAG_RECORD_ID_MAX_LENGTH) return undefined;
+      const revision = tracker.result.concurrency?.revision ?? tracker.result.concurrency?.currentRevision;
+      return {
+        schemaVersion: RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION,
+        oid,
+        searchable,
+        action,
+        actor: this.postCommitAuditActor(user),
+        resolution:
+          tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+        ...(isRecordRevision(revision) ? { committedRevision: revision } : {}),
+      };
+    }
+
+    private parsePostCommitReconciliationJob(
+      job: RecordPostCommitReconciliationJob
+    ): RecordPostCommitReconciliationData | undefined {
+      const raw = job?.attrs?.data;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+      const data = raw as Record<string, unknown>;
+      const oid = typeof data.oid === 'string' ? data.oid.trim() : '';
+      const action = data.action;
+      const resolution = data.resolution;
+      if (
+        data.schemaVersion !== RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION ||
+        !oid ||
+        oid.length > RECORD_ENTITY_TAG_RECORD_ID_MAX_LENGTH ||
+        typeof data.searchable !== 'boolean' ||
+        !Object.values(RecordAuditActionType).includes(action as RecordAuditActionType) ||
+        !RECORD_CONCURRENCY_RESOLUTIONS.includes(resolution as RecordConcurrencyResolution)
+      ) {
+        return undefined;
+      }
+      const actor = data.actor && typeof data.actor === 'object' && !Array.isArray(data.actor)
+        ? this.postCommitAuditActor(data.actor as AnyRecord)
+        : {};
+      return {
+        schemaVersion: RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION,
+        oid,
+        searchable: data.searchable,
+        action: action as RecordAuditActionType,
+        actor,
+        resolution: resolution as RecordConcurrencyResolution,
+        ...(isRecordRevision(data.committedRevision) ? { committedRevision: data.committedRevision } : {}),
+      };
+    }
+
+    private async enqueuePostCommitReconciliation(
+      oid: string,
+      searchable: boolean,
+      action: RecordAuditActionType,
+      user: AnyRecord,
+      tracker: RecordSaveTracker
+    ): Promise<boolean> {
+      const data = this.postCommitReconciliationData(oid, searchable, action, user, tracker);
+      if (!data || !this.queueService || typeof this.queueService.now !== 'function') return false;
+      try {
+        await this.queueService.now(RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME, data);
+        return true;
+      } catch (error) {
+        sails.log.warn(`${this.logHeader} durable post-commit reconciliation handoff failed`, {
+          event: 'record_post_commit_reconciliation_handoff_failed',
+          error_type: safeExceptionType(error),
+        });
+        return false;
+      }
+    }
+
+    public async reconcilePostCommitSave(job: RecordPostCommitReconciliationJob): Promise<void> {
+      const data = this.parsePostCommitReconciliationJob(job);
+      if (!data) throw new Error('Invalid record post-commit reconciliation job.');
+      try {
+        const reloaded = await this.getMeta(data.oid);
+        if (!this.isUsableRecordSnapshot(reloaded)) {
+          throw new Error('Committed record reload did not return a usable record.');
+        }
+        const persistedRecord = reloaded as unknown as AnyRecord;
+        if (data.searchable) {
+          if (!this.searchService || typeof this.searchService.index !== 'function') {
+            throw new Error('Record search indexing is unavailable.');
+          }
+          const indexAccepted = await this.searchService.index(data.oid, persistedRecord);
+          if (!indexAccepted) {
+            throw new Error('Record search indexing was not accepted.');
+          }
+        }
+        const auditingEnabled = sails.config.record.auditing.enabled as unknown;
+        if (auditingEnabled === true || auditingEnabled === 'true') {
+          const createAudit = this.storageService?.createRecordAudit;
+          if (typeof createAudit !== 'function') {
+            throw new Error('Durable record audit storage is unavailable.');
+          }
+          const revision = this.recordRevision(persistedRecord) ?? data.committedRevision;
+          const audit = new RecordAuditModel(data.oid, persistedRecord, { ...data.actor }, data.action, undefined, {
+            ...(revision !== undefined ? { revision } : {}),
+            resolution: data.resolution,
+          });
+          const response = await createAudit.call(this.storageService, audit);
+          if (!this.auditPersistenceSucceeded(response)) {
+            throw new Error('Durable record audit storage rejected the reconciliation audit.');
+          }
+        }
+        sails.log.info(`${this.logHeader} post-commit reconciliation completed`, {
+          event: 'record_post_commit_reconciliation_completed',
+          action: data.action,
+          searchable: data.searchable,
+        });
+      } catch (error) {
+        sails.log.warn(`${this.logHeader} post-commit reconciliation failed`, {
+          event: 'record_post_commit_reconciliation_failed',
+          error_type: safeExceptionType(error),
+        });
+        throw new Error('Record post-commit reconciliation failed.');
       }
     }
 
@@ -1959,12 +2274,10 @@ export namespace Services {
       searchable: boolean
     ): Promise<RecordSaveResponse> {
       const operation = this.saveHookOperations.get(tracker);
-      if (operation && (operation.detachedPending ?? 0) > 0) {
-        this.dispatchHookOperation(operation);
-      }
       const oid = String(tracker.result.oid ?? '').trim();
       if (!tracker.result.wasPersisted() || !oid) {
         if (operation) {
+          this.deferredSavePostHookDispatches.delete(operation);
           this.completeHookOperation(operation, true);
         }
         return tracker.toResponse();
@@ -1972,13 +2285,49 @@ export namespace Services {
 
       let persistedRecord: AnyRecord;
       try {
-        persistedRecord = (await this.getMeta(oid)) as unknown as AnyRecord;
+        const reloaded = await this.getMeta(oid);
+        if (!this.isUsableRecordSnapshot(reloaded)) {
+          throw new TypeError('Committed record reload did not return a usable record.');
+        }
+        persistedRecord = reloaded as unknown as AnyRecord;
       } catch (error) {
-        sails.log.warn(`${this.logHeader} unable to reload committed record before side effects`, error);
+        const handedOff = await this.enqueuePostCommitReconciliation(oid, searchable, action, user, tracker);
+        // None of the adapter or hook projections can be trusted without the
+        // authoritative reload. Retain only the confirmed persistence and
+        // concurrency coordinates used for deferred reconciliation.
+        tracker.setProjectedMetadata(null);
+        tracker.result.data = undefined;
+        tracker.result.details = undefined;
+        tracker.result.totalItems = 0;
+        tracker.result.items = [];
+        tracker.result.workspaceOid = undefined;
+        tracker.result.workspaceData = undefined;
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'response',
+            '@record-save-post-commit-reconciliation-deferred',
+            'system',
+            'record-post-commit-reconciliation-deferred'
+          )
+        );
+        sails.log.warn(`${this.logHeader} unable to reload committed record before side effects`, {
+          event: 'record_post_commit_reconciliation_deferred',
+          error_type: safeExceptionType(error),
+          handoff: handedOff ? 'durable' : 'unknown',
+        });
         if (operation) {
+          this.deferredSavePostHookDispatches.delete(operation);
           this.completeHookOperation(operation, true);
         }
+        this.logSaveOutcome(tracker, 'response', error);
         return tracker.toResponse();
+      }
+
+      if (operation) {
+        this.flushDeferredSavePostHooks(operation, persistedRecord);
+        if ((operation.detachedPending ?? 0) > 0) {
+          this.dispatchHookOperation(operation);
+        }
       }
 
       const finalRevision = this.recordRevision(persistedRecord);
@@ -1992,12 +2341,23 @@ export namespace Services {
         });
       }
 
-      if (searchable && this.searchService && typeof this.searchService.index === 'function') {
-        void Promise.resolve()
-          .then(() => this.searchService.index(oid, persistedRecord))
-          .catch((error: unknown) => {
-            sails.log.error(`${this.logHeader} index submission failed`, error);
+      if (searchable) {
+        try {
+          if (!this.searchService || typeof this.searchService.index !== 'function') {
+            throw new Error('Record search indexing is unavailable.');
+          }
+          if (!(await this.searchService.index(oid, persistedRecord))) {
+            throw new Error('Index request was not accepted.');
+          }
+        } catch (error) {
+          tracker.recordPostPersistenceProblem(
+            this.saveProblem('post-save', '@record-save-index-failed', 'processing', 'record-index-failed')
+          );
+          sails.log.warn(`${this.logHeader} post-save index submission failed`, {
+            event: 'record_post_save_index_failed',
+            error_type: safeExceptionType(error),
           });
+        }
       }
       const submitAudit = (detachedFinalization: DetachedAuditFinalization = 'complete'): void => {
         if (operation?.detachedAuditFinalized) {
@@ -2025,7 +2385,11 @@ export namespace Services {
                     partial: detachedFinalization === 'grace-expired',
                     detachedFinalization,
                   })
-                : undefined
+                : undefined,
+              {
+                ...(finalRevision !== undefined ? { revision: finalRevision } : {}),
+                resolution: concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+              }
             )
           )
           .catch((error: unknown) => {
@@ -2053,6 +2417,7 @@ export namespace Services {
       } else {
         submitAudit('complete');
       }
+      this.logSaveOutcome(tracker, 'response');
       return tracker.toResponse();
     }
 
@@ -2900,6 +3265,7 @@ export namespace Services {
       'getRecords',
       'exportAllPlans',
       'storeRecordAudit',
+      'reconcilePostCommitSave',
       'exists',
       'transitionWorkflowStep',
       'setWorkflowStepRelatedMetadata',
@@ -3043,12 +3409,14 @@ export namespace Services {
         targetStep,
         targetWasRequested
       );
-      const hookOperation = this.createHookExecutionOperation(
-        'onCreate',
-        tracker.context.requestId,
-        String(recordObj.redboxOid ?? '').trim() || undefined
+      const hookOperation = this.registerSaveHookOperation(
+        tracker,
+        this.createHookExecutionOperation(
+          'onCreate',
+          tracker.context.requestId,
+          String(recordObj.redboxOid ?? '').trim() || undefined
+        )
       );
-      this.saveHookOperations.set(tracker, hookOperation);
 
       if (!parsedTarget.ok) {
         tracker.recordPrimaryNotApplied(
@@ -3148,23 +3516,19 @@ export namespace Services {
             this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, committedRevision);
           }
           hookOperation.completedThrough = 'persistence';
-          if (
-            this.searchService &&
-            typeof this.searchService.index === 'function' &&
+          return await this.finishSave(
+            tracker,
+            userObj,
+            RecordAuditActionType.created,
             recordTypeObj.searchable !== false
-          ) {
-            void Promise.resolve(this.searchService.index(createOid, recordObj)).catch((error: unknown) => {
-              sails.log.error(`${this.logHeader} index submission failed`, error);
-            });
-          }
-          try {
-            await this.auditRecord(createOid, recordObj, userObj, RecordAuditActionType.created);
-          } catch (error) {
-            sails.log.error(`${this.logHeader} persistence audit submission failed`, error);
-          }
+          );
         } else if (mutationState === 'not-applied') {
           tracker.recordPrimaryNotApplied(
-            this.saveProblem('persistence', 'The record was not saved.', 'processing', 'save-not-applied')
+            createResponse.nonApplicationReason === 'lifecycle-conflict'
+              ? this.concurrencyProblem('persistence', 'record-lifecycle-operation-conflict')
+              : createResponse.nonApplicationReason === 'capability-unavailable'
+                ? this.concurrencyProblem('persistence', 'record-concurrency-capability-unavailable')
+                : this.saveProblem('persistence', 'The record was not saved.', 'processing', 'save-not-applied')
           );
         } else {
           tracker.recordPrimaryUnknown(
@@ -3246,7 +3610,9 @@ export namespace Services {
       }
 
       let currentFormFingerprint: string | undefined;
-      if (tracker.context.concurrency?.formFingerprint) {
+      const suppliedFormFingerprint = tracker.context.concurrency?.formFingerprint;
+      const formFingerprintRequired = tracker.context.routeFamily === 'browser' && concurrencyMode === 'strict';
+      if (suppliedFormFingerprint || formFingerprintRequired) {
         try {
           currentFormFingerprint = await this.getRecordFormFingerprint(
             recordObj,
@@ -3267,7 +3633,7 @@ export namespace Services {
           this.logSaveOutcome(tracker, 'pre-save');
           return tracker.toResponse();
         }
-        if (tracker.context.concurrency.formFingerprint !== currentFormFingerprint) {
+        if (!suppliedFormFingerprint || suppliedFormFingerprint !== currentFormFingerprint) {
           this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, undefined, currentFormFingerprint);
           tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'form-definition-changed'));
           this.logSaveOutcome(tracker, 'pre-save');
@@ -3635,7 +4001,6 @@ export namespace Services {
           }
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordTypeObj, 'onCreate', userObj, hookOperation);
-          hookOperation.completedThrough = 'post-dispatch';
 
           if (targetStepName) {
             try {
@@ -3762,7 +4127,11 @@ export namespace Services {
         if (primaryMutationState === 'not-applied') {
           await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'cancelled', 'save-not-applied');
           tracker.recordPrimaryNotApplied(
-            this.saveProblem('persistence', 'The record was not saved.', 'processing', 'save-not-applied')
+            createResponse.nonApplicationReason === 'lifecycle-conflict'
+              ? this.concurrencyProblem('persistence', 'record-lifecycle-operation-conflict')
+              : createResponse.nonApplicationReason === 'capability-unavailable'
+                ? this.concurrencyProblem('persistence', 'record-concurrency-capability-unavailable')
+                : this.saveProblem('persistence', 'The record was not saved.', 'processing', 'save-not-applied')
           );
         } else {
           await this.markAttachmentPlanState(createOid, createAttachmentPlan, 'unknown', 'primary-persistence-unknown');
@@ -3991,7 +4360,24 @@ export namespace Services {
           triggerPostSaveTriggers: options.triggerPostSaveTriggers,
           causedByRequestId,
         });
-        if (!this.isInternalRevisionConflict(response) || attempt === maxAttempts) {
+        const revisionConflict = this.isInternalRevisionConflict(response);
+        if (revisionConflict) {
+          emitRecordConcurrencyEvent({
+            kind: 'internal-retry',
+            routeFamily: 'internal',
+            writeKind: 'update',
+            phase: 'persistence',
+            outcome: attempt === maxAttempts ? 'exhausted' : 'attempted',
+            mode: response.concurrency?.mode,
+            expectedRevision: revision,
+            currentRevision: response.concurrency?.currentRevision ?? response.concurrency?.revision,
+            precondition: 'stale',
+            problemKind: 'conflict',
+            problemCode: 'record-revision-stale',
+            resolution: 'internal',
+          });
+        }
+        if (!revisionConflict || attempt === maxAttempts) {
           return response;
         }
         causedByRequestId = response.requestId;
@@ -4024,13 +4410,15 @@ export namespace Services {
           operation: context?.operation ?? (transitionRequested ? 'transition' : 'update'),
         })
       );
-      const hookOperation = this.createHookExecutionOperation(
-        transitionRequested ? 'onTransitionWorkflow' : 'onUpdate',
-        tracker.context.requestId,
-        oid
+      const hookOperation = this.registerSaveHookOperation(
+        tracker,
+        this.createHookExecutionOperation(
+          transitionRequested ? 'onTransitionWorkflow' : 'onUpdate',
+          tracker.context.requestId,
+          oid
+        )
       );
-      this.saveHookOperations.set(tracker, hookOperation);
-      let brandObj = brand as BrandingModel;
+      const brandObj = brand as BrandingModel;
       const requestedRecord = _.cloneDeep(record) as AnyRecord;
       let originalRecord: AnyRecord | undefined;
       try {
@@ -4204,13 +4592,6 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
-      if (expectedRevision !== undefined && expectedRevision !== currentRevision) {
-        this.setConcurrencyMetadata(tracker, oid, concurrencyMode, currentRevision);
-        tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-revision-stale'));
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
-      }
-
       let currentFormFingerprint: string | undefined;
       if (tracker.context.concurrency?.formFingerprint) {
         try {
@@ -4233,14 +4614,22 @@ export namespace Services {
           this.logSaveOutcome(tracker, 'pre-save');
           return tracker.toResponse();
         }
-        if (tracker.context.concurrency.formFingerprint !== currentFormFingerprint) {
-          this.setConcurrencyMetadata(tracker, oid, concurrencyMode, currentRevision, currentFormFingerprint);
-          tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'form-definition-changed'));
-          this.logSaveOutcome(tracker, 'pre-save');
-          return tracker.toResponse();
-        }
       }
       this.setConcurrencyMetadata(tracker, oid, concurrencyMode, currentRevision, currentFormFingerprint);
+
+      // Revision remains the first conflict diagnostic, but the latest form
+      // fingerprint is computed above so the browser can decide whether the
+      // returned representation is safe to rebase.
+      if (expectedRevision !== undefined && expectedRevision !== currentRevision) {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'record-revision-stale'));
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      if (currentFormFingerprint && tracker.context.concurrency?.formFingerprint !== currentFormFingerprint) {
+        tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'form-definition-changed'));
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
 
       if (!parsedTarget.ok) {
         tracker.recordPrimaryNotApplied(
@@ -4501,6 +4890,18 @@ export namespace Services {
             }
             const latestRevision = this.recordRevision(latestRecord);
             if (latestRevision !== undefined) currentRevision = latestRevision;
+            if (tracker.context.concurrency?.formFingerprint) {
+              try {
+                currentFormFingerprint = await this.getRecordFormFingerprint(
+                  latestRecord,
+                  recordType as RecordTypeLike
+                );
+              } catch {
+                // The mutation is already certified not-applied. Omitting an
+                // unprovable fingerprint safely disables browser rebase.
+                currentFormFingerprint = undefined;
+              }
+            }
           } catch {
             // A deleted/inaccessible latest state deliberately contributes no
             // record data; the adapter's bounded no-write reason remains safe.
@@ -4784,7 +5185,6 @@ export namespace Services {
           sails.log.verbose('RecordService - updateMeta - calling triggerPostSaveTriggers');
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj, hookOperation);
-          hookOperation.completedThrough = 'post-dispatch';
 
           if (transitionRequested) {
             try {
@@ -4984,8 +5384,12 @@ export namespace Services {
       if (
         !journal ||
         typeof journal.claimExpiredStagingCleanup !== 'function' ||
+        typeof journal.findUnresolvedByStagingFileId !== 'function' ||
+        typeof journal.beginStagingCleanup !== 'function' ||
+        typeof journal.authorizeStagingCleanup !== 'function' ||
         typeof journal.releaseStagingCleanup !== 'function' ||
-        typeof journal.completeStagingCleanup !== 'function'
+        typeof journal.completeStagingCleanup !== 'function' ||
+        typeof journal.recoverStagingCleanup !== 'function'
       ) {
         return summary;
       }
@@ -4999,6 +5403,7 @@ export namespace Services {
       summary.claimed = claims.length;
 
       for (const claim of claims) {
+        let removalAuthorized = false;
         try {
           const stagedFileId = normalizeAttachmentStagingFileId(claim.fileId);
           if (!stagedFileId) {
@@ -5006,25 +5411,58 @@ export namespace Services {
             summary.failed += 1;
             continue;
           }
-          let currentRecord: AnyRecord | null;
+          // Hold the durable staging-identity coordinator across every
+          // reference check and the eventual remove. A concurrent prepare
+          // cannot insert behind the scan while this ownership is held.
+          if (!(await journal.beginStagingCleanup(claim))) {
+            await journal.releaseStagingCleanup(claim, 'attachment-cleanup-claim-lost');
+            summary.failed += 1;
+            continue;
+          }
+          const unresolved = await journal.findUnresolvedByStagingFileId(stagedFileId);
+          const protectedByGeneration = unresolved.some(
+            row =>
+              normalizeAttachmentStagingFileId(row.mutationFileId) === stagedFileId &&
+              String(row.generation ?? '') !== claim.generation
+          );
+          const referencesByOid = new Map<string, string[]>();
+          for (const row of unresolved) {
+            const oid = String(row.oid ?? '').trim();
+            const attachmentId = String(row.attachmentId ?? '').trim();
+            if (oid && attachmentId) referencesByOid.set(oid, [...(referencesByOid.get(oid) ?? []), attachmentId]);
+          }
+          referencesByOid.set(claim.oid, [...(referencesByOid.get(claim.oid) ?? []), claim.attachmentId]);
+          let protectedByRecord = false;
           try {
-            currentRecord = ((await this.storageService.getMeta(claim.oid)) as unknown as AnyRecord | null) ?? null;
+            for (const [oid, attachmentIds] of referencesByOid) {
+              const record = ((await this.storageService.getMeta(oid)) as unknown as AnyRecord | null) ?? null;
+              if (record !== null && !this.isUsableRecordSnapshot(record)) throw new Error('unusable-record');
+              protectedByRecord ||= attachmentIds.some(attachmentId =>
+                this.recordReferencesAttachment(record, attachmentId, stagedFileId)
+              );
+            }
           } catch {
             await journal.releaseStagingCleanup(claim, 'attachment-cleanup-record-state-unknown');
             summary.retained += 1;
             continue;
           }
-          const unresolved = await journal.findUnresolvedByOid(claim.oid);
-          const protectedByGeneration = unresolved.some(
-            row =>
-              String(row.mutationFileId ?? '') === stagedFileId && String(row.generation ?? '') !== claim.generation
-          );
-          if (
-            protectedByGeneration ||
-            this.recordReferencesAttachment(currentRecord, claim.attachmentId, stagedFileId)
-          ) {
+          if (protectedByGeneration || protectedByRecord) {
             await journal.releaseStagingCleanup(claim, 'attachment-cleanup-reference-active');
             summary.retained += 1;
+            continue;
+          }
+          if (claim.phase === 'removing') {
+            if (typeof this.datastreamService.stagingDatastreamExists !== 'function') {
+              summary.retained += 1;
+              continue;
+            }
+            const recovery = await journal.recoverStagingCleanup(
+              claim,
+              await this.datastreamService.stagingDatastreamExists(stagedFileId)
+            );
+            if (recovery === 'completed') summary.removed += 1;
+            else if (recovery === 'retained') summary.retained += 1;
+            else summary.failed += 1;
             continue;
           }
           if (typeof this.datastreamService.removeStagedDatastream !== 'function') {
@@ -5032,18 +5470,27 @@ export namespace Services {
             summary.retained += 1;
             continue;
           }
+          if (!(await journal.authorizeStagingCleanup(claim))) {
+            await journal.releaseStagingCleanup(claim, 'attachment-cleanup-claim-lost');
+            summary.failed += 1;
+            continue;
+          }
+          removalAuthorized = true;
           await this.datastreamService.removeStagedDatastream(stagedFileId);
           if (await journal.completeStagingCleanup(claim)) {
             summary.removed += 1;
           } else {
-            await journal.releaseStagingCleanup(claim, 'attachment-cleanup-journal-incomplete');
+            // Keep cleanup-removing durable: the blob may already be gone, so
+            // reopening this staging identity would be unsafe.
             summary.failed += 1;
           }
         } catch (error) {
-          try {
-            await journal.releaseStagingCleanup(claim, 'attachment-cleanup-failed');
-          } catch {
-            // The durable cleanup claim remains visible for operator recovery.
+          if (!removalAuthorized) {
+            try {
+              await journal.releaseStagingCleanup(claim, 'attachment-cleanup-failed');
+            } catch {
+              // The durable cleanup claim remains visible for operator recovery.
+            }
           }
           summary.failed += 1;
           sails.log.warn(`${this.logHeader} attachment staging cleanup failed`, {
@@ -5337,7 +5784,13 @@ export namespace Services {
         },
         user,
         action,
-        projectRecordHookExecutionAuditSummary(hookOperation, { partial: true, completedThrough: 'persistence' })
+        projectRecordHookExecutionAuditSummary(hookOperation, { partial: true, completedThrough: 'persistence' }),
+        {
+          ...(tracker.result.concurrency?.revision !== undefined
+            ? { revision: tracker.result.concurrency.revision }
+            : {}),
+          resolution: tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+        }
       );
       this.searchService.remove(oid);
 
@@ -5376,6 +5829,7 @@ export namespace Services {
       }
       this.triggerPostSaveTriggers(oid, postHookRecord, recordType, 'onDelete', user, hookOperation);
       this.completeHookOperation(hookOperation, true);
+      this.logSaveOutcome(tracker, 'response');
       return tracker.toResponse();
     }
 
@@ -5523,7 +5977,7 @@ export namespace Services {
         )
       );
       if (resolveStorageMutationState(intentResponse, this.logLegacyMutationResponse) !== 'applied') {
-        this.recordLifecycleStorageFailure(tracker, oid, mode, activeRevision, intentResponse);
+        await this.recordLifecycleStorageFailure(tracker, oid, authority.brand, userObj, intentResponse);
         return tracker.toResponse();
       }
 
@@ -5555,7 +6009,7 @@ export namespace Services {
               )
             );
           }
-          this.recordLifecycleStorageFailure(tracker, oid, mode, activeRevision, removalResponse);
+          await this.recordLifecycleStorageFailure(tracker, oid, authority.brand, userObj, removalResponse);
         } else {
           await this.markLifecycleRecoveryRequired(
             authority.brand,
@@ -5563,7 +6017,7 @@ export namespace Services {
             'active-removal-unknown',
             tracker.context
           );
-          this.recordLifecycleStorageFailure(tracker, oid, mode, pendingRevision, removalResponse);
+          await this.recordLifecycleStorageFailure(tracker, oid, authority.brand, userObj, removalResponse);
         }
         return tracker.toResponse();
       }
@@ -5854,7 +6308,8 @@ export namespace Services {
       record: AnyRecord,
       user: AnyRecord,
       action: RecordAuditActionType = RecordAuditActionType.updated,
-      executionSummary?: RecordHookExecutionAuditSummary
+      executionSummary?: RecordHookExecutionAuditSummary,
+      concurrency?: RecordMutationAuditConcurrency
     ) {
       const auditingEnabled = sails.config.record.auditing.enabled as unknown;
       if (auditingEnabled !== true && auditingEnabled !== 'true') {
@@ -5865,7 +6320,7 @@ export namespace Services {
       _.unset(user, 'password');
       _.unset(user, 'token');
       // storage_id is used as the main ID in searches
-      const data = new RecordAuditModel(id, record, user, action, executionSummary);
+      const data = new RecordAuditModel(id, record, user, action, executionSummary, concurrency);
       sails.log.verbose(JSON.stringify(data));
       const envName = String((sails.config as AnyRecord).environment ?? process.env.NODE_ENV ?? '');
       if (envName === 'integrationtest') {
@@ -6342,7 +6797,7 @@ export namespace Services {
         )
       );
       if (resolveStorageMutationState(claimResponse, this.logLegacyMutationResponse) !== 'applied') {
-        this.recordLifecycleStorageFailure(tracker, oid, mode, tombstone.revision, claimResponse);
+        await this.recordLifecycleStorageFailure(tracker, oid, authority.brand, userObj, claimResponse);
         return tracker.toResponse();
       }
 
@@ -6373,7 +6828,7 @@ export namespace Services {
           createState === 'unknown' ? 'restore-create-unknown' : 'restore-create-conflict',
           tracker.context
         );
-        this.recordLifecycleStorageFailure(tracker, oid, mode, claimedTombstone.revision, createResponse);
+        await this.recordLifecycleStorageFailure(tracker, oid, authority.brand, userObj, createResponse);
         return tracker.toResponse();
       }
 
@@ -6385,6 +6840,7 @@ export namespace Services {
         );
         return tracker.toResponse();
       }
+      tracker.confirmPrimaryPersistence(oid, createResponse);
       const tombstoneRemoval = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
         this.storageService.removeTombstone!(
           authority.brand,
@@ -6397,10 +6853,6 @@ export namespace Services {
           )
         )
       );
-      this.setConcurrencyMetadata(tracker, oid, mode, activeRevision);
-      tracker.setProjectedMetadata(this.recordObject(activeRecord.metadata));
-      tracker.confirmPrimaryPersistence(oid, createResponse);
-      tracker.result.data = _.cloneDeep(activeRecord);
       if (resolveStorageMutationState(tombstoneRemoval, this.logLegacyMutationResponse) !== 'applied') {
         tracker.recordPostPersistenceProblem(
           this.saveProblem(
@@ -6411,13 +6863,69 @@ export namespace Services {
           )
         );
       }
-      if (authority.recordType.searchable !== false) this.searchService.index(oid, activeRecord);
+
+      // The create response only proves what restore inserted. A concurrent
+      // writer may already have advanced or removed it, so response and index
+      // input must come from one final authoritative reload.
+      let finalActive: AnyRecord | null = null;
+      try {
+        const reloaded = (await this.storageService.getMeta(oid)) as unknown;
+        if (this.isUsableRecordSnapshot(reloaded)) finalActive = reloaded as AnyRecord;
+      } catch {
+        finalActive = null;
+      }
+      const finalRevision = finalActive ? this.recordRevision(finalActive) : undefined;
+      const finalBrandId = String(this.recordObject(finalActive?.metaMetadata).brandId ?? '').trim();
+      if (!finalActive || finalRevision === undefined || finalBrandId !== String(authority.brand.id ?? '').trim()) {
+        tracker.setConcurrencyMetadata(undefined);
+        tracker.setProjectedMetadata(null);
+        tracker.result.data = undefined;
+        tracker.recordPostPersistenceProblem(
+          this.saveProblem(
+            'response',
+            '@record-save-response-projection-failed',
+            'system',
+            'response-projection-failed'
+          )
+        );
+      } else {
+        const roles = Array.isArray(userObj.roles) ? (userObj.roles as AnyRecord[]) : [];
+        const canView =
+          tracker.context.routeFamily === 'internal' ||
+          this.hasViewAccess(authority.brand, userObj, roles, finalActive);
+        if (canView) {
+          this.setConcurrencyMetadata(tracker, oid, mode, finalRevision);
+          tracker.setProjectedMetadata(this.recordObject(finalActive.metadata));
+          tracker.result.data = _.cloneDeep(finalActive);
+        } else {
+          tracker.setConcurrencyMetadata(undefined);
+          tracker.setProjectedMetadata(null);
+          tracker.result.data = undefined;
+        }
+        if (authority.recordType.searchable !== false) {
+          try {
+            if (!(await this.searchService.index(oid, finalActive))) {
+              throw new Error('Index request was not accepted.');
+            }
+          } catch {
+            tracker.recordPostPersistenceProblem(
+              this.saveProblem('post-save', '@record-save-index-failed', 'processing', 'record-index-failed')
+            );
+          }
+        }
+      }
       await this.auditRecord(
         oid,
-        { revision: activeRevision, resolution: tracker.result.concurrency?.resolution },
+        { revision: finalRevision, resolution: tracker.result.concurrency?.resolution },
         userObj,
-        RecordAuditActionType.restored
+        RecordAuditActionType.restored,
+        undefined,
+        {
+          revision: finalRevision ?? activeRevision,
+          resolution: tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+        }
       );
+      this.logSaveOutcome(tracker, 'response');
       return tracker.toResponse();
     }
 
@@ -6477,7 +6985,7 @@ export namespace Services {
         )
       );
       if (resolveStorageMutationState(claimResponse, this.logLegacyMutationResponse) !== 'applied') {
-        this.recordLifecycleStorageFailure(tracker, oid, mode, tombstone.revision, claimResponse);
+        await this.recordLifecycleStorageFailure(tracker, oid, authority.brand, userObj, claimResponse);
         return tracker.toResponse();
       }
       const claimedTombstone: DeletedRecordModel = {
@@ -6540,8 +7048,14 @@ export namespace Services {
         oid,
         { resolution: tracker.result.concurrency?.resolution },
         userObj,
-        RecordAuditActionType.destroyed
+        RecordAuditActionType.destroyed,
+        undefined,
+        {
+          revision: claimedTombstone.revision,
+          resolution: tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+        }
       );
+      this.logSaveOutcome(tracker, 'response');
       return tracker.toResponse();
     }
 
@@ -6601,6 +7115,33 @@ export namespace Services {
       await this.markLifecycleRecoveryRequired(authority.brand, tombstone, errorCode, context);
     }
 
+    private lifecycleIncarnationIdentity(source: unknown): string | null | undefined {
+      if (source == null || typeof source !== 'object' || Array.isArray(source)) return undefined;
+      const value = (source as AnyRecord).incarnationId;
+      if (value === undefined || value === null || value === '') return undefined;
+      return isRecordSaveRequestId(value) ? value : null;
+    }
+
+    private lifecycleIncarnationIdentityConsistent(
+      inputTombstone: DeletedRecordModel,
+      tombstone: DeletedRecordModel,
+      snapshot: AnyRecord,
+      active: AnyRecord | null
+    ): boolean {
+      const tombstoneIdentities = [inputTombstone, tombstone, snapshot].map(source =>
+        this.lifecycleIncarnationIdentity(source)
+      );
+      const activeIdentity = active ? this.lifecycleIncarnationIdentity(active) : undefined;
+      const identities = [...tombstoneIdentities, activeIdentity];
+      if (identities.some(identity => identity === null)) return false;
+      const presentIdentities = identities.filter((identity): identity is string => identity !== undefined);
+      if (new Set(presentIdentities).size > 1) return false;
+      return (
+        !active ||
+        tombstoneIdentities.some(identity => typeof identity === 'string') === (activeIdentity !== undefined)
+      );
+    }
+
     async recoverLifecycleOperation(
       tombstoneInput: DeletedRecordModel
     ): Promise<'completed' | 'cancelled' | 'retained'> {
@@ -6646,10 +7187,6 @@ export namespace Services {
       const authority = await this.lifecycleAuthority(snapshot, inputAuthority.brand);
       if (!authority) return 'retained';
 
-      // A finalized delete is already a completed idempotent delivery. Never
-      // advance it again merely because a stale scan item was retried.
-      if (operation.kind === 'delete' && tombstone.lifecycleState === 'deleted') return 'completed';
-
       let active: AnyRecord | null;
       try {
         const observed = (await this.storageService.getMeta(tombstone.redboxOid)) as unknown;
@@ -6669,6 +7206,15 @@ export namespace Services {
         });
         return 'retained';
       }
+
+      if (!this.lifecycleIncarnationIdentityConsistent(tombstoneInput, tombstone, snapshot, active)) {
+        await this.retainLifecycleRecovery(authority, tombstone, 'lifecycle-incarnation-inconsistent', context);
+        return 'retained';
+      }
+
+      // A finalized delete is already a completed idempotent delivery only
+      // after the current active/tombstone lineage has been proven consistent.
+      if (operation.kind === 'delete' && tombstone.lifecycleState === 'deleted') return 'completed';
 
       if (operation.kind === 'restore') {
         if (active && active.lifecycleOperationId !== operation.operationId) {
@@ -6836,6 +7382,20 @@ export namespace Services {
           status = 'retained';
         }
         result[status] += 1;
+        const operation = tombstone.lifecycleOperation?.kind;
+        if (operation === 'delete' || operation === 'restore' || operation === 'purge') {
+          emitRecordConcurrencyEvent({
+            kind: 'lifecycle-recovery',
+            routeFamily: 'internal',
+            writeKind: operation,
+            phase: 'persistence',
+            outcome: status,
+            expectedRevision: tombstone.lifecycleOperation?.sourceRevision,
+            currentRevision: tombstone.revision,
+            precondition: 'matching',
+            resolution: 'internal',
+          });
+        }
       }
       return result;
     }
@@ -7121,6 +7681,16 @@ export namespace Services {
       user: unknown = {},
       operation?: ActionExecutionOperation
     ): void {
+      const deferred = operation ? this.deferredSavePostHookDispatches.get(operation) : undefined;
+      if (deferred) {
+        deferred.push({
+          oid,
+          recordType,
+          mode: mode as ActionExecutionOperation['mode'],
+          user,
+        });
+        return;
+      }
       const execution =
         operation ??
         this.createHookExecutionOperation(mode as ActionExecutionOperation['mode'], undefined, oid ?? undefined);

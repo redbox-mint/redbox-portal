@@ -33,6 +33,12 @@ export type {
   RecordSaveDisplayError,
 } from './RecordSaveResponse';
 export { formatRecordFormFingerprint } from './RecordFormFingerprint';
+export { emitRecordConcurrencyEvent, recordConcurrencyMetricLabels } from './RecordConcurrencyObservability';
+export type {
+  RecordConcurrencyEvent,
+  RecordConcurrencyEventKind,
+  RecordConcurrencyPreconditionResult,
+} from './RecordConcurrencyObservability';
 export {
   RECORD_HTTP_HEADERS,
   parsePublicRecordConcurrencyRequest,
