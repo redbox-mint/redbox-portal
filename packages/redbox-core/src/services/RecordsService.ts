@@ -92,6 +92,7 @@ import {
   type InternalRecordValidationBypass,
   type RecordSaveContext,
   type RecordSaveResponse,
+  type RecordSaveSchemaOutcomeInput,
   RecordSaveTracker,
   resolveStorageMutationState,
 } from '../RecordSaveResponse';
@@ -163,6 +164,8 @@ import type {
   ResolveCreateRecordSchemaResult,
   ResolveUpdateRecordSchemaRequest,
   ResolveUpdateRecordSchemaResult,
+  PersistRecordSchemaSaveUsageRequest,
+  PersistRecordSchemaSaveUsageResult,
   ValidateResolvedRecordSchemaResult,
 } from './RecordSchemaService';
 
@@ -295,6 +298,14 @@ export namespace Services {
   type UpdateRecordSchemaResolver = RecordSchemaArtifactValidator & {
     resolveUpdate(request: ResolveUpdateRecordSchemaRequest): Promise<ResolveUpdateRecordSchemaResult>;
   };
+  type SuccessfulRecordSchemaResolution =
+    | Extract<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+    | Extract<ResolveUpdateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>;
+  type RecordSchemaSaveUsageWriter = {
+    persistSaveUsageReference(
+      request: PersistRecordSchemaSaveUsageRequest
+    ): Promise<PersistRecordSchemaSaveUsageResult>;
+  };
   type RecordSchemaSaveIssue = {
     readonly code: RecordSchemaProblemCode;
     readonly pointer: RecordJsonSchemaValidationIssue['pointer'];
@@ -326,8 +337,16 @@ export namespace Services {
   type StructuralMetadataValidationResult =
     | { readonly valid: true }
     | { readonly valid: false; readonly problem: RecordSaveProblem };
+  type ResolvedRecordSchemaSaveUsage = {
+    readonly request: Omit<PersistRecordSchemaSaveUsageRequest, 'oid' | 'saveIdentity'>;
+    readonly outcome: RecordSaveSchemaOutcomeInput;
+  };
   type CreateStructuralPhaseResult =
-    | { readonly allowed: true; readonly warnings: readonly RecordSaveProblem[] }
+    | {
+        readonly allowed: true;
+        readonly warnings: readonly RecordSaveProblem[];
+        readonly usage?: ResolvedRecordSchemaSaveUsage;
+      }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
   type UpdateStructuralPhaseResult = CreateStructuralPhaseResult;
   type ValidateCandidateOptions = {
@@ -763,6 +782,95 @@ export namespace Services {
       }
     }
 
+    /** Resolve separately from validation so a late usage-writer failure is reported after the commit. */
+    private resolveRecordSchemaSaveUsageWriter(): RecordSchemaSaveUsageWriter | undefined {
+      try {
+        const registered = sails.services?.recordschemaservice as Partial<RecordSchemaSaveUsageWriter> | undefined;
+        return typeof registered?.persistSaveUsageReference === 'function'
+          ? (registered as RecordSchemaSaveUsageWriter)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+
+    /** Retain only durable reference fields and safe response metadata from a resolved artifact. */
+    private resolvedRecordSchemaSaveUsage(
+      resolution: SuccessfulRecordSchemaResolution
+    ): ResolvedRecordSchemaSaveUsage {
+      const context = resolution.metadata.context;
+      return {
+        request: {
+          digest: resolution.digest,
+          brand: context.brand,
+          portal: context.portal,
+          schemaKind: resolution.metadata.schemaKind,
+          recordType: context.recordType,
+          operation: context.operation,
+        },
+        outcome: {
+          digest: resolution.digest,
+          immutableUrl: resolution.document.$id,
+          completeness: resolution.metadata.completeness,
+          enforcement: context.enforcement,
+        },
+      };
+    }
+
+    /**
+     * Schema usage is a post-commit durability aid. Failure cannot roll back a
+     * confirmed record mutation, so it becomes a safe lifecycle warning while
+     * the resolved schema outcome remains available to response adapters.
+     */
+    private async persistResolvedRecordSchemaSaveUsage(
+      tracker: RecordSaveTracker,
+      usage: ResolvedRecordSchemaSaveUsage | undefined,
+      oid: string
+    ): Promise<void> {
+      if (!usage) return;
+
+      tracker.setSchemaOutcome(usage.outcome);
+      const writer = this.resolveRecordSchemaSaveUsageWriter();
+      let result: PersistRecordSchemaSaveUsageResult;
+      if (!writer) {
+        result = {
+          kind: 'unavailable',
+          stage: 'storage',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        };
+      } else {
+        try {
+          result = await writer.persistSaveUsageReference({
+            ...usage.request,
+            oid,
+            saveIdentity: tracker.context.requestId,
+          });
+        } catch {
+          result = {
+            kind: 'unavailable',
+            stage: 'storage',
+            code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+          };
+        }
+      }
+      if (result.kind === 'recorded') return;
+
+      tracker.recordPostPersistenceProblem(
+        recordSaveProblem('system', 'post-save', '@record-schema-save-usage-failed', 'record-schema-save-usage-failed')
+      );
+      try {
+        sails.log.error(`${this.logHeader} record schema save usage persistence failed`, {
+          event: 'record_schema_save_usage_persistence_failed',
+          request_id: tracker.context.requestId,
+          schema_kind: usage.request.schemaKind,
+          result: result.kind,
+          code: 'code' in result ? result.code : RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
+      } catch {
+        // A diagnostic sink failure cannot change the already-confirmed save.
+      }
+    }
+
     private recordSchemaProblem(
       kind: RecordSaveProblemKind,
       code: RecordSchemaProblemCode,
@@ -832,12 +940,20 @@ export namespace Services {
       return undefined;
     }
 
-    private applyCreateSchemaPolicy(mode: ValidationMode, problem: RecordSaveProblem): CreateStructuralPhaseResult {
-      return mode === 'shadow' ? { allowed: true, warnings: [problem] } : { allowed: false, problem };
+    private applyCreateSchemaPolicy(
+      mode: ValidationMode,
+      problem: RecordSaveProblem,
+      usage?: ResolvedRecordSchemaSaveUsage
+    ): CreateStructuralPhaseResult {
+      return mode === 'shadow' ? { allowed: true, warnings: [problem], usage } : { allowed: false, problem };
     }
 
-    private applyUpdateSchemaPolicy(mode: ValidationMode, problem: RecordSaveProblem): UpdateStructuralPhaseResult {
-      return mode === 'shadow' ? { allowed: true, warnings: [problem] } : { allowed: false, problem };
+    private applyUpdateSchemaPolicy(
+      mode: ValidationMode,
+      problem: RecordSaveProblem,
+      usage?: ResolvedRecordSchemaSaveUsage
+    ): UpdateStructuralPhaseResult {
+      return mode === 'shadow' ? { allowed: true, warnings: [problem], usage } : { allowed: false, problem };
     }
 
     /**
@@ -896,6 +1012,7 @@ export namespace Services {
           this.recordSchemaProblem('system', this.recordSchemaFailureCode(resolution))
         );
       }
+      const usage = this.resolvedRecordSchemaSaveUsage(resolution);
 
       let validation: ValidateResolvedRecordSchemaResult;
       try {
@@ -911,10 +1028,11 @@ export namespace Services {
       if (validation.kind !== 'validated') {
         return this.applyCreateSchemaPolicy(
           resolution.metadata.context.enforcement,
-          this.recordSchemaProblem('system', validation.code)
+          this.recordSchemaProblem('system', validation.code),
+          usage
         );
       }
-      if (validation.valid) return { allowed: true, warnings: [] };
+      if (validation.valid) return { allowed: true, warnings: [], usage };
       let issues: readonly RecordSchemaSaveIssue[] =
         validation.issues.length > 0
           ? validation.issues
@@ -928,7 +1046,8 @@ export namespace Services {
       }
       return this.applyCreateSchemaPolicy(
         resolution.metadata.context.enforcement,
-        this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues)
+        this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues),
+        usage
       );
     }
 
@@ -1006,6 +1125,7 @@ export namespace Services {
           this.recordSchemaProblem('system', this.recordSchemaFailureCode(resolution))
         );
       }
+      const usage = this.resolvedRecordSchemaSaveUsage(resolution);
 
       let validation: ValidateResolvedRecordSchemaResult;
       try {
@@ -1021,10 +1141,11 @@ export namespace Services {
       if (validation.kind !== 'validated') {
         return this.applyUpdateSchemaPolicy(
           resolution.metadata.context.enforcement,
-          this.recordSchemaProblem('system', validation.code)
+          this.recordSchemaProblem('system', validation.code),
+          usage
         );
       }
-      if (validation.valid) return { allowed: true, warnings: [] };
+      if (validation.valid) return { allowed: true, warnings: [], usage };
       let issues: readonly RecordSchemaSaveIssue[] =
         validation.issues.length > 0
           ? validation.issues
@@ -1038,7 +1159,8 @@ export namespace Services {
       }
       return this.applyUpdateSchemaPolicy(
         resolution.metadata.context.enforcement,
-        this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues)
+        this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues),
+        usage
       );
     }
 
@@ -3799,6 +3921,7 @@ export namespace Services {
       const recordTypeObj = recordType as RecordTypeLike;
       const requestedRecord = _.cloneDeep(record) as AnyRecord;
       const rawSubmittedMetadata = _.cloneDeep(requestedRecord.metadata);
+      let resolvedSchemaUsage: ResolvedRecordSchemaSaveUsage | undefined;
       let recordObj = this.normalizeRecord(requestedRecord);
       const userObj = this.recordObject(user);
       const configuredRecordTypeName = typeof recordTypeObj?.name === 'string' ? recordTypeObj.name.trim() : '';
@@ -4083,6 +4206,7 @@ export namespace Services {
             this.logSaveOutcome(tracker, 'pre-save');
             return tracker.toResponse();
           }
+          resolvedSchemaUsage = structuralValidation.usage;
           for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
         }
       }
@@ -4280,6 +4404,7 @@ export namespace Services {
       if (primaryMutationState === 'applied') {
         tracker.confirmPrimaryPersistence(createOid, createResponse);
         hookOperation.completedThrough = 'persistence';
+        await this.persistResolvedRecordSchemaSaveUsage(tracker, resolvedSchemaUsage, createOid);
         const oid = createOid;
         let currentRevision = this.committedRevision(createResponse);
         if (currentRevision === undefined && hasFullRecordStorageConcurrencyCapability(this.storageService)) {
@@ -5191,6 +5316,7 @@ export namespace Services {
       }
 
       const schemaEnabled = this.recordSchemaEnabled();
+      let resolvedSchemaUsage: ResolvedRecordSchemaSaveUsage | undefined;
       const structuralBypass = tracker.context.validationBypass;
       if (schemaEnabled && structuralBypass !== undefined) {
         const bypassError = this.bypassErrorCode(tracker.context, structuralBypass);
@@ -5246,6 +5372,7 @@ export namespace Services {
             this.logSaveOutcome(tracker, 'pre-save');
             return tracker.toResponse();
           }
+          resolvedSchemaUsage = structuralValidation.usage;
           for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
         } else {
           const structuralValidation = await this.validateUpdateMetadataStructure(structuralMetadata);
@@ -5512,6 +5639,7 @@ export namespace Services {
       }
       tracker.confirmPrimaryPersistence(oid, updateResponse);
       hookOperation.completedThrough = 'persistence';
+      await this.persistResolvedRecordSchemaSaveUsage(tracker, resolvedSchemaUsage, oid);
       const primaryCommittedRevision = this.committedRevision(updateResponse);
       if (primaryCommittedRevision !== undefined) {
         currentRevision = primaryCommittedRevision;

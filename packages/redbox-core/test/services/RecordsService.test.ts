@@ -28,6 +28,10 @@ import type {
   UnresolvedRecordValidationResult,
 } from '../../src/services/RecordValidationService';
 import type { Services as FormsServiceTypes } from '../../src/services/FormsService';
+import type {
+  PersistRecordSchemaSaveUsageRequest,
+  PersistRecordSchemaSaveUsageResult,
+} from '../../src/services/RecordSchemaService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import { createCoreRecordContractContributors, RecordContractContributorRegistry } from '../../src/record-contract';
 import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
@@ -3910,7 +3914,11 @@ describe('RecordsService', function () {
       portal = 'portal'
     ) => ({
       kind,
-      document: { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object' },
+      document: {
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $id: `/brand-1/${encodeURIComponent(portal)}/api/records/schemas/${'a'.repeat(64)}`,
+        type: 'object',
+      },
       digest: 'a'.repeat(64),
       grant: {},
       metadata: {
@@ -3941,6 +3949,7 @@ describe('RecordsService', function () {
       kind: 'resolved' as const,
       document: {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $id: `/brand-1/portal/api/records/schemas/${'b'.repeat(64)}`,
         type: 'object',
         ...(unknownProperties === 'declared' ? { additionalProperties: false } : {}),
       },
@@ -3971,8 +3980,23 @@ describe('RecordsService', function () {
       mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
     };
 
-    const recordSchemaContext = (options: Parameters<typeof createRecordSaveContext>[0] = {}): RecordSaveContext =>
-      createRecordSaveContext({ portal: 'portal', ...options });
+    const recordedSchemaUsage = (): sinon.SinonStub<
+      [request: PersistRecordSchemaSaveUsageRequest],
+      Promise<PersistRecordSchemaSaveUsageResult>
+    > =>
+      sinon
+        .stub<[request: PersistRecordSchemaSaveUsageRequest], Promise<PersistRecordSchemaSaveUsageResult>>()
+        .callsFake(async request => ({
+          kind: 'recorded',
+          reference: {
+            digest: request.digest,
+            referenceKey: `save:${'f'.repeat(64)}`,
+          },
+        }));
+
+    const recordSchemaContext = (
+      options: Parameters<typeof createRecordSaveContext>[0] = {}
+    ): RecordSaveContext => createRecordSaveContext({ portal: 'portal', ...options });
 
     const richHtmlForm = (name = 'default-form'): FormConfigFrame => ({
       name,
@@ -4136,12 +4160,15 @@ describe('RecordsService', function () {
       });
       const resolveCreate = sinon.spy(schemaService, 'resolveCreate');
       const validateResolvedArtifact = sinon.spy(schemaService, 'validateResolvedArtifact');
+      const persistSaveUsageReference = sinon.spy(schemaService, 'persistSaveUsageReference');
       mockSails.services.recordschemaservice = schemaService;
 
       return {
         businessValidation,
+        persistSaveUsageReference,
         resolveCreate,
         schemaService,
+        schemaStorage,
         validateResolvedArtifact,
       };
     };
@@ -4354,7 +4381,15 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const persistSaveUsageReference = sinon.stub().resolves({
+        kind: 'recorded',
+        reference: { digest: 'a'.repeat(64), referenceKey: `save:${'c'.repeat(64)}` },
+      });
+      mockSails.services.recordschemaservice = {
+        resolveCreate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const transitionMetadata = sinon.spy(RecordsService as any, 'transitionWorkflowStepMetadata');
       const initializeMetadata = sinon.spy(RecordsService as any, 'initRecordMetaMetadata');
@@ -4405,6 +4440,97 @@ describe('RecordsService', function () {
       expect(initializeMetadata.calledBefore(preSaveHook)).to.equal(true);
       expect(preSaveHook.calledBefore(businessValidation)).to.equal(true);
       expect(businessValidation.calledBefore(mockStorageService.create)).to.equal(true);
+      expect(mockStorageService.create.calledBefore(persistSaveUsageReference)).to.equal(true);
+      expect(persistSaveUsageReference.calledOnceWithExactly({
+        digest: 'a'.repeat(64),
+        brand: 'brand-1',
+        portal: 'tenant-portal',
+        schemaKind: 'create',
+        recordType: 'rdmp',
+        oid: result.oid,
+        operation: 'publish',
+        saveIdentity: result.requestId,
+      })).to.equal(true);
+      expect(result.schemaOutcome).to.deep.equal({
+        digest: 'a'.repeat(64),
+        immutableUrl: `/brand-1/tenant-portal/api/records/schemas/${'a'.repeat(64)}`,
+        completeness: 'complete',
+        enforcement: 'shadow',
+      });
+      expect(JSON.stringify(persistSaveUsageReference.firstCall.args[0])).not.to.include('issues');
+      expect(JSON.stringify(result.problems)).not.to.include(result.schemaOutcome?.digest);
+    });
+
+    it('keeps a confirmed create saved-with-warnings when its schema usage reference cannot be persisted', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      const persistSaveUsageReference = sinon.stub().resolves({
+        kind: 'write-failed',
+        stage: 'save-reference',
+        failureKind: 'storage-unavailable',
+        code: 'record-schema.storage-unavailable',
+        retryable: true,
+        reference: { digest: 'a'.repeat(64), referenceKey: `save:${'d'.repeat(64)}` },
+      });
+      mockSails.services.recordschemaservice = {
+        resolveCreate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
+      mockSails.log.error.throws(new Error('diagnostic sink unavailable'));
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        {
+          metadata: { title: 'Persisted before usage failure' },
+          authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+        },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'user-1' },
+        false,
+        false,
+        undefined,
+        recordSchemaContext({ routeFamily: 'api', operation: 'create', validationOperation: 'publish' })
+      );
+
+      expect(mockStorageService.create.calledOnce).to.equal(true);
+      expect(persistSaveUsageReference.calledOnce).to.equal(true);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.schemaOutcome).to.deep.equal({
+        digest: 'a'.repeat(64),
+        immutableUrl: `/brand-1/portal/api/records/schemas/${'a'.repeat(64)}`,
+        completeness: 'complete',
+        enforcement: 'enforce',
+      });
+      expect(result.problems).to.deep.equal([{
+        kind: 'system',
+        phase: 'post-save',
+        issues: [{
+          code: 'record-schema-save-usage-failed',
+          message: '@record-schema-save-usage-failed',
+        }],
+      }]);
+      expect(mockSails.log.error.calledWithMatch(
+        'record schema save usage persistence failed',
+        sinon.match({
+          event: 'record_schema_save_usage_persistence_failed',
+          request_id: result.requestId,
+          schema_kind: 'create',
+          result: 'write-failed',
+          code: 'record-schema.storage-unavailable',
+        })
+      )).to.equal(true);
+      expect(JSON.stringify(mockSails.log.error.lastCall.args)).not.to.include('Persisted before usage failure');
+      expect(JSON.stringify(mockSails.log.error.lastCall.args)).not.to.include('a'.repeat(64));
     });
 
     it('keeps required, range, and custom validator summaries annotation-only in a generated schema artifact', async function () {
@@ -4459,7 +4585,7 @@ describe('RecordsService', function () {
     });
 
     it('runs the create business validator once after schema validation and configured pre-save hooks', async function () {
-      const { businessValidation, resolveCreate, validateResolvedArtifact } =
+      const { businessValidation, persistSaveUsageReference, resolveCreate, schemaStorage, validateResolvedArtifact } =
         installGeneratedSchemaValidationPipeline();
       const recordType = {
         name: 'rdmp',
@@ -4499,6 +4625,8 @@ describe('RecordsService', function () {
         validateResolvedArtifact.resetHistory();
         preSaveHook.resetHistory();
         businessValidation.resetHistory();
+        persistSaveUsageReference.resetHistory();
+        schemaStorage.putRecordSchemaReference.resetHistory();
         mockStorageService.create.resetHistory();
         const callerRecord = {
           metadata: structuredClone(testCase.metadata),
@@ -4545,8 +4673,24 @@ describe('RecordsService', function () {
         if (testCase.expectedOutcome === 'saved') {
           expect(mockStorageService.create.calledOnce, testCase.name).to.equal(true);
           expect(businessValidation.calledBefore(mockStorageService.create), testCase.name).to.equal(true);
+          expect(persistSaveUsageReference.calledOnce, testCase.name).to.equal(true);
+          expect(result.schemaOutcome?.digest, testCase.name).to.match(/^[0-9a-f]{64}$/);
+          expect(result.schemaOutcome, testCase.name).to.deep.include({
+            completeness: 'complete',
+            enforcement: 'enforce',
+          });
+          expect(schemaStorage.putRecordSchemaReference.calledTwice, testCase.name).to.equal(true);
+          expect(schemaStorage.putRecordSchemaReference.secondCall.firstArg, testCase.name).to.deep.include({
+            kind: 'save',
+            schemaKind: 'create',
+            oid: result.oid,
+          });
         } else {
           expect(mockStorageService.create.notCalled, testCase.name).to.equal(true);
+          expect(persistSaveUsageReference.notCalled, testCase.name).to.equal(true);
+          expect(schemaStorage.putRecordSchemaReference.calledOnce, testCase.name).to.equal(true);
+          expect(schemaStorage.putRecordSchemaReference.firstCall.firstArg.kind, testCase.name).to.equal('grant');
+          expect(result.schemaOutcome, testCase.name).to.equal(undefined);
           expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
           expect(result.problems[0]).not.to.have.property('source');
           expect(result.problems[0].issues.map((issue: RecordSaveIssue) => issue.code), testCase.name)
@@ -4566,7 +4710,12 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const persistSaveUsageReference = recordedSchemaUsage();
+      mockSails.services.recordschemaservice = {
+        resolveUpdate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       const recordType = {
         name: 'rdmp',
         hooks: {
@@ -4749,7 +4898,12 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const persistSaveUsageReference = recordedSchemaUsage();
+      mockSails.services.recordschemaservice = {
+        resolveCreate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
 
       for (const mode of ['disabled', 'shadow', 'enforce'] as const) {
         mockSails.config.recordSchema = { enabled: mode !== 'disabled' };
@@ -4912,7 +5066,12 @@ describe('RecordsService', function () {
         truncated: false,
       });
       const resolveCreate = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const persistSaveUsageReference = recordedSchemaUsage();
+      mockSails.services.recordschemaservice = {
+        resolveCreate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
       for (const mode of ['shadow', 'enforce'] as const) {
@@ -5021,7 +5180,12 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const persistSaveUsageReference = recordedSchemaUsage();
+      mockSails.services.recordschemaservice = {
+        resolveCreate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       const result = await RecordsService.create(
@@ -5151,7 +5315,12 @@ describe('RecordsService', function () {
       mockSails.config.recordSchema = { enabled: false };
       const resolveCreate = sinon.stub();
       const validateResolvedArtifact = sinon.stub();
-      mockSails.services.recordschemaservice = { resolveCreate, validateResolvedArtifact };
+      const persistSaveUsageReference = sinon.stub();
+      mockSails.services.recordschemaservice = {
+        resolveCreate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const transitionMetadata = sinon.spy(RecordsService as any, 'transitionWorkflowStepMetadata');
       const initializeMetadata = sinon.spy(RecordsService as any, 'initRecordMetaMetadata');
@@ -5172,8 +5341,15 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('saved');
+      expect(result.schemaOutcome).to.equal(undefined);
       expect(resolveCreate.notCalled).to.equal(true);
       expect(validateResolvedArtifact.notCalled).to.equal(true);
+      expect(persistSaveUsageReference.notCalled).to.equal(true);
+      expect(mockStorageService.create.firstCall.args[1]).not.to.have.any.keys(
+        'schemaKey',
+        'schemaVersion',
+        'schemaOutcome'
+      );
       expect(transitionMetadata.calledBefore((global as any).FormsService.getForm)).to.equal(true);
       expect((global as any).FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
       expect(initializeMetadata.calledBefore(authorize)).to.equal(true);
@@ -6810,7 +6986,12 @@ describe('RecordsService', function () {
         issues: [],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const persistSaveUsageReference = recordedSchemaUsage();
+      mockSails.services.recordschemaservice = {
+        resolveUpdate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const transitionHook = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
@@ -7057,7 +7238,15 @@ describe('RecordsService', function () {
         issues: [{ code: 'record-schema.type', pointer: '/title', expected: { type: 'string' } }],
         truncated: false,
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const persistSaveUsageReference = sinon.stub().resolves({
+        kind: 'recorded',
+        reference: { digest: 'b'.repeat(64), referenceKey: `save:${'e'.repeat(64)}` },
+      });
+      mockSails.services.recordschemaservice = {
+        resolveUpdate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
 
@@ -7071,6 +7260,7 @@ describe('RecordsService', function () {
         mockRecordValidationService.resolve.resetHistory();
         mockRecordValidationService.resolve.resolves(allowResult({ mode }));
         mockStorageService.updateMeta.resetHistory();
+        persistSaveUsageReference.resetHistory();
 
         const requestedRecord = structuredClone(stored);
         const result = await RecordsService.updateMeta(
@@ -7102,6 +7292,29 @@ describe('RecordsService', function () {
         expect(preSaveHook.called, mode).to.equal(mode === 'shadow');
         expect(mockRecordValidationService.resolve.called, mode).to.equal(mode === 'shadow');
         expect(mockStorageService.updateMeta.called, mode).to.equal(mode === 'shadow');
+        expect(persistSaveUsageReference.called, mode).to.equal(mode === 'shadow');
+        if (mode === 'shadow') {
+          expect(persistSaveUsageReference.firstCall.args[0]).to.deep.equal({
+            digest: 'b'.repeat(64),
+            brand: 'brand-1',
+            portal: 'portal',
+            schemaKind: 'update',
+            recordType: 'rdmp',
+            oid: 'record-123',
+            operation: 'publish',
+            saveIdentity: result.requestId,
+          });
+          expect(result.schemaOutcome).to.deep.equal({
+            digest: 'b'.repeat(64),
+            immutableUrl: `/brand-1/portal/api/records/schemas/${'b'.repeat(64)}`,
+            completeness: 'complete',
+            enforcement: 'shadow',
+          });
+          expect(result.problems).to.have.length(1);
+          expect(result.problems[0]).not.to.have.nested.property('issues[0].digest');
+        } else {
+          expect(result.schemaOutcome).to.equal(undefined);
+        }
         expect(requestedRecord, mode).to.deep.equal(stored);
         expect(rawDelta, mode).to.deep.equal({ title: 42 });
       }
@@ -7122,7 +7335,12 @@ describe('RecordsService', function () {
           truncated: false,
         };
       });
-      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      const persistSaveUsageReference = recordedSchemaUsage();
+      mockSails.services.recordschemaservice = {
+        resolveUpdate,
+        validateResolvedArtifact,
+        persistSaveUsageReference,
+      };
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
 
       for (const unknownProperties of ['allow', 'declared'] as const) {

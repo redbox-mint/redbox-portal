@@ -5,6 +5,10 @@ import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
 import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
+import type {
+  PersistRecordSchemaSaveUsageRequest,
+  PersistRecordSchemaSaveUsageResult,
+} from '../../src/services/RecordSchemaService';
 import type { RecordValidationRequest, RecordValidationResult } from '../../src/services/RecordValidationService';
 import { buildResolvedRecordValidationResult } from '../fixtures/record-validation.fixtures';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
@@ -171,9 +175,22 @@ describe('HarvestRunService', function () {
       resolveCreate: sinon.SinonStub;
       resolveUpdate?: sinon.SinonStub;
       validateResolvedArtifact: sinon.SinonStub;
+      persistSaveUsageReference: sinon.SinonStub<
+        [request: PersistRecordSchemaSaveUsageRequest],
+        Promise<PersistRecordSchemaSaveUsageResult>
+      >;
     } = {
       resolveCreate: sinon.stub().rejects(new Error('authorization must run before schema resolution')),
       validateResolvedArtifact: sinon.stub(),
+      persistSaveUsageReference: sinon
+        .stub<[request: PersistRecordSchemaSaveUsageRequest], Promise<PersistRecordSchemaSaveUsageResult>>()
+        .callsFake(async request => ({
+          kind: 'recorded',
+          reference: {
+            digest: request.digest,
+            referenceKey: `save:${'f'.repeat(64)}`,
+          },
+        })),
     };
     const workflowStep = {
       name: 'draft',
@@ -304,6 +321,7 @@ describe('HarvestRunService', function () {
       kind: 'resolved',
       document: {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
+        $id: `/brand-1/tenant-portal/api/records/schemas/${'b'.repeat(64)}`,
         type: 'object',
         properties: { tags: { type: 'array', items: { type: 'string' } } },
       },
@@ -522,6 +540,7 @@ describe('HarvestRunService', function () {
     expect(storageService.create.callCount).to.equal(2);
     expect(hasEditAccess.notCalled).to.equal(true);
     expect(schemaResolver.resolveCreate.notCalled).to.equal(true);
+    expect(schemaResolver.persistSaveUsageReference.notCalled).to.equal(true);
     for (const call of storageService.create.getCalls()) {
       expect(call.args[1].authorization.editRoles).to.deep.equal(['HarvestEditor']);
     }
@@ -554,6 +573,7 @@ describe('HarvestRunService', function () {
     expect(storageService.create.callCount).to.equal(2);
     expect(hasEditAccess.notCalled).to.equal(true);
     expect(schemaResolver.resolveCreate.notCalled).to.equal(true);
+    expect(schemaResolver.persistSaveUsageReference.notCalled).to.equal(true);
   });
 
   it('keeps enabled harvest creates authorized against workflow ACLs before schema resolution', async function () {
@@ -1386,6 +1406,7 @@ describe('HarvestRunService', function () {
     expect(preSaveHook.notCalled).to.equal(true);
     expect(recordValidationService.resolve.notCalled).to.equal(true);
     expect(storageService.updateMeta.notCalled).to.equal(true);
+    expect(schemaResolver.persistSaveUsageReference.notCalled).to.equal(true);
     expect(persistedRecords.get('record-1')).to.deep.equal(originalRecord);
 
     persistedRecords.set('record-1', structuredClone(originalRecord));
@@ -1395,6 +1416,7 @@ describe('HarvestRunService', function () {
     preSaveHook.resetHistory();
     recordValidationService.resolve.resetHistory();
     storageService.updateMeta.resetHistory();
+    schemaResolver.persistSaveUsageReference.resetHistory();
     configureTrackedCreateChunk();
 
     const trackedResponse = await service.submitChunk(
@@ -1433,6 +1455,7 @@ describe('HarvestRunService', function () {
     expect(preSaveHook.notCalled).to.equal(true);
     expect(recordValidationService.resolve.notCalled).to.equal(true);
     expect(storageService.updateMeta.notCalled).to.equal(true);
+    expect(schemaResolver.persistSaveUsageReference.notCalled).to.equal(true);
     expect(persistedRecords.get('record-1')).to.deep.equal(originalRecord);
     expect(rawDelta).to.deep.equal({ tags: 'invalid-scalar' });
   });
@@ -1522,6 +1545,7 @@ describe('HarvestRunService', function () {
       });
       if (testCase.tracked) configureTrackedCreateChunk();
       schemaResolver.validateResolvedArtifact.resetHistory();
+      schemaResolver.persistSaveUsageReference.resetHistory();
       preSaveHook.resetHistory();
       storageService.updateMeta.resetHistory();
       recordValidationService.resolve.resetHistory();
@@ -1606,6 +1630,20 @@ describe('HarvestRunService', function () {
       if (testCase.expectedPersisted) {
         expect(storageService.updateMeta.calledOnce, testCase.name).to.equal(true);
         expect(recordValidationService.resolve.calledBefore(storageService.updateMeta), testCase.name).to.equal(true);
+        expect(schemaResolver.persistSaveUsageReference.calledOnce, testCase.name).to.equal(true);
+        expect(
+          storageService.updateMeta.calledBefore(schemaResolver.persistSaveUsageReference),
+          testCase.name
+        ).to.equal(true);
+        expect(schemaResolver.persistSaveUsageReference.firstCall.args[0], testCase.name).to.deep.include({
+          digest: 'b'.repeat(64),
+          brand: 'brand-1',
+          portal: 'tenant-portal',
+          schemaKind: 'update',
+          recordType: 'dataset',
+          oid: 'record-1',
+          operation: 'strict-all',
+        });
         expect(persistedRecords.get('record-1').metadata, testCase.name).to.deep.include({
           ...testCase.metadata,
           tags: ['stored', 'incoming'],
@@ -1613,6 +1651,7 @@ describe('HarvestRunService', function () {
         });
       } else {
         expect(storageService.updateMeta.notCalled, testCase.name).to.equal(true);
+        expect(schemaResolver.persistSaveUsageReference.notCalled, testCase.name).to.equal(true);
         expect(persistedRecords.get('record-1'), testCase.name).to.deep.equal(original);
       }
     }
