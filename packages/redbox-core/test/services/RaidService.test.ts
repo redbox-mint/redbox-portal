@@ -1,9 +1,10 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { RaidRecordRepositoryTag } from '../../src/services/raid-v2/tags';
+import type { RaidRecordRepository } from '../../src/services/raid-v2/types';
 
 describe('RaidService', function() {
   let mockSails: any;
@@ -341,7 +342,7 @@ describe('RaidService', function() {
       };
       const record = { metadata: {}, metaMetadata: { brandId: 'brand-1' } };
       const config = (RaidService as any).resolveConfig(record).config;
-      const layer = (RaidService as any).buildLayer({
+      const layer: Layer.Layer<RaidRecordRepository> = RaidService.buildLayer({
         record,
         options: {},
         config,

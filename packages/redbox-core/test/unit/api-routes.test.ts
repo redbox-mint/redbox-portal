@@ -105,6 +105,7 @@ type OpenApiOperation = {
   parameters?: Array<OpenApiParameter>;
   summary?: string;
   description?: string;
+  'x-redbox-record-schema-resolver'?: unknown;
 };
 
 type OpenApiParameter = {

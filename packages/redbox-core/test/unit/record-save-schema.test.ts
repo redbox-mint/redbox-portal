@@ -55,18 +55,24 @@ describe('record-save issue response schema', function () {
   });
 
   it('accepts only the allowlisted expected type shape', function () {
-    expect(recordSaveIssueSchema.safeParse({
-      message: '@record-schema.type',
-      expected: { type: 'integer' },
-    }).success).to.equal(true);
-    expect(recordSaveIssueSchema.safeParse({
-      message: '@record-schema.type',
-      expected: { type: 'custom' },
-    }).success).to.equal(false);
-    expect(recordSaveIssueSchema.safeParse({
-      message: '@record-schema.type',
-      expected: { type: 'string', submitted: 'secret' },
-    }).success).to.equal(false);
+    expect(
+      recordSaveIssueSchema.safeParse({
+        message: '@record-schema.type',
+        expected: { type: 'integer' },
+      }).success
+    ).to.equal(true);
+    expect(
+      recordSaveIssueSchema.safeParse({
+        message: '@record-schema.type',
+        expected: { type: 'custom' },
+      }).success
+    ).to.equal(false);
+    expect(
+      recordSaveIssueSchema.safeParse({
+        message: '@record-schema.type',
+        expected: { type: 'string', submitted: 'secret' },
+      }).success
+    ).to.equal(false);
   });
 
   it('accepts schema source, phase, and code metadata in a typed save problem', function () {
@@ -106,12 +112,14 @@ describe('record-save issue response schema', function () {
       totalItems: 0,
       items: [],
       outcome: 'not-saved',
-      problems: [{
-        kind: 'validation',
-        source: 'schema',
-        phase: 'pre-save',
-        issues: [{ message: '@record-schema.type' }],
-      }],
+      problems: [
+        {
+          kind: 'validation',
+          source: 'schema',
+          phase: 'pre-save',
+          issues: [{ message: '@record-schema.type' }],
+        },
+      ],
     });
 
     expect(result.success).to.equal(false);
@@ -126,11 +134,13 @@ describe('record-save issue response schema', function () {
       totalItems: 0,
       items: [],
       outcome: 'not-saved',
-      problems: [{
-        kind: 'validation',
-        phase: 'schema',
-        issues: [{ message: '@record-schema.type' }],
-      }],
+      problems: [
+        {
+          kind: 'validation',
+          phase: 'schema',
+          issues: [{ message: '@record-schema.type' }],
+        },
+      ],
     });
 
     expect(result.success).to.equal(false);

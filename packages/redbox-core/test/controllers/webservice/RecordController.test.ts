@@ -2265,7 +2265,8 @@ describe('Webservice RecordController body source', () => {
             return schemaPreconditionFailure(testCase.code);
           });
           const route = action === 'update' ? updateMetaRoute : transitionWorkflowRoute;
-          const params = action === 'update' ? { oid: 'record-1' } : { oid: 'record-1', targetStep: 'published' };
+          const params: Record<string, string> =
+            action === 'update' ? { oid: 'record-1' } : { oid: 'record-1', targetStep: 'published' };
           const req = makeValidatedRequest(
             route,
             {

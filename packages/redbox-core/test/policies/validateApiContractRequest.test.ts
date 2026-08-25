@@ -173,10 +173,15 @@ describe('validateApiContractRequest policy', function () {
                     },
                     query: {},
                     headers: {
-                        'if-match': [ifMatch, ifMatch],
                         'x-redbox-api-version': apiVersion,
-                    } as Sails.Req['headers'],
+                    },
                     body: {},
+                });
+                Object.defineProperty(req.headers, 'if-match', {
+                    value: [ifMatch, ifMatch],
+                    enumerable: true,
+                    configurable: true,
+                    writable: true,
                 });
                 const res = createRes();
                 let nextCalled = false;

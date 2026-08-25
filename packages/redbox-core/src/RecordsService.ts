@@ -155,14 +155,16 @@ export function createRecordMetadataDelta(
   };
 
   for (const key of new Set([...Object.keys(previous), ...Object.keys(updated)])) {
-    if (!Object.prototype.hasOwnProperty.call(updated, key)) {
+    const previousDescriptor = Object.getOwnPropertyDescriptor(previous, key);
+    const updatedDescriptor = Object.getOwnPropertyDescriptor(updated, key);
+    if (updatedDescriptor === undefined) {
       setDeltaValue(key, null);
       continue;
     }
 
-    const previousValue = previous[key];
-    const updatedValue = updated[key];
-    if (isEqual(previousValue, updatedValue)) continue;
+    const previousValue: unknown = previousDescriptor?.value;
+    const updatedValue: unknown = updatedDescriptor.value;
+    if (previousDescriptor !== undefined && isEqual(previousValue, updatedValue)) continue;
 
     if (isMetadataObject(previousValue) && isMetadataObject(updatedValue)) {
       const nestedDelta = createRecordMetadataDelta(previousValue, updatedValue);

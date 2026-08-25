@@ -6879,13 +6879,13 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
-    it('retains an own __proto__ key in a derived legacy delta and validates it before hooks or storage', async function () {
+    it('retains an empty own __proto__ value in a derived legacy delta and validates it before hooks or storage', async function () {
       enableRecordSchema();
       mockSails.config.recordValidation = { mode: 'enforce' };
       const stored = { ...baseRecord(), metadata: { title: 'Original' } };
       const requestedRecord = structuredClone(stored);
       Object.defineProperty(requestedRecord.metadata, '__proto__', {
-        value: { unexpected: true },
+        value: {},
         enumerable: true,
         configurable: true,
         writable: true,
@@ -6919,8 +6919,8 @@ describe('RecordsService', function () {
       const derivedDelta = validateResolvedArtifact.firstCall.args[0].input;
       expect(Object.keys(derivedDelta)).to.deep.equal(['__proto__']);
       expect(Object.getPrototypeOf(derivedDelta)).to.equal(Object.prototype);
-      expect(derivedDelta).to.deep.equal(JSON.parse('{"__proto__":{"unexpected":true}}'));
-      expect(JSON.stringify(derivedDelta)).to.equal('{"__proto__":{"unexpected":true}}');
+      expect(derivedDelta).to.deep.equal(JSON.parse('{"__proto__":{}}'));
+      expect(JSON.stringify(derivedDelta)).to.equal('{"__proto__":{}}');
       expect(preSaveHook.notCalled).to.equal(true);
       expect(mockRecordValidationService.resolve.notCalled).to.equal(true);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);

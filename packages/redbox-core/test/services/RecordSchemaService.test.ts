@@ -1466,12 +1466,16 @@ describe('RecordSchemaService update resolution', function () {
 
   it('authorizes DOI, Workspace, and RAiD initiating actors through the real update resolver flow', async function () {
     const restoreSails = ensureTestSails();
-    const context = updateContext('oid-1', {}, {
-      authorization: {
-        edit: ['doi-owner', 'workspace-owner', 'raid-owner'],
-        editRoles: [],
-      },
-    });
+    const context = updateContext(
+      'oid-1',
+      {},
+      {
+        authorization: {
+          edit: ['doi-owner', 'workspace-owner', 'raid-owner'],
+          editRoles: [],
+        },
+      }
+    );
     const resolveContractContext = sinon.stub().resolves(context);
     const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
     const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
@@ -1482,7 +1486,9 @@ describe('RecordSchemaService update resolution', function () {
     const serviceRegistry = sails.services ?? {};
     const priorRecordsService = serviceRegistry.recordsservice;
     sails.services = serviceRegistry;
-    serviceRegistry.recordsservice = recordsService;
+    serviceRegistry.recordsservice = {
+      hasEditAccess: (...args: unknown[]) => Reflect.apply(recordsService.hasEditAccess, recordsService, args),
+    };
     const service = new Services.RecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
