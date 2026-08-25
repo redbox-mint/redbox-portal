@@ -2,7 +2,6 @@ import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
-import { FormDebugStateService } from './form-debug/form-debug-state.service';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { SimpleInputComponent } from './component/simple-input.component';
@@ -2613,8 +2612,6 @@ describe('FormComponent', () => {
 
   it('does not enable debug UI for invalid formDebug query param values', async () => {
     setFormDebugUrl('off');
-    const debugState = TestBed.inject(FormDebugStateService);
-    debugState.refreshFromUrl();
     const formConfig: FormConfigFrame = {
       name: 'debug-query-disabled',
       componentDefinitions: [
