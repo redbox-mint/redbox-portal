@@ -15,7 +15,11 @@ import {
   type RecordSaveProblem,
 } from '@researchdatabox/sails-ng-common';
 import { createRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
-import type { StorageService } from '../../src/StorageService';
+import {
+  RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
+  type RecordSchemaStorageCapabilityMethod,
+  type StorageService,
+} from '../../src/StorageService';
 import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { StorageServiceResponse } from '../../src/StorageServiceResponse';
@@ -3997,6 +4001,18 @@ describe('RecordsService', function () {
       authorizationContextMarker: 'private-disabled-schema-authorization-context-marker',
     } as const;
 
+    type RecordSchemaStorageSpies = {
+      [Method in RecordSchemaStorageCapabilityMethod]: sinon.SinonStub<
+        Parameters<NonNullable<StorageService[Method]>>,
+        ReturnType<NonNullable<StorageService[Method]>>
+      >;
+    };
+
+    const recordSchemaStorageSpy = <
+      Method extends RecordSchemaStorageCapabilityMethod,
+    >(): RecordSchemaStorageSpies[Method] =>
+      sinon.stub<Parameters<NonNullable<StorageService[Method]>>, ReturnType<NonNullable<StorageService[Method]>>>();
+
     const installDisabledRecordSchemaHarness = () => {
       const disabledResolution = {
         kind: 'resolved',
@@ -4028,9 +4044,14 @@ describe('RecordsService', function () {
         }),
         persistSaveUsageReference: sinon.stub(),
       };
-      const schemaStorage = {
-        putRecordSchemaArtifact: sinon.stub(),
-        putRecordSchemaReference: sinon.stub(),
+      const schemaStorage: RecordSchemaStorageSpies = {
+        putRecordSchemaArtifact: recordSchemaStorageSpy<'putRecordSchemaArtifact'>(),
+        getRecordSchemaArtifact: recordSchemaStorageSpy<'getRecordSchemaArtifact'>(),
+        touchRecordSchemaArtifact: recordSchemaStorageSpy<'touchRecordSchemaArtifact'>(),
+        putRecordSchemaReference: recordSchemaStorageSpy<'putRecordSchemaReference'>(),
+        listRecordSchemaGrants: recordSchemaStorageSpy<'listRecordSchemaGrants'>(),
+        listRecordSchemaReferences: recordSchemaStorageSpy<'listRecordSchemaReferences'>(),
+        deleteRecordSchemaArtifactIfUnreferenced: recordSchemaStorageSpy<'deleteRecordSchemaArtifactIfUnreferenced'>(),
       };
       mockSails.config.recordSchema = { enabled: false };
       mockSails.services.recordschemaservice = schemaService;
@@ -4057,8 +4078,9 @@ describe('RecordsService', function () {
       expect(harness.schemaService.resolveUpdate.notCalled).to.equal(true);
       expect(harness.schemaService.validateResolvedArtifact.notCalled).to.equal(true);
       expect(harness.schemaService.persistSaveUsageReference.notCalled).to.equal(true);
-      expect(harness.schemaStorage.putRecordSchemaArtifact.notCalled).to.equal(true);
-      expect(harness.schemaStorage.putRecordSchemaReference.notCalled).to.equal(true);
+      for (const capability of RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS) {
+        expect(harness.schemaStorage[capability].notCalled, capability).to.equal(true);
+      }
     };
 
     const recordedSchemaUsageResult = (
@@ -5693,22 +5715,66 @@ describe('RecordsService', function () {
       const schemaHarness = installDisabledRecordSchemaHarness();
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const requestedRecord = structuredClone(stored);
-      const rawDelta = { title: 'Rejected by legacy structure validation' };
-      const legacyProblem: RecordSaveProblem = {
-        kind: 'validation',
-        phase: 'pre-save',
-        issues: [
+      const rawDelta = { title: '' };
+      const form: FormConfigFrame = {
+        name: 'default-form',
+        type: 'rdmp',
+        componentDefinitions: [
           {
-            code: 'legacy-metadata-structure-invalid',
-            message: '@legacy-metadata-structure-invalid',
-            pointer: '/title',
+            name: 'title',
+            component: {
+              class: 'SimpleInputComponent',
+              config: { type: 'text' },
+            },
+            model: {
+              class: 'SimpleInputModel',
+              config: { validators: [{ class: 'required' }] },
+            },
           },
         ],
       };
+      mockSails.config.recordValidation = {
+        mode: 'enforce',
+        timeoutMs: 5_000,
+        allowedRequestParameters: [],
+      };
+      mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
+      mockSails.config.reusableFormDefinitions = {};
+      const validationService = new RecordValidationServices.RecordValidation({
+        loadRecordType: async () => ({
+          id: 'record-type-1',
+          name: 'rdmp',
+          recordValidation: { mode: 'enforce' },
+        }),
+        loadStartingWorkflowStep: async () => ({
+          name: 'draft',
+          starting: true,
+          config: { form: 'default-form' },
+        }),
+        loadWorkflowStep: async (_recordType, step) => ({
+          name: step,
+          config: { form: 'default-form' },
+        }),
+        loadWorkflowSteps: async () => [],
+        loadForm: async (formName, brand) => ({
+          id: `form-${formName}`,
+          name: formName,
+          branding: brand,
+          configuration: form,
+        }),
+      });
+      const businessValidation = sinon.spy(validationService, 'resolve');
+      mockSails.services.recordvalidationservice = validationService;
+      const formRecord: FormAttributes = {
+        id: 'form-default-form',
+        name: 'default-form',
+        branding: 'brand-1',
+        configuration: form,
+      };
+      mockFormsService.getForm.resolves(formRecord);
+      mockFormsService.getFormByName.returns(of(formRecord));
       mockStorageService.getMeta.resolves(stored);
-      const legacyStructuralValidation = sinon
-        .stub(RecordsService, 'validateUpdateMetadataStructure')
-        .resolves({ valid: false, problem: legacyProblem });
+      const legacyStructuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
 
       const result = await RecordsService.updateMeta(
@@ -5725,16 +5791,29 @@ describe('RecordsService', function () {
 
       expect(result.outcome).to.equal('not-saved');
       expect(result.success).to.equal(false);
-      expect(result.problems).to.deep.equal([legacyProblem]);
+      expect(result.problems).to.have.length(1);
+      expect(result.problems[0]).to.deep.include({ kind: 'validation', phase: 'pre-save' });
+      expect(result.problems[0].issues[0]).to.deep.include({
+        code: 'record-validation-failed',
+        field: 'title',
+        pointer: '/title',
+        class: 'required',
+      });
       expect(result.schemaOutcome).to.equal(undefined);
       expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
-      expect(applySubmission.notCalled).to.equal(true);
+      expect(applySubmission.calledOnce).to.equal(true);
+      expect(businessValidation.calledOnce).to.equal(true);
+      const validationResult = await businessValidation.firstCall.returnValue;
+      expect(validationResult.status).to.equal('resolved');
+      if (validationResult.status !== 'resolved') throw new Error('Expected resolved legacy validation result.');
+      expect(validationResult.shouldBlock).to.equal(true);
+      expect(validationResult.blockingErrors.map(issue => issue.class)).to.deep.equal(['required']);
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
       expect(mockStorageService.create.notCalled).to.equal(true);
       expect(mockSearchService.index.notCalled).to.equal(true);
       expect(mockQueueService.now.notCalled).to.equal(true);
       expect(requestedRecord).to.deep.equal(stored);
-      expect(rawDelta).to.deep.equal({ title: 'Rejected by legacy structure validation' });
+      expect(rawDelta).to.deep.equal({ title: '' });
       expectDisabledRecordSchemaInert(schemaHarness);
     });
 
