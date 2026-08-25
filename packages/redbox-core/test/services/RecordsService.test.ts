@@ -12,6 +12,7 @@ import {
   formValidatorsSharedDefinitions,
   type FormConfigFrame,
   type RecordSaveIssue,
+  type RecordSaveProblem,
 } from '@researchdatabox/sails-ng-common';
 import { createRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
 import type { StorageService } from '../../src/StorageService';
@@ -3985,11 +3986,46 @@ describe('RecordsService', function () {
       mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
     };
 
+    const disabledRecordSchemaArtifacts = {
+      documentMarker: 'private-disabled-schema-document-marker',
+      digest: 'd'.repeat(64),
+      immutableUrl: `/brand-1/portal/api/records/schemas/${'d'.repeat(64)}`,
+      contractFormat: 'private-disabled-schema-contract-marker',
+      completeness: 'private-disabled-schema-completeness-marker',
+      enforcement: 'private-disabled-schema-enforcement-marker',
+      grantMarker: 'private-disabled-schema-grant-marker',
+      authorizationContextMarker: 'private-disabled-schema-authorization-context-marker',
+    } as const;
+
     const installDisabledRecordSchemaHarness = () => {
+      const disabledResolution = {
+        kind: 'resolved',
+        document: {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          privateMarker: disabledRecordSchemaArtifacts.documentMarker,
+        },
+        digest: disabledRecordSchemaArtifacts.digest,
+        immutableUrl: disabledRecordSchemaArtifacts.immutableUrl,
+        grant: {
+          privateGrantData: disabledRecordSchemaArtifacts.grantMarker,
+          authorizationContext: disabledRecordSchemaArtifacts.authorizationContextMarker,
+        },
+        metadata: {
+          schemaKind: 'update',
+          contractFormat: disabledRecordSchemaArtifacts.contractFormat,
+          completeness: disabledRecordSchemaArtifacts.completeness,
+          enforcement: disabledRecordSchemaArtifacts.enforcement,
+        },
+      };
       const schemaService = {
-        resolveCreate: sinon.stub(),
-        resolveUpdate: sinon.stub(),
-        validateResolvedArtifact: sinon.stub(),
+        resolveCreate: sinon.stub().resolves(disabledResolution),
+        resolveUpdate: sinon.stub().resolves(disabledResolution),
+        validateResolvedArtifact: sinon.stub().returns({
+          kind: 'validated',
+          valid: true,
+          issues: [],
+          truncated: false,
+        }),
         persistSaveUsageReference: sinon.stub(),
       };
       const schemaStorage = {
@@ -4000,6 +4036,20 @@ describe('RecordsService', function () {
       mockSails.services.recordschemaservice = schemaService;
       Object.assign(mockStorageService, schemaStorage);
       return { schemaService, schemaStorage };
+    };
+
+    const expectNoDisabledRecordSchemaDataPersisted = (candidate: unknown): void => {
+      assertUnknownRecord(candidate);
+      const persisted = JSON.stringify(candidate);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.documentMarker);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.digest);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.immutableUrl);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.contractFormat);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.completeness);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.enforcement);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.grantMarker);
+      expect(persisted).not.to.include(disabledRecordSchemaArtifacts.authorizationContextMarker);
+      expect(persisted).not.to.include('"schemaOutcome"');
     };
 
     const expectDisabledRecordSchemaInert = (harness: ReturnType<typeof installDisabledRecordSchemaHarness>): void => {
@@ -5489,11 +5539,7 @@ describe('RecordsService', function () {
       expect(result.problems).to.deep.equal([]);
       expect(result.schemaOutcome).to.equal(undefined);
       expectDisabledRecordSchemaInert(schemaHarness);
-      expect(mockStorageService.create.firstCall.args[1]).not.to.have.any.keys(
-        'schemaKey',
-        'schemaVersion',
-        'schemaOutcome'
-      );
+      expectNoDisabledRecordSchemaDataPersisted(mockStorageService.create.firstCall.args[1]);
       expect(transitionMetadata.calledBefore((global as any).FormsService.getForm)).to.equal(true);
       expect((global as any).FormsService.getForm.calledBefore(initializeMetadata)).to.equal(true);
       expect(initializeMetadata.calledBefore(authorize)).to.equal(true);
@@ -5535,6 +5581,7 @@ describe('RecordsService', function () {
         title: 'Updated',
         retained: 'keep',
       });
+      expectNoDisabledRecordSchemaDataPersisted(mockStorageService.updateMeta.firstCall.args[2]);
       expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
       expect(rawDelta).to.deep.equal({ title: 'Updated' });
       expectDisabledRecordSchemaInert(schemaHarness);
@@ -5580,6 +5627,7 @@ describe('RecordsService', function () {
         form: 'published-form',
         brandId: 'brand-1',
       });
+      expectNoDisabledRecordSchemaDataPersisted(mockStorageService.updateMeta.firstCall.args[2]);
       expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
       expect(transitionHook.calledOnce).to.equal(true);
       expect(rawDelta).to.deep.equal({ title: 'Published' });
@@ -5632,11 +5680,61 @@ describe('RecordsService', function () {
       expect(result.oid).to.equal('record-123');
       expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
       expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(baselineMetadata);
+      expectNoDisabledRecordSchemaDataPersisted(mockStorageService.updateMeta.firstCall.args[2]);
       expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
       expect(rawDelta).to.deep.equal({
         nested: { incoming: true, values: [{ id: 'incoming-nested' }] },
         values: [{ id: 'incoming' }],
       });
+      expectDisabledRecordSchemaInert(schemaHarness);
+    });
+
+    it('preserves disabled-schema legacy update rejection without schema or persistence side effects', async function () {
+      const schemaHarness = installDisabledRecordSchemaHarness();
+      const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
+      const requestedRecord = structuredClone(stored);
+      const rawDelta = { title: 'Rejected by legacy structure validation' };
+      const legacyProblem: RecordSaveProblem = {
+        kind: 'validation',
+        phase: 'pre-save',
+        issues: [
+          {
+            code: 'legacy-metadata-structure-invalid',
+            message: '@legacy-metadata-structure-invalid',
+            pointer: '/title',
+          },
+        ],
+      };
+      mockStorageService.getMeta.resolves(stored);
+      const legacyStructuralValidation = sinon
+        .stub(RecordsService, 'validateUpdateMetadataStructure')
+        .resolves({ valid: false, problem: legacyProblem });
+      const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        requestedRecord,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'merge' },
+        recordSchemaContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.success).to.equal(false);
+      expect(result.problems).to.deep.equal([legacyProblem]);
+      expect(result.schemaOutcome).to.equal(undefined);
+      expect(legacyStructuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
+      expect(applySubmission.notCalled).to.equal(true);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+      expect(mockSearchService.index.notCalled).to.equal(true);
+      expect(mockQueueService.now.notCalled).to.equal(true);
+      expect(requestedRecord).to.deep.equal(stored);
+      expect(rawDelta).to.deep.equal({ title: 'Rejected by legacy structure validation' });
       expectDisabledRecordSchemaInert(schemaHarness);
     });
 
