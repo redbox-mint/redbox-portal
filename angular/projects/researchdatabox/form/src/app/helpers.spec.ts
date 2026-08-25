@@ -127,6 +127,10 @@ export async function createFormAndWaitForReady(
   const fixture = TestBed.createComponent(FormComponent);
   const formComponent = fixture.componentInstance;
 
+  if (formDebugUrlOptions) {
+    formComponent.debugState.refreshFromUrl();
+  }
+
   ensureApplicationRefFormComponent(fixture.componentRef);
 
   // set the attributes on the nativeElement
