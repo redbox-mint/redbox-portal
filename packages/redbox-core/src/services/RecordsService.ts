@@ -1053,7 +1053,7 @@ export namespace Services {
         detachedMetadata,
         (existingValue: unknown, submittedValue: unknown) => {
           if (Array.isArray(existingValue)) {
-            return existingValue.concat(submittedValue);
+            return submission.arrayMergeMode === 'replace' ? submittedValue : existingValue.concat(submittedValue);
           }
           return undefined;
         }

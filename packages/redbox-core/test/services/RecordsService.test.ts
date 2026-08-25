@@ -6669,22 +6669,23 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
-    it('stops a structurally invalid raw delta before merge, hooks, business validation, or storage', async function () {
+    it('stops a structurally invalid browser merge delta before merge, hooks, business validation, or storage', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
       const stored = { ...baseRecord(), metadata: { title: 'Original', retained: 'keep' } };
       const rawDelta = { title: 42 };
       mockStorageService.getMeta.resolves(stored);
+      const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce'));
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: false,
+        issues: [{ code: 'record-schema.type', pointer: '/title', expected: { type: 'string' } }],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
       const authorize = sinon.spy(RecordsService, 'hasPublicEditAuthorization');
       const applySubmission = sinon.spy(RecordsService, 'applySubmittedMetadata');
       const preSaveHook = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
-      const structuralValidation = sinon.stub(RecordsService, 'validateUpdateMetadataStructure').resolves({
-        valid: false,
-        problem: {
-          kind: 'validation',
-          phase: 'pre-save',
-          issues: [{ message: '@record-schema-type', code: 'record-schema.type', pointer: '/title' }],
-        },
-      });
-
       const result = await RecordsService.updateMeta(
         { id: 'brand-1' },
         'record-123',
@@ -6693,8 +6694,8 @@ describe('RecordsService', function () {
         true,
         false,
         {},
-        { metadata: rawDelta, mode: 'merge' },
-        createRecordSaveContext({ routeFamily: 'api', operation: 'update' })
+        { metadata: rawDelta, mode: 'merge', arrayMergeMode: 'replace' },
+        recordSchemaContext({ routeFamily: 'browser', operation: 'update' })
       );
 
       expect(result.outcome).to.equal('not-saved');
@@ -6702,10 +6703,11 @@ describe('RecordsService', function () {
         code: 'record-schema.type',
         pointer: '/title',
       });
-      expect(structuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
-      expect(mockStorageService.getMeta.calledBefore(structuralValidation)).to.equal(true);
-      expect(authorize.calledBefore(structuralValidation)).to.equal(true);
-      expect((global as any).RecordTypesService.get.calledBefore(structuralValidation)).to.equal(true);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+      expect(mockStorageService.getMeta.calledBefore(validateResolvedArtifact)).to.equal(true);
+      expect(authorize.calledBefore(validateResolvedArtifact)).to.equal(true);
+      expect((global as any).RecordTypesService.get.calledBefore(validateResolvedArtifact)).to.equal(true);
       expect(applySubmission.notCalled).to.equal(true);
       expect(preSaveHook.notCalled).to.equal(true);
       expect(mockRecordValidationService.resolve.notCalled).to.equal(true);
@@ -6827,6 +6829,62 @@ describe('RecordsService', function () {
       } finally {
         delete (globalThis as Record<string, unknown>).__recordContractMergeHookInput;
       }
+    });
+
+    it('preserves browser recursive merge with array replacement after raw delta validation', async function () {
+      const stored = {
+        ...baseRecord(),
+        metadata: {
+          retained: 'keep',
+          nested: {
+            retained: true,
+            values: [{ id: 'nested-stored' }],
+          },
+          values: [{ id: 'stored' }],
+        },
+      };
+      const rawDelta = {
+        nested: {
+          incoming: true,
+          values: [{ id: 'nested-incoming' }],
+        },
+        values: [{ id: 'incoming' }],
+      };
+      mockStorageService.getMeta.resolves(stored);
+      (global as any).RecordValidationService.resolve.resolves(allowResult());
+      const structuralValidation = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'merge', arrayMergeMode: 'replace' },
+        createRecordSaveContext({ routeFamily: 'browser', operation: 'update' })
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(structuralValidation.calledOnceWithExactly(rawDelta)).to.equal(true);
+      expect(structuralValidation.calledBefore(mockStorageService.updateMeta)).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal({
+        retained: 'keep',
+        nested: {
+          retained: true,
+          incoming: true,
+          values: [{ id: 'nested-incoming' }],
+        },
+        values: [{ id: 'incoming' }],
+      });
+      expect(rawDelta).to.deep.equal({
+        nested: {
+          incoming: true,
+          values: [{ id: 'nested-incoming' }],
+        },
+        values: [{ id: 'incoming' }],
+      });
     });
 
     it('characterizes service-owned replacement as discarding all omitted stored metadata', async function () {

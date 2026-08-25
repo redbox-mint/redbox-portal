@@ -1363,6 +1363,60 @@ describe('RecordController getWorkflowSteps', () => {
     expect(updateMeta.notCalled).to.equal(true);
   });
 
+  it('passes the raw browser merge delta to RecordsService with array replacement semantics', async () => {
+    const currentRecord = {
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+      metadata: {
+        retained: 'keep',
+        nested: { retained: true, values: [{ id: 'stored-nested' }] },
+        values: [{ id: 'stored' }],
+      },
+      workflow: { stage: 'draft' },
+      authorization: { edit: ['tester'] },
+    };
+    const rawDelta = {
+      nested: { incoming: true, values: [{ id: 'incoming-nested' }] },
+      values: [{ id: 'incoming' }],
+    };
+    const saved = new RecordSaveResponse('00000000-0000-4000-8000-000000000126');
+    saved.oid = 'oid-1';
+    saved.outcome = 'saved';
+    saved.success = true;
+    const updateMeta = sinon.stub().resolves(saved);
+    controller.recordsService = {
+      getMeta: sinon.stub().resolves(currentRecord),
+      hasEditAccess: sinon.stub().returns(true),
+      updateMeta,
+    } as any;
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    const req = {
+      body: rawDelta,
+      headers: {},
+      params: { oid: 'oid-1' },
+      query: { merge: 'true' },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    sinon.stub(controller as any, 'getApiVersion').returns('2.0');
+    sinon.stub(controller as any, 'sendResp');
+
+    await (controller as any).updateInternal(req, {} as Sails.Res);
+
+    expect(updateMeta.calledOnce).to.equal(true);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({
+      metadata: rawDelta,
+      mode: 'merge',
+      arrayMergeMode: 'replace',
+    });
+    expect(updateMeta.firstCall.args[7].metadata).to.equal(rawDelta);
+    expect(currentRecord.metadata).to.deep.equal({
+      retained: 'keep',
+      nested: { retained: true, values: [{ id: 'stored-nested' }] },
+      values: [{ id: 'stored' }],
+    });
+  });
+
   it('does not let browser create body metadata initiate a transition', async () => {
     const saved = new RecordSaveResponse('00000000-0000-4000-8000-000000000125');
     saved.oid = 'oid-created';

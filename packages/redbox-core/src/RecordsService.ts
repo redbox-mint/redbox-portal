@@ -112,6 +112,7 @@ export interface RecordTypeLookupSummary {
 export interface RecordMetadataSubmission {
   readonly metadata: Record<string, unknown>;
   readonly mode: 'merge' | 'replace';
+  readonly arrayMergeMode?: 'concat' | 'replace';
 }
 
 /**
