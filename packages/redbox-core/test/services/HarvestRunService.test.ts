@@ -1,10 +1,19 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
+import { FormConfig } from '@researchdatabox/sails-ng-common';
 import { ObjectId } from 'mongodb';
 import { of } from 'rxjs';
 import * as sinon from 'sinon';
 
-import { createRecordSaveContext, isRecordSaveContext, type RecordSaveContext } from '../../src/RecordSaveResponse';
+import {
+  createRecordSaveContext,
+  isRecordSaveContext,
+  type RecordSaveContext,
+} from '../../src/RecordSaveResponse';
+import type {
+  RecordValidationRequest,
+  RecordValidationResult,
+} from '../../src/services/RecordValidationService';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from './testHelper';
 
 type QueryLike = {
@@ -36,22 +45,33 @@ function harvestSaveContext(): RecordSaveContext {
   });
 }
 
-function recordValidationRequest(value: unknown): {
-  candidate: Record<string, unknown> & { metadata: Record<string, unknown> };
-  writeKind: unknown;
-} {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('Expected validation request.');
-  const candidate = Reflect.get(value, 'candidate');
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-    throw new TypeError('Expected validation candidate.');
-  }
-  const metadata = Reflect.get(candidate, 'metadata');
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    throw new TypeError('Expected validation metadata.');
-  }
+function recordValidationResult(
+  request: RecordValidationRequest,
+  blockingErrors: readonly { message: string; field: string; class: string }[] = [],
+  mode: 'shadow' | 'enforce' = 'shadow'
+): RecordValidationResult {
+  const constructedForm = new FormConfig();
+  constructedForm.name = 'default-form';
+  constructedForm.componentDefinitions = [];
   return {
-    candidate: candidate as Record<string, unknown> & { metadata: Record<string, unknown> },
-    writeKind: Reflect.get(value, 'writeKind'),
+    status: 'resolved',
+    shouldBlock: mode === 'enforce' && blockingErrors.length > 0,
+    mode,
+    formName: 'default-form',
+    effectiveGroups: [],
+    resolved: {
+      constructedForm,
+      formName: 'default-form',
+      recordType: 'dataset',
+      brand: 'brand-1',
+      workflowStep: 'draft',
+      conditionalGroups: [],
+    },
+    blockingErrors,
+    advisoryErrors: [],
+    advisoryGroups: [],
+    diagnostics: [],
+    transformedCandidate: request.candidate,
   };
 }
 
@@ -210,20 +230,11 @@ describe('HarvestRunService', function () {
     (global as any).UsersService = {
       getUserWithUsername: sinon.stub().returns(of(null)),
     };
-    const recordValidationService = {
-      resolve: sinon.stub().callsFake(async (request: any) => ({
-        status: 'resolved',
-        shouldBlock: false,
-        mode: 'shadow',
-        formName: 'default-form',
-        effectiveGroups: [],
-        resolved: {},
-        blockingErrors: [],
-        advisoryErrors: [],
-        advisoryGroups: [],
-        diagnostics: [],
-        transformedCandidate: request.candidate,
-      })),
+    const recordValidationService: {
+      resolve: sinon.SinonStub<[request: RecordValidationRequest], Promise<RecordValidationResult>>;
+    } = {
+      resolve: sinon.stub<[request: RecordValidationRequest], Promise<RecordValidationResult>>()
+        .callsFake(async request => recordValidationResult(request)),
     };
     (global as any).RecordValidationService = recordValidationService;
     mockSails.services.recordvalidationservice = recordValidationService;
@@ -1333,7 +1344,13 @@ describe('HarvestRunService', function () {
   });
 
   it('rejects a raw merge type failure before hooks or mutation in legacy and tracked updates', async function () {
-    const { persistedRecords, realRecordsService, schemaResolver, storageService } = useRealRecordsService(true);
+    const {
+      persistedRecords,
+      realRecordsService,
+      recordValidationService,
+      schemaResolver,
+      storageService,
+    } = useRealRecordsService(true);
     const resolveUpdate = rejectNonArrayTagUpdates(schemaResolver);
     const originalRecord = {
       redboxOid: 'record-1',
@@ -1361,6 +1378,7 @@ describe('HarvestRunService', function () {
     (global as any).Record.find.returns({
       meta: sinon.stub().resolves([structuredClone(originalRecord)]),
     });
+    const applySubmittedMetadata = sinon.spy(realRecordsService, 'applySubmittedMetadata');
     const preSaveHook = sinon.spy(realRecordsService, 'triggerPreSaveTriggers');
     const rawDelta = { tags: 'invalid-scalar' };
 
@@ -1381,16 +1399,26 @@ describe('HarvestRunService', function () {
     );
 
     expect(legacyResponse[0].status).to.equal(false);
+    expect(resolveUpdate.calledOnce).to.equal(true);
     expect(schemaResolver.validateResolvedArtifact.calledOnce).to.equal(true);
     expect(schemaResolver.validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+    expect(schemaResolver.validateResolvedArtifact.firstCall.returnValue).to.deep.include({
+      kind: 'validated',
+      valid: false,
+    });
+    expect(resolveUpdate.calledBefore(schemaResolver.validateResolvedArtifact)).to.equal(true);
+    expect(applySubmittedMetadata.notCalled).to.equal(true);
     expect(preSaveHook.notCalled).to.equal(true);
+    expect(recordValidationService.resolve.notCalled).to.equal(true);
     expect(storageService.updateMeta.notCalled).to.equal(true);
     expect(persistedRecords.get('record-1')).to.deep.equal(originalRecord);
 
     persistedRecords.set('record-1', structuredClone(originalRecord));
     resolveUpdate.resetHistory();
     schemaResolver.validateResolvedArtifact.resetHistory();
+    applySubmittedMetadata.resetHistory();
     preSaveHook.resetHistory();
+    recordValidationService.resolve.resetHistory();
     storageService.updateMeta.resetHistory();
     configureTrackedCreateChunk();
 
@@ -1415,9 +1443,17 @@ describe('HarvestRunService', function () {
     );
 
     expect(trackedResponse.chunk.responseSummary).to.deep.include({ updated: 0, failed: 1 });
+    expect(resolveUpdate.calledOnce).to.equal(true);
     expect(schemaResolver.validateResolvedArtifact.calledOnce).to.equal(true);
     expect(schemaResolver.validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+    expect(schemaResolver.validateResolvedArtifact.firstCall.returnValue).to.deep.include({
+      kind: 'validated',
+      valid: false,
+    });
+    expect(resolveUpdate.calledBefore(schemaResolver.validateResolvedArtifact)).to.equal(true);
+    expect(applySubmittedMetadata.notCalled).to.equal(true);
     expect(preSaveHook.notCalled).to.equal(true);
+    expect(recordValidationService.resolve.notCalled).to.equal(true);
     expect(storageService.updateMeta.notCalled).to.equal(true);
     expect(persistedRecords.get('record-1')).to.deep.equal(originalRecord);
     expect(rawDelta).to.deep.equal({ tags: 'invalid-scalar' });
@@ -1466,6 +1502,12 @@ describe('HarvestRunService', function () {
     const preSaveHook = sinon.spy(realRecordsService, 'triggerPreSaveTriggers');
     const cases = [
       {
+        name: 'legacy/business-valid',
+        tracked: false,
+        metadata: { title: 'Approved', score: 10, approval: 'approved', tags: ['incoming'] },
+        expectedPersisted: true,
+      },
+      {
         name: 'legacy/business-invalid',
         tracked: false,
         metadata: { title: '', score: 9, approval: 'rejected', tags: ['incoming'] },
@@ -1476,6 +1518,12 @@ describe('HarvestRunService', function () {
         tracked: true,
         metadata: { title: 'Approved', score: 10, approval: 'approved', tags: ['incoming'] },
         expectedPersisted: true,
+      },
+      {
+        name: 'tracked/business-invalid',
+        tracked: true,
+        metadata: { title: '', score: 9, approval: 'rejected', tags: ['incoming'] },
+        expectedPersisted: false,
       },
     ] as const;
 
@@ -1489,17 +1537,13 @@ describe('HarvestRunService', function () {
       preSaveHook.resetHistory();
       storageService.updateMeta.resetHistory();
       recordValidationService.resolve.resetHistory();
-      recordValidationService.resolve.callsFake(async (value: unknown) => {
-        const request = recordValidationRequest(value);
+      recordValidationService.resolve.callsFake(async (
+        request: RecordValidationRequest
+      ): Promise<RecordValidationResult> => {
         const invalid = request.candidate.metadata.approval !== 'approved';
-        return {
-          status: 'resolved',
-          shouldBlock: invalid,
-          mode: 'enforce',
-          formName: 'default-form',
-          effectiveGroups: [],
-          resolved: {},
-          blockingErrors: invalid
+        return recordValidationResult(
+          request,
+          invalid
             ? [
                 { message: '@validator-error-required', field: 'title', class: 'required' },
                 { message: '@validator-error-min', field: 'score', class: 'min' },
@@ -1510,11 +1554,8 @@ describe('HarvestRunService', function () {
                 },
               ]
             : [],
-          advisoryErrors: [],
-          advisoryGroups: [],
-          diagnostics: [],
-          transformedCandidate: request.candidate,
-        };
+          'enforce'
+        );
       });
       const rawDelta = structuredClone(testCase.metadata);
 
@@ -1557,7 +1598,7 @@ describe('HarvestRunService', function () {
       expect(recordValidationService.resolve.calledOnce, testCase.name).to.equal(true);
       expect(schemaResolver.validateResolvedArtifact.calledBefore(preSaveHook), testCase.name).to.equal(true);
       expect(preSaveHook.calledBefore(recordValidationService.resolve), testCase.name).to.equal(true);
-      const validationRequest = recordValidationRequest(recordValidationService.resolve.firstCall.args[0]);
+      const validationRequest: RecordValidationRequest = recordValidationService.resolve.firstCall.args[0];
       expect(validationRequest.writeKind, testCase.name).to.equal('update');
       expect(validationRequest.candidate.metadata, testCase.name).to.deep.include({
         ...testCase.metadata,
