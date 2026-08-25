@@ -97,6 +97,45 @@ describe('record-save issue response schema', function () {
     expect(result.success).to.equal(true);
   });
 
+  it('rejects schema provenance paired with a non-schema phase', function () {
+    const result = storageServiceResponseSchema.safeParse({
+      success: false,
+      oid: '',
+      message: '',
+      metadata: null,
+      totalItems: 0,
+      items: [],
+      outcome: 'not-saved',
+      problems: [{
+        kind: 'validation',
+        source: 'schema',
+        phase: 'pre-save',
+        issues: [{ message: '@record-schema.type' }],
+      }],
+    });
+
+    expect(result.success).to.equal(false);
+  });
+
+  it('rejects the schema phase without schema provenance', function () {
+    const result = storageServiceResponseSchema.safeParse({
+      success: false,
+      oid: '',
+      message: '',
+      metadata: null,
+      totalItems: 0,
+      items: [],
+      outcome: 'not-saved',
+      problems: [{
+        kind: 'validation',
+        phase: 'schema',
+        issues: [{ message: '@record-schema.type' }],
+      }],
+    });
+
+    expect(result.success).to.equal(false);
+  });
+
   it('rejects nested, unknown, or excessive validator parameters', function () {
     expect(
       recordSaveIssueSchema.safeParse({

@@ -383,14 +383,20 @@ export const recordSaveIssueSchema = withOpenApi(
 );
 
 const recordSaveProblemSchema = withOpenApi(
-  z.object({
-    // Derived from the shared union so the documented contract cannot drift
-    // from the kinds the server is able to emit.
-    kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
-    source: z.literal('schema').optional(),
-    phase: z.enum(['schema', 'pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
-    issues: z.array(recordSaveIssueSchema),
-  }),
+  z.union([
+    z.object({
+      kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
+      source: z.literal('schema'),
+      phase: z.literal('schema'),
+      issues: z.array(recordSaveIssueSchema),
+    }),
+    z.object({
+      kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
+      source: z.never().optional(),
+      phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
+      issues: z.array(recordSaveIssueSchema),
+    }),
+  ]),
   { description: 'A save phase problem and its safe display issues' }
 );
 

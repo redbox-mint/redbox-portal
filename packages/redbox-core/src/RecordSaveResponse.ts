@@ -14,7 +14,7 @@ import {
   RecordConcurrencyProblemCode,
   RecordConcurrencyResolution,
   RecordSaveIssue,
-  RecordSavePhase,
+  RecordSaveLifecyclePhase,
   RecordSaveProblem,
   RecordSaveProblemKind,
   RecordSaveResult,
@@ -757,7 +757,7 @@ export function resolveStorageMutationState(
 
 export function recordSaveProblem(
   kind: RecordSaveProblemKind,
-  phase: RecordSavePhase,
+  phase: RecordSaveLifecyclePhase,
   message: string,
   code?: string,
   issue: Partial<RecordSaveIssue> = {}

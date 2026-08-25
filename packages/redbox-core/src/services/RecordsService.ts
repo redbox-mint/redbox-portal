@@ -101,6 +101,7 @@ import {
   type RecordAttachmentCompletionItem,
   type RecordAttachmentOperation,
   type RecordSaveIssue,
+  type RecordSaveLifecyclePhase,
   type RecordSavePhase,
   type RecordSaveProblem,
   type RecordSaveProblemKind,
@@ -1636,7 +1637,7 @@ export namespace Services {
     }
 
     private saveProblem(
-      phase: RecordSavePhase,
+      phase: RecordSaveLifecyclePhase,
       _message: string,
       kind: RecordSaveProblemKind = 'system',
       code?: string
@@ -1646,7 +1647,7 @@ export namespace Services {
 
     private saveProblemFromError(
       error: unknown,
-      phase: RecordSavePhase,
+      phase: RecordSaveLifecyclePhase,
       _fallbackMessage: string,
       fallbackKind: RecordSaveProblemKind = 'processing',
       fallbackCode = 'save-precondition'
@@ -1686,7 +1687,7 @@ export namespace Services {
 
     private validationProblem(
       kind: RecordSaveProblemKind,
-      phase: RecordSavePhase,
+      phase: RecordSaveLifecyclePhase,
       code: string,
       issues: readonly RecordSaveIssue[] = []
     ): RecordSaveProblem {

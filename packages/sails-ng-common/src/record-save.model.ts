@@ -40,14 +40,14 @@ export type RecordSaveProblemKind = (typeof RECORD_SAVE_PROBLEM_KINDS)[number];
 
 export type RecordSaveProblemSource = 'schema';
 
-export type RecordSavePhase =
-  | 'schema'
+export type RecordSaveLifecyclePhase =
   | 'pre-save'
   | 'persistence'
   | 'attachments'
   | 'post-save'
   | 'response'
   | 'transport';
+export type RecordSavePhase = 'schema' | RecordSaveLifecyclePhase;
 
 export type RecordSaveValidatorParameterPrimitive = string | number | boolean | null;
 export type RecordSaveValidatorParameterValue =
@@ -316,13 +316,22 @@ export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
   return issue;
 }
 
-export interface RecordSaveProblem {
+export interface RecordSaveSchemaProblem {
   kind: RecordSaveProblemKind;
-  /** Distinct validation layer that produced this problem. */
-  source?: RecordSaveProblemSource;
-  phase: RecordSavePhase;
+  source: RecordSaveProblemSource;
+  phase: 'schema';
   issues: RecordSaveIssue[];
 }
+
+export interface RecordSaveLifecycleProblem {
+  kind: RecordSaveProblemKind;
+  source?: never;
+  phase: RecordSaveLifecyclePhase;
+  issues: RecordSaveIssue[];
+}
+
+/** Provenance and phase form one discriminated contract. */
+export type RecordSaveProblem = RecordSaveSchemaProblem | RecordSaveLifecycleProblem;
 
 export type RecordAttachmentOperation = 'add' | 'finalize' | 'delete';
 export type RecordAttachmentItemStatus = 'completed' | 'incomplete' | 'unknown';

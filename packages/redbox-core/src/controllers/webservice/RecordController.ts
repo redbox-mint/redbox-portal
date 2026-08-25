@@ -977,7 +977,14 @@ export namespace Controllers {
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       const that = this;
       if (body != null) {
-        const rawSubmittedMetadata = _.cloneDeep(body['metadata'] == null ? body : body['metadata']);
+        const isUnwrappedMetadata = body['metadata'] == null;
+        const rawSubmittedMetadata = _.cloneDeep(
+          isUnwrappedMetadata ? body : body['metadata']
+        ) as globalThis.Record<string, unknown>;
+        const persistenceMetadata = _.cloneDeep(rawSubmittedMetadata);
+        if (isUnwrappedMetadata && sails.config.recordSchema?.enabled !== true) {
+          persistenceMetadata['authorization'] = [];
+        }
         let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
         const authorizationBody = body['authorization'] as globalThis.Record<string, unknown> | undefined;
         if (authorizationBody != null) {
@@ -1005,7 +1012,7 @@ export namespace Controllers {
           if (recordTypeModel) {
             const workflowStage = body['workflowStage'] as string | undefined;
             const request: globalThis.Record<string, unknown> = {};
-            request['metadata'] = rawSubmittedMetadata;
+            request['metadata'] = persistenceMetadata;
             request['authorization'] = authorization;
 
             const createPromise = this.RecordsService.create(

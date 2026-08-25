@@ -1115,6 +1115,7 @@ describe('Webservice RecordController body source', () => {
     it('snapshots unwrapped metadata before server authorization shaping without mutating the body', async () => {
       const body = { title: 'Raw unwrapped submission' };
       const bodySnapshot = structuredClone(body);
+      (global as any).sails.config.recordSchema = { enabled: true };
       recordsService.create.resolves(successResult('created-record'));
       const req = makeThrowingRequest(
         {
@@ -1134,6 +1135,38 @@ describe('Webservice RecordController body source', () => {
       const createRequest = recordsService.create.firstCall.args[1] as any;
       expect(createRequest.metadata).to.deep.equal(bodySnapshot);
       expect(createRequest.metadata).not.to.have.property('authorization');
+      expect(createRequest.authorization).to.deep.equal({
+        edit: ['tester'],
+        view: ['tester'],
+        editPending: undefined,
+        viewPending: undefined,
+      });
+      expect(body).to.deep.equal(bodySnapshot);
+    });
+
+    it('persists legacy authorization metadata from a detached copy for schema-disabled unwrapped creates', async () => {
+      const body = { title: 'Legacy unwrapped submission' };
+      const bodySnapshot = structuredClone(body);
+      (global as any).sails.config.recordSchema = { enabled: false };
+      recordsService.create.resolves(successResult('created-record'));
+      const req = makeThrowingRequest({
+        params: { recordType: 'dataset' },
+        query: {},
+        body,
+        files: {},
+      });
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.create(req, {} as Sails.Res);
+      await flushPromises();
+
+      expect(recordsService.create.calledOnce).to.equal(true);
+      const createRequest = recordsService.create.firstCall.args[1] as any;
+      expect(createRequest.metadata).to.deep.equal({
+        ...bodySnapshot,
+        authorization: [],
+      });
+      expect(createRequest.metadata).not.to.equal(body);
       expect(createRequest.authorization).to.deep.equal({
         edit: ['tester'],
         view: ['tester'],

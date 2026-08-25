@@ -113,20 +113,31 @@ export namespace Services {
       return String((recordTypeModel as RecordTypeWithName | undefined)?.name ?? '').trim();
     }
 
-    private recordSaveContext(context: RecordSaveContext, operation: RecordSaveOperation): RecordSaveContext {
+    private authoritativeHarvestContext(context: RecordSaveContext | undefined): RecordSaveContext | undefined {
+      if (sails.config.recordSchema?.enabled !== true) {
+        return undefined;
+      }
       if (!isRecordSaveContext(context)) {
         throw new HarvestRunServiceError(
           'Harvest record saves require a context created by createRecordSaveContext().'
         );
       }
+      return context;
+    }
+
+    private recordSaveContext(
+      context: RecordSaveContext | undefined,
+      operation: RecordSaveOperation
+    ): RecordSaveContext {
+      if (context === undefined) {
+        return createRecordSaveContext({ operation });
+      }
       return createRecordSaveContext({
         requestId: context.requestId,
-        // Harvest saves predate public-route candidate ACL checks. Preserve
-        // that compatibility contract while schema validation is disabled,
-        // but retain the public context for enabled pre-schema authorization.
-        routeFamily: sails.config.recordSchema?.enabled === true ? context.routeFamily : undefined,
+        routeFamily: context.routeFamily,
         operation,
         portal: context.portal,
+        targetStep: context.targetStep,
         validationOperation: context.validationOperation,
         validationRequestParameters: context.validationRequestParameters,
         validationRuntimeContext: context.validationRuntimeContext,
@@ -505,7 +516,7 @@ export namespace Services {
       oid: string,
       harvestId: string,
       user: UserModel,
-      context: RecordSaveContext
+      context: RecordSaveContext | undefined
     ): Promise<APIHarvestResponse> {
       const shouldMerge = updateMode === 'merge';
       try {
@@ -572,7 +583,7 @@ export namespace Services {
       harvestId: string,
       updateMode: string,
       user: UserModel,
-      context: RecordSaveContext
+      context: RecordSaveContext | undefined
     ): Promise<APIHarvestResponse> {
       const metadata = body?.['metadata'];
       const workflowStage = body?.['workflowStage'];
@@ -641,7 +652,7 @@ export namespace Services {
       recordRequest: AnyRecord,
       harvestId: string,
       user: UserModel,
-      context: RecordSaveContext
+      context: RecordSaveContext | undefined
     ): Promise<HarvestTrackedRecordResponse> {
       const request: AnyRecord = {
         harvestId,
@@ -689,7 +700,7 @@ export namespace Services {
       oid: string,
       user: UserModel,
       strategy: TrackedUpdateStrategy,
-      context: RecordSaveContext
+      context: RecordSaveContext | undefined
     ): Promise<{
       success: boolean;
       message: string;
@@ -777,19 +788,31 @@ export namespace Services {
       previousRecord: RecordModel,
       committedRevision: number,
       user: UserModel,
-      context: RecordSaveContext
+      context: RecordSaveContext | undefined
     ): Promise<void> {
       const rollbackCandidate = _.cloneDeep(previousRecord);
       rollbackCandidate.revision = committedRevision;
+      const rollbackContext = createRecordSaveContext({
+        requestId: context?.requestId,
+        routeFamily: 'internal',
+        operation: 'update',
+        validationBypass: {
+          mode: 'bypass',
+          reason: 'trusted-data-migration',
+          actor: { kind: 'service', id: 'HarvestRunService.trackedEventCompensation' },
+        },
+      });
       const response = await RecordsService.updateMetaInternal({
-        actor: { kind: 'service', id: 'HarvestRunService.rollbackUpdatedTrackedRecord' },
+        actor: { kind: 'service', id: 'HarvestRunService.trackedEventCompensation' },
         authorization: { kind: 'service' },
         mutationClass: 'full-record',
         brand,
         oid,
         record: rollbackCandidate,
         user,
-        context: this.recordSaveContext(context, 'update'),
+        triggerPreSaveTriggers: false,
+        triggerPostSaveTriggers: false,
+        context: rollbackContext,
       });
       if (!response.wasPersisted()) {
         throw new Error(String(response.message ?? `Failed to rollback updated record ${oid}.`));
@@ -1154,7 +1177,7 @@ export namespace Services {
       chunk: HarvestRunChunkRow,
       request: HarvestTrackedRecordRequest,
       user: UserModel,
-      saveContext: RecordSaveContext,
+      saveContext: RecordSaveContext | undefined,
       context: ProcessingContext
     ): Promise<ProcessTrackedRecordResult> {
       const recordTypeName = String(run.recordType ?? '');
@@ -1489,11 +1512,12 @@ export namespace Services {
       body: Record<string, unknown> | undefined,
       updateMode: string,
       user: UserModel,
-      context: RecordSaveContext
+      context?: RecordSaveContext
     ): Promise<APIHarvestResponse[]> {
       if (body == null || _.isEmpty(body['records'])) {
         throw new HarvestRunServiceError('Invalid request body', 400);
       }
+      const saveContext = this.authoritativeHarvestContext(context);
 
       const recordType = this.resolveRecordTypeName(recordTypeModel);
       const records = body['records'] as AnyRecord[];
@@ -1518,7 +1542,7 @@ export namespace Services {
               harvestId,
               updateMode,
               user,
-              context
+              saveContext
             )
           );
           continue;
@@ -1550,7 +1574,7 @@ export namespace Services {
             oid,
             harvestId,
             user,
-            context
+            saveContext
           )
         );
       }
@@ -1563,11 +1587,12 @@ export namespace Services {
       body: Record<string, unknown> | undefined,
       merge: boolean,
       user: UserModel,
-      context: RecordSaveContext
+      context?: RecordSaveContext
     ): Promise<APIHarvestResponse[]> {
       if (body == null || _.isEmpty(body['records'])) {
         throw new HarvestRunServiceError('Invalid request body', 400);
       }
+      const saveContext = this.authoritativeHarvestContext(context);
 
       const recordType = this.resolveRecordTypeName(recordTypeModel);
       const records = body['records'] as AnyRecord[];
@@ -1592,7 +1617,7 @@ export namespace Services {
               harvestId,
               'update',
               user,
-              context
+              saveContext
             )
           );
           continue;
@@ -1623,7 +1648,7 @@ export namespace Services {
             oid,
             harvestId,
             user,
-            context
+            saveContext
           )
         );
       }
@@ -1673,9 +1698,10 @@ export namespace Services {
       recordTypeModel: RecordTypeModel,
       requestBody: Record<string, unknown> | undefined,
       user: UserModel,
-      saveContext: RecordSaveContext
+      context?: RecordSaveContext
     ): Promise<HarvestTrackedChunkResponse> {
       const request = this.validateTrackedChunkRequest(requestBody);
+      const saveContext = this.authoritativeHarvestContext(context);
       const brandId = this.resolveBrandId(brand);
       const recordTypeName = this.resolveRecordTypeName(recordTypeModel);
       const run = await this.findOrCreateRun(brand, recordTypeModel, request, user);

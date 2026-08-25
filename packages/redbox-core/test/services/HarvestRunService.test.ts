@@ -43,6 +43,7 @@ describe('HarvestRunService', function () {
   let originalHarvestRun: any;
   let originalHarvestRunChunk: any;
   let originalHarvestRecordEvent: any;
+  let originalRecordTypesService: any;
   let mockSails: any;
   let recordsService: {
     create: sinon.SinonStub;
@@ -58,6 +59,7 @@ describe('HarvestRunService', function () {
     originalHarvestRun = (global as any).HarvestRun;
     originalHarvestRunChunk = (global as any).HarvestRunChunk;
     originalHarvestRecordEvent = (global as any).HarvestRecordEvent;
+    originalRecordTypesService = (global as any).RecordTypesService;
 
     recordsService = {
       create: sinon.stub(),
@@ -116,6 +118,11 @@ describe('HarvestRunService', function () {
     (global as any).HarvestRun = originalHarvestRun;
     (global as any).HarvestRunChunk = originalHarvestRunChunk;
     (global as any).HarvestRecordEvent = originalHarvestRecordEvent;
+    if (originalRecordTypesService === undefined) {
+      delete (global as any).RecordTypesService;
+    } else {
+      (global as any).RecordTypesService = originalRecordTypesService;
+    }
     delete (global as any).WorkflowStepsService;
     delete (global as any).FormsService;
     delete (global as any).RolesService;
@@ -216,6 +223,7 @@ describe('HarvestRunService', function () {
     mockSails.services.recordsservice = realRecordsService;
 
     return {
+      persistedRecords,
       realRecordsService,
       schemaResolver,
       storageService,
@@ -320,6 +328,109 @@ describe('HarvestRunService', function () {
         });
       }
     }
+  });
+
+  it('supports legacy harvest arities while schemas are disabled and supplies operation-only save contexts', async function () {
+    mockSails.config.recordSchema = { enabled: false };
+    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    recordsService.create.resolves({
+      oid: 'record-1',
+      message: 'Created',
+      wasPersisted: () => true,
+    });
+
+    const compatibility = await service.submitCompatibilityRecords(
+      { id: 'brand-1', name: 'default' },
+      { name: 'dataset' },
+      { records: [{ harvestId: 'compat-1', recordRequest: { metadata: { title: 'Compatibility' } } }] },
+      'override',
+      { username: 'tester' }
+    );
+    const legacy = await service.submitLegacyRecords(
+      { id: 'brand-1', name: 'default' },
+      { name: 'dataset' },
+      { records: [{ harvest_id: 'legacy-1', metadata: { data: { title: 'Legacy' } } }] },
+      false,
+      { username: 'tester' }
+    );
+
+    configureTrackedCreateChunk();
+    const tracked = await service.submitChunk(
+      { id: 'brand-1', name: 'default' },
+      { name: 'dataset' },
+      {
+        sourceRunId: 'source-run-1',
+        sourceName: 'source-a',
+        chunk: { index: 1 },
+        records: [
+          { harvestId: 'tracked-1', operation: 'create', recordRequest: { metadata: { title: 'Tracked' } } },
+        ],
+      },
+      { username: 'tester' }
+    );
+
+    expect(compatibility[0].status).to.equal(true);
+    expect(legacy[0].status).to.equal(true);
+    expect(tracked.chunk.responseSummary).to.deep.include({ created: 1, failed: 0 });
+    expect(recordsService.create.callCount).to.equal(3);
+    for (const call of recordsService.create.getCalls()) {
+      const context = call.args[7];
+      expect(isRecordSaveContext(context)).to.equal(true);
+      expect(context.operation).to.equal('create');
+      expect(context.routeFamily).to.equal(undefined);
+      expect(context.portal).to.equal(undefined);
+      expect(context.validationOperation).to.equal(undefined);
+      expect(context.validationRequestParameters).to.equal(undefined);
+      expect(context.validationRuntimeContext).to.equal(undefined);
+    }
+  });
+
+  it('strips allowlisted request and runtime facts only from schema-disabled harvest saves', async function () {
+    (global as any).Record.find.returns({ meta: sinon.stub().resolves([]) });
+    recordsService.create.resolves({
+      oid: 'record-1',
+      message: 'Created',
+      wasPersisted: () => true,
+    });
+    const context = createRecordSaveContext({
+      routeFamily: 'api',
+      operation: 'create',
+      portal: 'tenant-portal',
+      validationOperation: 'publish',
+      validationRequestParameters: { recordType: 'dataset', merge: true },
+      validationRuntimeContext: { transport: 'harvest' },
+    });
+    const submit = () => service.submitCompatibilityRecords(
+      { id: 'brand-1', name: 'default' },
+      { name: 'dataset' },
+      { records: [{ harvestId: 'compat-1', recordRequest: { metadata: { title: 'Compatibility' } } }] },
+      'override',
+      { username: 'tester' },
+      context
+    );
+
+    mockSails.config.recordSchema = { enabled: false };
+    await submit();
+    const disabledContext = recordsService.create.firstCall.args[7];
+    expect(disabledContext).to.include({ operation: 'create' });
+    expect(disabledContext.routeFamily).to.equal(undefined);
+    expect(disabledContext.portal).to.equal(undefined);
+    expect(disabledContext.validationOperation).to.equal(undefined);
+    expect(disabledContext.validationRequestParameters).to.equal(undefined);
+    expect(disabledContext.validationRuntimeContext).to.equal(undefined);
+
+    recordsService.create.resetHistory();
+    mockSails.config.recordSchema = { enabled: true };
+    await submit();
+    const enabledContext = recordsService.create.firstCall.args[7];
+    expect(enabledContext).to.include({
+      routeFamily: 'api',
+      operation: 'create',
+      portal: 'tenant-portal',
+      validationOperation: 'publish',
+    });
+    expect(enabledContext.validationRequestParameters).to.deep.equal({ recordType: 'dataset', merge: true });
+    expect(enabledContext.validationRuntimeContext).to.deep.equal({ transport: 'harvest' });
   });
 
   it('preserves disabled compatibility and legacy harvest create ACL semantics through real RecordsService', async function () {
@@ -441,6 +552,7 @@ describe('HarvestRunService', function () {
   });
 
   it('creates a tracked harvest run, chunk, and events', async function () {
+    mockSails.config.recordSchema = { enabled: true };
     (global as any).HarvestRun.findOne.resolves(null);
     (global as any).HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
@@ -1031,6 +1143,7 @@ describe('HarvestRunService', function () {
   });
 
   it('updates tracked records when incoming metadata removes an existing field', async function () {
+    mockSails.config.recordSchema = { enabled: true };
     (global as any).HarvestRun.findOne.resolves(null);
     (global as any).HarvestRun.create.returns({
       fetch: sinon.stub().resolves({
@@ -1233,6 +1346,83 @@ describe('HarvestRunService', function () {
     expect(recordsService.delete.calledOnce).to.equal(true);
     expect((global as any).HarvestRun.updateOne.called).to.equal(false);
   });
+
+  for (const operation of ['update', 'upsert'] as const) {
+    it(`uses trusted internal compensation when a tracked ${operation} hook changes the ACL`, async function () {
+      const { persistedRecords, storageService } = useRealRecordsService(true);
+      const originalRecord = {
+        redboxOid: 'record-1',
+        harvestId: 'harvest-1',
+        metadata: { title: 'Original' },
+        metaMetadata: {
+          brandId: 'brand-1',
+          type: 'dataset',
+          form: 'default-form',
+          attachmentFields: [],
+        },
+        workflow: { stage: 'draft' },
+        authorization: {
+          edit: ['harvester'],
+          view: ['harvester'],
+          editRoles: [],
+          viewRoles: [],
+        },
+      };
+      persistedRecords.set('record-1', structuredClone(originalRecord));
+      const recordType = {
+        name: 'dataset',
+        hooks: {
+          onUpdate: {
+            pre: [{
+              function:
+                '(_oid, record) => ({ ...record, authorization: { ...record.authorization, edit: ["replacement-owner"] } })',
+            }],
+          },
+        },
+        searchable: false,
+      };
+      (global as any).RecordTypesService = {
+        get: sinon.stub().returns(of(recordType)),
+      };
+      configureTrackedCreateChunk();
+      (global as any).HarvestRecordEvent.createEach.rejects(new Error('event write failed'));
+      (global as any).Record.find.returns({
+        meta: sinon.stub().resolves([structuredClone(originalRecord)]),
+      });
+
+      let caught: unknown;
+      try {
+        await service.submitChunk(
+          { id: 'brand-1', name: 'default' },
+          recordType,
+          {
+            sourceRunId: 'source-run-1',
+            sourceName: 'source-a',
+            chunk: { index: 1 },
+            records: [{
+              harvestId: 'harvest-1',
+              operation,
+              recordRequest: { metadata: { title: 'Changed' } },
+            }],
+          },
+          { username: 'harvester', roles: [] },
+          harvestSaveContext()
+        );
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).to.be.an('error').with.property('message', 'event write failed');
+      expect(storageService.updateMeta.callCount).to.equal(2);
+      expect(storageService.updateMeta.firstCall.args[2].authorization.edit).to.deep.equal(['replacement-owner']);
+      expect(storageService.createRecordAudit.calledOnce).to.equal(true);
+      const restoredRecord = await storageService.getMeta('record-1');
+      expect(restoredRecord.metadata).to.deep.equal(originalRecord.metadata);
+      expect(restoredRecord.authorization.edit).to.deep.equal(originalRecord.authorization.edit);
+      expect(restoredRecord.authorization.view).to.deep.equal(originalRecord.authorization.view);
+      expect(restoredRecord.workflow).to.deep.equal(originalRecord.workflow);
+    });
+  }
 
   it('retries non-atomic run counter updates when the row changes concurrently', async function () {
     const firstSet = sinon.stub().resolves(null);
