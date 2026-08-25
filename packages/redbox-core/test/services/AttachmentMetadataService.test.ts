@@ -524,13 +524,37 @@ describe('AttachmentMetadataService mutation journal', function () {
       isJournal: true,
       mutationState: 'prepared',
     });
-    expect(model.create.firstCall.args[0].fileId).to.match(/^journal-a-generation-1-/);
+    expect(model.create.secondCall.args[0].fileId).to.match(/^journal-a-generation-1-/);
   });
 
   it('keeps replacement mutations in separate journal rows', async function () {
-    const fetch = sinon.stub().resolves();
-    model.findOne.resolves(null);
-    model.create.returns({ fetch });
+    const coordinators = new Map<string, any>();
+    model.findOne.callsFake(async (criteria: any) =>
+      criteria.storageKey?.startsWith('journal/staging-coordinator/')
+        ? coordinators.get(criteria.storageKey) ?? null
+        : null
+    );
+    model.create.callsFake((payload: any) => ({
+      fetch: async () => {
+        const created = {
+          id: payload.mutationState === 'staging-available'
+            ? `coordinator-${coordinators.size + 1}`
+            : `journal-${payload.attachmentId}`,
+          ...payload,
+        };
+        if (payload.mutationState === 'staging-available') coordinators.set(payload.storageKey, created);
+        return created;
+      },
+    }));
+    model.updateOne.callsFake((criteria: any) => ({
+      set: async (updates: any) => {
+        const coordinator = [...coordinators.values()].find(candidate => candidate.id === criteria.id);
+        if (!coordinator || coordinator.mutationState !== criteria.mutationState) return null;
+        const updated = { ...coordinator, ...updates };
+        coordinators.set(updated.storageKey, updated);
+        return updated;
+      },
+    }));
 
     await service.prepareMutations([
       {
@@ -551,22 +575,22 @@ describe('AttachmentMetadataService mutation journal', function () {
       },
     ]);
 
-    expect(model.create.callCount).to.equal(2);
-    expect(model.create.firstCall.args[0]).to.include({
+    expect(model.create.callCount).to.equal(4);
+    expect(model.create.secondCall.args[0]).to.include({
       mutationFileId: 'new-file',
       operation: 'add',
     });
-    expect(model.create.secondCall.args[0]).to.include({
+    expect(model.create.getCall(3).args[0]).to.include({
       mutationFileId: 'old-file',
       operation: 'delete',
     });
-    expect(model.create.firstCall.args[0].fileId).to.not.equal(model.create.secondCall.args[0].fileId);
-    expect(model.create.firstCall.args[0].storageKey).to.not.equal(model.create.secondCall.args[0].storageKey);
+    expect(model.create.secondCall.args[0].fileId).to.not.equal(model.create.getCall(3).args[0].fileId);
+    expect(model.create.secondCall.args[0].storageKey).to.not.equal(model.create.getCall(3).args[0].storageKey);
   });
 
   it('marks the matching mutation when an attachment has replacement work', async function () {
-    model.findOne.resolves({ id: 'journal-new', attemptCount: 0 });
-    const set = sinon.stub().resolves();
+    model.findOne.resolves({ id: 'journal-new', attemptCount: 0, mutationState: 'applied' });
+    const set = sinon.stub().resolves({ id: 'journal-new' });
     model.updateOne.returns({ set });
 
     const result = await service.markMutation('oid-1', 'a', 'generation-1', 'unknown', 'upload-failed', 'new-file');

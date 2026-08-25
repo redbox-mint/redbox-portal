@@ -2546,7 +2546,7 @@ export namespace Services {
         const fileId = String(row.mutationFileId ?? row.fileId ?? '').trim();
         const operation = row.operation === 'delete' || row.operation === 'finalize' ? row.operation : 'add';
         const rowGeneration = String(row.generation ?? '').trim();
-        if (!attachmentId || !fileId || (row.mutationState !== 'prepared' && row.mutationState !== 'incomplete')) {
+        if (!attachmentId || !fileId || !['prepared', 'incomplete', 'unknown'].includes(String(row.mutationState))) {
           continue;
         }
         const fieldName = String(row.attachmentField ?? '').trim();
@@ -2791,6 +2791,13 @@ export namespace Services {
         }
       }
       return items;
+    }
+
+    private incompleteAttachmentItems(
+      items: readonly RecordAttachmentCompletionItem[],
+      code: string
+    ): RecordAttachmentCompletionItem[] {
+      return items.map(item => ({ ...item, status: 'incomplete', code }));
     }
 
     private async markAttachmentPlanState(
@@ -4418,7 +4425,7 @@ export namespace Services {
           oid
         )
       );
-      const brandObj = brand as BrandingModel;
+      let brandObj = brand as BrandingModel;
       const requestedRecord = _.cloneDeep(record) as AnyRecord;
       let originalRecord: AnyRecord | undefined;
       try {
