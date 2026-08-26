@@ -5,9 +5,14 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
-import { isRecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
+import { isRecordSaveContext, type RecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
-import { transitionWorkflowRoute, updateMetaRoute, validateApiRouteRequest } from '../../../src/api-routes';
+import {
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
+  transitionWorkflowRoute,
+  updateMetaRoute,
+  validateApiRouteRequest,
+} from '../../../src/api-routes';
 
 type PermissionCase = {
   name: string;
@@ -91,6 +96,12 @@ function schemaPreconditionFailure(code: 'record-schema.precondition-failed' | '
     },
   ];
   return result;
+}
+
+function requireRecordSaveContext(value: unknown): RecordSaveContext {
+  assert.equal(isRecordSaveContext(value), true, 'Expected a trusted record save context.');
+  if (!isRecordSaveContext(value)) throw new Error('Expected a trusted record save context.');
+  return value;
 }
 
 function cloneAuthorization(authorization: Record<string, string[]>): Record<string, string[]> {
@@ -2098,36 +2109,25 @@ describe('Webservice RecordController body source', () => {
     });
 
     it('returns a stale schema precondition as HTTP 412 with typed failure metadata intact', async () => {
-      const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000004');
-      result.outcome = 'not-saved';
-      result.success = false;
-      result.problems = [
-        {
-          kind: 'validation',
-          source: 'schema',
-          phase: 'schema',
-          issues: [
-            {
-              message: '@record-schema.precondition-failed',
-              code: 'record-schema.precondition-failed',
-            },
-          ],
-        },
-      ];
+      const schemaIfMatch = `"sha256:${'a'.repeat(64)}"`;
+      const result = schemaPreconditionFailure('record-schema.precondition-failed');
       recordsService.getMeta.resolves({
         metadata: {},
         metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
       });
-      recordsService.updateMeta.resolves(result);
-      const req = makeThrowingRequest(
-        {
-          params: { oid: 'record-1' },
-          query: { merge: false, datastreams: false },
-          body: { title: 'Stale update' },
-          files: {},
+      recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+        expect(requireRecordSaveContext(args[8]).ifMatch).to.equal(schemaIfMatch);
+        return result;
+      });
+      const req = makeValidatedRequest(updateMetaRoute, {
+        params: { oid: 'record-1' },
+        query: { merge: 'false', datastreams: 'false' },
+        headers: {
+          [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch,
+          'x-redbox-api-version': '2.0',
         },
-        { headers: { 'x-redbox-api-version': '2.0' } }
-      );
+        body: { title: 'Stale update' },
+      });
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.updateMeta(req, {} as Sails.Res);
@@ -2138,6 +2138,30 @@ describe('Webservice RecordController body source', () => {
       expect(envelope.displayErrors).to.deep.equal([
         { code: 'record-schema.precondition-failed', title: '@record-schema.precondition-failed' },
       ]);
+    });
+
+    it('preserves update behavior when the schema precondition header is omitted', async () => {
+      recordsService.getMeta.resolves({
+        revision: 0,
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+        expect(requireRecordSaveContext(args[8]).ifMatch).to.equal(undefined);
+        return successResult();
+      });
+      const req = makeValidatedRequest(updateMetaRoute, {
+        params: { oid: 'record-1' },
+        query: {},
+        headers: { 'x-redbox-api-version': '2.0' },
+        body: { title: 'Compatible update' },
+      });
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      expect(recordsService.updateMeta.calledOnce).to.equal(true);
+      expect(sendRespStub.firstCall.args[2]).not.to.have.property('status');
     });
 
     it('keeps API create precondition-free', async () => {
@@ -2213,9 +2237,9 @@ describe('Webservice RecordController body source', () => {
       await controller.transitionWorkflow(transitionReq, {} as Sails.Res);
 
       for (const call of [recordsService.updateMeta.firstCall, recordsService.updateMeta.secondCall]) {
-        const context = call.args[8] as any;
+        const context = requireRecordSaveContext(call.args[8]);
         expect(context.ifMatch).to.equal(schemaTag);
-        expect(context.concurrency.expectedRevision).to.equal(7);
+        expect(context.concurrency?.expectedRevision).to.equal(7);
       }
     });
 
@@ -2234,7 +2258,7 @@ describe('Webservice RecordController body source', () => {
 
       await controller.updateMeta(req, {} as Sails.Res);
 
-      expect((recordsService.updateMeta.firstCall.args[8] as any).ifMatch).to.equal(undefined);
+      expect(requireRecordSaveContext(recordsService.updateMeta.firstCall.args[8]).ifMatch).to.equal(undefined);
     });
 
     it('keeps stale, malformed, and multi-value schema digest failures typed for v1 update and transition', async () => {
@@ -2267,7 +2291,7 @@ describe('Webservice RecordController body source', () => {
           recordsService.updateMeta.resetHistory();
           sendRespStub.resetHistory();
           recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
-            expect((args[8] as any).ifMatch).to.equal(testCase.header);
+            expect(requireRecordSaveContext(args[8]).ifMatch).to.equal(testCase.header);
             return schemaPreconditionFailure(testCase.code);
           });
           const route = action === 'update' ? updateMetaRoute : transitionWorkflowRoute;

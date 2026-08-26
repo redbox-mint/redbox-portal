@@ -24,7 +24,9 @@ import {
   recordMetadataReadResponseSchema,
   recordMutationHeaderFields,
   recordMutationHeaders,
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   recordOperationQuery,
+  recordSchemaWritePreconditionHeaderField,
   recordSaveFailureResponseSchema,
   recordSaveSuccessResponseSchema,
   recordUpdateQuery,
@@ -73,7 +75,7 @@ const recordLifecycleMutationResponses = {
 
 const recordMutationWithSchemaHeaders = objectField({
   ...recordMutationHeaderFields,
-  'X-ReDBox-Record-Schema-If-Match': stringField('Strong record-schema ETag for conditional updates'),
+  [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]: recordSchemaWritePreconditionHeaderField,
 });
 
 function recordSchemaResolverExtension(schemaKind: 'create' | 'update'): Record<string, unknown> {

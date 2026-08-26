@@ -44,6 +44,7 @@ import {
   recordSaveFailureResponseSchema,
   recordSaveIssueSchema,
   recordSaveSuccessResponseSchema,
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   storageServiceResponseSchema,
   userApiTokenApiResponseSchema,
   validationOperationDiscoverySchema,
@@ -959,18 +960,16 @@ describe('API routes contract layer', function () {
     const schemaIfMatch = `"sha256:${'a'.repeat(64)}"`;
     for (const route of [updateMetaRoute, transitionWorkflowRoute]) {
       const request = {
-        params: route === updateMetaRoute
-          ? { oid: 'record-1' }
-          : { targetStep: 'review', oid: 'record-1' },
+        params: route === updateMetaRoute ? { oid: 'record-1' } : { targetStep: 'review', oid: 'record-1' },
         query: {},
-        headers: { 'x-redbox-record-schema-if-match': schemaIfMatch },
+        headers: { [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch },
         body: {},
       } as unknown as Sails.Req;
       const result = validateApiRouteRequest(request, route);
 
       expect(result.valid).to.equal(true);
       if (!result.valid) throw new Error('Expected schema If-Match request validation to pass.');
-      expect(result.headers).to.deep.include({ 'X-ReDBox-Record-Schema-If-Match': schemaIfMatch });
+      expect(result.headers).to.deep.include({ [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]: schemaIfMatch });
     }
 
     const document = buildCoreApiOpenApiDocument();
@@ -979,27 +978,46 @@ describe('API routes contract layer', function () {
       asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/workflow/step/{targetStep}/{oid}']?.post),
     ];
     for (const operation of operations) {
-      const parameter = operation.parameters?.find(item => item.name === 'X-ReDBox-Record-Schema-If-Match');
+      const parameter = operation.parameters?.find(item => item.name === RECORD_SCHEMA_WRITE_PRECONDITION_HEADER);
       expect(parameter).to.deep.include({ in: 'header', required: false });
       expect(parameter?.schema?.description).to.equal('Strong record-schema ETag for conditional updates');
+      expect(parameter?.schema?.pattern).to.equal('^"sha256:[0-9a-f]{64}"$');
     }
+  });
+
+  it('keeps the schema precondition optional on update metadata requests', function () {
+    const request = {
+      params: { oid: 'record-1' },
+      query: {},
+      headers: {},
+      body: { title: 'Compatible update' },
+    } as unknown as Sails.Req;
+    const result = validateApiRouteRequest(request, updateMetaRoute);
+
+    expect(result.valid).to.equal(true);
+    if (!result.valid) throw new Error('Expected an update without a schema precondition to remain valid.');
+    expect(result.headers?.[RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]).to.equal(undefined);
+    expect(updateMetaRoute.request?.headers?.safeParse({}).success).to.equal(true);
   });
 
   it('rejects repeated schema If-Match header values without selecting the first value', function () {
     const ifMatch = `"sha256:${'a'.repeat(64)}"`;
     for (const route of [updateMetaRoute, transitionWorkflowRoute]) {
-      const result = validateApiRouteRequest({
-        params: route === updateMetaRoute
-          ? { oid: 'record-1' }
-          : { targetStep: 'review', oid: 'record-1' },
-        query: {},
-        headers: { 'x-redbox-record-schema-if-match': [ifMatch, ifMatch] },
-        body: {},
-      } as unknown as Sails.Req, route);
+      const result = validateApiRouteRequest(
+        {
+          params: route === updateMetaRoute ? { oid: 'record-1' } : { targetStep: 'review', oid: 'record-1' },
+          query: {},
+          headers: { [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: [ifMatch, ifMatch] },
+          body: {},
+        } as unknown as Sails.Req,
+        route
+      );
 
       expect(result.valid).to.equal(false);
       if (result.valid) throw new Error('Expected repeated schema If-Match request validation to fail.');
-      expect(result.issues.some(issue => issue.path === 'headers.X-ReDBox-Record-Schema-If-Match')).to.equal(true);
+      expect(result.issues.some(issue => issue.path === `headers.${RECORD_SCHEMA_WRITE_PRECONDITION_HEADER}`)).to.equal(
+        true
+      );
     }
   });
 
@@ -1008,9 +1026,7 @@ describe('API routes contract layer', function () {
     const createOperation = asOpenApiOperation(
       document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post
     );
-    const updateOperation = asOpenApiOperation(
-      document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put
-    );
+    const updateOperation = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put);
     const createExtension = createOperation['x-redbox-record-schema-resolver'];
     const updateExtension = updateOperation['x-redbox-record-schema-resolver'];
 
@@ -1536,8 +1552,7 @@ describe('API routes contract layer', function () {
     for (const { path, method } of routeSpecs) {
       const operation = document.paths[path]?.[method] as globalThis.Record<string, unknown> | undefined;
       const responses = operation?.responses as
-        | globalThis.Record<string, globalThis.Record<string, unknown>>
-        | undefined;
+        globalThis.Record<string, globalThis.Record<string, unknown>> | undefined;
 
       expect(responses, `${method.toUpperCase()} ${path}`).to.exist;
       expect(responses, `${method.toUpperCase()} ${path}`).to.not.deep.equal({ 200: { description: 'Success' } });
@@ -1891,11 +1906,15 @@ describe('API routes contract layer', function () {
       body: {},
     } as unknown as Sails.Req;
 
-    const result = validateApiRouteRequest(request, brandingApiRoutes.find(route => route.action === 'logo')!, {
-      files: {
-        logo: [{ size: 1024 * 1024, type: 'image/gif' }],
-      },
-    });
+    const result = validateApiRouteRequest(
+      request,
+      brandingApiRoutes.find(route => route.action === 'logo')!,
+      {
+        files: {
+          logo: [{ size: 1024 * 1024, type: 'image/gif' }],
+        },
+      }
+    );
 
     expect(result.valid).to.equal(false);
     if (result.valid) {

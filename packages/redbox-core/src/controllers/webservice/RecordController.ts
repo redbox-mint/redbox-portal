@@ -60,6 +60,7 @@ import {
   removeRoleEditRoute,
   addRoleViewRoute,
   removeRoleViewRoute,
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   harvestRoute,
   legacyHarvestRoute,
 } from '../../index';
@@ -245,7 +246,7 @@ export namespace Controllers {
     }
 
     private validatedRecordSchemaIfMatch(headers: globalThis.Record<string, unknown> | undefined): string | undefined {
-      const value = headers?.['X-ReDBox-Record-Schema-If-Match'];
+      const value = headers?.[RECORD_SCHEMA_WRITE_PRECONDITION_HEADER];
       return typeof value === 'string' ? value : undefined;
     }
 

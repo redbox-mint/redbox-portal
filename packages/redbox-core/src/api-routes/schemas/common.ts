@@ -58,6 +58,27 @@ export const recordIfMatchHeaderField: ApiSchemaField = withOpenApi(
   }
 );
 
+const RECORD_SCHEMA_ETAG_PATTERN = /^"sha256:[0-9a-f]{64}"$/;
+
+/**
+ * Record revisions already use the standard `If-Match` header, so schema
+ * writes retain a distinct precondition header at the HTTP boundary.
+ */
+export const RECORD_SCHEMA_WRITE_PRECONDITION_HEADER = 'X-ReDBox-Record-Schema-If-Match' as const;
+
+/**
+ * Keep semantic parsing in RecordSchemaService so stale and malformed schema
+ * preconditions use the existing typed save-failure representation.
+ */
+export const recordSchemaWritePreconditionHeaderField: ApiSchemaField = withOpenApi(
+  z.string({ error: 'record-schema-if-match-invalid' }),
+  {
+    description: 'Strong record-schema ETag for conditional updates',
+    pattern: RECORD_SCHEMA_ETAG_PATTERN.source,
+    example: `"sha256:${'a'.repeat(64)}"`,
+  }
+);
+
 const recordResolutionField: ApiSchemaField = withOpenApi(z.string().max(64), {
   description: 'Diagnostic resolution label; never authorization or a precondition bypass',
   enum: ['direct', 'client-auto-merged', 'client-manually-resolved'],
