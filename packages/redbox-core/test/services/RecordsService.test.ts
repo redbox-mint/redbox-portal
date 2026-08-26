@@ -7519,6 +7519,7 @@ describe('RecordsService', function () {
         applySubmission.resetHistory();
         transitionHook.resetHistory();
         businessValidation.resetHistory();
+        persistSaveUsageReference.resetHistory();
         businessValidation.resolves(allowResult({ mode: 'enforce' }));
         mockStorageService.updateMeta.resetHistory();
         (global as any).RecordTypesService.get.resetHistory();
@@ -7578,6 +7579,13 @@ describe('RecordsService', function () {
           validationOperation: '  publish  ',
         });
         expect(mockStorageService.updateMeta.calledOnce, testCase.saveOperation).to.equal(true);
+        expect(persistSaveUsageReference.calledOnce, testCase.saveOperation).to.equal(true);
+        expect(result.schemaOutcome, testCase.saveOperation).to.deep.equal({
+          digest: 'b'.repeat(64),
+          immutableUrl: resolution.document.$id,
+          completeness: 'complete',
+          enforcement: 'enforce',
+        });
         expect(rawDelta).to.deep.equal({ title: `${testCase.saveOperation} title` });
       }
     });

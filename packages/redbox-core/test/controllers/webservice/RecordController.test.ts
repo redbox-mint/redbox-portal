@@ -11,6 +11,7 @@ import type { BuildResponseType } from '../../../src/model';
 import { isRecordSaveContext, type RecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 import {
+  createRecordRoute,
   RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   transitionWorkflowRoute,
   updateMetaRoute,
@@ -114,13 +115,17 @@ function notSavedResult() {
   return result;
 }
 
-function schemaAwareSuccessResult(oid: string, digest: string): RecordSaveResponse {
+function schemaAwareSuccessResult(
+  oid: string,
+  digest: string,
+  immutableUrl = `/default/default/api/records/schemas/${digest}`
+): RecordSaveResponse {
   const result = successResult(oid);
   result.message = 'Record saved';
   result.metadata = { title: 'Saved metadata' };
   result.setSchemaOutcome({
     digest,
-    immutableUrl: `/default/default/api/records/schemas/${digest}`,
+    immutableUrl,
     completeness: 'complete',
     enforcement: 'shadow',
   });
@@ -282,6 +287,9 @@ describe('Webservice RecordController body source', () => {
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandAndPortalPath: sinon.stub().returns('/default/default'),
+      getPortalFromReq: sinon
+        .stub()
+        .callsFake((request: { params?: Record<string, unknown> }) => request.params?.portal ?? 'default'),
     };
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ id: 'record-type-1', name: 'dataset' })),
@@ -322,6 +330,70 @@ describe('Webservice RecordController body source', () => {
   });
 
   describe('save response schema discovery', function () {
+    it('carries the route portal through schema resolution and successful create/update discovery without locals', async function () {
+      const updateDigest = 'a'.repeat(64);
+      const createDigest = 'b'.repeat(64);
+      const schemaIfMatch = `"sha256:${updateDigest}"`;
+      const updateUrl = `/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
+      const createUrl = `/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
+      recordsService.getMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 2,
+        metadata: { title: 'Before update' },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+        const context = requireRecordSaveContext(args[8]);
+        expect(context).to.include({ portal: 'tenant-portal', ifMatch: schemaIfMatch });
+        return schemaAwareSuccessResult('record-1', updateDigest, updateUrl);
+      });
+      recordsService.create.callsFake(async (...args: unknown[]) => {
+        expect(requireRecordSaveContext(args[7]).portal).to.equal('tenant-portal');
+        return schemaAwareSuccessResult('created-record', createDigest, createUrl);
+      });
+
+      const updateRequest = makeValidatedRequest(updateMetaRoute, {
+        params: { branding: 'public-brand', portal: 'tenant-portal', oid: 'record-1' },
+        query: { merge: 'true' },
+        headers: {
+          [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch,
+          'x-redbox-api-version': '2.0',
+        },
+        body: { title: 'Updated with matching schema precondition' },
+      });
+      const updateResponse = recordControllerResponseFixture();
+
+      await controller.updateMeta(updateRequest, updateResponse.response);
+
+      expect(
+        updateResponse.set.calledOnceWithExactly({
+          Link: `<${updateUrl}>; rel="describedby"; type="application/schema+json"`,
+        })
+      ).to.equal(true);
+      expect(updateResponse.json.firstCall.args[0]).to.have.nested.property('data.outcome', 'saved');
+
+      const createRequest = makeValidatedRequest(createRecordRoute, {
+        params: { branding: 'public-brand', portal: 'tenant-portal', recordType: 'dataset' },
+        query: {},
+        headers: { 'x-redbox-api-version': '2.0' },
+        body: { title: 'Created with schema discovery' },
+      });
+      const createResponse = recordControllerResponseFixture();
+      (global as any).BrandingService.getBrandAndPortalPath.returns('/public-brand/tenant-portal');
+
+      controller.create(createRequest, createResponse.response);
+      await flushPromises();
+
+      expect(
+        createResponse.set.calledOnceWithExactly({
+          Location: 'https://portal.example/public-brand/tenant-portal/api/records/metadata/created-record',
+          Link: `<${createUrl}>; rel="describedby"; type="application/schema+json"`,
+        })
+      ).to.equal(true);
+      expect(createResponse.status.calledOnceWithExactly(201)).to.equal(true);
+      expect(createResponse.json.firstCall.args[0]).to.have.nested.property('data.outcome', 'saved');
+    });
+
     for (const apiVersion of ['1.0', '2.0'] as const) {
       it(`adds exact create/update described-by links without changing ${apiVersion} bodies`, async function () {
         const updateDigest = 'a'.repeat(64);
@@ -2340,11 +2412,11 @@ describe('Webservice RecordController body source', () => {
         metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
       });
       recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
-        expect(requireRecordSaveContext(args[8]).ifMatch).to.equal(schemaIfMatch);
+        expect(requireRecordSaveContext(args[8])).to.include({ portal: 'rdmp', ifMatch: schemaIfMatch });
         return result;
       });
       const req = makeValidatedRequest(updateMetaRoute, {
-        params: { oid: 'record-1' },
+        params: { branding: 'default', portal: 'rdmp', oid: 'record-1' },
         query: { merge: 'false', datastreams: 'false' },
         headers: {
           [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch,

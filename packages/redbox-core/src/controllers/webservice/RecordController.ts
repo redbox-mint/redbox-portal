@@ -187,11 +187,12 @@ export namespace Controllers {
       recordSchemaIfMatch?: string
     ): RecordSaveContext {
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      const portal = typeof locals?.portal === 'string' ? locals.portal : BrandingService.getPortalFromReq(req);
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'api',
         operation,
-        portal: typeof locals?.portal === 'string' ? locals.portal : undefined,
+        portal,
         targetStep: typeof targetStep === 'string' ? targetStep.trim() : undefined,
         validationOperation,
         recordSchemaIfMatch,
