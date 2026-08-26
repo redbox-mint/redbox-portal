@@ -281,12 +281,19 @@ does not predict every server-side business result.
 
 ## Problem Details from schema endpoints
 
-Schema endpoint failures are raw RFC 9457-style Problem Details with
-`Content-Type: application/problem+json`; they are not API envelopes. Every
-body requires these six fields: `type`, `title`, `status`, `detail`, `instance`,
-and `code`. `instance` is the origin-relative request route for the occurrence.
-`code` is the stable ReDBox record-schema code and may be a more specific code
-from the mapped service failure.
+Controller-dispatched schema validation, business, and storage failures are raw
+RFC 9457-style Problem Details with `Content-Type: application/problem+json`;
+they are not API envelopes. Each such body requires these six fields: `type`,
+`title`, `status`, `detail`, `instance`, and `code`. `instance` is the
+origin-relative request route for the occurrence. `code` is the stable ReDBox
+record-schema code and may be a more specific code from the mapped service
+failure.
+
+Authentication and request-policy failures may be handled before controller
+dispatch and retain the existing legacy HTTP 401 or 403 response instead of
+this Problem Details shape. Depending on the policy path, that can be a
+bodyless 403 or an `Access Denied` response. Clients must not assume that every
+schema endpoint failure, or every 401 or 403 response, has the six fields above.
 
 ```json
 {
@@ -299,7 +306,10 @@ from the mapped service failure.
 }
 ```
 
-The OpenAPI contract declares the following statuses for each schema GET:
+The OpenAPI contract declares the following statuses and controller Problem
+Details defaults for each schema GET. The 401 and 403 rows apply when the
+controller dispatches the response; pre-controller authentication and
+request-policy responses are the legacy exceptions described above.
 
 | Status | Default `type` and `code` | Exact default `title` and `detail` |
 |---:|---|---|
