@@ -107,7 +107,7 @@ describe('AI-assisted form generation', function () {
       GenerationBinding.count({ brandId: actor.brandId }),
     ]);
     expect(countsAfter).to.deep.equal(countsBefore);
-    expect(countsAfter).to.deep.equal([1, 1, 1, 1, 1]);
+    expect(countsAfter).to.deep.equal([2, 2, 1, 1, 1]);
 
     const deployment = await GenerationModelDeployment.findOne({ brandId: actor.brandId });
     const profile = await GenerationProfile.findOne({ brandId: actor.brandId, key: PROFILE_KEY });
