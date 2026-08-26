@@ -89,12 +89,12 @@ describe('generate-openapi script', function () {
 
         expect(operation?.['x-redbox-roles']).to.deep.equal(['DocsRole']);
         expect(createRecordOperation?.['x-redbox-record-schema-resolver']).to.deep.include({
-            routeTemplate: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+            routeTemplate: '{rootContext}/{branding}/{portal}/api/records/schemas/create/{recordType}',
             schemaKind: 'create',
             mediaType: 'application/schema+json',
         });
         expect(updateRecordOperation?.['x-redbox-record-schema-resolver']).to.deep.include({
-            routeTemplate: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+            routeTemplate: '{rootContext}/{branding}/{portal}/api/records/schemas/update/{oid}',
             schemaKind: 'update',
             mediaType: 'application/schema+json',
         });

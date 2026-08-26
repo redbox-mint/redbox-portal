@@ -16,6 +16,10 @@ import {
   extractApiRequest,
   getMergedApiRoutes,
   registerCoreApiRoutes,
+  RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
+  RECORD_SCHEMA_RESOLVER_OPENAPI_EXTENSION,
+  RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+  RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
   resetResolvedApiRouteCache,
   resolveApiRouteForRequest,
   searchRecordsRoute,
@@ -1032,30 +1036,76 @@ describe('API routes contract layer', function () {
     const updateExtension = updateOperation['x-redbox-record-schema-resolver'];
 
     expect(createExtension).to.deep.equal({
-      routeTemplate: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+      routeTemplate: RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
       schemaKind: 'create',
-      operationParameter: { name: 'operation', required: false },
-      mediaType: 'application/schema+json',
+      operationParameter: { name: 'operation', in: 'query', required: false },
+      mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
       etag: {
         format: '"sha256:<64-lowercase-hex>"',
         responseHeader: 'ETag',
         revalidationRequestHeader: 'If-None-Match',
+        notModifiedStatus: 304,
+        authorizationRequiredForRevalidation: true,
       },
     });
     expect(updateExtension).to.deep.equal({
-      routeTemplate: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+      routeTemplate: RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
       schemaKind: 'update',
-      operationParameter: { name: 'operation', required: false },
-      mediaType: 'application/schema+json',
+      operationParameter: { name: 'operation', in: 'query', required: false },
+      mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
       etag: {
         format: '"sha256:<64-lowercase-hex>"',
         responseHeader: 'ETag',
         revalidationRequestHeader: 'If-None-Match',
+        notModifiedStatus: 304,
+        authorizationRequiredForRevalidation: true,
         recordWritePreconditionRequestHeader: 'X-ReDBox-Record-Schema-If-Match',
+        recordWritePreconditionRequired: false,
+        preconditionFailedStatus: 412,
         comparison: 'current-resolved-full-document',
       },
     });
-    expect(JSON.stringify([createExtension, updateExtension]).length).to.be.lessThan(1_000);
+    expect(JSON.stringify([createExtension, updateExtension]).length).to.be.lessThan(2_000);
+  });
+
+  it('keeps OpenAPI 3.0.3 bounded and form-independent without embedding generated schemas', function () {
+    this.timeout(20_000);
+    const hadFormConfig = Object.prototype.hasOwnProperty.call(sails.config, 'form');
+    const previousFormConfig = Reflect.get(sails.config, 'form');
+    const privateFormMarker = 'must-not-appear-in-static-openapi';
+    const configuredForms = Object.fromEntries(
+      Array.from({ length: 2_000 }, (_, index) => [
+        `configured-form-${index}`,
+        {
+          name: `Configured form ${index}`,
+          components: [{ type: 'text', property: `${privateFormMarker}-${index}` }],
+        },
+      ])
+    );
+
+    try {
+      Reflect.set(sails.config, 'form', { defaultForm: 'default', forms: {} });
+      const withoutConfiguredForms = buildCoreApiOpenApiDocument();
+      const withoutConfiguredFormsJson = JSON.stringify(withoutConfiguredForms);
+
+      Reflect.set(sails.config, 'form', { defaultForm: 'default', forms: configuredForms });
+      const withConfiguredForms = buildCoreApiOpenApiDocument();
+      const withConfiguredFormsJson = JSON.stringify(withConfiguredForms);
+
+      expect(withConfiguredForms.openapi).to.equal('3.0.3');
+      expect(withConfiguredForms).to.deep.equal(withoutConfiguredForms);
+      expect(withConfiguredFormsJson.length).to.equal(withoutConfiguredFormsJson.length);
+      expect(withConfiguredFormsJson).not.to.include(privateFormMarker);
+      expect(
+        withConfiguredFormsJson.match(new RegExp(RECORD_SCHEMA_RESOLVER_OPENAPI_EXTENSION, 'g')) ?? []
+      ).to.have.length(2);
+    } finally {
+      if (hadFormConfig) {
+        Reflect.set(sails.config, 'form', previousFormConfig);
+      } else {
+        Reflect.deleteProperty(sails.config, 'form');
+      }
+    }
   });
 
   it('should model the legacy response envelopes', function () {

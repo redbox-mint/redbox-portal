@@ -1,4 +1,5 @@
 import { apiRoute } from '../route-factory';
+import { recordSchemaResolverOpenApiExtension } from '../record-schema-openapi';
 import {
   arrayField,
   apiErrorResponseSchema,
@@ -87,28 +88,6 @@ const recordMutationWithSchemaHeaders = objectField({
   [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]: recordSchemaWritePreconditionHeaderField,
 });
 
-function recordSchemaResolverExtension(schemaKind: 'create' | 'update'): Record<string, unknown> {
-  const resourceParameter = schemaKind === 'create' ? 'recordType' : 'oid';
-  return {
-    'x-redbox-record-schema-resolver': {
-      routeTemplate: `/{branding}/{portal}/api/records/schemas/${schemaKind}/{${resourceParameter}}`,
-      schemaKind,
-      operationParameter: { name: 'operation', required: false },
-      mediaType: 'application/schema+json',
-      etag: {
-        format: '"sha256:<64-lowercase-hex>"',
-        responseHeader: 'ETag',
-        revalidationRequestHeader: 'If-None-Match',
-        ...(schemaKind === 'update'
-          ? {
-              recordWritePreconditionRequestHeader: RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
-              comparison: 'current-resolved-full-document',
-            }
-          : {}),
-      },
-    },
-  };
-}
 const recordListLegacyFallbacks = {
   editOnly: bodyFallback,
   recordType: bodyFallback,
@@ -150,7 +129,7 @@ export const createRecordRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Create record metadata',
-    extensions: recordSchemaResolverExtension('create'),
+    extensions: recordSchemaResolverOpenApiExtension('create'),
     responses: {
       201: {
         description: 'Record created',
@@ -189,7 +168,7 @@ export const updateMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update record metadata',
-    extensions: recordSchemaResolverExtension('update'),
+    extensions: recordSchemaResolverOpenApiExtension('update'),
     responses: {
       200: recordResponseWithTagAndSchemaDiscovery(recordSaveSuccessResponseSchema, 'Record metadata updated'),
       400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),

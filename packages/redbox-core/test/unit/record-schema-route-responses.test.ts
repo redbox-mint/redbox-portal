@@ -13,10 +13,12 @@ import {
   recordSchemaDescribedByLink,
   recordSchemaImmutableUrl,
   recordSchemaUpdateResolverUrl,
+  RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_VARY,
+  RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
 } from '../../src/api-routes/record-schema-response';
 
 type OpenApiResponseHeader = { schema?: { pattern?: string } };
@@ -65,6 +67,31 @@ describe('record-schema route response contracts', function () {
     assert.equal(
       recordSchemaUpdateResolverUrl('public brand', 'portal/subpath', 'record/1', 'redbox'),
       '/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/update/record%2F1'
+    );
+  });
+
+  it('uses the public root-context substitution convention in resolver route templates', function () {
+    assert.equal(
+      RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
+      '{rootContext}/{branding}/{portal}/api/records/schemas/create/{recordType}'
+    );
+    assert.equal(
+      RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
+      '{rootContext}/{branding}/{portal}/api/records/schemas/update/{oid}'
+    );
+    assert.equal(
+      RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE.replace('{rootContext}', '/redbox')
+        .replace('{branding}', 'default')
+        .replace('{portal}', 'rdmp')
+        .replace('{recordType}', 'dataset'),
+      recordSchemaCreateResolverUrl('default', 'rdmp', 'dataset', '/redbox')
+    );
+    assert.equal(
+      RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE.replace('{rootContext}', '')
+        .replace('{branding}', 'default')
+        .replace('{portal}', 'rdmp')
+        .replace('{oid}', 'record-1'),
+      recordSchemaUpdateResolverUrl('default', 'rdmp', 'record-1')
     );
   });
 

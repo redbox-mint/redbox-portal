@@ -2,10 +2,15 @@ import { z } from '../zod-openapi';
 
 import { apiRoute } from '../route-factory';
 import {
+  RECORD_SCHEMA_CREATE_ROUTE_PATH,
+  RECORD_SCHEMA_ETAG_RESPONSE_HEADER,
+  RECORD_SCHEMA_IMMUTABLE_ROUTE_PATH,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+  RECORD_SCHEMA_REVALIDATION_REQUEST_HEADER,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_VARY,
+  RECORD_SCHEMA_UPDATE_ROUTE_PATH,
 } from '../record-schema-response';
 import { objectField, recordOperationQuery, stringField } from '../schemas/common';
 import type { ApiResponseDefinition, ApiSchemaField } from '../types';
@@ -65,7 +70,7 @@ const recordSchemaCanonicalLinkResponseField = z
   });
 
 const recordSchemaRequestHeaders = objectField({
-  'If-None-Match': recordSchemaIfNoneMatchField,
+  [RECORD_SCHEMA_REVALIDATION_REQUEST_HEADER]: recordSchemaIfNoneMatchField,
 });
 
 const recordSchemaScopeFields = {
@@ -100,7 +105,7 @@ const immutableRecordSchemaParams = objectField(
 const recordSchemaDocument = objectField({}, [], 'Caller-effective JSON Schema draft 2020-12 document', true);
 
 const recordSchemaResponseHeaders = {
-  ETag: recordSchemaEtagResponseField,
+  [RECORD_SCHEMA_ETAG_RESPONSE_HEADER]: recordSchemaEtagResponseField,
   'Cache-Control': recordSchemaCacheControlResponseField,
   Vary: recordSchemaVaryResponseField,
 };
@@ -170,7 +175,7 @@ const recordSchemaSecurity = [{ bearerAuth: [] }] as const;
 
 export const resolveCreateRecordSchemaRoute = apiRoute(
   'get',
-  '/:branding/:portal/api/records/schemas/create/:recordType',
+  RECORD_SCHEMA_CREATE_ROUTE_PATH,
   'webservice/RecordSchemaController',
   'create',
   {
@@ -194,7 +199,7 @@ export const resolveCreateRecordSchemaRoute = apiRoute(
 
 export const resolveUpdateRecordSchemaRoute = apiRoute(
   'get',
-  '/:branding/:portal/api/records/schemas/update/:oid',
+  RECORD_SCHEMA_UPDATE_ROUTE_PATH,
   'webservice/RecordSchemaController',
   'update',
   {
@@ -218,7 +223,7 @@ export const resolveUpdateRecordSchemaRoute = apiRoute(
 
 export const getImmutableRecordSchemaRoute = apiRoute(
   'get',
-  '/:branding/:portal/api/records/schemas/:digest',
+  RECORD_SCHEMA_IMMUTABLE_ROUTE_PATH,
   'webservice/RecordSchemaController',
   'immutable',
   {
