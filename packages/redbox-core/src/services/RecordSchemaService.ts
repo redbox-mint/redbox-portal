@@ -9,6 +9,7 @@ import {
   type RecordSchemaConfigurationProblemReason,
   type RecordSchemaIntegrationPinConfig,
   MAX_RECORD_SCHEMA_INTEGRATION_PINS,
+  normalizeRecordSchemaConfig,
   validateRecordSchemaConfig,
 } from '../config/recordSchema.config';
 import type {
@@ -684,7 +685,8 @@ function coverageFindings(componentTypes: readonly string[]): RecordSchemaLifecy
 }
 
 function isDisabled(value: unknown): boolean {
-  return isObjectRecord(value) && value.enabled === false;
+  const normalized = normalizeRecordSchemaConfig(value);
+  return isObjectRecord(normalized) && normalized.enabled === false;
 }
 
 export interface ResolveCreateRecordSchemaRequest {

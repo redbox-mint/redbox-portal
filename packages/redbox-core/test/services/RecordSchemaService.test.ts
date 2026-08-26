@@ -531,6 +531,17 @@ describe('RecordSchemaService lifecycle checks', function () {
     expect(getContributorComponentTypes.notCalled).to.equal(true);
   });
 
+  it('normalizes a disabled environment boolean string before the legacy startup short circuit', function () {
+    const getStorageProvider = sinon.stub().throws(new Error('legacy storage must not be inspected'));
+    const service = lifecycleService({
+      getConfig: () => ({ enabled: 'false' }),
+      getStorageProvider,
+    });
+
+    expect(() => service.init()).not.to.throw();
+    expect(getStorageProvider.notCalled).to.equal(true);
+  });
+
   it('accepts enabled configuration with complete storage, contributors, coverage, and pins', function () {
     const getStorageProvider = sinon.stub().returns(completeStorageProvider());
     const service = lifecycleService({
@@ -543,6 +554,30 @@ describe('RecordSchemaService lifecycle checks', function () {
     expect(Object.keys(CORE_RECORD_CONTRACT_COMPONENT_INVENTORY)).to.have.length(
       createCoreRecordContractContributors().length
     );
+  });
+
+  it('normalizes an enabled environment boolean string before startup validation', function () {
+    const getStorageProvider = sinon.stub().returns(completeStorageProvider());
+    const service = lifecycleService({
+      getConfig: () => enabledConfig({ enabled: 'true' }),
+      getStorageProvider,
+    });
+
+    expect(() => service.init()).not.to.throw();
+    expect(getStorageProvider.calledOnce).to.equal(true);
+  });
+
+  it('retains the typed startup diagnostic for an invalid environment boolean value', function () {
+    const service = lifecycleService({ getConfig: () => enabledConfig({ enabled: 'yes' }) });
+
+    const error = captureLifecycleError(() => service.init());
+
+    expect(error.findings).to.deep.include({
+      category: 'configuration',
+      code: RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID,
+      path: 'recordSchema.enabled',
+      reason: 'type',
+    });
   });
 
   it('candidate-independently compiles every configured form before awaited startup completes', async function () {

@@ -46,7 +46,11 @@ export interface RecordTypeRecordSchemaConfig {
 }
 
 export type RecordSchemaConfigurationProblemReason =
-  'required' | 'type' | 'positive-integer' | 'unsupported-value' | 'maximum-items';
+  | 'required'
+  | 'type'
+  | 'positive-integer'
+  | 'unsupported-value'
+  | 'maximum-items';
 
 export interface RecordSchemaConfigurationProblem {
   readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID;
@@ -105,6 +109,18 @@ function configurationProblem(
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Normalizes boolean strings supplied by environment-backed Sails configuration. */
+export function normalizeRecordSchemaConfig(value: unknown): unknown {
+  if (!isObjectRecord(value) || typeof value.enabled !== 'string') {
+    return value;
+  }
+  const enabled = value.enabled.trim().toLowerCase();
+  if (enabled !== 'true' && enabled !== 'false') {
+    return value;
+  }
+  return { ...value, enabled: enabled === 'true' };
 }
 
 function isPositiveInteger(value: unknown): value is number {
@@ -186,8 +202,9 @@ export function validateRecordTypeRecordSchemaConfig(
   return [];
 }
 
-/** Validates startup configuration without coercing or silently clamping values. */
+/** Validates startup configuration after normalizing environment boolean strings. */
 export function validateRecordSchemaConfig(value: unknown): RecordSchemaConfigValidationResult {
+  value = normalizeRecordSchemaConfig(value);
   const problems: RecordSchemaConfigurationProblem[] = [];
   if (!isObjectRecord(value)) {
     return { valid: false, problems: [configurationProblem('recordSchema', 'type')] };

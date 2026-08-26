@@ -9,6 +9,7 @@ import {
   DEFAULT_RECORD_SCHEMA_MAX_PROPERTIES,
   DEFAULT_RECORD_SCHEMA_MINIMUM_AGE_DAYS,
   MAX_RECORD_SCHEMA_INTEGRATION_PINS,
+  normalizeRecordSchemaConfig,
   RECORD_CONTRACT_FORMAT_V1,
   RECORD_SCHEMA_PROBLEM_CODES,
   RecordTypeModel,
@@ -119,8 +120,40 @@ describe('record-schema configuration', function () {
     });
   }
 
+  it('normalizes standard environment boolean strings before validation', function () {
+    for (const [value, expected] of [
+      ['true', true],
+      ['false', false],
+      [' TRUE ', true],
+      [' FALSE ', false],
+    ] as const) {
+      const candidate = withConfigValue('enabled', value);
+      const result = validateRecordSchemaConfig(candidate);
+
+      expect(result.valid).to.equal(true);
+      if (!result.valid) {
+        throw new Error(`Expected '${value}' to normalize to a boolean.`);
+      }
+      expect(result.config.enabled).to.equal(expected);
+      expect((candidate as Record<string, unknown>).enabled).to.equal(value);
+    }
+  });
+
+  it('preserves existing boolean enabled inputs', function () {
+    for (const enabled of [true, false]) {
+      const candidate = withConfigValue('enabled', enabled);
+      expect(validateRecordSchemaConfig(candidate)).to.deep.equal({ valid: true, config: candidate });
+      expect(normalizeRecordSchemaConfig(candidate)).to.equal(candidate);
+    }
+  });
+
+  it('rejects invalid environment boolean values with the typed diagnostic', function () {
+    for (const value of ['yes', '1', '', 1, null]) {
+      expectInvalidAt(withConfigValue('enabled', value), 'enabled', 'type');
+    }
+  });
+
   it('rejects unsupported and malformed global values without coercion', function () {
-    expectInvalidAt(withConfigValue('enabled', 'true'), 'enabled', 'type');
     expectInvalidAt(withConfigValue('unknownProperties', 'strip'), 'unknownProperties', 'unsupported-value');
     expectInvalidAt(
       withConfigValue('contractFormat', 'redbox-record-contract/2'),
