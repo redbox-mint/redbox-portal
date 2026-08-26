@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
+import type { Response } from 'express';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
+import type { BuildResponseType } from '../../../src/model';
 import { isRecordSaveContext, type RecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 import {
@@ -29,6 +31,14 @@ type PermissionCase = {
   initialAuthorization: Record<string, string[]>;
   expectedFields: Array<[string, string[]]>;
 };
+
+interface RecordControllerTestSeam {
+  sendResp(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response;
+}
+
+function exposeRecordControllerTestSeam(controller: Controllers.Record): RecordControllerTestSeam {
+  return controller as unknown as RecordControllerTestSeam;
+}
 
 function makeThrowingRequest(apiRequest: Sails.Req['apiRequest'], extra: Partial<Sails.Req> = {}): Sails.Req {
   const request = {
@@ -2156,7 +2166,7 @@ describe('Webservice RecordController body source', () => {
         headers: { 'x-redbox-api-version': '2.0' },
         body: { title: 'Compatible update' },
       });
-      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+      const sendRespStub = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
 
       await controller.updateMeta(req, {} as Sails.Res);
 
