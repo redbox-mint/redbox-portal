@@ -30,3 +30,7 @@ export function buildRecordSchemaInvalidRequestProblem(
 export function recordSchemaCanonicalLink(canonicalUrl: string): string {
   return `<${canonicalUrl}>; rel="canonical"; type="${RECORD_SCHEMA_RESPONSE_MEDIA_TYPE}"`;
 }
+
+export function recordSchemaDescribedByLink(immutableUrl: string): string {
+  return `<${immutableUrl}>; rel="describedby"; type="${RECORD_SCHEMA_RESPONSE_MEDIA_TYPE}"`;
+}

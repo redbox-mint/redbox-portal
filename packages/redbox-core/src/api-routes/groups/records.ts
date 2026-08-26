@@ -45,9 +45,18 @@ const recordEntityTagResponseHeaders = {
   ETag: recordEntityTagSchema,
 };
 
+const recordSchemaDiscoveryResponseHeaders = {
+  Link: stringField('Immutable caller-effective record schema: rel="describedby"; type="application/schema+json"'),
+};
+
 const recordResponseWithTag = (schema: Parameters<typeof responseField>[0], description: string) => ({
   ...responseField(schema, description),
   headers: recordEntityTagResponseHeaders,
+});
+
+const recordResponseWithTagAndSchemaDiscovery = (schema: Parameters<typeof responseField>[0], description: string) => ({
+  ...responseField(schema, description),
+  headers: { ...recordEntityTagResponseHeaders, ...recordSchemaDiscoveryResponseHeaders },
 });
 
 const recordConcurrencyFailureResponses = {
@@ -149,6 +158,7 @@ export const createRecordRoute = apiRoute(
         headers: {
           Location: stringField('Location of the created record'),
           ...recordEntityTagResponseHeaders,
+          ...recordSchemaDiscoveryResponseHeaders,
         },
       },
       400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
@@ -181,7 +191,7 @@ export const updateMetaRoute = apiRoute(
     summary: 'Update record metadata',
     extensions: recordSchemaResolverExtension('update'),
     responses: {
-      200: recordResponseWithTag(recordSaveSuccessResponseSchema, 'Record metadata updated'),
+      200: recordResponseWithTagAndSchemaDiscovery(recordSaveSuccessResponseSchema, 'Record metadata updated'),
       400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
       403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
       ...recordConcurrencyFailureResponses,

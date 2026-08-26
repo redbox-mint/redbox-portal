@@ -796,6 +796,7 @@ describe('API routes contract layer', function () {
     expect(v2Schema?.properties).to.have.property('data');
     expect(v2Schema?.properties).to.have.property('meta');
     expect(created.headers).to.have.property('Location');
+    expect(created.headers).to.have.property('Link');
   });
 
   it('validates and documents the optional operation query on every record save route', function () {
@@ -1755,6 +1756,10 @@ describe('API routes contract layer', function () {
     expect(legacyUpdateSchema?.properties).to.have.property('metadata');
     expect(v2UpdateSchema?.properties).to.have.property('data');
     expect(v2UpdateSchema?.properties).to.have.property('meta');
+    expect(
+      (updateMetaRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']
+        .headers as globalThis.Record<string, unknown>
+    ).to.have.property('Link');
 
     const userAuditRoute = document.paths['/{branding}/{portal}/api/users/{id}/audit']?.get as globalThis.Record<
       string,

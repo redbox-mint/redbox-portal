@@ -36,8 +36,26 @@ interface RecordControllerTestSeam {
   sendResp(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response;
 }
 
+interface RecordControllerResponseFixture {
+  readonly response: Sails.Res;
+  readonly set: sinon.SinonStub<[field: string | Record<string, string>, value?: string], Sails.Res>;
+  readonly status: sinon.SinonStub<[statusCode: number], Sails.Res>;
+  readonly json: sinon.SinonStub<[body: unknown], Sails.Res>;
+}
+
 function exposeRecordControllerTestSeam(controller: Controllers.Record): RecordControllerTestSeam {
   return controller as unknown as RecordControllerTestSeam;
+}
+
+function recordControllerResponseFixture(): RecordControllerResponseFixture {
+  const response: Sails.Res = Object.create(null);
+  const set = sinon.stub<[field: string | Record<string, string>, value?: string], Sails.Res>().returns(response);
+  const status = sinon.stub<[statusCode: number], Sails.Res>().returns(response);
+  const json = sinon.stub<[body: unknown], Sails.Res>().returns(response);
+  Reflect.set(response, 'set', set);
+  Reflect.set(response, 'status', status);
+  Reflect.set(response, 'json', json);
+  return { response, set, status, json };
 }
 
 function makeThrowingRequest(apiRequest: Sails.Req['apiRequest'], extra: Partial<Sails.Req> = {}): Sails.Req {
@@ -93,6 +111,32 @@ function notSavedResult() {
   result.outcome = 'not-saved';
   result.message = '@record-save-failed';
   return result;
+}
+
+function schemaAwareSuccessResult(oid: string, digest: string): RecordSaveResponse {
+  const result = successResult(oid);
+  result.message = 'Record saved';
+  result.metadata = { title: 'Saved metadata' };
+  result.setSchemaOutcome({
+    digest,
+    immutableUrl: `/default/default/api/records/schemas/${digest}`,
+    completeness: 'complete',
+    enforcement: 'shadow',
+  });
+  return result;
+}
+
+function expectedLegacySaveBody(result: RecordSaveResponse): Record<string, unknown> {
+  return {
+    success: result.success,
+    oid: result.oid,
+    message: result.message,
+    data: result.data,
+    metadata: result.metadata,
+    details: result.details,
+    totalItems: result.totalItems,
+    items: result.items,
+  };
 }
 
 function schemaPreconditionFailure(code: 'record-schema.precondition-failed' | 'record-schema.invalid-request') {
@@ -225,6 +269,126 @@ describe('Webservice RecordController body source', () => {
     controller.DatastreamService = {
       addDatastreams: sinon.stub(),
     } as never;
+  });
+
+  describe('save response schema discovery', function () {
+    for (const apiVersion of ['1.0', '2.0'] as const) {
+      it(`adds exact create/update described-by links without changing ${apiVersion} bodies`, async function () {
+        const updateDigest = 'a'.repeat(64);
+        const createDigest = 'b'.repeat(64);
+        const updateResult = schemaAwareSuccessResult('record-1', updateDigest);
+        const createResult = schemaAwareSuccessResult('created-record', createDigest);
+        updateResult.setConcurrencyMetadata({
+          revision: 3,
+          entityTag: formatRecordEntityTag('record-1', 3),
+        });
+        createResult.setConcurrencyMetadata({
+          revision: 0,
+          entityTag: formatRecordEntityTag('created-record', 0),
+        });
+        recordsService.getMeta.resolves({
+          redboxOid: 'record-1',
+          revision: 2,
+          metadata: { title: 'Before update' },
+          metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+        });
+        recordsService.updateMeta.resolves(updateResult);
+        recordsService.create.resolves(createResult);
+
+        const updateRequest = makeThrowingRequest(
+          {
+            params: { oid: 'record-1' },
+            query: { merge: false, datastreams: false },
+            body: { title: 'Saved metadata' },
+            files: {},
+          },
+          { headers: { 'x-redbox-api-version': apiVersion } }
+        );
+        const updateResponse = recordControllerResponseFixture();
+
+        await controller.updateMeta(updateRequest, updateResponse.response);
+
+        expect(
+          updateResponse.set.calledOnceWithExactly({
+            ETag: formatRecordEntityTag('record-1', 3),
+            Link: `</default/default/api/records/schemas/${updateDigest}>; rel="describedby"; type="application/schema+json"`,
+          })
+        ).to.equal(true);
+        expect(updateResponse.json.calledOnce).to.equal(true);
+        const updateBody = updateResponse.json.firstCall.args[0];
+        if (apiVersion === '1.0') {
+          expect(updateBody).to.deep.equal(expectedLegacySaveBody(updateResult));
+          expect(JSON.stringify(updateBody)).not.to.include(updateDigest);
+        } else {
+          expect(updateBody).to.deep.equal({ data: updateResult, meta: { ...updateResult } });
+          expect(Object.keys((updateBody as { meta: Record<string, unknown> }).meta)).to.deep.equal(
+            Object.keys(updateResult)
+          );
+        }
+
+        const createRequest = makeThrowingRequest(
+          {
+            params: { recordType: 'dataset' },
+            query: {},
+            body: { metadata: { title: 'Saved metadata' } },
+            files: {},
+          },
+          { headers: { 'x-redbox-api-version': apiVersion } }
+        );
+        const createResponse = recordControllerResponseFixture();
+
+        controller.create(createRequest, createResponse.response);
+        await flushPromises();
+
+        expect(
+          createResponse.set.calledOnceWithExactly({
+            Location: 'https://portal.example/default/default/api/records/metadata/created-record',
+            ETag: formatRecordEntityTag('created-record', 0),
+            Link: `</default/default/api/records/schemas/${createDigest}>; rel="describedby"; type="application/schema+json"`,
+          })
+        ).to.equal(true);
+        expect(createResponse.json.calledOnce).to.equal(true);
+        const createBody = createResponse.json.firstCall.args[0];
+        if (apiVersion === '1.0') {
+          expect(createBody).to.deep.equal(expectedLegacySaveBody(createResult));
+          expect(JSON.stringify(createBody)).not.to.include(createDigest);
+        } else {
+          expect(createBody).to.deep.equal({ data: createResult, meta: { ...createResult } });
+          expect(Object.keys((createBody as { meta: Record<string, unknown> }).meta)).to.deep.equal(
+            Object.keys(createResult)
+          );
+        }
+      });
+    }
+
+    it('keeps successful create/update headers unchanged when no schema outcome was resolved', async function () {
+      const updateResult = successResult('record-1');
+      const createResult = successResult('created-record');
+      recordsService.getMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 0,
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.resolves(updateResult);
+      recordsService.create.resolves(createResult);
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.updateMeta(
+        makeThrowingRequest({ params: { oid: 'record-1' }, query: {}, body: {}, files: {} }),
+        {} as Sails.Res
+      );
+      controller.create(
+        makeThrowingRequest({ params: { recordType: 'dataset' }, query: {}, body: { metadata: {} }, files: {} }),
+        {} as Sails.Res
+      );
+      await flushPromises();
+
+      expect(sendResp.firstCall.args[2]?.headers).to.deep.equal({});
+      expect(sendResp.secondCall.args[2]?.headers).to.deep.equal({
+        Location: 'https://portal.example/default/default/api/records/metadata/created-record',
+      });
+    });
   });
 
   it('restores and permanently destroys deleted records in the active brand', async () => {

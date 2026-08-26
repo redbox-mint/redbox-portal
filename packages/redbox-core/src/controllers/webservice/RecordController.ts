@@ -84,6 +84,7 @@ import {
   recordSaveResultHeaderOption,
   recordSaveResultHeaders,
 } from '../../RecordHttpConcurrency';
+import { recordSchemaDescribedByLink } from '../../api-routes/record-schema-response';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
@@ -258,6 +259,14 @@ export namespace Controllers {
           problem.kind === 'validation' && problem.issues.some(issue => issue.code === 'record-schema.invalid-request')
       );
       return malformed ? 400 : undefined;
+    }
+
+    private recordSaveDiscoveryHeaders(result: RecordSaveResponse): Readonly<globalThis.Record<string, string>> {
+      const headers = { ...recordSaveResultHeaders(result) };
+      if (result.schemaOutcome) {
+        headers.Link = recordSchemaDescribedByLink(result.schemaOutcome.immutableUrl);
+      }
+      return headers;
     }
 
     private sendSaveFailure(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
@@ -909,7 +918,7 @@ export namespace Controllers {
             data: result,
             meta: { ...result },
             ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
-            headers: recordSaveResultHeaders(result),
+            headers: this.recordSaveDiscoveryHeaders(result),
           });
         }
         if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
@@ -1078,7 +1087,7 @@ export namespace Controllers {
                         BrandingService.getBrandAndPortalPath(req) +
                         '/api/records/metadata/' +
                         response.oid,
-                      ...recordSaveResultHeaders(response),
+                      ...this.recordSaveDiscoveryHeaders(response),
                     },
                   });
                 } else {

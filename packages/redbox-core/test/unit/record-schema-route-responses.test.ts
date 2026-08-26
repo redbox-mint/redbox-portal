@@ -8,6 +8,7 @@ import {
 } from '../../src/api-routes/groups/record-schemas';
 import {
   recordSchemaCanonicalLink,
+  recordSchemaDescribedByLink,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
@@ -19,6 +20,13 @@ describe('record-schema route response contracts', function () {
   const etag = `"sha256:${digest}"`;
   const canonicalUrl = `/default/rdmp/api/records/schemas/${digest}`;
   const canonicalLink = recordSchemaCanonicalLink(canonicalUrl);
+
+  it('formats an exact described-by Link value for save response discovery', function () {
+    assert.equal(
+      recordSchemaDescribedByLink(canonicalUrl),
+      `<${canonicalUrl}>; rel="describedby"; type="application/schema+json"`
+    );
+  });
 
   it('accepts the optional strong conditional header on every schema GET route', function () {
     for (const route of recordSchemaApiRoutes) {
