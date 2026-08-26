@@ -921,7 +921,7 @@ describe('Webservice RecordSchemaController', function () {
     }
   });
 
-  it('maps denied update access to 403 and gives the typed failure kind precedence over diagnostics', async function () {
+  it('makes denied and missing-OID update outcomes identical generic 404 responses', async function () {
     const req = validatedRequest(resolveUpdateRecordSchemaRoute, {
       params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
       query: {},
@@ -930,12 +930,27 @@ describe('Webservice RecordSchemaController', function () {
     resolver.resolveUpdate.resolves({ kind: 'denied', code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN });
 
     await controller.update(req, responseAdapter());
-
-    expect(onlySentResponse(controller).response).to.deep.equal(
-      expectedProblemResponse('forbidden', '/default/portal-1/api/records/schemas/update/record-1')
-    );
+    const denied = onlySentResponse(controller).response;
 
     resetControllerHistory(controller, resolver);
+    resolver.resolveUpdate.resolves({ kind: 'missing-oid', code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND });
+    await controller.update(req, responseAdapter());
+    const missing = onlySentResponse(controller).response;
+
+    expect(denied).to.deep.equal(
+      expectedProblemResponse('not-found', '/default/portal-1/api/records/schemas/update/record-1')
+    );
+    expect(missing).to.deep.equal(denied);
+    expect(JSON.stringify(denied)).not.to.include(RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN);
+  });
+
+  it('gives update context failure kinds precedence over private diagnostics', async function () {
+    const req = validatedRequest(resolveUpdateRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
+      query: {},
+      headers: {},
+    });
+
     resolver.resolveUpdate.resolves({
       kind: 'context-failed',
       failureKind: 'forbidden',

@@ -203,8 +203,8 @@ describe('CoreController sendResp wrappers', () => {
       properties: { title: { type: 'string' } },
     };
     for (const apiVersion of ['1.0', '2.0']) {
-      const req: any = { headers: { 'X-ReDBox-Api-Version': apiVersion }, query: {} };
-      const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+      const req = coreRequestFixture(apiVersion);
+      const res = coreResponseFixture();
       const buildResponse: BuildResponseType = {
         format: 'raw-json',
         mediaType: 'application/schema+json',
@@ -213,7 +213,7 @@ describe('CoreController sendResp wrappers', () => {
         data: schema,
       };
 
-      controller.callSendResp(req, res, buildResponse);
+      controller.callSendResp(req, res.response, buildResponse);
 
       expect(res.status.calledOnceWithExactly(201)).to.be.true;
       expect(res.set.firstCall.calledWithExactly({ ETag: '"sha256:digest"', Vary: 'Authorization' })).to.be.true;
@@ -234,8 +234,8 @@ describe('CoreController sendResp wrappers', () => {
       code: 'record-schema.not-found',
     };
     for (const apiVersion of ['1.0', '2.0']) {
-      const req: any = { headers: { 'X-ReDBox-Api-Version': apiVersion }, query: {} };
-      const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+      const req = coreRequestFixture(apiVersion);
+      const res = coreResponseFixture();
       const buildResponse: BuildResponseType = {
         format: 'raw-json',
         mediaType: 'application/problem+json',
@@ -243,7 +243,7 @@ describe('CoreController sendResp wrappers', () => {
         data: problem,
       };
 
-      controller.callSendResp(req, res, buildResponse);
+      controller.callSendResp(req, res.response, buildResponse);
 
       expect(res.status.calledOnceWithExactly(404)).to.be.true;
       expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/problem+json')).to.be.true;

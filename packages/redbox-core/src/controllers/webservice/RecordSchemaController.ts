@@ -260,9 +260,8 @@ export namespace Controllers {
         case 'context-failed':
           return this.sendContextFailure(req, res, instance, result.failureKind);
         case 'denied':
-          return this.sendProblem(req, res, 'forbidden', instance, result.code);
         case 'missing-oid':
-          return this.sendProblem(req, res, 'not-found', instance, result.code);
+          return this.sendProblem(req, res, 'not-found', instance);
         case 'invalid-precondition':
           return this.sendProblem(req, res, 'invalid-request', instance, result.code);
         case 'precondition-failed':
