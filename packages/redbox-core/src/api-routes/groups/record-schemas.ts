@@ -2,11 +2,12 @@ import { z } from '../zod-openapi';
 
 import { apiRoute } from '../route-factory';
 import {
+  RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_VARY,
 } from '../record-schema-response';
-import { integerField, objectField, recordOperationQuery, stringField } from '../schemas/common';
+import { objectField, recordOperationQuery, stringField } from '../schemas/common';
 import type { ApiResponseDefinition, ApiSchemaField } from '../types';
 
 const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
@@ -96,19 +97,6 @@ const immutableRecordSchemaParams = objectField(
 
 const recordSchemaDocument = objectField({}, [], 'Caller-effective JSON Schema draft 2020-12 document', true);
 
-const recordSchemaProblem = objectField(
-  {
-    type: stringField('URI identifying the Problem Details type'),
-    title: stringField('Short, stable problem title'),
-    status: integerField('HTTP status code'),
-    detail: stringField('Safe explanation of the failure'),
-    instance: stringField('Request URI for this problem occurrence'),
-    code: stringField('Stable ReDBox record-schema problem code'),
-  },
-  ['type', 'title', 'status', 'detail', 'instance', 'code'],
-  'RFC 9457 Problem Details for a record-schema request'
-);
-
 const recordSchemaResponseHeaders = {
   ETag: recordSchemaEtagResponseField,
   'Cache-Control': recordSchemaCacheControlResponseField,
@@ -139,11 +127,26 @@ function notModifiedResponse(headers: Record<string, ApiSchemaField>): ApiRespon
   };
 }
 
-function problemResponse(description: string): ApiResponseDefinition {
+function problemResponse(
+  status: 400 | 401 | 403 | 404 | 409 | 413 | 422 | 500 | 503,
+  description: string
+): ApiResponseDefinition {
+  const recordSchemaProblem = objectField(
+    {
+      type: stringField('URI identifying the Problem Details type'),
+      title: stringField('Short, stable problem title'),
+      status: z.literal(status).openapi({ description: 'HTTP status code', example: status }),
+      detail: stringField('Safe explanation of the failure'),
+      instance: stringField('Request URI for this problem occurrence'),
+      code: stringField('Stable ReDBox record-schema problem code'),
+    },
+    ['type', 'title', 'status', 'detail', 'instance', 'code'],
+    'RFC 9457 Problem Details for a record-schema request'
+  );
   return {
     description,
     content: {
-      'application/problem+json': {
+      [RECORD_SCHEMA_PROBLEM_MEDIA_TYPE]: {
         schema: recordSchemaProblem,
       },
     },
@@ -151,15 +154,15 @@ function problemResponse(description: string): ApiResponseDefinition {
 }
 
 const recordSchemaProblemResponses: Record<number, ApiResponseDefinition> = {
-  400: problemResponse('Malformed record-schema request'),
-  401: problemResponse('Authentication is required'),
-  403: problemResponse('Record-schema request is not authorized'),
-  404: problemResponse('Record schema or authorized resolution context was not found'),
-  409: problemResponse('Record schema could not be resolved from the authoritative context'),
-  413: problemResponse('Record schema exceeds configured complexity or output limits'),
-  422: problemResponse('Record form or contributor contract is invalid'),
-  500: problemResponse('Unexpected record-schema resolution failure'),
-  503: problemResponse('Record-schema compiler or storage capability is unavailable'),
+  400: problemResponse(400, 'Malformed record-schema request'),
+  401: problemResponse(401, 'Authentication is required'),
+  403: problemResponse(403, 'Record-schema request is not authorized'),
+  404: problemResponse(404, 'Record schema or authorized resolution context was not found'),
+  409: problemResponse(409, 'Record schema could not be resolved from the authoritative context'),
+  413: problemResponse(413, 'Record schema exceeds configured complexity or output limits'),
+  422: problemResponse(422, 'Record form or contributor contract is invalid'),
+  500: problemResponse(500, 'Unexpected record-schema resolution failure'),
+  503: problemResponse(503, 'Record-schema compiler or storage capability is unavailable'),
 };
 
 const recordSchemaSecurity = [{ bearerAuth: [] }] as const;

@@ -1,6 +1,7 @@
 export const RECORD_SCHEMA_PROBLEM_CODES = {
   CONFIG_INVALID: 'record-schema.config-invalid',
 
+  AUTHENTICATION_REQUIRED: 'record-schema.authentication-required',
   INVALID_REQUEST: 'record-schema.invalid-request',
   NOT_FOUND: 'record-schema.not-found',
   FORBIDDEN: 'record-schema.forbidden',

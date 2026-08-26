@@ -14,12 +14,13 @@ import {
 } from '../../../src/api-routes';
 import {
   recordSchemaCanonicalLink,
+  RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_VARY,
 } from '../../../src/api-routes/record-schema-response';
 import { BrandingModel } from '../../../src/model';
-import { JSON_SCHEMA_DRAFT_2020_12 } from '../../../src/record-contract';
+import { JSON_SCHEMA_DRAFT_2020_12, RECORD_SCHEMA_PROBLEM_CODES } from '../../../src/record-contract';
 import type { ApiRouteDefinition } from '../../../src/api-routes';
 import type { BuildResponseType } from '../../../src/model';
 import type { RecordSchemaService } from '../../../src';
@@ -31,6 +32,7 @@ import type {
   RecordContractPublicContext,
   RecordContractSchemaKind,
   RecordJsonSchemaEtag,
+  RecordSchemaProblemCode,
 } from '../../../src/record-contract';
 
 let expect: Chai.ExpectStatic;
@@ -140,6 +142,103 @@ function successfulSchemaHeaders(etag: string, canonicalUrl?: string): Record<st
 
 function schemaEtag(digest: string): RecordJsonSchemaEtag {
   return `"sha256:${digest}"`;
+}
+
+type ExpectedProblemKind =
+  | 'invalid-request'
+  | 'authentication-required'
+  | 'forbidden'
+  | 'not-found'
+  | 'not-resolvable'
+  | 'limit-exceeded'
+  | 'invalid-contract'
+  | 'unavailable';
+
+const expectedProblemDescriptors = {
+  'invalid-request': {
+    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
+    title: 'Record schema request is invalid',
+    status: 400,
+    detail: 'The record schema request is malformed.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+  },
+  'authentication-required': {
+    type: 'https://redboxresearchdata.com/problems/record-schema-authentication-required',
+    title: 'Authentication is required',
+    status: 401,
+    detail: 'Authentication is required to resolve a record schema.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.AUTHENTICATION_REQUIRED,
+  },
+  forbidden: {
+    type: 'https://redboxresearchdata.com/problems/record-schema-forbidden',
+    title: 'Record schema request is not authorized',
+    status: 403,
+    detail: 'The record schema request is not authorized.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
+  },
+  'not-found': {
+    type: 'https://redboxresearchdata.com/problems/record-schema-not-found',
+    title: 'Record schema was not found',
+    status: 404,
+    detail: 'No accessible record schema or resolution context was found.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
+  },
+  'not-resolvable': {
+    type: 'https://redboxresearchdata.com/problems/record-schema-not-resolvable',
+    title: 'Record schema could not be resolved',
+    status: 409,
+    detail: 'The record schema could not be resolved from the authoritative context.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.NOT_RESOLVABLE,
+  },
+  'limit-exceeded': {
+    type: 'https://redboxresearchdata.com/problems/record-schema-limit-exceeded',
+    title: 'Record schema limit exceeded',
+    status: 413,
+    detail: 'The record schema exceeds configured complexity or output limits.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+  },
+  'invalid-contract': {
+    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-contract',
+    title: 'Record schema contract is invalid',
+    status: 422,
+    detail: 'The record schema contract is invalid.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+  },
+  unavailable: {
+    type: 'https://redboxresearchdata.com/problems/record-schema-unavailable',
+    title: 'Record schema is unavailable',
+    status: 503,
+    detail: 'The record schema capability is temporarily unavailable.',
+    code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+  },
+} as const;
+
+function expectedProblem(
+  kind: ExpectedProblemKind,
+  instance: string,
+  code: RecordSchemaProblemCode = expectedProblemDescriptors[kind].code
+) {
+  return {
+    ...expectedProblemDescriptors[kind],
+    instance,
+    code,
+  };
+}
+
+function expectedProblemResponse(
+  kind: ExpectedProblemKind,
+  instance: string,
+  code?: RecordSchemaProblemCode,
+  errors?: Error[]
+): BuildResponseType {
+  const problem = expectedProblem(kind, instance, code);
+  return {
+    format: 'raw-json',
+    mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+    status: problem.status,
+    data: problem,
+    ...(errors ? { errors } : {}),
+  };
 }
 
 function requestAdapter(): Sails.Req {
@@ -749,38 +848,176 @@ describe('Webservice RecordSchemaController', function () {
     });
   });
 
-  it('does not expose typed service failure details or return 304 before the approved HTTP mapping exists', async function () {
+  it('maps create service failures to deterministic 400, 409, 413, 422, and 503 Problem Details', async function () {
+    const instance = '/default/portal-1/api/records/schemas/create/dataset';
+    const cases: Array<{
+      result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>>;
+      problemKind: ExpectedProblemKind;
+      code?: RecordSchemaProblemCode;
+    }> = [
+      {
+        result: {
+          kind: 'context-failed',
+          failureKind: 'invalid-request',
+          diagnosticCodes: ['private-invalid-request-diagnostic'],
+        },
+        problemKind: 'invalid-request',
+      },
+      {
+        result: {
+          kind: 'context-failed',
+          failureKind: 'not-resolvable',
+          diagnosticCodes: ['private-context-diagnostic'],
+          reason: 'empty-effective-form',
+        },
+        problemKind: 'not-resolvable',
+      },
+      {
+        result: {
+          kind: 'limit-exceeded',
+          stage: 'compiler',
+          code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_DEPTH,
+          diagnostics: [{ code: 'private-limit-diagnostic', severity: 'error', message: 'private limit detail' }],
+        },
+        problemKind: 'limit-exceeded',
+        code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_DEPTH,
+      },
+      {
+        result: {
+          kind: 'compiler-failed',
+          failureKind: 'contributor-failed',
+          code: RECORD_SCHEMA_PROBLEM_CODES.CONTRIBUTOR_INVALID,
+          diagnostics: [{ code: 'private-contributor-diagnostic', severity: 'error', message: 'private detail' }],
+        },
+        problemKind: 'invalid-contract',
+        code: RECORD_SCHEMA_PROBLEM_CODES.CONTRIBUTOR_INVALID,
+      },
+      {
+        result: {
+          kind: 'storage-failed',
+          stage: 'artifact',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        },
+        problemKind: 'unavailable',
+        code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+      },
+    ];
+    const req = validatedRequest(resolveCreateRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', recordType: 'dataset' },
+      query: {},
+      headers: {},
+    });
+
+    for (const testCase of cases) {
+      resetControllerHistory(controller, resolver);
+      resolver.resolveCreate.resolves(testCase.result);
+
+      await controller.create(req, responseAdapter());
+
+      const response = onlySentResponse(controller).response;
+      expect(response).to.deep.equal(expectedProblemResponse(testCase.problemKind, instance, testCase.code));
+      expect(JSON.stringify(response)).not.to.match(/private|empty-effective-form/);
+      expect(response).not.to.have.property('headers');
+    }
+  });
+
+  it('maps denied update access to 403 and gives the typed failure kind precedence over diagnostics', async function () {
+    const req = validatedRequest(resolveUpdateRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
+      query: {},
+      headers: {},
+    });
+    resolver.resolveUpdate.resolves({ kind: 'denied', code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN });
+
+    await controller.update(req, responseAdapter());
+
+    expect(onlySentResponse(controller).response).to.deep.equal(
+      expectedProblemResponse('forbidden', '/default/portal-1/api/records/schemas/update/record-1')
+    );
+
+    resetControllerHistory(controller, resolver);
+    resolver.resolveUpdate.resolves({
+      kind: 'context-failed',
+      failureKind: 'forbidden',
+      diagnosticCodes: [RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED, 'private-record-id-record-1'],
+    });
+
+    await controller.update(req, responseAdapter());
+
+    const precedenceResponse = onlySentResponse(controller).response;
+    expect(precedenceResponse).to.deep.equal(
+      expectedProblemResponse('forbidden', '/default/portal-1/api/records/schemas/update/record-1')
+    );
+    expect(JSON.stringify(precedenceResponse)).not.to.include('private-record-id');
+  });
+
+  it('makes inaccessible and missing immutable artifacts identical 404 responses before conditional handling', async function () {
     const digest = 'a'.repeat(64);
     const etag = schemaEtag(digest);
-    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>> = {
-      kind: 'not-found',
-      problem: {
-        type: 'https://redboxresearchdata.com/problems/record-schema-not-found',
-        title: 'Record schema was not found',
-        status: 404,
-        detail: 'No accessible schema was found.',
-        instance: `/default/portal-1/api/records/schemas/${digest}`,
-        code: 'record-schema.not-found',
-      },
-    };
-    resolver.resolveImmutable.resolves(result);
+    const instance = `/default/portal-1/api/records/schemas/${digest}`;
     const req = validatedRequest(getImmutableRecordSchemaRoute, {
       params: { branding: 'default', portal: 'portal-1', digest },
       query: {},
       headers: { 'If-None-Match': etag },
     });
-    const res = responseAdapter();
+    const hostileProblem = {
+      type: 'https://internal.example/problems/existence-leak',
+      title: 'Private artifact exists',
+      status: 403 as const,
+      detail: 'private grant, user, role, OID and exception detail',
+      instance: `/brand-1/internal/${digest}`,
+      code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
+    };
 
-    await controller.immutable(req, res);
+    resolver.resolveImmutable.resolves({ kind: 'forbidden', problem: hostileProblem });
+    await controller.immutable(req, responseAdapter());
+    const inaccessible = onlySentResponse(controller).response;
 
-    const sent = onlySentResponse(controller);
-    const errors = sent.response.errors ?? [];
-    expect(sent.response).to.include({ status: 500 });
-    expect(errors).to.have.length(1);
-    expect(errors[0]?.message).to.equal('Record schema resolution failed.');
-    expect(sent.response).not.to.have.property('data');
-    expect(sent.response).not.to.have.property('headers');
-    expect(JSON.stringify(sent.response)).not.to.include(result.problem.detail);
+    resetControllerHistory(controller, resolver);
+    resolver.resolveImmutable.resolves({
+      kind: 'not-found',
+      problem: {
+        ...hostileProblem,
+        status: 404,
+        code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
+      },
+    });
+    await controller.immutable(req, responseAdapter());
+    const missing = onlySentResponse(controller).response;
+
+    expect(inaccessible).to.deep.equal(expectedProblemResponse('not-found', instance));
+    expect(missing).to.deep.equal(inaccessible);
+    expect(JSON.stringify(inaccessible)).not.to.match(/private|brand-1|user|role|OID|exception/);
+    expect(inaccessible).not.to.have.property('headers');
+  });
+
+  it('gives immutable result kinds precedence over conflicting embedded Problem Details statuses', async function () {
+    const digest = 'b'.repeat(64);
+    const instance = `/default/portal-1/api/records/schemas/${digest}`;
+    const req = validatedRequest(getImmutableRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', digest },
+      query: {},
+      headers: {},
+    });
+    resolver.resolveImmutable.resolves({
+      kind: 'unavailable',
+      problem: {
+        type: 'https://internal.example/wrong',
+        title: 'Wrong embedded status',
+        status: 400,
+        detail: 'private exception text',
+        instance: '/brand-1/private',
+        code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+      },
+    });
+
+    await controller.immutable(req, responseAdapter());
+
+    const response = onlySentResponse(controller).response;
+    expect(response).to.deep.equal(
+      expectedProblemResponse('unavailable', instance, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE)
+    );
+    expect(JSON.stringify(response)).not.to.match(/internal|Wrong|exception|brand-1/);
   });
 
   it('does not delegate when validated request context is missing', async function () {
@@ -792,12 +1029,12 @@ describe('Webservice RecordSchemaController', function () {
 
     expect(resolver.resolveCreate.notCalled).to.equal(true);
     const sent = onlySentResponse(controller);
-    expect(sent.response).to.include({ status: 500 });
+    expect(sent.response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
     expect(sent.response.errors ?? []).to.have.length(1);
     expect(sent.response.errors?.[0]).to.be.instanceOf(Error);
   });
 
-  it('rejects a missing authenticated user consistently before every delegation', async function () {
+  it('returns truthful 401 Problem Details for a missing authenticated user before every delegation', async function () {
     for (const testCase of controllerActionCases(controller, resolver, {})) {
       resetControllerHistory(controller, resolver);
       const res = responseAdapter();
@@ -806,8 +1043,18 @@ describe('Webservice RecordSchemaController', function () {
 
       expect(testCase.resolver.notCalled).to.equal(true);
       const sent = onlySentResponse(controller);
-      expect(sent.response).to.include({ status: 500 });
-      expect(sent.response.errors?.[0]?.message).to.equal('Authenticated user context is required.');
+      expect(sent.response).to.include({
+        format: 'raw-json',
+        mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+        status: 401,
+      });
+      expect(sent.response.data).to.deep.include({
+        type: 'https://redboxresearchdata.com/problems/record-schema-authentication-required',
+        title: 'Authentication is required',
+        status: 401,
+        code: RECORD_SCHEMA_PROBLEM_CODES.AUTHENTICATION_REQUIRED,
+      });
+      expect(sent.response).not.to.have.property('errors');
     }
   });
 
@@ -827,8 +1074,9 @@ describe('Webservice RecordSchemaController', function () {
 
         expect(testCase.resolver.notCalled).to.equal(true);
         const sent = onlySentResponse(controller);
-        expect(sent.response).to.include({ status: 500 });
-        expect(sent.response.errors?.[0]?.message).to.equal('Authenticated user context is required.');
+        expect(sent.response).to.include({ status: 401, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
+        expect(sent.response).not.to.have.property('errors');
+        expect(JSON.stringify(sent.response)).not.to.include('private-token');
       }
     }
   });
@@ -845,7 +1093,16 @@ describe('Webservice RecordSchemaController', function () {
 
       await testCase.run(testCase.request, res);
 
-      expect(onlySentResponse(controller).response).to.deep.equal({ status: 500, errors: [error] });
+      const response = onlySentResponse(controller).response;
+      expect(response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
+      expect(response.errors).to.deep.equal([error]);
+      expect(response.data).to.deep.include({
+        title: 'Record schema is unavailable',
+        status: 503,
+        detail: 'The record schema capability is temporarily unavailable.',
+        code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+      });
+      expect(JSON.stringify(response.data)).not.to.include(error.message);
     }
   });
 

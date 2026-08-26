@@ -8,6 +8,7 @@ import {
 } from '../../src/api-routes/groups/record-schemas';
 import {
   recordSchemaCanonicalLink,
+  RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_VARY,
@@ -54,6 +55,30 @@ describe('record-schema route response contracts', function () {
       }
 
       assert.equal(route.responses?.[304]?.content, undefined);
+    }
+  });
+
+  it('specifies status-matched Problem Details schemas for every mapped and documented failure', function () {
+    const problemStatuses = [400, 401, 403, 404, 409, 413, 422, 500, 503] as const;
+
+    for (const route of recordSchemaApiRoutes) {
+      for (const status of problemStatuses) {
+        const response = route.responses?.[status];
+        assert.deepEqual(Object.keys(response?.content ?? {}), [RECORD_SCHEMA_PROBLEM_MEDIA_TYPE]);
+        const schema = response?.content?.[RECORD_SCHEMA_PROBLEM_MEDIA_TYPE]?.schema;
+        assert.ok(schema);
+        const problem = {
+          type: 'https://redboxresearchdata.com/problems/record-schema-test',
+          title: 'Stable title',
+          status,
+          detail: 'Safe detail.',
+          instance: '/default/rdmp/api/records/schemas/test',
+          code: 'record-schema.test',
+        };
+        assert.equal(schema.safeParse(problem).success, true);
+        assert.equal(schema.safeParse({ ...problem, status: status === 400 ? 503 : 400 }).success, false);
+        assert.equal(schema.safeParse({ ...problem, detail: undefined }).success, false);
+      }
     }
   });
 });

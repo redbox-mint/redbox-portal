@@ -163,35 +163,35 @@ describe('CoreController sendResp wrappers', () => {
     expect(arg).to.have.property('errors');
   });
 
-  it('sends schema JSON raw for v1 with exact headers and status', () => {
-    const req: any = { headers: { 'X-ReDBox-Api-Version': '1.0' }, query: {} };
-    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+  it('sends schema JSON raw with exact headers and status for v1 and v2', () => {
     const schema = {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: { title: { type: 'string' } },
     };
-    const buildResponse: BuildResponseType = {
-      format: 'raw-json',
-      mediaType: 'application/schema+json',
-      status: 201,
-      headers: { ETag: '"sha256:digest"', Vary: 'Authorization' },
-      data: schema,
-    };
+    for (const apiVersion of ['1.0', '2.0']) {
+      const req: any = { headers: { 'X-ReDBox-Api-Version': apiVersion }, query: {} };
+      const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+      const buildResponse: BuildResponseType = {
+        format: 'raw-json',
+        mediaType: 'application/schema+json',
+        status: 201,
+        headers: { ETag: '"sha256:digest"', Vary: 'Authorization' },
+        data: schema,
+      };
 
-    controller.callSendResp(req, res, buildResponse);
+      controller.callSendResp(req, res, buildResponse);
 
-    expect(res.status.calledOnceWithExactly(201)).to.be.true;
-    expect(res.set.firstCall.calledWithExactly({ ETag: '"sha256:digest"', Vary: 'Authorization' })).to.be.true;
-    expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/schema+json')).to.be.true;
-    expect(res.json.calledOnceWithExactly(schema)).to.be.true;
-    expect(res.json.firstCall.args[0]).not.to.have.property('data');
-    expect(res.json.firstCall.args[0]).not.to.have.property('meta');
+      expect(res.status.calledOnceWithExactly(201)).to.be.true;
+      expect(res.set.firstCall.calledWithExactly({ ETag: '"sha256:digest"', Vary: 'Authorization' })).to.be.true;
+      expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/schema+json')).to.be.true;
+      expect(res.json.calledOnceWithExactly(schema)).to.be.true;
+      expect(res.json.firstCall.args[0]).not.to.have.property('data');
+      expect(res.json.firstCall.args[0]).not.to.have.property('meta');
+    }
   });
 
-  it('sends Problem Details raw for v2 without an API envelope', () => {
-    const req: any = { headers: { 'X-ReDBox-Api-Version': '2.0' }, query: {} };
-    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+  it('sends the same raw Problem Details body and media type without an API envelope for v1 and v2', () => {
     const problem = {
       type: 'https://redboxresearchdata.com/problems/record-schema-not-found',
       title: 'Record schema was not found',
@@ -200,20 +200,25 @@ describe('CoreController sendResp wrappers', () => {
       instance: '/default/default/api/records/schemas/missing',
       code: 'record-schema.not-found',
     };
-    const buildResponse: BuildResponseType = {
-      format: 'raw-json',
-      mediaType: 'application/problem+json',
-      status: 404,
-      data: problem,
-    };
+    for (const apiVersion of ['1.0', '2.0']) {
+      const req: any = { headers: { 'X-ReDBox-Api-Version': apiVersion }, query: {} };
+      const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+      const buildResponse: BuildResponseType = {
+        format: 'raw-json',
+        mediaType: 'application/problem+json',
+        status: 404,
+        data: problem,
+      };
 
-    controller.callSendResp(req, res, buildResponse);
+      controller.callSendResp(req, res, buildResponse);
 
-    expect(res.status.calledOnceWithExactly(404)).to.be.true;
-    expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/problem+json')).to.be.true;
-    expect(res.json.calledOnceWithExactly(problem)).to.be.true;
-    expect(res.json.firstCall.args[0]).not.to.have.property('errors');
-    expect(res.json.firstCall.args[0]).not.to.have.property('meta');
+      expect(res.status.calledOnceWithExactly(404)).to.be.true;
+      expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/problem+json')).to.be.true;
+      expect(res.json.calledOnceWithExactly(problem)).to.be.true;
+      expect(res.json.firstCall.args[0]).not.to.have.property('errors');
+      expect(res.json.firstCall.args[0]).not.to.have.property('meta');
+      expect(res.json.firstCall.args[0]).not.to.have.property('data');
+    }
   });
 
   it('logs raw response errors and promotes the status without replacing the raw body', () => {
@@ -240,6 +245,34 @@ describe('CoreController sendResp wrappers', () => {
     expect((global as any).sails.log.error.calledWith('Collected error in sendResp:', internalError)).to.be.true;
     expect(res.status.calledOnceWithExactly(500)).to.be.true;
     expect(res.json.calledOnceWithExactly(problem)).to.be.true;
+  });
+
+  it('logs an unexpected resolver error while preserving an explicit safe 503 Problem Details response', () => {
+    const req: any = { headers: { 'X-ReDBox-Api-Version': '2.0' }, query: {} };
+    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+    const problem = {
+      type: 'https://redboxresearchdata.com/problems/record-schema-unavailable',
+      title: 'Record schema is unavailable',
+      status: 503,
+      detail: 'The record schema capability is temporarily unavailable.',
+      instance: '/default/rdmp/api/records/schemas/create/dataset',
+      code: 'record-schema.unavailable',
+    };
+    const internalError = new Error('private exception text');
+
+    controller.callSendResp(req, res, {
+      format: 'raw-json',
+      mediaType: 'application/problem+json',
+      status: 503,
+      errors: [internalError],
+      data: problem,
+    });
+
+    expect((global as any).sails.log.error.calledWith('Collected error in sendResp:', internalError)).to.be.true;
+    expect(res.status.calledOnceWithExactly(503)).to.be.true;
+    expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/problem+json')).to.be.true;
+    expect(res.json.calledOnceWithExactly(problem)).to.be.true;
+    expect(JSON.stringify(res.json.firstCall.args[0])).not.to.include(internalError.message);
   });
 
   it('rejects unsupported raw media types at runtime', () => {
