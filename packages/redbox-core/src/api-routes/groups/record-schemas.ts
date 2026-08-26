@@ -1,14 +1,7 @@
 import { z } from '../zod-openapi';
 
 import { apiRoute } from '../route-factory';
-import {
-  integerField,
-  objectField,
-  oidParams,
-  recordOperationQuery,
-  recordTypeParams,
-  stringField,
-} from '../schemas/common';
+import { integerField, objectField, recordOperationQuery, stringField } from '../schemas/common';
 import type { ApiResponseDefinition, ApiSchemaField } from '../types';
 
 const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
@@ -36,6 +29,35 @@ const recordSchemaIfNoneMatchField = z
 const recordSchemaRequestHeaders = objectField({
   'If-None-Match': recordSchemaIfNoneMatchField,
 });
+
+const recordSchemaScopeFields = {
+  branding: stringField('Branding identifier'),
+  portal: stringField('Portal identifier'),
+};
+
+const createRecordSchemaParams = objectField(
+  {
+    ...recordSchemaScopeFields,
+    recordType: stringField('Record type name'),
+  },
+  ['branding', 'portal', 'recordType']
+);
+
+const updateRecordSchemaParams = objectField(
+  {
+    ...recordSchemaScopeFields,
+    oid: stringField('Record OID'),
+  },
+  ['branding', 'portal', 'oid']
+);
+
+const immutableRecordSchemaParams = objectField(
+  {
+    ...recordSchemaScopeFields,
+    digest: recordSchemaDigestField,
+  },
+  ['branding', 'portal', 'digest']
+);
 
 const recordSchemaDocument = objectField({}, [], 'Caller-effective JSON Schema draft 2020-12 document', true);
 
@@ -113,7 +135,7 @@ export const resolveCreateRecordSchemaRoute = apiRoute(
   'webservice/RecordSchemaController',
   'create',
   {
-    params: recordTypeParams,
+    params: createRecordSchemaParams,
     query: recordOperationQuery,
     headers: recordSchemaRequestHeaders,
   },
@@ -136,7 +158,7 @@ export const resolveUpdateRecordSchemaRoute = apiRoute(
   'webservice/RecordSchemaController',
   'update',
   {
-    params: oidParams,
+    params: updateRecordSchemaParams,
     query: recordOperationQuery,
     headers: recordSchemaRequestHeaders,
   },
@@ -159,7 +181,7 @@ export const getImmutableRecordSchemaRoute = apiRoute(
   'webservice/RecordSchemaController',
   'immutable',
   {
-    params: objectField({ digest: recordSchemaDigestField }, ['digest']),
+    params: immutableRecordSchemaParams,
     headers: recordSchemaRequestHeaders,
   },
   {

@@ -424,16 +424,28 @@ describe('API routes contract layer', function () {
       expect(route.request?.headers?.safeParse({ 'If-None-Match': schemaEtag }).success).to.equal(true);
       expect(route.request?.headers?.safeParse({ 'If-None-Match': [schemaEtag, schemaEtag] }).success).to.equal(false);
     }
+    for (const [route, params] of [
+      [resolveCreateRecordSchemaRoute, { branding: 'default', portal: 'rdmp', recordType: 'dataset' }],
+      [resolveUpdateRecordSchemaRoute, { branding: 'default', portal: 'rdmp', oid: 'record-1' }],
+      [getImmutableRecordSchemaRoute, { branding: 'default', portal: 'rdmp', digest: 'a'.repeat(64) }],
+    ] as const) {
+      expect(route.request?.params?.safeParse(params).success).to.equal(true);
+      expect(route.request?.params?.safeParse({ ...params, branding: undefined }).success).to.equal(false);
+      expect(route.request?.params?.safeParse({ ...params, portal: undefined }).success).to.equal(false);
+    }
     for (const route of [resolveCreateRecordSchemaRoute, resolveUpdateRecordSchemaRoute]) {
       expect(route.request?.query?.safeParse({}).success).to.equal(true);
       expect(route.request?.query?.safeParse({ operation: 'submit' }).success).to.equal(true);
       expect(route.request?.query?.safeParse({ operation: 'bad operation' }).success).to.equal(false);
     }
     expect(getImmutableRecordSchemaRoute.request?.query).to.equal(undefined);
-    expect(getImmutableRecordSchemaRoute.request?.params?.safeParse({ digest: 'a'.repeat(64) }).success).to.equal(true);
-    expect(getImmutableRecordSchemaRoute.request?.params?.safeParse({ digest: 'A'.repeat(64) }).success).to.equal(
-      false
-    );
+    expect(
+      getImmutableRecordSchemaRoute.request?.params?.safeParse({
+        branding: 'default',
+        portal: 'rdmp',
+        digest: 'A'.repeat(64),
+      }).success
+    ).to.equal(false);
 
     const document = buildCoreApiOpenApiDocument();
     const operations = [
@@ -468,6 +480,14 @@ describe('API routes contract layer', function () {
       const operation = asOpenApiOperation(pathItem?.get);
       expect(operation.operationId).to.equal(expectedOperation.operationId);
       expect(operation.security).to.deep.equal([{ bearerAuth: [] }]);
+
+      for (const parameterName of ['branding', 'portal']) {
+        const scopeParameter = operation.parameters?.find(parameter => parameter.name === parameterName);
+        expect(scopeParameter, `${expectedOperation.operationId} ${parameterName}`).to.deep.include({
+          in: 'path',
+          required: true,
+        });
+      }
 
       const ifNoneMatch = operation.parameters?.find(parameter => parameter.name === 'If-None-Match');
       expect(ifNoneMatch).to.deep.include({ in: 'header', required: false });
