@@ -1,5 +1,12 @@
 import { Controllers as controllers, getValidatedApiRequest } from '../../index';
 import type { BrandingModel, RecordSchemaService } from '../../index';
+import {
+  recordSchemaCanonicalLink,
+  RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+  RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+  RECORD_SCHEMA_RESPONSE_VARY,
+} from '../../api-routes/record-schema-response';
+import type { BuildRawJsonResponseType } from '../../model';
 import type { RecordContractContextActor } from '../../record-contract';
 import type { FormRecordAccessContext, FormRecordAccessRole, FormRecordAccessUser } from '../../services/FormsService';
 
@@ -117,10 +124,48 @@ export namespace Controllers {
       });
     }
 
+    private responseHeaders(etag: string, canonicalUrl?: string): Record<string, string> {
+      const headers: Record<string, string> = {
+        ETag: etag,
+        'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+        Vary: RECORD_SCHEMA_RESPONSE_VARY,
+      };
+      if (canonicalUrl !== undefined) {
+        headers.Link = recordSchemaCanonicalLink(canonicalUrl);
+      }
+      return headers;
+    }
+
+    private sendSchema(
+      req: Sails.Req,
+      res: Sails.Res,
+      document: BuildRawJsonResponseType['data'],
+      etag: string,
+      canonicalUrl?: string
+    ) {
+      return this.sendResp(req, res, {
+        format: 'raw-json',
+        mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+        data: document,
+        headers: this.responseHeaders(etag, canonicalUrl),
+      });
+    }
+
+    private sendNotModified(req: Sails.Req, res: Sails.Res, etag: string, canonicalUrl?: string) {
+      return this.sendResp(req, res, {
+        status: 304,
+        headers: this.responseHeaders(etag, canonicalUrl),
+      });
+    }
+
+    private matchesIfNoneMatch(value: unknown, etag: string): boolean {
+      return this.normalizedOptional(value) === etag;
+    }
+
     public async create(req: Sails.Req, res: Sails.Res) {
       try {
         const user = this.authenticatedUser(req);
-        const { params, query } = getValidatedApiRequest(req);
+        const { params, query, headers = {} } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
         const result = await this.RecordSchemaService.resolveCreate({
@@ -131,7 +176,10 @@ export namespace Controllers {
           actor: this.actor(user),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
-          return this.sendResp(req, res, { data: result.document });
+          if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
+            return this.sendNotModified(req, res, result.metadata.etag, result.document.$id);
+          }
+          return this.sendSchema(req, res, result.document, result.metadata.etag, result.document.$id);
         }
         return this.sendResolutionFailure(req, res);
       } catch (error: unknown) {
@@ -142,7 +190,7 @@ export namespace Controllers {
     public async update(req: Sails.Req, res: Sails.Res) {
       try {
         const user = this.authenticatedUser(req);
-        const { params, query } = getValidatedApiRequest(req);
+        const { params, query, headers = {} } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
         const result = await this.RecordSchemaService.resolveUpdate({
@@ -153,7 +201,10 @@ export namespace Controllers {
           caller: this.caller(user, brand),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
-          return this.sendResp(req, res, { data: result.document });
+          if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
+            return this.sendNotModified(req, res, result.metadata.etag, result.document.$id);
+          }
+          return this.sendSchema(req, res, result.document, result.metadata.etag, result.document.$id);
         }
         return this.sendResolutionFailure(req, res);
       } catch (error: unknown) {
@@ -164,7 +215,7 @@ export namespace Controllers {
     public async immutable(req: Sails.Req, res: Sails.Res) {
       try {
         const user = this.authenticatedUser(req);
-        const { params } = getValidatedApiRequest(req);
+        const { params, headers = {} } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
         const result = await this.RecordSchemaService.resolveImmutable({
@@ -172,9 +223,15 @@ export namespace Controllers {
           portal: this.normalizedRequired(params.portal),
           digest: this.normalizedRequired(params.digest),
           caller: this.caller(user, brand),
+          ifNoneMatch: this.normalizedOptional(headers['If-None-Match']),
         });
         if (result.kind === 'resolved') {
-          return this.sendResp(req, res, { data: result.artifact.document });
+          const etag = `"sha256:${result.artifact.digest}"`;
+          return this.sendSchema(req, res, result.artifact.document, etag);
+        }
+        if (result.kind === 'not-modified') {
+          const etag = `"sha256:${result.artifact.digest}"`;
+          return this.sendNotModified(req, res, etag);
         }
         return this.sendResolutionFailure(req, res);
       } catch (error: unknown) {

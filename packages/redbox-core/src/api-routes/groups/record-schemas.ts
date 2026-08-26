@@ -1,11 +1,18 @@
 import { z } from '../zod-openapi';
 
 import { apiRoute } from '../route-factory';
+import {
+  RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+  RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+  RECORD_SCHEMA_RESPONSE_VARY,
+} from '../record-schema-response';
 import { integerField, objectField, recordOperationQuery, stringField } from '../schemas/common';
 import type { ApiResponseDefinition, ApiSchemaField } from '../types';
 
 const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
-const RECORD_SCHEMA_ETAG_PATTERN = '^"sha256:[0-9a-f]{64}"$';
+const RECORD_SCHEMA_ETAG_PATTERN = /^"sha256:[0-9a-f]{64}"$/;
+const RECORD_SCHEMA_CANONICAL_LINK_PATTERN =
+  /^<\/[^\s<>/]+\/[^\s<>/]+\/api\/records\/schemas\/[0-9a-f]{64}>; rel="canonical"; type="application\/schema\+json"$/;
 const RECORD_SCHEMA_CONDITIONAL_HEADER_MAX_LENGTH = 128;
 
 const recordSchemaDigestField = z
@@ -22,8 +29,36 @@ const recordSchemaIfNoneMatchField = z
   .max(RECORD_SCHEMA_CONDITIONAL_HEADER_MAX_LENGTH, { error: 'record-schema-if-none-match-invalid' })
   .openapi({
     description: 'Strong record-schema ETag used for authorized cache revalidation',
-    pattern: RECORD_SCHEMA_ETAG_PATTERN,
+    pattern: RECORD_SCHEMA_ETAG_PATTERN.source,
     example: `"sha256:${'a'.repeat(64)}"`,
+  });
+
+const recordSchemaEtagResponseField = z
+  .string()
+  .regex(RECORD_SCHEMA_ETAG_PATTERN)
+  .openapi({
+    description: 'Strong ETag for the returned record-schema representation',
+    pattern: RECORD_SCHEMA_ETAG_PATTERN.source,
+    example: `"sha256:${'a'.repeat(64)}"`,
+  });
+
+const recordSchemaCacheControlResponseField = z.literal(RECORD_SCHEMA_RESPONSE_CACHE_CONTROL).openapi({
+  description: 'Private revalidation cache policy',
+  example: RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+});
+
+const recordSchemaVaryResponseField = z.literal(RECORD_SCHEMA_RESPONSE_VARY).openapi({
+  description: 'Authentication input that affects the caller-effective representation',
+  example: RECORD_SCHEMA_RESPONSE_VARY,
+});
+
+const recordSchemaCanonicalLinkResponseField = z
+  .string()
+  .regex(RECORD_SCHEMA_CANONICAL_LINK_PATTERN)
+  .openapi({
+    description: 'Canonical immutable record-schema link',
+    pattern: RECORD_SCHEMA_CANONICAL_LINK_PATTERN.source,
+    example: `</default/rdmp/api/records/schemas/${'a'.repeat(64)}>; rel="canonical"; type="${RECORD_SCHEMA_RESPONSE_MEDIA_TYPE}"`,
   });
 
 const recordSchemaRequestHeaders = objectField({
@@ -75,21 +110,21 @@ const recordSchemaProblem = objectField(
 );
 
 const recordSchemaResponseHeaders = {
-  ETag: recordSchemaIfNoneMatchField,
-  'Cache-Control': stringField('Private revalidation cache policy'),
-  Vary: stringField('Request headers that affect the representation'),
+  ETag: recordSchemaEtagResponseField,
+  'Cache-Control': recordSchemaCacheControlResponseField,
+  Vary: recordSchemaVaryResponseField,
 };
 
 const recordSchemaCanonicalResponseHeaders = {
   ...recordSchemaResponseHeaders,
-  Link: stringField('Canonical immutable record-schema link'),
+  Link: recordSchemaCanonicalLinkResponseField,
 };
 
 function schemaResponse(description: string, headers: Record<string, ApiSchemaField>): ApiResponseDefinition {
   return {
     description,
     content: {
-      'application/schema+json': {
+      [RECORD_SCHEMA_RESPONSE_MEDIA_TYPE]: {
         schema: recordSchemaDocument,
       },
     },

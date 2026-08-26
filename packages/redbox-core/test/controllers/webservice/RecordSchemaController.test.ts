@@ -12,6 +12,12 @@ import {
   resolveUpdateRecordSchemaRoute,
   validateApiRouteRequest,
 } from '../../../src/api-routes';
+import {
+  recordSchemaCanonicalLink,
+  RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+  RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+  RECORD_SCHEMA_RESPONSE_VARY,
+} from '../../../src/api-routes/record-schema-response';
 import { BrandingModel } from '../../../src/model';
 import { JSON_SCHEMA_DRAFT_2020_12 } from '../../../src/record-contract';
 import type { ApiRouteDefinition } from '../../../src/api-routes';
@@ -24,6 +30,7 @@ import type {
   RecordContractCompleteness,
   RecordContractPublicContext,
   RecordContractSchemaKind,
+  RecordJsonSchemaEtag,
 } from '../../../src/record-contract';
 
 let expect: Chai.ExpectStatic;
@@ -106,11 +113,12 @@ function schemaContext<Kind extends RecordContractSchemaKind>(schemaKind: Kind):
 
 function schemaDocument<Kind extends RecordContractSchemaKind>(
   context: SchemaContext<Kind>,
-  completeness: RecordContractCompleteness
+  completeness: RecordContractCompleteness,
+  digest: string
 ): PublishedRecordJsonSchemaDocument & { readonly 'x-redbox-context': SchemaContext<Kind> } {
   return {
     $schema: JSON_SCHEMA_DRAFT_2020_12,
-    $id: `https://example.test/schemas/${context.kind}`,
+    $id: `/${context.brand}/${context.portal}/api/records/schemas/${digest}`,
     type: 'object',
     'x-redbox-contract-format': 'redbox-record-contract/1',
     'x-redbox-context': context,
@@ -118,6 +126,20 @@ function schemaDocument<Kind extends RecordContractSchemaKind>(
     'x-redbox-validation': [],
     'x-redbox-diagnostics': [],
   };
+}
+
+function successfulSchemaHeaders(etag: string, canonicalUrl?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    ETag: etag,
+    'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+    Vary: RECORD_SCHEMA_RESPONSE_VARY,
+  };
+  if (canonicalUrl !== undefined) headers.Link = recordSchemaCanonicalLink(canonicalUrl);
+  return headers;
+}
+
+function schemaEtag(digest: string): RecordJsonSchemaEtag {
+  return `"sha256:${digest}"`;
 }
 
 function requestAdapter(): Sails.Req {
@@ -324,8 +346,9 @@ describe('Webservice RecordSchemaController', function () {
 
   it('delegates create using only normalized validated input and safe actor facts', async function () {
     const digest = 'b'.repeat(64);
+    const etag = schemaEtag(digest);
     const context = schemaContext('create');
-    const document = schemaDocument(context, 'complete');
+    const document = schemaDocument(context, 'complete', digest);
     const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>> = {
       kind: 'resolved',
       document,
@@ -335,7 +358,7 @@ describe('Webservice RecordSchemaController', function () {
         contractFormat: 'redbox-record-contract/1',
         completeness: 'complete',
         byteLength: 1,
-        etag: `"sha256:${digest}"`,
+        etag,
         context,
       },
       grant: {
@@ -353,7 +376,7 @@ describe('Webservice RecordSchemaController', function () {
     const req = validatedRequest(resolveCreateRecordSchemaRoute, {
       params: { branding: ' default ', portal: ' portal-1 ', recordType: ' dataset ' },
       query: { operation: ' submit ' },
-      headers: {},
+      headers: { 'If-None-Match': `"sha256:${'f'.repeat(64)}"` },
     });
     const res = responseAdapter();
 
@@ -369,13 +392,23 @@ describe('Webservice RecordSchemaController', function () {
         actor: { authenticated: true, roles: ['Alpha', 'Zeta'] },
       })
     ).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({ req, res, response: { data: document } });
+    expect(onlySentResponse(controller)).to.deep.equal({
+      req,
+      res,
+      response: {
+        format: 'raw-json',
+        mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+        data: document,
+        headers: successfulSchemaHeaders(etag, document.$id),
+      },
+    });
   });
 
   it('delegates update with the resolved brand and authenticated caller context', async function () {
     const digest = 'c'.repeat(64);
+    const etag = schemaEtag(digest);
     const context = schemaContext('update');
-    const document = schemaDocument(context, 'partial');
+    const document = schemaDocument(context, 'partial', digest);
     const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>> = {
       kind: 'partial',
       document,
@@ -385,7 +418,7 @@ describe('Webservice RecordSchemaController', function () {
         contractFormat: 'redbox-record-contract/1',
         completeness: 'partial',
         byteLength: 1,
-        etag: `"sha256:${digest}"`,
+        etag,
         context,
       },
       grant: {
@@ -427,11 +460,22 @@ describe('Webservice RecordSchemaController', function () {
         },
       })
     ).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({ req, res, response: { data: document } });
+    expect(onlySentResponse(controller)).to.deep.equal({
+      req,
+      res,
+      response: {
+        format: 'raw-json',
+        mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+        data: document,
+        headers: successfulSchemaHeaders(etag, document.$id),
+      },
+    });
   });
 
-  it('delegates immutable retrieval without reading or forwarding request headers', async function () {
+  it('delegates immutable retrieval with only the validated conditional header and sends raw schema JSON', async function () {
     const digest = 'a'.repeat(64);
+    const etag = schemaEtag(digest);
+    const staleEtag = `"sha256:${'f'.repeat(64)}"`;
     const document: ContractJsonObject = { type: 'object' };
     const now = new Date('2026-08-26T00:00:00.000Z');
     const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>> = {
@@ -453,7 +497,7 @@ describe('Webservice RecordSchemaController', function () {
       {
         params: { branding: 'default', portal: 'portal-1', digest },
         query: {},
-        headers: { authorization: 'Bearer private-token' },
+        headers: { authorization: 'Bearer private-token', 'if-none-match': ` ${staleEtag} ` },
       },
       { user }
     );
@@ -470,28 +514,181 @@ describe('Webservice RecordSchemaController', function () {
           brand: resolvedBrand,
           user,
         },
+        ifNoneMatch: staleEtag,
       })
     ).to.equal(true);
-    expect(onlySentResponse(controller)).to.deep.equal({ req, res, response: { data: document } });
+    expect(onlySentResponse(controller)).to.deep.equal({
+      req,
+      res,
+      response: {
+        format: 'raw-json',
+        mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+        data: document,
+        headers: successfulSchemaHeaders(etag),
+      },
+    });
   });
 
-  it('does not expose typed service failure details before the approved HTTP mapping exists', async function () {
+  it('returns bodyless 304 with resolver headers after an exact authorized create ETag match', async function () {
+    const digest = 'd'.repeat(64);
+    const etag = schemaEtag(digest);
+    const context = schemaContext('create');
+    const document = schemaDocument(context, 'complete', digest);
+    resolver.resolveCreate.resolves({
+      kind: 'resolved',
+      document,
+      digest,
+      metadata: {
+        schemaKind: 'create',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'complete',
+        byteLength: 1,
+        etag,
+        context,
+      },
+      grant: {
+        referenceKey: 'grant-create-not-modified',
+        digest,
+        brand: 'brand-1',
+        portal: 'portal-1',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        kind: 'grant',
+        schemaKind: 'create',
+      },
+    });
+    const req = validatedRequest(resolveCreateRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', recordType: 'dataset' },
+      query: {},
+      headers: { 'If-None-Match': ` \t${etag}\t ` },
+    });
+    const res = responseAdapter();
+
+    await controller.create(req, res);
+
+    expect(resolver.resolveCreate.calledOnce).to.equal(true);
+    expect(onlySentResponse(controller)).to.deep.equal({
+      req,
+      res,
+      response: {
+        status: 304,
+        headers: successfulSchemaHeaders(etag, document.$id),
+      },
+    });
+  });
+
+  it('returns bodyless 304 with resolver headers after an exact authorized update ETag match', async function () {
+    const digest = 'e'.repeat(64);
+    const etag = schemaEtag(digest);
+    const context = schemaContext('update');
+    const document = schemaDocument(context, 'partial', digest);
+    resolver.resolveUpdate.resolves({
+      kind: 'partial',
+      document,
+      digest,
+      metadata: {
+        schemaKind: 'update',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'partial',
+        byteLength: 1,
+        etag,
+        context,
+      },
+      grant: {
+        referenceKey: 'grant-update-not-modified',
+        digest,
+        brand: 'brand-1',
+        portal: 'portal-1',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        kind: 'grant',
+        schemaKind: 'update',
+        oid: 'record-1',
+      },
+    });
+    const req = validatedRequest(resolveUpdateRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
+      query: {},
+      headers: { 'If-None-Match': etag },
+    });
+    const res = responseAdapter();
+
+    await controller.update(req, res);
+
+    expect(resolver.resolveUpdate.calledOnce).to.equal(true);
+    expect(onlySentResponse(controller)).to.deep.equal({
+      req,
+      res,
+      response: {
+        status: 304,
+        headers: successfulSchemaHeaders(etag, document.$id),
+      },
+    });
+  });
+
+  it('returns bodyless 304 for an immutable service cache hit authorized before ETag evaluation', async function () {
+    const digest = 'a'.repeat(64);
+    const etag = schemaEtag(digest);
+    const now = new Date('2026-08-26T00:00:00.000Z');
+    resolver.resolveImmutable.resolves({
+      kind: 'not-modified',
+      artifact: {
+        digest,
+        document: { type: 'object' },
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'complete',
+        byteLength: 1,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+    const req = validatedRequest(getImmutableRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', digest },
+      query: {},
+      headers: { 'If-None-Match': etag },
+    });
+    const res = responseAdapter();
+
+    await controller.immutable(req, res);
+
+    expect(
+      resolver.resolveImmutable.calledOnceWithExactly({
+        brand: 'brand-1',
+        portal: 'portal-1',
+        digest,
+        caller: { brand: resolvedBrand, user: defaultRequestUser },
+        ifNoneMatch: etag,
+      })
+    ).to.equal(true);
+    expect(onlySentResponse(controller)).to.deep.equal({
+      req,
+      res,
+      response: {
+        status: 304,
+        headers: successfulSchemaHeaders(etag),
+      },
+    });
+  });
+
+  it('does not expose typed service failure details or return 304 before the approved HTTP mapping exists', async function () {
+    const digest = 'a'.repeat(64);
+    const etag = schemaEtag(digest);
     const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>> = {
-      kind: 'invalid-request',
+      kind: 'not-found',
       problem: {
-        type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
-        title: 'Record schema request is invalid',
-        status: 400,
-        detail: 'The schema request was malformed.',
-        instance: '/default/portal-1/api/records/schemas/bad',
-        code: 'record-schema.invalid-request',
+        type: 'https://redboxresearchdata.com/problems/record-schema-not-found',
+        title: 'Record schema was not found',
+        status: 404,
+        detail: 'No accessible schema was found.',
+        instance: `/default/portal-1/api/records/schemas/${digest}`,
+        code: 'record-schema.not-found',
       },
     };
     resolver.resolveImmutable.resolves(result);
     const req = validatedRequest(getImmutableRecordSchemaRoute, {
-      params: { branding: 'default', portal: 'portal-1', digest: 'a'.repeat(64) },
+      params: { branding: 'default', portal: 'portal-1', digest },
       query: {},
-      headers: {},
+      headers: { 'If-None-Match': etag },
     });
     const res = responseAdapter();
 
@@ -503,6 +700,7 @@ describe('Webservice RecordSchemaController', function () {
     expect(errors).to.have.length(1);
     expect(errors[0]?.message).to.equal('Record schema resolution failed.');
     expect(sent.response).not.to.have.property('data');
+    expect(sent.response).not.to.have.property('headers');
     expect(JSON.stringify(sent.response)).not.to.include(result.problem.detail);
   });
 

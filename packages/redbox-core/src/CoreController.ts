@@ -596,6 +596,11 @@ export namespace Controllers.Core {
       this.applyResponseHeaders(res, headers);
       this.applyResponseStatus(res, status);
 
+      if (status === 304) {
+        sails.log.verbose('Send bodyless 304 response.');
+        return res.end();
+      }
+
       if (format === 'raw-json') {
         return this.sendRawJsonResponse(res, buildResponse?.mediaType, suppliedData);
       }

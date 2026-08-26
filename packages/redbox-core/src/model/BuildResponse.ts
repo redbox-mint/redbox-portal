@@ -1,5 +1,6 @@
 import {ErrorResponseItemV2} from "./api";
 import {MetaResponseItemV2} from "./api/APIResponseVersion2";
+import type { PublishedRecordJsonSchemaDocument } from '../record-contract/record-json-schema-artifact';
 import type { ContractJsonObject } from '../record-contract/types';
 
 export const BuildResponseFormat = ['json', 'raw-json'] as const;
@@ -55,7 +56,7 @@ export interface BuildJsonResponseType extends BuildResponseCommon {
 export interface BuildRawJsonResponseType extends BuildResponseCommon {
   format: 'raw-json';
   mediaType: RawJsonResponseMediaType;
-  data: ContractJsonObject;
+  data: ContractJsonObject | PublishedRecordJsonSchemaDocument;
   displayErrors?: never;
   meta?: never;
   v1?: never;
