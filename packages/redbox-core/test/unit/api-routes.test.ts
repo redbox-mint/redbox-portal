@@ -1,4 +1,8 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
+import { promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
+import { z } from 'zod';
 import {
   ApiRouteDefinition,
   buildApiBlueprint,
@@ -448,22 +452,62 @@ describe('API routes contract layer', function () {
     ).to.equal(false);
 
     const document = buildCoreApiOpenApiDocument();
+    const openApiOperationSchema = z
+      .object({
+        operationId: z.string(),
+        security: z.array(z.record(z.string(), z.array(z.string()))),
+        parameters: z.array(
+          z
+            .object({
+              name: z.string(),
+              in: z.string(),
+              required: z.boolean(),
+              schema: z.object({ pattern: z.string().optional() }).passthrough().optional(),
+            })
+            .passthrough()
+        ),
+        responses: z.record(
+          z.string(),
+          z
+            .object({
+              content: z
+                .record(
+                  z.string(),
+                  z
+                    .object({
+                      schema: z
+                        .object({ required: z.array(z.string()).optional() })
+                        .passthrough()
+                        .optional(),
+                    })
+                    .passthrough()
+                )
+                .optional(),
+              headers: z.record(z.string(), z.unknown()).optional(),
+            })
+            .passthrough()
+        ),
+      })
+      .passthrough();
     const operations = [
       {
         path: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
         operationId: 'resolveCreateRecordSchema',
+        pathParameterNames: ['branding', 'portal', 'recordType'],
         acceptsOperation: true,
         hasCanonicalLink: true,
       },
       {
         path: '/{branding}/{portal}/api/records/schemas/update/{oid}',
         operationId: 'resolveUpdateRecordSchema',
+        pathParameterNames: ['branding', 'portal', 'oid'],
         acceptsOperation: true,
         hasCanonicalLink: true,
       },
       {
         path: '/{branding}/{portal}/api/records/schemas/{digest}',
         operationId: 'getImmutableRecordSchema',
+        pathParameterNames: ['branding', 'portal', 'digest'],
         acceptsOperation: false,
         hasCanonicalLink: false,
       },
@@ -477,13 +521,13 @@ describe('API routes contract layer', function () {
       const pathItem = document.paths[expectedOperation.path];
       expect(Object.keys(pathItem ?? {})).to.deep.equal(['get']);
 
-      const operation = asOpenApiOperation(pathItem?.get);
+      const operation = openApiOperationSchema.parse(pathItem?.get);
       expect(operation.operationId).to.equal(expectedOperation.operationId);
       expect(operation.security).to.deep.equal([{ bearerAuth: [] }]);
 
-      for (const parameterName of ['branding', 'portal']) {
-        const scopeParameter = operation.parameters?.find(parameter => parameter.name === parameterName);
-        expect(scopeParameter, `${expectedOperation.operationId} ${parameterName}`).to.deep.include({
+      for (const parameterName of expectedOperation.pathParameterNames) {
+        const pathParameter = operation.parameters.find(parameter => parameter.name === parameterName);
+        expect(pathParameter, `${expectedOperation.operationId} ${parameterName}`).to.deep.include({
           in: 'path',
           required: true,
         });
@@ -649,9 +693,21 @@ describe('API routes contract layer', function () {
   });
 
   it('should validate generated OpenAPI documents with swagger-parser', async function () {
-    const document = buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
+    const tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'redbox-openapi-validation-'));
 
-    await SwaggerParser.validate(document as unknown as Parameters<typeof SwaggerParser.validate>[0]);
+    try {
+      const documents = {
+        generic: buildCoreApiOpenApiDocument(),
+        specialized: buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' }),
+      };
+      for (const [name, document] of Object.entries(documents)) {
+        const documentPath = path.join(tempDirectory, `${name}.json`);
+        await fs.writeFile(documentPath, JSON.stringify(document));
+        await SwaggerParser.validate(documentPath);
+      }
+    } finally {
+      await fs.rm(tempDirectory, { recursive: true, force: true });
+    }
   });
 
   it('should not emit empty required arrays in OpenAPI schemas', function () {
