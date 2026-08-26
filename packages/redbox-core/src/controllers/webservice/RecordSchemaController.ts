@@ -3,6 +3,9 @@ import type { BrandingModel, RecordSchemaService } from '../../index';
 import {
   buildRecordSchemaInvalidRequestProblem,
   recordSchemaCanonicalLink,
+  recordSchemaCreateResolverUrl,
+  recordSchemaImmutableUrl,
+  recordSchemaUpdateResolverUrl,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
@@ -349,18 +352,6 @@ export namespace Controllers {
       return this.normalizedOptional(value) === etag;
     }
 
-    private canonicalUrl(branding: string, portal: string, digest: string): string {
-      return `/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas/${encodeURIComponent(digest)}`;
-    }
-
-    private createInstance(branding: string, portal: string, recordType: string): string {
-      return `/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas/create/${encodeURIComponent(recordType)}`;
-    }
-
-    private updateInstance(branding: string, portal: string, oid: string): string {
-      return `/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas/update/${encodeURIComponent(oid)}`;
-    }
-
     public async create(req: Sails.Req, res: Sails.Res) {
       let instance = '/api/records/schemas/create';
       try {
@@ -368,7 +359,7 @@ export namespace Controllers {
         const branding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const recordType = this.normalizedRequired(params.recordType);
-        instance = this.createInstance(branding, portal, recordType);
+        instance = recordSchemaCreateResolverUrl(branding, portal, recordType);
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
         const brand = this.brand(branding);
@@ -381,7 +372,7 @@ export namespace Controllers {
           actor: this.actor(user),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
-          const canonicalUrl = this.canonicalUrl(branding, portal, result.digest);
+          const canonicalUrl = recordSchemaImmutableUrl(branding, portal, result.digest);
           if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
             return this.sendNotModified(req, res, result.metadata.etag, canonicalUrl);
           }
@@ -400,7 +391,7 @@ export namespace Controllers {
         const branding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const oid = this.normalizedRequired(params.oid);
-        instance = this.updateInstance(branding, portal, oid);
+        instance = recordSchemaUpdateResolverUrl(branding, portal, oid);
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
         const brand = this.brand(branding);
@@ -413,7 +404,7 @@ export namespace Controllers {
           caller: this.caller(user, brand),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
-          const canonicalUrl = this.canonicalUrl(branding, portal, result.digest);
+          const canonicalUrl = recordSchemaImmutableUrl(branding, portal, result.digest);
           if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
             return this.sendNotModified(req, res, result.metadata.etag, canonicalUrl);
           }
@@ -432,7 +423,7 @@ export namespace Controllers {
         const branding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const digest = this.normalizedRequired(params.digest);
-        instance = this.canonicalUrl(branding, portal, digest);
+        instance = recordSchemaImmutableUrl(branding, portal, digest);
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
         const brand = this.brand(branding);

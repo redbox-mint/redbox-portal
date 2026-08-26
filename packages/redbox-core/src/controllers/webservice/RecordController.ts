@@ -64,6 +64,7 @@ import {
   harvestRoute,
   legacyHarvestRoute,
 } from '../../index';
+import type { RecordSchemaService } from '../../index';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
 import {
   createRecordSaveContext,
@@ -84,11 +85,43 @@ import {
   recordSaveResultHeaderOption,
   recordSaveResultHeaders,
 } from '../../RecordHttpConcurrency';
-import { recordSchemaDescribedByLink } from '../../api-routes/record-schema-response';
+import { recordSchemaDescribedByLink, recordSchemaImmutableUrl } from '../../api-routes/record-schema-response';
+import type { FormRecordAccessRole, FormRecordAccessUser } from '../../services/FormsService';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
 declare const HarvestRunService: HarvestRunServiceContract;
+
+type RecordSchemaUpdateResolver = Pick<RecordSchemaService.Services.RecordSchema, 'resolveUpdate'>;
+
+function isObjectRecord(value: unknown): value is globalThis.Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isFormRecordAccessRole(value: unknown): value is FormRecordAccessRole {
+  return isObjectRecord(value) && isNonEmptyString(value.id) && isNonEmptyString(value.name);
+}
+
+function isFormRecordAccessUser(value: unknown): value is FormRecordAccessUser {
+  return (
+    isObjectRecord(value) &&
+    isNonEmptyString(value.id) &&
+    isNonEmptyString(value.username) &&
+    isNonEmptyString(value.type) &&
+    isNonEmptyString(value.name) &&
+    isNonEmptyString(value.email) &&
+    Array.isArray(value.roles) &&
+    value.roles.every(isFormRecordAccessRole)
+  );
+}
+
+function isRecordSchemaUpdateResolver(value: unknown): value is RecordSchemaUpdateResolver {
+  return isObjectRecord(value) && typeof value.resolveUpdate === 'function';
+}
 
 export namespace Controllers {
   /**
@@ -267,6 +300,42 @@ export namespace Controllers {
         headers.Link = recordSchemaDescribedByLink(result.schemaOutcome.immutableUrl);
       }
       return headers;
+    }
+
+    private async recordReadDiscoveryHeaders(
+      req: Sails.Req,
+      brand: BrandingModel,
+      oid: string,
+      headers: Readonly<globalThis.Record<string, string>>
+    ): Promise<Readonly<globalThis.Record<string, string>>> {
+      const resolver = sails.services?.recordschemaservice;
+      const user = req.user;
+      if (!isRecordSchemaUpdateResolver(resolver) || !isFormRecordAccessUser(user)) {
+        return headers;
+      }
+
+      try {
+        const branding = BrandingService.getBrandNameFromReq(req).trim();
+        const portal = BrandingService.getPortalFromReq(req).trim();
+        if (!branding || !portal) {
+          return headers;
+        }
+        const result = await resolver.resolveUpdate({
+          brand: brand.id.trim(),
+          portal,
+          oid,
+          caller: { brand, user },
+        });
+        if (result.kind !== 'resolved' && result.kind !== 'partial') {
+          return headers;
+        }
+
+        const immutableUrl = recordSchemaImmutableUrl(branding, portal, result.digest);
+        return { ...headers, Link: recordSchemaDescribedByLink(immutableUrl) };
+      } catch {
+        sails.log.warn('Record schema metadata-read discovery could not be resolved.');
+        return headers;
+      }
     }
 
     private sendSaveFailure(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
@@ -768,11 +837,12 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 403 });
         }
         const representation = recordRepresentationConcurrency(record);
+        const headers = await this.recordReadDiscoveryHeaders(req, brand, oid, representation.headers);
         if (!this.shouldIncludeRelationships(req)) {
           return this.sendResp(req, res, {
             data: record.metadata,
             meta: { oid: record.redboxOid, ...representation.metadata },
-            headers: representation.headers,
+            headers,
           });
         }
 
@@ -788,7 +858,7 @@ export namespace Controllers {
             relationships: filteredRelationships,
           },
           meta: { oid: record.redboxOid, ...representation.metadata },
-          headers: representation.headers,
+          headers,
         });
       } catch (err) {
         return this.sendResp(req, res, {

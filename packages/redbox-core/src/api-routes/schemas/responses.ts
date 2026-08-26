@@ -803,6 +803,7 @@ export const recordTypeSchema = withOpenApi(
       hooks: recordTypeHooksSchema.optional(),
       dashboard: jsonObjectSchema.optional(),
       concurrentModification: recordConcurrentModificationConfigSchema.optional(),
+      recordSchemaCreateResolver: z.string(),
     })
     .passthrough(),
   { description: 'Record type configuration' }

@@ -8,7 +8,10 @@ import {
 } from '../../src/api-routes/groups/record-schemas';
 import {
   recordSchemaCanonicalLink,
+  recordSchemaCreateResolverUrl,
   recordSchemaDescribedByLink,
+  recordSchemaImmutableUrl,
+  recordSchemaUpdateResolverUrl,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
@@ -25,6 +28,21 @@ describe('record-schema route response contracts', function () {
     assert.equal(
       recordSchemaDescribedByLink(canonicalUrl),
       `<${canonicalUrl}>; rel="describedby"; type="application/schema+json"`
+    );
+  });
+
+  it('builds public resolver URLs with canonical encoded route segments', function () {
+    assert.equal(
+      recordSchemaImmutableUrl('public brand', 'portal/subpath', digest),
+      `/public%20brand/portal%2Fsubpath/api/records/schemas/${digest}`
+    );
+    assert.equal(
+      recordSchemaCreateResolverUrl('public brand', 'portal/subpath', 'data set'),
+      '/public%20brand/portal%2Fsubpath/api/records/schemas/create/data%20set'
+    );
+    assert.equal(
+      recordSchemaUpdateResolverUrl('public brand', 'portal/subpath', 'record/1'),
+      '/public%20brand/portal%2Fsubpath/api/records/schemas/update/record%2F1'
     );
   });
 

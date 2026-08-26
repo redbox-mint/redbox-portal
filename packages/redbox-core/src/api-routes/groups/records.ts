@@ -280,7 +280,7 @@ export const getMetaRoute = apiRoute(
     tags: ['Records'],
     summary: 'Get record metadata',
     responses: {
-      200: recordResponseWithTag(recordMetadataReadResponseSchema, 'Record metadata'),
+      200: recordResponseWithTagAndSchemaDiscovery(recordMetadataReadResponseSchema, 'Record metadata'),
       403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
       404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
       500: responseField(apiErrorResponseSchema, 'Internal server error'),

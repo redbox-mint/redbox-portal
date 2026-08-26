@@ -6,6 +6,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
+import type { RecordSchemaService } from '../../../src';
 import type { BuildResponseType } from '../../../src/model';
 import { isRecordSaveContext, type RecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
@@ -124,6 +125,55 @@ function schemaAwareSuccessResult(oid: string, digest: string): RecordSaveRespon
     enforcement: 'shadow',
   });
   return result;
+}
+
+function resolvedUpdateSchema(
+  digest: string
+): Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>> {
+  const context = {
+    brand: 'brand-1',
+    portal: 'tenant portal',
+    kind: 'update' as const,
+    recordType: 'dataset',
+    workflowStep: 'draft',
+    form: 'dataset-draft',
+    operation: 'strict-all',
+    unknownProperties: 'allow' as const,
+    enforcement: 'shadow' as const,
+  };
+  return {
+    kind: 'resolved',
+    digest,
+    document: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $id: `/brand-1/tenant%20portal/api/records/schemas/${digest}`,
+      type: 'object',
+      'x-redbox-contract-format': 'redbox-record-contract/1',
+      'x-redbox-context': context,
+      'x-redbox-completeness': 'complete',
+      'x-redbox-validation': [],
+      'x-redbox-diagnostics': [],
+    },
+    metadata: {
+      schemaKind: 'update',
+      contractFormat: 'redbox-record-contract/1',
+      completeness: 'complete',
+      byteLength: 1,
+      etag: `"sha256:${digest}"`,
+      context,
+    },
+    grant: {
+      referenceKey: 'grant-update-read-discovery',
+      digest,
+      brand: 'brand-1',
+      portal: 'tenant portal',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      kind: 'grant',
+      schemaKind: 'update',
+      oid: 'oid-1',
+    },
+  };
 }
 
 function expectedLegacySaveBody(result: RecordSaveResponse): Record<string, unknown> {
@@ -2613,6 +2663,8 @@ describe('Webservice RecordController getMeta', () => {
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandNameFromReq: sinon.stub().returns('public brand'),
+      getPortalFromReq: sinon.stub().returns('tenant portal'),
     };
     (global as any)._ = require('lodash');
 
@@ -2662,6 +2714,98 @@ describe('Webservice RecordController getMeta', () => {
       meta: { oid: 'oid-1', revision: 2, entityTag: formatRecordEntityTag('oid-1', 2) },
       headers: { ETag: formatRecordEntityTag('oid-1', 2) },
     });
+  });
+
+  it('adds caller-effective schema discovery to authorized metadata reads without changing the body', async () => {
+    const digest = 'c'.repeat(64);
+    const resolveUpdate = sinon.stub().resolves(resolvedUpdateSchema(digest));
+    sails.services.recordschemaservice = { resolveUpdate };
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    const user = {
+      id: 'user-1',
+      username: 'tester',
+      type: 'local',
+      name: 'Test User',
+      email: 'tester@example.test',
+      roles: [{ id: 'role-1', name: 'Researcher' }],
+    };
+    const req = {
+      param,
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      query: {},
+      session: { branding: 'public brand', portal: 'tenant portal' },
+      user,
+    } as unknown as Sails.Req;
+    const record = {
+      redboxOid: 'oid-1',
+      revision: 2,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Visible metadata' },
+    };
+    const getMeta = sinon.stub().resolves(record);
+    sails.services.recordsservice.getMeta = getMeta;
+    const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+    await controller.getMeta(req, {} as Sails.Res);
+
+    assert.deepEqual(resolveUpdate.firstCall.args[0], {
+      brand: 'brand-1',
+      portal: 'tenant portal',
+      oid: 'oid-1',
+      caller: { brand: { id: 'brand-1', name: 'default' }, user },
+    });
+    assert.deepEqual(sendResp.firstCall.args[2], {
+      data: record.metadata,
+      meta: { oid: 'oid-1', revision: 2, entityTag: formatRecordEntityTag('oid-1', 2) },
+      headers: {
+        ETag: formatRecordEntityTag('oid-1', 2),
+        Link: `</public%20brand/tenant%20portal/api/records/schemas/${digest}>; rel="describedby"; type="application/schema+json"`,
+      },
+    });
+    assert.equal(JSON.stringify(sendResp.firstCall.args[2]?.data).includes(digest), false);
+  });
+
+  it('omits schema discovery and private diagnostics when update context authorization does not succeed', async () => {
+    const resolveUpdate = sinon.stub().resolves({
+      kind: 'context-failed',
+      failureKind: 'forbidden',
+      diagnosticCodes: ['private-field-name'],
+    });
+    sails.services.recordschemaservice = { resolveUpdate };
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    const req = {
+      param,
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      query: {},
+      session: { branding: 'public brand', portal: 'tenant portal' },
+      user: {
+        id: 'user-1',
+        username: 'viewer',
+        type: 'local',
+        name: 'View Only',
+        email: 'viewer@example.test',
+        roles: [{ id: 'role-1', name: 'Viewer' }],
+      },
+    } as unknown as Sails.Req;
+    const record = {
+      redboxOid: 'oid-1',
+      revision: 2,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Visible metadata' },
+    };
+    sails.services.recordsservice.getMeta = sinon.stub().resolves(record);
+    const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+    await controller.getMeta(req, {} as Sails.Res);
+
+    assert.deepEqual(sendResp.firstCall.args[2], {
+      data: record.metadata,
+      meta: { oid: 'oid-1', revision: 2, entityTag: formatRecordEntityTag('oid-1', 2) },
+      headers: { ETag: formatRecordEntityTag('oid-1', 2) },
+    });
+    assert.equal(JSON.stringify(sendResp.firstCall.args[2]).includes('private-field-name'), false);
   });
 
   it('returns record permissions when view access is allowed', async () => {
