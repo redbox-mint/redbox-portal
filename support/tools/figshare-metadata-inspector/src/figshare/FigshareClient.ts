@@ -125,10 +125,11 @@ export class FigshareClient {
   private readonly sleep: (milliseconds: number) => Promise<void>;
 
   public constructor(options: FigshareClientOptions) {
-    if (options.token.trim() === '') {
+    const token = options.token.trim();
+    if (token === '') {
       throw new Error('A Figshare API token is required');
     }
-    this.token = options.token;
+    this.token = token;
     this.baseUrl = normaliseFigshareBaseUrl(options.baseUrl ?? DEFAULT_BASE_URL);
     this.maxAttempts = Math.max(1, options.maxAttempts ?? 3);
     this.retryBaseDelayMs = Math.max(0, options.retryBaseDelayMs ?? 500);

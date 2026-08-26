@@ -32,4 +32,10 @@ describe('Config', () => {
     assert.equal(parsed.config?.groupId, 32014);
     assert.equal(parsed.config?.baseUrl, 'https://api.figsh.com');
   });
+
+  it('keeps raw output enabled when --no-raw follows --raw-only', () => {
+    const parsed = Config.parse(['--raw-only', '--no-raw'], { FIGSHARE_TOKEN: 'x' });
+    assert.equal(parsed.config?.rawOnly, true);
+    assert.equal(parsed.config?.raw, true);
+  });
 });

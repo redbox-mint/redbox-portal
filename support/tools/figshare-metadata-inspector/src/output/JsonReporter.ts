@@ -55,6 +55,7 @@ export class JsonReporter {
               : {
                   values: field.values.map(value => ({
                     ...(value.id == null ? {} : { id: value.id }),
+                    value: value.value,
                     label: value.label ?? value.value,
                   })),
                 }),

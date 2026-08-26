@@ -73,6 +73,11 @@ describe('report generation', () => {
     const crosswalk = JSON.parse(await readFile(path.join(directory, 'crosswalk-template.json'), 'utf8'));
     assert.equal(schema.itemTypes[0].fields[0].id, 101);
     assert.equal(schema.itemTypes[0].groupId, 32014);
+    assert.deepEqual(crosswalk.itemTypes[0].mappings[0].figshare.values[0], {
+      id: 'restricted',
+      value: 'Restricted',
+      label: 'Restricted "access"',
+    });
     assert.equal(crosswalk.itemTypes[0].mappings[0].redbox.field, null);
     assert.deepEqual(crosswalk.itemTypes[0].mappings[0].redbox.valueMapping, {});
   });
@@ -83,8 +88,34 @@ describe('report generation', () => {
     const csv = await readFile(path.join(directory, 'figshare-schema.csv'), 'utf8');
     assert.match(csv, /group_id/);
     assert.match(csv, /32014/);
+    assert.match(csv, /value_id,value,value_label/);
     assert.match(csv, /"Data, sensitivity"/);
-    assert.match(csv, /"Restricted ""access"""/);
+    assert.match(csv, /restricted,Restricted,"Restricted ""access"""/);
+  });
+
+  it('neutralizes formula-like CSV cells, including after leading whitespace', async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'figshare-csv-formula-'));
+    const formulaModel: FigshareMetadataModel = {
+      ...model,
+      itemTypes: [{
+        ...model.itemTypes[0],
+        name: '=HYPERLINK("https://example.test")',
+        fields: [{
+          ...model.itemTypes[0].fields[0],
+          name: '  +SUM(1,1)',
+          displayName: '\t-10',
+          values: [{ id: 'formula', value: 'Formula', label: '@user' }],
+        }],
+      }],
+    };
+
+    await new CsvReporter().write(directory, formulaModel);
+    const csv = await readFile(path.join(directory, 'figshare-schema.csv'), 'utf8');
+
+    assert.ok(csv.includes(`"'=HYPERLINK(""https://example.test"")"`));
+    assert.ok(csv.includes(`"'  +SUM(1,1)"`));
+    assert.ok(csv.includes(`'\t-10`));
+    assert.ok(csv.includes(`'@user`));
   });
 
   it('writes escaped human-readable HTML with technical configuration', async () => {

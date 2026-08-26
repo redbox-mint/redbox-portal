@@ -131,7 +131,7 @@ export class Config {
         timeoutMs: cli.timeoutMs ?? envInteger(environment.FIGSHARE_TIMEOUT_MS, 'FIGSHARE_TIMEOUT_MS', 30_000),
         maxAttempts: cli.maxAttempts ?? envInteger(environment.FIGSHARE_MAX_ATTEMPTS, 'FIGSHARE_MAX_ATTEMPTS', 3),
         groupId: cli.groupId ?? envInteger(environment.FIGSHARE_GROUP_ID, 'FIGSHARE_GROUP_ID', 32014),
-        raw: cli.raw ?? true,
+        raw: cli.rawOnly === true ? true : (cli.raw ?? true),
         rawOnly: cli.rawOnly ?? false,
         verbose: cli.verbose ?? false,
       },

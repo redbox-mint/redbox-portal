@@ -16,11 +16,13 @@ const HEADERS = [
   'value_source',
   'value_id',
   'value',
+  'value_label',
 ] as const;
 
 function csvCell(value: unknown): string {
   const stringValue = value == null ? '' : String(value);
-  return /[",\r\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+  const safeValue = /^[\t\r ]*[=+\-@]/.test(stringValue) ? `'${stringValue}` : stringValue;
+  return /[",\r\n]/.test(safeValue) ? `"${safeValue.replace(/"/g, '""')}"` : safeValue;
 }
 
 export class CsvReporter {
@@ -43,6 +45,7 @@ export class CsvReporter {
             field.source,
             field.valueSource,
             value?.id,
+            value?.value,
             value?.label ?? value?.value,
           ]);
         }

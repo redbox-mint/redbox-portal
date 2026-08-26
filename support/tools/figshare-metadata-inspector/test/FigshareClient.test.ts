@@ -53,7 +53,7 @@ describe('FigshareClient', () => {
   });
 
   it('redacts credentials from errors and reports authentication failures', async () => {
-    const client = new FigshareClient({ token: 'secret-token', baseUrl, maxAttempts: 1, adapter });
+    const client = new FigshareClient({ token: ' \tsecret-token\r\n ', baseUrl, maxAttempts: 1, adapter });
     await assert.rejects(client.get('/unauthorized'), (error: unknown) => {
       assert.ok(error instanceof FigshareApiError);
       assert.equal(error.statusCode, 401);
@@ -63,6 +63,7 @@ describe('FigshareClient', () => {
       assert.match(JSON.stringify(error.responseBody), /REDACTED/);
       return true;
     });
+    assert.equal(seenAuthorization[seenAuthorization.length - 1], 'token secret-token');
   });
 
   it('paginates array endpoints until the final short page', async () => {
