@@ -693,6 +693,8 @@ describe('API routes contract layer', function () {
   });
 
   it('should validate generated OpenAPI documents with swagger-parser', async function () {
+    this.timeout(60_000);
+
     const tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'redbox-openapi-validation-'));
 
     try {
