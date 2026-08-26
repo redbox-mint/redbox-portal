@@ -1172,34 +1172,36 @@ export namespace Controllers {
           branding: brand,
           formConfig: mergedForm,
         });
-        const generationBindingService = requireService<GenerationBindingServiceLike>(
-          'generationbindingservice',
-          ['resolveActions', 'resolveTargetSession'],
-        );
-        const generationActor = this.getGenerationActor(req, brand);
         const runtimeMeta: FormRuntimeMeta = {};
-        if (currentRec) {
-          runtimeMeta.runtimeActions = await generationBindingService.resolveActions({
-            actor: generationActor,
-            brand,
-            user: req.user as UserModel,
-            record: currentRec,
-            formName: form?.name ?? formParam,
-            mode: editMode ? 'edit' : 'view',
-          });
-        } else if (typeof req.query.generationRunId === 'string' && req.query.generationRunId.trim()) {
-          runtimeMeta.generationSession = await generationBindingService.resolveTargetSession(
-            generationActor,
-            req.query.generationRunId.trim(),
-            recordType,
-            form?.name ?? formParam,
+        if (sails.config.generation?.enabled === true) {
+          const generationBindingService = requireService<GenerationBindingServiceLike>(
+            'generationbindingservice',
+            ['resolveActions', 'resolveCreateLaunches', 'resolveTargetSession'],
           );
-        } else if (editMode) {
-          runtimeMeta.generationLaunches = await generationBindingService.resolveCreateLaunches(
-            generationActor,
-            recordType,
-            form?.name ?? formParam,
-          );
+          const generationActor = this.getGenerationActor(req, brand);
+          if (currentRec) {
+            runtimeMeta.runtimeActions = await generationBindingService.resolveActions({
+              actor: generationActor,
+              brand,
+              user: req.user as UserModel,
+              record: currentRec,
+              formName: form?.name ?? formParam,
+              mode: editMode ? 'edit' : 'view',
+            });
+          } else if (typeof req.query.generationRunId === 'string' && req.query.generationRunId.trim()) {
+            runtimeMeta.generationSession = await generationBindingService.resolveTargetSession(
+              generationActor,
+              req.query.generationRunId.trim(),
+              recordType,
+              form?.name ?? formParam,
+            );
+          } else if (editMode) {
+            runtimeMeta.generationLaunches = await generationBindingService.resolveCreateLaunches(
+              generationActor,
+              recordType,
+              form?.name ?? formParam,
+            );
+          }
         }
 
         const formFingerprint = await this.generatedFormFingerprint(req, brand, currentRec, recordType, form);
