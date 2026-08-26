@@ -46,11 +46,7 @@ export interface RecordTypeRecordSchemaConfig {
 }
 
 export type RecordSchemaConfigurationProblemReason =
-  | 'required'
-  | 'type'
-  | 'positive-integer'
-  | 'unsupported-value'
-  | 'maximum-items';
+  'required' | 'type' | 'positive-integer' | 'unsupported-value' | 'maximum-items';
 
 export interface RecordSchemaConfigurationProblem {
   readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID;
