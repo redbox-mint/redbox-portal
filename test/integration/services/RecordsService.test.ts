@@ -169,7 +169,9 @@ describe('The RecordsService', function () {
   });
 
   it('runs the lifted update save boundary through schema, merge, hooks, business validation, Mongo, and usage', async function () {
-    sails.config.recordSchema = { ...sails.config.recordSchema, enabled: true };
+    const environmentRecordSchemaConfig = { ...sails.config.recordSchema };
+    Reflect.set(environmentRecordSchemaConfig, 'enabled', 'true');
+    sails.config.recordSchema = environmentRecordSchemaConfig;
     sails.config.recordValidation = { ...sails.config.recordValidation, mode: 'shadow' };
 
     const suffix = Date.now().toString();

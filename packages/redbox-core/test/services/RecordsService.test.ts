@@ -3989,7 +3989,7 @@ describe('RecordsService', function () {
     });
 
     const enableRecordSchema = () => {
-      mockSails.config.recordSchema = { enabled: true };
+      mockSails.config.recordSchema = { enabled: 'true' };
       mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
     };
 

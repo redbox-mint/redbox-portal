@@ -63,6 +63,7 @@ import {
   RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   harvestRoute,
   legacyHarvestRoute,
+  isRecordSchemaEnabled,
 } from '../../index';
 import type { RecordSchemaService } from '../../index';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
@@ -1073,7 +1074,7 @@ export namespace Controllers {
           unknown
         >;
         const persistenceMetadata = _.cloneDeep(rawSubmittedMetadata);
-        if (isUnwrappedMetadata && sails.config.recordSchema?.enabled !== true) {
+        if (isUnwrappedMetadata && !isRecordSchemaEnabled(sails.config.recordSchema)) {
           persistenceMetadata['authorization'] = [];
         }
         let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;

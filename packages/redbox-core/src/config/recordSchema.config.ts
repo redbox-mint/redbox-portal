@@ -46,7 +46,11 @@ export interface RecordTypeRecordSchemaConfig {
 }
 
 export type RecordSchemaConfigurationProblemReason =
-  'required' | 'type' | 'positive-integer' | 'unsupported-value' | 'maximum-items';
+  | 'required'
+  | 'type'
+  | 'positive-integer'
+  | 'unsupported-value'
+  | 'maximum-items';
 
 export interface RecordSchemaConfigurationProblem {
   readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID;
@@ -117,6 +121,12 @@ export function normalizeRecordSchemaConfig(value: unknown): unknown {
     return value;
   }
   return { ...value, enabled: enabled === 'true' };
+}
+
+/** Resolve the environment-normalized feature flag at record write boundaries. */
+export function isRecordSchemaEnabled(value: unknown): boolean {
+  const normalized = normalizeRecordSchemaConfig(value);
+  return isObjectRecord(normalized) && normalized.enabled === true;
 }
 
 function isPositiveInteger(value: unknown): value is number {

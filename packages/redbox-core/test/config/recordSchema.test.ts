@@ -8,6 +8,7 @@ import {
   DEFAULT_RECORD_SCHEMA_MAX_DOCUMENT_BYTES,
   DEFAULT_RECORD_SCHEMA_MAX_PROPERTIES,
   DEFAULT_RECORD_SCHEMA_MINIMUM_AGE_DAYS,
+  isRecordSchemaEnabled,
   MAX_RECORD_SCHEMA_INTEGRATION_PINS,
   normalizeRecordSchemaConfig,
   RECORD_CONTRACT_FORMAT_V1,
@@ -135,6 +136,7 @@ describe('record-schema configuration', function () {
         throw new Error(`Expected '${value}' to normalize to a boolean.`);
       }
       expect(result.config.enabled).to.equal(expected);
+      expect(isRecordSchemaEnabled(candidate)).to.equal(expected);
       expect((candidate as Record<string, unknown>).enabled).to.equal(value);
     }
   });
@@ -143,6 +145,7 @@ describe('record-schema configuration', function () {
     for (const enabled of [true, false]) {
       const candidate = withConfigValue('enabled', enabled);
       expect(validateRecordSchemaConfig(candidate)).to.deep.equal({ valid: true, config: candidate });
+      expect(isRecordSchemaEnabled(candidate)).to.equal(enabled);
       expect(normalizeRecordSchemaConfig(candidate)).to.equal(candidate);
     }
   });

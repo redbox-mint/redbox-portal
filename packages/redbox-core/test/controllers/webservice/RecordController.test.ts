@@ -1384,7 +1384,7 @@ describe('Webservice RecordController body source', () => {
     it('snapshots unwrapped metadata before server authorization shaping without mutating the body', async () => {
       const body = { title: 'Raw unwrapped submission' };
       const bodySnapshot = structuredClone(body);
-      (global as any).sails.config.recordSchema = { enabled: true };
+      (global as any).sails.config.recordSchema = { enabled: 'true' };
       recordsService.create.resolves(successResult('created-record'));
       const req = makeThrowingRequest(
         {

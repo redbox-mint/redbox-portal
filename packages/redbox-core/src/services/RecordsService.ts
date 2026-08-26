@@ -66,6 +66,7 @@ import { Readable } from 'node:stream';
 import { createHash, randomUUID } from 'node:crypto';
 import type { FormAttributes } from '../waterline-models';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import { isRecordSchemaEnabled } from '../config/recordSchema.config';
 import { RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME } from '../config/agendaQueue.config';
 import {
   emitRecordConcurrencyEvent,
@@ -845,7 +846,7 @@ export namespace Services {
 
     private recordSchemaEnabled(): boolean {
       try {
-        return sails.config.recordSchema?.enabled === true;
+        return isRecordSchemaEnabled(sails.config.recordSchema);
       } catch {
         // An unreadable enabled configuration must not silently disable an
         // enforce rollout if the lifecycle check has not stopped the app.
