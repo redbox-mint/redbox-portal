@@ -7,7 +7,7 @@ import {
   RECORD_SCHEMA_RESPONSE_VARY,
 } from '../../api-routes/record-schema-response';
 import type { BuildRawJsonResponseType } from '../../model';
-import type { RecordContractContextActor } from '../../record-contract';
+import type { RecordContractContextActor, RecordJsonSchemaEtag } from '../../record-contract';
 import type { FormRecordAccessContext, FormRecordAccessRole, FormRecordAccessUser } from '../../services/FormsService';
 
 type RecordSchemaResolver = Pick<
@@ -124,7 +124,7 @@ export namespace Controllers {
       });
     }
 
-    private responseHeaders(etag: string, canonicalUrl?: string): Record<string, string> {
+    private responseHeaders(etag: RecordJsonSchemaEtag, canonicalUrl?: string): Record<string, string> {
       const headers: Record<string, string> = {
         ETag: etag,
         'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
@@ -140,7 +140,7 @@ export namespace Controllers {
       req: Sails.Req,
       res: Sails.Res,
       document: BuildRawJsonResponseType['data'],
-      etag: string,
+      etag: RecordJsonSchemaEtag,
       canonicalUrl?: string
     ) {
       return this.sendResp(req, res, {
@@ -151,14 +151,14 @@ export namespace Controllers {
       });
     }
 
-    private sendNotModified(req: Sails.Req, res: Sails.Res, etag: string, canonicalUrl?: string) {
+    private sendNotModified(req: Sails.Req, res: Sails.Res, etag: RecordJsonSchemaEtag, canonicalUrl?: string) {
       return this.sendResp(req, res, {
         status: 304,
         headers: this.responseHeaders(etag, canonicalUrl),
       });
     }
 
-    private matchesIfNoneMatch(value: unknown, etag: string): boolean {
+    private matchesIfNoneMatch(value: unknown, etag: RecordJsonSchemaEtag): boolean {
       return this.normalizedOptional(value) === etag;
     }
 
@@ -226,11 +226,11 @@ export namespace Controllers {
           ifNoneMatch: this.normalizedOptional(headers['If-None-Match']),
         });
         if (result.kind === 'resolved') {
-          const etag = `"sha256:${result.artifact.digest}"`;
+          const etag: RecordJsonSchemaEtag = `"sha256:${result.artifact.digest}"`;
           return this.sendSchema(req, res, result.artifact.document, etag);
         }
         if (result.kind === 'not-modified') {
-          const etag = `"sha256:${result.artifact.digest}"`;
+          const etag: RecordJsonSchemaEtag = `"sha256:${result.artifact.digest}"`;
           return this.sendNotModified(req, res, etag);
         }
         return this.sendResolutionFailure(req, res);
