@@ -83,8 +83,24 @@ type FormComponentNodeLike = {
   };
 };
 export interface FormRecordAccessContext {
-  readonly user: UserModel;
+  readonly user: FormRecordAccessUser;
   readonly brand: BrandingModel;
+}
+
+/** Populated role facts available on an authenticated request user. */
+export interface FormRecordAccessRole {
+  readonly id: string;
+  readonly name: string;
+}
+
+/** Required Waterline user facts used by record and form access checks. */
+export interface FormRecordAccessUser extends Record<string, unknown> {
+  readonly id: string;
+  readonly username: string;
+  readonly type: string;
+  readonly name: string;
+  readonly email: string;
+  readonly roles: FormRecordAccessRole[];
 }
 
 export interface ValidationOperationDiscoveryOptions {

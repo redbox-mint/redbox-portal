@@ -12,11 +12,12 @@ import {
   resolveUpdateRecordSchemaRoute,
   validateApiRouteRequest,
 } from '../../../src/api-routes';
-import { BrandingModel, RoleModel, UserModel } from '../../../src/model';
+import { BrandingModel } from '../../../src/model';
 import { JSON_SCHEMA_DRAFT_2020_12 } from '../../../src/record-contract';
 import type { ApiRouteDefinition } from '../../../src/api-routes';
 import type { BuildResponseType } from '../../../src/model';
 import type { RecordSchemaService } from '../../../src';
+import type { FormRecordAccessRole, FormRecordAccessUser } from '../../../src/services/FormsService';
 import type {
   ContractJsonObject,
   PublishedRecordJsonSchemaDocument,
@@ -24,7 +25,6 @@ import type {
   RecordContractPublicContext,
   RecordContractSchemaKind,
 } from '../../../src/record-contract';
-import type { LoDashStatic } from 'lodash';
 
 let expect: Chai.ExpectStatic;
 
@@ -43,29 +43,47 @@ type ResolverStubs = {
   >;
 };
 
-type TestGlobals = typeof globalThis & {
-  sails: unknown;
-  BrandingService: unknown;
-  _: LoDashStatic;
-};
-
-type SendRespBoundary = {
-  sendResp(req: Sails.Req, res: Sails.Res, response?: BuildResponseType): unknown;
-};
-
-function role(id: string, name: string): RoleModel {
-  const value = new RoleModel();
-  value.id = id;
-  value.name = name;
-  return value;
+interface CapturedSendResponse {
+  readonly req: Sails.Req;
+  readonly res: Sails.Res;
+  readonly response: BuildResponseType;
 }
 
-function requestUser(roles: RoleModel[]): UserModel {
-  const user = new UserModel();
-  user.id = 'user-1';
-  user.username = 'alice';
-  user.roles = roles;
-  return user;
+class TestRecordSchemaController extends Controllers.RecordSchema {
+  readonly sentResponses: CapturedSendResponse[] = [];
+
+  protected override sendResp(req: Sails.Req, res: Sails.Res, response?: BuildResponseType): Sails.Res {
+    this.sentResponses.push({ req, res, response: response ?? {} });
+    return res;
+  }
+
+  resetSentResponses(): void {
+    this.sentResponses.length = 0;
+  }
+}
+
+function onlySentResponse(controller: TestRecordSchemaController): CapturedSendResponse {
+  assert.equal(controller.sentResponses.length, 1, 'Expected exactly one sendResp call.');
+  const sent = controller.sentResponses[0];
+  if (!sent) throw new Error('Expected one captured sendResp call.');
+  return sent;
+}
+
+function role(id: string, name: string): FormRecordAccessRole {
+  return { id, name };
+}
+
+function requestUser(roles: FormRecordAccessRole[]): FormRecordAccessUser {
+  return {
+    id: 'user-1',
+    username: 'alice',
+    type: 'local',
+    name: 'Alice Example',
+    email: 'alice@example.test',
+    roles,
+    token: 'private-token',
+    additionalAttributes: { privateGroup: 'private-value' },
+  };
 }
 
 type SchemaContext<Kind extends RecordContractSchemaKind> = Omit<RecordContractPublicContext, 'kind'> & {
@@ -102,30 +120,54 @@ function schemaDocument<Kind extends RecordContractSchemaKind>(
   };
 }
 
+function requestAdapter(): Sails.Req {
+  const request: Sails.Req = Object.create(null);
+  Reflect.set(request, 'method', 'GET');
+  Reflect.set(request, 'path', '/schema');
+  Reflect.set(request, 'originalUrl', '/schema');
+  Reflect.set(request, 'params', {});
+  Reflect.set(request, 'query', {});
+  Reflect.set(request, 'headers', {});
+  return request;
+}
+
+function responseAdapter(): Sails.Res {
+  const response: Sails.Res = Object.create(null);
+  return response;
+}
+
+interface ValidatedRequestOptions {
+  readonly user?: globalThis.Record<string, unknown>;
+}
+
+const defaultRequestUser = requestUser([
+  role('role-z', 'Zeta'),
+  role('role-a', 'Alpha'),
+  role('role-z-duplicate', 'Zeta'),
+]);
+
 function validatedRequest(
   route: ApiRouteDefinition,
   raw: Pick<Sails.Req, 'params' | 'query' | 'headers'>,
-  user: globalThis.Record<string, unknown> = requestUser([
-    role('role-z', 'Zeta'),
-    role('role-a', 'Alpha'),
-    role('role-z-duplicate', 'Zeta'),
-    role('role-empty', ' '),
-  ])
+  options: ValidatedRequestOptions = { user: defaultRequestUser }
 ): Sails.Req {
-  const validated = validateApiRouteRequest(raw as Sails.Req, route);
+  const rawRequest = requestAdapter();
+  Reflect.set(rawRequest, 'params', raw.params);
+  Reflect.set(rawRequest, 'query', raw.query);
+  Reflect.set(rawRequest, 'headers', raw.headers);
+  const validated = validateApiRouteRequest(rawRequest, route);
   assert.equal(validated.valid, true, validated.valid ? undefined : JSON.stringify(validated.issues));
   if (!validated.valid) throw new Error('Expected request contract validation to succeed.');
 
-  const request = {
-    apiRequest: {
-      params: validated.params,
-      query: validated.query,
-      headers: validated.headers,
-      body: validated.body,
-      files: validated.files,
-    },
-    user,
-  } as globalThis.Record<string, unknown>;
+  const request = requestAdapter();
+  request.apiRequest = {
+    params: validated.params,
+    query: validated.query,
+    headers: validated.headers,
+    body: validated.body,
+    files: validated.files,
+  };
+  if (options.user !== undefined) request.user = options.user;
 
   for (const rawProperty of ['params', 'query', 'headers', 'body']) {
     Object.defineProperty(request, rawProperty, {
@@ -136,23 +178,85 @@ function validatedRequest(
     });
   }
 
-  return request as unknown as Sails.Req;
+  return request;
 }
 
-function fakeResponse(): Sails.Res {
-  return {
-    json: sinon.stub(),
-  } as unknown as Sails.Res;
+function restoreGlobal(name: string, priorValue: unknown): void {
+  if (priorValue === undefined) {
+    Reflect.deleteProperty(globalThis, name);
+    return;
+  }
+  Reflect.set(globalThis, name, priorValue);
+}
+
+interface ControllerActionCase {
+  readonly run: (req: Sails.Req, res: Sails.Res) => Promise<unknown>;
+  readonly request: Sails.Req;
+  readonly resolver: sinon.SinonStub;
+}
+
+function controllerActionCases(
+  controller: TestRecordSchemaController,
+  resolver: ResolverStubs,
+  options?: ValidatedRequestOptions
+): ControllerActionCase[] {
+  return [
+    {
+      run: (req, res) => controller.create(req, res),
+      request: validatedRequest(
+        resolveCreateRecordSchemaRoute,
+        {
+          params: { branding: 'default', portal: 'portal-1', recordType: 'dataset' },
+          query: {},
+          headers: {},
+        },
+        options
+      ),
+      resolver: resolver.resolveCreate,
+    },
+    {
+      run: (req, res) => controller.update(req, res),
+      request: validatedRequest(
+        resolveUpdateRecordSchemaRoute,
+        {
+          params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
+          query: {},
+          headers: {},
+        },
+        options
+      ),
+      resolver: resolver.resolveUpdate,
+    },
+    {
+      run: (req, res) => controller.immutable(req, res),
+      request: validatedRequest(
+        getImmutableRecordSchemaRoute,
+        {
+          params: { branding: 'default', portal: 'portal-1', digest: 'a'.repeat(64) },
+          query: {},
+          headers: {},
+        },
+        options
+      ),
+      resolver: resolver.resolveImmutable,
+    },
+  ];
+}
+
+function resetControllerHistory(controller: TestRecordSchemaController, resolver: ResolverStubs): void {
+  controller.resetSentResponses();
+  resolver.resolveCreate.resetHistory();
+  resolver.resolveUpdate.resetHistory();
+  resolver.resolveImmutable.resetHistory();
 }
 
 describe('Webservice RecordSchemaController', function () {
-  const testGlobals = globalThis as unknown as TestGlobals;
-  let controller: Controllers.RecordSchema;
+  let controller: TestRecordSchemaController;
   let resolver: ResolverStubs;
-  let sendResp: sinon.SinonStub;
+  let getBrand: sinon.SinonStub<[string], BrandingModel | undefined>;
   let priorSails: unknown;
   let priorBrandingService: unknown;
-  let priorLodash: LoDashStatic;
+  let priorLodash: unknown;
   let resolvedBrand: BrandingModel;
 
   before(async function () {
@@ -160,9 +264,9 @@ describe('Webservice RecordSchemaController', function () {
   });
 
   beforeEach(function () {
-    priorSails = testGlobals.sails;
-    priorBrandingService = testGlobals.BrandingService;
-    priorLodash = testGlobals._;
+    priorSails = Reflect.get(globalThis, 'sails');
+    priorBrandingService = Reflect.get(globalThis, 'BrandingService');
+    priorLodash = Reflect.get(globalThis, '_');
 
     resolver = {
       resolveCreate: sinon.stub<
@@ -181,7 +285,9 @@ describe('Webservice RecordSchemaController', function () {
     resolvedBrand = new BrandingModel();
     resolvedBrand.id = 'brand-1';
     resolvedBrand.name = 'default';
-    testGlobals.sails = {
+    getBrand = sinon.stub<[string], BrandingModel | undefined>();
+    getBrand.callsFake(name => (name === 'default' ? resolvedBrand : undefined));
+    Reflect.set(globalThis, 'sails', {
       config: {},
       services: { recordschemaservice: resolver },
       log: {
@@ -192,22 +298,19 @@ describe('Webservice RecordSchemaController', function () {
         error: sinon.stub(),
         trace: sinon.stub(),
       },
-    };
-    testGlobals.BrandingService = {
-      getBrand: sinon.stub().callsFake((name: string) => (name === 'default' ? resolvedBrand : undefined)),
-    };
-    testGlobals._ = lodash;
+    });
+    Reflect.set(globalThis, 'BrandingService', { getBrand });
+    Reflect.set(globalThis, '_', lodash);
 
-    controller = new Controllers.RecordSchema();
+    controller = new TestRecordSchemaController();
     controller.RecordSchemaService = resolver;
-    sendResp = sinon.stub(controller as unknown as SendRespBoundary, 'sendResp');
   });
 
   afterEach(function () {
     sinon.restore();
-    testGlobals.sails = priorSails;
-    testGlobals.BrandingService = priorBrandingService;
-    testGlobals._ = priorLodash;
+    restoreGlobal('sails', priorSails);
+    restoreGlobal('BrandingService', priorBrandingService);
+    restoreGlobal('_', priorLodash);
   });
 
   it('uses the generated webservice init, export, and shim conventions', function () {
@@ -252,13 +355,11 @@ describe('Webservice RecordSchemaController', function () {
       query: { operation: ' submit ' },
       headers: {},
     });
-    const res = fakeResponse();
+    const res = responseAdapter();
 
     await controller.create(req, res);
 
-    expect(
-      (testGlobals.BrandingService as { getBrand: sinon.SinonStub }).getBrand.calledOnceWithExactly('default')
-    ).to.equal(true);
+    expect(getBrand.calledOnceWithExactly('default')).to.equal(true);
     expect(
       resolver.resolveCreate.calledOnceWithExactly({
         brand: 'brand-1',
@@ -268,8 +369,7 @@ describe('Webservice RecordSchemaController', function () {
         actor: { authenticated: true, roles: ['Alpha', 'Zeta'] },
       })
     ).to.equal(true);
-    expect(sendResp.calledOnceWithExactly(req, res, { data: document })).to.equal(true);
-    expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+    expect(onlySentResponse(controller)).to.deep.equal({ req, res, response: { data: document } });
   });
 
   it('delegates update with the resolved brand and authenticated caller context', async function () {
@@ -309,9 +409,9 @@ describe('Webservice RecordSchemaController', function () {
         query: {},
         headers: {},
       },
-      user
+      { user }
     );
-    const res = fakeResponse();
+    const res = responseAdapter();
 
     await controller.update(req, res);
 
@@ -327,13 +427,11 @@ describe('Webservice RecordSchemaController', function () {
         },
       })
     ).to.equal(true);
-    expect(sendResp.calledOnceWithExactly(req, res, { data: document })).to.equal(true);
-    expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+    expect(onlySentResponse(controller)).to.deep.equal({ req, res, response: { data: document } });
   });
 
-  it('delegates immutable retrieval with only the validated conditional header', async function () {
+  it('delegates immutable retrieval without reading or forwarding request headers', async function () {
     const digest = 'a'.repeat(64);
-    const etag = `"sha256:${digest}"`;
     const document: ContractJsonObject = { type: 'object' };
     const now = new Date('2026-08-26T00:00:00.000Z');
     const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>> = {
@@ -355,11 +453,11 @@ describe('Webservice RecordSchemaController', function () {
       {
         params: { branding: 'default', portal: 'portal-1', digest },
         query: {},
-        headers: { 'if-none-match': etag, authorization: 'Bearer private-token' },
+        headers: { authorization: 'Bearer private-token' },
       },
-      user
+      { user }
     );
-    const res = fakeResponse();
+    const res = responseAdapter();
 
     await controller.immutable(req, res);
 
@@ -372,11 +470,9 @@ describe('Webservice RecordSchemaController', function () {
           brand: resolvedBrand,
           user,
         },
-        ifNoneMatch: etag,
       })
     ).to.equal(true);
-    expect(sendResp.calledOnceWithExactly(req, res, { data: document })).to.equal(true);
-    expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+    expect(onlySentResponse(controller)).to.deep.equal({ req, res, response: { data: document } });
   });
 
   it('does not expose typed service failure details before the approved HTTP mapping exists', async function () {
@@ -397,51 +493,67 @@ describe('Webservice RecordSchemaController', function () {
       query: {},
       headers: {},
     });
-    const res = fakeResponse();
+    const res = responseAdapter();
 
     await controller.immutable(req, res);
 
-    expect(sendResp.calledOnce).to.equal(true);
-    expect(sendResp.firstCall.args[2]).to.include({ status: 500 });
-    expect(sendResp.firstCall.args[2].errors).to.have.length(1);
-    expect(sendResp.firstCall.args[2].errors[0].message).to.equal('Record schema resolution failed.');
-    expect(sendResp.firstCall.args[2]).not.to.have.property('data');
-    expect(JSON.stringify(sendResp.firstCall.args[2])).not.to.include(result.problem.detail);
-    expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+    const sent = onlySentResponse(controller);
+    const errors = sent.response.errors ?? [];
+    expect(sent.response).to.include({ status: 500 });
+    expect(errors).to.have.length(1);
+    expect(errors[0]?.message).to.equal('Record schema resolution failed.');
+    expect(sent.response).not.to.have.property('data');
+    expect(JSON.stringify(sent.response)).not.to.include(result.problem.detail);
   });
 
   it('does not delegate when validated request context is missing', async function () {
-    const req = { method: 'GET', path: '/schema' } as unknown as Sails.Req;
-    const res = fakeResponse();
+    const req = requestAdapter();
+    req.user = defaultRequestUser;
+    const res = responseAdapter();
 
     await controller.create(req, res);
 
     expect(resolver.resolveCreate.notCalled).to.equal(true);
-    expect(sendResp.calledOnce).to.equal(true);
-    expect(sendResp.firstCall.args[2]).to.include({ status: 500 });
-    expect(sendResp.firstCall.args[2].errors).to.have.length(1);
-    expect(sendResp.firstCall.args[2].errors[0]).to.be.instanceOf(Error);
-    expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+    const sent = onlySentResponse(controller);
+    expect(sent.response).to.include({ status: 500 });
+    expect(sent.response.errors ?? []).to.have.length(1);
+    expect(sent.response.errors?.[0]).to.be.instanceOf(Error);
   });
 
-  it('does not fabricate an access user when authenticated caller context is missing', async function () {
-    const req = validatedRequest(
-      resolveUpdateRecordSchemaRoute,
-      {
-        params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
-        query: {},
-        headers: {},
-      },
-      {}
-    );
-    const res = fakeResponse();
+  it('rejects a missing authenticated user consistently before every delegation', async function () {
+    for (const testCase of controllerActionCases(controller, resolver, {})) {
+      resetControllerHistory(controller, resolver);
+      const res = responseAdapter();
 
-    await controller.update(req, res);
+      await testCase.run(testCase.request, res);
 
-    expect(resolver.resolveUpdate.notCalled).to.equal(true);
-    expect(sendResp.calledOnce).to.equal(true);
-    expect(sendResp.firstCall.args[2]).to.include({ status: 500 });
-    expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+      expect(testCase.resolver.notCalled).to.equal(true);
+      const sent = onlySentResponse(controller);
+      expect(sent.response).to.include({ status: 500 });
+      expect(sent.response.errors?.[0]?.message).to.equal('Authenticated user context is required.');
+    }
+  });
+
+  it('rejects partial and malformed authenticated users consistently before every delegation', async function () {
+    const malformedUsers: globalThis.Record<string, unknown>[] = [
+      { id: 'user-1', username: 'alice', roles: [] },
+      { ...defaultRequestUser, username: ' ' },
+      { ...defaultRequestUser, roles: [{ id: 'role-1', name: 42 }] },
+    ];
+
+    for (const user of malformedUsers) {
+      for (const testCase of controllerActionCases(controller, resolver, { user })) {
+        resetControllerHistory(controller, resolver);
+        const res = responseAdapter();
+
+        await testCase.run(testCase.request, res);
+
+        expect(testCase.resolver.notCalled).to.equal(true);
+        const sent = onlySentResponse(controller);
+        expect(sent.response).to.include({ status: 500 });
+        expect(sent.response.errors?.[0]?.message).to.equal('Authenticated user context is required.');
+      }
+    }
   });
 
   it('uses sendResp for unexpected resolver errors from every action', async function () {
@@ -449,42 +561,14 @@ describe('Webservice RecordSchemaController', function () {
     resolver.resolveCreate.rejects(error);
     resolver.resolveUpdate.rejects(error);
     resolver.resolveImmutable.rejects(error);
-    const cases = [
-      {
-        run: (req: Sails.Req, res: Sails.Res) => controller.create(req, res),
-        request: validatedRequest(resolveCreateRecordSchemaRoute, {
-          params: { branding: 'default', portal: 'portal-1', recordType: 'dataset' },
-          query: {},
-          headers: {},
-        }),
-      },
-      {
-        run: (req: Sails.Req, res: Sails.Res) => controller.update(req, res),
-        request: validatedRequest(resolveUpdateRecordSchemaRoute, {
-          params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
-          query: {},
-          headers: {},
-        }),
-      },
-      {
-        run: (req: Sails.Req, res: Sails.Res) => controller.immutable(req, res),
-        request: validatedRequest(getImmutableRecordSchemaRoute, {
-          params: { branding: 'default', portal: 'portal-1', digest: 'a'.repeat(64) },
-          query: {},
-          headers: {},
-        }),
-      },
-    ];
 
-    for (const testCase of cases) {
-      sendResp.resetHistory();
-      const res = fakeResponse();
+    for (const testCase of controllerActionCases(controller, resolver)) {
+      controller.resetSentResponses();
+      const res = responseAdapter();
 
       await testCase.run(testCase.request, res);
 
-      expect(sendResp.calledOnce).to.equal(true);
-      expect(sendResp.firstCall.args[2]).to.deep.equal({ status: 500, errors: [error] });
-      expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+      expect(onlySentResponse(controller).response).to.deep.equal({ status: 500, errors: [error] });
     }
   });
 

@@ -1,13 +1,46 @@
 import { Controllers as controllers, getValidatedApiRequest } from '../../index';
 import type { BrandingModel, RecordSchemaService } from '../../index';
 import type { RecordContractContextActor } from '../../record-contract';
-import { UserModel } from '../../model/storage/UserModel';
-import type { FormRecordAccessContext } from '../../services/FormsService';
+import type { FormRecordAccessContext, FormRecordAccessRole, FormRecordAccessUser } from '../../services/FormsService';
 
 type RecordSchemaResolver = Pick<
   RecordSchemaService.Services.RecordSchema,
   'resolveCreate' | 'resolveUpdate' | 'resolveImmutable'
 >;
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isRecordSchemaResolver(value: unknown): value is RecordSchemaResolver {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return false;
+  return (
+    typeof Reflect.get(value, 'resolveCreate') === 'function' &&
+    typeof Reflect.get(value, 'resolveUpdate') === 'function' &&
+    typeof Reflect.get(value, 'resolveImmutable') === 'function'
+  );
+}
+
+function isFormRecordAccessRole(value: unknown): value is FormRecordAccessRole {
+  return isObjectRecord(value) && isNonEmptyString(value.id) && isNonEmptyString(value.name);
+}
+
+function isFormRecordAccessUser(value: unknown): value is FormRecordAccessUser {
+  return (
+    isObjectRecord(value) &&
+    isNonEmptyString(value.id) &&
+    isNonEmptyString(value.username) &&
+    isNonEmptyString(value.type) &&
+    isNonEmptyString(value.name) &&
+    isNonEmptyString(value.email) &&
+    Array.isArray(value.roles) &&
+    value.roles.every(isFormRecordAccessRole)
+  );
+}
 
 export namespace Controllers {
   /** Adapts validated record-schema HTTP requests to RecordSchemaService. */
@@ -17,7 +50,11 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = ['init', 'create', 'update', 'immutable'];
 
     public init(): void {
-      this.RecordSchemaService = sails.services.recordschemaservice as unknown as RecordSchemaResolver;
+      const service = sails.services.recordschemaservice;
+      if (!isRecordSchemaResolver(service)) {
+        throw new Error('Record schema resolver service is unavailable.');
+      }
+      this.RecordSchemaService = service;
     }
 
     private asError(error: unknown): Error {
@@ -25,7 +62,10 @@ export namespace Controllers {
     }
 
     private normalizedRequired(value: unknown): string {
-      return (value as string).trim();
+      if (!isNonEmptyString(value)) {
+        throw new Error('Validated request string is required.');
+      }
+      return value.trim();
     }
 
     private normalizedOptional(value: unknown): string | undefined {
@@ -33,30 +73,25 @@ export namespace Controllers {
       return normalized || undefined;
     }
 
-    private actor(req: Sails.Req): RecordContractContextActor {
-      const user = req.user;
-      const username = typeof user?.username === 'string' ? user.username.trim() : '';
-      const roleNames = Array.isArray(user?.roles)
-        ? user.roles
-            .map(role =>
-              typeof role === 'string' ? role.trim() : typeof role?.name === 'string' ? role.name.trim() : ''
-            )
-            .filter(Boolean)
-        : [];
+    private authenticatedUser(req: Sails.Req): FormRecordAccessUser {
+      if (!isFormRecordAccessUser(req.user)) {
+        throw new Error('Authenticated user context is required.');
+      }
+      return req.user;
+    }
+
+    private actor(user: FormRecordAccessUser): RecordContractContextActor {
+      const roleNames = user.roles.map(role => role.name.trim()).filter(Boolean);
       return {
-        authenticated: username.length > 0,
+        authenticated: true,
         roles: [...new Set(roleNames)].sort(),
       };
     }
 
-    private caller(req: Sails.Req, brand: BrandingModel): FormRecordAccessContext {
-      const user = req.user;
-      if (typeof user?.username !== 'string' || user.username.trim() === '' || !Array.isArray(user.roles)) {
-        throw new Error('Authenticated user context is required.');
-      }
+    private caller(user: FormRecordAccessUser, brand: BrandingModel): FormRecordAccessContext {
       return {
         brand,
-        user: Object.assign(new UserModel(), user),
+        user,
       };
     }
 
@@ -84,6 +119,7 @@ export namespace Controllers {
 
     public async create(req: Sails.Req, res: Sails.Res) {
       try {
+        const user = this.authenticatedUser(req);
         const { params, query } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
@@ -92,7 +128,7 @@ export namespace Controllers {
           portal: this.normalizedRequired(params.portal),
           recordType: this.normalizedRequired(params.recordType),
           operation: this.normalizedOptional(query.operation),
-          actor: this.actor(req),
+          actor: this.actor(user),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
           return this.sendResp(req, res, { data: result.document });
@@ -105,6 +141,7 @@ export namespace Controllers {
 
     public async update(req: Sails.Req, res: Sails.Res) {
       try {
+        const user = this.authenticatedUser(req);
         const { params, query } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
@@ -113,7 +150,7 @@ export namespace Controllers {
           portal: this.normalizedRequired(params.portal),
           oid: this.normalizedRequired(params.oid),
           operation: this.normalizedOptional(query.operation),
-          caller: this.caller(req, brand),
+          caller: this.caller(user, brand),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
           return this.sendResp(req, res, { data: result.document });
@@ -126,17 +163,17 @@ export namespace Controllers {
 
     public async immutable(req: Sails.Req, res: Sails.Res) {
       try {
-        const { params, headers } = getValidatedApiRequest(req);
+        const user = this.authenticatedUser(req);
+        const { params } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
         const result = await this.RecordSchemaService.resolveImmutable({
           brand: brand.id.trim(),
           portal: this.normalizedRequired(params.portal),
           digest: this.normalizedRequired(params.digest),
-          caller: this.caller(req, brand),
-          ifNoneMatch: this.normalizedOptional(headers?.['If-None-Match']),
+          caller: this.caller(user, brand),
         });
-        if (result.kind === 'resolved' || result.kind === 'not-modified') {
+        if (result.kind === 'resolved') {
           return this.sendResp(req, res, { data: result.artifact.document });
         }
         return this.sendResolutionFailure(req, res);
