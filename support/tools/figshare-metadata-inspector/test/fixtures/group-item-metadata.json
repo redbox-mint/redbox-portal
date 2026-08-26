@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Open Access",
+    "field_type": "dropdown",
+    "is_mandatory": true,
+    "settings": {
+      "options": ["Yes", "No"],
+      "placeholder": "Open Access",
+      "is_multiple": false
+    },
+    "order": 0,
+    "value": ""
+  },
+  {
+    "name": "Language",
+    "field_type": "text",
+    "is_mandatory": false,
+    "settings": {
+      "validations": { "min_length": 1, "max_length": 250 },
+      "placeholder": "Language"
+    },
+    "order": 1,
+    "value": ""
+  },
+  {
+    "name": "Terms of agreement",
+    "field_type": "textarea",
+    "is_mandatory": true,
+    "settings": {
+      "validations": { "min_length": 1, "max_length": 1000 },
+      "placeholder": "Terms of agreement"
+    },
+    "order": 2,
+    "value": ""
+  }
+]
