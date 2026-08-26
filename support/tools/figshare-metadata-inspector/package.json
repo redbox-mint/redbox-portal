@@ -1,0 +1,41 @@
+{
+  "name": "@researchdatabox/figshare-metadata-inspector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Inspect CQU Figshare v2 dataset metadata and generate ReDBox crosswalk reports.",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "bin": {
+    "figshare-inspect": "dist/src/cli.js"
+  },
+  "files": [
+    "dist/src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "inspect": "npm run build --silent && node dist/src/cli.js",
+    "prepare": "npm run build",
+    "test": "npm run clean --silent && npm run build --silent && mocha \"dist/test/**/*.test.js\" --ignore \"dist/test/**/*.integration.test.js\"",
+    "test:integration": "npm run clean --silent && npm run build --silent && RUN_FIGSHARE_INTEGRATION=true mocha \"dist/test/**/*.integration.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "axios": "1.19.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/mocha": "10.0.10",
+    "@types/node": "24.12.4",
+    "mocha": "11.7.6",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "glob": "13.0.6",
+    "serialize-javascript": "7.0.5"
+  }
+}
