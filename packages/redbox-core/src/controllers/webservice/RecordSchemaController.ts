@@ -1,6 +1,7 @@
 import { Controllers as controllers, getValidatedApiRequest } from '../../index';
-import type { BrandingModel, RecordSchemaService, UserModel } from '../../index';
+import type { BrandingModel, RecordSchemaService } from '../../index';
 import type { RecordContractContextActor } from '../../record-contract';
+import { UserModel } from '../../model/storage/UserModel';
 import type { FormRecordAccessContext } from '../../services/FormsService';
 
 type RecordSchemaResolver = Pick<
@@ -49,9 +50,13 @@ export namespace Controllers {
     }
 
     private caller(req: Sails.Req, brand: BrandingModel): FormRecordAccessContext {
+      const user = req.user;
+      if (typeof user?.username !== 'string' || user.username.trim() === '' || !Array.isArray(user.roles)) {
+        throw new Error('Authenticated user context is required.');
+      }
       return {
         brand,
-        user: (req.user ?? {}) as UserModel,
+        user: Object.assign(new UserModel(), user),
       };
     }
 

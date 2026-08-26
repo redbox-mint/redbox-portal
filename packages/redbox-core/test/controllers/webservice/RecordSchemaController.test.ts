@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import lodash from 'lodash';
 import * as sinon from 'sinon';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordSchemaController';
@@ -11,40 +12,105 @@ import {
   resolveUpdateRecordSchemaRoute,
   validateApiRouteRequest,
 } from '../../../src/api-routes';
+import { BrandingModel, RoleModel, UserModel } from '../../../src/model';
+import { JSON_SCHEMA_DRAFT_2020_12 } from '../../../src/record-contract';
 import type { ApiRouteDefinition } from '../../../src/api-routes';
 import type { BuildResponseType } from '../../../src/model';
+import type { RecordSchemaService } from '../../../src';
+import type {
+  ContractJsonObject,
+  PublishedRecordJsonSchemaDocument,
+  RecordContractCompleteness,
+  RecordContractPublicContext,
+  RecordContractSchemaKind,
+} from '../../../src/record-contract';
+import type { LoDashStatic } from 'lodash';
 
 let expect: Chai.ExpectStatic;
 
 type ResolverStubs = {
-  resolveCreate: sinon.SinonStub;
-  resolveUpdate: sinon.SinonStub;
-  resolveImmutable: sinon.SinonStub;
+  resolveCreate: sinon.SinonStub<
+    Parameters<RecordSchemaService.Services.RecordSchema['resolveCreate']>,
+    ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>
+  >;
+  resolveUpdate: sinon.SinonStub<
+    Parameters<RecordSchemaService.Services.RecordSchema['resolveUpdate']>,
+    ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>
+  >;
+  resolveImmutable: sinon.SinonStub<
+    Parameters<RecordSchemaService.Services.RecordSchema['resolveImmutable']>,
+    ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>
+  >;
 };
 
 type TestGlobals = typeof globalThis & {
   sails: unknown;
   BrandingService: unknown;
-  _: unknown;
+  _: LoDashStatic;
 };
 
 type SendRespBoundary = {
   sendResp(req: Sails.Req, res: Sails.Res, response?: BuildResponseType): unknown;
 };
 
+function role(id: string, name: string): RoleModel {
+  const value = new RoleModel();
+  value.id = id;
+  value.name = name;
+  return value;
+}
+
+function requestUser(roles: RoleModel[]): UserModel {
+  const user = new UserModel();
+  user.id = 'user-1';
+  user.username = 'alice';
+  user.roles = roles;
+  return user;
+}
+
+type SchemaContext<Kind extends RecordContractSchemaKind> = Omit<RecordContractPublicContext, 'kind'> & {
+  readonly kind: Kind;
+};
+
+function schemaContext<Kind extends RecordContractSchemaKind>(schemaKind: Kind): SchemaContext<Kind> {
+  return {
+    brand: 'brand-1',
+    portal: 'portal-1',
+    kind: schemaKind,
+    recordType: 'dataset',
+    workflowStep: 'draft',
+    form: 'dataset-draft',
+    operation: 'strict-all',
+    unknownProperties: 'allow',
+    enforcement: 'shadow',
+  };
+}
+
+function schemaDocument<Kind extends RecordContractSchemaKind>(
+  context: SchemaContext<Kind>,
+  completeness: RecordContractCompleteness
+): PublishedRecordJsonSchemaDocument & { readonly 'x-redbox-context': SchemaContext<Kind> } {
+  return {
+    $schema: JSON_SCHEMA_DRAFT_2020_12,
+    $id: `https://example.test/schemas/${context.kind}`,
+    type: 'object',
+    'x-redbox-contract-format': 'redbox-record-contract/1',
+    'x-redbox-context': context,
+    'x-redbox-completeness': completeness,
+    'x-redbox-validation': [],
+    'x-redbox-diagnostics': [],
+  };
+}
+
 function validatedRequest(
   route: ApiRouteDefinition,
   raw: Pick<Sails.Req, 'params' | 'query' | 'headers'>,
-  user: globalThis.Record<string, unknown> = {
-    id: 'user-1',
-    username: 'alice',
-    roles: [
-      { id: 'role-z', name: 'Zeta' },
-      { id: 'role-a', name: 'Alpha' },
-      { id: 'role-z-duplicate', name: 'Zeta' },
-      { id: 'role-empty', name: ' ' },
-    ],
-  }
+  user: globalThis.Record<string, unknown> = requestUser([
+    role('role-z', 'Zeta'),
+    role('role-a', 'Alpha'),
+    role('role-z-duplicate', 'Zeta'),
+    role('role-empty', ' '),
+  ])
 ): Sails.Req {
   const validated = validateApiRouteRequest(raw as Sails.Req, route);
   assert.equal(validated.valid, true, validated.valid ? undefined : JSON.stringify(validated.issues));
@@ -86,7 +152,8 @@ describe('Webservice RecordSchemaController', function () {
   let sendResp: sinon.SinonStub;
   let priorSails: unknown;
   let priorBrandingService: unknown;
-  let priorLodash: unknown;
+  let priorLodash: LoDashStatic;
+  let resolvedBrand: BrandingModel;
 
   before(async function () {
     expect = (await import('chai')).expect;
@@ -98,10 +165,22 @@ describe('Webservice RecordSchemaController', function () {
     priorLodash = testGlobals._;
 
     resolver = {
-      resolveCreate: sinon.stub(),
-      resolveUpdate: sinon.stub(),
-      resolveImmutable: sinon.stub(),
+      resolveCreate: sinon.stub<
+        Parameters<RecordSchemaService.Services.RecordSchema['resolveCreate']>,
+        ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>
+      >(),
+      resolveUpdate: sinon.stub<
+        Parameters<RecordSchemaService.Services.RecordSchema['resolveUpdate']>,
+        ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>
+      >(),
+      resolveImmutable: sinon.stub<
+        Parameters<RecordSchemaService.Services.RecordSchema['resolveImmutable']>,
+        ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>
+      >(),
     };
+    resolvedBrand = new BrandingModel();
+    resolvedBrand.id = 'brand-1';
+    resolvedBrand.name = 'default';
     testGlobals.sails = {
       config: {},
       services: { recordschemaservice: resolver },
@@ -115,14 +194,12 @@ describe('Webservice RecordSchemaController', function () {
       },
     };
     testGlobals.BrandingService = {
-      getBrand: sinon
-        .stub()
-        .callsFake((name: string) => (name === 'default' ? { id: 'brand-1', name: 'default' } : undefined)),
+      getBrand: sinon.stub().callsFake((name: string) => (name === 'default' ? resolvedBrand : undefined)),
     };
-    testGlobals._ = require('lodash');
+    testGlobals._ = lodash;
 
     controller = new Controllers.RecordSchema();
-    controller.RecordSchemaService = resolver as never;
+    controller.RecordSchemaService = resolver;
     sendResp = sinon.stub(controller as unknown as SendRespBoundary, 'sendResp');
   });
 
@@ -143,8 +220,32 @@ describe('Webservice RecordSchemaController', function () {
   });
 
   it('delegates create using only normalized validated input and safe actor facts', async function () {
-    const document = { type: 'object' };
-    const result = { kind: 'resolved', document };
+    const digest = 'b'.repeat(64);
+    const context = schemaContext('create');
+    const document = schemaDocument(context, 'complete');
+    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>> = {
+      kind: 'resolved',
+      document,
+      digest,
+      metadata: {
+        schemaKind: 'create',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'complete',
+        byteLength: 1,
+        etag: `"sha256:${digest}"`,
+        context,
+      },
+      grant: {
+        referenceKey: 'grant-create',
+        digest,
+        brand: 'brand-1',
+        portal: 'portal-1',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        kind: 'grant',
+        schemaKind: 'create',
+      },
+    };
     resolver.resolveCreate.resolves(result);
     const req = validatedRequest(resolveCreateRecordSchemaRoute, {
       params: { branding: ' default ', portal: ' portal-1 ', recordType: ' dataset ' },
@@ -172,14 +273,35 @@ describe('Webservice RecordSchemaController', function () {
   });
 
   it('delegates update with the resolved brand and authenticated caller context', async function () {
-    const document = { type: 'object' };
-    const result = { kind: 'partial', document };
-    resolver.resolveUpdate.resolves(result);
-    const user = {
-      id: 'user-1',
-      username: 'alice',
-      roles: [{ id: 'role-1', name: 'Researcher' }],
+    const digest = 'c'.repeat(64);
+    const context = schemaContext('update');
+    const document = schemaDocument(context, 'partial');
+    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>> = {
+      kind: 'partial',
+      document,
+      digest,
+      metadata: {
+        schemaKind: 'update',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'partial',
+        byteLength: 1,
+        etag: `"sha256:${digest}"`,
+        context,
+      },
+      grant: {
+        referenceKey: 'grant-update',
+        digest,
+        brand: 'brand-1',
+        portal: 'portal-1',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        kind: 'grant',
+        schemaKind: 'update',
+        oid: 'record-1',
+      },
     };
+    resolver.resolveUpdate.resolves(result);
+    const user = requestUser([role('role-1', 'Researcher')]);
     const req = validatedRequest(
       resolveUpdateRecordSchemaRoute,
       {
@@ -200,7 +322,7 @@ describe('Webservice RecordSchemaController', function () {
         oid: 'record-1',
         operation: undefined,
         caller: {
-          brand: { id: 'brand-1', name: 'default' },
+          brand: resolvedBrand,
           user,
         },
       })
@@ -212,14 +334,22 @@ describe('Webservice RecordSchemaController', function () {
   it('delegates immutable retrieval with only the validated conditional header', async function () {
     const digest = 'a'.repeat(64);
     const etag = `"sha256:${digest}"`;
-    const document = { type: 'object' };
-    const result = { kind: 'resolved', artifact: { digest, document } };
-    resolver.resolveImmutable.resolves(result);
-    const user = {
-      id: 'user-1',
-      username: 'alice',
-      roles: [{ id: 'role-1', name: 'Researcher' }],
+    const document: ContractJsonObject = { type: 'object' };
+    const now = new Date('2026-08-26T00:00:00.000Z');
+    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>> = {
+      kind: 'resolved',
+      artifact: {
+        digest,
+        document,
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'complete',
+        byteLength: 1,
+        createdAt: now,
+        updatedAt: now,
+      },
     };
+    resolver.resolveImmutable.resolves(result);
+    const user = requestUser([role('role-1', 'Researcher')]);
     const req = validatedRequest(
       getImmutableRecordSchemaRoute,
       {
@@ -239,7 +369,7 @@ describe('Webservice RecordSchemaController', function () {
         portal: 'portal-1',
         digest,
         caller: {
-          brand: { id: 'brand-1', name: 'default' },
+          brand: resolvedBrand,
           user,
         },
         ifNoneMatch: etag,
@@ -250,7 +380,7 @@ describe('Webservice RecordSchemaController', function () {
   });
 
   it('does not expose typed service failure details before the approved HTTP mapping exists', async function () {
-    const result = {
+    const result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveImmutable']>> = {
       kind: 'invalid-request',
       problem: {
         type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
@@ -291,6 +421,26 @@ describe('Webservice RecordSchemaController', function () {
     expect(sendResp.firstCall.args[2]).to.include({ status: 500 });
     expect(sendResp.firstCall.args[2].errors).to.have.length(1);
     expect(sendResp.firstCall.args[2].errors[0]).to.be.instanceOf(Error);
+    expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
+  });
+
+  it('does not fabricate an access user when authenticated caller context is missing', async function () {
+    const req = validatedRequest(
+      resolveUpdateRecordSchemaRoute,
+      {
+        params: { branding: 'default', portal: 'portal-1', oid: 'record-1' },
+        query: {},
+        headers: {},
+      },
+      {}
+    );
+    const res = fakeResponse();
+
+    await controller.update(req, res);
+
+    expect(resolver.resolveUpdate.notCalled).to.equal(true);
+    expect(sendResp.calledOnce).to.equal(true);
+    expect(sendResp.firstCall.args[2]).to.include({ status: 500 });
     expect((res.json as sinon.SinonStub).notCalled).to.equal(true);
   });
 
