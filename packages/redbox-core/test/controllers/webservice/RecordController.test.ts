@@ -287,9 +287,13 @@ describe('Webservice RecordController body source', () => {
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandAndPortalPath: sinon.stub().returns('/default/default'),
+      getBrandNameFromReq: sinon
+        .stub()
+        .callsFake((request: { params?: Record<string, unknown> }) => request.params?.branding ?? 'default'),
       getPortalFromReq: sinon
         .stub()
         .callsFake((request: { params?: Record<string, unknown> }) => request.params?.portal ?? 'default'),
+      getRootContext: sinon.stub().returns(''),
     };
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ id: 'record-type-1', name: 'dataset' })),
@@ -330,12 +334,15 @@ describe('Webservice RecordController body source', () => {
   });
 
   describe('save response schema discovery', function () {
-    it('carries the route portal through schema resolution and successful create/update discovery without locals', async function () {
+    it('builds successful create/update discovery from route context under a deployment root', async function () {
       const updateDigest = 'a'.repeat(64);
       const createDigest = 'b'.repeat(64);
       const schemaIfMatch = `"sha256:${updateDigest}"`;
-      const updateUrl = `/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
-      const createUrl = `/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
+      const updateArtifactId = `/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
+      const createArtifactId = `/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
+      const updatePublicUrl = `/redbox/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
+      const createPublicUrl = `/redbox/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
+      (global as any).BrandingService.getRootContext.returns('/redbox');
       recordsService.getMeta.resolves({
         redboxOid: 'record-1',
         revision: 2,
@@ -345,11 +352,11 @@ describe('Webservice RecordController body source', () => {
       recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
         const context = requireRecordSaveContext(args[8]);
         expect(context).to.include({ portal: 'tenant-portal', ifMatch: schemaIfMatch });
-        return schemaAwareSuccessResult('record-1', updateDigest, updateUrl);
+        return schemaAwareSuccessResult('record-1', updateDigest, updateArtifactId);
       });
       recordsService.create.callsFake(async (...args: unknown[]) => {
         expect(requireRecordSaveContext(args[7]).portal).to.equal('tenant-portal');
-        return schemaAwareSuccessResult('created-record', createDigest, createUrl);
+        return schemaAwareSuccessResult('created-record', createDigest, createArtifactId);
       });
 
       const updateRequest = makeValidatedRequest(updateMetaRoute, {
@@ -367,7 +374,7 @@ describe('Webservice RecordController body source', () => {
 
       expect(
         updateResponse.set.calledOnceWithExactly({
-          Link: `<${updateUrl}>; rel="describedby"; type="application/schema+json"`,
+          Link: `<${updatePublicUrl}>; rel="describedby"; type="application/schema+json"`,
         })
       ).to.equal(true);
       expect(updateResponse.json.firstCall.args[0]).to.have.nested.property('data.outcome', 'saved');
@@ -387,7 +394,7 @@ describe('Webservice RecordController body source', () => {
       expect(
         createResponse.set.calledOnceWithExactly({
           Location: 'https://portal.example/public-brand/tenant-portal/api/records/metadata/created-record',
-          Link: `<${createUrl}>; rel="describedby"; type="application/schema+json"`,
+          Link: `<${createPublicUrl}>; rel="describedby"; type="application/schema+json"`,
         })
       ).to.equal(true);
       expect(createResponse.status.calledOnceWithExactly(201)).to.equal(true);

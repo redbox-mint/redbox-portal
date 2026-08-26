@@ -275,10 +275,19 @@ export namespace Controllers {
       return malformed ? 400 : undefined;
     }
 
-    private recordSaveDiscoveryHeaders(result: RecordSaveResponse): Readonly<globalThis.Record<string, string>> {
+    private recordSaveDiscoveryHeaders(
+      req: Sails.Req,
+      result: RecordSaveResponse
+    ): Readonly<globalThis.Record<string, string>> {
       const headers = { ...recordSaveResultHeaders(result) };
       if (result.schemaOutcome) {
-        headers.Link = recordSchemaDescribedByLink(result.schemaOutcome.immutableUrl);
+        const immutableUrl = recordSchemaImmutableUrl(
+          BrandingService.getBrandNameFromReq(req).trim(),
+          BrandingService.getPortalFromReq(req).trim(),
+          result.schemaOutcome.digest,
+          BrandingService.getRootContext()
+        );
+        headers.Link = recordSchemaDescribedByLink(immutableUrl);
       }
       return headers;
     }
@@ -975,7 +984,7 @@ export namespace Controllers {
             data: result,
             meta: { ...result },
             ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
-            headers: this.recordSaveDiscoveryHeaders(result),
+            headers: this.recordSaveDiscoveryHeaders(req, result),
           });
         }
         if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
@@ -1144,7 +1153,7 @@ export namespace Controllers {
                         BrandingService.getBrandAndPortalPath(req) +
                         '/api/records/metadata/' +
                         response.oid,
-                      ...this.recordSaveDiscoveryHeaders(response),
+                      ...this.recordSaveDiscoveryHeaders(req, response),
                     },
                   });
                 } else {
