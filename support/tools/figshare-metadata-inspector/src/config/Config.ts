@@ -105,6 +105,10 @@ function envInteger(value: string | undefined, name: string, fallback: number): 
   return value == null || value === '' ? fallback : positiveInteger(value, name);
 }
 
+function nonBlank(value: string | undefined): string | undefined {
+  return value == null || value.trim() === '' ? undefined : value;
+}
+
 export class Config {
   public static parse(
     args: string[] = process.argv.slice(2),
@@ -121,7 +125,7 @@ export class Config {
       throw new Error('FIGSHARE_TOKEN or --token is required');
     }
     const baseUrl = cli.baseUrl ?? environment.FIGSHARE_API_URL ?? 'https://api.figsh.com';
-    const output = cli.outputDirectory ?? environment.FIGSHARE_OUTPUT ?? './output';
+    const output = nonBlank(cli.outputDirectory) ?? nonBlank(environment.FIGSHARE_OUTPUT) ?? './output';
     return {
       help: false,
       config: {

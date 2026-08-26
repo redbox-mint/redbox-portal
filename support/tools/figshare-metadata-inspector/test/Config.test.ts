@@ -38,4 +38,16 @@ describe('Config', () => {
     assert.equal(parsed.config?.rawOnly, true);
     assert.equal(parsed.config?.raw, true);
   });
+
+  it('treats blank output settings as unset', () => {
+    const environmentFallback = Config.parse(
+      ['--output', ''],
+      { FIGSHARE_TOKEN: 'x', FIGSHARE_OUTPUT: 'environment-reports' },
+      '/work'
+    );
+    assert.equal(environmentFallback.config?.outputDirectory, '/work/environment-reports');
+
+    const defaultFallback = Config.parse([], { FIGSHARE_TOKEN: 'x', FIGSHARE_OUTPUT: '   ' }, '/work');
+    assert.equal(defaultFallback.config?.outputDirectory, '/work/output');
+  });
 });

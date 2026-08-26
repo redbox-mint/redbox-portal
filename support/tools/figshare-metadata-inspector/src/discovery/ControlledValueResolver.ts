@@ -5,6 +5,10 @@ function lower(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function classificationTokens(field: NormalisedField): string[] {
+  return [field.name, field.displayName, field.type].flatMap(value => lower(value).match(/[a-z0-9]+/g) ?? []);
+}
+
 function controlledValue(value: unknown, index: number): ControlledValue | undefined {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return { value: String(value) };
@@ -46,22 +50,24 @@ function inlineValues(settings: unknown): ControlledValue[] | undefined {
 }
 
 function isLicense(field: NormalisedField): boolean {
-  const candidates = [field.name, field.displayName, field.type].map(lower);
-  return candidates.some(
-    value => value === 'license' || value === 'licence' || value.includes('license') || value.includes('licence')
+  if (isUnconstrained(lower(field.type))) return false;
+  return classificationTokens(field).some(token =>
+    ['license', 'licence', 'licenses', 'licences'].includes(token)
   );
 }
 
 function isCategory(field: NormalisedField): boolean {
-  return [field.name, field.displayName, field.type]
-    .map(lower)
-    .some(value => value === 'category' || value === 'categories' || value.includes('category'));
+  if (isUnconstrained(lower(field.type))) return false;
+  return classificationTokens(field).some(token => token === 'category' || token === 'categories');
 }
 
 function isDynamic(field: NormalisedField): string | undefined {
-  const combined = [field.name, field.displayName, field.type].map(lower).join(' ');
-  if (combined.includes('author')) return 'Author values are resolved dynamically through the Figshare account API.';
-  if (combined.includes('dropdown_large_list') || combined.includes('large list')) {
+  if (isUnconstrained(lower(field.type))) return undefined;
+  const tokens = classificationTokens(field);
+  if (tokens.some(token => token === 'author' || token === 'authors')) {
+    return 'Author values are resolved dynamically through the Figshare account API.';
+  }
+  if (tokens.includes('large') && tokens.includes('list')) {
     return 'Values are stored in a Figshare-managed large list and may require a field-specific API lookup.';
   }
   return undefined;
