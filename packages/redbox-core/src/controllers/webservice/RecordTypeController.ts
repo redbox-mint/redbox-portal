@@ -13,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
 import { recordSchemaCreateResolverUrl } from '../../api-routes/record-schema-response';
 
 export type DiscoverableRecordType = RecordTypeModel & {
-  readonly recordSchemaCreateResolver: string;
+  readonly recordSchemaCreateResolver?: string;
 };
 
 export namespace Controllers {
@@ -50,12 +50,20 @@ export namespace Controllers {
       recordType: RecordTypeModel,
       fallbackName?: string
     ): DiscoverableRecordType {
+      if (sails.config.recordSchema?.enabled !== true) {
+        return recordType;
+      }
       const branding = BrandingService.getBrandNameFromReq(req).trim();
       const portal = BrandingService.getPortalFromReq(req).trim();
       const name = this.publicRecordTypeName(recordType, fallbackName);
       return {
         ...recordType,
-        recordSchemaCreateResolver: recordSchemaCreateResolverUrl(branding, portal, name),
+        recordSchemaCreateResolver: recordSchemaCreateResolverUrl(
+          branding,
+          portal,
+          name,
+          BrandingService.getRootContext()
+        ),
       };
     }
 

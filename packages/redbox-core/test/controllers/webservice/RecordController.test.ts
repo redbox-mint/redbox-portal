@@ -2665,6 +2665,7 @@ describe('Webservice RecordController getMeta', () => {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandNameFromReq: sinon.stub().returns('public brand'),
       getPortalFromReq: sinon.stub().returns('tenant portal'),
+      getRootContext: sinon.stub().returns(''),
     };
     (global as any)._ = require('lodash');
 

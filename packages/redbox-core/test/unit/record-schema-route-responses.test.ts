@@ -46,6 +46,21 @@ describe('record-schema route response contracts', function () {
     );
   });
 
+  it('includes a non-empty configured root context without weakening segment encoding', function () {
+    assert.equal(
+      recordSchemaImmutableUrl('public brand', 'portal/subpath', digest, '/redbox'),
+      `/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/${digest}`
+    );
+    assert.equal(
+      recordSchemaCreateResolverUrl('public brand', 'portal/subpath', 'data set', '/redbox/'),
+      '/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/create/data%20set'
+    );
+    assert.equal(
+      recordSchemaUpdateResolverUrl('public brand', 'portal/subpath', 'record/1', 'redbox'),
+      '/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/update/record%2F1'
+    );
+  });
+
   it('accepts the optional strong conditional header on every schema GET route', function () {
     for (const route of recordSchemaApiRoutes) {
       assert.equal(route.request?.headers?.safeParse({}).success, true);

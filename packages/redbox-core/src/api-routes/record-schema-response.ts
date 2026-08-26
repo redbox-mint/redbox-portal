@@ -35,18 +35,25 @@ export function recordSchemaDescribedByLink(immutableUrl: string): string {
   return `<${immutableUrl}>; rel="describedby"; type="${RECORD_SCHEMA_RESPONSE_MEDIA_TYPE}"`;
 }
 
-function recordSchemaScopeUrl(branding: string, portal: string): string {
-  return `/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas`;
+function recordSchemaScopeUrl(branding: string, portal: string, rootContext: string): string {
+  const normalizedRootContext = rootContext.trim().replace(/^\/+|\/+$/g, '');
+  const rootContextPrefix = normalizedRootContext ? `/${normalizedRootContext}` : '';
+  return `${rootContextPrefix}/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas`;
 }
 
-export function recordSchemaImmutableUrl(branding: string, portal: string, digest: string): string {
-  return `${recordSchemaScopeUrl(branding, portal)}/${encodeURIComponent(digest)}`;
+export function recordSchemaImmutableUrl(branding: string, portal: string, digest: string, rootContext = ''): string {
+  return `${recordSchemaScopeUrl(branding, portal, rootContext)}/${encodeURIComponent(digest)}`;
 }
 
-export function recordSchemaCreateResolverUrl(branding: string, portal: string, recordType: string): string {
-  return `${recordSchemaScopeUrl(branding, portal)}/create/${encodeURIComponent(recordType)}`;
+export function recordSchemaCreateResolverUrl(
+  branding: string,
+  portal: string,
+  recordType: string,
+  rootContext = ''
+): string {
+  return `${recordSchemaScopeUrl(branding, portal, rootContext)}/create/${encodeURIComponent(recordType)}`;
 }
 
-export function recordSchemaUpdateResolverUrl(branding: string, portal: string, oid: string): string {
-  return `${recordSchemaScopeUrl(branding, portal)}/update/${encodeURIComponent(oid)}`;
+export function recordSchemaUpdateResolverUrl(branding: string, portal: string, oid: string, rootContext = ''): string {
+  return `${recordSchemaScopeUrl(branding, portal, rootContext)}/update/${encodeURIComponent(oid)}`;
 }

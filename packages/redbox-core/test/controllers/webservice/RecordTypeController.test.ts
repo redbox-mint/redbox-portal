@@ -12,6 +12,22 @@ interface CapturedResponse {
   readonly response: BuildResponseType;
 }
 
+interface JsonResponseFixture {
+  readonly response: Sails.Res;
+  readonly json: sinon.SinonStub<[body: unknown], Sails.Res>;
+}
+
+function jsonResponseFixture(): JsonResponseFixture {
+  const response: Sails.Res = Object.create(null);
+  const set = sinon.stub<[field: string | Record<string, string>, value?: string], Sails.Res>().returns(response);
+  const status = sinon.stub<[statusCode: number], Sails.Res>().returns(response);
+  const json = sinon.stub<[body: unknown], Sails.Res>().returns(response);
+  Reflect.set(response, 'set', set);
+  Reflect.set(response, 'status', status);
+  Reflect.set(response, 'json', json);
+  return { response, json };
+}
+
 class TestRecordTypeController extends Controllers.RecordType {
   readonly sentResponses: CapturedResponse[] = [];
 
@@ -37,8 +53,9 @@ describe('Webservice RecordTypeController schema discovery', function () {
     getAllRecordTypes = sinon.stub();
 
     Reflect.set(globalThis, 'sails', {
-      config: {},
+      config: { http: { rootContext: '' }, recordSchema: { enabled: true } },
       log: {
+        verbose: sinon.stub(),
         error: sinon.stub(),
       },
     });
@@ -46,6 +63,7 @@ describe('Webservice RecordTypeController schema discovery', function () {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'internal-brand' }),
       getBrandNameFromReq: sinon.stub().returns('public brand'),
       getPortalFromReq: sinon.stub().returns('portal/subpath'),
+      getRootContext: sinon.stub().returns(''),
     });
     Reflect.set(globalThis, 'RecordTypesService', {
       get: getRecordType,
@@ -117,4 +135,56 @@ describe('Webservice RecordTypeController schema discovery', function () {
       false
     );
   });
+
+  for (const apiVersion of ['1.0', '2.0'] as const) {
+    it(`retains the prior ${apiVersion} response shapes when record schemas are disabled`, async function () {
+      Reflect.set(sails.config.recordSchema, 'enabled', false);
+      const storedRecordType = { name: 'dataset', packageType: 'dataset-package', searchable: true };
+      const storedRecordTypes = [storedRecordType, { name: 'publication', packageType: 'publication-package' }];
+      getRecordType.returns(of(storedRecordType));
+      getAllRecordTypes.returns(of(storedRecordTypes));
+      const versionHeaders = { 'x-redbox-api-version': apiVersion };
+      const singleRequest = {
+        apiRequest: { params: {}, query: { name: 'dataset' }, headers: versionHeaders, body: {}, files: {} },
+        headers: versionHeaders,
+        query: {},
+        session: { branding: 'public brand', portal: 'portal/subpath' },
+      } as unknown as Sails.Req;
+      const listRequest = {
+        apiRequest: { params: {}, query: {}, headers: versionHeaders, body: {}, files: {} },
+        headers: versionHeaders,
+        query: {},
+        session: { branding: 'public brand', portal: 'portal/subpath' },
+      } as unknown as Sails.Req;
+      const respondingController = new Controllers.RecordType();
+      const singleResponse = jsonResponseFixture();
+      const listResponse = jsonResponseFixture();
+
+      await respondingController.getRecordType(singleRequest, singleResponse.response);
+      await respondingController.listRecordTypes(listRequest, listResponse.response);
+
+      const singleBody = singleResponse.json.firstCall.args[0] as {
+        readonly data?: typeof storedRecordType;
+      };
+      const singleData = apiVersion === '1.0' ? singleBody : singleBody.data;
+      assert.equal(singleData, storedRecordType);
+      assert.equal(Reflect.has(singleData ?? {}, 'recordSchemaCreateResolver'), false);
+
+      const listBody = listResponse.json.firstCall.args[0] as {
+        readonly data?: {
+          readonly records: readonly globalThis.Record<string, unknown>[];
+          readonly summary: { readonly numFound: number };
+        };
+        readonly records?: readonly globalThis.Record<string, unknown>[];
+        readonly summary?: { readonly numFound: number };
+      };
+      const listData = apiVersion === '1.0' ? listBody : listBody.data;
+      assert.equal(listData?.summary?.numFound, 2);
+      assert.deepEqual(listData?.records, storedRecordTypes);
+      assert.equal(
+        listData?.records?.some(recordType => Reflect.has(recordType, 'recordSchemaCreateResolver')),
+        false
+      );
+    });
+  }
 });

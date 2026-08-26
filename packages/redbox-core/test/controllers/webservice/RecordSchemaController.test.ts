@@ -577,7 +577,7 @@ describe('Webservice RecordSchemaController', function () {
         trace: sinon.stub(),
       },
     });
-    Reflect.set(globalThis, 'BrandingService', { getBrand });
+    Reflect.set(globalThis, 'BrandingService', { getBrand, getRootContext: sinon.stub().returns('') });
     Reflect.set(globalThis, '_', lodash);
 
     controller = new TestRecordSchemaController();

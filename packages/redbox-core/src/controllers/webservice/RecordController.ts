@@ -86,7 +86,7 @@ import {
   recordSaveResultHeaders,
 } from '../../RecordHttpConcurrency';
 import { recordSchemaDescribedByLink, recordSchemaImmutableUrl } from '../../api-routes/record-schema-response';
-import type { FormRecordAccessRole, FormRecordAccessUser } from '../../services/FormsService';
+import { isFormRecordAccessUser } from '../../services/form-record-access-user';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
@@ -96,27 +96,6 @@ type RecordSchemaUpdateResolver = Pick<RecordSchemaService.Services.RecordSchema
 
 function isObjectRecord(value: unknown): value is globalThis.Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-function isFormRecordAccessRole(value: unknown): value is FormRecordAccessRole {
-  return isObjectRecord(value) && isNonEmptyString(value.id) && isNonEmptyString(value.name);
-}
-
-function isFormRecordAccessUser(value: unknown): value is FormRecordAccessUser {
-  return (
-    isObjectRecord(value) &&
-    isNonEmptyString(value.id) &&
-    isNonEmptyString(value.username) &&
-    isNonEmptyString(value.type) &&
-    isNonEmptyString(value.name) &&
-    isNonEmptyString(value.email) &&
-    Array.isArray(value.roles) &&
-    value.roles.every(isFormRecordAccessRole)
-  );
 }
 
 function isRecordSchemaUpdateResolver(value: unknown): value is RecordSchemaUpdateResolver {
@@ -330,7 +309,12 @@ export namespace Controllers {
           return headers;
         }
 
-        const immutableUrl = recordSchemaImmutableUrl(branding, portal, result.digest);
+        const immutableUrl = recordSchemaImmutableUrl(
+          branding,
+          portal,
+          result.digest,
+          BrandingService.getRootContext()
+        );
         return { ...headers, Link: recordSchemaDescribedByLink(immutableUrl) };
       } catch {
         sails.log.warn('Record schema metadata-read discovery could not be resolved.');

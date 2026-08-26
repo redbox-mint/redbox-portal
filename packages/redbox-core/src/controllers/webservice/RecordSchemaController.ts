@@ -18,7 +18,8 @@ import {
   type RecordJsonSchemaEtag,
   type RecordSchemaProblemCode,
 } from '../../record-contract';
-import type { FormRecordAccessContext, FormRecordAccessRole, FormRecordAccessUser } from '../../services/FormsService';
+import type { FormRecordAccessContext, FormRecordAccessUser } from '../../services/FormsService';
+import { isFormRecordAccessUser } from '../../services/form-record-access-user';
 
 type RecordSchemaResolver = Pick<
   RecordSchemaService.Services.RecordSchema,
@@ -122,23 +123,6 @@ function isRecordSchemaResolver(value: unknown): value is RecordSchemaResolver {
     typeof Reflect.get(value, 'resolveCreate') === 'function' &&
     typeof Reflect.get(value, 'resolveUpdate') === 'function' &&
     typeof Reflect.get(value, 'resolveImmutable') === 'function'
-  );
-}
-
-function isFormRecordAccessRole(value: unknown): value is FormRecordAccessRole {
-  return isObjectRecord(value) && isNonEmptyString(value.id) && isNonEmptyString(value.name);
-}
-
-function isFormRecordAccessUser(value: unknown): value is FormRecordAccessUser {
-  return (
-    isObjectRecord(value) &&
-    isNonEmptyString(value.id) &&
-    isNonEmptyString(value.username) &&
-    isNonEmptyString(value.type) &&
-    isNonEmptyString(value.name) &&
-    isNonEmptyString(value.email) &&
-    Array.isArray(value.roles) &&
-    value.roles.every(isFormRecordAccessRole)
   );
 }
 
@@ -359,7 +343,8 @@ export namespace Controllers {
         const branding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const recordType = this.normalizedRequired(params.recordType);
-        instance = recordSchemaCreateResolverUrl(branding, portal, recordType);
+        const rootContext = BrandingService.getRootContext();
+        instance = recordSchemaCreateResolverUrl(branding, portal, recordType, rootContext);
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
         const brand = this.brand(branding);
@@ -372,7 +357,7 @@ export namespace Controllers {
           actor: this.actor(user),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
-          const canonicalUrl = recordSchemaImmutableUrl(branding, portal, result.digest);
+          const canonicalUrl = recordSchemaImmutableUrl(branding, portal, result.digest, rootContext);
           if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
             return this.sendNotModified(req, res, result.metadata.etag, canonicalUrl);
           }
@@ -391,7 +376,8 @@ export namespace Controllers {
         const branding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const oid = this.normalizedRequired(params.oid);
-        instance = recordSchemaUpdateResolverUrl(branding, portal, oid);
+        const rootContext = BrandingService.getRootContext();
+        instance = recordSchemaUpdateResolverUrl(branding, portal, oid, rootContext);
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
         const brand = this.brand(branding);
@@ -404,7 +390,7 @@ export namespace Controllers {
           caller: this.caller(user, brand),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
-          const canonicalUrl = recordSchemaImmutableUrl(branding, portal, result.digest);
+          const canonicalUrl = recordSchemaImmutableUrl(branding, portal, result.digest, rootContext);
           if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
             return this.sendNotModified(req, res, result.metadata.etag, canonicalUrl);
           }
@@ -423,7 +409,7 @@ export namespace Controllers {
         const branding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const digest = this.normalizedRequired(params.digest);
-        instance = recordSchemaImmutableUrl(branding, portal, digest);
+        instance = recordSchemaImmutableUrl(branding, portal, digest, BrandingService.getRootContext());
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
         const brand = this.brand(branding);
