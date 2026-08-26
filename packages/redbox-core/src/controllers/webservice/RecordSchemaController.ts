@@ -1,6 +1,7 @@
 import { Controllers as controllers, getValidatedApiRequest } from '../../index';
 import type { BrandingModel, RecordSchemaService } from '../../index';
 import {
+  buildRecordSchemaInvalidRequestProblem,
   recordSchemaCanonicalLink,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
@@ -38,6 +39,8 @@ type RecordSchemaProblemKind =
   | 'invalid-contract'
   | 'unavailable';
 
+type RecordSchemaMappedProblemKind = Exclude<RecordSchemaProblemKind, 'invalid-request'>;
+
 interface RecordSchemaProblemDescriptor {
   readonly type: string;
   readonly title: string;
@@ -46,14 +49,7 @@ interface RecordSchemaProblemDescriptor {
   readonly code: RecordSchemaProblemCode;
 }
 
-const RECORD_SCHEMA_PROBLEMS: Readonly<Record<RecordSchemaProblemKind, RecordSchemaProblemDescriptor>> = {
-  'invalid-request': {
-    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
-    title: 'Record schema request is invalid',
-    status: 400,
-    detail: 'The record schema request is malformed.',
-    code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
-  },
+const RECORD_SCHEMA_PROBLEMS: Readonly<Record<RecordSchemaMappedProblemKind, RecordSchemaProblemDescriptor>> = {
   'authentication-required': {
     type: 'https://redboxresearchdata.com/problems/record-schema-authentication-required',
     title: 'Authentication is required',
@@ -207,12 +203,16 @@ export namespace Controllers {
     private problem(
       kind: RecordSchemaProblemKind,
       instance: string,
-      code: RecordSchemaProblemCode = RECORD_SCHEMA_PROBLEMS[kind].code
+      code?: RecordSchemaProblemCode
     ): RecordSchemaProblem {
+      if (kind === 'invalid-request') {
+        return buildRecordSchemaInvalidRequestProblem(instance, code);
+      }
+
       return {
         ...RECORD_SCHEMA_PROBLEMS[kind],
         instance,
-        code,
+        code: code === undefined ? RECORD_SCHEMA_PROBLEMS[kind].code : code,
       };
     }
 

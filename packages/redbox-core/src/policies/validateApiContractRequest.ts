@@ -1,6 +1,8 @@
 import { resolveApiRouteForRequest, validateApiRouteRequest, type ApiRouteDefinition } from '../api-routes';
-import { RECORD_SCHEMA_PROBLEM_MEDIA_TYPE } from '../api-routes/record-schema-response';
-import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract';
+import {
+  buildRecordSchemaInvalidRequestProblem,
+  RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+} from '../api-routes/record-schema-response';
 
 const RECORD_SCHEMA_CONTROLLER = 'webservice/RecordSchemaController';
 
@@ -14,9 +16,10 @@ function getNoCacheHeaders(): Record<string, string> {
 
 function getApiVersion(req: Sails.Req): string {
   const queryVersion = typeof req.query?.apiVersion === 'string' ? req.query.apiVersion.trim().toLowerCase() : '';
-  const headerVersion = typeof req.headers?.['x-redbox-api-version'] === 'string'
-    ? req.headers['x-redbox-api-version'].trim().toLowerCase()
-    : '';
+  const headerVersion =
+    typeof req.headers?.['x-redbox-api-version'] === 'string'
+      ? req.headers['x-redbox-api-version'].trim().toLowerCase()
+      : '';
   return headerVersion || queryVersion || '1.0';
 }
 
@@ -47,9 +50,9 @@ function sendPolicyResponse(
 ) {
   res.set(getNoCacheHeaders());
   res.status(status);
-  return res.json(getApiVersion(req) === '2.0'
-    ? { errors: displayErrors, meta: {} }
-    : buildV1ErrorResponse(displayErrors));
+  return res.json(
+    getApiVersion(req) === '2.0' ? { errors: displayErrors, meta: {} } : buildV1ErrorResponse(displayErrors)
+  );
 }
 
 function isRecordSchemaRoute(route: ApiRouteDefinition): boolean {
@@ -61,14 +64,7 @@ function sendRecordSchemaInvalidRequest(req: Sails.Req, res: Sails.Res) {
   res.set(getNoCacheHeaders());
   res.set('Content-Type', RECORD_SCHEMA_PROBLEM_MEDIA_TYPE);
   res.status(400);
-  return res.json({
-    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
-    title: 'Record schema request is invalid',
-    status: 400,
-    detail: 'The record schema request is malformed.',
-    instance,
-    code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
-  });
+  return res.json(buildRecordSchemaInvalidRequestProblem(instance));
 }
 
 function describeRequest(req: Sails.Req): string {
