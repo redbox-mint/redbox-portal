@@ -884,8 +884,14 @@ export interface ResolveImmutableRecordSchemaRequest {
   readonly ifNoneMatch?: string;
 }
 
-/** Immutable retrieval uses the shared resolver result contract established for schema endpoints. */
-export type ResolveImmutableRecordSchemaResult = ResolveRecordSchemaResult;
+/** Immutable invalid contracts retain whether equivalent caller authorization was established first. */
+export type ResolveImmutableRecordSchemaResult =
+  | Exclude<ResolveRecordSchemaResult, { readonly kind: 'invalid-contract' }>
+  | {
+      readonly kind: 'invalid-contract';
+      readonly authorization: 'unverified' | 'authorized';
+      readonly problem: RecordSchemaProblem;
+    };
 
 export interface PersistRecordSchemaSaveUsageRequest {
   readonly digest: string;
@@ -1883,10 +1889,12 @@ function immutableUnavailableResult(
 }
 
 function immutableInvalidContractResult(
-  request: ResolveImmutableRecordSchemaRequest
+  request: ResolveImmutableRecordSchemaRequest,
+  authorization: 'unverified' | 'authorized'
 ): ResolveImmutableRecordSchemaResult {
   return Object.freeze({
     kind: 'invalid-contract',
+    authorization,
     problem: immutableProblem(request, {
       type: 'https://redboxresearchdata.com/problems/record-schema-invalid-contract',
       title: 'Record schema contract is invalid',
@@ -1902,6 +1910,7 @@ function immutableGrantInvalidContractResult(
 ): ResolveImmutableRecordSchemaResult {
   return Object.freeze({
     kind: 'invalid-contract',
+    authorization: 'unverified',
     problem: immutableProblem(request, {
       type: 'https://redboxresearchdata.com/problems/record-schema-invalid-contract',
       title: 'Record schema contract is invalid',
@@ -2392,7 +2401,7 @@ export namespace Services {
         return immutableNotFoundResult(request);
       }
       if (!isObjectRecord(artifact) || ownDataProperty(artifact, 'digest') !== request.digest) {
-        return immutableInvalidContractResult(request);
+        return immutableInvalidContractResult(request, 'unverified');
       }
 
       let authorizedCompilation: RecordSchemaCompiledContext | undefined;
@@ -2457,7 +2466,7 @@ export namespace Services {
 
       const immutableArtifact = verifiedImmutableArtifact(artifact, authorizedCompilation);
       if (!immutableArtifact) {
-        return immutableInvalidContractResult(request);
+        return immutableInvalidContractResult(request, 'authorized');
       }
 
       const ifNoneMatch = parseRecordJsonSchemaEtag(request.ifNoneMatch);

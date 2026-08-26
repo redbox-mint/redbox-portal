@@ -1,11 +1,26 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import {
+  FormConfig,
+  SimpleInputFieldComponentConfig,
+  SimpleInputFieldComponentDefinition,
+  SimpleInputFieldModelConfig,
+  SimpleInputFieldModelDefinition,
+  SimpleInputFormComponentDefinition,
+} from '@researchdatabox/sails-ng-common';
 import lodash from 'lodash';
 import * as sinon from 'sinon';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordSchemaController';
 import { WebserviceControllerExports, WebserviceControllerNames } from '../../../src/controllers';
+import {
+  createCoreRecordContractContributors,
+  normalizeRedboxCanonicalJsonV1,
+  recordSchema,
+  RecordContractContributorRegistry,
+  StorageServiceResponse,
+} from '../../../src';
 import {
   getImmutableRecordSchemaRoute,
   resolveCreateRecordSchemaRoute,
@@ -23,10 +38,14 @@ import { BrandingModel } from '../../../src/model';
 import { JSON_SCHEMA_DRAFT_2020_12, RECORD_SCHEMA_PROBLEM_CODES } from '../../../src/record-contract';
 import type { ApiRouteDefinition } from '../../../src/api-routes';
 import type { BuildResponseType } from '../../../src/model';
-import type { RecordSchemaService } from '../../../src';
+import type { RecordSchemaArtifactModel, RecordSchemaGrantReferenceInput, RecordSchemaService } from '../../../src';
+import { Services as RecordSchemaServices } from '../../../src/services/RecordSchemaService';
 import type { FormRecordAccessRole, FormRecordAccessUser } from '../../../src/services/FormsService';
 import type {
   ContractJsonObject,
+  ContractJsonValue,
+  RecordContractContext,
+  RecordContractContributorRegistration,
   PublishedRecordJsonSchemaDocument,
   RecordContractCompleteness,
   RecordContractPublicContext,
@@ -255,6 +274,144 @@ function requestAdapter(): Sails.Req {
 function responseAdapter(): Sails.Res {
   const response: Sails.Res = Object.create(null);
   return response;
+}
+
+function enabledRecordSchemaConfig(): Record<string, unknown> {
+  return {
+    ...structuredClone(recordSchema),
+    enabled: true,
+  };
+}
+
+function recordSchemaCoreRegistry(): RecordContractContributorRegistry {
+  const registrations: RecordContractContributorRegistration[] = createCoreRecordContractContributors().map(
+    contributor => ({ contributor, source: 'core' })
+  );
+  return new RecordContractContributorRegistry(registrations);
+}
+
+function successfulStorageResponse(): StorageServiceResponse {
+  const response = new StorageServiceResponse();
+  response.success = true;
+  return response;
+}
+
+function isContractDocument(value: ContractJsonValue): value is ContractJsonObject {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function immutableControllerDocument(document: unknown): ContractJsonObject {
+  const normalized = normalizeRedboxCanonicalJsonV1(document);
+  if (!isContractDocument(normalized)) {
+    throw new Error('Expected an immutable controller test document.');
+  }
+  return normalized;
+}
+
+interface ImmutableControllerSeed {
+  readonly artifact: RecordSchemaArtifactModel;
+  readonly context: RecordContractContext;
+  readonly grant: RecordSchemaGrantReferenceInput;
+}
+
+function immutableControllerContext(): RecordContractContext {
+  const publicContext = schemaContext('create');
+  return {
+    publicContext,
+    resolution: {
+      sourceFormFingerprint: 'a'.repeat(64),
+      sourceForm: {
+        name: publicContext.form,
+        componentDefinitions: [],
+      },
+      reusableFormDefinitions: {},
+      actor: { authenticated: true, roles: ['Alpha', 'Zeta'] },
+      formMode: 'edit',
+      contextVariables: {},
+    },
+  };
+}
+
+function immutableControllerEffectiveForm(): FormConfig {
+  const form = new FormConfig();
+  form.name = 'dataset-draft';
+  const field = new SimpleInputFormComponentDefinition();
+  field.name = 'title';
+  field.component = new SimpleInputFieldComponentDefinition();
+  field.component.config = new SimpleInputFieldComponentConfig();
+  field.model = new SimpleInputFieldModelDefinition();
+  field.model.config = new SimpleInputFieldModelConfig();
+  form.componentDefinitions = [field];
+  return form;
+}
+
+async function immutableControllerSeed(): Promise<ImmutableControllerSeed> {
+  const context = immutableControllerContext();
+  const service = new RecordSchemaServices.RecordSchema({
+    getConfig: enabledRecordSchemaConfig,
+    getStorageProvider: () => ({
+      putRecordSchemaArtifact: async () => successfulStorageResponse(),
+      putRecordSchemaReference: async () => successfulStorageResponse(),
+    }),
+    getContributorRegistry: recordSchemaCoreRegistry,
+    resolveContractContext: async () => context,
+    buildContractFormConfig: async () => ({
+      ok: true,
+      effectiveForm: immutableControllerEffectiveForm(),
+    }),
+  });
+  const result = await service.resolveCreate({
+    brand: 'brand-1',
+    portal: 'portal-1',
+    recordType: 'dataset',
+    actor: { authenticated: true, roles: ['Alpha', 'Zeta'] },
+  });
+  if (result.kind !== 'resolved' && result.kind !== 'partial') {
+    throw new Error('Expected an immutable controller test seed.');
+  }
+  const storedAt = new Date('2026-08-24T00:00:00.000Z');
+  return {
+    context,
+    grant: result.grant,
+    artifact: {
+      digest: result.digest,
+      document: immutableControllerDocument(result.document),
+      contractFormat: result.metadata.contractFormat,
+      completeness: result.metadata.completeness,
+      byteLength: result.metadata.byteLength,
+      createdAt: storedAt,
+      updatedAt: storedAt,
+    },
+  };
+}
+
+function immutableControllerService(
+  seed: ImmutableControllerSeed,
+  artifact: unknown,
+  grants: readonly unknown[],
+  equivalentAuthorization: boolean
+) {
+  const resolveContractContext = sinon.stub();
+  if (equivalentAuthorization) {
+    resolveContractContext.resolves(seed.context);
+  } else {
+    resolveContractContext.rejects(new Error('inaccessible equivalent context'));
+  }
+  const service = new RecordSchemaServices.RecordSchema({
+    getConfig: enabledRecordSchemaConfig,
+    getStorageProvider: () => ({
+      getRecordSchemaArtifact: async () => artifact,
+      listRecordSchemaReferences: async () => grants,
+      touchRecordSchemaArtifact: async () => successfulStorageResponse(),
+    }),
+    getContributorRegistry: recordSchemaCoreRegistry,
+    resolveContractContext,
+    buildContractFormConfig: async () => ({
+      ok: true,
+      effectiveForm: immutableControllerEffectiveForm(),
+    }),
+  });
+  return { service, resolveContractContext };
 }
 
 interface ValidatedRequestOptions {
@@ -1004,6 +1161,81 @@ describe('Webservice RecordSchemaController', function () {
     expect(missing).to.deep.equal(inaccessible);
     expect(JSON.stringify(inaccessible)).not.to.match(/private|brand-1|user|role|OID|exception/);
     expect(inaccessible).not.to.have.property('headers');
+  });
+
+  it('hides pre-authorization immutable corruption but preserves authorized invalid-contract responses', async function () {
+    const seed = await immutableControllerSeed();
+    const digest = seed.artifact.digest;
+    const instance = `/default/portal-1/api/records/schemas/${digest}`;
+    const req = validatedRequest(getImmutableRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', digest },
+      query: {},
+      headers: {},
+    });
+    const corruptedArtifactBeforeAuthorization = { digest: 'b'.repeat(64) };
+    const corruptedGrantBeforeAuthorization = { kind: 'grant', digest };
+    const corruptedArtifactAfterAuthorization: RecordSchemaArtifactModel = {
+      ...seed.artifact,
+      document: {
+        ...seed.artifact.document,
+        title: 'Tampered after persistence',
+      },
+    };
+    const cases = [
+      {
+        name: 'missing',
+        artifact: null,
+        grants: [],
+        equivalentAuthorization: false,
+      },
+      {
+        name: 'inaccessible corrupt artifact',
+        artifact: corruptedArtifactBeforeAuthorization,
+        grants: [seed.grant],
+        equivalentAuthorization: false,
+      },
+      {
+        name: 'inaccessible corrupt grant',
+        artifact: seed.artifact,
+        grants: [corruptedGrantBeforeAuthorization],
+        equivalentAuthorization: false,
+      },
+      {
+        name: 'authorized invalid contract',
+        artifact: corruptedArtifactAfterAuthorization,
+        grants: [seed.grant],
+        equivalentAuthorization: true,
+      },
+    ] as const;
+    const responses = new Map<string, BuildResponseType>();
+
+    for (const testCase of cases) {
+      controller.resetSentResponses();
+      const boundary = immutableControllerService(
+        seed,
+        testCase.artifact,
+        testCase.grants,
+        testCase.equivalentAuthorization
+      );
+      controller.RecordSchemaService = boundary.service;
+
+      await controller.immutable(req, responseAdapter());
+
+      responses.set(testCase.name, onlySentResponse(controller).response);
+      if (!testCase.equivalentAuthorization) {
+        expect(boundary.resolveContractContext.notCalled, testCase.name).to.equal(true);
+      } else {
+        expect(boundary.resolveContractContext.calledOnce, testCase.name).to.equal(true);
+      }
+    }
+
+    const missing = responses.get('missing');
+    expect(missing).to.deep.equal(expectedProblemResponse('not-found', instance));
+    expect(responses.get('inaccessible corrupt artifact')).to.deep.equal(missing);
+    expect(responses.get('inaccessible corrupt grant')).to.deep.equal(missing);
+    expect(responses.get('authorized invalid contract')).to.deep.equal(
+      expectedProblemResponse('invalid-contract', instance)
+    );
   });
 
   it('gives immutable result kinds precedence over conflicting embedded Problem Details statuses', async function () {

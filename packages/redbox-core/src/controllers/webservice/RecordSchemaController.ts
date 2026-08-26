@@ -291,6 +291,9 @@ export namespace Controllers {
         case 'limit-exceeded':
           return this.sendProblem(req, res, 'limit-exceeded', instance, result.problem.code);
         case 'invalid-contract':
+          if (result.authorization !== 'authorized') {
+            return this.sendProblem(req, res, 'not-found', instance);
+          }
           return this.sendProblem(req, res, 'invalid-contract', instance, result.problem.code);
         case 'unavailable':
           return this.sendProblem(req, res, 'unavailable', instance, result.problem.code);
