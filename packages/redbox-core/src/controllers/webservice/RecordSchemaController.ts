@@ -162,24 +162,30 @@ export namespace Controllers {
       return this.normalizedOptional(value) === etag;
     }
 
+    private canonicalUrl(branding: string, portal: string, digest: string): string {
+      return `/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas/${encodeURIComponent(digest)}`;
+    }
+
     public async create(req: Sails.Req, res: Sails.Res) {
       try {
         const user = this.authenticatedUser(req);
         const { params, query, headers = {} } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
+        const portal = this.normalizedRequired(params.portal);
         const result = await this.RecordSchemaService.resolveCreate({
           brand: brand.id.trim(),
-          portal: this.normalizedRequired(params.portal),
+          portal,
           recordType: this.normalizedRequired(params.recordType),
           operation: this.normalizedOptional(query.operation),
           actor: this.actor(user),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
+          const canonicalUrl = this.canonicalUrl(branding, portal, result.digest);
           if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
-            return this.sendNotModified(req, res, result.metadata.etag, result.document.$id);
+            return this.sendNotModified(req, res, result.metadata.etag, canonicalUrl);
           }
-          return this.sendSchema(req, res, result.document, result.metadata.etag, result.document.$id);
+          return this.sendSchema(req, res, result.document, result.metadata.etag, canonicalUrl);
         }
         return this.sendResolutionFailure(req, res);
       } catch (error: unknown) {
@@ -193,18 +199,20 @@ export namespace Controllers {
         const { params, query, headers = {} } = getValidatedApiRequest(req);
         const branding = this.normalizedRequired(params.branding);
         const brand = this.brand(branding);
+        const portal = this.normalizedRequired(params.portal);
         const result = await this.RecordSchemaService.resolveUpdate({
           brand: brand.id.trim(),
-          portal: this.normalizedRequired(params.portal),
+          portal,
           oid: this.normalizedRequired(params.oid),
           operation: this.normalizedOptional(query.operation),
           caller: this.caller(user, brand),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
+          const canonicalUrl = this.canonicalUrl(branding, portal, result.digest);
           if (this.matchesIfNoneMatch(headers['If-None-Match'], result.metadata.etag)) {
-            return this.sendNotModified(req, res, result.metadata.etag, result.document.$id);
+            return this.sendNotModified(req, res, result.metadata.etag, canonicalUrl);
           }
-          return this.sendSchema(req, res, result.document, result.metadata.etag, result.document.$id);
+          return this.sendSchema(req, res, result.document, result.metadata.etag, canonicalUrl);
         }
         return this.sendResolutionFailure(req, res);
       } catch (error: unknown) {

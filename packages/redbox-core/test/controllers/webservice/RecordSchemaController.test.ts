@@ -399,7 +399,7 @@ describe('Webservice RecordSchemaController', function () {
         format: 'raw-json',
         mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
         data: document,
-        headers: successfulSchemaHeaders(etag, document.$id),
+        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
       },
     });
   });
@@ -467,7 +467,7 @@ describe('Webservice RecordSchemaController', function () {
         format: 'raw-json',
         mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
         data: document,
-        headers: successfulSchemaHeaders(etag, document.$id),
+        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
       },
     });
   });
@@ -572,7 +572,7 @@ describe('Webservice RecordSchemaController', function () {
       res,
       response: {
         status: 304,
-        headers: successfulSchemaHeaders(etag, document.$id),
+        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
       },
     });
   });
@@ -621,9 +621,88 @@ describe('Webservice RecordSchemaController', function () {
       res,
       response: {
         status: 304,
-        headers: successfulSchemaHeaders(etag, document.$id),
+        headers: successfulSchemaHeaders(etag, `/default/portal-1/api/records/schemas/${digest}`),
       },
     });
+  });
+
+  it('uses the public branding route segment in resolver Links for 200 and 304 responses', async function () {
+    const digest = 'f'.repeat(64);
+    const etag = schemaEtag(digest);
+    const canonicalLink = `</default/portal-1/api/records/schemas/${digest}>; rel="canonical"; type="application/schema+json"`;
+    const createContext = schemaContext('create');
+    const createDocument = schemaDocument(createContext, 'complete', digest);
+    resolver.resolveCreate.resolves({
+      kind: 'resolved',
+      document: createDocument,
+      digest,
+      metadata: {
+        schemaKind: 'create',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'complete',
+        byteLength: 1,
+        etag,
+        context: createContext,
+      },
+      grant: {
+        referenceKey: 'grant-create-public-link',
+        digest,
+        brand: resolvedBrand.id,
+        portal: 'portal-1',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        kind: 'grant',
+        schemaKind: 'create',
+      },
+    });
+    const createReq = validatedRequest(resolveCreateRecordSchemaRoute, {
+      params: { branding: resolvedBrand.name, portal: 'portal-1', recordType: 'dataset' },
+      query: {},
+      headers: {},
+    });
+
+    await controller.create(createReq, responseAdapter());
+
+    expect(createDocument.$id).to.equal(`/brand-1/portal-1/api/records/schemas/${digest}`);
+    expect(onlySentResponse(controller).response.headers?.Link).to.equal(canonicalLink);
+
+    resetControllerHistory(controller, resolver);
+    const updateContext = schemaContext('update');
+    const updateDocument = schemaDocument(updateContext, 'partial', digest);
+    resolver.resolveUpdate.resolves({
+      kind: 'partial',
+      document: updateDocument,
+      digest,
+      metadata: {
+        schemaKind: 'update',
+        contractFormat: 'redbox-record-contract/1',
+        completeness: 'partial',
+        byteLength: 1,
+        etag,
+        context: updateContext,
+      },
+      grant: {
+        referenceKey: 'grant-update-public-link',
+        digest,
+        brand: resolvedBrand.id,
+        portal: 'portal-1',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        kind: 'grant',
+        schemaKind: 'update',
+        oid: 'record-1',
+      },
+    });
+    const updateReq = validatedRequest(resolveUpdateRecordSchemaRoute, {
+      params: { branding: resolvedBrand.name, portal: 'portal-1', oid: 'record-1' },
+      query: {},
+      headers: { 'If-None-Match': etag },
+    });
+
+    await controller.update(updateReq, responseAdapter());
+
+    expect(onlySentResponse(controller).response).to.deep.include({ status: 304 });
+    expect(onlySentResponse(controller).response.headers?.Link).to.equal(canonicalLink);
   });
 
   it('returns bodyless 304 for an immutable service cache hit authorized before ETag evaluation', async function () {
