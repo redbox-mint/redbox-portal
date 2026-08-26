@@ -3576,6 +3576,19 @@ export namespace Services {
           return tracker.toResponse();
         }
       }
+
+      // A create form is delivered from the starting workflow step. The
+      // target step is selected by the save button and is not part of the
+      // form contract the browser received, so retain a server-owned copy of
+      // that starting contract for the concurrency check below.
+      const createFormFingerprintRecord: AnyRecord = {
+        metaMetadata: {
+          brandId: String(brandObj?.id ?? ''),
+          type: String(recordTypeObj?.name ?? recordTypeName),
+          form: String(_.get(startingWfStep, 'config.form', '')),
+        },
+        workflow: { stage: this.workflowStepName(startingWfStep) },
+      };
       this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
       if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
       const formName = String(_.get(wfStep, 'config.form', ''));
@@ -3622,9 +3635,8 @@ export namespace Services {
       if (suppliedFormFingerprint || formFingerprintRequired) {
         try {
           currentFormFingerprint = await this.getRecordFormFingerprint(
-            recordObj,
+            createFormFingerprintRecord,
             recordTypeObj,
-            targetStepName ? wfStep : undefined
           );
         } catch (error) {
           tracker.recordPrimaryNotApplied(
