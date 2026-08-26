@@ -109,13 +109,13 @@ describe('RecordSchemaService configured-form integration', function () {
     enabled: true,
   };
 
-  function caller(username: string, brandId: string) {
+  function caller(username: string, brandId: string, brandName = brandId) {
     const role = new RoleModel();
     role.id = 'integration-admin-role';
     role.name = 'Admin';
     const brand = new BrandingModel();
     brand.id = brandId;
-    brand.name = brandId;
+    brand.name = brandName;
     brand.roles = [role];
     const user = new UserModel();
     user.id = username;
@@ -246,14 +246,18 @@ describe('RecordSchemaService configured-form integration', function () {
 
   it('resolves a real workflow form through hook and fallback contributors and survives a fresh service', async function () {
     let hookCompileCount = 0;
-    const brandId = sails.services.brandingservice.getDefault().id;
+    const defaultBrand = sails.services.brandingservice.getDefault();
+    const brandId = defaultBrand.id;
+    const branding = defaultBrand.name;
     expect(brandId).to.be.a('string').and.not.equal('');
+    expect(branding).to.equal('default');
     const firstService = service(() => {
       hookCompileCount += 1;
     });
 
     const resolution = await firstService.resolveCreate({
       brand: brandId,
+      branding,
       portal: 'rdmp',
       recordType: 'rdmp',
       targetStep: 'draft',
@@ -264,7 +268,7 @@ describe('RecordSchemaService configured-form integration', function () {
     expect(resolution.kind, JSON.stringify(resolution)).to.equal('partial');
     if (resolution.kind !== 'partial') throw new Error('Expected the unsupported custom component to be partial.');
     expect(resolution.metadata.context).to.deep.include({
-      brand: brandId,
+      brand: branding,
       portal: 'rdmp',
       kind: 'create',
       recordType: 'rdmp',
@@ -272,6 +276,7 @@ describe('RecordSchemaService configured-form integration', function () {
       form: 'default-1.0-draft',
       operation: 'strict-all',
     });
+    expect(resolution.document.$id).to.equal(`/${branding}/rdmp/api/records/schemas/${resolution.digest}`);
     expect(resolution.document.properties?.integration_hook_value).to.deep.include({ type: 'string' });
     expect(resolution.document.properties?.integration_unsupported_value).to.deep.include({
       'x-redbox-unsupported-component': 'IntegrationUnsupportedComponent',
@@ -289,7 +294,7 @@ describe('RecordSchemaService configured-form integration', function () {
     const storedReferences = await storage().listRecordSchemaReferences({
       digest: resolution.digest,
       kind: 'grant',
-      brand: brandId,
+      brand: branding,
       portal: 'rdmp',
       limit: 10,
       offset: 0,
@@ -315,6 +320,7 @@ describe('RecordSchemaService configured-form integration', function () {
 
     const denied = await firstService.resolveImmutable({
       brand: brandId,
+      branding,
       portal: 'rdmp',
       digest: resolution.digest,
       caller: caller('integration-schema-user', 'another-brand'),
@@ -326,9 +332,10 @@ describe('RecordSchemaService configured-form integration', function () {
     });
     const immutable = await restartedService.resolveImmutable({
       brand: brandId,
+      branding,
       portal: 'rdmp',
       digest: resolution.digest,
-      caller: caller('integration-schema-user', brandId),
+      caller: caller('integration-schema-user', brandId, branding),
     });
     expect(immutable.kind).to.equal('resolved');
     if (immutable.kind !== 'resolved') throw new Error('Expected immutable retrieval after a service restart.');
@@ -357,8 +364,8 @@ describe('RecordSchemaService configured-form integration', function () {
       expected: { type: 'string' },
     });
 
-    const owner = caller('integration-schema-owner', brandId);
-    const outsider = caller('integration-schema-outsider', brandId);
+    const owner = caller('integration-schema-owner', brandId, branding);
+    const outsider = caller('integration-schema-outsider', brandId, branding);
     const updateOid = `record-schema-update-${Date.now()}`;
     persistedRecordOids.add(updateOid);
     const recordWrite = await storage().create(
@@ -393,6 +400,7 @@ describe('RecordSchemaService configured-form integration', function () {
 
     const updateResolution = await firstService.resolveUpdate({
       brand: brandId,
+      branding,
       portal: 'rdmp',
       oid: updateOid,
       caller: owner,
@@ -401,7 +409,7 @@ describe('RecordSchemaService configured-form integration', function () {
     expect(updateResolution.kind).to.equal('partial');
     if (updateResolution.kind !== 'partial') throw new Error('Expected the persisted update schema to be partial.');
     expect(updateResolution.metadata.context).to.deep.include({
-      brand: brandId,
+      brand: branding,
       portal: 'rdmp',
       kind: 'update',
       recordType: 'rdmp',
@@ -409,11 +417,12 @@ describe('RecordSchemaService configured-form integration', function () {
       form: 'default-1.0-draft',
       operation: 'strict-all',
     });
+    expect(updateResolution.document.$id).to.equal(`/${branding}/rdmp/api/records/schemas/${updateResolution.digest}`);
     expect(updateResolution.grant).to.deep.include({
       digest: updateResolution.digest,
       kind: 'grant',
       schemaKind: 'update',
-      brand: brandId,
+      brand: branding,
       portal: 'rdmp',
       recordType: 'rdmp',
       oid: updateOid,
@@ -422,7 +431,7 @@ describe('RecordSchemaService configured-form integration', function () {
     const updateReferences = await storage().listRecordSchemaReferences({
       digest: updateResolution.digest,
       kind: 'grant',
-      brand: brandId,
+      brand: branding,
       portal: 'rdmp',
       limit: 10,
       offset: 0,
@@ -432,6 +441,7 @@ describe('RecordSchemaService configured-form integration', function () {
 
     const updateDenied = await restartedService.resolveImmutable({
       brand: brandId,
+      branding,
       portal: 'rdmp',
       digest: updateResolution.digest,
       caller: outsider,
@@ -440,7 +450,9 @@ describe('RecordSchemaService configured-form integration', function () {
   });
 
   it('tracks the durable RDMP artifact when grant persistence fails', async function () {
-    const brandId = sails.services.brandingservice.getDefault().id;
+    const defaultBrand = sails.services.brandingservice.getDefault();
+    const brandId = defaultBrand.id;
+    const branding = defaultBrand.name;
     const grantFailure = new StorageServiceResponse();
     const failingGrantService = service(
       () => undefined,
@@ -452,6 +464,7 @@ describe('RecordSchemaService configured-form integration', function () {
 
     const result = await failingGrantService.resolveCreate({
       brand: brandId,
+      branding,
       portal: 'rdmp',
       recordType: 'rdmp',
       targetStep: 'draft',
@@ -467,7 +480,7 @@ describe('RecordSchemaService configured-form integration', function () {
     const storedReferences = await storage().listRecordSchemaReferences({
       digest: result.artifact.digest,
       kind: 'grant',
-      brand: brandId,
+      brand: branding,
       portal: 'rdmp',
       limit: 10,
       offset: 0,

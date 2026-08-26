@@ -690,7 +690,10 @@ function isDisabled(value: unknown): boolean {
 }
 
 export interface ResolveCreateRecordSchemaRequest {
+  /** Internal persisted brand identifier used for authoritative form and record lookup. */
   readonly brand: string;
+  /** Canonical public branding route segment. Defaults to `brand` for internal compatibility. */
+  readonly branding?: string;
   readonly portal: string;
   readonly recordType: string;
   readonly operation?: string;
@@ -795,7 +798,10 @@ export type ResolveCreateRecordSchemaResult =
   | RecordSchemaCreateUnavailableFailure;
 
 export interface ResolveUpdateRecordSchemaRequest {
+  /** Internal persisted brand identifier used for authoritative form and record lookup. */
   readonly brand: string;
+  /** Canonical public branding route segment. Defaults to `brand` for internal compatibility. */
+  readonly branding?: string;
   readonly portal: string;
   readonly oid: string;
   readonly operation?: string;
@@ -877,7 +883,10 @@ export type ResolveUpdateRecordSchemaResult =
   | RecordSchemaUpdatePreconditionFailure;
 
 export interface ResolveImmutableRecordSchemaRequest {
+  /** Internal persisted brand identifier used for authoritative authorization. */
   readonly brand: string;
+  /** Canonical public branding route segment. Defaults to `brand` for internal compatibility. */
+  readonly branding?: string;
   readonly portal: string;
   readonly digest: string;
   /** Trusted current caller and brand used by the authoritative context and record-access paths. */
@@ -1718,6 +1727,33 @@ function isUpdateContractContext(context: RecordContractContext): context is Rec
   return context.publicContext.kind === 'update';
 }
 
+function publicBranding(request: { readonly brand: string; readonly branding?: string }): string {
+  const branding = typeof request.branding === 'string' ? request.branding.trim() : '';
+  return branding || request.brand;
+}
+
+function createContextWithPublicBrand(
+  context: RecordContractCreateContext,
+  branding: string
+): RecordContractCreateContext {
+  if (context.publicContext.brand === branding) return context;
+  return Object.freeze({
+    publicContext: Object.freeze({ ...context.publicContext, brand: branding }),
+    resolution: context.resolution,
+  });
+}
+
+function updateContextWithPublicBrand(
+  context: RecordContractUpdateContext,
+  branding: string
+): RecordContractUpdateContext {
+  if (context.publicContext.brand === branding) return context;
+  return Object.freeze({
+    publicContext: Object.freeze({ ...context.publicContext, brand: branding }),
+    resolution: context.resolution,
+  });
+}
+
 function callerActor(caller: FormRecordAccessContext): RecordContractContextActor {
   const username = typeof caller.user?.username === 'string' ? caller.user.username.trim() : '';
   const rawRoles = Array.isArray(caller.user?.roles) ? caller.user.roles : [];
@@ -1768,7 +1804,7 @@ function parseImmutableGrant(value: unknown, request: ResolveImmutableRecordSche
     ) {
       return { kind: 'invalid' };
     }
-    if (digest !== request.digest || brand !== request.brand || portal !== request.portal) {
+    if (digest !== request.digest || brand !== publicBranding(request) || portal !== request.portal) {
       return { kind: 'irrelevant' };
     }
     const oid = ownDataProperty(value, 'oid');
@@ -1811,7 +1847,7 @@ function parseImmutableGrant(value: unknown, request: ResolveImmutableRecordSche
 }
 
 function immutableProblemInstance(request: ResolveImmutableRecordSchemaRequest): string {
-  return `/${encodeURIComponent(request.brand)}/${encodeURIComponent(request.portal)}/api/records/schemas/${encodeURIComponent(request.digest)}`;
+  return `/${encodeURIComponent(publicBranding(request))}/${encodeURIComponent(request.portal)}/api/records/schemas/${encodeURIComponent(request.digest)}`;
 }
 
 function immutableProblem(
@@ -2162,7 +2198,7 @@ export namespace Services {
         if (!isCreateContractContext(resolvedContext)) {
           return this.contextFailure('not-resolvable');
         }
-        context = resolvedContext;
+        context = createContextWithPublicBrand(resolvedContext, publicBranding(request));
       } catch (error) {
         if (error instanceof RecordContractContextResolutionError) {
           return this.contextFailure(error.failureKind, error.diagnosticCodes);
@@ -2239,7 +2275,7 @@ export namespace Services {
         };
       }
 
-      let context: RecordContractUpdateContext;
+      let internalContext: RecordContractUpdateContext;
       try {
         const resolvedContext = await this.dependencies.resolveContractContext({
           kind: 'update',
@@ -2252,7 +2288,7 @@ export namespace Services {
         if (!isUpdateContractContext(resolvedContext)) {
           return this.contextFailure('not-resolvable');
         }
-        context = resolvedContext;
+        internalContext = resolvedContext;
       } catch (error) {
         if (error instanceof RecordContractContextResolutionError) {
           if (error.failureKind === 'not-found' && error.diagnosticCodes.length === 0) {
@@ -2269,7 +2305,7 @@ export namespace Services {
 
       let authorized: boolean;
       try {
-        authorized = await this.dependencies.authorizeUpdate(context, request.caller);
+        authorized = await this.dependencies.authorizeUpdate(internalContext, request.caller);
       } catch (error) {
         this.logUnexpected('resolve-update-authorization', error);
         return this.contextFailure('unavailable');
@@ -2280,6 +2316,8 @@ export namespace Services {
           code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
         };
       }
+
+      const context = updateContextWithPublicBrand(internalContext, publicBranding(request));
 
       const compilation = await this.compileContext(config, context, request.caller);
       if (compilation.kind !== 'resolved' && compilation.kind !== 'partial') {
@@ -2414,7 +2452,7 @@ export namespace Services {
           rawGrants = await storage.listRecordSchemaReferences({
             digest: request.digest,
             kind: 'grant',
-            brand: request.brand,
+            brand: publicBranding(request),
             portal: request.portal,
             limit: RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE,
             offset: grantOffset,
@@ -2447,7 +2485,8 @@ export namespace Services {
             artifact,
             parsedGrant.grant,
             request.caller,
-            actor
+            actor,
+            request.brand
           );
           if (authorizedCompilation) {
             break;
@@ -3056,15 +3095,16 @@ export namespace Services {
       artifact: RecordSchemaArtifactModel,
       grant: RecordSchemaGrantReferenceModel,
       caller: FormRecordAccessContext,
-      actor: RecordContractContextActor
+      actor: RecordContractContextActor,
+      internalBrand: string
     ): Promise<RecordSchemaCompiledContext | undefined> {
-      let context: RecordContractContext;
+      let internalContext: RecordContractContext;
       try {
-        context = await this.dependencies.resolveContractContext(
+        internalContext = await this.dependencies.resolveContractContext(
           grant.schemaKind === 'create'
             ? {
                 kind: 'create',
-                brand: grant.brand,
+                brand: internalBrand,
                 portal: grant.portal,
                 recordType: grant.recordType,
                 operation: immutableGrantOperation(grant.operation),
@@ -3073,7 +3113,7 @@ export namespace Services {
               }
             : {
                 kind: 'update',
-                brand: grant.brand,
+                brand: internalBrand,
                 portal: grant.portal,
                 oid: grant.oid,
                 operation: immutableGrantOperation(grant.operation),
@@ -3082,6 +3122,15 @@ export namespace Services {
         );
       } catch {
         return undefined;
+      }
+
+      let context: RecordContractContext;
+      if (grant.schemaKind === 'create') {
+        if (!isCreateContractContext(internalContext)) return undefined;
+        context = createContextWithPublicBrand(internalContext, grant.brand);
+      } else {
+        if (!isUpdateContractContext(internalContext)) return undefined;
+        context = updateContextWithPublicBrand(internalContext, grant.brand);
       }
 
       if (
@@ -3096,19 +3145,21 @@ export namespace Services {
 
       let recordAccessContext: FormRecordAccessContext | undefined;
       if (grant.schemaKind === 'update') {
-        if (!isUpdateContractContext(context) || context.resolution.oid !== grant.oid) {
+        if (
+          !isUpdateContractContext(context) ||
+          !isUpdateContractContext(internalContext) ||
+          context.resolution.oid !== grant.oid
+        ) {
           return undefined;
         }
         try {
-          if (!(await this.dependencies.authorizeUpdate(context, caller))) {
+          if (!(await this.dependencies.authorizeUpdate(internalContext, caller))) {
             return undefined;
           }
         } catch {
           return undefined;
         }
         recordAccessContext = caller;
-      } else if (!isCreateContractContext(context)) {
-        return undefined;
       }
 
       const compilation = await this.compileContext(config, context, recordAccessContext);

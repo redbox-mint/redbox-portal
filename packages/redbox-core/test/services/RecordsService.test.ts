@@ -3923,12 +3923,13 @@ describe('RecordsService', function () {
     const createSchemaResolution = (
       kind: 'resolved' | 'partial',
       enforcement: 'shadow' | 'enforce' = 'shadow',
-      portal = 'portal'
+      portal = 'portal',
+      branding = 'brand-1'
     ) => ({
       kind,
       document: {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
-        $id: `/brand-1/${encodeURIComponent(portal)}/api/records/schemas/${'a'.repeat(64)}`,
+        $id: `/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas/${'a'.repeat(64)}`,
         type: 'object',
       },
       digest: 'a'.repeat(64),
@@ -3940,7 +3941,7 @@ describe('RecordsService', function () {
         byteLength: 128,
         etag: `"sha256:${'a'.repeat(64)}"`,
         context: {
-          brand: 'brand-1',
+          brand: branding,
           portal,
           kind: 'create',
           recordType: 'rdmp',
@@ -4514,7 +4515,7 @@ describe('RecordsService', function () {
         metadata: structuredClone(rawMetadata),
         authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
       };
-      const resolution = createSchemaResolution('resolved', 'shadow', 'tenant-portal');
+      const resolution = createSchemaResolution('resolved', 'shadow', 'tenant-portal', 'default');
       resolution.document['x-private-test-marker'] = 'private-schema-document-marker';
       resolution.grant = {
         privateGrantData: 'private-grant-marker',
@@ -4541,7 +4542,7 @@ describe('RecordsService', function () {
       businessValidation.resolves(allowResult());
 
       const result = await RecordsService.create(
-        { id: 'brand-1' },
+        { id: 'brand-1', name: 'default' },
         callerRecord,
         { name: 'rdmp', hooks: {}, searchable: false },
         { username: 'user-1', roles: [{ name: 'Researcher' }, { name: 'Publisher' }] },
@@ -4560,6 +4561,7 @@ describe('RecordsService', function () {
       expect(
         resolveCreate.calledOnceWithExactly({
           brand: 'brand-1',
+          branding: 'default',
           portal: 'tenant-portal',
           recordType: 'rdmp',
           operation: 'publish',
@@ -4587,7 +4589,7 @@ describe('RecordsService', function () {
       expect(
         persistSaveUsageReference.calledOnceWithExactly({
           digest: 'a'.repeat(64),
-          brand: 'brand-1',
+          brand: 'default',
           portal: 'tenant-portal',
           schemaKind: 'create',
           recordType: 'rdmp',
@@ -4598,7 +4600,7 @@ describe('RecordsService', function () {
       ).to.equal(true);
       expect(result.schemaOutcome).to.deep.equal({
         digest: 'a'.repeat(64),
-        immutableUrl: `/brand-1/tenant-portal/api/records/schemas/${'a'.repeat(64)}`,
+        immutableUrl: `/default/tenant-portal/api/records/schemas/${'a'.repeat(64)}`,
         completeness: 'complete',
         enforcement: 'shadow',
       });

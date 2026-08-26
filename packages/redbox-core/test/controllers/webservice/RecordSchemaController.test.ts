@@ -362,6 +362,7 @@ async function immutableControllerSeed(): Promise<ImmutableControllerSeed> {
   });
   const result = await service.resolveCreate({
     brand: 'brand-1',
+    branding: 'default',
     portal: 'portal-1',
     recordType: 'dataset',
     actor: { authenticated: true, roles: ['Alpha', 'Zeta'] },
@@ -642,6 +643,7 @@ describe('Webservice RecordSchemaController', function () {
     expect(
       resolver.resolveCreate.calledOnceWithExactly({
         brand: 'brand-1',
+        branding: 'default',
         portal: 'portal-1',
         recordType: 'dataset',
         operation: 'submit',
@@ -707,6 +709,7 @@ describe('Webservice RecordSchemaController', function () {
     expect(
       resolver.resolveUpdate.calledOnceWithExactly({
         brand: 'brand-1',
+        branding: 'default',
         portal: 'portal-1',
         oid: 'record-1',
         operation: undefined,
@@ -764,6 +767,7 @@ describe('Webservice RecordSchemaController', function () {
     expect(
       resolver.resolveImmutable.calledOnceWithExactly({
         brand: 'brand-1',
+        branding: 'default',
         portal: 'portal-1',
         digest,
         caller: {
@@ -989,6 +993,7 @@ describe('Webservice RecordSchemaController', function () {
     expect(
       resolver.resolveImmutable.calledOnceWithExactly({
         brand: 'brand-1',
+        branding: 'default',
         portal: 'portal-1',
         digest,
         caller: { brand: resolvedBrand, user: defaultRequestUser },

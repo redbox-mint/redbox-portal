@@ -1085,6 +1085,7 @@ export namespace Services {
       const service = this.resolveRecordSchemaService();
       if (!service) return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
       const brand = String(options.brand.id ?? '').trim();
+      const branding = String(options.brand.name ?? '').trim() || brand;
       if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !options.portal) {
         return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
       }
@@ -1093,6 +1094,7 @@ export namespace Services {
       try {
         resolution = await service.resolveCreate({
           brand,
+          branding,
           portal: options.portal,
           recordType: options.recordTypeName,
           operation: options.context.schemaOperation,
@@ -1179,6 +1181,7 @@ export namespace Services {
       const service = this.resolveUpdateRecordSchemaService();
       if (!service) return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
       const brand = String(options.brand.id ?? '').trim();
+      const branding = String(options.brand.name ?? '').trim() || brand;
       const portal = String(options.portal ?? sails.config.auth?.defaultPortal ?? '').trim();
       if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !RECORD_VALIDATION_REFERENCE_PATTERN.test(portal)) {
         return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
@@ -1188,6 +1191,7 @@ export namespace Services {
       try {
         resolution = await service.resolveUpdate({
           brand,
+          branding,
           portal,
           oid: options.oid,
           operation: options.context.schemaOperation,

@@ -301,6 +301,7 @@ export namespace Controllers {
         }
         const result = await resolver.resolveUpdate({
           brand: brand.id.trim(),
+          branding,
           portal,
           oid,
           caller: { brand, user },

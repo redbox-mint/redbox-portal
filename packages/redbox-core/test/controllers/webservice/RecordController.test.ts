@@ -2752,6 +2752,7 @@ describe('Webservice RecordController getMeta', () => {
 
     assert.deepEqual(resolveUpdate.firstCall.args[0], {
       brand: 'brand-1',
+      branding: 'public brand',
       portal: 'tenant portal',
       oid: 'oid-1',
       caller: { brand: { id: 'brand-1', name: 'default' }, user },

@@ -351,6 +351,7 @@ export namespace Controllers {
         if (!brand) return this.sendProblem(req, res, 'not-found', instance);
         const result = await this.RecordSchemaService.resolveCreate({
           brand: brand.id.trim(),
+          branding,
           portal,
           recordType,
           operation: this.normalizedOptional(query.operation),
@@ -384,6 +385,7 @@ export namespace Controllers {
         if (!brand) return this.sendProblem(req, res, 'not-found', instance);
         const result = await this.RecordSchemaService.resolveUpdate({
           brand: brand.id.trim(),
+          branding,
           portal,
           oid,
           operation: this.normalizedOptional(query.operation),
@@ -416,6 +418,7 @@ export namespace Controllers {
         if (!brand) return this.sendProblem(req, res, 'not-found', instance);
         const result = await this.RecordSchemaService.resolveImmutable({
           brand: brand.id.trim(),
+          branding,
           portal,
           digest,
           caller: this.caller(user, brand),

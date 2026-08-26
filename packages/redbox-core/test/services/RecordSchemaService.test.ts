@@ -419,10 +419,11 @@ function immutableSeedDocument(document: unknown): ContractJsonObject {
   return normalized;
 }
 
-async function createImmutableSeed(): Promise<ImmutableSeed> {
+async function createImmutableSeed(branding?: string): Promise<ImmutableSeed> {
   const fixture = createResolutionFixture();
   const result = await fixture.service.resolveCreate({
     brand: 'brand-1',
+    branding,
     portal: 'portal-1',
     recordType: 'dataset',
     actor: { authenticated: true, roles: ['Researcher'] },
@@ -1003,6 +1004,27 @@ describe('RecordSchemaService create resolution', function () {
     });
     expect(fixture.putRecordSchemaReference.callCount).to.equal(2);
     expect(fixture.putRecordSchemaReference.firstCall.firstArg).to.deep.equal(first.grant);
+  });
+
+  it('publishes the canonical branding scope while retaining the Mongo brand id for context resolution', async function () {
+    const fixture = createResolutionFixture();
+
+    const result = await fixture.service.resolveCreate({
+      ...request,
+      branding: 'default',
+    });
+
+    expect(result.kind).to.equal('resolved');
+    if (result.kind !== 'resolved') {
+      throw new Error('Expected a complete create schema resolution.');
+    }
+    expect(fixture.resolveContractContext.calledOnce).to.equal(true);
+    expect(fixture.resolveContractContext.firstCall.firstArg).to.deep.include({ brand: 'brand-1' });
+    expect(result.metadata.context.brand).to.equal('default');
+    expect(result.document['x-redbox-context'].brand).to.equal('default');
+    expect(result.document.$id).to.equal(`/default/portal-1/api/records/schemas/${result.digest}`);
+    expect(result.grant.brand).to.equal('default');
+    expect(fixture.putRecordSchemaReference.calledOnceWithExactly(result.grant)).to.equal(true);
   });
 
   it('persists the artifact before every grant attempt and converges after a retry', async function () {
@@ -3136,6 +3158,30 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(fixture.listRecordSchemaReferences.notCalled).to.equal(true);
     expect(fixture.resolveContractContext.notCalled).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('uses public branding for immutable grant lookup and the Mongo brand id for context resolution', async function () {
+    const seed = await createImmutableSeed('default');
+    const fixture = immutableResolutionFixture(seed);
+
+    const result = await fixture.service.resolveImmutable({
+      ...requestFor(seed),
+      branding: 'default',
+    });
+
+    expect(result.kind).to.equal('resolved');
+    expect(
+      fixture.listRecordSchemaReferences.calledOnceWithExactly({
+        digest: seed.artifact.digest,
+        kind: 'grant',
+        brand: 'default',
+        portal: 'portal-1',
+        limit: 1_000,
+        offset: 0,
+      })
+    ).to.equal(true);
+    expect(fixture.resolveContractContext.calledOnce).to.equal(true);
+    expect(fixture.resolveContractContext.firstCall.firstArg).to.deep.include({ brand: 'brand-1' });
   });
 
   it('denies cross-brand and cross-portal grants without revealing their existence', async function () {
