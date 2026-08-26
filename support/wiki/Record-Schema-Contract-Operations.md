@@ -206,9 +206,9 @@ listed above. The service also has fixed defensive bounds:
 |---|---:|
 | Configured integration pins | 100 |
 | Configured forms inspected at startup | 1000 |
-| Exact startup findings exposed in one structured log | 100; larger counts use `finding_count_bucket: 'overflow'` |
+| Startup findings exposed in structured logs | `finding_count` is capped at 100; larger totals also use `finding_count_bucket: 'overflow'`. The thrown `RecordSchemaLifecycleError.findings` retains the full findings. |
 | Immutable-grant lookup | 1000 rows per page, at most 10 pages |
-| Targeted retention report | 100 unique digests |
+| Targeted retention report | 100 input digest entries before deduplication |
 | Paginated retention report | 100 artifacts per page; default 100 |
 | References examined for one retention digest | 1000, followed by a one-row overflow probe |
 | Storage reference query | 1000 rows |
@@ -249,7 +249,11 @@ SHA-256 hex; `schemaKind` is `create` or `update`; and `operation` follows the
 validation-operation name grammar and is trimmed before persistence. Digest,
 brand, portal, record type, owner, and purpose must be trimmed and non-empty.
 Brand, portal, record type, and owner are limited to 512 characters; purpose is
-limited to 2048. `expiresAt`, when present, is a valid RFC 3339 instant. Omit it
+limited to 2048. `expiresAt`, when present, must have a valid calendar date and
+use `YYYY-MM-DDTHH:mm:ssZ` or `YYYY-MM-DDTHH:mm:ss.sssZ`; either form may use a
+numeric `+HH:mm` or `-HH:mm` offset instead of `Z`. Hours are `00`–`23`, minutes
+and seconds are `00`–`59`, and fractional seconds are either absent or exactly
+three digits. Whitespace and leap seconds are not accepted. Omit `expiresAt`
 only for an intentionally permanent pin.
 
 Pins are deterministically keyed, deduplicated, sorted, and idempotently
