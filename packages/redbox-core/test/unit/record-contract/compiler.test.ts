@@ -213,6 +213,27 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(serialized).not.to.include('additionalProperties');
   });
 
+  it('compiles the configured data record form with RegExp validator configuration', async function () {
+    const configuredFormModule = require('../../../../redbox-hook-dev/src/form-config/dataRecord-1.0-draft') as {
+      default: FormConfigFrame;
+    };
+    const configuredForm = configuredFormModule.default;
+
+    const contract = expectCompiled(
+      await compiler().compile({
+        form: configuredForm,
+        context: { ...publicContext, form: configuredForm.name },
+      })
+    );
+
+    const patternSummaries = contract.validatorSummaries.filter(summary => summary.code === 'form.pattern');
+    expect(patternSummaries.map(summary => summary.pointers)).to.deep.equal([
+      [recordContractPointer('/repeatable_textfield_1/__record_schema_item')],
+      [recordContractPointer('/text_7')],
+    ]);
+    expect(JSON.stringify(contract)).not.to.include('prefix.*');
+  });
+
   it('compiles an anonymous repeatable element template without changing the form input', async function () {
     const repeatable = field('aliases', 'RepeatableComponent', {
       elementTemplate: field('', 'SimpleInputComponent'),
@@ -235,10 +256,12 @@ describe('RecordContractCompiler and core contributors', function () {
 
   it('snapshots compiler inputs and exposes only an immutable allowlisted public context', async function () {
     let observedContextKeys: string[] = [];
+    let observedPattern: unknown;
     let componentMutationAccepted = true;
     let contextMutationAccepted = true;
     const inspecting = hookContributor('InspectingComponent', context => {
       observedContextKeys = Object.keys(context.publicContext).sort();
+      observedPattern = context.component.model?.config?.validators?.[0]?.config?.pattern;
       componentMutationAccepted = context.component.component.config
         ? Reflect.set(context.component.component.config, 'mutated', true)
         : true;
@@ -256,7 +279,16 @@ describe('RecordContractCompiler and core contributors', function () {
       contextVariables: { enumerable: true, value: { privateContextValue: 'private-context-value' } },
     });
     const request = {
-      form: form([field('inspected', 'InspectingComponent', { stable: true })]),
+      form: form([
+        field(
+          'inspected',
+          'InspectingComponent',
+          { stable: true },
+          {
+            validators: [{ class: 'pattern', config: { pattern: /prefix.*/i } }],
+          }
+        ),
+      ]),
       context: requestContext,
     };
     const before = structuredClone(request);
@@ -264,6 +296,8 @@ describe('RecordContractCompiler and core contributors', function () {
     const contract = expectCompiled(await compiler(generousLimits, [inspecting]).compile(request));
 
     expect(request).to.deep.equal(before);
+    expect(observedPattern).to.deep.equal({ source: 'prefix.*', flags: 'i' });
+    expect(Object.isFrozen(observedPattern)).to.equal(true);
     expect(componentMutationAccepted).to.equal(false);
     expect(contextMutationAccepted).to.equal(false);
     expect(observedContextKeys).to.deep.equal(

@@ -147,6 +147,10 @@ function isPlainObject(value: object): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
+function isNativeRegExp(value: object): value is RegExp {
+  return Object.getPrototypeOf(value) === RegExp.prototype;
+}
+
 /** Clone without invoking accessors or accepting values JSON would silently rewrite. */
 function cloneJsonSafe<T>(
   value: T,
@@ -180,6 +184,22 @@ function cloneJsonSafe<T>(
   }
   ancestors.add(value);
   try {
+    if (allowRuntimeFormObjects && isNativeRegExp(value)) {
+      const descriptors = Object.getOwnPropertyDescriptors(value);
+      if (
+        Object.getOwnPropertySymbols(value).length > 0 ||
+        Object.keys(descriptors).some(key => key !== 'lastIndex') ||
+        !descriptors.lastIndex ||
+        !('value' in descriptors.lastIndex) ||
+        descriptors.lastIndex.enumerable
+      ) {
+        throw new Error(`${path} contains an extended RegExp.`);
+      }
+      // Form validator configuration permits RegExp values. Preserve their
+      // deterministic semantics without carrying the mutable lastIndex or
+      // RegExp prototype across the compiler boundary.
+      return { source: value.source, flags: value.flags } as T;
+    }
     if (Array.isArray(value)) {
       if (Object.getOwnPropertySymbols(value).length > 0 || Object.keys(value).length !== value.length) {
         throw new Error(`${path} contains a sparse or extended array.`);
