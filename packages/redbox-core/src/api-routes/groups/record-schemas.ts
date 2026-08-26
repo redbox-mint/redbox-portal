@@ -14,7 +14,7 @@ const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const RECORD_SCHEMA_ETAG_PATTERN = /^"sha256:[0-9a-f]{64}"$/;
 const RECORD_SCHEMA_REQUEST_ETAG_PATTERN = /^[\t ]*"sha256:[0-9a-f]{64}"[\t ]*$/;
 const RECORD_SCHEMA_CANONICAL_LINK_PATTERN =
-  /^<\/[^\s<>/]+\/[^\s<>/]+\/api\/records\/schemas\/[0-9a-f]{64}>; rel="canonical"; type="application\/schema\+json"$/;
+  /^<\/(?:[^\s<>/]+\/)?[^\s<>/]+\/[^\s<>/]+\/api\/records\/schemas\/[0-9a-f]{64}>; rel="canonical"; type="application\/schema\+json"$/;
 const RECORD_SCHEMA_CONDITIONAL_HEADER_MAX_LENGTH = 128;
 
 const recordSchemaDigestField = z

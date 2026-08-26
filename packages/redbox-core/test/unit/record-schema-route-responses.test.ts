@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 
+import { buildOpenApiDocument } from '../../src/api-routes';
 import {
   getImmutableRecordSchemaRoute,
   recordSchemaApiRoutes,
@@ -17,6 +18,12 @@ import {
   RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
   RECORD_SCHEMA_RESPONSE_VARY,
 } from '../../src/api-routes/record-schema-response';
+
+type OpenApiResponseHeader = { schema?: { pattern?: string } };
+
+type OpenApiOperation = {
+  responses?: Record<string, { headers?: Record<string, OpenApiResponseHeader> }>;
+};
 
 describe('record-schema route response contracts', function () {
   const digest = 'a'.repeat(64);
@@ -59,6 +66,48 @@ describe('record-schema route response contracts', function () {
       recordSchemaUpdateResolverUrl('public brand', 'portal/subpath', 'record/1', 'redbox'),
       '/redbox/public%20brand/portal%2Fsubpath/api/records/schemas/update/record%2F1'
     );
+  });
+
+  it('validates emitted canonical links with a root context against typed and OpenAPI response contracts', function () {
+    const rootedCanonicalLink = recordSchemaCanonicalLink(
+      recordSchemaImmutableUrl('public brand', 'portal/subpath', digest, '/redbox/')
+    );
+    const unsafeRootContextLink = rootedCanonicalLink.replace('/redbox/', '/red box/');
+    const resolverContracts = [
+      {
+        route: resolveCreateRecordSchemaRoute,
+        path: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+      },
+      {
+        route: resolveUpdateRecordSchemaRoute,
+        path: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+      },
+    ] as const;
+    const openApiDocument = buildOpenApiDocument(
+      resolverContracts.map(({ route }) => route),
+      { title: 'Record schema route-response contracts', version: '1.0.0' }
+    );
+
+    assert.equal(
+      rootedCanonicalLink,
+      `</redbox/public%20brand/portal%2Fsubpath/api/records/schemas/${digest}>; rel="canonical"; type="application/schema+json"`
+    );
+
+    for (const { route, path } of resolverContracts) {
+      const operation = openApiDocument.paths[path]?.get as OpenApiOperation | undefined;
+
+      for (const status of [200, 304] as const) {
+        const typedLink = route.responses?.[status]?.headers?.Link;
+        assert.ok(typedLink);
+        assert.equal(typedLink.safeParse(rootedCanonicalLink).success, true);
+        assert.equal(typedLink.safeParse(unsafeRootContextLink).success, false);
+
+        const openApiPattern = operation?.responses?.[String(status)]?.headers?.Link?.schema?.pattern;
+        assert.ok(openApiPattern);
+        assert.match(rootedCanonicalLink, new RegExp(openApiPattern));
+        assert.doesNotMatch(unsafeRootContextLink, new RegExp(openApiPattern));
+      }
+    }
   });
 
   it('accepts the optional strong conditional header on every schema GET route', function () {
