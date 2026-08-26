@@ -233,8 +233,9 @@ export namespace Controllers {
     /**
      * Fingerprint the form contract this response delivers, through the same
      * authoritative service routine a save recomputes. A create has no stored
-     * record, so its contract is described by the workflow step the save will
-     * apply: the requested target when present, otherwise the starting step.
+     * record, so its contract is described by the starting workflow step. A
+     * target transition is a save intent and does not change the form that
+     * was delivered to the browser.
      */
     private async generatedFormFingerprint(
       req: Sails.Req,
@@ -260,8 +261,7 @@ export namespace Controllers {
       if (currentRec) {
         fingerprintRecord = currentRec as unknown as AnyRecord;
       } else {
-        const effectiveStep =
-          targetStep ?? ((await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as unknown as AnyRecord);
+        const effectiveStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as unknown as AnyRecord;
         fingerprintRecord = {
           metaMetadata: {
             brandId: String(brand?.id ?? ''),
@@ -275,7 +275,7 @@ export namespace Controllers {
       const fingerprint = await this.recordsService.getRecordFormFingerprint(
         fingerprintRecord,
         recordType,
-        targetStep ?? undefined,
+        currentRec ? targetStep ?? undefined : undefined,
         sourceForm
       );
       if (!fingerprint) {

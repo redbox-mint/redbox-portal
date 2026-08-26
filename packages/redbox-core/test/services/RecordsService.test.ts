@@ -3100,6 +3100,53 @@ describe('RecordsService', function () {
   });
 
   describe('create save pipeline', function () {
+    it('accepts the starting form fingerprint when a create transitions to its target step', async function () {
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+      const recordType = {
+        name: 'rdmp',
+        hooks: {},
+        searchable: false,
+        concurrentModification: { mode: 'strict' },
+      };
+      const issued = await RecordsService.getRecordFormFingerprint(
+        {
+          metaMetadata: { brandId: 'brand-1', type: 'rdmp', form: 'default-form' },
+          workflow: { stage: 'draft' },
+        },
+        recordType
+      );
+      const context = createRecordSaveContext({
+        routeFamily: 'browser',
+        operation: 'create',
+        targetStep: 'published',
+        concurrency: { entityTagSupplied: false, formFingerprint: issued },
+      });
+
+      const result = await RecordsService.create(
+        { id: 'brand-1' },
+        {
+          metadata: { title: 'Create with transition' },
+          authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+        },
+        recordType,
+        { username: 'user-1' },
+        true,
+        false,
+        'published',
+        context
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.outcome).to.be.oneOf(['saved', 'saved-with-warnings']);
+      expect(result.problems.flatMap((problem: any) => problem.issues).map((issue: any) => issue.code)).not.to.include(
+        'form-definition-changed'
+      );
+      expect(result.concurrency?.formFingerprint).to.equal(issued);
+      expect(mockStorageService.create.calledOnce).to.equal(true);
+    });
+
     it('generates a historical hyphenless OID for a configured create before storage', async function () {
       mockStorageService.create.resolves({
         success: true,
