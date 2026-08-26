@@ -109,7 +109,7 @@ describe('AI-assisted form generation', function () {
     expect(countsAfter).to.deep.equal(countsBefore);
     expect(countsAfter).to.deep.equal([2, 2, 1, 1, 1]);
 
-    const deployment = await GenerationModelDeployment.findOne({ brandId: actor.brandId });
+    const deployment = await GenerationModelDeployment.findOne({ brandId: actor.brandId, key: 'demo-fake-rdmp-v1' });
     const profile = await GenerationProfile.findOne({ brandId: actor.brandId, key: PROFILE_KEY });
     const version = await GenerationProfileVersion.findOne({ brandId: actor.brandId, id: profile.publishedVersionId });
     const binding = await GenerationBinding.findOne({ brandId: actor.brandId, key: BINDING_KEY });
