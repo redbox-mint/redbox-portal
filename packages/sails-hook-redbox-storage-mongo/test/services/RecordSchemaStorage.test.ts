@@ -13,6 +13,7 @@ const {
 
 type ContractJsonValue = import('@researchdatabox/redbox-core').ContractJsonValue;
 type RecordSchemaArtifactInput = import('@researchdatabox/redbox-core').RecordSchemaArtifactInput;
+type RecordSchemaArtifactSummary = import('@researchdatabox/redbox-core').RecordSchemaArtifactSummary;
 type RecordSchemaReferenceInput = import('@researchdatabox/redbox-core').RecordSchemaReferenceInput;
 type MongoStorageService = import('../../src/services/MongoStorageService').Services.MongoStorageService;
 
@@ -41,6 +42,17 @@ function comparable(value: unknown): unknown {
   return value instanceof Date ? value.getTime() : value;
 }
 
+function compareComparable(left: unknown, right: unknown): number {
+  const comparableLeft = comparable(left);
+  const comparableRight = comparable(right);
+  if (typeof comparableLeft === 'string' && typeof comparableRight === 'string') {
+    return comparableLeft < comparableRight ? -1 : comparableLeft > comparableRight ? 1 : 0;
+  }
+  const numericLeft = Number(comparableLeft);
+  const numericRight = Number(comparableRight);
+  return numericLeft < numericRight ? -1 : numericLeft > numericRight ? 1 : 0;
+}
+
 function matchesCondition(actual: unknown, condition: unknown): boolean {
   if (
     condition !== null &&
@@ -55,10 +67,10 @@ function matchesCondition(actual: unknown, condition: unknown): boolean {
       if (operator === '$ne' && comparable(actual) === comparable(expected)) {
         return false;
       }
-      if (operator === '$lte' && !(Number(comparable(actual)) <= Number(comparable(expected)))) {
+      if (operator === '$lte' && compareComparable(actual, expected) > 0) {
         return false;
       }
-      if (operator === '$gt' && !(Number(comparable(actual)) > Number(comparable(expected)))) {
+      if (operator === '$gt' && compareComparable(actual, expected) <= 0) {
         return false;
       }
     }
@@ -392,6 +404,44 @@ describe('MongoStorageService record-schema persistence', function () {
       expect((await service.touchRecordSchemaArtifact(DIGEST_B)).success).to.equal(false);
     } finally {
       clock.restore();
+    }
+  });
+
+  it('lists redacted artifact metadata in stable bounded digest pages', async function () {
+    await service.putRecordSchemaArtifact(artifactInput(DIGEST_B, { title: 'private-b' }));
+    await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, { title: 'private-a' }));
+    artifacts.documents.find(document => document.digest === DIGEST_A)!.createdAt = new Date(
+      '2026-01-01T00:00:00.000Z'
+    );
+    artifacts.documents.find(document => document.digest === DIGEST_B)!.createdAt = new Date(
+      '2026-02-01T00:00:00.000Z'
+    );
+
+    const first = await service.listRecordSchemaArtifacts({ limit: 1 });
+    const repeated = await service.listRecordSchemaArtifacts({ limit: 1 });
+    const second = await service.listRecordSchemaArtifacts({ afterDigest: DIGEST_A, limit: 1 });
+
+    const expectedFirst: RecordSchemaArtifactSummary[] = [
+      { digest: DIGEST_A, createdAt: new Date('2026-01-01T00:00:00.000Z') },
+    ];
+    const expectedSecond: RecordSchemaArtifactSummary[] = [
+      { digest: DIGEST_B, createdAt: new Date('2026-02-01T00:00:00.000Z') },
+    ];
+    expect(first).to.deep.equal(expectedFirst);
+    expect(repeated).to.deep.equal(first);
+    expect(second).to.deep.equal(expectedSecond);
+    expect(JSON.stringify([...first, ...second])).not.to.include('private-a');
+    expect(JSON.stringify([...first, ...second])).not.to.include('private-b');
+    expect(first[0]).not.to.have.property('document');
+
+    for (const limit of [0, RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX + 1]) {
+      let error: unknown;
+      try {
+        await service.listRecordSchemaArtifacts({ limit });
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error).to.be.instanceOf(Error);
     }
   });
 

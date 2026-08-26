@@ -15,6 +15,7 @@ import {
 import type {
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
+  RecordSchemaArtifactSummary,
   RecordSchemaCreateGrantReferenceInput,
   RecordSchemaGrantReferenceInput,
   RecordSchemaPinReferenceInput,
@@ -179,6 +180,8 @@ export const RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES = 10;
 export const RECORD_SCHEMA_CONFIGURED_FORM_MAX_CANDIDATES = 1_000;
 const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
 const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
+export const RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE = 100;
+export const RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE = 100;
 const RECORD_SCHEMA_STRICT_ALL_OPERATION = 'strict-all';
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 /** Maximum exact startup finding count exposed in one structured log event. */
@@ -286,6 +289,7 @@ type RecordSchemaLogContext =
   | 'integration-pin-write'
   | 'integration-pin-startup'
   | 'integration-pins'
+  | 'retention-artifact-list'
   | 'retention-artifact-read'
   | 'retention-storage-provider'
   | 'retention-reference-read'
@@ -1017,8 +1021,13 @@ export type MaterializeRecordSchemaIntegrationPinsResult =
     };
 
 export interface RecordSchemaRetentionReportRequest {
-  readonly digests: readonly string[];
   readonly now: Date;
+  /** Compatibility path for bounded reports over a known digest set. */
+  readonly digests?: readonly string[];
+  /** Page size for storage-owned artifact scans; invalid when digests is supplied. */
+  readonly limit?: number;
+  /** Exclusive digest cursor for storage-owned artifact scans; invalid when digests is supplied. */
+  readonly cursor?: string;
 }
 
 export type RecordSchemaRetentionReportResult =
@@ -1028,6 +1037,10 @@ export type RecordSchemaRetentionReportResult =
       readonly minimumAgeDays: number;
       readonly entries: readonly RecordSchemaRetentionReportEntry[];
       readonly missingDigests: readonly string[];
+      readonly page?: {
+        readonly limit: number;
+        readonly nextCursor?: string;
+      };
     }
   | {
       readonly kind: 'invalid-input';
@@ -1055,6 +1068,11 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'limit-exceeded';
       readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
       readonly digest: string;
+    }
+  | {
+      readonly kind: 'limit-exceeded';
+      readonly code: typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+      readonly scope: 'artifact-page';
     };
 
 type RecordSchemaResolutionFailure =
@@ -1119,9 +1137,16 @@ type RecordSchemaImmutableStorageProvider = Required<
 
 type RecordSchemaReferenceStorageProvider = Required<Pick<StorageService, 'putRecordSchemaReference'>>;
 
-type RecordSchemaRetentionStorageProvider = Required<
+type RecordSchemaTargetedRetentionStorageProvider = Required<
   Pick<StorageService, 'getRecordSchemaArtifact' | 'listRecordSchemaReferences'>
 >;
+
+type RecordSchemaPagedRetentionStorageProvider = Required<
+  Pick<StorageService, 'listRecordSchemaArtifacts' | 'listRecordSchemaReferences'>
+>;
+
+type RecordSchemaRetentionStorageProvider = Required<Pick<StorageService, 'listRecordSchemaReferences'>> &
+  Partial<Required<Pick<StorageService, 'getRecordSchemaArtifact' | 'listRecordSchemaArtifacts'>>>;
 
 function createStorageProvider(value: unknown): RecordSchemaCreateStorageProvider | undefined {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
@@ -1163,13 +1188,27 @@ function isReferenceStorageProvider(value: unknown): value is RecordSchemaRefere
   }
 }
 
-function isRetentionStorageProvider(value: unknown): value is RecordSchemaRetentionStorageProvider {
+function isTargetedRetentionStorageProvider(value: unknown): value is RecordSchemaTargetedRetentionStorageProvider {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
     return false;
   }
   try {
     return (
       typeof Reflect.get(value, 'getRecordSchemaArtifact') === 'function' &&
+      typeof Reflect.get(value, 'listRecordSchemaReferences') === 'function'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isPagedRetentionStorageProvider(value: unknown): value is RecordSchemaPagedRetentionStorageProvider {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
+    return false;
+  }
+  try {
+    return (
+      typeof Reflect.get(value, 'listRecordSchemaArtifacts') === 'function' &&
       typeof Reflect.get(value, 'listRecordSchemaReferences') === 'function'
     );
   } catch {
@@ -1557,7 +1596,21 @@ function configuredPinReferences(config: RecordSchemaConfig): readonly RecordSch
 }
 
 type ParsedRetentionReportRequest =
-  | { readonly ok: true; readonly request: RecordSchemaRetentionReportRequest }
+  | {
+      readonly ok: true;
+      readonly request:
+        | {
+            readonly kind: 'targeted';
+            readonly digests: readonly string[];
+            readonly now: Date;
+          }
+        | {
+            readonly kind: 'page';
+            readonly cursor?: string;
+            readonly limit: number;
+            readonly now: Date;
+          };
+    }
   | { readonly ok: false; readonly reason: 'shape' | 'digest' | 'datetime' | 'limit' };
 
 function parseRetentionReportRequest(value: unknown): ParsedRetentionReportRequest {
@@ -1565,27 +1618,65 @@ function parseRetentionReportRequest(value: unknown): ParsedRetentionReportReque
     if (!isObjectRecord(value)) {
       return { ok: false, reason: 'shape' };
     }
-    const rawDigests = ownDataProperty(value, 'digests');
     const rawNow = ownDataProperty(value, 'now');
-    const boundedDigests = boundedArraySnapshot(rawDigests, RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS);
-    if (boundedDigests.kind === 'invalid') {
-      return { ok: false, reason: 'shape' };
-    }
-    if (boundedDigests.kind === 'overflow') {
-      return { ok: false, reason: 'limit' };
-    }
-    const uniqueDigests = [...new Set(boundedDigests.values)];
-    if (uniqueDigests.some(digest => typeof digest !== 'string' || !DIGEST_PATTERN.test(digest))) {
-      return { ok: false, reason: 'digest' };
-    }
-    const digests = uniqueDigests.filter((digest): digest is string => typeof digest === 'string');
     if (!(rawNow instanceof Date) || Number.isNaN(rawNow.getTime())) {
       return { ok: false, reason: 'datetime' };
+    }
+    const digestsDescriptor = Object.getOwnPropertyDescriptor(value, 'digests');
+    const limitDescriptor = Object.getOwnPropertyDescriptor(value, 'limit');
+    const cursorDescriptor = Object.getOwnPropertyDescriptor(value, 'cursor');
+    if (
+      (digestsDescriptor !== undefined && !('value' in digestsDescriptor)) ||
+      (limitDescriptor !== undefined && !('value' in limitDescriptor)) ||
+      (cursorDescriptor !== undefined && !('value' in cursorDescriptor))
+    ) {
+      return { ok: false, reason: 'shape' };
+    }
+    if (digestsDescriptor !== undefined) {
+      if (limitDescriptor !== undefined || cursorDescriptor !== undefined) {
+        return { ok: false, reason: 'shape' };
+      }
+      const boundedDigests = boundedArraySnapshot(digestsDescriptor.value, RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS);
+      if (boundedDigests.kind === 'invalid') {
+        return { ok: false, reason: 'shape' };
+      }
+      if (boundedDigests.kind === 'overflow') {
+        return { ok: false, reason: 'limit' };
+      }
+      const uniqueDigests = [...new Set(boundedDigests.values)];
+      if (uniqueDigests.some(digest => typeof digest !== 'string' || !DIGEST_PATTERN.test(digest))) {
+        return { ok: false, reason: 'digest' };
+      }
+      const digests = uniqueDigests.filter((digest): digest is string => typeof digest === 'string');
+      return {
+        ok: true,
+        request: Object.freeze({
+          kind: 'targeted',
+          digests: Object.freeze(digests.sort(compareText)),
+          now: new Date(rawNow.getTime()),
+        }),
+      };
+    }
+
+    const limit = limitDescriptor?.value ?? RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE;
+    if (
+      typeof limit !== 'number' ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE
+    ) {
+      return { ok: false, reason: 'limit' };
+    }
+    const cursor = cursorDescriptor?.value;
+    if (cursor !== undefined && (typeof cursor !== 'string' || !DIGEST_PATTERN.test(cursor))) {
+      return { ok: false, reason: 'digest' };
     }
     return {
       ok: true,
       request: Object.freeze({
-        digests: Object.freeze(digests.sort(compareText)),
+        kind: 'page',
+        ...(typeof cursor === 'string' ? { cursor } : {}),
+        limit,
         now: new Date(rawNow.getTime()),
       }),
     };
@@ -1671,6 +1762,25 @@ function retentionReferenceEvidence(
   return expiresAt.getTime() > now.getTime() ? 'active-pin' : 'expired-pin';
 }
 
+function retentionArtifactSummary(artifact: unknown, expectedDigest?: string): RecordSchemaArtifactSummary | undefined {
+  try {
+    if (!isObjectRecord(artifact)) return undefined;
+    const digest = ownDataProperty(artifact, 'digest');
+    const createdAt = ownDataProperty(artifact, 'createdAt');
+    if (
+      typeof digest !== 'string' ||
+      !DIGEST_PATTERN.test(digest) ||
+      (expectedDigest !== undefined && digest !== expectedDigest) ||
+      !isValidDate(createdAt)
+    ) {
+      return undefined;
+    }
+    return Object.freeze({ digest, createdAt: new Date(createdAt.getTime()) });
+  } catch {
+    return undefined;
+  }
+}
+
 function retentionEntry(
   artifact: unknown,
   references: unknown,
@@ -1679,12 +1789,10 @@ function retentionEntry(
   minimumAgeDays: number
 ): RecordSchemaRetentionReportEntry | undefined {
   try {
-    if (!isObjectRecord(artifact) || !Array.isArray(references)) return undefined;
-    const digest = ownDataProperty(artifact, 'digest');
-    const createdAt = ownDataProperty(artifact, 'createdAt');
-    if (digest !== expectedDigest || !isValidDate(createdAt)) {
-      return undefined;
-    }
+    if (!Array.isArray(references)) return undefined;
+    const summary = retentionArtifactSummary(artifact, expectedDigest);
+    if (!summary) return undefined;
+    const { digest, createdAt } = summary;
     let grantCount = 0;
     let saveCount = 0;
     let activePinCount = 0;
@@ -2980,36 +3088,111 @@ export namespace Services {
         this.logUnexpected('retention-storage-provider', error);
         storageValue = undefined;
       }
-      if (!isRetentionStorageProvider(storageValue)) {
-        return Object.freeze({
-          kind: 'unavailable',
-          stage: 'storage',
-          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
-        });
-      }
-
-      const entries: RecordSchemaRetentionReportEntry[] = [];
-      const missingDigests: string[] = [];
-      for (const digest of parsed.request.digests) {
-        let artifact: unknown;
-        try {
-          artifact = await storageValue.getRecordSchemaArtifact(digest);
-        } catch (error) {
-          this.logUnexpected('retention-artifact-read', error);
+      let storage: RecordSchemaRetentionStorageProvider;
+      if (parsed.request.kind === 'targeted') {
+        if (!isTargetedRetentionStorageProvider(storageValue)) {
           return Object.freeze({
             kind: 'unavailable',
             stage: 'storage',
             code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
           });
         }
-        if (artifact === null) {
-          missingDigests.push(digest);
-          continue;
+        storage = storageValue;
+      } else {
+        if (!isPagedRetentionStorageProvider(storageValue)) {
+          return Object.freeze({
+            kind: 'unavailable',
+            stage: 'storage',
+            code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+          });
         }
+        storage = storageValue;
+      }
 
+      const artifacts: RecordSchemaArtifactSummary[] = [];
+      const missingDigests: string[] = [];
+      let page: { readonly limit: number; readonly nextCursor?: string } | undefined;
+      if (parsed.request.kind === 'targeted') {
+        for (const digest of parsed.request.digests) {
+          let artifact: unknown;
+          try {
+            artifact = await storage.getRecordSchemaArtifact?.(digest);
+          } catch (error) {
+            this.logUnexpected('retention-artifact-read', error);
+            return Object.freeze({
+              kind: 'unavailable',
+              stage: 'storage',
+              code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+            });
+          }
+          if (artifact === null) {
+            missingDigests.push(digest);
+            continue;
+          }
+          const summary = retentionArtifactSummary(artifact, digest);
+          if (!summary) {
+            return Object.freeze({
+              kind: 'invalid-state',
+              code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+            });
+          }
+          artifacts.push(summary);
+        }
+      } else {
+        let listedArtifacts: unknown;
+        try {
+          listedArtifacts = await storage.listRecordSchemaArtifacts?.({
+            ...(parsed.request.cursor ? { afterDigest: parsed.request.cursor } : {}),
+            limit: parsed.request.limit + 1,
+          });
+        } catch (error) {
+          this.logUnexpected('retention-artifact-list', error);
+          return Object.freeze({
+            kind: 'unavailable',
+            stage: 'storage',
+            code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+          });
+        }
+        const boundedArtifacts = boundedArraySnapshot(listedArtifacts, parsed.request.limit + 1);
+        if (boundedArtifacts.kind === 'invalid') {
+          return Object.freeze({
+            kind: 'invalid-state',
+            code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+          });
+        }
+        if (boundedArtifacts.kind === 'overflow') {
+          return Object.freeze({
+            kind: 'limit-exceeded',
+            code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+            scope: 'artifact-page',
+          });
+        }
+        let previousDigest = parsed.request.cursor;
+        for (const artifact of boundedArtifacts.values) {
+          const summary = retentionArtifactSummary(artifact);
+          if (!summary || (previousDigest !== undefined && compareText(summary.digest, previousDigest) <= 0)) {
+            return Object.freeze({
+              kind: 'invalid-state',
+              code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+            });
+          }
+          artifacts.push(summary);
+          previousDigest = summary.digest;
+        }
+        const hasMore = artifacts.length > parsed.request.limit;
+        if (hasMore) artifacts.pop();
+        page = Object.freeze({
+          limit: parsed.request.limit,
+          ...(hasMore && artifacts.length > 0 ? { nextCursor: artifacts[artifacts.length - 1].digest } : {}),
+        });
+      }
+
+      const entries: RecordSchemaRetentionReportEntry[] = [];
+      for (const artifact of artifacts) {
+        const digest = artifact.digest;
         let references: unknown;
         try {
-          references = await storageValue.listRecordSchemaReferences({
+          references = await storage.listRecordSchemaReferences({
             digest,
             includeExpiredPins: true,
             limit: RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT,
@@ -3042,7 +3225,7 @@ export namespace Services {
         if (referenceCount === RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT) {
           let overflow: unknown;
           try {
-            overflow = await storageValue.listRecordSchemaReferences({
+            overflow = await storage.listRecordSchemaReferences({
               digest,
               includeExpiredPins: true,
               limit: 1,
@@ -3094,6 +3277,7 @@ export namespace Services {
         minimumAgeDays: config.retention.minimumAgeDays,
         entries: Object.freeze(entries),
         missingDigests: Object.freeze(missingDigests),
+        ...(page ? { page } : {}),
       });
     }
 

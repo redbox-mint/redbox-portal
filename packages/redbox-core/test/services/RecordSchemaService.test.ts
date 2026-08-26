@@ -43,6 +43,8 @@ import {
 import {
   RECORD_SCHEMA_LIFECYCLE_ERROR_CODE,
   RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES,
+  RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE,
+  RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE,
   RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX,
   RecordSchemaLifecycleError,
   type ResolveImmutableRecordSchemaRequest,
@@ -2461,6 +2463,72 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     expect(await malformedReferences.reportRetention(request)).to.deep.equal({
       kind: 'invalid-state',
       code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+    });
+  });
+
+  it('paginates storage-owned artifact summaries with stable cursors and bounded redacted output', async function () {
+    const now = new Date('2026-08-24T00:00:00.000Z');
+    const digests = ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)];
+    const artifacts = digests.map((digest, index) => ({
+      digest,
+      createdAt: new Date(`2026-0${index + 1}-01T00:00:00.000Z`),
+      document: { title: `private-schema-${index}` },
+    }));
+    const listRecordSchemaArtifacts = sinon
+      .stub()
+      .callsFake(async (query: { afterDigest?: string; limit: number }) =>
+        artifacts.filter(artifact => !query.afterDigest || artifact.digest > query.afterDigest).slice(0, query.limit)
+      );
+    const listRecordSchemaReferences = sinon.stub().resolves([]);
+    const deleteRecordSchemaArtifactIfUnreferenced = sinon.stub();
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig({ retention: { minimumAgeDays: 30 } }),
+      getStorageProvider: () => ({
+        listRecordSchemaArtifacts,
+        listRecordSchemaReferences,
+        deleteRecordSchemaArtifactIfUnreferenced,
+      }),
+    });
+
+    const first = await service.reportRetention({ now, limit: 2 });
+    const repeated = await service.reportRetention({ now, limit: 2 });
+    const second = await service.reportRetention({ now, limit: 2, cursor: digests[1] });
+
+    expect(repeated).to.deep.equal(first);
+    expect(first).to.deep.include({
+      kind: 'reported',
+      minimumAgeDays: 30,
+      missingDigests: [],
+      page: { limit: 2, nextCursor: digests[1] },
+    });
+    expect(second).to.deep.include({
+      kind: 'reported',
+      missingDigests: [],
+      page: { limit: 2 },
+    });
+    if (first.kind !== 'reported' || second.kind !== 'reported') {
+      throw new Error('Expected paginated retention reports.');
+    }
+    expect(first.entries.map(entry => entry.digest)).to.deep.equal(digests.slice(0, 2));
+    expect(second.entries.map(entry => entry.digest)).to.deep.equal(digests.slice(2));
+    expect(listRecordSchemaArtifacts.args.map(args => args[0])).to.deep.equal([
+      { limit: 3 },
+      { limit: 3 },
+      { afterDigest: digests[1], limit: 3 },
+    ]);
+    expect(JSON.stringify([first, second])).not.to.include('private-schema');
+    expect(deleteRecordSchemaArtifactIfUnreferenced.notCalled).to.equal(true);
+
+    expect(
+      await service.reportRetention({ now, limit: RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE + 1 })
+    ).to.deep.equal({
+      kind: 'invalid-input',
+      reason: 'limit',
+      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
+    });
+    expect(await service.reportRetention({ now })).to.deep.include({
+      kind: 'reported',
+      page: { limit: RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE },
     });
   });
 

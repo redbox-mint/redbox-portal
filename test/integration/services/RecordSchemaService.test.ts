@@ -14,11 +14,14 @@ import {
   type RecordContractComponentContributor,
   type RecordContractContributorRegistration,
   type RecordSchemaArtifactInput,
+  type RecordSchemaReferenceInput,
 } from '@researchdatabox/redbox-core';
 import type { FormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
 
 const DIGEST = 'e'.repeat(64);
 const DOCUMENT = { type: 'object', title: 'Integration schema' } as const;
+const RETENTION_CURSOR = `${'f'.repeat(63)}9`;
+const RETENTION_DIGESTS = ['a', 'b', 'c', 'd', 'e'].map(suffix => `${'f'.repeat(63)}${suffix}`);
 
 describe('RecordSchemaService storage-backed orchestration', function () {
   const storage = () => sails.services.mongostorageservice;
@@ -26,6 +29,10 @@ describe('RecordSchemaService storage-backed orchestration', function () {
   afterEach(async function () {
     await sails.models.recordschemareference.destroy({ digest: DIGEST });
     await sails.models.recordschemaartifact.destroy({ digest: DIGEST });
+    for (const digest of RETENTION_DIGESTS) {
+      await sails.models.recordschemareference.destroy({ digest });
+      await sails.models.recordschemaartifact.destroy({ digest });
+    }
   });
 
   it('materializes pins and maintains idempotent save usage against durable storage', async function () {
@@ -97,6 +104,127 @@ describe('RecordSchemaService storage-backed orchestration', function () {
     if (report.kind !== 'reported') throw new Error('Expected durable retention report.');
     expect(report.entries).to.have.length(1);
     expect(report.entries[0]).to.deep.include({ saveCount: 1, activePinCount: 1, eligibleForDeletion: false });
+  });
+
+  it('reports every retention reason through stable redacted storage-backed pages', async function () {
+    const now = new Date('2026-08-24T00:00:00.000Z');
+    const createdAt = [
+      new Date('2026-08-14T00:00:00.000Z'),
+      new Date('2026-01-01T00:00:00.000Z'),
+      new Date('2026-01-01T00:00:00.000Z'),
+      new Date('2026-01-01T00:00:00.000Z'),
+      new Date('2026-01-01T00:00:00.000Z'),
+    ];
+    for (const [index, digest] of RETENTION_DIGESTS.entries()) {
+      const document = { type: 'object', title: `private-retention-schema-${index}` } as const;
+      const artifact: RecordSchemaArtifactInput = {
+        digest,
+        document,
+        contractFormat: RECORD_CONTRACT_FORMAT_V1,
+        completeness: 'complete',
+        byteLength: Buffer.byteLength(JSON.stringify(document), 'utf8'),
+      };
+      expect((await storage().putRecordSchemaArtifact(artifact)).success).to.equal(true);
+      await sails.models.recordschemaartifact.updateOne({ digest }).set({ createdAt: createdAt[index] });
+    }
+
+    const commonReference = (referenceKey: string, digest: string) => ({
+      referenceKey,
+      digest,
+      brand: 'default',
+      portal: 'rdmp',
+      recordType: 'dataset',
+      operation: 'strict-all',
+    });
+    const references: RecordSchemaReferenceInput[] = [
+      {
+        ...commonReference('retention-integration-grant', RETENTION_DIGESTS[1]),
+        kind: 'grant',
+        schemaKind: 'create',
+      },
+      {
+        ...commonReference('retention-integration-save', RETENTION_DIGESTS[2]),
+        kind: 'save',
+        schemaKind: 'update',
+        oid: 'private-retention-oid',
+      },
+      {
+        ...commonReference('retention-integration-active-pin', RETENTION_DIGESTS[3]),
+        kind: 'pin',
+        schemaKind: 'create',
+        owner: 'private-retention-owner',
+        purpose: 'private active retention purpose',
+        expiresAt: new Date('2026-09-01T00:00:00.000Z'),
+      },
+      {
+        ...commonReference('retention-integration-expired-pin', RETENTION_DIGESTS[4]),
+        kind: 'pin',
+        schemaKind: 'create',
+        owner: 'private-retention-owner',
+        purpose: 'private expired retention purpose',
+        expiresAt: new Date('2026-08-01T00:00:00.000Z'),
+      },
+    ];
+    for (const reference of references) {
+      expect((await storage().putRecordSchemaReference(reference)).success).to.equal(true);
+    }
+
+    const service = new RecordSchemaService.Services.RecordSchema({
+      getConfig: () => ({
+        ...structuredClone(recordSchema),
+        enabled: true,
+        retention: { minimumAgeDays: 30 },
+      }),
+      getStorageProvider: storage,
+    });
+    const firstRequest = { now, limit: 3, cursor: RETENTION_CURSOR };
+    const first = await service.reportRetention(firstRequest);
+    const repeated = await service.reportRetention(firstRequest);
+    const second = await service.reportRetention({ now, limit: 3, cursor: RETENTION_DIGESTS[2] });
+    const summaries = await storage().listRecordSchemaArtifacts({ afterDigest: RETENTION_CURSOR, limit: 5 });
+
+    expect(repeated).to.deep.equal(first);
+    expect(first.kind).to.equal('reported');
+    expect(second.kind).to.equal('reported');
+    if (first.kind !== 'reported' || second.kind !== 'reported') {
+      throw new Error('Expected storage-backed retention report pages.');
+    }
+    expect(first.entries.map(entry => entry.digest)).to.deep.equal(RETENTION_DIGESTS.slice(0, 3));
+    expect(second.entries.map(entry => entry.digest)).to.deep.equal(RETENTION_DIGESTS.slice(3));
+    expect(first.page).to.deep.equal({ limit: 3, nextCursor: RETENTION_DIGESTS[2] });
+    expect(second.page).to.deep.equal({ limit: 3 });
+    expect(first.entries[0]).to.deep.include({
+      ageDays: 10,
+      reasons: ['minimum-age'],
+      eligibleForDeletion: false,
+    });
+    expect(first.entries[1]).to.deep.include({
+      grantCount: 1,
+      reasons: ['grant-reference'],
+      eligibleForDeletion: false,
+    });
+    expect(first.entries[2]).to.deep.include({
+      saveCount: 1,
+      reasons: ['save-reference'],
+      eligibleForDeletion: false,
+    });
+    expect(second.entries[0]).to.deep.include({
+      activePinCount: 1,
+      reasons: ['active-pin'],
+      eligibleForDeletion: false,
+    });
+    expect(second.entries[1]).to.deep.include({
+      activePinCount: 0,
+      reasons: [],
+      eligibleForDeletion: true,
+    });
+    expect(summaries.map(summary => summary.digest)).to.deep.equal(RETENTION_DIGESTS);
+    expect(summaries.every(summary => Object.keys(summary).sort().join(',') === 'createdAt,digest')).to.equal(true);
+    const serialized = JSON.stringify({ first, second, summaries });
+    expect(serialized).not.to.include('private-retention-schema');
+    expect(serialized).not.to.include('private-retention-owner');
+    expect(serialized).not.to.include('private-retention-oid');
+    expect(await sails.models.recordschemaartifact.count({ digest: { in: RETENTION_DIGESTS } })).to.equal(5);
   });
 });
 

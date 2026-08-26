@@ -22,6 +22,7 @@ describe('record-schema storage capability inspection', function () {
         putRecordSchemaArtifact: async () => ({ success: true }),
       })
     ).to.deep.equal([
+      'listRecordSchemaArtifacts',
       'touchRecordSchemaArtifact',
       'putRecordSchemaReference',
       'listRecordSchemaGrants',

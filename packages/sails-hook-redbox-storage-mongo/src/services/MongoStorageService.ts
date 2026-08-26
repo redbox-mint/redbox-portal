@@ -59,6 +59,8 @@ import {
 import type {
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
+  RecordSchemaArtifactQuery,
+  RecordSchemaArtifactSummary,
   RecordSchemaDeleteRequest,
   RecordSchemaDeleteResult,
   RecordSchemaGrantQuery,
@@ -294,6 +296,7 @@ export namespace Services {
       'countIntegrationAudit',
       'putRecordSchemaArtifact',
       'getRecordSchemaArtifact',
+      'listRecordSchemaArtifacts',
       'touchRecordSchemaArtifact',
       'putRecordSchemaReference',
       'listRecordSchemaGrants',
@@ -1092,6 +1095,33 @@ export namespace Services {
           RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
           'Record schema artifact read failed.'
         );
+      }
+    }
+
+    public async listRecordSchemaArtifacts(query: RecordSchemaArtifactQuery): Promise<RecordSchemaArtifactSummary[]> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_ARTIFACT,
+            'Record schema artifact query is required.'
+          );
+        }
+        const limit = this.recordSchemaQueryLimit(query.limit);
+        const criteria: Document = {};
+        if (query.afterDigest !== undefined) {
+          criteria.digest = { $gt: validateRecordSchemaDigest(query.afterDigest) };
+        }
+        const documents = await this.artifactCollection()
+          .find(criteria, { projection: { _id: 0, digest: 1, createdAt: 1 } })
+          .sort({ digest: 1 })
+          .limit(limit)
+          .toArray();
+        return documents.map(document => ({
+          digest: validateRecordSchemaDigest(document.digest),
+          createdAt: this.storedRecordSchemaDate(document.createdAt, 'artifact createdAt'),
+        }));
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('listRecordSchemaArtifacts', error);
       }
     }
 

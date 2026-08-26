@@ -6,6 +6,8 @@ import type { RecordStorageMutationOptions, StorageServiceCapabilities } from '.
 import type {
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
+  RecordSchemaArtifactQuery,
+  RecordSchemaArtifactSummary,
   RecordSchemaDeleteRequest,
   RecordSchemaDeleteResult,
   RecordSchemaGrantQuery,
@@ -17,6 +19,7 @@ import type {
 export const RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS = [
   'putRecordSchemaArtifact',
   'getRecordSchemaArtifact',
+  'listRecordSchemaArtifacts',
   'touchRecordSchemaArtifact',
   'putRecordSchemaReference',
   'listRecordSchemaGrants',
@@ -165,6 +168,7 @@ export interface StorageService {
   /** Optional so existing storage hooks remain compatible while record-schema support is disabled. */
   putRecordSchemaArtifact?(artifact: RecordSchemaArtifactInput): Promise<StorageServiceResponse>;
   getRecordSchemaArtifact?(digest: string): Promise<RecordSchemaArtifactModel | null>;
+  listRecordSchemaArtifacts?(query: RecordSchemaArtifactQuery): Promise<RecordSchemaArtifactSummary[]>;
   touchRecordSchemaArtifact?(digest: string): Promise<StorageServiceResponse>;
   putRecordSchemaReference?(reference: RecordSchemaReferenceInput): Promise<StorageServiceResponse>;
   listRecordSchemaGrants?(query: string | RecordSchemaGrantQuery): Promise<RecordSchemaReferenceModel[]>;
