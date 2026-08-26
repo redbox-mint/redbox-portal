@@ -1,0 +1,39 @@
+meta {
+  name: Reject Inaccessible Immutable Record Schema
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/default/record-schema-inaccessible/api/records/schemas/{{recordSchemaUpdateDigest}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Hides the existing artifact outside its authorized portal scope", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/problem+json");
+
+    const problem = res.getBody();
+    expect(problem).to.deep.include({
+      type: "https://redboxresearchdata.com/problems/record-schema-not-found",
+      title: "Record schema was not found",
+      status: 404,
+      detail: "No accessible record schema or resolution context was found.",
+      code: "record-schema.not-found"
+    });
+    expect(problem).not.to.have.any.keys("$schema", "$id", "artifact", "document", "etag");
+
+    const normalized = { ...problem, instance: "<requested-schema>" };
+    bru.setEnvVar("recordSchemaInaccessibleProblem", JSON.stringify(normalized));
+
+    const digest = bru.getEnvVar("recordSchemaUpdateDigest");
+    const missingDigest = `${digest[0] === "0" ? "1" : "0"}${digest.slice(1)}`;
+    bru.setEnvVar("recordSchemaMissingDigest", missingDigest);
+  });
+}

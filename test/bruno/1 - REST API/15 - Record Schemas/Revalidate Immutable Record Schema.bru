@@ -1,0 +1,28 @@
+meta {
+  name: Revalidate Immutable Record Schema
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/schemas/{{recordSchemaUpdateDigest}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  If-None-Match: {{recordSchemaUpdateEtag}}
+}
+
+tests {
+  test("Returns an authorized 304 for the matching dynamic ETag", function () {
+    expect(bru.getEnvVar("recordSchemaUpdateEtag"), "update schema ETag").to.match(
+      /^"sha256:[0-9a-f]{64}"$/
+    );
+    expect(res.getStatus()).to.equal(304);
+    expect(res.getHeader("etag")).to.equal(bru.getEnvVar("recordSchemaUpdateEtag"));
+    expect(res.getHeader("cache-control")).to.equal("private, no-cache");
+    expect(res.getHeader("vary")).to.equal("Authorization");
+  });
+}
