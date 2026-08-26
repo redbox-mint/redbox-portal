@@ -1,4 +1,8 @@
-import { resolveApiRouteForRequest, validateApiRouteRequest } from '../api-routes';
+import { resolveApiRouteForRequest, validateApiRouteRequest, type ApiRouteDefinition } from '../api-routes';
+import { RECORD_SCHEMA_PROBLEM_MEDIA_TYPE } from '../api-routes/record-schema-response';
+import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract';
+
+const RECORD_SCHEMA_CONTROLLER = 'webservice/RecordSchemaController';
 
 function getNoCacheHeaders(): Record<string, string> {
   return {
@@ -48,6 +52,25 @@ function sendPolicyResponse(
     : buildV1ErrorResponse(displayErrors));
 }
 
+function isRecordSchemaRoute(route: ApiRouteDefinition): boolean {
+  return route.controller === RECORD_SCHEMA_CONTROLLER;
+}
+
+function sendRecordSchemaInvalidRequest(req: Sails.Req, res: Sails.Res) {
+  const instance = req.path ?? req.originalUrl ?? '/api/records/schemas';
+  res.set(getNoCacheHeaders());
+  res.set('Content-Type', RECORD_SCHEMA_PROBLEM_MEDIA_TYPE);
+  res.status(400);
+  return res.json({
+    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
+    title: 'Record schema request is invalid',
+    status: 400,
+    detail: 'The record schema request is malformed.',
+    instance,
+    code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+  });
+}
+
 function describeRequest(req: Sails.Req): string {
   return `${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`;
 }
@@ -63,7 +86,16 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
 
     const validated = validateApiRouteRequest(req, route);
     if (!validated.valid) {
-      sendPolicyResponse(req, res, 400, validated.issues.map(issue => ({ title: issue.path, detail: issue.message })));
+      if (isRecordSchemaRoute(route)) {
+        sendRecordSchemaInvalidRequest(req, res);
+      } else {
+        sendPolicyResponse(
+          req,
+          res,
+          400,
+          validated.issues.map(issue => ({ title: issue.path, detail: issue.message }))
+        );
+      }
       return;
     }
 

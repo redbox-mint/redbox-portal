@@ -555,7 +555,9 @@ describe('API routes contract layer', function () {
       }
 
       expect(operation.responses?.['304']?.content).to.equal(undefined);
-      for (const status of ['400', '401', '403', '404', '409', '413', '422', '500', '503']) {
+      const problemStatuses = ['400', '401', '403', '404', '409', '413', '422', '503'];
+      expect(Object.keys(operation.responses ?? {}).sort()).to.deep.equal(['200', '304', ...problemStatuses].sort());
+      for (const status of problemStatuses) {
         const problem = operation.responses?.[status];
         expect(problem?.content).to.have.all.keys('application/problem+json');
         expect(problem?.content?.['application/problem+json']?.schema?.required).to.include.members([

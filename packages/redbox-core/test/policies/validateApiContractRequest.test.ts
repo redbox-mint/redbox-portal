@@ -11,6 +11,42 @@ type TestResponse = Sails.Res & {
     statusCode?: number;
 };
 
+interface MalformedRecordSchemaRequestCase {
+    readonly name: string;
+    readonly path: string;
+    readonly routePath: string;
+    readonly params: Record<string, string>;
+    readonly query: Record<string, string>;
+    readonly headers: Record<string, string>;
+}
+
+const malformedRecordSchemaRequestCases: readonly MalformedRecordSchemaRequestCase[] = [
+    {
+        name: 'digest',
+        path: `/default/rdmp/api/records/schemas/${'A'.repeat(64)}`,
+        routePath: '/:branding/:portal/api/records/schemas/:digest',
+        params: { branding: 'default', portal: 'rdmp', digest: 'A'.repeat(64) },
+        query: {},
+        headers: {},
+    },
+    {
+        name: 'operation',
+        path: '/default/rdmp/api/records/schemas/create/dataset',
+        routePath: '/:branding/:portal/api/records/schemas/create/:recordType',
+        params: { branding: 'default', portal: 'rdmp', recordType: 'dataset' },
+        query: { operation: 'malformed operation' },
+        headers: {},
+    },
+    {
+        name: 'If-None-Match',
+        path: '/default/rdmp/api/records/schemas/update/record-1',
+        routePath: '/:branding/:portal/api/records/schemas/update/:oid',
+        params: { branding: 'default', portal: 'rdmp', oid: 'record-1' },
+        query: {},
+        headers: { 'if-none-match': `W/"sha256:${'a'.repeat(64)}"` },
+    },
+];
+
 function createReq(overrides: Partial<Sails.Req> = {}): Sails.Req {
     return {
         method: 'GET',
@@ -29,8 +65,11 @@ function createReq(overrides: Partial<Sails.Req> = {}): Sails.Req {
 
 function createRes(): TestResponse {
     const res = {
-        set(this: TestResponse, headers: Record<string, string>) {
-            this.headers = headers;
+        set(this: TestResponse, field: string | Record<string, string>, value?: string) {
+            this.headers = {
+                ...this.headers,
+                ...(typeof field === 'string' ? { [field]: value ?? '' } : field),
+            };
             return this;
         },
         status(this: TestResponse, code: number) {
@@ -147,6 +186,47 @@ describe('validateApiContractRequest policy', function () {
             expect(JSON.stringify(res.body)).not.to.include('malformed operation secret');
         }
     });
+
+    for (const malformed of malformedRecordSchemaRequestCases) {
+        it(`returns raw 400 Problem Details for malformed record-schema ${malformed.name} in both API versions`, function () {
+            for (const apiVersion of ['1.0', '2.0']) {
+                const req = createReq({
+                    path: malformed.path,
+                    originalUrl: malformed.path,
+                    url: malformed.path,
+                    route: { path: malformed.routePath },
+                    params: { ...malformed.params },
+                    query: { ...malformed.query },
+                    headers: {
+                        ...malformed.headers,
+                        'x-redbox-api-version': apiVersion,
+                    },
+                });
+                const res = createRes();
+                let nextCalled = false;
+
+                validateApiContractRequest(req, res, () => { nextCalled = true; });
+
+                expect(nextCalled, `${apiVersion} ${malformed.name}`).to.equal(false);
+                expect(res.statusCode, `${apiVersion} ${malformed.name}`).to.equal(400);
+                expect(res.headers?.['Content-Type'], `${apiVersion} ${malformed.name}`).to.equal(
+                    'application/problem+json'
+                );
+                expect(res.body, `${apiVersion} ${malformed.name}`).to.deep.equal({
+                    type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
+                    title: 'Record schema request is invalid',
+                    status: 400,
+                    detail: 'The record schema request is malformed.',
+                    instance: malformed.path,
+                    code: 'record-schema.invalid-request',
+                });
+                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('message');
+                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('errors');
+                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('meta');
+                expect(res.body, `${apiVersion} ${malformed.name}`).not.to.have.property('data');
+            }
+        });
+    }
 
     it('returns 400 for repeated If-Match values on update and transition routes', function () {
         const ifMatch = `"sha256:${'a'.repeat(64)}"`;

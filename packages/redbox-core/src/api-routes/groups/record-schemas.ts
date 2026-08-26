@@ -12,6 +12,7 @@ import type { ApiResponseDefinition, ApiSchemaField } from '../types';
 
 const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const RECORD_SCHEMA_ETAG_PATTERN = /^"sha256:[0-9a-f]{64}"$/;
+const RECORD_SCHEMA_REQUEST_ETAG_PATTERN = /^[\t ]*"sha256:[0-9a-f]{64}"[\t ]*$/;
 const RECORD_SCHEMA_CANONICAL_LINK_PATTERN =
   /^<\/[^\s<>/]+\/[^\s<>/]+\/api\/records\/schemas\/[0-9a-f]{64}>; rel="canonical"; type="application\/schema\+json"$/;
 const RECORD_SCHEMA_CONDITIONAL_HEADER_MAX_LENGTH = 128;
@@ -28,6 +29,7 @@ const recordSchemaDigestField = z
 const recordSchemaIfNoneMatchField = z
   .string({ error: 'record-schema-if-none-match-invalid' })
   .max(RECORD_SCHEMA_CONDITIONAL_HEADER_MAX_LENGTH, { error: 'record-schema-if-none-match-invalid' })
+  .regex(RECORD_SCHEMA_REQUEST_ETAG_PATTERN, { error: 'record-schema-if-none-match-invalid' })
   .openapi({
     description: 'Strong record-schema ETag used for authorized cache revalidation',
     pattern: RECORD_SCHEMA_ETAG_PATTERN.source,
@@ -128,7 +130,7 @@ function notModifiedResponse(headers: Record<string, ApiSchemaField>): ApiRespon
 }
 
 function problemResponse(
-  status: 400 | 401 | 403 | 404 | 409 | 413 | 422 | 500 | 503,
+  status: 400 | 401 | 403 | 404 | 409 | 413 | 422 | 503,
   description: string
 ): ApiResponseDefinition {
   const recordSchemaProblem = objectField(
@@ -161,7 +163,6 @@ const recordSchemaProblemResponses: Record<number, ApiResponseDefinition> = {
   409: problemResponse(409, 'Record schema could not be resolved from the authoritative context'),
   413: problemResponse(413, 'Record schema exceeds configured complexity or output limits'),
   422: problemResponse(422, 'Record form or contributor contract is invalid'),
-  500: problemResponse(500, 'Unexpected record-schema resolution failure'),
   503: problemResponse(503, 'Record-schema compiler or storage capability is unavailable'),
 };
 
@@ -181,6 +182,7 @@ export const resolveCreateRecordSchemaRoute = apiRoute(
     tags: ['Record Schemas'],
     summary: 'Resolve a create record schema',
     operationId: 'resolveCreateRecordSchema',
+    includeDefaultResponses: false,
     security: recordSchemaSecurity,
     responses: {
       200: schemaResponse('Caller-effective create metadata schema', recordSchemaCanonicalResponseHeaders),
@@ -204,6 +206,7 @@ export const resolveUpdateRecordSchemaRoute = apiRoute(
     tags: ['Record Schemas'],
     summary: 'Resolve an update record schema',
     operationId: 'resolveUpdateRecordSchema',
+    includeDefaultResponses: false,
     security: recordSchemaSecurity,
     responses: {
       200: schemaResponse('Caller-effective partial-update metadata schema', recordSchemaCanonicalResponseHeaders),
@@ -226,6 +229,7 @@ export const getImmutableRecordSchemaRoute = apiRoute(
     tags: ['Record Schemas'],
     summary: 'Get an immutable record schema',
     operationId: 'getImmutableRecordSchema',
+    includeDefaultResponses: false,
     security: recordSchemaSecurity,
     responses: {
       200: schemaResponse('Authorized immutable record schema', recordSchemaResponseHeaders),

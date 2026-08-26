@@ -5,6 +5,39 @@ import * as sinon from 'sinon';
 import { Controllers } from '../../src/CoreController';
 import {BuildResponseType} from "../../src";
 
+interface CoreResponseFixture {
+  readonly response: Sails.Res;
+  readonly set: sinon.SinonStub<[field: string | Record<string, string>, value?: string], Sails.Res>;
+  readonly status: sinon.SinonStub<[statusCode: number], Sails.Res>;
+  readonly json: sinon.SinonStub<[body: unknown], Sails.Res>;
+}
+
+interface LoggerFixture {
+  readonly error: sinon.SinonStub<[message: string, error: Error], void>;
+}
+
+function coreRequestFixture(apiVersion: string): Sails.Req {
+  const request: Sails.Req = Object.create(null);
+  Reflect.set(request, 'headers', { 'X-ReDBox-Api-Version': apiVersion });
+  Reflect.set(request, 'query', {});
+  return request;
+}
+
+function coreResponseFixture(): CoreResponseFixture {
+  const response: Sails.Res = Object.create(null);
+  const set = sinon.stub<[field: string | Record<string, string>, value?: string], Sails.Res>().returns(response);
+  const status = sinon.stub<[statusCode: number], Sails.Res>().returns(response);
+  const json = sinon.stub<[body: unknown], Sails.Res>().returns(response);
+  Reflect.set(response, 'set', set);
+  Reflect.set(response, 'status', status);
+  Reflect.set(response, 'json', json);
+  return { response, set, status, json };
+}
+
+function loggerFixture(): LoggerFixture {
+  return { error: sinon.stub<[message: string, error: Error], void>() };
+}
+
 describe('CoreController sendResp wrappers', () => {
   let controller: any;
   let originalSails: any;
@@ -248,8 +281,10 @@ describe('CoreController sendResp wrappers', () => {
   });
 
   it('logs an unexpected resolver error while preserving an explicit safe 503 Problem Details response', () => {
-    const req: any = { headers: { 'X-ReDBox-Api-Version': '2.0' }, query: {} };
-    const res: any = { set: sinon.stub(), status: sinon.stub().returnsThis(), json: sinon.stub() };
+    const req = coreRequestFixture('2.0');
+    const res = coreResponseFixture();
+    const logger = loggerFixture();
+    Reflect.set(sails.log, 'error', logger.error);
     const problem = {
       type: 'https://redboxresearchdata.com/problems/record-schema-unavailable',
       title: 'Record schema is unavailable',
@@ -260,7 +295,7 @@ describe('CoreController sendResp wrappers', () => {
     };
     const internalError = new Error('private exception text');
 
-    controller.callSendResp(req, res, {
+    controller.callSendResp(req, res.response, {
       format: 'raw-json',
       mediaType: 'application/problem+json',
       status: 503,
@@ -268,7 +303,7 @@ describe('CoreController sendResp wrappers', () => {
       data: problem,
     });
 
-    expect((global as any).sails.log.error.calledWith('Collected error in sendResp:', internalError)).to.be.true;
+    expect(logger.error.calledWith('Collected error in sendResp:', internalError)).to.be.true;
     expect(res.status.calledOnceWithExactly(503)).to.be.true;
     expect(res.set.secondCall.calledWithExactly('Content-Type', 'application/problem+json')).to.be.true;
     expect(res.json.calledOnceWithExactly(problem)).to.be.true;

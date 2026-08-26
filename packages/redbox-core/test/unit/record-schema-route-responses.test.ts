@@ -59,9 +59,15 @@ describe('record-schema route response contracts', function () {
   });
 
   it('specifies status-matched Problem Details schemas for every mapped and documented failure', function () {
-    const problemStatuses = [400, 401, 403, 404, 409, 413, 422, 500, 503] as const;
+    const problemStatuses = [400, 401, 403, 404, 409, 413, 422, 503] as const;
 
     for (const route of recordSchemaApiRoutes) {
+      assert.deepEqual(
+        Object.keys(route.responses ?? {})
+          .map(Number)
+          .sort((left, right) => left - right),
+        [200, 304, ...problemStatuses].sort((left, right) => left - right)
+      );
       for (const status of problemStatuses) {
         const response = route.responses?.[status];
         assert.deepEqual(Object.keys(response?.content ?? {}), [RECORD_SCHEMA_PROBLEM_MEDIA_TYPE]);
