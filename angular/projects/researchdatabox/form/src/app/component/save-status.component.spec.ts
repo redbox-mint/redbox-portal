@@ -26,6 +26,7 @@ describe('SaveStatusComponent', () => {
       '@dmpt-form-save-error': 'Error while saving: ',
       '@dmpt-form-save-warning-create': 'The record was saved, but some follow-up processing could not be completed.',
       '@dmpt-form-save-unknown-update': 'We couldn’t confirm whether your changes were saved. Reference: {{requestId}}.',
+      '@storage-workspace-save-warning': 'The storage request could not be completed. Request ID: {{requestId}}. Please contact support for help.',
       '@record-save-save-not-applied': 'The changes were not saved.',
     });
     formConfig = {
@@ -154,6 +155,31 @@ describe('SaveStatusComponent', () => {
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
     expect(el?.textContent).toContain('couldn’t confirm');
     expect(el?.textContent).toContain('99999999-9999-4999-8999-999999999999');
+  });
+
+  it('should use a configured warning translation code', async () => {
+    const saveStatus = formConfig.componentDefinitions.find(component => component.name === 'save_status');
+    (saveStatus?.component?.config as Record<string, unknown>)['warningMessageCreate'] = '@storage-workspace-save-warning';
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      operation: 'create',
+      requestId: '77777777-7777-4777-8777-777777777777',
+      response: { outcome: 'saved-with-warnings' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
+    expect(el?.textContent).toContain('The storage request could not be completed');
+    expect(el?.textContent).toContain('77777777-7777-4777-8777-777777777777');
+    expect(el?.textContent).not.toContain('follow-up processing');
   });
 
   it('should ignore a scoped save event when no save operation is pending', async () => {
