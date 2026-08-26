@@ -1,0 +1,22 @@
+meta {
+  name: Verify Business Validation Rejection
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaEnforceOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Confirms the business-invalid update did not mutate the record", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().title).to.equal("Bruno record schema enforce fixture");
+  });
+}
