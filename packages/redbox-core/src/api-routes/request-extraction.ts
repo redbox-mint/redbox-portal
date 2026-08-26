@@ -62,9 +62,8 @@ function getHeaderValue(req: Sails.Req, name: string): string | string[] | undef
 
 function getBodyContentTypeForExtraction(req: Sails.Req, contentTypes: string[]): string | undefined {
   const contentTypeHeader = getHeaderValue(req, 'content-type');
-  const requestContentType = typeof contentTypeHeader === 'string'
-    ? contentTypeHeader.split(';')[0]?.trim().toLowerCase()
-    : undefined;
+  const requestContentType =
+    typeof contentTypeHeader === 'string' ? contentTypeHeader.split(';')[0]?.trim().toLowerCase() : undefined;
   if (!requestContentType) {
     return contentTypes[0];
   }

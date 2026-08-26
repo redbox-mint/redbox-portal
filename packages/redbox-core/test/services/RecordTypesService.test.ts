@@ -112,7 +112,7 @@ describe('RecordTypesService', function () {
         mode: 'observe',
       });
       expect((global as any).RecordType.create.firstCall.args[0].recordSchema).to.deep.equal({
-        unknownProperties: 'declared'
+        unknownProperties: 'declared',
       });
     });
 
