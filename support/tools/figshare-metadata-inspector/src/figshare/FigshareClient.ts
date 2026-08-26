@@ -52,10 +52,16 @@ const DEFAULT_BASE_URL = 'https://api.figshare.com';
 const SENSITIVE_KEY = /authorization|token|secret|password|api[-_]?key/i;
 
 export function normaliseFigshareBaseUrl(value: string): string {
-  return value
-    .trim()
-    .replace(/\/+$/, '')
-    .replace(/\/(?:v2|v3)$/i, '');
+  const trimmed = value.trim();
+  let end = trimmed.length;
+  while (end > 0 && trimmed.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+  const withoutTrailingSlashes = trimmed.slice(0, end);
+  const lowerCaseUrl = withoutTrailingSlashes.toLowerCase();
+  return lowerCaseUrl.endsWith('/v2') || lowerCaseUrl.endsWith('/v3')
+    ? withoutTrailingSlashes.slice(0, -3)
+    : withoutTrailingSlashes;
 }
 
 function redact(value: unknown, token: string, seen = new WeakSet<object>()): unknown {

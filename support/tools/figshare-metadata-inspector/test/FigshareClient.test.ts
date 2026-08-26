@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { AxiosAdapter, AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { FigshareApiError, FigshareClient, FigshareResponseValidationError } from '../src/figshare/FigshareClient';
+import {
+  FigshareApiError,
+  FigshareClient,
+  FigshareResponseValidationError,
+  normaliseFigshareBaseUrl,
+} from '../src/figshare/FigshareClient';
 import { FigshareV2Client } from '../src/figshare/FigshareV2Client';
 import { fixture } from './support/fixtures';
 
@@ -37,6 +42,13 @@ describe('FigshareClient', () => {
     if (config.url === '/malformed') return response(config, 200, { unexpected: true });
     return response(config, 404, { message: 'missing' });
   };
+
+  it('normalizes version suffixes and trailing slashes without regex backtracking', () => {
+    assert.equal(normaliseFigshareBaseUrl(' https://figshare.test/v2/// '), 'https://figshare.test');
+    assert.equal(normaliseFigshareBaseUrl('https://figshare.test/V3'), 'https://figshare.test');
+    const slashRunBeforeText = `https://figshare.test/${'/'.repeat(10_000)}metadata`;
+    assert.equal(normaliseFigshareBaseUrl(slashRunBeforeText), slashRunBeforeText);
+  });
 
   it('authenticates and retries transient GET failures', async () => {
     const client = new FigshareClient({
