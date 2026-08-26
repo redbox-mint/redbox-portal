@@ -356,8 +356,9 @@ strip a fetched schema and continue to label it with the server's ETag.
 
 ## Recommended client sequence
 
-1. Discover the create resolver from `recordSchemaCreateResolver`, the runtime
-   `describedby` link, or `x-redbox-record-schema-resolver` in OpenAPI.
+1. Discover the create resolver from `recordSchemaCreateResolver` or
+   `x-redbox-record-schema-resolver` in OpenAPI. A runtime `describedby` link
+   instead discovers the immutable digest schema URL for that representation.
 2. Resolve with bearer authentication and the intended `operation`.
 3. Store the raw `application/schema+json` document and strong ETag only in a
    private cache; inspect completeness and diagnostics.
