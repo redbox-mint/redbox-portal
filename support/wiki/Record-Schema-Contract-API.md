@@ -10,6 +10,8 @@ rollout mode before compiling a contract.
 
 This page describes the client contract. For deployment configuration and
 operations, see [Operating Record Schema Contracts](Record-Schema-Contract-Operations).
+Hook authors extending persisted component or namespaced metadata shapes should
+follow [Record Schema Contract Contributors](Record-Schema-Contract-Contributors).
 
 ## Endpoints
 

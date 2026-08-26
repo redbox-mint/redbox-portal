@@ -325,6 +325,10 @@ after the configured storage provider is ready and before Sails reports
 application readiness. It aggregates deterministic findings, compiles every
 configured form, then materializes pins.
 
+Hook authors should resolve contributor findings against the registration,
+ownership, output, and failure rules in
+[Record Schema Contract Contributors](Record-Schema-Contract-Contributors).
+
 An aggregated gate failure is a `RecordSchemaLifecycleError` with top-level
 code `record-schema.lifecycle-failed` and sorted `findings`:
 
