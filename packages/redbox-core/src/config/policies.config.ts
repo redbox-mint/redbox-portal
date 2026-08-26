@@ -33,11 +33,12 @@ const defaultPolicies: PolicyName[] = [
     'contentSecurityPolicy',
 ];
 
-const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
-const noCachePlusApiValidationPolicies: PolicyName[] = [
-    ...noCachePlusDefaultPolicies,
+const apiValidationPolicies: PolicyName[] = [
+    ...defaultPolicies,
     'validateApiContractRequest'
 ];
+const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
+const noCachePlusApiValidationPolicies: PolicyName[] = ['noCache', ...apiValidationPolicies];
 const doAttachmentPolicies: PolicyName[] = noCachePlusDefaultPolicies.flatMap((policy) => (
     policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy]
 ));
@@ -83,6 +84,9 @@ export function mergeContractApiPolicies(
     return targetPolicies;
 }
 
+const contractApiPolicies = buildContractApiPolicies();
+const recordSchemaControllerPolicies = contractApiPolicies['webservice/RecordSchemaController'] as ControllerPolicies;
+
 export const policies: PoliciesConfig = {
     UserController: {
         '*': noCachePlusDefaultPolicies,
@@ -107,7 +111,13 @@ export const policies: PoliciesConfig = {
     'webservice/BrandingController': {
         '*': noCachePlusDefaultPolicies
     },
-    ...buildContractApiPolicies(),
+    ...contractApiPolicies,
+    'webservice/RecordSchemaController': {
+        ...recordSchemaControllerPolicies,
+        'create': apiValidationPolicies,
+        'update': apiValidationPolicies,
+        'immutable': apiValidationPolicies,
+    },
     'DynamicAssetController': {
         '*': noCachePlusDefaultPolicies
     },

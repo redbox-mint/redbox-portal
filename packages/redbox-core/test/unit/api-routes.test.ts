@@ -572,11 +572,42 @@ describe('API routes contract layer', function () {
     }
   });
 
-  it('should map contract-first API actions to request validation policy after default webservice policies', function () {
-    const recordPolicies = policies['webservice/RecordController'] as Record<string, unknown>;
-    const createPolicies = recordPolicies.create as string[];
+  it('should omit no-store caching only from the exact record-schema action policy chains', function () {
+    const schemaPolicies = policies['webservice/RecordSchemaController'] as Record<string, unknown>;
+    const schemaActionPolicies = [
+      'brandingAndPortal',
+      'checkBrandingValid',
+      'setLang',
+      'prepWs',
+      'i18nLanguages',
+      'menuResolver',
+      'isWebServiceAuthenticated',
+      'checkAuth',
+      'contentSecurityPolicy',
+      'validateApiContractRequest',
+    ];
 
-    expect(createPolicies).to.deep.equal([
+    expect(schemaPolicies).to.deep.equal({
+      '*': [
+        'noCache',
+        'brandingAndPortal',
+        'checkBrandingValid',
+        'setLang',
+        'prepWs',
+        'i18nLanguages',
+        'menuResolver',
+        'isWebServiceAuthenticated',
+        'checkAuth',
+        'contentSecurityPolicy',
+      ],
+      create: schemaActionPolicies,
+      update: schemaActionPolicies,
+      immutable: schemaActionPolicies,
+    });
+  });
+
+  it('should keep every non-schema contract API action on the exact no-store validation policy chain', function () {
+    const expectedPolicies = [
       'noCache',
       'brandingAndPortal',
       'checkBrandingValid',
@@ -588,7 +619,14 @@ describe('API routes contract layer', function () {
       'checkAuth',
       'contentSecurityPolicy',
       'validateApiContractRequest',
-    ]);
+    ];
+
+    for (const route of registerCoreApiRoutes()) {
+      if (route.controller === 'webservice/RecordSchemaController') continue;
+
+      const controllerPolicies = policies[route.controller] as Record<string, unknown>;
+      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
+    }
   });
 
   it('should build and merge contract validation policies for hook API routes', function () {
