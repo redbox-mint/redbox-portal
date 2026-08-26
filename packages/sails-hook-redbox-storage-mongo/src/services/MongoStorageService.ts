@@ -894,7 +894,18 @@ export namespace Services {
       collection: Collection<MongoRecordDocument>,
       requiredIndexes: readonly mongodb.IndexDescription[]
     ): Promise<void> {
-      const existingIndexes = await collection.indexes();
+      let existingIndexes: IndexDescriptionInfo[];
+      try {
+        existingIndexes = await collection.indexes();
+      } catch (error) {
+        if (
+          !(error instanceof mongodb.MongoServerError) ||
+          (error.code !== 26 && error.codeName !== 'NamespaceNotFound')
+        ) {
+          throw error;
+        }
+        existingIndexes = [];
+      }
       const missingIndexes: mongodb.IndexDescription[] = [];
 
       for (const required of requiredIndexes) {

@@ -274,6 +274,45 @@ describe('MongoStorageService', function () {
     expect(referenceCollection.createIndexes.calledOnce).to.be.true;
   });
 
+  it('creates required record-schema indexes when their namespaces do not exist', async function () {
+    const standardCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const artifactCollection = {
+      indexes: sandbox
+        .stub()
+        .rejects(
+          new mongodb.MongoServerError({ message: 'namespace not found', code: 26, codeName: 'NamespaceNotFound' })
+        ),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const referenceCollection = {
+      indexes: sandbox
+        .stub()
+        .rejects(
+          new mongodb.MongoServerError({ message: 'namespace not found', code: 26, codeName: 'NamespaceNotFound' })
+        ),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) => {
+      if (name === 'recordschemaartifact') return artifactCollection;
+      if (name === 'recordschemareference') return referenceCollection;
+      return standardCollection;
+    });
+    mockSails.config.recordSchema = { enabled: false };
+    const {
+      RECORD_SCHEMA_ARTIFACT_INDEXES,
+      RECORD_SCHEMA_REFERENCE_INDEXES,
+    } = require('../../src/services/MongoStorageService');
+
+    await service.performInit();
+
+    expect(artifactCollection.createIndexes.calledOnceWithExactly(RECORD_SCHEMA_ARTIFACT_INDEXES)).to.equal(true);
+    expect(referenceCollection.createIndexes.calledOnceWithExactly(RECORD_SCHEMA_REFERENCE_INDEXES)).to.equal(true);
+    expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
+  });
+
   it('creates the collection through a seed record when strict lookup fails', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([]),
