@@ -545,6 +545,9 @@ jobs:
             cd ./packages/redbox-core
             npm install --no-save --include=dev
       - run:
+          name: Verify record-contract coverage
+          command: nvm install && npm run test:record-contracts
+      - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m
           command: |

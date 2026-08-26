@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "schemas": [
+    {
+      "form": "core/generated-view-only",
+      "kind": "create",
+      "digest": "2c9f1f74fa6fb7295b8c2fec0cb163f6353207e1cd7b7b00f58640c36b2222ed",
+      "byteLength": 853,
+      "completeness": "complete"
+    },
+    {
+      "form": "core/generated-view-only",
+      "kind": "update",
+      "digest": "2fe63a86c3e565f674348d95038f09fb4af69afb538e0001ad3708b6a6eb1da8",
+      "byteLength": 853,
+      "completeness": "complete"
+    },
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "kind": "create",
+      "digest": "dfa2424e26ed3db3d4b47c1e38e0d84ca4cb1b7dfc27b0d01af7fc5cb4a78629",
+      "byteLength": 4433,
+      "completeness": "partial"
+    },
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "kind": "update",
+      "digest": "8deaa184af4c236d76871525eda4e9046e00bb43610570a3e974bcd56c6bca38",
+      "byteLength": 4433,
+      "completeness": "partial"
+    }
+  ]
+}
