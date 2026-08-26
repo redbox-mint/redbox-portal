@@ -3,6 +3,7 @@ const sinon = require('sinon');
 const { of, firstValueFrom } = require('rxjs');
 const { PassThrough, Readable } = require('node:stream');
 const mongodb = require('mongodb');
+const sailsMongoMongodb = require('sails-mongo/node_modules/mongodb');
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
   let rejection: unknown;
@@ -275,24 +276,26 @@ describe('MongoStorageService', function () {
   });
 
   it('creates required record-schema indexes when their namespaces do not exist', async function () {
+    const namespaceNotFoundByCode = new sailsMongoMongodb.MongoServerError({
+      message: 'namespace not found',
+      code: 26,
+    });
+    const namespaceNotFoundByName = new sailsMongoMongodb.MongoServerError({
+      message: 'namespace not found',
+      codeName: 'NamespaceNotFound',
+    });
+    expect(namespaceNotFoundByCode instanceof mongodb.MongoServerError).to.equal(false);
+    expect(namespaceNotFoundByName instanceof mongodb.MongoServerError).to.equal(false);
     const standardCollection = {
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
       createIndexes: sandbox.stub().resolves([]),
     };
     const artifactCollection = {
-      indexes: sandbox
-        .stub()
-        .rejects(
-          new mongodb.MongoServerError({ message: 'namespace not found', code: 26, codeName: 'NamespaceNotFound' })
-        ),
+      indexes: sandbox.stub().rejects(namespaceNotFoundByCode),
       createIndexes: sandbox.stub().resolves([]),
     };
     const referenceCollection = {
-      indexes: sandbox
-        .stub()
-        .rejects(
-          new mongodb.MongoServerError({ message: 'namespace not found', code: 26, codeName: 'NamespaceNotFound' })
-        ),
+      indexes: sandbox.stub().rejects(namespaceNotFoundByName),
       createIndexes: sandbox.stub().resolves([]),
     };
     mockDb.collection.callsFake((name: string) => {
@@ -344,11 +347,12 @@ describe('MongoStorageService', function () {
   });
 
   it('propagates an unrelated MongoServerError from record-schema index discovery without creating indexes', async function () {
-    const failure = new mongodb.MongoServerError({
+    const failure = new sailsMongoMongodb.MongoServerError({
       message: 'schema index discovery was unauthorized',
       code: 13,
       codeName: 'Unauthorized',
     });
+    expect(failure instanceof mongodb.MongoServerError).to.equal(false);
     const standardCollection = {
       indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
       createIndexes: sandbox.stub().resolves([]),

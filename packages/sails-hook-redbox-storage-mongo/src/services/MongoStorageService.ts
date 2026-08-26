@@ -218,6 +218,11 @@ function indexDisplayName(index: mongodb.IndexDescription | IndexDescriptionInfo
   return typeof index.name === 'string' && index.name.trim() !== '' ? index.name : '<unnamed>';
 }
 
+function isMongoNamespaceNotFoundError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return ('code' in error && error.code === 26) || ('codeName' in error && error.codeName === 'NamespaceNotFound');
+}
+
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
 type RelatedRecordsContext = {
@@ -898,10 +903,7 @@ export namespace Services {
       try {
         existingIndexes = await collection.indexes();
       } catch (error) {
-        if (
-          !(error instanceof mongodb.MongoServerError) ||
-          (error.code !== 26 && error.codeName !== 'NamespaceNotFound')
-        ) {
+        if (!isMongoNamespaceNotFoundError(error)) {
           throw error;
         }
         existingIndexes = [];
