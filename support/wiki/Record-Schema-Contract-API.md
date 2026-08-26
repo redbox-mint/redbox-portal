@@ -102,14 +102,14 @@ component is marked at its schema node:
 }
 ```
 
-`x-redbox-unsupported-component` is the schema-node annotation keyword. The
-separate root diagnostic uses the stable diagnostic code
-`record-schema.unsupported-component` to identify the limitation without
-exposing record content:
+The runtime currently reuses `x-redbox-unsupported-component` in two places:
+as the schema-node annotation keyword and as the `code` value in the separate
+root diagnostic. The annotation value names the unsupported component, while
+the diagnostic identifies the limitation without exposing record content:
 
 ```json
 {
-  "code": "record-schema.unsupported-component",
+  "code": "x-redbox-unsupported-component",
   "severity": "warning",
   "message": "A custom component has no registered record-contract contributor and remains permissive.",
   "pointer": "/custom_value",
