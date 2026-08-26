@@ -11,6 +11,7 @@ import {
   buildSailsRouteConfig,
   extractApiRequest,
   getMergedApiRoutes,
+  registerCoreApiRoutes,
   resetResolvedApiRouteCache,
   resolveApiRouteForRequest,
   searchRecordsRoute,
@@ -70,6 +71,12 @@ import {
   updateMetaRoute,
   updateObjectMetaRoute,
 } from '../../src/api-routes/groups/records';
+import {
+  getImmutableRecordSchemaRoute,
+  recordSchemaApiRoutes,
+  resolveCreateRecordSchemaRoute,
+  resolveUpdateRecordSchemaRoute,
+} from '../../src/api-routes/groups/record-schemas';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
 import {
   buildContractApiPolicies,
@@ -103,6 +110,8 @@ type OpenApiOperation = {
   >;
   requestBody?: { content?: Record<string, { schema?: OpenApiSchema }> };
   parameters?: Array<OpenApiParameter>;
+  operationId?: string;
+  security?: Array<Record<string, string[]>>;
   summary?: string;
   description?: string;
   'x-redbox-record-schema-resolver'?: unknown;
@@ -110,6 +119,8 @@ type OpenApiOperation = {
 
 type OpenApiParameter = {
   name?: string;
+  in?: string;
+  required?: boolean;
   style?: string;
   explode?: boolean;
   schema?: OpenApiSchema;
@@ -378,6 +389,121 @@ describe('API routes contract layer', function () {
         action: 'getAuditLog',
         csrf: false,
       });
+  });
+
+  it('should register the three record-schema GET routes with unique method/path keys', function () {
+    const registeredRoutes = registerCoreApiRoutes();
+    const registeredKeys = registeredRoutes.map(route => `${route.method} ${route.path}`);
+    const registeredRecordSchemaRoutes = registeredRoutes.filter(
+      route => route.controller === 'webservice/RecordSchemaController'
+    );
+
+    expect(new Set(registeredKeys).size).to.equal(registeredKeys.length);
+    expect(registeredRecordSchemaRoutes).to.have.length(3);
+    expect(registeredRecordSchemaRoutes).to.have.deep.members([...recordSchemaApiRoutes]);
+    expect(registeredRecordSchemaRoutes.map(route => `${route.method} ${route.path}`)).to.have.members([
+      'get /:branding/:portal/api/records/schemas/create/:recordType',
+      'get /:branding/:portal/api/records/schemas/update/:oid',
+      'get /:branding/:portal/api/records/schemas/:digest',
+    ]);
+
+    const routeConfig = buildCoreApiRouteConfig();
+    for (const route of recordSchemaApiRoutes) {
+      expect(routeConfig[`${route.method} ${route.path}`]).to.deep.equal({
+        controller: 'webservice/RecordSchemaController',
+        action: route.action,
+        csrf: false,
+      });
+    }
+  });
+
+  it('should publish all three typed record-schema operations in generated OpenAPI', function () {
+    const schemaEtag = `"sha256:${'a'.repeat(64)}"`;
+    for (const route of recordSchemaApiRoutes) {
+      expect(route.request?.headers?.safeParse({}).success).to.equal(true);
+      expect(route.request?.headers?.safeParse({ 'If-None-Match': schemaEtag }).success).to.equal(true);
+      expect(route.request?.headers?.safeParse({ 'If-None-Match': [schemaEtag, schemaEtag] }).success).to.equal(false);
+    }
+    for (const route of [resolveCreateRecordSchemaRoute, resolveUpdateRecordSchemaRoute]) {
+      expect(route.request?.query?.safeParse({}).success).to.equal(true);
+      expect(route.request?.query?.safeParse({ operation: 'submit' }).success).to.equal(true);
+      expect(route.request?.query?.safeParse({ operation: 'bad operation' }).success).to.equal(false);
+    }
+    expect(getImmutableRecordSchemaRoute.request?.query).to.equal(undefined);
+    expect(getImmutableRecordSchemaRoute.request?.params?.safeParse({ digest: 'a'.repeat(64) }).success).to.equal(true);
+    expect(getImmutableRecordSchemaRoute.request?.params?.safeParse({ digest: 'A'.repeat(64) }).success).to.equal(
+      false
+    );
+
+    const document = buildCoreApiOpenApiDocument();
+    const operations = [
+      {
+        path: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+        operationId: 'resolveCreateRecordSchema',
+        acceptsOperation: true,
+        hasCanonicalLink: true,
+      },
+      {
+        path: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+        operationId: 'resolveUpdateRecordSchema',
+        acceptsOperation: true,
+        hasCanonicalLink: true,
+      },
+      {
+        path: '/{branding}/{portal}/api/records/schemas/{digest}',
+        operationId: 'getImmutableRecordSchema',
+        acceptsOperation: false,
+        hasCanonicalLink: false,
+      },
+    ] as const;
+
+    expect(Object.keys(document.paths).filter(path => path.includes('/api/records/schemas/'))).to.have.members(
+      operations.map(operation => operation.path)
+    );
+
+    for (const expectedOperation of operations) {
+      const pathItem = document.paths[expectedOperation.path];
+      expect(Object.keys(pathItem ?? {})).to.deep.equal(['get']);
+
+      const operation = asOpenApiOperation(pathItem?.get);
+      expect(operation.operationId).to.equal(expectedOperation.operationId);
+      expect(operation.security).to.deep.equal([{ bearerAuth: [] }]);
+
+      const ifNoneMatch = operation.parameters?.find(parameter => parameter.name === 'If-None-Match');
+      expect(ifNoneMatch).to.deep.include({ in: 'header', required: false });
+      expect(ifNoneMatch?.schema?.pattern).to.equal('^"sha256:[0-9a-f]{64}"$');
+
+      const operationParameter = operation.parameters?.find(parameter => parameter.name === 'operation');
+      if (expectedOperation.acceptsOperation) {
+        expect(operationParameter).to.deep.include({ in: 'query', required: false });
+      } else {
+        expect(operationParameter).to.equal(undefined);
+      }
+
+      const success = operation.responses?.['200'];
+      expect(success?.content).to.have.all.keys('application/schema+json');
+      expect(success?.content?.['application/schema+json']?.schema).to.exist;
+      expect(success?.headers).to.include.all.keys('ETag', 'Cache-Control', 'Vary');
+      if (expectedOperation.hasCanonicalLink) {
+        expect(success?.headers).to.have.property('Link');
+      } else {
+        expect(success?.headers).not.to.have.property('Link');
+      }
+
+      expect(operation.responses?.['304']?.content).to.equal(undefined);
+      for (const status of ['400', '401', '403', '404', '409', '413', '422', '500', '503']) {
+        const problem = operation.responses?.[status];
+        expect(problem?.content).to.have.all.keys('application/problem+json');
+        expect(problem?.content?.['application/problem+json']?.schema?.required).to.include.members([
+          'type',
+          'title',
+          'status',
+          'detail',
+          'instance',
+          'code',
+        ]);
+      }
+    }
   });
 
   it('should map contract-first API actions to request validation policy after default webservice policies', function () {

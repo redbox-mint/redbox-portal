@@ -1,0 +1,182 @@
+import { z } from '../zod-openapi';
+
+import { apiRoute } from '../route-factory';
+import {
+  integerField,
+  objectField,
+  oidParams,
+  recordOperationQuery,
+  recordTypeParams,
+  stringField,
+} from '../schemas/common';
+import type { ApiResponseDefinition, ApiSchemaField } from '../types';
+
+const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
+const RECORD_SCHEMA_ETAG_PATTERN = '^"sha256:[0-9a-f]{64}"$';
+const RECORD_SCHEMA_CONDITIONAL_HEADER_MAX_LENGTH = 128;
+
+const recordSchemaDigestField = z
+  .string({ error: 'record-schema-digest-invalid' })
+  .regex(RECORD_SCHEMA_DIGEST_PATTERN, { error: 'record-schema-digest-invalid' })
+  .openapi({
+    description: 'Lowercase SHA-256 digest identifying an immutable record schema',
+    pattern: RECORD_SCHEMA_DIGEST_PATTERN.source,
+    example: 'a'.repeat(64),
+  });
+
+const recordSchemaIfNoneMatchField = z
+  .string({ error: 'record-schema-if-none-match-invalid' })
+  .max(RECORD_SCHEMA_CONDITIONAL_HEADER_MAX_LENGTH, { error: 'record-schema-if-none-match-invalid' })
+  .openapi({
+    description: 'Strong record-schema ETag used for authorized cache revalidation',
+    pattern: RECORD_SCHEMA_ETAG_PATTERN,
+    example: `"sha256:${'a'.repeat(64)}"`,
+  });
+
+const recordSchemaRequestHeaders = objectField({
+  'If-None-Match': recordSchemaIfNoneMatchField,
+});
+
+const recordSchemaDocument = objectField({}, [], 'Caller-effective JSON Schema draft 2020-12 document', true);
+
+const recordSchemaProblem = objectField(
+  {
+    type: stringField('URI identifying the Problem Details type'),
+    title: stringField('Short, stable problem title'),
+    status: integerField('HTTP status code'),
+    detail: stringField('Safe explanation of the failure'),
+    instance: stringField('Request URI for this problem occurrence'),
+    code: stringField('Stable ReDBox record-schema problem code'),
+  },
+  ['type', 'title', 'status', 'detail', 'instance', 'code'],
+  'RFC 9457 Problem Details for a record-schema request'
+);
+
+const recordSchemaResponseHeaders = {
+  ETag: recordSchemaIfNoneMatchField,
+  'Cache-Control': stringField('Private revalidation cache policy'),
+  Vary: stringField('Request headers that affect the representation'),
+};
+
+const recordSchemaCanonicalResponseHeaders = {
+  ...recordSchemaResponseHeaders,
+  Link: stringField('Canonical immutable record-schema link'),
+};
+
+function schemaResponse(description: string, headers: Record<string, ApiSchemaField>): ApiResponseDefinition {
+  return {
+    description,
+    content: {
+      'application/schema+json': {
+        schema: recordSchemaDocument,
+      },
+    },
+    headers,
+  };
+}
+
+function notModifiedResponse(headers: Record<string, ApiSchemaField>): ApiResponseDefinition {
+  return {
+    description: 'Authorized schema representation has not changed',
+    headers,
+  };
+}
+
+function problemResponse(description: string): ApiResponseDefinition {
+  return {
+    description,
+    content: {
+      'application/problem+json': {
+        schema: recordSchemaProblem,
+      },
+    },
+  };
+}
+
+const recordSchemaProblemResponses: Record<number, ApiResponseDefinition> = {
+  400: problemResponse('Malformed record-schema request'),
+  401: problemResponse('Authentication is required'),
+  403: problemResponse('Record-schema request is not authorized'),
+  404: problemResponse('Record schema or authorized resolution context was not found'),
+  409: problemResponse('Record schema could not be resolved from the authoritative context'),
+  413: problemResponse('Record schema exceeds configured complexity or output limits'),
+  422: problemResponse('Record form or contributor contract is invalid'),
+  500: problemResponse('Unexpected record-schema resolution failure'),
+  503: problemResponse('Record-schema compiler or storage capability is unavailable'),
+};
+
+const recordSchemaSecurity = [{ bearerAuth: [] }] as const;
+
+export const resolveCreateRecordSchemaRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/records/schemas/create/:recordType',
+  'webservice/RecordSchemaController',
+  'create',
+  {
+    params: recordTypeParams,
+    query: recordOperationQuery,
+    headers: recordSchemaRequestHeaders,
+  },
+  {
+    tags: ['Record Schemas'],
+    summary: 'Resolve a create record schema',
+    operationId: 'resolveCreateRecordSchema',
+    security: recordSchemaSecurity,
+    responses: {
+      200: schemaResponse('Caller-effective create metadata schema', recordSchemaCanonicalResponseHeaders),
+      304: notModifiedResponse(recordSchemaCanonicalResponseHeaders),
+      ...recordSchemaProblemResponses,
+    },
+  }
+);
+
+export const resolveUpdateRecordSchemaRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/records/schemas/update/:oid',
+  'webservice/RecordSchemaController',
+  'update',
+  {
+    params: oidParams,
+    query: recordOperationQuery,
+    headers: recordSchemaRequestHeaders,
+  },
+  {
+    tags: ['Record Schemas'],
+    summary: 'Resolve an update record schema',
+    operationId: 'resolveUpdateRecordSchema',
+    security: recordSchemaSecurity,
+    responses: {
+      200: schemaResponse('Caller-effective partial-update metadata schema', recordSchemaCanonicalResponseHeaders),
+      304: notModifiedResponse(recordSchemaCanonicalResponseHeaders),
+      ...recordSchemaProblemResponses,
+    },
+  }
+);
+
+export const getImmutableRecordSchemaRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/records/schemas/:digest',
+  'webservice/RecordSchemaController',
+  'immutable',
+  {
+    params: objectField({ digest: recordSchemaDigestField }, ['digest']),
+    headers: recordSchemaRequestHeaders,
+  },
+  {
+    tags: ['Record Schemas'],
+    summary: 'Get an immutable record schema',
+    operationId: 'getImmutableRecordSchema',
+    security: recordSchemaSecurity,
+    responses: {
+      200: schemaResponse('Authorized immutable record schema', recordSchemaResponseHeaders),
+      304: notModifiedResponse(recordSchemaResponseHeaders),
+      ...recordSchemaProblemResponses,
+    },
+  }
+);
+
+export const recordSchemaApiRoutes = [
+  resolveCreateRecordSchemaRoute,
+  resolveUpdateRecordSchemaRoute,
+  getImmutableRecordSchemaRoute,
+];

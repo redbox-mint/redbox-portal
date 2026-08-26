@@ -10,6 +10,7 @@ export * from './apib';
 export * from './schemas/common';
 
 export * from './groups/records';
+export * from './groups/record-schemas';
 export * from './groups/users';
 export * from './groups/search';
 export * from './groups/forms';
