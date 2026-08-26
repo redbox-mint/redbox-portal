@@ -313,6 +313,71 @@ describe('MongoStorageService', function () {
     expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
   });
 
+  it('propagates a plain error from record-schema index discovery without creating indexes', async function () {
+    const failure = new Error('schema index discovery failed');
+    const standardCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const artifactCollection = {
+      indexes: sandbox.stub().rejects(failure),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const referenceCollection = {
+      indexes: sandbox.stub(),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) => {
+      if (name === 'recordschemaartifact') return artifactCollection;
+      if (name === 'recordschemareference') return referenceCollection;
+      return standardCollection;
+    });
+
+    const rejection = await service.performInit().then(
+      () => undefined,
+      (error: unknown) => error
+    );
+
+    expect(rejection).to.equal(failure);
+    expect(artifactCollection.createIndexes.called).to.equal(false);
+    expect(referenceCollection.createIndexes.called).to.equal(false);
+  });
+
+  it('propagates an unrelated MongoServerError from record-schema index discovery without creating indexes', async function () {
+    const failure = new mongodb.MongoServerError({
+      message: 'schema index discovery was unauthorized',
+      code: 13,
+      codeName: 'Unauthorized',
+    });
+    const standardCollection = {
+      indexes: sandbox.stub().resolves([{ name: '_id_', key: { _id: 1 } }]),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const { RECORD_SCHEMA_ARTIFACT_INDEXES } = require('../../src/services/MongoStorageService');
+    const artifactCollection = {
+      indexes: sandbox.stub().resolves(RECORD_SCHEMA_ARTIFACT_INDEXES),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    const referenceCollection = {
+      indexes: sandbox.stub().rejects(failure),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) => {
+      if (name === 'recordschemaartifact') return artifactCollection;
+      if (name === 'recordschemareference') return referenceCollection;
+      return standardCollection;
+    });
+
+    const rejection = await service.performInit().then(
+      () => undefined,
+      (error: unknown) => error
+    );
+
+    expect(rejection).to.equal(failure);
+    expect(artifactCollection.createIndexes.called).to.equal(false);
+    expect(referenceCollection.createIndexes.called).to.equal(false);
+  });
+
   it('creates the collection through a seed record when strict lookup fails', async function () {
     const recordCollection = {
       indexes: sandbox.stub().resolves([]),
