@@ -833,6 +833,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new SaveStatusFieldComponentConfig();
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('successDisplayDurationMs', item.config, config);
+    this.sharedProps.setPropOverride('warningMessageCreate', item.config, config);
+    this.sharedProps.setPropOverride('warningMessageUpdate', item.config, config);
+    this.sharedProps.setPropOverride('unknownMessageCreate', item.config, config);
+    this.sharedProps.setPropOverride('unknownMessageUpdate', item.config, config);
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
