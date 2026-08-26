@@ -92,7 +92,7 @@ function recordSchemaResolverExtension(schemaKind: 'create' | 'update'): Record<
         revalidationRequestHeader: 'If-None-Match',
         ...(schemaKind === 'update'
           ? {
-              recordWritePreconditionRequestHeader: 'X-ReDBox-Record-Schema-If-Match',
+              recordWritePreconditionRequestHeader: RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
               comparison: 'current-resolved-full-document',
             }
           : {}),
