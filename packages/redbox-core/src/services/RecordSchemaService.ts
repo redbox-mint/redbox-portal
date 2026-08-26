@@ -149,6 +149,13 @@ export interface RecordSchemaServiceDependencies {
   readonly clock: () => number;
 }
 
+interface RecordSchemaLifecycleInspection {
+  readonly disabled: boolean;
+  readonly config?: RecordSchemaConfig;
+  readonly registry?: RecordContractContributorRegistry;
+  readonly findings: readonly RecordSchemaLifecycleFinding[];
+}
+
 const CATEGORY_ORDER: Readonly<Record<RecordSchemaLifecycleFinding['category'], number>> = {
   configuration: 0,
   storage: 1,
@@ -3502,39 +3509,10 @@ export namespace Services {
       });
     }
 
-    private async bootstrapConfiguredForms(): Promise<void> {
-      const config = this.resolveRuntimeConfig();
-      if (!config) {
-        const error = new RecordSchemaLifecycleError([unreadableConfigurationFinding()]);
-        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
-          status: 'failed',
-          finding_count: error.findings.length,
-        });
-        throw error;
-      }
-      if (!config.enabled) {
-        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
-          status: 'disabled',
-          finding_count: 0,
-        });
-        return;
-      }
-
-      let registry: RecordContractContributorRegistry | undefined;
-      try {
-        registry = this.dependencies.getContributorRegistry();
-      } catch (error) {
-        this.logUnexpected('startup-registry', error);
-      }
-      if (!registry) {
-        const error = new RecordSchemaLifecycleError(contributorFindings([unavailableContributorStateIssue()]));
-        this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
-          status: 'failed',
-          finding_count: error.findings.length,
-        });
-        throw error;
-      }
-
+    private async configuredFormFindings(
+      config: RecordSchemaConfig,
+      registry: RecordContractContributorRegistry
+    ): Promise<readonly RecordSchemaLifecycleFinding[]> {
       let rawCandidates: unknown;
       try {
         rawCandidates = this.dependencies.getConfiguredFormCandidates();
@@ -3548,12 +3526,12 @@ export namespace Services {
           candidates.kind === 'overflow'
             ? RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED
             : RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT;
-        const error = new RecordSchemaLifecycleError([configuredFormFinding('registry', 'candidate', code)]);
+        const findings = [configuredFormFinding('registry', 'candidate', code)];
         this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
           status: 'failed',
-          finding_count: error.findings.length,
+          finding_count: findings.length,
         });
-        throw error;
+        return findings;
       }
 
       const compiler = new RecordContractCompiler(registry, config.limits);
@@ -3639,25 +3617,46 @@ export namespace Services {
       }
 
       if (findings.length > 0) {
-        const error = new RecordSchemaLifecycleError(findings);
         this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
           status: 'failed',
-          finding_count: Math.min(error.findings.length, RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX),
-          ...(error.findings.length > RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX
+          finding_count: Math.min(findings.length, RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX),
+          ...(findings.length > RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX
             ? { finding_count_bucket: 'overflow' as const }
             : {}),
         });
-        throw error;
+        return findings;
       }
       this.safeLog('info', 'record_schema_startup_check', 'startup-configured-forms', {
         status: 'passed',
         finding_count: 0,
       });
+      return findings;
     }
 
-    /** Await all asynchronous record-schema startup checks before readiness. */
+    /** Run the complete enabled lifecycle gate after storage is ready and before application readiness. */
     public async bootstrap(): Promise<void> {
-      await this.bootstrapConfiguredForms();
+      const inspection = this.inspectLifecycle();
+      if (inspection.disabled) {
+        this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
+          status: 'disabled',
+          finding_count: 0,
+        });
+        return;
+      }
+
+      const findings = [...inspection.findings];
+      if (inspection.config && inspection.registry) {
+        findings.push(...(await this.configuredFormFindings(inspection.config, inspection.registry)));
+      }
+      if (findings.length > 0) {
+        this.logLifecycleFailure(findings);
+        throw new RecordSchemaLifecycleError(findings);
+      }
+
+      this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
+        status: 'passed',
+        finding_count: 0,
+      });
       await this.bootstrapIntegrationPins();
     }
 
@@ -3686,17 +3685,13 @@ export namespace Services {
       });
     }
 
-    public override init(): void {
+    private inspectLifecycle(): RecordSchemaLifecycleInspection {
       let config: unknown;
       let configReadFailed = false;
       try {
         config = this.dependencies.getConfig();
         if (isDisabled(config)) {
-          this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
-            status: 'disabled',
-            finding_count: 0,
-          });
-          return;
+          return { disabled: true, findings: [] };
         }
       } catch (error) {
         this.logUnexpected('startup-configuration', error);
@@ -3710,6 +3705,15 @@ export namespace Services {
           : snapshot.kind === 'pin-limit'
             ? [pinFinding('recordSchema.integrationPins', 'maximum-items')]
             : configuredFindings(snapshot.value);
+      let validatedConfig: RecordSchemaConfig | undefined;
+      if (snapshot?.kind === 'snapshot') {
+        try {
+          const validation = validateRecordSchemaConfig(snapshot.value);
+          if (validation.valid) validatedConfig = validation.config;
+        } catch (error) {
+          this.logUnexpected('startup-configuration', error);
+        }
+      }
 
       let storageProvider: unknown;
       try {
@@ -3754,15 +3758,36 @@ export namespace Services {
       }
       findings.push(...coverageFindings(componentTypes));
 
-      if (findings.length > 0) {
+      return {
+        disabled: false,
+        ...(validatedConfig ? { config: validatedConfig } : {}),
+        ...(registry ? { registry } : {}),
+        findings,
+      };
+    }
+
+    private logLifecycleFailure(findings: readonly RecordSchemaLifecycleFinding[]): void {
+      this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
+        status: 'failed',
+        finding_count: Math.min(findings.length, RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX),
+        ...(findings.length > RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX
+          ? { finding_count_bucket: 'overflow' as const }
+          : {}),
+      });
+    }
+
+    public override init(): void {
+      const inspection = this.inspectLifecycle();
+      if (inspection.disabled) {
         this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
-          status: 'failed',
-          finding_count: Math.min(findings.length, RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX),
-          ...(findings.length > RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX
-            ? { finding_count_bucket: 'overflow' as const }
-            : {}),
+          status: 'disabled',
+          finding_count: 0,
         });
-        throw new RecordSchemaLifecycleError(findings);
+        return;
+      }
+      if (inspection.findings.length > 0) {
+        this.logLifecycleFailure(inspection.findings);
+        throw new RecordSchemaLifecycleError(inspection.findings);
       }
       this.safeLog('info', 'record_schema_startup_check', 'lifecycle', {
         status: 'passed',

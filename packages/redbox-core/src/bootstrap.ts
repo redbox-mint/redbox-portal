@@ -221,6 +221,12 @@ export async function preLiftSetup(): Promise<void> {
   // This allows services registered via redbox-loader shims to perform
   // setup after Sails is fully available (e.g., registering hooks)
   for (const serviceName of Object.keys(sails.services)) {
+    // Record-schema startup is the post-storage readiness gate at the end of
+    // coreBootstrap. Running its validation here would make service key order
+    // decide whether the configured storage hook has initialized first.
+    if (serviceName.toLowerCase() === 'recordschemaservice') {
+      continue;
+    }
     const service = sails.services[serviceName];
     if (service && typeof service.init === 'function') {
       await service.init();
