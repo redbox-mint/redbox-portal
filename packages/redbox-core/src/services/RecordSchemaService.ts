@@ -1020,15 +1020,24 @@ export type MaterializeRecordSchemaIntegrationPinsResult =
       readonly maximum: number;
     };
 
-export interface RecordSchemaRetentionReportRequest {
-  readonly now: Date;
-  /** Compatibility path for bounded reports over a known digest set. */
-  readonly digests?: readonly string[];
-  /** Page size for storage-owned artifact scans; invalid when digests is supplied. */
-  readonly limit?: number;
-  /** Exclusive digest cursor for storage-owned artifact scans; invalid when digests is supplied. */
-  readonly cursor?: string;
-}
+export type RecordSchemaRetentionReportRequest =
+  | {
+      readonly mode: 'targeted';
+      readonly now: Date;
+      /** Compatibility path for bounded reports over a known digest set. */
+      readonly digests: readonly string[];
+      readonly limit?: never;
+      readonly cursor?: never;
+    }
+  | {
+      readonly mode: 'paginated';
+      readonly now: Date;
+      readonly digests?: never;
+      /** Page size for storage-owned artifact scans. */
+      readonly limit?: number;
+      /** Exclusive digest cursor for storage-owned artifact scans. */
+      readonly cursor?: string;
+    };
 
 export type RecordSchemaRetentionReportResult =
   | {
@@ -1622,18 +1631,21 @@ function parseRetentionReportRequest(value: unknown): ParsedRetentionReportReque
     if (!(rawNow instanceof Date) || Number.isNaN(rawNow.getTime())) {
       return { ok: false, reason: 'datetime' };
     }
+    const modeDescriptor = Object.getOwnPropertyDescriptor(value, 'mode');
     const digestsDescriptor = Object.getOwnPropertyDescriptor(value, 'digests');
     const limitDescriptor = Object.getOwnPropertyDescriptor(value, 'limit');
     const cursorDescriptor = Object.getOwnPropertyDescriptor(value, 'cursor');
     if (
+      modeDescriptor === undefined ||
+      !('value' in modeDescriptor) ||
       (digestsDescriptor !== undefined && !('value' in digestsDescriptor)) ||
       (limitDescriptor !== undefined && !('value' in limitDescriptor)) ||
       (cursorDescriptor !== undefined && !('value' in cursorDescriptor))
     ) {
       return { ok: false, reason: 'shape' };
     }
-    if (digestsDescriptor !== undefined) {
-      if (limitDescriptor !== undefined || cursorDescriptor !== undefined) {
+    if (modeDescriptor.value === 'targeted') {
+      if (digestsDescriptor === undefined || limitDescriptor !== undefined || cursorDescriptor !== undefined) {
         return { ok: false, reason: 'shape' };
       }
       const boundedDigests = boundedArraySnapshot(digestsDescriptor.value, RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS);
@@ -1656,6 +1668,10 @@ function parseRetentionReportRequest(value: unknown): ParsedRetentionReportReque
           now: new Date(rawNow.getTime()),
         }),
       };
+    }
+
+    if (modeDescriptor.value !== 'paginated' || digestsDescriptor !== undefined) {
+      return { ok: false, reason: 'shape' };
     }
 
     const limit = limitDescriptor?.value ?? RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE;

@@ -25,6 +25,7 @@ import type {
   RecordSchemaUpdateGrantReferenceInput,
   ResolveRecordSchemaResult,
 } from '../../src';
+import type { RecordSchemaRetentionReportRequest } from '../../src/services/RecordSchemaService';
 
 const commonReference = {
   referenceKey: 'reference-key-1',
@@ -165,8 +166,37 @@ function assertRecordSaveSchemaContextCannotBeForged(): void {
   void [forgedContext, forgedOperation, operation, forgedSchemaOutcome];
 }
 
+function assertInvalidRetentionReportShapesDoNotTypeCheck(): void {
+  const now = new Date('2026-08-24T00:00:00.000Z');
+  const targeted: RecordSchemaRetentionReportRequest = {
+    mode: 'targeted',
+    now,
+    digests: ['a'.repeat(64)],
+  };
+  const paginated: RecordSchemaRetentionReportRequest = { mode: 'paginated', now, limit: 10 };
+
+  // @ts-expect-error Targeted requests cannot carry pagination fields.
+  const targetedWithLimit: RecordSchemaRetentionReportRequest = {
+    mode: 'targeted',
+    now,
+    digests: ['a'.repeat(64)],
+    limit: 10,
+  };
+  // @ts-expect-error Paginated requests cannot carry a targeted digest set.
+  const paginatedWithDigests: RecordSchemaRetentionReportRequest = {
+    mode: 'paginated',
+    now,
+    digests: ['a'.repeat(64)],
+  };
+  // @ts-expect-error Retention requests require an explicit mode discriminator.
+  const requestWithoutMode: RecordSchemaRetentionReportRequest = { now };
+
+  void [targeted, paginated, targetedWithLimit, paginatedWithDigests, requestWithoutMode];
+}
+
 describe('record-schema core contracts', function () {
   void assertRecordSaveSchemaContextCannotBeForged;
+  void assertInvalidRetentionReportShapesDoNotTypeCheck;
   it('models every dialect-neutral IR node through an exhaustive visitor', function () {
     const scalar: ContractNode = { kind: 'scalar', nullable: false, scalarType: 'string' };
     const object: ContractNode = {

@@ -16,6 +16,20 @@
       "completeness": "complete"
     },
     {
+      "form": "core/persisted-contributors",
+      "kind": "create",
+      "digest": "3898fe6f119a4317efb1beb36fe14828c6e2ed1f8fa7c01de84bc61ea175b364",
+      "byteLength": 2366,
+      "completeness": "partial"
+    },
+    {
+      "form": "core/persisted-contributors",
+      "kind": "update",
+      "digest": "d3e336a5f6d3fef4a8e24af6ca9bea53b673f396610d6fa4c371a1e763759dee",
+      "byteLength": 2366,
+      "completeness": "partial"
+    },
+    {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "create",
       "digest": "dfa2424e26ed3db3d4b47c1e38e0d84ca4cb1b7dfc27b0d01af7fc5cb4a78629",

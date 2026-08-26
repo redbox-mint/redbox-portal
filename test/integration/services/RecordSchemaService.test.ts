@@ -90,6 +90,7 @@ describe('RecordSchemaService storage-backed orchestration', function () {
       offset: 0,
     });
     const report = await service.reportRetention({
+      mode: 'targeted',
       digests: [DIGEST],
       now: new Date('2026-08-24T00:00:00.000Z'),
     });
@@ -177,10 +178,15 @@ describe('RecordSchemaService storage-backed orchestration', function () {
       }),
       getStorageProvider: storage,
     });
-    const firstRequest = { now, limit: 3, cursor: RETENTION_CURSOR };
+    const firstRequest = { mode: 'paginated', now, limit: 3, cursor: RETENTION_CURSOR } as const;
     const first = await service.reportRetention(firstRequest);
     const repeated = await service.reportRetention(firstRequest);
-    const second = await service.reportRetention({ now, limit: 3, cursor: RETENTION_DIGESTS[2] });
+    const second = await service.reportRetention({
+      mode: 'paginated',
+      now,
+      limit: 3,
+      cursor: RETENTION_DIGESTS[2],
+    });
     const summaries = await storage().listRecordSchemaArtifacts({ afterDigest: RETENTION_CURSOR, limit: 5 });
 
     expect(repeated).to.deep.equal(first);

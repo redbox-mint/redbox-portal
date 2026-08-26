@@ -13,6 +13,7 @@ import {
 } from '../src/record-contract/core-contributors';
 import {
   RecordContractContributorRegistry,
+  type RecordContractComponentContributor,
   type RecordContractContributorRegistration,
 } from '../src/record-contract/contributor-registry';
 import { RecordContractCompiler } from '../src/record-contract/record-contract-compiler';
@@ -26,6 +27,43 @@ import type { RecordContractPublicContext, RecordContractSchemaKind } from '../s
 const DevHookDataRecordForm = (
   require('../../redbox-hook-dev/src/form-config/dataRecord-1.0-draft') as { readonly default: FormConfigFrame }
 ).default;
+
+const PersistedCoreContributorCoverageForm = {
+  name: 'record-contract-persisted-contributors',
+  type: 'contract-coverage',
+  componentDefinitions: [
+    {
+      name: 'checkboxTree',
+      component: { class: 'CheckboxTreeComponent', config: {} },
+      model: { class: 'CheckboxTreeModel', config: {} },
+    },
+    {
+      name: 'dataLocation',
+      component: { class: 'DataLocationComponent', config: {} },
+      model: { class: 'DataLocationModel', config: {} },
+    },
+    {
+      name: 'pdfList',
+      component: { class: 'PDFListComponent', config: {} },
+      model: { class: 'PDFListModel', config: {} },
+    },
+    {
+      name: 'publishDataLocation',
+      component: { class: 'PublishDataLocationSelectorComponent', config: {} },
+      model: { class: 'PublishDataLocationSelectorModel', config: {} },
+    },
+    {
+      name: 'questionTree',
+      component: { class: 'QuestionTreeComponent', config: {} },
+      model: { class: 'QuestionTreeModel', config: {} },
+    },
+    {
+      name: 'recordSelector',
+      component: { class: 'RecordSelectorComponent', config: {} },
+      model: { class: 'RecordSelectorModel', config: {} },
+    },
+  ],
+} as FormConfigFrame;
 
 const APPROVED_SNAPSHOT_PATH = path.resolve(__dirname, '../test/snapshots/record-contract-coverage.json');
 const APPROVED_SNAPSHOT_MAX_BYTES = 64 * 1024;
@@ -99,6 +137,10 @@ const DEFAULT_FORMS: readonly RecordContractCoverageForm[] = Object.freeze([
     id: 'dev-hook/dataRecord-1.0-draft',
     form: DevHookDataRecordForm,
   }),
+  Object.freeze({
+    id: 'core/persisted-contributors',
+    form: PersistedCoreContributorCoverageForm,
+  }),
 ]);
 
 function defaultRegistrations(): readonly RecordContractContributorRegistration[] {
@@ -130,6 +172,44 @@ function assertPersistedCoreCoverage(registrations: readonly RecordContractContr
     );
   }
   return persisted.length;
+}
+
+function registrationsWithExerciseTracking(
+  registrations: readonly RecordContractContributorRegistration[],
+  exercisedComponentTypes: Set<string>
+): readonly RecordContractContributorRegistration[] {
+  const persisted = new Set(persistedCoreComponentTypes());
+  return registrations.map(registration => {
+    const contributor = registration.contributor;
+    if (
+      registration.source !== 'core' ||
+      contributor.kind !== 'component' ||
+      !persisted.has(contributor.componentType)
+    ) {
+      return registration;
+    }
+    return {
+      ...registration,
+      contributor: {
+        ...contributor,
+        compile: (context: Parameters<RecordContractComponentContributor['compile']>[0]) => {
+          exercisedComponentTypes.add(contributor.componentType);
+          return contributor.compile(context);
+        },
+      },
+    };
+  });
+}
+
+function assertPersistedCoreContributorExercise(exercisedComponentTypes: ReadonlySet<string>): void {
+  const missing = persistedCoreComponentTypes().filter(componentType => !exercisedComponentTypes.has(componentType));
+  if (missing.length > 0) {
+    throw new RecordContractCoverageError(
+      'record-contract-coverage.uncovered-persisted-component',
+      'A persisted core contributor is not exercised by the configured coverage forms.',
+      missing[0]
+    );
+  }
 }
 
 function assertCoverageForms(forms: readonly RecordContractCoverageForm[]): void {
@@ -224,7 +304,10 @@ export async function generateRecordContractCoverageSnapshot(
   const limits = options.limits ?? recordSchema.limits;
   assertCoverageForms(forms);
   assertPersistedCoreCoverage(registrations);
-  const registry = new RecordContractContributorRegistry(registrations);
+  const exercisedComponentTypes = new Set<string>();
+  const registry = new RecordContractContributorRegistry(
+    registrationsWithExerciseTracking(registrations, exercisedComponentTypes)
+  );
   const schemas: RecordContractCoverageSnapshotEntry[] = [];
 
   for (const coverageForm of [...forms].sort((left, right) => left.id.localeCompare(right.id))) {
@@ -247,6 +330,8 @@ export async function generateRecordContractCoverageSnapshot(
       });
     }
   }
+
+  assertPersistedCoreContributorExercise(exercisedComponentTypes);
 
   return Object.freeze({ version: 1, schemas: Object.freeze(schemas.map(entry => Object.freeze(entry))) });
 }

@@ -41,8 +41,8 @@ describe('record-contract CI coverage command', function () {
     const report = await runRecordContractCoverage();
 
     expect(report).to.deep.equal({
-      formsChecked: 2,
-      schemasChecked: 4,
+      formsChecked: 3,
+      schemasChecked: 6,
       persistedCoreComponentsCovered: 18,
     });
   });
@@ -89,6 +89,30 @@ describe('record-contract CI coverage command', function () {
     expect((failure as Error).message).to.equal(
       'A generated record JSON Schema does not satisfy the configured schema contract.'
     );
+  });
+
+  it('fails when a previously unexercised persisted core contributor renders an invalid schema', async function () {
+    const registrations = coreRegistrations().map(registration =>
+      registration.contributor.componentType === 'CheckboxTreeComponent'
+        ? {
+            ...registration,
+            contributor: {
+              ...registration.contributor,
+              compile: () => ({
+                kind: 'node' as const,
+                node: { kind: 'scalar' as const, scalarType: 'string' as const, nullable: false, enum: [] },
+              }),
+            },
+          }
+        : registration
+    );
+    const failure = await captureFailure(() => runRecordContractCoverage({ registrations }));
+
+    expect(failure).to.be.instanceOf(RecordContractCoverageError);
+    expect(failure).to.deep.include({
+      code: 'record-contract-coverage.invalid-schema',
+      target: 'core/persisted-contributors:create',
+    });
   });
 
   it('fails safely when repeated compilation produces different canonical output', async function () {

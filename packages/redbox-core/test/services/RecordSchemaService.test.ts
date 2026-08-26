@@ -1794,6 +1794,27 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     sinon.restore();
   });
 
+  it('rejects retention request discriminator mismatches before reading storage', async function () {
+    const getStorageProvider = sinon.stub();
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider,
+    });
+    const now = new Date('2026-08-24T00:00:00.000Z');
+
+    expect(await service.reportRetention({ mode: 'targeted', now, digests: [DIGEST], limit: 1 })).to.deep.equal({
+      kind: 'invalid-input',
+      reason: 'shape',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+    });
+    expect(await service.reportRetention({ mode: 'paginated', now, digests: [DIGEST] })).to.deep.equal({
+      kind: 'invalid-input',
+      reason: 'shape',
+      code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
+    });
+    expect(getStorageProvider.notCalled).to.equal(true);
+  });
+
   it('creates an idempotent post-save usage reference without persisting the raw save identity', async function () {
     const putRecordSchemaReference = sinon.stub();
     putRecordSchemaReference.onFirstCall().resolves(storageResponse(false));
@@ -1947,13 +1968,21 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     ).to.deep.include({ kind: 'recorded' });
     expect(await service.materializeIntegrationPins()).to.deep.equal({ kind: 'materialized', pins: [] });
     expect(
-      await service.reportRetention({ digests: [DIGEST], now: new Date('2026-08-24T00:00:00.000Z') })
+      await service.reportRetention({
+        mode: 'targeted',
+        digests: [DIGEST],
+        now: new Date('2026-08-24T00:00:00.000Z'),
+      })
     ).to.deep.include({ kind: 'reported', missingDigests: [DIGEST] });
   });
 
   it('returns total typed config outcomes for disabled, invalid, and hostile maintenance config', async function () {
     const putRecordSchemaReference = sinon.stub();
-    const reportRequest = { digests: [DIGEST], now: new Date('2026-08-24T00:00:00.000Z') };
+    const reportRequest = {
+      mode: 'targeted',
+      digests: [DIGEST],
+      now: new Date('2026-08-24T00:00:00.000Z'),
+    } as const;
     const disabled = new Services.RecordSchema({
       getConfig: () => ({ ...enabledConfig(), enabled: false }),
       getStorageProvider: () => ({ putRecordSchemaReference }),
@@ -2208,6 +2237,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
     expect(
       await service.reportRetention({
+        mode: 'targeted',
         digests: Array.from({ length: 101 }, (_, index) => index.toString(16).padStart(64, '0')),
         now: new Date('2026-08-24T00:00:00.000Z'),
       })
@@ -2219,7 +2249,11 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     expect(getRecordSchemaArtifact.notCalled).to.equal(true);
 
     expect(
-      await service.reportRetention({ digests: [digest], now: new Date('2026-08-24T00:00:00.000Z') })
+      await service.reportRetention({
+        mode: 'targeted',
+        digests: [digest],
+        now: new Date('2026-08-24T00:00:00.000Z'),
+      })
     ).to.deep.equal({
       kind: 'limit-exceeded',
       code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
@@ -2243,6 +2277,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
     expect(
       await noReadService.reportRetention({
+        mode: 'targeted',
         digests: deceptiveDigests,
         now: new Date('2026-08-24T00:00:00.000Z'),
       })
@@ -2281,6 +2316,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
     expect(
       await boundedService.reportRetention({
+        mode: 'targeted',
         digests: [DIGEST],
         now: new Date('2026-08-24T00:00:00.000Z'),
       })
@@ -2306,6 +2342,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
     expect(
       await service.reportRetention({
+        mode: 'targeted',
         digests: [DIGEST],
         now: new Date('2026-08-24T00:00:00.000Z'),
       })
@@ -2361,6 +2398,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
             listRecordSchemaReferences: async () => [reference],
           }),
         }).reportRetention({
+          mode: 'targeted',
           digests: [DIGEST],
           now: new Date('2026-08-24T00:00:00.000Z'),
         })
@@ -2401,6 +2439,7 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
 
     expect(
       await service.reportRetention({
+        mode: 'targeted',
         digests: [DIGEST],
         now: new Date('2026-08-24T00:00:00.000Z'),
       })
@@ -2408,7 +2447,11 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
   });
 
   it('contains throwing storage and hostile artifact/reference models as typed retention results', async function () {
-    const request = { digests: [DIGEST], now: new Date('2026-08-24T00:00:00.000Z') };
+    const request = {
+      mode: 'targeted',
+      digests: [DIGEST],
+      now: new Date('2026-08-24T00:00:00.000Z'),
+    } as const;
     const throwing = new Services.RecordSchema({
       getConfig: () => enabledConfig(),
       getStorageProvider: () => ({
@@ -2490,9 +2533,9 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       }),
     });
 
-    const first = await service.reportRetention({ now, limit: 2 });
-    const repeated = await service.reportRetention({ now, limit: 2 });
-    const second = await service.reportRetention({ now, limit: 2, cursor: digests[1] });
+    const first = await service.reportRetention({ mode: 'paginated', now, limit: 2 });
+    const repeated = await service.reportRetention({ mode: 'paginated', now, limit: 2 });
+    const second = await service.reportRetention({ mode: 'paginated', now, limit: 2, cursor: digests[1] });
 
     expect(repeated).to.deep.equal(first);
     expect(first).to.deep.include({
@@ -2520,13 +2563,17 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
     expect(deleteRecordSchemaArtifactIfUnreferenced.notCalled).to.equal(true);
 
     expect(
-      await service.reportRetention({ now, limit: RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE + 1 })
+      await service.reportRetention({
+        mode: 'paginated',
+        now,
+        limit: RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE + 1,
+      })
     ).to.deep.equal({
       kind: 'invalid-input',
       reason: 'limit',
       code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
     });
-    expect(await service.reportRetention({ now })).to.deep.include({
+    expect(await service.reportRetention({ mode: 'paginated', now })).to.deep.include({
       kind: 'reported',
       page: { limit: RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE },
     });
@@ -2638,9 +2685,10 @@ describe('RecordSchemaService reference orchestration and retention reporting', 
       }),
     });
     const request = {
+      mode: 'targeted',
       digests: [digestC, digestA, missingDigest, digestB, digestA],
       now,
-    };
+    } as const;
 
     const first = await service.reportRetention(request);
     const second = await service.reportRetention(request);
