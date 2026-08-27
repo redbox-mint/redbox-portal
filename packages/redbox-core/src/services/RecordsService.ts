@@ -4373,6 +4373,8 @@ export namespace Services {
       }
 
       if (!schemaEnabled) {
+        this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
+        if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
         if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
           tracker.recordPrimaryNotApplied(
             this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
@@ -4389,8 +4391,11 @@ export namespace Services {
         }
       }
 
-      this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
-      if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
+      if (schemaEnabled) {
+        this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
+        if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
+      }
+
       const formName = String(_.get(wfStep, 'config.form', ''));
 
       const form = await FormsService.getForm(brandObj, formName, true, recordTypeObj.name as string, recordObj);
