@@ -61,6 +61,7 @@ import type {
   RecordSchemaArtifactModel,
   RecordSchemaArtifactQuery,
   RecordSchemaArtifactSummary,
+  RecordSchemaAuthorizationGrantQuery,
   RecordSchemaDeleteRequest,
   RecordSchemaDeleteResult,
   RecordSchemaGrantQuery,
@@ -163,6 +164,10 @@ export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
     name: 'record_schema_reference_grant_lookup',
   },
   {
+    key: { digest: 1, kind: 1, brand: 1, portal: 1, schemaKind: 1, recordType: 1, operation: 1, oid: 1 },
+    name: 'record_schema_reference_authorization_lookup',
+  },
+  {
     key: { oid: 1, kind: 1 },
     name: 'record_schema_reference_oid_kind',
     sparse: true,
@@ -173,6 +178,13 @@ export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
     partialFilterExpression: { kind: 'pin' },
   },
 ];
+
+/**
+ * Authorization lookups fail as unavailable instead of consuming an
+ * unbounded database work budget. This is a time/availability boundary, not
+ * a result cap: a query that cannot complete is never reported as a denial.
+ */
+export const RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS = 1_000;
 
 type PersistentIndexBooleanOption = 'unique' | 'sparse' | 'hidden';
 type PersistentIndexValueOption =
@@ -311,6 +323,7 @@ export namespace Services {
       'touchRecordSchemaArtifact',
       'putRecordSchemaReference',
       'listRecordSchemaGrants',
+      'findRecordSchemaGrantForAuthorization',
       'listRecordSchemaReferences',
       'deleteRecordSchemaArtifactIfUnreferenced',
       'exists',
@@ -1295,6 +1308,87 @@ export namespace Services {
         return documents.map(referenceModelFromDocument);
       } catch (error) {
         return this.throwRecordSchemaReadFailure('listRecordSchemaGrants', error);
+      }
+    }
+
+    public async findRecordSchemaGrantForAuthorization(
+      query: RecordSchemaAuthorizationGrantQuery
+    ): Promise<RecordSchemaReferenceModel | null> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query is required.'
+          );
+        }
+        const schemaKind = query.schemaKind;
+        if (schemaKind !== 'create' && schemaKind !== 'update') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query schemaKind is invalid.'
+          );
+        }
+        if (!Array.isArray(query.roleNames)) {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query roleNames is invalid.'
+          );
+        }
+        const roleNames = [
+          ...new Set(query.roleNames.map(role => this.recordSchemaQueryString(role, 'roleNames'))),
+        ].sort();
+        const criteria: Document = {
+          digest: validateRecordSchemaDigest(query.digest),
+          kind: 'grant',
+          brand: this.recordSchemaQueryString(query.brand, 'brand'),
+          portal: this.recordSchemaQueryString(query.portal, 'portal'),
+          schemaKind,
+          recordType: this.recordSchemaQueryString(query.recordType, 'recordType'),
+          operation: this.recordSchemaQueryString(query.operation, 'operation', 64),
+        };
+
+        if (schemaKind === 'create') {
+          const grant = await this.referenceCollection().findOne(criteria, {
+            sort: { referenceKey: 1 },
+            maxTimeMS: RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
+          });
+          return grant ? referenceModelFromDocument(grant) : null;
+        }
+
+        const username = this.recordSchemaQueryString(query.username, 'username');
+        const recordBrandId = this.recordSchemaQueryString(query.recordBrandId, 'recordBrandId');
+        const editConditions: Document[] = [{ 'authorization.edit': username }];
+        if (roleNames.length > 0) {
+          editConditions.push({ 'authorization.editRoles': { $in: roleNames } });
+        }
+        const grants = await this.referenceCollection()
+          .aggregate([
+            { $match: criteria },
+            {
+              $lookup: {
+                from: Record.tableName,
+                localField: 'oid',
+                foreignField: 'redboxOid',
+                pipeline: [
+                  {
+                    $match: {
+                      'metaMetadata.brandId': recordBrandId,
+                      $or: editConditions,
+                    },
+                  },
+                ],
+                as: 'authorizedRecords',
+              },
+            },
+            { $match: { 'authorizedRecords.0': { $exists: true } } },
+            { $sort: { referenceKey: 1 } },
+            { $limit: 1 },
+          ])
+          .maxTimeMS(RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS)
+          .toArray();
+        return grants[0] ? referenceModelFromDocument(grants[0]) : null;
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('findRecordSchemaGrantForAuthorization', error);
       }
     }
 

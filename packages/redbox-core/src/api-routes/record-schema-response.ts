@@ -36,6 +36,14 @@ export const RECORD_SCHEMA_INVALID_REQUEST_PROBLEM_DESCRIPTOR = {
   code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST,
 } as const satisfies RecordSchemaProblemDescriptor;
 
+export const RECORD_SCHEMA_FORBIDDEN_PROBLEM_DESCRIPTOR = {
+  type: 'https://redboxresearchdata.com/problems/record-schema-forbidden',
+  title: 'Record schema request is not authorized',
+  status: 403,
+  detail: 'The record schema request is not authorized.',
+  code: RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN,
+} as const satisfies RecordSchemaProblemDescriptor;
+
 export function buildRecordSchemaInvalidRequestProblem(
   instance: string,
   code: RecordSchemaProblemCode = RECORD_SCHEMA_INVALID_REQUEST_PROBLEM_DESCRIPTOR.code
@@ -44,6 +52,13 @@ export function buildRecordSchemaInvalidRequestProblem(
     ...RECORD_SCHEMA_INVALID_REQUEST_PROBLEM_DESCRIPTOR,
     instance,
     code,
+  };
+}
+
+export function buildRecordSchemaForbiddenProblem(instance: string): RecordSchemaProblem {
+  return {
+    ...RECORD_SCHEMA_FORBIDDEN_PROBLEM_DESCRIPTOR,
+    instance,
   };
 }
 

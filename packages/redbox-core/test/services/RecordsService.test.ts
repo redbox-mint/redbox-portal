@@ -811,6 +811,37 @@ describe('RecordsService', function () {
 
       expect(result).to.equal(true);
     });
+
+    it('denies targeted create discovery when the caller lacks the target transition role', async function () {
+      const brand = { id: 'brand-1', name: 'default' };
+      const adminRole = { id: 'role-admin', name: 'Admin' };
+      const publisherRole = { id: 'role-publisher', name: 'Publisher' };
+      const user = { username: 'admin', roles: [adminRole] };
+      (global as any).RolesService.getRole = sinon
+        .stub()
+        .callsFake((_brand: unknown, name: string) => (name === 'Admin' ? adminRole : publisherRole));
+      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+        of({
+          name: 'draft',
+          starting: true,
+          config: { authorization: { editRoles: ['Admin'] } },
+        })
+      );
+      (global as any).WorkflowStepsService.get = sinon.stub().returns(
+        of({
+          name: 'published',
+          config: {
+            form: 'published-form',
+            workflow: { stage: 'published' },
+            authorization: { editRoles: ['Admin'], transitionRoles: ['Publisher'] },
+          },
+        })
+      );
+
+      const result = await RecordsService.hasCreateAccess(brand, user, [adminRole], 'rdmp', 'published');
+
+      expect(result).to.equal(false);
+    });
   });
 
   describe('hasViewAccess', function () {
@@ -3939,6 +3970,24 @@ describe('RecordsService', function () {
         ...overrides,
       });
 
+    const authorizeCreateFromStartingStep = (roleName = 'Researcher') => {
+      const role = { id: `role-${roleName.toLowerCase()}`, name: roleName };
+      (global as any).RolesService.getRole = sinon
+        .stub()
+        .callsFake((_brand: unknown, configuredName: string) => (configuredName === roleName ? role : null));
+      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+        of({
+          name: 'draft',
+          config: {
+            form: 'default-form',
+            addJsonLdContext: false,
+            authorization: { viewRoles: [roleName], editRoles: [roleName] },
+          },
+        })
+      );
+      return role;
+    };
+
     const installAuthoritativeStorage = (initialRecord?: any) => {
       let committedRecord = initialRecord === undefined ? undefined : structuredClone(initialRecord);
       const storageIdentity = initialRecord
@@ -4103,6 +4152,10 @@ describe('RecordsService', function () {
       listRecordSchemaGrants: sinon.stub<
         Parameters<NonNullable<StorageService['listRecordSchemaGrants']>>,
         ReturnType<NonNullable<StorageService['listRecordSchemaGrants']>>
+      >(),
+      findRecordSchemaGrantForAuthorization: sinon.stub<
+        Parameters<NonNullable<StorageService['findRecordSchemaGrantForAuthorization']>>,
+        ReturnType<NonNullable<StorageService['findRecordSchemaGrantForAuthorization']>>
       >(),
       listRecordSchemaReferences: sinon.stub<
         Parameters<NonNullable<StorageService['listRecordSchemaReferences']>>,
@@ -4582,6 +4635,7 @@ describe('RecordsService', function () {
 
     it('runs create structural validation on the normalized operation and raw metadata in the exact save order', async function () {
       enableRecordSchema();
+      const researcherRole = authorizeCreateFromStartingStep();
       mockSails.config.recordValidation = { mode: 'shadow' };
       const rawMetadata = { title: 'Raw title', nested: { count: 1 } };
       const callerRecord = {
@@ -4618,7 +4672,10 @@ describe('RecordsService', function () {
         { id: 'brand-1', name: 'default' },
         callerRecord,
         { name: 'rdmp', hooks: {}, searchable: false },
-        { username: 'user-1', roles: [{ name: 'Researcher' }, { name: 'Publisher' }] },
+        {
+          username: 'user-1',
+          roles: [researcherRole, { id: 'role-publisher', name: 'Publisher' }],
+        },
         true,
         false,
         undefined,
@@ -4641,7 +4698,10 @@ describe('RecordsService', function () {
         targetStep: undefined,
         caller: {
           brand: { id: 'brand-1', name: 'default' },
-          user: { username: 'user-1', roles: [{ name: 'Researcher' }, { name: 'Publisher' }] },
+          user: {
+            username: 'user-1',
+            roles: [researcherRole, { id: 'role-publisher', name: 'Publisher' }],
+          },
         },
       });
       expect(
@@ -4713,8 +4773,61 @@ describe('RecordsService', function () {
       expect(JSON.stringify(result.problems)).not.to.include(result.schemaOutcome?.digest);
     });
 
+    it('rejects a public create before schema resolution when submitted authorization self-grants edit access', async function () {
+      enableRecordSchema();
+      const creatorRole = { id: 'role-creator', name: 'Creator' };
+      const deniedRole = { id: 'role-denied', name: 'Denied' };
+      (global as any).RolesService.getRole = sinon
+        .stub()
+        .callsFake((_brand: unknown, name: string) => (name === 'Creator' ? creatorRole : null));
+      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+        of({
+          name: 'draft',
+          config: {
+            form: 'default-form',
+            authorization: { viewRoles: ['Creator'], editRoles: ['Creator'] },
+          },
+        })
+      );
+      const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
+      const putRecordSchemaReference = sinon.stub();
+      mockSails.services.recordschemaservice = {
+        resolveCreate,
+        validateResolvedArtifact: sinon.stub().returns({
+          kind: 'validated',
+          valid: true,
+          issues: [],
+          truncated: false,
+        }),
+        persistSaveUsageReference: sinon.stub(),
+      };
+      mockStorageService.putRecordSchemaReference = putRecordSchemaReference;
+
+      const result = await RecordsService.create(
+        { id: 'brand-1', name: 'default' },
+        {
+          metadata: { title: 'self-grant attempt' },
+          authorization: { edit: ['denied-user'], view: ['denied-user'] },
+        },
+        { name: 'rdmp', hooks: {}, searchable: false },
+        { username: 'denied-user', roles: [deniedRole] },
+        true,
+        true,
+        undefined,
+        recordSchemaContext({ routeFamily: 'api', operation: 'create', portal: 'portal' })
+      );
+
+      expect(result.outcome).to.equal('not-saved');
+      expect(result.problems[0]).to.deep.include({ kind: 'authorization', phase: 'pre-save' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
+      expect(resolveCreate.notCalled).to.equal(true);
+      expect(putRecordSchemaReference.notCalled).to.equal(true);
+      expect(mockStorageService.create.notCalled).to.equal(true);
+    });
+
     it('keeps a confirmed create saved-with-warnings when its schema usage reference cannot be persisted', async function () {
       enableRecordSchema();
+      const researcherRole = authorizeCreateFromStartingStep();
       mockSails.config.recordValidation = { mode: 'enforce' };
       const resolveCreate = sinon.stub().resolves(createSchemaResolution('resolved', 'enforce'));
       const validateResolvedArtifact = sinon.stub().returns({
@@ -4746,7 +4859,7 @@ describe('RecordsService', function () {
           authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
         },
         { name: 'rdmp', hooks: {}, searchable: false },
-        { username: 'user-1' },
+        { username: 'user-1', roles: [researcherRole] },
         false,
         false,
         undefined,
@@ -4885,6 +4998,7 @@ describe('RecordsService', function () {
     });
 
     it('runs the create business validator once after schema validation and configured pre-save hooks', async function () {
+      const researcherRole = authorizeCreateFromStartingStep();
       const { businessValidation, persistSaveUsageReference, resolveCreate, schemaStorage, validateResolvedArtifact } =
         installGeneratedSchemaValidationPipeline();
       const recordType = {
@@ -4939,7 +5053,7 @@ describe('RecordsService', function () {
           { id: 'brand-1' },
           callerRecord,
           recordType,
-          { username: 'user-1' },
+          { username: 'user-1', roles: [researcherRole] },
           true,
           false,
           undefined,

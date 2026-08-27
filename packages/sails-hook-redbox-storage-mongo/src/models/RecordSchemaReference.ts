@@ -11,6 +11,18 @@ export const RECORD_SCHEMA_REFERENCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{
   indexes: [
     { attributes: { referenceKey: 1 }, unique: true },
     { attributes: { digest: 1, kind: 1 } },
+    {
+      attributes: {
+        digest: 1,
+        kind: 1,
+        brand: 1,
+        portal: 1,
+        schemaKind: 1,
+        recordType: 1,
+        operation: 1,
+        oid: 1,
+      },
+    },
     { attributes: { oid: 1, kind: 1 } },
     { attributes: { kind: 1, expiresAt: 1 } },
   ],

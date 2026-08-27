@@ -412,6 +412,7 @@ function immutableControllerService(
     getConfig: enabledRecordSchemaConfig,
     getStorageProvider: () => ({
       getRecordSchemaArtifact: async () => artifact,
+      findRecordSchemaGrantForAuthorization: async () => grants[0] ?? null,
       listRecordSchemaReferences: async () => grants,
       touchRecordSchemaArtifact: async () => successfulStorageResponse(),
     }),

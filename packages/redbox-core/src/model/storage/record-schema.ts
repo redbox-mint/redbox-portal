@@ -93,6 +93,23 @@ export interface RecordSchemaGrantQuery {
   readonly limit: number;
 }
 
+/**
+ * Indexed immutable-authorization lookup. Storage returns at most one grant:
+ * create grants are selected by exact public context, while update grants are
+ * joined to a currently editable active record for the supplied principals.
+ */
+export interface RecordSchemaAuthorizationGrantQuery {
+  readonly digest: string;
+  readonly brand: string;
+  readonly portal: string;
+  readonly schemaKind: RecordContractSchemaKind;
+  readonly recordType: string;
+  readonly operation: string;
+  readonly recordBrandId: string;
+  readonly username: string;
+  readonly roleNames: readonly string[];
+}
+
 export interface RecordSchemaReferenceQuery {
   readonly digest?: string;
   readonly kind?: RecordSchemaReferenceInput['kind'];

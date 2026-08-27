@@ -8,6 +8,7 @@ import type {
   RecordSchemaArtifactModel,
   RecordSchemaArtifactQuery,
   RecordSchemaArtifactSummary,
+  RecordSchemaAuthorizationGrantQuery,
   RecordSchemaDeleteRequest,
   RecordSchemaDeleteResult,
   RecordSchemaGrantQuery,
@@ -23,6 +24,7 @@ export const RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS = [
   'touchRecordSchemaArtifact',
   'putRecordSchemaReference',
   'listRecordSchemaGrants',
+  'findRecordSchemaGrantForAuthorization',
   'listRecordSchemaReferences',
   'deleteRecordSchemaArtifactIfUnreferenced',
 ] as const;
@@ -172,6 +174,9 @@ export interface StorageService {
   touchRecordSchemaArtifact?(digest: string): Promise<StorageServiceResponse>;
   putRecordSchemaReference?(reference: RecordSchemaReferenceInput): Promise<StorageServiceResponse>;
   listRecordSchemaGrants?(query: string | RecordSchemaGrantQuery): Promise<RecordSchemaReferenceModel[]>;
+  findRecordSchemaGrantForAuthorization?(
+    query: RecordSchemaAuthorizationGrantQuery
+  ): Promise<RecordSchemaReferenceModel | null>;
   listRecordSchemaReferences?(query: RecordSchemaReferenceQuery): Promise<RecordSchemaReferenceModel[]>;
   deleteRecordSchemaArtifactIfUnreferenced?(
     request: RecordSchemaDeleteRequest

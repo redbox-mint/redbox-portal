@@ -327,6 +327,123 @@ describe('MongoStorageService', function () {
     expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
   });
 
+  it('selects at most one update grant through the indexed current-edit ACL join', async function () {
+    const digest = 'a'.repeat(64);
+    const grant = {
+      referenceKey: 'grant:update:' + 'b'.repeat(64),
+      digest,
+      kind: 'grant',
+      schemaKind: 'update',
+      brand: 'default',
+      portal: 'portal',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      oid: 'oid-1',
+      createdAt: new Date('2026-08-27T00:00:00.000Z'),
+      updatedAt: new Date('2026-08-27T00:00:00.000Z'),
+    };
+    const aggregateCursor = {
+      maxTimeMS: sandbox.stub().returnsThis(),
+      toArray: sandbox.stub().resolves([grant]),
+    };
+    const aggregate = sandbox.stub().returns(aggregateCursor);
+    service.recordSchemaReferenceCol = { aggregate };
+
+    const result = await service.findRecordSchemaGrantForAuthorization({
+      digest,
+      brand: 'default',
+      portal: 'portal',
+      schemaKind: 'update',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      recordBrandId: 'brand-1',
+      username: 'alice',
+      roleNames: ['Researcher'],
+    });
+
+    expect(result).to.deep.include({ referenceKey: grant.referenceKey, oid: 'oid-1' });
+    const pipeline = aggregate.firstCall.firstArg;
+    expect(pipeline[0]).to.deep.equal({
+      $match: {
+        digest,
+        kind: 'grant',
+        brand: 'default',
+        portal: 'portal',
+        schemaKind: 'update',
+        recordType: 'dataset',
+        operation: 'strict-all',
+      },
+    });
+    expect(pipeline).to.deep.include({ $limit: 1 });
+    expect(pipeline[1].$lookup).to.deep.include({
+      from: 'record',
+      localField: 'oid',
+      foreignField: 'redboxOid',
+    });
+    expect(pipeline[1].$lookup.pipeline).to.deep.equal([
+      {
+        $match: {
+          'metaMetadata.brandId': 'brand-1',
+          $or: [{ 'authorization.edit': 'alice' }, { 'authorization.editRoles': { $in: ['Researcher'] } }],
+        },
+      },
+    ]);
+    const { RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS } = require('../../src/services/MongoStorageService');
+    expect(aggregateCursor.maxTimeMS.calledOnceWithExactly(RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS)).to.equal(
+      true
+    );
+  });
+
+  it('selects at most one create grant by exact indexed public context', async function () {
+    const digest = 'a'.repeat(64);
+    const grant = {
+      referenceKey: 'grant:create:' + 'b'.repeat(64),
+      digest,
+      kind: 'grant',
+      schemaKind: 'create',
+      brand: 'default',
+      portal: 'portal',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      createdAt: new Date('2026-08-27T00:00:00.000Z'),
+      updatedAt: new Date('2026-08-27T00:00:00.000Z'),
+    };
+    const findOne = sandbox.stub().resolves(grant);
+    service.recordSchemaReferenceCol = { findOne };
+
+    const result = await service.findRecordSchemaGrantForAuthorization({
+      digest,
+      brand: 'default',
+      portal: 'portal',
+      schemaKind: 'create',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      recordBrandId: 'brand-1',
+      username: 'alice',
+      roleNames: [],
+    });
+
+    expect(result).to.deep.include({ referenceKey: grant.referenceKey, schemaKind: 'create' });
+    const { RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS } = require('../../src/services/MongoStorageService');
+    expect(
+      findOne.calledOnceWithExactly(
+        {
+          digest,
+          kind: 'grant',
+          brand: 'default',
+          portal: 'portal',
+          schemaKind: 'create',
+          recordType: 'dataset',
+          operation: 'strict-all',
+        },
+        {
+          sort: { referenceKey: 1 },
+          maxTimeMS: RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
+        }
+      )
+    ).to.equal(true);
+  });
+
   it('propagates a plain error from record-schema index discovery without creating indexes', async function () {
     const failure = new Error('schema index discovery failed');
     const standardCollection = {
@@ -479,6 +596,19 @@ describe('MongoStorageService', function () {
         {
           name: 'digest_1_kind_1_brand_1_portal_1_referenceKey_1',
           key: { digest: 1, kind: 1, brand: 1, portal: 1, referenceKey: 1 },
+        },
+        {
+          name: 'digest_1_kind_1_brand_1_portal_1_schemaKind_1_recordType_1_operation_1_oid_1',
+          key: {
+            digest: 1,
+            kind: 1,
+            brand: 1,
+            portal: 1,
+            schemaKind: 1,
+            recordType: 1,
+            operation: 1,
+            oid: 1,
+          },
         },
         {
           name: 'oid_1_kind_1',

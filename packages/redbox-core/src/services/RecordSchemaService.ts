@@ -16,6 +16,7 @@ import type {
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
   RecordSchemaArtifactSummary,
+  RecordSchemaAuthorizationGrantQuery,
   RecordSchemaCreateGrantReferenceInput,
   RecordSchemaGrantReferenceInput,
   RecordSchemaPinReferenceInput,
@@ -180,7 +181,6 @@ const DUPLICATE_REGISTRATION_CODES: ReadonlySet<RecordContractRegistrationCode> 
 const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_DIAGNOSTIC_IDENTIFIER = /^[A-Za-z0-9@._:/-]{1,200}$/;
 const RECORD_SCHEMA_REFERENCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$/;
-export const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
 export const RECORD_SCHEMA_CONFIGURED_FORM_MAX_CANDIDATES = 1_000;
 const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
 const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
@@ -284,7 +284,6 @@ type RecordSchemaLogContext =
   | 'resolve-immutable-artifact-read'
   | 'resolve-immutable-grant-list'
   | 'resolve-immutable-grant-contract'
-  | 'resolve-immutable-grant-pagination'
   | 'resolve-immutable-artifact-touch'
   | 'validation-compile'
   | 'validation-run'
@@ -1195,7 +1194,10 @@ type RecordSchemaCreateStorageProvider = Required<
 >;
 
 type RecordSchemaImmutableStorageProvider = Required<
-  Pick<StorageService, 'getRecordSchemaArtifact' | 'listRecordSchemaReferences' | 'touchRecordSchemaArtifact'>
+  Pick<
+    StorageService,
+    'getRecordSchemaArtifact' | 'findRecordSchemaGrantForAuthorization' | 'touchRecordSchemaArtifact'
+  >
 >;
 
 type RecordSchemaReferenceStorageProvider = Required<Pick<StorageService, 'putRecordSchemaReference'>>;
@@ -1232,7 +1234,7 @@ function isImmutableStorageProvider(value: unknown): value is RecordSchemaImmuta
   try {
     return (
       typeof Reflect.get(value, 'getRecordSchemaArtifact') === 'function' &&
-      typeof Reflect.get(value, 'listRecordSchemaReferences') === 'function' &&
+      typeof Reflect.get(value, 'findRecordSchemaGrantForAuthorization') === 'function' &&
       typeof Reflect.get(value, 'touchRecordSchemaArtifact') === 'function'
     );
   } catch {
@@ -2156,6 +2158,67 @@ function immutableCreateTargetStep(artifact: RecordSchemaArtifactModel): string 
   return typeof context.workflowStep === 'string' ? context.workflowStep : undefined;
 }
 
+function immutableAuthorizationQuery(
+  artifact: RecordSchemaArtifactModel,
+  request: ResolveImmutableRecordSchemaRequest
+): RecordSchemaAuthorizationGrantQuery | undefined {
+  const context = artifact.document['x-redbox-context'];
+  if (!isObjectRecord(context)) return undefined;
+  const schemaKind = ownDataProperty(context, 'kind');
+  const brand = boundedNormalizedText(context, 'brand');
+  const portal = boundedNormalizedText(context, 'portal');
+  const recordType = boundedNormalizedText(context, 'recordType');
+  const operation = boundedNormalizedText(context, 'operation', 64);
+  const recordBrandId = String(request.caller.brand?.id ?? '').trim();
+  const username = String(request.caller.user?.username ?? '').trim();
+  if (
+    (schemaKind !== 'create' && schemaKind !== 'update') ||
+    brand !== publicBranding(request) ||
+    portal !== request.portal ||
+    !recordType ||
+    !operation ||
+    !VALIDATION_OPERATION_NAME_PATTERN.test(operation) ||
+    !recordBrandId ||
+    !username
+  ) {
+    return undefined;
+  }
+
+  const roleNames = new Set<string>();
+  if (schemaKind === 'update') {
+    const roles = Array.isArray(request.caller.user.roles) ? request.caller.user.roles : [];
+    const brandRoles = Array.isArray(request.caller.brand.roles) ? request.caller.brand.roles : [];
+    const configuredRoleNamesById = new Map<string, string>();
+    for (const configuredRole of brandRoles) {
+      if (!isObjectRecord(configuredRole)) continue;
+      const configuredName = boundedNormalizedText(configuredRole, 'name');
+      const configuredId = boundedNormalizedText(configuredRole, 'id');
+      if (configuredName && configuredId) configuredRoleNamesById.set(configuredId, configuredName);
+    }
+    for (const actorRole of roles) {
+      if (!isObjectRecord(actorRole)) continue;
+      const name = boundedNormalizedText(actorRole, 'name');
+      const id = boundedNormalizedText(actorRole, 'id');
+      if (!name || !id) continue;
+      if (configuredRoleNamesById.get(id) === name) {
+        roleNames.add(name);
+      }
+    }
+  }
+
+  return Object.freeze({
+    digest: request.digest,
+    brand,
+    portal,
+    schemaKind,
+    recordType,
+    operation,
+    recordBrandId,
+    username,
+    roleNames: Object.freeze([...roleNames].sort(compareText)),
+  });
+}
+
 function verifiedImmutableArtifact(
   artifact: RecordSchemaArtifactModel,
   expected: RecordSchemaCompiledContext
@@ -2593,7 +2656,7 @@ export namespace Services {
 
       const actor = callerActor(request.caller);
       const callerBrand = typeof request.caller.brand?.id === 'string' ? request.caller.brand.id.trim() : '';
-      if (callerBrand !== request.brand) {
+      if (callerBrand !== request.brand || !actor.authenticated) {
         return immutableNotFoundResult(request);
       }
 
@@ -2631,84 +2694,41 @@ export namespace Services {
         return immutableInvalidContractResult(request, 'unverified');
       }
 
-      let authorizedCompilation: RecordSchemaCompiledContext | undefined;
-      let afterReferenceKey: string | undefined;
-      while (!authorizedCompilation) {
-        let rawGrants: unknown;
-        try {
-          rawGrants = await storage.listRecordSchemaReferences({
-            digest: request.digest,
-            kind: 'grant',
-            brand: publicBranding(request),
-            portal: request.portal,
-            limit: RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE,
-            ...(afterReferenceKey ? { afterReferenceKey } : {}),
-          });
-        } catch (error) {
-          this.logUnexpected('resolve-immutable-grant-list', error);
-          return immutableGrantInvalidContractResult(request);
-        }
-        const grants = boundedArraySnapshot(rawGrants, RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE);
-        if (grants.kind === 'invalid') {
-          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-list', {
-            error_type: 'non-error',
-          });
-          return immutableGrantInvalidContractResult(request);
-        }
-        if (grants.kind === 'overflow') {
-          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
-            error_type: 'non-error',
-          });
-          return immutableGrantInvalidContractResult(request);
-        }
-
-        let pageCursor = afterReferenceKey;
-        for (const value of grants.values) {
-          const parsedGrant = parseImmutableGrant(value, request);
-          if (parsedGrant.kind === 'invalid') {
-            this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-contract', {
-              error_type: 'non-error',
-            });
-            return immutableGrantInvalidContractResult(request);
-          }
-          const referenceKey = isObjectRecord(value) ? boundedNormalizedText(value, 'referenceKey') : undefined;
-          if (!referenceKey || (pageCursor !== undefined && referenceKey <= pageCursor)) {
-            this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
-              error_type: 'non-error',
-            });
-            return immutableGrantInvalidContractResult(request);
-          }
-          pageCursor = referenceKey;
-          if (parsedGrant.kind === 'irrelevant') {
-            continue;
-          }
-          authorizedCompilation = await this.resolveImmutableGrant(
-            config,
-            artifact,
-            parsedGrant.grant,
-            request.caller,
-            actor,
-            request.brand
-          );
-          if (authorizedCompilation) {
-            break;
-          }
-        }
-
-        if (authorizedCompilation) {
-          break;
-        }
-        if (grants.values.length < RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE) {
-          break;
-        }
-        if (pageCursor === undefined) {
-          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
-            error_type: 'non-error',
-          });
-          return immutableGrantInvalidContractResult(request);
-        }
-        afterReferenceKey = pageCursor;
+      const authorizationQuery = immutableAuthorizationQuery(artifact, request);
+      if (!authorizationQuery) {
+        return immutableGrantInvalidContractResult(request);
       }
+
+      let rawGrant: unknown;
+      try {
+        rawGrant = await storage.findRecordSchemaGrantForAuthorization(authorizationQuery);
+      } catch (error) {
+        this.logUnexpected('resolve-immutable-grant-list', error);
+        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+      }
+      if (rawGrant === null) {
+        return immutableNotFoundResult(request);
+      }
+      const parsedGrant = parseImmutableGrant(rawGrant, request);
+      if (
+        parsedGrant.kind !== 'grant' ||
+        parsedGrant.grant.schemaKind !== authorizationQuery.schemaKind ||
+        parsedGrant.grant.recordType !== authorizationQuery.recordType ||
+        parsedGrant.grant.operation !== authorizationQuery.operation
+      ) {
+        this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-contract', {
+          error_type: 'non-error',
+        });
+        return immutableGrantInvalidContractResult(request);
+      }
+      const authorizedCompilation = await this.resolveImmutableGrant(
+        config,
+        artifact,
+        parsedGrant.grant,
+        request.caller,
+        actor,
+        request.brand
+      );
       if (!authorizedCompilation) {
         return immutableNotFoundResult(request);
       }

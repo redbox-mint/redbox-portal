@@ -100,6 +100,10 @@ describe('record-schema Mongo models', function () {
         name: 'record_schema_reference_grant_lookup',
       },
       {
+        key: { digest: 1, kind: 1, brand: 1, portal: 1, schemaKind: 1, recordType: 1, operation: 1, oid: 1 },
+        name: 'record_schema_reference_authorization_lookup',
+      },
+      {
         key: { oid: 1, kind: 1 },
         name: 'record_schema_reference_oid_kind',
         sparse: true,

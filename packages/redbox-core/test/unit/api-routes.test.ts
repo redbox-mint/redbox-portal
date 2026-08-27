@@ -589,7 +589,7 @@ describe('API routes contract layer', function () {
       'i18nLanguages',
       'menuResolver',
       'isWebServiceAuthenticated',
-      'checkAuth',
+      'checkRecordSchemaAuth',
       'contentSecurityPolicy',
       'validateApiContractRequest',
     ];
@@ -1609,8 +1609,7 @@ describe('API routes contract layer', function () {
     for (const { path, method } of routeSpecs) {
       const operation = document.paths[path]?.[method] as globalThis.Record<string, unknown> | undefined;
       const responses = operation?.responses as
-        | globalThis.Record<string, globalThis.Record<string, unknown>>
-        | undefined;
+        globalThis.Record<string, globalThis.Record<string, unknown>> | undefined;
 
       expect(responses, `${method.toUpperCase()} ${path}`).to.exist;
       expect(responses, `${method.toUpperCase()} ${path}`).to.not.deep.equal({ 200: { description: 'Success' } });
@@ -1968,11 +1967,15 @@ describe('API routes contract layer', function () {
       body: {},
     } as unknown as Sails.Req;
 
-    const result = validateApiRouteRequest(request, brandingApiRoutes.find(route => route.action === 'logo')!, {
-      files: {
-        logo: [{ size: 1024 * 1024, type: 'image/gif' }],
-      },
-    });
+    const result = validateApiRouteRequest(
+      request,
+      brandingApiRoutes.find(route => route.action === 'logo')!,
+      {
+        files: {
+          logo: [{ size: 1024 * 1024, type: 'image/gif' }],
+        },
+      }
+    );
 
     expect(result.valid).to.equal(false);
     if (result.valid) {

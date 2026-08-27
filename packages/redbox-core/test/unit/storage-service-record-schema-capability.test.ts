@@ -26,6 +26,7 @@ describe('record-schema storage capability inspection', function () {
       'touchRecordSchemaArtifact',
       'putRecordSchemaReference',
       'listRecordSchemaGrants',
+      'findRecordSchemaGrantForAuthorization',
       'listRecordSchemaReferences',
       'deleteRecordSchemaArtifactIfUnreferenced',
     ]);

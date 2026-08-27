@@ -1088,6 +1088,9 @@ export namespace Controllers {
           persistenceMetadata['authorization'] = [];
         }
         let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
+        // This ACL is submitted persistence data. RecordsService authorizes
+        // schema-enabled creates from workflow ACLs before it may observe this
+        // value as an editable candidate.
         const authorizationBody = body['authorization'] as globalThis.Record<string, unknown> | undefined;
         if (authorizationBody != null) {
           authorizationEdit = authorizationBody['edit'];

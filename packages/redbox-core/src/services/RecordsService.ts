@@ -437,8 +437,7 @@ export namespace Services {
       }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
   type StructuralMetadataValidationResult =
-    | { readonly valid: true }
-    | { readonly valid: false; readonly problem: RecordSaveProblem };
+    { readonly valid: true } | { readonly valid: false; readonly problem: RecordSaveProblem };
   type ResolvedRecordSchemaSaveUsage = {
     readonly request: Omit<PersistRecordSchemaSaveUsageRequest, 'oid' | 'saveIdentity'>;
     readonly outcome: RecordSaveSchemaOutcomeInput;
@@ -2198,14 +2197,12 @@ export namespace Services {
     }
 
     /**
-     * Project only the submitted ACL through the resolved create workflow.
-     * This detached view mirrors the later workflow authorization defaults
-     * without exposing metadata to pre-schema mutation.
+     * Project create authorization only from authoritative workflow ACLs.
+     * Submitted record authorization is persistence data and must never grant
+     * the capability that permits schema compilation or grant persistence.
      */
-    private createAuthorizationProjection(record: AnyRecord, workflowSteps: readonly WorkflowStepLike[]): AnyRecord {
-      const projection = {
-        authorization: _.cloneDeep(record.authorization),
-      } as AnyRecord;
+    private createAuthorizationProjection(workflowSteps: readonly WorkflowStepLike[]): AnyRecord {
+      const projection = { authorization: {} } as AnyRecord;
       const authorization = projection.authorization as AnyRecord;
       for (const workflowStep of workflowSteps) {
         const configured = this.recordObject(_.get(workflowStep, 'config.authorization'));
@@ -2240,14 +2237,10 @@ export namespace Services {
           WorkflowStepsService.get(recordType, normalizedWorkflowStep)
         )) as WorkflowStepLike | null;
         if (this.resolvedWorkflowTargetDiagnostic(targetStep, normalizedWorkflowStep)) return false;
+        if (!this.hasTransitionRoleAuthorization(targetStep, user)) return false;
         workflowSteps.push(targetStep as WorkflowStepLike);
       }
-      return this.hasEditAccess(
-        brandObj,
-        user,
-        roles,
-        this.createAuthorizationProjection({ authorization: {} }, workflowSteps)
-      );
+      return this.hasEditAccess(brandObj, user, roles, this.createAuthorizationProjection(workflowSteps));
     }
 
     public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
@@ -4307,7 +4300,6 @@ export namespace Services {
       const schemaEnabled = this.recordSchemaEnabled();
       if (schemaEnabled) {
         const authorizationProjection = this.createAuthorizationProjection(
-          recordObj,
           targetStepName ? [startingWfStep, wfStep] : [startingWfStep]
         );
         const structuralBypass = tracker.context.validationBypass;

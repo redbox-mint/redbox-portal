@@ -486,10 +486,12 @@ async function createImmutableUpdateSeed(): Promise<ImmutableSeed> {
 
 function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<RecordSchemaServiceDependencies> = {}) {
   const getRecordSchemaArtifact = sinon.stub().resolves(seed.artifact);
+  const findRecordSchemaGrantForAuthorization = sinon.stub().resolves(seed.grant);
   const listRecordSchemaReferences = sinon.stub().resolves([seed.grant]);
   const touchRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
   const storageProvider = {
     getRecordSchemaArtifact,
+    findRecordSchemaGrantForAuthorization,
     listRecordSchemaReferences,
     touchRecordSchemaArtifact,
   };
@@ -510,6 +512,7 @@ function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<Reco
   return {
     service,
     getRecordSchemaArtifact,
+    findRecordSchemaGrantForAuthorization,
     listRecordSchemaReferences,
     touchRecordSchemaArtifact,
     resolveContractContext,
@@ -3248,9 +3251,9 @@ describe('RecordSchemaService telemetry', function () {
     };
     const immutableStorage = (
       getRecordSchemaArtifact: () => Promise<RecordSchemaArtifactModel>,
-      listRecordSchemaReferences: () => Promise<unknown[]>,
+      findRecordSchemaGrantForAuthorization: () => Promise<unknown>,
       touchRecordSchemaArtifact: () => Promise<StorageServiceResponse>
-    ) => ({ getRecordSchemaArtifact, listRecordSchemaReferences, touchRecordSchemaArtifact });
+    ) => ({ getRecordSchemaArtifact, findRecordSchemaGrantForAuthorization, touchRecordSchemaArtifact });
 
     await new Services.RecordSchema({
       telemetryLogger,
@@ -3267,7 +3270,7 @@ describe('RecordSchemaService telemetry', function () {
           async () => {
             throw new Error(secret);
           },
-          async () => [],
+          async () => null,
           async () => storageResponse(true)
         ),
     }).resolveImmutable(request);
@@ -3288,7 +3291,7 @@ describe('RecordSchemaService telemetry', function () {
       getStorageProvider: () =>
         immutableStorage(
           async () => seed.artifact,
-          async () => [seed.grant],
+          async () => seed.grant,
           async () => {
             throw new Error(secret);
           }
@@ -3509,7 +3512,7 @@ describe('RecordSchemaService immutable resolution', function () {
       detail: 'No accessible schema was found.',
       code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
     });
-    expect(fixture.listRecordSchemaReferences.notCalled).to.equal(true);
+    expect(fixture.findRecordSchemaGrantForAuthorization.notCalled).to.equal(true);
     expect(fixture.resolveContractContext.notCalled).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
@@ -3525,12 +3528,16 @@ describe('RecordSchemaService immutable resolution', function () {
 
     expect(result.kind).to.equal('resolved');
     expect(
-      fixture.listRecordSchemaReferences.calledOnceWithExactly({
+      fixture.findRecordSchemaGrantForAuthorization.calledOnceWithExactly({
         digest: seed.artifact.digest,
-        kind: 'grant',
         brand: 'default',
         portal: 'portal-1',
-        limit: 1_000,
+        schemaKind: 'create',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        recordBrandId: 'brand-1',
+        username: 'alice',
+        roleNames: [],
       })
     ).to.equal(true);
     expect(fixture.resolveContractContext.calledOnce).to.equal(true);
@@ -3540,28 +3547,22 @@ describe('RecordSchemaService immutable resolution', function () {
   it('denies cross-brand and cross-portal grants without revealing their existence', async function () {
     const seed = await createImmutableSeed();
     const fixture = immutableResolutionFixture(seed);
-    const crossBrand: RecordSchemaGrantReferenceInput = {
-      ...seed.grant,
-      referenceKey: 'cross-brand',
-      brand: 'brand-2',
-    };
-    const crossPortal: RecordSchemaGrantReferenceInput = {
-      ...seed.grant,
-      referenceKey: 'cross-portal',
-      portal: 'portal-2',
-    };
-    fixture.listRecordSchemaReferences.resolves([crossBrand, crossPortal]);
+    fixture.findRecordSchemaGrantForAuthorization.resolves(null);
 
     const result = await fixture.service.resolveImmutable(requestFor(seed));
 
     expect(result.kind).to.equal('not-found');
     expect(
-      fixture.listRecordSchemaReferences.calledOnceWithExactly({
+      fixture.findRecordSchemaGrantForAuthorization.calledOnceWithExactly({
         digest: seed.artifact.digest,
-        kind: 'grant',
         brand: 'brand-1',
         portal: 'portal-1',
-        limit: 1_000,
+        schemaKind: 'create',
+        recordType: 'dataset',
+        operation: 'strict-all',
+        recordBrandId: 'brand-1',
+        username: 'alice',
+        roleNames: [],
       })
     ).to.equal(true);
     expect(fixture.resolveContractContext.notCalled).to.equal(true);
@@ -3578,7 +3579,7 @@ describe('RecordSchemaService immutable resolution', function () {
 
     expect(result.kind).to.equal('not-found');
     expect(fixture.getRecordSchemaArtifact.notCalled).to.equal(true);
-    expect(fixture.listRecordSchemaReferences.notCalled).to.equal(true);
+    expect(fixture.findRecordSchemaGrantForAuthorization.notCalled).to.equal(true);
     expect(fixture.resolveContractContext.notCalled).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
@@ -3600,239 +3601,74 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(fixture.touchRecordSchemaArtifact.calledOnceWithExactly(seed.artifact.digest)).to.equal(true);
   });
 
-  it('hides an immutable create schema when current create ACL access is absent', async function () {
+  it('hides a targeted immutable create when the target transition role is denied exactly like a missing artifact', async function () {
     const seed = await createImmutableSeed();
-    const caller = updateCaller('visible-without-create');
+    const caller = updateCaller('visible-without-target-transition');
     const fixture = immutableResolutionFixture(seed);
     fixture.authorizeCreate.resolves(false);
+    const missing = immutableResolutionFixture(seed);
+    missing.getRecordSchemaArtifact.resolves(null);
 
-    const result = await fixture.service.resolveImmutable(requestFor(seed, caller));
+    const [result, missingResult] = await Promise.all([
+      fixture.service.resolveImmutable(requestFor(seed, caller)),
+      missing.service.resolveImmutable(requestFor(seed, caller)),
+    ]);
 
     expect(result.kind).to.equal('not-found');
+    expect(missingResult.kind).to.equal('not-found');
+    if (result.kind !== 'not-found' || missingResult.kind !== 'not-found') {
+      throw new Error('Expected targeted transition denial and missing artifact to remain indistinguishable.');
+    }
+    expect(result.problem).to.deep.equal(missingResult.problem);
     expect(fixture.authorizeCreate.calledOnceWithExactly(seed.context, caller)).to.equal(true);
     expect(fixture.buildContractFormConfig.notCalled).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
+    expect(missing.findRecordSchemaGrantForAuthorization.notCalled).to.equal(true);
   });
 
-  it('delegates an anonymous create context to the current authoritative resolver', async function () {
+  it('hides immutable artifacts from anonymous callers before artifact or grant lookup', async function () {
     const seed = await createImmutableSeed();
-    const baseContext = createContext();
-    const anonymousContext: RecordContractCreateContext = {
-      ...baseContext,
-      resolution: {
-        ...baseContext.resolution,
-        actor: { authenticated: false, roles: ['Anonymous'] },
-      },
-    };
-    const resolveContractContext = sinon.stub().resolves(anonymousContext);
-    const fixture = immutableResolutionFixture(seed, { resolveContractContext });
+    const fixture = immutableResolutionFixture(seed);
     const caller = updateCaller('', 'Anonymous');
 
     const result = await fixture.service.resolveImmutable(requestFor(seed, caller));
 
-    expect(result.kind).to.equal('resolved');
-    expect(
-      resolveContractContext.calledOnceWithExactly({
-        kind: 'create',
-        brand: 'brand-1',
-        portal: 'portal-1',
-        recordType: 'dataset',
-        operation: undefined,
-        targetStep: 'draft',
-        actor: { authenticated: false, roles: ['Anonymous'] },
-      })
-    ).to.equal(true);
-  });
-
-  it('tries equivalent grants in order until one current context authorizes', async function () {
-    const seed = await createImmutableSeed();
-    const firstGrant: RecordSchemaGrantReferenceInput = {
-      referenceKey: 'grant:create:0000',
-      digest: seed.artifact.digest,
-      brand: 'brand-1',
-      portal: 'portal-1',
-      kind: 'grant',
-      schemaKind: 'update',
-      recordType: 'dataset',
-      operation: 'strict-all',
-      oid: 'oid-denied',
-    };
-    const fixture = immutableResolutionFixture(seed);
-    fixture.listRecordSchemaReferences.resolves([firstGrant, seed.grant]);
-    fixture.resolveContractContext.onFirstCall().resolves(updateContext('oid-denied'));
-    fixture.resolveContractContext.onSecondCall().resolves(seed.context);
-    fixture.authorizeUpdate.resolves(false);
-
-    const result = await fixture.service.resolveImmutable(requestFor(seed));
-
-    expect(result.kind).to.equal('resolved');
-    expect(fixture.resolveContractContext.callCount).to.equal(2);
-    expect(fixture.authorizeUpdate.calledOnce).to.equal(true);
-    expect(fixture.buildContractFormConfig.calledOnceWithExactly(seed.context, undefined)).to.equal(true);
-    expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
-  });
-
-  it('continues scoped grant lookup until a later page contains a currently accessible context', async function () {
-    const seed = await createImmutableUpdateSeed();
-    const inaccessibleGrants: RecordSchemaGrantReferenceInput[] = Array.from({ length: 1_000 }, (_, index) => ({
-      referenceKey: `grant:update:inaccessible-${index.toString().padStart(4, '0')}`,
-      digest: seed.artifact.digest,
-      brand: 'brand-1',
-      portal: 'portal-1',
-      kind: 'grant',
-      schemaKind: 'update',
-      recordType: 'dataset',
-      operation: 'strict-all',
-      oid: `oid-inaccessible-${index}`,
-    }));
-    const fixture = immutableResolutionFixture(seed);
-    const authorizedGrant: RecordSchemaGrantReferenceInput = {
-      ...seed.grant,
-      referenceKey: 'grant:update:inaccessible-1000',
-    };
-    fixture.listRecordSchemaReferences.onFirstCall().resolves(inaccessibleGrants);
-    fixture.listRecordSchemaReferences.onSecondCall().resolves([authorizedGrant]);
-    const caller = updateCaller();
-
-    const result = await fixture.service.resolveImmutable(requestFor(seed, caller));
-
-    expect(result.kind).to.equal('resolved');
-    expect(fixture.listRecordSchemaReferences.callCount).to.equal(2);
-    expect(
-      fixture.listRecordSchemaReferences.secondCall.calledWithExactly({
-        digest: seed.artifact.digest,
-        kind: 'grant',
-        brand: 'brand-1',
-        portal: 'portal-1',
-        limit: 1_000,
-        afterReferenceKey: 'grant:update:inaccessible-0999',
-      })
-    ).to.equal(true);
-    expect(fixture.resolveContractContext.callCount).to.equal(1_001);
-    expect(fixture.authorizeUpdate.calledOnce).to.equal(true);
-    expect(fixture.buildContractFormConfig.calledOnceWithExactly(seed.context, caller)).to.equal(true);
-    expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
-  });
-
-  it('hides an over-full grant page as a preauthorization 404-compatible failure', async function () {
-    const seed = await createImmutableSeed();
-    const fixture = immutableResolutionFixture(seed);
-    const endlessPage: unknown[] = [];
-    Object.defineProperty(endlessPage, Symbol.iterator, {
-      value: () => ({
-        next: () => ({ done: false, value: seed.grant }),
-      }),
-    });
-    fixture.listRecordSchemaReferences.resolves(endlessPage);
-
-    const result = await fixture.service.resolveImmutable(requestFor(seed));
-
-    expect(result.kind).to.equal('invalid-contract');
-    if (result.kind !== 'invalid-contract') throw new Error('Expected hidden invalid authorization data.');
-    expect(result.authorization).to.equal('unverified');
-    expect(fixture.listRecordSchemaReferences.calledOnce).to.equal(true);
+    expect(result.kind).to.equal('not-found');
+    expect(fixture.getRecordSchemaArtifact.notCalled).to.equal(true);
+    expect(fixture.findRecordSchemaGrantForAuthorization.notCalled).to.equal(true);
     expect(fixture.resolveContractContext.notCalled).to.equal(true);
-    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
 
-  it('rejects duplicate reference keys as non-progressing pagination without issuing another query', async function () {
-    const seed = await createImmutableSeed();
-    const inaccessibleGrant: RecordSchemaGrantReferenceInput = {
-      referenceKey: 'grant:update:inaccessible',
-      digest: seed.artifact.digest,
-      brand: 'brand-1',
-      portal: 'portal-1',
-      kind: 'grant',
-      schemaKind: 'update',
-      recordType: 'dataset',
-      operation: 'strict-all',
-      oid: 'inaccessible-oid',
-    };
-    const fullPage = Array.from({ length: 1_000 }, () => inaccessibleGrant);
-    const fixture = immutableResolutionFixture(seed);
-    fixture.listRecordSchemaReferences.resolves(fullPage);
-
-    const result = await fixture.service.resolveImmutable(requestFor(seed));
-
-    expect(result.kind).to.equal('invalid-contract');
-    if (result.kind !== 'invalid-contract') throw new Error('Expected hidden invalid authorization data.');
-    expect(result.authorization).to.equal('unverified');
-    expect(fixture.listRecordSchemaReferences.calledOnce).to.equal(true);
-    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
-  });
-
-  it('authorizes a caller whose matching grant follows more references than the former scan cap', async function () {
+  it('uses one indexed authorization lookup and resolves only the selected current context', async function () {
     const seed = await createImmutableUpdateSeed();
     const fixture = immutableResolutionFixture(seed);
-    const inaccessibleReferenceCount = 10_500;
-    const referenceKeyAt = (index: number) => `grant:update:${index.toString(16).padStart(64, '0')}`;
-    const references: RecordSchemaGrantReferenceInput[] = Array.from(
-      { length: inaccessibleReferenceCount },
-      (_, index) => ({
-        referenceKey: referenceKeyAt(index),
-        digest: seed.artifact.digest,
-        brand: 'brand-1',
-        portal: 'portal-1',
-        kind: 'grant',
-        schemaKind: 'update',
-        recordType: 'dataset',
-        operation: 'strict-all',
-        oid: `oid-inaccessible-${index}`,
-      })
-    );
-    references.push({ ...seed.grant, referenceKey: referenceKeyAt(inaccessibleReferenceCount) });
-    fixture.listRecordSchemaReferences.callsFake(async (query: { afterReferenceKey?: string; limit: number }) => {
-      const cursorIndex =
-        query.afterReferenceKey === undefined
-          ? -1
-          : references.findIndex(reference => reference.referenceKey === query.afterReferenceKey);
-      const start = query.afterReferenceKey === undefined ? 0 : cursorIndex + 1;
-      return references.slice(start, start + query.limit);
-    });
-    fixture.resolveContractContext.callsFake(async (request: { oid?: string }) =>
-      request.oid === 'oid-1' ? seed.context : updateContext(request.oid)
-    );
-    fixture.authorizeUpdate.callsFake(
-      async (context: RecordContractUpdateContext) => context.resolution.oid === 'oid-1'
-    );
 
     const result = await fixture.service.resolveImmutable(requestFor(seed));
 
     expect(result.kind).to.equal('resolved');
-    expect(fixture.listRecordSchemaReferences.callCount).to.equal(11);
-    expect(fixture.resolveContractContext.callCount).to.equal(inaccessibleReferenceCount + 1);
-    expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
-  });
-
-  it('returns the same public not-found result after exhausting inaccessible grants as for a missing artifact', async function () {
-    const seed = await createImmutableUpdateSeed();
-    const fixture = immutableResolutionFixture(seed);
-    const inaccessibleReferenceCount = 10_500;
-    const referenceKeyAt = (index: number) => `grant:update:${index.toString(16).padStart(64, '0')}`;
-    const references: RecordSchemaGrantReferenceInput[] = Array.from(
-      { length: inaccessibleReferenceCount },
-      (_, index) => ({
-        referenceKey: referenceKeyAt(index),
+    expect(
+      fixture.findRecordSchemaGrantForAuthorization.calledOnceWithExactly({
         digest: seed.artifact.digest,
         brand: 'brand-1',
         portal: 'portal-1',
-        kind: 'grant',
         schemaKind: 'update',
         recordType: 'dataset',
         operation: 'strict-all',
-        oid: `oid-inaccessible-${index}`,
+        recordBrandId: 'brand-1',
+        username: 'alice',
+        roleNames: ['Researcher'],
       })
-    );
-    fixture.listRecordSchemaReferences.callsFake(async (query: { afterReferenceKey?: string; limit: number }) => {
-      const cursorIndex =
-        query.afterReferenceKey === undefined
-          ? -1
-          : references.findIndex(reference => reference.referenceKey === query.afterReferenceKey);
-      const start = query.afterReferenceKey === undefined ? 0 : cursorIndex + 1;
-      return references.slice(start, start + query.limit);
-    });
-    fixture.resolveContractContext.callsFake(async (request: { oid?: string }) => updateContext(request.oid));
-    fixture.authorizeUpdate.resolves(false);
+    ).to.equal(true);
+    expect(fixture.listRecordSchemaReferences.notCalled).to.equal(true);
+    expect(fixture.resolveContractContext.calledOnce).to.equal(true);
+    expect(fixture.authorizeUpdate.calledOnce).to.equal(true);
+    expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
+  });
+
+  it('returns the same public not-found result for an indexed authorization miss as for a missing artifact', async function () {
+    const seed = await createImmutableUpdateSeed();
+    const fixture = immutableResolutionFixture(seed);
+    fixture.findRecordSchemaGrantForAuthorization.resolves(null);
     const missing = immutableResolutionFixture(seed);
     missing.getRecordSchemaArtifact.resolves(null);
 
@@ -3852,17 +3688,32 @@ describe('RecordSchemaService immutable resolution', function () {
       detail: 'No accessible schema was found.',
       code: RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND,
     });
-    expect(fixture.listRecordSchemaReferences.callCount).to.equal(11);
-    expect(fixture.resolveContractContext.callCount).to.equal(inaccessibleReferenceCount);
+    expect(fixture.findRecordSchemaGrantForAuthorization.calledOnce).to.equal(true);
+    expect(fixture.resolveContractContext.notCalled).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
-    expect(missing.listRecordSchemaReferences.notCalled).to.equal(true);
+    expect(missing.findRecordSchemaGrantForAuthorization.notCalled).to.equal(true);
+  });
+
+  it('bounds an indexed authorization lookup failure as an availability result without resolving contexts', async function () {
+    const seed = await createImmutableUpdateSeed();
+    const fixture = immutableResolutionFixture(seed);
+    fixture.findRecordSchemaGrantForAuthorization.rejects(new Error('private storage timeout'));
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed));
+
+    expect(result.kind).to.equal('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('Expected bounded authorization lookup unavailability.');
+    expect(result.problem.code).to.equal(RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+    expect(fixture.findRecordSchemaGrantForAuthorization.calledOnce).to.equal(true);
+    expect(fixture.resolveContractContext.notCalled).to.equal(true);
+    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
 
   it('returns typed failures for malformed grant provider results and stored grants', async function () {
     const seed = await createImmutableSeed();
     const telemetryLogger = { info: sinon.stub(), error: sinon.stub() };
     const malformedPage = immutableResolutionFixture(seed, { telemetryLogger });
-    malformedPage.listRecordSchemaReferences.resolves({ page: [] });
+    malformedPage.findRecordSchemaGrantForAuthorization.resolves({ page: [] });
 
     const unavailable = await malformedPage.service.resolveImmutable(requestFor(seed));
 
@@ -3871,7 +3722,7 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(unavailable.authorization).to.equal('unverified');
 
     const malformedGrant = immutableResolutionFixture(seed, { telemetryLogger });
-    malformedGrant.listRecordSchemaReferences.resolves([{ kind: 'grant', digest: seed.artifact.digest }]);
+    malformedGrant.findRecordSchemaGrantForAuthorization.resolves({ kind: 'grant', digest: seed.artifact.digest });
 
     const invalid = await malformedGrant.service.resolveImmutable(requestFor(seed));
 
@@ -3887,7 +3738,7 @@ describe('RecordSchemaService immutable resolution', function () {
         'record_schema_unexpected_failure',
         {
           event: 'record_schema_unexpected_failure',
-          context: 'resolve-immutable-grant-list',
+          context: 'resolve-immutable-grant-contract',
           error_type: 'non-error',
         },
       ],
@@ -3903,7 +3754,7 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(JSON.stringify(telemetryLogger.error.args)).not.to.include(seed.artifact.digest);
   });
 
-  it('contains grant iterator errors as a preauthorization 404-compatible failure', async function () {
+  it('contains hostile grant-shaped provider results as a preauthorization 404-compatible failure', async function () {
     const seed = await createImmutableSeed();
     const fixture = immutableResolutionFixture(seed);
     const throwingPage: unknown[] = [];
@@ -3914,7 +3765,7 @@ describe('RecordSchemaService immutable resolution', function () {
         },
       }),
     });
-    fixture.listRecordSchemaReferences.resolves(throwingPage);
+    fixture.findRecordSchemaGrantForAuthorization.resolves(throwingPage);
 
     const result = await fixture.service.resolveImmutable(requestFor(seed));
 
