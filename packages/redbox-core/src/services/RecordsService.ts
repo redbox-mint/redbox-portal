@@ -4316,23 +4316,6 @@ export namespace Services {
         },
         workflow: { stage: this.workflowStepName(startingWfStep) },
       };
-      this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
-      if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
-      const formName = String(_.get(wfStep, 'config.form', ''));
-
-      const form = await FormsService.getForm(brandObj, formName, true, recordTypeObj.name as string, recordObj);
-
-      const username = String(userObj?.username ?? 'unknown');
-      const brandId = String(brandObj.id ?? '');
-      const metaMetadata = this.initRecordMetaMetadata(
-        brandId,
-        username,
-        recordTypeObj,
-        wfStep,
-        form,
-        String(DateTime.local().toISO())
-      );
-      _.set(recordObj, 'metaMetadata', metaMetadata);
 
       const schemaEnabled = this.recordSchemaEnabled();
       if (schemaEnabled) {
@@ -4405,6 +4388,25 @@ export namespace Services {
           return tracker.toResponse();
         }
       }
+
+      this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
+      if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
+      const formName = String(_.get(wfStep, 'config.form', ''));
+
+      const form = await FormsService.getForm(brandObj, formName, true, recordTypeObj.name as string, recordObj);
+
+      const username = String(userObj?.username ?? 'unknown');
+      const brandId = String(brandObj.id ?? '');
+      const metaMetadata = this.initRecordMetaMetadata(
+        brandId,
+        username,
+        recordTypeObj,
+        wfStep,
+        form,
+        String(DateTime.local().toISO())
+      );
+      _.set(recordObj, 'metaMetadata', metaMetadata);
+
       let currentFormFingerprint: string | undefined;
       const suppliedFormFingerprint = tracker.context.concurrency?.formFingerprint;
       const formFingerprintRequired = tracker.context.routeFamily === 'browser' && concurrencyMode === 'strict';
