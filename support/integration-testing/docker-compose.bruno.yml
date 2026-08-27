@@ -64,6 +64,7 @@ services:
       # - sails_log__level=verbose
       - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
       - sails_recordSchema__enabled=true
+      - sails_recordSchema__unknownProperties=allow
       - sails_recordValidation__mode=shadow
       - sails_recordtype__dataPublication__recordValidation__mode=enforce
       - sails_security__csrf=false
