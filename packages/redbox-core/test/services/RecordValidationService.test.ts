@@ -214,6 +214,25 @@ describe('RecordValidationService', function () {
     expect(fixture.calls.forms).to.deep.equal([{ formName: 'dataset-2.4-draft', brand: 'brand-1' }]);
   });
 
+  it('treats a null record-type schema attribute as an unset override', async function () {
+    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.recordSchema = {
+      unknownProperties: 'allow',
+    };
+    const fixture = createRecordValidationFixture({
+      recordType: { id: 'record-type-1', name: 'dataset', recordSchema: null },
+    });
+    const context = await new Services.RecordValidation(fixture.dependencies).resolveContractContext({
+      kind: 'create',
+      brand: 'brand-1',
+      portal: 'portal',
+      recordType: 'dataset',
+      targetStep: 'draft',
+      actor: { authenticated: true, roles: ['Researcher'] },
+    });
+
+    expect(context.publicContext.unknownProperties).to.equal('allow');
+  });
+
   it('resolves a requested create target independently of the operation', async function () {
     const targetForm = validationForm({ name: 'dataset-2.4-review' });
     const fixture = createRecordValidationFixture({ form: targetForm });

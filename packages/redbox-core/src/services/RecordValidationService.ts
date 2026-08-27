@@ -1280,6 +1280,7 @@ export namespace Services {
       }
       if (
         authoritative.recordType.recordSchema !== undefined &&
+        authoritative.recordType.recordSchema !== null &&
         validateRecordTypeRecordSchemaConfig(authoritative.recordType.recordSchema, 'recordType.recordSchema').length >
           0
       ) {
