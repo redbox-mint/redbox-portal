@@ -20,6 +20,7 @@ import {
   type ContractJsonValue,
   createCoreRecordContractContributors,
   normalizeRedboxCanonicalJsonV1,
+  serializeRedboxCanonicalJsonV1,
   RecordContractContextResolutionError,
   type RecordContractContext,
   type RecordContractContributorRegistration,
@@ -56,6 +57,7 @@ import { Services as RecordsServices } from '../../src/services/RecordsService';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import type { RecordContractUpdateContext } from '../../src/record-contract';
 import { clearCapturedOpenTelemetryMeasurements, getCapturedOpenTelemetryMeasurements } from '../setup';
+import { createRecordContractFixture } from '../fixtures/record-contract.fixtures';
 
 const DIGEST = 'a'.repeat(64);
 type RecordSchemaLifecycleOverrides = NonNullable<ConstructorParameters<typeof Services.RecordSchema>[0]>;
@@ -956,6 +958,111 @@ describe('RecordSchemaService create resolution', function () {
     recordType: 'dataset',
     actor: { authenticated: true, roles: ['Researcher'] },
   } as const;
+
+  it('keeps representative create/update bytes stable across fresh randomized service instances', async function () {
+    function shuffled<T>(values: readonly T[], seed: number): T[] {
+      const result = [...values];
+      let state = seed >>> 0;
+      for (let index = result.length - 1; index > 0; index -= 1) {
+        state = (Math.imul(state, 1_103_515_245) + 12_345) >>> 0;
+        const swapIndex = state % (index + 1);
+        [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+      }
+      return result;
+    }
+
+    function withRandomizedObjectInsertionOrder<T>(value: T, seed: number): T {
+      let nextSeed = seed;
+      const visit = (candidate: unknown): unknown => {
+        if (Array.isArray(candidate)) return candidate.map(item => visit(item));
+        if (candidate === null || typeof candidate !== 'object') return candidate;
+        const entries = shuffled(Object.entries(candidate), nextSeed);
+        nextSeed += 1;
+        return Object.fromEntries(entries.map(([key, nested]) => [key, visit(nested)]));
+      };
+      return visit(value) as T;
+    }
+
+    async function compileWithFreshService(kind: 'create' | 'update', seed: number) {
+      const fixture = withRandomizedObjectInsertionOrder(createRecordContractFixture(), seed);
+      const publicContextOverrides = {
+        brand: 'default',
+        portal: 'main',
+        recordType: 'record-contract-fixture',
+        workflowStep: 'draft',
+        form: fixture.form.name,
+        operation: 'submit',
+        unknownProperties: 'declared' as const,
+        enforcement: 'shadow' as const,
+      };
+      const baseContext =
+        kind === 'create'
+          ? createContext(publicContextOverrides)
+          : updateContext('record-contract-fixture-oid', publicContextOverrides);
+      const context = withRandomizedObjectInsertionOrder(
+        {
+          ...baseContext,
+          resolution: {
+            ...baseContext.resolution,
+            sourceForm: fixture.form,
+            reusableFormDefinitions: fixture.reusableFormDefinitions,
+          },
+        },
+        seed + 1
+      ) as RecordContractContext;
+      const registrations = createCoreRecordContractContributors().map(contributor => ({
+        contributor,
+        source: 'core' as const,
+      }));
+      const service = new Services.RecordSchema({
+        getConfig: () => enabledConfig({ unknownProperties: 'declared' }),
+        getStorageProvider: () => ({
+          putRecordSchemaArtifact: sinon.stub().resolves(storageResponse(true)),
+          putRecordSchemaReference: sinon.stub().resolves(storageResponse(true)),
+        }),
+        getContributorRegistry: () => new RecordContractContributorRegistry(shuffled(registrations, seed + 2)),
+        resolveContractContext: sinon.stub().resolves(context),
+        buildContractFormConfig: sinon.stub().resolves({ ok: true, effectiveForm: fixture.form }),
+        authorizeUpdate: sinon.stub().resolves(true),
+      });
+      const result =
+        kind === 'create'
+          ? await service.resolveCreate({
+              brand: 'default',
+              portal: 'main',
+              recordType: 'record-contract-fixture',
+              operation: 'submit',
+              actor: { authenticated: true, roles: ['Researcher'] },
+            })
+          : await service.resolveUpdate({
+              brand: 'default',
+              portal: 'main',
+              oid: 'record-contract-fixture-oid',
+              operation: 'submit',
+              caller: updateCaller(),
+            });
+      if (result.kind !== 'partial') {
+        throw new Error(`The representative ${kind} fixture did not resolve as a partial schema.`);
+      }
+      return {
+        canonicalJson: serializeRedboxCanonicalJsonV1(result.document),
+        digest: result.digest,
+        byteLength: result.metadata.byteLength,
+      };
+    }
+
+    const expectedDigests = {
+      create: 'af3936ab43780b82b6bb4907c1a67cb78902a4482e7c527f10a0d92e8ca4e48a',
+      update: '01144561d6dae1ad17ebb3513d19f82aebe8bb2d712a934898bd5baa1ab0c582',
+    } as const;
+    for (const kind of ['create', 'update'] as const) {
+      const first = await compileWithFreshService(kind, 17);
+      const second = await compileWithFreshService(kind, 83);
+      expect(first.canonicalJson).to.equal(second.canonicalJson);
+      expect(first.digest).to.equal(second.digest).and.equal(expectedDigests[kind]);
+      expect(first.byteLength).to.equal(second.byteLength);
+    }
+  });
 
   it('resolves, compiles, meta-validates, and idempotently persists a complete create schema and grant', async function () {
     const fixture = createResolutionFixture();

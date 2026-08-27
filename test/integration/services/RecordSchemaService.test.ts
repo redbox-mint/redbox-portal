@@ -107,6 +107,55 @@ describe('RecordSchemaService storage-backed orchestration', function () {
     expect(report.entries[0]).to.deep.include({ saveCount: 1, activePinCount: 1, eligibleForDeletion: false });
   });
 
+  it('rejects digest collisions and protects referenced artifacts from deletion', async function () {
+    const artifact: RecordSchemaArtifactInput = {
+      digest: DIGEST,
+      document: DOCUMENT,
+      contractFormat: RECORD_CONTRACT_FORMAT_V1,
+      completeness: 'complete',
+      byteLength: Buffer.byteLength(JSON.stringify(DOCUMENT), 'utf8'),
+    };
+    expect((await storage().putRecordSchemaArtifact(artifact)).success).to.equal(true);
+
+    const collisionDocument = { type: 'object', title: 'Conflicting integration schema' } as const;
+    const collision = await storage().putRecordSchemaArtifact({
+      ...artifact,
+      document: collisionDocument,
+      byteLength: Buffer.byteLength(JSON.stringify(collisionDocument), 'utf8'),
+    });
+    expect(collision.success).to.equal(false);
+    expect(collision.details).to.deep.equal({ code: RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION });
+    expect((await storage().getRecordSchemaArtifact(DIGEST))?.document).to.deep.equal(DOCUMENT);
+
+    await sails.models.recordschemaartifact
+      .updateOne({ digest: DIGEST })
+      .set({ createdAt: new Date('2025-01-01T00:00:00.000Z') });
+    const reference: RecordSchemaReferenceInput = {
+      referenceKey: 'durability-review-grant',
+      digest: DIGEST,
+      kind: 'grant',
+      brand: 'default',
+      portal: 'rdmp',
+      schemaKind: 'create',
+      recordType: 'dataset',
+      operation: 'strict-all',
+    };
+    expect((await storage().putRecordSchemaReference(reference)).success).to.equal(true);
+
+    const deletion = await storage().deleteRecordSchemaArtifactIfUnreferenced({
+      digest: DIGEST,
+      now: new Date('2026-08-24T00:00:00.000Z'),
+      minimumAgeDays: 365,
+    });
+    expect(deletion.success).to.equal(true);
+    expect(deletion.data).to.deep.equal({
+      kind: 'retained',
+      digest: DIGEST,
+      reasons: ['grant-reference'],
+    });
+    expect(await storage().getRecordSchemaArtifact(DIGEST)).not.to.equal(null);
+  });
+
   it('reports every retention reason through stable redacted storage-backed pages', async function () {
     const now = new Date('2026-08-24T00:00:00.000Z');
     const createdAt = [
@@ -464,6 +513,7 @@ describe('RecordSchemaService configured-form integration', function () {
     const restartedService = service(() => {
       hookCompileCount += 1;
     });
+    expect(Reflect.get(restartedService, 'validatorCache')).to.equal(undefined);
     const immutable = await restartedService.resolveImmutable({
       brand: brandId,
       branding,
@@ -480,6 +530,9 @@ describe('RecordSchemaService configured-form integration', function () {
       completeness: 'partial',
       byteLength: resolution.metadata.byteLength,
     });
+    const immutableIdentity = identifyRecordJsonSchema(immutable.artifact.document, config.limits.maxDocumentBytes);
+    expect(immutableIdentity.canonicalJson).to.equal(resolvedIdentity.canonicalJson);
+    expect(immutableIdentity.digest).to.equal(resolution.digest);
     expect(hookCompileCount).to.equal(2);
 
     const validation = restartedService.validateResolvedArtifact({
