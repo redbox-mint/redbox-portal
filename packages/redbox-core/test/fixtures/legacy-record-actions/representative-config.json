@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "recordtype": {
+    "legacy-action-fixture": {
+      "packageType": "legacy-action-fixture",
+      "searchable": false,
+      "hooks": {
+        "onCreate": {
+          "pre": [
+            {
+              "function": "sails.services.rdmpservice.runTemplates",
+              "options": {
+                "parseObject": false,
+                "templates": [
+                  {
+                    "field": "metadata.generatedTitle",
+                    "template": "<%= _.get(record, 'metadata.title', '') %>"
+                  }
+                ]
+              }
+            }
+          ],
+          "post": [
+            {
+              "function": "sails.services.emailservice.sendRecordNotification",
+              "options": {
+                "forceRun": true,
+                "to": "{{record.metadata.ownerEmail}}",
+                "subject": "Created {{record.metadata.title}}",
+                "template": "publicationReview",
+                "onNotifySuccess": [
+                  {
+                    "function": "sails.services.recordsservice.updateNotificationLog",
+                    "options": {
+                      "forceRun": true,
+                      "flagName": "notification.state",
+                      "flagVal": "created-email-sent",
+                      "saveRecord": true
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "onUpdate": {
+          "pre": [
+            {
+              "function": "sails.services.triggerservice.runHooksSync",
+              "options": {
+                "hooks": [
+                  {
+                    "function": "sails.services.rdmpservice.stripUserBasedPermissions",
+                    "options": {
+                      "triggerCondition": "<%= record.workflow.stage == 'published' %>"
+                    }
+                  },
+                  {
+                    "function": "sails.services.rdmpservice.restoreUserBasedPermissions",
+                    "options": {
+                      "triggerCondition": "<%= record.workflow.stage == 'draft' %>"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "onDelete": {
+          "pre": [
+            {
+              "function": "sails.services.rdmpservice.checkTotalSizeOfFilesInRecord",
+              "options": {
+                "forceRun": true
+              }
+            }
+          ],
+          "post": [
+            {
+              "function": "sails.services.rdmpservice.queueTriggerCall",
+              "options": {
+                "jobName": "DoiService-UpdateDoi",
+                "forceRun": true,
+                "triggerConfiguration": {
+                  "function": "sails.services.doiservice.updateDoiTriggerSync",
+                  "options": {
+                    "forceRun": true,
+                    "event": "delete"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "onTransitionWorkflow": {
+          "pre": [
+            {
+              "function": "sails.services.triggerservice.transitionWorkflow",
+              "options": {
+                "triggerCondition": "<%= record.workflow.stage == 'queued' %>",
+                "targetWorkflowStageName": "published",
+                "targetWorkflowStageLabel": "Published",
+                "targetForm": "legacy-action-fixture-1.0-published"
+              }
+            }
+          ],
+          "postSync": [
+            {
+              "function": "sails.services.rdmpservice.addWorkspaceToRecord",
+              "options": {
+                "rdmpOidField": "rdmpOid"
+              }
+            }
+          ],
+          "post": [
+            {
+              "function": "sails.services.doiservice.publishDoiTrigger",
+              "options": {
+                "forceRun": true,
+                "event": "publish"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "workflow": {
+    "legacy-action-fixture": {
+      "draft": {
+        "starting": true,
+        "config": {
+          "form": "legacy-action-fixture-1.0-draft",
+          "workflow": { "stage": "draft", "stageLabel": "Draft" },
+          "authorization": { "viewRoles": ["Admin"], "editRoles": ["Admin"] }
+        }
+      },
+      "published": {
+        "starting": false,
+        "config": {
+          "form": "legacy-action-fixture-1.0-published",
+          "workflow": { "stage": "published", "stageLabel": "Published" },
+          "authorization": { "viewRoles": ["Admin"], "editRoles": ["Admin"] }
+        }
+      }
+    }
+  }
+}
