@@ -24,9 +24,8 @@ describe('record-schema shadow-rollout evidence command', function () {
       recordValidationMode: 'shadow',
       unknownProperties: 'allow',
     });
-    expect(report.shadowRun).to.deep.equal({
-      recordSchemaEnabled: true,
-      recordValidationMode: 'shadow',
+    expect(report.representativeCompilation).to.deep.equal({
+      enforcement: 'shadow',
       unknownProperties: 'allow',
     });
     expect(report.summary).to.deep.include({
@@ -112,5 +111,34 @@ describe('record-schema shadow-rollout evidence command', function () {
     }
     expect(failure).to.be.instanceOf(RecordSchemaRolloutEvidenceError);
     expect(failure).to.deep.include({ code: 'record-schema-rollout.invalid-form-set' });
+  });
+
+  it('rejects a stale approved report', async function () {
+    const forms = [
+      {
+        id: 'test/report-comparison',
+        form: form('report-comparison', [
+          {
+            name: 'value',
+            component: { class: 'SimpleInputComponent', config: {} },
+            model: { class: 'SimpleInputModel', config: {} },
+          },
+        ]),
+      },
+    ];
+    const generated = await generateRecordSchemaRolloutEvidence({ forms });
+    const stale = {
+      ...generated,
+      summary: { ...generated.summary, formsChecked: generated.summary.formsChecked + 1 },
+    };
+
+    let failure: unknown;
+    try {
+      await runRecordSchemaRolloutEvidence({ forms, approvedReport: stale });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).to.be.instanceOf(RecordSchemaRolloutEvidenceError);
+    expect(failure).to.deep.include({ code: 'record-schema-rollout.stale-report' });
   });
 });

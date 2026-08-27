@@ -1,6 +1,6 @@
 import { firstValueFrom } from 'rxjs';
 import sinon from 'sinon';
-import { createRecordSaveContext } from '@researchdatabox/redbox-core';
+import { createRecordSaveContext, type RecordValidationResolutionMetric } from '@researchdatabox/redbox-core';
 
 describe('The RecordsService', function () {
   this.timeout(60_000);
@@ -297,5 +297,124 @@ describe('The RecordsService', function () {
     });
     expect(references.some(reference => reference.kind === 'grant')).to.equal(true);
     expect(references.some(reference => reference.kind === 'save')).to.equal(true);
+  });
+
+  it('persists an actual schema-invalid update with advisory shadow telemetry', async function () {
+    sails.config.recordSchema = { ...sails.config.recordSchema, enabled: true };
+    sails.config.recordValidation = { ...sails.config.recordValidation, mode: 'shadow' };
+
+    const suffix = Date.now().toString();
+    const oid = `record-schema-shadow-rollout-${suffix}`;
+    const brand = BrandingService.getDefault();
+    const user = { username: 'admin', roles: [{ name: 'Admin' }] };
+    const storage = sails.services.mongostorageservice;
+    const schemaService = sails.services.recordschemaservice;
+    const validationService = sails.services.recordvalidationservice;
+    const recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+    const initialRecord = {
+      redboxOid: oid,
+      revision: 0,
+      harvestId: '',
+      metadata: { text_1_event: 'valid before shadow update', text_7: 'prefix-valid' },
+      metaMetadata: {
+        type: recordType.name,
+        packageType: recordType.packageType,
+        brandId: brand.id,
+        createdBy: user.username,
+        searchCore: 'default',
+        form: 'default-1.0-draft',
+        attachmentFields: [],
+      },
+      workflow: { stage: 'draft', stageLabel: 'Draft' },
+      authorization: {
+        edit: [user.username],
+        view: [user.username],
+        editRoles: [],
+        viewRoles: [],
+        editPending: [],
+        viewPending: [],
+      },
+    };
+    const createResponse = await storage.create(brand, initialRecord, {}, user);
+    expect(createResponse.success).to.equal(true);
+    createdOids.push(oid);
+
+    const snapshot = await recordsService.getMeta(oid);
+    const resolveUpdate = sinon.spy(schemaService, 'resolveUpdate');
+    const validateResolvedArtifact = sinon.spy(schemaService, 'validateResolvedArtifact');
+    const updateStorage = sinon.spy(storage, 'updateMeta');
+    const persistUsage = sinon.spy(schemaService, 'persistSaveUsageReference');
+    const metrics: RecordValidationResolutionMetric[] = [];
+    const unregisterMetrics = validationService.registerMetricsHooks({
+      resolutionCompleted(metric) {
+        metrics.push(metric);
+      },
+    });
+    const rawDelta = { text_1_event: 42, text_7: 'x' };
+
+    try {
+      const result = await recordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'RecordsServiceIntegration.shadowRollout' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        brand,
+        oid,
+        record: snapshot,
+        user,
+        triggerPostSaveTriggers: false,
+        metadata: rawDelta,
+        metadataMode: 'merge',
+        context: createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'update',
+          portal: 'rdmp',
+        }),
+      });
+
+      expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(result.schemaOutcome).to.deep.include({ enforcement: 'shadow' });
+      expect(result.schemaOutcome?.digest).to.match(/^[0-9a-f]{64}$/);
+      createdSchemaDigests.add(result.schemaOutcome.digest);
+      const schemaProblem = result.problems.find(problem => problem.source === 'schema');
+      expect(schemaProblem).to.deep.include({ kind: 'validation', phase: 'schema' });
+      expect(schemaProblem?.issues).to.deep.include({
+        code: 'record-schema.type',
+        message: '@record-schema.type',
+        pointer: '/text_1_event',
+        expected: { type: 'string' },
+      });
+      expect(resolveUpdate.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.equal(rawDelta);
+      expect(updateStorage.calledOnce).to.equal(true);
+      expect(persistUsage.calledOnce).to.equal(true);
+
+      const telemetry = metrics.find(metric => metric.requestId === result.requestId && metric.writeKind === 'update');
+      expect(telemetry).to.deep.include({
+        mode: 'shadow',
+        outcome: 'invalid',
+        shouldBlock: false,
+        wouldBlock: true,
+      });
+      expect({
+        should_block: telemetry?.shouldBlock,
+        would_block: telemetry?.wouldBlock,
+      }).to.deep.equal({ should_block: false, would_block: true });
+      expect(telemetry?.blockingErrorCount).to.be.greaterThan(0);
+
+      const stored = await recordsService.getMeta(oid);
+      expect(stored.metadata).to.deep.include(rawDelta);
+      const references = await storage.listRecordSchemaReferences({
+        digest: result.schemaOutcome.digest,
+        oid,
+        limit: 10,
+        offset: 0,
+      });
+      expect(references.some(reference => reference.kind === 'save')).to.equal(true);
+      expect(rawDelta).to.deep.equal({ text_1_event: 42, text_7: 'x' });
+    } finally {
+      unregisterMetrics();
+    }
   });
 });

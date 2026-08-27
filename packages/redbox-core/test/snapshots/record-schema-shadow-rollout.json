@@ -5,9 +5,8 @@
     "recordValidationMode": "shadow",
     "unknownProperties": "allow"
   },
-  "shadowRun": {
-    "recordSchemaEnabled": true,
-    "recordValidationMode": "shadow",
+  "representativeCompilation": {
+    "enforcement": "shadow",
     "unknownProperties": "allow"
   },
   "bounds": {

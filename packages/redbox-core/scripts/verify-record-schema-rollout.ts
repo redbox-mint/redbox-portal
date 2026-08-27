@@ -73,9 +73,8 @@ export interface RecordSchemaRolloutEvidenceReport {
     readonly recordValidationMode: 'shadow';
     readonly unknownProperties: 'allow';
   };
-  readonly shadowRun: {
-    readonly recordSchemaEnabled: true;
-    readonly recordValidationMode: 'shadow';
+  readonly representativeCompilation: {
+    readonly enforcement: 'shadow';
     readonly unknownProperties: 'allow';
   };
   readonly bounds: {
@@ -479,9 +478,8 @@ export async function generateRecordSchemaRolloutEvidence(
       recordValidationMode: 'shadow',
       unknownProperties: 'allow',
     },
-    shadowRun: {
-      recordSchemaEnabled: true,
-      recordValidationMode: 'shadow',
+    representativeCompilation: {
+      enforcement: 'shadow',
       unknownProperties: 'allow',
     },
     bounds: {
