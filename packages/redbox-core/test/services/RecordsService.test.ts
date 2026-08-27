@@ -8010,18 +8010,22 @@ describe('RecordsService', function () {
     it('preserves the trigger-flag asymmetry: disabled pre hooks do not disable post hooks', async function () {
       const calls: string[] = [];
       (globalThis as any).__effectFlagCalls = calls;
-      const recordType = recordTypeWithHooks({
-        onUpdate: {
-          pre: [{ function: '(_oid, record) => { globalThis.__effectFlagCalls.push("pre"); return record; }' }],
-          post: [{ function: '() => { globalThis.__effectFlagCalls.push("post"); }' }],
+      const persistedRecordType = persistedEffectRecordType('default');
+      const recordType = recordTypeWithHooks(
+        {
+          onUpdate: {
+            pre: [{ function: '(_oid, record) => { globalThis.__effectFlagCalls.push("pre"); return record; }' }],
+            post: [{ function: '() => { globalThis.__effectFlagCalls.push("post"); }' }],
+          },
         },
-      });
+        persistedRecordType
+      );
       (globalThis as any).RecordTypesService.get.returns(of(recordType));
       try {
         const result = await RecordsService.updateMeta(
-          { id: 'brand-1' },
+          { id: persistedRecordType.branding },
           'record-123',
-          { metaMetadata: { type: 'rdmp', brandId: 'brand-1', form: 'default-form' }, metadata: {} },
+          structuredClone(committedEffectRecord),
           { username: 'user-1' },
           false,
           true
