@@ -384,7 +384,34 @@ function isReflectable(value: unknown): value is object {
 }
 
 function configuredRecordSchema(): unknown {
-  return sails.config.recordSchema === undefined ? defaultRecordSchemaConfig : sails.config.recordSchema;
+  const configured = sails.config.recordSchema;
+  if (configured === undefined) return defaultRecordSchemaConfig;
+  if (!isObjectRecord(configured)) return configured;
+
+  // Sails environment overrides can replace the nested config object rather
+  // than deep-merging it with config/recordSchema.js. Preserve partial
+  // overrides while keeping the required defaults available to runtime
+  // validation. An explicitly supplied non-object nested value remains
+  // untouched so malformed configuration is still reported as invalid.
+  const hasOwn = (property: string): boolean => Object.prototype.hasOwnProperty.call(configured, property);
+  const configuredLimits = hasOwn('limits') ? configured.limits : undefined;
+  const configuredRetention = hasOwn('retention') ? configured.retention : undefined;
+  return {
+    ...defaultRecordSchemaConfig,
+    ...configured,
+    limits:
+      configuredLimits === undefined
+        ? defaultRecordSchemaConfig.limits
+        : isObjectRecord(configuredLimits)
+          ? { ...defaultRecordSchemaConfig.limits, ...configuredLimits }
+          : configuredLimits,
+    retention:
+      configuredRetention === undefined
+        ? defaultRecordSchemaConfig.retention
+        : isObjectRecord(configuredRetention)
+          ? { ...defaultRecordSchemaConfig.retention, ...configuredRetention }
+          : configuredRetention,
+  };
 }
 
 function configuredStorageProvider(): unknown {
