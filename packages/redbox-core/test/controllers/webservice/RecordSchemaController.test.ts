@@ -1339,46 +1339,58 @@ describe('Webservice RecordSchemaController', function () {
     }
   });
 
-  it('logs only the allowlisted event, controller context, and error type for unexpected failures', async function () {
-    const error = Object.assign(new Error('private resolver failure for oid-1 with private-token'), {
+  it('logs only the allowlisted event, controller context, and error type for Error and non-Error failures', async function () {
+    const privateFailureDetails = {
       oid: 'oid-1',
       token: 'private-token',
       record: { title: 'private-record-value' },
       ajvErrors: [{ keyword: 'required', instancePath: '/private-field' }],
-    });
-    resolver.resolveCreate.rejects(error);
-    resolver.resolveUpdate.rejects(error);
-    resolver.resolveImmutable.rejects(error);
+      validatorDetails: { validator: 'private-validator', schemaPath: '#/private-schema' },
+    };
+    const failures = [
+      {
+        value: Object.assign(new Error('private resolver failure for oid-1 with private-token'), privateFailureDetails),
+        errorType: 'error',
+      },
+      {
+        value: {
+          message: 'private non-error resolver failure for oid-1 with private-token',
+          ...privateFailureDetails,
+        },
+        errorType: 'non-error',
+      },
+    ] as const;
+    const privateFailureContent =
+      /private resolver|private non-error|oid-1|private-token|private-record-value|required|private-field|private-validator|private-schema/;
 
-    for (const testCase of controllerActionCases(controller, resolver)) {
-      controller.resetSentResponses();
-      logError.resetHistory();
-      const res = responseAdapter();
+    for (const failure of failures) {
+      for (const testCase of controllerActionCases(controller, resolver)) {
+        controller.resetSentResponses();
+        logError.resetHistory();
+        testCase.resolver.rejects(failure.value);
+        const res = responseAdapter();
 
-      await testCase.run(testCase.request, res);
+        await testCase.run(testCase.request, res);
 
-      const response = onlySentResponse(controller).response;
-      expect(response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
-      expect(response).not.to.have.property('errors');
-      expect(response.data).to.deep.include({
-        title: 'Record schema is unavailable',
-        status: 503,
-        detail: 'The record schema capability is temporarily unavailable.',
-        code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
-      });
-      expect(JSON.stringify(response)).not.to.include(error.message);
-      expect(JSON.stringify(response)).not.to.include('oid-1');
-      expect(JSON.stringify(response)).not.to.include('private-token');
-      expect(
-        logError.calledOnceWithExactly('record_schema_unexpected_failure', {
-          event: 'record_schema_unexpected_failure',
-          context: testCase.unexpectedFailureContext,
-          error_type: 'error',
-        })
-      ).to.equal(true);
-      expect(JSON.stringify(logError.firstCall.args)).not.to.match(
-        /private resolver|oid-1|private-token|private-record-value|required|private-field/
-      );
+        const response = onlySentResponse(controller).response;
+        expect(response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
+        expect(response).not.to.have.property('errors');
+        expect(response.data).to.deep.include({
+          title: 'Record schema is unavailable',
+          status: 503,
+          detail: 'The record schema capability is temporarily unavailable.',
+          code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+        });
+        expect(JSON.stringify(response)).not.to.match(privateFailureContent);
+        expect(
+          logError.calledOnceWithExactly('record_schema_unexpected_failure', {
+            event: 'record_schema_unexpected_failure',
+            context: testCase.unexpectedFailureContext,
+            error_type: failure.errorType,
+          })
+        ).to.equal(true);
+        expect(JSON.stringify(logError.firstCall.args)).not.to.match(privateFailureContent);
+      }
     }
   });
 
