@@ -11,6 +11,7 @@
   "scripts": {
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
     "test:record-contracts": "prettier --check \"scripts/verify-record-contract-coverage.ts\" && npm run typecheck:record-contracts && TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-contract-coverage.ts",
+    "test:record-schema-rollout": "prettier --check \"scripts/verify-record-schema-rollout.ts\" \"test/unit/record-contract/record-schema-rollout-evidence-command.test.ts\" \"test/snapshots/record-schema-shadow-rollout.json\" && npm run typecheck:record-contracts && TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-schema-rollout.ts",
     "build": "rm -rf dist && tsc",
     "lint": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts",
     "lint:fix": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts --fix",

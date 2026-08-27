@@ -75,6 +75,7 @@
     "test:sails-ng-common": "cd ./packages/sails-ng-common && npm run test:full && cd ../../",
     "test:core": "cd ./packages/redbox-core && npm run test && cd ../../",
     "test:record-contracts": "npm --prefix packages/redbox-core run test:record-contracts",
+    "test:record-schema-rollout": "npm --prefix packages/redbox-core run test:record-schema-rollout",
     "test:storage-mongo": "cd ./packages/sails-hook-redbox-storage-mongo && npm run test && cd ../../",
     "docs:generate": "ts-node --transpile-only --project support/documentation/tsconfig.json support/documentation/src/generate.ts",
     "docs:audit": "ts-node --transpile-only --project support/documentation/tsconfig.json support/documentation/src/generate.ts --audit-only",

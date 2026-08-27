@@ -7,7 +7,9 @@
   },
   "include": [
     "verify-record-contract-coverage.ts",
+    "verify-record-schema-rollout.ts",
     "../test/unit/record-contract/record-contract-coverage-command.test.ts",
-    "../../redbox-hook-dev/src/form-config/dataRecord-1.0-draft.ts"
+    "../test/unit/record-contract/record-schema-rollout-evidence-command.test.ts",
+    "../../redbox-hook-dev/src/form-config/**/*.ts"
   ]
 }

@@ -4020,6 +4020,10 @@ describe('RecordsService', function () {
         Parameters<NonNullable<StorageService['getRecordSchemaArtifact']>>,
         ReturnType<NonNullable<StorageService['getRecordSchemaArtifact']>>
       >(),
+      listRecordSchemaArtifacts: sinon.stub<
+        Parameters<NonNullable<StorageService['listRecordSchemaArtifacts']>>,
+        ReturnType<NonNullable<StorageService['listRecordSchemaArtifacts']>>
+      >(),
       touchRecordSchemaArtifact: sinon.stub<
         Parameters<NonNullable<StorageService['touchRecordSchemaArtifact']>>,
         ReturnType<NonNullable<StorageService['touchRecordSchemaArtifact']>>
