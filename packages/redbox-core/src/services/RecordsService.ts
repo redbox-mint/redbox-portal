@@ -2196,18 +2196,50 @@ export namespace Services {
       return Boolean(record && this.hasEditAccess(brand, user, roles, record));
     }
 
+    private hasConfiguredRecordCreatorEditPermission(recordType: RecordTypeLike): boolean {
+      const declarations = _.get(recordType, 'hooks.onCreate.pre');
+      if (!Array.isArray(declarations)) return false;
+
+      return declarations.some(declaration => {
+        const hook = this.recordObject(declaration);
+        const hookFunction = String(hook.function ?? '').trim();
+        if (
+          hookFunction !== 'sails.services.rdmpservice.assignPermissions' &&
+          hookFunction !== 'sails.services.rdmpservice.complexAssignPermissions'
+        ) {
+          return false;
+        }
+
+        const options = this.recordObject(hook.options);
+        // A conditional hook cannot be treated as an unconditional create
+        // capability before the candidate exists and the hook has run.
+        if (String(options.triggerCondition ?? '').trim()) return false;
+        const creatorPermissions = String(options.recordCreatorPermissions ?? '').trim();
+        return creatorPermissions === 'edit' || creatorPermissions === 'view&edit';
+      });
+    }
+
     /**
-     * Project create authorization only from authoritative workflow ACLs.
-     * Submitted record authorization is persistence data and must never grant
-     * the capability that permits schema compilation or grant persistence.
+     * Project create authorization only from authoritative workflow ACLs and
+     * explicit built-in creator permissions. Submitted record authorization is
+     * persistence data and must never grant the capability that permits schema
+     * compilation or grant persistence.
      */
-    private createAuthorizationProjection(workflowSteps: readonly WorkflowStepLike[]): AnyRecord {
+    private createAuthorizationProjection(
+      workflowSteps: readonly WorkflowStepLike[],
+      recordType?: RecordTypeLike,
+      user?: AnyRecord
+    ): AnyRecord {
       const projection = { authorization: {} } as AnyRecord;
       const authorization = projection.authorization as AnyRecord;
       for (const workflowStep of workflowSteps) {
         const configured = this.recordObject(_.get(workflowStep, 'config.authorization'));
         authorization.viewRoles = authorization.viewRoles ?? _.cloneDeep(configured.viewRoles);
         authorization.editRoles = authorization.editRoles ?? _.cloneDeep(configured.editRoles);
+      }
+      if (recordType && user && this.hasConfiguredRecordCreatorEditPermission(recordType)) {
+        const username = String(user.username ?? '').trim();
+        if (username) authorization.edit = [username];
       }
       return projection;
     }
@@ -2240,7 +2272,12 @@ export namespace Services {
         if (!this.hasTransitionRoleAuthorization(targetStep, user)) return false;
         workflowSteps.push(targetStep as WorkflowStepLike);
       }
-      return this.hasEditAccess(brandObj, user, roles, this.createAuthorizationProjection(workflowSteps));
+      return this.hasEditAccess(
+        brandObj,
+        user,
+        roles,
+        this.createAuthorizationProjection(workflowSteps, recordType, user)
+      );
     }
 
     public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
@@ -4300,7 +4337,9 @@ export namespace Services {
       const schemaEnabled = this.recordSchemaEnabled();
       if (schemaEnabled) {
         const authorizationProjection = this.createAuthorizationProjection(
-          targetStepName ? [startingWfStep, wfStep] : [startingWfStep]
+          targetStepName ? [startingWfStep, wfStep] : [startingWfStep],
+          recordTypeObj,
+          userObj
         );
         const structuralBypass = tracker.context.validationBypass;
         if (structuralBypass !== undefined) {

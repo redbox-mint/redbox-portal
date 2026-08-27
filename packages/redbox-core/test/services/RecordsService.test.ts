@@ -781,6 +781,73 @@ describe('RecordsService', function () {
       expect(result).to.equal(false);
     });
 
+    it('honours an unconditional built-in creator edit permission without trusting submitted authorization', async function () {
+      const brand = { id: 'brand-1', name: 'default' };
+      const user = { username: 'researcher', roles: [] };
+      (global as any).RecordTypesService.get = sinon.stub().returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onCreate: {
+              pre: [
+                {
+                  function: 'sails.services.rdmpservice.assignPermissions',
+                  options: { recordCreatorPermissions: 'view&edit' },
+                },
+              ],
+            },
+          },
+        })
+      );
+      (global as any).RolesService.getRole = sinon.stub().returns(null);
+      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+        of({
+          name: 'draft',
+          starting: true,
+          config: { authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] } },
+        })
+      );
+
+      const result = await RecordsService.hasCreateAccess(brand, user, [], 'rdmp', 'draft');
+
+      expect(result).to.equal(true);
+    });
+
+    it('does not infer creator access from a conditional permission hook', async function () {
+      const brand = { id: 'brand-1', name: 'default' };
+      const user = { username: 'researcher', roles: [] };
+      (global as any).RecordTypesService.get = sinon.stub().returns(
+        of({
+          name: 'rdmp',
+          hooks: {
+            onCreate: {
+              pre: [
+                {
+                  function: 'sails.services.rdmpservice.assignPermissions',
+                  options: {
+                    recordCreatorPermissions: 'view&edit',
+                    triggerCondition: '<%= record.workflow.stage == "draft" %>',
+                  },
+                },
+              ],
+            },
+          },
+        })
+      );
+      (global as any).RolesService.getRole = sinon.stub().returns(null);
+      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+        of({
+          name: 'draft',
+          starting: true,
+          config: { authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] } },
+        })
+      );
+
+      const result = await RecordsService.hasCreateAccess(brand, user, [], 'rdmp', 'draft');
+
+      expect(result).to.equal(false);
+    });
+
     it('preserves starting-step ACL precedence when authorizing a targeted create', async function () {
       const brand = { id: 'brand-1', name: 'default' };
       const adminRole = { id: 'role-admin', name: 'Admin' };
