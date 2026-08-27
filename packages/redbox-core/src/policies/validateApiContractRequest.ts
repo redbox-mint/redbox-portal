@@ -80,6 +80,14 @@ function describeRequest(req: Sails.Req, route?: ApiRouteDefinition): string {
   return `${method} ${routeIdentifier}`;
 }
 
+function stableErrorType(error: unknown): 'error' | 'type-error' | 'range-error' | 'syntax-error' | 'non-error' {
+  if (error instanceof TypeError) return 'type-error';
+  if (error instanceof RangeError) return 'range-error';
+  if (error instanceof SyntaxError) return 'syntax-error';
+  if (error instanceof Error) return 'error';
+  return 'non-error';
+}
+
 export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
   let route: ApiRouteDefinition | undefined;
   try {
@@ -115,7 +123,13 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
     };
     next();
   } catch (error) {
-    sails.log.error(`Contract-first API validation failed for ${describeRequest(req, route)}`, error);
+    sails.log.error(
+      'Contract-first API validation failed',
+      Object.freeze({
+        route: describeRequest(req, route),
+        error_type: stableErrorType(error),
+      })
+    );
     sendPolicyResponse(req, res, 500, [{ detail: 'Internal server error' }]);
   }
 }

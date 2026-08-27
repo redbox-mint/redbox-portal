@@ -46,6 +46,7 @@ describe('RecordValidationService contract-context parity', function () {
       timeoutMs: 5_000,
     };
     sailsFixture.config.recordSchema = {
+      enabled: true,
       unknownProperties: 'allow',
     };
     (global as Record<string, unknown>).sails = sailsFixture;
@@ -131,6 +132,31 @@ describe('RecordValidationService contract-context parity', function () {
     });
     expect(fixture.calls.startingSteps).to.equal(0);
     expect(fixture.calls.workflowSteps).to.deep.equal(['review']);
+  });
+
+  it('rejects an unsupported record-type unknown-properties override before contract resolution consumes it', async function () {
+    const fixture = createRecordValidationFixture({
+      recordType: {
+        id: 'record-type-1',
+        name: 'dataset',
+        recordValidation: { mode: 'enforce' },
+        recordSchema: { unknownProperties: 'strip' },
+      },
+    });
+    const service = new Services.RecordValidation(fixture.dependencies);
+
+    const failure = await captureContextError(() =>
+      service.resolveContractContext({
+        kind: 'create',
+        brand: 'brand-1',
+        portal: 'portal-1',
+        recordType: 'dataset',
+        actor: { authenticated: true, roles: ['Researcher'] },
+      })
+    );
+
+    expect(failure.failureKind).to.equal('unavailable');
+    expect(failure.diagnosticCodes).to.deep.equal([]);
   });
 
   it('types missing record types and unauthorized operations without exposing selection details', async function () {

@@ -44,6 +44,7 @@ import {
   isRecordSchemaUnknownProperties,
   resolveRecordSchemaUnknownProperties,
   type RecordTypeRecordSchemaConfig,
+  validateRecordTypeRecordSchemaConfig,
 } from '../config/recordSchema.config';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { WorkflowStageConfig } from '../config/workflow.config';
@@ -1275,6 +1276,13 @@ export namespace Services {
 
       const configuredUnknownProperties = sails.config.recordSchema?.unknownProperties;
       if (!isRecordSchemaUnknownProperties(configuredUnknownProperties)) {
+        throw this.contractContextError('unavailable');
+      }
+      if (
+        authoritative.recordType.recordSchema !== undefined &&
+        validateRecordTypeRecordSchemaConfig(authoritative.recordType.recordSchema, 'recordType.recordSchema').length >
+          0
+      ) {
         throw this.contractContextError('unavailable');
       }
       const unknownProperties = resolveRecordSchemaUnknownProperties(

@@ -3926,34 +3926,38 @@ describe('RecordsService', function () {
       enforcement: 'shadow' | 'enforce' = 'shadow',
       portal = 'portal',
       branding = 'brand-1'
-    ) => ({
-      kind,
-      document: {
+    ) => {
+      const document: Record<string, unknown> = {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         $id: `/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}/api/records/schemas/${'a'.repeat(64)}`,
         type: 'object',
-      },
-      digest: 'a'.repeat(64),
-      grant: {},
-      metadata: {
-        schemaKind: 'create',
-        contractFormat: 'redbox-record-contract/1',
-        completeness: kind === 'partial' ? 'partial' : 'complete',
-        byteLength: 128,
-        etag: `"sha256:${'a'.repeat(64)}"`,
-        context: {
-          brand: branding,
-          portal,
-          kind: 'create',
-          recordType: 'rdmp',
-          workflowStep: 'draft',
-          form: 'default-form',
-          operation: 'publish',
-          unknownProperties: 'allow',
-          enforcement,
+      };
+      const grant: Record<string, unknown> = {};
+      return {
+        kind,
+        document,
+        digest: 'a'.repeat(64),
+        grant,
+        metadata: {
+          schemaKind: 'create',
+          contractFormat: 'redbox-record-contract/1',
+          completeness: kind === 'partial' ? 'partial' : 'complete',
+          byteLength: 128,
+          etag: `"sha256:${'a'.repeat(64)}"`,
+          context: {
+            brand: branding,
+            portal,
+            kind: 'create',
+            recordType: 'rdmp',
+            workflowStep: 'draft',
+            form: 'default-form',
+            operation: 'publish',
+            unknownProperties: 'allow',
+            enforcement,
+          },
         },
-      },
-    });
+      };
+    };
 
     const updateSchemaResolution = (
       enforcement: 'shadow' | 'enforce' = 'enforce',
@@ -4616,8 +4620,8 @@ describe('RecordsService', function () {
         enforcement: 'shadow',
       });
       const storageCandidates = [
-        ...mockStorageService.create.getCalls().map(call => call.args[1]),
-        ...mockStorageService.updateMeta.getCalls().map(call => call.args[2]),
+        ...mockStorageService.create.getCalls().map((call: { readonly args: readonly unknown[] }) => call.args[1]),
+        ...mockStorageService.updateMeta.getCalls().map((call: { readonly args: readonly unknown[] }) => call.args[2]),
       ];
       expect(storageCandidates).to.have.length.greaterThan(0);
       for (const candidate of storageCandidates) {

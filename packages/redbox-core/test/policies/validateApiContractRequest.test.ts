@@ -357,6 +357,7 @@ describe('validateApiContractRequest policy', function () {
     it('logs a resolved route identifier without request OIDs or digests when validation throws', function () {
         const privateOid = 'private-record-oid';
         const privateDigest = 'b'.repeat(64);
+        const privateError = 'private-validation-error';
         const path = `/default/rdmp/api/records/schemas/update/${privateOid}?digest=${privateDigest}`;
         const req = createReq({
             path,
@@ -369,7 +370,7 @@ describe('validateApiContractRequest policy', function () {
         Object.defineProperty(req, 'params', {
             configurable: true,
             get: () => {
-                throw new Error('validation failed');
+                throw new Error(privateError);
             },
         });
 
@@ -378,8 +379,10 @@ describe('validateApiContractRequest policy', function () {
         expect(res.statusCode).to.equal(500);
         const logged = JSON.stringify((sails.log.error as sinon.SinonStub).firstCall.args);
         expect(logged).to.include('webservice/RecordSchemaController.update');
+        expect(logged).to.include('\"error_type\":\"error\"');
         expect(logged).not.to.include(privateOid);
         expect(logged).not.to.include(privateDigest);
+        expect(logged).not.to.include(privateError);
     });
 
     it('distinguishes admin config routes by matched route path', function () {

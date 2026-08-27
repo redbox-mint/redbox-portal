@@ -234,6 +234,8 @@ describe('API routes contract layer', function () {
   });
 
   it('should include hook-contributed routes in merged docs', function () {
+    // This assertion intentionally generates three complete API artifacts; slower CI hosts need a scoped budget.
+    this.timeout(30_000);
     const hookRoute: ApiRouteDefinition = {
       method: 'get',
       path: '/:branding/:portal/api/hooks/example',

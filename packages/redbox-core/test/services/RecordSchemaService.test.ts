@@ -42,6 +42,7 @@ import {
   UserModel,
 } from '../../src';
 import {
+  RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES,
   RECORD_SCHEMA_LIFECYCLE_ERROR_CODE,
   RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE,
   RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE,
@@ -3645,11 +3646,10 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
 
-  it('continues complete equivalent authorization beyond ten thousand grants without a lookup cap', async function () {
+  it('bounds immutable authorization work without turning an incomplete scan into a false not-found', async function () {
     const seed = await createImmutableSeed();
     const fixture = immutableResolutionFixture(seed);
     fixture.listRecordSchemaReferences.callsFake(async (query: { offset: number }) => {
-      if (query.offset >= 11_000) return [seed.grant];
       return Array.from({ length: 1_000 }, (_, index): RecordSchemaGrantReferenceInput => ({
         referenceKey: `grant:create:other-brand-${query.offset + index}`,
         digest: seed.artifact.digest,
@@ -3664,9 +3664,42 @@ describe('RecordSchemaService immutable resolution', function () {
 
     const result = await fixture.service.resolveImmutable(requestFor(seed));
 
+    expect(result.kind).to.equal('unavailable');
+    if (result.kind !== 'unavailable') throw new Error('Expected bounded authorization to remain inconclusive.');
+    expect(result.problem).to.deep.include({
+      status: 503,
+      code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
+    });
+    expect(fixture.listRecordSchemaReferences.callCount).to.equal(RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES / 1_000);
+    expect(fixture.listRecordSchemaReferences.lastCall.firstArg.offset).to.equal(
+      RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES - 1_000
+    );
+    expect(fixture.resolveContractContext.notCalled).to.equal(true);
+    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('authorizes a matching grant at the final position inside the immutable lookup bound', async function () {
+    const seed = await createImmutableSeed();
+    const fixture = immutableResolutionFixture(seed);
+    fixture.listRecordSchemaReferences.callsFake(async (query: { offset: number }) => {
+      const irrelevantCount = query.offset === RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES - 1_000 ? 999 : 1_000;
+      const irrelevant = Array.from({ length: irrelevantCount }, (_, index): RecordSchemaGrantReferenceInput => ({
+        referenceKey: `grant:create:other-brand-${query.offset + index}`,
+        digest: seed.artifact.digest,
+        brand: 'other-brand',
+        portal: 'portal-1',
+        kind: 'grant',
+        schemaKind: 'create',
+        recordType: 'dataset',
+        operation: 'strict-all',
+      }));
+      return irrelevantCount === 999 ? [...irrelevant, seed.grant] : irrelevant;
+    });
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed));
+
     expect(result.kind).to.equal('resolved');
-    expect(fixture.listRecordSchemaReferences.callCount).to.equal(12);
-    expect(fixture.listRecordSchemaReferences.lastCall.firstArg.offset).to.equal(11_000);
+    expect(fixture.listRecordSchemaReferences.callCount).to.equal(RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES / 1_000);
     expect(fixture.resolveContractContext.calledOnce).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
   });

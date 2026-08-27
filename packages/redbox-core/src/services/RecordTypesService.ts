@@ -27,6 +27,26 @@ import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { assertStorageConcurrencyCapabilityForMode, type StorageCapabilityProvider } from '../RecordStorageConcurrency';
+import {
+  isRecordSchemaEnabled,
+  validateRecordTypeRecordSchemaConfig,
+  type RecordSchemaConfigurationProblem,
+} from '../config/recordSchema.config';
+
+export class RecordTypeRecordSchemaConfigurationError extends TypeError {
+  public readonly problems: readonly RecordSchemaConfigurationProblem[];
+
+  public constructor(problems: readonly RecordSchemaConfigurationProblem[]) {
+    const first = problems[0];
+    super(
+      first
+        ? `Invalid record-type record schema configuration at ${first.path}: ${first.reason}.`
+        : 'Invalid record-type record schema configuration.'
+    );
+    this.name = 'RecordTypeRecordSchemaConfigurationError';
+    this.problems = Object.freeze([...problems]);
+  }
+}
 
 export namespace Services {
   /**
@@ -72,9 +92,16 @@ export namespace Services {
         //   rTypesObs.push(obs);
         // });
 
-        const rTypes = [];
+        const configuredRecordTypes: Array<readonly [string, RecordTypeModel]> = [];
         for (const recordType in sails.config.recordtype) {
           const config: RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
+          configuredRecordTypes.push([recordType, config]);
+        }
+        for (const [recordType, config] of configuredRecordTypes) {
+          this.assertRecordSchemaConfig(recordType, config.recordSchema);
+        }
+        const rTypes = [];
+        for (const [recordType, config] of configuredRecordTypes) {
           rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)));
         }
         this.recordTypes = rTypes;
@@ -82,6 +109,7 @@ export namespace Services {
         return rTypes;
       }
       sails.log.verbose('Default recordTypes definition(s) exist.');
+      this.assertRecordSchemaConfigs(recordTypes);
       sails.log.verbose(JSON.stringify(recordTypes));
       this.recordTypes = recordTypes;
       this.assertStrictStorageCapabilities(recordTypes);
@@ -99,6 +127,7 @@ export namespace Services {
       name: string,
       config: RecordTypeModel & { dashboard?: unknown }
     ): Observable<RecordTypeModel> {
+      this.assertRecordSchemaConfig(name, config.recordSchema);
       const concurrentModification = resolveRecordConcurrentModificationConfig(config.concurrentModification);
       return super.getObservable(
         RecordType.create({
@@ -144,6 +173,23 @@ export namespace Services {
     private configuredStorageService(): StorageCapabilityProvider | undefined {
       const serviceName = String((sails.config.storage as { serviceName?: string } | undefined)?.serviceName ?? '');
       return serviceName ? (sails.services?.[serviceName] as StorageCapabilityProvider | undefined) : undefined;
+    }
+
+    private assertRecordSchemaConfig(name: string, value: unknown): void {
+      if (!isRecordSchemaEnabled(sails.config.recordSchema) || value === undefined) return;
+      const pathName = /^[A-Za-z0-9_-]{1,100}$/.test(name) ? name : 'unknown';
+      const problems = validateRecordTypeRecordSchemaConfig(value, `recordtype.${pathName}.recordSchema`);
+      if (problems.length > 0) {
+        throw new RecordTypeRecordSchemaConfigurationError(problems);
+      }
+    }
+
+    private assertRecordSchemaConfigs(recordTypes: readonly RecordTypeModel[]): void {
+      for (const [index, recordType] of recordTypes.entries()) {
+        const runtimeRecordType: { readonly name?: unknown; readonly recordSchema?: unknown } = recordType;
+        const name = typeof runtimeRecordType.name === 'string' ? runtimeRecordType.name : `index-${index}`;
+        this.assertRecordSchemaConfig(name, runtimeRecordType.recordSchema);
+      }
     }
 
     private assertStrictStorageCapabilities(recordTypes: RecordTypeModel[]): void {

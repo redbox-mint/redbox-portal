@@ -177,6 +177,8 @@ const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_DIAGNOSTIC_IDENTIFIER = /^[A-Za-z0-9@._:/-]{1,200}$/;
 const RECORD_SCHEMA_REFERENCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$/;
 export const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
+/** Bounds immutable authorization reads and duplicate-detection state per request. */
+export const RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES = 10_000;
 export const RECORD_SCHEMA_CONFIGURED_FORM_MAX_CANDIDATES = 1_000;
 const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
 const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
@@ -2630,8 +2632,17 @@ export namespace Services {
           }
         }
 
+        if (authorizedCompilation) {
+          break;
+        }
         if (grants.values.length < RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE) {
           break;
+        }
+        if (grantOffset + grants.values.length >= RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES) {
+          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
+            error_type: 'non-error',
+          });
+          return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
         }
         if (grantOffset > Number.MAX_SAFE_INTEGER - grants.values.length) {
           this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
