@@ -38,6 +38,7 @@ import type {
   PersistRecordSchemaSaveUsageRequest,
   PersistRecordSchemaSaveUsageResult,
 } from '../../src/services/RecordSchemaService';
+import { isInternalRecordSchemaUpdateAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import {
   createCoreRecordContractContributors,
@@ -8016,6 +8017,40 @@ describe('RecordsService', function () {
       expect(rawDelta).to.deep.equal({ title: 42 });
     });
 
+    it('validates an empty standalone-upload merge delta without revalidating complete stored metadata', async function () {
+      enableRecordSchema();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const stored = {
+        ...baseRecord(),
+        metadata: { title: 42, legacyUndeclared: { retained: true } },
+      };
+      mockStorageService.getMeta.resolves(stored);
+      const resolveUpdate = sinon.stub().resolves(updateSchemaResolution('enforce', 'declared'));
+      const validateResolvedArtifact = sinon.stub().callsFake((request: { input: unknown }) => {
+        expect(request.input).to.deep.equal({});
+        return { kind: 'validated', valid: true, issues: [], truncated: false };
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        false,
+        false,
+        {},
+        { metadata: {}, mode: 'merge' },
+        recordSchemaContext({ routeFamily: 'api', operation: 'update' })
+      );
+
+      expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.deep.equal(stored.metadata);
+    });
+
     it('orders an internal pre-applied delta through authorization, schema, hooks, validation, storage, and usage', async function () {
       enableRecordSchema();
       mockSails.config.recordValidation = { mode: 'enforce' };
@@ -8091,6 +8126,56 @@ describe('RecordsService', function () {
         nested: { retained: true, values: [{ id: 'incoming' }] },
       });
       expect(rawDelta).to.deep.equal({ nested: { values: [{ id: 'incoming' }] } });
+    });
+
+    it('propagates service authorization through enabled schema validation when no user is supplied', async function () {
+      enableRecordSchema();
+      enableInternalRecordMutationStorage();
+      mockSails.config.recordValidation = { mode: 'enforce' };
+      const stored = { ...baseRecord(), revision: 1, metadata: { title: 'Stored' } };
+      const candidate = { ...structuredClone(stored), metadata: { title: 'Service update' } };
+      mockStorageService.getMeta.resolves(stored);
+      mockStorageService.updateMeta.callsFake(async (_brand: unknown, oid: string, saved: StorageUpdateCandidate) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+        committedRevision: 2,
+        committedRecord: { ...structuredClone(saved), revision: 2 },
+      }));
+      const resolveUpdate = sinon.stub().callsFake(async (request: { internalAuthorizationCapability?: unknown }) => {
+        expect(isInternalRecordSchemaUpdateAuthorizationCapability(request.internalAuthorizationCapability)).to.equal(
+          true
+        );
+        return updateSchemaResolution('enforce');
+      });
+      const validateResolvedArtifact = sinon.stub().returns({
+        kind: 'validated',
+        valid: true,
+        issues: [],
+        truncated: false,
+      });
+      mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
+      mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
+
+      const result = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'RecordsServiceTest.noUserSchemaWrite' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        brand: { id: 'brand-1' },
+        oid: 'record-123',
+        record: candidate,
+        triggerPreSaveTriggers: false,
+        triggerPostSaveTriggers: false,
+        metadata: { title: 'Service update' },
+        metadataMode: 'pre-applied',
+        context: recordSchemaContext({ routeFamily: 'internal', operation: 'update' }),
+      });
+
+      expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
+      expect(resolveUpdate.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.calledOnce).to.equal(true);
+      expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({ title: 'Service update' });
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
     });
 
     it('derives pre-applied validation from the persisted candidate and safely retries a stale mismatch', async function () {

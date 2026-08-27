@@ -2,13 +2,15 @@ import { resolveApiRouteForRequest, validateApiRouteRequest, type ApiRouteDefini
 import {
   buildRecordSchemaInvalidRequestProblem,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
+  RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+  RECORD_SCHEMA_RESPONSE_VARY,
 } from '../api-routes/record-schema-response';
 
 const RECORD_SCHEMA_CONTROLLER = 'webservice/RecordSchemaController';
 
 function getNoCacheHeaders(): Record<string, string> {
   return {
-    'Cache-control': 'no-cache, private',
+    'Cache-Control': 'no-cache, private',
     Pragma: 'no-cache',
     Expires: '0',
   };
@@ -61,21 +63,29 @@ function isRecordSchemaRoute(route: ApiRouteDefinition): boolean {
 
 function sendRecordSchemaInvalidRequest(req: Sails.Req, res: Sails.Res) {
   const instance = req.path ?? req.originalUrl ?? '/api/records/schemas';
-  res.set(getNoCacheHeaders());
+  res.set({
+    ...getNoCacheHeaders(),
+    'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+    Vary: RECORD_SCHEMA_RESPONSE_VARY,
+  });
   res.set('Content-Type', RECORD_SCHEMA_PROBLEM_MEDIA_TYPE);
   res.status(400);
   return res.json(buildRecordSchemaInvalidRequestProblem(instance));
 }
 
-function describeRequest(req: Sails.Req): string {
-  return `${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`;
+function describeRequest(req: Sails.Req, route?: ApiRouteDefinition): string {
+  const rawMethod = typeof req.method === 'string' ? req.method.toUpperCase() : '';
+  const method = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'].includes(rawMethod) ? rawMethod : 'OTHER';
+  const routeIdentifier = route ? `${route.controller}.${route.action}` : 'unresolved-api-route';
+  return `${method} ${routeIdentifier}`;
 }
 
 export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
+  let route: ApiRouteDefinition | undefined;
   try {
-    const route = resolveApiRouteForRequest(req);
+    route = resolveApiRouteForRequest(req);
     if (!route) {
-      sails.log.error(`Failed to resolve contract-first API route for ${describeRequest(req)}`);
+      sails.log.error(`Failed to resolve contract-first API route for ${describeRequest(req, route)}`);
       sendPolicyResponse(req, res, 500, [{ detail: 'Internal server error' }]);
       return;
     }
@@ -105,7 +115,7 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
     };
     next();
   } catch (error) {
-    sails.log.error(`Contract-first API validation failed for ${describeRequest(req)}`, error);
+    sails.log.error(`Contract-first API validation failed for ${describeRequest(req, route)}`, error);
     sendPolicyResponse(req, res, 500, [{ detail: 'Internal server error' }]);
   }
 }

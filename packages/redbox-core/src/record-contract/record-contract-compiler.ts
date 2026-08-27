@@ -8,6 +8,7 @@ import { performance } from 'perf_hooks';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
+import { freezeDeep } from './deep-freeze';
 import type {
   ContractCondition,
   ContractJsonValue,
@@ -241,28 +242,6 @@ function cloneJsonSafe<T>(
   } finally {
     ancestors.delete(value);
   }
-}
-
-function freezeDeep<T>(value: T): T {
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
-  const pending: object[] = [value];
-  const visited = new Set<object>();
-  while (pending.length > 0) {
-    const current = pending.pop();
-    if (!current || visited.has(current)) {
-      continue;
-    }
-    visited.add(current);
-    for (const child of Object.values(current)) {
-      if (child !== null && typeof child === 'object') {
-        pending.push(child);
-      }
-    }
-    Object.freeze(current);
-  }
-  return value;
 }
 
 function cloneCompilerInput<T>(value: T, path: string, allowRuntimeFormObjects = false): T {
@@ -729,17 +708,24 @@ export class RecordContractCompiler {
     }
     state.activeDefinitions.add(name);
     try {
-      const compiled = await this.compileChildren(definition, parent, depth + 1, request, state, name);
-      const prior = state.definitions[name];
-      if (prior && JSON.stringify(prior) !== JSON.stringify(compiled)) {
-        throw this.invalidFailure(
-          RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
-          `Reusable form definition ${name} compiled inconsistently.`,
-          parent
-        );
-      }
-      state.definitions[name] = compiled;
-      return Object.entries(compiled.properties);
+      const compiled = await this.compileChildren(definition, parent, depth + 1, request, state);
+      return Object.entries(compiled.properties).map(([propertyName, node]) => {
+        if (node.definitionKey) {
+          return [propertyName, node] as const;
+        }
+        const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}`;
+        const referencedNode: ContractNode = { ...node, definitionKey };
+        const prior = state.definitions[definitionKey];
+        if (prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {
+          throw this.invalidFailure(
+            RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
+            `Reusable form definition ${name} property ${propertyName} compiled inconsistently.`,
+            parent
+          );
+        }
+        state.definitions[definitionKey] = referencedNode;
+        return [propertyName, referencedNode] as const;
+      });
     } finally {
       state.activeDefinitions.delete(name);
     }

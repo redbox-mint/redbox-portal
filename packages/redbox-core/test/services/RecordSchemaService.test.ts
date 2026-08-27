@@ -43,7 +43,6 @@ import {
 } from '../../src';
 import {
   RECORD_SCHEMA_LIFECYCLE_ERROR_CODE,
-  RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES,
   RECORD_SCHEMA_RETENTION_REPORT_DEFAULT_PAGE_SIZE,
   RECORD_SCHEMA_RETENTION_REPORT_MAX_PAGE_SIZE,
   RECORD_SCHEMA_STARTUP_LOG_FINDING_COUNT_MAX,
@@ -52,6 +51,7 @@ import {
   type RecordSchemaServiceDependencies,
   Services,
 } from '../../src/services/RecordSchemaService';
+import { issueInternalRecordSchemaUpdateAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
 import { RecordSchemaService, ServiceExports } from '../../src/services';
 import { Services as RecordsServices } from '../../src/services/RecordsService';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
@@ -1052,8 +1052,8 @@ describe('RecordSchemaService create resolution', function () {
     }
 
     const expectedDigests = {
-      create: 'af3936ab43780b82b6bb4907c1a67cb78902a4482e7c527f10a0d92e8ca4e48a',
-      update: '01144561d6dae1ad17ebb3513d19f82aebe8bb2d712a934898bd5baa1ab0c582',
+      create: '86864e1a72938e4a6b7c2e834c4dde441d1050da4fa4aafe2ba1ab5c8afd4403',
+      update: 'cb6f59e636553cebad5e122de33084574afda991f37521118482989d46e00325',
     } as const;
     for (const kind of ['create', 'update'] as const) {
       const first = await compileWithFreshService(kind, 17);
@@ -1459,6 +1459,37 @@ describe('RecordSchemaService update resolution', function () {
       expect(serializedDocument).not.to.include(privateValue);
       expect(serializedArtifact).not.to.include(privateValue);
     }
+  });
+
+  it('accepts only an issued internal service capability while retaining contract compilation and persistence', async function () {
+    const noUserCaller = { ...caller, user: {} as UserModel };
+    const trusted = updateResolutionFixture();
+    trusted.authorizeUpdate.resolves(false);
+
+    const resolved = await trusted.service.resolveUpdate({
+      ...request,
+      caller: noUserCaller,
+      internalAuthorizationCapability: issueInternalRecordSchemaUpdateAuthorizationCapability(),
+    });
+
+    expect(resolved.kind).to.equal('resolved');
+    expect(trusted.authorizeUpdate.notCalled).to.equal(true);
+    expect(trusted.buildContractFormConfig.calledOnceWithExactly(trusted.context, noUserCaller)).to.equal(true);
+    expect(trusted.putRecordSchemaArtifact.calledOnce).to.equal(true);
+    expect(trusted.putRecordSchemaReference.calledOnce).to.equal(true);
+
+    const forged = updateResolutionFixture();
+    forged.authorizeUpdate.resolves(false);
+    const denied = await forged.service.resolveUpdate({
+      ...request,
+      caller: noUserCaller,
+      internalAuthorizationCapability: { kind: 'record-schema-service-update' },
+    });
+
+    expect(denied.kind).to.equal('denied');
+    expect(forged.authorizeUpdate.calledOnceWithExactly(forged.context, noUserCaller)).to.equal(true);
+    expect(forged.buildContractFormConfig.notCalled).to.equal(true);
+    expect(forged.putRecordSchemaArtifact.notCalled).to.equal(true);
   });
 
   it('accepts an exact If-Match against the current full-document digest before persisting', async function () {
@@ -3567,7 +3598,7 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
   });
 
-  it('stops endless and over-full grant page iteration with a typed lookup limit', async function () {
+  it('hides an over-full grant page as a preauthorization 404-compatible failure', async function () {
     const seed = await createImmutableSeed();
     const fixture = immutableResolutionFixture(seed);
     const endlessPage: unknown[] = [];
@@ -3580,18 +3611,15 @@ describe('RecordSchemaService immutable resolution', function () {
 
     const result = await fixture.service.resolveImmutable(requestFor(seed));
 
-    expect(result.kind).to.equal('limit-exceeded');
-    if (result.kind !== 'limit-exceeded') throw new Error('Expected a bounded immutable grant lookup.');
-    expect(result.problem).to.deep.include({
-      status: 413,
-      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
-    });
+    expect(result.kind).to.equal('invalid-contract');
+    if (result.kind !== 'invalid-contract') throw new Error('Expected hidden invalid authorization data.');
+    expect(result.authorization).to.equal('unverified');
     expect(fixture.listRecordSchemaReferences.calledOnce).to.equal(true);
     expect(fixture.resolveContractContext.notCalled).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
 
-  it('bounds repeated full grant pages without issuing an unbounded storage query', async function () {
+  it('rejects duplicate reference keys as non-progressing pagination without issuing another query', async function () {
     const seed = await createImmutableSeed();
     const inaccessibleGrant: RecordSchemaGrantReferenceInput = {
       referenceKey: 'grant:update:inaccessible',
@@ -3610,29 +3638,52 @@ describe('RecordSchemaService immutable resolution', function () {
 
     const result = await fixture.service.resolveImmutable(requestFor(seed));
 
-    expect(result.kind).to.equal('limit-exceeded');
-    expect(fixture.listRecordSchemaReferences.callCount).to.equal(RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES);
-    expect(fixture.listRecordSchemaReferences.lastCall.firstArg.offset).to.equal(
-      (RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES - 1) * 1_000
-    );
+    expect(result.kind).to.equal('invalid-contract');
+    if (result.kind !== 'invalid-contract') throw new Error('Expected hidden invalid authorization data.');
+    expect(result.authorization).to.equal('unverified');
+    expect(fixture.listRecordSchemaReferences.calledOnce).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('continues complete equivalent authorization beyond ten thousand grants without a lookup cap', async function () {
+    const seed = await createImmutableSeed();
+    const fixture = immutableResolutionFixture(seed);
+    fixture.listRecordSchemaReferences.callsFake(async (query: { offset: number }) => {
+      if (query.offset >= 11_000) return [seed.grant];
+      return Array.from({ length: 1_000 }, (_, index): RecordSchemaGrantReferenceInput => ({
+        referenceKey: `grant:create:other-brand-${query.offset + index}`,
+        digest: seed.artifact.digest,
+        brand: 'other-brand',
+        portal: 'portal-1',
+        kind: 'grant',
+        schemaKind: 'create',
+        recordType: 'dataset',
+        operation: 'strict-all',
+      }));
+    });
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed));
+
+    expect(result.kind).to.equal('resolved');
+    expect(fixture.listRecordSchemaReferences.callCount).to.equal(12);
+    expect(fixture.listRecordSchemaReferences.lastCall.firstArg.offset).to.equal(11_000);
+    expect(fixture.resolveContractContext.calledOnce).to.equal(true);
+    expect(fixture.touchRecordSchemaArtifact.calledOnce).to.equal(true);
   });
 
   it('returns typed failures for malformed grant provider results and stored grants', async function () {
     const seed = await createImmutableSeed();
-    const malformedPage = immutableResolutionFixture(seed);
+    const telemetryLogger = { info: sinon.stub(), error: sinon.stub() };
+    const malformedPage = immutableResolutionFixture(seed, { telemetryLogger });
     malformedPage.listRecordSchemaReferences.resolves({ page: [] });
 
     const unavailable = await malformedPage.service.resolveImmutable(requestFor(seed));
 
-    expect(unavailable.kind).to.equal('unavailable');
-    if (unavailable.kind !== 'unavailable') throw new Error('Expected a typed storage failure.');
-    expect(unavailable.problem).to.deep.include({
-      status: 503,
-      code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
-    });
+    expect(unavailable.kind).to.equal('invalid-contract');
+    if (unavailable.kind !== 'invalid-contract') throw new Error('Expected hidden invalid authorization data.');
+    expect(unavailable.authorization).to.equal('unverified');
 
-    const malformedGrant = immutableResolutionFixture(seed);
+    const malformedGrant = immutableResolutionFixture(seed, { telemetryLogger });
     malformedGrant.listRecordSchemaReferences.resolves([{ kind: 'grant', digest: seed.artifact.digest }]);
 
     const invalid = await malformedGrant.service.resolveImmutable(requestFor(seed));
@@ -3644,9 +3695,28 @@ describe('RecordSchemaService immutable resolution', function () {
       code: RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
     });
     expect(malformedGrant.resolveContractContext.notCalled).to.equal(true);
+    expect(telemetryLogger.error.args).to.deep.equal([
+      [
+        'record_schema_unexpected_failure',
+        {
+          event: 'record_schema_unexpected_failure',
+          context: 'resolve-immutable-grant-list',
+          error_type: 'non-error',
+        },
+      ],
+      [
+        'record_schema_unexpected_failure',
+        {
+          event: 'record_schema_unexpected_failure',
+          context: 'resolve-immutable-grant-contract',
+          error_type: 'non-error',
+        },
+      ],
+    ]);
+    expect(JSON.stringify(telemetryLogger.error.args)).not.to.include(seed.artifact.digest);
   });
 
-  it('contains grant iterator errors that escape the provider promise as a typed storage failure', async function () {
+  it('contains grant iterator errors as a preauthorization 404-compatible failure', async function () {
     const seed = await createImmutableSeed();
     const fixture = immutableResolutionFixture(seed);
     const throwingPage: unknown[] = [];
@@ -3661,9 +3731,9 @@ describe('RecordSchemaService immutable resolution', function () {
 
     const result = await fixture.service.resolveImmutable(requestFor(seed));
 
-    expect(result.kind).to.equal('unavailable');
-    if (result.kind !== 'unavailable') throw new Error('Expected a contained provider iterator failure.');
-    expect(result.problem.code).to.equal(RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+    expect(result.kind).to.equal('invalid-contract');
+    if (result.kind !== 'invalid-contract') throw new Error('Expected hidden invalid authorization data.');
+    expect(result.authorization).to.equal('unverified');
     expect(fixture.resolveContractContext.notCalled).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });

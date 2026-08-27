@@ -1,4 +1,5 @@
 import type { ContractJsonObject, ContractJsonValue } from './types';
+import { freezeDeep } from './deep-freeze';
 
 export type RedboxCanonicalJsonErrorReason =
   | 'accessor-property'
@@ -33,28 +34,6 @@ function childPath(path: string, key: string): string {
 function isPlainObject(value: object): boolean {
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
-}
-
-function freezeDeep<T>(value: T): T {
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
-  const pending: object[] = [value];
-  const visited = new Set<object>();
-  while (pending.length > 0) {
-    const current = pending.pop();
-    if (!current || visited.has(current)) {
-      continue;
-    }
-    visited.add(current);
-    for (const child of Object.values(current)) {
-      if (child !== null && typeof child === 'object') {
-        pending.push(child);
-      }
-    }
-    Object.freeze(current);
-  }
-  return value;
 }
 
 function normalizedArray(

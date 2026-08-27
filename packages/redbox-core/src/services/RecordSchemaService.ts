@@ -79,6 +79,7 @@ import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
 import type { ConfiguredRecordContractFormCandidate, FormRecordAccessContext } from './FormsService';
 import type { ILogger } from '../Logger';
+import { isInternalRecordSchemaUpdateAuthorizationCapability } from './internal-record-schema-authorization';
 
 declare const RedboxJavaStorageService: unknown;
 
@@ -176,7 +177,6 @@ const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_DIAGNOSTIC_IDENTIFIER = /^[A-Za-z0-9@._:/-]{1,200}$/;
 const RECORD_SCHEMA_REFERENCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$/;
 export const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
-export const RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES = 10;
 export const RECORD_SCHEMA_CONFIGURED_FORM_MAX_CANDIDATES = 1_000;
 const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
 const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
@@ -278,6 +278,8 @@ type RecordSchemaLogContext =
   | 'resolve-immutable-storage-provider'
   | 'resolve-immutable-artifact-read'
   | 'resolve-immutable-grant-list'
+  | 'resolve-immutable-grant-contract'
+  | 'resolve-immutable-grant-pagination'
   | 'resolve-immutable-artifact-touch'
   | 'validation-compile'
   | 'validation-run'
@@ -820,6 +822,8 @@ export interface ResolveUpdateRecordSchemaRequest {
   readonly ifMatch?: string;
   /** Trusted current caller and brand used by the existing record-access and form-access paths. */
   readonly caller: FormRecordAccessContext;
+  /** Process-local capability issued only after the internal service mutation boundary authorizes this write. */
+  readonly internalAuthorizationCapability?: unknown;
 }
 
 export interface RecordSchemaUpdateResolutionMetadata {
@@ -2090,21 +2094,6 @@ function immutableGrantInvalidContractResult(
   });
 }
 
-function immutableGrantLookupLimitResult(
-  request: ResolveImmutableRecordSchemaRequest
-): ResolveImmutableRecordSchemaResult {
-  return Object.freeze({
-    kind: 'limit-exceeded',
-    problem: immutableProblem(request, {
-      type: 'https://redboxresearchdata.com/problems/record-schema-limit-exceeded',
-      title: 'Record schema lookup limit exceeded',
-      status: 413,
-      detail: 'The bounded schema authorization lookup could not be completed.',
-      code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED,
-    }),
-  });
-}
-
 function immutableGrantOperation(operation: string): string | undefined {
   return operation === RECORD_SCHEMA_STRICT_ALL_OPERATION ? undefined : operation;
 }
@@ -2434,12 +2423,14 @@ export namespace Services {
         return this.contextFailure('unavailable');
       }
 
-      let authorized: boolean;
-      try {
-        authorized = await this.dependencies.authorizeUpdate(internalContext, request.caller);
-      } catch (error) {
-        this.logUnexpected('resolve-update-authorization', error);
-        return this.contextFailure('unavailable');
+      let authorized = isInternalRecordSchemaUpdateAuthorizationCapability(request.internalAuthorizationCapability);
+      if (!authorized) {
+        try {
+          authorized = await this.dependencies.authorizeUpdate(internalContext, request.caller);
+        } catch (error) {
+          this.logUnexpected('resolve-update-authorization', error);
+          return this.contextFailure('unavailable');
+        }
       }
       if (!authorized) {
         return {
@@ -2577,7 +2568,8 @@ export namespace Services {
 
       let authorizedCompilation: RecordSchemaCompiledContext | undefined;
       let grantOffset = 0;
-      for (let page = 0; page < RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES && !authorizedCompilation; page += 1) {
+      const seenGrantReferenceKeys = new Set<string>();
+      while (!authorizedCompilation) {
         let rawGrants: unknown;
         try {
           rawGrants = await storage.listRecordSchemaReferences({
@@ -2590,24 +2582,38 @@ export namespace Services {
           });
         } catch (error) {
           this.logUnexpected('resolve-immutable-grant-list', error);
-          return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+          return immutableGrantInvalidContractResult(request);
         }
         const grants = boundedArraySnapshot(rawGrants, RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE);
         if (grants.kind === 'invalid') {
           this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-list', {
             error_type: 'non-error',
           });
-          return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+          return immutableGrantInvalidContractResult(request);
         }
         if (grants.kind === 'overflow') {
-          return immutableGrantLookupLimitResult(request);
+          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
+            error_type: 'non-error',
+          });
+          return immutableGrantInvalidContractResult(request);
         }
 
         for (const value of grants.values) {
           const parsedGrant = parseImmutableGrant(value, request);
           if (parsedGrant.kind === 'invalid') {
+            this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-contract', {
+              error_type: 'non-error',
+            });
             return immutableGrantInvalidContractResult(request);
           }
+          const referenceKey = isObjectRecord(value) ? boundedNormalizedText(value, 'referenceKey') : undefined;
+          if (!referenceKey || seenGrantReferenceKeys.has(referenceKey)) {
+            this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
+              error_type: 'non-error',
+            });
+            return immutableGrantInvalidContractResult(request);
+          }
+          seenGrantReferenceKeys.add(referenceKey);
           if (parsedGrant.kind === 'irrelevant') {
             continue;
           }
@@ -2627,12 +2633,15 @@ export namespace Services {
         if (grants.values.length < RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE) {
           break;
         }
+        if (grantOffset > Number.MAX_SAFE_INTEGER - grants.values.length) {
+          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
+            error_type: 'non-error',
+          });
+          return immutableGrantInvalidContractResult(request);
+        }
         grantOffset += grants.values.length;
       }
       if (!authorizedCompilation) {
-        if (grantOffset >= RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE * RECORD_SCHEMA_GRANT_LOOKUP_MAX_PAGES) {
-          return immutableGrantLookupLimitResult(request);
-        }
         return immutableNotFoundResult(request);
       }
 

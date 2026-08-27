@@ -1389,7 +1389,7 @@ export namespace Controllers {
                 false,
                 false,
                 {},
-                { metadata: authoritativeRecord.metadata, mode: 'replace' },
+                { metadata: {}, mode: 'merge' },
                 saveRequest.context
               );
               if (!saveResult.wasPersisted()) {

@@ -256,6 +256,10 @@ function expectedProblemResponse(
     mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
     status: problem.status,
     data: problem,
+    headers: {
+      'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+      Vary: RECORD_SCHEMA_RESPONSE_VARY,
+    },
     ...(errors ? { errors } : {}),
   };
 }
@@ -1084,8 +1088,11 @@ describe('Webservice RecordSchemaController', function () {
 
       const response = onlySentResponse(controller).response;
       expect(response).to.deep.equal(expectedProblemResponse(testCase.problemKind, instance, testCase.code));
-      expect(JSON.stringify(response)).not.to.match(/private|empty-effective-form/);
-      expect(response).not.to.have.property('headers');
+      expect(JSON.stringify(response.data)).not.to.match(/private|empty-effective-form/);
+      expect(response.headers).to.deep.equal({
+        'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+        Vary: RECORD_SCHEMA_RESPONSE_VARY,
+      });
     }
   });
 
@@ -1170,8 +1177,11 @@ describe('Webservice RecordSchemaController', function () {
 
     expect(inaccessible).to.deep.equal(expectedProblemResponse('not-found', instance));
     expect(missing).to.deep.equal(inaccessible);
-    expect(JSON.stringify(inaccessible)).not.to.match(/private|brand-1|user|role|OID|exception/);
-    expect(inaccessible).not.to.have.property('headers');
+    expect(JSON.stringify(inaccessible.data)).not.to.match(/private|brand-1|user|role|OID|exception/);
+    expect(inaccessible.headers).to.deep.equal({
+      'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+      Vary: RECORD_SCHEMA_RESPONSE_VARY,
+    });
   });
 
   it('hides pre-authorization immutable corruption but preserves authorized invalid-contract responses', async function () {

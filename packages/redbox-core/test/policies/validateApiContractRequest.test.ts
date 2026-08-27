@@ -212,6 +212,10 @@ describe('validateApiContractRequest policy', function () {
                 expect(res.headers?.['Content-Type'], `${apiVersion} ${malformed.name}`).to.equal(
                     'application/problem+json'
                 );
+                expect(res.headers?.['Cache-Control'], `${apiVersion} ${malformed.name}`).to.equal(
+                    'private, no-cache'
+                );
+                expect(res.headers?.Vary, `${apiVersion} ${malformed.name}`).to.equal('Authorization');
                 expect(res.body, `${apiVersion} ${malformed.name}`).to.deep.equal({
                     type: 'https://redboxresearchdata.com/problems/record-schema-invalid-request',
                     title: 'Record schema request is invalid',
@@ -330,11 +334,13 @@ describe('validateApiContractRequest policy', function () {
     });
 
     it('returns 500 when the route cannot be resolved', function () {
+        const privateOid = 'private-record-oid';
+        const privateDigest = 'a'.repeat(64);
         const req = createReq({
             route: { path: '/:branding/:portal/api/not-registered' },
-            path: '/default/rdmp/api/not-registered',
-            originalUrl: '/default/rdmp/api/not-registered',
-            url: '/default/rdmp/api/not-registered',
+            path: `/default/rdmp/api/not-registered/${privateOid}/${privateDigest}`,
+            originalUrl: `/default/rdmp/api/not-registered/${privateOid}/${privateDigest}`,
+            url: `/default/rdmp/api/not-registered/${privateOid}/${privateDigest}`,
         });
         const res = createRes();
 
@@ -342,6 +348,38 @@ describe('validateApiContractRequest policy', function () {
 
         expect(res.statusCode).to.equal(500);
         expect((res.body as { message?: string }).message).to.equal('Internal server error');
+        const logged = JSON.stringify((sails.log.error as sinon.SinonStub).firstCall.args);
+        expect(logged).to.include('GET unresolved-api-route');
+        expect(logged).not.to.include(privateOid);
+        expect(logged).not.to.include(privateDigest);
+    });
+
+    it('logs a resolved route identifier without request OIDs or digests when validation throws', function () {
+        const privateOid = 'private-record-oid';
+        const privateDigest = 'b'.repeat(64);
+        const path = `/default/rdmp/api/records/schemas/update/${privateOid}?digest=${privateDigest}`;
+        const req = createReq({
+            path,
+            originalUrl: path,
+            url: path,
+            route: { path: '/:branding/:portal/api/records/schemas/update/:oid' },
+            params: { branding: 'default', portal: 'rdmp', oid: privateOid },
+        });
+        const res = createRes();
+        Object.defineProperty(req, 'params', {
+            configurable: true,
+            get: () => {
+                throw new Error('validation failed');
+            },
+        });
+
+        validateApiContractRequest(req, res, () => undefined);
+
+        expect(res.statusCode).to.equal(500);
+        const logged = JSON.stringify((sails.log.error as sinon.SinonStub).firstCall.args);
+        expect(logged).to.include('webservice/RecordSchemaController.update');
+        expect(logged).not.to.include(privateOid);
+        expect(logged).not.to.include(privateDigest);
     });
 
     it('distinguishes admin config routes by matched route path', function () {

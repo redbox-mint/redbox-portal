@@ -170,6 +170,7 @@ import type {
   PersistRecordSchemaSaveUsageResult,
   ValidateResolvedRecordSchemaResult,
 } from './RecordSchemaService';
+import { issueInternalRecordSchemaUpdateAuthorizationCapability } from './internal-record-schema-authorization';
 
 /**
  * Detached post hooks remain fire-and-forget to the save caller, but audit
@@ -1170,6 +1171,7 @@ export namespace Services {
         recordTypeName: string;
         user: AnyRecord;
         context: RecordSaveContext;
+        internalAuthorizationCapability?: unknown;
       }>
     ): Promise<UpdateStructuralPhaseResult> {
       const fallbackMode = this.fallbackValidationMode(
@@ -1201,6 +1203,7 @@ export namespace Services {
             brand: options.brand,
             user: options.user as UserModel,
           },
+          internalAuthorizationCapability: options.internalAuthorizationCapability,
         });
       } catch {
         return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
@@ -4994,7 +4997,8 @@ export namespace Services {
             resolution: 'internal',
             ...(options.causedByRequestId ? { resolutionOfRequestId: options.causedByRequestId } : {}),
           },
-        })
+        }),
+        authorization === 'service' ? issueInternalRecordSchemaUpdateAuthorizationCapability() : undefined
       );
     }
 
@@ -5141,7 +5145,8 @@ export namespace Services {
       triggerPostSaveTriggers: boolean = true,
       nextStep: unknown = {},
       submission?: RecordMetadataSubmission,
-      context?: RecordSaveContext
+      context?: RecordSaveContext,
+      internalAuthorizationCapability?: unknown
     ): Promise<RecordSaveResponse> {
       const suppliedContext = requireRecordSaveContext(context);
       const transitionRequested =
@@ -5473,6 +5478,7 @@ export namespace Services {
             recordTypeName,
             user: userObj,
             context: tracker.context,
+            internalAuthorizationCapability,
           });
           if (!structuralValidation.allowed) {
             tracker.recordPrimaryNotApplied(structuralValidation.problem);

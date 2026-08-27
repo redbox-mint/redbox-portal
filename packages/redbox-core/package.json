@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
-    "test:record-contracts": "prettier --check \"scripts/verify-record-contract-coverage.ts\" && npm run typecheck:record-contracts && TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-contract-coverage.ts",
+    "test:record-contracts": "prettier --check \"scripts/verify-record-contract-coverage.ts\" && npm run typecheck:record-contracts && npm run typecheck:record-schema-tests && TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-contract-coverage.ts",
     "test:record-schema-rollout": "npm run test:record-schema-rollout:format && npm run typecheck:record-contracts && npm run test:record-schema-rollout:unit && npm run test:record-schema-rollout:disabled && npm run test:record-schema-rollout:runtime && npm run test:record-schema-rollout:evidence",
     "test:record-schema-rollout:format": "prettier --check \"scripts/verify-record-schema-rollout.ts\" \"test/unit/record-contract/record-schema-rollout-evidence-command.test.ts\" \"test/snapshots/record-schema-shadow-rollout.json\" \"../../test/integration/services/RecordsService.test.ts\"",
     "test:record-schema-rollout:unit": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 5000 test/unit/record-contract/record-schema-rollout-evidence-command.test.ts",
@@ -23,6 +23,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck:record-contracts": "tsc --noEmit -p scripts/tsconfig.json",
+    "typecheck:record-schema-tests": "tsc --noEmit -p test/tsconfig.record-schema.json",
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
     "doc:api": "npm run generate-openapi --",

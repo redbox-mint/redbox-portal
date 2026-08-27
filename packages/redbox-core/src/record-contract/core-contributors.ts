@@ -116,13 +116,14 @@ function compareScalar(left: string | number | boolean, right: string | number |
 function object(
   properties: Readonly<Record<string, ContractNode>>,
   context: RecordContractContributorCompileContext,
-  nullable = false
+  nullable = false,
+  unknownProperties = context.publicContext.unknownProperties
 ): ContractObjectNode {
   return {
     kind: 'object',
     nullable,
     properties,
-    unknownProperties: context.publicContext.unknownProperties,
+    unknownProperties,
   };
 }
 
@@ -230,14 +231,19 @@ function checkboxContribution(context: RecordContractContributorCompileContext):
   return { kind: 'node', node: array(scalar('string', false, values), true) };
 }
 
-function genericArrayContribution(
-  componentType: CoreRecordContractComponentType
-): RecordContractComponentContributor['compile'] {
-  return context => ({
-    kind: 'node',
-    node: array({ kind: 'any', nullable: true }, nullableFromDefault(context.component)),
-    diagnostics: [permissiveDiagnostic(context, componentType)],
-  });
+function checkboxTreeContribution(
+  context: RecordContractContributorCompileContext
+): RecordContractComponentContribution {
+  const selectedItem = object(
+    {
+      notation: scalar('string', false),
+      label: scalar('string', false),
+      name: scalar('string', false),
+      genealogy: array(scalar('string', false), true),
+    },
+    context
+  );
+  return { kind: 'node', node: array(selectedItem, nullableFromDefault(context.component)) };
 }
 
 function attachmentArrayContribution(
@@ -261,19 +267,83 @@ function attachmentArrayContribution(
   return { kind: 'node', node: array(attachment, nullableFromDefault(context.component)) };
 }
 
+function dataLocationItem(
+  context: RecordContractContributorCompileContext,
+  includeSelected: boolean
+): ContractObjectNode {
+  return object(
+    {
+      type: scalar('string', false, ['attachment', 'file', 'physical', 'url']),
+      location: scalar('string', false),
+      notes: scalar('string', true),
+      isc: scalar('string', true),
+      attachmentId: scalar('string', true),
+      uploadUrl: scalar('string', true),
+      fileId: scalar('string', true),
+      name: scalar('string', true),
+      mimeType: scalar('string', true),
+      size: scalar('number', true),
+      pending: scalar('boolean', true),
+      ...(includeSelected ? { selected: scalar('boolean', true) } : {}),
+    },
+    context
+  );
+}
+
+function dataLocationContribution(
+  context: RecordContractContributorCompileContext
+): RecordContractComponentContribution {
+  return {
+    kind: 'node',
+    node: array(dataLocationItem(context, false), nullableFromDefault(context.component)),
+  };
+}
+
+function publishDataLocationContribution(
+  context: RecordContractContributorCompileContext
+): RecordContractComponentContribution {
+  return {
+    kind: 'node',
+    node: array(dataLocationItem(context, true), nullableFromDefault(context.component)),
+  };
+}
+
 function mapContribution(context: RecordContractContributorCompileContext): RecordContractComponentContribution {
+  const geometry = object({ type: scalar('string', false) }, context, true, 'allow');
+  const feature = object(
+    {
+      type: scalar('string', false, ['Feature']),
+      geometry,
+      properties: object({}, context, true, 'allow'),
+    },
+    context,
+    false,
+    'allow'
+  );
   return {
     kind: 'node',
     node: object(
       {
         type: scalar('string', false, ['FeatureCollection']),
-        features: array({ kind: 'any', nullable: false }),
+        features: array(feature),
       },
       context,
       nullableFromDefault(context.component)
     ),
-    diagnostics: [permissiveDiagnostic(context, 'MapComponent')],
   };
+}
+
+function pdfListContribution(context: RecordContractContributorCompileContext): RecordContractComponentContribution {
+  const attachment = object(
+    {
+      label: scalar('string', false),
+      dateUpdated: scalar('string', false),
+    },
+    context,
+    false,
+    'allow'
+  );
+  return { kind: 'node', node: array(attachment, nullableFromDefault(context.component)) };
 }
 
 function recordSelectorContribution(
@@ -397,17 +467,9 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
     ),
     nonPersisting('CancelButtonComponent'),
     componentContributor('CheckboxInputComponent', 'configuration', checkboxContribution),
-    componentContributor(
-      'CheckboxTreeComponent',
-      'legacy-permissive',
-      genericArrayContribution('CheckboxTreeComponent')
-    ),
+    componentContributor('CheckboxTreeComponent', 'configuration', checkboxTreeContribution),
     nonPersisting('ContentComponent'),
-    componentContributor(
-      'DataLocationComponent',
-      'legacy-permissive',
-      genericArrayContribution('DataLocationComponent')
-    ),
+    componentContributor('DataLocationComponent', 'configuration', dataLocationContribution),
     componentContributor('DateInputComponent', 'nullable', () => ({ kind: 'node', node: scalar('string', true) })),
     nonPersisting('DeleteButtonComponent'),
     componentContributor('DropdownInputComponent', 'nullable', context => choiceContribution(context, true)),
@@ -424,13 +486,9 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
     })),
     nonPersisting('IntegrationStatusComponent'),
     componentContributor('MapComponent', 'configuration', mapContribution),
-    componentContributor('PDFListComponent', 'legacy-permissive', genericArrayContribution('PDFListComponent')),
+    componentContributor('PDFListComponent', 'configuration', pdfListContribution),
     nonPersisting('PublishDataLocationRefreshComponent'),
-    componentContributor(
-      'PublishDataLocationSelectorComponent',
-      'legacy-permissive',
-      genericArrayContribution('PublishDataLocationSelectorComponent')
-    ),
+    componentContributor('PublishDataLocationSelectorComponent', 'configuration', publishDataLocationContribution),
     componentContributor('QuestionTreeComponent', 'configuration', questionTreeContribution),
     componentContributor('RadioInputComponent', 'nullable', context => choiceContribution(context, true)),
     nonPersisting('RecordMetadataRetrieverComponent'),

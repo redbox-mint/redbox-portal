@@ -14,6 +14,7 @@ import {
   RecordContractContributorRegistry,
   RECORD_SCHEMA_PROBLEM_CODES,
   recordContractPointer,
+  renderRecordJsonSchema,
   recordSchema,
 } from '../../../src';
 import type {
@@ -139,6 +140,21 @@ function expectFailure(result: Awaited<ReturnType<RecordContractCompiler['compil
   }
 }
 
+function containsAnyNode(node: ContractNode): boolean {
+  switch (node.kind) {
+    case 'any':
+      return true;
+    case 'array':
+      return containsAnyNode(node.items);
+    case 'object':
+      return Object.values(node.properties).some(containsAnyNode);
+    case 'conditional':
+      return containsAnyNode(node.thenNode) || (node.elseNode !== undefined && containsAnyNode(node.elseNode));
+    case 'scalar':
+      return false;
+  }
+}
+
 describe('RecordContractCompiler and core contributors', function () {
   it('keeps a closed classification and contributor for every currently registered core form component', async function () {
     const registeredCoreTypes = AllDefs.filter(definition => definition.kind === FormComponentDefinitionKind)
@@ -188,9 +204,11 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(first.root.properties.details.kind).to.equal('object');
     expect(first.root.properties.contributors.kind).to.equal('array');
     expect(first.root.properties.contact_email.kind).to.equal('scalar');
-    expect(first.definitions['contact-details-v1']).to.include({
-      kind: 'object',
-      definitionKey: 'contact-details-v1',
+    const contactDefinitionKey = first.root.properties.contact_email.definitionKey;
+    expect(contactDefinitionKey).to.be.a('string');
+    expect(first.definitions[contactDefinitionKey!]).to.include({
+      kind: 'scalar',
+      definitionKey: contactDefinitionKey,
     });
     expect(first.root.properties.access_questions.kind).to.equal('object');
     if (first.root.properties.access_questions.kind === 'object') {
@@ -203,7 +221,6 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(first.completeness).to.equal('partial');
     expect(first.diagnostics.map(diagnostic => diagnostic.code)).to.include.members([
       'x-redbox-unsupported-component',
-      'record-contract.core-permissive-shape',
       'record-contract.unrepresentable-condition',
     ]);
 
@@ -211,6 +228,45 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(serialized).not.to.include('$schema');
     expect(serialized).not.to.include('$defs');
     expect(serialized).not.to.include('additionalProperties');
+  });
+
+  it('uses documented structural shapes for every specialized persisted core collection', async function () {
+    const contract = expectCompiled(
+      await compiler().compile({
+        form: form([
+          field('checkbox_tree', 'CheckboxTreeComponent', {}, { defaultValue: [] }),
+          field('data_locations', 'DataLocationComponent', {}, { defaultValue: [] }),
+          field('map', 'MapComponent', {}, { defaultValue: { type: 'FeatureCollection', features: [] } }),
+          field('pdfs', 'PDFListComponent', {}, { defaultValue: [] }),
+          field('publish_locations', 'PublishDataLocationSelectorComponent', {}, { defaultValue: [] }),
+        ]),
+        context: { ...publicContext, unknownProperties: 'declared' },
+      })
+    );
+
+    expect(contract.completeness).to.equal('complete');
+    expect(contract.diagnostics.map(diagnostic => diagnostic.code)).not.to.include(
+      'record-contract.core-permissive-shape'
+    );
+    for (const node of Object.values(contract.root.properties)) {
+      expect(containsAnyNode(node)).to.equal(false);
+    }
+
+    const checkbox = contract.root.properties.checkbox_tree;
+    expect(checkbox.kind).to.equal('array');
+    if (checkbox.kind === 'array' && checkbox.items.kind === 'object') {
+      expect(Object.keys(checkbox.items.properties)).to.have.members(['notation', 'label', 'name', 'genealogy']);
+    }
+    const locations = contract.root.properties.publish_locations;
+    expect(locations.kind).to.equal('array');
+    if (locations.kind === 'array' && locations.items.kind === 'object') {
+      expect(locations.items.properties.selected).to.deep.include({ kind: 'scalar', scalarType: 'boolean' });
+    }
+    const map = contract.root.properties.map;
+    expect(map.kind).to.equal('object');
+    if (map.kind === 'object' && map.properties.features.kind === 'array') {
+      expect(map.properties.features.items).to.deep.include({ kind: 'object' });
+    }
   });
 
   it('compiles the configured data record form with RegExp validator configuration', async function () {
@@ -393,7 +449,17 @@ describe('RecordContractCompiler and core contributors', function () {
       })
     );
     expect(contract.root.properties.expanded.kind).to.equal('scalar');
-    expect(contract.definitions['details-v1']).to.include({ definitionKey: 'details-v1' });
+    const definitionKey = contract.root.properties.expanded.definitionKey;
+    expect(definitionKey).to.equal('reusable:"details-v1":property:"expanded"');
+    expect(contract.definitions).to.have.all.keys(definitionKey!);
+    expect(contract.definitions[definitionKey!]).to.include({ kind: 'scalar', definitionKey });
+
+    const rendered = renderRecordJsonSchema(contract);
+    expect(rendered.properties?.expanded).to.deep.equal({
+      $ref: `#/$defs/${encodeURIComponent(definitionKey!)}`,
+    });
+    expect(rendered.$defs).to.have.all.keys(definitionKey!);
+    expect(rendered.$defs?.[definitionKey!]).to.include({ type: 'string' });
 
     expectFailure(
       await compiler().compile({ form: form([reusableField]), context: publicContext }),

@@ -18,6 +18,7 @@ import {
   type RecordContractValidationSummary,
 } from './types';
 import { snapshotRecordContractPublicContext } from './record-contract-context';
+import { freezeDeep } from './deep-freeze';
 
 export const JSON_SCHEMA_DRAFT_2020_12 = 'https://json-schema.org/draft/2020-12/schema' as const;
 
@@ -584,28 +585,6 @@ function assertOnlyLocalReferences(
   } finally {
     ancestors.delete(value);
   }
-}
-
-function freezeDeep<T>(value: T): T {
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
-  const pending: object[] = [value];
-  const visited = new Set<object>();
-  while (pending.length > 0) {
-    const current = pending.pop();
-    if (!current || visited.has(current)) {
-      continue;
-    }
-    visited.add(current);
-    Object.values(current).forEach(child => {
-      if (child !== null && typeof child === 'object') {
-        pending.push(child);
-      }
-    });
-    Object.freeze(current);
-  }
-  return value;
 }
 
 function applyConditionals(schema: MutableSchema, scope: ConditionalScope): void {

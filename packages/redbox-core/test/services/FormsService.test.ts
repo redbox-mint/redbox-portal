@@ -849,7 +849,11 @@ describe('FormsService', function () {
           formMode: 'view',
           contextVariables: { '@user_name': 'Alice' },
           oid: 'record-1',
-          existingRecord: { title: 'Existing title' },
+          existingRecord: {
+            redboxOid: 'record-1',
+            metadata: { title: 'Existing title' },
+            metaMetadata: { type: 'dataset', form: 'contract-form' },
+          },
         },
       };
       const effectiveForm = {
@@ -891,6 +895,81 @@ describe('FormsService', function () {
       expect(branding).to.equal('brand-1');
       expect(contextVariables).to.deep.equal({ '@user_name': 'Alice' });
       expect(delegatedAccessContext).to.equal(recordAccessContext);
+    });
+
+    it('uses metadata from the complete stored update record when resolving question-tree visibility', async function () {
+      const context: RecordContractContext = {
+        publicContext: {
+          brand: 'default',
+          portal: 'portal-1',
+          kind: 'update',
+          recordType: 'dataset',
+          workflowStep: 'draft',
+          form: 'question-tree-contract-form',
+          operation: 'update',
+          unknownProperties: 'allow',
+          enforcement: 'enforce',
+        },
+        resolution: {
+          sourceFormFingerprint: 'fingerprint',
+          sourceForm: {
+            name: 'question-tree-contract-form',
+            componentDefinitions: [
+              {
+                name: 'access_questions',
+                component: {
+                  class: 'QuestionTreeComponent',
+                  config: {
+                    availableOutcomes: [{ value: 'restricted', label: 'Restricted' }],
+                    questions: [
+                      {
+                        id: 'sensitive',
+                        answersMin: 1,
+                        answersMax: 1,
+                        answers: [{ value: 'yes', label: 'Yes', outcome: 'restricted' }],
+                        rules: { op: 'true' },
+                      },
+                      {
+                        id: 'consent',
+                        answersMin: 1,
+                        answersMax: 1,
+                        answers: [{ value: 'yes', label: 'Yes', outcome: 'restricted' }],
+                        rules: { op: 'in', q: 'sensitive', a: ['yes'] },
+                      },
+                    ],
+                    componentDefinitions: [],
+                  },
+                },
+                model: { class: 'QuestionTreeModel', config: {} },
+              },
+            ],
+          },
+          reusableFormDefinitions,
+          actor: { authenticated: true, roles: [] },
+          formMode: 'edit',
+          contextVariables: {},
+          oid: 'record-1',
+          existingRecord: {
+            redboxOid: 'record-1',
+            metadata: {
+              access_questions: {
+                sensitive: ['yes'],
+                consent: ['yes'],
+              },
+            },
+            metaMetadata: { type: 'dataset', form: 'question-tree-contract-form' },
+          },
+        },
+      };
+
+      const result = await FormsService.buildContractFormConfig(context);
+
+      expect(result.ok).to.equal(true);
+      if (!result.ok) throw new Error(result.reason);
+      const consent = findComponentDefinitionByName(result.effectiveForm.componentDefinitions as unknown[], 'consent');
+      expect(consent.component.config.visible).to.equal(true);
+      expect(consent.layout.config.visible).to.equal(true);
+      expect(consent.model.config.value).to.deep.equal(['yes']);
     });
 
     it('should retain candidate-dependent component branches for create contracts', async function () {

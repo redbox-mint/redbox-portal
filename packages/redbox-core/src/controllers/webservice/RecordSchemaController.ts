@@ -213,6 +213,10 @@ export namespace Controllers {
         mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
         status: problem.status,
         data: problem,
+        headers: {
+          'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
+          Vary: RECORD_SCHEMA_RESPONSE_VARY,
+        },
       });
     }
 

@@ -2228,7 +2228,7 @@ describe('Webservice RecordController body source', () => {
       expect(args[2]).to.equal(await recordsService.getMeta.secondCall.returnValue);
       expect(args[4]).to.equal(false);
       expect(args[5]).to.equal(false);
-      expect(args[7]).to.deep.equal({ metadata: { title: 'Existing title' }, mode: 'replace' });
+      expect(args[7]).to.deep.equal({ metadata: {}, mode: 'merge' });
       expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: true, expectedRevision: 5 });
       expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
       expect(removeStagedDatastream.calledOnceWithExactly('staged-file-1')).to.equal(true);
@@ -2270,7 +2270,7 @@ describe('Webservice RecordController body source', () => {
       expect(args[2]).to.equal(afterConcurrentSave);
       expect(args[4]).to.equal(false);
       expect(args[5]).to.equal(false);
-      expect(args[7]).to.deep.equal({ metadata: afterConcurrentSave.metadata, mode: 'replace' });
+      expect(args[7]).to.deep.equal({ metadata: {}, mode: 'merge' });
       expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: false });
       expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
     });

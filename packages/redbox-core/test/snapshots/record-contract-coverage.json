@@ -4,43 +4,43 @@
     {
       "form": "core/generated-view-only",
       "kind": "create",
-      "digest": "2c9f1f74fa6fb7295b8c2fec0cb163f6353207e1cd7b7b00f58640c36b2222ed",
-      "byteLength": 853,
+      "digest": "11ba262aa7c804633f208f8b3bfb0927634256c9c21e509b39a14bf75ccf7d81",
+      "byteLength": 741,
       "completeness": "complete"
     },
     {
       "form": "core/generated-view-only",
       "kind": "update",
-      "digest": "2fe63a86c3e565f674348d95038f09fb4af69afb538e0001ad3708b6a6eb1da8",
-      "byteLength": 853,
+      "digest": "17e6dd790649c8f20357de53b1c391b0c88525e78c4e075e5f1a401d369f11fb",
+      "byteLength": 741,
       "completeness": "complete"
     },
     {
       "form": "core/persisted-contributors",
       "kind": "create",
-      "digest": "3898fe6f119a4317efb1beb36fe14828c6e2ed1f8fa7c01de84bc61ea175b364",
-      "byteLength": 2366,
-      "completeness": "partial"
+      "digest": "d48a35c8219e75f6ba62327055b0e6cda6caf6be33dbde84abc980a20c5771d6",
+      "byteLength": 2399,
+      "completeness": "complete"
     },
     {
       "form": "core/persisted-contributors",
       "kind": "update",
-      "digest": "d3e336a5f6d3fef4a8e24af6ca9bea53b673f396610d6fa4c371a1e763759dee",
-      "byteLength": 2366,
-      "completeness": "partial"
+      "digest": "ed1f796392622c698a64c42d83040aa56e2acbbbf2522da6b5536383e8e127a6",
+      "byteLength": 2399,
+      "completeness": "complete"
     },
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "create",
-      "digest": "dfa2424e26ed3db3d4b47c1e38e0d84ca4cb1b7dfc27b0d01af7fc5cb4a78629",
-      "byteLength": 4433,
+      "digest": "c92ee1043116626aa28ae97ba0582bc2cc1f6c207a61dc1f69479b4836c594c4",
+      "byteLength": 4403,
       "completeness": "partial"
     },
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "update",
-      "digest": "8deaa184af4c236d76871525eda4e9046e00bb43610570a3e974bcd56c6bca38",
-      "byteLength": 4433,
+      "digest": "7de3d7ddaa5527f1f77504897ebff7ac0df91814238754850ab84898855938d8",
+      "byteLength": 4403,
       "completeness": "partial"
     }
   ]

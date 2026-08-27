@@ -33,23 +33,23 @@
     },
     "maxDepth": {
       "limit": 64,
-      "observedMaximum": 3,
-      "remaining": 61
+      "observedMaximum": 5,
+      "remaining": 59
     },
     "maxProperties": {
       "limit": 10000,
-      "observedMaximum": 50,
-      "remaining": 9950
+      "observedMaximum": 54,
+      "remaining": 9946
     },
     "maxDocumentBytes": {
       "limit": 1048576,
-      "observedMaximum": 6547,
-      "remaining": 1042029
+      "observedMaximum": 6385,
+      "remaining": 1042191
     },
     "maxDiagnostics": {
       "limit": 1000,
-      "observedMaximum": 5,
-      "remaining": 995
+      "observedMaximum": 4,
+      "remaining": 996
     },
     "contributorTimeoutMs": {
       "limit": 1000,
@@ -59,13 +59,6 @@
   "unsupportedComponents": [],
   "legacyNullability": [],
   "schemaDiagnostics": [
-    {
-      "form": "dev-hook/dataRecord-1.0-draft",
-      "code": "record-contract.core-permissive-shape",
-      "kinds": ["create", "update"],
-      "pointer": "/map_coverage",
-      "componentType": "MapComponent"
-    },
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "code": "record-contract.unrepresentable-condition",
@@ -79,13 +72,6 @@
       "kinds": ["create", "update"],
       "pointer": "/text_2",
       "componentType": "SimpleInputComponent"
-    },
-    {
-      "form": "dev-hook/default-1.0-draft",
-      "code": "record-contract.core-permissive-shape",
-      "kinds": ["create", "update"],
-      "pointer": "/map_coverage",
-      "componentType": "MapComponent"
     },
     {
       "form": "dev-hook/default-1.0-draft",
@@ -260,13 +246,13 @@
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "create",
-      "digest": "5501d6d326a09e54e13665876f5ac94e88636bebc661cbbbb130319a7fbcb31b",
+      "digest": "b12228c00e4eedba42f8293869d855c239c989b837e0f7b61f1e2907a59a0943",
       "completeness": "partial",
-      "byteLength": 4433,
-      "observedNodeDepth": 3,
-      "observedProperties": 41,
-      "diagnosticCount": 3,
-      "diagnosticCodes": ["record-contract.core-permissive-shape", "record-contract.unrepresentable-condition"],
+      "byteLength": 4403,
+      "observedNodeDepth": 5,
+      "observedProperties": 45,
+      "diagnosticCount": 2,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
       "legacyNullabilityCount": 0,
       "unknownPropertyProbe": "accepted",
       "shadowWarningCodes": ["record-schema.type"]
@@ -274,13 +260,13 @@
     {
       "form": "dev-hook/dataRecord-1.0-draft",
       "kind": "update",
-      "digest": "aa17fcd6875bf394d4b92980daa1c633783d8d10e8137e81e79c55e14066554f",
+      "digest": "e36bd4c13714917396dd0391cd10a50d2cfb30311f0987608a9ff03554cbac25",
       "completeness": "partial",
-      "byteLength": 4433,
-      "observedNodeDepth": 3,
-      "observedProperties": 41,
-      "diagnosticCount": 3,
-      "diagnosticCodes": ["record-contract.core-permissive-shape", "record-contract.unrepresentable-condition"],
+      "byteLength": 4403,
+      "observedNodeDepth": 5,
+      "observedProperties": 45,
+      "diagnosticCount": 2,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
       "legacyNullabilityCount": 0,
       "unknownPropertyProbe": "accepted",
       "shadowWarningCodes": ["record-schema.type"]
@@ -288,13 +274,13 @@
     {
       "form": "dev-hook/default-1.0-draft",
       "kind": "create",
-      "digest": "cfffec083629b7efff773742fbb89b2e4e7cd88dbd219143009fbbfc6d6f90ef",
+      "digest": "b78c244a8f321c332cb08209308186e79aae9b5b1c634744a9cb843a6b836c1b",
       "completeness": "partial",
-      "byteLength": 6547,
-      "observedNodeDepth": 3,
-      "observedProperties": 50,
-      "diagnosticCount": 5,
-      "diagnosticCodes": ["record-contract.core-permissive-shape", "record-contract.unrepresentable-condition"],
+      "byteLength": 6385,
+      "observedNodeDepth": 5,
+      "observedProperties": 54,
+      "diagnosticCount": 4,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
       "legacyNullabilityCount": 0,
       "unknownPropertyProbe": "accepted",
       "shadowWarningCodes": ["record-schema.type"]
@@ -302,13 +288,13 @@
     {
       "form": "dev-hook/default-1.0-draft",
       "kind": "update",
-      "digest": "66d1f5942cfc08d1a17a62900df52eef1374c61372647df57b0fe2cc89ff731c",
+      "digest": "943dafa3fd8b4969a96119db73e6e62e06229f564a3be580fe9c70ca9486b953",
       "completeness": "partial",
-      "byteLength": 6547,
-      "observedNodeDepth": 3,
-      "observedProperties": 50,
-      "diagnosticCount": 5,
-      "diagnosticCodes": ["record-contract.core-permissive-shape", "record-contract.unrepresentable-condition"],
+      "byteLength": 6385,
+      "observedNodeDepth": 5,
+      "observedProperties": 54,
+      "diagnosticCount": 4,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
       "legacyNullabilityCount": 0,
       "unknownPropertyProbe": "accepted",
       "shadowWarningCodes": ["record-schema.type"]

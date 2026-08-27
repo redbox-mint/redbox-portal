@@ -975,7 +975,9 @@ export namespace Services {
         reusableFormDefinitions[name] = _.cloneDeep([...definitions]);
       }
       const recordMetadata =
-        context.publicContext.kind === 'update' ? _.cloneDeep(context.resolution.existingRecord) : null;
+        context.publicContext.kind === 'update'
+          ? _.cloneDeep((context.resolution.existingRecord?.metadata ?? {}) as Record<string, unknown>)
+          : null;
 
       const effectiveForm = await this.buildClientFormConfig(
         sourceForm,
