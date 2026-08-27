@@ -1005,7 +1005,13 @@ export type ActionRetrySchedule =
       readonly jitter?: boolean;
     };
 export type ActionFailureKind =
-  'configuration' | 'validation' | 'domain' | 'transient' | 'timeout' | 'interrupted' | 'unexpected';
+  | 'configuration'
+  | 'validation'
+  | 'domain'
+  | 'transient'
+  | 'timeout'
+  | 'interrupted'
+  | 'unexpected';
 export interface ActionExecutionPolicyOverride {
   readonly timeoutMs?: number;
   readonly retry?: {

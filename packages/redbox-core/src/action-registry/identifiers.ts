@@ -49,7 +49,9 @@ export interface QueuedActionBindingScope {
 }
 
 export type ActionBindingScope =
-  RecordLifecycleActionBindingScope | TransitionActionBindingScope | QueuedActionBindingScope;
+  | RecordLifecycleActionBindingScope
+  | TransitionActionBindingScope
+  | QueuedActionBindingScope;
 /** @deprecated Use ActionBindingScope. */
 export type ActionBindingAttachment = ActionBindingScope;
 
@@ -141,8 +143,8 @@ function validationResult<Value>(
 }
 
 function runtimeValidator<Value>(schema: z.ZodType<Value, RuntimeValue>): RuntimeValidator<Value> {
-  return createRuntimeValidator((value: RuntimeValue): RuntimeValidationResult<Value> =>
-    validationResult(schema, value)
+  return createRuntimeValidator(
+    (value: RuntimeValue): RuntimeValidationResult<Value> => validationResult(schema, value)
   );
 }
 
