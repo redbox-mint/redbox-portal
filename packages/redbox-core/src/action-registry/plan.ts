@@ -129,7 +129,12 @@ export function isActionPlanValidationError(value: RuntimeValue): value is Actio
 
 type RegisteredActionParameter = ActionDescriptorMetadata['parameterSchema']['parameters'][number];
 type ImmutableActionJsonValue =
-  string | number | boolean | null | readonly ImmutableActionJsonValue[] | ImmutableActionJsonObject;
+  | string
+  | number
+  | boolean
+  | null
+  | readonly ImmutableActionJsonValue[]
+  | ImmutableActionJsonObject;
 interface ImmutableActionJsonObject {
   readonly [key: string]: ImmutableActionJsonValue;
 }
