@@ -47,7 +47,8 @@ export type DefineRedboxHookOptions<AdditionalExports extends HookRegistrationMa
   additionalExports?: AdditionalExports;
 };
 
-interface DefinedRedboxHook {
+/** The callable hook factory returned by {@link defineRedboxHook}. */
+export interface DefinedRedboxHook {
   (sails: Sails.Application): HookFactoryResult;
   registerRedboxConfig?: () => HookRegistrationMap;
   registerHookApiRoutes?: () => readonly ApiRouteDefinition[];

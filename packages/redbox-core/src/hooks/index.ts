@@ -6,7 +6,7 @@
 
 export { defineWebpackHook } from './webpack';
 export { defineRedboxHook } from './defineRedboxHook';
-export type { DefineRedboxHookOptions, HookRegistrationMap } from './defineRedboxHook';
+export type { DefinedRedboxHook, DefineRedboxHookOptions, HookRegistrationMap } from './defineRedboxHook';
 export {
   compareHookPrecedence,
   discoverRedboxHookPackages,

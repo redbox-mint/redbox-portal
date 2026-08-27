@@ -1,7 +1,11 @@
 {
   "extends": "../../../packages/redbox-core/tsconfig.json",
   "compilerOptions": {
-    "noEmit": true,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "../../../.tmp/documentation-example-declarations",
     "rootDir": "../../..",
     "types": ["node"]
   },

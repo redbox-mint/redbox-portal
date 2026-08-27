@@ -1,4 +1,4 @@
-import { defineRedboxHook, type HookRegistrationMap } from '../../dist/hooks/defineRedboxHook';
+import { defineRedboxHook, type DefinedRedboxHook, type HookRegistrationMap } from '../../dist';
 
 interface LegacyHookExports extends HookRegistrationMap {
   readonly FormConfigExports: {
@@ -12,14 +12,26 @@ const additionalExports: LegacyHookExports = {
   describeHook: (): string => 'legacy-compatible',
 };
 
-const hook = defineRedboxHook({ additionalExports });
+export const explicitlyTypedHook = defineRedboxHook<LegacyHookExports>({ additionalExports });
+export const inferredHook = defineRedboxHook({
+  additionalExports: {
+    FormConfigExports: { defaultForm: 'data-publication' },
+    describeHook: (): string => 'inferred',
+  },
+});
 
-const formName: string = hook.FormConfigExports.defaultForm;
-const description: string = hook.describeHook();
-const callableHook: (sails: Sails.Application) => object = hook;
+const explicitFormName: string = explicitlyTypedHook.FormConfigExports.defaultForm;
+const explicitDescription: string = explicitlyTypedHook.describeHook();
+const inferredFormName: string = inferredHook.FormConfigExports.defaultForm;
+const inferredDescription: string = inferredHook.describeHook();
+const callableHook: (sails: Sails.Application) => object = explicitlyTypedHook;
+const publicHookContract: DefinedRedboxHook = inferredHook;
 
 export const defineRedboxHookCompatibility = {
   callableHook,
-  description,
-  formName,
+  explicitDescription,
+  explicitFormName,
+  inferredDescription,
+  inferredFormName,
+  publicHookContract,
 };

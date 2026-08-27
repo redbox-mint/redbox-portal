@@ -167,7 +167,7 @@ async function validateExamples(
       '--project',
       'support/documentation/examples/tsconfig.json',
     ],
-    'Hook example type check'
+    'Hook example declaration generation'
   );
   const hookExample = fs
     .readFileSync(path.join(repositoryRoot, 'support/documentation/examples/hook-override.ts'), 'utf8')
