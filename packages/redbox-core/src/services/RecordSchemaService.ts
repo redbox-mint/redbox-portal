@@ -177,8 +177,6 @@ const DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const SAFE_DIAGNOSTIC_IDENTIFIER = /^[A-Za-z0-9@._:/-]{1,200}$/;
 const RECORD_SCHEMA_REFERENCE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,511}$/;
 export const RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE = 1_000;
-/** Bounds immutable authorization reads and duplicate-detection state per request. */
-export const RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES = 10_000;
 export const RECORD_SCHEMA_CONFIGURED_FORM_MAX_CANDIDATES = 1_000;
 const RECORD_SCHEMA_RETENTION_REFERENCE_LIMIT = 1_000;
 const RECORD_SCHEMA_RETENTION_REPORT_MAX_DIGESTS = 100;
@@ -974,8 +972,7 @@ export type PersistRecordSchemaSaveUsageResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | ({
       readonly kind: 'write-failed';
@@ -1017,8 +1014,7 @@ export type MaterializeRecordSchemaIntegrationPinsResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'limit-exceeded';
@@ -1061,8 +1057,7 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'invalid-input';
       readonly reason: 'shape' | 'digest' | 'datetime' | 'limit';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
     }
   | {
       readonly kind: 'disabled';
@@ -1072,8 +1067,7 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'invalid-state';
@@ -1118,8 +1112,7 @@ type RecordSchemaPipelineSuccess<Grant extends RecordSchemaGrantReferenceInput> 
     });
 
 type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
-  | RecordSchemaPipelineSuccess<Grant>
-  | RecordSchemaResolutionFailure;
+  RecordSchemaPipelineSuccess<Grant> | RecordSchemaResolutionFailure;
 
 interface RecordSchemaCompiledContextBase {
   readonly document: PublishedRecordJsonSchemaDocument;
@@ -2569,8 +2562,7 @@ export namespace Services {
       }
 
       let authorizedCompilation: RecordSchemaCompiledContext | undefined;
-      let grantOffset = 0;
-      const seenGrantReferenceKeys = new Set<string>();
+      let afterReferenceKey: string | undefined;
       while (!authorizedCompilation) {
         let rawGrants: unknown;
         try {
@@ -2580,7 +2572,7 @@ export namespace Services {
             brand: publicBranding(request),
             portal: request.portal,
             limit: RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE,
-            offset: grantOffset,
+            ...(afterReferenceKey ? { afterReferenceKey } : {}),
           });
         } catch (error) {
           this.logUnexpected('resolve-immutable-grant-list', error);
@@ -2600,6 +2592,7 @@ export namespace Services {
           return immutableGrantInvalidContractResult(request);
         }
 
+        let pageCursor = afterReferenceKey;
         for (const value of grants.values) {
           const parsedGrant = parseImmutableGrant(value, request);
           if (parsedGrant.kind === 'invalid') {
@@ -2609,13 +2602,13 @@ export namespace Services {
             return immutableGrantInvalidContractResult(request);
           }
           const referenceKey = isObjectRecord(value) ? boundedNormalizedText(value, 'referenceKey') : undefined;
-          if (!referenceKey || seenGrantReferenceKeys.has(referenceKey)) {
+          if (!referenceKey || (pageCursor !== undefined && referenceKey <= pageCursor)) {
             this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
               error_type: 'non-error',
             });
             return immutableGrantInvalidContractResult(request);
           }
-          seenGrantReferenceKeys.add(referenceKey);
+          pageCursor = referenceKey;
           if (parsedGrant.kind === 'irrelevant') {
             continue;
           }
@@ -2638,19 +2631,13 @@ export namespace Services {
         if (grants.values.length < RECORD_SCHEMA_GRANT_LOOKUP_PAGE_SIZE) {
           break;
         }
-        if (grantOffset + grants.values.length >= RECORD_SCHEMA_GRANT_LOOKUP_MAX_REFERENCES) {
-          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
-            error_type: 'non-error',
-          });
-          return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
-        }
-        if (grantOffset > Number.MAX_SAFE_INTEGER - grants.values.length) {
+        if (pageCursor === undefined) {
           this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-pagination', {
             error_type: 'non-error',
           });
           return immutableGrantInvalidContractResult(request);
         }
-        grantOffset += grants.values.length;
+        afterReferenceKey = pageCursor;
       }
       if (!authorizedCompilation) {
         return immutableNotFoundResult(request);

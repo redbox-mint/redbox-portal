@@ -646,6 +646,29 @@ describe('MongoStorageService record-schema persistence', function () {
     }
   });
 
+  it('lists a bounded reference page strictly after an exclusive reference-key cursor', async function () {
+    await service.putRecordSchemaArtifact(artifactInput(DIGEST_A, DEFAULT_DOCUMENT));
+    for (const referenceKey of ['grant-b', 'grant-a', 'grant-c']) {
+      await service.putRecordSchemaReference({
+        ...commonReference(referenceKey),
+        kind: 'grant',
+        schemaKind: 'create',
+      });
+    }
+    const query = {
+      digest: DIGEST_A,
+      kind: 'grant' as const,
+      brand: 'default',
+      portal: 'default',
+      afterReferenceKey: 'grant-b',
+      limit: 1,
+    };
+
+    const page = await service.listRecordSchemaReferences(query);
+
+    expect(page.map(reference => reference.referenceKey)).to.deep.equal(['grant-c']);
+  });
+
   function ageArtifact(days: number): void {
     artifacts.documents[0].createdAt = new Date(NOW.getTime() - days * 24 * 60 * 60 * 1_000);
     artifacts.documents[0].updatedAt = artifacts.documents[0].createdAt;

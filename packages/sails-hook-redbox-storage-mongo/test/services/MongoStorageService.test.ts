@@ -203,7 +203,9 @@ describe('MongoStorageService', function () {
   });
 
   it('awaits one shared initialization and propagates the real failure before allowing a retry', async function () {
-    const failure = new Error('required index creation failed');
+    const failure = new Error('private initialization failure marker', {
+      cause: new Error('private initialization cause marker'),
+    });
     let rejectInitialization: ((error: Error) => void) | undefined;
     const pendingInitialization = new Promise<void>((_resolve, reject) => {
       rejectInitialization = reject;
@@ -219,7 +221,16 @@ describe('MongoStorageService', function () {
     rejectInitialization?.(failure);
     await expectRejects(() => first, failure.message);
     await expectRejects(() => concurrent, failure.message);
-    expect(mockSails.log.error.calledOnceWithMatch(`storage_initialization_failed: ${failure.message}`)).to.equal(true);
+    expect(
+      mockSails.log.error.calledOnceWithExactly('MongoStorageService:: storage_initialization_failed', {
+        event: 'storage_initialization_failed',
+        outcome: 'not-ready',
+        error_classification: 'unexpected-error',
+      })
+    ).to.equal(true);
+    const serializedLog = JSON.stringify(mockSails.log.error.args);
+    expect(serializedLog).not.to.include('private initialization failure marker');
+    expect(serializedLog).not.to.include('private initialization cause marker');
 
     await service.init();
     expect(performInit.calledTwice).to.equal(true);

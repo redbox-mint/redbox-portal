@@ -71,6 +71,7 @@ import type {
 } from '@researchdatabox/redbox-core';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
+import { RECORD_SCHEMA_REFERENCE_KEY_PATTERN } from '../models/RecordSchemaReference';
 import {
   RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX,
   RECORD_SCHEMA_STORAGE_CODES,
@@ -122,6 +123,12 @@ type MongoRecordDocument = Document;
 type WaterlineModel = Model;
 type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
 type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
+type StorageInitializationErrorClassification =
+  | 'record-schema-persistence-error'
+  | 'mongo-network-error'
+  | 'mongo-driver-error'
+  | 'unexpected-error'
+  | 'non-error';
 const RECORD_IDENTITY_COLLECTION = 'recordidentity';
 
 declare const Record: WaterlineModel;
@@ -150,6 +157,10 @@ export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
   {
     key: { digest: 1, kind: 1 },
     name: 'record_schema_reference_digest_kind',
+  },
+  {
+    key: { digest: 1, kind: 1, brand: 1, portal: 1, referenceKey: 1 },
+    name: 'record_schema_reference_grant_lookup',
   },
   {
     key: { oid: 1, kind: 1 },
@@ -326,6 +337,13 @@ export namespace Services {
         return messageParts.join('\n');
       }
       return String(err);
+    }
+
+    private classifyStorageInitializationError(err: unknown): StorageInitializationErrorClassification {
+      if (err instanceof RecordSchemaPersistenceError) return 'record-schema-persistence-error';
+      if (err instanceof mongodb.MongoNetworkError) return 'mongo-network-error';
+      if (err instanceof mongodb.MongoError) return 'mongo-driver-error';
+      return err instanceof Error ? 'unexpected-error' : 'non-error';
     }
 
     /**
@@ -791,9 +809,10 @@ export namespace Services {
       } catch (error) {
         if (this._initializationPromise === initialization) {
           this._initializationPromise = undefined;
-          sails.log.error(`${this.logHeader} storage_initialization_failed: ${this.getErrorMessage(error)}`, {
+          sails.log.error(`${this.logHeader} storage_initialization_failed`, {
             event: 'storage_initialization_failed',
             outcome: 'not-ready',
+            error_classification: this.classifyStorageInitializationError(error),
           });
         }
         throw error;
@@ -1295,6 +1314,12 @@ export namespace Services {
             'Record schema reference query offset must be a non-negative safe integer.'
           );
         }
+        if (query.afterReferenceKey !== undefined && query.offset !== undefined) {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema reference query cannot combine cursor and offset pagination.'
+          );
+        }
 
         const criteria: Document = {};
         if (query.digest !== undefined) {
@@ -1343,10 +1368,20 @@ export namespace Services {
             },
           ];
         }
+        if (query.afterReferenceKey !== undefined) {
+          const afterReferenceKey = this.recordSchemaQueryString(query.afterReferenceKey, 'afterReferenceKey');
+          if (!RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(afterReferenceKey)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema reference query afterReferenceKey is invalid.'
+            );
+          }
+          criteria.referenceKey = { $gt: afterReferenceKey };
+        }
 
         const documents = await this.referenceCollection()
           .find(criteria)
-          .sort({ createdAt: 1, referenceKey: 1 })
+          .sort({ referenceKey: 1 })
           .skip(offset)
           .limit(limit)
           .toArray();

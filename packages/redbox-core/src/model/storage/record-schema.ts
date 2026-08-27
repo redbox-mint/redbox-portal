@@ -58,8 +58,7 @@ export interface RecordSchemaUpdateGrantReferenceInput extends RecordSchemaRefer
 }
 
 export type RecordSchemaGrantReferenceInput =
-  | RecordSchemaCreateGrantReferenceInput
-  | RecordSchemaUpdateGrantReferenceInput;
+  RecordSchemaCreateGrantReferenceInput | RecordSchemaUpdateGrantReferenceInput;
 
 export interface RecordSchemaSaveReferenceInput extends RecordSchemaReferenceCommon {
   readonly kind: 'save';
@@ -80,9 +79,7 @@ export interface RecordSchemaPinReferenceInput extends RecordSchemaReferenceComm
 }
 
 export type RecordSchemaReferenceInput =
-  | RecordSchemaGrantReferenceInput
-  | RecordSchemaSaveReferenceInput
-  | RecordSchemaPinReferenceInput;
+  RecordSchemaGrantReferenceInput | RecordSchemaSaveReferenceInput | RecordSchemaPinReferenceInput;
 
 export type RecordSchemaReferenceModel = RecordSchemaReferenceInput & {
   readonly createdAt: Date;
@@ -108,6 +105,8 @@ export interface RecordSchemaReferenceQuery {
   readonly owner?: string;
   readonly includeExpiredPins?: boolean;
   readonly limit: number;
+  /** Exclusive stable cursor for bounded scans ordered by the globally unique reference key. */
+  readonly afterReferenceKey?: string;
   readonly offset?: number;
 }
 
