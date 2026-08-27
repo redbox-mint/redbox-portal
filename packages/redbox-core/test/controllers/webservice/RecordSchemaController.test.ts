@@ -1282,8 +1282,8 @@ describe('Webservice RecordSchemaController', function () {
     expect(resolver.resolveCreate.notCalled).to.equal(true);
     const sent = onlySentResponse(controller);
     expect(sent.response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
-    expect(sent.response.errors ?? []).to.have.length(1);
-    expect(sent.response.errors?.[0]).to.be.instanceOf(Error);
+    expect(sent.response).not.to.have.property('errors');
+    expect(JSON.stringify(sent.response)).not.to.include('Validated request string is required');
   });
 
   it('returns truthful 401 Problem Details for a missing authenticated user before every delegation', async function () {
@@ -1333,8 +1333,8 @@ describe('Webservice RecordSchemaController', function () {
     }
   });
 
-  it('uses sendResp for unexpected resolver errors from every action', async function () {
-    const error = new Error('private resolver failure');
+  it('does not attach unexpected resolver errors to the shared response logger', async function () {
+    const error = new Error('private resolver failure for oid-1 with private-token');
     resolver.resolveCreate.rejects(error);
     resolver.resolveUpdate.rejects(error);
     resolver.resolveImmutable.rejects(error);
@@ -1347,14 +1347,16 @@ describe('Webservice RecordSchemaController', function () {
 
       const response = onlySentResponse(controller).response;
       expect(response).to.include({ status: 503, mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE });
-      expect(response.errors).to.deep.equal([error]);
+      expect(response).not.to.have.property('errors');
       expect(response.data).to.deep.include({
         title: 'Record schema is unavailable',
         status: 503,
         detail: 'The record schema capability is temporarily unavailable.',
         code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE,
       });
-      expect(JSON.stringify(response.data)).not.to.include(error.message);
+      expect(JSON.stringify(response)).not.to.include(error.message);
+      expect(JSON.stringify(response)).not.to.include('oid-1');
+      expect(JSON.stringify(response)).not.to.include('private-token');
     }
   });
 

@@ -141,10 +141,6 @@ export namespace Controllers {
       this.RecordSchemaService = service;
     }
 
-    private asError(error: unknown): Error {
-      return error instanceof Error ? error : new Error(String(error));
-    }
-
     private normalizedRequired(value: unknown): string {
       if (!isNonEmptyString(value)) {
         throw new Error('Validated request string is required.');
@@ -208,8 +204,7 @@ export namespace Controllers {
       res: Sails.Res,
       kind: RecordSchemaProblemKind,
       instance: string,
-      code?: RecordSchemaProblemCode,
-      error?: Error
+      code?: RecordSchemaProblemCode
     ) {
       const problem = this.problem(kind, instance, code);
       return this.sendResp(req, res, {
@@ -217,12 +212,11 @@ export namespace Controllers {
         mediaType: RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
         status: problem.status,
         data: problem,
-        ...(error ? { errors: [error] } : {}),
       });
     }
 
-    private sendUnexpectedError(req: Sails.Req, res: Sails.Res, instance: string, error: unknown) {
-      return this.sendProblem(req, res, 'unavailable', instance, undefined, this.asError(error));
+    private sendUnexpectedError(req: Sails.Req, res: Sails.Res, instance: string, _error: unknown) {
+      return this.sendProblem(req, res, 'unavailable', instance);
     }
 
     private sendCreateFailure(req: Sails.Req, res: Sails.Res, instance: string, result: ResolveCreateFailure) {
