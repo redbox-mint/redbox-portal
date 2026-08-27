@@ -219,6 +219,13 @@ export { Policies } from './policies';
 
 export { FormConfigExports } from './form-config';
 
+// Keep the generated config/action.config.ts ActionDefinition as the legacy
+// root name while exposing the registry contract under an unambiguous alias.
+export * as ActionRegistry from './action-registry';
+export type { ActionDefinition as RegistryActionDefinition } from './action-registry';
+export { registerRedboxActions } from './action-registry';
+export * from './record-workflow-administration/domain';
+
 import * as Middleware from './middleware/redboxSession';
 export { Middleware };
 

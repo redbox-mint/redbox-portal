@@ -1,12 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+import { parseJsonText, type JsonObject, type JsonValue } from '../runtimeValues';
 
 export interface RedboxHookPackageMetadata {
   name: string;
   module: string;
   packageJsonPath: string;
   rootPath: string;
-  sails: Record<string, unknown>;
+  sails: JsonObject;
   listedPriorityIndex?: number;
 }
 
@@ -21,8 +22,8 @@ export interface RedboxHookDiscoveryOptions {
 type PackageJson = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
-  hookLoadPriority?: unknown;
-  sails?: Record<string, unknown>;
+  hookLoadPriority?: JsonValue;
+  sails?: JsonObject;
 };
 
 type HookDiscoveryCacheEntry = {
@@ -44,15 +45,48 @@ const hookCapabilityFlags = [
   'hasFormConfigs',
   'hasMigrations',
   'hasApiRoutes',
+  'hasActions',
 ];
 
 function warn(message: string): void {
   console.warn(`[redbox-loader:warn] ${message}`);
 }
 
-function readJsonFile<T>(filePath: string): T | null {
+function isJsonObject(value: JsonValue): value is JsonObject {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function readStringMap(value: JsonValue | undefined): Record<string, string> | undefined {
+  if (value === undefined || !isJsonObject(value)) {
+    return undefined;
+  }
+  const entries = Object.entries(value);
+  if (entries.some(([, entry]) => typeof entry !== 'string')) {
+    return undefined;
+  }
+  return Object.fromEntries(entries.map(([key, entry]) => [key, String(entry)]));
+}
+
+function parsePackageJson(content: string): PackageJson | null {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+    const value = parseJsonText(content);
+    if (!isJsonObject(value)) {
+      return null;
+    }
+    return {
+      dependencies: readStringMap(value.dependencies),
+      devDependencies: readStringMap(value.devDependencies),
+      hookLoadPriority: value.hookLoadPriority,
+      sails: value.sails !== undefined && isJsonObject(value.sails) ? value.sails : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readPackageJson(filePath: string): PackageJson | null {
+  try {
+    return parsePackageJson(fs.readFileSync(filePath, 'utf8'));
   } catch {
     return null;
   }
@@ -71,7 +105,7 @@ function isRedboxHookPackage(packageJson: PackageJson): boolean {
 
 function resolveDependencyPackageJson(appPath: string, dependencyName: string): string | null {
   try {
-    return require.resolve(`${dependencyName}/package.json`, { paths: [appPath] }) as string;
+    return require.resolve(`${dependencyName}/package.json`, { paths: [appPath] });
   } catch {
     return null;
   }
@@ -101,7 +135,7 @@ function getAppPackageJsonContent(appPath: string): string | null {
   }
 }
 
-function normalizeHookLoadPriority(value: unknown): string[] {
+function normalizeHookLoadPriority(value: JsonValue | undefined): string[] {
   if (typeof value === 'undefined') {
     return [];
   }
@@ -129,19 +163,20 @@ function normalizeHookLoadPriority(value: unknown): string[] {
 }
 
 export function readHookLoadPriority(appPath: string): string[] {
-  const appPackageJson = readJsonFile<PackageJson>(path.join(path.resolve(appPath), 'package.json'));
+  const appPackageJson = readPackageJson(path.join(path.resolve(appPath), 'package.json'));
   return normalizeHookLoadPriority(appPackageJson?.hookLoadPriority);
 }
 
-export function compareHookPrecedence(
-  a: RedboxHookPackageMetadata,
-  b: RedboxHookPackageMetadata
-): number {
+export function compareHookPrecedence(a: RedboxHookPackageMetadata, b: RedboxHookPackageMetadata): number {
   const aListed = typeof a.listedPriorityIndex === 'number';
   const bListed = typeof b.listedPriorityIndex === 'number';
 
   if (aListed && bListed) {
-    return (a.listedPriorityIndex as number) - (b.listedPriorityIndex as number);
+    const aIndex = a.listedPriorityIndex;
+    const bIndex = b.listedPriorityIndex;
+    if (aIndex !== undefined && bIndex !== undefined) {
+      return aIndex - bIndex;
+    }
   }
   if (aListed) {
     return -1;
@@ -164,10 +199,8 @@ export function discoverRedboxHookPackages(
     return [];
   }
 
-  let appPackageJson: PackageJson;
-  try {
-    appPackageJson = JSON.parse(packageJsonContent) as PackageJson;
-  } catch {
+  const appPackageJson = parsePackageJson(packageJsonContent);
+  if (appPackageJson === null) {
     hookDiscoveryCache.set(resolvedAppPath, { packageJsonContent, dependencySignature: '', hooks: [] });
     return [];
   }
@@ -179,10 +212,7 @@ export function discoverRedboxHookPackages(
   const dependencyNames = Object.keys(dependencies).sort();
   const dependencySignature = buildDependencySignature(resolvedAppPath, dependencyNames);
   const cached = hookDiscoveryCache.get(resolvedAppPath);
-  if (
-    cached?.packageJsonContent === packageJsonContent
-    && cached.dependencySignature === dependencySignature
-  ) {
+  if (cached?.packageJsonContent === packageJsonContent && cached.dependencySignature === dependencySignature) {
     return [...cached.hooks];
   }
 
@@ -196,7 +226,7 @@ export function discoverRedboxHookPackages(
       continue;
     }
 
-    const dependencyPackageJson = readJsonFile<PackageJson>(packageJsonPath);
+    const dependencyPackageJson = readPackageJson(packageJsonPath);
     if (!dependencyPackageJson || !isRedboxHookPackage(dependencyPackageJson)) {
       continue;
     }

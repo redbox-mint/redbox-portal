@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "recordTypes": [
+    {
+      "id": "record-type-unknown",
+      "key": "brand-default_unknown-action-fixture",
+      "name": "unknown-action-fixture",
+      "branding": "brand-default",
+      "packageType": "unknown-action-fixture",
+      "hooks": {
+        "onCreate": {
+          "pre": [
+            {
+              "function": "sails.services.unshippedservice.executeArbitraryAction",
+              "options": { "payload": "must-fail-closed" }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "expectedMigrationFailure": {
+    "code": "unknown-legacy-action-expression",
+    "expression": "sails.services.unshippedservice.executeArbitraryAction",
+    "path": "recordTypes[0].hooks.onCreate.pre[0].function"
+  }
+}

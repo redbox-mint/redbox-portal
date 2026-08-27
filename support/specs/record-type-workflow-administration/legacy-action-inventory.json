@@ -1,0 +1,1099 @@
+{
+  "schemaVersion": 1,
+  "generatedForTask": "A01",
+  "scan": {
+    "includedSourceGroups": [
+      {
+        "name": "core-record-type-config",
+        "paths": ["packages/redbox-core/src/config/**/*.ts"],
+        "occurrenceCount": 0
+      },
+      {
+        "name": "redbox-hook-dev",
+        "paths": ["packages/redbox-hook-dev/src/config/**/*.ts"],
+        "occurrenceCount": 32
+      },
+      {
+        "name": "supported-bundled-hooks",
+        "paths": ["packages/*hook*/src/config/**/*.{ts,js,json}"],
+        "occurrenceCount": 0,
+        "note": "The redbox-hook-dev occurrences are counted in their dedicated group; sails-hook-redbox-storage-mongo contains no record lifecycle hook configuration."
+      },
+      {
+        "name": "shipped-record-type-fixtures",
+        "paths": [],
+        "occurrenceCount": 0,
+        "note": "No pre-existing runtime/bootstrap RecordType fixture with executable hooks is shipped by this worktree."
+      }
+    ],
+    "expectedCounts": {
+      "recordHookDefinitions": 26,
+      "nestedExecutableDefinitions": 6,
+      "totalExecutableOccurrences": 32,
+      "uniqueLegacyExpressions": 11
+    },
+    "exclusions": [
+      {
+        "paths": ["**/dist/**", "**/node_modules/**", "**/coverage/**"],
+        "reason": "Generated, installed, and coverage output duplicate or do not define repository-owned source configuration."
+      },
+      {
+        "paths": ["packages/**/test/**", "test/**"],
+        "reason": "Unit/integration test literals are not shipped RecordType configuration. A01 representative migration fixtures are validated separately."
+      },
+      {
+        "paths": ["support/wiki/**", "support/specs/**"],
+        "reason": "Documentation examples and proposed configurations are not runtime definitions."
+      },
+      {
+        "paths": ["packages/redbox-core/src/config/brandingConfigurationDefaults.config.ts"],
+        "reason": "Its onCreate/onUpdate arrays are user-account authentication hooks, not RecordHookDefinition values."
+      }
+    ]
+  },
+  "nestedExecutableStructures": [
+    {
+      "name": "onNotifySuccess",
+      "runtimeOwner": "@researchdatabox/redbox-core:EmailService.sendRecordNotification",
+      "path": "RecordHookDefinition.options.onNotifySuccess[]",
+      "shippedOccurrenceCount": 6,
+      "execution": "After a successful email send, callbacks are invoked in configured array order but their Promise/Observable completions are not awaited by the parent action.",
+      "failure": "Entries with a missing, empty, or non-string function are silently skipped. Expression-evaluation errors, non-callable results, and synchronous callback throws escape sendRecordNotification and reject its Promise. After a callback result is converted, asynchronous Promise/Observable failures are logged and do not undo the completed email action.",
+      "migration": "Flatten into ordered bindings that depend on the parent email action succeeding. Preserve sibling launch order explicitly."
+    },
+    {
+      "name": "runHooksSync",
+      "runtimeOwner": "@researchdatabox/redbox-core:TriggerService.runHooksSync",
+      "path": "RecordHookDefinition.options.hooks[]",
+      "shippedOccurrenceCount": 0,
+      "execution": "Valid callbacks are resolved first, then concatMap invokes them sequentially with the same oid, record, options, and user; only the last result is returned.",
+      "failure": "Entries with a missing, empty, or non-string function and expressions that evaluate to non-callable values are logged and skipped. Expression-evaluation errors escape runHooksSync synchronously. An invoked callback failure terminates the returned Observable sequence.",
+      "migration": "Remove the runner and flatten valid children into adjacent ordered bindings; do not model nested executable parameters in the registry.",
+      "representativeFixture": "packages/redbox-core/test/fixtures/legacy-record-actions/representative-config.json"
+    },
+    {
+      "name": "queuedTriggerConfiguration",
+      "runtimeOwner": "@researchdatabox/redbox-core:RDMPService.queuedTriggerSubscriptionHandler",
+      "path": "RecordHookDefinition.options.triggerConfiguration.function",
+      "shippedOccurrenceCount": 0,
+      "execution": "queueTriggerCall evaluates its outer condition, persists the nested definition in an Agenda payload, and the later job resolves and invokes the nested function.",
+      "failure": "A missing function is ignored and a non-callable evaluated value is logged before returning the record Observable. Expression-evaluation errors and synchronous invocation errors escape the consumer. Promise/Observable failures from invoked callbacks reject the returned Promise.",
+      "migration": "Replace the nested function with a registered action reference in a bounded queue-owned contract.",
+      "representativeFixture": "packages/redbox-core/test/fixtures/legacy-record-actions/representative-config.json"
+    }
+  ],
+  "actions": [
+    {
+      "legacyExpression": "sails.services.rdmpservice.runTemplates",
+      "proposedActionId": "redbox.core.record.apply-templates",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["templates"],
+        "optional": ["parseObject"],
+        "nested": {
+          "templates[]": ["field", "template"]
+        }
+      },
+      "behavior": {
+        "classifications": ["direct-mutation", "replacement-return"],
+        "mutationBehavior": "Mutates record fields in configured order and replaces string templates in the live options object with compiled functions.",
+        "returnShape": "Observable<Record>; returns the same mutated record reference.",
+        "failureSemantics": "Template compilation, evaluation, or parse failures become an error Observable and stop the sequential pre phase.",
+        "orderingAssumptions": "Templates run in array order; the action must finish before the next pre action observes its record."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 17
+          },
+          "recordType": "rdmp",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "one scalar template; parseObject=false",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "parseObject": false,
+              "templates": [
+                {
+                  "field": "metadata.server_sync_test_value",
+                  "template": "test-<%= _.random(100000, 999999) %>"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 52
+          },
+          "recordType": "rdmp",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "one scalar template; parseObject=false",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "parseObject": false,
+              "templates": [
+                {
+                  "field": "metadata.server_sync_test_value",
+                  "template": "test-<%= _.random(100000, 999999) %>"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 597
+          },
+          "recordType": "party",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "two scalar templates; parseObject=false",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "parseObject": false,
+              "templates": [
+                {
+                  "field": "metadata.fullName",
+                  "template": "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
+                },
+                {
+                  "field": "metadata.l_fullName",
+                  "template": "<%= _.toLower(_.get(record, 'metadata.fullName', '')) %>"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 618
+          },
+          "recordType": "party",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "two scalar templates; parseObject=false",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "parseObject": false,
+              "templates": [
+                {
+                  "field": "metadata.fullName",
+                  "template": "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
+                },
+                {
+                  "field": "metadata.l_fullName",
+                  "template": "<%= _.toLower(_.get(record, 'metadata.fullName', '')) %>"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.assignPermissions",
+      "proposedActionId": "redbox.core.record.assign-permissions",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": [
+          "emailProperty",
+          "editContributorProperties",
+          "viewContributorProperties",
+          "recordCreatorPermissions"
+        ],
+        "optional": ["triggerCondition"]
+      },
+      "behavior": {
+        "classifications": ["direct-mutation", "replacement-return"],
+        "mutationBehavior": "Mutates authorization edit/view and pending arrays after resolving contributor accounts.",
+        "returnShape": "Observable<Record>; returns the same mutated record reference.",
+        "failureSemantics": "User lookup Observable failures fail the current pre action and abort persistence.",
+        "orderingAssumptions": "Runs after any preceding template action and before later permission stripping/restoration."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 29
+          },
+          "recordType": "rdmp",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "RDMP contributor fields",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.dataowner_email"
+              ],
+              "viewContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.contributor_supervisor",
+                "metadata.contributors"
+              ],
+              "recordCreatorPermissions": "view&edit"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 64
+          },
+          "recordType": "rdmp",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "RDMP contributor fields",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.dataowner_email"
+              ],
+              "viewContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.contributor_supervisor",
+                "metadata.contributors"
+              ],
+              "recordCreatorPermissions": "view&edit"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 241
+          },
+          "recordType": "dataRecord",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "data-record contributor fields",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.dataowner_email"
+              ],
+              "viewContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.contributor_supervisor",
+                "metadata.contributors"
+              ],
+              "recordCreatorPermissions": "view&edit"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 263
+          },
+          "recordType": "dataRecord",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "data-record contributor fields",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "emailProperty": "email",
+              "editContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.dataowner_email"
+              ],
+              "viewContributorProperties": [
+                "metadata.contributor_ci",
+                "metadata.contributor_data_manager",
+                "metadata.contributor_supervisor",
+                "metadata.contributors"
+              ],
+              "recordCreatorPermissions": "view&edit"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 349
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 2,
+          "nesting": "record-hook",
+          "parameterVariant": "creator fields",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "emailProperty": "email",
+              "editContributorProperties": ["metadata.creators"],
+              "viewContributorProperties": ["metadata.creators"],
+              "recordCreatorPermissions": "view&edit"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 461
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 2,
+          "nesting": "record-hook",
+          "parameterVariant": "creator fields",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "emailProperty": "email",
+              "editContributorProperties": ["metadata.creators"],
+              "viewContributorProperties": ["metadata.creators"],
+              "recordCreatorPermissions": "view&edit"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.checkTotalSizeOfFilesInRecord",
+      "proposedActionId": "redbox.core.record.validate-total-attachment-size",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": [],
+        "optional": ["triggerCondition", "maxUploadSizeMessageCode", "replaceOrAppend"]
+      },
+      "behavior": {
+        "classifications": ["validation-only", "replacement-return"],
+        "mutationBehavior": "Does not intentionally mutate the record.",
+        "returnShape": "Record plain value.",
+        "failureSemantics": "Throws RBValidationError when the configured server maximum is exceeded; the pre phase and save abort.",
+        "orderingAssumptions": "Runs after templates and permissions on RDMP update, so it validates their current candidate."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 82
+          },
+          "recordType": "rdmp",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 2,
+          "nesting": "record-hook",
+          "parameterVariant": "draft/queued/published condition with appended translated message",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= _.isEqual(record.workflow.stage, \"draft\") || _.isEqual(record.workflow.stage, \"queued\") || _.isEqual(record.workflow.stage, \"published\") %>",
+              "maxUploadSizeMessageCode": "max-total-files-upload-size-alternative-validation-error",
+              "replaceOrAppend": "append"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.triggerservice.transitionWorkflow",
+      "proposedActionId": "redbox.core.workflow.automatic-transition",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["triggerCondition", "targetWorkflowStageName", "targetWorkflowStageLabel", "targetForm"],
+        "optional": []
+      },
+      "behavior": {
+        "classifications": ["direct-mutation", "replacement-return", "workflow-transition"],
+        "mutationBehavior": "When the Lodash template renders true, directly mutates workflow stage/label and metaMetadata.form.",
+        "returnShape": "Observable<Record>; returns the same mutated record reference.",
+        "failureSemantics": "Condition compilation/evaluation errors fail the pre action. Modern authority validation can reject an unrequested stage mutation before persistence.",
+        "orderingAssumptions": "Runs first in dataPublication pre hooks so every later action observes the conditionally changed stage. It does not itself cause onTransitionWorkflow orchestration to run."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 329
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "queued+embargo flag to embargoed",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= _.isEqual(workflow.stage, 'queued') && metadata.embargoByDate?.toString() === 'true' %>",
+              "targetWorkflowStageName": "embargoed",
+              "targetWorkflowStageLabel": "Embargoed",
+              "targetForm": "dataPublication-1.0-embargoed"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 441
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "published+embargo flag to embargoed",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= _.isEqual(workflow.stage, 'published') && metadata.embargoByDate?.toString() === 'true' %>",
+              "targetWorkflowStageName": "embargoed",
+              "targetWorkflowStageLabel": "Embargoed",
+              "targetForm": "dataPublication-1.0-embargoed"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.recordsservice.updateNotificationLog",
+      "proposedActionId": "redbox.core.record.update-notification-state",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["flagName", "flagVal"],
+        "optional": ["name", "triggerCondition", "forceRun", "logName", "saveRecord"]
+      },
+      "behavior": {
+        "classifications": ["direct-mutation", "replacement-return", "nested-callback"],
+        "mutationBehavior": "saveRecord=false mutates the live record. saveRecord=true performs a separate validated internal mutation and returns a reloaded replacement record.",
+        "returnShape": "Promise<Record>; the method is async for both saveRecord variants. saveRecord=false resolves to the same live record reference, while saveRecord=true resolves to a reloaded replacement that its nested parent ignores.",
+        "failureSemantics": "Top-level pre failures abort persistence. Nested asynchronous failures are caught and logged by onNotifySuccess after the email has succeeded.",
+        "orderingAssumptions": "Top-level entries run second in pre. Nested entries launch after their parent email succeeds; sibling callbacks are launched in array order without awaiting earlier completion."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 339
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "initialize notification.state=draft; saveRecord=false",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "name": "Set Notification to Draft",
+              "triggerCondition": "<%= typeof record.notification == 'undefined'%>",
+              "flagName": "notification.state",
+              "flagVal": "draft",
+              "saveRecord": false
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 451
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "initialize notification.state=draft; saveRecord=false",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "name": "Set Notification to Draft",
+              "triggerCondition": "<%= typeof record.notification == 'undefined'%>",
+              "flagName": "notification.state",
+              "flagVal": "draft",
+              "saveRecord": false
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 392
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "post",
+          "order": 1,
+          "nesting": "onNotifySuccess",
+          "parentOrder": 0,
+          "parameterVariant": "state=emailed-reviewing plus reviewing log; saveRecord=true",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "name": "Set Notification to Emailed-Reviewing",
+              "forceRun": true,
+              "flagName": "notification.state",
+              "flagVal": "emailed-reviewing",
+              "logName": "notification.log.reviewing",
+              "saveRecord": true
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 415
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "post",
+          "order": 0,
+          "nesting": "onNotifySuccess",
+          "parentOrder": 1,
+          "parameterVariant": "state=emailed-published plus published log; saveRecord=true",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "name": "Set Notification to Emailed-Published",
+              "forceRun": true,
+              "flagName": "notification.state",
+              "flagVal": "emailed-published",
+              "logName": "notification.log.published",
+              "saveRecord": true
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 504
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 1,
+          "nesting": "onNotifySuccess",
+          "parentOrder": 0,
+          "parameterVariant": "state=emailed-reviewing plus reviewing log; saveRecord=true",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "name": "Set Notification to Emailed-Reviewing",
+              "forceRun": true,
+              "flagName": "notification.state",
+              "flagVal": "emailed-reviewing",
+              "logName": "notification.log.reviewing",
+              "saveRecord": true
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 528
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 0,
+          "nesting": "onNotifySuccess",
+          "parentOrder": 1,
+          "parameterVariant": "state=emailed-published plus published log; saveRecord=true",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "name": "Set Notification to Emailed-Published",
+              "forceRun": true,
+              "flagName": "notification.state",
+              "flagVal": "emailed-published",
+              "logName": "notification.log.published",
+              "saveRecord": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.stripUserBasedPermissions",
+      "proposedActionId": "redbox.core.record.strip-user-permissions",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["triggerCondition"],
+        "optional": ["permissionTypes"]
+      },
+      "behavior": {
+        "classifications": ["direct-mutation", "replacement-return"],
+        "mutationBehavior": "Copies edit/view authorization arrays into authorization.stored and clears selected live arrays.",
+        "returnShape": "Observable<Record>; returns the same mutated record reference.",
+        "failureSemantics": "Condition evaluation failures fail the pre phase.",
+        "orderingAssumptions": "Runs after permission assignment and before restoration, so a published/queued/embargoed candidate stores the newly calculated permissions."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 359
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 3,
+          "nesting": "record-hook",
+          "parameterVariant": "default edit permission type",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 471
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 3,
+          "nesting": "record-hook",
+          "parameterVariant": "default edit permission type",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.restoreUserBasedPermissions",
+      "proposedActionId": "redbox.core.record.restore-user-permissions",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["triggerCondition"],
+        "optional": []
+      },
+      "behavior": {
+        "classifications": ["direct-mutation", "replacement-return"],
+        "mutationBehavior": "Restores saved authorization arrays from authorization.stored and deletes the stored snapshot.",
+        "returnShape": "Observable<Record>; returns the same mutated record reference.",
+        "failureSemantics": "Condition evaluation failures fail the pre phase.",
+        "orderingAssumptions": "Runs after stripping; mutually exclusive shipped conditions make only one of the pair mutate a candidate."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 366
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "pre",
+          "order": 4,
+          "nesting": "record-hook",
+          "parameterVariant": "draft-stage condition",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.workflow.stage=='draft' %>"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 478
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "pre",
+          "order": 4,
+          "nesting": "record-hook",
+          "parameterVariant": "draft-stage condition",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.workflow.stage=='draft' %>"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.emailservice.sendRecordNotification",
+      "proposedActionId": "redbox.core.notification.send-record-email",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["to", "subject", "template"],
+        "optional": [
+          "triggerCondition",
+          "forceRun",
+          "from",
+          "cc",
+          "bcc",
+          "format",
+          "otherSendOptions",
+          "onNotifySuccess"
+        ],
+        "nested": {
+          "onNotifySuccess[]": ["function", "options"]
+        }
+      },
+      "behavior": {
+        "classifications": ["side-effect-only", "nested-callback"],
+        "mutationBehavior": "Sends email; may set options.returnType when a response is supplied. It does not intentionally mutate the business record.",
+        "returnShape": "Promise<Record|Response>; lifecycle post ignores it. Nested callback results are ignored.",
+        "failureSemantics": "Top-level detached failures are logged and do not change the save response. Nested email failures are asynchronously logged after their parent email succeeds.",
+        "orderingAssumptions": "Top-level post actions dispatch in array order. onNotifySuccess children launch only after parent success and are not awaited."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 374
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "post",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "publication staged email with two success callbacks",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
+              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}}",
+              "subject": "A publication has been staged for publishing.",
+              "template": "publicationStaged",
+              "onNotifySuccess": [
+                {
+                  "function": "sails.services.emailservice.sendRecordNotification",
+                  "options": {
+                    "forceRun": true,
+                    "to": "notifications-reviewer@dev.local",
+                    "subject": "Data publication ready for review",
+                    "template": "publicationReview"
+                  }
+                },
+                {
+                  "function": "sails.services.recordsservice.updateNotificationLog",
+                  "options": {
+                    "name": "Set Notification to Emailed-Reviewing",
+                    "forceRun": true,
+                    "flagName": "notification.state",
+                    "flagVal": "emailed-reviewing",
+                    "logName": "notification.log.reviewing",
+                    "saveRecord": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 406
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "post",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "publication published email with one success callback",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
+              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}},notifications-reviewer@dev.local,{{join (pluck record.metadata.creators \"email\") \",\"}}",
+              "subject": "A publication has been successfully published",
+              "template": "publicationPublished",
+              "onNotifySuccess": [
+                {
+                  "function": "sails.services.recordsservice.updateNotificationLog",
+                  "options": {
+                    "name": "Set Notification to Emailed-Published",
+                    "forceRun": true,
+                    "flagName": "notification.state",
+                    "flagVal": "emailed-published",
+                    "logName": "notification.log.published",
+                    "saveRecord": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 486
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "publication staged email with two success callbacks",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
+              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}}",
+              "subject": "A publication has been staged for review.",
+              "template": "publicationStaged",
+              "onNotifySuccess": [
+                {
+                  "function": "sails.services.emailservice.sendRecordNotification",
+                  "options": {
+                    "forceRun": true,
+                    "to": "notifications-reviewer@dev.local",
+                    "subject": "Data publication ready for review",
+                    "template": "publicationReview"
+                  }
+                },
+                {
+                  "function": "sails.services.recordsservice.updateNotificationLog",
+                  "options": {
+                    "name": "Set Notification to Emailed-Reviewing",
+                    "forceRun": true,
+                    "flagName": "notification.state",
+                    "flagVal": "emailed-reviewing",
+                    "logName": "notification.log.reviewing",
+                    "saveRecord": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 519
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 1,
+          "nesting": "record-hook",
+          "parameterVariant": "publication published email with one success callback",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "triggerCondition": "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
+              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}},notifications-reviewer@dev.local,{{join (pluck record.metadata.creators \"email\") \",\"}}",
+              "subject": "A publication has been successfully published",
+              "template": "publicationPublished",
+              "onNotifySuccess": [
+                {
+                  "function": "sails.services.recordsservice.updateNotificationLog",
+                  "options": {
+                    "name": "Set Notification to Emailed-Published",
+                    "forceRun": true,
+                    "flagName": "notification.state",
+                    "flagVal": "emailed-published",
+                    "logName": "notification.log.published",
+                    "saveRecord": true
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 383
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "post",
+          "order": 0,
+          "nesting": "onNotifySuccess",
+          "parentOrder": 0,
+          "parameterVariant": "forced reviewer email",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "forceRun": true,
+              "to": "notifications-reviewer@dev.local",
+              "subject": "Data publication ready for review",
+              "template": "publicationReview"
+            }
+          }
+        },
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 495
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 0,
+          "nesting": "onNotifySuccess",
+          "parentOrder": 0,
+          "parameterVariant": "forced reviewer email",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "forceRun": true,
+              "to": "notifications-reviewer@dev.local",
+              "subject": "Data publication ready for review",
+              "template": "publicationReview"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.doiservice.publishDoiTrigger",
+      "proposedActionId": "redbox.core.doi.publish",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["event"],
+        "optional": ["triggerCondition", "forceRun", "profile"]
+      },
+      "behavior": {
+        "classifications": ["side-effect-only", "record-writeback"],
+        "mutationBehavior": "Creates a DOI, mutates its local record argument with DOI data, then performs a separate validated RecordsService writeback.",
+        "returnShape": "Promise<Observable<null>>; detached lifecycle post ignores the value.",
+        "failureSemantics": "External or writeback failures are audited, rethrown, and logged by detached execution without failing the original save.",
+        "orderingAssumptions": "Dispatched after the two email actions in the same post phase."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 429
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onCreate",
+          "phase": "post",
+          "order": 2,
+          "nesting": "record-hook",
+          "parameterVariant": "forced draft DOI event gated to draft stage",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "forceRun": true,
+              "triggerCondition": "<%= record.workflow.stage=='draft' %>",
+              "event": "draft"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.doiservice.updateDoiTriggerSync",
+      "proposedActionId": "redbox.core.doi.update",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": ["event"],
+        "optional": ["triggerCondition", "forceRun", "profile"]
+      },
+      "behavior": {
+        "classifications": ["side-effect-only", "replacement-return"],
+        "mutationBehavior": "Updates the external DOI and writes integration audit rows; no record writeback is performed.",
+        "returnShape": "Promise<Record>; detached lifecycle post ignores the value.",
+        "failureSemantics": "External failures are audited, rethrown, and logged by detached execution without failing the original save.",
+        "orderingAssumptions": "Dispatched after the two email actions in the same post phase."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 542
+          },
+          "recordType": "dataPublication",
+          "lifecycleMode": "onUpdate",
+          "phase": "post",
+          "order": 2,
+          "nesting": "record-hook",
+          "parameterVariant": "forced draft DOI event gated to draft stage",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {
+              "forceRun": true,
+              "triggerCondition": "<%= record.workflow.stage=='draft' %>",
+              "event": "draft"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.addWorkspaceToRecord",
+      "proposedActionId": "redbox.core.workspace.link-to-record",
+      "owner": "@researchdatabox/redbox-core",
+      "parameterShape": {
+        "required": [],
+        "optional": ["rdmpOidField", "returnType"]
+      },
+      "behavior": {
+        "classifications": ["side-effect", "direct-response-mutation", "replacement-return"],
+        "mutationBehavior": "Calls WorkspaceService and mutates the isolated postSync response with workspaceOid/workspaceData.",
+        "returnShape": "Promise<Record>; returns the workspace record while response mutations are separately whitelisted by the coordinator.",
+        "failureSemantics": "A missing RDMP OID logs and returns without linking. Service failures fail postSync after primary persistence and produce a save warning.",
+        "orderingAssumptions": "Only postSync action for existing-locations create; its response fields must be merged before the caller response is finalized."
+      },
+      "occurrences": [
+        {
+          "source": {
+            "file": "packages/redbox-hook-dev/src/config/recordtype.ts",
+            "line": 576
+          },
+          "recordType": "existing-locations",
+          "lifecycleMode": "onCreate",
+          "phase": "postSync",
+          "order": 0,
+          "nesting": "record-hook",
+          "parameterVariant": "default rdmpOid field and default record return type",
+          "sourceOptions": {
+            "presence": "present",
+            "value": {}
+          }
+        }
+      ]
+    }
+  ]
+}

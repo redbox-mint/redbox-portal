@@ -12,12 +12,19 @@ import {
   type RecordSaveIssue,
 } from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../../src/StorageService';
+import type { ActionExecutionPolicy } from '../../src/action-execution/types';
 import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { createRecordSaveContext } from '../../src/RecordSaveResponse';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
+import {
+  type HookDefinitionFixture,
+  type JsonValue,
+  type RepresentativeDatabase,
+  loadRepresentativeDatabase,
+} from '../fixtures/legacy-record-actions/fixtures';
 import {
   setupServiceTestGlobals,
   cleanupServiceTestGlobals,
@@ -30,6 +37,102 @@ const { Services: RecordValidationServices } =
   require('../../src/services/RecordValidationService') as typeof import('../../src/services/RecordValidationService');
 const DomSanitizerServices = require('../../src/services/DomSanitizerService')
   .default as typeof import('../../src/services/DomSanitizerService').default;
+
+declare const FormsService: { getFormByName: sinon.SinonStub };
+declare const RecordTypesService: { get: sinon.SinonStub };
+declare const WorkflowStepsService: { get: sinon.SinonStub };
+
+type EffectRecord = Record<string, JsonValue>;
+type EffectHookDefinition = { function: string; execution?: ActionExecutionPolicy };
+type EffectHookMode = {
+  pre?: EffectHookDefinition[];
+  postSync?: EffectHookDefinition[];
+  post?: EffectHookDefinition[];
+};
+type EffectHooks = Partial<Record<'onCreate' | 'onUpdate' | 'onDelete' | 'onTransitionWorkflow', EffectHookMode>>;
+type PersistedEffectRecordType = RepresentativeDatabase['recordTypes'][number];
+type PersistedEffectWorkflowStep = RepresentativeDatabase['workflowSteps'][number];
+type PersistedEffectRecord = RepresentativeDatabase['records'][number];
+type PersistedLifecycleMode = keyof PersistedEffectRecordType['hooks'];
+type PersistedPhase = 'pre' | 'postSync' | 'post';
+type NotificationMutationRequest = { mutate: (snapshot: EffectRecord) => EffectRecord };
+type EffectRecordType = {
+  id?: string;
+  key?: string;
+  name: string;
+  branding?: string;
+  packageType?: string;
+  searchable: false;
+  hooks: EffectHooks;
+};
+
+const a01RepresentativeDatabase = loadRepresentativeDatabase();
+
+function persistedEffectRecordType(brandName: string): PersistedEffectRecordType {
+  const brand = a01RepresentativeDatabase.brands.find(candidate => candidate.name === brandName);
+  const recordType = a01RepresentativeDatabase.recordTypes.find(
+    candidate => candidate.branding === brand?.id && candidate.name === 'legacy-action-fixture'
+  );
+  if (!recordType) {
+    throw new Error(`The A01 database fixture has no '${brandName}' representative record type.`);
+  }
+  return recordType;
+}
+
+function persistedEffectWorkflowStep(
+  recordType: PersistedEffectRecordType,
+  stage: string
+): PersistedEffectWorkflowStep {
+  const workflowStep = a01RepresentativeDatabase.workflowSteps.find(
+    candidate => candidate.recordType === recordType.id && candidate.name === stage
+  );
+  if (!workflowStep) {
+    throw new Error(`The A01 database fixture has no '${stage}' step for '${recordType.id}'.`);
+  }
+  return workflowStep;
+}
+
+function persistedEffectRecord(): PersistedEffectRecord {
+  const record = a01RepresentativeDatabase.records.find(candidate => candidate.redboxOid === 'record-123');
+  if (!record) {
+    throw new Error("The A01 database fixture has no 'record-123' persisted record.");
+  }
+  return record;
+}
+
+function persistedEffectHookDefinition(
+  recordType: PersistedEffectRecordType,
+  lifecycleMode: PersistedLifecycleMode,
+  phase: PersistedPhase,
+  order: number
+): HookDefinitionFixture {
+  const definition = recordType.hooks[lifecycleMode]?.[phase]?.[order];
+  if (!definition) {
+    throw new Error(`The A01 database fixture has no '${lifecycleMode}.${phase}[${order}]' hook definition.`);
+  }
+  return definition;
+}
+
+function assertPersistedHookExecutions(
+  stub: sinon.SinonStub,
+  definition: HookDefinitionFixture,
+  expectedExecutions = 1
+): void {
+  expect(stub.callCount, definition.function).to.equal(expectedExecutions);
+  expect(
+    stub.getCalls().map(call => call.args[2]),
+    definition.function
+  ).to.deep.equal(Array.from({ length: expectedExecutions }, () => definition.options));
+}
+
+function recordTypeWithHooks(hooks: EffectHooks, persistedRecordType?: PersistedEffectRecordType): EffectRecordType {
+  return {
+    ...(persistedRecordType ?? {}),
+    name: persistedRecordType?.name ?? 'rdmp',
+    searchable: false,
+    hooks,
+  };
+}
 
 describe('RecordsService', function () {
   let mockSails: any;
@@ -152,6 +255,7 @@ describe('RecordsService', function () {
         info: sinon.stub(),
         warn: sinon.stub(),
         error: sinon.stub(),
+        trace: sinon.stub(),
       },
       services: {
         brandingservice: {
@@ -991,30 +1095,51 @@ describe('RecordsService', function () {
 
       expect(record.metadata.attachments[0].attachmentId).to.match(/^[0-9a-f-]{36}$/i);
       expect(record.metadata.attachments[1].attachmentId).to.equal('valid-2');
-      expect(() => (RecordsService as any).ensureAttachmentIds(
-        { metadata: { attachments: [{ attachmentId: 'bad id', fileId: 'file-1' }] } },
-        ['attachments']
-      )).to.throw('Invalid attachment identity');
-      expect(() => (RecordsService as any).ensureAttachmentIds(
-        { metadata: { attachments: [
-          { attachmentId: 'same', fileId: 'file-1' },
-          { attachmentId: 'same', fileId: 'file-2' },
-        ] } },
-        ['attachments']
-      )).to.throw('Duplicate attachment identity');
+      expect(() =>
+        RecordsService.ensureAttachmentIds(
+          { metadata: { attachments: [{ attachmentId: 'bad id', fileId: 'file-1' }] } },
+          ['attachments']
+        )
+      ).to.throw('Invalid attachment identity');
+      expect(() =>
+        RecordsService.ensureAttachmentIds(
+          {
+            metadata: {
+              attachments: [
+                { attachmentId: 'same', fileId: 'file-1' },
+                { attachmentId: 'same', fileId: 'file-2' },
+              ],
+            },
+          },
+          ['attachments']
+        )
+      ).to.throw('Duplicate attachment identity');
     });
 
     it('plans unresolved work before replacements and deletions', function () {
       const plan = (RecordsService as any).attachmentMutationPlan(
         { metadata: { attachments: [{ attachmentId: 'old', fileId: 'old-file' }] } },
-        { metadata: { attachments: [
-          { attachmentId: 'new', fileId: 'new-file', pending: true },
-          { attachmentId: 'old', fileId: 'replacement-file' },
-        ] } },
+        {
+          metadata: {
+            attachments: [
+              { attachmentId: 'new', fileId: 'new-file', pending: true },
+              { attachmentId: 'old', fileId: 'replacement-file' },
+            ],
+          },
+        },
         ['attachments'],
         'record-1',
         'generation-1',
-        [{ attachmentId: 'retry', mutationFileId: 'retry-file', operation: 'finalize', mutationState: 'unknown', generation: 'retry-generation', attachmentField: 'attachments' }]
+        [
+          {
+            attachmentId: 'retry',
+            mutationFileId: 'retry-file',
+            operation: 'finalize',
+            mutationState: 'unknown',
+            generation: 'retry-generation',
+            attachmentField: 'attachments',
+          },
+        ]
       );
 
       expect(plan.map((item: any) => `${item.operation}:${item.fileId}`)).to.deep.equal([
@@ -1035,8 +1160,22 @@ describe('RecordsService', function () {
       mockDatastreamService.addDatastream = sinon.stub().resolves();
       mockDatastreamService.removeDatastream = sinon.stub().resolves();
       const plan = [
-        { field: 'attachments', attachmentId: 'a', fileId: 'new-file', operation: 'add', generation: 'g', entry: { fileId: 'new-file' } },
-        { field: 'attachments', attachmentId: 'a', fileId: 'old-file', operation: 'delete', generation: 'g', entry: { fileId: 'old-file' } },
+        {
+          field: 'attachments',
+          attachmentId: 'a',
+          fileId: 'new-file',
+          operation: 'add',
+          generation: 'g',
+          entry: { fileId: 'new-file' },
+        },
+        {
+          field: 'attachments',
+          attachmentId: 'a',
+          fileId: 'old-file',
+          operation: 'delete',
+          generation: 'g',
+          entry: { fileId: 'old-file' },
+        },
       ];
 
       await (RecordsService as any).prepareAttachmentJournal('record-1', plan);
@@ -1057,19 +1196,28 @@ describe('RecordsService', function () {
       };
       mockSails.services.attachmentmetadataservice = journal;
       mockDatastreamService.addDatastream = sinon.stub().rejects(new Error('upload failed'));
-      const plan = [{
-        field: 'attachments', attachmentId: 'a', fileId: 'file-1', operation: 'add', generation: 'g', entry: { fileId: 'file-1' },
-      }];
+      const plan = [
+        {
+          field: 'attachments',
+          attachmentId: 'a',
+          fileId: 'file-1',
+          operation: 'add',
+          generation: 'g',
+          entry: { fileId: 'file-1' },
+        },
+      ];
 
       const result = await (RecordsService as any).executeAttachmentPlan('record-1', plan);
 
       expect(result[0].status).to.equal('incomplete');
       expect(result[0].code).to.equal('attachment-generation-not-current');
       expect(mockSails.log.error.called).to.equal(true);
-      expect((RecordsService as any).incompleteAttachmentItems(
-        [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' }],
-        'reference-failed'
-      )).to.deep.equal([
+      expect(
+        RecordsService.incompleteAttachmentItems(
+          [{ field: 'attachments', attachmentId: 'a', operation: 'add', status: 'completed' }],
+          'reference-failed'
+        )
+      ).to.deep.equal([
         { field: 'attachments', attachmentId: 'a', operation: 'add', status: 'incomplete', code: 'reference-failed' },
       ]);
     });
@@ -2213,10 +2361,12 @@ describe('RecordsService', function () {
         metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
         metadata: { attachments: [{ attachmentId: 'attachment-1', fileId: 'old-file', pending: false }] },
       });
-      (global as any).FormsService.getFormByName.returns(of({
-        name: 'default-form',
-        configuration: { attachmentFields: ['attachments'] },
-      }));
+      FormsService.getFormByName.returns(
+        of({
+          name: 'default-form',
+          configuration: { attachmentFields: ['attachments'] },
+        })
+      );
       (global as any).RecordTypesService.get.returns(of({ name: 'rdmp', hooks: {}, searchable: false }));
 
       const result = await RecordsService.updateMeta(
@@ -2231,7 +2381,7 @@ describe('RecordsService', function () {
         true,
         true,
         {},
-        { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file' }] },
+        { attachments: [{ attachmentId: 'attachment-1', fileId: 'new-file' }] }
       );
 
       expect(result.wasPersisted()).to.equal(true);
@@ -3572,7 +3722,12 @@ describe('RecordsService', function () {
     it('returns not-saved when update persistence is explicitly rejected', async function () {
       mockStorageService.updateMeta.resolves({ success: false, applicationState: 'not-applied' });
       const result = await RecordsService.updateMeta(
-        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+        { id: 'brand-1' },
+        'record-123',
+        updateRecord(),
+        { username: 'user-1' },
+        false,
+        false
       );
 
       expect(result.outcome).to.equal('not-saved');
@@ -3582,7 +3737,12 @@ describe('RecordsService', function () {
     it('returns unknown when update persistence is ambiguous', async function () {
       mockStorageService.updateMeta.resolves({ success: false });
       const result = await RecordsService.updateMeta(
-        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+        { id: 'brand-1' },
+        'record-123',
+        updateRecord(),
+        { username: 'user-1' },
+        false,
+        false
       );
 
       expect(result.outcome).to.equal('unknown');
@@ -3595,7 +3755,12 @@ describe('RecordsService', function () {
         findUnresolvedByOid: sinon.stub().rejects(new Error('journal read failed')),
       };
       const result = await RecordsService.updateMeta(
-        { id: 'brand-1' }, 'record-123', updateRecord(), { username: 'user-1' }, false, false
+        { id: 'brand-1' },
+        'record-123',
+        updateRecord(),
+        { username: 'user-1' },
+        false,
+        false
       );
 
       expect(result.outcome).to.equal('not-saved');
@@ -7237,31 +7402,124 @@ describe('RecordsService', function () {
     });
   });
 
-  describe('Effect hook lifecycle integration', function () {
-    function recordTypeWithHooks(hooks: any): any {
-      return { name: 'rdmp', searchable: false, hooks };
-    }
+  function installPersistedFixtureHookStubs(order: string[]) {
+    const hooks = {
+      runTemplates: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('create-pre');
+        return record;
+      }),
+      sendRecordNotification: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('create-post');
+        return record;
+      }),
+      runHooksSync: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('update-pre');
+        return record;
+      }),
+      checkTotalSizeOfFilesInRecord: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('delete-pre');
+        return record;
+      }),
+      queueTriggerCall: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('delete-post');
+        return record;
+      }),
+      transitionWorkflow: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('transition-pre');
+        return record;
+      }),
+      addWorkspaceToRecord: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('transition-postSync');
+        return record;
+      }),
+      publishDoiTrigger: sinon.stub().callsFake((_oid: string, record: EffectRecord) => {
+        order.push('transition-post');
+        return record;
+      }),
+    };
+    mockSails.services.rdmpservice = {
+      runTemplates: hooks.runTemplates,
+      checkTotalSizeOfFilesInRecord: hooks.checkTotalSizeOfFilesInRecord,
+      queueTriggerCall: hooks.queueTriggerCall,
+      addWorkspaceToRecord: hooks.addWorkspaceToRecord,
+    };
+    mockSails.services.emailservice = { sendRecordNotification: hooks.sendRecordNotification };
+    mockSails.services.triggerservice = {
+      runHooksSync: hooks.runHooksSync,
+      transitionWorkflow: hooks.transitionWorkflow,
+    };
+    mockSails.services.doiservice = { publishDoiTrigger: hooks.publishDoiTrigger };
+    return hooks;
+  }
 
-    let committedEffectRecord: any;
-    const commitEffectRecord = (oid: string, candidate: any) => {
+  describe('A01 updateNotificationLog return and mutation behavior', function () {
+    it('always returns a Promise and resolves the same directly mutated record when saveRecord is false', async function () {
+      const record: EffectRecord = {
+        notification: { log: [] },
+      };
+
+      const operation = RecordsService.updateNotificationLog('record-123', record, {
+        forceRun: true,
+        flagName: 'notification.state',
+        flagVal: 'emailed',
+        logName: 'notification.log',
+        saveRecord: false,
+      });
+
+      expect(operation).to.be.instanceOf(Promise);
+      const result = await operation;
+      expect(result).to.equal(record);
+      expect(_.get(record, 'notification.state')).to.equal('emailed');
+      expect(_.get(record, 'notification.log')).to.be.an('array').with.length(1);
+      expect(_.get(record, 'notification.log[0].date')).to.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+    });
+
+    it('mutates an internal snapshot and resolves the reloaded replacement when saveRecord is true', async function () {
+      const record: EffectRecord = { notification: { state: 'before' } };
+      const original = structuredClone(record);
+      const persistedSnapshot: EffectRecord = { notification: { state: 'persisted-before' } };
+      const reloaded: EffectRecord = { notification: { state: 'reloaded' }, revision: 2 };
+      RecordsService.mutateMetaInternal = sinon.stub().callsFake(async (request: NotificationMutationRequest) => {
+        request.mutate(persistedSnapshot);
+        return {
+          requestId: 'notification-request',
+          outcome: 'saved',
+          wasPersisted: () => true,
+        };
+      });
+      RecordsService.getMeta = sinon.stub().resolves(reloaded);
+
+      const operation = RecordsService.updateNotificationLog('record-123', record, {
+        forceRun: true,
+        flagName: 'notification.state',
+        flagVal: 'persisted-after',
+        saveRecord: true,
+      });
+
+      expect(operation).to.be.instanceOf(Promise);
+      const result = await operation;
+      expect(record).to.deep.equal(original);
+      expect(persistedSnapshot).to.deep.equal({ notification: { state: 'persisted-after' } });
+      expect(result).to.equal(reloaded);
+      expect(RecordsService.getMeta.calledOnceWithExactly('record-123')).to.equal(true);
+    });
+  });
+
+  describe('Effect hook lifecycle integration', function () {
+    let committedEffectRecord: EffectRecord;
+    const commitEffectRecord = (oid: string, candidate: EffectRecord): void => {
       committedEffectRecord = { ...structuredClone(candidate), redboxOid: oid };
     };
 
     beforeEach(function () {
-      committedEffectRecord = {
-        redboxOid: 'record-123',
-        metadata: { title: 'Test' },
-        metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
-        workflow: { stage: 'draft' },
-        authorization: { edit: ['user-1'], view: [], editRoles: [], viewRoles: [] },
-      };
+      committedEffectRecord = structuredClone(persistedEffectRecord());
       mockStorageService.getMeta.callsFake(async () => structuredClone(committedEffectRecord));
-      mockStorageService.create.callsFake(async (_brand: unknown, candidate: any) => {
+      mockStorageService.create.callsFake(async (_brand: { id: string }, candidate: EffectRecord) => {
         const oid = String(candidate.redboxOid);
         commitEffectRecord(oid, candidate);
         return { success: true, oid, applicationState: 'applied' };
       });
-      mockStorageService.updateMeta.callsFake(async (_brand: unknown, oid: string, candidate: any) => {
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
         commitEffectRecord(oid, candidate);
         return { success: true, oid, applicationState: 'applied' };
       });
@@ -7317,6 +7575,200 @@ describe('RecordsService', function () {
       } finally {
         delete (globalThis as any).__effectHookOrder;
       }
+    });
+
+    it('preserves targeted-create transition ordering around the create lifecycle', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const targetStep = persistedEffectWorkflowStep(persistedRecordType, 'published');
+      const order: string[] = [];
+      const hooks = installPersistedFixtureHookStubs(order);
+      mockStorageService.create.callsFake(async (_brand: { id: string }, candidate: EffectRecord) => {
+        order.push('primary-persistence');
+        const oid = String(candidate.redboxOid);
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
+        order.push('transition-postSync-persistence');
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      WorkflowStepsService.get = sinon.stub().returns(of(targetStep));
+
+      const result = await RecordsService.create(
+        { id: persistedRecordType.branding },
+        { metadata: { title: 'Targeted create' } },
+        persistedRecordType,
+        { username: 'publisher', roles: [{ name: 'Publisher' }] },
+        true,
+        true,
+        targetStep.name
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(order).to.deep.equal([
+        'transition-pre',
+        'create-pre',
+        'primary-persistence',
+        'transition-postSync',
+        'transition-postSync-persistence',
+        'create-post',
+        'transition-post',
+      ]);
+      assertPersistedHookExecutions(
+        hooks.runTemplates,
+        persistedEffectHookDefinition(persistedRecordType, 'onCreate', 'pre', 0)
+      );
+      assertPersistedHookExecutions(
+        hooks.sendRecordNotification,
+        persistedEffectHookDefinition(persistedRecordType, 'onCreate', 'post', 0)
+      );
+      assertPersistedHookExecutions(
+        hooks.transitionWorkflow,
+        persistedEffectHookDefinition(persistedRecordType, 'onTransitionWorkflow', 'pre', 0)
+      );
+      expect(hooks.transitionWorkflow.firstCall.args[1]).to.deep.include({
+        workflow: targetStep.config.workflow,
+      });
+      assertPersistedHookExecutions(
+        hooks.addWorkspaceToRecord,
+        persistedEffectHookDefinition(persistedRecordType, 'onTransitionWorkflow', 'postSync', 0)
+      );
+      assertPersistedHookExecutions(
+        hooks.publishDoiTrigger,
+        persistedEffectHookDefinition(persistedRecordType, 'onTransitionWorkflow', 'post', 0)
+      );
+    });
+
+    it('runs the persisted update hook row before persistence with its fixture options intact', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
+      committedEffectRecord.metaMetadata = {
+        type: persistedRecordType.name,
+        form: startingStep.config.form,
+        brandId: persistedRecordType.branding,
+      };
+      committedEffectRecord.workflow = structuredClone(startingStep.config.workflow);
+      const order: string[] = [];
+      const hooks = installPersistedFixtureHookStubs(order);
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
+        order.push('persistence');
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      RecordTypesService.get = sinon.stub().returns(of(persistedRecordType));
+
+      const result = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        structuredClone(committedEffectRecord),
+        { username: 'user-1' }
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(order).to.deep.equal(['update-pre', 'persistence']);
+      assertPersistedHookExecutions(
+        hooks.runHooksSync,
+        persistedEffectHookDefinition(persistedRecordType, 'onUpdate', 'pre', 0)
+      );
+    });
+
+    it('detects transitions only from an explicit target and preserves transition lifecycle ordering', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
+      const nextStep = persistedEffectWorkflowStep(persistedRecordType, 'published');
+      committedEffectRecord.metaMetadata = {
+        type: persistedRecordType.name,
+        form: startingStep.config.form,
+        brandId: persistedRecordType.branding,
+      };
+      committedEffectRecord.workflow = structuredClone(startingStep.config.workflow);
+      const order: string[] = [];
+      const hooks = installPersistedFixtureHookStubs(order);
+      RecordTypesService.get = sinon.stub().returns(of(persistedRecordType));
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
+        order.push('primary-persistence');
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+
+      const ordinaryUpdate = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        structuredClone(committedEffectRecord),
+        { username: 'user-1' }
+      );
+      await new Promise(resolve => setImmediate(resolve));
+      expect(ordinaryUpdate.wasPersisted()).to.equal(true);
+      expect(order).to.deep.equal(['update-pre', 'primary-persistence']);
+
+      order.length = 0;
+      mockStorageService.updateMeta.resetHistory();
+      const workflowOnlyUpdate = structuredClone(committedEffectRecord);
+      workflowOnlyUpdate.workflow = structuredClone(nextStep.config.workflow);
+      const workflowOnlyResult = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        workflowOnlyUpdate,
+        { username: 'user-1' }
+      );
+      await new Promise(resolve => setImmediate(resolve));
+      expect(workflowOnlyResult.wasPersisted()).to.equal(false);
+      expect(workflowOnlyResult.problems[0].issues[0].code).to.equal('record-validation-authority-context-divergence');
+      expect(order).to.deep.equal([]);
+      expect(committedEffectRecord.workflow).to.deep.equal(startingStep.config.workflow);
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+
+      order.length = 0;
+      mockStorageService.updateMeta.resetHistory();
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
+        order.push(
+          mockStorageService.updateMeta.callCount === 1 ? 'primary-persistence' : 'transition-postSync-persistence'
+        );
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      WorkflowStepsService.get = sinon.stub().returns(of(nextStep));
+
+      const result = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        structuredClone(committedEffectRecord),
+        { username: 'publisher', roles: [{ name: 'Publisher' }] },
+        true,
+        true,
+        nextStep
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(order).to.deep.equal([
+        'transition-pre',
+        'update-pre',
+        'primary-persistence',
+        'transition-postSync',
+        'transition-postSync-persistence',
+        'transition-post',
+      ]);
+      assertPersistedHookExecutions(
+        hooks.runHooksSync,
+        persistedEffectHookDefinition(persistedRecordType, 'onUpdate', 'pre', 0),
+        2
+      );
+      assertPersistedHookExecutions(
+        hooks.transitionWorkflow,
+        persistedEffectHookDefinition(persistedRecordType, 'onTransitionWorkflow', 'pre', 0)
+      );
+      assertPersistedHookExecutions(
+        hooks.addWorkspaceToRecord,
+        persistedEffectHookDefinition(persistedRecordType, 'onTransitionWorkflow', 'postSync', 0)
+      );
+      assertPersistedHookExecutions(
+        hooks.publishDoiTrigger,
+        persistedEffectHookDefinition(persistedRecordType, 'onTransitionWorkflow', 'post', 0)
+      );
     });
 
     it('does not persist after a pre-hook failure', async function () {
@@ -7627,6 +8079,100 @@ describe('RecordsService', function () {
   describe('delete hook audit boundary', function () {
     beforeEach(function () {
       enableLifecycleStorage();
+    });
+
+    it('uses the persisted delete rows intact and preserves lifecycle persistence, audit, and post ordering', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
+      const persistedBrand = a01RepresentativeDatabase.brands.find(
+        candidate => candidate.id === persistedRecordType.branding
+      );
+      if (!persistedBrand) {
+        throw new Error(`The A01 database fixture has no brand '${persistedRecordType.branding}'.`);
+      }
+      BrandingService.getBrandById = sinon.stub().returns(persistedBrand);
+      BrandingService.getBrand = sinon.stub().returns(persistedBrand);
+      const order: string[] = [];
+      const hooks = installPersistedFixtureHookStubs(order);
+      mockStorageService.createTombstone.callsFake(
+        async (_brand: { id: string }, oid: string, tombstone: EffectRecord & { revision: number }) => {
+          order.push('tombstone-intent');
+          return {
+            success: true,
+            oid,
+            applicationState: 'applied',
+            committedRevision: tombstone.revision,
+            committedRecord: structuredClone(tombstone),
+          };
+        }
+      );
+      mockStorageService.removeActiveRecord.callsFake(
+        async (_brand: { id: string }, oid: string, options: { precondition: { expectedRevision: number } }) => {
+          order.push('active-removal');
+          return {
+            success: true,
+            oid,
+            applicationState: 'applied',
+            committedRevision: options.precondition.expectedRevision + 1,
+            removedRecord: structuredClone(await mockStorageService.getMeta(oid)),
+          };
+        }
+      );
+      mockStorageService.updateTombstone.callsFake(
+        async (
+          _brand: { id: string },
+          oid: string,
+          mutation: EffectRecord & { lifecycleOperation?: { targetRevision?: number } }
+        ) => {
+          order.push('tombstone-finalization');
+          return {
+            success: true,
+            oid,
+            applicationState: 'applied',
+            committedRevision: mutation.lifecycleOperation?.targetRevision,
+            committedRecord: structuredClone(mutation),
+          };
+        }
+      );
+      mockQueueService.now.callsFake(() => {
+        order.push('audit');
+      });
+      mockSearchService.remove.callsFake(() => {
+        order.push('search-removal');
+      });
+      RecordTypesService.get = sinon.stub().returns(of(persistedRecordType));
+
+      const persistedDeleteInput = structuredClone(persistedEffectRecord());
+      expect(persistedDeleteInput.metaMetadata).to.deep.equal({
+        type: persistedRecordType.name,
+        form: startingStep.config.form,
+        brandId: persistedRecordType.branding,
+      });
+      mockStorageService.getMeta.callsFake(async () => structuredClone(persistedDeleteInput));
+
+      const result = await RecordsService.delete('record-123', false, persistedDeleteInput, persistedRecordType, {
+        username: 'user-1',
+      });
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(order).to.deep.equal([
+        'delete-pre',
+        'tombstone-intent',
+        'active-removal',
+        'tombstone-finalization',
+        'audit',
+        'search-removal',
+        'delete-post',
+      ]);
+      assertPersistedHookExecutions(
+        hooks.checkTotalSizeOfFilesInRecord,
+        persistedEffectHookDefinition(persistedRecordType, 'onDelete', 'pre', 0)
+      );
+      assertPersistedHookExecutions(
+        hooks.queueTriggerCall,
+        persistedEffectHookDefinition(persistedRecordType, 'onDelete', 'post', 0)
+      );
     });
 
     it('threads a postSync replacement to detached hooks without mutating the caller-owned record', async function () {

@@ -2,6 +2,8 @@
 
 This document describes how to configure record-type hooks in ReDBox and explains the behaviour of the following hook modes: `onCreate`, `onUpdate`, `onDelete`, and `onTransitionWorkflow`.
 
+The current shipped-expression baseline and proposed migration mappings are documented in [Legacy Record Action Migration Inventory](Legacy-Record-Action-Migration-Inventory.md).
+
 The implementation details come from the `RecordsService` behaviour. Hooks are declared on the record type under `hooks.<mode>` and may be defined for three phases:
 
 - `pre` — synchronous pre-save triggers (executed and awaited before saving). If a `pre` hook throws an error the save operation is aborted.
