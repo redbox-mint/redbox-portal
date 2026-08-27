@@ -96,6 +96,10 @@ describe('record-schema Mongo models', function () {
         name: 'record_schema_reference_digest_kind',
       },
       {
+        key: { digest: 1, kind: 1, brand: 1, portal: 1, referenceKey: 1 },
+        name: 'record_schema_reference_grant_lookup',
+      },
+      {
         key: { oid: 1, kind: 1 },
         name: 'record_schema_reference_oid_kind',
         sparse: true,
