@@ -44,6 +44,7 @@ type RecordSchemaProblemKind =
   | 'unavailable';
 
 type RecordSchemaMappedProblemKind = Exclude<RecordSchemaProblemKind, 'invalid-request'>;
+type RecordSchemaControllerLogContext = 'controller-create' | 'controller-update' | 'controller-immutable';
 
 interface RecordSchemaProblemDescriptor {
   readonly type: string;
@@ -215,7 +216,25 @@ export namespace Controllers {
       });
     }
 
-    private sendUnexpectedError(req: Sails.Req, res: Sails.Res, instance: string, _error: unknown) {
+    private sendUnexpectedError(
+      req: Sails.Req,
+      res: Sails.Res,
+      instance: string,
+      context: RecordSchemaControllerLogContext,
+      error: unknown
+    ) {
+      try {
+        sails.log.error(
+          'record_schema_unexpected_failure',
+          Object.freeze({
+            event: 'record_schema_unexpected_failure',
+            context,
+            error_type: error instanceof Error ? 'error' : 'non-error',
+          })
+        );
+      } catch {
+        // Logging must never alter the sanitized failure response.
+      }
       return this.sendProblem(req, res, 'unavailable', instance);
     }
 
@@ -360,7 +379,7 @@ export namespace Controllers {
         }
         return this.sendCreateFailure(req, res, instance, result);
       } catch (error: unknown) {
-        return this.sendUnexpectedError(req, res, instance, error);
+        return this.sendUnexpectedError(req, res, instance, 'controller-create', error);
       }
     }
 
@@ -394,7 +413,7 @@ export namespace Controllers {
         }
         return this.sendUpdateFailure(req, res, instance, result);
       } catch (error: unknown) {
-        return this.sendUnexpectedError(req, res, instance, error);
+        return this.sendUnexpectedError(req, res, instance, 'controller-update', error);
       }
     }
 
@@ -428,7 +447,7 @@ export namespace Controllers {
         }
         return this.sendImmutableFailure(req, res, instance, result);
       } catch (error: unknown) {
-        return this.sendUnexpectedError(req, res, instance, error);
+        return this.sendUnexpectedError(req, res, instance, 'controller-immutable', error);
       }
     }
   }

@@ -472,6 +472,7 @@ interface ControllerActionCase {
   readonly run: (req: Sails.Req, res: Sails.Res) => Promise<unknown>;
   readonly request: Sails.Req;
   readonly resolver: sinon.SinonStub;
+  readonly unexpectedFailureContext: 'controller-create' | 'controller-update' | 'controller-immutable';
 }
 
 function controllerActionCases(
@@ -492,6 +493,7 @@ function controllerActionCases(
         options
       ),
       resolver: resolver.resolveCreate,
+      unexpectedFailureContext: 'controller-create',
     },
     {
       run: (req, res) => controller.update(req, res),
@@ -505,6 +507,7 @@ function controllerActionCases(
         options
       ),
       resolver: resolver.resolveUpdate,
+      unexpectedFailureContext: 'controller-update',
     },
     {
       run: (req, res) => controller.immutable(req, res),
@@ -518,6 +521,7 @@ function controllerActionCases(
         options
       ),
       resolver: resolver.resolveImmutable,
+      unexpectedFailureContext: 'controller-immutable',
     },
   ];
 }
@@ -533,6 +537,7 @@ describe('Webservice RecordSchemaController', function () {
   let controller: TestRecordSchemaController;
   let resolver: ResolverStubs;
   let getBrand: sinon.SinonStub<[string], BrandingModel | undefined>;
+  let logError: sinon.SinonStub;
   let priorSails: unknown;
   let priorBrandingService: unknown;
   let priorLodash: unknown;
@@ -566,6 +571,7 @@ describe('Webservice RecordSchemaController', function () {
     resolvedBrand.name = 'default';
     getBrand = sinon.stub<[string], BrandingModel | undefined>();
     getBrand.callsFake(name => (name === 'default' ? resolvedBrand : undefined));
+    logError = sinon.stub();
     Reflect.set(globalThis, 'sails', {
       config: {},
       services: { recordschemaservice: resolver },
@@ -574,7 +580,7 @@ describe('Webservice RecordSchemaController', function () {
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        error: sinon.stub(),
+        error: logError,
         trace: sinon.stub(),
       },
     });
@@ -1333,14 +1339,20 @@ describe('Webservice RecordSchemaController', function () {
     }
   });
 
-  it('does not attach unexpected resolver errors to the shared response logger', async function () {
-    const error = new Error('private resolver failure for oid-1 with private-token');
+  it('logs only the allowlisted event, controller context, and error type for unexpected failures', async function () {
+    const error = Object.assign(new Error('private resolver failure for oid-1 with private-token'), {
+      oid: 'oid-1',
+      token: 'private-token',
+      record: { title: 'private-record-value' },
+      ajvErrors: [{ keyword: 'required', instancePath: '/private-field' }],
+    });
     resolver.resolveCreate.rejects(error);
     resolver.resolveUpdate.rejects(error);
     resolver.resolveImmutable.rejects(error);
 
     for (const testCase of controllerActionCases(controller, resolver)) {
       controller.resetSentResponses();
+      logError.resetHistory();
       const res = responseAdapter();
 
       await testCase.run(testCase.request, res);
@@ -1357,6 +1369,16 @@ describe('Webservice RecordSchemaController', function () {
       expect(JSON.stringify(response)).not.to.include(error.message);
       expect(JSON.stringify(response)).not.to.include('oid-1');
       expect(JSON.stringify(response)).not.to.include('private-token');
+      expect(
+        logError.calledOnceWithExactly('record_schema_unexpected_failure', {
+          event: 'record_schema_unexpected_failure',
+          context: testCase.unexpectedFailureContext,
+          error_type: 'error',
+        })
+      ).to.equal(true);
+      expect(JSON.stringify(logError.firstCall.args)).not.to.match(
+        /private resolver|oid-1|private-token|private-record-value|required|private-field/
+      );
     }
   });
 
