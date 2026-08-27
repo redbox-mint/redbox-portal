@@ -54,6 +54,7 @@ x-rbportal-env: &rbportal-env
   - sails_recordSchema__enabled=true
   - sails_recordSchema__unknownProperties=allow
   - sails_recordValidation__mode=shadow
+  - sails_recordtype__dataPublication__recordValidation__mode=enforce
   - sails_security__csrf=false
   - 'BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}'
 
