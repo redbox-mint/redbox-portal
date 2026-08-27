@@ -58,8 +58,8 @@ import {
   RecordConcurrentModificationConfig,
   RecordConcurrencyMetadata,
   RecordConcurrencyResolution,
+  RecordSaveLifecyclePhase,
   RecordSaveIssue,
-  RecordSavePhase,
   RecordSaveProblem,
   RecordSaveResult,
   sanitizeRecordConcurrencyMetadata,
@@ -101,7 +101,7 @@ export type RecordActionConcurrencyOutcome =
   | 'authorization-lost'
   | 'unknown';
 
-const recordSavePhases: ReadonlySet<RecordSavePhase> = new Set([
+const recordSaveLifecyclePhases: ReadonlySet<RecordSaveLifecyclePhase> = new Set([
   'pre-save',
   'persistence',
   'attachments',
@@ -1252,17 +1252,32 @@ export class RecordActionResult implements RecordSaveResult {
 
   private static toSafeProblem(value: unknown): RecordSaveProblem | null {
     const problem = RecordActionResult.plainRecord(value);
-    if (
-      !problem ||
-      !isRecordSaveProblemKind(problem['kind']) ||
-      !recordSavePhases.has(problem['phase'] as RecordSavePhase)
-    ) {
+    if (!problem || !isRecordSaveProblemKind(problem['kind'])) {
       return null;
     }
     const issues = Array.isArray(problem['issues']) ? problem['issues'].map(RecordActionResult.toSafeIssue) : [];
+
+    if (problem['phase'] === 'schema') {
+      return problem['source'] === 'schema'
+        ? {
+            kind: problem['kind'],
+            source: 'schema',
+            phase: 'schema',
+            issues,
+          }
+        : null;
+    }
+
+    if (
+      problem['source'] !== undefined ||
+      !recordSaveLifecyclePhases.has(problem['phase'] as RecordSaveLifecyclePhase)
+    ) {
+      return null;
+    }
+
     return {
       kind: problem['kind'],
-      phase: problem['phase'] as RecordSavePhase,
+      phase: problem['phase'] as RecordSaveLifecyclePhase,
       issues,
     };
   }

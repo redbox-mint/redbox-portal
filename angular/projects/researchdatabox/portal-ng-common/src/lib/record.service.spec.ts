@@ -208,6 +208,36 @@ describe('RecordService', () => {
     expect(result.problems.length).toBe(1);
   });
 
+  it('preserves schema provenance on typed save problems', () => {
+    const result = RecordActionResult.fromResponse(
+      {
+        meta: {
+          outcome: 'not-saved',
+          problems: [
+            {
+              kind: 'validation',
+              source: 'schema',
+              phase: 'schema',
+              issues: [{ code: 'record-schema.type', message: '@record-schema.type' }],
+            },
+          ],
+        },
+      },
+      422,
+      '11111111-1111-4111-8111-111111111111'
+    );
+
+    expect(result.outcome).toBe('not-saved');
+    expect(result.problems).toEqual([
+      {
+        kind: 'validation',
+        source: 'schema',
+        phase: 'schema',
+        issues: [{ code: 'record-schema.type', message: '@record-schema.type' }],
+      },
+    ]);
+  });
+
   it('normalises only bounded concurrency result metadata', async () => {
     const updatePromise = recordService.update('oid-123', { title: 'Test record' });
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
