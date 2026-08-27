@@ -58,7 +58,8 @@ export interface RecordSchemaUpdateGrantReferenceInput extends RecordSchemaRefer
 }
 
 export type RecordSchemaGrantReferenceInput =
-  RecordSchemaCreateGrantReferenceInput | RecordSchemaUpdateGrantReferenceInput;
+  | RecordSchemaCreateGrantReferenceInput
+  | RecordSchemaUpdateGrantReferenceInput;
 
 export interface RecordSchemaSaveReferenceInput extends RecordSchemaReferenceCommon {
   readonly kind: 'save';
@@ -79,7 +80,9 @@ export interface RecordSchemaPinReferenceInput extends RecordSchemaReferenceComm
 }
 
 export type RecordSchemaReferenceInput =
-  RecordSchemaGrantReferenceInput | RecordSchemaSaveReferenceInput | RecordSchemaPinReferenceInput;
+  | RecordSchemaGrantReferenceInput
+  | RecordSchemaSaveReferenceInput
+  | RecordSchemaPinReferenceInput;
 
 export type RecordSchemaReferenceModel = RecordSchemaReferenceInput & {
   readonly createdAt: Date;
@@ -94,9 +97,10 @@ export interface RecordSchemaGrantQuery {
 }
 
 /**
- * Indexed immutable-authorization lookup. Storage returns at most one grant:
- * create grants are selected by exact public context, while update grants are
- * joined to a currently editable active record for the supplied principals.
+ * Indexed immutable-authorization cursor lookup. Storage returns the next
+ * grant after the exclusive cursor, or null at conclusive exhaustion. Create
+ * grants are selected by exact public context, while update grants are joined
+ * to a currently editable active record for the supplied principals.
  */
 export interface RecordSchemaAuthorizationGrantQuery {
   readonly digest: string;
@@ -108,6 +112,8 @@ export interface RecordSchemaAuthorizationGrantQuery {
   readonly recordBrandId: string;
   readonly username: string;
   readonly roleNames: readonly string[];
+  /** Exclusive stable cursor ordered by the globally unique reference key. */
+  readonly afterReferenceKey?: string;
 }
 
 export interface RecordSchemaReferenceQuery {

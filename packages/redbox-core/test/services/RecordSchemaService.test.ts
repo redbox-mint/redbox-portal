@@ -34,6 +34,7 @@ import {
   recordSchema,
   type RecordJsonSchemaEtag,
   type RecordSchemaArtifactModel,
+  type RecordSchemaAuthorizationGrantQuery,
   type RecordSchemaGrantReferenceInput,
   type RecordSchemaReferenceModel,
   resetDiscoveredRecordContractContributorRegistry,
@@ -486,7 +487,11 @@ async function createImmutableUpdateSeed(): Promise<ImmutableSeed> {
 
 function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<RecordSchemaServiceDependencies> = {}) {
   const getRecordSchemaArtifact = sinon.stub().resolves(seed.artifact);
-  const findRecordSchemaGrantForAuthorization = sinon.stub().resolves(seed.grant);
+  const findRecordSchemaGrantForAuthorization = sinon
+    .stub()
+    .callsFake(async (query: RecordSchemaAuthorizationGrantQuery) =>
+      query.afterReferenceKey === undefined ? seed.grant : null
+    );
   const listRecordSchemaReferences = sinon.stub().resolves([seed.grant]);
   const touchRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
   const storageProvider = {
@@ -3820,6 +3825,38 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(buildContractFormConfig.calledOnce).to.equal(true);
     expect(conditionalEvaluated).to.equal(false);
     expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
+  });
+
+  it('continues past a drifted update grant when a later equivalent grant is currently valid', async function () {
+    const seed = await createImmutableUpdateSeed();
+    if (seed.grant.schemaKind !== 'update') throw new Error('Expected an immutable update grant.');
+    const laterGrant: RecordSchemaGrantReferenceInput = {
+      ...seed.grant,
+      referenceKey: `${seed.grant.referenceKey}.later`,
+      oid: 'oid-2',
+    };
+    const buildContractFormConfig = sinon.stub();
+    buildContractFormConfig.onFirstCall().resolves({
+      ok: true,
+      effectiveForm: simpleForm(['changed-title']),
+    });
+    buildContractFormConfig.onSecondCall().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
+    const resolveContractContext = sinon.stub();
+    resolveContractContext.onFirstCall().resolves(updateContext('oid-1'));
+    resolveContractContext.onSecondCall().resolves(updateContext('oid-2'));
+    const fixture = immutableResolutionFixture(seed, { buildContractFormConfig, resolveContractContext });
+    fixture.findRecordSchemaGrantForAuthorization.callsFake(async (query: RecordSchemaAuthorizationGrantQuery) => {
+      if (query.afterReferenceKey === undefined) return seed.grant;
+      return query.afterReferenceKey === seed.grant.referenceKey ? laterGrant : null;
+    });
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed));
+
+    expect(result.kind).to.equal('resolved');
+    expect(resolveContractContext.callCount).to.equal(2);
+    expect(fixture.authorizeUpdate.callCount).to.equal(2);
+    expect(buildContractFormConfig.callCount).to.equal(2);
+    expect(fixture.touchRecordSchemaArtifact.calledOnceWithExactly(seed.artifact.digest)).to.equal(true);
   });
 
   it('does not evaluate an exact conditional or touch access time before authorization', async function () {

@@ -327,8 +327,9 @@ describe('MongoStorageService', function () {
     expect(mockSails.emit.calledWith('hook:redbox:storage:ready')).to.equal(true);
   });
 
-  it('selects at most one update grant through the indexed current-edit ACL join', async function () {
+  it('selects the next update grant after an exclusive authorization cursor through the current-edit ACL join', async function () {
     const digest = 'a'.repeat(64);
+    const afterReferenceKey = 'grant:update:' + 'a'.repeat(64);
     const grant = {
       referenceKey: 'grant:update:' + 'b'.repeat(64),
       digest,
@@ -359,10 +360,16 @@ describe('MongoStorageService', function () {
       recordBrandId: 'brand-1',
       username: 'alice',
       roleNames: ['Researcher'],
+      afterReferenceKey,
     });
 
     expect(result).to.deep.include({ referenceKey: grant.referenceKey, oid: 'oid-1' });
     const pipeline = aggregate.firstCall.firstArg;
+    const {
+      RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
+      RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
+    } = require('../../src/services/MongoStorageService');
+    expect(aggregate.firstCall.args[1]).to.deep.equal({ hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY });
     expect(pipeline[0]).to.deep.equal({
       $match: {
         digest,
@@ -372,6 +379,7 @@ describe('MongoStorageService', function () {
         schemaKind: 'update',
         recordType: 'dataset',
         operation: 'strict-all',
+        referenceKey: { $gt: afterReferenceKey },
       },
     });
     expect(pipeline).to.deep.include({ $limit: 1 });
@@ -388,14 +396,14 @@ describe('MongoStorageService', function () {
         },
       },
     ]);
-    const { RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS } = require('../../src/services/MongoStorageService');
     expect(aggregateCursor.maxTimeMS.calledOnceWithExactly(RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS)).to.equal(
       true
     );
   });
 
-  it('selects at most one create grant by exact indexed public context', async function () {
+  it('selects the next create grant after an exclusive authorization cursor by exact public context', async function () {
     const digest = 'a'.repeat(64);
+    const afterReferenceKey = 'grant:create:' + 'a'.repeat(64);
     const grant = {
       referenceKey: 'grant:create:' + 'b'.repeat(64),
       digest,
@@ -421,10 +429,14 @@ describe('MongoStorageService', function () {
       recordBrandId: 'brand-1',
       username: 'alice',
       roleNames: [],
+      afterReferenceKey,
     });
 
     expect(result).to.deep.include({ referenceKey: grant.referenceKey, schemaKind: 'create' });
-    const { RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS } = require('../../src/services/MongoStorageService');
+    const {
+      RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
+      RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
+    } = require('../../src/services/MongoStorageService');
     expect(
       findOne.calledOnceWithExactly(
         {
@@ -435,9 +447,11 @@ describe('MongoStorageService', function () {
           schemaKind: 'create',
           recordType: 'dataset',
           operation: 'strict-all',
+          referenceKey: { $gt: afterReferenceKey },
         },
         {
           sort: { referenceKey: 1 },
+          hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
           maxTimeMS: RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
         }
       )
@@ -608,6 +622,19 @@ describe('MongoStorageService', function () {
             recordType: 1,
             operation: 1,
             oid: 1,
+          },
+        },
+        {
+          name: 'digest_1_kind_1_brand_1_portal_1_schemaKind_1_recordType_1_operation_1_referenceKey_1',
+          key: {
+            digest: 1,
+            kind: 1,
+            brand: 1,
+            portal: 1,
+            schemaKind: 1,
+            recordType: 1,
+            operation: 1,
+            referenceKey: 1,
           },
         },
         {

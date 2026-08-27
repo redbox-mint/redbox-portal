@@ -38,7 +38,12 @@ import { BrandingModel } from '../../../src/model';
 import { JSON_SCHEMA_DRAFT_2020_12, RECORD_SCHEMA_PROBLEM_CODES } from '../../../src/record-contract';
 import type { ApiRouteDefinition } from '../../../src/api-routes';
 import type { BuildResponseType } from '../../../src/model';
-import type { RecordSchemaArtifactModel, RecordSchemaGrantReferenceInput, RecordSchemaService } from '../../../src';
+import type {
+  RecordSchemaArtifactModel,
+  RecordSchemaAuthorizationGrantQuery,
+  RecordSchemaGrantReferenceInput,
+  RecordSchemaService,
+} from '../../../src';
 import { Services as RecordSchemaServices } from '../../../src/services/RecordSchemaService';
 import type { FormRecordAccessRole, FormRecordAccessUser } from '../../../src/services/FormsService';
 import type {
@@ -412,7 +417,15 @@ function immutableControllerService(
     getConfig: enabledRecordSchemaConfig,
     getStorageProvider: () => ({
       getRecordSchemaArtifact: async () => artifact,
-      findRecordSchemaGrantForAuthorization: async () => grants[0] ?? null,
+      findRecordSchemaGrantForAuthorization: async (query: RecordSchemaAuthorizationGrantQuery) => {
+        if (query.afterReferenceKey === undefined) return grants[0] ?? null;
+        for (const grant of grants) {
+          if (grant === null || typeof grant !== 'object') continue;
+          const referenceKey = Reflect.get(grant, 'referenceKey');
+          if (typeof referenceKey === 'string' && referenceKey > query.afterReferenceKey) return grant;
+        }
+        return null;
+      },
       listRecordSchemaReferences: async () => grants,
       touchRecordSchemaArtifact: async () => successfulStorageResponse(),
     }),

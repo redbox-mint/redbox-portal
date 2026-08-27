@@ -1026,7 +1026,8 @@ export type PersistRecordSchemaSaveUsageResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | ({
       readonly kind: 'write-failed';
@@ -1068,7 +1069,8 @@ export type MaterializeRecordSchemaIntegrationPinsResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'limit-exceeded';
@@ -1111,7 +1113,8 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'invalid-input';
       readonly reason: 'shape' | 'digest' | 'datetime' | 'limit';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
     }
   | {
       readonly kind: 'disabled';
@@ -1121,7 +1124,8 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'invalid-state';
@@ -1166,7 +1170,8 @@ type RecordSchemaPipelineSuccess<Grant extends RecordSchemaGrantReferenceInput> 
     });
 
 type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
-  RecordSchemaPipelineSuccess<Grant> | RecordSchemaResolutionFailure;
+  | RecordSchemaPipelineSuccess<Grant>
+  | RecordSchemaResolutionFailure;
 
 interface RecordSchemaCompiledContextBase {
   readonly document: PublishedRecordJsonSchemaDocument;
@@ -2699,38 +2704,46 @@ export namespace Services {
         return immutableGrantInvalidContractResult(request);
       }
 
-      let rawGrant: unknown;
-      try {
-        rawGrant = await storage.findRecordSchemaGrantForAuthorization(authorizationQuery);
-      } catch (error) {
-        this.logUnexpected('resolve-immutable-grant-list', error);
-        return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
-      }
-      if (rawGrant === null) {
-        return immutableNotFoundResult(request);
-      }
-      const parsedGrant = parseImmutableGrant(rawGrant, request);
-      if (
-        parsedGrant.kind !== 'grant' ||
-        parsedGrant.grant.schemaKind !== authorizationQuery.schemaKind ||
-        parsedGrant.grant.recordType !== authorizationQuery.recordType ||
-        parsedGrant.grant.operation !== authorizationQuery.operation
-      ) {
-        this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-contract', {
-          error_type: 'non-error',
-        });
-        return immutableGrantInvalidContractResult(request);
-      }
-      const authorizedCompilation = await this.resolveImmutableGrant(
-        config,
-        artifact,
-        parsedGrant.grant,
-        request.caller,
-        actor,
-        request.brand
-      );
-      if (!authorizedCompilation) {
-        return immutableNotFoundResult(request);
+      let afterReferenceKey: string | undefined;
+      let authorizedCompilation: RecordSchemaCompiledContext | undefined;
+      // Each lookup is bounded and cursor-indexed; only null exhaustion is a conclusive denial.
+      while (!authorizedCompilation) {
+        let rawGrant: unknown;
+        try {
+          rawGrant = await storage.findRecordSchemaGrantForAuthorization(
+            afterReferenceKey === undefined
+              ? authorizationQuery
+              : Object.freeze({ ...authorizationQuery, afterReferenceKey })
+          );
+        } catch (error) {
+          this.logUnexpected('resolve-immutable-grant-list', error);
+          return immutableUnavailableResult(request, RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE);
+        }
+        if (rawGrant === null) {
+          return immutableNotFoundResult(request);
+        }
+        const parsedGrant = parseImmutableGrant(rawGrant, request);
+        if (
+          parsedGrant.kind !== 'grant' ||
+          parsedGrant.grant.schemaKind !== authorizationQuery.schemaKind ||
+          parsedGrant.grant.recordType !== authorizationQuery.recordType ||
+          parsedGrant.grant.operation !== authorizationQuery.operation ||
+          (afterReferenceKey !== undefined && compareText(parsedGrant.grant.referenceKey, afterReferenceKey) <= 0)
+        ) {
+          this.safeLog('error', 'record_schema_unexpected_failure', 'resolve-immutable-grant-contract', {
+            error_type: 'non-error',
+          });
+          return immutableGrantInvalidContractResult(request);
+        }
+        authorizedCompilation = await this.resolveImmutableGrant(
+          config,
+          artifact,
+          parsedGrant.grant,
+          request.caller,
+          actor,
+          request.brand
+        );
+        afterReferenceKey = parsedGrant.grant.referenceKey;
       }
 
       const immutableArtifact = verifiedImmutableArtifact(artifact, authorizedCompilation);

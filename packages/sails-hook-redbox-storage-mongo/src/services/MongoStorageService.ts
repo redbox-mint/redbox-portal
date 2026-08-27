@@ -149,6 +149,18 @@ export const RECORD_SCHEMA_ARTIFACT_INDEXES: mongodb.IndexDescription[] = [
   },
 ];
 
+export const RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_NAME = 'record_schema_reference_authorization_cursor_lookup';
+export const RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY = {
+  digest: 1,
+  kind: 1,
+  brand: 1,
+  portal: 1,
+  schemaKind: 1,
+  recordType: 1,
+  operation: 1,
+  referenceKey: 1,
+} as const;
+
 export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
   {
     key: { referenceKey: 1 },
@@ -166,6 +178,10 @@ export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
   {
     key: { digest: 1, kind: 1, brand: 1, portal: 1, schemaKind: 1, recordType: 1, operation: 1, oid: 1 },
     name: 'record_schema_reference_authorization_lookup',
+  },
+  {
+    key: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
+    name: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_NAME,
   },
   {
     key: { oid: 1, kind: 1 },
@@ -1346,10 +1362,21 @@ export namespace Services {
           recordType: this.recordSchemaQueryString(query.recordType, 'recordType'),
           operation: this.recordSchemaQueryString(query.operation, 'operation', 64),
         };
+        if (query.afterReferenceKey !== undefined) {
+          const afterReferenceKey = this.recordSchemaQueryString(query.afterReferenceKey, 'afterReferenceKey');
+          if (!RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(afterReferenceKey)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema authorization query afterReferenceKey is invalid.'
+            );
+          }
+          criteria.referenceKey = { $gt: afterReferenceKey };
+        }
 
         if (schemaKind === 'create') {
           const grant = await this.referenceCollection().findOne(criteria, {
             sort: { referenceKey: 1 },
+            hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
             maxTimeMS: RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
           });
           return grant ? referenceModelFromDocument(grant) : null;
@@ -1362,28 +1389,31 @@ export namespace Services {
           editConditions.push({ 'authorization.editRoles': { $in: roleNames } });
         }
         const grants = await this.referenceCollection()
-          .aggregate([
-            { $match: criteria },
-            {
-              $lookup: {
-                from: Record.tableName,
-                localField: 'oid',
-                foreignField: 'redboxOid',
-                pipeline: [
-                  {
-                    $match: {
-                      'metaMetadata.brandId': recordBrandId,
-                      $or: editConditions,
+          .aggregate(
+            [
+              { $match: criteria },
+              {
+                $lookup: {
+                  from: Record.tableName,
+                  localField: 'oid',
+                  foreignField: 'redboxOid',
+                  pipeline: [
+                    {
+                      $match: {
+                        'metaMetadata.brandId': recordBrandId,
+                        $or: editConditions,
+                      },
                     },
-                  },
-                ],
-                as: 'authorizedRecords',
+                  ],
+                  as: 'authorizedRecords',
+                },
               },
-            },
-            { $match: { 'authorizedRecords.0': { $exists: true } } },
-            { $sort: { referenceKey: 1 } },
-            { $limit: 1 },
-          ])
+              { $match: { 'authorizedRecords.0': { $exists: true } } },
+              { $sort: { referenceKey: 1 } },
+              { $limit: 1 },
+            ],
+            { hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY }
+          )
           .maxTimeMS(RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS)
           .toArray();
         return grants[0] ? referenceModelFromDocument(grants[0]) : null;
