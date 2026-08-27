@@ -54,6 +54,8 @@ export class RecordTypeClass {
 
   @Attr({ type: 'json' })
   public concurrentModification?: RecordConcurrentModificationConfig;
+
+  @Attr({ type: 'json' })
   public recordSchema?: RecordTypeRecordSchemaConfig;
 }
 

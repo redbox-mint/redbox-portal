@@ -186,7 +186,7 @@ describe('HarvestRunService', function () {
     sinon.restore();
   });
 
-  function useRealRecordsService(recordSchemaEnabled: boolean) {
+  function useRealRecordsService(recordSchemaEnabled: boolean | string) {
     const persistedRecords = new Map<string, any>();
     const storageService = {
       create: sinon.stub().callsFake(async (_brand: unknown, candidate: any) => {
@@ -1812,9 +1812,14 @@ describe('HarvestRunService', function () {
     expect((global as any).HarvestRun.updateOne.called).to.equal(false);
   });
 
-  for (const operation of ['update', 'upsert'] as const) {
-    it(`uses trusted internal compensation when a tracked ${operation} hook changes the ACL`, async function () {
-      const { persistedRecords, storageService } = useRealRecordsService(true);
+  for (const [operation, recordSchemaEnabled] of [
+    ['update', true],
+    ['upsert', true],
+    ['update', 'true'],
+    ['upsert', 'true'],
+  ] as const) {
+    it(`uses trusted internal compensation when a tracked ${operation} hook changes the ACL with enabled=${JSON.stringify(recordSchemaEnabled)}`, async function () {
+      const { persistedRecords, storageService } = useRealRecordsService(recordSchemaEnabled);
       const originalRecord = {
         redboxOid: 'record-1',
         revision: 1,

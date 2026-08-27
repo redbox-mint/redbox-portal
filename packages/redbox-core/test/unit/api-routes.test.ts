@@ -1070,8 +1070,12 @@ describe('API routes contract layer', function () {
 
   it('keeps OpenAPI 3.0.3 bounded and form-independent without embedding generated schemas', function () {
     this.timeout(20_000);
-    const hadFormConfig = Object.prototype.hasOwnProperty.call(sails.config, 'form');
-    const previousFormConfig = Reflect.get(sails.config, 'form');
+    const globalWithSails = globalThis as typeof globalThis & {
+      sails?: { config?: Record<string, unknown> };
+    };
+    const previousSails = globalWithSails.sails;
+    const sailsConfig = { ...(previousSails?.config ?? {}) };
+    globalWithSails.sails = { ...(previousSails ?? {}), config: sailsConfig };
     const privateFormMarker = 'must-not-appear-in-static-openapi';
     const configuredForms = Object.fromEntries(
       Array.from({ length: 2_000 }, (_, index) => [
@@ -1084,11 +1088,11 @@ describe('API routes contract layer', function () {
     );
 
     try {
-      Reflect.set(sails.config, 'form', { defaultForm: 'default', forms: {} });
+      Reflect.set(sailsConfig, 'form', { defaultForm: 'default', forms: {} });
       const withoutConfiguredForms = buildCoreApiOpenApiDocument();
       const withoutConfiguredFormsJson = JSON.stringify(withoutConfiguredForms);
 
-      Reflect.set(sails.config, 'form', { defaultForm: 'default', forms: configuredForms });
+      Reflect.set(sailsConfig, 'form', { defaultForm: 'default', forms: configuredForms });
       const withConfiguredForms = buildCoreApiOpenApiDocument();
       const withConfiguredFormsJson = JSON.stringify(withConfiguredForms);
 
@@ -1100,10 +1104,10 @@ describe('API routes contract layer', function () {
         withConfiguredFormsJson.match(new RegExp(RECORD_SCHEMA_RESOLVER_OPENAPI_EXTENSION, 'g')) ?? []
       ).to.have.length(2);
     } finally {
-      if (hadFormConfig) {
-        Reflect.set(sails.config, 'form', previousFormConfig);
+      if (previousSails === undefined) {
+        delete globalWithSails.sails;
       } else {
-        Reflect.deleteProperty(sails.config, 'form');
+        globalWithSails.sails = previousSails;
       }
     }
   });

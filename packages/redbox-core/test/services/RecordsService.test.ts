@@ -3993,6 +3993,12 @@ describe('RecordsService', function () {
       mockSails.config.auth = { ...mockSails.config.auth, defaultPortal: 'portal' };
     };
 
+    const enableInternalRecordMutationStorage = () => {
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+    };
+
     const disabledRecordSchemaArtifacts = {
       documentMarker: 'private-disabled-schema-document-marker',
       digest: 'd'.repeat(64),
@@ -10337,6 +10343,7 @@ describe('RecordsService', function () {
 
     it('keeps append/remove structural validation active while authorizing the initiating actor', async function () {
       enableRecordSchema();
+      enableInternalRecordMutationStorage();
       mockSails.config.recordValidation = { mode: 'enforce' };
       (global as any).RecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
       const resolveUpdate = sinon.stub().callsFake(async (request: any) => {
@@ -10395,6 +10402,7 @@ describe('RecordsService', function () {
 
     it('detaches append/remove candidates, exposes scalar deletions, and retries without duplicate mutation', async function () {
       enableRecordSchema();
+      enableInternalRecordMutationStorage();
       mockSails.config.recordValidation = { mode: 'enforce' };
       const actor = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
       const stored = {
@@ -10408,7 +10416,7 @@ describe('RecordsService', function () {
       mockStorageService.getMeta.resolves(stored);
       mockRecordValidationService.resolve.resolves(allowResult({ mode: 'enforce' }));
       const resolveUpdate = sinon.stub().callsFake(async (request: any) => {
-        expect(request.caller.user).to.equal(actor);
+        expect(request.caller.user).to.deep.include(actor);
         return updateSchemaResolution('enforce');
       });
       const validateResolvedArtifact = sinon.stub();
@@ -10442,6 +10450,7 @@ describe('RecordsService', function () {
       );
       expect(rejectedAppend.outcome).to.equal('not-saved');
       expect(appendCaller).to.deep.equal(stored);
+      expect(validateResolvedArtifact.calledOnce, JSON.stringify(rejectedAppend)).to.equal(true);
       expect(validateResolvedArtifact.firstCall.args[0].input).to.deep.equal({
         relatedRecords: ['record-456', 'record-789'],
       });
@@ -10477,6 +10486,7 @@ describe('RecordsService', function () {
 
     it('resolves a brandless internal write against the stored non-default brand schema', async function () {
       enableRecordSchema();
+      enableInternalRecordMutationStorage();
       mockSails.config.recordValidation = { mode: 'enforce' };
       const brand = { id: 'brand-2', name: 'faculty' };
       const stored = {
@@ -10501,6 +10511,7 @@ describe('RecordsService', function () {
       const result = await RecordsService.updateMetaInternal({
         actor: { kind: 'service', id: 'test.non-default-brand-writeback' },
         authorization: { kind: 'service' },
+        mutationClass: 'full-record',
         oid: 'record-123',
         record: candidate,
         user: { username: 'owner' },

@@ -103,6 +103,22 @@ describe('Webservice RecordTypeController schema discovery', function () {
     assert.equal(JSON.stringify(controller.sentResponses[0].response.data).includes('/api/forms/get'), false);
   });
 
+  it('adds schema discovery when the enabled flag comes from an environment string', async function () {
+    Reflect.set(sails.config.recordSchema, 'enabled', 'true');
+    getRecordType.returns(of({ name: 'dataset', packageType: 'dataset-package' }));
+    const req = {
+      apiRequest: { params: {}, query: { name: 'dataset' }, headers: {}, body: {}, files: {} },
+      session: { branding: 'public brand', portal: 'portal/subpath' },
+    } as unknown as Sails.Req;
+
+    await controller.getRecordType(req, {} as Sails.Res);
+
+    assert.equal(
+      Reflect.get(controller.sentResponses[0].response.data ?? {}, 'recordSchemaCreateResolver'),
+      '/public%20brand/portal%2Fsubpath/api/records/schemas/create/dataset'
+    );
+  });
+
   it('adds one bounded create resolver to each listed record type without form configuration', async function () {
     const storedRecordTypes = [
       { name: 'dataset', packageType: 'dataset-package' },

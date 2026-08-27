@@ -11,6 +11,7 @@ import {
 } from '../../index';
 import { firstValueFrom } from 'rxjs';
 import { recordSchemaCreateResolverUrl } from '../../api-routes/record-schema-response';
+import { isRecordSchemaEnabled } from '../../config/recordSchema.config';
 
 export type DiscoverableRecordType = RecordTypeModel & {
   readonly recordSchemaCreateResolver?: string;
@@ -50,7 +51,7 @@ export namespace Controllers {
       recordType: RecordTypeModel,
       fallbackName?: string
     ): DiscoverableRecordType {
-      if (sails.config.recordSchema?.enabled !== true) {
+      if (!isRecordSchemaEnabled(sails.config.recordSchema)) {
         return recordType;
       }
       const branding = BrandingService.getBrandNameFromReq(req).trim();

@@ -33,6 +33,7 @@ import {
   HarvestRunStatus,
 } from '../model/storage/HarvestRunModel';
 import { HarvestRunsConfig } from '../config/harvestRuns.config';
+import { isRecordSchemaEnabled } from '../config/recordSchema.config';
 import {
   createRecordSaveContext,
   isRecordSaveContext,
@@ -114,7 +115,7 @@ export namespace Services {
     }
 
     private authoritativeHarvestContext(context: RecordSaveContext | undefined): RecordSaveContext | undefined {
-      if (sails.config.recordSchema?.enabled !== true) {
+      if (!isRecordSchemaEnabled(sails.config.recordSchema)) {
         return undefined;
       }
       if (!isRecordSaveContext(context)) {
@@ -775,19 +776,18 @@ export namespace Services {
     ): Promise<void> {
       const rollbackCandidate = _.cloneDeep(previousRecord);
       rollbackCandidate.revision = committedRevision;
-      const rollbackContext =
-        sails.config.recordSchema?.enabled === true
-          ? createRecordSaveContext({
-              requestId: context?.requestId,
-              routeFamily: 'internal',
-              operation: 'update',
-              validationBypass: {
-                mode: 'bypass',
-                reason: 'trusted-data-migration',
-                actor: { kind: 'service', id: 'HarvestRunService.trackedEventCompensation' },
-              },
-            })
-          : this.recordSaveContext(context, 'update');
+      const rollbackContext = isRecordSchemaEnabled(sails.config.recordSchema)
+        ? createRecordSaveContext({
+            requestId: context?.requestId,
+            routeFamily: 'internal',
+            operation: 'update',
+            validationBypass: {
+              mode: 'bypass',
+              reason: 'trusted-data-migration',
+              actor: { kind: 'service', id: 'HarvestRunService.trackedEventCompensation' },
+            },
+          })
+        : this.recordSaveContext(context, 'update');
       const response = await RecordsService.updateMetaInternal({
         actor: { kind: 'service', id: 'HarvestRunService.trackedEventCompensation' },
         authorization: { kind: 'service' },

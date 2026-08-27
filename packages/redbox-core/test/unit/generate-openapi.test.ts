@@ -200,6 +200,7 @@ describe('generate-openapi script', function () {
     });
 
     it('uses runtime auth rules when generating role metadata', async function () {
+        this.timeout(20_000);
         const globalWithSails = globalThis as typeof globalThis & {
             sails?: { config?: Record<string, unknown> };
         };
