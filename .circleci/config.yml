@@ -16,6 +16,12 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
+      - run:
+          name: Test npm publish version handling
+          command: bash support/build/npm-publish-backend-packages.test.sh
+      - run:
+          name: Test Docker tag handling
+          command: bash support/build/docker-build-vars.test.sh
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -822,6 +828,7 @@ jobs:
         type: enum
         enum:
           - beta
+          - rc
           - release
       release_version:
         type: string
@@ -939,16 +946,7 @@ jobs:
           command: |
             docker load -i /tmp/docker-images/redbox-portal-runtime-pdfgen-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-
-            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
-              export TAG="$CIRCLE_BRANCH"
-            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
-              export TAG="$CIRCLE_TAG"
-            else
-              export TAG="local"
-            fi
-            export DEPLOY_TAG=${TAG//\//-}
-            export REPO=${REPO:-qcifengineering/redbox-portal}
+            source support/build/docker-build-vars.sh
 
             docker tag redbox-portal:runtime-pdfgen-test "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
@@ -1630,6 +1628,30 @@ workflows:
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
+            branches:
+              ignore: /.*/
+      - npm-publish-backend:
+          name: npm-publish-backend-rc
+          release_kind: rc
+          release_version: ''
+          dist_tag: next
+          context:
+            - npm-publish
+          requires:
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-bruno-s3
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-agenda-sqs-backend
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters:
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+-[Rr][Cc][0-9]+$/
             branches:
               ignore: /.*/
   docker_manual_publish:
