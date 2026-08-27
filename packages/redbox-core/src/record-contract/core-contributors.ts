@@ -19,12 +19,7 @@ import type {
 import { joinRecordContractPointer } from './json-pointer';
 
 export type CoreRecordContractComponentClassification =
-  | 'scalar'
-  | 'object'
-  | 'array'
-  | 'specialized'
-  | 'container'
-  | 'non-persisting';
+  'scalar' | 'object' | 'array' | 'specialized' | 'container' | 'non-persisting';
 
 /** Closed inventory used by startup/CI coverage checks. */
 export const CORE_RECORD_CONTRACT_COMPONENT_INVENTORY = {

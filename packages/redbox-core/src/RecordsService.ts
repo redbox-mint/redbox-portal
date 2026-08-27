@@ -206,6 +206,13 @@ export interface RecordsService {
     user: Record<string, unknown>,
     response: unknown
   ): unknown;
+  hasCreateAccess(
+    brand: unknown,
+    user: UserInput,
+    roles: AnyRecord[],
+    recordTypeName: string,
+    workflowStepName: string
+  ): Promise<boolean>;
   hasEditAccess(brand: unknown, user: UserInput, roles: AnyRecord[], record: RecordInput): boolean;
   hasTransitionRoleAuthorization(step: unknown, user: UserInput): boolean;
   hasViewAccess(brand: unknown, user: UserInput, roles: object[], record: RecordInput): boolean;

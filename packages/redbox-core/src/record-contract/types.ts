@@ -93,11 +93,7 @@ export interface ContractConditionalNode extends ContractNodeBase {
 }
 
 export type ContractNode =
-  | ContractScalarNode
-  | ContractObjectNode
-  | ContractArrayNode
-  | ContractAnyNode
-  | ContractConditionalNode;
+  ContractScalarNode | ContractObjectNode | ContractArrayNode | ContractAnyNode | ContractConditionalNode;
 
 interface RecordContractPrivateContextBoundary {
   /** Private resolver data must never become schema annotation content. */

@@ -38,11 +38,7 @@ export interface RecordContractUpdateContextRequest extends RecordContractContex
 export type RecordContractContextRequest = RecordContractCreateContextRequest | RecordContractUpdateContextRequest;
 
 export type RecordContractContextFailureKind =
-  | 'invalid-request'
-  | 'not-found'
-  | 'forbidden'
-  | 'not-resolvable'
-  | 'unavailable';
+  'invalid-request' | 'not-found' | 'forbidden' | 'not-resolvable' | 'unavailable';
 
 /** Typed authoritative-context failure that never exposes record or caller values. */
 export class RecordContractContextResolutionError extends Error {

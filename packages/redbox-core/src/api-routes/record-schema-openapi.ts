@@ -28,8 +28,7 @@ interface UpdateRecordSchemaResolverEtagSemantics extends RecordSchemaResolverEt
 
 interface RecordSchemaResolverDescription {
   readonly routeTemplate:
-    | typeof RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE
-    | typeof RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE;
+    typeof RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE | typeof RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE;
   readonly schemaKind: RecordSchemaKind;
   readonly operationParameter: {
     readonly name: 'operation';

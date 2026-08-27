@@ -79,7 +79,10 @@ import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
 import type { ConfiguredRecordContractFormCandidate, FormRecordAccessContext } from './FormsService';
 import type { ILogger } from '../Logger';
-import { isInternalRecordSchemaUpdateAuthorizationCapability } from './internal-record-schema-authorization';
+import {
+  isInternalRecordSchemaCreateAuthorizationCapability,
+  isInternalRecordSchemaUpdateAuthorizationCapability,
+} from './internal-record-schema-authorization';
 
 declare const RedboxJavaStorageService: unknown;
 
@@ -146,6 +149,7 @@ export interface RecordSchemaServiceDependencies {
     context: RecordContractContext,
     recordAccessContext?: FormRecordAccessContext
   ) => Promise<RecordContractFormBuildResult>;
+  readonly authorizeCreate: (context: RecordContractCreateContext, caller: FormRecordAccessContext) => Promise<boolean>;
   readonly authorizeUpdate: (context: RecordContractUpdateContext, caller: FormRecordAccessContext) => Promise<boolean>;
   readonly telemetryLogger?: Pick<ILogger, 'info' | 'error'>;
   readonly clock: () => number;
@@ -271,6 +275,7 @@ type RecordSchemaTelemetryKind = 'create' | 'update' | 'unknown';
 type RecordSchemaLogContext =
   | 'resolve-create'
   | 'resolve-create-context'
+  | 'resolve-create-authorization'
   | 'resolve-update'
   | 'resolve-update-context'
   | 'resolve-update-authorization'
@@ -403,6 +408,16 @@ interface RecordEditAuthorizationCapability {
   ) => boolean;
 }
 
+interface RecordCreateAuthorizationCapability {
+  readonly hasCreateAccess: (
+    brand: FormRecordAccessContext['brand'],
+    user: FormRecordAccessContext['user'],
+    roles: FormRecordAccessContext['user']['roles'],
+    recordType: string,
+    workflowStep: string
+  ) => Promise<boolean>;
+}
+
 function hasRecordEditAuthorizationCapability(value: unknown): value is RecordEditAuthorizationCapability {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return false;
   try {
@@ -412,10 +427,46 @@ function hasRecordEditAuthorizationCapability(value: unknown): value is RecordEd
   }
 }
 
-function recordEditAuthorizationService(): RecordEditAuthorizationCapability | undefined {
+function hasRecordCreateAuthorizationCapability(value: unknown): value is RecordCreateAuthorizationCapability {
+  if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return false;
+  try {
+    return typeof Reflect.get(value, 'hasCreateAccess') === 'function';
+  } catch {
+    return false;
+  }
+}
+
+function recordsAuthorizationService(): unknown {
   const configured = sails.services?.recordsservice;
-  const candidate = configured === undefined && typeof RecordsService !== 'undefined' ? RecordsService : configured;
+  return configured === undefined && typeof RecordsService !== 'undefined' ? RecordsService : configured;
+}
+
+function recordEditAuthorizationService(): RecordEditAuthorizationCapability | undefined {
+  const candidate = recordsAuthorizationService();
   return hasRecordEditAuthorizationCapability(candidate) ? candidate : undefined;
+}
+
+async function authorizeCreateWithRecordsService(
+  context: RecordContractCreateContext,
+  caller: FormRecordAccessContext
+): Promise<boolean> {
+  const recordsService = recordsAuthorizationService();
+  if (!hasRecordCreateAuthorizationCapability(recordsService)) {
+    throw new Error('Record create authorization is unavailable.');
+  }
+  const username = typeof caller.user?.username === 'string' ? caller.user.username.trim() : '';
+  const brandId = typeof caller.brand?.id === 'string' ? caller.brand.id.trim() : '';
+  if (!username || brandId !== context.publicContext.brand || !context.resolution.actor.authenticated) {
+    return false;
+  }
+  const roles = Array.isArray(caller.user.roles) ? caller.user.roles : [];
+  return await recordsService.hasCreateAccess(
+    caller.brand,
+    caller.user,
+    roles,
+    context.publicContext.recordType,
+    context.publicContext.workflowStep
+  );
 }
 
 async function authorizeUpdateWithRecordsService(
@@ -445,6 +496,7 @@ const DEFAULT_DEPENDENCIES: RecordSchemaServiceDependencies = {
   resolveContractContext: request => RecordValidationService.resolveContractContext(request),
   buildContractFormConfig: (context, recordAccessContext) =>
     FormsService.buildContractFormConfig(context, recordAccessContext),
+  authorizeCreate: authorizeCreateWithRecordsService,
   authorizeUpdate: authorizeUpdateWithRecordsService,
   clock: () => Date.now(),
 };
@@ -711,7 +763,10 @@ export interface ResolveCreateRecordSchemaRequest {
   readonly recordType: string;
   readonly operation?: string;
   readonly targetStep?: string;
-  readonly actor: RecordContractContextActor;
+  /** Trusted current caller used by the authoritative record-create ACL path. */
+  readonly caller: FormRecordAccessContext;
+  /** Process-local capability issued after the normal record-create boundary authorizes this write. */
+  readonly internalAuthorizationCapability?: unknown;
 }
 
 export interface RecordSchemaCreateResolutionMetadata {
@@ -972,8 +1027,7 @@ export type PersistRecordSchemaSaveUsageResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | ({
       readonly kind: 'write-failed';
@@ -1015,8 +1069,7 @@ export type MaterializeRecordSchemaIntegrationPinsResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'limit-exceeded';
@@ -1059,8 +1112,7 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'invalid-input';
       readonly reason: 'shape' | 'digest' | 'datetime' | 'limit';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
     }
   | {
       readonly kind: 'disabled';
@@ -1070,8 +1122,7 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
-        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'invalid-state';
@@ -1116,8 +1167,7 @@ type RecordSchemaPipelineSuccess<Grant extends RecordSchemaGrantReferenceInput> 
     });
 
 type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
-  | RecordSchemaPipelineSuccess<Grant>
-  | RecordSchemaResolutionFailure;
+  RecordSchemaPipelineSuccess<Grant> | RecordSchemaResolutionFailure;
 
 interface RecordSchemaCompiledContextBase {
   readonly document: PublishedRecordJsonSchemaDocument;
@@ -2304,7 +2354,7 @@ export namespace Services {
         };
       }
 
-      let context: RecordContractCreateContext;
+      let internalContext: RecordContractCreateContext;
       try {
         const resolvedContext = await this.dependencies.resolveContractContext({
           kind: 'create',
@@ -2313,12 +2363,12 @@ export namespace Services {
           recordType: request.recordType,
           operation: request.operation,
           targetStep: request.targetStep,
-          actor: request.actor,
+          actor: callerActor(request.caller),
         });
         if (!isCreateContractContext(resolvedContext)) {
           return this.contextFailure('not-resolvable');
         }
-        context = createContextWithPublicBrand(resolvedContext, publicBranding(request));
+        internalContext = resolvedContext;
       } catch (error) {
         if (error instanceof RecordContractContextResolutionError) {
           return this.contextFailure(error.failureKind, error.diagnosticCodes);
@@ -2326,6 +2376,21 @@ export namespace Services {
         this.logUnexpected('resolve-create-context', error);
         return this.contextFailure('unavailable');
       }
+
+      let authorized = isInternalRecordSchemaCreateAuthorizationCapability(request.internalAuthorizationCapability);
+      if (!authorized) {
+        try {
+          authorized = await this.dependencies.authorizeCreate(internalContext, request.caller);
+        } catch (error) {
+          this.logUnexpected('resolve-create-authorization', error);
+          return this.contextFailure('unavailable');
+        }
+      }
+      if (!authorized) {
+        return this.contextFailure('forbidden');
+      }
+
+      const context = createContextWithPublicBrand(internalContext, publicBranding(request));
 
       const pipeline = await this.compileAndPersist(config, context, artifact =>
         createGrantReference(artifact, context.publicContext)
@@ -3363,7 +3428,18 @@ export namespace Services {
       }
 
       let recordAccessContext: FormRecordAccessContext | undefined;
-      if (grant.schemaKind === 'update') {
+      if (grant.schemaKind === 'create') {
+        if (!isCreateContractContext(context) || !isCreateContractContext(internalContext)) {
+          return undefined;
+        }
+        try {
+          if (!(await this.dependencies.authorizeCreate(internalContext, caller))) {
+            return undefined;
+          }
+        } catch {
+          return undefined;
+        }
+      } else {
         if (
           !isUpdateContractContext(context) ||
           !isUpdateContractContext(internalContext) ||

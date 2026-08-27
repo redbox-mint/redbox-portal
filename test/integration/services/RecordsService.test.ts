@@ -155,12 +155,16 @@ describe('The RecordsService', function () {
 
     expect(() => sails.services.recordschemaservice.init()).not.to.throw();
 
+    const brand = BrandingService.getDefault();
     const resolution = await sails.services.recordschemaservice.resolveCreate({
-      brand: BrandingService.getDefault().id,
+      brand: brand.id,
       portal: 'rdmp',
       recordType: 'rdmp',
       targetStep: 'draft',
-      actor: { authenticated: true, roles: ['Admin'] },
+      caller: {
+        brand,
+        user: { username: 'admin', roles: [RolesService.getRole(brand, 'Admin')] },
+      },
     });
     expect(resolution.kind, JSON.stringify(resolution)).to.equal('partial');
     expect(resolution.metadata.completeness).to.equal('partial');

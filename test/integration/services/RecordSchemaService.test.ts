@@ -23,6 +23,17 @@ const DOCUMENT = { type: 'object', title: 'Integration schema' } as const;
 const RETENTION_CURSOR = `${'f'.repeat(63)}9`;
 const RETENTION_DIGESTS = ['a', 'b', 'c', 'd', 'e'].map(suffix => `${'f'.repeat(63)}${suffix}`);
 
+function adminCaller(brand: BrandingModel) {
+  const adminRole = RolesService.getRole(brand, 'Admin') as RoleModel;
+  const user = new UserModel();
+  user.id = 'record-schema-integration-admin';
+  user.username = 'admin';
+  user.name = 'Record Schema Integration Admin';
+  user.email = 'record-schema-integration-admin@example.test';
+  user.roles = [adminRole];
+  return { brand, user };
+}
+
 describe('RecordSchemaService storage-backed orchestration', function () {
   const storage = () => sails.services.mongostorageservice;
 
@@ -444,7 +455,7 @@ describe('RecordSchemaService configured-form integration', function () {
       portal: 'rdmp',
       recordType: 'rdmp',
       targetStep: 'draft',
-      actor: { authenticated: true, roles: ['Admin'] },
+      caller: adminCaller(defaultBrand),
     });
 
     trackPersistedArtifact(resolution);
@@ -655,7 +666,7 @@ describe('RecordSchemaService configured-form integration', function () {
       portal: 'rdmp',
       recordType: 'rdmp',
       targetStep: 'draft',
-      actor: { authenticated: true, roles: ['Admin'] },
+      caller: adminCaller(defaultBrand),
     });
     trackPersistedArtifact(result);
 

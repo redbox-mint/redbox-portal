@@ -51,7 +51,10 @@ import {
   type RecordSchemaServiceDependencies,
   Services,
 } from '../../src/services/RecordSchemaService';
-import { issueInternalRecordSchemaUpdateAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
+import {
+  issueInternalRecordSchemaCreateAuthorizationCapability,
+  issueInternalRecordSchemaUpdateAuthorizationCapability,
+} from '../../src/services/internal-record-schema-authorization';
 import { RecordSchemaService, ServiceExports } from '../../src/services';
 import { Services as RecordsServices } from '../../src/services/RecordsService';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
@@ -357,12 +360,14 @@ function createResolutionFixture(overrides: Partial<RecordSchemaServiceDependenc
   const storageProvider = { putRecordSchemaArtifact, putRecordSchemaReference };
   const resolveContractContext = sinon.stub().resolves(context);
   const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
+  const authorizeCreate = sinon.stub().resolves(true);
   const service = new Services.RecordSchema({
     getConfig: () => enabledConfig(),
     getStorageProvider: () => storageProvider,
     getContributorRegistry: () => coreRegistry(),
     resolveContractContext,
     buildContractFormConfig,
+    authorizeCreate,
     ...overrides,
   });
   return {
@@ -370,6 +375,7 @@ function createResolutionFixture(overrides: Partial<RecordSchemaServiceDependenc
     context,
     resolveContractContext,
     buildContractFormConfig,
+    authorizeCreate,
     putRecordSchemaArtifact,
     putRecordSchemaReference,
   };
@@ -430,7 +436,7 @@ async function createImmutableSeed(branding?: string): Promise<ImmutableSeed> {
     branding,
     portal: 'portal-1',
     recordType: 'dataset',
-    actor: { authenticated: true, roles: ['Researcher'] },
+    caller: updateCaller(),
   });
   if (result.kind !== 'resolved' && result.kind !== 'partial') {
     throw new Error('Expected an immutable create seed artifact.');
@@ -489,6 +495,7 @@ function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<Reco
   };
   const resolveContractContext = sinon.stub().resolves(seed.context);
   const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
+  const authorizeCreate = sinon.stub().resolves(true);
   const authorizeUpdate = sinon.stub().resolves(true);
   const service = new Services.RecordSchema({
     getConfig: () => enabledConfig(),
@@ -496,6 +503,7 @@ function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<Reco
     getContributorRegistry: () => coreRegistry(),
     resolveContractContext,
     buildContractFormConfig,
+    authorizeCreate,
     authorizeUpdate,
     ...overrides,
   });
@@ -506,6 +514,7 @@ function immutableResolutionFixture(seed: ImmutableSeed, overrides: Partial<Reco
     touchRecordSchemaArtifact,
     resolveContractContext,
     buildContractFormConfig,
+    authorizeCreate,
     authorizeUpdate,
   };
 }
@@ -956,8 +965,98 @@ describe('RecordSchemaService create resolution', function () {
     brand: 'brand-1',
     portal: 'portal-1',
     recordType: 'dataset',
-    actor: { authenticated: true, roles: ['Researcher'] },
+    caller: updateCaller(),
   } as const;
+
+  it('denies create-schema generation when form and operation context resolve but create ACL access does not', async function () {
+    const fixture = createResolutionFixture();
+    fixture.authorizeCreate.resolves(false);
+
+    const result = await fixture.service.resolveCreate(request);
+
+    expect(result).to.deep.equal({
+      kind: 'context-failed',
+      failureKind: 'forbidden',
+      diagnosticCodes: [],
+    });
+    expect(fixture.authorizeCreate.calledOnceWithExactly(fixture.context, request.caller)).to.equal(true);
+    expect(fixture.buildContractFormConfig.notCalled).to.equal(true);
+    expect(fixture.putRecordSchemaArtifact.notCalled).to.equal(true);
+    expect(fixture.putRecordSchemaReference.notCalled).to.equal(true);
+  });
+
+  it('delegates current create ACL authorization to RecordsService before form construction', async function () {
+    const restoreSails = ensureTestSails();
+    const context = createContext();
+    const resolveContractContext = sinon.stub().resolves(context);
+    const buildContractFormConfig = sinon.stub().resolves({ ok: true, effectiveForm: runtimeSimpleForm() });
+    const putRecordSchemaArtifact = sinon.stub().resolves(storageResponse(true));
+    const putRecordSchemaReference = sinon.stub().resolves(storageResponse(true));
+    const hasCreateAccess = sinon.stub().resolves(true);
+    const priorServices = sails.services;
+    const serviceRegistry = sails.services ?? {};
+    const priorRecordsService = serviceRegistry.recordsservice;
+    sails.services = serviceRegistry;
+    serviceRegistry.recordsservice = { hasCreateAccess };
+    const service = new Services.RecordSchema({
+      getConfig: () => enabledConfig(),
+      getStorageProvider: () => ({ putRecordSchemaArtifact, putRecordSchemaReference }),
+      getContributorRegistry: () => coreRegistry(),
+      resolveContractContext,
+      buildContractFormConfig,
+    });
+
+    try {
+      const result = await service.resolveCreate(request);
+
+      expect(result.kind).to.equal('resolved');
+      expect(
+        hasCreateAccess.calledOnceWithExactly(
+          request.caller.brand,
+          request.caller.user,
+          request.caller.user.roles,
+          'dataset',
+          'draft'
+        )
+      ).to.equal(true);
+      expect(hasCreateAccess.calledBefore(buildContractFormConfig)).to.equal(true);
+    } finally {
+      if (priorRecordsService === undefined) {
+        delete serviceRegistry.recordsservice;
+      } else {
+        serviceRegistry.recordsservice = priorRecordsService;
+      }
+      sails.services = priorServices;
+      restoreSails();
+    }
+  });
+
+  it('accepts only an issued internal create capability after the normal save boundary authorizes', async function () {
+    const trusted = createResolutionFixture();
+    trusted.authorizeCreate.resolves(false);
+
+    const resolved = await trusted.service.resolveCreate({
+      ...request,
+      internalAuthorizationCapability: issueInternalRecordSchemaCreateAuthorizationCapability(),
+    });
+
+    expect(resolved.kind).to.equal('resolved');
+    expect(trusted.authorizeCreate.notCalled).to.equal(true);
+    expect(trusted.putRecordSchemaArtifact.calledOnce).to.equal(true);
+
+    const forged = createResolutionFixture();
+    forged.authorizeCreate.resolves(false);
+    const denied = await forged.service.resolveCreate({
+      ...request,
+      internalAuthorizationCapability: { kind: 'record-schema-service-create' },
+    });
+
+    expect(denied.kind).to.equal('context-failed');
+    if (denied.kind !== 'context-failed') throw new Error('Expected a forged create capability to be denied.');
+    expect(denied.failureKind).to.equal('forbidden');
+    expect(forged.authorizeCreate.calledOnce).to.equal(true);
+    expect(forged.putRecordSchemaArtifact.notCalled).to.equal(true);
+  });
 
   it('keeps representative create/update bytes stable across fresh randomized service instances', async function () {
     function shuffled<T>(values: readonly T[], seed: number): T[] {
@@ -1023,6 +1122,7 @@ describe('RecordSchemaService create resolution', function () {
         getContributorRegistry: () => new RecordContractContributorRegistry(shuffled(registrations, seed + 2)),
         resolveContractContext: sinon.stub().resolves(context),
         buildContractFormConfig: sinon.stub().resolves({ ok: true, effectiveForm: fixture.form }),
+        authorizeCreate: sinon.stub().resolves(true),
         authorizeUpdate: sinon.stub().resolves(true),
       });
       const result =
@@ -1032,7 +1132,7 @@ describe('RecordSchemaService create resolution', function () {
               portal: 'main',
               recordType: 'record-contract-fixture',
               operation: 'submit',
-              actor: { authenticated: true, roles: ['Researcher'] },
+              caller: updateCaller(),
             })
           : await service.resolveUpdate({
               brand: 'default',
@@ -1103,7 +1203,7 @@ describe('RecordSchemaService create resolution', function () {
       portal: 'portal-1',
       recordType: 'dataset',
       targetStep: 'draft',
-      actor: request.actor,
+      actor: { authenticated: true, roles: ['Researcher'] },
     });
     expect(fixture.putRecordSchemaArtifact.callCount).to.equal(2);
     expect(fixture.putRecordSchemaArtifact.firstCall.firstArg).to.deep.include({
@@ -2876,7 +2976,7 @@ describe('RecordSchemaService telemetry', function () {
     brand: 'brand-1',
     portal: 'portal-1',
     recordType: 'dataset',
-    actor: { authenticated: true, roles: ['Researcher'] },
+    caller: updateCaller(),
   } as const;
 
   beforeEach(function () {
@@ -3498,6 +3598,20 @@ describe('RecordSchemaService immutable resolution', function () {
     expect(fixture.authorizeUpdate.callCount).to.equal(2);
     expect(fixture.buildContractFormConfig.calledOnceWithExactly(seed.context, caller)).to.equal(true);
     expect(fixture.touchRecordSchemaArtifact.calledOnceWithExactly(seed.artifact.digest)).to.equal(true);
+  });
+
+  it('hides an immutable create schema when current create ACL access is absent', async function () {
+    const seed = await createImmutableSeed();
+    const caller = updateCaller('visible-without-create');
+    const fixture = immutableResolutionFixture(seed);
+    fixture.authorizeCreate.resolves(false);
+
+    const result = await fixture.service.resolveImmutable(requestFor(seed, caller));
+
+    expect(result.kind).to.equal('not-found');
+    expect(fixture.authorizeCreate.calledOnceWithExactly(seed.context, caller)).to.equal(true);
+    expect(fixture.buildContractFormConfig.notCalled).to.equal(true);
+    expect(fixture.touchRecordSchemaArtifact.notCalled).to.equal(true);
   });
 
   it('delegates an anonymous create context to the current authoritative resolver', async function () {

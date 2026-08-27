@@ -14,7 +14,6 @@ import {
 import type { BuildRawJsonResponseType, RecordSchemaProblem, RecordSchemaProblemStatus } from '../../model';
 import {
   RECORD_SCHEMA_PROBLEM_CODES,
-  type RecordContractContextActor,
   type RecordJsonSchemaEtag,
   type RecordSchemaProblemCode,
 } from '../../record-contract';
@@ -156,14 +155,6 @@ export namespace Controllers {
 
     private authenticatedUser(req: Sails.Req): FormRecordAccessUser | undefined {
       return isFormRecordAccessUser(req.user) ? req.user : undefined;
-    }
-
-    private actor(user: FormRecordAccessUser): RecordContractContextActor {
-      const roleNames = user.roles.map(role => role.name.trim()).filter(Boolean);
-      return {
-        authenticated: true,
-        roles: [...new Set(roleNames)].sort(),
-      };
     }
 
     private caller(user: FormRecordAccessUser, brand: BrandingModel): FormRecordAccessContext {
@@ -372,7 +363,7 @@ export namespace Controllers {
           portal,
           recordType,
           operation: this.normalizedOptional(query.operation),
-          actor: this.actor(user),
+          caller: this.caller(user, brand),
         });
         if (result.kind === 'resolved' || result.kind === 'partial') {
           const canonicalUrl = recordSchemaImmutableUrl(branding, portal, result.digest, rootContext);

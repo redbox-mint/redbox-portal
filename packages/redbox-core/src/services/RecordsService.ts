@@ -170,7 +170,10 @@ import type {
   PersistRecordSchemaSaveUsageResult,
   ValidateResolvedRecordSchemaResult,
 } from './RecordSchemaService';
-import { issueInternalRecordSchemaUpdateAuthorizationCapability } from './internal-record-schema-authorization';
+import {
+  issueInternalRecordSchemaCreateAuthorizationCapability,
+  issueInternalRecordSchemaUpdateAuthorizationCapability,
+} from './internal-record-schema-authorization';
 
 /**
  * Detached post hooks remain fire-and-forget to the save caller, but audit
@@ -1101,10 +1104,8 @@ export namespace Services {
           recordType: options.recordTypeName,
           operation: options.context.schemaOperation,
           targetStep: options.targetStep,
-          actor: {
-            authenticated: Boolean(String(options.user.username ?? '').trim()),
-            roles: this.actorRoles(options.user),
-          },
+          caller: { brand: options.brand, user: options.user } as ResolveCreateRecordSchemaRequest['caller'],
+          internalAuthorizationCapability: issueInternalRecordSchemaCreateAuthorizationCapability(),
         });
       } catch {
         return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
@@ -2212,6 +2213,41 @@ export namespace Services {
         authorization.editRoles = authorization.editRoles ?? _.cloneDeep(configured.editRoles);
       }
       return projection;
+    }
+
+    /** Authorize schema-only create discovery against the same workflow ACL projection as a normal create. */
+    public async hasCreateAccess(
+      brand: unknown,
+      user: AnyRecord,
+      roles: AnyRecord[],
+      recordTypeName: string,
+      workflowStepName: string
+    ): Promise<boolean> {
+      const brandObj = brand as BrandingModel;
+      const normalizedRecordType = String(recordTypeName ?? '').trim();
+      const normalizedWorkflowStep = String(workflowStepName ?? '').trim();
+      if (!String(brandObj?.id ?? '').trim() || !normalizedRecordType || !normalizedWorkflowStep) return false;
+
+      const recordType = (await firstValueFrom(
+        RecordTypesService.get(brandObj, normalizedRecordType)
+      )) as RecordTypeLike | null;
+      if (!recordType) return false;
+      const startingStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as WorkflowStepLike | null;
+      if (!startingStep) return false;
+      const workflowSteps: WorkflowStepLike[] = [startingStep];
+      if (normalizedWorkflowStep !== String(startingStep.name ?? '').trim()) {
+        const targetStep = (await firstValueFrom(
+          WorkflowStepsService.get(recordType, normalizedWorkflowStep)
+        )) as WorkflowStepLike | null;
+        if (this.resolvedWorkflowTargetDiagnostic(targetStep, normalizedWorkflowStep)) return false;
+        workflowSteps.push(targetStep as WorkflowStepLike);
+      }
+      return this.hasEditAccess(
+        brandObj,
+        user,
+        roles,
+        this.createAuthorizationProjection({ authorization: {} }, workflowSteps)
+      );
     }
 
     public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
@@ -3897,6 +3933,7 @@ export namespace Services {
       'getRecordFormFingerprint',
       'getRecordAudit',
       'getResolvedPermissionsSummary',
+      'hasCreateAccess',
       'hasEditAccess',
       'hasTransitionRoleAuthorization',
       'hasViewAccess',

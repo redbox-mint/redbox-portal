@@ -359,6 +359,7 @@ async function immutableControllerSeed(): Promise<ImmutableControllerSeed> {
     }),
     getContributorRegistry: recordSchemaCoreRegistry,
     resolveContractContext: async () => context,
+    authorizeCreate: async () => true,
     buildContractFormConfig: async () => ({
       ok: true,
       effectiveForm: immutableControllerEffectiveForm(),
@@ -369,7 +370,10 @@ async function immutableControllerSeed(): Promise<ImmutableControllerSeed> {
     branding: 'default',
     portal: 'portal-1',
     recordType: 'dataset',
-    actor: { authenticated: true, roles: ['Alpha', 'Zeta'] },
+    caller: {
+      brand: Object.assign(new BrandingModel(), { id: 'brand-1', name: 'default' }),
+      user: defaultRequestUser,
+    },
   });
   if (result.kind !== 'resolved' && result.kind !== 'partial') {
     throw new Error('Expected an immutable controller test seed.');
@@ -394,7 +398,8 @@ function immutableControllerService(
   seed: ImmutableControllerSeed,
   artifact: unknown,
   grants: readonly unknown[],
-  equivalentAuthorization: boolean
+  equivalentAuthorization: boolean,
+  createAuthorization = equivalentAuthorization
 ) {
   const resolveContractContext = sinon.stub();
   if (equivalentAuthorization) {
@@ -402,6 +407,7 @@ function immutableControllerService(
   } else {
     resolveContractContext.rejects(new Error('inaccessible equivalent context'));
   }
+  const authorizeCreate = sinon.stub().resolves(createAuthorization);
   const service = new RecordSchemaServices.RecordSchema({
     getConfig: enabledRecordSchemaConfig,
     getStorageProvider: () => ({
@@ -411,12 +417,13 @@ function immutableControllerService(
     }),
     getContributorRegistry: recordSchemaCoreRegistry,
     resolveContractContext,
+    authorizeCreate,
     buildContractFormConfig: async () => ({
       ok: true,
       effectiveForm: immutableControllerEffectiveForm(),
     }),
   });
-  return { service, resolveContractContext };
+  return { service, resolveContractContext, authorizeCreate };
 }
 
 interface ValidatedRequestOptions {
@@ -611,7 +618,7 @@ describe('Webservice RecordSchemaController', function () {
     expect(WebserviceControllerExports.RecordSchemaController).to.include.keys('init', 'create', 'update', 'immutable');
   });
 
-  it('delegates create using only normalized validated input and safe actor facts', async function () {
+  it('delegates create with normalized validated input and the resolved authenticated caller', async function () {
     const digest = 'b'.repeat(64);
     const etag = schemaEtag(digest);
     const context = schemaContext('create');
@@ -657,7 +664,10 @@ describe('Webservice RecordSchemaController', function () {
         portal: 'portal-1',
         recordType: 'dataset',
         operation: 'submit',
-        actor: { authenticated: true, roles: ['Alpha', 'Zeta'] },
+        caller: {
+          brand: resolvedBrand,
+          user: defaultRequestUser,
+        },
       })
     ).to.equal(true);
     expect(onlySentResponse(controller)).to.deep.equal({
@@ -1020,7 +1030,7 @@ describe('Webservice RecordSchemaController', function () {
     });
   });
 
-  it('maps create service failures to deterministic 400, 409, 413, 422, and 503 Problem Details', async function () {
+  it('maps create service failures to deterministic 400, 403, 409, 413, 422, and 503 Problem Details', async function () {
     const instance = '/default/portal-1/api/records/schemas/create/dataset';
     const cases: Array<{
       result: Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveCreate']>>;
@@ -1043,6 +1053,14 @@ describe('Webservice RecordSchemaController', function () {
           reason: 'empty-effective-form',
         },
         problemKind: 'not-resolvable',
+      },
+      {
+        result: {
+          kind: 'context-failed',
+          failureKind: 'forbidden',
+          diagnosticCodes: ['private-create-acl-diagnostic'],
+        },
+        problemKind: 'forbidden',
       },
       {
         result: {
@@ -1182,6 +1200,25 @@ describe('Webservice RecordSchemaController', function () {
       'Cache-Control': RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
       Vary: RECORD_SCHEMA_RESPONSE_VARY,
     });
+  });
+
+  it('returns 404 when an immutable create grant is form-visible but current create ACL access is absent', async function () {
+    const seed = await immutableControllerSeed();
+    const boundary = immutableControllerService(seed, seed.artifact, [seed.grant], true, false);
+    controller.RecordSchemaService = boundary.service;
+    const req = validatedRequest(getImmutableRecordSchemaRoute, {
+      params: { branding: 'default', portal: 'portal-1', digest: seed.artifact.digest },
+      query: {},
+      headers: {},
+    });
+
+    await controller.immutable(req, responseAdapter());
+
+    expect(onlySentResponse(controller).response).to.deep.equal(
+      expectedProblemResponse('not-found', `/default/portal-1/api/records/schemas/${seed.artifact.digest}`)
+    );
+    expect(boundary.resolveContractContext.calledOnce).to.equal(true);
+    expect(boundary.authorizeCreate.calledOnce).to.equal(true);
   });
 
   it('hides pre-authorization immutable corruption but preserves authorized invalid-contract responses', async function () {

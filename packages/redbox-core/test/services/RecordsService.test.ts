@@ -38,7 +38,10 @@ import type {
   PersistRecordSchemaSaveUsageRequest,
   PersistRecordSchemaSaveUsageResult,
 } from '../../src/services/RecordSchemaService';
-import { isInternalRecordSchemaUpdateAuthorizationCapability } from '../../src/services/internal-record-schema-authorization';
+import {
+  isInternalRecordSchemaCreateAuthorizationCapability,
+  isInternalRecordSchemaUpdateAuthorizationCapability,
+} from '../../src/services/internal-record-schema-authorization';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import {
   createCoreRecordContractContributors,
@@ -753,6 +756,60 @@ describe('RecordsService', function () {
       const result = RecordsService.hasEditAccess(brand, user, [], record);
 
       expect(result).to.be.true;
+    });
+  });
+
+  describe('hasCreateAccess', function () {
+    it('denies a form-visible role that is absent from the normal starting-step create projection', async function () {
+      const brand = { id: 'brand-1', name: 'default' };
+      const viewerRole = { id: 'role-viewer', name: 'Viewer' };
+      const creatorRole = { id: 'role-creator', name: 'Creator' };
+      const user = { username: 'viewer', roles: [viewerRole] };
+      (global as any).RolesService.getRole = sinon
+        .stub()
+        .callsFake((_brand: unknown, name: string) => (name === 'Creator' ? creatorRole : viewerRole));
+      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+        of({
+          name: 'draft',
+          starting: true,
+          config: { authorization: { viewRoles: ['Viewer'], editRoles: ['Creator'] } },
+        })
+      );
+
+      const result = await RecordsService.hasCreateAccess(brand, user, [viewerRole], 'rdmp', 'draft');
+
+      expect(result).to.equal(false);
+    });
+
+    it('preserves starting-step ACL precedence when authorizing a targeted create', async function () {
+      const brand = { id: 'brand-1', name: 'default' };
+      const adminRole = { id: 'role-admin', name: 'Admin' };
+      const publisherRole = { id: 'role-publisher', name: 'Publisher' };
+      const user = { username: 'admin', roles: [adminRole] };
+      (global as any).RolesService.getRole = sinon
+        .stub()
+        .callsFake((_brand: unknown, name: string) => (name === 'Admin' ? adminRole : publisherRole));
+      (global as any).WorkflowStepsService.getFirst = sinon.stub().returns(
+        of({
+          name: 'draft',
+          starting: true,
+          config: { authorization: { editRoles: ['Admin'] } },
+        })
+      );
+      (global as any).WorkflowStepsService.get = sinon.stub().returns(
+        of({
+          name: 'published',
+          config: {
+            form: 'published-form',
+            workflow: { stage: 'published' },
+            authorization: { editRoles: ['Publisher'] },
+          },
+        })
+      );
+
+      const result = await RecordsService.hasCreateAccess(brand, user, [adminRole], 'rdmp', 'published');
+
+      expect(result).to.equal(true);
     });
   });
 
@@ -4314,6 +4371,7 @@ describe('RecordsService', function () {
           ok: true,
           effectiveForm: form,
         }),
+        authorizeCreate: async () => true,
       });
       const resolveCreate = sinon.spy(schemaService, 'resolveCreate');
       const validateResolvedArtifact = sinon.spy(schemaService, 'validateResolvedArtifact');
@@ -4573,16 +4631,23 @@ describe('RecordsService', function () {
       );
 
       expect(result.outcome).to.equal('saved');
+      expect(resolveCreate.calledOnce).to.equal(true);
+      expect(resolveCreate.firstCall.firstArg).to.deep.include({
+        brand: 'brand-1',
+        branding: 'default',
+        portal: 'tenant-portal',
+        recordType: 'rdmp',
+        operation: 'publish',
+        targetStep: undefined,
+        caller: {
+          brand: { id: 'brand-1', name: 'default' },
+          user: { username: 'user-1', roles: [{ name: 'Researcher' }, { name: 'Publisher' }] },
+        },
+      });
       expect(
-        resolveCreate.calledOnceWithExactly({
-          brand: 'brand-1',
-          branding: 'default',
-          portal: 'tenant-portal',
-          recordType: 'rdmp',
-          operation: 'publish',
-          targetStep: undefined,
-          actor: { authenticated: true, roles: ['Researcher', 'Publisher'] },
-        })
+        isInternalRecordSchemaCreateAuthorizationCapability(
+          resolveCreate.firstCall.firstArg.internalAuthorizationCapability
+        )
       ).to.equal(true);
       expect(validateResolvedArtifact.calledOnce).to.equal(true);
       expect(validateResolvedArtifact.firstCall.args[0]).to.deep.include({
@@ -4771,7 +4836,10 @@ describe('RecordsService', function () {
         brand: 'brand-1',
         portal: 'portal',
         recordType: 'rdmp',
-        actor: { authenticated: true, roles: [] },
+        caller: {
+          brand: { id: 'brand-1' } as BrandingModel,
+          user: { username: 'user-1', roles: [] } as UserModel,
+        },
       });
       expect(resolution.kind).to.equal('resolved');
       if (resolution.kind !== 'resolved') throw new Error('Expected a generated create schema artifact.');
@@ -11825,6 +11893,7 @@ describe('RecordsService', function () {
       expect(exported).to.have.property('getMeta');
       expect(exported).to.have.property('getRecordAudit');
       expect(exported).to.have.property('getResolvedPermissionsSummary');
+      expect(exported).to.have.property('hasCreateAccess');
       expect(exported).to.have.property('hasEditAccess');
       expect(exported).to.have.property('hasViewAccess');
       expect(exported).to.have.property('delete');
