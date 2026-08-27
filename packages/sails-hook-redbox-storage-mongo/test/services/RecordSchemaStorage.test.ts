@@ -168,7 +168,7 @@ class FakeCursor {
 }
 
 class FakeCollection {
-  public readonly createIndexes: Sinon.SinonStub;
+  public readonly createIndexes: ReturnType<typeof sinon.stub>;
   public afterFindOneAndUpdate?: () => void;
   public readonly documents: FakeDocument[];
   private readonly indexDefinitions: FakeIndexDescription[] = [{ name: '_id_', key: { _id: 1 } }];
@@ -310,8 +310,8 @@ describe('MongoStorageService record-schema persistence', function () {
     artifacts = new FakeCollection([], 'digest');
     references = new FakeCollection([], 'referenceKey');
     service = new Services.MongoStorageService();
-    service.recordSchemaArtifactCol = artifacts;
-    service.recordSchemaReferenceCol = references;
+    Reflect.set(service, 'recordSchemaArtifactCol', artifacts);
+    Reflect.set(service, 'recordSchemaReferenceCol', references);
   });
 
   it('creates required indexes idempotently with stable names and keys', async function () {
