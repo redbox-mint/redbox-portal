@@ -477,6 +477,10 @@ describe('MongoStorageService', function () {
           key: { digest: 1, kind: 1 },
         },
         {
+          name: 'digest_1_kind_1_brand_1_portal_1_referenceKey_1',
+          key: { digest: 1, kind: 1, brand: 1, portal: 1, referenceKey: 1 },
+        },
+        {
           name: 'oid_1_kind_1',
           key: { oid: 1, kind: 1 },
           sparse: true,

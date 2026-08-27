@@ -58,7 +58,8 @@ export interface RecordSchemaUpdateGrantReferenceInput extends RecordSchemaRefer
 }
 
 export type RecordSchemaGrantReferenceInput =
-  RecordSchemaCreateGrantReferenceInput | RecordSchemaUpdateGrantReferenceInput;
+  | RecordSchemaCreateGrantReferenceInput
+  | RecordSchemaUpdateGrantReferenceInput;
 
 export interface RecordSchemaSaveReferenceInput extends RecordSchemaReferenceCommon {
   readonly kind: 'save';
@@ -79,7 +80,9 @@ export interface RecordSchemaPinReferenceInput extends RecordSchemaReferenceComm
 }
 
 export type RecordSchemaReferenceInput =
-  RecordSchemaGrantReferenceInput | RecordSchemaSaveReferenceInput | RecordSchemaPinReferenceInput;
+  | RecordSchemaGrantReferenceInput
+  | RecordSchemaSaveReferenceInput
+  | RecordSchemaPinReferenceInput;
 
 export type RecordSchemaReferenceModel = RecordSchemaReferenceInput & {
   readonly createdAt: Date;

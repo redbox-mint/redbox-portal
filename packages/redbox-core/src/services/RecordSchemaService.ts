@@ -972,7 +972,8 @@ export type PersistRecordSchemaSaveUsageResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | ({
       readonly kind: 'write-failed';
@@ -1014,7 +1015,8 @@ export type MaterializeRecordSchemaIntegrationPinsResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'limit-exceeded';
@@ -1057,7 +1059,8 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'invalid-input';
       readonly reason: 'shape' | 'digest' | 'datetime' | 'limit';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.LIMIT_EXCEEDED;
     }
   | {
       readonly kind: 'disabled';
@@ -1067,7 +1070,8 @@ export type RecordSchemaRetentionReportResult =
       readonly kind: 'unavailable';
       readonly stage: 'configuration' | 'storage';
       readonly code:
-        typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID
+        | typeof RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE;
     }
   | {
       readonly kind: 'invalid-state';
@@ -1112,7 +1116,8 @@ type RecordSchemaPipelineSuccess<Grant extends RecordSchemaGrantReferenceInput> 
     });
 
 type RecordSchemaPipelineResult<Grant extends RecordSchemaGrantReferenceInput> =
-  RecordSchemaPipelineSuccess<Grant> | RecordSchemaResolutionFailure;
+  | RecordSchemaPipelineSuccess<Grant>
+  | RecordSchemaResolutionFailure;
 
 interface RecordSchemaCompiledContextBase {
   readonly document: PublishedRecordJsonSchemaDocument;
