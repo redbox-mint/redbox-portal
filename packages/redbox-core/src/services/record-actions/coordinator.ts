@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isProxy } from 'node:util/types';
 import {
   ACTION_CONTEXT_SCHEMA_VERSION,
   ACTION_CONTRACT_LIMITS,
@@ -34,11 +35,33 @@ import {
 import type { ActionExecutionDependencies, ActionExecutionOperation } from '../../action-execution/types';
 import { ActionValidationFailure } from '../../action-execution/failure';
 import { createActionSecretProvider } from '../../action-registry/secrets';
+import { boundedValidationPreflight } from '../../boundedValidation';
 import { isRuntimeArray, isRuntimeRecord, type RuntimeRecord, type RuntimeValue } from '../../runtimeValues';
 
 const LIFECYCLE_MODES: readonly ActionExecutionMode[] = ['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow'];
 const ACTION_PHASES: readonly ActionExecutionPhase[] = ['pre', 'postSync', 'post'];
 const LEGACY_TRANSITION_SCOPE_ID = 'legacy-transition';
+const PROTOTYPE_RELATED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+interface JsonProjectionLimits {
+  readonly maxArrayItems: number;
+  readonly maxBytes: number;
+  readonly maxDepth: number;
+  readonly maxStringLength: number;
+}
+
+const RECORD_CONTEXT_PROJECTION_LIMITS: JsonProjectionLimits = Object.freeze({
+  maxArrayItems: ACTION_CONTRACT_LIMITS.maxArrayItems,
+  maxBytes: ACTION_CONTRACT_LIMITS.maxJsonBytes,
+  maxDepth: ACTION_CONTRACT_LIMITS.maxJsonDepth,
+  maxStringLength: ACTION_CONTRACT_LIMITS.maxJsonBytes,
+});
+const ACTION_PLAN_PROJECTION_LIMITS: JsonProjectionLimits = Object.freeze({
+  maxArrayItems: ACTION_CONTRACT_LIMITS.maxPlanBindings,
+  maxBytes: ACTION_CONTRACT_LIMITS.maxJsonBytes,
+  maxDepth: ACTION_CONTRACT_LIMITS.maxPlanDepth,
+  maxStringLength: ACTION_CONTRACT_LIMITS.maxStringValueLength,
+});
 
 class ClosedRecordActionSecretStorage implements ActionSecretStorage {
   async replace(_slot: ActionSecretSlotIdentity, _value: string): Promise<void> {
@@ -75,6 +98,9 @@ function invalidPlan(path = '$'): ActionPlanValidationError {
 }
 
 function ownObjectDataValue(container: object, key: string, path: string): RuntimeValue {
+  if (isProxy(container)) {
+    throw invalidPlan(path);
+  }
   let descriptor: PropertyDescriptor | undefined;
   try {
     descriptor = Object.getOwnPropertyDescriptor(container, key);
@@ -91,6 +117,12 @@ function ownObjectDataValue(container: object, key: string, path: string): Runti
 }
 
 function ownDataValue(container: RuntimeValue, key: string, path: string): RuntimeValue {
+  if (container === null || typeof container !== 'object') {
+    return undefined;
+  }
+  if (isProxy(container)) {
+    throw invalidPlan(path);
+  }
   return isRuntimeRecord(container) ? ownObjectDataValue(container, key, path) : undefined;
 }
 
@@ -115,10 +147,11 @@ function legacyBindings(
   recordTypeKey: string,
   transitionScopeId: string
 ): readonly ActionBinding[] {
-  const hooks = ownDataValue(recordType, 'hooks', '$.hooks');
-  if (hooks === undefined || hooks === null) {
+  const hooksValue = ownDataValue(recordType, 'hooks', '$.hooks');
+  if (hooksValue === undefined || hooksValue === null) {
     return Object.freeze([]);
   }
+  const hooks = projectPlanJson(hooksValue, '$.hooks');
   if (!isRuntimeRecord(hooks)) {
     throw invalidPlan('$.hooks');
   }
@@ -139,9 +172,18 @@ function legacyBindings(
       if (!isRuntimeArray(phaseValue)) {
         throw invalidPlan(`$.hooks.${mode}.${phase}`);
       }
-      for (let index = 0; index < phaseValue.length; index += 1) {
+      const phaseLength = ownObjectDataValue(phaseValue, 'length', `$.hooks.${mode}.${phase}.length`);
+      if (
+        typeof phaseLength !== 'number' ||
+        !Number.isSafeInteger(phaseLength) ||
+        phaseLength < 0 ||
+        phaseLength > ACTION_CONTRACT_LIMITS.maxArrayItems
+      ) {
+        throw invalidPlan(`$.hooks.${mode}.${phase}`);
+      }
+      for (let index = 0; index < phaseLength; index += 1) {
         const sourcePath = `$.hooks.${mode}.${phase}[${index}]`;
-        const definition = phaseValue[index];
+        const definition = projectPlanJson(ownObjectDataValue(phaseValue, String(index), sourcePath), sourcePath);
         const migration = migrateLegacyRecordAction({
           schemaVersion: 1,
           recordTypeKey,
@@ -185,7 +227,7 @@ export function resolveRecordActionPlan(
           recordTypeKey,
           bindings: legacyBindings(recordType, recordTypeKey, transitionScopeId),
         }
-      : explicitPlan;
+      : projectPlanJson(explicitPlan, '$.actionPlan');
   return canonicalPlan(resolveActionPlan(registry, planValue));
 }
 
@@ -206,6 +248,9 @@ function actorRole(value: RuntimeValue): string | undefined {
 
 /** @internal */
 export function projectRecordActionActor(value: RuntimeValue): ActionActor | null {
+  if (value !== null && typeof value === 'object' && isProxy(value)) {
+    throw new ActionValidationFailure('Registered action actor context is invalid.');
+  }
   if (!isRuntimeRecord(value)) {
     return null;
   }
@@ -221,6 +266,9 @@ export function projectRecordActionActor(value: RuntimeValue): ActionActor | nul
   }
   const rolesValue = ownDataValue(value, 'roles', '$.actor.roles');
   const roles: string[] = [];
+  if (rolesValue !== null && typeof rolesValue === 'object' && isProxy(rolesValue)) {
+    throw new ActionValidationFailure('Registered action actor context is invalid.');
+  }
   if (isRuntimeArray(rolesValue)) {
     const length = ownObjectDataValue(rolesValue, 'length', '$.actor.roles.length');
     if (typeof length !== 'number' || !Number.isSafeInteger(length) || length > ACTION_CONTRACT_LIMITS.maxRoleCount) {
@@ -242,7 +290,11 @@ export function projectRecordActionActor(value: RuntimeValue): ActionActor | nul
   });
 }
 
-function projectActionJson(value: RuntimeValue, seen: WeakSet<object>): ActionJsonValue | undefined {
+function projectActionJson(
+  value: RuntimeValue,
+  seen: WeakSet<object>,
+  limits: JsonProjectionLimits
+): ActionJsonValue | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -264,12 +316,16 @@ function projectActionJson(value: RuntimeValue, seen: WeakSet<object>): ActionJs
   try {
     if (isRuntimeArray(value)) {
       const projected: ActionJsonValue[] = [];
-      for (let index = 0; index < value.length; index += 1) {
+      const length = ownObjectDataValue(value, 'length', '$.record.length');
+      if (typeof length !== 'number' || !Number.isSafeInteger(length) || length < 0 || length > limits.maxArrayItems) {
+        throw new ActionValidationFailure('Registered action record context is invalid.');
+      }
+      for (let index = 0; index < length; index += 1) {
         const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
         if (descriptor === undefined || !('value' in descriptor)) {
           throw new ActionValidationFailure('Registered action record context is invalid.');
         }
-        const child = projectActionJson(descriptor.value, seen);
+        const child = projectActionJson(descriptor.value, seen, limits);
         if (child === undefined) {
           throw new ActionValidationFailure('Registered action record context is invalid.');
         }
@@ -279,11 +335,14 @@ function projectActionJson(value: RuntimeValue, seen: WeakSet<object>): ActionJs
     }
     const projected: ActionJsonObject = {};
     for (const key of Object.keys(value)) {
+      if (key.split('.').some(segment => PROTOTYPE_RELATED_KEYS.has(segment))) {
+        throw new ActionValidationFailure('Registered action record context is invalid.');
+      }
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
       if (descriptor === undefined || !('value' in descriptor)) {
         throw new ActionValidationFailure('Registered action record context is invalid.');
       }
-      const child = projectActionJson(descriptor.value, seen);
+      const child = projectActionJson(descriptor.value, seen, limits);
       if (child !== undefined) {
         Object.defineProperty(projected, key, {
           configurable: true,
@@ -304,8 +363,36 @@ function projectActionJson(value: RuntimeValue, seen: WeakSet<object>): ActionJs
   }
 }
 
+function projectBoundedJson(value: RuntimeValue, limits: JsonProjectionLimits): ActionJsonValue {
+  const preflight = boundedValidationPreflight(value, {
+    maxBytes: limits.maxBytes,
+    maxDepth: limits.maxDepth,
+    maxStringLength: limits.maxStringLength,
+    maxPropertyNameLength: ACTION_CONTRACT_LIMITS.maxIdentifierLength,
+    maxWork: ACTION_CONTRACT_LIMITS.maxValidationWork,
+    arrayCardinalityLimit: () => limits.maxArrayItems,
+    objectCardinalityLimit: () => ACTION_CONTRACT_LIMITS.maxObjectProperties,
+  });
+  if (!preflight.ok) {
+    throw new ActionValidationFailure('Registered action record context is invalid.');
+  }
+  const projected = projectActionJson(value, new WeakSet(), limits);
+  if (projected === undefined) {
+    throw new ActionValidationFailure('Registered action record context is invalid.');
+  }
+  return projected;
+}
+
+function projectPlanJson(value: RuntimeValue, path: string): ActionJsonValue {
+  try {
+    return projectBoundedJson(value, ACTION_PLAN_PROJECTION_LIMITS);
+  } catch {
+    throw invalidPlan(path);
+  }
+}
+
 function actionRecord(value: RuntimeValue): ActionJsonObject {
-  const projected = projectActionJson(value, new WeakSet());
+  const projected = projectBoundedJson(value, RECORD_CONTEXT_PROJECTION_LIMITS);
   const parsed = actionJsonObjectSchema.safeParse(projected);
   if (!parsed.success) {
     throw new ActionValidationFailure('Registered action record context is invalid.');

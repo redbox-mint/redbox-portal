@@ -1,4 +1,5 @@
-import { isRuntimeArray, isRuntimeRecord, readRuntimeProperty, type RuntimeValue } from './runtimeValues';
+import { isProxy } from 'node:util/types';
+import { isRuntimeArray, isRuntimeRecord, type RuntimeValue } from './runtimeValues';
 
 export interface BoundedValidationLimits {
   readonly maxBytes: number;
@@ -55,6 +56,7 @@ interface ValidationState {
 
 interface PropertyReadSuccess {
   readonly ok: true;
+  readonly present: boolean;
   readonly value: RuntimeValue;
 }
 
@@ -149,9 +151,9 @@ function serializedScalarBytes(task: ValueTask): number | undefined {
   return undefined;
 }
 
-function hasSupportedPrototype(value: object): boolean {
+function hasSupportedPrototype(value: object, arrayValue: boolean): boolean {
   const prototype = Object.getPrototypeOf(value);
-  if (isRuntimeArray(value)) {
+  if (arrayValue) {
     return prototype === Array.prototype || prototype === null;
   }
   return prototype === Object.prototype || prototype === null;
@@ -160,21 +162,49 @@ function hasSupportedPrototype(value: object): boolean {
 function readOwnDataProperty(container: object, key: string): PropertyReadResult {
   const descriptor = Object.getOwnPropertyDescriptor(container, key);
   if (descriptor === undefined) {
-    return Object.freeze({ ok: true, value: undefined });
+    return Object.freeze({ ok: true, present: false, value: undefined });
   }
   if (descriptor.get !== undefined || descriptor.set !== undefined) {
     return Object.freeze({ ok: false, reason: 'accessor' });
   }
-  return Object.freeze({ ok: true, value: readRuntimeProperty(container, key) });
+  return Object.freeze({ ok: true, present: true, value: descriptor.value });
 }
 
 function inspectOwnProperties(
   container: object,
   path: string,
   state: ValidationState,
-  limits: BoundedValidationLimits
+  limits: BoundedValidationLimits,
+  cardinalityLimit: number
 ): PropertyInspectionResult {
   const enumerableKeys: string[] = [];
+
+  // `for...in` lets the cardinality/work bounds stop a very large enumerable
+  // object without first allocating an equally large key array. It also makes
+  // inherited enumerable pollution visible without reading any property.
+  for (const key in container) {
+    state.work += 1;
+    if (state.work > limits.maxWork) {
+      return failure(path, 'work');
+    }
+    if (!Object.hasOwn(container, key)) {
+      return failure(childObjectPath(path, key), 'prototype');
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(container, key);
+    if (descriptor === undefined) {
+      return failure(childObjectPath(path, key), 'inspection');
+    }
+    if (descriptor.get !== undefined || descriptor.set !== undefined) {
+      return failure(childObjectPath(path, key), 'accessor');
+    }
+    enumerableKeys.push(key);
+    if (enumerableKeys.length > cardinalityLimit) {
+      return failure(path, 'cardinality');
+    }
+  }
+
+  // Validators can address known non-enumerable properties directly. Inspect
+  // those descriptors too, but only after enumerable cardinality has passed.
   for (const key of Object.getOwnPropertyNames(container)) {
     state.work += 1;
     if (state.work > limits.maxWork) {
@@ -186,9 +216,6 @@ function inspectOwnProperties(
     }
     if (descriptor.get !== undefined || descriptor.set !== undefined) {
       return failure(childObjectPath(path, key), 'accessor');
-    }
-    if (descriptor.enumerable === true) {
-      enumerableKeys.push(key);
     }
   }
   return Object.freeze({ ok: true, enumerableKeys });
@@ -239,7 +266,14 @@ export function boundedValidationPreflight(
         }
         continue;
       }
-      if (!isRuntimeArray(task.value) && !isRuntimeRecord(task.value)) {
+      if (task.value === null || typeof task.value !== 'object') {
+        continue;
+      }
+      if (isProxy(task.value)) {
+        return failure(task.path, 'inspection');
+      }
+      const arrayValue = isRuntimeArray(task.value);
+      if (!arrayValue && !isRuntimeRecord(task.value)) {
         continue;
       }
 
@@ -250,27 +284,42 @@ export function boundedValidationPreflight(
       if (state.activeContainers.has(task.value)) {
         return failure(task.path, 'cycle');
       }
-      if (!hasSupportedPrototype(task.value)) {
+      if (!hasSupportedPrototype(task.value, arrayValue)) {
         return failure(task.path, 'prototype');
       }
-      const inspectedProperties = inspectOwnProperties(task.value, task.path, state, limits);
-      if (!inspectedProperties.ok) {
-        return inspectedProperties;
-      }
 
-      if (isRuntimeArray(task.value)) {
-        if (task.value.length > limits.arrayCardinalityLimit(task.path)) {
+      if (arrayValue) {
+        const lengthProperty = readOwnDataProperty(task.value, 'length');
+        if (
+          !lengthProperty.ok ||
+          !lengthProperty.present ||
+          typeof lengthProperty.value !== 'number' ||
+          !Number.isSafeInteger(lengthProperty.value) ||
+          lengthProperty.value < 0
+        ) {
+          return failure(`${task.path}.length`, lengthProperty.ok ? 'inspection' : lengthProperty.reason);
+        }
+        const length = lengthProperty.value;
+        const cardinalityLimit = limits.arrayCardinalityLimit(task.path);
+        if (length > cardinalityLimit) {
           return failure(task.path, 'cardinality');
         }
-        if (!addBytes(state, 2 + Math.max(0, task.value.length - 1), limits.maxBytes)) {
+        const inspectedProperties = inspectOwnProperties(task.value, task.path, state, limits, cardinalityLimit);
+        if (!inspectedProperties.ok) {
+          return inspectedProperties;
+        }
+        if (!addBytes(state, 2 + Math.max(0, length - 1), limits.maxBytes)) {
           return failure('$', 'bytes');
         }
         state.activeContainers.add(task.value);
         pending.push({ kind: 'leave', value: task.value });
-        for (let index = task.value.length - 1; index >= 0; index -= 1) {
+        for (let index = length - 1; index >= 0; index -= 1) {
           const child = readOwnDataProperty(task.value, String(index));
           if (!child.ok) {
             return failure(`${task.path}[${index}]`, child.reason);
+          }
+          if (!child.present) {
+            return failure(`${task.path}[${index}]`, 'inspection');
           }
           pending.push({
             kind: 'value',
@@ -283,10 +332,17 @@ export function boundedValidationPreflight(
         continue;
       }
 
-      const keys = inspectedProperties.enumerableKeys;
-      if (keys.length > limits.objectCardinalityLimit(task.path)) {
-        return failure(task.path, 'cardinality');
+      const inspectedProperties = inspectOwnProperties(
+        task.value,
+        task.path,
+        state,
+        limits,
+        limits.objectCardinalityLimit(task.path)
+      );
+      if (!inspectedProperties.ok) {
+        return inspectedProperties;
       }
+      const keys = inspectedProperties.enumerableKeys;
       const entries: Array<readonly [string, RuntimeValue]> = [];
       for (const key of keys) {
         if (key.length > limits.maxPropertyNameLength) {
