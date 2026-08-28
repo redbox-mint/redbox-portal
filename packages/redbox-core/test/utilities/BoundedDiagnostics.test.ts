@@ -1,4 +1,5 @@
 import { strict as assert } from 'node:assert';
+import * as sinon from 'sinon';
 import { boundedDiagnosticValue } from '../../src/utilities/BoundedDiagnostics';
 
 describe('BoundedDiagnostics', () => {
@@ -42,6 +43,22 @@ describe('BoundedDiagnostics', () => {
     assert.deepEqual(boundedDiagnosticValue({ status: 204.5, statusCode: '503' }), {
       category: 'object',
     });
+  });
+
+  it('rejects oversized codes before attempting case normalization', () => {
+    const oversizedCode = `econnreset${secretSentinel.repeat(100_000)}`;
+    const toUpperCaseStub = sinon.stub(String.prototype, 'toUpperCase').throws(new Error(secretSentinel));
+    const projected = (() => {
+      try {
+        return boundedDiagnosticValue({ code: oversizedCode, status: 503 });
+      } finally {
+        toUpperCaseStub.restore();
+      }
+    })();
+
+    assert.equal(toUpperCaseStub.callCount, 0);
+    assert.deepEqual(projected, { category: 'object', status: 503 });
+    assert.equal(JSON.stringify(projected).includes(secretSentinel), false);
   });
 
   it('does not invoke accessors while reading diagnostic metadata', () => {

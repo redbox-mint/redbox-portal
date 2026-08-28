@@ -196,6 +196,28 @@ describe('EmailService', function () {
       expect(logged).to.contain('unavailable');
     });
 
+    it('preserves the template fallback while rejecting an oversized diagnostic code', async function () {
+      const sentinel = 'oversized-email-diagnostic-secret-must-not-be-logged';
+      const originalFailure = {
+        code: `econnreset${sentinel.repeat(100_000)}`,
+        detail: sentinel,
+        status: 503,
+      };
+      sinon.stub(EmailService, 'getCompiledTemplate').returns(() => {
+        throw originalFailure;
+      });
+
+      const result = await EmailService.buildFromTemplateAsync('oversized-diagnostic', {});
+
+      expect(result.status).to.equal(500);
+      expect(result.body).to.equal('Templating error.');
+      expect(result.ex).to.equal(originalFailure);
+      const logged = JSON.stringify(mockSails.log.error.args);
+      expect(logged).not.to.contain(sentinel);
+      expect(logged).to.contain('"category":"object"');
+      expect(logged).to.contain('"status":503');
+    });
+
     it('should allow missing data in guarded optional blocks', async function () {
       fs.writeFileSync(path.join(tmpDir, 'optional.hbs'), '{{#if nickname}}<p>{{nickname}}</p>{{/if}}');
 

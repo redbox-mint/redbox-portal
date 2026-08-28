@@ -791,6 +791,27 @@ describe('RDMPService', function () {
       expect(logged).to.contain('unavailable');
     });
 
+    it('preserves the permission fallback while rejecting an oversized diagnostic code', async function () {
+      const sentinel = 'oversized-rdmp-diagnostic-secret-must-not-be-logged';
+      const candidate = { username: 'candidate-user', email: 'candidate@example.test' };
+      const originalFailure = {
+        code: `econnreset${sentinel.repeat(100_000)}`,
+        detail: sentinel,
+        status: 503,
+      };
+      (global as any).UsersService.getEffectiveUser = sinon.stub().callsFake(() => {
+        throw originalFailure;
+      });
+
+      const resolved = await (RDMPService as any).resolvePermissionUser([candidate]);
+
+      expect(resolved).to.equal(candidate);
+      const logged = JSON.stringify(mockSails.log.verbose.args);
+      expect(logged).not.to.contain(sentinel);
+      expect(logged).to.contain('"category":"object"');
+      expect(logged).to.contain('"status":503');
+    });
+
     it('does not log complete candidates, options, contributors, attachments, or error sentinels', async function () {
       const sentinel = 'rdmp-managed-secret-must-not-be-logged';
       const record: any = {
