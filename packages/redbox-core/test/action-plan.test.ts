@@ -619,6 +619,7 @@ describe('action registry lookup and plan validation', () => {
         name: 'message',
         title: 'Message',
         kind: 'handlebars',
+        destination: 'plain-text',
         required: false,
         defaultTemplate: 'Hello',
       },
@@ -636,7 +637,8 @@ describe('action registry lookup and plan validation', () => {
         }),
       ])
     );
-    const effective = firstResolvedBinding(resolved).binding.parameters;
+    const resolvedBinding = firstResolvedBinding(resolved);
+    const effective = resolvedBinding.binding.parameters;
 
     assert.deepEqual(effective, {
       label: { kind: 'literal', value: 'valid' },
@@ -656,6 +658,40 @@ describe('action registry lookup and plan validation', () => {
       assert.fail('Expected the default object parameter.');
     }
     assert.equal(Object.isFrozen(options.value), true);
+    assert.equal(resolvedBinding.preparedParameters.condition?.kind, 'jsonata');
+    assert.equal(resolvedBinding.preparedParameters.message?.kind, 'handlebars');
+    assert.equal(Object.isFrozen(resolvedBinding.preparedParameters), true);
+  });
+
+  it('rejects unsafe expression and template parameters before a handler can run', () => {
+    const parameters: ActionParameterDefinition[] = [
+      { name: 'condition', title: 'Condition', kind: 'jsonata', required: true },
+      {
+        name: 'message',
+        title: 'Message',
+        kind: 'handlebars',
+        destination: 'html-text',
+        required: true,
+      },
+    ];
+    const registry = actionRegistry(actionDescriptor('org.redbox.unsafe-expression-action', { parameters }));
+    const result = invalidResult(
+      validateActionPlan(
+        registry,
+        actionPlan([
+          actionBinding('org.redbox.unsafe-expression-action', {
+            parameters: {
+              condition: { kind: 'jsonata', expression: '$eval("1 + 1")' },
+              message: { kind: 'handlebars', template: '{{get record "constructor"}}' },
+            },
+          }),
+        ])
+      )
+    );
+
+    assert.deepEqual(issueCodes(result.issues), ['invalid-jsonata-expression', 'invalid-handlebars-template']);
+    assert.equal(JSON.stringify(result.issues).includes('$eval'), false);
+    assert.equal(JSON.stringify(result.issues).includes('constructor'), false);
   });
 
   it('enforces the global array-item boundary when a descriptor omits maxItems', () => {
