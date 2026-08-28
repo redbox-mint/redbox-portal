@@ -1,18 +1,20 @@
 import { RBValidationError } from '../model/RBValidationError';
-import { ACTION_FAILURE_KINDS, type ActionFailureKind, type SafeActionFailure } from './types';
+import type { RuntimeValue } from '../runtimeValues';
+import type { ActionFailureKind, SafeActionFailure } from './types';
 
 interface TaggedActionFailure {
   _tag?: string;
-  code?: unknown;
-  message?: unknown;
-  cancellationCooperative?: unknown;
+  code?: RuntimeValue;
+  message?: RuntimeValue;
+  safeSummary?: RuntimeValue;
+  cancellationCooperative?: RuntimeValue;
 }
 
 export class ActionConfigurationError extends Error {
   readonly _tag = 'ActionConfigurationError';
   readonly code = 'invalid-hook-execution-policy';
 
-  constructor(message: string, options?: { cause?: unknown }) {
+  constructor(message: string, options?: { cause?: RuntimeValue }) {
     super(message, options);
     this.name = this._tag;
   }
@@ -22,7 +24,7 @@ export class ActionValidationFailure extends Error {
   readonly _tag = 'ActionValidationFailure';
   readonly code = 'action-validation-failed';
 
-  constructor(message: string, options?: { cause?: unknown }) {
+  constructor(message: string, options?: { cause?: RuntimeValue }) {
     super(message, options);
     this.name = this._tag;
   }
@@ -31,22 +33,36 @@ export class ActionValidationFailure extends Error {
 export class ActionDomainFailure extends Error {
   readonly _tag = 'ActionDomainFailure';
   readonly code: string;
+  readonly safeSummary?: string;
 
-  constructor(message: string, code = 'action-domain-failed', options?: { cause?: unknown }) {
+  constructor(
+    message: string,
+    code = 'action-domain-failed',
+    safeSummary?: string,
+    options?: { cause?: RuntimeValue }
+  ) {
     super(message, options);
     this.name = this._tag;
     this.code = code;
+    this.safeSummary = safeSummary;
   }
 }
 
 export class ActionTransientFailure extends Error {
   readonly _tag = 'ActionTransientFailure';
   readonly code: string;
+  readonly safeSummary?: string;
 
-  constructor(message: string, code = 'action-transient-failed', options?: { cause?: unknown }) {
+  constructor(
+    message: string,
+    code = 'action-transient-failed',
+    safeSummary?: string,
+    options?: { cause?: RuntimeValue }
+  ) {
     super(message, options);
     this.name = this._tag;
     this.code = code;
+    this.safeSummary = safeSummary;
   }
 }
 
@@ -74,25 +90,52 @@ export class ActionInterruptedFailure extends Error {
   }
 }
 
-export function isActionFailureKind(value: unknown): value is ActionFailureKind {
+const ACTION_FAILURE_KINDS: readonly ActionFailureKind[] = [
+  'configuration',
+  'validation',
+  'domain',
+  'transient',
+  'timeout',
+  'interrupted',
+  'unexpected',
+];
+
+export function isActionFailureKind(value: RuntimeValue): value is ActionFailureKind {
   return ACTION_FAILURE_KINDS.includes(value as ActionFailureKind);
 }
 
-function fields(value: unknown): TaggedActionFailure {
+const MAX_SUMMARY_LENGTH = 160;
+
+/**
+ * A summary is only carried through when a failure deliberately provided one.
+ * Arbitrary thrown text never reaches a serialized result.
+ */
+function boundedSafeSummary(value: RuntimeValue): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const summary = value.trim();
+  if (!summary || summary.length > MAX_SUMMARY_LENGTH || /[\r\n]/.test(summary)) {
+    return undefined;
+  }
+  return summary;
+}
+
+function fields(value: RuntimeValue): TaggedActionFailure {
   return value !== null && typeof value === 'object' ? (value as TaggedActionFailure) : {};
 }
 
 /** True for both a real instance and a structurally tagged look-alike. */
-function hasTag(value: unknown, tag: string): boolean {
+function hasTag(value: RuntimeValue, tag: string): boolean {
   return fields(value)._tag === tag;
 }
 
-function safeCode(value: unknown, fallback: string): string {
+function safeCode(value: RuntimeValue, fallback: string): string {
   const code = fields(value).code;
   return typeof code === 'string' && code.trim() ? code : fallback;
 }
 
-function cooperative(value: unknown, fallback?: boolean): boolean | undefined {
+function cooperative(value: RuntimeValue, fallback?: boolean): boolean | undefined {
   const flag = fields(value).cancellationCooperative;
   return typeof flag === 'boolean' ? flag : fallback;
 }
@@ -102,7 +145,10 @@ function cooperative(value: unknown, fallback?: boolean): boolean | undefined {
  * branded domain/transient, executor timeout, interruption, then everything
  * else as unexpected. Message text is never inspected.
  */
-export function normalizeActionFailure(cause: unknown, fallbackCancellationCooperative?: boolean): SafeActionFailure {
+export function normalizeActionFailure(
+  cause: RuntimeValue,
+  fallbackCancellationCooperative?: boolean
+): SafeActionFailure {
   if (hasTag(cause, 'ActionConfigurationError')) {
     return { kind: 'configuration', code: 'invalid-hook-execution-policy' };
   }
@@ -116,12 +162,14 @@ export function normalizeActionFailure(cause: unknown, fallbackCancellationCoope
     return {
       kind: 'domain',
       code: safeCode(cause, 'action-domain-failed'),
+      summary: boundedSafeSummary(fields(cause).safeSummary),
     };
   }
   if (hasTag(cause, 'ActionTransientFailure')) {
     return {
       kind: 'transient',
       code: safeCode(cause, 'action-transient-failed'),
+      summary: boundedSafeSummary(fields(cause).safeSummary),
     };
   }
   if (hasTag(cause, 'ActionTimeoutFailure')) {
