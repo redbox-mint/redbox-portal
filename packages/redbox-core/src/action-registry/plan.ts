@@ -100,16 +100,6 @@ export interface ResolvedActionPlanBinding {
   readonly preparedParameters: Readonly<Record<string, PreparedActionParameter>>;
 }
 
-const validatedActionPlanBindingRecordTypes = new WeakMap<object, string>();
-
-/**
- * Returns the record type attached by successful registry-backed plan
- * validation. There is deliberately no public capability-minting function.
- */
-export function validatedActionPlanBindingRecordTypeKey(value: RuntimeValue): string | undefined {
-  return value !== null && typeof value === 'object' ? validatedActionPlanBindingRecordTypes.get(value) : undefined;
-}
-
 export interface ResolvedActionPlan {
   readonly schemaVersion: typeof ACTION_PLAN_SCHEMA_VERSION;
   readonly recordTypeKey: string;
@@ -1088,7 +1078,7 @@ function validateParsedActionPlan(registry: RedboxActionRegistry, plan: ActionPl
   const resolvedBindings = candidates.map<ResolvedActionPlanBinding>(candidate => {
     const binding = effectiveBinding(candidate.binding, candidate.parameters);
     const priorOutputs = priorOutputsByIndex.get(candidate.index) ?? Object.freeze([]);
-    const resolvedBinding: ResolvedActionPlanBinding = Object.freeze({
+    return Object.freeze({
       sourceIndex: candidate.index,
       binding,
       descriptor: candidate.lookup.descriptor,
@@ -1096,8 +1086,6 @@ function validateParsedActionPlan(registry: RedboxActionRegistry, plan: ActionPl
       priorOutputs,
       preparedParameters: candidate.preparedParameters,
     });
-    validatedActionPlanBindingRecordTypes.set(resolvedBinding, plan.recordTypeKey);
-    return resolvedBinding;
   });
   const sortable = resolvedBindings.map(entry => ({
     id: entry.binding.id,

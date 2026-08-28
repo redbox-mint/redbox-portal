@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { inspect } from 'node:util';
 import ts from 'typescript';
+import * as PublicActionRegistry from '../src/action-registry';
 import {
   ACTION_CONTEXT_SCHEMA_VERSION,
   ACTION_CONTRACT_SCHEMA_VERSION,
@@ -29,11 +30,17 @@ import {
   type ActionParameterDefinition,
   type ActionParameterValues,
   type ActionRegistrationDescriptor,
+  type ActionSecretProvider,
   type ActionSecretProviderErrorCode,
   type ActionSecretSlotIdentity,
   type ActionSecretStorage,
+  type RedboxActionRegistry,
   type ResolvedActionPlanBinding,
 } from '../src/action-registry';
+import {
+  createActionSecretExecutionBoundary,
+  type ActionSecretExecutionBoundary,
+} from '../src/action-registry/secrets';
 
 const brandId = 'brand-alpha';
 const recordTypeKey = 'rdmp';
@@ -103,24 +110,48 @@ function descriptor(parameters?: readonly ActionParameterDefinition[]): ActionRe
   };
 }
 
-function validatedBinding(
-  actionBinding: ActionBinding = binding(),
-  parameters?: readonly ActionParameterDefinition[]
-): ResolvedActionPlanBinding {
+function actionRegistry(parameters?: readonly ActionParameterDefinition[]): RedboxActionRegistry {
   const register = (): readonly ActionRegistrationDescriptor[] => [descriptor(parameters)];
-  const registry = buildActionRegistry([
+  return buildActionRegistry([
     actionRegistrationSource('@researchdatabox/action-secret-test', 'actions/index', register),
   ]);
-  const plan = resolveActionPlan(registry, {
+}
+
+function actionPlan(actionBinding: ActionBinding): object {
+  return {
     schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
     recordTypeKey,
     bindings: [actionBinding],
-  });
+  };
+}
+
+function firstResolvedBinding(plan: { readonly bindings: readonly ResolvedActionPlanBinding[] }) {
   const resolved = plan.bindings[0];
   if (resolved === undefined) {
-    assert.fail('Expected one validated action-plan binding.');
+    assert.fail('Expected one resolved action-plan binding.');
   }
   return resolved;
+}
+
+function publiclyValidatedBinding(
+  registry: RedboxActionRegistry,
+  actionBinding: ActionBinding = binding()
+): ResolvedActionPlanBinding {
+  return firstResolvedBinding(resolveActionPlan(registry, actionPlan(actionBinding)));
+}
+
+function actionSecretExecution(
+  provider: ActionSecretProvider,
+  parameters?: readonly ActionParameterDefinition[]
+): ActionSecretExecutionBoundary {
+  return createActionSecretExecutionBoundary(provider, actionRegistry(parameters));
+}
+
+function trustedBinding(
+  execution: ActionSecretExecutionBoundary,
+  actionBinding: ActionBinding = binding()
+): ResolvedActionPlanBinding {
+  return firstResolvedBinding(execution.resolvePlan(actionPlan(actionBinding)));
 }
 
 function actionContext() {
@@ -303,10 +334,50 @@ describe('action secret parameter provider boundary', () => {
     assert.throws(() => parseActionSecretSlotId('acts_not-a-valid-slot'), ActionSecretProviderError);
   });
 
+  it('denies caller-created public plans while authorizing only trusted application execution bindings', async () => {
+    const storage = new MemoryActionSecretStorage();
+    const provider = createActionSecretProvider(storage);
+    const actionBinding = binding();
+    const secretSlot = slot(actionBinding);
+    const access = { requesterBrandId: brandId, slot: secretSlot };
+    const applicationRegistry = actionRegistry();
+    const callerRegistry = actionRegistry();
+    const publicApplicationBinding = publiclyValidatedBinding(applicationRegistry, actionBinding);
+    const callerBinding = publiclyValidatedBinding(callerRegistry, actionBinding);
+    const execution = createActionSecretExecutionBoundary(provider, applicationRegistry);
+
+    await provider.replace({ ...access, value: 'execution-only-secret' });
+    const resolveCount = storage.operations.filter(operation => operation === 'resolve').length;
+    for (const resolvedBinding of [publicApplicationBinding, callerBinding]) {
+      await expectProviderError(
+        provider.resolveForHandler({ ...access, resolvedBinding }),
+        'handler-secret-access-denied'
+      );
+      await expectProviderError(
+        resolveActionHandlerSecrets(provider, actionContext(), resolvedBinding),
+        'handler-secret-access-denied'
+      );
+    }
+    assert.equal(storage.operations.filter(operation => operation === 'resolve').length, resolveCount);
+
+    const executionBinding = trustedBinding(execution, actionBinding);
+    const secrets = await execution.resolveHandlerSecrets(actionContext(), executionBinding);
+    assert.equal(secrets.credential?.reveal(), 'execution-only-secret');
+    await expectProviderError(
+      provider.resolveForHandler({ ...access, resolvedBinding: { ...executionBinding } }),
+      'handler-secret-access-denied'
+    );
+    assert.throws(
+      () => createActionSecretExecutionBoundary(provider, callerRegistry),
+      (error: object) => error instanceof ActionSecretProviderError && error.code === 'handler-secret-access-denied'
+    );
+    assert.equal(Object.hasOwn(PublicActionRegistry, 'createActionSecretExecutionBoundary'), false);
+  });
+
   it('retains omitted and blank writes, replaces non-blank values, and clears only explicitly', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const resolvedBinding = validatedBinding();
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider));
     const secretSlot = slot(resolvedBinding.binding);
     const access = { requesterBrandId: brandId, slot: secretSlot };
 
@@ -340,7 +411,7 @@ describe('action secret parameter provider boundary', () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
-    const resolvedBinding = validatedBinding(actionBinding);
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider), actionBinding);
     const credentialSlot = slot(actionBinding);
     const labelSlot = slot(actionBinding, 'label');
     await provider.replace({ requesterBrandId: brandId, slot: credentialSlot, value: 'handler-secret' });
@@ -382,7 +453,7 @@ describe('action secret parameter provider boundary', () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
-    const resolvedBinding = validatedBinding(actionBinding);
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider), actionBinding);
 
     await expectProviderError(
       resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, resolvedBinding),
@@ -392,14 +463,21 @@ describe('action secret parameter provider boundary', () => {
     const optional = descriptor([
       { name: 'credential', title: 'Credential', kind: 'secret', writeOnly: true, required: false },
     ]);
-    const optionalBinding = validatedBinding(binding('primary', {}), optional.parameterSchema.parameters);
-    assert.deepEqual(await resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, optionalBinding), {});
+    const optionalProvider = createActionSecretProvider(storage);
+    const optionalBinding = trustedBinding(
+      actionSecretExecution(optionalProvider, optional.parameterSchema.parameters),
+      binding('primary', {})
+    );
+    assert.deepEqual(
+      await resolveActionHandlerSecrets(optionalProvider, { brandId, recordTypeKey }, optionalBinding),
+      {}
+    );
   });
 
   it('denies cross-brand reads, state checks, writes, retained no-ops, and clears before storage access', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const resolvedBinding = validatedBinding();
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider));
     const secretSlot = slot(resolvedBinding.binding);
     const ownerAccess = { requesterBrandId: brandId, slot: secretSlot };
     await provider.replace({ ...ownerAccess, value: 'owned-secret' });
@@ -425,7 +503,7 @@ describe('action secret parameter provider boundary', () => {
   it('passes provider-owned immutable slot snapshots to every asynchronous storage method', async () => {
     const storage = new AsyncObservedActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const resolvedBinding = validatedBinding();
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider));
     const canonicalSlot = slot(resolvedBinding.binding);
     const mutatedSlot = createActionSecretSlotIdentity({
       brandId: 'brand-beta',
@@ -490,11 +568,11 @@ describe('action secret parameter provider boundary', () => {
     }
   });
 
-  it('rejects tampered slots and forged validated-binding provenance before storage access', async () => {
+  it('rejects tampered slots and forged trusted-execution provenance before storage access', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
-    const resolvedBinding = validatedBinding(actionBinding);
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider), actionBinding);
     const credentialSlot = slot(actionBinding);
     const access = { requesterBrandId: brandId, slot: credentialSlot };
 
@@ -540,10 +618,11 @@ describe('action secret parameter provider boundary', () => {
     const optionalParameters: readonly ActionParameterDefinition[] = [
       { name: 'credential', title: 'Credential', kind: 'secret', writeOnly: true, required: false },
     ];
+    const execution = actionSecretExecution(provider, optionalParameters);
 
-    const configuredFalse = validatedBinding(
-      binding('configured-false', { credential: { kind: 'secret', configured: false } }),
-      optionalParameters
+    const configuredFalse = trustedBinding(
+      execution,
+      binding('configured-false', { credential: { kind: 'secret', configured: false } })
     );
     const falseSlot = slot(configuredFalse.binding);
     await provider.replace({ requesterBrandId: brandId, slot: falseSlot, value: 'stale-secret' });
@@ -551,15 +630,15 @@ describe('action secret parameter provider boundary', () => {
     assert.deepEqual(await resolveActionHandlerSecrets(provider, actionContext(), configuredFalse), {});
     assert.equal(storage.operations.filter(operation => operation === 'resolve').length, resolveCount);
 
-    const markerOmitted = validatedBinding(binding('marker-omitted', {}), optionalParameters);
+    const markerOmitted = trustedBinding(execution, binding('marker-omitted', {}));
     const omittedSlot = slot(markerOmitted.binding);
     await provider.replace({ requesterBrandId: brandId, slot: omittedSlot, value: 'other-stale-secret' });
     assert.deepEqual(await resolveActionHandlerSecrets(provider, actionContext(), markerOmitted), {});
     assert.equal(storage.operations.filter(operation => operation === 'resolve').length, resolveCount);
 
-    const configuredTrue = validatedBinding(
-      binding('configured-true', { credential: { kind: 'secret', configured: true } }),
-      optionalParameters
+    const configuredTrue = trustedBinding(
+      execution,
+      binding('configured-true', { credential: { kind: 'secret', configured: true } })
     );
     await expectProviderError(
       resolveActionHandlerSecrets(provider, actionContext(), configuredTrue),
@@ -568,9 +647,9 @@ describe('action secret parameter provider boundary', () => {
 
     assert.throws(
       () =>
-        validatedBinding(
-          binding('required-false', { credential: { kind: 'secret', configured: false } }),
-          descriptor().parameterSchema.parameters
+        trustedBinding(
+          actionSecretExecution(createActionSecretProvider(storage), descriptor().parameterSchema.parameters),
+          binding('required-false', { credential: { kind: 'secret', configured: false } })
         ),
       ActionPlanValidationError
     );
@@ -579,7 +658,7 @@ describe('action secret parameter provider boundary', () => {
   it('keeps resolved-secret redaction resistant to prototype and instance tampering', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const resolvedBinding = validatedBinding();
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider));
     const secretSlot = slot(resolvedBinding.binding);
     const sentinel = 'prototype-must-not-leak-this';
     await provider.replace({ requesterBrandId: brandId, slot: secretSlot, value: sentinel });
@@ -618,7 +697,7 @@ describe('action secret parameter provider boundary', () => {
   it('normalizes adapter failures and rejects oversized values without disclosing material', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const resolvedBinding = validatedBinding();
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider));
     const access = { requesterBrandId: brandId, slot: slot(resolvedBinding.binding) };
     const sentinel = 'provider-failure-raw-secret';
     storage.failWith = `adapter exposed ${sentinel}`;
@@ -642,7 +721,7 @@ describe('action secret parameter provider boundary', () => {
   it('redacts adapter causes across clear, resolve, and configured-state failures', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const resolvedBinding = validatedBinding();
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider));
     const access = { requesterBrandId: brandId, slot: slot(resolvedBinding.binding) };
     const sentinel = 'adapter-cause-secret';
     storage.failWith = `adapter exposed ${sentinel}`;
@@ -662,7 +741,7 @@ describe('action secret parameter provider boundary', () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
-    const resolvedBinding = validatedBinding(actionBinding);
+    const resolvedBinding = trustedBinding(actionSecretExecution(provider), actionBinding);
     const secretSlot = slot(actionBinding);
     const sentinel = 'never-serialize-this-secret';
     assert.equal(
@@ -718,6 +797,7 @@ describe('action secret parameter provider boundary', () => {
           strict: true,
           declaration: true,
           declarationMap: false,
+          stripInternal: true,
         },
       });
       const diagnostics = declaration.diagnostics ?? [];
@@ -738,6 +818,8 @@ describe('action secret parameter provider boundary', () => {
         ts.ScriptKind.TS
       );
       failures.push(...forbiddenTypeKeywords(declarationFile));
+      assert.equal(declaration.outputText.includes('createActionSecretExecutionBoundary'), false);
+      assert.equal(declaration.outputText.includes('ActionSecretExecutionBoundary'), false);
     }
 
     assert.deepEqual(failures, []);

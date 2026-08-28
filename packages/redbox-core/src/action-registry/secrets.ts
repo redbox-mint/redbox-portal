@@ -7,7 +7,8 @@ import {
   type ActionBindingId,
 } from './identifiers';
 import type { RuntimeValue } from '../runtimeValues';
-import { validatedActionPlanBindingRecordTypeKey, type ResolvedActionPlanBinding } from './plan';
+import { resolveActionPlan, type ResolvedActionPlan, type ResolvedActionPlanBinding } from './plan';
+import type { RedboxActionRegistry } from './registration';
 
 const ACTION_SECRET_SLOT_ID_PATTERN = /^acts_[a-f0-9]{32}$/;
 const ACTION_SECRET_REDACTION = '[REDACTED]' as const;
@@ -47,7 +48,7 @@ export interface ActionSecretReplaceRequest extends ActionSecretSlotAccess {
 }
 
 export interface ActionSecretHandlerResolutionRequest extends ActionSecretSlotAccess {
-  /** Exact capability emitted by registry-backed action-plan validation. */
+  /** Exact binding emitted by the trusted action-execution boundary. */
   readonly resolvedBinding: ResolvedActionPlanBinding;
 }
 
@@ -187,11 +188,11 @@ interface HandlerSecretDeclaration {
 
 function handlerSecretDeclaration(
   request: ActionSecretHandlerResolutionRequest,
-  slot: ActionSecretSlotIdentity
+  slot: ActionSecretSlotIdentity,
+  trustedRecordTypeKey: string | undefined
 ): HandlerSecretDeclaration {
   const resolvedBinding = request.resolvedBinding;
-  const recordTypeKey = validatedActionPlanBindingRecordTypeKey(resolvedBinding);
-  if (recordTypeKey === undefined || recordTypeKey !== slot.recordTypeKey) {
+  if (trustedRecordTypeKey === undefined || trustedRecordTypeKey !== slot.recordTypeKey) {
     throw providerError('handler-secret-access-denied');
   }
   const binding = resolvedBinding.binding;
@@ -244,11 +245,22 @@ async function storageOperation<Result>(operation: () => Promise<Result>): Promi
   }
 }
 
+interface ActionSecretProviderExecutionState {
+  readonly trustedBindingRecordTypeKeys: WeakMap<object, string>;
+  registry?: RedboxActionRegistry;
+  boundary?: ActionSecretExecutionBoundary;
+}
+
+const actionSecretProviderExecutionStates = new WeakMap<object, ActionSecretProviderExecutionState>();
+
 class ProtectedActionSecretProvider implements ActionSecretProvider {
   readonly #storage: ActionSecretStorage;
 
   constructor(storage: ActionSecretStorage) {
     this.#storage = storage;
+    actionSecretProviderExecutionStates.set(this, {
+      trustedBindingRecordTypeKeys: new WeakMap<object, string>(),
+    });
   }
 
   async write(request: ActionSecretWriteRequest): Promise<ActionSecretWriteResult> {
@@ -280,7 +292,11 @@ class ProtectedActionSecretProvider implements ActionSecretProvider {
 
   async resolveForHandler(request: ActionSecretHandlerResolutionRequest): Promise<ResolvedActionSecret | undefined> {
     const access = canonicalAccess(request);
-    const declaration = handlerSecretDeclaration(request, access.slot);
+    const declaration = handlerSecretDeclaration(
+      request,
+      access.slot,
+      actionSecretProviderExecutionStates.get(this)?.trustedBindingRecordTypeKeys.get(request.resolvedBinding)
+    );
     if (!declaration.configured) {
       if (declaration.required) {
         throw providerError('required-secret-not-configured');
@@ -309,6 +325,53 @@ export function createActionSecretProvider(storage: ActionSecretStorage): Action
 }
 
 /**
+ * Server-only bridge for A07 executor wiring. It binds one provider to the
+ * loader-selected application registry and is intentionally absent from the
+ * public barrel and emitted declarations.
+ *
+ * @internal
+ */
+export interface ActionSecretExecutionBoundary {
+  resolvePlan(value: RuntimeValue): ResolvedActionPlan;
+  resolveHandlerSecrets(
+    context: Pick<ActionContext, 'brandId' | 'recordTypeKey'>,
+    resolvedBinding: ResolvedActionPlanBinding
+  ): Promise<Readonly<ActionHandlerSecrets>>;
+}
+
+/** @internal */
+export function createActionSecretExecutionBoundary(
+  provider: ActionSecretProvider,
+  applicationRegistry: RedboxActionRegistry
+): ActionSecretExecutionBoundary {
+  const state = actionSecretProviderExecutionStates.get(provider);
+  if (state === undefined) {
+    throw providerError('handler-secret-access-denied');
+  }
+  if (state.registry !== undefined && state.registry !== applicationRegistry) {
+    throw providerError('handler-secret-access-denied');
+  }
+  if (state.boundary !== undefined) {
+    return state.boundary;
+  }
+
+  state.registry = applicationRegistry;
+  const resolvePlan = (value: RuntimeValue): ResolvedActionPlan => {
+    const plan = resolveActionPlan(applicationRegistry, value);
+    for (const resolvedBinding of plan.bindings) {
+      state.trustedBindingRecordTypeKeys.set(resolvedBinding, plan.recordTypeKey);
+    }
+    return plan;
+  };
+  const resolveHandlerSecrets = (
+    context: Pick<ActionContext, 'brandId' | 'recordTypeKey'>,
+    resolvedBinding: ResolvedActionPlanBinding
+  ): Promise<Readonly<ActionHandlerSecrets>> => resolveActionHandlerSecrets(provider, context, resolvedBinding);
+  state.boundary = Object.freeze({ resolvePlan, resolveHandlerSecrets });
+  return state.boundary;
+}
+
+/**
  * Resolves only descriptor-declared secret parameters for one handler call.
  * Required slots fail closed; optional unconfigured slots are omitted.
  */
@@ -323,7 +386,6 @@ export async function resolveActionHandlerSecrets(
   const descriptor = resolvedBinding.descriptor;
   if (
     recordTypeKey.trim().length === 0 ||
-    validatedActionPlanBindingRecordTypeKey(resolvedBinding) !== recordTypeKey ||
     binding.actionId !== descriptor.id ||
     binding.contractVersion !== descriptor.contractVersion
   ) {
