@@ -38,12 +38,15 @@ describe('redbox-core package exports', () => {
     }
   });
 
-  it('blocks both consumer-reachable spellings of the emitted secret runtime', () => {
+  it('blocks consumer subpaths for the emitted secret and registered-execution runtimes', () => {
     assert.equal(fs.existsSync(path.join(packageRoot, 'dist/action-registry/secrets.js')), true);
+    assert.equal(fs.existsSync(path.join(packageRoot, 'dist/action-execution/registered-executor.js')), true);
 
     for (const request of [
       `${packageName}/dist/action-registry/secrets`,
       `${packageName}/dist/action-registry/secrets.js`,
+      `${packageName}/dist/action-execution/registered-executor`,
+      `${packageName}/dist/action-execution/registered-executor.js`,
     ]) {
       try {
         consumerRequire.resolve(request);

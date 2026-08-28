@@ -1,21 +1,13 @@
 import { Effect } from 'effect';
+import type { RuntimeValue } from '../runtimeValues';
 
 export type ActionFailureKind =
-  | 'configuration'
-  | 'validation'
-  | 'domain'
-  | 'transient'
-  | 'timeout'
-  | 'interrupted'
-  | 'unexpected';
+  'configuration' | 'validation' | 'domain' | 'transient' | 'timeout' | 'interrupted' | 'unexpected';
 
 export type ActionExecutionStatus = 'succeeded' | 'failed' | 'timed_out' | 'interrupted' | 'skipped' | 'dispatched';
 
 export type ActionSkippedReason =
-  | 'prior_action_failed'
-  | 'phase_not_reached'
-  | 'save_not_persisted'
-  | 'trigger_disabled';
+  'prior_action_failed' | 'phase_not_reached' | 'save_not_persisted' | 'trigger_disabled';
 
 export type ActionExecutionMode = 'onCreate' | 'onUpdate' | 'onDelete' | 'onTransitionWorkflow';
 
@@ -107,8 +99,8 @@ export interface ActionExecutionDependencies {
   /** Injectable backoff sleep. Defaults to Effect's live Clock service. */
   sleep?: (durationMs: number) => Effect.Effect<void>;
   /** Injectable wall-clock scheduling for bounded save-side handoffs. */
-  schedule?: (durationMs: number, task: () => void) => unknown;
-  cancelSchedule?: (handle: unknown) => void;
+  schedule?: (durationMs: number, task: () => void) => RuntimeValue;
+  cancelSchedule?: (handle: RuntimeValue) => void;
   uuid?: () => string;
   logger?: ActionExecutionLogger;
   supervisor?: ActionExecutionSupervisor;
@@ -117,19 +109,19 @@ export interface ActionExecutionDependencies {
 }
 
 export interface ActionExecutionLogger {
-  debug?: (message: string, fields?: Record<string, unknown>) => void;
-  info?: (message: string, fields?: Record<string, unknown>) => void;
-  warn?: (message: string, fields?: Record<string, unknown>) => void;
-  error?: (message: string, fields?: Record<string, unknown>) => void;
+  debug?: (message: string, fields?: Record<string, RuntimeValue>) => void;
+  info?: (message: string, fields?: Record<string, RuntimeValue>) => void;
+  warn?: (message: string, fields?: Record<string, RuntimeValue>) => void;
+  error?: (message: string, fields?: Record<string, RuntimeValue>) => void;
 }
 
 export interface ActionExecutionSupervisor {
-  register?: (fiber: unknown) => void;
-  unregister?: (fiber: unknown) => void;
+  register?: (fiber: RuntimeValue) => void;
+  unregister?: (fiber: RuntimeValue) => void;
   interruptAll?: () => void;
 }
 
-export interface ActionExecutionAction<A = unknown> {
+export interface ActionExecutionAction<A = RuntimeValue> {
   actionId: string;
   mode: ActionExecutionMode;
   phase: ActionExecutionPhase;
@@ -137,14 +129,19 @@ export interface ActionExecutionAction<A = unknown> {
   policy?: ActionExecutionPolicy;
   /** Legacy Promise work is not cancellable even when the wait is timed out. */
   cooperativeCancellation?: boolean | (() => boolean);
-  invoke: () => Effect.Effect<A, unknown, never>;
+  /** A false result records a bounded skip without consuming an attempt. */
+  shouldRun?: () => Effect.Effect<boolean, never, never>;
+  skippedReason?: ActionSkippedReason;
+  /** Validates/projects a successful value before the action is closed. */
+  project?: (value: RuntimeValue) => void;
+  invoke: () => Effect.Effect<A, RuntimeValue, never>;
 }
 
-export interface ActionExecutionOutcome<A = unknown> {
+export interface ActionExecutionOutcome<A = RuntimeValue> {
   report: ActionExecutionReport;
   values: A[];
   /** Kept in memory only for the compatibility adapter. */
-  terminalCause?: unknown;
+  terminalCause?: RuntimeValue;
 }
 
 export interface ActionExecutionOperation {
@@ -163,8 +160,8 @@ export interface ActionExecutionOperation {
   detachedCompletedAt?: string;
   /** In-memory guard/state for the exactly-once audit handoff. */
   detachedAuditFinalized?: boolean;
-  detachedAuditTimer?: unknown;
-  cancelDetachedAuditTimer?: (handle: unknown) => void;
+  detachedAuditTimer?: RuntimeValue;
+  cancelDetachedAuditTimer?: (handle: RuntimeValue) => void;
   operationCompletedLogged?: boolean;
 }
 

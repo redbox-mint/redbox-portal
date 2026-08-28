@@ -17,6 +17,7 @@ import type {
   ActionExecutionReport,
 } from '../../action-execution/types';
 import type { RecordHookDefinition } from '../../config/recordtype.config';
+import type { RuntimeValue } from '../../runtimeValues';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -197,7 +198,7 @@ export class RecordHookCoordinator {
       index,
       policy: hook.execution,
       cooperativeCancellation: () => cancellation.value,
-      invoke: () => legacyHookToEffect(() => invoke(hook, index), cancellation),
+      invoke: () => legacyHookToEffect(() => invoke(hook, index) as RuntimeValue, cancellation),
     };
   }
 
@@ -251,7 +252,7 @@ export class RecordHookCoordinator {
         if (this.options.operation.recordOid) {
           fields.record_oid = this.options.operation.recordOid;
         }
-        this.dependencies.logger?.warn?.('record_hook_detached_action_skipped', fields);
+        this.dependencies.logger?.warn?.('record_hook_detached_action_skipped', fields as Record<string, RuntimeValue>);
       }
     });
     return actions;

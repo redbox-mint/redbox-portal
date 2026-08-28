@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { RuntimeValue } from '../runtimeValues';
 import { ActionConfigurationError, isActionFailureKind } from './failure';
 import type {
   ActionExecutionMode,
@@ -13,7 +14,7 @@ const MAX_DELAY_MS = 60_000;
 const MAX_ATTEMPTS = 5;
 const ACTION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
-function isIntegerInRange(value: unknown, min: number, max: number): value is number {
+function isIntegerInRange(value: RuntimeValue, min: number, max: number): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
 }
 
@@ -21,7 +22,7 @@ function configurationError(message: string): never {
   throw new ActionConfigurationError(message);
 }
 
-function validateJitter(value: unknown): boolean | undefined {
+function validateJitter(value: RuntimeValue): boolean | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -31,11 +32,11 @@ function validateJitter(value: unknown): boolean | undefined {
   return value;
 }
 
-function validateSchedule(schedule: unknown): RetryScheduleConfig {
+function validateSchedule(schedule: RuntimeValue): RetryScheduleConfig {
   if (!schedule || typeof schedule !== 'object') {
     configurationError('Retry schedule must be an object.');
   }
-  const value = schedule as Record<string, unknown>;
+  const value = schedule as Record<string, RuntimeValue>;
   if (value.type !== 'fixed' && value.type !== 'exponential') {
     configurationError('Retry schedule type must be fixed or exponential.');
   }
@@ -66,7 +67,7 @@ function validateSchedule(schedule: unknown): RetryScheduleConfig {
   return result;
 }
 
-export function validateActionId(id: unknown): string {
+export function validateActionId(id: RuntimeValue): string {
   if (typeof id !== 'string' || !ACTION_ID_PATTERN.test(id.trim())) {
     configurationError('Action id must be a non-empty string of at most 128 safe characters.');
   }
@@ -84,7 +85,7 @@ export function deriveActionId(
 }
 
 export function resolveActionId(
-  configuredId: unknown,
+  configuredId: RuntimeValue,
   mode: ActionExecutionMode | string,
   phase: ActionExecutionPhase | string,
   index: number,
@@ -96,14 +97,14 @@ export function resolveActionId(
   return validateActionId(configuredId);
 }
 
-export function validateActionExecutionPolicy(policy: unknown): ActionExecutionPolicy | undefined {
+export function validateActionExecutionPolicy(policy: RuntimeValue): ActionExecutionPolicy | undefined {
   if (policy === undefined || policy === null) {
     return undefined;
   }
   if (typeof policy !== 'object' || Array.isArray(policy)) {
     configurationError('Action execution policy must be an object.');
   }
-  const value = policy as Record<string, unknown>;
+  const value = policy as Record<string, RuntimeValue>;
   const result: ActionExecutionPolicy = {};
   if (value.timeoutMs !== undefined) {
     if (!isIntegerInRange(value.timeoutMs, 1, MAX_TIMEOUT_MS)) {
@@ -115,7 +116,7 @@ export function validateActionExecutionPolicy(policy: unknown): ActionExecutionP
     if (!value.retry || typeof value.retry !== 'object' || Array.isArray(value.retry)) {
       configurationError('Retry policy must be an object.');
     }
-    const retry = value.retry as Record<string, unknown>;
+    const retry = value.retry as Record<string, RuntimeValue>;
     if (retry.idempotent !== true) {
       configurationError('Retry policy requires idempotent: true.');
     }
@@ -163,7 +164,11 @@ export function retryDelayMs(
   return Math.min(MAX_DELAY_MS, Math.round(base * (0.5 + sample)));
 }
 
-export const ACTION_EXECUTION_LIMITS = {
+export const ACTION_EXECUTION_LIMITS: Readonly<{
+  maxTimeoutMs: number;
+  maxDelayMs: number;
+  maxAttempts: number;
+}> = {
   maxTimeoutMs: MAX_TIMEOUT_MS,
   maxDelayMs: MAX_DELAY_MS,
   maxAttempts: MAX_ATTEMPTS,
