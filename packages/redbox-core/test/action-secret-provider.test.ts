@@ -1,5 +1,8 @@
 import { strict as assert } from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
 import { inspect } from 'node:util';
+import ts from 'typescript';
 import {
   ACTION_CONTEXT_SCHEMA_VERSION,
   ACTION_CONTRACT_SCHEMA_VERSION,
@@ -9,9 +12,11 @@ import {
   createActionSecretProvider,
   createActionSecretSlotIdentity,
   deriveStableActionBindingId,
+  deriveStableActionSecretSlotId,
   parseActionBinding,
   parseActionContext,
   parseActionDefinitionId,
+  parseActionSecretSlotId,
   resolveActionHandlerSecrets,
   type ActionBinding,
   type ActionHandler,
@@ -157,6 +162,21 @@ async function expectProviderError(
   }
 }
 
+function forbiddenTypeKeywords(sourceFile: ts.SourceFile): readonly string[] {
+  const failures: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (node.kind === ts.SyntaxKind.AnyKeyword || node.kind === ts.SyntaxKind.UnknownKeyword) {
+      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+      failures.push(
+        `${sourceFile.fileName}:${position.line + 1}:${position.character + 1}:${node.getText(sourceFile)}`
+      );
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return failures;
+}
+
 describe('action secret parameter provider boundary', () => {
   it('derives stable slots from every ownership component', () => {
     const primaryBinding = binding();
@@ -181,6 +201,21 @@ describe('action secret parameter provider boundary', () => {
       variants.every(variant => variant.id !== base.id),
       true
     );
+    assert.notEqual(
+      deriveStableActionSecretSlotId({
+        brandId: 'brand:alpha',
+        recordTypeKey,
+        bindingId: primaryBinding.id,
+        parameterName: 'credential',
+      }),
+      deriveStableActionSecretSlotId({
+        brandId: 'brand',
+        recordTypeKey: `alpha:${recordTypeKey}`,
+        bindingId: primaryBinding.id,
+        parameterName: 'credential',
+      })
+    );
+    assert.throws(() => parseActionSecretSlotId('acts_not-a-valid-slot'), ActionSecretProviderError);
   });
 
   it('retains omitted and blank writes, replaces non-blank values, and clears only explicitly', async () => {
@@ -305,6 +340,43 @@ describe('action secret parameter provider boundary', () => {
     assert.equal(await provider.isConfigured(ownerAccess), true);
   });
 
+  it('rejects tampered slots and handler identity or declaration mismatches before storage access', async () => {
+    const storage = new MemoryActionSecretStorage();
+    const provider = createActionSecretProvider(storage);
+    const actionBinding = binding();
+    const credentialSlot = slot(actionBinding);
+    const access = { requesterBrandId: brandId, slot: credentialSlot };
+
+    await expectProviderError(
+      provider.isConfigured({ ...access, slot: { ...credentialSlot, parameterName: 'apiToken' } }),
+      'invalid-secret-slot'
+    );
+
+    const mismatches = [
+      {
+        binding: binding('secondary'),
+        descriptor: descriptor(),
+      },
+      {
+        binding: actionBinding,
+        descriptor: { ...descriptor(), id: parseActionDefinitionId('org.redbox.other-action') },
+      },
+      {
+        binding: actionBinding,
+        descriptor: { ...descriptor(), contractVersion: 2 },
+      },
+      {
+        binding: actionBinding,
+        descriptor: descriptor([{ name: 'credential', title: 'Credential', kind: 'string', required: true }]),
+      },
+    ];
+    for (const mismatch of mismatches) {
+      await expectProviderError(provider.resolveForHandler({ ...access, ...mismatch }), 'handler-secret-access-denied');
+    }
+
+    assert.deepEqual(storage.operations, []);
+  });
+
   it('normalizes adapter failures and rejects oversized values without disclosing material', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
@@ -326,6 +398,24 @@ describe('action secret parameter provider boundary', () => {
     const oversized = 's'.repeat(ACTION_SECRET_LIMITS.maxSecretBytes + 1);
     await expectProviderError(provider.replace({ ...access, value: oversized }), 'invalid-secret-value', oversized);
     assert.equal(storage.values.size, 0);
+  });
+
+  it('redacts adapter causes across clear, resolve, and configured-state failures', async () => {
+    const storage = new MemoryActionSecretStorage();
+    const provider = createActionSecretProvider(storage);
+    const access = { requesterBrandId: brandId, slot: slot() };
+    const sentinel = 'adapter-cause-secret';
+    storage.failWith = `adapter exposed ${sentinel}`;
+    const operations = [
+      () => provider.clear(access),
+      () => provider.isConfigured(access),
+      () => provider.resolveForHandler({ ...access, binding: binding(), descriptor: descriptor() }),
+    ];
+
+    for (const operation of operations) {
+      const error = await expectProviderError(operation(), 'secret-provider-failure', sentinel);
+      assert.equal('cause' in error, false);
+    }
   });
 
   it('keeps raw values out of binding, descriptor, resolved-secret, and error serialization', async () => {
@@ -370,5 +460,50 @@ describe('action secret parameter provider boundary', () => {
     assert.equal(publicMaterial.includes(sentinel), false);
     assert.equal(publicMaterial.includes('[REDACTED]'), true);
     assert.equal(inspect(secrets).includes(sentinel), false);
+  });
+
+  it('emits no any or unknown type nodes from A06 runtime sources', () => {
+    const sourceDirectory = path.resolve(__dirname, '../src/action-registry');
+    const runtimeFiles = ['contracts.ts', 'index.ts', 'secrets.ts'];
+    const failures: string[] = [];
+
+    for (const fileName of runtimeFiles) {
+      const sourcePath = path.join(sourceDirectory, fileName);
+      const sourceText = fs.readFileSync(sourcePath, 'utf8');
+      const sourceFile = ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.ES2024, true, ts.ScriptKind.TS);
+      failures.push(...forbiddenTypeKeywords(sourceFile));
+
+      const declaration = ts.transpileDeclaration(sourceText, {
+        fileName: sourcePath,
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2024,
+          module: ts.ModuleKind.NodeNext,
+          moduleResolution: ts.ModuleResolutionKind.NodeNext,
+          strict: true,
+          declaration: true,
+          declarationMap: false,
+        },
+      });
+      const diagnostics = declaration.diagnostics ?? [];
+      assert.equal(
+        diagnostics.length,
+        0,
+        ts.formatDiagnostics(diagnostics, {
+          getCanonicalFileName: name => name,
+          getCurrentDirectory: () => process.cwd(),
+          getNewLine: () => '\n',
+        })
+      );
+      const declarationFile = ts.createSourceFile(
+        sourcePath.replace(/\.ts$/, '.d.ts'),
+        declaration.outputText,
+        ts.ScriptTarget.ES2024,
+        true,
+        ts.ScriptKind.TS
+      );
+      failures.push(...forbiddenTypeKeywords(declarationFile));
+    }
+
+    assert.deepEqual(failures, []);
   });
 });
