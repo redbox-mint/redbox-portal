@@ -1,10 +1,12 @@
 import type { RecordTypeValidationConfig } from '../../config/recordtype.config';
 import type { RecordConcurrentModificationConfig } from '@researchdatabox/sails-ng-common';
+import type { ActionPlan } from '../../action-registry';
 
 export class RecordTypeModel {
   packageType: string = '';
   searchCore?: string = '';
   hooks?: RecordTypeHooks = new RecordTypeHooks();
+  actionPlan?: ActionPlan;
   relatedTo: RelatedTo[] = [];
   searchFilters: SearchFilter[] = [];
   transferResponsibility: unknown = null; //Legacy to be removed in a future version

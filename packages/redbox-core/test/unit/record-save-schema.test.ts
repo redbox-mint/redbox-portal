@@ -2,7 +2,11 @@ import {
   RECORD_SAVE_MESSAGE_MAX_LENGTH,
   RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
 } from '@researchdatabox/sails-ng-common';
-import { recordConcurrencyMetadataSchema, recordSaveIssueSchema } from '../../src/api-routes/schemas/responses';
+import {
+  recordConcurrencyMetadataSchema,
+  recordSaveIssueSchema,
+  storageServiceResponseSchema,
+} from '../../src/api-routes/schemas/responses';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 
 describe('record-save issue response schema', function () {
@@ -86,5 +90,78 @@ describe('record-save issue response schema', function () {
     ).to.equal(false);
     expect(recordConcurrencyMetadataSchema.safeParse({ revision: -1 }).success).to.equal(false);
     expect(recordConcurrencyMetadataSchema.safeParse({ resolution: 'server-trust-me' }).success).to.equal(false);
+  });
+
+  it('accepts only the bounded action execution summary allowlist', function () {
+    const response = {
+      success: false,
+      oid: 'record-1',
+      message: '@record-save-failed',
+      metadata: null,
+      totalItems: 0,
+      items: [],
+      problems: [
+        {
+          kind: 'processing',
+          phase: 'pre-save',
+          issues: [{ code: 'pre-save-processing-failed', message: '@record-save-pre-save-processing-failed' }],
+          executionSummary: {
+            schemaVersion: 1,
+            executionId: 'execution-1',
+            requestId: '00000000-0000-4000-8000-000000000041',
+            trigger: 'record-hook',
+            operation: 'create',
+            partial: false,
+            completedThrough: 'pre',
+            durationMs: 4,
+            totalActions: 1,
+            counts: { failed: 1 },
+            actions: [
+              {
+                actionId: 'redbox.test.action',
+                mode: 'onCreate',
+                phase: 'pre',
+                status: 'failed',
+                attempts: 1,
+                durationMs: 3,
+                failureKind: 'validation',
+                failureCode: 'action-validation',
+              },
+            ],
+            truncated: false,
+          },
+        },
+      ],
+    };
+
+    expect(storageServiceResponseSchema.safeParse(response).success).to.equal(true);
+    expect(
+      storageServiceResponseSchema.safeParse({
+        ...response,
+        problems: [
+          {
+            ...response.problems[0],
+            executionSummary: {
+              ...response.problems[0].executionSummary,
+              record: { metadata: { token: 'secret' } },
+            },
+          },
+        ],
+      }).success
+    ).to.equal(false);
+    expect(
+      storageServiceResponseSchema.safeParse({
+        ...response,
+        problems: [
+          {
+            ...response.problems[0],
+            executionSummary: {
+              ...response.problems[0].executionSummary,
+              actions: [{ ...response.problems[0].executionSummary.actions[0], handler: 'function-string' }],
+            },
+          },
+        ],
+      }).success
+    ).to.equal(false);
   });
 });

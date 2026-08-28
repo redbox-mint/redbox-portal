@@ -130,12 +130,23 @@ import {
   type DetachedAuditFinalization,
   type RecordHookExecutionAuditSummary,
 } from '../action-execution/audit';
-import type { ActionExecutionDependencies, ActionExecutionOperation } from '../action-execution/types';
+import type {
+  ActionExecutionDependencies,
+  ActionExecutionMode,
+  ActionExecutionOperation,
+  ActionExecutionReport,
+} from '../action-execution/types';
 import {
-  RecordHookCoordinator,
-  validateRecordHookConfiguration,
-  type RecordHookPostSyncResult,
-} from './record-hooks/coordinator';
+  RegisteredRecordActionCoordinator,
+  RecordActionIdentityFailure,
+  closedRecordActionSecretProvider,
+  coreRecordActionRegistry,
+  projectRecordActionActor,
+  resolveRecordActionPlan,
+  type RecordActionTransitionContext,
+} from './record-actions/coordinator';
+import { RedboxActionRegistry, resolveActionPlan } from '../action-registry';
+import type { RuntimeValue } from '../runtimeValues';
 import { classifyRecordWrite, recordWriteRequiresFormValidation } from '../RecordWriteClassification';
 import {
   RECORD_VALIDATION_DIAGNOSTIC_CODES,
@@ -179,9 +190,7 @@ export interface RecordPostCommitReconciliationJob {
 
 interface DeferredSavePostHookDispatch {
   readonly oid: string | null;
-  readonly recordType: unknown;
   readonly mode: ActionExecutionOperation['mode'];
-  readonly user: unknown;
 }
 
 function safeValidationLogReference(value: unknown): string {
@@ -313,6 +322,12 @@ export namespace Services {
     readonly response: AnyRecord;
     readonly operation?: ActionExecutionOperation;
   };
+  type RegisteredPostSyncResult = {
+    readonly record: AnyRecord;
+    readonly response: AnyRecord;
+    readonly report: ActionExecutionReport;
+    readonly terminalCause?: unknown;
+  };
   type CreateBatchAuditContext = {
     readonly recordType?: string;
     readonly candidateCount?: number;
@@ -343,11 +358,11 @@ export namespace Services {
 
     searchService!: SearchService;
     protected queueService!: QueueService;
-    private readonly configuredHookFunctions = new WeakMap<
-      object,
-      { expression: string; fn: (...args: unknown[]) => unknown }
-    >();
     private readonly saveHookOperations = new WeakMap<RecordSaveTracker, ActionExecutionOperation>();
+    private readonly registeredRecordActionCoordinators = new WeakMap<
+      ActionExecutionOperation,
+      RegisteredRecordActionCoordinator
+    >();
     private readonly deferredSavePostHookDispatches = new WeakMap<
       ActionExecutionOperation,
       DeferredSavePostHookDispatch[]
@@ -395,18 +410,16 @@ export namespace Services {
       this.deferredSavePostHookDispatches.delete(operation);
       if (!dispatches || dispatches.length === 0) return;
 
+      const coordinator = this.registeredRecordActionCoordinators.get(operation);
+      if (!coordinator) {
+        throw new Error('Registered record action operation was not prepared.');
+      }
       for (const dispatch of dispatches) {
         try {
-          this.hookCoordinator(operation, true).dispatchPost(
-            dispatch.oid,
-            record,
-            dispatch.recordType,
-            dispatch.mode,
-            dispatch.user
-          );
+          coordinator.dispatchPost(record, dispatch.mode);
         } catch (error) {
           sails.log.error(
-            `Invalid post-save trigger configuration for ${dispatch.mode}; skipping fire-and-forget hook`,
+            `Invalid registered post-save action plan for ${dispatch.mode}; skipping fire-and-forget action`,
             error
           );
         }
@@ -414,19 +427,89 @@ export namespace Services {
       operation.completedThrough = 'post-dispatch';
     }
 
-    private hookCoordinator(
-      operation: ActionExecutionOperation,
-      enforceAuthoritativeOid = false
-    ): RecordHookCoordinator {
-      return new RecordHookCoordinator({
-        operation,
+    private configuredRecordActionRegistry(): RedboxActionRegistry {
+      const configured = (sails.config as AnyRecord).actionRegistry;
+      return configured instanceof RedboxActionRegistry ? configured : coreRecordActionRegistry();
+    }
+
+    private recordActionTransition(
+      candidate: AnyRecord,
+      nextStep: unknown,
+      current?: AnyRecord
+    ): RecordActionTransitionContext | undefined {
+      const nextStepObj = this.recordObject(nextStep);
+      const targetStage = String(
+        nextStepObj.name ?? _.get(nextStepObj, 'config.workflow.stage', _.get(candidate, 'workflow.stage', ''))
+      ).trim();
+      if (!targetStage) return undefined;
+      const sourceStage = String(
+        _.get(current, 'workflow.stage', '') ||
+          _.get(candidate, 'previousWorkflow.stage', '') ||
+          _.get(candidate, 'workflow.stage', targetStage)
+      ).trim();
+      return {
+        scopeId: targetStage,
+        sourceStage: sourceStage || targetStage,
+        targetStage,
+      };
+    }
+
+    private prepareRecordActionOperation(options: {
+      readonly operation: ActionExecutionOperation;
+      readonly recordType: unknown;
+      readonly recordTypeKey: string;
+      readonly brandId: string;
+      readonly user: unknown;
+      readonly current?: AnyRecord;
+      readonly transition?: RecordActionTransitionContext;
+    }): RegisteredRecordActionCoordinator {
+      const registry = this.configuredRecordActionRegistry();
+      const coordinator = new RegisteredRecordActionCoordinator({
+        registry,
+        secretProvider: closedRecordActionSecretProvider(registry),
+        recordType: options.recordType as RuntimeValue,
+        recordTypeKey: options.recordTypeKey,
+        brandId: options.brandId,
+        actor: projectRecordActionActor(options.user as RuntimeValue),
+        ...(options.current === undefined ? {} : { current: options.current }),
+        ...(options.transition === undefined ? {} : { transition: options.transition }),
+        operation: options.operation,
         dependencies: this.hookExecutionDependencies(),
-        resolveHook: (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase),
-        ...(enforceAuthoritativeOid && operation.mode !== 'onDelete'
-          ? {
-              normalizeRecord: (candidate: AnyRecord) =>
-                this.normalizeHookCandidateIdentity(candidate, operation.recordOid),
-            }
+      });
+      this.registeredRecordActionCoordinators.set(options.operation, coordinator);
+      return coordinator;
+    }
+
+    private recordActionCoordinator(
+      operation: ActionExecutionOperation,
+      record: AnyRecord,
+      recordType: unknown,
+      user: unknown,
+      mode: ActionExecutionMode,
+      nextStep?: unknown
+    ): RegisteredRecordActionCoordinator {
+      const prepared = this.registeredRecordActionCoordinators.get(operation);
+      if (prepared) return prepared;
+      const recordTypeObj = this.recordObject(recordType);
+      const metaMetadata = this.recordObject(record.metaMetadata);
+      const recordTypeKey = String(recordTypeObj.name ?? metaMetadata.type ?? '').trim();
+      const branding = recordTypeObj.branding;
+      const brandId = String(
+        metaMetadata.brandId ??
+          (branding && typeof branding === 'object' && !Array.isArray(branding)
+            ? (branding as AnyRecord).id
+            : branding) ??
+          ''
+      ).trim();
+      return this.prepareRecordActionOperation({
+        operation,
+        recordType,
+        recordTypeKey,
+        brandId,
+        user,
+        ...(mode === 'onCreate' ? {} : { current: record }),
+        ...(mode === 'onTransitionWorkflow'
+          ? { transition: this.recordActionTransition(record, nextStep ?? { name: _.get(record, 'workflow.stage') }) }
           : {}),
       });
     }
@@ -1380,6 +1463,13 @@ export namespace Services {
       code?: string
     ): RecordSaveProblem {
       return recordSaveProblem(kind, phase, code ? `@record-save-${code}` : '@record-save-failed', code);
+    }
+
+    private recordActionProblem(operation: ActionExecutionOperation, problem: RecordSaveProblem): RecordSaveProblem {
+      return {
+        ...problem,
+        executionSummary: projectRecordHookExecutionAuditSummary(operation),
+      };
     }
 
     private saveProblemFromError(
@@ -2986,65 +3076,6 @@ export namespace Services {
       };
     }
 
-    private validateHookConfiguration(recordType: unknown, modes: readonly string[]): void {
-      try {
-        validateRecordHookConfiguration(
-          recordType,
-          modes,
-          (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase),
-          ['pre']
-        );
-      } catch (error) {
-        if (RBValidationError.isRBValidationError(error)) {
-          throw error;
-        }
-        throw new RBValidationError({
-          message: 'Invalid record hook configuration.',
-          options: { cause: error },
-          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
-        });
-      }
-    }
-
-    private configuredHookFunction(hook: unknown, mode: string, phase: string): (...args: unknown[]) => unknown {
-      if (!hook || typeof hook !== 'object') {
-        throw new RBValidationError({
-          message: `Invalid ${phase} hook configuration for ${mode}.`,
-          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
-        });
-      }
-      const expression = _.get(hook, 'function', null) as unknown;
-      if (typeof expression !== 'string' || !(expression as string).trim()) {
-        throw new RBValidationError({
-          message: `Invalid ${phase} hook configuration for ${mode}.`,
-          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
-        });
-      }
-      const cached = this.configuredHookFunctions.get(hook);
-      if (cached?.expression === expression) {
-        return cached.fn;
-      }
-      let evaluated: unknown;
-      try {
-        evaluated = eval(expression);
-      } catch (error) {
-        throw new RBValidationError({
-          message: `Unable to load ${phase} hook for ${mode}.`,
-          options: { cause: error },
-          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
-        });
-      }
-      if (typeof evaluated !== 'function') {
-        throw new RBValidationError({
-          message: `Configured ${phase} hook for ${mode} is not callable.`,
-          displayErrors: [{ title: '@record-save-invalid-hook-configuration', code: 'invalid-hook-configuration' }],
-        });
-      }
-      const fn = evaluated as (...args: unknown[]) => unknown;
-      this.configuredHookFunctions.set(hook, { expression, fn });
-      return fn;
-    }
-
     private getBootstrapDataPath(): string {
       const configuredPath = _.get(sails.config, 'bootstrap.bootstrapDataPath', DEFAULT_BOOTSTRAP_DATA_PATH);
       return path.resolve(String(configuredPath), 'records');
@@ -3649,14 +3680,23 @@ export namespace Services {
         this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, undefined, currentFormFingerprint);
       }
 
-      // Validate every configured synchronous hook before a transition hook
-      // can execute.  A malformed hook is a pre-save processing failure, not
-      // an untyped exception escaping the create path.
+      // Resolve the complete immutable plan before any registered action,
+      // attachment journal, storage mutation, or detached dispatch can run.
       try {
-        this.validateHookConfiguration(recordTypeObj, ['onCreate', 'onTransitionWorkflow']);
+        this.prepareRecordActionOperation({
+          operation: hookOperation,
+          recordType: recordTypeObj,
+          recordTypeKey: recordTypeName,
+          brandId,
+          user: userObj,
+          ...(targetStepName ? { transition: this.recordActionTransition(recordObj, wfStep) } : {}),
+        });
       } catch (error) {
         tracker.recordPrimaryNotApplied(
-          this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'invalid-hook-configuration')
+          this.recordActionProblem(
+            hookOperation,
+            this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'invalid-action-plan')
+          )
         );
         this.logSaveOutcome(tracker, 'pre-save', error);
         return tracker.toResponse();
@@ -3673,7 +3713,12 @@ export namespace Services {
             hookOperation
           );
         } catch (error) {
-          tracker.recordPrimaryNotApplied(this.saveProblemFromError(error, 'pre-save', 'Your changes were not saved.'));
+          tracker.recordPrimaryNotApplied(
+            this.recordActionProblem(
+              hookOperation,
+              this.saveProblemFromError(error, 'pre-save', 'Your changes were not saved.')
+            )
+          );
           this.logSaveOutcome(tracker, 'pre-save', error);
           return tracker.toResponse();
         }
@@ -3699,7 +3744,12 @@ export namespace Services {
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onCreate...`);
           sails.log.error(err);
-          tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
+          tracker.recordPrimaryNotApplied(
+            this.recordActionProblem(
+              hookOperation,
+              this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.')
+            )
+          );
           this.logSaveOutcome(tracker, 'pre-save', err);
           return tracker.toResponse();
         }
@@ -3921,11 +3971,14 @@ export namespace Services {
             tracker.mergeLegacyHookFields(hookResponse);
             if (this.hookResponseFailed(hookResponse)) {
               tracker.recordPostPersistenceProblem(
-                this.saveProblem(
-                  'post-save',
-                  'Your record was saved, but follow-up processing could not be completed.',
-                  'processing',
-                  'post-save-failed'
+                this.recordActionProblem(
+                  hookOperation,
+                  this.saveProblem(
+                    'post-save',
+                    'Your record was saved, but follow-up processing could not be completed.',
+                    'processing',
+                    'post-save-failed'
+                  )
                 )
               );
               this.logSaveOutcome(tracker, 'post-save');
@@ -3938,7 +3991,7 @@ export namespace Services {
             }
             // The awaited post-sync phase succeeded; later work is detached.
             hookOperation.completedThrough = 'postSync';
-            if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
+            if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate', hookOperation)) {
               const hookMutationState = await this.persistPostSyncCandidate({
                 brand: brandObj,
                 oid,
@@ -3954,7 +4007,9 @@ export namespace Services {
                 requiresTransitionAuthorization: Boolean(targetStepName),
               });
               if (hookMutationState.status === 'validation-failed') {
-                tracker.recordPostPersistenceProblem(hookMutationState.problem);
+                tracker.recordPostPersistenceProblem(
+                  this.recordActionProblem(hookOperation, hookMutationState.problem)
+                );
                 this.logSaveOutcome(tracker, 'post-save');
                 return await this.finishSave(
                   tracker,
@@ -3968,7 +4023,10 @@ export namespace Services {
               const postSyncRevision = this.chainedCommittedRevision(hookMutationState.response, currentRevision);
               if (hookMutationState.status !== 'applied' || postSyncRevision === undefined) {
                 tracker.recordPostPersistenceProblem(
-                  this.chainedMutationProblem('post-save', hookMutationState.response, 'post-save-metadata-failed')
+                  this.recordActionProblem(
+                    hookOperation,
+                    this.chainedMutationProblem('post-save', hookMutationState.response, 'post-save-metadata-failed')
+                  )
                 );
                 this.logSaveOutcome(tracker, 'post-save');
                 return await this.finishSave(
@@ -3990,12 +4048,15 @@ export namespace Services {
             );
             sails.log.error(JSON.stringify(err));
             tracker.recordPostPersistenceProblem(
-              this.saveProblemFromError(
-                err,
-                'post-save',
-                'Your record was saved, but follow-up processing could not be completed.',
-                'processing',
-                'post-save-failed'
+              this.recordActionProblem(
+                hookOperation,
+                this.saveProblemFromError(
+                  err,
+                  'post-save',
+                  'Your record was saved, but follow-up processing could not be completed.',
+                  'processing',
+                  'post-save-failed'
+                )
               )
             );
             this.logSaveOutcome(tracker, 'post-save');
@@ -4029,7 +4090,7 @@ export namespace Services {
               const transitionResponse = transitionOutcome.response as unknown as StorageServiceResponse;
               let transitionProblem: RecordSaveProblem | undefined;
               if (!this.hookResponseFailed(transitionResponse)) {
-                if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
+                if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow', hookOperation)) {
                   const transitionMutationState = await this.persistPostSyncCandidate({
                     brand: brandObj,
                     oid,
@@ -4095,7 +4156,7 @@ export namespace Services {
                 hookOperation
               );
               if (transitionProblem) {
-                tracker.recordPostPersistenceProblem(transitionProblem);
+                tracker.recordPostPersistenceProblem(this.recordActionProblem(hookOperation, transitionProblem));
                 this.logSaveOutcome(tracker, 'post-save');
                 return await this.finishSave(
                   tracker,
@@ -4110,12 +4171,15 @@ export namespace Services {
               );
               sails.log.error(tErr);
               tracker.recordPostPersistenceProblem(
-                this.saveProblemFromError(
-                  tErr,
-                  'post-save',
-                  'Your record was saved, but workflow processing could not be completed.',
-                  'processing',
-                  'transition-failed'
+                this.recordActionProblem(
+                  hookOperation,
+                  this.saveProblemFromError(
+                    tErr,
+                    'post-save',
+                    'Your record was saved, but workflow processing could not be completed.',
+                    'processing',
+                    'transition-failed'
+                  )
                 )
               );
               this.logSaveOutcome(tracker, 'post-save');
@@ -4679,10 +4743,23 @@ export namespace Services {
       }
 
       try {
-        this.validateHookConfiguration(recordType, ['onUpdate', 'onTransitionWorkflow']);
+        this.prepareRecordActionOperation({
+          operation: hookOperation,
+          recordType,
+          recordTypeKey: recordTypeName,
+          brandId: String(brandObj.id ?? '').trim(),
+          user: userObj,
+          current: originalRecord,
+          ...(transitionRequested
+            ? { transition: this.recordActionTransition(recordObj, nextStepObj, originalRecord) }
+            : {}),
+        });
       } catch (error) {
         tracker.recordPrimaryNotApplied(
-          this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'invalid-hook-configuration')
+          this.recordActionProblem(
+            hookOperation,
+            this.saveProblem('pre-save', 'Your changes were not saved.', 'processing', 'invalid-action-plan')
+          )
         );
         this.logSaveOutcome(tracker, 'pre-save', error);
         return tracker.toResponse();
@@ -4710,7 +4787,12 @@ export namespace Services {
           } catch (err) {
             sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
             sails.log.error(JSON.stringify(err));
-            tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
+            tracker.recordPrimaryNotApplied(
+              this.recordActionProblem(
+                hookOperation,
+                this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.')
+              )
+            );
             this.logSaveOutcome(tracker, 'pre-save', err);
             return tracker.toResponse();
           }
@@ -4730,7 +4812,12 @@ export namespace Services {
         } catch (err) {
           sails.log.error(`${this.logHeader} Failed to run pre-save hooks when onUpdate...`);
           sails.log.error(err);
-          tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
+          tracker.recordPrimaryNotApplied(
+            this.recordActionProblem(
+              hookOperation,
+              this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.')
+            )
+          );
           this.logSaveOutcome(tracker, 'pre-save', err);
           return tracker.toResponse();
         }
@@ -5101,11 +5188,14 @@ export namespace Services {
             tracker.mergeLegacyHookFields(hookResponse);
             if (this.hookResponseFailed(hookResponse)) {
               tracker.recordPostPersistenceProblem(
-                this.saveProblem(
-                  'post-save',
-                  'Your changes were saved, but follow-up processing could not be completed.',
-                  'processing',
-                  'post-save-failed'
+                this.recordActionProblem(
+                  hookOperation,
+                  this.saveProblem(
+                    'post-save',
+                    'Your changes were saved, but follow-up processing could not be completed.',
+                    'processing',
+                    'post-save-failed'
+                  )
                 )
               );
               this.logSaveOutcome(tracker, 'post-save');
@@ -5118,7 +5208,7 @@ export namespace Services {
             }
             // The awaited post-sync phase succeeded; later work is detached.
             hookOperation.completedThrough = 'postSync';
-            if (this.hasPostSaveSyncHooks(recordType, 'onUpdate')) {
+            if (this.hasPostSaveSyncHooks(recordType, 'onUpdate', hookOperation)) {
               const postSyncCandidate = this.mergeValidationCandidate(beforePostSyncCandidate, recordObj);
               recordObj = postSyncCandidate;
               const hookMutationState = await this.persistPostSyncCandidate({
@@ -5136,7 +5226,9 @@ export namespace Services {
                 requiresTransitionAuthorization: Boolean(authoritativeStep),
               });
               if (hookMutationState.status === 'validation-failed') {
-                tracker.recordPostPersistenceProblem(hookMutationState.problem);
+                tracker.recordPostPersistenceProblem(
+                  this.recordActionProblem(hookOperation, hookMutationState.problem)
+                );
                 this.logSaveOutcome(tracker, 'post-save');
                 return await this.finishSave(
                   tracker,
@@ -5150,7 +5242,10 @@ export namespace Services {
               const postSyncRevision = this.chainedCommittedRevision(hookMutationState.response, currentRevision);
               if (hookMutationState.status !== 'applied' || postSyncRevision === undefined) {
                 tracker.recordPostPersistenceProblem(
-                  this.chainedMutationProblem('post-save', hookMutationState.response, 'post-save-metadata-failed')
+                  this.recordActionProblem(
+                    hookOperation,
+                    this.chainedMutationProblem('post-save', hookMutationState.response, 'post-save-metadata-failed')
+                  )
                 );
                 this.logSaveOutcome(tracker, 'post-save');
                 return await this.finishSave(
@@ -5173,12 +5268,15 @@ export namespace Services {
             sails.log.error(`${this.logHeader} Exception while running post save sync hooks when updating:`);
             sails.log.error(JSON.stringify(err));
             tracker.recordPostPersistenceProblem(
-              this.saveProblemFromError(
-                err,
-                'post-save',
-                'Your changes were saved, but follow-up processing could not be completed.',
-                'processing',
-                'post-save-failed'
+              this.recordActionProblem(
+                hookOperation,
+                this.saveProblemFromError(
+                  err,
+                  'post-save',
+                  'Your changes were saved, but follow-up processing could not be completed.',
+                  'processing',
+                  'post-save-failed'
+                )
               )
             );
             this.logSaveOutcome(tracker, 'post-save');
@@ -5215,7 +5313,7 @@ export namespace Services {
               sails.log.verbose(JSON.stringify(transitionResponse));
               if (!this.hookResponseFailed(transitionResponse)) {
                 sails.log.verbose(`RecordService - updateMeta - triggerPostSaveTransitionWorkflowTriggers ajaxOk`);
-                if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow')) {
+                if (this.hasPostSaveSyncHooks(recordType, 'onTransitionWorkflow', hookOperation)) {
                   const transitionCandidate = this.mergeValidationCandidate(beforeTransitionCandidate, recordObj);
                   recordObj = transitionCandidate;
                   const transitionMutationState = await this.persistPostSyncCandidate({
@@ -5275,7 +5373,7 @@ export namespace Services {
               }
               this.triggerPostSaveTriggers(oid, recordObj, recordType, 'onTransitionWorkflow', userObj, hookOperation);
               if (transitionProblem) {
-                tracker.recordPostPersistenceProblem(transitionProblem);
+                tracker.recordPostPersistenceProblem(this.recordActionProblem(hookOperation, transitionProblem));
                 this.logSaveOutcome(tracker, 'post-save');
                 return await this.finishSave(
                   tracker,
@@ -5290,12 +5388,15 @@ export namespace Services {
               );
               sails.log.error(tErr);
               tracker.recordPostPersistenceProblem(
-                this.saveProblemFromError(
-                  tErr,
-                  'post-save',
-                  'Your changes were saved, but workflow processing could not be completed.',
-                  'processing',
-                  'transition-failed'
+                this.recordActionProblem(
+                  hookOperation,
+                  this.saveProblemFromError(
+                    tErr,
+                    'post-save',
+                    'Your changes were saved, but workflow processing could not be completed.',
+                    'processing',
+                    'transition-failed'
+                  )
                 )
               );
               this.logSaveOutcome(tracker, 'post-save');
@@ -5312,12 +5413,22 @@ export namespace Services {
       return await this.finishSave(tracker, userObj, RecordAuditActionType.updated, recordType?.searchable !== false);
     }
 
-    hasPostSaveSyncHooks(recordType: unknown, mode: string): boolean {
-      const postSaveSyncHooks = _.get(recordType, `hooks.${mode}.postSync`, []);
-      if (_.isArray(postSaveSyncHooks) && postSaveSyncHooks.length > 0) {
-        return true;
+    hasPostSaveSyncHooks(recordType: unknown, mode: string, operation?: ActionExecutionOperation): boolean {
+      const actionMode = mode as ActionExecutionMode;
+      const prepared = operation ? this.registeredRecordActionCoordinators.get(operation) : undefined;
+      if (prepared) {
+        return prepared.hasBindings(actionMode, 'postSync');
       }
-      return false;
+      const recordTypeObj = this.recordObject(recordType);
+      const recordTypeKey = String(recordTypeObj.name ?? '').trim() || 'record';
+      const plan = resolveRecordActionPlan(
+        this.configuredRecordActionRegistry(),
+        recordType as RuntimeValue,
+        recordTypeKey
+      );
+      return resolveActionPlan(this.configuredRecordActionRegistry(), plan).bindings.some(
+        binding => binding.binding.scope.mode === actionMode && binding.binding.scope.phase === 'postSync'
+      );
     }
 
     private hookResponseFailed(response: unknown): boolean {
@@ -5815,22 +5926,28 @@ export namespace Services {
         postHookRecord = hookOutcome.record;
         if (this.hookResponseFailed(hookOutcome.response as unknown as StorageServiceResponse)) {
           tracker.recordPostPersistenceProblem(
-            this.saveProblem(
-              'post-save',
-              '@record-save-delete-post-sync-failed',
-              'processing',
-              'delete-post-sync-failed'
+            this.recordActionProblem(
+              hookOperation,
+              this.saveProblem(
+                'post-save',
+                '@record-save-delete-post-sync-failed',
+                'processing',
+                'delete-post-sync-failed'
+              )
             )
           );
         }
       } catch (error) {
         tracker.recordPostPersistenceProblem(
-          this.saveProblemFromError(
-            error,
-            'post-save',
-            '@record-save-delete-post-sync-failed',
-            'processing',
-            'delete-post-sync-failed'
+          this.recordActionProblem(
+            hookOperation,
+            this.saveProblemFromError(
+              error,
+              'post-save',
+              '@record-save-delete-post-sync-failed',
+              'processing',
+              'delete-post-sync-failed'
+            )
           )
         );
       }
@@ -5935,7 +6052,25 @@ export namespace Services {
       const hookOperation = this.createHookExecutionOperation('onDelete', tracker.context.requestId, oid);
       let hookRecord = _.cloneDeep(authoritative) as AnyRecord;
       try {
-        this.validateHookConfiguration(authority.recordType, ['onDelete']);
+        this.prepareRecordActionOperation({
+          operation: hookOperation,
+          recordType: authority.recordType,
+          recordTypeKey: String(authority.recordType.name ?? '').trim(),
+          brandId: String(authority.brand.id ?? '').trim(),
+          user: userObj,
+          current: authoritative,
+        });
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(
+          this.recordActionProblem(
+            hookOperation,
+            this.saveProblem('pre-save', '@record-save-delete-pre-hook-failed', 'processing', 'invalid-action-plan')
+          )
+        );
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
+      }
+      try {
         hookRecord = await this.triggerPreSaveTriggers(
           oid,
           hookRecord,
@@ -5946,12 +6081,15 @@ export namespace Services {
         );
       } catch (error) {
         tracker.recordPrimaryNotApplied(
-          this.saveProblemFromError(
-            error,
-            'pre-save',
-            '@record-save-delete-pre-hook-failed',
-            'processing',
-            'delete-pre-hook-failed'
+          this.recordActionProblem(
+            hookOperation,
+            this.saveProblemFromError(
+              error,
+              'pre-save',
+              '@record-save-delete-pre-hook-failed',
+              'processing',
+              'delete-pre-hook-failed'
+            )
           )
         );
         return tracker.toResponse();
@@ -7508,8 +7646,26 @@ export namespace Services {
       user: unknown = {},
       operation?: ActionExecutionOperation
     ) {
+      const execution =
+        operation ?? this.createHookExecutionOperation('onTransitionWorkflow', undefined, oid ?? undefined);
       if (!_.isEmpty(nextStep)) {
-        record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onTransitionWorkflow', user, operation);
+        if (!this.registeredRecordActionCoordinators.has(execution)) {
+          const recordTypeObj = this.recordObject(recordType);
+          const recordMeta = this.recordObject(record.metaMetadata);
+          this.prepareRecordActionOperation({
+            operation: execution,
+            recordType,
+            recordTypeKey: String(recordTypeObj.name ?? recordMeta.type ?? '').trim(),
+            brandId: String(recordMeta.brandId ?? recordTypeObj.branding ?? '').trim(),
+            user,
+            current: record,
+            transition: this.recordActionTransition(record, nextStep),
+          });
+        }
+        record = await this.triggerPreSaveTriggers(oid, record, recordType, 'onTransitionWorkflow', user, execution);
+      }
+      if (operation === undefined) {
+        this.completeHookOperation(execution);
       }
       return record;
     }
@@ -7523,12 +7679,26 @@ export namespace Services {
       response: unknown = {},
       operation?: ActionExecutionOperation
     ) {
+      const execution =
+        operation ?? this.createHookExecutionOperation('onTransitionWorkflow', undefined, oid ?? undefined);
       let responseObj = response as AnyRecord;
       let postSyncRecord = record;
       const recordTypeObj = this.recordObject(recordType) as RecordTypeLike;
       const userObj = this.recordObject(user);
       try {
         if (!_.isEmpty(nextStep)) {
+          if (!this.registeredRecordActionCoordinators.has(execution)) {
+            const recordMeta = this.recordObject(record.metaMetadata);
+            this.prepareRecordActionOperation({
+              operation: execution,
+              recordType,
+              recordTypeKey: String(recordTypeObj.name ?? recordMeta.type ?? '').trim(),
+              brandId: String(recordMeta.brandId ?? recordTypeObj.branding ?? '').trim(),
+              user: userObj,
+              current: record,
+              transition: this.recordActionTransition(record, nextStep),
+            });
+          }
           const outcome = await this.runPostSaveSyncTriggers({
             oid,
             record,
@@ -7536,7 +7706,7 @@ export namespace Services {
             mode: 'onTransitionWorkflow',
             user: userObj,
             response: responseObj,
-            operation,
+            operation: execution,
           });
           postSyncRecord = outcome.record;
           responseObj = outcome.response;
@@ -7555,13 +7725,19 @@ export namespace Services {
         sails.log.error(
           `RecordsService - triggerPostSaveTransitionWorkflowTriggers - error - response: ${JSON.stringify(responseObj)}`
         );
+        if (operation === undefined) {
+          this.completeHookOperation(execution, true);
+        }
         return responseObj;
       }
 
       // A soft-failure response has historically still dispatched detached
       // transition hooks; only a thrown postSync phase suppresses dispatch.
       if (!_.isEmpty(nextStep)) {
-        this.triggerPostSaveTriggers(oid, postSyncRecord, recordTypeObj, 'onTransitionWorkflow', userObj, operation);
+        this.triggerPostSaveTriggers(oid, postSyncRecord, recordTypeObj, 'onTransitionWorkflow', userObj, execution);
+      }
+      if (operation === undefined) {
+        this.completeHookOperation(execution);
       }
       return responseObj;
     }
@@ -7580,72 +7756,111 @@ export namespace Services {
         operation ??
         this.createHookExecutionOperation(mode as ActionExecutionOperation['mode'], undefined, oid ?? undefined);
       try {
-        const outcome = await this.hookCoordinator(execution, operation !== undefined).runPre(
-          oid,
-          record,
-          recordType,
-          mode,
-          user
-        );
+        const actionMode = mode as ActionExecutionMode;
+        const coordinator = this.recordActionCoordinator(execution, record, recordType, user, actionMode);
+        const outcome = await coordinator.runSequential(record, actionMode, 'pre');
         if (operation === undefined) {
           this.completeHookOperation(execution);
         }
         if (outcome.terminalCause !== undefined) {
+          if (outcome.terminalCause instanceof RecordActionIdentityFailure) {
+            throw new RBValidationError({
+              message: 'A record action attempted to replace the authoritative public OID.',
+              displayErrors: [
+                {
+                  title: `@record-save-${RECORD_VALIDATION_SAVE_CODES.authorityDivergence}`,
+                  code: RECORD_VALIDATION_SAVE_CODES.authorityDivergence,
+                },
+              ],
+            });
+          }
           if (RBValidationError.isRBValidationError(outcome.terminalCause)) {
-            throw outcome.terminalCause;
+            throw new RBValidationError({
+              message: `pre-save trigger failed to complete for oid ${oid} mode ${mode}`,
+              problemKind: RBValidationError.classify(outcome.terminalCause),
+              displayErrors: [{ title: '@record-save-pre-save-processing-failed', meta: { oid } }],
+            });
           }
           throw new RBValidationError({
             message: `pre-save trigger failed to complete for oid ${oid} mode ${mode}`,
-            options: { cause: outcome.terminalCause },
             displayErrors: [{ title: '@record-save-pre-save-processing-failed', meta: { oid } }],
           });
         }
-        return outcome.record;
+        const candidate = (outcome.candidate ?? record) as AnyRecord;
+        return operation !== undefined && actionMode !== 'onDelete'
+          ? this.normalizeHookCandidateIdentity(candidate, execution.recordOid)
+          : candidate;
       } catch (error) {
         if (RBValidationError.isRBValidationError(error)) {
           throw error;
         }
         throw new RBValidationError({
           message: `pre-save trigger failed to complete for oid ${oid} mode ${mode}`,
-          options: { cause: error },
           displayErrors: [{ title: '@record-save-pre-save-processing-failed', meta: { oid } }],
         });
       }
     }
 
-    private async runPostSaveSyncTriggers(options: RunPostSaveSyncOptions): Promise<RecordHookPostSyncResult> {
+    private async runPostSaveSyncTriggers(options: RunPostSaveSyncOptions): Promise<RegisteredPostSyncResult> {
       const { oid, record, recordType, mode, user, response, operation } = options;
       const execution = operation ?? this.createHookExecutionOperation(mode, undefined, oid ?? undefined);
       try {
-        const outcome = await this.hookCoordinator(execution, operation !== undefined).runPostSync(
-          oid,
-          record,
-          recordType,
-          mode,
-          user,
-          response
-        );
+        const coordinator = this.recordActionCoordinator(execution, record, recordType, user, mode);
+        const outcome = await coordinator.runSequential(record, mode, 'postSync');
         if (operation === undefined) {
           this.completeHookOperation(execution);
         }
         if (outcome.terminalCause !== undefined) {
+          if (outcome.terminalCause instanceof RecordActionIdentityFailure) {
+            throw new RBValidationError({
+              message: 'A record action attempted to replace the authoritative public OID.',
+              displayErrors: [
+                {
+                  title: `@record-save-${RECORD_VALIDATION_SAVE_CODES.authorityDivergence}`,
+                  code: RECORD_VALIDATION_SAVE_CODES.authorityDivergence,
+                },
+              ],
+            });
+          }
           if (RBValidationError.isRBValidationError(outcome.terminalCause)) {
-            throw outcome.terminalCause;
+            throw new RBValidationError({
+              message: `post-save trigger failed to complete for oid ${oid} mode ${mode}`,
+              problemKind: RBValidationError.classify(outcome.terminalCause),
+              displayErrors: [{ title: '@record-save-post-save-failed', meta: { oid } }],
+            });
           }
           throw new RBValidationError({
             message: `post-save trigger failed to complete for oid ${oid} mode ${mode}`,
-            options: { cause: outcome.terminalCause },
             displayErrors: [{ title: '@record-save-post-save-failed', meta: { oid } }],
           });
         }
-        return outcome;
+        const actionRecord = (outcome.candidate ?? record) as AnyRecord;
+        const nextRecord =
+          operation !== undefined && mode !== 'onDelete'
+            ? this.normalizeHookCandidateIdentity(actionRecord, execution.recordOid)
+            : actionRecord;
+        const nextResponse: AnyRecord = { ...response };
+        for (const safeOutput of outcome.safeOutputs) {
+          const fields = safeOutput.output.fields;
+          if (typeof fields.workspaceOid === 'string' && fields.workspaceOid.trim()) {
+            nextResponse.workspaceOid = fields.workspaceOid;
+          }
+          if (Object.hasOwn(fields, 'workspaceData')) {
+            nextResponse.workspaceData = fields.workspaceData;
+          }
+        }
+        return {
+          record: nextRecord,
+          response: nextResponse,
+          report: outcome.report,
+          ...(outcome.terminalCause === undefined ? {} : { terminalCause: outcome.terminalCause }),
+        };
       } catch (error) {
         if (RBValidationError.isRBValidationError(error)) {
           throw error;
         }
         throw new RBValidationError({
           message: `post-save trigger failed to complete for oid ${oid} mode ${mode}`,
-          options: { cause: error },
           displayErrors: [{ title: '@record-save-post-save-failed', meta: { oid } }],
         });
       }
@@ -7692,9 +7907,7 @@ export namespace Services {
       if (deferred) {
         deferred.push({
           oid,
-          recordType,
           mode: mode as ActionExecutionOperation['mode'],
-          user,
         });
         return;
       }
@@ -7702,12 +7915,13 @@ export namespace Services {
         operation ??
         this.createHookExecutionOperation(mode as ActionExecutionOperation['mode'], undefined, oid ?? undefined);
       try {
-        this.hookCoordinator(execution, operation !== undefined).dispatchPost(oid, record, recordType, mode, user);
+        const actionMode = mode as ActionExecutionMode;
+        this.recordActionCoordinator(execution, record, recordType, user, actionMode).dispatchPost(record, actionMode);
         if (operation === undefined) {
           this.completeHookOperation(execution);
         }
       } catch (error) {
-        sails.log.error(`Invalid post-save trigger configuration for ${mode}; skipping fire-and-forget hook`, error);
+        sails.log.error(`Invalid registered post-save action plan for ${mode}; skipping fire-and-forget action`, error);
       }
     }
 

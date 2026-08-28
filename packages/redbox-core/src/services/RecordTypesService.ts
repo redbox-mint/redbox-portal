@@ -108,6 +108,7 @@ export namespace Services {
           searchCore: config.searchCore,
           searchFilters: config.searchFilters,
           hooks: config.hooks,
+          actionPlan: config.actionPlan,
           transferResponsibility: config.transferResponsibility,
           relatedTo: config.relatedTo,
           searchable: config.searchable,

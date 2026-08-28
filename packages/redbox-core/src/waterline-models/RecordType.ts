@@ -3,6 +3,7 @@ import { Entity, Attr, BelongsTo, HasMany, BeforeCreate, toWaterlineModelDef } f
 import { BrandingConfigAttributes } from './BrandingConfig';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { RecordConcurrentModificationConfig } from '@researchdatabox/sails-ng-common';
+import type { ActionPlan } from '../action-registry';
 
 const assignKey = (recordType: Record<string, unknown>, cb: (err?: Error) => void) => {
   recordType.key = `${recordType.branding}_${recordType.name}`;
@@ -46,6 +47,9 @@ export class RecordTypeClass {
   public hooks?: Record<string, unknown>;
 
   @Attr({ type: 'json' })
+  public actionPlan?: ActionPlan;
+
+  @Attr({ type: 'json' })
   public dashboard?: Record<string, unknown>;
 
   @Attr({ type: 'json' })
@@ -63,6 +67,7 @@ export interface RecordTypeAttributes extends Sails.WaterlineAttributes {
   branding: string | number | BrandingConfigAttributes;
   dashboard?: Record<string, unknown>;
   hooks?: Record<string, unknown>;
+  actionPlan?: ActionPlan;
   key?: string;
   name: string;
   packageType?: string;

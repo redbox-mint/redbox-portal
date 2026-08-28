@@ -17,8 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, from } from 'rxjs';
-import { concatMap, last } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordModel } from '../model/storage/RecordModel';
@@ -30,13 +29,6 @@ import numeral from 'numeral';
 export namespace Services {
   type RecordLike = RecordModel | Record<string, unknown>;
   type UserLike = { username?: string; roles?: Array<{ name: string }> } & Record<string, unknown>;
-  type HookConfig = { function?: string; options?: Record<string, unknown> };
-  type HookFn = (
-    oid: string,
-    record: RecordLike,
-    options: Record<string, unknown>,
-    user: UserLike
-  ) => Observable<unknown>;
   /**
    * Trigger related functions...
    *
@@ -97,40 +89,16 @@ export namespace Services {
      *   "hooks" - array, same structure as that of hook option's "pre" and "post" fields
      * @return
      */
-    public runHooksSync(oid: string, record: RecordLike, options: Record<string, unknown>, user: UserLike) {
-      sails.log.debug(`runHooksSync, starting...`);
-      sails.log.debug(JSON.stringify(options));
-      const hookFnArray = _.get(options, 'hooks', []) as Array<HookConfig>;
-      const hookFnDefArray: Array<{ hookFn: HookFn; hookOpt: Record<string, unknown> | undefined }> = [];
-      _.each(hookFnArray, hookFnDef => {
-        const hookFnStr = _.get(hookFnDef, 'function', null);
-        if (!_.isEmpty(hookFnStr) && _.isString(hookFnStr)) {
-          const hookFn = eval(hookFnStr);
-          const hookOpt = _.get(hookFnDef, 'options');
-          if (_.isFunction(hookFn)) {
-            sails.log.debug(`runHooksSync, adding: ${hookFnStr}`);
-            hookFnDefArray.push({ hookFn: hookFn, hookOpt: hookOpt });
-          } else {
-            sails.log.error(`runHooksSync, this is not a valid function: ${hookFnStr}`);
-            sails.log.error(hookFnDef);
-          }
-        } else {
-          sails.log.error(`runHooksSync, expected a string function name, got: ${hookFnStr}`);
-          sails.log.error(hookFnDef);
-        }
+    public runHooksSync(_oid: string, _record: RecordLike, _options: Record<string, unknown>, _user: UserLike): never {
+      throw new RBValidationError({
+        message: 'Nested function-string hooks are no longer executable.',
+        displayErrors: [
+          {
+            title: '@record-save-invalid-action-plan',
+            code: 'invalid-action-plan',
+          },
+        ],
       });
-      if (!_.isEmpty(hookFnDefArray)) {
-        sails.log.debug(`runHooksSync, running..`);
-        return from(hookFnDefArray).pipe(
-          concatMap(hookDef => {
-            return hookDef.hookFn(oid, record, hookDef.hookOpt ?? {}, user);
-          }),
-          last()
-        );
-      } else {
-        sails.log.debug(`runHooksSync, no observables to run`);
-        return of(record);
-      }
     }
 
     public async applyFieldLevelPermissions(

@@ -377,6 +377,54 @@ const recordSaveProblemSchema = withOpenApi(
     kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
     phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
     issues: z.array(recordSaveIssueSchema),
+    executionSummary: z
+      .object({
+        schemaVersion: z.literal(1),
+        executionId: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
+        requestId: z.string().regex(RECORD_SAVE_REQUEST_ID_PATTERN).optional(),
+        trigger: z.literal('record-hook'),
+        operation: z.enum(['create', 'update', 'delete', 'transition']),
+        partial: z.boolean(),
+        completedThrough: z.enum(['pre', 'persistence', 'postSync', 'post-dispatch']).optional(),
+        detachedFinalization: z.enum(['complete', 'grace-expired']).optional(),
+        detachedPending: z.number().int().nonnegative().optional(),
+        durationMs: z.number().int().nonnegative(),
+        totalActions: z.number().int().nonnegative(),
+        counts: z
+          .object({
+            succeeded: z.number().int().nonnegative().optional(),
+            failed: z.number().int().nonnegative().optional(),
+            timed_out: z.number().int().nonnegative().optional(),
+            interrupted: z.number().int().nonnegative().optional(),
+            skipped: z.number().int().nonnegative().optional(),
+            dispatched: z.number().int().nonnegative().optional(),
+          })
+          .strict(),
+        actions: z
+          .array(
+            z
+              .object({
+                actionId: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
+                mode: z.enum(['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow']),
+                phase: z.enum(['pre', 'postSync', 'post']),
+                status: z.enum(['succeeded', 'failed', 'timed_out', 'interrupted', 'skipped', 'dispatched']),
+                attempts: z.number().int().nonnegative(),
+                durationMs: z.number().int().nonnegative(),
+                failureKind: z
+                  .enum(['configuration', 'validation', 'domain', 'transient', 'timeout', 'interrupted', 'unexpected'])
+                  .optional(),
+                failureCode: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxCodeLength).optional(),
+                skippedReason: z
+                  .enum(['prior_action_failed', 'phase_not_reached', 'save_not_persisted', 'trigger_disabled'])
+                  .optional(),
+              })
+              .strict()
+          )
+          .max(100),
+        truncated: z.boolean(),
+      })
+      .strict()
+      .optional(),
   }),
   { description: 'A save phase problem and its safe display issues' }
 );

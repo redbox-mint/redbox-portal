@@ -40,6 +40,60 @@ export type RecordSaveProblemKind = (typeof RECORD_SAVE_PROBLEM_KINDS)[number];
 
 export type RecordSavePhase = 'pre-save' | 'persistence' | 'attachments' | 'post-save' | 'response' | 'transport';
 
+export type RecordActionExecutionMode = 'onCreate' | 'onUpdate' | 'onDelete' | 'onTransitionWorkflow';
+export type RecordActionExecutionPhase = 'pre' | 'postSync' | 'post';
+export type RecordActionExecutionStatus =
+  | 'succeeded'
+  | 'failed'
+  | 'timed_out'
+  | 'interrupted'
+  | 'skipped'
+  | 'dispatched';
+export type RecordActionExecutionFailureKind =
+  | 'configuration'
+  | 'validation'
+  | 'domain'
+  | 'transient'
+  | 'timeout'
+  | 'interrupted'
+  | 'unexpected';
+export type RecordActionExecutionSkippedReason =
+  | 'prior_action_failed'
+  | 'phase_not_reached'
+  | 'save_not_persisted'
+  | 'trigger_disabled';
+
+/** Bounded, allowlisted action fact suitable for record-save responses and audits. */
+export interface RecordActionExecutionActionSummary {
+  actionId: string;
+  mode: RecordActionExecutionMode;
+  phase: RecordActionExecutionPhase;
+  status: RecordActionExecutionStatus;
+  attempts: number;
+  durationMs: number;
+  failureKind?: RecordActionExecutionFailureKind;
+  failureCode?: string;
+  skippedReason?: RecordActionExecutionSkippedReason;
+}
+
+/** No handlers, parameters, record payloads, secrets, or raw diagnostics belong in this projection. */
+export interface RecordActionExecutionSummary {
+  schemaVersion: 1;
+  executionId: string;
+  requestId?: string;
+  trigger: 'record-hook';
+  operation: 'create' | 'update' | 'delete' | 'transition';
+  partial: boolean;
+  completedThrough?: 'pre' | 'persistence' | 'postSync' | 'post-dispatch';
+  detachedFinalization?: 'complete' | 'grace-expired';
+  detachedPending?: number;
+  durationMs: number;
+  totalActions: number;
+  counts: Partial<Record<RecordActionExecutionStatus, number>>;
+  actions: RecordActionExecutionActionSummary[];
+  truncated: boolean;
+}
+
 export type RecordSaveValidatorParameterPrimitive = string | number | boolean | null;
 export type RecordSaveValidatorParameterValue =
   | RecordSaveValidatorParameterPrimitive
@@ -272,6 +326,7 @@ export interface RecordSaveProblem {
   kind: RecordSaveProblemKind;
   phase: RecordSavePhase;
   issues: RecordSaveIssue[];
+  executionSummary?: RecordActionExecutionSummary;
 }
 
 export type RecordAttachmentOperation = 'add' | 'finalize' | 'delete';

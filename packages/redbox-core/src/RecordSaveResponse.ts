@@ -354,7 +354,14 @@ export class RecordSaveTracker {
 }
 
 function cloneProblem(problem: RecordSaveProblem): RecordSaveProblem {
-  return { ...problem, issues: problem.issues.map(sanitizeRecordSaveIssue) };
+  const cloned: RecordSaveProblem = {
+    ...problem,
+    issues: problem.issues.map(sanitizeRecordSaveIssue),
+  };
+  if (problem.executionSummary !== undefined) {
+    cloned.executionSummary = _cloneDeep(problem.executionSummary);
+  }
+  return cloned;
 }
 
 /**

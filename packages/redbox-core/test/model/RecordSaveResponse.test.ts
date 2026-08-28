@@ -4,6 +4,7 @@ import {
   emptyRecordSaveCompletion,
   isRecordSaveOutcome,
   reduceAttachmentStatus,
+  type RecordSaveProblem,
 } from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
@@ -93,6 +94,46 @@ describe('RecordSaveResponse', function () {
       copy.oid = 'tampered';
       expect(saveTracker.result.problems).to.have.length(0);
       expect(saveTracker.result.oid).to.equal('oid-1');
+    });
+
+    it('deeply detaches safe action execution summaries from tracked problems', function () {
+      const saveTracker = tracker();
+      const problem: RecordSaveProblem = {
+        kind: 'processing',
+        phase: 'pre-save',
+        issues: [{ code: 'pre-save-processing-failed', message: '@record-save-pre-save-processing-failed' }],
+        executionSummary: {
+          schemaVersion: 1,
+          executionId: 'execution-1',
+          trigger: 'record-hook',
+          operation: 'update',
+          partial: false,
+          completedThrough: 'pre',
+          durationMs: 2,
+          totalActions: 1,
+          counts: { failed: 1 },
+          actions: [
+            {
+              actionId: 'redbox.test.action',
+              mode: 'onUpdate',
+              phase: 'pre',
+              status: 'failed',
+              attempts: 1,
+              durationMs: 1,
+              failureKind: 'validation',
+              failureCode: 'action-validation',
+            },
+          ],
+          truncated: false,
+        },
+      };
+      saveTracker.recordPrimaryNotApplied(problem);
+
+      const copy = saveTracker.toResponse();
+      copy.problems[0].executionSummary!.actions[0].actionId = 'tampered';
+
+      expect(saveTracker.result.problems[0].executionSummary!.actions[0].actionId).to.equal('redbox.test.action');
+      expect(saveTracker.toResponse().problems[0].executionSummary!.actions[0].actionId).to.equal('redbox.test.action');
     });
 
     it('retains only bounded concurrency metadata in detached results', function () {

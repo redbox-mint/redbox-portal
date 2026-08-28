@@ -6,6 +6,7 @@
  */
 
 import type { ActionExecutionPolicy } from '../action-execution/types';
+import type { ActionPlan } from '../action-registry';
 import type {
   RecordConcurrentModificationConfig,
   ValidationMode,
@@ -215,6 +216,8 @@ export interface RecordTypeDefinition {
   searchable?: boolean;
   labels?: RecordTypeLabels;
   hooks?: RecordHooksConfig;
+  /** Immutable registry-backed plan selected by record lifecycle and transition scopes. */
+  actionPlan?: ActionPlan;
   relatedTo?: RecordRelation[];
   transferResponsibility?: TransferResponsibilityConfig;
   searchFilters?: SearchFilterConfig[];
