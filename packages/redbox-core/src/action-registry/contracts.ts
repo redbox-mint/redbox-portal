@@ -698,6 +698,22 @@ export interface ActionParameterValues {
   [key: string]: ActionParameterValue;
 }
 
+/**
+ * Handler-only view of one resolved secret. The raw value is available only
+ * through an explicit reveal call; ordinary string conversion and JSON
+ * serialization remain redacted.
+ */
+export interface ResolvedActionSecret {
+  reveal(): string;
+  toJSON(): '[REDACTED]';
+  toString(): '[REDACTED]';
+}
+
+/** Secret parameter names are populated only by the provider boundary. */
+export interface ActionHandlerSecrets {
+  readonly [parameterName: string]: ResolvedActionSecret;
+}
+
 const actionOutputFieldSchemaImplementation = z
   .object({
     name: actionParameterNameSchema,
@@ -1247,7 +1263,8 @@ export interface ActionContext {
 }
 export type ActionHandler = (
   context: Readonly<ActionContext>,
-  parameters: Readonly<ActionParameterValues>
+  parameters: Readonly<ActionParameterValues>,
+  secrets: Readonly<ActionHandlerSecrets>
 ) => ActionResult | Promise<ActionResult>;
 
 function isActionHandler(handler: RuntimeValue): boolean {
