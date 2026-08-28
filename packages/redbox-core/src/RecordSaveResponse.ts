@@ -84,6 +84,8 @@ export interface RecordSaveContext {
   requestId: string;
   routeFamily?: RecordSaveRouteFamily;
   operation?: RecordSaveOperation;
+  /** Server-owned control. Internal and trigger-suppressed saves disable automatic workflow evaluation. */
+  evaluateAutomaticTransitions?: boolean;
   /** Server-owned workflow target copied from the matched route, not inferred from a resolved step object. */
   targetStep?: string;
   /** Server-owned business intent; never conflated with the CRUD operation. */
@@ -376,6 +378,9 @@ export function createRecordSaveContext(context: Partial<RecordSaveContext> = {}
     requestId: isCanonicalSaveRequestId(context.requestId) ? context.requestId : randomUUID(),
     routeFamily: context.routeFamily,
     operation: context.operation,
+    ...(typeof context.evaluateAutomaticTransitions === 'boolean'
+      ? { evaluateAutomaticTransitions: context.evaluateAutomaticTransitions }
+      : {}),
     targetStep: context.targetStep,
     validationOperation: context.validationOperation,
     validationRequestParameters: context.validationRequestParameters,

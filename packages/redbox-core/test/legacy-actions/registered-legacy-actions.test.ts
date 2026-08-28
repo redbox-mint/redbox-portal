@@ -252,22 +252,42 @@ describe('registered legacy record action migration', function () {
     assert.ok(queueDefinition);
 
     const transition = migrate(transitionDefinition, {
-      context: 'workflow-transition',
-      mode: 'onTransitionWorkflow',
+      context: 'record-lifecycle',
+      mode: 'onCreate',
       phase: 'pre',
-      scopeId: 'queued-to-published',
     });
     assert.equal(transition.kind, 'automatic-transition');
     if (transition.kind === 'automatic-transition') {
       assert.equal(transition.actionId, 'redbox.core.workflow.automatic-transition');
       assert.equal(transition.id, 'legacy-action');
       assert.equal(transition.mode, 'automatic');
+      assert.equal(transition.event, 'create');
       assert.equal(transition.sourceStage, 'queued');
       assert.equal(transition.priority, 2);
       assert.equal(transition.targetStage, 'published');
       assert.equal(transition.targetStageLabelCheck, 'Published');
       assert.equal(transition.targetFormCheck, 'legacy-action-fixture-1.0-published');
     }
+
+    const updateTransition = migrate(transitionDefinition, {
+      context: 'record-lifecycle',
+      mode: 'onUpdate',
+      phase: 'pre',
+    });
+    assert.equal(updateTransition.kind, 'automatic-transition');
+    if (updateTransition.kind === 'automatic-transition') {
+      assert.equal(updateTransition.event, 'update');
+    }
+    assert.throws(
+      () =>
+        migrate(transitionDefinition, {
+          context: 'workflow-transition',
+          mode: 'onTransitionWorkflow',
+          phase: 'pre',
+          scopeId: 'queued-to-published',
+        }),
+      LegacyRecordActionMigrationError
+    );
 
     const queued = bindingMigration(
       migrate(queueDefinition, { context: 'record-lifecycle', mode: 'onDelete', phase: 'post' })

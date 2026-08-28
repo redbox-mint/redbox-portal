@@ -221,6 +221,7 @@ export interface LegacyAutomaticTransitionMigration {
   readonly contractVersion: 1;
   readonly id: string;
   readonly mode: 'automatic';
+  readonly event: 'create' | 'update';
   readonly sourceStage: string;
   readonly priority: number;
   readonly condition: string;
@@ -1217,6 +1218,17 @@ function migrateAutomaticTransition(
   definition: LegacyRecordActionDefinition,
   request: ParsedMigrationRequest
 ): LegacyAutomaticTransitionMigration {
+  const event =
+    request.scope.mode === 'onCreate'
+      ? 'create'
+      : request.scope.mode === 'onUpdate'
+        ? 'update'
+        : fail(
+            'invalid-legacy-action',
+            request.sourcePath,
+            'Automatic transitions must be attached to onCreate.pre or onUpdate.pre.',
+            definition.function
+          );
   const path = `${request.sourcePath}.options`;
   const options = optionsFor(definition);
   assertAllowedOptions(
@@ -1246,6 +1258,7 @@ function migrateAutomaticTransition(
     contractVersion: 1,
     id: request.stableKey,
     mode: 'automatic',
+    event,
     sourceStage: sourceStageMatch[1],
     priority: request.order,
     condition,
