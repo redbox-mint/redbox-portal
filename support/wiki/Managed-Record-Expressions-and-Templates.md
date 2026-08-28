@@ -34,7 +34,7 @@ Handlebars is only for human-readable text. Compile with `compileManagedHandleba
 | `email-subject` | Uses plain text and removes CR/LF header injection boundaries              |
 | `url-component` | Percent-encodes the complete rendered value as one URL component           |
 
-Templates use an isolated Handlebars instance. Partials, decorators, dynamic lookup, parent/data traversal, prototype access, raw output, and helpers that reach translation services, property paths, Markdown/HTML generation, attachments, or debug serialization are forbidden. The allowlist contains bounded date, comparison, boolean, string, array, and encoding helpers derived from the shared helper definitions.
+Templates use an isolated Handlebars instance. Partials, decorators, dynamic lookup, parent/data traversal, prototype access, raw output, and helpers that reach translation services, property paths, Markdown/HTML generation, attachments, or debug serialization are forbidden. The allowlist contains bounded date, comparison, boolean, string, array, and encoding helpers derived from the shared helper definitions. The pure `emailList` helper is reserved for the A07 migration of the shipped creator-email `pluck`/`join` pattern; it accepts only a projected creator array, reads literal `email` fields, and returns a comma-separated string.
 
 ## Diagnostics
 

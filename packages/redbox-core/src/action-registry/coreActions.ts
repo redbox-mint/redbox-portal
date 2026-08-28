@@ -1,9 +1,9 @@
 import type { ActionRegistrationDescriptor } from './registration';
+import { builtInActionRegistrations } from './builtInActions';
 
 /**
- * Explicit core action registration entry point. Shipped legacy actions are
- * added here as they are migrated in A07.
+ * Explicit core action registration entry point.
  */
 export function registerRedboxActions(): readonly ActionRegistrationDescriptor[] {
-  return [];
+  return builtInActionRegistrations();
 }

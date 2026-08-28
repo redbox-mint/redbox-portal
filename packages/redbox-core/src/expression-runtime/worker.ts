@@ -6,7 +6,14 @@ import { escapeHtmlText } from '@researchdatabox/sails-ng-common/dist/src/html-h
 import { luxonFormatDate } from '@researchdatabox/sails-ng-common/dist/src/jsonata-helpers';
 import { guessNameParts } from '@researchdatabox/sails-ng-common/dist/src/translation-helpers';
 import { boundedValidationPreflight } from '../boundedValidation';
-import type { JsonObject, JsonValue, RuntimeValue } from '../runtimeValues';
+import {
+  isRuntimeArray,
+  isRuntimeRecord,
+  readRuntimeProperty,
+  type JsonObject,
+  type JsonValue,
+  type RuntimeValue,
+} from '../runtimeValues';
 import { compileManagedHandlebarsTemplate, compileManagedJsonataExpression } from './compile';
 import { ManagedExpressionError } from './errors';
 import { EXPRESSION_RUNTIME_LIMITS } from './limits';
@@ -28,10 +35,29 @@ function requiredParentPort(value: MessagePort | null): MessagePort {
 
 const port = requiredParentPort(parentPort);
 
+function emailList(...argumentsList: RuntimeValue[]): string {
+  const creators = argumentsList[0];
+  if (!isRuntimeArray(creators)) {
+    return '';
+  }
+  const emails: string[] = [];
+  for (const creator of creators) {
+    if (!isRuntimeRecord(creator)) {
+      continue;
+    }
+    const email = readRuntimeProperty(creator, 'email');
+    if (typeof email === 'string') {
+      emails.push(email);
+    }
+  }
+  return emails.join(',');
+}
+
 const handlebarsHelpers = Object.freeze({
   and: handlebarsHelperDefinitions.and,
   concat: handlebarsHelperDefinitions.concat,
   default: handlebarsHelperDefinitions.default,
+  emailList,
   eq: handlebarsHelperDefinitions.eq,
   formatDate: handlebarsHelperDefinitions.formatDate,
   gt: handlebarsHelperDefinitions.gt,
@@ -62,6 +88,7 @@ const knownHandlebarsHelpers: Readonly<Record<string, boolean>> = Object.freeze(
   concat: true,
   default: true,
   each: true,
+  emailList: true,
   eq: true,
   formatDate: true,
   gt: true,
