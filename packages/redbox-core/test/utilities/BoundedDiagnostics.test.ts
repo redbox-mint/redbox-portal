@@ -90,25 +90,30 @@ describe('BoundedDiagnostics', () => {
   });
 
   it('contains hostile proxied objects, arrays, functions, and reflection traps', () => {
+    let propertyDescriptorTrapInvocations = 0;
     const throwingTrap = () => {
+      throw new Error(secretSentinel);
+    };
+    const throwingPropertyDescriptorTrap = () => {
+      propertyDescriptorTrapInvocations += 1;
       throw new Error(secretSentinel);
     };
     const hostileObject = new Proxy(Object.create(null), {
       get: throwingTrap,
-      getOwnPropertyDescriptor: throwingTrap,
+      getOwnPropertyDescriptor: throwingPropertyDescriptorTrap,
       getPrototypeOf: throwingTrap,
       ownKeys: throwingTrap,
     });
     const hostileArray = new Proxy([], {
       get: throwingTrap,
-      getOwnPropertyDescriptor: throwingTrap,
+      getOwnPropertyDescriptor: throwingPropertyDescriptorTrap,
       getPrototypeOf: throwingTrap,
       ownKeys: throwingTrap,
     });
     const hostileFunction = new Proxy(() => secretSentinel, {
       apply: throwingTrap,
       get: throwingTrap,
-      getOwnPropertyDescriptor: throwingTrap,
+      getOwnPropertyDescriptor: throwingPropertyDescriptorTrap,
       getPrototypeOf: throwingTrap,
       ownKeys: throwingTrap,
     });
@@ -121,7 +126,7 @@ describe('BoundedDiagnostics', () => {
 
     assert.doesNotThrow(() => boundedDiagnosticValue(hostileObject));
     assert.deepEqual(boundedDiagnosticValue(hostileObject), { category: 'unavailable' });
-    assert.deepEqual(boundedDiagnosticValue(hostileArray), { category: 'array' });
+    assert.deepEqual(boundedDiagnosticValue(hostileArray), { category: 'unavailable' });
     assert.deepEqual(boundedDiagnosticValue(hostileFunction), { category: 'function' });
     assert.deepEqual(boundedDiagnosticValue(revokedObject.proxy), { category: 'unavailable' });
     assert.deepEqual(boundedDiagnosticValue(revokedArray.proxy), { category: 'unavailable' });
@@ -135,6 +140,7 @@ describe('BoundedDiagnostics', () => {
       boundedDiagnosticValue(revokedArray.proxy),
       boundedDiagnosticValue(revokedFunction.proxy),
     ]);
+    assert.equal(propertyDescriptorTrapInvocations, 0);
     assert.equal(serialized.includes(secretSentinel), false);
   });
 

@@ -1,3 +1,4 @@
+import { isProxy } from 'node:util/types';
 import type { RuntimeValue } from '../runtimeValues';
 
 export type BoundedDiagnosticCategory =
@@ -106,6 +107,10 @@ function validatedStatus(value: RuntimeValue): number | undefined {
 }
 
 function objectDiagnostic(value: object): BoundedDiagnosticValue {
+  if (isProxy(value)) {
+    return UNAVAILABLE_DIAGNOSTIC;
+  }
+
   try {
     if (Array.isArray(value)) {
       return ARRAY_DIAGNOSTIC;
