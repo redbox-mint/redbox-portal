@@ -1,14 +1,6 @@
-import { RBValidationError } from '../model/RBValidationError';
+import { isNativeError } from 'node:util/types';
 import type { RuntimeValue } from '../runtimeValues';
 import type { ActionFailureKind, SafeActionFailure } from './types';
-
-interface TaggedActionFailure {
-  _tag?: string;
-  code?: RuntimeValue;
-  message?: RuntimeValue;
-  safeSummary?: RuntimeValue;
-  cancellationCooperative?: RuntimeValue;
-}
 
 export class ActionConfigurationError extends Error {
   readonly _tag = 'ActionConfigurationError';
@@ -101,43 +93,147 @@ const ACTION_FAILURE_KINDS: readonly ActionFailureKind[] = [
 ];
 
 export function isActionFailureKind(value: RuntimeValue): value is ActionFailureKind {
-  return ACTION_FAILURE_KINDS.includes(value as ActionFailureKind);
+  return typeof value === 'string' && ACTION_FAILURE_KINDS.some(kind => kind === value);
 }
 
 const MAX_SUMMARY_LENGTH = 160;
+const MAX_FAILURE_CODE_LENGTH = 64;
+const SAFE_FAILURE_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
+const RB_VALIDATION_ERROR_NAME = 'RBValidationError';
+
+interface MissingOwnProperty {
+  readonly kind: 'missing';
+}
+
+interface UnsafeOwnProperty {
+  readonly kind: 'unsafe';
+}
+
+interface OwnDataProperty {
+  readonly kind: 'data';
+  readonly value: RuntimeValue;
+}
+
+type OwnPropertyInspection = MissingOwnProperty | UnsafeOwnProperty | OwnDataProperty;
+
+function unexpectedFailure(): SafeActionFailure {
+  return { kind: 'unexpected', code: 'action-unexpected-failure' };
+}
+
+/**
+ * Inspect only own data properties. Accessors are rejected without invocation,
+ * and proxy descriptor traps are contained by the normalization boundary.
+ */
+function inspectOwnDataProperty(value: RuntimeValue, property: string): OwnPropertyInspection {
+  if (value === null || typeof value !== 'object') {
+    return { kind: 'missing' };
+  }
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    if (descriptor === undefined) {
+      return { kind: 'missing' };
+    }
+    if (!Object.hasOwn(descriptor, 'value')) {
+      return { kind: 'unsafe' };
+    }
+    const dataValue: RuntimeValue = descriptor.value;
+    return { kind: 'data', value: dataValue };
+  } catch {
+    return { kind: 'unsafe' };
+  }
+}
+
+function hasUnsafeSummaryCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit <= 0x1f || codeUnit === 0x7f) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * A summary is only carried through when a failure deliberately provided one.
  * Arbitrary thrown text never reaches a serialized result.
  */
 function boundedSafeSummary(value: RuntimeValue): string | undefined {
-  if (typeof value !== 'string') {
+  if (typeof value !== 'string' || value.length > MAX_SUMMARY_LENGTH) {
     return undefined;
   }
   const summary = value.trim();
-  if (!summary || summary.length > MAX_SUMMARY_LENGTH || /[\r\n]/.test(summary)) {
+  if (!summary || hasUnsafeSummaryCharacter(summary)) {
     return undefined;
   }
   return summary;
 }
 
-function fields(value: RuntimeValue): TaggedActionFailure {
-  return value !== null && typeof value === 'object' ? (value as TaggedActionFailure) : {};
-}
-
-/** True for both a real instance and a structurally tagged look-alike. */
-function hasTag(value: RuntimeValue, tag: string): boolean {
-  return fields(value)._tag === tag;
-}
-
+/**
+ * Failure codes enter reports and structured logs, so their public alphabet is
+ * limited to action identifiers and their length is capped at 64 characters.
+ */
 function safeCode(value: RuntimeValue, fallback: string): string {
-  const code = fields(value).code;
-  return typeof code === 'string' && code.trim() ? code : fallback;
+  return typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= MAX_FAILURE_CODE_LENGTH &&
+    SAFE_FAILURE_CODE_PATTERN.test(value)
+    ? value
+    : fallback;
 }
 
-function cooperative(value: RuntimeValue, fallback?: boolean): boolean | undefined {
-  const flag = fields(value).cancellationCooperative;
-  return typeof flag === 'boolean' ? flag : fallback;
+function inspectedValue(inspection: MissingOwnProperty | OwnDataProperty): RuntimeValue {
+  return inspection.kind === 'data' ? inspection.value : undefined;
+}
+
+function inspectedTaggedFailure(cause: RuntimeValue, fallbackCancellationCooperative?: boolean): SafeActionFailure {
+  const tag = inspectOwnDataProperty(cause, '_tag');
+  if (tag.kind === 'unsafe') {
+    return unexpectedFailure();
+  }
+  if (tag.kind === 'data' && tag.value === 'ActionConfigurationError') {
+    return { kind: 'configuration', code: 'invalid-hook-execution-policy' };
+  }
+
+  const name = inspectOwnDataProperty(cause, 'name');
+  if (name.kind === 'unsafe') {
+    return unexpectedFailure();
+  }
+  if (isNativeError(cause) && name.kind === 'data' && name.value === RB_VALIDATION_ERROR_NAME) {
+    return { kind: 'validation', code: 'record-validation-failed' };
+  }
+  if (tag.kind !== 'data' || typeof tag.value !== 'string') {
+    return unexpectedFailure();
+  }
+
+  if (tag.value === 'ActionValidationFailure') {
+    return { kind: 'validation', code: 'action-validation-failed' };
+  }
+  if (tag.value === 'ActionDomainFailure' || tag.value === 'ActionTransientFailure') {
+    const code = inspectOwnDataProperty(cause, 'code');
+    const safeSummary = inspectOwnDataProperty(cause, 'safeSummary');
+    if (code.kind === 'unsafe' || safeSummary.kind === 'unsafe') {
+      return unexpectedFailure();
+    }
+    const domain = tag.value === 'ActionDomainFailure';
+    return {
+      kind: domain ? 'domain' : 'transient',
+      code: safeCode(inspectedValue(code), domain ? 'action-domain-failed' : 'action-transient-failed'),
+      summary: boundedSafeSummary(inspectedValue(safeSummary)),
+    };
+  }
+  if (tag.value === 'ActionTimeoutFailure' || tag.value === 'ActionInterruptedFailure') {
+    const cancellation = inspectOwnDataProperty(cause, 'cancellationCooperative');
+    if (cancellation.kind === 'unsafe') {
+      return unexpectedFailure();
+    }
+    const flag = inspectedValue(cancellation);
+    const cancellationCooperative = typeof flag === 'boolean' ? flag : fallbackCancellationCooperative;
+    if (tag.value === 'ActionTimeoutFailure') {
+      return { kind: 'timeout', code: 'action-timeout', cancellationCooperative };
+    }
+    return { kind: 'interrupted', code: 'action-interrupted', cancellationCooperative };
+  }
+  return unexpectedFailure();
 }
 
 /**
@@ -149,42 +245,9 @@ export function normalizeActionFailure(
   cause: RuntimeValue,
   fallbackCancellationCooperative?: boolean
 ): SafeActionFailure {
-  if (hasTag(cause, 'ActionConfigurationError')) {
-    return { kind: 'configuration', code: 'invalid-hook-execution-policy' };
+  try {
+    return inspectedTaggedFailure(cause, fallbackCancellationCooperative);
+  } catch {
+    return unexpectedFailure();
   }
-  if (RBValidationError.isRBValidationError(cause)) {
-    return { kind: 'validation', code: 'record-validation-failed' };
-  }
-  if (hasTag(cause, 'ActionValidationFailure')) {
-    return { kind: 'validation', code: 'action-validation-failed' };
-  }
-  if (hasTag(cause, 'ActionDomainFailure')) {
-    return {
-      kind: 'domain',
-      code: safeCode(cause, 'action-domain-failed'),
-      summary: boundedSafeSummary(fields(cause).safeSummary),
-    };
-  }
-  if (hasTag(cause, 'ActionTransientFailure')) {
-    return {
-      kind: 'transient',
-      code: safeCode(cause, 'action-transient-failed'),
-      summary: boundedSafeSummary(fields(cause).safeSummary),
-    };
-  }
-  if (hasTag(cause, 'ActionTimeoutFailure')) {
-    return {
-      kind: 'timeout',
-      code: 'action-timeout',
-      cancellationCooperative: cooperative(cause, fallbackCancellationCooperative),
-    };
-  }
-  if (hasTag(cause, 'ActionInterruptedFailure')) {
-    return {
-      kind: 'interrupted',
-      code: 'action-interrupted',
-      cancellationCooperative: cooperative(cause, fallbackCancellationCooperative),
-    };
-  }
-  return { kind: 'unexpected', code: 'action-unexpected-failure' };
 }

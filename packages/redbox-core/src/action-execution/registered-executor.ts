@@ -44,6 +44,7 @@ import {
 import { legacyHookToEffect, type CancellationCell } from './legacy-result';
 import type {
   ActionExecutionAction,
+  ActionExecutionContext,
   ActionExecutionDependencies,
   ActionExecutionOperation,
   ActionExecutionPolicy,
@@ -688,6 +689,67 @@ function completedSafeOutputs(
   return Object.freeze(outputs);
 }
 
+type DetachedCompletionObserver = 'action' | 'operation';
+
+function reportDetachedObserverFailure(
+  dependencies: ActionExecutionDependencies,
+  context: ActionExecutionContext,
+  result: ActionExecutionResult,
+  observer: DetachedCompletionObserver
+): void {
+  const fields: Record<string, RuntimeValue> = {
+    execution_id: context.executionId,
+    phase_execution_id: context.phaseExecutionId,
+    hook_mode: context.mode,
+    hook_phase: context.phase,
+    action_id: result.actionId,
+    action_index: result.index,
+    status: result.status,
+    observer,
+  };
+  try {
+    dependencies.logger?.error?.('record_hook_detached_completion_observer_failed', fields);
+  } catch {
+    // Logging is diagnostic only and must never regain completion authority.
+  }
+}
+
+function notifyDetachedActionObserver(
+  observer: ActionExecutionDependencies['onDetachedActionComplete'],
+  dependencies: ActionExecutionDependencies,
+  context: ActionExecutionContext,
+  result: ActionExecutionResult
+): void {
+  if (observer === undefined) {
+    return;
+  }
+  try {
+    void Promise.resolve(observer(context, result)).catch(() => {
+      reportDetachedObserverFailure(dependencies, context, result, 'action');
+    });
+  } catch {
+    reportDetachedObserverFailure(dependencies, context, result, 'action');
+  }
+}
+
+function notifyDetachedOperationObserver(
+  observer: (() => void) | undefined,
+  dependencies: ActionExecutionDependencies,
+  context: ActionExecutionContext,
+  result: ActionExecutionResult
+): void {
+  if (observer === undefined) {
+    return;
+  }
+  try {
+    void Promise.resolve(observer()).catch(() => {
+      reportDetachedObserverFailure(dependencies, context, result, 'operation');
+    });
+  } catch {
+    reportDetachedObserverFailure(dependencies, context, result, 'operation');
+  }
+}
+
 class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
   readonly #secretBoundary: ActionSecretExecutionBoundary;
   readonly #dependencies: ActionExecutionDependencies;
@@ -739,25 +801,32 @@ class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
     };
     const actions = registeredActions(bindings, context, candidateState, states, this.#secretBoundary, false);
     operation.detachedPending = (operation.detachedPending ?? 0) + actions.length;
-    operation.detachedResults ??= [];
+    const detachedResults = operation.detachedResults ?? [];
+    operation.detachedResults = detachedResults;
     const existingCompletion = this.#dependencies.onDetachedActionComplete;
+    const completedActionIndexes = new Set<number>();
     const dispatchDependencies: ActionExecutionDependencies = {
       ...this.#dependencies,
       onDetachedActionComplete: (completedContext, result: ActionExecutionResult) => {
-        existingCompletion?.(completedContext, result);
+        if (completedActionIndexes.has(result.index)) {
+          return;
+        }
+        completedActionIndexes.add(result.index);
         const binding = bindings.find(candidate => candidate.sourceIndex === result.index);
+        detachedResults.push(result);
+        operation.detachedPending = Math.max(0, (operation.detachedPending ?? 1) - 1);
+        operation.detachedCompletedAt = result.completedAt;
         if (binding !== undefined) {
           const state = states.get(binding.binding.id);
           state?.latch.complete({ status: result.status, safeOutput: state.projectedOutput });
         }
-        operation.detachedResults?.push(result);
-        operation.detachedPending = Math.max(0, (operation.detachedPending ?? 1) - 1);
-        operation.detachedCompletedAt = result.completedAt;
+        let onDetachedComplete: (() => void) | undefined;
         if (operation.detachedPending === 0) {
-          const onDetachedComplete = operation.onDetachedComplete;
+          onDetachedComplete = operation.onDetachedComplete;
           operation.onDetachedComplete = undefined;
-          onDetachedComplete?.();
         }
+        notifyDetachedActionObserver(existingCompletion, this.#dependencies, completedContext, result);
+        notifyDetachedOperationObserver(onDetachedComplete, this.#dependencies, completedContext, result);
       },
     };
     const executionContext = createPhaseContext(operation, context.scope.phase, this.#dependencies, context.scope.mode);
