@@ -99,6 +99,7 @@ export function isActionFailureKind(value: RuntimeValue): value is ActionFailure
 const MAX_SUMMARY_LENGTH = 160;
 const MAX_FAILURE_CODE_LENGTH = 64;
 const SAFE_FAILURE_CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
+const UNSAFE_SUMMARY_CHARACTER_PATTERN = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}]/u;
 const RB_VALIDATION_ERROR_NAME = 'RBValidationError';
 
 interface MissingOwnProperty {
@@ -143,10 +144,16 @@ function inspectOwnDataProperty(value: RuntimeValue, property: string): OwnPrope
   }
 }
 
-function hasUnsafeSummaryCharacter(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const codeUnit = value.charCodeAt(index);
-    if (codeUnit <= 0x1f || codeUnit === 0x7f) {
+/**
+ * Walk Unicode code points, not UTF-16 code units, and stop after the public
+ * bound. Controls, formatting characters, line/paragraph separators, and
+ * unpaired surrogates are never safe report text.
+ */
+function isUnsafeOrOversizedSummary(value: string): boolean {
+  let characterCount = 0;
+  for (const character of value) {
+    characterCount += 1;
+    if (characterCount > MAX_SUMMARY_LENGTH || UNSAFE_SUMMARY_CHARACTER_PATTERN.test(character)) {
       return true;
     }
   }
@@ -158,14 +165,18 @@ function hasUnsafeSummaryCharacter(value: string): boolean {
  * Arbitrary thrown text never reaches a serialized result.
  */
 function boundedSafeSummary(value: RuntimeValue): string | undefined {
-  if (typeof value !== 'string' || value.length > MAX_SUMMARY_LENGTH) {
+  if (typeof value !== 'string') {
     return undefined;
   }
-  const summary = value.trim();
-  if (!summary || hasUnsafeSummaryCharacter(summary)) {
+  try {
+    if (isUnsafeOrOversizedSummary(value)) {
+      return undefined;
+    }
+    const summary = value.trim();
+    return summary || undefined;
+  } catch {
     return undefined;
   }
-  return summary;
 }
 
 /**

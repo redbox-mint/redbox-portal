@@ -2,12 +2,21 @@ import { Effect } from 'effect';
 import type { RuntimeValue } from '../runtimeValues';
 
 export type ActionFailureKind =
-  'configuration' | 'validation' | 'domain' | 'transient' | 'timeout' | 'interrupted' | 'unexpected';
+  | 'configuration'
+  | 'validation'
+  | 'domain'
+  | 'transient'
+  | 'timeout'
+  | 'interrupted'
+  | 'unexpected';
 
 export type ActionExecutionStatus = 'succeeded' | 'failed' | 'timed_out' | 'interrupted' | 'skipped' | 'dispatched';
 
 export type ActionSkippedReason =
-  'prior_action_failed' | 'phase_not_reached' | 'save_not_persisted' | 'trigger_disabled';
+  | 'prior_action_failed'
+  | 'phase_not_reached'
+  | 'save_not_persisted'
+  | 'trigger_disabled';
 
 export type ActionExecutionMode = 'onCreate' | 'onUpdate' | 'onDelete' | 'onTransitionWorkflow';
 

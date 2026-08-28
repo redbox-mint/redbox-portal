@@ -190,6 +190,90 @@ describe('action failure normalization', () => {
     assert.equal(normalizeActionFailure({ _tag: 'ActionDomainFailure', code: maximumCode }).code, maximumCode);
   });
 
+  it('rejects Unicode controls, line separators, format controls, and malformed surrogate text from reports', async () => {
+    const unsafeCodePoints = [
+      { label: 'U+0085 NEXT LINE', codePoint: 0x0085 },
+      { label: 'U+2028 LINE SEPARATOR', codePoint: 0x2028 },
+      { label: 'U+2029 PARAGRAPH SEPARATOR', codePoint: 0x2029 },
+      { label: 'U+202E RIGHT-TO-LEFT OVERRIDE', codePoint: 0x202e },
+      { label: 'U+200E LEFT-TO-RIGHT MARK', codePoint: 0x200e },
+      { label: 'U+2066 LEFT-TO-RIGHT ISOLATE', codePoint: 0x2066 },
+      { label: 'U+2069 POP DIRECTIONAL ISOLATE', codePoint: 0x2069 },
+      { label: 'U+FEFF ZERO WIDTH NO-BREAK SPACE', codePoint: 0xfeff },
+      { label: 'U+D800 UNPAIRED HIGH SURROGATE', codePoint: 0xd800 },
+    ] as const;
+
+    for (const { label, codePoint } of unsafeCodePoints) {
+      const rejectedCharacter = String.fromCodePoint(codePoint);
+      const rejectedSummary = `safe${rejectedCharacter}text`;
+      const normalized = normalizeActionFailure(
+        new ActionDomainFailure('private domain detail', 'provider-rejected-summary', rejectedSummary)
+      );
+      assert.equal(normalized.summary === undefined, true, `${label} must use the no-summary fallback`);
+
+      const logs: Array<{ message: string; fields?: object }> = [];
+      const operation = createActionExecutionOperation('onCreate');
+      const outcome = await runActionPlan(
+        [
+          {
+            actionId: 'unicode-summary-rejection',
+            mode: 'onCreate',
+            phase: 'pre',
+            index: 0,
+            invoke: () =>
+              Effect.fail(
+                new ActionDomainFailure('private domain detail', 'provider-rejected-summary', rejectedSummary)
+              ),
+          },
+        ],
+        createPhaseContext(operation, 'pre'),
+        { logger: { warn: (message, fields) => logs.push({ message, fields }) } }
+      );
+      const serializedReport = JSON.stringify(outcome.report);
+      const serializedLogs = JSON.stringify(logs);
+      assert.equal(
+        outcome.report.actions[0]?.failure?.summary === undefined,
+        true,
+        `${label} must not enter an execution report`
+      );
+      assert.equal(serializedReport.includes('"summary"'), false, `${label} must not enter a serialized report`);
+      assert.equal(serializedLogs.includes('"summary"'), false, `${label} must not enter serialized diagnostics`);
+      assert.equal(
+        serializedReport.includes(rejectedCharacter),
+        false,
+        `${label} must not remain in serialized reports`
+      );
+      assert.equal(
+        serializedLogs.includes(rejectedCharacter),
+        false,
+        `${label} must not remain in serialized diagnostics`
+      );
+    }
+  });
+
+  it('retains safe ordinary Unicode within the code-point bound', () => {
+    const safeSummary = ' Crème brûlée — 東京 🙂 ';
+    assert.deepEqual(normalizeActionFailure(new ActionDomainFailure('private detail', 'safe-unicode', safeSummary)), {
+      kind: 'domain',
+      code: 'safe-unicode',
+      summary: 'Crème brûlée — 東京 🙂',
+    });
+
+    const maximumSupplementarySummary = '🙂'.repeat(160);
+    assert.equal(
+      normalizeActionFailure(
+        new ActionDomainFailure('private detail', 'safe-unicode-boundary', maximumSupplementarySummary)
+      ).summary,
+      maximumSupplementarySummary
+    );
+    assert.equal(
+      normalizeActionFailure(
+        new ActionDomainFailure('private detail', 'safe-unicode-boundary', `${maximumSupplementarySummary}🙂`)
+      ).summary,
+      undefined
+    );
+  });
+
   it('returns bounded structured reports and logs for hostile and oversized thrown values', async () => {
     const hostile = new Proxy(
       {},
