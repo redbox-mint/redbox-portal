@@ -19,6 +19,11 @@ describe('RecordTypesService', function () {
         searchCore: 'sc',
         searchFilters: [],
         hooks: {},
+        actionPlan: {
+          schemaVersion: 1,
+          recordTypeKey: 'dataset',
+          bindings: [],
+        },
         transferResponsibility: false,
         relatedTo: [],
         searchable: true,
@@ -113,6 +118,11 @@ describe('RecordTypesService', function () {
       });
       expect((global as any).RecordType.create.firstCall.args[0].recordSchema).to.deep.equal({
         unknownProperties: 'declared',
+      });
+      expect((global as any).RecordType.create.firstCall.args[0].actionPlan).to.deep.equal({
+        schemaVersion: 1,
+        recordTypeKey: 'dataset',
+        bindings: [],
       });
     });
 

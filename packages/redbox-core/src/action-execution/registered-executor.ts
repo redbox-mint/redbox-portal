@@ -109,6 +109,11 @@ interface CandidateState {
   candidate?: ActionJsonObject;
 }
 
+/** @internal */
+export interface RegisteredActionCandidateBoundary {
+  normalize(candidate: ActionJsonObject): ActionJsonObject;
+}
+
 interface AppliedRegisteredResult {
   readonly candidate?: ActionJsonObject;
   readonly safeOutput?: PriorActionOutput;
@@ -374,10 +379,16 @@ function validateExecutionRequest(
   detached: boolean
 ): ActionContext {
   const context = parseActionContext(contextValue);
+  const modeMatchesOperation =
+    context.scope.mode === operation.mode ||
+    (context.scope.mode === 'onTransitionWorkflow' &&
+      (operation.mode === 'onCreate' || operation.mode === 'onUpdate')) ||
+    (operation.mode === 'onTransitionWorkflow' &&
+      (context.scope.mode === 'onCreate' || context.scope.mode === 'onUpdate'));
   if (
     context.recordTypeKey !== plan.recordTypeKey ||
     context.executionId !== operation.executionId ||
-    context.scope.mode !== operation.mode ||
+    !modeMatchesOperation ||
     (detached ? context.scope.phase !== 'post' : context.scope.phase === 'post') ||
     context.priorOutputs.length !== 0 ||
     (operation.requestId !== undefined && context.requestId !== operation.requestId) ||
@@ -624,7 +635,8 @@ function registeredActions(
   candidateState: CandidateState,
   states: ReadonlyMap<ActionBindingId, BindingRuntimeState>,
   secretBoundary: ActionSecretExecutionBoundary,
-  applyCandidateChanges: boolean
+  applyCandidateChanges: boolean,
+  candidateBoundary?: RegisteredActionCandidateBoundary
 ): ActionExecutionAction[] {
   return bindings.map(resolvedBinding => {
     const state = states.get(resolvedBinding.binding.id);
@@ -646,7 +658,10 @@ function registeredActions(
       skippedReason: 'trigger_disabled',
       project: value => {
         const applied = applyRegisteredResult(value, resolvedBinding, candidateState.candidate, applyCandidateChanges);
-        candidateState.candidate = applied.candidate;
+        candidateState.candidate =
+          applyCandidateChanges && applied.candidate !== undefined && candidateBoundary !== undefined
+            ? candidateBoundary.normalize(applied.candidate)
+            : applied.candidate;
         state.projectedOutput = applied.safeOutput;
         if (applyCandidateChanges) {
           state.latch.complete({ status: 'succeeded', safeOutput: applied.safeOutput });
@@ -753,14 +768,17 @@ function notifyDetachedOperationObserver(
 class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
   readonly #secretBoundary: ActionSecretExecutionBoundary;
   readonly #dependencies: ActionExecutionDependencies;
+  readonly #candidateBoundary?: RegisteredActionCandidateBoundary;
 
   constructor(
     registry: RedboxActionRegistry,
     provider: ActionSecretProvider,
-    dependencies: ActionExecutionDependencies
+    dependencies: ActionExecutionDependencies,
+    candidateBoundary?: RegisteredActionCandidateBoundary
   ) {
     this.#secretBoundary = createActionSecretExecutionBoundary(provider, registry);
     this.#dependencies = dependencies;
+    this.#candidateBoundary = candidateBoundary;
   }
 
   async runSequential(
@@ -775,7 +793,15 @@ class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
     const candidateState: CandidateState = {
       ...(context.record.candidate === undefined ? {} : { candidate: cloneJsonObject(context.record.candidate) }),
     };
-    const actions = registeredActions(bindings, context, candidateState, states, this.#secretBoundary, true);
+    const actions = registeredActions(
+      bindings,
+      context,
+      candidateState,
+      states,
+      this.#secretBoundary,
+      true,
+      this.#candidateBoundary
+    );
     const executionContext = createPhaseContext(operation, context.scope.phase, this.#dependencies, context.scope.mode);
     const outcome = await Effect.runPromise(runSequentialActionPlan(actions, executionContext, this.#dependencies));
     appendReport(operation, outcome.report);
@@ -849,7 +875,8 @@ class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
 export function createRegisteredActionExecutor(
   registry: RedboxActionRegistry,
   provider: ActionSecretProvider,
-  dependencies: ActionExecutionDependencies = {}
+  dependencies: ActionExecutionDependencies = {},
+  candidateBoundary?: RegisteredActionCandidateBoundary
 ): RegisteredActionExecutor {
-  return Object.freeze(new InternalRegisteredActionExecutor(registry, provider, dependencies));
+  return Object.freeze(new InternalRegisteredActionExecutor(registry, provider, dependencies, candidateBoundary));
 }

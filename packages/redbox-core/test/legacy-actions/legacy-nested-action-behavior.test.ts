@@ -4,6 +4,7 @@ import { Observable, firstValueFrom, of } from 'rxjs';
 import { Services as EmailServices } from '../../src/services/EmailService';
 import { Services as RDMPServices } from '../../src/services/RDMPService';
 import { Services as TriggerServices } from '../../src/services/TriggerService';
+import { RBValidationError } from '../../src/model/RBValidationError';
 import { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } from '../services/testHelper';
 
 type TestRecord = { metadata: { title?: string } };
@@ -180,47 +181,39 @@ describe('A01 nested legacy action failure behavior', function () {
   });
 
   describe('TriggerService runHooksSync', function () {
-    it('throws synchronously for an invalid expression and logs/skips a non-callable value', async function () {
+    it('rejects every nested function-string plan synchronously with the safe A09 code', function () {
       const record: TestRecord = { metadata: { title: 'Nested trigger action' } };
 
-      expect(() =>
-        triggerService.runHooksSync('oid-trigger-invalid', record, { hooks: [{ function: '(() =>' }] }, {})
-      ).to.throw(SyntaxError, 'Unexpected');
-      const result = await firstValueFrom(
-        triggerService.runHooksSync('oid-trigger-non-callable', record, { hooks: [{ function: '({ value: 1 })' }] }, {})
-      );
+      for (const definition of [{ function: '(() =>' }, { function: '({ value: 1 })' }]) {
+        expect(() => triggerService.runHooksSync('oid-trigger-invalid', record, { hooks: [definition] }, {}))
+          .to.throw(RBValidationError, 'Nested function-string hooks are no longer executable.')
+          .with.property('displayErrors')
+          .that.deep.equals([
+            {
+              title: '@record-save-invalid-action-plan',
+              code: 'invalid-action-plan',
+            },
+          ]);
+      }
 
-      expect(result).to.equal(record);
-      expect(mockSails.log.error.calledWithMatch('runHooksSync, this is not a valid function')).to.equal(true);
+      expect(mockSails.log.error.notCalled).to.equal(true);
     });
 
-    it('terminates the returned Observable for synchronous, Promise, and Observable callback failures', async function () {
+    it('does not execute synchronous, Promise, or Observable callback strings', function () {
       const record: TestRecord = { metadata: { title: 'Rejected nested trigger actions' } };
       const failingDefinitions = [
-        {
-          definition: { function: '() => { throw new Error("trigger nested synchronous throw"); }' },
-          message: 'trigger nested synchronous throw',
-        },
-        {
-          definition: { function: '() => Promise.reject(new Error("trigger nested promise rejection"))' },
-          message: 'trigger nested promise rejection',
-        },
-        {
-          definition: {
-            function: '() => require("rxjs").throwError(() => new Error("trigger nested observable rejection"))',
-          },
-          message: 'trigger nested observable rejection',
-        },
+        { function: '() => { throw new Error("trigger nested synchronous secret"); }' },
+        { function: '() => Promise.reject(new Error("trigger nested promise secret"))' },
+        { function: '() => require("rxjs").throwError(() => new Error("trigger nested observable secret"))' },
       ];
 
-      for (const failure of failingDefinitions) {
-        await expectRejection(
-          firstValueFrom(
-            triggerService.runHooksSync('oid-trigger-failure', record, { hooks: [failure.definition] }, {})
-          ),
-          failure.message
+      for (const definition of failingDefinitions) {
+        expect(() => triggerService.runHooksSync('oid-trigger-failure', record, { hooks: [definition] }, {})).to.throw(
+          RBValidationError,
+          'Nested function-string hooks are no longer executable.'
         );
       }
+      expect(JSON.stringify(mockSails.log.error.args)).not.to.include('secret');
     });
   });
 

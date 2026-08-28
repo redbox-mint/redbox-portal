@@ -1,44 +1,18 @@
 import type {
   ActionExecutionMode,
   ActionExecutionOperation,
-  ActionExecutionPhase,
   ActionExecutionReport,
   ActionExecutionResult,
   ActionExecutionStatus,
-  ActionFailureKind,
-  ActionSkippedReason,
 } from './types';
+import type {
+  RecordActionExecutionActionSummary,
+  RecordActionExecutionSummary,
+} from '@researchdatabox/sails-ng-common';
 
-export type DetachedAuditFinalization = 'complete' | 'grace-expired';
-
-export interface RecordHookExecutionAuditAction {
-  actionId: string;
-  mode: ActionExecutionMode;
-  phase: ActionExecutionPhase;
-  status: ActionExecutionStatus;
-  attempts: number;
-  durationMs: number;
-  failureKind?: ActionFailureKind;
-  failureCode?: string;
-  skippedReason?: ActionSkippedReason;
-}
-
-export interface RecordHookExecutionAuditSummary {
-  schemaVersion: 1;
-  executionId: string;
-  requestId?: string;
-  trigger: 'record-hook';
-  operation: 'create' | 'update' | 'delete' | 'transition';
-  partial: boolean;
-  completedThrough?: 'pre' | 'persistence' | 'postSync' | 'post-dispatch';
-  detachedFinalization?: DetachedAuditFinalization;
-  detachedPending?: number;
-  durationMs: number;
-  totalActions: number;
-  counts: Partial<Record<ActionExecutionStatus, number>>;
-  actions: RecordHookExecutionAuditAction[];
-  truncated: boolean;
-}
+export type DetachedAuditFinalization = NonNullable<RecordActionExecutionSummary['detachedFinalization']>;
+export type RecordHookExecutionAuditAction = RecordActionExecutionActionSummary;
+export type RecordHookExecutionAuditSummary = RecordActionExecutionSummary;
 
 /** The design caps a persisted summary at the first 100 actions. */
 const MAX_AUDIT_ACTIONS = 100;

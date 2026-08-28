@@ -994,7 +994,7 @@ describe('registered action executor', () => {
     assert.equal(Object.hasOwn(PublicActionRegistry, 'createActionSecretExecutionBoundary'), false);
   });
 
-  it('emits no any or unknown type nodes from A08 runtime sources or declarations', () => {
+  it('emits no any or unknown type nodes from the A08 executor and A09 record coordinator', () => {
     const sourceDirectory = path.resolve(__dirname, '../../src/action-execution');
     const runtimeFiles = [
       'types.ts',
@@ -1005,6 +1005,7 @@ describe('registered action executor', () => {
       'audit.ts',
       'registered-executor.ts',
       'index.ts',
+      '../services/record-actions/coordinator.ts',
     ];
     const failures: string[] = [];
 
