@@ -1,19 +1,19 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'graceful-fs';
 import * as os from 'os';
 import * as path from 'path';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 
-describe('EmailService', function() {
+describe('EmailService', function () {
   let mockSails: any;
   let EmailService: any;
   let transportStub: any;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockSails = createMockSails({
       config: {
         appPath: '/app',
@@ -24,27 +24,27 @@ describe('EmailService', function() {
             format: 'text',
             cc: '',
             bcc: '',
-            otherSendOptions: {}
+            otherSendOptions: {},
           },
           settings: {
             enabled: true,
             templateDir: '/app/templates/',
-            serverOptions: {}
+            serverOptions: {},
           },
           templates: {
             'test-template': {
-              subject: 'Template Subject'
-            }
-          }
-        }
+              subject: 'Template Subject',
+            },
+          },
+        },
       },
       log: {
         verbose: sinon.stub(),
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        error: sinon.stub()
-      }
+        error: sinon.stub(),
+      },
     });
 
     setupServiceTestGlobals(mockSails);
@@ -68,7 +68,7 @@ describe('EmailService', function() {
     EmailService = new Services.Email();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     // if ((nodemailer.createTransport as any).restore) (nodemailer.createTransport as any).restore();
     // if ((fs.readFileSync as any).restore) (fs.readFileSync as any).restore();
@@ -76,34 +76,63 @@ describe('EmailService', function() {
     sinon.restore();
   });
 
-  afterEach(function() {
+  afterEach(function () {
     cleanupServiceTestGlobals();
     // if ((nodemailer.createTransport as any).restore) (nodemailer.createTransport as any).restore();
     // if ((fs.readFileSync as any).restore) (fs.readFileSync as any).restore();
     sinon.restore();
   });
 
-  describe('sendMessage', function() {
-    it.skip('should send email successfully', async function() {
-       // Skipped
+  describe('sendMessage', function () {
+    it.skip('should send email successfully', async function () {
+      // Skipped
+    });
+
+    it('keeps complete managed messages and secret sentinels out of transport logs', async function () {
+      const sentinel = 'message-secret-must-not-be-logged';
+      mockSails.config.emailnotification.settings.serverOptions = { jsonTransport: true };
+
+      const result = await firstValueFrom(
+        EmailService.sendMessage(
+          'private-recipient@example.test',
+          `<p>${sentinel}</p>`,
+          `Private subject ${sentinel}`,
+          'private-sender@example.test',
+          'html',
+          '',
+          '',
+          { priority: 'high' }
+        )
+      );
+
+      expect(result.success).to.equal(true);
+      const logged = JSON.stringify([
+        ...mockSails.log.verbose.args,
+        ...mockSails.log.debug.args,
+        ...mockSails.log.info.args,
+        ...mockSails.log.error.args,
+      ]);
+      expect(logged).not.to.contain(sentinel);
+      expect(logged).not.to.contain('private-recipient@example.test');
+      expect(logged).not.to.contain('Private subject');
     });
   });
 
-  describe('buildFromTemplate', function() {
+  describe('buildFromTemplate', function () {
     // graceful-fs makes fs.readFileSync non-configurable, so we exercise the real
     // file read against a temporary template directory instead of stubbing fs.
     let tmpDir: string;
 
-    beforeEach(function() {
+    beforeEach(function () {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'emailtpl-'));
       mockSails.config.emailnotification.settings.templateDir = tmpDir + path.sep;
     });
 
-    afterEach(function() {
+    afterEach(function () {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    it('should read and render a Handlebars template', async function() {
+    it('should read and render a Handlebars template', async function () {
       fs.writeFileSync(path.join(tmpDir, 'greeting.hbs'), '<p>Hello {{name}}</p>');
 
       const result = await EmailService.buildFromTemplateAsync('greeting', { name: 'World' });
@@ -112,7 +141,7 @@ describe('EmailService', function() {
       expect(result.body).to.equal('<p>Hello World</p>');
     });
 
-    it('should render shared helpers (pluck + join)', async function() {
+    it('should render shared helpers (pluck + join)', async function () {
       fs.writeFileSync(path.join(tmpDir, 'creators.hbs'), '{{join (pluck creators "email") ","}}');
 
       const result = await EmailService.buildFromTemplateAsync('creators', {
@@ -123,7 +152,7 @@ describe('EmailService', function() {
       expect(result.body).to.equal('a@x,b@x');
     });
 
-    it('should fail when required template data is missing', async function() {
+    it('should fail when required template data is missing', async function () {
       fs.writeFileSync(path.join(tmpDir, 'required.hbs'), '<p>Hello {{name}}</p>');
 
       const result = await EmailService.buildFromTemplateAsync('required', {});
@@ -132,7 +161,23 @@ describe('EmailService', function() {
       expect(result.body).to.equal('Templating error.');
     });
 
-    it('should allow missing data in guarded optional blocks', async function() {
+    it('does not log complete template data or nested secret sentinels on render failure', async function () {
+      const sentinel = 'template-data-secret-must-not-be-logged';
+      fs.writeFileSync(path.join(tmpDir, 'required-secret.hbs'), '<p>{{required.value}}</p>');
+
+      const result = await EmailService.buildFromTemplateAsync('required-secret', {
+        password: sentinel,
+        candidate: { metadata: { title: sentinel } },
+      });
+
+      expect(result.status).to.equal(500);
+      const logged = JSON.stringify(mockSails.log.error.args);
+      expect(logged).not.to.contain(sentinel);
+      expect(logged).not.to.contain('candidate');
+      expect(logged).not.to.contain('password');
+    });
+
+    it('should allow missing data in guarded optional blocks', async function () {
       fs.writeFileSync(path.join(tmpDir, 'optional.hbs'), '{{#if nickname}}<p>{{nickname}}</p>{{/if}}');
 
       const result = await EmailService.buildFromTemplateAsync('optional', {});
@@ -141,7 +186,7 @@ describe('EmailService', function() {
       expect(result.body).to.equal('');
     });
 
-    it('should handle read error for a missing template', async function() {
+    it('should handle read error for a missing template', async function () {
       const result = await EmailService.buildFromTemplateAsync('does-not-exist', {});
 
       expect(result.status).to.equal(500);
@@ -149,8 +194,8 @@ describe('EmailService', function() {
     });
   });
 
-  describe('runTemplate', function() {
-    it('should run Handlebars template', function() {
+  describe('runTemplate', function () {
+    it('should run Handlebars template', function () {
       const template = 'Hello {{name}}';
       const variables = { name: 'World' };
 
@@ -159,26 +204,26 @@ describe('EmailService', function() {
       expect(result).to.equal('Hello World');
     });
 
-    it('should return string as is if no template tags', function() {
+    it('should return string as is if no template tags', function () {
       const result = EmailService.runTemplate('Hello World', {});
       expect(result).to.equal('Hello World');
     });
   });
 
-  describe('evaluateProperties', function() {
-    it('should evaluate properties with defaults', function() {
+  describe('evaluateProperties', function () {
+    it('should evaluate properties with defaults', function () {
       const options = { msgTo: 'test@example.com' };
       const config = {};
       const templateData = {};
-      
+
       const result = EmailService.evaluateProperties(options, config, templateData);
-      
+
       expect(result.to).to.equal('test@example.com');
       expect(result.toRendered).to.equal('test@example.com');
       expect(result.from).to.equal('default@example.com');
     });
 
-    it('should render properties with templates', function() {
+    it('should render properties with templates', function () {
       const options = { msgTo: 'user_{{id}}@example.com' };
       const templateData = { id: '123' };
 
@@ -188,35 +233,38 @@ describe('EmailService', function() {
     });
   });
 
-  describe('sendRecordNotification', function() {
-    it('should send notification if condition met', async function() {
+  describe('sendRecordNotification', function () {
+    it('should send notification if condition met', async function () {
       const record = { id: '1', metadata: { title: 'Test' } };
       const options = {
         template: 'test-template',
         to: 'to@example.com',
-        triggerCondition: 'true'
+        triggerCondition: 'true',
       };
-      
+
       sinon.stub(EmailService, 'metTriggerCondition').returns('true');
       sinon.stub(EmailService, 'buildFromTemplateAsync').resolves({ status: 200, body: 'Email Body' });
       sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
-      
+
       const result = await EmailService.sendRecordNotification('oid-1', record, options, {}, {});
-      
+
       expect(EmailService.sendMessage.called).to.be.true;
       expect(result).to.deep.equal(record);
     });
 
-    it('should skip if condition not met', async function() {
-      const record = { id: '1' };
-      const options = { triggerCondition: 'false' };
-      
+    it('should skip if condition not met', async function () {
+      const sentinel = 'candidate-secret-must-not-be-logged';
+      const record = { id: '1', password: sentinel, metadata: { title: sentinel } };
+      const options = { triggerCondition: 'false', template: sentinel, password: sentinel };
+
       sinon.stub(EmailService, 'metTriggerCondition').returns('false');
       sinon.spy(EmailService, 'sendMessage');
-      
+
       await EmailService.sendRecordNotification('oid-1', record, options, {}, {});
-      
+
       expect(EmailService.sendMessage.called).to.be.false;
+      expect(JSON.stringify(mockSails.log.verbose.args)).not.to.contain(sentinel);
+      expect(JSON.stringify(mockSails.log.verbose.args)).not.to.contain('password');
     });
   });
 });

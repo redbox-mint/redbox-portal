@@ -1,5 +1,6 @@
 import { firstValueFrom, isObservable, type Observable } from 'rxjs';
 import { ActionConfigurationError, ActionValidationFailure } from '../action-execution/failure';
+import { REGISTERED_RECORD_ACTION_JOB_NAME } from '../config/agendaQueue.config';
 import { isForbiddenExpressionContextKey } from '../expression-runtime/contexts';
 import {
   isRuntimeRecord,
@@ -30,6 +31,13 @@ import {
   type ActionDefinitionId,
 } from './identifiers';
 import { ACTION_CONTRACT_SCHEMA_VERSION, ACTION_RESULT_SCHEMA_VERSION } from './limits';
+import {
+  MANAGED_NOTIFICATION_FLAG_PATHS,
+  MANAGED_NOTIFICATION_LOG_PATHS,
+  isManagedNotificationFlagPath,
+  isManagedNotificationLogPath,
+} from './managedNotificationPaths';
+import { QUEUE_DISPATCH_ACTION_ID, createRegisteredRecordActionQueuePayload } from './registeredActionQueue';
 import type { ActionRegistrationDescriptor } from './registration';
 
 const NO_RETRY_POLICY = Object.freeze({ allowed: false as const });
@@ -56,7 +64,7 @@ export const BUILT_IN_ACTION_IDS = Object.freeze({
   publishDoi: parseActionDefinitionId('redbox.core.doi.publish'),
   updateDoi: parseActionDefinitionId('redbox.core.doi.update'),
   linkWorkspace: parseActionDefinitionId('redbox.core.workspace.link-to-record'),
-  dispatchQueuedAction: parseActionDefinitionId('redbox.core.queue.dispatch-record-action'),
+  dispatchQueuedAction: parseActionDefinitionId(QUEUE_DISPATCH_ACTION_ID),
 });
 
 type Candidate = ActionJsonObject;
@@ -147,6 +155,12 @@ function literalParameter(parameters: Readonly<ActionParameterValues>, name: str
   return parameter.value;
 }
 
+function assertOnlyParameters(parameters: Readonly<ActionParameterValues>, allowedNames: readonly string[]): void {
+  if (Object.keys(parameters).some(name => !allowedNames.includes(name))) {
+    throw new ActionValidationFailure('Built-in action received an unsupported parameter.');
+  }
+}
+
 function requiredString(parameters: Readonly<ActionParameterValues>, name: string): string {
   const value = literalParameter(parameters, name);
   if (typeof value !== 'string' || value.trim() === '') {
@@ -195,17 +209,6 @@ function requiredInteger(parameters: Readonly<ActionParameterValues>, name: stri
 
 function requiredObject(parameters: Readonly<ActionParameterValues>, name: string): ActionJsonObject {
   const value = literalParameter(parameters, name);
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new ActionValidationFailure('Built-in action requires an object parameter.');
-  }
-  return cloneJsonObject(value);
-}
-
-function optionalObject(parameters: Readonly<ActionParameterValues>, name: string): ActionJsonObject | undefined {
-  const value = literalParameter(parameters, name);
-  if (value === undefined) {
-    return undefined;
-  }
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new ActionValidationFailure('Built-in action requires an object parameter.');
   }
@@ -383,6 +386,7 @@ async function updateNotificationHandler(
   context: Readonly<ActionContext>,
   parameters: Readonly<ActionParameterValues>
 ): Promise<ActionResult> {
+  assertOnlyParameters(parameters, ['condition', 'name', 'flagName', 'flagVal', 'logName', 'saveRecord']);
   if (!requiredBoolean(parameters, 'condition')) {
     return noChange({ updated: false });
   }
@@ -391,14 +395,18 @@ async function updateNotificationHandler(
   if (!saveRecord && context.scope.phase !== 'pre') {
     throw new ActionValidationFailure('In-memory notification updates are valid only in a pre phase.');
   }
+  const flagName = requiredString(parameters, 'flagName');
+  const logName = optionalString(parameters, 'logName');
+  if (!isManagedNotificationFlagPath(flagName) || (logName !== undefined && !isManagedNotificationLogPath(logName))) {
+    throw new ActionValidationFailure('Registered notification path is not approved.');
+  }
   const options: ActionJsonObject = {
     forceRun: true,
-    flagName: requiredString(parameters, 'flagName'),
+    flagName,
     flagVal: literalParameter(parameters, 'flagVal') ?? null,
     saveRecord,
   };
   const name = optionalString(parameters, 'name');
-  const logName = optionalString(parameters, 'logName');
   if (name !== undefined) {
     options.name = name;
   }
@@ -451,18 +459,6 @@ async function restorePermissionsHandler(
   return replacement(candidate);
 }
 
-function hasSensitiveKey(value: ActionJsonValue): boolean {
-  if (value === null || typeof value !== 'object') {
-    return false;
-  }
-  if (Array.isArray(value)) {
-    return value.some(hasSensitiveKey);
-  }
-  return Object.entries(value).some(
-    ([key, child]) => key.toLowerCase() === 'auth' || isForbiddenExpressionContextKey(key) || hasSensitiveKey(child)
-  );
-}
-
 function configValue(...path: readonly string[]): RuntimeValue {
   let value: RuntimeValue = typeof sails === 'undefined' ? undefined : sails.config;
   for (const segment of path) {
@@ -502,6 +498,18 @@ async function sendRecordEmailHandler(
   context: Readonly<ActionContext>,
   parameters: Readonly<ActionParameterValues>
 ): Promise<ActionResult> {
+  assertOnlyParameters(parameters, [
+    'condition',
+    'to',
+    'subject',
+    'from',
+    'cc',
+    'bcc',
+    'template',
+    'format',
+    'replyTo',
+    'priority',
+  ]);
   if (!requiredBoolean(parameters, 'condition')) {
     return noChange({ sent: false });
   }
@@ -511,9 +519,17 @@ async function sendRecordEmailHandler(
   if (!SAFE_TEMPLATE_NAME.test(template)) {
     throw new ActionValidationFailure('Registered email template name is invalid.');
   }
-  const otherSendOptions = optionalObject(parameters, 'otherSendOptions') ?? {};
-  if (hasSensitiveKey(otherSendOptions)) {
-    throw new ActionValidationFailure('Registered email options require a declared secret boundary.');
+  const otherSendOptions: ActionJsonObject = {};
+  const replyTo = optionalString(parameters, 'replyTo');
+  const priority = optionalString(parameters, 'priority');
+  if (replyTo !== undefined) {
+    otherSendOptions.replyTo = replyTo;
+  }
+  if (priority !== undefined) {
+    if (!['high', 'normal', 'low'].includes(priority)) {
+      throw new ActionValidationFailure('Registered email priority is invalid.');
+    }
+    otherSendOptions.priority = priority;
   }
   if (
     configValue('services', 'email', 'disabled') === true ||
@@ -607,12 +623,17 @@ function queuedActionScope(context: Readonly<ActionContext>): ActionBindingScope
   });
 }
 
+interface ValidatedQueuedAction {
+  readonly actionId: ActionDefinitionId;
+  readonly parameters: ActionParameterValues;
+}
+
 function validateQueuedAction(
   context: Readonly<ActionContext>,
   queuedActionIdValue: string,
   queuedContractVersion: number,
   queuedParametersValue: ActionJsonObject
-): ActionParameterValues {
+): ValidatedQueuedAction {
   try {
     const actionIdResult = actionDefinitionIdSchema.safeParse(queuedActionIdValue);
     const parametersResult = actionParameterValuesSchema.safeParse(queuedParametersValue);
@@ -643,7 +664,7 @@ function validateQueuedAction(
       order: 0,
     });
     validateActionBindingForDefinition(binding, definition);
-    return parametersResult.data;
+    return Object.freeze({ actionId, parameters: parametersResult.data });
   } catch (error) {
     if (error instanceof ActionValidationFailure) {
       throw error;
@@ -656,51 +677,29 @@ async function dispatchQueuedActionHandler(
   context: Readonly<ActionContext>,
   parameters: Readonly<ActionParameterValues>
 ): Promise<ActionResult> {
+  assertOnlyParameters(parameters, ['condition', 'queuedActionId', 'queuedContractVersion', 'queuedParameters']);
   if (!requiredBoolean(parameters, 'condition')) {
     return noChange({ queued: false, queuedActionId: requiredString(parameters, 'queuedActionId') });
   }
-  const candidate = candidateFrom(context);
   const queuedActionId = requiredString(parameters, 'queuedActionId');
   const queuedContractVersion = requiredInteger(parameters, 'queuedContractVersion');
-  const queuedParameters = validateQueuedAction(
+  const queuedAction = validateQueuedAction(
     context,
     queuedActionId,
     queuedContractVersion,
     requiredObject(parameters, 'queuedParameters')
   );
-  const queueScope = queuedActionScope(context);
-  const payload: ActionJsonObject = {
-    schemaVersion: 1,
-    kind: 'registered-record-action',
-    actionId: queuedActionId,
+  const payload = createRegisteredRecordActionQueuePayload({
+    actionId: queuedAction.actionId,
     contractVersion: queuedContractVersion,
-    parameters: queuedParameters,
-    context: {
-      schemaVersion: context.schemaVersion,
-      executionId: context.executionId,
-      correlationId: context.correlationId,
-      timestamp: context.timestamp,
-      brandId: context.brandId,
-      recordTypeKey: context.recordTypeKey,
-      scope: {
-        context: queueScope.context,
-        mode: queueScope.mode,
-        phase: queueScope.phase,
-        ...('scopeId' in queueScope && queueScope.scopeId !== undefined ? { scopeId: queueScope.scopeId } : {}),
-      },
-      actor: context.actor === null ? null : cloneJsonValue(actorForService(context)),
-      record: {
-        oid: recordOid(context, candidate),
-        candidate,
-      },
-    },
-  };
-  freezeJsonValue(payload);
+    parameters: queuedAction.parameters,
+    context,
+  });
   const queueServiceName = configString('', 'queue', 'serviceName');
   if (queueServiceName === '') {
     throw new ActionConfigurationError('Registered record action queue is unavailable.');
   }
-  await queueResult(invokeService(queueServiceName, 'now', [requiredString(parameters, 'jobName'), payload]));
+  await queueResult(invokeService(queueServiceName, 'now', [REGISTERED_RECORD_ACTION_JOB_NAME, payload]));
   return noChange({ queued: true, queuedActionId });
 }
 
@@ -861,9 +860,21 @@ const BUILT_IN_ACTIONS: readonly ActionRegistrationDescriptor[] = Object.freeze(
       parameters: [
         conditionParameter('false'),
         stringParameter('name', 'Display name', false),
-        stringParameter('flagName', 'Notification flag field', true),
+        {
+          name: 'flagName',
+          title: 'Notification flag field',
+          kind: 'enum',
+          required: true,
+          options: MANAGED_NOTIFICATION_FLAG_PATHS.map(value => ({ value, label: value })),
+        },
         stringParameter('flagVal', 'Notification flag value', true),
-        stringParameter('logName', 'Notification log field', false),
+        {
+          name: 'logName',
+          title: 'Notification log field',
+          kind: 'enum',
+          required: false,
+          options: MANAGED_NOTIFICATION_LOG_PATHS.map(value => ({ value, label: value })),
+        },
         { name: 'saveRecord', title: 'Persist separately', kind: 'boolean', required: true, defaultValue: false },
       ],
     },
@@ -955,7 +966,18 @@ const BUILT_IN_ACTIONS: readonly ActionRegistrationDescriptor[] = Object.freeze(
             { value: 'text', label: 'Plain text' },
           ],
         },
-        { name: 'otherSendOptions', title: 'Additional send options', kind: 'object', required: false },
+        stringParameter('replyTo', 'Reply-to address', false),
+        {
+          name: 'priority',
+          title: 'Message priority',
+          kind: 'enum',
+          required: false,
+          options: [
+            { value: 'high', label: 'High' },
+            { value: 'normal', label: 'Normal' },
+            { value: 'low', label: 'Low' },
+          ],
+        },
       ],
     },
     outputSchema: {
@@ -1045,13 +1067,12 @@ const BUILT_IN_ACTIONS: readonly ActionRegistrationDescriptor[] = Object.freeze(
     handler: dispatchQueuedActionHandler,
     contexts: ['record-lifecycle', 'workflow-transition'],
     modes: ['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow'],
-    phases: ['pre', 'postSync', 'post'],
+    phases: ['post'],
     allowRepeatedBindings: true,
     parameterSchema: {
       schemaVersion: ACTION_CONTRACT_SCHEMA_VERSION,
       parameters: [
         conditionParameter('true'),
-        stringParameter('jobName', 'Queue job name', true),
         stringParameter('queuedActionId', 'Queued action ID', true),
         {
           name: 'queuedContractVersion',

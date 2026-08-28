@@ -23,6 +23,7 @@ import {
 } from './identifiers';
 import { ACTION_CONTRACT_LIMITS, ACTION_CONTRACT_SCHEMA_VERSION } from './limits';
 import { BUILT_IN_ACTION_IDS, builtInActionRegistrations } from './builtInActions';
+import { isManagedNotificationFlagPath, isManagedNotificationLogPath } from './managedNotificationPaths';
 
 export type LegacyActionMigrationTargetKind =
   | 'action-binding'
@@ -858,9 +859,19 @@ function migrateNotification(
   );
   const parameters = parametersWithCondition(options, path, 'force');
   appendOptionalStringParameter(parameters, options, 'name', path);
-  parameters.flagName = literal(requiredOptionString(options, 'flagName', path));
+  const flagName = requiredOptionString(options, 'flagName', path);
+  if (!isManagedNotificationFlagPath(flagName)) {
+    return fail('invalid-legacy-parameter', `${path}.flagName`, 'Use an approved managed notification flag path.');
+  }
+  parameters.flagName = literal(flagName);
   parameters.flagVal = literal(requiredOptionString(options, 'flagVal', path));
-  appendOptionalStringParameter(parameters, options, 'logName', path);
+  const logName = optionalOptionString(options, 'logName', path);
+  if (logName !== undefined) {
+    if (!isManagedNotificationLogPath(logName)) {
+      return fail('invalid-legacy-parameter', `${path}.logName`, 'Use an approved managed notification log path.');
+    }
+    parameters.logName = literal(logName);
+  }
   parameters.saveRecord = literal(optionalOptionBoolean(options, 'saveRecord', path) ?? false);
   return segmentFor(
     appendBinding(
@@ -985,7 +996,21 @@ function migrateEmail(
   parameters.template = literal(requiredOptionString(options, 'template', path));
   appendOptionalStringParameter(parameters, options, 'format', path);
   if (options.otherSendOptions !== undefined) {
-    parameters.otherSendOptions = literal(cloneObject(options.otherSendOptions, `${path}.otherSendOptions`));
+    const sendOptionsPath = `${path}.otherSendOptions`;
+    const sendOptions = cloneObject(options.otherSendOptions, sendOptionsPath);
+    assertAllowedOptions(sendOptions, ['replyTo', 'priority'], sendOptionsPath, definition.function);
+    appendOptionalStringParameter(parameters, sendOptions, 'replyTo', sendOptionsPath);
+    const priority = optionalOptionString(sendOptions, 'priority', sendOptionsPath);
+    if (priority !== undefined) {
+      if (!['high', 'normal', 'low'].includes(priority)) {
+        return fail(
+          'invalid-legacy-parameter',
+          `${sendOptionsPath}.priority`,
+          'Use a supported inert message priority.'
+        );
+      }
+      parameters.priority = literal(priority);
+    }
   }
   const parent = appendBinding(
     state,
@@ -1128,7 +1153,6 @@ function migrateQueue(
     'Queue a registered action that supports the queued mode and phase with valid transformed parameters.'
   );
   const parameters = parametersWithCondition(options, path, 'unconditional');
-  parameters.jobName = literal(requiredOptionString(options, 'jobName', path));
   parameters.queuedActionId = literal(childBinding.actionId);
   parameters.queuedContractVersion = literal(childBinding.contractVersion);
   parameters.queuedParameters = literal(cloneObject(childBinding.parameters, `${path}.triggerConfiguration.options`));

@@ -16,6 +16,7 @@ import {
   parseActionDefinition,
   parseActionResult,
   registerRedboxActions,
+  validateActionPlan,
   validateActionResultForDefinition,
   type ActionBinding,
   type ActionBindingScope,
@@ -30,6 +31,9 @@ import {
 } from '../src/action-registry';
 import { createActionExecutionOperation } from '../src/action-execution';
 import { createRegisteredActionExecutor } from '../src/action-execution/registered-executor';
+import { consumeRegisteredRecordActionQueueJob } from '../src/action-execution/registered-queue-consumer';
+import { parseRegisteredRecordActionQueuePayload } from '../src/action-registry/registeredActionQueue';
+import { REGISTERED_RECORD_ACTION_JOB_NAME, agendaQueue } from '../src/config/agendaQueue.config';
 import { ActionRegistry as PublicActionRegistry } from '../src';
 
 class EmptySecretStorage implements ActionSecretStorage {
@@ -84,7 +88,8 @@ const PARAMETERS: Readonly<Record<string, ActionParameterValues>> = Object.freez
     subject: literal('Managed subject'),
     template: literal('publicationReview'),
     format: literal('html'),
-    otherSendOptions: literal({ headers: { 'x-safe-id': 'public' } }),
+    replyTo: literal('reply@example.test'),
+    priority: literal('normal'),
   },
   [BUILT_IN_ACTION_IDS.publishDoi]: {
     condition: literal(true),
@@ -99,7 +104,6 @@ const PARAMETERS: Readonly<Record<string, ActionParameterValues>> = Object.freez
   [BUILT_IN_ACTION_IDS.linkWorkspace]: { rdmpOidField: literal('rdmpOid') },
   [BUILT_IN_ACTION_IDS.dispatchQueuedAction]: {
     condition: literal(true),
-    jobName: literal('DoiService-UpdateDoi'),
     queuedActionId: literal(BUILT_IN_ACTION_IDS.updateDoi),
     queuedContractVersion: literal(1),
     queuedParameters: literal({
@@ -158,7 +162,11 @@ function actionContext(
   });
 }
 
-function installSuccessfulServices(): { readonly queuedPayloads: ActionJsonObject[] } {
+function installSuccessfulServices(): {
+  readonly queuedJobNames: string[];
+  readonly queuedPayloads: ActionJsonObject[];
+} {
+  const queuedJobNames: string[] = [];
   const queuedPayloads: ActionJsonObject[] = [];
   sails.config.emailnotification = {
     defaults: { from: 'server@example.test', format: 'html', cc: '', bcc: '' },
@@ -199,13 +207,14 @@ function installSuccessfulServices(): { readonly queuedPayloads: ActionJsonObjec
       addWorkspaceToRecord: () => Promise.resolve({ linked: true }),
     },
     managedqueue: {
-      now: (_jobName: string, payload: ActionJsonObject) => {
+      now: (jobName: string, payload: ActionJsonObject) => {
+        queuedJobNames.push(jobName);
         queuedPayloads.push(payload);
         return Promise.resolve({ queued: true });
       },
     },
   } as never;
-  return { queuedPayloads };
+  return { queuedJobNames, queuedPayloads };
 }
 
 async function executeDirect(
@@ -302,6 +311,11 @@ describe('built-in registered record actions', function () {
       queued: true,
       queuedActionId: BUILT_IN_ACTION_IDS.updateDoi,
     });
+    assert.deepEqual(services.queuedJobNames, [REGISTERED_RECORD_ACTION_JOB_NAME]);
+    assert.equal(
+      agendaQueue.jobs[REGISTERED_RECORD_ACTION_JOB_NAME]?.fnName,
+      'rdmpservice.registeredRecordActionSubscriptionHandler'
+    );
     assert.equal(services.queuedPayloads.length, 1);
     const serializedQueuePayload = JSON.stringify(services.queuedPayloads[0]);
     assert.equal(serializedQueuePayload.includes('sails.services'), false);
@@ -315,15 +329,12 @@ describe('built-in registered record actions', function () {
       brandId: 'default',
       recordTypeKey: 'legacy-action-fixture',
       scope: { context: 'queued-record-action', mode: 'onDelete', phase: 'post' },
-      actor: { id: 'actor-1', username: 'tester', roles: [{ name: 'Admin' }] },
+      actor: null,
       record: {
         oid: 'record-1',
-        candidate: {
-          redboxOid: 'record-1',
-          metadata: { title: 'Original', rdmpOid: 'rdmp-1' },
-          workflow: { stage: 'draft' },
-        },
+        candidate: { redboxOid: 'record-1', revision: 0 },
       },
+      priorOutputs: [],
     });
   });
 
@@ -431,6 +442,35 @@ describe('built-in registered record actions', function () {
     );
     assert.equal(emailBuildInvocations, 0);
 
+    for (const hostileOptions of [
+      { attachments: [{ path: '/etc/passwd' }] },
+      { attachments: [{ href: 'https://attacker.example/secret' }] },
+      { raw: 'hostile raw message' },
+      { alternatives: [{ path: '/etc/shadow' }] },
+    ]) {
+      installSuccessfulServices();
+      let buildCalls = 0;
+      let sendCalls = 0;
+      sails.services.emailservice.buildFromTemplate = (() => {
+        buildCalls += 1;
+        return Promise.resolve({ status: 200, body: 'unused' });
+      }) as never;
+      sails.services.emailservice.sendMessage = (() => {
+        sendCalls += 1;
+        return Promise.resolve({ success: true });
+      }) as never;
+      await assert.rejects(
+        async () =>
+          executeDirect(descriptorFor(BUILT_IN_ACTION_IDS.sendRecordEmail), {
+            ...PARAMETERS[BUILT_IN_ACTION_IDS.sendRecordEmail],
+            otherSendOptions: literal(hostileOptions as ActionJsonObject),
+          }),
+        (error: Error) => error.name === 'ActionValidationFailure'
+      );
+      assert.equal(buildCalls, 0);
+      assert.equal(sendCalls, 0);
+    }
+
     installSuccessfulServices();
     sails.services.rdmpservice.checkTotalSizeOfFilesInRecord = () =>
       throwError(() => new Error('observable-validation-failure')) as never;
@@ -471,6 +511,199 @@ describe('built-in registered record actions', function () {
         }),
       (error: Error) => error.name === 'ActionValidationFailure'
     );
+  });
+
+  it('rejects hostile managed email, notification, and queue parameters at plan and handler boundaries', async () => {
+    const registry = coreRegistry();
+    const migratedEmail = migrateLegacyRecordAction({
+      schemaVersion: 1,
+      recordTypeKey: 'legacy-action-fixture',
+      scope: { context: 'record-lifecycle', mode: 'onCreate', phase: 'post' },
+      stableKey: 'managed-email',
+      order: 0,
+      sourcePath: '$.hooks[0]',
+      definition: {
+        function: 'sails.services.emailservice.sendRecordNotification',
+        options: { forceRun: true, to: 'owner@example.test', subject: 'Review', template: 'publicationReview' },
+      },
+    });
+    assert.equal(migratedEmail.kind, 'action-bindings');
+    if (migratedEmail.kind !== 'action-bindings') {
+      throw new Error('Expected email binding.');
+    }
+    const emailBinding = migratedEmail.bindings[0];
+    assert.ok(emailBinding);
+    const hostileEmailPlan = validateActionPlan(registry, {
+      schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
+      recordTypeKey: 'legacy-action-fixture',
+      bindings: [
+        {
+          ...emailBinding,
+          parameters: {
+            ...emailBinding.parameters,
+            otherSendOptions: literal({ attachments: [{ href: 'https://attacker.example/file' }] }),
+          },
+        },
+      ],
+    });
+    assert.equal(hostileEmailPlan.ok, false);
+
+    const notification = descriptorFor(BUILT_IN_ACTION_IDS.updateNotificationState);
+    const migratedNotification = migrateLegacyRecordAction({
+      schemaVersion: 1,
+      recordTypeKey: 'legacy-action-fixture',
+      scope: { context: 'record-lifecycle', mode: 'onCreate', phase: 'pre' },
+      stableKey: 'managed-notification',
+      order: 0,
+      sourcePath: '$.hooks[0]',
+      definition: {
+        function: 'sails.services.recordsservice.updateNotificationLog',
+        options: { forceRun: true, flagName: 'notification.state', flagVal: 'draft' },
+      },
+    });
+    assert.equal(migratedNotification.kind, 'action-bindings');
+    if (migratedNotification.kind !== 'action-bindings') {
+      throw new Error('Expected notification binding.');
+    }
+    const notificationBinding = migratedNotification.bindings[0];
+    assert.ok(notificationBinding);
+    assert.equal(
+      validateActionPlan(registry, {
+        schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
+        recordTypeKey: 'legacy-action-fixture',
+        bindings: [
+          {
+            ...notificationBinding,
+            parameters: {
+              ...notificationBinding.parameters,
+              flagName: literal('constructor.prototype.polluted'),
+            },
+          },
+        ],
+      }).ok,
+      false
+    );
+    for (const parameters of [
+      {
+        ...PARAMETERS[BUILT_IN_ACTION_IDS.updateNotificationState],
+        flagName: literal('constructor.prototype.polluted'),
+      },
+      {
+        ...PARAMETERS[BUILT_IN_ACTION_IDS.updateNotificationState],
+        flagName: literal('authorization.edit'),
+      },
+      {
+        ...PARAMETERS[BUILT_IN_ACTION_IDS.updateNotificationState],
+        logName: literal('notification.log.secretToken'),
+      },
+    ]) {
+      let calls = 0;
+      sails.services.recordsservice.updateNotificationLog = (() => {
+        calls += 1;
+        return Promise.resolve({});
+      }) as never;
+      await assert.rejects(
+        async () => executeDirect(notification, parameters),
+        (error: Error) => error.name === 'ActionValidationFailure'
+      );
+      assert.equal(calls, 0);
+    }
+
+    const queue = descriptorFor(BUILT_IN_ACTION_IDS.dispatchQueuedAction);
+    let queueCalls = 0;
+    sails.services.managedqueue.now = (() => {
+      queueCalls += 1;
+      return Promise.resolve({ queued: true });
+    }) as never;
+    await assert.rejects(
+      async () =>
+        executeDirect(queue, {
+          ...PARAMETERS[BUILT_IN_ACTION_IDS.dispatchQueuedAction],
+          jobName: literal('AttackerService-Execute'),
+        }),
+      (error: Error) => error.name === 'ActionValidationFailure'
+    );
+    assert.equal(queueCalls, 0);
+  });
+
+  it('persists an ActionContext-valid secret-free queue projection and routes only an exact child through the executor', async () => {
+    const services = installSuccessfulServices();
+    const secretSentinel = 'candidate-secret-must-not-enter-agenda';
+    const candidate: ActionJsonObject = {
+      redboxOid: 'record-1',
+      revision: 7,
+      metadata: { title: 'Authoritative', password: secretSentinel },
+      apiToken: secretSentinel,
+    };
+    await executeDirect(
+      descriptorFor(BUILT_IN_ACTION_IDS.dispatchQueuedAction),
+      PARAMETERS[BUILT_IN_ACTION_IDS.dispatchQueuedAction]!,
+      candidate
+    );
+    assert.deepEqual(services.queuedJobNames, [REGISTERED_RECORD_ACTION_JOB_NAME]);
+    const persisted = services.queuedPayloads[0];
+    assert.ok(persisted);
+    const payload = parseRegisteredRecordActionQueuePayload(persisted);
+    assert.doesNotThrow(() => parseActionContext(payload.context));
+    assert.deepEqual(payload.context.priorOutputs, []);
+    assert.deepEqual(payload.context.record.candidate, { redboxOid: 'record-1', revision: 7 });
+    assert.equal(JSON.stringify(payload).includes(secretSentinel), false);
+    assert.equal(JSON.stringify(payload).includes('password'), false);
+    assert.equal(JSON.stringify(payload).includes('apiToken'), false);
+    assert.equal(Object.hasOwn(payload, 'jobName'), false);
+
+    let routed = 0;
+    sails.services.doiservice.updateDoiTriggerSync = ((_oid: string, record: ActionJsonObject) => {
+      routed += 1;
+      assert.equal(record.metadata?.title, 'Authoritative');
+      return Promise.resolve(record);
+    }) as never;
+    const registry = coreRegistry();
+    const result = await consumeRegisteredRecordActionQueueJob(
+      { attrs: { name: REGISTERED_RECORD_ACTION_JOB_NAME, data: payload } },
+      {
+        registry,
+        provider: createActionSecretProvider(new EmptySecretStorage()),
+        loadRecord: async () => candidate,
+      }
+    );
+    assert.equal(result.actionId, BUILT_IN_ACTION_IDS.updateDoi);
+    assert.equal(result.status, 'succeeded');
+    assert.equal(routed, 1);
+
+    const hostileJobs: ActionJsonObject[] = [
+      { attrs: { name: 'AttackerService-Execute', data: payload as never } },
+      {
+        attrs: {
+          name: REGISTERED_RECORD_ACTION_JOB_NAME,
+          data: { ...payload, actionId: 'org.example.missing' } as never,
+        },
+      },
+      {
+        attrs: {
+          name: REGISTERED_RECORD_ACTION_JOB_NAME,
+          data: { ...payload, contractVersion: 2 } as never,
+        },
+      },
+      {
+        attrs: {
+          name: REGISTERED_RECORD_ACTION_JOB_NAME,
+          data: { ...payload, actionId: BUILT_IN_ACTION_IDS.dispatchQueuedAction } as never,
+        },
+      },
+    ];
+    for (const job of hostileJobs) {
+      await assert.rejects(
+        async () =>
+          consumeRegisteredRecordActionQueueJob(job, {
+            registry: coreRegistry(),
+            provider: createActionSecretProvider(new EmptySecretStorage()),
+            loadRecord: async () => candidate,
+          }),
+        (error: Error) => error.name === 'ActionValidationFailure'
+      );
+    }
+    assert.equal(routed, 1);
   });
 
   it('uses the configured nested workspace field, drops return-shape selection, and skips disabled effects', async () => {
@@ -660,18 +893,26 @@ describe('built-in registered record actions', function () {
     const sourceFiles = [
       'src/action-registry/builtInActions.ts',
       'src/action-registry/legacyMigration.ts',
+      'src/action-registry/managedNotificationPaths.ts',
+      'src/action-registry/registeredActionQueue.ts',
       'src/action-registry/coreActions.ts',
       'src/action-registry/index.ts',
+      'src/action-execution/registered-queue-consumer.ts',
       'src/expression-runtime/compile.ts',
       'src/expression-runtime/worker.ts',
+      'src/utilities/BoundedDiagnostics.ts',
     ];
     const declarationFiles = [
       'dist/action-registry/builtInActions.d.ts',
       'dist/action-registry/legacyMigration.d.ts',
+      'dist/action-registry/managedNotificationPaths.d.ts',
+      'dist/action-registry/registeredActionQueue.d.ts',
       'dist/action-registry/coreActions.d.ts',
       'dist/action-registry/index.d.ts',
+      'dist/action-execution/registered-queue-consumer.d.ts',
       'dist/expression-runtime/compile.d.ts',
       'dist/expression-runtime/worker.d.ts',
+      'dist/utilities/BoundedDiagnostics.d.ts',
     ];
     const failures: string[] = [];
     for (const relativePath of [...sourceFiles, ...declarationFiles]) {
