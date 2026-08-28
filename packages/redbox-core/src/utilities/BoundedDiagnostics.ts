@@ -64,6 +64,10 @@ const SAFE_DIAGNOSTIC_CODES: readonly BoundedDiagnosticCode[] = Object.freeze([
   'ERR_INVALID_ARG_TYPE',
   'ERR_TLS_CERT_ALTNAME_INVALID',
 ]);
+const MAX_SAFE_DIAGNOSTIC_CODE_LENGTH = SAFE_DIAGNOSTIC_CODES.reduce(
+  (maximumLength, code) => Math.max(maximumLength, code.length),
+  0
+);
 
 const ARRAY_DIAGNOSTIC: BoundedDiagnosticValue = Object.freeze({ category: 'array' });
 const BIGINT_DIAGNOSTIC: BoundedDiagnosticValue = Object.freeze({ category: 'bigint' });
@@ -90,7 +94,7 @@ function readOwnDataProperty(value: object, propertyKey: string): PropertyReadRe
 }
 
 function allowlistedCode(value: RuntimeValue): BoundedDiagnosticCode | undefined {
-  if (typeof value !== 'string') {
+  if (typeof value !== 'string' || value.length > MAX_SAFE_DIAGNOSTIC_CODE_LENGTH) {
     return undefined;
   }
   const normalized = value.toUpperCase();
