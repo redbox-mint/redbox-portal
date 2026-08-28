@@ -193,8 +193,8 @@ function legacyBindings(
           sourcePath,
           definition,
         });
-        if (migration.kind !== 'action-bindings') {
-          throw invalidPlan(sourcePath);
+        if (migration.kind === 'automatic-transition') {
+          continue;
         }
         bindings.push(...migration.bindings);
       }
@@ -398,6 +398,11 @@ function actionRecord(value: RuntimeValue): ActionJsonObject {
     throw new ActionValidationFailure('Registered action record context is invalid.');
   }
   return parsed.data;
+}
+
+/** Project a record through the same bounded immutable context boundary used by registered actions. @internal */
+export function projectRecordActionCandidate(value: RuntimeValue): ActionJsonObject {
+  return actionRecord(value);
 }
 
 /** @internal */

@@ -260,6 +260,10 @@ describe('registered legacy record action migration', function () {
     assert.equal(transition.kind, 'automatic-transition');
     if (transition.kind === 'automatic-transition') {
       assert.equal(transition.actionId, 'redbox.core.workflow.automatic-transition');
+      assert.equal(transition.id, 'legacy-action');
+      assert.equal(transition.mode, 'automatic');
+      assert.equal(transition.sourceStage, 'queued');
+      assert.equal(transition.priority, 2);
       assert.equal(transition.targetStage, 'published');
       assert.equal(transition.targetStageLabelCheck, 'Published');
       assert.equal(transition.targetFormCheck, 'legacy-action-fixture-1.0-published');
