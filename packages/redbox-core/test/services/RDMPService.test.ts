@@ -773,6 +773,24 @@ describe('RDMPService', function () {
       expect(JSON.stringify(boundedDiagnosticValue(() => sentinel))).not.to.contain(sentinel);
     });
 
+    it('preserves the permission fallback when the original lookup failure is a hostile array proxy', async function () {
+      const sentinel = 'hostile-rdmp-diagnostic-secret-must-not-be-logged';
+      const candidate = { username: 'candidate-user', email: 'candidate@example.test' };
+      const revokedArray = Proxy.revocable([sentinel], {});
+      const originalFailure = revokedArray.proxy;
+      revokedArray.revoke();
+      (global as any).UsersService.getEffectiveUser = sinon.stub().callsFake(() => {
+        throw originalFailure;
+      });
+
+      const resolved = await (RDMPService as any).resolvePermissionUser([candidate]);
+
+      expect(resolved).to.equal(candidate);
+      const logged = JSON.stringify(mockSails.log.verbose.args);
+      expect(logged).not.to.contain(sentinel);
+      expect(logged).to.contain('unavailable');
+    });
+
     it('does not log complete candidates, options, contributors, attachments, or error sentinels', async function () {
       const sentinel = 'rdmp-managed-secret-must-not-be-logged';
       const record: any = {

@@ -177,6 +177,25 @@ describe('EmailService', function () {
       expect(logged).not.to.contain('password');
     });
 
+    it('preserves the original template failure when its diagnostic value is a hostile array proxy', async function () {
+      const sentinel = 'hostile-email-diagnostic-secret-must-not-be-logged';
+      const revokedArray = Proxy.revocable([sentinel], {});
+      const originalFailure = revokedArray.proxy;
+      revokedArray.revoke();
+      sinon.stub(EmailService, 'getCompiledTemplate').returns(() => {
+        throw originalFailure;
+      });
+
+      const result = await EmailService.buildFromTemplateAsync('hostile-diagnostic', {});
+
+      expect(result.status).to.equal(500);
+      expect(result.body).to.equal('Templating error.');
+      expect(result.ex).to.equal(originalFailure);
+      const logged = JSON.stringify(mockSails.log.error.args);
+      expect(logged).not.to.contain(sentinel);
+      expect(logged).to.contain('unavailable');
+    });
+
     it('should allow missing data in guarded optional blocks', async function () {
       fs.writeFileSync(path.join(tmpDir, 'optional.hbs'), '{{#if nickname}}<p>{{nickname}}</p>{{/if}}');
 
