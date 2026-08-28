@@ -173,8 +173,9 @@ describe('A01 nested legacy action failure behavior', function () {
       for (const call of mockSails.log.verbose.getCalls()) {
         verboseMessages.push(String(call.args[0]));
       }
-      expect(verboseMessages.some(message => message.includes('email nested promise rejection'))).to.equal(true);
-      expect(verboseMessages.some(message => message.includes('email nested observable rejection'))).to.equal(true);
+      expect(verboseMessages.filter(message => message.includes('hook failed.')).length).to.equal(2);
+      expect(verboseMessages.some(message => message.includes('email nested promise rejection'))).to.equal(false);
+      expect(verboseMessages.some(message => message.includes('email nested observable rejection'))).to.equal(false);
     });
   });
 
@@ -257,7 +258,10 @@ describe('A01 nested legacy action failure behavior', function () {
         throw new Error('The queued non-callable path did not return an Observable.');
       }
       expect(await firstValueFrom(result)).to.deep.equal({ metadata: { title: 'Queued nested action' } });
-      expect(mockSails.log.error.calledWithMatch("queued trigger function: '({ value: 1 })'")).to.equal(true);
+      expect(
+        mockSails.log.error.calledWithMatch('Configured queued trigger did not resolve to a valid function.')
+      ).to.equal(true);
+      expect(JSON.stringify(mockSails.log.error.args)).not.to.contain('({ value: 1 })');
     });
 
     it('rejects the consumer Promise for returned Promise and Observable failures', async function () {

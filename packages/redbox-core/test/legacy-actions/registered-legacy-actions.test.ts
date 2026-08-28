@@ -274,6 +274,7 @@ describe('registered legacy record action migration', function () {
       kind: 'literal',
       value: BUILT_IN_ACTION_IDS.updateDoi,
     });
+    assert.equal(Object.hasOwn(queued.bindings[0]?.parameters ?? {}, 'jobName'), false);
     assert.equal(JSON.stringify(queued).includes('sails.services'), false);
     assert.equal(JSON.stringify(queued).includes('function'), false);
   });
@@ -319,6 +320,110 @@ describe('registered legacy record action migration', function () {
       )
     );
     assert.deepEqual(unconditional.bindings[0]?.parameters.condition, { kind: 'jsonata', expression: 'true' });
+  });
+
+  it('migrates only inert scalar email options and ignores legacy queue job selectors', () => {
+    const safeEmail = bindingMigration(
+      migrate(
+        {
+          function: 'sails.services.emailservice.sendRecordNotification',
+          options: {
+            forceRun: true,
+            to: 'owner@example.test',
+            subject: 'Review',
+            template: 'publicationReview',
+            otherSendOptions: { replyTo: 'reply@example.test', priority: 'high' },
+          },
+        },
+        { context: 'record-lifecycle', mode: 'onCreate', phase: 'post' }
+      )
+    );
+    assert.deepEqual(safeEmail.bindings[0]?.parameters.replyTo, {
+      kind: 'literal',
+      value: 'reply@example.test',
+    });
+    assert.deepEqual(safeEmail.bindings[0]?.parameters.priority, { kind: 'literal', value: 'high' });
+    assert.equal(Object.hasOwn(safeEmail.bindings[0]?.parameters ?? {}, 'otherSendOptions'), false);
+
+    for (const otherSendOptions of [
+      { attachments: [{ path: '/etc/passwd' }] },
+      { attachments: [{ href: 'https://attacker.example/file' }] },
+      { alternatives: [{ content: 'hostile' }] },
+      { raw: 'hostile raw message' },
+      { replyTo: { address: 'nested@example.test' } },
+    ]) {
+      assert.throws(
+        () =>
+          migrate(
+            {
+              function: 'sails.services.emailservice.sendRecordNotification',
+              options: {
+                forceRun: true,
+                to: 'owner@example.test',
+                subject: 'Review',
+                template: 'publicationReview',
+                otherSendOptions,
+              },
+            },
+            { context: 'record-lifecycle', mode: 'onCreate', phase: 'post' }
+          ),
+        (error: Error) => error instanceof LegacyRecordActionMigrationError
+      );
+    }
+
+    const queue = bindingMigration(
+      migrate(
+        {
+          function: 'sails.services.rdmpservice.queueTriggerCall',
+          options: {
+            forceRun: true,
+            jobName: 'AttackerService-Execute',
+            triggerConfiguration: {
+              function: 'sails.services.doiservice.updateDoiTriggerSync',
+              options: { forceRun: true, event: 'delete' },
+            },
+          },
+        },
+        { context: 'record-lifecycle', mode: 'onDelete', phase: 'post' }
+      )
+    );
+    assert.equal(Object.hasOwn(queue.bindings[0]?.parameters ?? {}, 'jobName'), false);
+    assert.equal(JSON.stringify(queue).includes('AttackerService-Execute'), false);
+    const validation = validateActionPlan(
+      buildActionRegistry([
+        actionRegistrationSource('@researchdatabox/redbox-core', 'actions/index', registerRedboxActions),
+      ]),
+      { schemaVersion: 1, recordTypeKey: 'legacy-action-fixture', bindings: queue.bindings }
+    );
+    assert.equal(validation.ok, true);
+  });
+
+  it('rejects prototype, secret, traversal, and unrelated managed notification paths during migration', () => {
+    for (const [flagName, logName] of [
+      ['constructor.prototype.polluted', 'notification.log'],
+      ['__proto__.polluted', 'notification.log'],
+      ['notification.state', 'notification.log.secretToken'],
+      ['authorization.edit', 'notification.log'],
+      ['notification.state', 'metadata.audit'],
+      ['notification.state', 'notification.log..published'],
+    ]) {
+      assert.throws(
+        () =>
+          migrate(
+            {
+              function: 'sails.services.recordsservice.updateNotificationLog',
+              options: {
+                forceRun: true,
+                flagName,
+                flagVal: 'draft',
+                logName,
+              },
+            },
+            { context: 'record-lifecycle', mode: 'onCreate', phase: 'pre' }
+          ),
+        (error: Error) => error instanceof LegacyRecordActionMigrationError && error.code === 'invalid-legacy-parameter'
+      );
+    }
   });
 
   it('rejects accessors before reading them and never reflects an unknown expression into its safe error', () => {
