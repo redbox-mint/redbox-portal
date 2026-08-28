@@ -28,6 +28,11 @@ export const EXPRESSION_RUNTIME_LIMITS = Object.freeze({
   workerStartupTimeoutMs: 5_000,
   workerMaxOldGenerationSizeMb: 32,
   workerMaxYoungGenerationSizeMb: 8,
-  workerStackSizeMb: 2,
+  // The worker loads the shared helper modules before evaluating an
+  // expression. Two megabytes is insufficient for that startup path and can
+  // turn valid requests into an opaque worker crash. Keep the stack bounded,
+  // but leave enough room for startup and the deliberately timeout-tested
+  // recursive-expression boundary.
+  workerStackSizeMb: 8,
   maxDiagnosticCodeLength: 64,
 });
