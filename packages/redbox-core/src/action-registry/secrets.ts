@@ -1,20 +1,13 @@
 import { createHash } from 'node:crypto';
-import type {
-  ActionBinding,
-  ActionContext,
-  ActionDefinition,
-  ActionHandlerSecrets,
-  DeepReadonly,
-  ResolvedActionSecret,
-} from './contracts';
+import type { ActionContext, ActionHandlerSecrets, ResolvedActionSecret } from './contracts';
 import {
   actionBindingIdSchema,
   actionParameterNameSchema,
   safeActionIdentifierSchema,
   type ActionBindingId,
-  type ActionDefinitionId,
 } from './identifiers';
 import type { RuntimeValue } from '../runtimeValues';
+import { validatedActionPlanBindingRecordTypeKey, type ResolvedActionPlanBinding } from './plan';
 
 const ACTION_SECRET_SLOT_ID_PATTERN = /^acts_[a-f0-9]{32}$/;
 const ACTION_SECRET_REDACTION = '[REDACTED]' as const;
@@ -53,21 +46,9 @@ export interface ActionSecretReplaceRequest extends ActionSecretSlotAccess {
   readonly value: string;
 }
 
-export interface ActionSecretBindingReference {
-  readonly id: ActionBindingId;
-  readonly actionId: ActionDefinitionId;
-  readonly contractVersion: number;
-}
-
-export interface ActionSecretDescriptorReference {
-  readonly id: ActionDefinitionId;
-  readonly contractVersion: number;
-  readonly parameterSchema: ActionDefinition['parameterSchema'];
-}
-
 export interface ActionSecretHandlerResolutionRequest extends ActionSecretSlotAccess {
-  readonly binding: ActionSecretBindingReference;
-  readonly descriptor: ActionSecretDescriptorReference;
+  /** Exact capability emitted by registry-backed action-plan validation. */
+  readonly resolvedBinding: ResolvedActionPlanBinding;
 }
 
 export type ActionSecretWriteResult = 'retained' | 'replaced';
@@ -78,6 +59,7 @@ export type ActionSecretProviderErrorCode =
   | 'cross-brand-secret-access'
   | 'handler-secret-access-denied'
   | 'required-secret-not-configured'
+  | 'secret-configured-state-mismatch'
   | 'secret-provider-failure';
 
 export interface ActionSecretProviderProblem {
@@ -92,6 +74,7 @@ const ACTION_SECRET_ERROR_MESSAGES: Readonly<Record<ActionSecretProviderErrorCod
   'cross-brand-secret-access': 'Action secret access is denied.',
   'handler-secret-access-denied': 'Handler access to the action secret is denied.',
   'required-secret-not-configured': 'A required action secret is not configured.',
+  'secret-configured-state-mismatch': 'The action secret configured state does not match protected storage.',
   'secret-provider-failure': 'The action secret provider could not complete the operation.',
 });
 
@@ -170,20 +153,23 @@ export function createActionSecretSlotIdentity(input: ActionSecretSlotIdentityIn
   return Object.freeze({ ...input, id: deriveStableActionSecretSlotId(input) });
 }
 
-function assertCanonicalSlot(slot: ActionSecretSlotIdentity): void {
-  if (deriveStableActionSecretSlotId(slot) !== slot.id) {
+function canonicalAccess(request: ActionSecretSlotAccess): ActionSecretSlotAccess {
+  const requesterBrandId = request.requesterBrandId;
+  const submittedSlot = request.slot;
+  const submittedId = submittedSlot.id;
+  const slot = createActionSecretSlotIdentity({
+    brandId: submittedSlot.brandId,
+    recordTypeKey: submittedSlot.recordTypeKey,
+    bindingId: submittedSlot.bindingId,
+    parameterName: submittedSlot.parameterName,
+  });
+  if (slot.id !== submittedId) {
     throw providerError('invalid-secret-slot');
   }
-}
-
-function assertAccess(request: ActionSecretSlotAccess): void {
-  assertCanonicalSlot(request.slot);
-  if (
-    !safeActionIdentifierSchema.safeParse(request.requesterBrandId).success ||
-    request.requesterBrandId !== request.slot.brandId
-  ) {
+  if (!safeActionIdentifierSchema.safeParse(requesterBrandId).success || requesterBrandId !== slot.brandId) {
     throw providerError('cross-brand-secret-access');
   }
+  return Object.freeze({ requesterBrandId, slot });
 }
 
 function validSecretValue(value: RuntimeValue): value is string {
@@ -194,19 +180,37 @@ function validSecretValue(value: RuntimeValue): value is string {
   );
 }
 
-function assertHandlerDeclaration(request: ActionSecretHandlerResolutionRequest): void {
-  const parameter = request.descriptor.parameterSchema.parameters.find(
-    candidate => candidate.name === request.slot.parameterName
-  );
+interface HandlerSecretDeclaration {
+  readonly required: boolean;
+  readonly configured: boolean;
+}
+
+function handlerSecretDeclaration(
+  request: ActionSecretHandlerResolutionRequest,
+  slot: ActionSecretSlotIdentity
+): HandlerSecretDeclaration {
+  const resolvedBinding = request.resolvedBinding;
+  const recordTypeKey = validatedActionPlanBindingRecordTypeKey(resolvedBinding);
+  if (recordTypeKey === undefined || recordTypeKey !== slot.recordTypeKey) {
+    throw providerError('handler-secret-access-denied');
+  }
+  const binding = resolvedBinding.binding;
+  const descriptor = resolvedBinding.descriptor;
+  const parameter = descriptor.parameterSchema.parameters.find(candidate => candidate.name === slot.parameterName);
   if (
-    request.binding.id !== request.slot.bindingId ||
-    request.binding.actionId !== request.descriptor.id ||
-    request.binding.contractVersion !== request.descriptor.contractVersion ||
+    binding.id !== slot.bindingId ||
+    binding.actionId !== descriptor.id ||
+    binding.contractVersion !== descriptor.contractVersion ||
     parameter?.kind !== 'secret' ||
     parameter.writeOnly !== true
   ) {
     throw providerError('handler-secret-access-denied');
   }
+  const marker = binding.parameters[parameter.name];
+  if (marker !== undefined && marker.kind !== 'secret') {
+    throw providerError('handler-secret-access-denied');
+  }
+  return Object.freeze({ required: parameter.required, configured: marker?.configured === true });
 }
 
 class ProviderResolvedActionSecret implements ResolvedActionSecret {
@@ -230,6 +234,8 @@ class ProviderResolvedActionSecret implements ResolvedActionSecret {
   }
 }
 
+Object.freeze(ProviderResolvedActionSecret.prototype);
+
 async function storageOperation<Result>(operation: () => Promise<Result>): Promise<Result> {
   try {
     return await operation();
@@ -246,34 +252,44 @@ class ProtectedActionSecretProvider implements ActionSecretProvider {
   }
 
   async write(request: ActionSecretWriteRequest): Promise<ActionSecretWriteResult> {
-    assertAccess(request);
+    const access = canonicalAccess(request);
     const value = request.value;
     if (value === undefined || (typeof value === 'string' && value.trim().length === 0)) {
       return 'retained';
     }
-    await this.replace({ ...request, value });
+    if (!validSecretValue(value)) {
+      throw providerError('invalid-secret-value');
+    }
+    await storageOperation(() => this.#storage.replace(access.slot, value));
     return 'replaced';
   }
 
   async replace(request: ActionSecretReplaceRequest): Promise<void> {
-    assertAccess(request);
-    if (!validSecretValue(request.value)) {
+    const access = canonicalAccess(request);
+    const value = request.value;
+    if (!validSecretValue(value)) {
       throw providerError('invalid-secret-value');
     }
-    await storageOperation(() => this.#storage.replace(request.slot, request.value));
+    await storageOperation(() => this.#storage.replace(access.slot, value));
   }
 
   async clear(request: ActionSecretSlotAccess): Promise<void> {
-    assertAccess(request);
-    await storageOperation(() => this.#storage.clear(request.slot));
+    const access = canonicalAccess(request);
+    await storageOperation(() => this.#storage.clear(access.slot));
   }
 
   async resolveForHandler(request: ActionSecretHandlerResolutionRequest): Promise<ResolvedActionSecret | undefined> {
-    assertAccess(request);
-    assertHandlerDeclaration(request);
-    const value = await storageOperation(() => this.#storage.resolve(request.slot));
-    if (value === undefined) {
+    const access = canonicalAccess(request);
+    const declaration = handlerSecretDeclaration(request, access.slot);
+    if (!declaration.configured) {
+      if (declaration.required) {
+        throw providerError('required-secret-not-configured');
+      }
       return undefined;
+    }
+    const value = await storageOperation(() => this.#storage.resolve(access.slot));
+    if (value === undefined) {
+      throw providerError(declaration.required ? 'required-secret-not-configured' : 'secret-configured-state-mismatch');
     }
     if (!validSecretValue(value)) {
       throw providerError('secret-provider-failure');
@@ -282,22 +298,14 @@ class ProtectedActionSecretProvider implements ActionSecretProvider {
   }
 
   async isConfigured(request: ActionSecretSlotAccess): Promise<boolean> {
-    assertAccess(request);
-    const configured = await storageOperation(() => this.#storage.isConfigured(request.slot));
+    const access = canonicalAccess(request);
+    const configured = await storageOperation(() => this.#storage.isConfigured(access.slot));
     return configured === true;
   }
 }
 
 export function createActionSecretProvider(storage: ActionSecretStorage): ActionSecretProvider {
   return Object.freeze(new ProtectedActionSecretProvider(storage));
-}
-
-function bindingReference(binding: DeepReadonly<ActionBinding>): ActionSecretBindingReference {
-  return Object.freeze({
-    id: binding.id,
-    actionId: binding.actionId,
-    contractVersion: binding.contractVersion,
-  });
 }
 
 /**
@@ -307,11 +315,15 @@ function bindingReference(binding: DeepReadonly<ActionBinding>): ActionSecretBin
 export async function resolveActionHandlerSecrets(
   provider: ActionSecretProvider,
   context: Pick<ActionContext, 'brandId' | 'recordTypeKey'>,
-  binding: DeepReadonly<ActionBinding>,
-  descriptor: ActionSecretDescriptorReference
+  resolvedBinding: ResolvedActionPlanBinding
 ): Promise<Readonly<ActionHandlerSecrets>> {
+  const brandId = context.brandId;
+  const recordTypeKey = context.recordTypeKey;
+  const binding = resolvedBinding.binding;
+  const descriptor = resolvedBinding.descriptor;
   if (
-    context.recordTypeKey.trim().length === 0 ||
+    recordTypeKey.trim().length === 0 ||
+    validatedActionPlanBindingRecordTypeKey(resolvedBinding) !== recordTypeKey ||
     binding.actionId !== descriptor.id ||
     binding.contractVersion !== descriptor.contractVersion
   ) {
@@ -319,22 +331,20 @@ export async function resolveActionHandlerSecrets(
   }
 
   const resolved: Record<string, ResolvedActionSecret> = {};
-  const reference = bindingReference(binding);
   for (const parameter of descriptor.parameterSchema.parameters) {
     if (parameter.kind !== 'secret') {
       continue;
     }
     const slot = createActionSecretSlotIdentity({
-      brandId: context.brandId,
-      recordTypeKey: context.recordTypeKey,
+      brandId,
+      recordTypeKey,
       bindingId: binding.id,
       parameterName: parameter.name,
     });
     const value = await provider.resolveForHandler({
-      requesterBrandId: context.brandId,
+      requesterBrandId: brandId,
       slot,
-      binding: reference,
-      descriptor,
+      resolvedBinding,
     });
     if (value !== undefined) {
       resolved[parameter.name] = value;

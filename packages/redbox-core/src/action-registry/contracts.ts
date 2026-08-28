@@ -1264,7 +1264,7 @@ export interface ActionContext {
 export type ActionHandler = (
   context: Readonly<ActionContext>,
   parameters: Readonly<ActionParameterValues>,
-  secrets: Readonly<ActionHandlerSecrets>
+  secrets?: Readonly<ActionHandlerSecrets>
 ) => ActionResult | Promise<ActionResult>;
 
 function isActionHandler(handler: RuntimeValue): boolean {
