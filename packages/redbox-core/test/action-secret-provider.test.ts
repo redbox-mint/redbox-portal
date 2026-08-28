@@ -6,9 +6,14 @@ import ts from 'typescript';
 import {
   ACTION_CONTEXT_SCHEMA_VERSION,
   ACTION_CONTRACT_SCHEMA_VERSION,
+  ACTION_PLAN_SCHEMA_VERSION,
+  ACTION_RESULT_SCHEMA_VERSION,
   ACTION_SECRET_LIMITS,
+  ActionPlanValidationError,
   ActionSecretProviderError,
   actionSecretParameterSchema,
+  actionRegistrationSource,
+  buildActionRegistry,
   createActionSecretProvider,
   createActionSecretSlotIdentity,
   deriveStableActionBindingId,
@@ -17,14 +22,17 @@ import {
   parseActionContext,
   parseActionDefinitionId,
   parseActionSecretSlotId,
+  resolveActionPlan,
   resolveActionHandlerSecrets,
   type ActionBinding,
   type ActionHandler,
   type ActionParameterDefinition,
-  type ActionSecretDescriptorReference,
+  type ActionParameterValues,
+  type ActionRegistrationDescriptor,
   type ActionSecretProviderErrorCode,
   type ActionSecretSlotIdentity,
   type ActionSecretStorage,
+  type ResolvedActionPlanBinding,
 } from '../src/action-registry';
 
 const brandId = 'brand-alpha';
@@ -36,7 +44,13 @@ const scope = {
   phase: 'pre' as const,
 };
 
-function binding(stableKey = 'primary'): ActionBinding {
+function binding(
+  stableKey = 'primary',
+  parameters: ActionParameterValues = {
+    label: { kind: 'literal', value: 'safe-label' },
+    credential: { kind: 'secret', configured: true },
+  }
+): ActionBinding {
   const id = deriveStableActionBindingId({
     recordTypeKey,
     scope,
@@ -51,18 +65,24 @@ function binding(stableKey = 'primary'): ActionBinding {
     actionId,
     contractVersion: 1,
     scope,
-    parameters: {
-      label: { kind: 'literal', value: 'safe-label' },
-      credential: { kind: 'secret', configured: true },
-    },
+    parameters,
     order: 10,
   });
 }
 
-function descriptor(parameters?: readonly ActionParameterDefinition[]): ActionSecretDescriptorReference {
+function descriptor(parameters?: readonly ActionParameterDefinition[]): ActionRegistrationDescriptor {
   return {
+    schemaVersion: ACTION_CONTRACT_SCHEMA_VERSION,
     id: actionId,
     contractVersion: 1,
+    title: 'Secret action',
+    description: 'An action used to verify handler-only secret resolution.',
+    category: 'test',
+    handler: () => ({ schemaVersion: ACTION_RESULT_SCHEMA_VERSION, kind: 'no-change' }),
+    contexts: ['record-lifecycle'],
+    modes: ['onCreate'],
+    phases: ['pre'],
+    allowRepeatedBindings: false,
     parameterSchema: {
       schemaVersion: ACTION_CONTRACT_SCHEMA_VERSION,
       parameters: parameters ?? [
@@ -70,7 +90,37 @@ function descriptor(parameters?: readonly ActionParameterDefinition[]): ActionSe
         { name: 'credential', title: 'Credential', kind: 'secret', writeOnly: true, required: true },
       ],
     },
+    outputSchema: {
+      schemaVersion: ACTION_CONTRACT_SCHEMA_VERSION,
+      fields: [],
+      safeFields: [],
+    },
+    resultContract: { allowedKinds: ['no-change'] },
+    executionPolicy: {
+      timeout: { defaultMs: 1_000, minMs: 100, maxMs: 2_000 },
+      retry: { allowed: false },
+    },
   };
+}
+
+function validatedBinding(
+  actionBinding: ActionBinding = binding(),
+  parameters?: readonly ActionParameterDefinition[]
+): ResolvedActionPlanBinding {
+  const register = (): readonly ActionRegistrationDescriptor[] => [descriptor(parameters)];
+  const registry = buildActionRegistry([
+    actionRegistrationSource('@researchdatabox/action-secret-test', 'actions/index', register),
+  ]);
+  const plan = resolveActionPlan(registry, {
+    schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
+    recordTypeKey,
+    bindings: [actionBinding],
+  });
+  const resolved = plan.bindings[0];
+  if (resolved === undefined) {
+    assert.fail('Expected one validated action-plan binding.');
+  }
+  return resolved;
 }
 
 function actionContext() {
@@ -89,7 +139,7 @@ function actionContext() {
 }
 
 function slot(
-  actionBinding = binding(),
+  actionBinding: Pick<ActionBinding, 'id'> = binding(),
   parameterName = 'credential',
   ownerBrandId = brandId
 ): ActionSecretSlotIdentity {
@@ -135,6 +185,41 @@ class MemoryActionSecretStorage implements ActionSecretStorage {
     if (this.failWith !== undefined) {
       throw new Error(this.failWith);
     }
+    return this.values.has(secretSlot.id);
+  }
+}
+
+interface ObservedStorageAccess {
+  readonly operation: 'replace' | 'clear' | 'resolve' | 'configured';
+  readonly slot: ActionSecretSlotIdentity;
+  readonly value?: string;
+}
+
+class AsyncObservedActionSecretStorage implements ActionSecretStorage {
+  readonly values = new Map<string, string>();
+  readonly accesses: ObservedStorageAccess[] = [];
+
+  async replace(secretSlot: ActionSecretSlotIdentity, value: string): Promise<void> {
+    await Promise.resolve();
+    this.accesses.push({ operation: 'replace', slot: secretSlot, value });
+    this.values.set(secretSlot.id, value);
+  }
+
+  async clear(secretSlot: ActionSecretSlotIdentity): Promise<void> {
+    await Promise.resolve();
+    this.accesses.push({ operation: 'clear', slot: secretSlot });
+    this.values.delete(secretSlot.id);
+  }
+
+  async resolve(secretSlot: ActionSecretSlotIdentity): Promise<string | undefined> {
+    await Promise.resolve();
+    this.accesses.push({ operation: 'resolve', slot: secretSlot });
+    return this.values.get(secretSlot.id);
+  }
+
+  async isConfigured(secretSlot: ActionSecretSlotIdentity): Promise<boolean> {
+    await Promise.resolve();
+    this.accesses.push({ operation: 'configured', slot: secretSlot });
     return this.values.has(secretSlot.id);
   }
 }
@@ -221,7 +306,8 @@ describe('action secret parameter provider boundary', () => {
   it('retains omitted and blank writes, replaces non-blank values, and clears only explicitly', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const secretSlot = slot();
+    const resolvedBinding = validatedBinding();
+    const secretSlot = slot(resolvedBinding.binding);
     const access = { requesterBrandId: brandId, slot: secretSlot };
 
     await provider.replace({ ...access, value: 'first-secret' });
@@ -233,8 +319,7 @@ describe('action secret parameter provider boundary', () => {
     assert.equal(await provider.write({ ...access, value: 'second-secret' }), 'replaced');
     const resolved = await provider.resolveForHandler({
       ...access,
-      binding: binding(),
-      descriptor: descriptor(),
+      resolvedBinding,
     });
     assert.equal(resolved?.reveal(), 'second-secret');
     assert.equal(String(resolved), '[REDACTED]');
@@ -245,9 +330,9 @@ describe('action secret parameter provider boundary', () => {
 
     await provider.clear(access);
     assert.equal(await provider.isConfigured(access), false);
-    assert.equal(
-      await provider.resolveForHandler({ ...access, binding: binding(), descriptor: descriptor() }),
-      undefined
+    await expectProviderError(
+      provider.resolveForHandler({ ...access, resolvedBinding }),
+      'required-secret-not-configured'
     );
   });
 
@@ -255,17 +340,13 @@ describe('action secret parameter provider boundary', () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
+    const resolvedBinding = validatedBinding(actionBinding);
     const credentialSlot = slot(actionBinding);
     const labelSlot = slot(actionBinding, 'label');
     await provider.replace({ requesterBrandId: brandId, slot: credentialSlot, value: 'handler-secret' });
     await provider.replace({ requesterBrandId: brandId, slot: labelSlot, value: 'must-not-resolve' });
 
-    const secrets = await resolveActionHandlerSecrets(
-      provider,
-      { brandId, recordTypeKey },
-      actionBinding,
-      descriptor()
-    );
+    const secrets = await resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, resolvedBinding);
     assert.deepEqual(Object.keys(secrets), ['credential']);
     assert.equal(secrets.credential?.reveal(), 'handler-secret');
     assert.equal(Object.isFrozen(secrets), true);
@@ -275,6 +356,9 @@ describe('action secret parameter provider boundary', () => {
     let receivedSecret = '';
     let receivedNames: string[] = [];
     const handler: ActionHandler = (_context, _parameters, handlerSecrets) => {
+      if (handlerSecrets === undefined) {
+        assert.fail('Expected typed secrets on the validated execution path.');
+      }
       receivedNames = Object.keys(handlerSecrets);
       receivedSecret = handlerSecrets.credential?.reveal() ?? '';
       return { schemaVersion: 1, kind: 'no-change' };
@@ -287,8 +371,7 @@ describe('action secret parameter provider boundary', () => {
       provider.resolveForHandler({
         requesterBrandId: brandId,
         slot: labelSlot,
-        binding: actionBinding,
-        descriptor: descriptor(),
+        resolvedBinding,
       }),
       'handler-secret-access-denied'
     );
@@ -299,25 +382,25 @@ describe('action secret parameter provider boundary', () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
+    const resolvedBinding = validatedBinding(actionBinding);
 
     await expectProviderError(
-      resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, actionBinding, descriptor()),
+      resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, resolvedBinding),
       'required-secret-not-configured'
     );
 
     const optional = descriptor([
       { name: 'credential', title: 'Credential', kind: 'secret', writeOnly: true, required: false },
     ]);
-    assert.deepEqual(
-      await resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, actionBinding, optional),
-      {}
-    );
+    const optionalBinding = validatedBinding(binding('primary', {}), optional.parameterSchema.parameters);
+    assert.deepEqual(await resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, optionalBinding), {});
   });
 
   it('denies cross-brand reads, state checks, writes, retained no-ops, and clears before storage access', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const secretSlot = slot();
+    const resolvedBinding = validatedBinding();
+    const secretSlot = slot(resolvedBinding.binding);
     const ownerAccess = { requesterBrandId: brandId, slot: secretSlot };
     await provider.replace({ ...ownerAccess, value: 'owned-secret' });
     const operationCount = storage.operations.length;
@@ -330,8 +413,7 @@ describe('action secret parameter provider boundary', () => {
     await expectProviderError(
       provider.resolveForHandler({
         ...deniedAccess,
-        binding: binding(),
-        descriptor: descriptor(),
+        resolvedBinding,
       }),
       'cross-brand-secret-access'
     );
@@ -340,10 +422,79 @@ describe('action secret parameter provider boundary', () => {
     assert.equal(await provider.isConfigured(ownerAccess), true);
   });
 
-  it('rejects tampered slots and handler identity or declaration mismatches before storage access', async () => {
+  it('passes provider-owned immutable slot snapshots to every asynchronous storage method', async () => {
+    const storage = new AsyncObservedActionSecretStorage();
+    const provider = createActionSecretProvider(storage);
+    const resolvedBinding = validatedBinding();
+    const canonicalSlot = slot(resolvedBinding.binding);
+    const mutatedSlot = createActionSecretSlotIdentity({
+      brandId: 'brand-beta',
+      recordTypeKey: 'data-record',
+      bindingId: binding('secondary').id,
+      parameterName: 'apiToken',
+    });
+
+    const mutateAfterCall = (request: { requesterBrandId: string; slot: ActionSecretSlotIdentity }): void => {
+      request.requesterBrandId = 'brand-beta';
+      Object.assign(request.slot, mutatedSlot);
+    };
+    const mutableRequest = (): { requesterBrandId: string; slot: ActionSecretSlotIdentity } => ({
+      requesterBrandId: brandId,
+      slot: { ...canonicalSlot },
+    });
+
+    const writeRequest = { ...mutableRequest(), value: 'write-secret' };
+    const writeOperation = provider.write(writeRequest);
+    mutateAfterCall(writeRequest);
+    writeRequest.value = 'mutated-write-secret';
+    assert.equal(await writeOperation, 'replaced');
+
+    const replaceRequest = { ...mutableRequest(), value: 'replace-secret' };
+    const replaceOperation = provider.replace(replaceRequest);
+    mutateAfterCall(replaceRequest);
+    replaceRequest.value = 'mutated-replace-secret';
+    await replaceOperation;
+
+    const clearRequest = mutableRequest();
+    const clearOperation = provider.clear(clearRequest);
+    mutateAfterCall(clearRequest);
+    await clearOperation;
+
+    storage.values.set(canonicalSlot.id, 'resolve-secret');
+    const resolveRequest = { ...mutableRequest(), resolvedBinding };
+    const resolveOperation = provider.resolveForHandler(resolveRequest);
+    mutateAfterCall(resolveRequest);
+    assert.equal((await resolveOperation)?.reveal(), 'resolve-secret');
+
+    const configuredRequest = mutableRequest();
+    const configuredOperation = provider.isConfigured(configuredRequest);
+    mutateAfterCall(configuredRequest);
+    assert.equal(await configuredOperation, true);
+
+    assert.deepEqual(
+      storage.accesses.map(access => access.operation),
+      ['replace', 'replace', 'clear', 'resolve', 'configured']
+    );
+    assert.deepEqual(
+      storage.accesses.filter(access => access.operation === 'replace').map(access => access.value),
+      ['write-secret', 'replace-secret']
+    );
+    for (const access of storage.accesses) {
+      assert.equal(access.slot.id, canonicalSlot.id);
+      assert.equal(access.slot.brandId, brandId);
+      assert.equal(access.slot.recordTypeKey, recordTypeKey);
+      assert.equal(access.slot.bindingId, resolvedBinding.binding.id);
+      assert.equal(access.slot.parameterName, 'credential');
+      assert.equal(Object.isFrozen(access.slot), true);
+      assert.notEqual(access.slot, canonicalSlot);
+    }
+  });
+
+  it('rejects tampered slots and forged validated-binding provenance before storage access', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
+    const resolvedBinding = validatedBinding(actionBinding);
     const credentialSlot = slot(actionBinding);
     const access = { requesterBrandId: brandId, slot: credentialSlot };
 
@@ -352,35 +503,123 @@ describe('action secret parameter provider boundary', () => {
       'invalid-secret-slot'
     );
 
-    const mismatches = [
+    const forgedBindings = [
+      { ...resolvedBinding },
+      { ...resolvedBinding, binding: binding('secondary') },
       {
-        binding: binding('secondary'),
-        descriptor: descriptor(),
-      },
-      {
-        binding: actionBinding,
-        descriptor: { ...descriptor(), id: parseActionDefinitionId('org.redbox.other-action') },
-      },
-      {
-        binding: actionBinding,
-        descriptor: { ...descriptor(), contractVersion: 2 },
-      },
-      {
-        binding: actionBinding,
-        descriptor: descriptor([{ name: 'credential', title: 'Credential', kind: 'string', required: true }]),
+        ...resolvedBinding,
+        descriptor: {
+          ...resolvedBinding.descriptor,
+          parameterSchema: descriptor([
+            { name: 'credential', title: 'Credential', kind: 'secret', writeOnly: true, required: true },
+          ]).parameterSchema,
+        },
       },
     ];
-    for (const mismatch of mismatches) {
-      await expectProviderError(provider.resolveForHandler({ ...access, ...mismatch }), 'handler-secret-access-denied');
+    for (const forgedBinding of forgedBindings) {
+      await expectProviderError(
+        provider.resolveForHandler({
+          ...access,
+          resolvedBinding: forgedBinding as ResolvedActionPlanBinding,
+        }),
+        'handler-secret-access-denied'
+      );
     }
 
+    await expectProviderError(
+      resolveActionHandlerSecrets(provider, { brandId, recordTypeKey: 'data-record' }, resolvedBinding),
+      'handler-secret-access-denied'
+    );
+
     assert.deepEqual(storage.operations, []);
+  });
+
+  it('honours configured markers and fails closed on storage contradictions', async () => {
+    const storage = new MemoryActionSecretStorage();
+    const provider = createActionSecretProvider(storage);
+    const optionalParameters: readonly ActionParameterDefinition[] = [
+      { name: 'credential', title: 'Credential', kind: 'secret', writeOnly: true, required: false },
+    ];
+
+    const configuredFalse = validatedBinding(
+      binding('configured-false', { credential: { kind: 'secret', configured: false } }),
+      optionalParameters
+    );
+    const falseSlot = slot(configuredFalse.binding);
+    await provider.replace({ requesterBrandId: brandId, slot: falseSlot, value: 'stale-secret' });
+    const resolveCount = storage.operations.filter(operation => operation === 'resolve').length;
+    assert.deepEqual(await resolveActionHandlerSecrets(provider, actionContext(), configuredFalse), {});
+    assert.equal(storage.operations.filter(operation => operation === 'resolve').length, resolveCount);
+
+    const markerOmitted = validatedBinding(binding('marker-omitted', {}), optionalParameters);
+    const omittedSlot = slot(markerOmitted.binding);
+    await provider.replace({ requesterBrandId: brandId, slot: omittedSlot, value: 'other-stale-secret' });
+    assert.deepEqual(await resolveActionHandlerSecrets(provider, actionContext(), markerOmitted), {});
+    assert.equal(storage.operations.filter(operation => operation === 'resolve').length, resolveCount);
+
+    const configuredTrue = validatedBinding(
+      binding('configured-true', { credential: { kind: 'secret', configured: true } }),
+      optionalParameters
+    );
+    await expectProviderError(
+      resolveActionHandlerSecrets(provider, actionContext(), configuredTrue),
+      'secret-configured-state-mismatch'
+    );
+
+    assert.throws(
+      () =>
+        validatedBinding(
+          binding('required-false', { credential: { kind: 'secret', configured: false } }),
+          descriptor().parameterSchema.parameters
+        ),
+      ActionPlanValidationError
+    );
+  });
+
+  it('keeps resolved-secret redaction resistant to prototype and instance tampering', async () => {
+    const storage = new MemoryActionSecretStorage();
+    const provider = createActionSecretProvider(storage);
+    const resolvedBinding = validatedBinding();
+    const secretSlot = slot(resolvedBinding.binding);
+    const sentinel = 'prototype-must-not-leak-this';
+    await provider.replace({ requesterBrandId: brandId, slot: secretSlot, value: sentinel });
+    const secret = await provider.resolveForHandler({
+      requesterBrandId: brandId,
+      slot: secretSlot,
+      resolvedBinding,
+    });
+    if (secret === undefined) {
+      assert.fail('Expected a resolved secret.');
+    }
+
+    const prototype = Object.getPrototypeOf(secret);
+    assert.equal(Object.isFrozen(prototype), true);
+    assert.equal(
+      Reflect.set(prototype, 'toJSON', () => secret.reveal()),
+      false
+    );
+    assert.equal(Reflect.defineProperty(secret, 'toJSON', { value: () => secret.reveal() }), false);
+    assert.equal(Reflect.setPrototypeOf(secret, { toJSON: () => secret.reveal() }), false);
+    assert.equal(JSON.stringify(secret), '"[REDACTED]"');
+    assert.equal(JSON.stringify(secret).includes(sentinel), false);
+  });
+
+  it('keeps existing two-argument ActionHandler calls source compatible', async () => {
+    const handler: ActionHandler = () => ({
+      schemaVersion: ACTION_RESULT_SCHEMA_VERSION,
+      kind: 'no-change',
+    });
+    assert.deepEqual(await handler(actionContext(), binding().parameters), {
+      schemaVersion: ACTION_RESULT_SCHEMA_VERSION,
+      kind: 'no-change',
+    });
   });
 
   it('normalizes adapter failures and rejects oversized values without disclosing material', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const access = { requesterBrandId: brandId, slot: slot() };
+    const resolvedBinding = validatedBinding();
+    const access = { requesterBrandId: brandId, slot: slot(resolvedBinding.binding) };
     const sentinel = 'provider-failure-raw-secret';
     storage.failWith = `adapter exposed ${sentinel}`;
 
@@ -403,13 +642,14 @@ describe('action secret parameter provider boundary', () => {
   it('redacts adapter causes across clear, resolve, and configured-state failures', async () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
-    const access = { requesterBrandId: brandId, slot: slot() };
+    const resolvedBinding = validatedBinding();
+    const access = { requesterBrandId: brandId, slot: slot(resolvedBinding.binding) };
     const sentinel = 'adapter-cause-secret';
     storage.failWith = `adapter exposed ${sentinel}`;
     const operations = [
       () => provider.clear(access),
       () => provider.isConfigured(access),
-      () => provider.resolveForHandler({ ...access, binding: binding(), descriptor: descriptor() }),
+      () => provider.resolveForHandler({ ...access, resolvedBinding }),
     ];
 
     for (const operation of operations) {
@@ -422,6 +662,7 @@ describe('action secret parameter provider boundary', () => {
     const storage = new MemoryActionSecretStorage();
     const provider = createActionSecretProvider(storage);
     const actionBinding = binding();
+    const resolvedBinding = validatedBinding(actionBinding);
     const secretSlot = slot(actionBinding);
     const sentinel = 'never-serialize-this-secret';
     assert.equal(
@@ -444,12 +685,7 @@ describe('action secret parameter provider boundary', () => {
       })
     );
     await provider.replace({ requesterBrandId: brandId, slot: secretSlot, value: sentinel });
-    const secrets = await resolveActionHandlerSecrets(
-      provider,
-      { brandId, recordTypeKey },
-      actionBinding,
-      descriptor()
-    );
+    const secrets = await resolveActionHandlerSecrets(provider, { brandId, recordTypeKey }, resolvedBinding);
 
     const publicMaterial = JSON.stringify({
       binding: actionBinding,
@@ -464,7 +700,7 @@ describe('action secret parameter provider boundary', () => {
 
   it('emits no any or unknown type nodes from A06 runtime sources', () => {
     const sourceDirectory = path.resolve(__dirname, '../src/action-registry');
-    const runtimeFiles = ['contracts.ts', 'index.ts', 'secrets.ts'];
+    const runtimeFiles = ['contracts.ts', 'index.ts', 'plan.ts', 'secrets.ts'];
     const failures: string[] = [];
 
     for (const fileName of runtimeFiles) {
