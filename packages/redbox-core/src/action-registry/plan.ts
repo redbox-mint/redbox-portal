@@ -36,6 +36,9 @@ import {
   readRuntimeProperty,
   type RuntimeValue,
 } from '../runtimeValues';
+import { compileManagedHandlebarsTemplate, compileManagedJsonataExpression } from '../expression-runtime/compile';
+import { ManagedExpressionError } from '../expression-runtime/errors';
+import type { PreparedActionParameter } from '../expression-runtime/types';
 
 export interface ActionPlan {
   readonly schemaVersion: typeof ACTION_PLAN_SCHEMA_VERSION;
@@ -57,6 +60,8 @@ export type ActionPlanValidationIssueCode =
   | 'repeated-action-not-allowed'
   | 'missing-action-parameter'
   | 'invalid-action-parameter'
+  | 'invalid-jsonata-expression'
+  | 'invalid-handlebars-template'
   | 'unexpected-action-parameter'
   | 'action-policy-exceeds-bounds'
   | 'missing-action-dependency'
@@ -92,6 +97,7 @@ export interface ResolvedActionPlanBinding {
   readonly descriptor: ActionDescriptorMetadata;
   readonly handler: ActionHandler;
   readonly priorOutputs: readonly ActionPlanPriorOutputAccess[];
+  readonly preparedParameters: Readonly<Record<string, PreparedActionParameter>>;
 }
 
 export interface ResolvedActionPlan {
@@ -149,6 +155,7 @@ interface ResolvedBindingCandidate {
   readonly index: number;
   readonly lookup: AvailableActionRegistryLookup;
   readonly parameters: ActionParameterValues;
+  readonly preparedParameters: Readonly<Record<string, PreparedActionParameter>>;
 }
 
 function bindingPath(index: number, suffix: string): string {
@@ -504,13 +511,67 @@ function freezeParameterValues(parameters: ActionParameterValues): void {
   Object.freeze(parameters);
 }
 
+interface ResolvedParameters {
+  readonly values: ActionParameterValues;
+  readonly prepared: Readonly<Record<string, PreparedActionParameter>>;
+}
+
+function prepareParameter(
+  parameter: RegisteredActionParameter,
+  value: ActionParameterValue
+): PreparedActionParameter | undefined {
+  if (parameter.kind === 'jsonata' && value.kind === 'jsonata') {
+    return Object.freeze({ kind: 'jsonata', expression: compileManagedJsonataExpression(value.expression) });
+  }
+  if (parameter.kind === 'handlebars' && value.kind === 'handlebars') {
+    return Object.freeze({
+      kind: 'handlebars',
+      template: compileManagedHandlebarsTemplate(value.template, parameter.destination),
+    });
+  }
+  return undefined;
+}
+
+function collectPreparedParameter(
+  parameter: RegisteredActionParameter,
+  value: ActionParameterValue,
+  binding: ActionBinding,
+  lookup: AvailableActionRegistryLookup,
+  index: number,
+  issues: ActionPlanValidationIssue[],
+  prepared: Record<string, PreparedActionParameter>
+): void {
+  try {
+    const artifact = prepareParameter(parameter, value);
+    if (artifact !== undefined) {
+      prepared[parameter.name] = artifact;
+    }
+  } catch (error) {
+    if (!(error instanceof ManagedExpressionError)) {
+      throw error;
+    }
+    addBindingIssue(
+      issues,
+      binding,
+      lookup,
+      index,
+      parameter.kind === 'jsonata' ? 'invalid-jsonata-expression' : 'invalid-handlebars-template',
+      `.parameters.${parameter.name}`,
+      parameter.kind === 'jsonata'
+        ? 'JSONata parameter does not satisfy the managed expression contract.'
+        : 'Handlebars parameter does not satisfy the managed template contract.'
+    );
+  }
+}
+
 function resolvedParameters(
   binding: ActionBinding,
   lookup: AvailableActionRegistryLookup,
   index: number,
   issues: ActionPlanValidationIssue[]
-): ActionParameterValues {
+): ResolvedParameters {
   const resolved: ActionParameterValues = {};
+  const prepared: Record<string, PreparedActionParameter> = {};
   const definitions = new Map(
     lookup.descriptor.parameterSchema.parameters.map(parameter => [parameter.name, parameter])
   );
@@ -533,12 +594,14 @@ function resolvedParameters(
         );
       } else {
         resolved[parameter.name] = cloneParameterValue(configured);
+        collectPreparedParameter(parameter, configured, binding, lookup, index, issues, prepared);
       }
       continue;
     }
     const defaultValue = defaultParameterValue(parameter);
     if (defaultValue !== undefined) {
       resolved[parameter.name] = defaultValue;
+      collectPreparedParameter(parameter, defaultValue, binding, lookup, index, issues, prepared);
     } else if (parameter.required) {
       addBindingIssue(
         issues,
@@ -569,7 +632,7 @@ function resolvedParameters(
     }
   }
   freezeParameterValues(resolved);
-  return resolved;
+  return Object.freeze({ values: resolved, prepared: Object.freeze(prepared) });
 }
 
 function validatePolicyOverrides(
@@ -995,7 +1058,13 @@ function validateParsedActionPlan(registry: RedboxActionRegistry, plan: ActionPl
     }
     const parameters = resolvedParameters(binding, lookup, index, issues);
     validatePolicyOverrides(binding, lookup, index, issues);
-    candidates.push({ binding, index, lookup, parameters });
+    candidates.push({
+      binding,
+      index,
+      lookup,
+      parameters: parameters.values,
+      preparedParameters: parameters.prepared,
+    });
   }
 
   const priorOutputsByIndex =
@@ -1015,6 +1084,7 @@ function validateParsedActionPlan(registry: RedboxActionRegistry, plan: ActionPl
       descriptor: candidate.lookup.descriptor,
       handler: candidate.lookup.handler,
       priorOutputs,
+      preparedParameters: candidate.preparedParameters,
     });
   });
   const sortable = resolvedBindings.map(entry => ({

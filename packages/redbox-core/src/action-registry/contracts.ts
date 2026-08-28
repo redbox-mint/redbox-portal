@@ -31,6 +31,7 @@ import {
   ACTION_CONTRACT_SCHEMA_VERSION,
   ACTION_RESULT_SCHEMA_VERSION,
 } from './limits';
+import type { ManagedTemplateDestination } from '../expression-runtime/types';
 
 export type {
   RuntimeValidationFailure,
@@ -423,6 +424,7 @@ const actionHandlebarsParameterSchemaImplementation = z
     ...actionParameterCommonShape,
     kind: z.literal('handlebars'),
     defaultTemplate: z.string().min(1).max(ACTION_CONTRACT_LIMITS.maxTemplateLength).optional(),
+    destination: z.enum(['plain-text', 'html-text', 'email-subject', 'url-component']).default('plain-text'),
   })
   .strict();
 
@@ -583,6 +585,7 @@ export interface ActionJsonataParameter extends ActionParameterCommon {
 export interface ActionHandlebarsParameter extends ActionParameterCommon {
   readonly kind: 'handlebars';
   readonly defaultTemplate?: string;
+  readonly destination: ManagedTemplateDestination;
 }
 
 export type ActionParameterDefinition =

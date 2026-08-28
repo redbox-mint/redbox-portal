@@ -8,6 +8,7 @@ import {
   actionArrayParameterSchema,
   actionBindingSchema,
   actionFailureResultSchema,
+  actionHandlebarsParameterSchema,
   actionJsonObjectSchema,
   actionJsonValueSchema,
   actionObjectParameterSchema,
@@ -83,7 +84,7 @@ function definitionInput(): object {
         },
         { name: 'credential', title: 'Credential', kind: 'secret', writeOnly: true },
         { name: 'selector', title: 'Selector', kind: 'jsonata' },
-        { name: 'message', title: 'Message', kind: 'handlebars' },
+        { name: 'message', title: 'Message', kind: 'handlebars', destination: 'plain-text' },
       ],
     },
     outputSchema: {
@@ -238,6 +239,15 @@ describe('action registry contracts', () => {
   it('parses every supported parameter kind and rejects unknown descriptor keys', () => {
     assert.equal(parseActionDefinition(definitionInput()).parameterSchema.parameters.length, 9);
     assert.equal(actionObjectParameterSchema.safeParse({ name: 'data', title: 'Data', kind: 'object' }).success, true);
+    const handlebarsParameter = actionHandlebarsParameterSchema.safeParse({
+      name: 'message',
+      title: 'Message',
+      kind: 'handlebars',
+    });
+    assert.equal(handlebarsParameter.success, true);
+    if (handlebarsParameter.success) {
+      assert.equal(handlebarsParameter.data.destination, 'plain-text');
+    }
     assert.equal(
       actionArrayParameterSchema.safeParse({
         name: 'roles',

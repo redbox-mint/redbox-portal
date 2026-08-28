@@ -224,6 +224,7 @@ export { FormConfigExports } from './form-config';
 export * as ActionRegistry from './action-registry';
 export type { ActionDefinition as RegistryActionDefinition } from './action-registry';
 export { registerRedboxActions } from './action-registry';
+export * as ExpressionRuntime from './expression-runtime';
 export * from './record-workflow-administration/domain';
 
 import * as Middleware from './middleware/redboxSession';
