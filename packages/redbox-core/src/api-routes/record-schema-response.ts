@@ -70,8 +70,22 @@ export function recordSchemaDescribedByLink(immutableUrl: string): string {
   return `<${immutableUrl}>; rel="describedby"; type="${RECORD_SCHEMA_RESPONSE_MEDIA_TYPE}"`;
 }
 
+function trimOuterSlashes(value: string): string {
+  let startIndex = 0;
+  let endIndex = value.length;
+
+  while (startIndex < endIndex && value[startIndex] === '/') {
+    startIndex += 1;
+  }
+  while (endIndex > startIndex && value[endIndex - 1] === '/') {
+    endIndex -= 1;
+  }
+
+  return value.slice(startIndex, endIndex);
+}
+
 function recordSchemaScopeUrl(branding: string, portal: string, rootContext: string): string {
-  const normalizedRootContext = rootContext.trim().replace(/^\/+|\/+$/g, '');
+  const normalizedRootContext = trimOuterSlashes(rootContext.trim());
   const rootContextPrefix = normalizedRootContext ? `/${normalizedRootContext}` : '';
   return `${rootContextPrefix}/${encodeURIComponent(branding)}/${encodeURIComponent(portal)}${RECORD_SCHEMA_API_PATH}`;
 }

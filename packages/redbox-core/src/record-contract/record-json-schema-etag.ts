@@ -1,7 +1,6 @@
 import type { RecordJsonSchemaEtag } from './record-json-schema-artifact';
 
 const RECORD_JSON_SCHEMA_ETAG_PATTERN = /^"sha256:([0-9a-f]{64})"$/;
-const OPTIONAL_WHITESPACE_PATTERN = /^[\t ]+|[\t ]+$/g;
 
 export type RecordJsonSchemaEtagParseFailureReason = 'malformed' | 'weak' | 'list' | 'wildcard';
 
@@ -17,13 +16,27 @@ export type ParseRecordJsonSchemaEtagResult =
       readonly reason: RecordJsonSchemaEtagParseFailureReason;
     };
 
+function trimHttpOptionalWhitespace(value: string): string {
+  let startIndex = 0;
+  let endIndex = value.length;
+
+  while (startIndex < endIndex && (value[startIndex] === ' ' || value[startIndex] === '\t')) {
+    startIndex += 1;
+  }
+  while (endIndex > startIndex && (value[endIndex - 1] === ' ' || value[endIndex - 1] === '\t')) {
+    endIndex -= 1;
+  }
+
+  return value.slice(startIndex, endIndex);
+}
+
 /** Parse one optional If-Match or If-None-Match value in the supported schema ETag subset. */
 export function parseRecordJsonSchemaEtag(value: string | undefined): ParseRecordJsonSchemaEtagResult {
   if (value === undefined) {
     return Object.freeze({ kind: 'absent' });
   }
 
-  const valueWithoutOuterWhitespace = value.replace(OPTIONAL_WHITESPACE_PATTERN, '');
+  const valueWithoutOuterWhitespace = trimHttpOptionalWhitespace(value);
   if (valueWithoutOuterWhitespace === '*') {
     return Object.freeze({ kind: 'invalid', reason: 'wildcard' });
   }

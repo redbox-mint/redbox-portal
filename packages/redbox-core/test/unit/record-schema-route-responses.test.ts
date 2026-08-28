@@ -70,6 +70,15 @@ describe('record-schema route response contracts', function () {
     );
   });
 
+  it('preserves long interior slash runs without repeatedly rescanning them', function () {
+    const rootContext = `prefix${'/'.repeat(20_000)}suffix`;
+
+    assert.equal(
+      recordSchemaCreateResolverUrl('default', 'rdmp', 'dataset', rootContext),
+      `/${rootContext}/default/rdmp/api/records/schemas/create/dataset`
+    );
+  });
+
   it('uses the public root-context substitution convention in resolver route templates', function () {
     assert.equal(
       RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,

@@ -41,6 +41,13 @@ describe('record JSON Schema ETag parsing', function () {
     }
   });
 
+  it('rejects long interior runs of optional whitespace without repeatedly rescanning them', function () {
+    expect(parseRecordJsonSchemaEtag(`invalid${'\t'.repeat(20_000)}tag`)).to.deep.equal({
+      kind: 'invalid',
+      reason: 'malformed',
+    });
+  });
+
   it('rejects weak tags explicitly', function () {
     expect(parseRecordJsonSchemaEtag(`W/${ETAG}`)).to.deep.equal({ kind: 'invalid', reason: 'weak' });
   });
