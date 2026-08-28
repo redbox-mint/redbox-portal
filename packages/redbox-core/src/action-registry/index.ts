@@ -22,5 +22,27 @@ export type {
   ValidActionPlan,
 } from './plan';
 export * from './registration';
-export * from './secrets';
+export {
+  ACTION_SECRET_LIMITS,
+  ActionSecretProviderError,
+  createActionSecretProvider,
+  createActionSecretSlotIdentity,
+  deriveStableActionSecretSlotId,
+  parseActionSecretSlotId,
+  resolveActionHandlerSecrets,
+} from './secrets';
+export type {
+  ActionSecretHandlerResolutionRequest,
+  ActionSecretProvider,
+  ActionSecretProviderErrorCode,
+  ActionSecretProviderProblem,
+  ActionSecretReplaceRequest,
+  ActionSecretSlotAccess,
+  ActionSecretSlotId,
+  ActionSecretSlotIdentity,
+  ActionSecretSlotIdentityInput,
+  ActionSecretStorage,
+  ActionSecretWriteRequest,
+  ActionSecretWriteResult,
+} from './secrets';
 export { registerRedboxActions } from './coreActions';
