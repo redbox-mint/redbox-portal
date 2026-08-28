@@ -43,6 +43,7 @@ export const MANAGED_HANDLEBARS_HELPER_NAMES: readonly string[] = Object.freeze(
   'and',
   'concat',
   'default',
+  'emailList',
   'eq',
   'formatDate',
   'gt',

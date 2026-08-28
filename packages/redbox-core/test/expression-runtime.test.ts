@@ -49,6 +49,7 @@ function context(): ActionContext {
       candidate: {
         metadata: {
           title: '<Ada & Bob>',
+          creators: [{ email: 'ada@example.test' }, { name: 'No email' }, { email: 'bob@example.test' }],
           nested: { accepted: true, secretToken: 'context-secret' },
           serviceRegistry: { mail: 'must-not-project' },
           request: { headers: 'must-not-project' },
@@ -92,6 +93,7 @@ describe('managed JSONata and Handlebars runtime', function () {
     assert.deepEqual(MANAGED_JSONATA_CUSTOM_FUNCTION_NAMES, ['guessNameParts', 'luxonFormatDate']);
     assert.equal(MANAGED_JSONATA_CUSTOM_FUNCTION_NAMES.includes('eval'), false);
     assert.equal(MANAGED_JSONATA_CUSTOM_FUNCTION_NAMES.includes('jsonata'), false);
+    assert.equal(MANAGED_HANDLEBARS_HELPER_NAMES.includes('emailList'), true);
     for (const helper of ['get', 'lookup', 't', 'markdownToHtml', 'renderMetadataValue']) {
       assert.equal(MANAGED_HANDLEBARS_HELPER_NAMES.includes(helper), false);
     }
@@ -271,11 +273,17 @@ describe('managed JSONata and Handlebars runtime', function () {
       projected,
       { timeoutMs: 1_000 }
     );
+    const emails = await renderManagedHandlebars(
+      compileManagedHandlebarsTemplate('{{emailList record.candidate.metadata.creators}}', 'plain-text'),
+      projected,
+      { timeoutMs: 1_000 }
+    );
 
     assert.equal(html, '&lt;strong&gt;&lt;ADA &amp; BOB&gt;&lt;/strong&gt;\r\nBcc: attacker@example.test');
     assert.equal(plain, '<strong><ADA & BOB></strong>\r\nBcc: attacker@example.test');
     assert.equal(subject, '<strong><ADA & BOB></strong> Bcc: attacker@example.test');
     assert.equal(url, '%3CAda%20%26%20Bob%3E');
+    assert.equal(emails, 'ada@example.test,bob@example.test');
   });
 
   it('interrupts recursively expensive work at the worker boundary and preserves timeout semantics', async () => {

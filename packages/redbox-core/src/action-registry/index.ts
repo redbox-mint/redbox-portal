@@ -46,3 +46,19 @@ export type {
   ActionSecretWriteResult,
 } from './secrets';
 export { registerRedboxActions } from './coreActions';
+export { BUILT_IN_ACTION_IDS } from './builtInActions';
+export {
+  LEGACY_RECORD_ACTION_MAPPINGS,
+  LegacyRecordActionMigrationError,
+  migrateLegacyRecordAction,
+} from './legacyMigration';
+export type {
+  LegacyActionBindingsMigration,
+  LegacyActionMigrationTargetKind,
+  LegacyAutomaticTransitionMigration,
+  LegacyRecordActionDefinition,
+  LegacyRecordActionMapping,
+  LegacyRecordActionMigration,
+  LegacyRecordActionMigrationErrorCode,
+  LegacyRecordActionMigrationRequest,
+} from './legacyMigration';

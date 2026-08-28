@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { ActionRegistryRegistrationError } from '../../src/action-registry';
+import { BUILT_IN_ACTION_IDS, ActionRegistryRegistrationError } from '../../src/action-registry';
 import { defineRedboxHook } from '../../src/hooks';
 import { findAndRegisterActions, generateActionRegistryConfigShim } from '../../src/loader';
 import { parseJsonText, type RuntimeValue } from '../../src/runtimeValues';
@@ -113,13 +113,16 @@ describe('action registry loader', function () {
     await fs.rm(appPath, { recursive: true, force: true });
   });
 
-  it('builds the explicit core-only registry and accepts empty registrations', function () {
+  it('builds the explicit core registry with every executable legacy migration identity', function () {
     const result = findAndRegisterActions(appPath);
 
-    assert.equal(result.actionRegistry.size, 0);
-    assert.deepEqual(result.actionRegistry.descriptorMetadata, []);
+    assert.equal(result.actionRegistry.size, 11);
+    assert.deepEqual(
+      result.actionRegistry.descriptorMetadata.map(descriptor => descriptor.id).sort(),
+      Object.values(BUILT_IN_ACTION_IDS).sort()
+    );
     assert.deepEqual(result.hookActions, []);
-    assert.equal(result.actionRegistry.serializeDescriptorMetadata(), '[]');
+    assert.equal(JSON.parse(result.actionRegistry.serializeDescriptorMetadata()).length, 11);
   });
 
   it('exposes synchronous action registration through the typed hook helper', function () {
@@ -135,7 +138,7 @@ describe('action registry loader', function () {
     await writeAppPackage(appPath, [packageName]);
 
     const result = findAndRegisterActions(appPath);
-    assert.equal(result.actionRegistry.size, 0);
+    assert.equal(result.actionRegistry.size, 11);
     assert.deepEqual(
       result.hookActions.map(hook => hook.packageName),
       [packageName]
@@ -150,7 +153,7 @@ describe('action registry loader', function () {
     const result = findAndRegisterActions(appPath);
     const descriptor = result.actionRegistry.getDescriptor('org.redbox.hook-action');
 
-    assert.equal(result.actionRegistry.size, 1);
+    assert.equal(result.actionRegistry.size, 12);
     assert.equal(descriptor?.provenance.packageName, packageName);
     assert.equal(descriptor?.provenance.moduleName, 'index.js');
     assert.equal(Object.hasOwn(descriptor ?? {}, 'handler'), false);
@@ -273,7 +276,9 @@ module.exports.default = hookFactory;
 
     const first = findAndRegisterActions(appPath);
     assert.deepEqual(
-      first.actionRegistry.descriptorMetadata.map(descriptor => descriptor.id),
+      first.actionRegistry.descriptorMetadata
+        .map(descriptor => descriptor.id)
+        .filter(actionId => actionId.startsWith('org.redbox.')),
       ['org.redbox.alpha-action', 'org.redbox.zeta-action']
     );
     assert.deepEqual(
