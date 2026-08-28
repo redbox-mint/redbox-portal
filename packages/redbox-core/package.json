@@ -4,6 +4,26 @@
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./dist/hooks/webpack": {
+      "types": "./dist/hooks/webpack.d.ts",
+      "require": "./dist/hooks/webpack.js",
+      "default": "./dist/hooks/webpack.js"
+    },
+    "./dist/config/webpack.config": {
+      "types": "./dist/config/webpack.config.d.ts",
+      "require": "./dist/config/webpack.config.js",
+      "default": "./dist/config/webpack.config.js"
+    },
+    "./src/hooks/webpack.ts": "./src/hooks/webpack.ts",
+    "./src/config/webpack.config.ts": "./src/config/webpack.config.ts"
+  },
   "files": [
     "dist",
     "redbox-loader-templates"
