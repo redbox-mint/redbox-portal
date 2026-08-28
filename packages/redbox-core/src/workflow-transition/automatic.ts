@@ -26,10 +26,13 @@ import { isRuntimeArray, isRuntimeRecord, type RuntimeValue } from '../runtimeVa
 
 export const AUTOMATIC_TRANSITION_SCHEMA_VERSION = 1 as const;
 
+export type AutomaticTransitionEvent = 'create' | 'update';
+
 export interface AutomaticTransitionDefinition {
   readonly schemaVersion: typeof AUTOMATIC_TRANSITION_SCHEMA_VERSION;
   readonly id: string;
   readonly mode: 'automatic';
+  readonly event: AutomaticTransitionEvent;
   readonly sourceStage: string;
   readonly targetStage: string;
   readonly priority: number;
@@ -59,6 +62,7 @@ export interface AutomaticTransitionEvaluationInput {
   readonly brandId: string;
   readonly recordTypeKey: string;
   readonly actor: ActionActor | null;
+  readonly event: AutomaticTransitionEvent;
   readonly oid?: string;
   readonly current?: ActionJsonObject;
   readonly candidate: ActionJsonObject;
@@ -97,6 +101,7 @@ const automaticTransitionDefinitionSchema: z.ZodType<AutomaticTransitionDefiniti
     schemaVersion: z.literal(AUTOMATIC_TRANSITION_SCHEMA_VERSION),
     id: transitionIdentifierSchema,
     mode: z.literal('automatic'),
+    event: z.enum(['create', 'update']),
     sourceStage: stageReferenceSchema,
     targetStage: stageReferenceSchema,
     priority: z.number().int().nonnegative().max(ACTION_CONTRACT_LIMITS.maxOrder),
@@ -213,7 +218,7 @@ function legacyTransitions(recordType: RuntimeValue, recordTypeKey: string): rea
         if (expression !== LEGACY_AUTOMATIC_TRANSITION) {
           continue;
         }
-        if (phase !== 'pre' || mode === 'onDelete') {
+        if (phase !== 'pre' || (mode !== 'onCreate' && mode !== 'onUpdate')) {
           throw configurationError('automatic-transition-legacy-invalid', sourcePath);
         }
         try {
@@ -234,6 +239,7 @@ function legacyTransitions(recordType: RuntimeValue, recordTypeKey: string): rea
               schemaVersion: AUTOMATIC_TRANSITION_SCHEMA_VERSION,
               id: migrated.id,
               mode: migrated.mode,
+              event: migrated.event,
               sourceStage: migrated.sourceStage,
               targetStage: migrated.targetStage,
               priority: migrated.priority,
@@ -260,7 +266,7 @@ function prepareTransitions(
   definitions: readonly AutomaticTransitionDefinition[]
 ): readonly PreparedAutomaticTransition[] {
   const ids = new Set<string>();
-  const prioritiesBySource = new Map<string, Set<number>>();
+  const prioritiesBySourceAndEvent = new Map<string, Set<number>>();
   const prepared: PreparedAutomaticTransition[] = [];
   for (const [index, definition] of definitions.entries()) {
     const path = `$.automaticTransitions[${index}]`;
@@ -268,12 +274,13 @@ function prepareTransitions(
       throw configurationError('automatic-transition-id-duplicate', `${path}.id`);
     }
     ids.add(definition.id);
-    const priorities = prioritiesBySource.get(definition.sourceStage) ?? new Set<number>();
+    const priorityScope = `${definition.sourceStage}\u0000${definition.event}`;
+    const priorities = prioritiesBySourceAndEvent.get(priorityScope) ?? new Set<number>();
     if (priorities.has(definition.priority)) {
       throw configurationError('automatic-transition-priority-duplicate', `${path}.priority`);
     }
     priorities.add(definition.priority);
-    prioritiesBySource.set(definition.sourceStage, priorities);
+    prioritiesBySourceAndEvent.set(priorityScope, priorities);
     let preparedCondition: PreparedJsonataExpression;
     try {
       preparedCondition = compileManagedJsonataExpression(definition.condition);
@@ -286,6 +293,7 @@ function prepareTransitions(
   prepared.sort(
     (left, right) =>
       compareText(left.definition.sourceStage, right.definition.sourceStage) ||
+      compareText(left.definition.event, right.definition.event) ||
       left.definition.priority - right.definition.priority ||
       compareText(left.definition.id, right.definition.id)
   );
@@ -346,7 +354,7 @@ export async function evaluateAutomaticTransitionPlan(
   input: AutomaticTransitionEvaluationInput
 ): Promise<AutomaticTransitionMatch | null> {
   for (const transition of plan.transitions) {
-    if (transition.definition.sourceStage !== input.sourceStage) {
+    if (transition.definition.event !== input.event || transition.definition.sourceStage !== input.sourceStage) {
       continue;
     }
     const context = projectTransitionConditionContext(conditionContext(input, transition.definition));

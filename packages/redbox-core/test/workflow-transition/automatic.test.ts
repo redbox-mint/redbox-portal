@@ -1,4 +1,7 @@
 import { assert } from 'chai';
+import fs from 'node:fs';
+import path from 'node:path';
+import ts from 'typescript';
 import type { ActionJsonObject } from '../../src/action-registry';
 import { ManagedExpressionError } from '../../src/expression-runtime';
 import {
@@ -10,17 +13,34 @@ import {
 } from '../../src/workflow-transition/automatic';
 import { recordtype as developmentRecordTypes } from '../../../redbox-hook-dev/src/config/recordtype';
 
+function forbiddenTypeKeywords(sourceFile: ts.SourceFile): readonly string[] {
+  const failures: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (node.kind === ts.SyntaxKind.AnyKeyword || node.kind === ts.SyntaxKind.UnknownKeyword) {
+      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+      failures.push(
+        `${sourceFile.fileName}:${position.line + 1}:${position.character + 1}:${node.getText(sourceFile)}`
+      );
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return failures;
+}
+
 function transition(
   id: string,
   sourceStage: string,
   targetStage: string,
   priority: number,
-  condition: string
+  condition: string,
+  event: AutomaticTransitionDefinition['event'] = 'update'
 ): AutomaticTransitionDefinition {
   return {
     schemaVersion: 1,
     id,
     mode: 'automatic',
+    event,
     sourceStage,
     targetStage,
     priority,
@@ -28,7 +48,11 @@ function transition(
   };
 }
 
-function input(sourceStage: string, candidate: ActionJsonObject): AutomaticTransitionEvaluationInput {
+function input(
+  sourceStage: string,
+  candidate: ActionJsonObject,
+  event: AutomaticTransitionDefinition['event'] = 'update'
+): AutomaticTransitionEvaluationInput {
   return {
     executionId: 'execution-1',
     correlationId: 'correlation-1',
@@ -36,6 +60,7 @@ function input(sourceStage: string, candidate: ActionJsonObject): AutomaticTrans
     brandId: 'brand-1',
     recordTypeKey: 'dataset',
     actor: { id: 'user-1', roles: ['Researcher'] },
+    event,
     oid: 'record-1',
     current: { workflow: { stage: sourceStage } },
     candidate,
@@ -44,6 +69,26 @@ function input(sourceStage: string, candidate: ActionJsonObject): AutomaticTrans
 }
 
 describe('automatic transition evaluation', function () {
+  it('keeps the A10 source and emitted declaration free of any and unknown type nodes', function () {
+    const packageDirectory = path.resolve(__dirname, '../..');
+    const files = ['src/workflow-transition/automatic.ts', 'dist/workflow-transition/automatic.d.ts'];
+    const failures: string[] = [];
+
+    for (const relativePath of files) {
+      const filePath = path.join(packageDirectory, relativePath);
+      const sourceFile = ts.createSourceFile(
+        relativePath,
+        fs.readFileSync(filePath, 'utf8'),
+        ts.ScriptTarget.ES2024,
+        true,
+        ts.ScriptKind.TS
+      );
+      failures.push(...forbiddenTypeKeywords(sourceFile));
+    }
+
+    assert.deepEqual(failures, []);
+  });
+
   it('returns no match without changing the candidate', async function () {
     const candidate: ActionJsonObject = { workflow: { stage: 'draft' }, metadata: { ready: false } };
     const snapshot = structuredClone(candidate);
@@ -99,6 +144,35 @@ describe('automatic transition evaluation', function () {
     );
 
     assert.equal(match?.definition.targetStage, 'review');
+  });
+
+  it('filters by save event and permits the same source priority across different events', async function () {
+    const plan = resolveAutomaticTransitionPlan(
+      {
+        automaticTransitions: [
+          transition('draft-on-create', 'draft', 'queued', 10, 'true', 'create'),
+          transition('draft-on-update', 'draft', 'review', 10, 'true', 'update'),
+        ],
+      },
+      'dataset'
+    );
+    const candidate: ActionJsonObject = { workflow: { stage: 'draft' }, metadata: {} };
+
+    const createMatch = await evaluateAutomaticTransitionPlan(plan, input('draft', candidate, 'create'));
+    const updateMatch = await evaluateAutomaticTransitionPlan(plan, input('draft', candidate, 'update'));
+    const wrongEventMatch = await evaluateAutomaticTransitionPlan(
+      resolveAutomaticTransitionPlan(
+        {
+          automaticTransitions: [transition('create-only', 'draft', 'queued', 10, 'true', 'create')],
+        },
+        'dataset'
+      ),
+      input('draft', candidate, 'update')
+    );
+
+    assert.equal(createMatch?.definition.id, 'draft-on-create');
+    assert.equal(updateMatch?.definition.id, 'draft-on-update');
+    assert.equal(wrongEventMatch, null);
   });
 
   it('rejects duplicate source priorities and duplicate IDs before evaluation', function () {
@@ -185,7 +259,7 @@ describe('automatic transition evaluation', function () {
     const plan = resolveAutomaticTransitionPlan(
       {
         hooks: {
-          onTransitionWorkflow: {
+          onCreate: {
             pre: [
               {
                 function: 'sails.services.triggerservice.transitionWorkflow',
@@ -205,8 +279,9 @@ describe('automatic transition evaluation', function () {
 
     assert.lengthOf(plan.transitions, 1);
     assert.deepInclude(plan.transitions[0]?.definition, {
-      id: 'legacy-onTransitionWorkflow-pre-0',
+      id: 'legacy-onCreate-pre-0',
       mode: 'automatic',
+      event: 'create',
       sourceStage: 'queued',
       targetStage: 'published',
       priority: 0,
@@ -226,22 +301,39 @@ describe('automatic transition evaluation', function () {
     assert.deepEqual(
       plan.transitions.map(transitionPlan => ({
         id: transitionPlan.definition.id,
+        event: transitionPlan.definition.event,
         sourceStage: transitionPlan.definition.sourceStage,
         targetStage: transitionPlan.definition.targetStage,
         priority: transitionPlan.definition.priority,
       })),
       [
-        { id: 'published-to-embargoed', sourceStage: 'published', targetStage: 'embargoed', priority: 0 },
-        { id: 'queued-to-embargoed', sourceStage: 'queued', targetStage: 'embargoed', priority: 0 },
+        {
+          id: 'published-to-embargoed',
+          event: 'update',
+          sourceStage: 'published',
+          targetStage: 'embargoed',
+          priority: 0,
+        },
+        {
+          id: 'queued-to-embargoed',
+          event: 'create',
+          sourceStage: 'queued',
+          targetStage: 'embargoed',
+          priority: 0,
+        },
       ]
     );
 
     const queued = await evaluateAutomaticTransitionPlan(
       plan,
-      input('queued', {
-        workflow: { stage: 'queued' },
-        metadata: { embargoByDate: true },
-      })
+      input(
+        'queued',
+        {
+          workflow: { stage: 'queued' },
+          metadata: { embargoByDate: true },
+        },
+        'create'
+      )
     );
     const published = await evaluateAutomaticTransitionPlan(
       plan,

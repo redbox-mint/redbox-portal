@@ -46,6 +46,7 @@ import {
   parseActionDefinitionId,
   type ActionBinding,
   type ActionBindingScope,
+  type ActionContext,
   type ActionHandler,
   type ActionJsonObject,
   type ActionRegistrationDescriptor,
@@ -11641,11 +11642,13 @@ describe('RecordsService', function () {
       }
     });
 
-    it('preserves targeted-create transition ordering around the create lifecycle', async function () {
+    it('keeps targeted create to one manual hop and preserves its transition context and lifecycle', async function () {
       const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
       const targetStep = persistedEffectWorkflowStep(persistedRecordType, 'published');
       const order: string[] = [];
       let transitionCandidate: EffectRecord | undefined;
+      let transitionContext: ActionContext['transition'];
       const registeredRecordType = recordTypeWithActions(
         {
           onCreate: {
@@ -11658,6 +11661,7 @@ describe('RecordsService', function () {
                 scopeId: targetStep.name,
                 handler: context => {
                   order.push('transition-pre');
+                  transitionContext = context.transition;
                   transitionCandidate = structuredClone(context.record.candidate ?? {});
                   return noChangeResult();
                 },
@@ -11674,6 +11678,18 @@ describe('RecordsService', function () {
         },
         persistedRecordType as unknown as Partial<EffectRecordType>
       );
+      registeredRecordType.automaticTransitions = [
+        {
+          schemaVersion: 1,
+          id: 'published-to-retired-on-create',
+          mode: 'automatic',
+          event: 'create',
+          sourceStage: 'published',
+          targetStage: 'retired',
+          priority: 10,
+          condition: 'true',
+        },
+      ];
       mockStorageService.create.callsFake(async (_brand: { id: string }, candidate: EffectRecord) => {
         order.push('primary-persistence');
         const oid = String(candidate.redboxOid);
@@ -11685,7 +11701,12 @@ describe('RecordsService', function () {
         commitEffectRecord(oid, candidate);
         return { success: true, oid, applicationState: 'applied' };
       });
-      WorkflowStepsService.get = sinon.stub().returns(of(targetStep));
+      WorkflowStepsService.get = sinon.stub().callsFake((_recordType: EffectRecordType, stage: string) => {
+        if (stage !== targetStep.name) {
+          throw new Error(`Unexpected chained target: ${stage}`);
+        }
+        return of(targetStep);
+      });
 
       const result = await RecordsService.create(
         { id: persistedRecordType.branding },
@@ -11711,6 +11732,12 @@ describe('RecordsService', function () {
       expect(transitionCandidate).to.deep.include({
         workflow: targetStep.config.workflow,
       });
+      expect(transitionContext).to.deep.equal({
+        scopeId: targetStep.name,
+        sourceStage: startingStep.name,
+        targetStage: targetStep.name,
+      });
+      expect(WorkflowStepsService.get.calledOnceWithExactly(registeredRecordType, targetStep.name)).to.equal(true);
     });
 
     it('evaluates one automatic edge during create without chaining', async function () {
@@ -11751,6 +11778,7 @@ describe('RecordsService', function () {
           schemaVersion: 1,
           id: 'draft-to-published',
           mode: 'automatic',
+          event: 'create',
           sourceStage: 'draft',
           targetStage: 'published',
           priority: 10,
@@ -11760,6 +11788,7 @@ describe('RecordsService', function () {
           schemaVersion: 1,
           id: 'published-to-retired',
           mode: 'automatic',
+          event: 'create',
           sourceStage: 'published',
           targetStage: 'retired',
           priority: 10,
@@ -11836,7 +11865,7 @@ describe('RecordsService', function () {
       expect(order).to.deep.equal(['update-pre', 'persistence']);
     });
 
-    it('detects transitions only from an explicit target and preserves transition lifecycle ordering', async function () {
+    it('keeps explicit update targets to one manual hop and preserves transition lifecycle ordering', async function () {
       const persistedRecordType = persistedEffectRecordType('default');
       const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
       const nextStep = persistedEffectWorkflowStep(persistedRecordType, 'published');
@@ -11847,11 +11876,21 @@ describe('RecordsService', function () {
       };
       committedEffectRecord.workflow = structuredClone(startingStep.config.workflow);
       const order: string[] = [];
+      let manualTransitionContext: ActionContext['transition'];
       const registeredRecordType = recordTypeWithActions(
         {
           onUpdate: { pre: [{ handler: () => (order.push('update-pre'), noChangeResult()) }] },
           onTransitionWorkflow: {
-            pre: [{ scopeId: nextStep.name, handler: () => (order.push('transition-pre'), noChangeResult()) }],
+            pre: [
+              {
+                scopeId: nextStep.name,
+                handler: context => {
+                  manualTransitionContext = context.transition;
+                  order.push('transition-pre');
+                  return noChangeResult();
+                },
+              },
+            ],
             postSync: [
               {
                 scopeId: nextStep.name,
@@ -11863,6 +11902,18 @@ describe('RecordsService', function () {
         },
         persistedRecordType as unknown as Partial<EffectRecordType>
       );
+      registeredRecordType.automaticTransitions = [
+        {
+          schemaVersion: 1,
+          id: 'published-to-retired-on-update',
+          mode: 'automatic',
+          event: 'update',
+          sourceStage: 'published',
+          targetStage: 'retired',
+          priority: 10,
+          condition: 'true',
+        },
+      ];
       RecordTypesService.get = sinon.stub().returns(of(registeredRecordType));
       mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
         order.push('primary-persistence');
@@ -11906,7 +11957,12 @@ describe('RecordsService', function () {
         commitEffectRecord(oid, candidate);
         return { success: true, oid, applicationState: 'applied' };
       });
-      WorkflowStepsService.get = sinon.stub().returns(of(nextStep));
+      WorkflowStepsService.get = sinon.stub().callsFake((_recordType: EffectRecordType, stage: string) => {
+        if (stage !== nextStep.name) {
+          throw new Error(`Unexpected chained target: ${stage}`);
+        }
+        return of(nextStep);
+      });
 
       const result = await RecordsService.updateMeta(
         { id: persistedRecordType.branding },
@@ -11928,6 +11984,12 @@ describe('RecordsService', function () {
         'transition-postSync-persistence',
         'transition-post',
       ]);
+      expect(manualTransitionContext).to.deep.equal({
+        scopeId: nextStep.name,
+        sourceStage: startingStep.name,
+        targetStage: nextStep.name,
+      });
+      expect(WorkflowStepsService.get.calledOnceWithExactly(registeredRecordType, nextStep.name)).to.equal(true);
     });
 
     it('evaluates one automatic edge and preserves transition lifecycle, validation, and metadata coherence', async function () {
@@ -11981,6 +12043,7 @@ describe('RecordsService', function () {
           schemaVersion: 1,
           id: 'draft-to-published',
           mode: 'automatic',
+          event: 'update',
           sourceStage: 'draft',
           targetStage: 'published',
           priority: 10,
@@ -11993,6 +12056,7 @@ describe('RecordsService', function () {
           schemaVersion: 1,
           id: 'draft-to-unselected',
           mode: 'automatic',
+          event: 'update',
           sourceStage: 'draft',
           targetStage: 'unselected',
           priority: 20,
@@ -12002,6 +12066,7 @@ describe('RecordsService', function () {
           schemaVersion: 1,
           id: 'published-to-retired',
           mode: 'automatic',
+          event: 'update',
           sourceStage: 'published',
           targetStage: 'retired',
           priority: 10,
@@ -12144,6 +12209,92 @@ describe('RecordsService', function () {
       expect(committedEffectRecord.metaMetadata.form).to.equal(embargoedStep.config.form);
     });
 
+    it('does not evaluate automatic transitions when save triggers or the internal control suppress them', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
+      const order: string[] = [];
+      const registeredRecordType = recordTypeWithActions(
+        {
+          onUpdate: {
+            pre: [{ handler: () => (order.push('update-pre'), noChangeResult()) }],
+            post: [{ handler: () => (order.push('update-post'), noChangeResult()) }],
+          },
+          onTransitionWorkflow: {
+            pre: [{ scopeId: 'draft-to-published', handler: () => (order.push('transition-pre'), noChangeResult()) }],
+            post: [{ scopeId: 'draft-to-published', handler: () => (order.push('transition-post'), noChangeResult()) }],
+          },
+        },
+        persistedRecordType as unknown as Partial<EffectRecordType>
+      );
+      registeredRecordType.automaticTransitions = [
+        {
+          schemaVersion: 1,
+          id: 'draft-to-published',
+          mode: 'automatic',
+          event: 'update',
+          sourceStage: 'draft',
+          targetStage: 'published',
+          priority: 10,
+          condition: 'true',
+        },
+      ];
+      RecordTypesService.get = sinon.stub().returns(of(registeredRecordType));
+      WorkflowStepsService.get = sinon.stub().throws(new Error('Automatic target resolution must stay disabled.'));
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
+        order.push('primary-persistence');
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+
+      const cases = [
+        { pre: false, post: false, expectedOrder: ['primary-persistence'] },
+        { pre: true, post: false, expectedOrder: ['update-pre', 'primary-persistence'] },
+        {
+          pre: true,
+          post: true,
+          context: createRecordSaveContext({
+            routeFamily: 'internal',
+            operation: 'update',
+            evaluateAutomaticTransitions: false,
+          }),
+          expectedOrder: ['update-pre', 'primary-persistence', 'update-post'],
+        },
+      ];
+      for (const testCase of cases) {
+        committedEffectRecord = {
+          ...structuredClone(persistedEffectRecord()),
+          metaMetadata: {
+            type: persistedRecordType.name,
+            form: startingStep.config.form,
+            brandId: persistedRecordType.branding,
+          },
+          metadata: { ready: true },
+          workflow: structuredClone(startingStep.config.workflow),
+          authorization: { edit: ['user-1'], view: [], editRoles: ['Admin'], viewRoles: ['Admin'] },
+        };
+        order.length = 0;
+        mockStorageService.updateMeta.resetHistory();
+
+        const result = await RecordsService.updateMeta(
+          { id: persistedRecordType.branding },
+          'record-123',
+          structuredClone(committedEffectRecord),
+          { username: 'user-1', roles: [{ name: 'Admin' }] },
+          testCase.pre,
+          testCase.post,
+          {},
+          undefined,
+          testCase.context
+        );
+        await new Promise(resolve => setImmediate(resolve));
+
+        expect(result.wasPersisted()).to.equal(true);
+        expect(order).to.deep.equal(testCase.expectedOrder);
+        expect(committedEffectRecord.workflow).to.deep.equal(startingStep.config.workflow);
+      }
+      expect(WorkflowStepsService.get.notCalled).to.equal(true);
+    });
+
     it('keeps automatic transitions inside the primary strict CAS and fails closed on invalid priorities', async function () {
       const persistedRecordType = persistedEffectRecordType('default');
       const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
@@ -12164,6 +12315,7 @@ describe('RecordsService', function () {
         schemaVersion: 1,
         id: 'draft-to-published',
         mode: 'automatic',
+        event: 'update',
         sourceStage: 'draft',
         targetStage: 'published',
         priority: 10,
@@ -12196,12 +12348,13 @@ describe('RecordsService', function () {
         structuredClone(committedEffectRecord),
         { username: 'user-1', roles: [{ name: 'Admin' }] },
         true,
-        false,
+        true,
         {},
         undefined,
         createRecordSaveContext({
           routeFamily: 'internal',
           operation: 'update',
+          evaluateAutomaticTransitions: true,
           concurrency: { expectedRevision: 4, entityTagSupplied: false },
         })
       );
@@ -12233,12 +12386,13 @@ describe('RecordsService', function () {
         { ...structuredClone(committedEffectRecord), revision: 5, workflow: startingStep.config.workflow },
         { username: 'user-1', roles: [{ name: 'Admin' }] },
         true,
-        false,
+        true,
         {},
         undefined,
         createRecordSaveContext({
           routeFamily: 'internal',
           operation: 'update',
+          evaluateAutomaticTransitions: true,
           concurrency: { expectedRevision: 5, entityTagSupplied: false },
         })
       );

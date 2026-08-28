@@ -157,6 +157,7 @@ import {
   AutomaticTransitionConfigurationError,
   evaluateAutomaticTransitionPlan,
   resolveAutomaticTransitionPlan,
+  type AutomaticTransitionEvent,
   type AutomaticTransitionMatch,
 } from '../workflow-transition/automatic';
 import { classifyRecordWrite, recordWriteRequiresFormValidation } from '../RecordWriteClassification';
@@ -588,7 +589,8 @@ export namespace Services {
     private recordActionTransition(
       candidate: AnyRecord,
       nextStep: unknown,
-      current?: AnyRecord
+      current?: AnyRecord,
+      authoritativeSourceStage?: string
     ): RecordActionTransitionContext | undefined {
       const nextStepObj = this.recordObject(nextStep);
       const targetStage = String(
@@ -596,7 +598,8 @@ export namespace Services {
       ).trim();
       if (!targetStage) return undefined;
       const sourceStage = String(
-        _.get(current, 'workflow.stage', '') ||
+        authoritativeSourceStage ||
+          _.get(current, 'workflow.stage', '') ||
           _.get(candidate, 'previousWorkflow.stage', '') ||
           _.get(candidate, 'workflow.stage', targetStage)
       ).trim();
@@ -605,6 +608,17 @@ export namespace Services {
         sourceStage: sourceStage || targetStage,
         targetStage,
       };
+    }
+
+    private shouldEvaluateAutomaticTransitions(
+      triggerPreSaveTriggers: boolean,
+      triggerPostSaveTriggers: boolean,
+      context: RecordSaveContext
+    ): boolean {
+      if (!triggerPreSaveTriggers || !triggerPostSaveTriggers) {
+        return false;
+      }
+      return context.evaluateAutomaticTransitions ?? context.routeFamily !== 'internal';
     }
 
     private async evaluateAutomaticTransition(options: {
@@ -616,13 +630,15 @@ export namespace Services {
       readonly oid: string;
       readonly candidate: AnyRecord;
       readonly current?: AnyRecord;
+      readonly event: AutomaticTransitionEvent;
+      readonly sourceStage: string;
     }): Promise<AutomaticTransitionMatch | null> {
       const plan = resolveAutomaticTransitionPlan(options.recordType as RuntimeValue, options.recordTypeKey);
       if (plan.transitions.length === 0) {
         return null;
       }
-      const sourceStage = this.candidateWorkflowStep(options.candidate);
-      if (sourceStage === undefined) {
+      const sourceStage = options.sourceStage.trim();
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(sourceStage)) {
         throw new AutomaticTransitionConfigurationError(
           'automatic-transition-config-invalid',
           '$.record.workflow.stage'
@@ -635,6 +651,7 @@ export namespace Services {
         brandId: options.brandId,
         recordTypeKey: options.recordTypeKey,
         actor: projectRecordActionActor(options.user as RuntimeValue),
+        event: options.event,
         oid: options.oid,
         ...(options.current === undefined
           ? {}
@@ -4284,29 +4301,36 @@ export namespace Services {
       }
 
       const requestedWfStep = wfStep;
-      let automaticMatch: AutomaticTransitionMatch | null;
-      try {
-        automaticMatch = await this.evaluateAutomaticTransition({
-          operation: hookOperation,
-          recordType: recordTypeObj,
-          recordTypeKey: recordTypeName,
-          brandId,
-          user: userObj,
-          oid: createOid,
-          candidate: recordObj,
-        });
-      } catch (error) {
-        tracker.recordPrimaryNotApplied(
-          this.saveProblemFromError(
-            error,
-            'pre-save',
-            'Your changes were not saved.',
-            'processing',
-            'automatic-transition-failed'
-          )
-        );
-        this.logSaveOutcome(tracker, 'pre-save', error);
-        return tracker.toResponse();
+      let automaticMatch: AutomaticTransitionMatch | null = null;
+      if (
+        targetStepName === undefined &&
+        this.shouldEvaluateAutomaticTransitions(triggerPreSaveTriggers, triggerPostSaveTriggers, tracker.context)
+      ) {
+        try {
+          automaticMatch = await this.evaluateAutomaticTransition({
+            operation: hookOperation,
+            recordType: recordTypeObj,
+            recordTypeKey: recordTypeName,
+            brandId,
+            user: userObj,
+            oid: createOid,
+            candidate: recordObj,
+            event: 'create',
+            sourceStage: this.workflowStepName(startingWfStep) ?? '',
+          });
+        } catch (error) {
+          tracker.recordPrimaryNotApplied(
+            this.saveProblemFromError(
+              error,
+              'pre-save',
+              'Your changes were not saved.',
+              'processing',
+              'automatic-transition-failed'
+            )
+          );
+          this.logSaveOutcome(tracker, 'pre-save', error);
+          return tracker.toResponse();
+        }
       }
       if (automaticMatch !== null) {
         let automaticTarget: WorkflowStepLike;
@@ -4393,7 +4417,7 @@ export namespace Services {
             ? {
                 transition:
                   automaticMatch === null
-                    ? this.recordActionTransition(recordObj, wfStep)
+                    ? this.recordActionTransition(recordObj, wfStep, undefined, this.workflowStepName(startingWfStep))
                     : this.automaticTransitionContext(automaticMatch),
               }
             : {}),
@@ -5021,6 +5045,7 @@ export namespace Services {
           routeFamily: 'internal',
           operation: options.operation ?? 'update',
           portal: suppliedContext?.portal,
+          evaluateAutomaticTransitions: false,
           targetStep:
             options.operation === 'transition'
               ? this.workflowStepName(options.targetStep as WorkflowStepLike)
@@ -5538,7 +5563,12 @@ export namespace Services {
       }
 
       let automaticMatch: AutomaticTransitionMatch | null = null;
-      if (recordType !== null && !_.isEmpty(recordType)) {
+      if (
+        !transitionRequested &&
+        recordType !== null &&
+        !_.isEmpty(recordType) &&
+        this.shouldEvaluateAutomaticTransitions(triggerPreSaveTriggers, triggerPostSaveTriggers, tracker.context)
+      ) {
         try {
           automaticMatch = await this.evaluateAutomaticTransition({
             operation: hookOperation,
@@ -5549,6 +5579,8 @@ export namespace Services {
             oid,
             candidate: recordObj,
             ...(originalRecord === undefined ? {} : { current: originalRecord }),
+            event: 'update',
+            sourceStage: this.candidateWorkflowStep(originalRecord ?? {}) ?? '',
           });
         } catch (error) {
           tracker.recordPrimaryNotApplied(

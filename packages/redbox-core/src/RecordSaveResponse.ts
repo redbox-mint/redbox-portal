@@ -104,6 +104,8 @@ export interface RecordSaveContext {
   readonly operation?: RecordSaveOperation;
   /** Factory-normalized portal copied from the server-owned matched request context. */
   readonly portal?: string;
+  /** Server-owned control for automatic workflow evaluation. */
+  readonly evaluateAutomaticTransitions?: boolean;
   /** Server-owned workflow target copied from the matched route, not inferred from a resolved step object. */
   readonly targetStep?: string;
   /** Server-owned business intent; never conflated with the CRUD operation. */
@@ -124,6 +126,7 @@ export interface RecordSaveContext {
 
 /** Trusted values accepted by the save-context factory. */
 export interface RecordSaveContextOptions {
+  readonly evaluateAutomaticTransitions?: boolean;
   readonly requestId?: string;
   readonly routeFamily?: RecordSaveRouteFamily;
   readonly operation?: RecordSaveOperation;
@@ -673,6 +676,7 @@ export function createRecordSaveContext(context: RecordSaveContextOptions = {}):
     requestId,
     routeFamily,
     operation,
+    evaluateAutomaticTransitions,
     portal,
     targetStep,
     validationOperation,
@@ -685,6 +689,7 @@ export function createRecordSaveContext(context: RecordSaveContextOptions = {}):
   const parsedSchemaOperation = parsePublicValidationOperation(validationOperation);
   const concurrency = normalizeRecordConcurrencyContext(concurrencyInput);
   const trustedContext = Object.freeze({
+    ...(typeof evaluateAutomaticTransitions === 'boolean' ? { evaluateAutomaticTransitions } : {}),
     requestId: isCanonicalSaveRequestId(requestId) ? requestId : randomUUID(),
     routeFamily,
     operation,
