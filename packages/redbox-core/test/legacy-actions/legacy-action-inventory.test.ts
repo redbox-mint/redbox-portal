@@ -39,6 +39,8 @@ const SHIPPED_CONFIG_EXCLUSION_GLOBS: string[] = [
   'support/specs/**',
   'packages/redbox-core/src/config/brandingConfigurationDefaults.config.ts',
 ];
+const MIGRATED_AUTOMATIC_TRANSITION_EXPRESSION = 'sails.services.triggerservice.transitionWorkflow';
+const MIGRATED_AUTOMATIC_TRANSITION_OCCURRENCES = 2;
 
 type LifecycleMode = (typeof LIFECYCLE_MODES)[number];
 type Phase = (typeof PHASES)[number];
@@ -1077,6 +1079,41 @@ function sortedOccurrences(occurrences: ScannedOccurrence[]): ComparableOccurren
     );
 }
 
+function migratedOccurrenceProjection(
+  occurrence: ScannedOccurrence,
+  historical: boolean
+): Omit<ComparableOccurrence, 'line'> {
+  const normalized = normalizedOccurrence(occurrence);
+  const { line: _line, ...projected } = normalized;
+  if (
+    !historical ||
+    projected.file !== 'packages/redbox-hook-dev/src/config/recordtype.ts' ||
+    projected.recordType !== 'dataPublication' ||
+    projected.phase !== 'pre' ||
+    (projected.lifecycleMode !== 'onCreate' && projected.lifecycleMode !== 'onUpdate')
+  ) {
+    return projected;
+  }
+  return {
+    ...projected,
+    ...(projected.nesting === 'record-hook' ? { order: projected.order - 1 } : {}),
+    ...(projected.parentOrder === undefined ? {} : { parentOrder: projected.parentOrder - 1 }),
+  };
+}
+
+function sortedMigratedOccurrences(
+  occurrences: ScannedOccurrence[],
+  historical: boolean
+): Omit<ComparableOccurrence, 'line'>[] {
+  return occurrences
+    .map(occurrence => migratedOccurrenceProjection(occurrence, historical))
+    .sort((left, right) => {
+      const leftKey = JSON.stringify(left);
+      const rightKey = JSON.stringify(right);
+      return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+    });
+}
+
 function assertInventoryMatchesSource(candidateInventory: LegacyActionInventory, scanned: ScannedOccurrence[]): void {
   expect(sortedOccurrences(inventoryOccurrences(candidateInventory))).to.deep.equal(sortedOccurrences(scanned));
 }
@@ -1216,7 +1253,7 @@ describe('A01 legacy record action inventory', function () {
   const representativeConfig = loadRepresentativeConfiguration();
   const representativeDatabase = loadRepresentativeDatabase();
 
-  it('matches every shipped occurrence with exact options and reconciles each documented source group', function () {
+  it('matches shipped occurrences while retaining the migrated automatic-transition inventory', function () {
     const scanned = discoverShippedConfigSources().flatMap(scanSource);
 
     expect(inventory.scan.includedSourceGroups).to.deep.equal(EXPECTED_SOURCE_GROUPS);
@@ -1229,17 +1266,27 @@ describe('A01 legacy record action inventory', function () {
       [...SHIPPED_CONFIG_EXCLUSION_GLOBS].sort()
     );
 
-    expect(scanned).to.have.length(inventory.scan.expectedCounts.totalExecutableOccurrences);
+    expect(scanned).to.have.length(
+      inventory.scan.expectedCounts.totalExecutableOccurrences - MIGRATED_AUTOMATIC_TRANSITION_OCCURRENCES
+    );
     expect(scanned.filter(occurrence => occurrence.nesting === 'record-hook')).to.have.length(
-      inventory.scan.expectedCounts.recordHookDefinitions
+      inventory.scan.expectedCounts.recordHookDefinitions - MIGRATED_AUTOMATIC_TRANSITION_OCCURRENCES
     );
     expect(scanned.filter(occurrence => occurrence.nesting !== 'record-hook')).to.have.length(
       inventory.scan.expectedCounts.nestedExecutableDefinitions
     );
     expect(new Set(scanned.map(occurrence => occurrence.expression)).size).to.equal(
-      inventory.scan.expectedCounts.uniqueLegacyExpressions
+      inventory.scan.expectedCounts.uniqueLegacyExpressions - 1
     );
-    assertInventoryMatchesSource(inventory, scanned);
+    const activeInventory = inventoryOccurrences(inventory).filter(
+      occurrence => occurrence.expression !== MIGRATED_AUTOMATIC_TRANSITION_EXPRESSION
+    );
+    expect(sortedMigratedOccurrences(activeInventory, true)).to.deep.equal(sortedMigratedOccurrences(scanned, false));
+    expect(
+      inventoryOccurrences(inventory).filter(
+        occurrence => occurrence.expression === MIGRATED_AUTOMATIC_TRANSITION_EXPRESSION
+      )
+    ).to.have.length(MIGRATED_AUTOMATIC_TRANSITION_OCCURRENCES);
 
     const documentedGroupCounts = new Map(
       inventory.scan.includedSourceGroups.map(group => [group.name, group.occurrenceCount])
@@ -1250,7 +1297,9 @@ describe('A01 legacy record action inventory', function () {
     ).length;
     const otherBundledHookCount = scanned.length - coreCount - developmentHookCount;
     expect(coreCount).to.equal(documentedGroupCounts.get('core-record-type-config'));
-    expect(developmentHookCount).to.equal(documentedGroupCounts.get('redbox-hook-dev'));
+    expect(developmentHookCount).to.equal(
+      (documentedGroupCounts.get('redbox-hook-dev') ?? 0) - MIGRATED_AUTOMATIC_TRANSITION_OCCURRENCES
+    );
     expect(otherBundledHookCount).to.equal(documentedGroupCounts.get('supported-bundled-hooks'));
     expect(documentedGroupCounts.get('shipped-record-type-fixtures')).to.equal(0);
   });
@@ -1296,7 +1345,10 @@ describe('A01 legacy record action inventory', function () {
           expression
         ).to.deep.equal(expectedContract.variants);
         expect(mapping?.actionId).to.equal(action.proposedActionId);
-        expect(action.occurrences).to.have.length(scannedCount);
+        expect(action.occurrences).to.have.length(
+          scannedCount +
+            (expression === MIGRATED_AUTOMATIC_TRANSITION_EXPRESSION ? MIGRATED_AUTOMATIC_TRANSITION_OCCURRENCES : 0)
+        );
         expect(mapping?.shippedOccurrenceCount ?? scannedCount).to.equal(scannedCount);
         expect(new Set(action.parameterShape.required).size).to.equal(action.parameterShape.required.length);
         expect(new Set(action.parameterShape.optional).size).to.equal(action.parameterShape.optional.length);

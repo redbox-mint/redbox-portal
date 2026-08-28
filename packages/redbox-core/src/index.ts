@@ -225,6 +225,7 @@ export * as ActionRegistry from './action-registry';
 export type { ActionDefinition as RegistryActionDefinition } from './action-registry';
 export { registerRedboxActions } from './action-registry';
 export * as ExpressionRuntime from './expression-runtime';
+export type { AutomaticTransitionDefinition } from './workflow-transition/automatic';
 export * from './record-workflow-administration/domain';
 
 import * as Middleware from './middleware/redboxSession';

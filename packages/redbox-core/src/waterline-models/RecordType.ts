@@ -4,6 +4,7 @@ import { BrandingConfigAttributes } from './BrandingConfig';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { RecordConcurrentModificationConfig } from '@researchdatabox/sails-ng-common';
 import type { ActionPlan } from '../action-registry';
+import type { AutomaticTransitionDefinition } from '../workflow-transition/automatic';
 
 const assignKey = (recordType: Record<string, unknown>, cb: (err?: Error) => void) => {
   recordType.key = `${recordType.branding}_${recordType.name}`;
@@ -50,6 +51,9 @@ export class RecordTypeClass {
   public actionPlan?: ActionPlan;
 
   @Attr({ type: 'json' })
+  public automaticTransitions?: readonly AutomaticTransitionDefinition[];
+
+  @Attr({ type: 'json' })
   public dashboard?: Record<string, unknown>;
 
   @Attr({ type: 'json' })
@@ -68,6 +72,7 @@ export interface RecordTypeAttributes extends Sails.WaterlineAttributes {
   dashboard?: Record<string, unknown>;
   hooks?: Record<string, unknown>;
   actionPlan?: ActionPlan;
+  automaticTransitions?: readonly AutomaticTransitionDefinition[];
   key?: string;
   name: string;
   packageType?: string;

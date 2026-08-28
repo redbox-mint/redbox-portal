@@ -17,7 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { of } from 'rxjs';
 import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordModel } from '../model/storage/RecordModel';
@@ -37,44 +36,6 @@ export namespace Services {
    */
   @PopulateExportedMethods
   export class Trigger extends services.Core.Service {
-    /**
-     * Used in changing the workflow stages automatically based on configuration.
-     *
-     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
-     * @param  oid
-     * @param  record
-     * @param  options
-     * @return
-     */
-    public transitionWorkflow(oid: string, record: RecordLike, options: Record<string, unknown>) {
-      const triggerCondition = String(_.get(options, 'triggerCondition', ''));
-
-      const variables: Record<string, unknown> = {};
-      variables['imports'] = record;
-      const compiled = _.template(triggerCondition, variables);
-      const compileResult = compiled();
-      sails.log.verbose(`Trigger condition for ${oid} ==> "${triggerCondition}", has result: '${compileResult}'`);
-      if (_.isEqual(compileResult, 'true')) {
-        const workflowStageTarget = _.get(
-          options,
-          'targetWorkflowStageName',
-          _.get(record, 'workflow.stage')
-        ) as string;
-        const workflowStageLabel = _.get(
-          options,
-          'targetWorkflowStageLabel',
-          _.get(record, 'workflow.stageLabel')
-        ) as string;
-        sails.log.verbose(`Trigger condition met for ${oid}, transitioning to: ${workflowStageTarget}`);
-        _.set(record, 'workflow.stage', workflowStageTarget);
-        _.set(record, 'workflow.stageLabel', workflowStageLabel);
-        // we need to update the form too!!!!
-        _.set(record, 'metaMetadata.form', _.get(options, 'targetForm', _.get(record, 'metaMetadata.form')) as string);
-      }
-
-      return of(record);
-    }
-
     /**
      *
      * By default, hooks are launched asynch, this method allows for synch running of hooks while not blocking the save request thread.

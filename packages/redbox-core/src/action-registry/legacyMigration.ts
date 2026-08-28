@@ -219,6 +219,10 @@ export interface LegacyAutomaticTransitionMigration {
   readonly kind: 'automatic-transition';
   readonly actionId: ActionDefinitionId;
   readonly contractVersion: 1;
+  readonly id: string;
+  readonly mode: 'automatic';
+  readonly sourceStage: string;
+  readonly priority: number;
   readonly condition: string;
   readonly targetStage: string;
   readonly targetStageLabelCheck?: string;
@@ -1223,6 +1227,16 @@ function migrateAutomaticTransition(
   );
   optionalOptionBoolean(options, 'forceRun', path);
   const triggerCondition = requiredOptionString(options, 'triggerCondition', path);
+  const condition = translateLegacyCondition(triggerCondition);
+  const sourceStageMatch = /^record\.candidate\.workflow\.stage = "([A-Za-z0-9_-]+)"(?: and|$)/.exec(condition);
+  if (sourceStageMatch === null) {
+    return fail(
+      'unsupported-legacy-expression',
+      `${path}.triggerCondition`,
+      'Rewrite the legacy transition as an explicit edge with a source stage.',
+      definition.function
+    );
+  }
   const targetStageLabelCheck = optionalOptionString(options, 'targetWorkflowStageLabel', path);
   const targetFormCheck = optionalOptionString(options, 'targetForm', path);
   return Object.freeze({
@@ -1230,7 +1244,11 @@ function migrateAutomaticTransition(
     kind: 'automatic-transition',
     actionId: AUTOMATIC_TRANSITION_ID,
     contractVersion: 1,
-    condition: translateLegacyCondition(triggerCondition),
+    id: request.stableKey,
+    mode: 'automatic',
+    sourceStage: sourceStageMatch[1],
+    priority: request.order,
+    condition,
     targetStage: requiredOptionString(options, 'targetWorkflowStageName', path),
     ...(targetStageLabelCheck === undefined ? {} : { targetStageLabelCheck }),
     ...(targetFormCheck === undefined ? {} : { targetFormCheck }),

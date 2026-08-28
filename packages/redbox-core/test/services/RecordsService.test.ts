@@ -35,6 +35,7 @@ import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { createRecordSaveContext } from '../../src/RecordSaveResponse';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type { RecordValidationServiceDependencies } from '../../src/services/RecordValidationService';
+import type { AutomaticTransitionDefinition } from '../../src/workflow-transition/automatic';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import {
   type HookDefinitionFixture,
@@ -60,7 +61,11 @@ declare const RecordTypesService: { get: sinon.SinonStub };
 declare const WorkflowStepsService: { get: sinon.SinonStub };
 
 type EffectRecord = Record<string, JsonValue>;
-type EffectHookDefinition = { function: string; execution?: ActionExecutionPolicy };
+type EffectHookDefinition = {
+  function: string;
+  options?: Record<string, JsonValue>;
+  execution?: ActionExecutionPolicy;
+};
 type EffectHookMode = {
   pre?: EffectHookDefinition[];
   postSync?: EffectHookDefinition[];
@@ -82,6 +87,7 @@ type EffectRecordType = {
   searchable: boolean;
   hooks: EffectHooks;
   actionPlan?: object;
+  automaticTransitions?: AutomaticTransitionDefinition[];
 };
 
 type TestActionDefinition = {
@@ -8016,6 +8022,96 @@ describe('RecordsService', function () {
       });
     });
 
+    it('evaluates one automatic edge during create without chaining', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
+      const publishedStep = persistedEffectWorkflowStep(persistedRecordType, 'published');
+      const order: string[] = [];
+      let transitionId: string | undefined;
+      const registeredRecordType = recordTypeWithActions(
+        {
+          onCreate: {
+            pre: [{ handler: () => (order.push('create-pre'), noChangeResult()) }],
+            post: [{ handler: () => (order.push('create-post'), noChangeResult()) }],
+          },
+          onTransitionWorkflow: {
+            pre: [
+              {
+                scopeId: 'draft-to-published',
+                handler: context => {
+                  transitionId = context.transition?.scopeId;
+                  order.push('transition-pre');
+                  return noChangeResult();
+                },
+              },
+            ],
+            post: [
+              {
+                scopeId: 'draft-to-published',
+                handler: () => (order.push('transition-post'), noChangeResult()),
+              },
+            ],
+          },
+        },
+        persistedRecordType as unknown as Partial<EffectRecordType>
+      );
+      registeredRecordType.automaticTransitions = [
+        {
+          schemaVersion: 1,
+          id: 'draft-to-published',
+          mode: 'automatic',
+          sourceStage: 'draft',
+          targetStage: 'published',
+          priority: 10,
+          condition: 'record.candidate.metadata.ready = true',
+        },
+        {
+          schemaVersion: 1,
+          id: 'published-to-retired',
+          mode: 'automatic',
+          sourceStage: 'published',
+          targetStage: 'retired',
+          priority: 10,
+          condition: 'true',
+        },
+      ];
+      WorkflowStepsService.getFirst = sinon.stub().returns(of(startingStep));
+      WorkflowStepsService.get = sinon.stub().callsFake((_recordType: EffectRecordType, stage: string) => {
+        if (stage !== 'published') {
+          throw new Error(`Unexpected automatic transition target: ${stage}`);
+        }
+        return of(publishedStep);
+      });
+      mockStorageService.create.callsFake(async (_brand: { id: string }, candidate: EffectRecord) => {
+        order.push('primary-persistence');
+        const oid = String(candidate.redboxOid);
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+
+      const result = await RecordsService.create(
+        { id: persistedRecordType.branding },
+        { metadata: { title: 'Automatic create', ready: true } },
+        registeredRecordType,
+        { username: 'creator', roles: [{ name: 'Admin' }] }
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(order).to.deep.equal([
+        'transition-pre',
+        'create-pre',
+        'primary-persistence',
+        'create-post',
+        'transition-post',
+      ]);
+      expect(transitionId).to.equal('draft-to-published');
+      expect(WorkflowStepsService.get.calledOnceWithExactly(registeredRecordType, 'published')).to.equal(true);
+      expect(committedEffectRecord.workflow).to.deep.equal(publishedStep.config.workflow);
+      expect(committedEffectRecord.previousWorkflow).to.deep.equal(startingStep.config.workflow);
+      expect(committedEffectRecord.metaMetadata.form).to.equal(publishedStep.config.form);
+    });
+
     it('runs the persisted update hook row before persistence with its fixture options intact', async function () {
       const persistedRecordType = persistedEffectRecordType('default');
       const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
@@ -8141,6 +8237,324 @@ describe('RecordsService', function () {
         'transition-postSync-persistence',
         'transition-post',
       ]);
+    });
+
+    it('evaluates one automatic edge and preserves transition lifecycle, validation, and metadata coherence', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
+      const publishedStep = persistedEffectWorkflowStep(persistedRecordType, 'published');
+      committedEffectRecord.metaMetadata = {
+        type: persistedRecordType.name,
+        form: startingStep.config.form,
+        brandId: persistedRecordType.branding,
+      };
+      committedEffectRecord.metadata = { title: 'Automatically publish', ready: true };
+      committedEffectRecord.workflow = structuredClone(startingStep.config.workflow);
+      committedEffectRecord.authorization = {
+        edit: ['user-1'],
+        view: ['user-1'],
+        editRoles: ['DraftEditor'],
+        viewRoles: ['DraftViewer'],
+      };
+      const order: string[] = [];
+      let transitionId: string | undefined;
+      const registeredRecordType = recordTypeWithActions(
+        {
+          onUpdate: {
+            pre: [{ handler: () => (order.push('update-pre'), noChangeResult()) }],
+            post: [{ handler: () => (order.push('update-post'), noChangeResult()) }],
+          },
+          onTransitionWorkflow: {
+            pre: [
+              {
+                scopeId: 'draft-to-published',
+                handler: context => {
+                  transitionId = context.transition?.scopeId;
+                  order.push('transition-pre');
+                  return noChangeResult();
+                },
+              },
+            ],
+            post: [
+              {
+                scopeId: 'draft-to-published',
+                handler: () => (order.push('transition-post'), noChangeResult()),
+              },
+            ],
+          },
+        },
+        persistedRecordType as unknown as Partial<EffectRecordType>
+      );
+      registeredRecordType.automaticTransitions = [
+        {
+          schemaVersion: 1,
+          id: 'draft-to-published',
+          mode: 'automatic',
+          sourceStage: 'draft',
+          targetStage: 'published',
+          priority: 10,
+          condition: 'record.candidate.metadata.ready = true',
+          validationOperation: 'publish',
+          targetStageLabelCheck: 'Published',
+          targetFormCheck: 'legacy-action-fixture-1.0-published',
+        },
+        {
+          schemaVersion: 1,
+          id: 'draft-to-unselected',
+          mode: 'automatic',
+          sourceStage: 'draft',
+          targetStage: 'unselected',
+          priority: 20,
+          condition: 'true',
+        },
+        {
+          schemaVersion: 1,
+          id: 'published-to-retired',
+          mode: 'automatic',
+          sourceStage: 'published',
+          targetStage: 'retired',
+          priority: 10,
+          condition: 'true',
+        },
+      ];
+      RecordTypesService.get = sinon.stub().returns(of(registeredRecordType));
+      WorkflowStepsService.get = sinon.stub().callsFake((_recordType: EffectRecordType, stage: string) => {
+        if (stage !== 'published') {
+          throw new Error(`Unexpected automatic transition target: ${stage}`);
+        }
+        return of(publishedStep);
+      });
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
+        order.push('primary-persistence');
+        commitEffectRecord(oid, candidate);
+        return { success: true, oid, applicationState: 'applied' };
+      });
+      const validator = (globalThis as any).RecordValidationService.resolve as sinon.SinonStub;
+      validator.resetHistory();
+
+      const result = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        structuredClone(committedEffectRecord),
+        { username: 'user-1', roles: [{ name: 'Admin' }] }
+      );
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(order).to.deep.equal([
+        'transition-pre',
+        'update-pre',
+        'primary-persistence',
+        'update-post',
+        'transition-post',
+      ]);
+      expect(transitionId).to.equal('draft-to-published');
+      expect(WorkflowStepsService.get.calledOnceWithExactly(registeredRecordType, 'published')).to.equal(true);
+      expect(committedEffectRecord.workflow).to.deep.equal(publishedStep.config.workflow);
+      expect(committedEffectRecord.previousWorkflow).to.deep.equal(startingStep.config.workflow);
+      expect(committedEffectRecord.metaMetadata.form).to.equal(publishedStep.config.form);
+      expect(committedEffectRecord.authorization_viewRoles).to.deep.equal(publishedStep.config.authorization.viewRoles);
+      expect(committedEffectRecord.authorization_editRoles).to.deep.equal(publishedStep.config.authorization.editRoles);
+      expect(committedEffectRecord.authorization).to.deep.include({
+        editRoles: publishedStep.config.authorization.editRoles,
+        viewRoles: publishedStep.config.authorization.viewRoles,
+      });
+      expect(validator.called).to.equal(true);
+      expect(validator.firstCall.args[0]).to.deep.include({
+        writeKind: 'transition',
+        validationOperation: 'publish',
+        targetStep: 'published',
+      });
+      const audit = mockQueueService.now.getCalls().find((call: sinon.SinonSpyCall) => call.args[0] === 'RecordAudit')
+        ?.args[1];
+      expect(audit?.record).to.deep.include({
+        workflow: publishedStep.config.workflow,
+        previousWorkflow: startingStep.config.workflow,
+      });
+      expect(audit?.record?.metaMetadata?.form).to.equal(publishedStep.config.form);
+    });
+
+    it('runs a persisted legacy automatic hook through the first-class transition path', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const queuedStep = {
+        name: 'queued',
+        config: {
+          form: 'dataPublication-1.0-queued',
+          workflow: { stage: 'queued', stageLabel: 'Queued' },
+          authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+        },
+      };
+      const embargoedStep = {
+        name: 'embargoed',
+        config: {
+          form: 'dataPublication-1.0-embargoed',
+          workflow: { stage: 'embargoed', stageLabel: 'Embargoed' },
+          authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+        },
+      };
+      committedEffectRecord = {
+        ...committedEffectRecord,
+        metaMetadata: {
+          type: persistedRecordType.name,
+          form: queuedStep.config.form,
+          brandId: persistedRecordType.branding,
+        },
+        metadata: { embargoByDate: true },
+        workflow: structuredClone(queuedStep.config.workflow),
+        authorization: { edit: ['user-1'], view: [], editRoles: ['Admin'], viewRoles: ['Admin'] },
+      };
+      let transitionId: string | undefined;
+      const registeredRecordType = recordTypeWithActions(
+        {
+          onTransitionWorkflow: {
+            pre: [
+              {
+                scopeId: 'legacy-onUpdate-pre-0',
+                handler: context => {
+                  transitionId = context.transition?.scopeId;
+                  return noChangeResult();
+                },
+              },
+            ],
+          },
+        },
+        persistedRecordType as unknown as Partial<EffectRecordType>
+      );
+      registeredRecordType.hooks = {
+        onUpdate: {
+          pre: [
+            {
+              function: 'sails.services.triggerservice.transitionWorkflow',
+              options: {
+                triggerCondition:
+                  "<%= _.isEqual(workflow.stage, 'queued') && metadata.embargoByDate?.toString() === 'true' %>",
+                targetWorkflowStageName: 'embargoed',
+                targetWorkflowStageLabel: 'Embargoed',
+                targetForm: 'dataPublication-1.0-embargoed',
+              },
+            },
+          ],
+        },
+      };
+      RecordTypesService.get = sinon.stub().returns(of(registeredRecordType));
+      WorkflowStepsService.get = sinon.stub().returns(of(embargoedStep));
+
+      const result = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        structuredClone(committedEffectRecord),
+        { username: 'user-1', roles: [{ name: 'Admin' }] }
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(transitionId).to.equal('legacy-onUpdate-pre-0');
+      expect(committedEffectRecord.workflow).to.deep.equal(embargoedStep.config.workflow);
+      expect(committedEffectRecord.previousWorkflow).to.deep.equal(queuedStep.config.workflow);
+      expect(committedEffectRecord.metaMetadata.form).to.equal(embargoedStep.config.form);
+    });
+
+    it('keeps automatic transitions inside the primary strict CAS and fails closed on invalid priorities', async function () {
+      const persistedRecordType = persistedEffectRecordType('default');
+      const startingStep = persistedEffectWorkflowStep(persistedRecordType, 'draft');
+      const publishedStep = persistedEffectWorkflowStep(persistedRecordType, 'published');
+      committedEffectRecord = {
+        ...committedEffectRecord,
+        revision: 4,
+        metaMetadata: {
+          type: persistedRecordType.name,
+          form: startingStep.config.form,
+          brandId: persistedRecordType.branding,
+        },
+        metadata: { ready: true },
+        workflow: structuredClone(startingStep.config.workflow),
+        authorization: { edit: ['user-1'], view: [], editRoles: ['Admin'], viewRoles: ['Admin'] },
+      };
+      const automaticTransition: AutomaticTransitionDefinition = {
+        schemaVersion: 1,
+        id: 'draft-to-published',
+        mode: 'automatic',
+        sourceStage: 'draft',
+        targetStage: 'published',
+        priority: 10,
+        condition: 'record.candidate.metadata.ready = true',
+      };
+      const strictRecordType = {
+        ...recordTypeWithActions({}, persistedRecordType as unknown as Partial<EffectRecordType>),
+        concurrentModification: { mode: 'strict' },
+        automaticTransitions: [automaticTransition],
+      };
+      RecordTypesService.get = sinon.stub().returns(of(strictRecordType));
+      WorkflowStepsService.get = sinon.stub().returns(of(publishedStep));
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+      mockStorageService.updateMeta.callsFake(async (_brand: { id: string }, oid: string, candidate: EffectRecord) => {
+        commitEffectRecord(oid, { ...candidate, revision: 5 });
+        return {
+          success: true,
+          oid,
+          applicationState: 'applied',
+          committedRevision: 5,
+          committedRecord: structuredClone(committedEffectRecord),
+        };
+      });
+
+      const result = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        structuredClone(committedEffectRecord),
+        { username: 'user-1', roles: [{ name: 'Admin' }] },
+        true,
+        false,
+        {},
+        undefined,
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'update',
+          concurrency: { expectedRevision: 4, entityTagSupplied: false },
+        })
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.concurrency).to.include({ expectedRevision: 4, revision: 5 });
+      expect(mockStorageService.updateMeta.firstCall.args[4]).to.deep.include({
+        precondition: { expectedRevision: 4, requireRevision: true },
+      });
+      expect(mockStorageService.updateMeta.firstCall.args[2].workflow.stage).to.equal('published');
+
+      mockStorageService.updateMeta.resetHistory();
+      const invalidRecordType = {
+        ...strictRecordType,
+        automaticTransitions: [
+          automaticTransition,
+          { ...automaticTransition, id: 'draft-to-other', targetStage: 'other' },
+        ],
+      };
+      RecordTypesService.get = sinon.stub().returns(of(invalidRecordType));
+      mockStorageService.getMeta.resolves({
+        ...committedEffectRecord,
+        revision: 5,
+        workflow: startingStep.config.workflow,
+      });
+      const invalid = await RecordsService.updateMeta(
+        { id: persistedRecordType.branding },
+        'record-123',
+        { ...structuredClone(committedEffectRecord), revision: 5, workflow: startingStep.config.workflow },
+        { username: 'user-1', roles: [{ name: 'Admin' }] },
+        true,
+        false,
+        {},
+        undefined,
+        createRecordSaveContext({
+          routeFamily: 'internal',
+          operation: 'update',
+          concurrency: { expectedRevision: 5, entityTagSupplied: false },
+        })
+      );
+
+      expect(invalid.wasPersisted()).to.equal(false);
+      expect(invalid.problems[0].issues[0].code).to.equal('automatic-transition-failed');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
     });
 
     it('does not persist after a pre-hook failure', async function () {

@@ -1,12 +1,14 @@
 import type { RecordTypeValidationConfig } from '../../config/recordtype.config';
 import type { RecordConcurrentModificationConfig } from '@researchdatabox/sails-ng-common';
 import type { ActionPlan } from '../../action-registry';
+import type { AutomaticTransitionDefinition } from '../../workflow-transition/automatic';
 
 export class RecordTypeModel {
   packageType: string = '';
   searchCore?: string = '';
   hooks?: RecordTypeHooks = new RecordTypeHooks();
   actionPlan?: ActionPlan;
+  automaticTransitions?: readonly AutomaticTransitionDefinition[];
   relatedTo: RelatedTo[] = [];
   searchFilters: SearchFilter[] = [];
   transferResponsibility: unknown = null; //Legacy to be removed in a future version

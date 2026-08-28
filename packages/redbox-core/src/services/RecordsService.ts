@@ -142,11 +142,18 @@ import {
   closedRecordActionSecretProvider,
   coreRecordActionRegistry,
   projectRecordActionActor,
+  projectRecordActionCandidate,
   resolveRecordActionPlan,
   type RecordActionTransitionContext,
 } from './record-actions/coordinator';
 import { RedboxActionRegistry, resolveActionPlan } from '../action-registry';
 import type { RuntimeValue } from '../runtimeValues';
+import {
+  AutomaticTransitionConfigurationError,
+  evaluateAutomaticTransitionPlan,
+  resolveAutomaticTransitionPlan,
+  type AutomaticTransitionMatch,
+} from '../workflow-transition/automatic';
 import { classifyRecordWrite, recordWriteRequiresFormValidation } from '../RecordWriteClassification';
 import {
   RECORD_VALIDATION_DIAGNOSTIC_CODES,
@@ -451,6 +458,68 @@ export namespace Services {
         scopeId: targetStage,
         sourceStage: sourceStage || targetStage,
         targetStage,
+      };
+    }
+
+    private async evaluateAutomaticTransition(options: {
+      readonly operation: ActionExecutionOperation;
+      readonly recordType: RecordTypeLike;
+      readonly recordTypeKey: string;
+      readonly brandId: string;
+      readonly user: AnyRecord;
+      readonly oid: string;
+      readonly candidate: AnyRecord;
+      readonly current?: AnyRecord;
+    }): Promise<AutomaticTransitionMatch | null> {
+      const plan = resolveAutomaticTransitionPlan(options.recordType as RuntimeValue, options.recordTypeKey);
+      if (plan.transitions.length === 0) {
+        return null;
+      }
+      const sourceStage = this.candidateWorkflowStep(options.candidate);
+      if (sourceStage === undefined) {
+        throw new AutomaticTransitionConfigurationError(
+          'automatic-transition-config-invalid',
+          '$.record.workflow.stage'
+        );
+      }
+      return await evaluateAutomaticTransitionPlan(plan, {
+        executionId: options.operation.executionId,
+        correlationId: options.operation.requestId ?? options.operation.executionId,
+        timestamp: new Date().toISOString(),
+        brandId: options.brandId,
+        recordTypeKey: options.recordTypeKey,
+        actor: projectRecordActionActor(options.user as RuntimeValue),
+        oid: options.oid,
+        ...(options.current === undefined
+          ? {}
+          : { current: projectRecordActionCandidate(options.current as RuntimeValue) }),
+        candidate: projectRecordActionCandidate(options.candidate as RuntimeValue),
+        sourceStage,
+      });
+    }
+
+    private assertAutomaticTransitionTarget(match: AutomaticTransitionMatch, targetStep: WorkflowStepLike): void {
+      const target = match.definition;
+      const resolvedStage = this.workflowStepName(targetStep);
+      const resolvedLabel = String(_.get(targetStep, 'config.workflow.stageLabel', '')).trim();
+      const resolvedForm = String(_.get(targetStep, 'config.form', '')).trim();
+      if (
+        resolvedStage !== target.targetStage ||
+        (target.targetStageLabelCheck !== undefined && resolvedLabel !== target.targetStageLabelCheck) ||
+        (target.targetFormCheck !== undefined && resolvedForm !== target.targetFormCheck)
+      ) {
+        throw new AutomaticTransitionConfigurationError(
+          'automatic-transition-config-invalid',
+          '$.automaticTransitions.target'
+        );
+      }
+    }
+
+    private automaticTransitionContext(match: AutomaticTransitionMatch): RecordActionTransitionContext {
+      return {
+        scopeId: match.definition.id,
+        sourceStage: match.definition.sourceStage,
+        targetStage: match.definition.targetStage,
       };
     }
 
@@ -2249,8 +2318,7 @@ export namespace Services {
         searchable,
         action,
         actor: this.postCommitAuditActor(user),
-        resolution:
-          tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+        resolution: tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
         ...(isRecordRevision(revision) ? { committedRevision: revision } : {}),
       };
     }
@@ -2274,9 +2342,10 @@ export namespace Services {
       ) {
         return undefined;
       }
-      const actor = data.actor && typeof data.actor === 'object' && !Array.isArray(data.actor)
-        ? this.postCommitAuditActor(data.actor as AnyRecord)
-        : {};
+      const actor =
+        data.actor && typeof data.actor === 'object' && !Array.isArray(data.actor)
+          ? this.postCommitAuditActor(data.actor as AnyRecord)
+          : {};
       return {
         schemaVersion: RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION,
         oid,
@@ -2573,7 +2642,12 @@ export namespace Services {
       return service;
     }
 
-    private attachmentJournalStorageKey(oid: string, attachmentId: string, generation: string, mutationFileId: string): string {
+    private attachmentJournalStorageKey(
+      oid: string,
+      attachmentId: string,
+      generation: string,
+      mutationFileId: string
+    ): string {
       const mutationKey = createHash('sha256').update(mutationFileId).digest('hex').slice(0, 32);
       return `journal/${oid}/${attachmentId}/${generation}/${mutationKey}`;
     }
@@ -2796,7 +2870,7 @@ export namespace Services {
               item.generation,
               'pending',
               undefined,
-              item.fileId,
+              item.fileId
             );
           } catch (error) {
             journalStateKnown = false;
@@ -3594,7 +3668,7 @@ export namespace Services {
       this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, undefined);
 
       const startingWfStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordTypeObj))) as WorkflowStepLike;
-      const wfStep = (
+      let wfStep = (
         targetStepName ? await firstValueFrom(WorkflowStepsService.get(recordTypeObj, targetStepName)) : startingWfStep
       ) as WorkflowStepLike;
       if (targetStepName) {
@@ -3647,6 +3721,74 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      const requestedWfStep = wfStep;
+      let automaticMatch: AutomaticTransitionMatch | null;
+      try {
+        automaticMatch = await this.evaluateAutomaticTransition({
+          operation: hookOperation,
+          recordType: recordTypeObj,
+          recordTypeKey: recordTypeName,
+          brandId,
+          user: userObj,
+          oid: createOid,
+          candidate: recordObj,
+        });
+      } catch (error) {
+        tracker.recordPrimaryNotApplied(
+          this.saveProblemFromError(
+            error,
+            'pre-save',
+            'Your changes were not saved.',
+            'processing',
+            'automatic-transition-failed'
+          )
+        );
+        this.logSaveOutcome(tracker, 'pre-save', error);
+        return tracker.toResponse();
+      }
+      if (automaticMatch !== null) {
+        let automaticTarget: WorkflowStepLike;
+        try {
+          automaticTarget = (await firstValueFrom(
+            WorkflowStepsService.get(recordTypeObj, automaticMatch.definition.targetStage)
+          )) as WorkflowStepLike;
+        } catch {
+          automaticTarget = {};
+        }
+        const automaticTargetDiagnostic = this.resolvedWorkflowTargetDiagnostic(
+          automaticTarget,
+          automaticMatch.definition.targetStage
+        );
+        if (automaticTargetDiagnostic) {
+          tracker.recordPrimaryNotApplied(
+            this.workflowTargetProblem(tracker.context, recordTypeObj, recordTypeName, automaticTargetDiagnostic)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        try {
+          this.assertAutomaticTransitionTarget(automaticMatch, automaticTarget);
+        } catch (error) {
+          tracker.recordPrimaryNotApplied(
+            this.saveProblemFromError(
+              error,
+              'pre-save',
+              'Your changes were not saved.',
+              'processing',
+              'automatic-transition-failed'
+            )
+          );
+          this.logSaveOutcome(tracker, 'pre-save', error);
+          return tracker.toResponse();
+        }
+        wfStep = automaticTarget;
+        this.transitionWorkflowStepMetadata(recordObj, wfStep);
+        if (automaticMatch.definition.validationOperation !== undefined) {
+          tracker.context.validationOperation = automaticMatch.definition.validationOperation;
+        }
+      }
+      const transitionApplied = targetStepName !== undefined || automaticMatch !== null;
+
       let currentFormFingerprint: string | undefined;
       const suppliedFormFingerprint = tracker.context.concurrency?.formFingerprint;
       const formFingerprintRequired = tracker.context.routeFamily === 'browser' && concurrencyMode === 'strict';
@@ -3655,7 +3797,7 @@ export namespace Services {
           currentFormFingerprint = await this.getRecordFormFingerprint(
             recordObj,
             recordTypeObj,
-            targetStepName ? wfStep : undefined
+            automaticMatch !== null ? requestedWfStep : targetStepName ? wfStep : undefined
           );
         } catch (error) {
           tracker.recordPrimaryNotApplied(
@@ -3689,7 +3831,14 @@ export namespace Services {
           recordTypeKey: recordTypeName,
           brandId,
           user: userObj,
-          ...(targetStepName ? { transition: this.recordActionTransition(recordObj, wfStep) } : {}),
+          ...(transitionApplied
+            ? {
+                transition:
+                  automaticMatch === null
+                    ? this.recordActionTransition(recordObj, wfStep)
+                    : this.automaticTransitionContext(automaticMatch),
+              }
+            : {}),
         });
       } catch (error) {
         tracker.recordPrimaryNotApplied(
@@ -3702,7 +3851,7 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      if (targetStepName) {
+      if (transitionApplied) {
         try {
           recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
             createOid,
@@ -3772,9 +3921,9 @@ export namespace Services {
         context: tracker.context,
         writeKind: 'create',
         recordType: recordTypeObj,
-        targetStep: targetStepName ? wfStep : undefined,
+        targetStep: transitionApplied ? wfStep : undefined,
         authoritativeStep: wfStep,
-        requiresTransitionAuthorization: Boolean(targetStepName),
+        requiresTransitionAuthorization: automaticMatch === null && Boolean(targetStepName),
         brand: brandObj,
       });
       if (!validation.allowed) {
@@ -4002,9 +4151,9 @@ export namespace Services {
                 expectedRevision: currentRevision,
                 writeKind: 'create',
                 recordType: recordTypeObj,
-                targetStep: targetStepName ? wfStep : undefined,
+                targetStep: transitionApplied ? wfStep : undefined,
                 authoritativeStep: wfStep,
-                requiresTransitionAuthorization: Boolean(targetStepName),
+                requiresTransitionAuthorization: automaticMatch === null && Boolean(targetStepName),
               });
               if (hookMutationState.status === 'validation-failed') {
                 tracker.recordPostPersistenceProblem(
@@ -4070,7 +4219,7 @@ export namespace Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordTypeObj, 'onCreate', userObj, hookOperation);
 
-          if (targetStepName) {
+          if (transitionApplied) {
             try {
               const beforeTransitionPostSync = _.cloneDeep(recordObj) as AnyRecord;
               const transitionOutcome = await this.runPostSaveSyncTriggers({
@@ -4103,7 +4252,7 @@ export namespace Services {
                     recordType: recordTypeObj,
                     targetStep: wfStep,
                     authoritativeStep: wfStep,
-                    requiresTransitionAuthorization: true,
+                    requiresTransitionAuthorization: automaticMatch === null,
                   });
                   if (transitionMutationState.status === 'validation-failed') {
                     transitionProblem = transitionMutationState.problem;
@@ -4742,6 +4891,80 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      if (transitionRequested && !_.isEmpty(recordType)) {
+        this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
+      }
+
+      let automaticMatch: AutomaticTransitionMatch | null = null;
+      if (recordType !== null && !_.isEmpty(recordType)) {
+        try {
+          automaticMatch = await this.evaluateAutomaticTransition({
+            operation: hookOperation,
+            recordType,
+            recordTypeKey: recordTypeName,
+            brandId: String(brandObj.id ?? '').trim(),
+            user: userObj,
+            oid,
+            candidate: recordObj,
+            ...(originalRecord === undefined ? {} : { current: originalRecord }),
+          });
+        } catch (error) {
+          tracker.recordPrimaryNotApplied(
+            this.saveProblemFromError(
+              error,
+              'pre-save',
+              'Your changes were not saved.',
+              'processing',
+              'automatic-transition-failed'
+            )
+          );
+          this.logSaveOutcome(tracker, 'pre-save', error);
+          return tracker.toResponse();
+        }
+      }
+      if (automaticMatch !== null && recordType !== null) {
+        let automaticTarget: WorkflowStepLike;
+        try {
+          automaticTarget = (await firstValueFrom(
+            WorkflowStepsService.get(recordType, automaticMatch.definition.targetStage)
+          )) as WorkflowStepLike;
+        } catch {
+          automaticTarget = {};
+        }
+        const automaticTargetDiagnostic = this.resolvedWorkflowTargetDiagnostic(
+          automaticTarget,
+          automaticMatch.definition.targetStage
+        );
+        if (automaticTargetDiagnostic) {
+          tracker.recordPrimaryNotApplied(
+            this.workflowTargetProblem(tracker.context, recordType, recordTypeName, automaticTargetDiagnostic)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        try {
+          this.assertAutomaticTransitionTarget(automaticMatch, automaticTarget);
+        } catch (error) {
+          tracker.recordPrimaryNotApplied(
+            this.saveProblemFromError(
+              error,
+              'pre-save',
+              'Your changes were not saved.',
+              'processing',
+              'automatic-transition-failed'
+            )
+          );
+          this.logSaveOutcome(tracker, 'pre-save', error);
+          return tracker.toResponse();
+        }
+        nextStepObj = automaticTarget;
+        this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
+        if (automaticMatch.definition.validationOperation !== undefined) {
+          tracker.context.validationOperation = automaticMatch.definition.validationOperation;
+        }
+      }
+      const transitionApplied = transitionRequested || automaticMatch !== null;
+
       try {
         this.prepareRecordActionOperation({
           operation: hookOperation,
@@ -4750,8 +4973,13 @@ export namespace Services {
           brandId: String(brandObj.id ?? '').trim(),
           user: userObj,
           current: originalRecord,
-          ...(transitionRequested
-            ? { transition: this.recordActionTransition(recordObj, nextStepObj, originalRecord) }
+          ...(transitionApplied
+            ? {
+                transition:
+                  automaticMatch === null
+                    ? this.recordActionTransition(recordObj, nextStepObj, originalRecord)
+                    : this.automaticTransitionContext(automaticMatch),
+              }
             : {}),
         });
       } catch (error) {
@@ -4765,37 +4993,30 @@ export namespace Services {
         return tracker.toResponse();
       }
 
-      if (transitionRequested) {
-        if (!_.isEmpty(recordType)) {
-          try {
-            sails.log.verbose(`RecordService - updateMeta - hasPermissionToTransition - enter`);
-            sails.log.verbose(
-              `RecordService - updateMeta triggerPreSaveTransitionWorkflowTriggers - before - nextStep ${JSON.stringify(nextStepObj)}`
-            );
-            this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
-            await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
-            recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
-              oid,
-              recordObj,
-              recordType,
-              nextStepObj,
-              userObj,
-              hookOperation
-            );
-            // The hook sees the target workflow and any workflow metadata it
-            // returns remains part of both persistence and validation.
-          } catch (err) {
-            sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
-            sails.log.error(JSON.stringify(err));
-            tracker.recordPrimaryNotApplied(
-              this.recordActionProblem(
-                hookOperation,
-                this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.')
-              )
-            );
-            this.logSaveOutcome(tracker, 'pre-save', err);
-            return tracker.toResponse();
-          }
+      if (transitionApplied && !_.isEmpty(recordType)) {
+        try {
+          await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
+          recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
+            oid,
+            recordObj,
+            recordType,
+            nextStepObj,
+            userObj,
+            hookOperation
+          );
+          // The transition hook sees the selected target workflow and cannot
+          // trigger a second automatic evaluation in this save.
+        } catch (err) {
+          sails.log.verbose('RecordService - updateMeta - onTransitionWorkflow triggerPreSaveTriggers error');
+          sails.log.error(JSON.stringify(err));
+          tracker.recordPrimaryNotApplied(
+            this.recordActionProblem(
+              hookOperation,
+              this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.')
+            )
+          );
+          this.logSaveOutcome(tracker, 'pre-save', err);
+          return tracker.toResponse();
         }
       }
 
@@ -4823,7 +5044,7 @@ export namespace Services {
         }
       }
 
-      const authoritativeStep = transitionRequested ? nextStepObj : undefined;
+      const authoritativeStep = transitionApplied ? nextStepObj : undefined;
       if (
         !this.normalizeAuthoritativeCandidateContext(
           recordObj,
@@ -4857,11 +5078,11 @@ export namespace Services {
           original: originalRecord,
           user: userObj,
           context: tracker.context,
-          writeKind: transitionRequested ? 'transition' : 'update',
+          writeKind: transitionApplied ? 'transition' : 'update',
           recordType,
-          targetStep: transitionRequested ? nextStepObj : undefined,
+          targetStep: transitionApplied ? nextStepObj : undefined,
           authoritativeStep,
-          requiresTransitionAuthorization: Boolean(authoritativeStep),
+          requiresTransitionAuthorization: automaticMatch === null && Boolean(authoritativeStep),
           evaluateFormValidators: requiresFormValidation,
           brand: brandObj,
         });
@@ -5219,11 +5440,11 @@ export namespace Services {
                 user: userObj,
                 context: tracker.context,
                 expectedRevision: currentRevision,
-                writeKind: transitionRequested ? 'transition' : 'update',
+                writeKind: transitionApplied ? 'transition' : 'update',
                 recordType,
-                targetStep: transitionRequested ? nextStepObj : undefined,
+                targetStep: transitionApplied ? nextStepObj : undefined,
                 authoritativeStep,
-                requiresTransitionAuthorization: Boolean(authoritativeStep),
+                requiresTransitionAuthorization: automaticMatch === null && Boolean(authoritativeStep),
               });
               if (hookMutationState.status === 'validation-failed') {
                 tracker.recordPostPersistenceProblem(
@@ -5291,7 +5512,7 @@ export namespace Services {
           // Fire Post-save hooks async ...
           this.triggerPostSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj, hookOperation);
 
-          if (transitionRequested) {
+          if (transitionApplied) {
             try {
               const beforeTransitionCandidate = this.mergeValidationCandidate(authoritativeCandidate, recordObj);
               const transitionOutcome = await this.runPostSaveSyncTriggers({
@@ -5328,7 +5549,7 @@ export namespace Services {
                     recordType,
                     targetStep: nextStepObj,
                     authoritativeStep: nextStepObj,
-                    requiresTransitionAuthorization: true,
+                    requiresTransitionAuthorization: automaticMatch === null,
                   });
                   if (transitionMutationState.status === 'validation-failed') {
                     transitionProblem = transitionMutationState.problem;
@@ -7282,8 +7503,7 @@ export namespace Services {
       const presentIdentities = identities.filter((identity): identity is string => identity !== undefined);
       if (new Set(presentIdentities).size > 1) return false;
       return (
-        !active ||
-        tombstoneIdentities.some(identity => typeof identity === 'string') === (activeIdentity !== undefined)
+        !active || tombstoneIdentities.some(identity => typeof identity === 'string') === (activeIdentity !== undefined)
       );
     }
 
@@ -7610,8 +7830,8 @@ export namespace Services {
       );
       if (!_.isEmpty(nextStepObj)) {
         const config = nextStepObj.config as AnyRecord;
-        currentRecObj.previousWorkflow = currentRecObj.workflow;
-        currentRecObj.workflow = config.workflow;
+        currentRecObj.previousWorkflow = _.cloneDeep(currentRecObj.workflow);
+        currentRecObj.workflow = _.cloneDeep(config.workflow);
         // TODO: validate data with form fields
         meta.form = config.form;
         // Check for JSON-LD config
@@ -7629,9 +7849,13 @@ export namespace Services {
         }
 
         // update authorizations based on workflow...
-        const configAuth = config.authorization as AnyRecord;
-        currentRecObj.authorization.viewRoles = currentRecObj.authorization.viewRoles ?? configAuth.viewRoles;
-        currentRecObj.authorization.editRoles = currentRecObj.authorization.editRoles ?? configAuth.editRoles;
+        const configAuth = this.recordObject(config.authorization);
+        const viewRoles = [...(this.asArray(configAuth.viewRoles) ?? [])];
+        const editRoles = [...(this.asArray(configAuth.editRoles) ?? [])];
+        currentRecObj.authorization.viewRoles = viewRoles;
+        currentRecObj.authorization.editRoles = editRoles;
+        currentRecObj.authorization_viewRoles = [...viewRoles];
+        currentRecObj.authorization_editRoles = [...editRoles];
       }
       sails.log.verbose(
         `transitionWorkflowStepMetadata - finish - previousWorkflow: ${currentRecObj.previousWorkflow}; workflow: ${currentRecObj.workflow}; nextStep: ${nextStepObj}`

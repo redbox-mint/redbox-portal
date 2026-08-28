@@ -24,6 +24,17 @@ describe('RecordTypesService', function () {
           recordTypeKey: 'dataset',
           bindings: [],
         },
+        automaticTransitions: [
+          {
+            schemaVersion: 1,
+            id: 'draft-to-published',
+            mode: 'automatic',
+            sourceStage: 'draft',
+            targetStage: 'published',
+            priority: 10,
+            condition: 'true',
+          },
+        ],
         transferResponsibility: false,
         relatedTo: [],
         searchable: true,
@@ -120,6 +131,17 @@ describe('RecordTypesService', function () {
         recordTypeKey: 'dataset',
         bindings: [],
       });
+      expect((global as any).RecordType.create.firstCall.args[0].automaticTransitions).to.deep.equal([
+        {
+          schemaVersion: 1,
+          id: 'draft-to-published',
+          mode: 'automatic',
+          sourceStage: 'draft',
+          targetStage: 'published',
+          priority: 10,
+          condition: 'true',
+        },
+      ]);
     });
 
     it('should destroy and recreate if bootstrapAlways is true', async function () {
