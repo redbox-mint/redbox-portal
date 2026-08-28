@@ -762,10 +762,140 @@ describe('registered action executor', () => {
     assert.equal(JSON.stringify(detachedOperation).includes('Detached replacement'), false);
   });
 
+  it('settles dependent detached actions exactly once when action completion observers throw', async function () {
+    this.timeout(2_000);
+    const producerId = parseActionDefinitionId('org.redbox.a08.throwing-observer-producer');
+    const consumerId = parseActionDefinitionId('org.redbox.a08.throwing-observer-consumer');
+    const producer = descriptor({
+      id: producerId,
+      scope: postScope,
+      outputFields: [{ name: 'ready', title: 'Ready', kind: 'boolean', required: true }],
+      safeFields: ['ready'],
+      handler: () => ({
+        schemaVersion: ACTION_RESULT_SCHEMA_VERSION,
+        kind: 'no-change',
+        output: { schemaVersion: ACTION_RESULT_SCHEMA_VERSION, fields: { ready: true } },
+      }),
+    });
+    const producerBinding = binding('dataset', producerId, postScope, 'producer', 10);
+    let consumerInvocations = 0;
+    const consumer = descriptor({
+      id: consumerId,
+      scope: postScope,
+      handler: () => {
+        consumerInvocations += 1;
+        return { schemaVersion: ACTION_RESULT_SCHEMA_VERSION, kind: 'no-change' };
+      },
+    });
+    const consumerBinding = binding('dataset', consumerId, postScope, 'consumer', 20, {
+      dependencies: [{ bindingId: producerBinding.id, condition: 'output-equals', field: 'ready', value: true }],
+    });
+    const supervisor = createActionExecutionSupervisor();
+    const observerCalls: number[] = [];
+    const diagnostics: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+    const operation = createActionExecutionOperation('onCreate');
+    let operationCompletionCalls = 0;
+    const completed = new Promise<void>(resolve => {
+      operation.onDetachedComplete = () => {
+        operationCompletionCalls += 1;
+        resolve();
+      };
+    });
+    const harness = executorHarness([producer, consumer], {
+      supervisor,
+      onDetachedActionComplete: (_context, result) => {
+        observerCalls.push(result.index);
+        throw new Error('observer failure containing secret-observer-material');
+      },
+      logger: {
+        error: (message, fields) => diagnostics.push({ message, fields }),
+      },
+    });
+
+    harness.executor.dispatchDetached(
+      plan('dataset', [producerBinding, consumerBinding]),
+      actionContext(operation.executionId, postScope, { metadata: { title: 'Persisted' } }),
+      operation
+    );
+
+    const completedBeforeDeadline = await Promise.race([
+      completed.then(() => true),
+      new Promise<boolean>(resolve => setTimeout(() => resolve(false), 100)),
+    ]);
+    if (!completedBeforeDeadline) {
+      supervisor?.interruptAll?.();
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+
+    assert.equal(completedBeforeDeadline, true);
+    assert.equal(consumerInvocations, 1);
+    assert.deepEqual(observerCalls.sort(), [0, 1]);
+    assert.equal(operation.detachedResults?.length, 2);
+    assert.deepEqual(
+      operation.detachedResults?.map(result => result.status),
+      ['succeeded', 'succeeded']
+    );
+    assert.equal(operation.detachedPending, 0);
+    assert.equal(operationCompletionCalls, 1);
+    assert.equal(typeof operation.detachedCompletedAt, 'string');
+    assert.equal(diagnostics.length, 2);
+    assert.equal(JSON.stringify(diagnostics).includes('secret-observer-material'), false);
+  });
+
+  it('isolates throwing operation completion observers without duplicate outcomes or unhandled rejections', async () => {
+    const actionId = parseActionDefinitionId('org.redbox.a08.throwing-operation-observer');
+    const action = descriptor({
+      id: actionId,
+      scope: postScope,
+      handler: () => ({ schemaVersion: ACTION_RESULT_SCHEMA_VERSION, kind: 'no-change' }),
+    });
+    const observerCalls: number[] = [];
+    const diagnostics: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+    const unhandledRejections: unknown[] = [];
+    const unhandledListener = (reason: unknown): void => {
+      unhandledRejections.push(reason);
+    };
+    process.on('unhandledRejection', unhandledListener);
+    try {
+      const operation = createActionExecutionOperation('onCreate');
+      let operationCompletionCalls = 0;
+      operation.onDetachedComplete = async () => {
+        operationCompletionCalls += 1;
+        await Promise.resolve();
+        throw new Error('operation observer failure containing secret-operation-material');
+      };
+      const harness = executorHarness([action], {
+        onDetachedActionComplete: (_context, result) => observerCalls.push(result.index),
+        logger: {
+          error: (message, fields) => diagnostics.push({ message, fields }),
+        },
+      });
+
+      harness.executor.dispatchDetached(
+        plan('dataset', [binding('dataset', actionId, postScope, 'operation-observer', 10)]),
+        actionContext(operation.executionId, postScope, { metadata: { title: 'Persisted' } }),
+        operation
+      );
+      await new Promise(resolve => setTimeout(resolve, 25));
+
+      assert.deepEqual(observerCalls, [0]);
+      assert.equal(operation.detachedResults?.length, 1);
+      assert.equal(operation.detachedResults?.[0]?.status, 'succeeded');
+      assert.equal(operation.detachedPending, 0);
+      assert.equal(operationCompletionCalls, 1);
+      assert.equal(diagnostics.length, 1);
+      assert.equal(JSON.stringify(diagnostics).includes('secret-operation-material'), false);
+      assert.deepEqual(unhandledRejections, []);
+    } finally {
+      process.off('unhandledRejection', unhandledListener);
+    }
+  });
+
   it('interrupts supervised detached work during shutdown with safe terminal metadata', async () => {
     const actionId = parseActionDefinitionId('org.redbox.a08.shutdown');
     const supervisor = createActionExecutionSupervisor();
     const completed: Array<{ status: string; cooperative?: boolean }> = [];
+    const diagnostics: string[] = [];
     const dependencies: ActionExecutionDependencies = {
       supervisor,
       onDetachedActionComplete: (_context, result) => {
@@ -773,7 +903,9 @@ describe('registered action executor', () => {
           status: result.status,
           cooperative: result.failure?.cancellationCooperative,
         });
+        throw new Error('shutdown observer failed');
       },
+      logger: { error: message => diagnostics.push(message) },
     };
     const action = descriptor({
       id: actionId,
@@ -781,6 +913,13 @@ describe('registered action executor', () => {
       handler: () => new Promise<ActionResult>(() => undefined),
     });
     const operation = createActionExecutionOperation('onCreate');
+    let shutdownCompletions = 0;
+    const shutdownCompleted = new Promise<void>(resolve => {
+      operation.onDetachedComplete = () => {
+        shutdownCompletions += 1;
+        resolve();
+      };
+    });
     const harness = executorHarness([action], dependencies);
     harness.executor.dispatchDetached(
       plan('dataset', [binding('dataset', actionId, postScope, 'shutdown', 10)]),
@@ -789,10 +928,17 @@ describe('registered action executor', () => {
     );
     await tick();
     supervisor?.interruptAll?.();
-    await new Promise(resolve => setTimeout(resolve, 25));
+    const completedBeforeDeadline = await Promise.race([
+      shutdownCompleted.then(() => true),
+      new Promise<boolean>(resolve => setTimeout(() => resolve(false), 100)),
+    ]);
 
+    assert.equal(completedBeforeDeadline, true);
     assert.deepEqual(completed, [{ status: 'interrupted', cooperative: false }]);
     assert.equal(operation.detachedPending, 0);
+    assert.equal(operation.detachedResults?.length, 1);
+    assert.equal(shutdownCompletions, 1);
+    assert.deepEqual(diagnostics, ['record_hook_detached_completion_observer_failed']);
     assert.deepEqual(projectRecordHookExecutionAuditSummary(operation).counts, { interrupted: 1 });
   });
 
