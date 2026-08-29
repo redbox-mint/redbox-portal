@@ -37,10 +37,22 @@ const allowedExclusionEntryKeys = new Set(['path', 'kind', 'source', 'rationale'
 const allowedExclusionKinds = new Set(['generated', 'vendored']);
 const maximumTrackedInvocationArguments = 64;
 const maximumTrackedPositionalAlternatives = 64;
+const maximumDependencyCompositionWork = 4096;
 const maximumSyntacticNesting = 256;
 const maximumFindingsPerFile = 128;
 const maximumRepositoryFindings = 512;
 const analysisLimitKind = 'analysis-limit';
+const positionalMutationMethods = new Set([
+  'copyWithin',
+  'fill',
+  'pop',
+  'push',
+  'reverse',
+  'shift',
+  'sort',
+  'splice',
+  'unshift',
+]);
 const origins = Object.freeze({
   builtinEval: 'builtin-eval',
   globalObject: 'global-object',
@@ -154,7 +166,23 @@ function collectBindings(sourceFile) {
   const propagationQueue = [];
   const queuedPropagationOperations = new Set();
   const unknownValueAtom = Object.freeze({ kind: 'unknown-value' });
+  let remainingDependencyCompositionWork = maximumDependencyCompositionWork;
+  let dependencyCompositionLimit;
   let activePropagationOperation;
+
+  function consumeDependencyCompositionWork(node) {
+    if (remainingDependencyCompositionWork > 0) {
+      remainingDependencyCompositionWork -= 1;
+      return true;
+    }
+    if (!dependencyCompositionLimit) {
+      dependencyCompositionLimit = {
+        reason: 'dependency-composition-limit',
+        position: node.getStart(sourceFile),
+      };
+    }
+    return false;
+  }
 
   function createScope(parent, kind) {
     return { parent, kind, bindings: new Map() };
@@ -597,6 +625,35 @@ function collectBindings(sourceFile) {
     if (changed) notifyPropagationSubscribers(carrier);
   }
 
+  function invalidateCarrierPositionalLayout(carrier) {
+    if (!carrier.positional) return;
+    const uncertainValues = new Set();
+    for (const [propertyName, propertyValue] of carrier.properties) {
+      if (/^(0|[1-9]\d*)$/.test(propertyName)) mergeValue(uncertainValues, propertyValue);
+    }
+    mergeCarrierPositionalState(carrier, new Set(), true, uncertainValues);
+  }
+
+  function invalidatePositionalWrite(node) {
+    const current = unwrapExpression(node);
+    if (!ts.isPropertyAccessExpression(current) && !ts.isElementAccessExpression(current)) return;
+    const propertyNames = memberPropertyNames(current);
+    if (propertyNames !== undefined && !propertyNames.includes('length')) return;
+    for (const atom of evaluateExpression(current.expression)) {
+      if (typeof atom !== 'string' && atom.kind === 'carrier') invalidateCarrierPositionalLayout(atom);
+    }
+  }
+
+  function invalidatePositionalMutationCall(node) {
+    const callee = unwrapExpression(node.expression);
+    if (!ts.isPropertyAccessExpression(callee) && !ts.isElementAccessExpression(callee)) return;
+    const propertyNames = memberPropertyNames(callee);
+    if (propertyNames !== undefined && !propertyNames.some(name => positionalMutationMethods.has(name))) return;
+    for (const atom of evaluateExpression(callee.expression)) {
+      if (typeof atom !== 'string' && atom.kind === 'carrier') invalidateCarrierPositionalLayout(atom);
+    }
+  }
+
   function spreadProperties(carrier, value) {
     for (const atom of value) {
       if (typeof atom === 'string') {
@@ -732,6 +789,11 @@ function collectBindings(sourceFile) {
   function invokeTracked(callable, argumentValues, invocationNode, seen = new Set()) {
     const invocation = { result: new Set(), kinds: new Set() };
     for (const atom of callable) {
+      if (!isTrackedCallable(atom)) continue;
+      if (!consumeDependencyCompositionWork(invocationNode)) {
+        invocation.kinds.add(analysisLimitKind);
+        break;
+      }
       if (atom === origins.builtinEval) {
         invocation.kinds.add('direct-eval');
       } else if (atom === origins.lodashTemplate) {
@@ -849,7 +911,7 @@ function collectBindings(sourceFile) {
     for (const layout of expansion.layouts) {
       mergeInvocation(invocation, invokeTracked(callee, layout, invocationNode));
     }
-    mergePositionalLimit(invocation, expansion);
+    if (hasTrackedCallable(callee)) mergePositionalLimit(invocation, expansion);
     return invocation;
   }
 
@@ -978,9 +1040,11 @@ function collectBindings(sourceFile) {
       return;
     }
     if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
+      const propertyNames = memberPropertyNames(current);
+      invalidatePositionalWrite(current);
       for (const atom of evaluateExpression(current.expression)) {
         if (typeof atom !== 'string' && atom.kind === 'carrier') {
-          putCarrierProperty(atom, memberPropertyNames(current), value);
+          putCarrierProperty(atom, propertyNames, value);
         }
       }
       return;
@@ -1042,6 +1106,15 @@ function collectBindings(sourceFile) {
       ].includes(node.operatorToken.kind)
     ) {
       operation = () => assignToTarget(node.left, evaluateExpression(node.right));
+    } else if (ts.isBinaryExpression(node) && ts.isAssignmentOperator(node.operatorToken.kind)) {
+      operation = () => invalidatePositionalWrite(node.left);
+    } else if (
+      (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+      (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)
+    ) {
+      operation = () => invalidatePositionalWrite(node.operand);
+    } else if (ts.isCallExpression(node)) {
+      operation = () => invalidatePositionalMutationCall(node);
     } else if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) {
       operation = () => evaluateExpression(node);
     }
@@ -1073,7 +1146,11 @@ function collectBindings(sourceFile) {
     return evaluateInvocation(node.tag, [], node).kinds;
   }
 
-  return { unsafeKindsForCall, unsafeKindsForNew, unsafeKindsForTag };
+  function analysisLimit() {
+    return dependencyCompositionLimit;
+  }
+
+  return { analysisLimit, unsafeKindsForCall, unsafeKindsForNew, unsafeKindsForTag };
 }
 
 function findingFingerprint(kind, sourceText) {
@@ -1140,6 +1217,10 @@ function scanSource(source, relativePath) {
 
   try {
     const bindings = collectBindings(sourceFile);
+    const initialAnalysisLimit = bindings.analysisLimit();
+    if (initialAnalysisLimit) {
+      return [analysisLimitFinding(normalizedPath, source, initialAnalysisLimit.reason, initialAnalysisLimit.position)];
+    }
     const findings = [];
     const pending = [sourceFile];
 
@@ -1169,6 +1250,17 @@ function scanSource(source, relativePath) {
         addFindings(node, bindings.unsafeKindsForNew(node));
       } else if (ts.isTaggedTemplateExpression(node)) {
         addFindings(node, bindings.unsafeKindsForTag(node));
+      }
+      const invocationAnalysisLimit = bindings.analysisLimit();
+      if (invocationAnalysisLimit) {
+        return [
+          analysisLimitFinding(
+            normalizedPath,
+            source,
+            invocationAnalysisLimit.reason,
+            invocationAnalysisLimit.position
+          ),
+        ];
       }
       const children = [];
       ts.forEachChild(node, child => {
