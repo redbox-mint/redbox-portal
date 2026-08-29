@@ -453,6 +453,8 @@ function collectBindings(sourceFile) {
       unknownProperty: new Set(),
       positional,
       positionalLengths: new Set(),
+      positionalOverflowStart: undefined,
+      overflowPositionalValues: new Set(),
       positionalUncertain: false,
       uncertainPositionalValues: new Set(),
     };
@@ -1125,6 +1127,32 @@ function collectBindings(sourceFile) {
       return ts.isCallExpression(wrapped.parent) && wrapped.parent.expression === wrapped;
     }
 
+    function nestedFunctionResultMayBeInvoked(current) {
+      const bindings = new Set();
+      if (ts.isFunctionDeclaration(current) && current.name) {
+        const binding = declarationBindings.get(current.name);
+        if (binding) bindings.add(binding);
+      }
+      const parent = current.parent;
+      if (ts.isVariableDeclaration(parent) && parent.initializer === current && ts.isIdentifier(parent.name)) {
+        const binding = declarationBindings.get(parent.name);
+        if (binding) bindings.add(binding);
+      }
+      if (
+        ts.isBinaryExpression(parent) &&
+        parent.right === current &&
+        parent.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        ts.isIdentifier(unwrapExpression(parent.left))
+      ) {
+        const binding = lookupBinding(unwrapExpression(parent.left));
+        if (binding) bindings.add(binding);
+      }
+      return effectCalls.some(call => {
+        const expression = unwrapExpression(call.expression);
+        return ts.isCallExpression(expression) && bindings.has(callRootBinding(expression));
+      });
+    }
+
     function collectInvocationEffects(current) {
       if (remainingInvocationEffectWork <= 0) {
         effectProvenanceUncertain = true;
@@ -1135,14 +1163,29 @@ function collectBindings(sourceFile) {
       if (current !== node.body && ts.isFunctionLike(current)) {
         if (!nestedFunctionMayBeInvoked(current)) return;
         const nested = functionHasPotentialTrackedReturn(current);
-        if (nested.hasInvocationEffects || nested.hasGetterReads || nested.effectProvenanceUncertain) {
-          if (nested.hasInvocationEffects) hasInvocationEffects = true;
+        const invokesReturnedCallable = nested.mayTrackCallResult && nestedFunctionResultMayBeInvoked(current);
+        if (
+          nested.hasInvocationEffects ||
+          nested.hasGetterReads ||
+          nested.effectProvenanceUncertain ||
+          invokesReturnedCallable
+        ) {
+          if (nested.hasInvocationEffects || invokesReturnedCallable) hasInvocationEffects = true;
           if (nested.hasGetterReads) hasGetterReads = true;
           if (nested.effectProvenanceUncertain) effectProvenanceUncertain = true;
-          for (const binding of new Set([...nested.outerEffectBindings, ...nested.getterReadOuterBindings])) {
+          const composedBindings = invokesReturnedCallable
+            ? new Set([...nested.outerEffectBindings, ...nested.getterReadOuterBindings, ...nested.outerReturnBindings])
+            : new Set([...nested.outerEffectBindings, ...nested.getterReadOuterBindings]);
+          for (const binding of composedBindings) {
             if (parameterBindings.has(binding)) referencedEffectParameters.add(binding);
             else if (!bindingIsLocal(binding)) referencedOuterBindings.add(binding);
             else effectProvenanceUncertain = true;
+          }
+          if (
+            invokesReturnedCallable &&
+            (nested.parameterDependentReturn || nested.receiverDependentReturn || nested.returnProvenanceUncertain)
+          ) {
+            effectProvenanceUncertain = true;
           }
           if (ts.isArrowFunction(current) && nested.receiverInvocationEffect) {
             receiverInvocationEffect = true;
@@ -1173,6 +1216,9 @@ function collectBindings(sourceFile) {
       ts.forEachChild(current, collectInvocationEffects);
     }
 
+    for (const parameter of node.parameters) {
+      if (parameter.initializer) collectInvocationEffects(parameter.initializer);
+    }
     if (node.body) collectInvocationEffects(node.body);
     if (hasInvocationEffects) {
       for (const binding of referencedOuterBindings) outerEffectBindings.add(binding);
@@ -2093,6 +2139,19 @@ function collectBindings(sourceFile) {
       ) {
         mergeValue(result, atom.uncertainPositionalValues);
       }
+      if (
+        includeUncertainPositionalValues &&
+        atom.positionalOverflowStart !== undefined &&
+        (propertyNames === undefined ||
+          propertyNames.some(
+            propertyName => /^(0|[1-9]\d*)$/.test(propertyName) && Number(propertyName) >= atom.positionalOverflowStart
+          ))
+      ) {
+        mergeValue(result, atom.overflowPositionalValues);
+        if (hasUnsafePositionalValue(atom.overflowPositionalValues)) {
+          mergeValue(result, unknownReflectiveCallableValue());
+        }
+      }
       mergeValue(result, accessorReturnedValues(atom.unknownAccessors.get, value));
       mergeValue(
         result,
@@ -2136,6 +2195,13 @@ function collectBindings(sourceFile) {
       return;
     }
     for (const propertyName of propertyNames) {
+      if (carrier.positional && /^(0|[1-9]\d*)$/.test(propertyName)) {
+        const index = Number(propertyName);
+        if (Number.isSafeInteger(index) && index >= maximumTrackedInvocationArguments) {
+          mergeCarrierPositionalOverflow(carrier, maximumTrackedInvocationArguments, value);
+          continue;
+        }
+      }
       let target = carrier.properties.get(propertyName);
       if (!target) {
         target = new Set();
@@ -2153,6 +2219,18 @@ function collectBindings(sourceFile) {
         }
       }
     }
+  }
+
+  function mergeCarrierPositionalOverflow(carrier, overflowStart, overflowValues) {
+    if (overflowStart === undefined) return;
+    let changed = false;
+    const boundedStart = Math.max(0, Math.min(overflowStart, maximumTrackedInvocationArguments));
+    if (carrier.positionalOverflowStart === undefined || boundedStart < carrier.positionalOverflowStart) {
+      carrier.positionalOverflowStart = boundedStart;
+      changed = true;
+    }
+    if (mergeValue(carrier.overflowPositionalValues, overflowValues)) changed = true;
+    if (changed) notifyPropagationSubscribers(carrier);
   }
 
   function mergeCarrierPositionalState(carrier, lengths, positionalUncertain, uncertainValues) {
@@ -2189,6 +2267,7 @@ function collectBindings(sourceFile) {
     for (const [propertyName, propertyValue] of carrier.properties) {
       if (/^(0|[1-9]\d*)$/.test(propertyName)) mergeValue(uncertainValues, propertyValue);
     }
+    mergeValue(uncertainValues, carrier.overflowPositionalValues);
     mergeValue(uncertainValues, additionalValues);
     mergeCarrierPositionalState(carrier, new Set(), true, uncertainValues);
   }
@@ -3082,6 +3161,13 @@ function collectBindings(sourceFile) {
       putCarrierProperty(restCarrier, undefined, atom.unknownProperty);
       for (const length of atom.positionalLengths) restLengths.add(Math.max(0, length - startIndex));
       mergeValue(uncertainValues, atom.uncertainPositionalValues);
+      if (atom.positionalOverflowStart !== undefined) {
+        mergeCarrierPositionalOverflow(
+          restCarrier,
+          Math.max(0, atom.positionalOverflowStart - startIndex),
+          atom.overflowPositionalValues
+        );
+      }
     }
     for (const layout of expansion.layouts) {
       for (let index = startIndex; index < layout.length; index += 1) {
@@ -3090,6 +3176,13 @@ function collectBindings(sourceFile) {
       restLengths.add(Math.max(0, layout.length - startIndex));
     }
     mergeValue(uncertainValues, expansion.uncertainValues);
+    if (expansion.positionalOverflowStart !== undefined) {
+      mergeCarrierPositionalOverflow(
+        restCarrier,
+        Math.max(0, expansion.positionalOverflowStart - startIndex),
+        expansion.overflowPositionalValues
+      );
+    }
     mergeCarrierPositionalState(
       restCarrier,
       restLengths,
@@ -3108,12 +3201,14 @@ function collectBindings(sourceFile) {
     return ts.isIdentifier(callee) && callee.text === 'require' && !lookupBinding(callee);
   }
 
-  function boundCallableFor(node, target, boundThis, boundArguments) {
+  function boundCallableFor(node, target, boundThis, boundArguments, boundArgumentExpansion) {
     const atom = invocationScopedValue(boundCallableAtoms, 'boundCallableAtoms', node, () => ({
       kind: 'bound-callable',
       target: new Set(),
       boundThis: new Set(),
       boundArguments: [],
+      boundArgumentOverflowStart: undefined,
+      boundOverflowValues: new Set(),
     }));
     mergeCallableValue(atom, atom.target, target);
     mergeCallableValue(atom, atom.boundThis, boundThis);
@@ -3125,7 +3220,29 @@ function collectBindings(sourceFile) {
       }
       mergeCallableValue(atom, storedValue, boundValue);
     }
+    if (boundArgumentExpansion?.positionalOverflowStart !== undefined) {
+      if (
+        atom.boundArgumentOverflowStart === undefined ||
+        boundArgumentExpansion.positionalOverflowStart < atom.boundArgumentOverflowStart
+      ) {
+        atom.boundArgumentOverflowStart = boundArgumentExpansion.positionalOverflowStart;
+      }
+      mergeCallableValue(atom, atom.boundOverflowValues, boundArgumentExpansion.overflowPositionalValues);
+    }
     return atom;
+  }
+
+  function boundInvocationOverflow(atom, argumentExpansion, argumentValues) {
+    if (atom.boundArgumentOverflowStart !== undefined) {
+      const overflowValues = new Set(atom.boundOverflowValues);
+      for (const argumentValue of argumentValues) mergeValue(overflowValues, argumentValue);
+      if (argumentExpansion) mergeValue(overflowValues, argumentExpansion.overflowPositionalValues);
+      return {
+        positionalOverflowStart: atom.boundArgumentOverflowStart,
+        overflowPositionalValues: overflowValues,
+      };
+    }
+    return shiftedPositionalOverflow(argumentExpansion, atom.boundArguments.length);
   }
 
   function carrierPositionValue(carrier, index) {
@@ -3156,7 +3273,9 @@ function collectBindings(sourceFile) {
   function positionalLayouts(value) {
     const layouts = [];
     const uncertainValues = new Set();
+    const overflowPositionalValues = new Set();
     let uncertainPositioning = value.size === 0;
+    let positionalOverflowStart;
 
     for (const atom of value) {
       if (typeof atom !== 'string' && atom.kind === 'iterator-instance') {
@@ -3221,6 +3340,13 @@ function collectBindings(sourceFile) {
         uncertainPositioning = true;
       }
       mergeValue(uncertainValues, atom.uncertainPositionalValues);
+      if (
+        atom.positionalOverflowStart !== undefined &&
+        (positionalOverflowStart === undefined || atom.positionalOverflowStart < positionalOverflowStart)
+      ) {
+        positionalOverflowStart = atom.positionalOverflowStart;
+      }
+      mergeValue(overflowPositionalValues, atom.overflowPositionalValues);
       if (atom.positionalUncertain || atom.unknownProperty.size > 0) {
         uncertainPositioning = true;
         mergeValue(uncertainValues, atom.unknownProperty);
@@ -3237,22 +3363,46 @@ function collectBindings(sourceFile) {
       }
     }
 
-    return { layouts, uncertainPositioning, uncertainValues };
+    return {
+      layouts,
+      uncertainPositioning,
+      uncertainValues,
+      positionalOverflowStart,
+      overflowPositionalValues,
+    };
   }
 
   function positionalValueAt(expansion, index) {
     const result = new Set();
     for (const layout of expansion.layouts) mergeValue(result, layout[index] ?? new Set());
     if (expansion.uncertainPositioning) mergeValue(result, expansion.uncertainValues);
+    if (expansion.positionalOverflowStart !== undefined && index >= expansion.positionalOverflowStart) {
+      mergeValue(result, expansion.overflowPositionalValues);
+      if (hasUnsafePositionalValue(expansion.overflowPositionalValues)) {
+        mergeValue(result, unknownReflectiveCallableValue());
+      }
+    }
     return result;
   }
 
   function allPositionalValues(expansion) {
     const result = new Set(expansion.uncertainValues);
+    mergeValue(result, expansion.overflowPositionalValues ?? new Set());
+    if (hasUnsafePositionalValue(expansion.overflowPositionalValues ?? new Set())) {
+      mergeValue(result, unknownReflectiveCallableValue());
+    }
     for (const layout of expansion.layouts) {
       for (const value of layout) mergeValue(result, value);
     }
     return result;
+  }
+
+  function shiftedPositionalOverflow(expansion, offset) {
+    if (!expansion || expansion.positionalOverflowStart === undefined) return undefined;
+    return {
+      positionalOverflowStart: Math.max(0, expansion.positionalOverflowStart + offset),
+      overflowPositionalValues: expansion.overflowPositionalValues,
+    };
   }
 
   function mergeInvocation(target, source) {
@@ -3364,24 +3514,47 @@ function collectBindings(sourceFile) {
       mergeValue(uncertainValues, unknownReflectiveCallableValue());
     }
     mergeCarrierPositionalState(array, lengths, expansion.uncertainPositioning, uncertainValues);
+    const overflowValues = new Set(includesUnmapped ? expansion.overflowPositionalValues : []);
+    if (callableMapper.size > 0 && expansion.positionalOverflowStart !== undefined) {
+      resetMapperInvocationState(callableMapper, invocationNode);
+      const callbackInvocation = mapperInvocationValue(
+        callableMapper,
+        [expansion.overflowPositionalValues, unknownValue()],
+        argumentValues[2] ?? new Set(),
+        invocationNode
+      );
+      mergeValue(overflowValues, callbackInvocation.result);
+      mergeValue(kinds, callbackInvocation.kinds);
+    }
+    mergeCarrierPositionalOverflow(array, expansion.positionalOverflowStart, overflowValues);
     return { result: new Set([array]), kinds };
   }
 
-  function arrayOfValue(argumentValues, invocationNode) {
+  function arrayOfValue(argumentValues, invocationNode, argumentExpansion) {
     const array = syntheticCarrierFor(invocationNode, 'array-of-result', true);
     for (const [index, value] of argumentValues.entries()) {
       putCarrierProperty(array, [String(index)], value);
     }
     mergeCarrierPositionalState(array, new Set([argumentValues.length]), false, new Set());
+    mergeCarrierPositionalOverflow(
+      array,
+      argumentExpansion?.positionalOverflowStart,
+      argumentExpansion?.overflowPositionalValues ?? new Set()
+    );
     return new Set([array]);
   }
 
-  function arrayConstructorValue(argumentValues, invocationNode) {
+  function arrayConstructorValue(argumentValues, invocationNode, argumentExpansion) {
     const array = syntheticCarrierFor(invocationNode, 'array-constructor-result', true);
     for (const [index, value] of argumentValues.entries()) {
       putCarrierProperty(array, [String(index)], value);
     }
     mergeCarrierPositionalState(array, new Set([argumentValues.length]), false, new Set());
+    mergeCarrierPositionalOverflow(
+      array,
+      argumentExpansion?.positionalOverflowStart,
+      argumentExpansion?.overflowPositionalValues ?? new Set()
+    );
     return new Set([array]);
   }
 
@@ -3455,7 +3628,9 @@ function collectBindings(sourceFile) {
     mergeCarrierPrototypes(carrier, originValue(origins.mapPrototype));
     if (argumentValues.length === 0) return new Set([carrier]);
     const entries = positionalLayouts(argumentValues[0] ?? new Set());
-    if (entries.uncertainPositioning) markCollectionUnknown(carrier);
+    if (entries.uncertainPositioning || entries.positionalOverflowStart !== undefined) {
+      markCollectionUnknown(carrier);
+    }
     let entryCount = 0;
     for (const layout of entries.layouts) {
       for (const entry of layout) {
@@ -3481,7 +3656,9 @@ function collectBindings(sourceFile) {
     if (argumentValues.length === 0) return new Set([carrier]);
     const expansion = positionalLayouts(argumentValues[0] ?? new Set());
     mergeCollectionValue(carrier, allPositionalValues(expansion));
-    if (expansion.uncertainPositioning) markCollectionUnknown(carrier);
+    if (expansion.uncertainPositioning || expansion.positionalOverflowStart !== undefined) {
+      markCollectionUnknown(carrier);
+    }
     return new Set([carrier]);
   }
 
@@ -3698,6 +3875,21 @@ function collectBindings(sourceFile) {
       mergeValue(uncertainValues, unknownReflectiveCallableValue());
     }
     mergeCarrierPositionalState(mapped, lengths, expansion.uncertainPositioning, uncertainValues);
+    let finalExpansion = positionalLayouts(receiverValue);
+    const overflowValues = new Set();
+    if (finalExpansion.positionalOverflowStart !== undefined) {
+      resetMapperInvocationState(callback, invocationNode);
+      const callbackInvocation = mapperInvocationValue(
+        callback,
+        [finalExpansion.overflowPositionalValues, unknownValue(), receiverValue],
+        argumentValues[1] ?? new Set(),
+        invocationNode
+      );
+      mergeValue(overflowValues, callbackInvocation.result);
+      mergeValue(kinds, callbackInvocation.kinds);
+      finalExpansion = positionalLayouts(receiverValue);
+    }
+    mergeCarrierPositionalOverflow(mapped, finalExpansion.positionalOverflowStart, overflowValues);
     inputSignature = `${receiverValue.size}:${callback.size}`;
     for (const atom of new Set([...receiverValue, ...callback])) {
       inputSignature +=
@@ -3947,12 +4139,14 @@ function collectBindings(sourceFile) {
           atom.unknownAccessors.get,
           atom.unknownAccessors.set,
           atom.uncertainPositionalValues,
+          atom.overflowPositionalValues,
         ];
         if (nestedValues.some(nested => valueCarriesCarrier(nested, seen, remaining))) return true;
       } else if (atom.kind === 'bound-callable') {
         if (
           valueCarriesCarrier(atom.boundThis, seen, remaining) ||
-          atom.boundArguments.some(argument => valueCarriesCarrier(argument, seen, remaining))
+          atom.boundArguments.some(argument => valueCarriesCarrier(argument, seen, remaining)) ||
+          valueCarriesCarrier(atom.boundOverflowValues, seen, remaining)
         ) {
           return true;
         }
@@ -3993,6 +4187,7 @@ function collectBindings(sourceFile) {
       if (atom.kind === 'bound-callable') {
         markInvocationSensitive(atom.boundThis, seen, remaining);
         for (const argument of atom.boundArguments) markInvocationSensitive(argument, seen, remaining);
+        markInvocationSensitive(atom.boundOverflowValues, seen, remaining);
       }
     }
   }
@@ -4052,6 +4247,7 @@ function collectBindings(sourceFile) {
             atom.unknownAccessors.get,
             atom.unknownAccessors.set,
             atom.uncertainPositionalValues,
+            atom.overflowPositionalValues,
           ];
           if (nestedValues.some(nested => carries(nested, seen, remaining))) return true;
         } else if (
@@ -4121,6 +4317,7 @@ function collectBindings(sourceFile) {
         atom.unknownProperty,
         atom.unknownAccessors.get,
         atom.unknownAccessors.set,
+        atom.overflowPositionalValues,
       ];
       if (nestedValues.some(nested => returnBindingCarriesTrackedProvenance(nested, seen, remaining, includeUnknown))) {
         return true;
@@ -4136,7 +4333,8 @@ function collectBindings(sourceFile) {
     seen = new Set(),
     thisValue,
     suppressUnknownCallableLimit = false,
-    forceFunctionInvocation = false
+    forceFunctionInvocation = false,
+    argumentExpansion
   ) {
     const invocation = { result: new Set(), kinds: new Set() };
     if (activeCallableRecursionDepth >= maximumCallableRecursionDepth) {
@@ -4236,13 +4434,13 @@ function collectBindings(sourceFile) {
         } else if (atom === origins.knownSafeCallable) {
           invocation.result.add(knownDataAtom);
         } else if (atom === origins.arrayObject) {
-          mergeValue(invocation.result, arrayConstructorValue(argumentValues, invocationNode));
+          mergeValue(invocation.result, arrayConstructorValue(argumentValues, invocationNode, argumentExpansion));
         } else if (atom === origins.arrayFrom) {
           mergeInvocation(invocation, arrayFromValue(argumentValues, invocationNode));
         } else if (atom === origins.arrayMap) {
           mergeInvocation(invocation, arrayMapValue(argumentValues, thisValue ?? new Set(), invocationNode));
         } else if (atom === origins.arrayOf) {
-          mergeValue(invocation.result, arrayOfValue(argumentValues, invocationNode));
+          mergeValue(invocation.result, arrayOfValue(argumentValues, invocationNode, argumentExpansion));
         } else if (atom === origins.arrayIterator) {
           const receiver = thisValue ?? new Set();
           const expansion = positionalLayouts(receiver);
@@ -4345,7 +4543,16 @@ function collectBindings(sourceFile) {
           for (const layout of layouts) {
             mergeInvocation(
               invocation,
-              invokeTracked(target, layout, invocationNode, seen, targetThisValue, true, forceFunctionInvocation)
+              invokeTracked(
+                target,
+                layout,
+                invocationNode,
+                seen,
+                targetThisValue,
+                true,
+                forceFunctionInvocation,
+                expansion
+              )
             );
           }
           if (hasUnsafeCallable(target)) mergePositionalLimit(invocation, expansion);
@@ -4385,7 +4592,8 @@ function collectBindings(sourceFile) {
               seen,
               argumentValues[0],
               suppressUnknownCallableLimit,
-              forceFunctionInvocation
+              forceFunctionInvocation,
+              shiftedPositionalOverflow(argumentExpansion, -1)
             )
           );
         } else if (atom === origins.functionPrototypeApply) {
@@ -4401,7 +4609,8 @@ function collectBindings(sourceFile) {
                 seen,
                 argumentValues[0],
                 suppressUnknownCallableLimit,
-                forceFunctionInvocation
+                forceFunctionInvocation,
+                expansion
               )
             );
           }
@@ -4412,7 +4621,8 @@ function collectBindings(sourceFile) {
               invocationNode,
               thisValue ?? new Set(),
               argumentValues[0] ?? new Set(),
-              argumentValues.slice(1)
+              argumentValues.slice(1),
+              shiftedPositionalOverflow(argumentExpansion, -1)
             )
           );
         } else if (applyPositionalMutationIntrinsic(atom, argumentValues, thisValue, invocationNode)) {
@@ -4453,6 +4663,7 @@ function collectBindings(sourceFile) {
             trackPropagationDependency(atom.target);
             trackPropagationDependency(atom.boundThis);
             for (const boundArgument of atom.boundArguments) trackPropagationDependency(boundArgument);
+            trackPropagationDependency(atom.boundOverflowValues);
             mergeInvocation(
               invocation,
               invokeTracked(
@@ -4462,7 +4673,8 @@ function collectBindings(sourceFile) {
                 nextSeen,
                 atom.boundThis,
                 suppressUnknownCallableLimit,
-                forceFunctionInvocation
+                forceFunctionInvocation,
+                boundInvocationOverflow(atom, argumentExpansion, argumentValues)
               )
             );
           } else if (atom.kind === 'invocation-method' && atom.method === 'call') {
@@ -4493,7 +4705,8 @@ function collectBindings(sourceFile) {
                   nextSeen,
                   argumentValues[0],
                   suppressUnknownCallableLimit,
-                  forceFunctionInvocation
+                  forceFunctionInvocation,
+                  expansion
                 )
               );
             }
@@ -4501,7 +4714,13 @@ function collectBindings(sourceFile) {
           } else if (atom.kind === 'invocation-method' && atom.method === 'bind') {
             trackPropagationDependency(atom.target);
             invocation.result.add(
-              boundCallableFor(invocationNode, atom.target, argumentValues[0] ?? new Set(), argumentValues.slice(1))
+              boundCallableFor(
+                invocationNode,
+                atom.target,
+                argumentValues[0] ?? new Set(),
+                argumentValues.slice(1),
+                shiftedPositionalOverflow(argumentExpansion, -1)
+              )
             );
           }
         }
@@ -4591,14 +4810,23 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function appendPositionalValue(layout, value, uncertainValues) {
+  function mergeExpansionOverflow(expansion, overflowStart, overflowValues) {
+    if (overflowStart === undefined) return;
+    const boundedStart = Math.max(0, Math.min(overflowStart, maximumTrackedInvocationArguments));
+    if (expansion.positionalOverflowStart === undefined || boundedStart < expansion.positionalOverflowStart) {
+      expansion.positionalOverflowStart = boundedStart;
+    }
+    mergeValue(expansion.overflowPositionalValues, overflowValues);
+  }
+
+  function appendPositionalValue(expansion, layout, value) {
     const result = [...layout];
-    if (result.length < maximumTrackedInvocationArguments) {
+    if (expansion.positionalOverflowStart !== undefined) {
+      mergeValue(expansion.overflowPositionalValues, value);
+    } else if (result.length < maximumTrackedInvocationArguments) {
       result.push(value);
     } else {
-      mergeValue(result[maximumTrackedInvocationArguments - 1], value);
-      mergeValue(uncertainValues, value);
-      mergeValue(uncertainValues, unknownReflectiveCallableValue());
+      mergeExpansionOverflow(expansion, maximumTrackedInvocationArguments, value);
     }
     return result;
   }
@@ -4611,12 +4839,11 @@ function collectBindings(sourceFile) {
 
   function appendExpansionValue(expansion, value) {
     if (expansion.uncertainPositioning) mergeValue(expansion.uncertainValues, value);
-    expansion.layouts = expansion.layouts.map(layout =>
-      appendPositionalValue(layout, value, expansion.uncertainValues)
-    );
+    expansion.layouts = expansion.layouts.map(layout => appendPositionalValue(expansion, layout, value));
   }
 
   function appendSpreadExpansion(expansion, spreadExpansion) {
+    const prefixLayouts = expansion.layouts;
     if (expansion.uncertainPositioning) mergeLayoutValues(expansion.uncertainValues, spreadExpansion.layouts);
     mergeValue(expansion.uncertainValues, spreadExpansion.uncertainValues);
     if (spreadExpansion.uncertainPositioning) {
@@ -4625,11 +4852,11 @@ function collectBindings(sourceFile) {
     }
     const suffixes = spreadExpansion.layouts.length > 0 ? spreadExpansion.layouts : [[]];
     const combined = [];
-    for (const prefix of expansion.layouts) {
+    for (const prefix of prefixLayouts) {
       for (const suffix of suffixes) {
         let layout = prefix;
         for (const value of suffix) {
-          layout = appendPositionalValue(layout, value, expansion.uncertainValues);
+          layout = appendPositionalValue(expansion, layout, value);
         }
         if (combined.length < maximumTrackedPositionalAlternatives) {
           combined.push(layout);
@@ -4640,10 +4867,22 @@ function collectBindings(sourceFile) {
       }
     }
     expansion.layouts = combined;
+    if (spreadExpansion.positionalOverflowStart !== undefined) {
+      const shiftedOverflowStart = Math.min(
+        ...prefixLayouts.map(prefix => prefix.length + spreadExpansion.positionalOverflowStart)
+      );
+      mergeExpansionOverflow(expansion, shiftedOverflowStart, spreadExpansion.overflowPositionalValues);
+    }
   }
 
   function positionalExpansionForNodes(nodes) {
-    const expansion = { layouts: [[]], uncertainPositioning: false, uncertainValues: new Set() };
+    const expansion = {
+      layouts: [[]],
+      uncertainPositioning: false,
+      uncertainValues: new Set(),
+      positionalOverflowStart: undefined,
+      overflowPositionalValues: new Set(),
+    };
     for (const node of nodes) {
       if (ts.isOmittedExpression(node)) {
         appendExpansionValue(expansion, new Set());
@@ -4671,7 +4910,10 @@ function collectBindings(sourceFile) {
       const expansion = positionalExpansionForNodes(argumentNodes);
       const invocation = { result: new Set(), kinds: new Set() };
       for (const layout of expansion.layouts) {
-        mergeInvocation(invocation, invokeTracked(callee, layout, invocationNode, new Set(), thisValue));
+        mergeInvocation(
+          invocation,
+          invokeTracked(callee, layout, invocationNode, new Set(), thisValue, false, false, expansion)
+        );
       }
       if (hasUnsafeCallable(callee)) mergePositionalLimit(invocation, expansion);
       if (
@@ -4720,6 +4962,9 @@ function collectBindings(sourceFile) {
     for (const targetValue of possibleTargets) {
       const carriers = new Set([...targetValue].filter(atom => typeof atom !== 'string' && atom.kind === 'carrier'));
       if (carriers.size === 0) continue;
+      for (const carrier of carriers) {
+        if (carrier.collectionKind) markCollectionUnknown(carrier);
+      }
       invalidatePositionalTargets(carriers, undefined, unknownReflectiveCallableValue());
       recordTargetProperty(carriers, undefined, unknownReflectiveCallableValue());
       setCarrierPrototypes(carriers, unknownReflectiveCallableValue(), true);
@@ -4873,6 +5118,7 @@ function collectBindings(sourceFile) {
         }
       }
       mergeCarrierPositionalState(carrier, lengths, expansion.uncertainPositioning, expansion.uncertainValues);
+      mergeCarrierPositionalOverflow(carrier, expansion.positionalOverflowStart, expansion.overflowPositionalValues);
       return new Set([carrier]);
     }
 
@@ -4896,7 +5142,10 @@ function collectBindings(sourceFile) {
     }
 
     if (ts.isBinaryExpression(current)) {
-      if (current.operatorToken.kind === ts.SyntaxKind.CommaToken) return evaluateExpression(current.right);
+      if (current.operatorToken.kind === ts.SyntaxKind.CommaToken) {
+        evaluateExpression(current.left);
+        return evaluateExpression(current.right);
+      }
       if (
         current.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
         current.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken ||
