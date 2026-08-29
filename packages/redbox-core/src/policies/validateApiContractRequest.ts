@@ -5,8 +5,11 @@ import {
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_VARY,
 } from '../api-routes/record-schema-response';
+import { authorizationProblemInstance, ensureAuthorizationRequestId } from './authorization-response';
+import { sendAuthorizationContractProblem } from '../responses/authorization-problems';
 
 const RECORD_SCHEMA_CONTROLLER = 'webservice/RecordSchemaController';
+const AUTHORIZATION_CONTROLLER = 'webservice/AuthorizationController';
 
 function getNoCacheHeaders(): Record<string, string> {
   return {
@@ -61,6 +64,16 @@ function isRecordSchemaRoute(route: ApiRouteDefinition): boolean {
   return route.controller === RECORD_SCHEMA_CONTROLLER;
 }
 
+function isAuthorizationContractRoute(route: ApiRouteDefinition): boolean {
+  return route.controller === AUTHORIZATION_CONTROLLER;
+}
+
+function isAuthorizationContractRequest(req: Sails.Req, route?: ApiRouteDefinition): boolean {
+  if (route !== undefined && isAuthorizationContractRoute(route)) return true;
+  const path = req.path ?? req.originalUrl ?? '';
+  return /\/api\/authorization(?:\/|$)/u.test(path.split('?', 1)[0] ?? '');
+}
+
 function sendRecordSchemaInvalidRequest(req: Sails.Req, res: Sails.Res) {
   const instance = req.path ?? req.originalUrl ?? '/api/records/schemas';
   res.set({
@@ -71,6 +84,23 @@ function sendRecordSchemaInvalidRequest(req: Sails.Req, res: Sails.Res) {
   res.set('Content-Type', RECORD_SCHEMA_PROBLEM_MEDIA_TYPE);
   res.status(400);
   return res.json(buildRecordSchemaInvalidRequestProblem(instance));
+}
+
+function sendAuthorizationInvalidRequest(req: Sails.Req, res: Sails.Res) {
+  const instance = authorizationProblemInstance(req);
+  const requestId = ensureAuthorizationRequestId(req);
+  res.set(getNoCacheHeaders());
+  res.set('Content-Type', 'application/problem+json');
+  res.status(400);
+  return res.json({
+    type: 'https://redboxresearchdata.com/problems/authorization/invalid-request',
+    title: 'Authorization request is invalid',
+    status: 400,
+    detail: 'The authorization request did not satisfy the server contract.',
+    instance,
+    code: 'authorization.invalid-request',
+    requestId,
+  });
 }
 
 function describeRequest(req: Sails.Req, route?: ApiRouteDefinition): string {
@@ -94,7 +124,11 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
     route = resolveApiRouteForRequest(req);
     if (!route) {
       sails.log.error(`Failed to resolve contract-first API route for ${describeRequest(req, route)}`);
-      sendPolicyResponse(req, res, 500, [{ detail: 'Internal server error' }]);
+      if (isAuthorizationContractRequest(req)) {
+        sendAuthorizationContractProblem(req, res, new Error('Authorization contract route resolution failed.'));
+      } else {
+        sendPolicyResponse(req, res, 500, [{ detail: 'Internal server error' }]);
+      }
       return;
     }
 
@@ -102,6 +136,8 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
     if (!validated.valid) {
       if (isRecordSchemaRoute(route)) {
         sendRecordSchemaInvalidRequest(req, res);
+      } else if (isAuthorizationContractRoute(route)) {
+        sendAuthorizationInvalidRequest(req, res);
       } else {
         sendPolicyResponse(
           req,
@@ -130,7 +166,11 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
         error_type: stableErrorType(error),
       })
     );
-    sendPolicyResponse(req, res, 500, [{ detail: 'Internal server error' }]);
+    if (isAuthorizationContractRequest(req, route)) {
+      sendAuthorizationContractProblem(req, res, error);
+    } else {
+      sendPolicyResponse(req, res, 500, [{ detail: 'Internal server error' }]);
+    }
   }
 }
 export default validateApiContractRequest;

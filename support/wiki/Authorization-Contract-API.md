@@ -1,0 +1,240 @@
+# Authorization Contract API
+
+The authorization contract API exposes the caller's effective authority and
+the deployed scope/template catalog through runtime-validated, OpenAPI-derived
+routes. It is the supported HTTP boundary for the configurable authorization
+model; clients must not infer authority from legacy role names.
+
+The currently delivered routes are under:
+
+```text
+/:branding/:portal/api/authorization
+```
+
+The remaining assignment, audit, explain, readiness, import, and export routes
+described in the authorization design are not part of the current surface yet.
+
+## Authentication and route scopes
+
+Browser sessions and bearer credentials resolve the same immutable
+`AuthorizationContext`. Each route also declares the business scope shown
+below. The scope check does not replace the active-brand and resource checks
+performed by services.
+
+| Method and path                           | Required scope                | Result                                                                                       |
+| ----------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `GET /me`                                 | `authorization.self.read`     | Caller-safe effective principal projection. The protected Guest template retains this scope. |
+| `GET /scopes`                             | `authorization.scope.read`    | Filtered, cursor-paginated deployed scope catalog.                                           |
+| `GET /templates`                          | `authorization.role.read`     | Filtered, cursor-paginated global template catalog with immutable revisions.                 |
+| `GET /templates/:key/revisions/:revision` | `authorization.role.read`     | One immutable template revision, or an opaque `404`.                                         |
+| `POST /templates/:key/revisions`          | `system.authorization.manage` | Preview and then publish the next global template revision.                                  |
+| `GET /roles`                              | `authorization.role.read`     | Filtered, cursor-paginated roles from the active brand.                                       |
+| `POST /roles`                             | `authorization.role.manage`   | Create a custom, template-based, or same-brand cloned role.                                   |
+| `GET /roles/:key`                         | `authorization.role.read`     | Read one active-brand role's base scopes, overrides, effective scopes, and version.           |
+| `PATCH /roles/:key`                       | `authorization.role.manage`   | CAS-update the role label or description.                                                     |
+| `POST /roles/:key/scope-preview`          | `authorization.role.manage`   | Preview a desired complete effective scope set.                                               |
+| `PUT /roles/:key/scopes`                  | `authorization.role.manage`   | Apply an unchanged confirmed scope preview.                                                   |
+| `POST /roles/:key/template-upgrade-preview` | `authorization.role.manage` | Preview a pinned template revision upgrade.                                                   |
+| `POST /roles/:key/template-upgrade`       | `authorization.role.manage`   | Apply an unchanged confirmed template upgrade.                                                |
+| `POST /template-upgrades/bulk-preview`    | `system.authorization.manage` | Preview one revision for at most 100 explicitly selected roles.                               |
+| `POST /template-upgrades/bulk-apply`      | `system.authorization.manage` | Atomically apply an unchanged selected-role preview.                                          |
+| `POST /roles/:key/inactivation-preview`   | `authorization.role.manage`   | Preview bounded assignment, record, and configuration impact.                                 |
+| `POST /roles/:key/inactivate`             | `authorization.role.manage`   | Inactivate an eligible role while retaining assignments and history.                          |
+| `DELETE /roles/:key`                      | `authorization.role.manage`   | Preview, then confirm, deletion of a never-used dependency-free role.                          |
+
+Session-authenticated mutation requests must pass the existing ReDBox CSRF
+token. Bearer-authenticated mutation requests do not use browser CSRF state.
+All request bodies, path parameters, and query parameters are parsed by the
+route's runtime schema before the controller runs.
+
+## Effective principal projection
+
+`GET /me` returns the active brand, rollout mode, principal category and auth
+method, role summaries, and sorted effective scope keys. It deliberately does
+not return a username, credentials, raw claims, or authorization resolution
+evidence.
+
+Role-assignment provenance is included only when the caller also has
+`authorization.assignment.read`. Ordinary Guest and user clients therefore
+receive role identities without assignment-source topology. Authorized
+provenance readers also receive `assignmentCount` and `assignmentsTruncated`
+alongside up to 100 assignment-evidence entries, so a truncated projection
+cannot be mistaken for a complete source history.
+
+The default API version (`1.0`) returns the projection as the response body.
+API version `2.0`, selected using `X-ReDBox-Api-Version: 2.0`, uses the standard
+`{ data, meta }` success envelope.
+
+## Catalog pagination and filters
+
+Both catalogs sort by immutable `key` ascending. `limit` defaults to `50` and
+is bounded to `1..100`. When another page exists, `nextCursor` is the last key
+in the returned page; pass it unchanged as `cursor` to continue. Scope keys and
+cursors are bounded to 256 characters, namespace filters to 256 characters,
+search terms to 128 characters, and every role/template scope set to 500
+entries across HTTP, service, and persistence boundaries.
+
+`GET /scopes` accepts:
+
+- `cursor`, `limit`, and `search`;
+- `namespace`;
+- `risk`: `read`, `write`, `admin`, or `system`;
+- `sourceType`: `core` or `hook`;
+- `status`: `active`, `deprecated`, or `orphaned`.
+
+Each scope includes source package/version, risk, status, optional replacement
+key, and the persisted metadata version. The response also includes the
+deployed registry generation.
+
+`GET /templates` accepts `cursor`, `limit`, `search`, `protectedKind`, and
+`status`. Each template includes its current version and its immutable
+revision summaries in descending revision order. At most the latest 20 numeric
+revision slots are included per template; `revisionsTruncated` tells clients
+when older slots fall outside that window. Fetch a selected revision through
+`GET /templates/:key/revisions/:revision` to obtain its complete scope set.
+
+For example:
+
+```bash
+curl \
+  -H "Authorization: Bearer $REDBOX_API_TOKEN" \
+  "https://portal.example/default/rdmp/api/authorization/scopes?namespace=authorization&limit=25"
+```
+
+## Template publication handshake
+
+Template publication is a server-authoritative preview/apply operation. The
+client sends the desired complete scope set and current template version:
+
+```json
+{
+  "expectedVersion": 3,
+  "scopeKeys": ["authorization.self.read", "portal.home.read"],
+  "notes": "Publish reviewed capability set"
+}
+```
+
+Without `confirmationToken`, the server returns HTTP `200` with the current and
+proposed revisions and template metadata, added/removed scope keys, warnings,
+fatal errors, and a bound confirmation token. Repeat the unchanged command with
+that token to apply. The token binds the normalized scope set, display name,
+description, revision notes, reason, actor, target, and expected version. A
+successful publication returns HTTP `201`, revalidates current scope
+availability, advances the template version/revision transactionally, creates
+the immutable revision, and writes the audit event on the same datastore
+connection.
+
+The server rejects a stale version, changed command, expired/mismatched token,
+invalid/protected scope set, or caller without system authority. Clients must
+never supply impact counts or effective scopes as authority.
+
+Tokens are signed with `authorization.confirmationSecret`, or with
+`redboxSession.secret` when no dedicated secret is configured. The selected
+secret must be at least 32 characters. See the
+[Configuration Guide](Configuration-Guide) for the deployment and rotation
+contract.
+
+## Role catalog and lifecycle
+
+`GET /roles` is hard-scoped to the authenticated context's active brand. It
+accepts `cursor`, `limit`, `search`, `protectedKind`, `status`, and
+`templateKey`; its ordering and `1..100` page bounds match the other catalogs.
+`GET /roles/:key` preserves exact grandfathered role keys and returns the
+pinned base scope set, local add/remove overrides, current effective scopes,
+status, and CAS version. Missing and cross-brand keys have the same opaque
+`404` result. Request bodies cannot select a brand or submit authority fields
+such as effective scopes or impact counts.
+
+`POST /roles` accepts one strict creation shape: a custom role with optional
+`scopeKeys`, a role pinned to `templateKey` and an optional revision, or a
+same-brand `cloneRoleKey`. A clone copies only the effective scope set; it does
+not copy assignments or protected identity. New keys use
+`^[a-z][a-z0-9-]{0,63}$`. `PATCH /roles/:key` requires `expectedVersion` and
+changes only fields present in the body; `description: null` explicitly clears
+the description.
+
+Scope changes, template upgrades, and inactivation use separate preview and
+apply routes. A preview computes the proposed role and bounded impact on the
+server. A brand-role apply requires the unchanged desired state, reason, actor,
+active brand, target, expected version, and confirmation token. Template upgrades use
+a three-way merge so explicit local additions/removals survive a new pinned
+revision. The system-only bulk form accepts at most 100 unique role IDs with
+their versions. Preview returns a bounded conflict code and status for each
+stale, missing, or otherwise invalid selected role; any conflict is fatal and
+prevents confirmation. Its explicit `system.authorization.manage` authority
+permits a selection spanning brands; the service resolves only those IDs,
+never expands the selection to a brand or template cohort, revalidates the
+unchanged selection, changes it in one required transaction, and writes one
+audit event per change plus a batch event. For a role outside the caller's
+active brand, only authority carried by the caller's system roles contributes
+to the delegation ceiling; Guest or brand-role scopes from the active brand
+cannot be delegated into another brand.
+
+Inactivation preserves all assignment and audit rows but removes the role from
+subsequent effective authority. Protected roles cannot be inactivated.
+Dependency inspection reads at most 1,000 rows per inventoried source and
+100,000 values per stored/runtime configuration scan; an incomplete scan fails
+closed and produces no token.
+
+Deletion uses `DELETE /roles/:key` for both steps. Omit `confirmationToken` to
+receive the server dependency preview, then repeat the unchanged body with the
+token. The apply step rechecks version and every assignment, record, tombstone,
+workflow, form, configuration, and runtime reference inside the transaction.
+The preview reports authoritative assignment rows separately from legacy
+`Role.users` compatibility associations; either kind of membership blocks hard
+deletion rather than being silently detached.
+Only an unprotected, never-used dependency-free role is removed; its safe prior
+state remains in the append-only audit.
+
+Every role mutation uses optimistic concurrency, a required datastore
+transaction, and a success audit on the same connection. If the adapter cannot
+provide that guarantee, the API returns `503` without falling back to a partial
+write.
+
+## Problem Details
+
+Authorization contract failures use `application/problem+json` independently
+of the requested API envelope version. Every problem includes `type`, `title`,
+`status`, `detail`, `instance`, stable `code`, and `requestId`. Details are
+bounded and never echo request values, backend exceptions, missing scopes,
+role topology, or cross-brand identifiers.
+
+| Status | Stable condition examples                                                                |
+| ------ | ---------------------------------------------------------------------------------------- |
+| `400`  | `authorization.invalid-request`, `authorization.invalid-query`, invalid key or scope set |
+| `401`  | Missing authentication, invalid credential, or inactive principal                        |
+| `403`  | Missing route/administration scope or an in-context authorization denial                 |
+| `404`  | Missing or inaccessible resource, including an out-of-context identifier                 |
+| `409`  | Version conflict, stale preview, protected invariant, or duplicate key                   |
+| `422`  | Semantically invalid bounded bulk/import request                                         |
+| `503`  | Required transactional guarantee is unavailable                                          |
+| `500`  | An unexpected bounded internal authorization failure occurred                            |
+
+Schema-validation failures are normalized at the shared contract-validation
+policy, before controller code runs, so they use this Problem Details shape as
+well.
+
+The generated OpenAPI success schemas describe both negotiated representations:
+the direct API v1 body and the API v2 `{ data, meta }` envelope. The
+`X-ReDBox-Api-Version` header is constrained to `1.0` or `2.0`; Problem Details
+is never wrapped by either success envelope.
+
+## OpenAPI and verification
+
+The route source is registered through the core API route registry. It drives
+runtime validation, route authorization metadata, generated policy mappings,
+and OpenAPI. After changing this surface, run:
+
+```bash
+npm run validate:api-routes
+npm --prefix packages/redbox-core test -- --grep "authorization contract API routes|webservice AuthorizationController|AuthorizationScopeService contract queries"
+RBPORTAL_MOCHA_TEST_PATHS="test/integration/services/AuthorizationPhase8.test.ts" npm run test:mocha:mount
+npm run test:bruno:general:mount
+```
+
+The focused Mocha integration fixture exercises catalog pagination,
+scope-ceiling denial, opaque revision lookup, transactional template
+publication, cross-brand role hiding, the complete role lifecycle, and atomic
+selected-role template upgrades. The general Bruno collection exercises the
+session-authenticated `/me`, scope/template/role catalogs, role detail, and
+bounded invalid/missing Problem Details paths.

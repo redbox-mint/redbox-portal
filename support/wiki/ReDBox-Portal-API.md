@@ -25,6 +25,18 @@ These endpoints are intended for brand-admin user management rather than general
 
 For the full REST API reference, see the [REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation) page.
 
+### Authorization contract API
+
+The configurable authorization model exposes runtime-validated routes for the
+caller's safe effective projection, the deployed scope catalog, immutable role
+templates, system-authorized template publication, and current-brand role
+catalog/create/configure/upgrade/inactivate/delete lifecycle. These routes use
+business-capability scopes, required transactional mutations, and bounded
+Problem Details instead of treating legacy role names as authority. See the
+[Authorization Contract API](Authorization-Contract-API) for the exact current
+surface, pagination/filter bounds, preview/apply handshake, and verification
+commands.
+
 ### Record schema contracts
 
 When record schema contracts are enabled, API clients can resolve authenticated
