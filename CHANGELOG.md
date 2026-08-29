@@ -3,6 +3,10 @@
 ## Unreleased
 
 - **Breaking:** Dashboard profiles, record-type defaults and overrides were replaced by independent settings for every workflow stage and custom-view step, with a new editor (save, copy from, bulk copy to with preview, revision-checked writes) and API. Retired `/api/dashboard-config` operations return `410`. A one-time migration converts v5.0.1 configuration and stops on material differences; see [Configuring Dashboard Tables](support/wiki/Configuring-Dashboard-Tables.md#upgrading-from-v501).
+- Breaking: removed the legacy generic action route and its code-selecting
+  `sails.config.action` configuration. Requests to the former
+  `POST /:branding/:portal/action/:action` endpoint now return not found; no
+  generic execution endpoint replaces it.
 - Added concurrent-record modification protection across browser, API v1/v2,
   datastream, internal-writer, and delete/restore/purge paths. Record types can
   use compatible `last-write-wins`, migration `observe`, or enforcing `strict`

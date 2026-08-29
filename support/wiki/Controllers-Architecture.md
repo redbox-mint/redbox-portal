@@ -70,7 +70,6 @@ export module Controllers {
 
 | Controller |
 |---|
-| `ActionController` |
 | `AdminController` |
 | `AppConfigController` |
 | `AsynchController` |
