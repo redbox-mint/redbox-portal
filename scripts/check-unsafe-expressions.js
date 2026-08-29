@@ -39,7 +39,8 @@ const maximumTrackedInvocationArguments = 64;
 const maximumTrackedPositionalAlternatives = 64;
 const maximumCallableRecursionDepth = 128;
 const maximumDependencyCompositionWork = 4096;
-const maximumAnalysisWork = 131072;
+const maximumReturnProvenanceWork = 8192;
+const maximumAnalysisWork = 262144;
 const maximumSyntacticNesting = 256;
 const maximumFindingsPerFile = 128;
 const maximumRepositoryFindings = 512;
@@ -198,6 +199,7 @@ function collectBindings(sourceFile) {
   const boundCallableAtoms = new WeakMap();
   const carrierAtoms = new WeakMap();
   const functionAtoms = new WeakMap();
+  const functionReturnProvenance = new WeakMap();
   const invocationMethodAtoms = new WeakMap();
   const iteratorInvocationAtoms = new WeakMap();
   const literalAtoms = new Map();
@@ -215,6 +217,10 @@ function collectBindings(sourceFile) {
     kind: 'unknown-value',
     callableReason: 'unknown-reflective-callable',
     reflectiveContainer: true,
+  });
+  const returnProvenanceLimitAtom = Object.freeze({
+    kind: 'unknown-value',
+    callableReason: 'return-provenance-limit',
   });
   const opaqueThisValueAtom = Object.freeze({ kind: 'unknown-value', opaqueThis: true });
   const builtinPrototypeStates = new Map();
@@ -596,6 +602,14 @@ function collectBindings(sourceFile) {
     return unknownValue();
   }
 
+  function activeInvocationBindingValue(binding) {
+    for (let index = activeFunctionBindingFrames.length - 1; index >= 0; index -= 1) {
+      const invocationValue = activeFunctionBindingFrames[index].get(binding);
+      if (invocationValue) return invocationValue;
+    }
+    return undefined;
+  }
+
   function specialProperty(origin, propertyName) {
     const result = new Set();
     const unknown = propertyName === undefined;
@@ -674,6 +688,8 @@ function collectBindings(sourceFile) {
           (atom.iteratorNode.asteriskToken ||
             atom.outerReturnBindings.size > 0 ||
             atom.parameterDependentReturn ||
+            atom.receiverDependentReturn ||
+            atom.returnProvenanceUncertain ||
             atom.trackCallResult === true ||
             atom.mayTrackCallResult)) ||
         (atom.kind === 'unknown-value' && atom.callableReason !== undefined)
@@ -725,8 +741,21 @@ function collectBindings(sourceFile) {
   }
 
   function functionHasPotentialTrackedReturn(node) {
-    const dangerousNames = new Set(['Reflect', '_', 'eval', 'global', 'globalThis', 'self', 'window']);
-    const recognizedReturnNames = new Set([
+    const cached = functionReturnProvenance.get(node);
+    if (cached) return cached;
+    const provenance = {
+      mayTrackCallResult: false,
+      localAliasDependentReturn: false,
+      outerReturnBindings: new Set(),
+      localReturnBindings: new Set(),
+      localReturnBindingWrites: new Map(),
+      localReturnDependents: new Map(),
+      parameterDependentReturn: false,
+      receiverDependentReturn: false,
+      returnProvenanceUncertain: false,
+    };
+    functionReturnProvenance.set(node, provenance);
+    const directReturnNames = new Set([
       'Array',
       'Date',
       'Function',
@@ -741,11 +770,17 @@ function collectBindings(sourceFile) {
       'self',
       'window',
     ]);
+    const provenanceReturnNames = new Set(['Reflect', '_', 'eval', 'global', 'globalThis', 'self', 'window']);
     const outerReturnBindings = new Set();
     const parameterBindings = new Set();
+    const bindingWrites = new Map();
+    const returnExpressions = [];
     let found = false;
+    let localAliasDependentReturn = false;
     let parameterDependentReturn = false;
-    let hasReturn = ts.isArrowFunction(node) && !ts.isBlock(node.body);
+    let receiverDependentReturn = false;
+    let returnProvenanceUncertain = false;
+    let remainingReturnProvenanceWork = maximumReturnProvenanceWork;
     const functionScope = nodeScopes.get(node);
 
     function bindingIsLocal(binding) {
@@ -770,60 +805,189 @@ function collectBindings(sourceFile) {
 
     for (const parameter of node.parameters) collectParameterBindings(parameter.name);
 
-    function visit(current) {
-      if (found || (current !== node && ts.isFunctionLike(current))) return;
-      if (ts.isIdentifier(current) && dangerousNames.has(current.text)) {
-        found = true;
-        return;
+    function addBindingWrite(binding, expression) {
+      if (!binding || !expression) return;
+      let writes = bindingWrites.get(binding);
+      if (!writes) {
+        writes = new Set();
+        bindingWrites.set(binding, writes);
       }
-      ts.forEachChild(current, visit);
+      writes.add(expression);
     }
 
-    function visitReturnedReferences(current) {
-      if (found) return;
-      if (ts.isIdentifier(current)) {
-        if (recognizedReturnNames.has(current.text)) {
-          found = true;
-          return;
+    function recordPatternWrites(name, expression) {
+      if (ts.isIdentifier(name)) {
+        addBindingWrite(declarationBindings.get(name) ?? lookupBinding(name), expression);
+        return;
+      }
+      for (const element of name.elements) {
+        if (ts.isBindingElement(element)) recordPatternWrites(element.name, expression);
+      }
+    }
+
+    function assignmentRootBinding(expression) {
+      let current = unwrapExpression(expression);
+      while (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
+        current = unwrapExpression(current.expression);
+      }
+      return ts.isIdentifier(current) ? lookupBinding(current) : undefined;
+    }
+
+    function collectReturnWrites(current) {
+      if (current !== node.body && ts.isFunctionLike(current)) {
+        if (ts.isFunctionDeclaration(current) && current.name) {
+          addBindingWrite(declarationBindings.get(current.name), current);
         }
+        return;
+      }
+      if (ts.isReturnStatement(current) && current.expression) {
+        returnExpressions.push(current.expression);
+        return;
+      }
+      if (ts.isVariableDeclaration(current) && current.initializer) {
+        recordPatternWrites(current.name, current.initializer);
+      } else if (ts.isBinaryExpression(current) && ts.isAssignmentOperator(current.operatorToken.kind)) {
+        if (ts.isIdentifier(unwrapExpression(current.left))) {
+          addBindingWrite(lookupBinding(unwrapExpression(current.left)), current.right);
+        } else {
+          const rootBinding = assignmentRootBinding(current.left);
+          if (rootBinding && bindingIsLocal(rootBinding)) addBindingWrite(rootBinding, current.right);
+          if (ts.isArrayLiteralExpression(current.left) || ts.isObjectLiteralExpression(current.left)) {
+            for (const child of current.left.elements ?? current.left.properties) {
+              if (ts.isIdentifier(child)) addBindingWrite(lookupBinding(child), current.right);
+            }
+          }
+        }
+      }
+      ts.forEachChild(current, collectReturnWrites);
+    }
+
+    if (ts.isArrowFunction(node) && !ts.isBlock(node.body)) returnExpressions.push(node.body);
+    else if (node.body) collectReturnWrites(node.body);
+
+    function visitDirectReturnDependencies(current) {
+      if (ts.isIdentifier(current) && !lookupBinding(current) && directReturnNames.has(current.text)) {
+        found = true;
+      }
+      ts.forEachChild(current, visitDirectReturnDependencies);
+    }
+
+    for (const expression of returnExpressions) visitDirectReturnDependencies(expression);
+
+    const pending = returnExpressions.map(expression => ({ expression, directCallable: true }));
+    const seenBindings = new Set();
+    while (pending.length > 0) {
+      if (remainingReturnProvenanceWork <= 0) {
+        returnProvenanceUncertain = true;
+        break;
+      }
+      remainingReturnProvenanceWork -= 1;
+      const { expression: current, directCallable } = pending.pop();
+      if (current.kind === ts.SyntaxKind.ThisKeyword) receiverDependentReturn = true;
+      if (ts.isFunctionLike(current)) {
+        const nested = functionHasPotentialTrackedReturn(current);
+        if (
+          nested.mayTrackCallResult ||
+          (directCallable && (nested.localAliasDependentReturn || nested.parameterDependentReturn)) ||
+          nested.receiverDependentReturn ||
+          nested.returnProvenanceUncertain
+        ) {
+          found = true;
+        }
+        for (const binding of nested.outerReturnBindings) {
+          if (parameterBindings.has(binding)) parameterDependentReturn = true;
+          else if (bindingIsLocal(binding)) {
+            localAliasDependentReturn = true;
+            if (!seenBindings.has(binding)) {
+              seenBindings.add(binding);
+              for (const write of bindingWrites.get(binding) ?? []) {
+                pending.push({ expression: write, directCallable: true });
+              }
+            }
+          } else outerReturnBindings.add(binding);
+        }
+        if (bindingWrites.size > 0 && nested.outerReturnBindings.size > 0) {
+          localAliasDependentReturn = true;
+        }
+        if (nested.returnProvenanceUncertain) returnProvenanceUncertain = true;
+        continue;
+      }
+      if (ts.isIdentifier(current)) {
         const binding = lookupBinding(current);
-        if (binding && parameterBindings.has(binding)) {
+        if (!binding && provenanceReturnNames.has(current.text)) {
+          found = true;
+        } else if (binding && parameterBindings.has(binding)) {
           parameterDependentReturn = true;
+          const parameter = node.parameters.find(candidate => {
+            const bindings = new Set();
+            function collect(name) {
+              if (ts.isIdentifier(name)) {
+                const candidateBinding = declarationBindings.get(name);
+                if (candidateBinding) bindings.add(candidateBinding);
+                return;
+              }
+              for (const element of name.elements) {
+                if (ts.isBindingElement(element)) collect(element.name);
+              }
+            }
+            collect(candidate.name);
+            return bindings.has(binding);
+          });
+          if (parameter?.initializer) pending.push({ expression: parameter.initializer, directCallable: true });
         } else if (binding && !bindingIsLocal(binding)) {
           outerReturnBindings.add(binding);
+        } else if (binding && !seenBindings.has(binding)) {
+          localAliasDependentReturn = true;
+          seenBindings.add(binding);
+          for (const write of bindingWrites.get(binding) ?? []) {
+            pending.push({ expression: write, directCallable: true });
+          }
+        }
+        continue;
+      }
+      ts.forEachChild(current, child => {
+        pending.push({
+          expression: child,
+          directCallable:
+            directCallable && !ts.isObjectLiteralExpression(current) && !ts.isArrayLiteralExpression(current),
+        });
+      });
+    }
+    const localReturnDependents = new Map([...seenBindings].map(binding => [binding, new Set()]));
+    for (const binding of seenBindings) {
+      for (const write of bindingWrites.get(binding) ?? []) {
+        if (ts.isFunctionLike(write)) continue;
+        const pendingDependencies = [write];
+        while (pendingDependencies.length > 0) {
+          const dependencyNode = pendingDependencies.pop();
+          if (ts.isIdentifier(dependencyNode)) {
+            const dependency = lookupBinding(dependencyNode);
+            if (dependency && dependency !== binding && seenBindings.has(dependency)) {
+              localReturnDependents.get(dependency).add(binding);
+            }
+            continue;
+          }
+          ts.forEachChild(dependencyNode, child => {
+            pendingDependencies.push(child);
+          });
         }
       }
-      ts.forEachChild(current, visitReturnedReferences);
     }
 
-    function findReturn(current) {
-      if (current !== node.body && ts.isFunctionLike(current)) return;
-      if (ts.isReturnStatement(current) && current.expression) {
-        hasReturn = true;
-        visitReturnedReferences(current.expression);
-        return;
-      }
-      ts.forEachChild(current, findReturn);
-    }
-
-    function visitDefaultInitializer(current) {
-      if (found || ts.isFunctionLike(current)) return;
-      if (ts.isIdentifier(current) && recognizedReturnNames.has(current.text)) {
-        found = true;
-        return;
-      }
-      ts.forEachChild(current, visitDefaultInitializer);
-    }
-
-    if (ts.isArrowFunction(node) && !ts.isBlock(node.body)) visitReturnedReferences(node.body);
-    if (node.body && ts.isBlock(node.body)) findReturn(node.body);
-    if (parameterDependentReturn) {
-      for (const parameter of node.parameters) {
-        if (parameter.initializer) visitDefaultInitializer(parameter.initializer);
-      }
-    }
-    if (hasReturn) visit(node.body);
-    return { mayTrackCallResult: found, outerReturnBindings, parameterDependentReturn };
+    Object.assign(provenance, {
+      mayTrackCallResult: found,
+      localAliasDependentReturn,
+      localReturnBindings: seenBindings,
+      localReturnBindingWrites: new Map(
+        [...seenBindings].map(binding => [binding, new Set(bindingWrites.get(binding) ?? [])])
+      ),
+      localReturnDependents,
+      outerReturnBindings,
+      parameterDependentReturn,
+      receiverDependentReturn,
+      returnProvenanceUncertain,
+    });
+    return provenance;
   }
 
   function functionValue(node) {
@@ -837,8 +1001,14 @@ function collectBindings(sourceFile) {
         iteratorUnknown: !node.asteriskToken,
         iteratorValues: new Set(),
         mayTrackCallResult: returnProvenance.mayTrackCallResult,
+        localAliasDependentReturn: returnProvenance.localAliasDependentReturn,
+        localReturnBindings: returnProvenance.localReturnBindings,
+        localReturnBindingWrites: returnProvenance.localReturnBindingWrites,
+        localReturnDependents: returnProvenance.localReturnDependents,
         outerReturnBindings: returnProvenance.outerReturnBindings,
         parameterDependentReturn: returnProvenance.parameterDependentReturn,
+        receiverDependentReturn: returnProvenance.receiverDependentReturn,
+        returnProvenanceUncertain: returnProvenance.returnProvenanceUncertain,
         trackCallResult: false,
         capturedBindings: new Map(),
       };
@@ -877,7 +1047,14 @@ function collectBindings(sourceFile) {
   function bindInvocationPattern(frame, name, value, invocationNode) {
     if (ts.isIdentifier(name)) {
       const binding = declarationBindings.get(name);
-      if (binding) frame.set(binding, new Set(value));
+      if (binding) {
+        let invocationValue = frame.get(binding);
+        if (!invocationValue) {
+          invocationValue = new Set();
+          frame.set(binding, invocationValue);
+        }
+        mergeValue(invocationValue, value);
+      }
       return;
     }
     if (ts.isObjectBindingPattern(name)) {
@@ -954,7 +1131,11 @@ function collectBindings(sourceFile) {
     const root = atom.iteratorNode;
     const previousReceiver = activeFunctionReceiver;
     activeFunctionReceiver = receiverValue;
-    activeFunctionBindingFrames.push(functionInvocationFrame(atom, argumentValues, invocationNode));
+    const frame = functionInvocationFrame(atom, argumentValues, invocationNode);
+    activeFunctionBindingFrames.push(frame);
+    for (const binding of atom.localReturnBindings) {
+      if (!frame.has(binding)) frame.set(binding, new Set());
+    }
 
     function visit(node) {
       if (!consumeAnalysisWork(node)) {
@@ -970,6 +1151,35 @@ function collectBindings(sourceFile) {
     }
 
     try {
+      const pendingBindings = [...atom.localReturnBindings].reverse();
+      const queuedBindings = new Set(pendingBindings);
+      let returnProvenanceWork = 0;
+      for (let queueIndex = 0; queueIndex < pendingBindings.length; queueIndex += 1) {
+        if (returnProvenanceWork >= maximumReturnProvenanceWork) {
+          result.add(returnProvenanceLimitAtom);
+          break;
+        }
+        returnProvenanceWork += 1;
+        const binding = pendingBindings[queueIndex];
+        queuedBindings.delete(binding);
+        const bindingValue = frame.get(binding);
+        const previousSize = bindingValue.size;
+        for (const write of atom.localReturnBindingWrites.get(binding) ?? []) {
+          const value = ts.isFunctionLike(write) ? functionValue(write) : evaluateExpression(write);
+          mergeValue(bindingValue, value);
+        }
+        if (bindingValue.size === previousSize) continue;
+        for (const dependent of atom.localReturnDependents.get(binding) ?? []) {
+          if (queuedBindings.has(dependent)) continue;
+          queuedBindings.add(dependent);
+          pendingBindings.push(dependent);
+        }
+      }
+      for (const writes of atom.localReturnBindingWrites.values()) {
+        for (const write of writes) {
+          if (ts.isFunctionLike(write)) functionValue(write);
+        }
+      }
       if (ts.isArrowFunction(root) && !ts.isBlock(root.body)) {
         mergeValue(result, evaluateExpression(root.body));
       } else if (root.body) {
@@ -2399,22 +2609,27 @@ function collectBindings(sourceFile) {
   }
 
   function invocationCarriesTrackedProvenance(argumentValues) {
-    return argumentValues.some(value => returnBindingCarriesTrackedProvenance(value));
+    return argumentValues.some(value => returnBindingCarriesTrackedProvenance(value, new Set(), { count: 256 }, false));
   }
 
   function outerReturnCarriesTrackedProvenance(atom) {
     for (const binding of atom.outerReturnBindings) {
-      const value = atom.capturedBindings.get(binding) ?? binding.value;
+      const value = activeInvocationBindingValue(binding) ?? atom.capturedBindings.get(binding) ?? binding.value;
       if (returnBindingCarriesTrackedProvenance(value)) return true;
     }
     return false;
   }
 
-  function returnBindingCarriesTrackedProvenance(value, seen = new Set(), remaining = { count: 256 }) {
+  function returnBindingCarriesTrackedProvenance(
+    value,
+    seen = new Set(),
+    remaining = { count: 256 },
+    includeUnknown = true
+  ) {
     for (const atom of value) {
       if (typeof atom === 'string') return true;
       if (atom.kind === 'unknown-value') {
-        if (atom.callableReason !== undefined) return true;
+        if (includeUnknown && atom.callableReason !== undefined) return true;
         continue;
       }
       if (atom.kind === 'function-value') {
@@ -2422,8 +2637,9 @@ function collectBindings(sourceFile) {
         seen.add(atom);
         if (atom.trackCallResult === true || atom.mayTrackCallResult) return true;
         for (const binding of atom.outerReturnBindings) {
-          const bindingValue = atom.capturedBindings.get(binding) ?? binding.value;
-          if (returnBindingCarriesTrackedProvenance(bindingValue, seen, remaining)) return true;
+          const bindingValue =
+            activeInvocationBindingValue(binding) ?? atom.capturedBindings.get(binding) ?? binding.value;
+          if (returnBindingCarriesTrackedProvenance(bindingValue, seen, remaining, includeUnknown)) return true;
         }
         continue;
       }
@@ -2446,7 +2662,7 @@ function collectBindings(sourceFile) {
         atom.unknownAccessors.get,
         atom.unknownAccessors.set,
       ];
-      if (nestedValues.some(nested => returnBindingCarriesTrackedProvenance(nested, seen, remaining))) {
+      if (nestedValues.some(nested => returnBindingCarriesTrackedProvenance(nested, seen, remaining, includeUnknown))) {
         return true;
       }
     }
@@ -2477,12 +2693,17 @@ function collectBindings(sourceFile) {
           continue;
         }
         if (!isTrackedCallable(atom)) continue;
+        if (typeof atom !== 'string' && atom.kind === 'function-value' && atom.returnProvenanceUncertain) {
+          invocation.kinds.add(`${analysisLimitKind}:return-provenance-limit`);
+          continue;
+        }
         if (
           typeof atom !== 'string' &&
           atom.kind === 'function-value' &&
           atom.trackCallResult !== true &&
           !atom.mayTrackCallResult &&
           !(atom.parameterDependentReturn && invocationCarriesTrackedProvenance(argumentValues)) &&
+          !(atom.receiverDependentReturn && returnBindingCarriesTrackedProvenance(thisValue ?? new Set())) &&
           !outerReturnCarriesTrackedProvenance(atom)
         ) {
           continue;
@@ -2504,6 +2725,8 @@ function collectBindings(sourceFile) {
           atom.kind === 'function-value' &&
           (atom.outerReturnBindings.size > 0 ||
             atom.parameterDependentReturn ||
+            atom.receiverDependentReturn ||
+            atom.returnProvenanceUncertain ||
             atom.trackCallResult === true ||
             atom.mayTrackCallResult ||
             atom.iteratorNode.asteriskToken)
@@ -2997,7 +3220,11 @@ function collectBindings(sourceFile) {
     const current = unwrapExpression(node);
     if (ts.isIdentifier(current)) {
       const binding = lookupBinding(current);
-      if (binding) mergeTracked(binding.value, value);
+      if (binding) {
+        const invocationValue = activeInvocationBindingValue(binding);
+        if (invocationValue) mergeValue(invocationValue, value);
+        else mergeTracked(binding.value, value);
+      }
       return;
     }
     if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {

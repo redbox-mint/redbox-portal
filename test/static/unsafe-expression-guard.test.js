@@ -2132,6 +2132,137 @@ const returnedReflectiveTargetCases = [
       target(eval, globalThis, [configuredSource]);`,
   },
 ];
+const returnedLocalAliasCases = [
+  {
+    name: 'a Reflect.apply parameter survives a local alias before return',
+    kind: 'direct-eval',
+    source: `function id(target) { const alias = target; return alias; }
+      id(Reflect.apply)(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an outer Reflect.apply binding survives a local alias before return',
+    kind: 'direct-eval',
+    source: `const target = Reflect.apply;
+      function loadTarget() { const alias = target; return alias; }
+      loadTarget()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an unsafe default parameter survives a local alias before return',
+    kind: 'direct-eval',
+    source: `function loadTarget(target = Reflect.apply) { const alias = target; return alias; }
+      loadTarget()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a returned closure preserves its parameter through a local alias',
+    kind: 'direct-eval',
+    source: `function closeOver(target) { const alias = target; return () => alias; }
+      closeOver(Reflect.apply)()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a nested function preserves an assigned local alias',
+    kind: 'direct-eval',
+    source: `function closeOver(target) {
+        let alias;
+        alias = target;
+        function nested() { const returned = alias; return returned; }
+        return nested;
+      }
+      closeOver(Reflect.apply)()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a receiver survives a local alias return through call',
+    kind: 'direct-eval',
+    source: `function returnReceiver() { const alias = this; return alias; }
+      returnReceiver.call(Reflect.apply)(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional local alias keeps unsafe and unknown alternatives',
+    kind: 'direct-eval',
+    additionalKind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `function choose(target) {
+        let alias;
+        alias = flag ? target : loadTarget();
+        return alias;
+      }
+      choose(Reflect.apply)(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an array carrier preserves an assigned Reflect.apply alias',
+    kind: 'direct-eval',
+    source: `function carry(target) { let carrier; carrier = [target]; const alias = carrier; return alias; }
+      carry(Reflect.apply)[0](eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a returned local Reflect.apply alias composes bind',
+    kind: 'direct-eval',
+    source: `function id(target) { const alias = target; return alias; }
+      id(Reflect.apply.bind(Reflect, eval, globalThis))([configuredSource]);`,
+  },
+  {
+    name: 'a returned local Reflect.apply alias composes call',
+    kind: 'direct-eval',
+    source: `function id(target) { const alias = target; return alias; }
+      id(Reflect.apply).call(Reflect, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a returned local Reflect.apply alias composes apply',
+    kind: 'direct-eval',
+    source: `function id(target) { const alias = target; return alias; }
+      id(Reflect.apply).apply(Reflect, [eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'a Lodash template parameter survives a local alias before return',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template';
+      function id(target) { const alias = target; return alias; }
+      id(compile)(configuredSource);`,
+  },
+  {
+    name: 'Reflect.construct survives local and object-carrier aliases',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template';
+      function carry(target) {
+        const local = target;
+        const carrier = { target: local };
+        const alias = carrier;
+        return alias;
+      }
+      carry(Reflect.construct).target(compile, [configuredSource]);`,
+  },
+];
+const safeReturnedLocalAliasCases = [
+  {
+    name: 'Array.of survives a parameter and local alias as a known-safe callable',
+    source: `function id(target) { const alias = target; return alias; }
+      id(Array.of)(eval, _.template);`,
+  },
+  {
+    name: 'a supplied Array.of override suppresses an unsafe default through a local alias',
+    source: `function loadTarget(target = Reflect.apply) { const alias = target; return alias; }
+      loadTarget(Array.of)(eval, _.template);`,
+  },
+  {
+    name: 'a closure preserves a supplied Array.of override safely',
+    source: `function closeOver(target = Reflect.apply) { const alias = target; return () => alias; }
+      closeOver(Array.of)()(eval, _.template);`,
+  },
+  {
+    name: 'object and array aliases remain data-only when they are not invoked',
+    source: `function carry(target) {
+        const objectCarrier = { target };
+        const arrayCarrier = [objectCarrier];
+        const alias = arrayCarrier;
+        return alias;
+      }
+      consume(carry(Reflect.apply), eval, _.template);`,
+  },
+  {
+    name: 'a conditional local alias containing only known-safe callables stays clean',
+    source: `function choose(target) { const alias = flag ? target : JSON.parse; return alias; }
+      choose(Array.of)(eval, _.template);`,
+  },
+];
 const unsafeIntrinsicDeletionCases = [
   {
     name: 'delete exposes an eval-valued Array.of prototype property',
@@ -3250,6 +3381,78 @@ test('returned reflective targets retain executable provenance through direct in
   }
 });
 
+test('the reviewed local-alias bypasses execute only an isolated marker payload', () => {
+  const markerKey = '__a12_returned_local_alias_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    function mark(name) {
+      return \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    }
+    function id(target) { const alias = target; return alias; }
+    id(Reflect.apply)(eval, globalThis, [mark('parameter')]);
+    const outer = Reflect.apply;
+    function fromOuter() { const alias = outer; return alias; }
+    fromOuter()(eval, globalThis, [mark('outer')]);
+    function fromDefault(target = Reflect.apply) { const alias = target; return alias; }
+    fromDefault()(eval, globalThis, [mark('default')]);
+    function closeOver(target) { const alias = target; return () => alias; }
+    closeOver(Reflect.apply)()(eval, globalThis, [mark('closure')]);
+    const compile = require('lodash/template');
+    id(compile)(\`<% globalThis[${serializedMarkerKey}].push('lodash') %>\`)();
+    function carry(target) {
+      const local = target;
+      const carrier = { target: local };
+      const alias = carrier;
+      return alias;
+    }
+    carry(Reflect.construct).target(
+      compile,
+      [\`<% globalThis[${serializedMarkerKey}].push('construct') %>\`]
+    )();
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['parameter', 'outer', 'default', 'closure', 'lodash', 'construct']);
+});
+
+test('local return aliases retain unsafe parameter, closure, receiver, carrier, and invocation provenance', () => {
+  for (const aliasCase of returnedLocalAliasCases) {
+    const firstFindings = scanSource(aliasCase.source, 'packages/example/src/returned-local-alias.ts');
+    const secondFindings = scanSource(aliasCase.source, 'packages/example/src/returned-local-alias.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${aliasCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === aliasCase.kind),
+      `${aliasCase.name} should retain unsafe callable provenance: ${JSON.stringify(firstFindings)}`
+    );
+    if (aliasCase.additionalKind) {
+      assert.ok(
+        firstFindings.some(finding => finding.kind === aliasCase.additionalKind && finding.reason === aliasCase.reason),
+        `${aliasCase.name} should fail closed for its unknown alternative: ${JSON.stringify(firstFindings)}`
+      );
+    }
+    assert.ok(firstFindings.length <= 2, `${aliasCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('known-safe overrides and data-only local return aliases remain clean', () => {
+  for (const safeCase of safeReturnedLocalAliasCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/safe-returned-local-alias.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
 test('deleting safe intrinsic own properties exposes tracked prototype callables', () => {
   for (const deletionCase of unsafeIntrinsicDeletionCases) {
     const findings = scanSource(deletionCase.source, 'packages/example/src/intrinsic-deletion.ts');
@@ -3322,6 +3525,7 @@ test('the guard CLI rejects returned reflection, inserted carriers, and unknown 
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const sources = [
     ...returnedReflectiveTargetCases,
+    ...returnedLocalAliasCases,
     ...positionalInsertionCases,
     ...unknownSingularReflectiveInvocationCases,
     ...unsafeIntrinsicDeletionCases,
@@ -3704,6 +3908,100 @@ test('large descriptor dependencies, callable composition, and accessor fan-out 
   assert.match(result.stderr, /analysis-limit .*\(analysis-work-limit\)/);
   assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure|RangeError/i);
   assert.ok(result.stderr.length < 4096, `large-stress diagnostics were ${result.stderr.length} bytes`);
+  for (const { relativePath } of stressCases) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
+test('local return alias chains, nested compositions, and carrier fan-out stay bounded under low heap', t => {
+  const aliasCount = 2000;
+  const aliasChain = [
+    'function id(target) {',
+    ...Array.from(
+      { length: aliasCount },
+      (_, index) => `const alias${index} = ${index === 0 ? 'target' : `alias${index - 1}`};`
+    ),
+    `return alias${aliasCount - 1};`,
+    '}',
+    'id(Reflect.apply)(eval, globalThis, [configuredSource]);',
+  ].join('\n');
+  const startedAt = performance.now();
+  assert.deepEqual(
+    scanSource(aliasChain, 'packages/example/src/returned-local-alias-chain.ts').map(finding => finding.kind),
+    ['direct-eval']
+  );
+  assert.ok(performance.now() - startedAt < 2500, 'a 2,000-hop local return alias chain should remain linear');
+
+  const exhaustedAliasCount = 9000;
+  const exhaustedAliasChain = [
+    'function id(target) {',
+    ...Array.from(
+      { length: exhaustedAliasCount },
+      (_, index) => `const alias${index} = ${index === 0 ? 'target' : `alias${index - 1}`};`
+    ),
+    `return alias${exhaustedAliasCount - 1};`,
+    '}',
+    'id(Reflect.apply)(eval, globalThis, [configuredSource]);',
+  ].join('\n');
+  const exhaustedFindings = scanSource(
+    exhaustedAliasChain,
+    'packages/example/src/exhausted-returned-local-alias-chain.ts'
+  );
+  assert.deepEqual(
+    exhaustedFindings.map(finding => [finding.kind, finding.reason]),
+    [['analysis-limit', 'return-provenance-limit']]
+  );
+
+  const nestedComposition = [
+    'function id(value) { const alias = value; return alias; }',
+    'let target = Reflect.apply;',
+    ...Array.from({ length: 2000 }, () => 'target = id(target);'),
+    'target(eval, globalThis, [configuredSource]);',
+  ].join('\n');
+  const carrierFanOut = [
+    'function carry(target) {',
+    '  const local = target;',
+    '  const object = { target: local };',
+    '  const alias = [object];',
+    '  return [...alias];',
+    '}',
+    ...Array.from(
+      { length: 1500 },
+      (_, index) => `const carrier${index} = carry(${index === 1499 ? 'Reflect.apply' : 'Array.of'});`
+    ),
+    'carrier1499[0].target(eval, globalThis, [configuredSource]);',
+  ].join('\n');
+  const stressCases = [
+    {
+      relativePath: 'packages/example/src/exhausted-returned-local-alias-chain.ts',
+      source: exhaustedAliasChain,
+    },
+    {
+      relativePath: 'packages/example/src/nested-returned-local-alias-composition.ts',
+      source: nestedComposition,
+    },
+    {
+      relativePath: 'packages/example/src/returned-local-alias-carrier-fanout.ts',
+      source: carrierFanOut,
+    },
+  ];
+  for (const stressCase of stressCases.slice(1)) {
+    const findings = scanSource(stressCase.source, stressCase.relativePath);
+    assert.ok(findings.length > 0, `${stressCase.relativePath} should fail closed`);
+    assert.ok(findings.length <= 2, `${stressCase.relativePath} diagnostics should stay bounded`);
+  }
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSources(root, stressCases, ['--max-old-space-size=128']);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure|RangeError/i);
+  assert.ok(
+    Buffer.byteLength(result.stderr) <= maximumDiagnosticOutputBytes,
+    `local return stress diagnostics were ${Buffer.byteLength(result.stderr)} bytes`
+  );
   for (const { relativePath } of stressCases) {
     assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
   }
