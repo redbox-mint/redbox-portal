@@ -2800,6 +2800,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   public get runtimeActions(): FormRuntimeAction[] {
+    if (!this.editMode()) return [];
     return this.formDefMap?.formConfigMeta?.runtimeActions ?? [];
   }
 

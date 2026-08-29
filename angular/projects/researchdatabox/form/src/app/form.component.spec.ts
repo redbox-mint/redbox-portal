@@ -219,6 +219,19 @@ describe('FormComponent', () => {
     expect(app).toBeTruthy();
   });
 
+  it('hides runtime actions when viewing a record', () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const app = fixture.componentInstance;
+    const action = { id: 'create-rdmp' } as any;
+    app.formDefMap = { formConfigMeta: { runtimeActions: [action] } } as any;
+
+    app.editMode.set(true);
+    expect(app.runtimeActions).toEqual([action]);
+
+    app.editMode.set(false);
+    expect(app.runtimeActions).toEqual([]);
+  });
+
   it('should render basic form config', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',

@@ -5,6 +5,7 @@ import {
   canonicalHash,
   GenerationError,
   GenerationEvidence,
+  GenerationEvidenceAlias,
   GenerationOutputType,
   GenerationProfileDefinitionV1,
   GenerationProfileTargetField,
@@ -20,6 +21,24 @@ interface ProviderAnswer {
   value: unknown;
   evidenceIds: string[];
   rationale: string;
+}
+
+export function buildEvidenceAliases(evidence: GenerationEvidence[]): GenerationEvidenceAlias[] {
+  return [...evidence]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((item, index) => ({ alias: `E${index + 1}`, evidenceId: item.id }));
+}
+
+function allowedEvidenceIds(field: GenerationProfileTargetField, evidence: GenerationEvidence[]): Set<string> {
+  return new Set(evidence.filter((item) => {
+    if (item.questionId) {
+      return field.grounding !== 'guidanceRequired' && field.reviewedAnswerIds?.includes(item.questionId) === true;
+    }
+    if (item.kind === 'source') return field.grounding !== 'guidanceRequired';
+    if (field.grounding === 'sourceRequired') return false;
+    if (!field.knowledgeTags?.length) return true;
+    return item.tags?.some((tag) => field.knowledgeTags?.includes(tag)) === true;
+  }).map((item) => item.id));
 }
 
 const SUPPORTED_COMPONENTS = new Set([
@@ -71,8 +90,10 @@ export namespace Services {
               disabled: config.disabled === true || config.readonly === true || config.editMode === false,
             });
           }
-          const children = config.componentDefinitions;
-          if (Array.isArray(children)) visit(children, lineage);
+          for (const key of ['componentDefinitions', 'tabs', 'panels'] as const) {
+            const children = config[key];
+            if (Array.isArray(children)) visit(children, lineage);
+          }
         }
       };
       visit(form.componentDefinitions as unknown[], []);
@@ -91,15 +112,31 @@ export namespace Services {
       return resolved;
     }
 
-    public buildProviderSchema(definition: GenerationProfileDefinitionV1): Record<string, unknown> {
-      const answerProperties = Object.fromEntries(definition.targetFields.map((field) => [field.id, {
+    public buildProviderSchema(
+      definition: GenerationProfileDefinitionV1,
+      evidence: GenerationEvidence[] = [],
+      evidenceAliases: GenerationEvidenceAlias[] = [],
+    ): Record<string, unknown> {
+      const aliasByEvidenceId = new Map(evidenceAliases.map((item) => [item.evidenceId, item.alias]));
+      const answerProperties = Object.fromEntries(definition.targetFields.map((field) => {
+        const allowedAliases = [...allowedEvidenceIds(field, evidence)]
+          .map((id) => aliasByEvidenceId.get(id))
+          .filter((alias): alias is string => alias !== undefined);
+        const evidenceItems = evidenceAliases.length > 0 && allowedAliases.length > 0
+          ? { type: 'string', enum: allowedAliases }
+          : { type: 'string', maxLength: 300 };
+        return [field.id, {
         type: 'object', additionalProperties: false, required: ['value', 'evidenceIds', 'rationale'],
         properties: {
           value: schemaForOutput(field.output, field.maxLength),
-          evidenceIds: { type: 'array', uniqueItems: true, items: { type: 'string', maxLength: 300 } },
+          evidenceIds: {
+            type: 'array', uniqueItems: true, items: evidenceItems,
+            ...(evidenceAliases.length > 0 && allowedAliases.length === 0 ? { maxItems: 0 } : {}),
+          },
           rationale: { type: 'string', maxLength: 500 },
         },
-      }]));
+        }];
+      }));
       return {
         type: 'object', additionalProperties: false, required: ['answers'],
         properties: {
@@ -117,6 +154,7 @@ export namespace Services {
       rawContent: string;
       definition: GenerationProfileDefinitionV1;
       evidence: GenerationEvidence[];
+      evidenceAliases?: GenerationEvidenceAlias[];
       baseTargetDigest: string;
       maxResponseBytes?: number;
     }): GenerationCandidatePatch {
@@ -140,7 +178,23 @@ export namespace Services {
         throw new GenerationError('GENERATION_OUTPUT_SCHEMA_INVALID', 'Generation response fields do not match the profile allowlist');
       }
       const evidenceById = new Map(input.evidence.map((item) => [item.id, item]));
-      const items = input.definition.targetFields.map((field) => this.validateAnswer(field, answers[field.id], evidenceById));
+      const evidenceIdByAlias = new Map((input.evidenceAliases ?? []).map((item) => [item.alias, item.evidenceId]));
+      const items = input.definition.targetFields.map((field) => {
+        const answer = answers[field.id];
+        const resolvedAnswer = answer && input.evidenceAliases?.length
+          ? {
+            ...answer,
+            evidenceIds: answer.evidenceIds.map((alias) => {
+              const evidenceId = evidenceIdByAlias.get(alias);
+              if (!evidenceId) {
+                throw new GenerationError('GENERATION_EVIDENCE_INVALID', `Generation answer '${field.id}' cited unknown evidence`);
+              }
+              return evidenceId;
+            }),
+          }
+          : answer;
+        return this.validateAnswer(field, resolvedAnswer, evidenceById, allowedEvidenceIds(field, input.evidence));
+      });
       const candidateDigest = canonicalHash(items.map(({ fieldId, value, valueHash }) => ({ fieldId, value, valueHash })));
       return { runId: input.runId, candidateDigest, baseTargetDigest: input.baseTargetDigest, items };
     }
@@ -149,13 +203,14 @@ export namespace Services {
       field: GenerationProfileTargetField,
       answer: ProviderAnswer | undefined,
       evidenceById: Map<string, GenerationEvidence>,
+      permittedEvidenceIds?: Set<string>,
     ): GenerationCandidatePatchItem {
       if (!answer || typeof answer !== 'object' || !Array.isArray(answer.evidenceIds) || typeof answer.rationale !== 'string') {
         throw new GenerationError('GENERATION_OUTPUT_SCHEMA_INVALID', `Generation answer '${field.id}' is invalid`);
       }
       let value = answer.value;
       let evidenceIds = [...new Set(answer.evidenceIds)];
-      if (evidenceIds.some((id) => !evidenceById.has(id))) {
+      if (evidenceIds.some((id) => !evidenceById.has(id) || (permittedEvidenceIds && !permittedEvidenceIds.has(id)))) {
         throw new GenerationError('GENERATION_EVIDENCE_INVALID', `Generation answer '${field.id}' cited unknown evidence`);
       }
       let reviewRequired = false;

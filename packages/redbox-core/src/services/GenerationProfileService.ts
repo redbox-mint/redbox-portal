@@ -76,6 +76,10 @@ export namespace Services {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${field.id}' references an unsupported component`);
         }
         this.validateOutput(field.output, field.id);
+        if (field.reviewedAnswerIds && (new Set(field.reviewedAnswerIds).size !== field.reviewedAnswerIds.length ||
+          field.reviewedAnswerIds.some((id) => !definition.questions.some((question) => question.id === id)))) {
+          throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${field.id}' references an unknown reviewed answer`);
+        }
         if (field.fallback && field.fallback.reviewRequired !== true) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${field.id}' fallback must require review`);
         }

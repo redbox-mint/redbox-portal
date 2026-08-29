@@ -34,6 +34,7 @@ export interface GenerationProfileTargetField {
   operation: 'fill';
   maxLength?: number;
   knowledgeTags?: string[];
+  reviewedAnswerIds?: string[];
   grounding: 'sourceRequired' | 'guidanceRequired' | 'sourceOrGuidance' | 'inferenceAllowed';
   fallback?: { value: unknown; reasonCode: string; reviewRequired: boolean };
 }
@@ -117,6 +118,12 @@ export interface GenerationEvidence {
   contentHash: string;
   authority?: string;
   tags?: string[];
+  questionId?: string;
+}
+
+export interface GenerationEvidenceAlias {
+  alias: string;
+  evidenceId: string;
 }
 
 export interface GenerationFrozenInput {

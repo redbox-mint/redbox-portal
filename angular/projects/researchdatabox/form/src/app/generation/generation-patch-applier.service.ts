@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AbstractControl, FormGroup } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup } from '@angular/forms';
 import {
   GenerationCandidatePatch,
   GenerationRuntimeInitialValue,
@@ -30,6 +30,39 @@ function valueAt(value: unknown, pointer: string): unknown {
   return current;
 }
 
+function withNestedValue(value: unknown, parts: string[], nextValue: unknown): Record<string, unknown> {
+  const root = value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? structuredClone(value as Record<string, unknown>)
+    : {};
+  let current = root;
+  for (const [index, part] of parts.entries()) {
+    if (index === parts.length - 1) {
+      current[part] = structuredClone(nextValue);
+      break;
+    }
+    const child = current[part];
+    const next = child !== null && typeof child === 'object' && !Array.isArray(child)
+      ? child as Record<string, unknown>
+      : {};
+    current[part] = next;
+    current = next;
+  }
+  return root;
+}
+
+interface InitialValueChange {
+  control: AbstractControl;
+  fieldId: string;
+  previousValue: unknown;
+  nextValue: unknown;
+}
+
+interface PatchTarget {
+  control: AbstractControl;
+  fieldId: string;
+  expectedValue: unknown;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GenerationPatchApplierService {
   public applyInitialValues(
@@ -39,17 +72,16 @@ export class GenerationPatchApplierService {
     correlationId: string,
   ): void {
     for (const item of values) {
-      const control = this.controlFor(form, item.metadataPointer);
-      if (!control || control.disabled || isEqual(control.value, item.value)) continue;
-      const previousValue = structuredClone(control.value);
-      control.setValue(structuredClone(item.value), { emitEvent: false });
-      control.markAsDirty({ onlySelf: true });
-      control.markAsUntouched({ onlySelf: true });
+      const change = this.resolveInitialValueChange(form, item);
+      if (!change || change.control.disabled || isEqual(change.previousValue, change.nextValue)) continue;
+      change.control.setValue(structuredClone(change.nextValue), { emitEvent: false });
+      change.control.markAsDirty({ onlySelf: true });
+      change.control.markAsUntouched({ onlySelf: true });
       eventBus.publish(createFieldValueChangedEvent({
-        fieldId: this.fieldId(item.metadataPointer),
-        value: structuredClone(item.value),
-        previousValue,
-        sourceId: this.fieldId(item.metadataPointer),
+        fieldId: change.fieldId,
+        value: structuredClone(change.nextValue),
+        previousValue: structuredClone(change.previousValue),
+        sourceId: change.fieldId,
         origin: 'system',
         correlationId,
       }));
@@ -68,18 +100,17 @@ export class GenerationPatchApplierService {
     const changes: Array<{ control: AbstractControl; fieldId: string; value: unknown; previousValue: unknown }> = [];
 
     for (const item of candidate.items) {
-      const control = this.controlFor(form, item.metadataPointer);
-      const expectedValue = valueAt(executionSnapshot, item.metadataPointer);
-      if (!control || control.disabled || !isEqual(control.value, expectedValue)) {
+      const target = this.resolvePatchTarget(form, executionSnapshot, item.metadataPointer);
+      if (!target || target.control.disabled || !isEqual(target.control.value, target.expectedValue)) {
         conflictFieldIds.push(item.fieldId);
         continue;
       }
-      if (!isEqual(control.value, item.value)) {
+      if (!isEqual(target.control.value, item.value)) {
         changes.push({
-          control,
-          fieldId: this.fieldId(item.metadataPointer),
+          control: target.control,
+          fieldId: target.fieldId,
           value: structuredClone(item.value),
-          previousValue: structuredClone(control.value),
+          previousValue: structuredClone(target.control.value),
         });
         changedFieldIds.push(item.fieldId);
       }
@@ -115,9 +146,62 @@ export class GenerationPatchApplierService {
     return { changedFieldIds, conflictFieldIds };
   }
 
-  private controlFor(form: FormGroup, pointer: string): AbstractControl | null {
+  private resolvePatchTarget(
+    form: FormGroup,
+    executionSnapshot: Record<string, unknown>,
+    pointer: string,
+  ): PatchTarget | null {
     const parts = pointerParts(pointer);
-    return parts.length > 0 ? form.get(parts) : null;
+    if (!parts.length) return null;
+    const exactControl = form.get(parts);
+    if (exactControl) {
+      return {
+        control: exactControl,
+        fieldId: parts.at(-1) ?? pointer,
+        expectedValue: valueAt(executionSnapshot, pointer),
+      };
+    }
+    const fieldId = parts.at(-1);
+    if (!fieldId) return null;
+    const flatControl = form.get(fieldId);
+    return flatControl ? {
+      control: flatControl,
+      fieldId,
+      expectedValue: valueAt(executionSnapshot, `/${fieldId.replaceAll('~', '~0').replaceAll('/', '~1')}`),
+    } : null;
+  }
+
+  private resolveInitialValueChange(
+    form: FormGroup,
+    item: GenerationRuntimeInitialValue,
+  ): InitialValueChange | null {
+    const parts = pointerParts(item.metadataPointer);
+    if (!parts.length) return null;
+
+    const exactControl = form.get(parts);
+    if (exactControl) {
+      return {
+        control: exactControl,
+        fieldId: parts.at(-1) ?? item.metadataPointer,
+        previousValue: exactControl.value,
+        nextValue: item.value,
+      };
+    }
+
+    for (let prefixLength = parts.length - 1; prefixLength > 0; prefixLength -= 1) {
+      const control = form.get(parts.slice(0, prefixLength));
+      if (!(control instanceof FormControl)) continue;
+      const remainder = parts.slice(prefixLength);
+      const existingNestedValue = valueAt(control.value, `/${remainder.join('/')}`);
+      if (isEqual(existingNestedValue, item.value)) return null;
+      return {
+        control,
+        fieldId: parts[prefixLength - 1],
+        previousValue: control.value,
+        nextValue: withNestedValue(control.value, remainder, item.value),
+      };
+    }
+    return null;
   }
 
   private fieldId(pointer: string): string {

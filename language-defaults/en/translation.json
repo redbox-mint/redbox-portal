@@ -1842,6 +1842,8 @@
   "generation-generating": "Generating…",
   "generation-retry": "Try again",
   "generation-return-to-form": "Return to form",
+  "generation-request-failed": "The drafting request could not be started. Please try again.",
+  "generation-commit-failed": "The draft was saved, but its provenance could not be recorded.",
   "generation-error-generation-request-invalid": "Check the information submitted and try again.",
   "generation-error-generation-not-configured": "AI-assisted drafting is not configured for this portal.",
   "generation-error-generation-action-not-available": "This drafting action is no longer available.",

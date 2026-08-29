@@ -11,6 +11,7 @@ import type { GenerationRunAttributes } from '../waterline-models/GenerationRun'
 import type { GenerationProfileVersionAttributes } from '../waterline-models/GenerationProfileVersion';
 import type { GenerationEncryptedEnvelope } from './GenerationCryptoService';
 import { envelopeFromArtifact } from './GenerationRunService';
+import { buildEvidenceAliases } from './GenerationSchemaService';
 import { requireService } from './generation/require-service';
 
 interface PersistenceLike {
@@ -22,7 +23,11 @@ interface CryptoLike {
 }
 interface KnowledgeLike { retrieve(brandId: string, versions: string[], tags: string[], limits: { maxChunks: number; maxBytes: number }): Promise<GenerationEvidence[]>; }
 interface SchemaLike {
-  buildProviderSchema(definition: GenerationProfileVersionAttributes['definition']): Record<string, unknown>;
+  buildProviderSchema(
+    definition: GenerationProfileVersionAttributes['definition'],
+    evidence?: GenerationEvidence[],
+    evidenceAliases?: import('../model/generation').GenerationEvidenceAlias[],
+  ): Record<string, unknown>;
   validateCandidate(input: Record<string, unknown>): import('@researchdatabox/sails-ng-common').GenerationCandidatePatch;
 }
 interface PromptLike { build(input: Record<string, unknown>): import('../model/generation').GenerationProviderRequest; }
@@ -65,8 +70,10 @@ export namespace Services {
           maxChunks: profile.definition.contextLimits.maxKnowledgeChunks,
           maxBytes: profile.definition.contextLimits.totalBytes,
         });
+        const evidence = [...payload.frozenInput.sourceEvidence, ...knowledge];
+        const evidenceAliases = buildEvidenceAliases(evidence);
         const schemaService = requireService<SchemaLike>('generationschemaservice', ['buildProviderSchema', 'validateCandidate']);
-        const responseSchema = schemaService.buildProviderSchema(profile.definition);
+        const responseSchema = schemaService.buildProviderSchema(profile.definition, evidence, evidenceAliases);
         const resolver = requireService<ResolverLike>('generationsecretresolverservice', ['resolve']);
         const secret = connection.secretRef ? await resolver.resolve(connection.secretRef) : undefined;
         const deploymentConfig: GenerationDeploymentConfig = {
@@ -76,7 +83,7 @@ export namespace Services {
         const promptService = requireService<PromptLike>('generationpromptservice', ['build']);
         const providerRequest = promptService.build({
           correlationId: runId, definition: profile.definition, frozenInput: payload.frozenInput, knowledge,
-          responseSchema,
+          evidenceAliases, responseSchema,
           connection: { endpoint: connection.endpoint, secret, timeoutMs: connection.timeoutMs, nonSecretHeaders: connection.nonSecretHeaders },
           deployment: deploymentConfig,
         });
@@ -95,9 +102,8 @@ export namespace Services {
         }
         await persistence.transitionRun(brandId, runId, 'running', 'validating', { phase: 'validation', lastHeartbeatAt: new Date().toISOString() });
         state = 'validating';
-        const evidence = [...payload.frozenInput.sourceEvidence, ...knowledge];
         const candidate = schemaService.validateCandidate({
-          runId, rawContent: response.content, definition: profile.definition, evidence,
+          runId, rawContent: response.content, definition: profile.definition, evidence, evidenceAliases,
           baseTargetDigest: payload.frozenInput.baseTargetDigest,
           maxResponseBytes: sails.config.generation.provider.maxResponseBytes,
         });

@@ -101,6 +101,17 @@ export namespace Services {
           });
         }
       }
+      for (const answer of input.answers) {
+        const contentHash = canonicalHash(answer.value);
+        sourceEvidence.push({
+          id: `answer:${answer.id}:${contentHash}`,
+          label: `Reviewed answer: ${answer.id}`.slice(0, 200),
+          kind: 'source',
+          content: answer.value,
+          contentHash,
+          questionId: answer.id,
+        });
+      }
       const targetDraft = this.projectTargetDraft(input.targetDraft, input.definition);
       const result: GenerationFrozenInput = {
         sources: sourceValues, answers: input.answers, targetForm: input.targetForm,
