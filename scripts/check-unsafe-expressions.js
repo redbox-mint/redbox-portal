@@ -35,27 +35,16 @@ const globalEvalObjects = new Set(['global', 'globalThis', 'self', 'window']);
 const allowedExclusionRootKeys = new Set(['schemaVersion', 'documentation', 'entries']);
 const allowedExclusionEntryKeys = new Set(['path', 'kind', 'source', 'rationale']);
 const allowedExclusionKinds = new Set(['generated', 'vendored']);
+const maximumTrackedInvocationArguments = 64;
 const origins = Object.freeze({
   builtinEval: 'builtin-eval',
-  evalBind: 'eval-bind',
-  evalInvoker: 'eval-invoker',
   globalObject: 'global-object',
   lodashObject: 'lodash-object',
   lodashRunInContext: 'lodash-run-in-context',
-  lodashRunInContextBind: 'lodash-run-in-context-bind',
-  lodashRunInContextInvoker: 'lodash-run-in-context-invoker',
   lodashTemplate: 'lodash-template',
-  lodashTemplateBind: 'lodash-template-bind',
-  lodashTemplateInvoker: 'lodash-template-invoker',
   lodashTemplateNamespace: 'lodash-template-namespace',
   reflectApply: 'reflect-apply',
-  reflectApplyApply: 'reflect-apply-apply',
-  reflectApplyBind: 'reflect-apply-bind',
-  reflectApplyCall: 'reflect-apply-call',
   reflectConstruct: 'reflect-construct',
-  reflectConstructApply: 'reflect-construct-apply',
-  reflectConstructBind: 'reflect-construct-bind',
-  reflectConstructCall: 'reflect-construct-call',
   reflectObject: 'reflect-object',
 });
 
@@ -152,8 +141,9 @@ function isLodashTemplateModule(moduleName) {
 function collectBindings(sourceFile) {
   const nodeScopes = new WeakMap();
   const declarationBindings = new WeakMap();
-  const boundReflectAtoms = new WeakMap();
+  const boundCallableAtoms = new WeakMap();
   const carrierAtoms = new WeakMap();
+  const invocationMethodAtoms = new WeakMap();
   const literalAtoms = new Map();
   let propagationChanged = false;
 
@@ -389,26 +379,13 @@ function collectBindings(sourceFile) {
     const unknown = propertyName === undefined;
     const matches = name => unknown || propertyName === name;
 
-    if (origin === origins.builtinEval) {
-      if (matches('call') || matches('apply')) result.add(origins.evalInvoker);
-      if (matches('bind')) result.add(origins.evalBind);
-    } else if (origin === origins.evalInvoker) {
-      if (matches('bind')) result.add(origins.evalBind);
-    } else if (origin === origins.globalObject) {
+    if (origin === origins.globalObject) {
       if (matches('eval')) result.add(origins.builtinEval);
       if (matches('Reflect')) result.add(origins.reflectObject);
       if ([...globalEvalObjects].some(matches)) result.add(origins.globalObject);
     } else if (origin === origins.reflectObject) {
       if (matches('apply')) result.add(origins.reflectApply);
       if (matches('construct')) result.add(origins.reflectConstruct);
-    } else if (origin === origins.reflectApply) {
-      if (matches('bind')) result.add(origins.reflectApplyBind);
-      if (matches('call')) result.add(origins.reflectApplyCall);
-      if (matches('apply')) result.add(origins.reflectApplyApply);
-    } else if (origin === origins.reflectConstruct) {
-      if (matches('bind')) result.add(origins.reflectConstructBind);
-      if (matches('call')) result.add(origins.reflectConstructCall);
-      if (matches('apply')) result.add(origins.reflectConstructApply);
     } else if (origin === origins.lodashObject) {
       if (matches('template')) result.add(origins.lodashTemplate);
       if (matches('runInContext')) result.add(origins.lodashRunInContext);
@@ -416,16 +393,37 @@ function collectBindings(sourceFile) {
     } else if (origin === origins.lodashTemplateNamespace) {
       if (matches('default') || matches('template')) result.add(origins.lodashTemplate);
     } else if (origin === origins.lodashTemplate) {
-      if (matches('call') || matches('apply')) result.add(origins.lodashTemplateInvoker);
-      if (matches('bind')) result.add(origins.lodashTemplateBind);
       if (matches('default')) result.add(origins.lodashTemplate);
-    } else if (origin === origins.lodashTemplateInvoker) {
-      if (matches('bind')) result.add(origins.lodashTemplateBind);
-    } else if (origin === origins.lodashRunInContext) {
-      if (matches('bind')) result.add(origins.lodashRunInContextBind);
-      if (matches('call') || matches('apply')) result.add(origins.lodashRunInContextInvoker);
     }
     return result;
+  }
+
+  function isTrackedCallable(atom) {
+    if (typeof atom !== 'string') {
+      return atom.kind === 'bound-callable' || atom.kind === 'invocation-method';
+    }
+    return (
+      atom === origins.builtinEval ||
+      atom === origins.lodashRunInContext ||
+      atom === origins.lodashTemplate ||
+      atom === origins.reflectApply ||
+      atom === origins.reflectConstruct
+    );
+  }
+
+  function invocationMethodFor(node, method, target) {
+    let methods = invocationMethodAtoms.get(node);
+    if (!methods) {
+      methods = new Map();
+      invocationMethodAtoms.set(node, methods);
+    }
+    let atom = methods.get(method);
+    if (!atom) {
+      atom = { kind: 'invocation-method', method, target: new Set() };
+      methods.set(method, atom);
+    }
+    mergeTracked(atom.target, target);
+    return atom;
   }
 
   function staticPropertyNames(node) {
@@ -457,7 +455,7 @@ function collectBindings(sourceFile) {
     return names.length > 0 ? names : undefined;
   }
 
-  function getProperty(value, propertyNames) {
+  function getProperty(value, propertyNames, node) {
     const result = new Set();
     for (const atom of value) {
       if (typeof atom === 'string') {
@@ -475,6 +473,13 @@ function collectBindings(sourceFile) {
         }
       }
       mergeValue(result, atom.unknownProperty);
+    }
+    if (node) {
+      for (const method of ['apply', 'bind', 'call']) {
+        if (propertyNames !== undefined && !propertyNames.includes(method)) continue;
+        const callable = new Set([...value].filter(isTrackedCallable));
+        if (callable.size > 0) result.add(invocationMethodFor(node, method, callable));
+      }
     }
     return result;
   }
@@ -532,62 +537,87 @@ function collectBindings(sourceFile) {
     return ts.isIdentifier(callee) && callee.text === 'require' && !lookupBinding(callee);
   }
 
-  function boundReflectInvoker(node, operation) {
-    let atom = boundReflectAtoms.get(node);
+  function boundCallableFor(node, target, boundArguments) {
+    let atom = boundCallableAtoms.get(node);
     if (!atom) {
-      atom = { kind: 'bound-reflect-invoker', operation, boundArguments: [] };
-      boundReflectAtoms.set(node, atom);
+      atom = { kind: 'bound-callable', target: new Set(), boundArguments: [] };
+      boundCallableAtoms.set(node, atom);
     }
-    for (const [index, argument] of node.arguments.slice(1).entries()) {
-      let argumentValue = atom.boundArguments[index];
-      if (!argumentValue) {
-        argumentValue = new Set();
-        atom.boundArguments[index] = argumentValue;
+    mergeTracked(atom.target, target);
+    for (const [index, boundValue] of boundArguments.entries()) {
+      let storedValue = atom.boundArguments[index];
+      if (!storedValue) {
+        storedValue = new Set();
+        atom.boundArguments[index] = storedValue;
       }
-      mergeTracked(argumentValue, evaluateExpression(argument));
+      mergeTracked(storedValue, boundValue);
     }
     return atom;
   }
 
-  function reflectInvocationTargets(callee, node) {
-    const targets = new Set();
-    for (const atom of callee) {
-      if (atom === origins.reflectApply || atom === origins.reflectConstruct) {
-        if (node.arguments[0]) mergeValue(targets, evaluateExpression(node.arguments[0]));
-      } else if (atom === origins.reflectApplyCall || atom === origins.reflectConstructCall) {
-        if (node.arguments[1]) mergeValue(targets, evaluateExpression(node.arguments[1]));
-      } else if (atom === origins.reflectApplyApply || atom === origins.reflectConstructApply) {
-        if (node.arguments[1]) {
-          mergeValue(targets, getProperty(evaluateExpression(node.arguments[1]), ['0']));
-        }
-      } else if (typeof atom !== 'string' && atom.kind === 'bound-reflect-invoker') {
-        if (atom.boundArguments[0]) mergeValue(targets, atom.boundArguments[0]);
-        else if (node.arguments[0]) mergeValue(targets, evaluateExpression(node.arguments[0]));
+  function positionalValues(value) {
+    let maximumIndex = -1;
+    let hasUnknownProperty = false;
+    for (const atom of value) {
+      if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
+      hasUnknownProperty ||= atom.unknownProperty.size > 0;
+      for (const propertyName of atom.properties.keys()) {
+        if (!/^(0|[1-9]\d*)$/.test(propertyName)) continue;
+        const index = Number(propertyName);
+        if (!Number.isSafeInteger(index)) continue;
+        if (index >= maximumTrackedInvocationArguments) hasUnknownProperty = true;
+        maximumIndex = Math.max(maximumIndex, Math.min(index, maximumTrackedInvocationArguments - 1));
       }
     }
-    return targets;
-  }
-
-  function mergeKnownCallResult(result, callable) {
-    for (const atom of callable) {
-      if (atom === origins.evalBind) result.add(origins.builtinEval);
-      else if (atom === origins.lodashTemplateBind) result.add(origins.lodashTemplate);
-      else if (atom === origins.lodashRunInContextBind) result.add(origins.lodashRunInContext);
-      else if (atom === origins.lodashRunInContext || atom === origins.lodashRunInContextInvoker) {
-        result.add(origins.lodashObject);
-      }
-    }
-  }
-
-  function evaluateCallResult(callee, node) {
-    const result = new Set();
-    for (const atom of callee) {
-      if (atom === origins.reflectApplyBind) result.add(boundReflectInvoker(node, 'apply'));
-      else if (atom === origins.reflectConstructBind) result.add(boundReflectInvoker(node, 'construct'));
-    }
-    mergeKnownCallResult(result, callee);
-    mergeKnownCallResult(result, reflectInvocationTargets(callee, node));
+    if (maximumIndex < 0) return hasUnknownProperty ? [getProperty(value, undefined)] : [];
+    const result = Array.from({ length: maximumIndex + 1 }, (_, index) => getProperty(value, [String(index)]));
+    if (hasUnknownProperty) mergeValue(result[result.length - 1], getProperty(value, undefined));
     return result;
+  }
+
+  function mergeInvocation(target, source) {
+    mergeValue(target.result, source.result);
+    mergeValue(target.kinds, source.kinds);
+  }
+
+  function invokeTracked(callable, argumentValues, invocationNode, seen = new Set()) {
+    const invocation = { result: new Set(), kinds: new Set() };
+    for (const atom of callable) {
+      if (atom === origins.builtinEval) {
+        invocation.kinds.add('direct-eval');
+      } else if (atom === origins.lodashTemplate) {
+        invocation.kinds.add('lodash-template');
+      } else if (atom === origins.lodashRunInContext) {
+        invocation.result.add(origins.lodashObject);
+      } else if (atom === origins.reflectApply || atom === origins.reflectConstruct) {
+        const target = argumentValues[0] ?? new Set();
+        const argumentCarrier = argumentValues[atom === origins.reflectApply ? 2 : 1] ?? new Set();
+        mergeInvocation(invocation, invokeTracked(target, positionalValues(argumentCarrier), invocationNode, seen));
+      } else if (typeof atom !== 'string' && !seen.has(atom)) {
+        const nextSeen = new Set(seen);
+        nextSeen.add(atom);
+        if (atom.kind === 'bound-callable') {
+          mergeInvocation(
+            invocation,
+            invokeTracked(atom.target, [...atom.boundArguments, ...argumentValues], invocationNode, nextSeen)
+          );
+        } else if (atom.kind === 'invocation-method' && atom.method === 'call') {
+          mergeInvocation(invocation, invokeTracked(atom.target, argumentValues.slice(1), invocationNode, nextSeen));
+        } else if (atom.kind === 'invocation-method' && atom.method === 'apply') {
+          const appliedArguments = positionalValues(argumentValues[1] ?? new Set());
+          mergeInvocation(invocation, invokeTracked(atom.target, appliedArguments, invocationNode, nextSeen));
+        } else if (atom.kind === 'invocation-method' && atom.method === 'bind') {
+          invocation.result.add(boundCallableFor(invocationNode, atom.target, argumentValues.slice(1)));
+        }
+      }
+    }
+    return invocation;
+  }
+
+  function evaluateInvocation(calleeNode, argumentNodes, invocationNode) {
+    const callee = evaluateExpression(calleeNode);
+    const argumentValues = argumentNodes.map(evaluateExpression);
+    return invokeTracked(callee, argumentValues, invocationNode);
   }
 
   function evaluateExpression(node) {
@@ -600,7 +630,7 @@ function collectBindings(sourceFile) {
     if (ts.isNoSubstitutionTemplateLiteral(current)) return literalValue(current.text);
 
     if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
-      return getProperty(evaluateExpression(current.expression), memberPropertyNames(current));
+      return getProperty(evaluateExpression(current.expression), memberPropertyNames(current), current);
     }
 
     if (ts.isObjectLiteralExpression(current)) {
@@ -632,7 +662,11 @@ function collectBindings(sourceFile) {
 
     if (ts.isCallExpression(current)) {
       if (isUnboundRequireCall(current)) return moduleValue(literalPropertyName(current.arguments[0]));
-      return evaluateCallResult(evaluateExpression(current.expression), current);
+      return evaluateInvocation(current.expression, [...current.arguments], current).result;
+    }
+
+    if (ts.isNewExpression(current)) {
+      return evaluateInvocation(current.expression, [...(current.arguments ?? [])], current).result;
     }
 
     if (ts.isConditionalExpression(current)) {
@@ -757,6 +791,8 @@ function collectBindings(sourceFile) {
     if (ts.isVariableDeclaration(node)) {
       if (node.initializer) bindPattern(node.name, evaluateExpression(node.initializer));
       else if (isAmbientVariableDeclaration(node)) bindPattern(node.name, ambientGlobalValue(node.name));
+    } else if (ts.isParameter(node)) {
+      bindPattern(node.name, node.initializer ? evaluateExpression(node.initializer) : new Set());
     } else if (
       ts.isBinaryExpression(node) &&
       [
@@ -778,27 +814,19 @@ function collectBindings(sourceFile) {
     visitPropagation(sourceFile);
   } while (propagationChanged);
 
-  function dangerousKinds(value) {
-    const kinds = new Set();
-    if (value.has(origins.builtinEval) || value.has(origins.evalInvoker)) kinds.add('direct-eval');
-    if (value.has(origins.lodashTemplate) || value.has(origins.lodashTemplateInvoker)) {
-      kinds.add('lodash-template');
-    }
-    return kinds;
-  }
-
   function unsafeKindsForCall(node) {
-    const callee = evaluateExpression(node.expression);
-    const kinds = dangerousKinds(callee);
-    for (const kind of dangerousKinds(reflectInvocationTargets(callee, node))) kinds.add(kind);
-    return kinds;
+    return evaluateInvocation(node.expression, [...node.arguments], node).kinds;
   }
 
-  function unsafeKindsForExpression(node) {
-    return dangerousKinds(evaluateExpression(node));
+  function unsafeKindsForNew(node) {
+    return evaluateInvocation(node.expression, [...(node.arguments ?? [])], node).kinds;
   }
 
-  return { unsafeKindsForCall, unsafeKindsForExpression };
+  function unsafeKindsForTag(node) {
+    return evaluateInvocation(node.tag, [], node).kinds;
+  }
+
+  return { unsafeKindsForCall, unsafeKindsForNew, unsafeKindsForTag };
 }
 
 function findingFingerprint(kind, sourceText) {
@@ -837,9 +865,9 @@ function scanSource(source, relativePath) {
     if (ts.isCallExpression(node)) {
       addFindings(node, bindings.unsafeKindsForCall(node));
     } else if (ts.isNewExpression(node)) {
-      addFindings(node, bindings.unsafeKindsForExpression(node.expression));
+      addFindings(node, bindings.unsafeKindsForNew(node));
     } else if (ts.isTaggedTemplateExpression(node)) {
-      addFindings(node, bindings.unsafeKindsForExpression(node.tag));
+      addFindings(node, bindings.unsafeKindsForTag(node));
     }
     ts.forEachChild(node, visit);
   }
