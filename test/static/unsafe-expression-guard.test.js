@@ -3453,6 +3453,451 @@ test('known-safe overrides and data-only local return aliases remain clean', () 
   }
 });
 
+test('invocation-local carrier mutations retain parameter and receiver callable provenance', () => {
+  const invokeEval = '(eval, globalThis, [configuredSource]);';
+  const mutationCases = [
+    {
+      name: 'object property write from a parameter',
+      kind: 'direct-eval',
+      source: `function carry(target) { const carrier = {}; carrier.run = target; return carrier.run; }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'array destructured parameter',
+      kind: 'direct-eval',
+      source: `function carry([target]) { const carrier = {}; carrier.run = target; return carrier.run; }
+        carry([Reflect.apply])${invokeEval}`,
+    },
+    {
+      name: 'object destructured parameter',
+      kind: 'direct-eval',
+      source: `function carry({ target }) { const carrier = {}; carrier.run = target; return carrier.run; }
+        carry({ target: Reflect.apply })${invokeEval}`,
+    },
+    {
+      name: 'array assignment destructuring',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; let run; [run] = [target]; carrier.run = run; return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'object assignment destructuring',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; let run; ({ run } = { run: target }); carrier.run = run; return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'for-of assignment',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; for (const run of [target]) carrier.run = run; return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'manual iterator assignment',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; const iterator = [target][Symbol.iterator]();
+          carrier.run = iterator.next().value; return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'array map identity carrier',
+      kind: 'direct-eval',
+      source: `function carry(target) { const carrier = [target].map(value => value); return carrier[0]; }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'Map identity carrier',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = new Map(); carrier.set('run', target); return carrier.get('run');
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'array index write',
+      kind: 'direct-eval',
+      source: `function carry(target) { const carrier = []; carrier[0] = target; return carrier[0]; }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'Reflect.set receiver write',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const base = {}; const receiver = {};
+          Reflect.set(base, 'run', target, receiver); return receiver.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'Object.assign write',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; Object.assign(carrier, { run: target }); return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'Object.defineProperty write',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; Object.defineProperty(carrier, 'run', { value: target }); return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'Object.defineProperties write',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; Object.defineProperties(carrier, { run: { value: target } }); return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'Reflect.defineProperty write',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; Reflect.defineProperty(carrier, 'run', { value: target }); return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'descriptor getter closure',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; Object.defineProperty(carrier, 'run', { get() { return target; } });
+          return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'legacy __defineGetter__ closure',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; carrier.__defineGetter__('run', () => target); return carrier.run;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'inherited iterator replacement',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = [];
+          Object.setPrototypeOf(carrier, { [Symbol.iterator]: function* replacement() { yield target; } });
+          return carrier[Symbol.iterator]().next().value;
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'conditional carrier mutation',
+      kind: 'direct-eval',
+      source: `function carry(target, flag) {
+          const first = {}; const second = {}; (flag ? first : second).run = target;
+          return flag ? first.run : second.run;
+        }
+        carry(Reflect.apply, flag)${invokeEval}`,
+    },
+    {
+      name: 'returned closure over a mutated carrier',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = {}; carrier.run = target; return () => carrier.run;
+        }
+        carry(Reflect.apply)()${invokeEval}`,
+    },
+    {
+      name: 'receiver mutation through call',
+      kind: 'direct-eval',
+      source: `function carry(target) { this.run = target; return this.run; }
+        carry.call({}, Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'Lodash callable through an object carrier',
+      kind: 'lodash-template',
+      source: `import lodash from 'lodash';
+        function carry(target) { const carrier = {}; carrier.run = target; return carrier.run; }
+        carry(Reflect.apply)(lodash.template, globalThis, [configuredSource]);`,
+    },
+    {
+      name: 'Reflect.construct through an array carrier',
+      kind: 'lodash-template',
+      source: `import compile from 'lodash/template';
+        function carry(target) { const carrier = []; carrier.push(target); return carrier[0]; }
+        carry(Reflect.construct)(compile, [configuredSource]);`,
+    },
+    {
+      name: 'unknown carrier mutator',
+      kind: 'analysis-limit',
+      reason: 'unknown-reflective-callable',
+      source: `function carry(target) {
+          const carrier = []; mutate(carrier, target); return carrier[0];
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+  ];
+  const mutatorArguments = { push: 'target', splice: '0, 0, target', unshift: 'target' };
+  const mutatorInvocations = {
+    direct: (method, args) => `carrier.${method}(${args})`,
+    borrowed: (method, args) => `Array.prototype.${method}.call(carrier, ${args})`,
+    bound: (method, args) => `Array.prototype.${method}.bind(carrier)(${args})`,
+    reflected: (method, args) => `Reflect.apply(Array.prototype.${method}, carrier, [${args}])`,
+  };
+  for (const [method, args] of Object.entries(mutatorArguments)) {
+    for (const [form, invocation] of Object.entries(mutatorInvocations)) {
+      mutationCases.push({
+        name: `${form} ${method} mutation`,
+        kind: 'direct-eval',
+        source: `function carry(target) {
+            const carrier = []; ${invocation(method, args)}; return carrier[0];
+          }
+          carry(Reflect.apply)${invokeEval}`,
+      });
+    }
+  }
+  mutationCases.push(
+    {
+      name: 'pop return value',
+      kind: 'direct-eval',
+      source: `function carry(target) { const carrier = [target]; return carrier.pop(); }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'shift return value',
+      kind: 'direct-eval',
+      source: `function carry(target) { const carrier = [target]; return carrier.shift(); }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'copyWithin mutation',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = [target, null]; carrier.copyWithin(1, 0, 1); return carrier[1];
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'fill mutation',
+      kind: 'direct-eval',
+      source: `function carry(target) { const carrier = [null]; carrier.fill(target); return carrier[0]; }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'reverse mutation',
+      kind: 'direct-eval',
+      source: `function carry(target) {
+          const carrier = [null, target]; carrier.reverse(); return carrier[0];
+        }
+        carry(Reflect.apply)${invokeEval}`,
+    },
+    {
+      name: 'sort mutation',
+      kind: 'direct-eval',
+      source: `function carry(target) { const carrier = [target]; carrier.sort(); return carrier[0]; }
+        carry(Reflect.apply)${invokeEval}`,
+    }
+  );
+
+  for (const mutationCase of mutationCases) {
+    const relativePath = 'packages/example/src/invocation-local-carrier.ts';
+    const firstFindings = scanSource(mutationCase.source, relativePath);
+    const secondFindings = scanSource(mutationCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${mutationCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === mutationCase.kind && (!mutationCase.reason || finding.reason === mutationCase.reason)
+      ),
+      `${mutationCase.name} should retain or fail closed on callable provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${mutationCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('manual iterator next results retain bounded yielded callable provenance', () => {
+  const iteratorCases = [
+    {
+      name: 'array eval iterator',
+      kind: 'direct-eval',
+      source: `const iterator = [eval][Symbol.iterator](); iterator.next().value(configuredSource);`,
+    },
+    {
+      name: 'array Lodash iterator',
+      kind: 'lodash-template',
+      source: `import lodash from 'lodash';
+        const iterator = [lodash.template][Symbol.iterator](); iterator.next().value(configuredSource);`,
+    },
+    {
+      name: 'generator eval iterator',
+      kind: 'direct-eval',
+      source: `function* values() { yield eval; } values().next().value(configuredSource);`,
+    },
+    {
+      name: 'generator Lodash iterator',
+      kind: 'lodash-template',
+      source: `import lodash from 'lodash';
+        function* values() { yield lodash.template; } values().next().value(configuredSource);`,
+    },
+    {
+      name: 'array map identity iterator',
+      kind: 'direct-eval',
+      source: `[eval].map(value => value)[Symbol.iterator]().next().value(configuredSource);`,
+    },
+    {
+      name: 'Object.values iterator',
+      kind: 'direct-eval',
+      source: `Object.values({ run: eval })[Symbol.iterator]().next().value(configuredSource);`,
+    },
+    {
+      name: 'Object.entries iterator',
+      kind: 'direct-eval',
+      source: `Object.entries({ run: eval })[Symbol.iterator]().next().value[1](configuredSource);`,
+    },
+    {
+      name: 'Map values iterator',
+      kind: 'direct-eval',
+      source: `new Map([['run', eval]]).values().next().value(configuredSource);`,
+    },
+    {
+      name: 'Map entries iterator',
+      kind: 'direct-eval',
+      source: `new Map([['run', eval]]).entries().next().value[1](configuredSource);`,
+    },
+    {
+      name: 'Set values iterator',
+      kind: 'direct-eval',
+      source: `new Set([eval]).values().next().value(configuredSource);`,
+    },
+    {
+      name: 'returned iterator',
+      kind: 'direct-eval',
+      source: `function values(target) { return [target][Symbol.iterator](); }
+        values(eval).next().value(configuredSource);`,
+    },
+    {
+      name: 'returned Set Lodash iterator',
+      kind: 'lodash-template',
+      source: `import lodash from 'lodash';
+        function values(target) { return new Set([target]).values(); }
+        values(lodash.template).next().value(configuredSource);`,
+    },
+    {
+      name: 'Reflect.construct from Object.values',
+      kind: 'lodash-template',
+      source: `import compile from 'lodash/template';
+        Object.values({ run: Reflect.construct })[Symbol.iterator]().next().value(
+          compile,
+          [configuredSource]
+        );`,
+    },
+    {
+      name: 'unknown returned iterator',
+      kind: 'analysis-limit',
+      reason: 'unknown-reflective-callable',
+      source: `loadIterator().next().value(configuredSource);`,
+    },
+    {
+      name: 'unknown Object.entries iterator',
+      kind: 'analysis-limit',
+      reason: 'unknown-reflective-callable',
+      source: `Object.entries(loadObject())[Symbol.iterator]().next().value[1](configuredSource);`,
+    },
+  ];
+
+  for (const iteratorCase of iteratorCases) {
+    const relativePath = 'packages/example/src/manual-iterator-next.ts';
+    const firstFindings = scanSource(iteratorCase.source, relativePath);
+    const secondFindings = scanSource(iteratorCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${iteratorCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === iteratorCase.kind && (!iteratorCase.reason || finding.reason === iteratorCase.reason)
+      ),
+      `${iteratorCase.name} should retain or fail closed on yielded provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${iteratorCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('known-safe invocation-local carriers and manual iterators remain clean', () => {
+  const safeCases = [
+    `function carry(target) { const carrier = {}; carrier.run = target; return carrier.run; }
+      carry(Array.of)(eval, globalThis, [configuredSource]);`,
+    `function carry(target = Reflect.apply) {
+        const carrier = {}; carrier.run = target; return carrier.run;
+      }
+      carry(Array.of)(eval, globalThis, [configuredSource]);`,
+    `function carry(target, flag) {
+        const first = {}; const second = {}; (flag ? first : second).run = target;
+        return flag ? first.run : second.run;
+      }
+      carry(Array.of, flag)(eval, globalThis, [configuredSource]);`,
+    `function carry(target) {
+        const carrier = {}; carrier.run = target; return () => carrier.run;
+      }
+      carry(Array.of)()(configuredSource);`,
+    `function carry(target) { this.run = target; return this.run; }
+      carry.call({}, Array.of)(configuredSource);`,
+    `const collect = (...values) => values; collect(...[eval, _.template]);`,
+    `const iterator = Array.of(value => value)[Symbol.iterator]();
+      iterator.next().value(configuredSource);`,
+    `function* values() { yield Array.of; } values().next().value(configuredSource);`,
+    `[Array.of].map(value => value)[Symbol.iterator]().next().value(configuredSource);`,
+    `Object.values({ run: Array.of })[Symbol.iterator]().next().value(configuredSource);`,
+    `Object.entries({ run: Array.of })[Symbol.iterator]().next().value[1](configuredSource);`,
+    `new Map([['run', Array.of]]).values().next().value(configuredSource);`,
+    `new Set([Array.of]).values().next().value(configuredSource);`,
+    `function values(target) { return [target][Symbol.iterator](); }
+      values(Array.of).next().value(configuredSource);`,
+    `function carry(target) {
+        const carrier = new Map(); carrier.set('run', target); return carrier.get('run');
+      }
+      consume(carry(Reflect.apply), eval, _.template);`,
+  ];
+
+  for (const [index, source] of safeCases.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-invocation-carrier-${index}.ts`),
+      [],
+      `safe invocation-local carrier control ${index} should not produce a finding`
+    );
+  }
+});
+
+test('large manual iterator value carriers remain deterministic and bounded', () => {
+  const valueCount = 1500;
+  const values = Array.from({ length: valueCount }, (_, index) =>
+    index === valueCount - 1 ? 'eval' : `() => ${index}`
+  ).join(',');
+  const source = `const values = [${values}];
+    const iterator = new Set(values).values();
+    iterator.next().value(configuredSource);`;
+  const relativePath = 'packages/example/src/bounded-manual-iterator.ts';
+  const startedAt = performance.now();
+  const firstFindings = scanSource(source, relativePath);
+  const secondFindings = scanSource(source, relativePath);
+  const elapsedMilliseconds = performance.now() - startedAt;
+
+  assert.deepEqual(firstFindings, secondFindings);
+  assert.ok(
+    firstFindings.some(
+      finding =>
+        finding.kind === 'direct-eval' ||
+        (finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable')
+    ),
+    `the bounded iterator should retain or fail closed on the overflow eval value: ${JSON.stringify(firstFindings)}`
+  );
+  assert.ok(firstFindings.length <= 2, 'large iterator diagnostics should stay bounded');
+  assert.ok(elapsedMilliseconds < 5000, `two large iterator scans took ${Math.round(elapsedMilliseconds)}ms`);
+});
+
 test('deleting safe intrinsic own properties exposes tracked prototype callables', () => {
   for (const deletionCase of unsafeIntrinsicDeletionCases) {
     const findings = scanSource(deletionCase.source, 'packages/example/src/intrinsic-deletion.ts');
