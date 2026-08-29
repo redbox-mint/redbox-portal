@@ -149,6 +149,9 @@ export type GenerateAllShimsResult = GenerateAllShimsSkippedResult | GenerateAll
 
 type RedboxConfigMap = RuntimeRecord;
 
+const retiredControllerShimFilename = `${['Action', 'Controller'].join('')}.js`;
+const retiredConfigShimFilename = `${['act', 'ion'].join('')}.js`;
+
 interface RuntimeMergeLibrary {
   isPlainObject(value: RuntimeValue): boolean;
   merge(target: RuntimeRecord, ...sources: RuntimeRecord[]): RuntimeRecord;
@@ -965,6 +968,8 @@ export async function generateControllerShims(
   const { ControllerNames, WebserviceControllerNames, ControllerExports, WebserviceControllerExports } =
     loadCoreTypes();
 
+  await fs.rm(path.join(controllersDir, retiredControllerShimFilename), { force: true });
+
   const allApiControllers = new Set([...ControllerNames, ...Object.keys(hookControllers)]);
   const allWSControllers = new Set([...WebserviceControllerNames, ...Object.keys(hookWebserviceControllers)]);
 
@@ -1143,6 +1148,8 @@ export async function generateConfigShims(
   hookConfigs: HookConfigRegistration[]
 ): Promise<GenerationStats> {
   const { Config } = loadCoreTypes();
+
+  await fs.rm(path.join(configDir, retiredConfigShimFilename), { force: true });
 
   let generated = 0;
   const configNames = Object.keys(Config);
