@@ -7,7 +7,7 @@ import { Config } from '../../src/config';
 import { auth } from '../../src/config/auth.config';
 import { routes } from '../../src/config/routes.config';
 import { ControllerExports, ControllerNames } from '../../src/controllers';
-import { generateConfigShims, generateControllerShims } from '../../src/loader';
+import { generateAllShims } from '../../src/loader';
 
 const legacyControllerName = ['Action', 'Controller'].join('');
 const legacyConfigName = ['act', 'ion'].join('');
@@ -40,20 +40,41 @@ describe('Legacy action surface removal', () => {
     expect(configIndex).not.to.include(`./${legacyConfigName}.config`);
   });
 
-  it('does not generate controller or configuration shims for the removed surface', async () => {
+  it('removes stale generated shims without deleting unrelated artifacts', async () => {
     const sandboxDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'redbox-legacy-action-'));
     const controllersDir = path.join(sandboxDir, 'api', 'controllers');
     const configDir = path.join(sandboxDir, 'config');
+    const retiredControllerShim = path.join(controllersDir, `${legacyControllerName}.js`);
+    const retiredConfigShim = path.join(configDir, `${legacyConfigName}.js`);
+    const unrelatedControllerShim = path.join(controllersDir, 'CustomController.js');
+    const unrelatedConfigShim = path.join(configDir, 'installation-overrides.js');
 
     try {
       await Promise.all([
         fs.promises.mkdir(controllersDir, { recursive: true }),
         fs.promises.mkdir(configDir, { recursive: true }),
       ]);
-      await Promise.all([generateControllerShims(controllersDir, {}, {}), generateConfigShims(configDir, [])]);
+      await Promise.all([
+        fs.promises.writeFile(retiredControllerShim, 'stale generated controller'),
+        fs.promises.writeFile(retiredConfigShim, 'stale generated config'),
+        fs.promises.writeFile(unrelatedControllerShim, 'custom controller'),
+        fs.promises.writeFile(unrelatedConfigShim, 'custom config'),
+        fs.promises.writeFile(
+          path.join(sandboxDir, 'package.json'),
+          JSON.stringify({ name: 'legacy-action-upgrade-test', dependencies: {}, devDependencies: {} })
+        ),
+      ]);
 
-      await expectMissing(path.join(controllersDir, `${legacyControllerName}.js`));
-      await expectMissing(path.join(configDir, `${legacyConfigName}.js`));
+      const generation = await generateAllShims(sandboxDir, { forceRegenerate: true });
+      expect(generation.skipped).to.equal(false);
+
+      await Promise.all([expectMissing(retiredControllerShim), expectMissing(retiredConfigShim)]);
+      const [controllerContent, configContent] = await Promise.all([
+        fs.promises.readFile(unrelatedControllerShim, 'utf8'),
+        fs.promises.readFile(unrelatedConfigShim, 'utf8'),
+      ]);
+      expect(controllerContent).to.equal('custom controller');
+      expect(configContent).to.equal('custom config');
     } finally {
       await fs.promises.rm(sandboxDir, { recursive: true, force: true });
     }
