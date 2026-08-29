@@ -1078,6 +1078,92 @@ const mutableSpreadPrefixCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
 ];
+const positionalInsertionCases = [
+  {
+    name: 'push inserts eval into a Reflect.apply carrier',
+    source: `const args = [];
+      args.push(eval, globalThis, [configuredSource]);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'unshift inserts eval into a Reflect.apply carrier',
+    source: `const args = [globalThis, [configuredSource]];
+      args.unshift(eval);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'splice inserts eval into a Reflect.apply carrier',
+    source: `const args = [globalThis, [configuredSource]];
+      args.splice(0, 0, eval);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'a borrowed push.call inserts eval',
+    source: `const args = [];
+      Array.prototype.push.call(args, eval, globalThis, [configuredSource]);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'a borrowed unshift.apply inserts a Lodash compiler',
+    source: `const args = [[configuredSource]];
+      Array.prototype.unshift.apply(args, [_.template]);
+      Reflect.construct(...args);`,
+  },
+  {
+    name: 'a bound splice inserts eval',
+    source: `const args = [globalThis, [configuredSource]];
+      const insert = args.splice.bind(args, 0, 0);
+      insert(eval);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'Reflect.apply of push inserts eval',
+    source: `const args = [];
+      Reflect.apply(Array.prototype.push, args, [eval, globalThis, [configuredSource]]);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'Object.assign inserts eval into indexed carrier properties',
+    source: `const args = [];
+      Object.assign(args, { 0: eval, 1: globalThis, 2: [configuredSource], length: 3 });
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'Object.defineProperty inserts a Lodash compiler into a carrier',
+    source: `const args = [[configuredSource]];
+      Object.defineProperty(args, '0', { value: _.template });
+      Reflect.construct(...args);`,
+  },
+  {
+    name: 'Reflect.set inserts eval into a carrier',
+    source: `const args = [];
+      Reflect.set(args, '0', eval);
+      Reflect.set(args, '1', globalThis);
+      Reflect.set(args, '2', [configuredSource]);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'destructuring observes values inserted by push',
+    source: `const args = [];
+      args.push(eval, globalThis, [configuredSource]);
+      const [target, receiver, invocationArgs] = args;
+      Reflect.apply(target, receiver, invocationArgs);`,
+  },
+  {
+    name: 'array spread observes a Lodash compiler inserted by unshift',
+    source: `const args = [[configuredSource]];
+      args.unshift(_.template);
+      const copy = [...args];
+      Reflect.construct(...copy);`,
+  },
+  {
+    name: 'Array.from observes eval inserted by splice',
+    source: `const args = [globalThis, [configuredSource]];
+      args.splice(0, 0, eval);
+      const copy = Array.from(args);
+      Reflect.apply(...copy);`,
+  },
+];
 const multiHopPrototypeCases = [
   {
     name: 'a second-hop iterator yields eval',
@@ -1643,6 +1729,24 @@ const safeReflectiveCarrierCases = [
       Object.assign({}, args);
       Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
   },
+  {
+    name: 'a mutator may insert unsafe values as data for a safe Reflect target',
+    source: `const args = [];
+      args.push(eval, _.template);
+      Reflect.apply(Array.of, null, args);`,
+  },
+  {
+    name: 'unshift may install a known-safe Reflect.apply target',
+    source: `const args = [null, [eval, _.template]];
+      args.unshift(Array.of);
+      Reflect.apply(...args);`,
+  },
+  {
+    name: 'a borrowed splice may insert only a known-safe Reflect.construct target',
+    source: `const args = [[eval, _.template]];
+      Array.prototype.splice.call(args, 0, 0, Array);
+      Reflect.construct(...args);`,
+  },
 ];
 const safePluralDescriptorTargetCases = [
   {
@@ -1879,6 +1983,69 @@ const unknownPluralDescriptorInvocationCases = [
       parse.call(null, configuredSource);`,
   },
 ];
+const unknownSingularReflectiveInvocationCases = [
+  {
+    name: 'an unknown Object descriptor value is invoked directly',
+    source: `Object.getOwnPropertyDescriptor(loadTarget(), loadKey()).value(configuredSource);`,
+  },
+  {
+    name: 'a conditional Reflect descriptor value composes call',
+    source: `Reflect.getOwnPropertyDescriptor(
+        flag ? Array : loadTarget(),
+        flag ? 'of' : loadKey()
+      ).value.call(null, configuredSource);`,
+  },
+  {
+    name: 'an Object descriptor intrinsic composes apply before its value is invoked',
+    source: `Object.getOwnPropertyDescriptor
+        .apply(Object, [loadTarget(), loadKey()])
+        .value(configuredSource);`,
+  },
+  {
+    name: 'a bound Reflect descriptor intrinsic returns an invoked value',
+    source: `const descriptorOf = Reflect.getOwnPropertyDescriptor.bind(Reflect, loadTarget());
+      descriptorOf(loadKey()).value(configuredSource);`,
+  },
+  {
+    name: 'Reflect.apply invokes a singular descriptor intrinsic',
+    source: `Reflect.apply(Object.getOwnPropertyDescriptor, Object, [loadTarget(), loadKey()])
+        .value(configuredSource);`,
+  },
+  {
+    name: 'an unknown Reflect.get result composes apply',
+    source: `Reflect.get(loadTarget(), loadKey()).apply(null, [configuredSource]);`,
+  },
+  {
+    name: 'a bound Reflect.get result is invoked',
+    source: `const run = Reflect.get(loadTarget(), loadKey()).bind(null);
+      run(configuredSource);`,
+  },
+  {
+    name: 'a conditional Reflect.get target is invoked directly',
+    source: `Reflect.get(flag ? { run: Array.of } : loadTarget(), 'run')(configuredSource);`,
+  },
+  {
+    name: 'an unknown Object prototype callable composes bind',
+    source: `const run = Object.getPrototypeOf(loadTarget()).run.bind(null);
+      run(configuredSource);`,
+  },
+  {
+    name: 'an unknown Reflect prototype callable composes Reflect.apply',
+    source: `Reflect.apply(
+        Reflect.get(Reflect.getPrototypeOf(loadTarget()), loadKey()),
+        null,
+        [configuredSource]
+      );`,
+  },
+  {
+    name: 'Object.getPrototypeOf.call returns an invoked unknown prototype member',
+    source: `Object.getPrototypeOf.call(Object, loadTarget()).run(configuredSource);`,
+  },
+  {
+    name: 'Reflect.apply invokes Object.getPrototypeOf before a derived call',
+    source: `Reflect.apply(Object.getPrototypeOf, Object, [loadTarget()]).run(configuredSource);`,
+  },
+];
 const returnedReflectiveTargetCases = [
   {
     name: 'a function returns Reflect.apply for direct invocation',
@@ -1902,6 +2069,59 @@ const returnedReflectiveTargetCases = [
         return reflectiveTarget;
       }
       loadTarget()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a function closes over an outer Reflect.apply alias',
+    kind: 'direct-eval',
+    source: `const reflectiveTarget = Reflect.apply;
+      function loadTarget() { return reflectiveTarget; }
+      loadTarget()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an identity parameter carries Reflect.apply',
+    kind: 'direct-eval',
+    source: `function identity(target) { return target; }
+      identity(Reflect.apply)(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a returned closure captures a Reflect.apply parameter',
+    kind: 'direct-eval',
+    source: `function closeOver(target) { return () => target; }
+      closeOver(Reflect.apply)()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a later parameter-dependent return retains Reflect.apply',
+    kind: 'direct-eval',
+    source: `function chooseTarget(target) {
+        if (flag) return null;
+        return target;
+      }
+      chooseTarget(Reflect.apply)(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a default parameter supplies Reflect.apply',
+    kind: 'direct-eval',
+    source: `function defaultTarget(target = Reflect.apply) { return target; }
+      defaultTarget()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a destructured parameter carries Reflect.apply',
+    kind: 'direct-eval',
+    source: `function identity({ target }) { return target; }
+      identity({ target: Reflect.apply })(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an identity parameter carries Reflect.construct',
+    kind: 'lodash-template',
+    source: `function identity(target) { return target; }
+      identity(Reflect.construct)(_.template, [configuredSource]);`,
+  },
+  {
+    name: 'a function closes over an outer Reflect.construct alias',
+    kind: 'lodash-template',
+    source: `const reflectiveTarget = Reflect.construct;
+      function loadTarget() { return reflectiveTarget; }
+      loadTarget()(_.template, [configuredSource]);`,
   },
   {
     name: 'a returned conditional Reflect target retains its unknown alternative',
@@ -2206,6 +2426,59 @@ const safeAccessorAndBuiltinPrototypeCases = [
       target(eval, _.template);`,
   },
   {
+    name: 'an identity parameter returns Array.of safely',
+    source: `function identity(target) { return target; }
+      identity(Array.of)(eval, _.template);`,
+  },
+  {
+    name: 'a supplied Array.of argument suppresses an unsafe default',
+    source: `function defaultTarget(target = Reflect.apply) { return target; }
+      defaultTarget(Array.of)(eval, _.template);`,
+  },
+  {
+    name: 'a returned closure captures Array.of safely',
+    source: `function closeOver(target) { return () => target; }
+      closeOver(Array.of)()(eval, _.template);`,
+  },
+  {
+    name: 'a higher-order Reflect.apply invokes returned Array.of safely',
+    source: `function identity(target) { return target; }
+      identity(Reflect.apply)(Array.of, null, [eval, _.template]);`,
+  },
+  {
+    name: 'an own Object descriptor remains safe above an unsafe Array prototype property',
+    source: `Object.setPrototypeOf(Array, { of: eval });
+      function loadTarget() {
+        return Object.getOwnPropertyDescriptor(Array, 'of').value;
+      }
+      loadTarget()(eval, _.template);`,
+  },
+  {
+    name: 'an own Reflect descriptor remains safe above an unsafe Array prototype property',
+    source: `Reflect.setPrototypeOf(Array, { of: _.template });
+      const target = Reflect.getOwnPropertyDescriptor(Array, 'of').value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'Reflect.get prefers a known-safe own callable over an unsafe prototype callable',
+    source: `const target = { __proto__: { run: eval }, run: Array.of };
+      Reflect.get(target, 'run')(eval, _.template);`,
+  },
+  {
+    name: 'Object.getPrototypeOf returns a prototype with a safe own callable',
+    source: `const root = { run: eval };
+      const prototype = { __proto__: root, run: Array.of };
+      const target = { __proto__: prototype };
+      Object.getPrototypeOf(target).run(eval, _.template);`,
+  },
+  {
+    name: 'unknown singular reflective values stay clean when used only as data',
+    source: `const descriptorValue = Object.getOwnPropertyDescriptor(loadData(), loadKey()).value;
+      const reflectedValue = Reflect.get(loadData(), loadKey());
+      const prototype = Reflect.getPrototypeOf(loadData());
+      consume(descriptorValue, reflectedValue, prototype);`,
+  },
+  {
     name: 'deleting Array.of may expose a known-safe prototype callable',
     source: `Object.setPrototypeOf(Array, { of: JSON.parse });
       Reflect.deleteProperty(Array, 'of');
@@ -2281,6 +2554,9 @@ const productionFinalReviewCases = [
   unknownPluralDescriptorInvocationCases[0],
   builtinPrototypeCallableCases[0],
   iteratorReceiverMutationCases[0],
+  returnedReflectiveTargetCases.find(({ name }) => name === 'an identity parameter carries Reflect.apply'),
+  positionalInsertionCases.find(({ name }) => name === 'unshift inserts eval into a Reflect.apply carrier'),
+  unknownSingularReflectiveInvocationCases[0],
 ];
 
 const targetSensitiveUnsafeSpreadCases = [
@@ -2828,6 +3104,24 @@ test('mutable spread prefixes fail closed after length-changing writes and mutat
   }
 });
 
+test('positional mutators propagate inserted unsafe values through every carrier path', () => {
+  for (const insertionCase of positionalInsertionCases) {
+    const firstFindings = scanSource(insertionCase.source, 'packages/example/src/positional-insertion.ts');
+    const secondFindings = scanSource(insertionCase.source, 'packages/example/src/positional-insertion.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${insertionCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          finding.kind === 'lodash-template' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+      ),
+      `${insertionCase.name} should propagate the inserted callable or fail closed: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 3, `${insertionCase.name} diagnostics should stay bounded`);
+  }
+});
+
 test('reviewed prototype, descriptor, accessor, Object.assign, and legacy paths fail closed', () => {
   for (const reviewCase of reviewedReflectiveMutationCases) {
     const firstFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
@@ -2924,6 +3218,23 @@ test('unknown plural descriptor callables fail closed without tainting ordinary 
   }
 });
 
+test('unknown singular reflective callables fail closed across invocation compositions', () => {
+  for (const lookupCase of unknownSingularReflectiveInvocationCases) {
+    const firstFindings = scanSource(lookupCase.source, 'packages/example/src/unknown-singular-reflection.ts');
+    const secondFindings = scanSource(lookupCase.source, 'packages/example/src/unknown-singular-reflection.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${lookupCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === 'analysis-limit' &&
+          ['unknown-reflect-target', 'unknown-reflective-callable'].includes(finding.reason)
+      ),
+      `${lookupCase.name} should produce a bounded fail-closed finding: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${lookupCase.name} diagnostics should stay bounded`);
+  }
+});
+
 test('returned reflective targets retain executable provenance through direct invocation', () => {
   for (const targetCase of returnedReflectiveTargetCases) {
     const firstFindings = scanSource(targetCase.source, 'packages/example/src/returned-reflective-target.ts');
@@ -3006,11 +3317,13 @@ test('known-safe accessor, built-in own-property, and iterator cases remain clea
   }
 });
 
-test('the guard CLI rejects returned reflection, deletion fall-through, and unknown descriptor maps', t => {
+test('the guard CLI rejects returned reflection, inserted carriers, and unknown reflective lookups', t => {
   const root = createEndToEndGuardRepository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const sources = [
     ...returnedReflectiveTargetCases,
+    ...positionalInsertionCases,
+    ...unknownSingularReflectiveInvocationCases,
     ...unsafeIntrinsicDeletionCases,
     ...unknownDescriptorMapInvocationCases,
   ].map((reviewCase, index) => ({
@@ -3072,7 +3385,7 @@ test('the guard CLI accepts known-safe plural descriptor targets', t => {
 });
 
 test('the production lint path rejects every final accessor, descriptor, prototype, and iterator review class', t => {
-  assert.equal(productionFinalReviewCases.length, 4);
+  assert.equal(productionFinalReviewCases.length, 7);
   const root = createEndToEndGuardRepository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const sources = productionFinalReviewCases.map((reviewCase, index) => ({
@@ -3391,6 +3704,64 @@ test('large descriptor dependencies, callable composition, and accessor fan-out 
   assert.match(result.stderr, /analysis-limit .*\(analysis-work-limit\)/);
   assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure|RangeError/i);
   assert.ok(result.stderr.length < 4096, `large-stress diagnostics were ${result.stderr.length} bytes`);
+  for (const { relativePath } of stressCases) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
+test('higher-order closures, mutator fan-out, and singular reflection stay bounded under low heap', t => {
+  const stressCases = [
+    {
+      relativePath: 'packages/example/src/higher-order-closure-2000.ts',
+      source: [
+        'function closeOver(target) { return () => target; }',
+        'let target = Reflect.apply;',
+        ...Array.from({ length: 2000 }, () => 'target = closeOver(target)();'),
+        'target(eval, globalThis, [configuredSource]);',
+      ].join('\n'),
+    },
+    {
+      relativePath: 'packages/example/src/positional-insertion-3000.ts',
+      source: [
+        'const args = [globalThis, [configuredSource]];',
+        ...Array.from({ length: 3000 }, () => 'args.unshift(eval);'),
+        'Reflect.apply(...args);',
+      ].join('\n'),
+    },
+    {
+      relativePath: 'packages/example/src/singular-reflection-1000.ts',
+      source: Array.from({ length: 1000 }, () => 'Reflect.get(loadTarget(), loadKey())(configuredSource);').join('\n'),
+    },
+  ];
+  const startedAt = performance.now();
+
+  for (const stressCase of stressCases) {
+    const firstFindings = scanSource(stressCase.source, stressCase.relativePath);
+    const secondFindings = scanSource(stressCase.source, stressCase.relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${stressCase.relativePath} should be deterministic`);
+    assert.ok(firstFindings.length > 0, `${stressCase.relativePath} should fail closed`);
+    assert.ok(
+      firstFindings.length <= maximumFindingsPerFile + 1,
+      `${stressCase.relativePath} should respect the per-file finding cap`
+    );
+  }
+
+  assert.ok(
+    performance.now() - startedAt < 5000,
+    'two scans of each fresh security stress class should stop within five seconds'
+  );
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSources(root, stressCases, ['--max-old-space-size=128']);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure|RangeError/i);
+  assert.ok(
+    Buffer.byteLength(result.stderr) <= maximumDiagnosticOutputBytes,
+    `fresh security diagnostics were ${Buffer.byteLength(result.stderr)} bytes`
+  );
   for (const { relativePath } of stressCases) {
     assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
   }
