@@ -2949,14 +2949,68 @@ const mapperReviewCases = [
   },
   {
     name: 'a map callback mutates a later carrier through its third parameter',
-    kind: 'analysis-limit',
-    reason: 'positional-layout-limit',
+    kind: 'direct-eval',
     source: `const prefix = [null];
       [0].map(function (_value, _index, array) {
         array.push(prefix);
         array[1].pop();
       });
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Array.map reads a later eval element after callback mutation',
+    kind: 'direct-eval',
+    source: `const input = [0, 1];
+      const values = input.map(function (value, index, array) {
+        if (index === 0) array[1] = eval;
+        return array[index];
+      });
+      values[1](configuredSource);`,
+  },
+  {
+    name: 'a borrowed Array.map reads a later Lodash element after callback mutation',
+    kind: 'lodash-template',
+    source: `const input = [0, 1];
+      const values = Array.prototype.map.call(input, function (value, index, array) {
+        if (index === 0) array[1] = _.template;
+        return array[index];
+      });
+      values[1](configuredTemplate)();`,
+  },
+  {
+    name: 'a bound Array.map reads a later eval element after callback mutation',
+    kind: 'direct-eval',
+    source: `const input = [0, 1];
+      const values = Array.prototype.map.bind(input, function (value, index, array) {
+        if (index === 0) array[1] = eval;
+        return array[index];
+      })();
+      values[1](configuredSource);`,
+  },
+  {
+    name: 'Reflect.apply Array.map reads a later Lodash element after callback mutation',
+    kind: 'lodash-template',
+    source: `const input = [0, 1];
+      const values = Reflect.apply(Array.prototype.map, input, [function (value, index, array) {
+        if (index === 0) array[1] = _.template;
+        return array[index];
+      }]);
+      values[1](configuredTemplate)();`,
+  },
+  {
+    name: 'an ordinary Array constructor retains eval provenance',
+    kind: 'direct-eval',
+    source: `new Array(eval)[0](configuredSource);`,
+  },
+  {
+    name: 'an ordinary Array call retains Lodash provenance',
+    kind: 'lodash-template',
+    source: `Array(_.template)[0](configuredTemplate)();`,
+  },
+  {
+    name: 'nested ordinary Array constructors retain eval provenance',
+    kind: 'direct-eval',
+    source: `Array(new Array(eval))[0][0](configuredSource);`,
   },
   {
     name: 'an unknown map callback fails closed when its result is invoked',
@@ -3029,6 +3083,84 @@ const collectionIterationReviewCases = [
     name: 'Set entries retain callable value provenance',
     kind: 'direct-eval',
     source: `const [, execute] = new Set([eval]).entries().next().value; execute(configuredSource);`,
+  },
+  {
+    name: 'Map set mutation propagates through an explicit values for-of loop',
+    kind: 'direct-eval',
+    source: `const values = new Map(); values.set('run', eval);
+      for (const execute of values.values()) execute(configuredSource);`,
+  },
+  {
+    name: 'Set add mutation propagates through default destructuring',
+    kind: 'lodash-template',
+    source: `const values = new Set(); values.add(_.template);
+      const [compile] = values; compile(configuredTemplate)();`,
+  },
+  {
+    name: 'Map set mutation propagates callable keys through spread',
+    kind: 'direct-eval',
+    source: `const values = new Map(); values.set(eval, 'value');
+      const [execute] = [...values.keys()]; execute(configuredSource);`,
+  },
+  {
+    name: 'Map set mutation propagates through manual values extraction',
+    kind: 'lodash-template',
+    source: `const values = new Map(); values.set('run', _.template);
+      values.values().next().value(configuredTemplate)();`,
+  },
+  {
+    name: 'a borrowed Map iterator observes later set mutations',
+    kind: 'direct-eval',
+    source: `const values = new Map(); values.set('run', eval);
+      Map.prototype.values.call(values).next().value(configuredSource);`,
+  },
+  {
+    name: 'a bound Set iterator observes later add mutations',
+    kind: 'lodash-template',
+    source: `const values = new Set(); values.add(_.template);
+      Set.prototype.values.bind(values)().next().value(configuredTemplate)();`,
+  },
+  {
+    name: 'a reflected Map iterator observes later set mutations',
+    kind: 'direct-eval',
+    source: `const values = new Map(); values.set('run', eval);
+      Reflect.apply(Map.prototype.values, values, []).next().value(configuredSource);`,
+  },
+  {
+    name: 'a borrowed Map set mutation propagates to its values iterator',
+    kind: 'direct-eval',
+    source: `const values = new Map(); Map.prototype.set.call(values, 'run', eval);
+      values.values().next().value(configuredSource);`,
+  },
+  {
+    name: 'a bound Map set mutation propagates through spread',
+    kind: 'lodash-template',
+    source: `const values = new Map(); Map.prototype.set.bind(values)('run', _.template);
+      [...values.values()][0](configuredTemplate)();`,
+  },
+  {
+    name: 'a reflected Set add mutation propagates through its default iterator',
+    kind: 'direct-eval',
+    source: `const values = new Set(); Reflect.apply(Set.prototype.add, values, [eval]);
+      values[Symbol.iterator]().next().value(configuredSource);`,
+  },
+  {
+    name: 'mutable Set entries retain their duplicated Lodash value',
+    kind: 'lodash-template',
+    source: `const values = new Set(); values.add(_.template);
+      values.entries().next().value[1](configuredTemplate)();`,
+  },
+  {
+    name: 'nested collection constructors observe mutable Set values',
+    kind: 'lodash-template',
+    source: `const source = new Set(); source.add(_.template);
+      const [compile] = Array.from(new Set(source)); compile(configuredTemplate)();`,
+  },
+  {
+    name: 'an unknown Set entry value fails closed through manual extraction',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `new Set(loadValues()).entries().next().value[1](configuredSource);`,
   },
   {
     name: 'an unknown Map iterable fails closed at invocation',
@@ -3151,6 +3283,64 @@ const sideEffectFunctionReviewCases = [
       const prefix = [null]; mutate(prefix);
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
+  {
+    name: 'an invoked nested declaration mutates its captured parameter',
+    source: `function mutate(value) { function nested() { value.pop(); } nested(); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an invoked nested arrow mutates its captured parameter',
+    source: `function mutate(value) { const nested = () => value.shift(); nested(); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, _.template, _, [configuredTemplate])();`,
+  },
+  {
+    name: 'a returned closure composes an invoked nested effect',
+    source: `function makeMutator(value) {
+        return function () { function nested() { value.pop(); } nested(); };
+      }
+      const prefix = [null]; makeMutator(prefix)();
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an observed getter read invokes its captured carrier effect',
+    source: `const prefix = [null];
+      const observed = { get value() { prefix.pop(); return JSON.parse; } };
+      observed.value;
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a defaulted carrier parameter is materialized before effect gating',
+    source: `function mutate(value = prefix) { value.pop(); }
+      const prefix = [null]; mutate();
+      Reflect.apply(...prefix, _.template, _, [configuredTemplate])();`,
+  },
+  {
+    name: 'a function-valued default composes its carrier effect',
+    source: `function inner(value) { value.pop(); }
+      function mutate(value, effect = inner) { effect(value); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a destructured parameter preserves its carrier effect alias',
+    source: `function mutate({ value }) { value.shift(); }
+      const prefix = [null]; mutate({ value: prefix });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'for-of preserves a carrier alias used by a nested effect',
+    source: `function mutate(values) { for (const value of values) value.pop(); }
+      const prefix = [null]; mutate([prefix]);
+      Reflect.apply(...prefix, _.template, _, [configuredTemplate])();`,
+  },
+  {
+    name: 'manual iterator extraction preserves a carrier effect alias',
+    source: `function mutate(values) { values[Symbol.iterator]().next().value.pop(); }
+      const prefix = [null]; mutate([prefix]);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
 ];
 const sideEffectPositionalMutationCases = [
   {
@@ -3252,6 +3442,18 @@ const safeMapperCollectionAndEffectCases = [
     source: `function mutate(value) { value.pop(); }
       const changed = [null]; const prefix = [];
       mutate(changed); Reflect.apply(...prefix, JSON.parse, null, ['{}']);`,
+  },
+  {
+    name: 'a defaulted carrier mutation preserves a known-safe Reflect target',
+    source: `function mutate(value = prefix) { value.pop(); }
+      const prefix = [null]; mutate();
+      Reflect.apply(...prefix, JSON.parse, null, ['{}']);`,
+  },
+  {
+    name: 'a function-valued safe default does not taint a known-safe target',
+    source: `function mutate(value, effect = JSON.parse) { value.pop(); effect('{}'); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, JSON.parse, null, ['{}']);`,
   },
 ];
 const sourceExtensionCases = [
@@ -3589,7 +3791,12 @@ test('mutable spread prefixes fail closed after length-changing writes and mutat
   for (const mutationCase of mutableSpreadPrefixCases) {
     const findings = scanSource(mutationCase.source, 'packages/example/src/mutable-spread.ts');
     assert.ok(
-      findings.some(finding => finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit'),
+      findings.some(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          finding.kind === 'lodash-template' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+      ),
       `${mutationCase.name} should fail closed: ${JSON.stringify(findings)}`
     );
   }
@@ -4268,6 +4475,75 @@ test('large manual iterator value carriers remain deterministic and bounded', ()
   assert.ok(elapsedMilliseconds < 5000, `two large iterator scans took ${Math.round(elapsedMilliseconds)}ms`);
 });
 
+test('truncated collection positions expose one deterministic fail-closed indexed sentinel', () => {
+  for (const valueCount of [65, 5000]) {
+    const values = Array.from({ length: valueCount }, (_, index) =>
+      index === valueCount - 1 ? 'eval' : String(index)
+    ).join(',');
+    const source = `const values = Array.from(new Set([${values}]));
+      values[64](configuredSource);`;
+    const relativePath = `packages/example/src/collection-position-${valueCount}.ts`;
+    const startedAt = performance.now();
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    const elapsedMilliseconds = performance.now() - startedAt;
+
+    assert.deepEqual(firstFindings, secondFindings, `${valueCount} positions should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable')
+      ),
+      `${valueCount} positions should retain or fail closed on overflow: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${valueCount} positions should keep diagnostics bounded`);
+    assert.ok(elapsedMilliseconds < 5000, `two ${valueCount}-position scans took ${Math.round(elapsedMilliseconds)}ms`);
+  }
+
+  for (const entryCount of [65, 5000]) {
+    const entries = Array.from(
+      { length: entryCount },
+      (_, index) => `[${index}, ${index === entryCount - 1 ? 'eval' : index}]`
+    ).join(',');
+    const source = `const entries = Array.from(new Map([${entries}]));
+      entries[64][1](configuredSource);`;
+    const relativePath = `packages/example/src/map-entry-position-${entryCount}.ts`;
+    const startedAt = performance.now();
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    const elapsedMilliseconds = performance.now() - startedAt;
+
+    assert.deepEqual(firstFindings, secondFindings, `${entryCount} Map entries should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable')
+      ),
+      `${entryCount} Map entries should retain or fail closed on overflow: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${entryCount} Map entries should keep diagnostics bounded`);
+    assert.ok(
+      elapsedMilliseconds < 5000,
+      `two ${entryCount}-entry Map scans took ${Math.round(elapsedMilliseconds)}ms`
+    );
+  }
+
+  const safeValues = Array.from({ length: 5000 }, (_, index) => String(index)).join(',');
+  assert.deepEqual(
+    scanSource(`consume(Array.from(new Set([${safeValues}])));`, 'packages/example/src/safe-overflow-data.ts'),
+    [],
+    'large safe collection data should remain clean when it is not executed'
+  );
+  const safeEntries = Array.from({ length: 5000 }, (_, index) => `[${index}, ${index}]`).join(',');
+  assert.deepEqual(
+    scanSource(`consume(Array.from(new Map([${safeEntries}])));`, 'packages/example/src/safe-overflow-map.ts'),
+    [],
+    'large safe Map entries should remain clean when they are not executed'
+  );
+});
+
 test('Array.map and Array.from mapper invocations retain bounded callable provenance and effects', () => {
   for (const mapperCase of mapperReviewCases) {
     const relativePath = 'packages/example/src/mapper-provenance.ts';
@@ -4323,6 +4599,78 @@ test('side-effect-only local functions invalidate eval and Lodash invocation car
   }
 });
 
+test('borrowed, bound, and reflected local mutators preserve every exact positional effect', () => {
+  const mutationCases = {
+    push: {
+      arguments: 'eval, globalThis, [configuredSource]',
+      prefix: '[]',
+      invoke: 'Reflect.apply(...prefix)',
+    },
+    unshift: {
+      arguments: 'eval',
+      prefix: '[globalThis, [configuredSource]]',
+      invoke: 'Reflect.apply(...prefix)',
+    },
+    splice: {
+      arguments: '0, 0, eval',
+      prefix: '[globalThis, [configuredSource]]',
+      invoke: 'Reflect.apply(...prefix)',
+    },
+    pop: {
+      arguments: '',
+      prefix: '[null]',
+      invoke: 'Reflect.apply(...prefix, eval, globalThis, [configuredSource])',
+    },
+    shift: {
+      arguments: '',
+      prefix: '[null]',
+      invoke: 'Reflect.apply(...prefix, eval, globalThis, [configuredSource])',
+    },
+    copyWithin: {
+      arguments: '0, 1, 2',
+      prefix: '[null, eval, globalThis, [configuredSource]]',
+      invoke: 'Reflect.apply(...prefix)',
+    },
+    fill: {
+      arguments: 'eval, 0, 1',
+      prefix: '[null, globalThis, [configuredSource]]',
+      invoke: 'Reflect.apply(...prefix)',
+    },
+    reverse: {
+      arguments: '',
+      prefix: '[[configuredSource], globalThis, eval]',
+      invoke: 'Reflect.apply(...prefix)',
+    },
+  };
+  const forms = {
+    borrowed: (method, argumentsSource) =>
+      `Array.prototype.${method}.call(value${argumentsSource ? `, ${argumentsSource}` : ''})`,
+    bound: (method, argumentsSource) => `Array.prototype.${method}.bind(value)(${argumentsSource})`,
+    reflected: (method, argumentsSource) => `Reflect.apply(Array.prototype.${method}, value, [${argumentsSource}])`,
+  };
+
+  for (const [method, mutationCase] of Object.entries(mutationCases)) {
+    for (const [form, invocation] of Object.entries(forms)) {
+      const source = `function mutate(value) { ${invocation(method, mutationCase.arguments)}; }
+        const prefix = ${mutationCase.prefix}; mutate(prefix); ${mutationCase.invoke};`;
+      const relativePath = `packages/example/src/${form}-${method}-effect.ts`;
+      const firstFindings = scanSource(source, relativePath);
+      const secondFindings = scanSource(source, relativePath);
+      assert.deepEqual(firstFindings, secondFindings, `${form} ${method} should be deterministic`);
+      assert.ok(
+        firstFindings.some(
+          finding =>
+            finding.kind === 'direct-eval' ||
+            finding.kind === 'lodash-template' ||
+            (finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+        ),
+        `${form} ${method} should propagate its exact effect or fail closed: ${JSON.stringify(firstFindings)}`
+      );
+      assert.ok(firstFindings.length <= 2, `${form} ${method} diagnostics should stay bounded`);
+    }
+  }
+});
+
 test('known-safe mapper, collection, and local-effect controls remain clean', () => {
   for (const safeCase of safeMapperCollectionAndEffectCases) {
     assert.deepEqual(
@@ -4341,14 +4689,34 @@ test('mapper, collection, and local-effect reproductions execute only isolated m
     const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
     const mapped = [0].map(function () { return this.execute; }, { execute: eval });
     mapped[0](mark('map'));
+    const mutableInput = [0, 1];
+    const mutableMapped = mutableInput.map(function (value, index, array) {
+      if (index === 0) array[1] = eval;
+      return array[index];
+    });
+    mutableMapped[1](mark('map-later-element'));
     const from = Array.from([0], () => require('lodash/template'));
     from[0](\`<% globalThis[${serializedMarkerKey}].push('from') %>\`)();
+    Array(require('lodash/template'))[0](
+      \`<% globalThis[${serializedMarkerKey}].push('array-constructor') %>\`
+    )();
     for (const [, execute] of new Map([['x', eval]])) execute(mark('map-iteration'));
+    const mutableMap = new Map();
+    mutableMap.set('run', eval);
+    for (const execute of mutableMap.values()) execute(mark('map-mutation'));
     const setValues = [...new Set([require('lodash/template')])];
     setValues[0](\`<% globalThis[${serializedMarkerKey}].push('set-spread') %>\`)();
+    const mutableSet = new Set();
+    mutableSet.add(require('lodash/template'));
+    mutableSet.entries().next().value[1](
+      \`<% globalThis[${serializedMarkerKey}].push('set-mutation') %>\`
+    )();
     function mutate(value) { value.pop(); }
     const prefix = [null]; mutate(prefix);
     Reflect.apply(...prefix, eval, globalThis, [mark('effect')]);
+    function nestedMutate(value) { function nested() { value.pop(); } nested(); }
+    const nestedPrefix = [null]; nestedMutate(nestedPrefix);
+    Reflect.apply(...nestedPrefix, eval, globalThis, [mark('nested-effect')]);
     process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
     delete globalThis[${serializedMarkerKey}];
   `;
@@ -4360,7 +4728,18 @@ test('mapper, collection, and local-effect reproductions execute only isolated m
 
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), ['map', 'from', 'map-iteration', 'set-spread', 'effect']);
+  assert.deepEqual(JSON.parse(result.stdout), [
+    'map',
+    'map-later-element',
+    'from',
+    'array-constructor',
+    'map-iteration',
+    'map-mutation',
+    'set-spread',
+    'set-mutation',
+    'effect',
+    'nested-effect',
+  ]);
 });
 
 test('invocation-local effect summaries stop at one deterministic bounded diagnostic', t => {
