@@ -24,6 +24,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Form Configuration Internals](https://github.com/redbox-mint/redbox-portal/wiki/Form-Configuration-Internals)**: Form config types, conventions, visitors, and validation details.
 - **[Configuring Form Expressions](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Form-Expressions)**: Event-driven expressions for dynamic form behavior using JSONata.
 - **[Managed Record Expressions and Templates](https://github.com/redbox-mint/redbox-portal/wiki/Managed-Record-Expressions-and-Templates)**: Hardened JSONata and Handlebars contracts for managed record-type and workflow definitions.
+- **[Legacy Unsafe Expression Inventory](https://github.com/redbox-mint/redbox-portal/wiki/Legacy-Unsafe-Expression-Inventory)**: Bounded inventory and regression-guard boundary for deferred legacy eval and Lodash configuration-template sites.
 - **[Form Configuration Recipes](https://github.com/redbox-mint/redbox-portal/wiki/Form-Configuration-Recipes)**: Reusable copy-and-adapt patterns for form config (e.g. populating fields from a related record).
 - **[Form Event Bus Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Form-Event-Bus-Architecture)**: Technical documentation of the event bus system for developers.
 - **[Authoritative Server-Side Form Validation](https://github.com/redbox-mint/redbox-portal/wiki/Server-Side-Form-Validation-Operations)**: Rollout configuration, privacy-safe telemetry, historical repair, bypass, signoff, and rollback runbook.

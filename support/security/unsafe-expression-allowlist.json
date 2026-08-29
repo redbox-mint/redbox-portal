@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "documentation": "support/wiki/Legacy-Unsafe-Expression-Inventory.md",
+  "entries": [
+    {
+      "id": "legacy-template-workspace-allow-add",
+      "kind": "lodash-template",
+      "path": "angular/projects/researchdatabox/form/src/app/component/workspace.component.ts",
+      "fingerprint": "sha256:db7ce1a38c479b6b634f19b73fa11678a061f74e30f03f4c2caf22bbb5ddb428",
+      "owner": "@researchdatabox/form",
+      "rationale": "Legacy workspace form configuration compiles allowAddTemplate in the browser.",
+      "followUp": "SEC-LEGACY-FORM-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-angular-lodash-utility",
+      "kind": "lodash-template",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts",
+      "fingerprint": "sha256:89e301fed88da464b47330aecf32634d87b9aed5c71299e3ea53acd068371dcf",
+      "owner": "@researchdatabox/portal-ng-common",
+      "rationale": "Legacy Angular form configuration is compiled with broad utility imports for compatibility.",
+      "followUp": "SEC-LEGACY-FORM-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-angular-utility",
+      "kind": "lodash-template",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/utility.service.ts",
+      "fingerprint": "sha256:de50a15af586899caf12be21812c13d4055c19dcca85d791606a045964f85a87",
+      "owner": "@researchdatabox/portal-ng-common",
+      "rationale": "The older Angular utility service still compiles a configured template with service imports.",
+      "followUp": "SEC-LEGACY-FORM-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-core-trigger-condition",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/CoreService.ts",
+      "fingerprint": "sha256:df4de328e3283a4a741ae4ca1014abacda70af9fcf047ba0a82bfef69631334d",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy service entry points compile triggerCondition while managed bindings supply an already evaluated condition.",
+      "followUp": "SEC-LEGACY-SERVICE-CONDITIONS"
+    },
+    {
+      "id": "legacy-eval-email-notify-success",
+      "kind": "direct-eval",
+      "path": "packages/redbox-core/src/services/EmailService.ts",
+      "fingerprint": "sha256:88d410aba7893f7396440ac14e0fb5d0eff4227ff4e1e739c3710c311de5cbc9",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "The legacy notification API resolves configured onNotifySuccess callbacks after sending email.",
+      "followUp": "SEC-LEGACY-EMAIL-CALLBACKS"
+    },
+    {
+      "id": "legacy-template-form-vocabulary",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/services/FormVocabularyService.ts",
+      "fingerprint": "sha256:e9ad327eda860587f24abc71ed6ace226057e11ea89dcf0b15b0bd46c81747dd",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy external-vocabulary result mapping accepts Lodash template syntax as well as property paths.",
+      "followUp": "SEC-LEGACY-VOCABULARY-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-rdmp-counter",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/services/RDMPService.ts",
+      "fingerprint": "sha256:2eee67866d17d7e8ba40b799dba475013a9dc40231518797bf9fd3245e0d3afc",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy counter configuration can compile a template to format the next counter value.",
+      "followUp": "SEC-LEGACY-RDMP-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-rdmp-contributor-rule",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/services/RDMPService.ts",
+      "fingerprint": "sha256:a613d8a33c3af43ded33ba5f704ec284ec1b1dd33210849683798d2f6d505a2b",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy contributor-permission rules compile configured Lodash expressions for each contributor.",
+      "followUp": "SEC-LEGACY-RDMP-TEMPLATES"
+    },
+    {
+      "id": "legacy-eval-rdmp-queued-trigger",
+      "kind": "direct-eval",
+      "path": "packages/redbox-core/src/services/RDMPService.ts",
+      "fingerprint": "sha256:d464b1646ddce03d27f94f7ed454a12d49afda14f6302584a345956e57a1aa12",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "The legacy queue consumer resolves function strings from old queued trigger payloads.",
+      "followUp": "SEC-LEGACY-RDMP-QUEUE"
+    },
+    {
+      "id": "legacy-template-rdmp-run-templates",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/services/RDMPService.ts",
+      "fingerprint": "sha256:f4738a357a6421cf725e6e9d7ead025193ee9ecb040acb9d320115dbd4d1ea24",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "The legacy runTemplates service method compiles configured record mutation templates.",
+      "followUp": "SEC-LEGACY-RDMP-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-solr-pre-index",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/services/SolrSearchService.ts",
+      "fingerprint": "sha256:3a3b799d948fbc186cd7aaf65ab0163db6543fe9aaf66d4e4159ddee685e7fd9",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy Solr preIndex configuration compiles templates used to derive indexed fields.",
+      "followUp": "SEC-LEGACY-SOLR-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-trigger-field-validation",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/services/TriggerService.ts",
+      "fingerprint": "sha256:44ba901e5ce5ceea8c71dbd037db9e276579207d7afc4ff6d1d721752549b27f",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "The legacy field-validation trigger compiles a configured template with service helpers.",
+      "followUp": "SEC-LEGACY-VALIDATION-TEMPLATES"
+    },
+    {
+      "id": "legacy-template-trigger-related-record",
+      "kind": "lodash-template",
+      "path": "packages/redbox-core/src/services/TriggerService.ts",
+      "fingerprint": "sha256:296f4fc182f466f71cf961712bd8397ac96af63f233ede1fe1df0901753224e0",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "The legacy related-record trigger compiles configured templates before mutating related records.",
+      "followUp": "SEC-LEGACY-RELATED-RECORD-TEMPLATES"
+    },
+    {
+      "id": "legacy-eval-user-pre-save-hook",
+      "kind": "direct-eval",
+      "path": "packages/redbox-core/src/services/UsersService.ts",
+      "fingerprint": "sha256:debf4b402a504b348b154130f60f89edbc6c36c365a6d93fc72773a86e065198",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy user-account pre-save configuration resolves hook function strings outside record workflows.",
+      "followUp": "SEC-LEGACY-USER-HOOKS"
+    },
+    {
+      "id": "legacy-eval-user-post-save-sync-hook",
+      "kind": "direct-eval",
+      "path": "packages/redbox-core/src/services/UsersService.ts",
+      "fingerprint": "sha256:cf0ec9354780686317f7ca60b12a257210a214e0857aa613b3217c9da71ba911",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy user-account synchronous post-save configuration resolves hook function strings outside record workflows.",
+      "followUp": "SEC-LEGACY-USER-HOOKS"
+    },
+    {
+      "id": "legacy-eval-user-post-save-hook",
+      "kind": "direct-eval",
+      "path": "packages/redbox-core/src/services/UsersService.ts",
+      "fingerprint": "sha256:51c3437758d1c967f052ff7382066c4a5dce8f8c8eef7d5a4c2d6fb4732e3e9a",
+      "owner": "@researchdatabox/redbox-core",
+      "rationale": "Legacy user-account asynchronous post-save configuration resolves hook function strings outside record workflows.",
+      "followUp": "SEC-LEGACY-USER-HOOKS"
+    }
+  ]
+}

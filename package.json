@@ -42,10 +42,12 @@
   "scripts": {
     "debug": "node debug app.js",
     "start": "node app.js",
-    "lint": "oxlint api config typescript packages/*/src",
+    "lint": "oxlint api config typescript packages/*/src && npm run lint:unsafe-expressions",
     "lint:fix": "oxlint api config typescript packages/*/src --fix",
+    "lint:unsafe-expressions": "node scripts/check-unsafe-expressions.js && npm run test:unsafe-expressions",
     "format": "prettier --write \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
     "format:check": "prettier --check \".oxlintrc.json\" \".prettierrc.json\" \".editorconfig\" \".vscode/*.json\" \"{api,config,test,typescript}/**/*.{ts,tsx,js,json}\" \"packages/*/{src,test}/**/*.{ts,tsx,js,json}\"",
+    "test:unsafe-expressions": "node --test test/static/unsafe-expression-guard.test.js",
     "test:mocha": "npm run test:mocha:mount",
     "test:mocha:ci": "mkdir -p coverage/mocha .tmp/junit/backend-mocha && chmod -R 777 coverage/mocha .tmp/junit/backend-mocha || true && bash -c 'docker compose --profile portal -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal redboxportal; status=$?; docker compose --profile portal -f ./support/integration-testing/docker-compose.mocha.yml down -v --remove-orphans --timeout 180; exit $status'",
     "test:mocha:mount": "mkdir -p coverage/mocha .tmp/junit/backend-mocha .tmp/attachments && chmod -R 777 coverage/mocha .tmp/junit/backend-mocha .tmp/attachments && bash -c 'docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml up --menu=false --abort-on-container-exit --exit-code-from redboxportal-mount redboxportal-mount; status=$?; docker compose --profile mount -f ./support/integration-testing/docker-compose.mocha.yml down -v --remove-orphans --timeout 180; exit $status'",
