@@ -729,6 +729,121 @@ const mutableSpreadPrefixCases = [
       for (prefix.length of [0]) consume(prefix);
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
+  {
+    name: 'Object.assign truncates an array carrier',
+    source: `const prefix = [null];
+      Object.assign(prefix, { length: 0 });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.assign truncates a Lodash constructor prefix',
+    source: `const prefix = [null];
+      Object.assign(prefix, { length: 0 });
+      Reflect.construct(...prefix, _.template, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperty writes carrier length',
+    source: `const prefix = [null];
+      Object.defineProperty(prefix, 'length', { value: 0 });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperty writes a carrier index',
+    source: `const prefix = [];
+      Object.defineProperty(prefix, '0', { value: eval });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties writes carrier length',
+    source: `const prefix = [null];
+      Object.defineProperties(prefix, { length: { value: 0 } });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties writes a Lodash carrier index',
+    source: `const prefix = [];
+      Object.defineProperties(prefix, { 0: { value: _.template } });
+      Reflect.construct(...prefix, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.set writes carrier length',
+    source: `const prefix = [null];
+      Reflect.set(prefix, 'length', 0);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.set writes a carrier index',
+    source: `const prefix = [];
+      Reflect.set(prefix, '0', eval);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.set writes an unknown carrier key',
+    source: `const prefix = [null];
+      Reflect.set(prefix, loadKey(), 0);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.setPrototypeOf replaces the carrier iterator',
+    source: `const prefix = [null];
+      Object.setPrototypeOf(prefix, { *[Symbol.iterator]() {} });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.setPrototypeOf replaces a Lodash carrier iterator',
+    source: `const prefix = [null];
+      Reflect.setPrototypeOf(prefix, { *[Symbol.iterator]() {} });
+      Reflect.construct(...prefix, _.template, [configuredSource]);`,
+  },
+  {
+    name: 'an array destructuring target in for-of writes carrier length',
+    source: `const prefix = [null];
+      for ([prefix.length] of [[0]]) {}
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an object destructuring target in for-of writes carrier length',
+    source: `const prefix = [null];
+      for ({ length: prefix.length } of [{ length: 0 }]) {}
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an array destructuring target in for-in writes carrier length',
+    source: `const prefix = [null];
+      for ([prefix.length] in { 0: null }) {}
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an object destructuring target in for-in writes carrier length',
+    source: `const prefix = [null];
+      for ({ 0: prefix.length } in { 0: null }) {}
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.get retrieves a borrowed carrier mutator',
+    source: `const prefix = [null];
+      Reflect.get(Array.prototype, 'pop').call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.getOwnPropertyDescriptor retrieves a carrier mutator',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptor(Array.prototype, 'pop').value.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Function.prototype.call.call invokes a carrier mutator',
+    source: `const prefix = [null];
+      Function.prototype.call.call(Array.prototype.pop, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional helper mutates the carrier',
+    source: `const prefix = [null];
+      const mutate = flag ? Object.assign : value => value;
+      mutate(prefix, { length: 0 });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
 ];
 
 const targetSensitiveUnsafeSpreadCases = [
@@ -741,6 +856,35 @@ const targetSensitiveUnsafeSpreadCases = [
     name: 'Reflect.construct receives an unknown prefix for a Reflect.construct target',
     source: `const prefix = loadPrefix();
       Reflect.construct(Reflect.construct, [...prefix, _.template, [configuredSource]]);`,
+  },
+];
+const unknownReflectTargetCases = [
+  {
+    name: 'an unknown Reflect.apply target',
+    source: `function loadTarget() { return Reflect.apply; }
+      const target = loadTarget();
+      Reflect.apply(target, null, [eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'an unknown Reflect.construct target',
+    source: `function loadTarget() { return Reflect.construct; }
+      const target = loadTarget();
+      Reflect.apply(target, null, [_.template, [configuredSource]]);`,
+  },
+  {
+    name: 'a conditional target with unknown provenance',
+    source: `const target = flag ? Array.of : loadTarget();
+      Reflect.apply(target, null, [eval, globalThis, [configuredSource]]);`,
+  },
+];
+const safeNestedReflectCases = [
+  {
+    name: 'nested Reflect.apply with Array.of as the final target',
+    source: `Reflect.apply(Reflect.apply, null, [Array.of, null, [eval, _.template]]);`,
+  },
+  {
+    name: 'nested Reflect.construct with Array as the final target',
+    source: `Reflect.apply(Reflect.construct, null, [Array, [eval, _.template]]);`,
   },
 ];
 const globalLodashCases = [
@@ -934,14 +1078,14 @@ function createEndToEndGuardRepository() {
   return root;
 }
 
-function invokeGuardWithTrackedSources(root, sources) {
+function invokeGuardWithTrackedSources(root, sources, nodeArguments = []) {
   for (const { relativePath, source } of sources) {
     const absolutePath = path.join(root, ...relativePath.split('/'));
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
     fs.writeFileSync(absolutePath, source);
   }
   execFileSync('git', ['add', '.'], { cwd: root });
-  return spawnSync(process.execPath, ['scripts/check-unsafe-expressions.js'], {
+  return spawnSync(process.execPath, [...nodeArguments, 'scripts/check-unsafe-expressions.js'], {
     cwd: root,
     encoding: 'utf8',
     timeout: 5000,
@@ -1241,6 +1385,28 @@ test('the guard CLI rejects tracked mutable spread prefixes without executing th
   }
 });
 
+test('known safe nested Reflect targets remain accepted', () => {
+  for (const safeCase of safeNestedReflectCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/safe-nested-reflect.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
+test('the guard CLI accepts known safe nested Reflect targets', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = safeNestedReflectCases.map((safeCase, index) => ({
+    relativePath: `packages/example/src/safe-nested-reflect-${index}.ts`,
+    source: safeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('unknown-length spread prefixes fail closed when a tracked callable can shift position', () => {
   for (const source of [
     `const prefix = loadPrefix();
@@ -1291,6 +1457,35 @@ test('the guard CLI rejects unknown positional layouts for tracked unsafe Reflec
   }
 });
 
+test('unknown or conditional Reflect target provenance fails closed', () => {
+  for (const unsafeCase of unknownReflectTargetCases) {
+    const findings = scanSource(unsafeCase.source, 'packages/example/src/unknown-reflect-target.ts');
+    assert.deepEqual(
+      findings.map(finding => [finding.kind, finding.reason]),
+      [['analysis-limit', 'unknown-reflect-target']],
+      `${unsafeCase.name} should produce one bounded fail-closed diagnostic`
+    );
+  }
+});
+
+test('the guard CLI rejects unknown or conditional Reflect target provenance', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = unknownReflectTargetCases.map((unsafeCase, index) => ({
+    relativePath: `packages/example/src/unknown-reflect-target-${index}.ts`,
+    source: unsafeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(unknown-reflect-target\)/);
+  assert.ok(result.stderr.length < 4096, `unknown-target diagnostics were ${result.stderr.length} bytes`);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
 test('flat callable composition exhausts a deterministic global work budget', t => {
   const rebindings = Array.from({ length: 10 }, () => 'callable = callable.bind(null);').join('\n');
   const source = `let callable = eval;\n${rebindings}\ncallable(configuredSource);`;
@@ -1336,7 +1531,7 @@ test('large flat callable composition stops promptly after the global work limit
   assert.deepEqual(firstFindings, secondFindings);
   assert.deepEqual(
     firstFindings.map(finding => [finding.kind, finding.reason]),
-    [['analysis-limit', 'dependency-composition-limit']]
+    [['analysis-limit', 'analysis-work-limit']]
   );
   assert.ok(
     elapsedMilliseconds < 8000,
@@ -1348,9 +1543,43 @@ test('large flat callable composition stops promptly after the global work limit
   const result = invokeGuardWithTrackedSource(root, source);
   assert.equal(result.error, undefined);
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /analysis-limit .*\(dependency-composition-limit\)/);
+  assert.match(result.stderr, /analysis-limit .*\(analysis-work-limit\)/);
   assert.doesNotMatch(result.stderr, /RangeError|Maximum call stack size exceeded/);
   assert.ok(result.stderr.length < 4096, `large-composition diagnostics were ${result.stderr.length} bytes`);
+});
+
+test('set merges and propagation subscribers share a deterministic analysis budget', t => {
+  const assignmentCount = 1200;
+  const source = [
+    'let source = {};',
+    ...Array.from({ length: assignmentCount }, (_, index) => `source = { v${index}: null };`),
+    ...Array.from({ length: assignmentCount }, (_, index) => `let target${index} = source;`),
+  ].join('\n');
+  const startedAt = performance.now();
+  const firstFindings = scanSource(source, 'packages/example/src/bounded-set-propagation.ts');
+  const secondFindings = scanSource(source, 'packages/example/src/bounded-set-propagation.ts');
+  const elapsedMilliseconds = performance.now() - startedAt;
+
+  assert.deepEqual(firstFindings, secondFindings);
+  assert.deepEqual(
+    firstFindings.map(finding => [finding.kind, finding.reason]),
+    [['analysis-limit', 'analysis-work-limit']]
+  );
+  assert.ok(elapsedMilliseconds < 5000, `two bounded set-propagation scans took ${Math.round(elapsedMilliseconds)}ms`);
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSources(
+    root,
+    [{ relativePath: 'packages/example/src/bounded-set-propagation.ts', source }],
+    ['--max-old-space-size=256']
+  );
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(analysis-work-limit\)/);
+  assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure/i);
+  assert.ok(result.stderr.length < 4096, `set-propagation diagnostics were ${result.stderr.length} bytes`);
 });
 
 test('deep call composition returns one bounded fail-closed diagnostic without a RangeError', t => {
