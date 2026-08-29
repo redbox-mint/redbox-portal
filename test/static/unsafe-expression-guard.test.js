@@ -2894,6 +2894,366 @@ const safeInvocationCompositionCases = [
       jsonata.bind(null)(configuredSource).evaluate({});`,
   },
 ];
+const mapperReviewCases = [
+  {
+    name: 'Array.map returns eval from a supplied mapper receiver',
+    kind: 'direct-eval',
+    source: `const values = [0].map(function () { return this.execute; }, { execute: eval });
+      values[0](configuredSource);`,
+  },
+  {
+    name: 'Array.from returns a Lodash compiler from its mapper',
+    kind: 'lodash-template',
+    source: `const values = Array.from([0], () => _.template);
+      values[0](configuredTemplate)();`,
+  },
+  {
+    name: 'a borrowed Array.map retains mapper return provenance',
+    kind: 'direct-eval',
+    source: `const values = Array.prototype.map.call([0], () => eval);
+      values[0](configuredSource);`,
+  },
+  {
+    name: 'a bound Array.map retains mapper return provenance',
+    kind: 'lodash-template',
+    source: `const values = Array.prototype.map.bind([0], () => _.template)();
+      values[0](configuredTemplate)();`,
+  },
+  {
+    name: 'Reflect.apply invokes Array.map with a provenance mapper',
+    kind: 'direct-eval',
+    source: `const values = Reflect.apply(Array.prototype.map, [0], [() => eval]);
+      values[0](configuredSource);`,
+  },
+  {
+    name: 'a borrowed Array.from retains mapper return provenance',
+    kind: 'direct-eval',
+    source: `const values = Array.from.call(Array, [0], () => eval);
+      values[0](configuredSource);`,
+  },
+  {
+    name: 'a bound Array.from retains mapper return provenance',
+    kind: 'lodash-template',
+    source: `const values = Array.from.bind(Array, [0], () => _.template)();
+      values[0](configuredTemplate)();`,
+  },
+  {
+    name: 'Reflect.apply invokes Array.from with a mapper receiver',
+    kind: 'direct-eval',
+    source: `const values = Reflect.apply(Array.from, Array, [
+        [0],
+        function () { return this.execute; },
+        { execute: eval }
+      ]);
+      values[0](configuredSource);`,
+  },
+  {
+    name: 'a map callback mutates a later carrier through its third parameter',
+    kind: 'analysis-limit',
+    reason: 'positional-layout-limit',
+    source: `const prefix = [null];
+      [0].map(function (_value, _index, array) {
+        array.push(prefix);
+        array[1].pop();
+      });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown map callback fails closed when its result is invoked',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const values = [0].map(loadMapper()); values[0](configuredSource);`,
+  },
+  {
+    name: 'an ambiguous Array.from callback return fails closed when invoked',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const values = Array.from([0], () => loadCallable()); values[0](configuredSource);`,
+  },
+];
+const collectionIterationReviewCases = [
+  {
+    name: 'default Map for-of iteration retains eval values',
+    kind: 'direct-eval',
+    source: `for (const [, execute] of new Map([['x', eval]])) { execute(configuredSource); }`,
+  },
+  {
+    name: 'Set spread retains Lodash compiler values',
+    kind: 'lodash-template',
+    source: `const values = [...new Set([_.template])]; values[0](configuredTemplate)();`,
+  },
+  {
+    name: 'Array.from retains Set eval values',
+    kind: 'direct-eval',
+    source: `const values = Array.from(new Set([eval])); values[0](configuredSource);`,
+  },
+  {
+    name: 'destructured Array.from retains Map compiler values',
+    kind: 'lodash-template',
+    source: `const [[, compile]] = Array.from(new Map([['x', _.template]]));
+      compile(configuredTemplate)();`,
+  },
+  {
+    name: 'Map spread retains eval values',
+    kind: 'direct-eval',
+    source: `const [[, execute]] = [...new Map([['x', eval]])]; execute(configuredSource);`,
+  },
+  {
+    name: 'nested Set and Map constructors retain eval values',
+    kind: 'direct-eval',
+    source: `const [[, execute]] = new Set(new Map([['x', eval]])); execute(configuredSource);`,
+  },
+  {
+    name: 'nested Map and Set constructors retain Lodash compiler values',
+    kind: 'lodash-template',
+    source: `const [, compile] = [...new Map(new Set([['x', _.template]]))][0];
+      compile(configuredTemplate)();`,
+  },
+  {
+    name: 'default Map manual next retains eval values',
+    kind: 'direct-eval',
+    source: `const [, execute] = new Map([['x', eval]])[Symbol.iterator]().next().value;
+      execute(configuredSource);`,
+  },
+  {
+    name: 'default Set manual next retains Lodash compiler values',
+    kind: 'lodash-template',
+    source: `new Set([_.template])[Symbol.iterator]().next().value(configuredTemplate)();`,
+  },
+  {
+    name: 'Map key iteration retains callable key provenance',
+    kind: 'direct-eval',
+    source: `new Map([[eval, 'value']]).keys().next().value(configuredSource);`,
+  },
+  {
+    name: 'Set entries retain callable value provenance',
+    kind: 'direct-eval',
+    source: `const [, execute] = new Set([eval]).entries().next().value; execute(configuredSource);`,
+  },
+  {
+    name: 'an unknown Map iterable fails closed at invocation',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const [[, execute]] = new Map(loadEntries()); execute(configuredSource);`,
+  },
+  {
+    name: 'an unknown Set iterable fails closed at invocation',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const [execute] = new Set(loadValues()); execute(configuredSource);`,
+  },
+];
+const sideEffectFunctionReviewCases = [
+  {
+    name: 'a side-effect-only parameter pop conceals eval',
+    source: `function mutate(value) { value.pop(); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a side-effect-only parameter pop conceals a Lodash compiler',
+    source: `function mutate(value) { value.pop(); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, _.template, _, [configuredTemplate])();`,
+  },
+  {
+    name: 'a returned closure mutates its captured carrier',
+    source: `function makeMutator(value) { return () => value.pop(); }
+      const prefix = [null]; makeMutator(prefix)();
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a receiver-sensitive local function mutates through call',
+    source: `function mutate() { this.pop(); }
+      const prefix = [null]; mutate.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a direct local function length write changes a carrier',
+    source: `function mutate(value) { value.length = 0; }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a borrowed local mutator call changes a carrier',
+    source: `function mutate(value) { value.pop(); }
+      const prefix = [null]; mutate.call(null, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a bound local mutator changes a carrier',
+    source: `function mutate(value) { value.pop(); }
+      const prefix = [null]; mutate.bind(null, prefix)();
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a reflected local mutator changes a carrier',
+    source: `function mutate(value) { value.pop(); }
+      const prefix = [null]; Reflect.apply(mutate, null, [prefix]);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.assign in a local function changes carrier length',
+    source: `function mutate(value) { Object.assign(value, { length: 0 }); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperty in a local function changes carrier length',
+    source: `function mutate(value) { Object.defineProperty(value, 'length', { value: 0 }); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties in a local function changes carrier length',
+    source: `function mutate(value) { Object.defineProperties(value, { length: { value: 0 } }); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, _.template, _, [configuredTemplate])();`,
+  },
+  {
+    name: 'Reflect.set in a local function changes carrier length',
+    source: `function mutate(value) { Reflect.set(value, 'length', 0); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.set in a local function writes through a receiver',
+    source: `function mutate(value) { Reflect.set({}, '0', eval, value); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty in a local function changes carrier length',
+    source: `function mutate(value) { Reflect.defineProperty(value, 'length', { value: 0 }); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a descriptor-extracted mutator changes a local function parameter',
+    source: `const pop = Object.getOwnPropertyDescriptor(Array.prototype, 'pop').value;
+      function mutate(value) { pop.call(value); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: '__defineGetter__ in a local function replaces carrier iteration',
+    source: `function mutate(value) {
+        value.__defineGetter__(Symbol.iterator, function () {
+          return function* replacement() { yield eval; };
+        });
+      }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown local function effect fails closed',
+    source: `function mutate(value) { loadMutator()(value); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+];
+const sideEffectPositionalMutationCases = [
+  {
+    name: 'push inserts an eval invocation layout',
+    source: `function mutate(value) { value.push(eval, globalThis, [configuredSource]); }
+      const prefix = []; mutate(prefix); Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'unshift inserts an eval invocation target',
+    source: `function mutate(value) { value.unshift(eval); }
+      const prefix = [globalThis, [configuredSource]]; mutate(prefix); Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'splice inserts an eval invocation target',
+    source: `function mutate(value) { value.splice(0, 0, eval); }
+      const prefix = [globalThis, [configuredSource]]; mutate(prefix); Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'pop removes a safe Reflect.apply prefix',
+    source: `function mutate(value) { value.pop(); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'shift removes a safe Reflect.apply prefix',
+    source: `function mutate(value) { value.shift(); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'copyWithin can move eval into the invocation target',
+    source: `function mutate(value) { value.copyWithin(0, 1, 2); }
+      const prefix = [null, eval, globalThis, [configuredSource]]; mutate(prefix); Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'fill can replace the invocation target with eval',
+    source: `function mutate(value) { value.fill(eval, 0, 1); }
+      const prefix = [null, globalThis, [configuredSource]]; mutate(prefix); Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'reverse can move eval into the invocation target',
+    source: `function mutate(value) { value.reverse(); }
+      const prefix = [[configuredSource], globalThis, eval]; mutate(prefix); Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'sort makes an eval-bearing invocation layout ambiguous',
+    source: `function mutate(value) { value.sort(); }
+      const prefix = [null, eval, globalThis, [configuredSource]]; mutate(prefix); Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'a borrowed pop mutates a local function parameter',
+    source: `function mutate(value) { Array.prototype.pop.call(value); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a bound pop mutates a local function parameter',
+    source: `function mutate(value) { Array.prototype.pop.bind(value)(); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a reflected pop mutates a local function parameter',
+    source: `function mutate(value) { Reflect.apply(Array.prototype.pop, value, []); }
+      const prefix = [null]; mutate(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+];
+const safeMapperCollectionAndEffectCases = [
+  {
+    name: 'ordinary Array.map data callback',
+    source: `const values = [0].map(value => value + 1); values[0](configuredSource);`,
+  },
+  {
+    name: 'ordinary Array.from data callback',
+    source: `const values = Array.from([0], value => value + 1); values[0](configuredSource);`,
+  },
+  {
+    name: 'known-safe mapper callable result',
+    source: `const values = [0].map(() => Array.of); values[0](configuredSource);`,
+  },
+  {
+    name: 'Map and Set safe data iteration',
+    source: `const mapValues = [...new Map([['x', 'value']])];
+      const setValues = Array.from(new Set(['value']));
+      consume(mapValues, setValues);`,
+  },
+  {
+    name: 'callable collection data is not itself execution',
+    source: `consume([...new Set([eval, _.template])], Array.from(new Map([['x', eval]])));`,
+  },
+  {
+    name: 'a side-effect-only mutation preceding a known-safe Reflect target',
+    source: `function mutate(value) { value.pop(); }
+      const prefix = [null]; mutate(prefix); Reflect.apply(...prefix, JSON.parse, null, ['{}']);`,
+  },
+  {
+    name: 'an unrelated local mutation does not taint another carrier',
+    source: `function mutate(value) { value.pop(); }
+      const changed = [null]; const prefix = [];
+      mutate(changed); Reflect.apply(...prefix, JSON.parse, null, ['{}']);`,
+  },
+];
 const sourceExtensionCases = [
   {
     extension: '.jsx',
@@ -3282,11 +3642,21 @@ test('inherited descriptor fields are resolved recursively and fail closed', () 
 test('observed accessor side effects invalidate only their possible carrier receivers', () => {
   for (const accessorCase of observedAccessorSideEffectCases) {
     const findings = scanSource(accessorCase.source, 'packages/example/src/observed-accessor.ts');
-    assert.deepEqual(
-      findings.map(finding => [finding.kind, finding.reason]),
-      [['analysis-limit', 'positional-layout-limit']],
-      `${accessorCase.name} should produce one bounded fail-closed finding`
+    assert.equal(
+      findings.filter(finding => finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+        .length,
+      1,
+      `${accessorCase.name} should produce one bounded layout finding: ${JSON.stringify(findings)}`
     );
+    assert.ok(
+      findings.every(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+      ),
+      `${accessorCase.name} reported an unrelated finding: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${accessorCase.name} diagnostics should stay bounded`);
   }
 });
 
@@ -3896,6 +4266,188 @@ test('large manual iterator value carriers remain deterministic and bounded', ()
   );
   assert.ok(firstFindings.length <= 2, 'large iterator diagnostics should stay bounded');
   assert.ok(elapsedMilliseconds < 5000, `two large iterator scans took ${Math.round(elapsedMilliseconds)}ms`);
+});
+
+test('Array.map and Array.from mapper invocations retain bounded callable provenance and effects', () => {
+  for (const mapperCase of mapperReviewCases) {
+    const relativePath = 'packages/example/src/mapper-provenance.ts';
+    const firstFindings = scanSource(mapperCase.source, relativePath);
+    const secondFindings = scanSource(mapperCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${mapperCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding => finding.kind === mapperCase.kind && (!mapperCase.reason || finding.reason === mapperCase.reason)
+      ),
+      `${mapperCase.name} should preserve or fail closed on mapper provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${mapperCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('default Map and Set iteration retains bounded stored callable provenance', () => {
+  for (const collectionCase of collectionIterationReviewCases) {
+    const relativePath = 'packages/example/src/collection-iteration.ts';
+    const firstFindings = scanSource(collectionCase.source, relativePath);
+    const secondFindings = scanSource(collectionCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${collectionCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === collectionCase.kind && (!collectionCase.reason || finding.reason === collectionCase.reason)
+      ),
+      `${collectionCase.name} should preserve or fail closed on collection provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${collectionCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('side-effect-only local functions invalidate eval and Lodash invocation carriers', () => {
+  for (const effectCase of [...sideEffectFunctionReviewCases, ...sideEffectPositionalMutationCases]) {
+    const relativePath = 'packages/example/src/local-function-effect.ts';
+    const firstFindings = scanSource(effectCase.source, relativePath);
+    const secondFindings = scanSource(effectCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${effectCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          finding.kind === 'lodash-template' ||
+          (finding.kind === 'analysis-limit' &&
+            ['positional-layout-limit', 'unknown-reflect-target', 'unknown-reflective-callable'].includes(
+              finding.reason
+            ))
+      ),
+      `${effectCase.name} should preserve or fail closed on the carrier effect: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${effectCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('known-safe mapper, collection, and local-effect controls remain clean', () => {
+  for (const safeCase of safeMapperCollectionAndEffectCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/safe-mapper-collection-effect.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
+test('mapper, collection, and local-effect reproductions execute only isolated marker payloads', () => {
+  const markerKey = '__a12_mapper_collection_effect_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    const mapped = [0].map(function () { return this.execute; }, { execute: eval });
+    mapped[0](mark('map'));
+    const from = Array.from([0], () => require('lodash/template'));
+    from[0](\`<% globalThis[${serializedMarkerKey}].push('from') %>\`)();
+    for (const [, execute] of new Map([['x', eval]])) execute(mark('map-iteration'));
+    const setValues = [...new Set([require('lodash/template')])];
+    setValues[0](\`<% globalThis[${serializedMarkerKey}].push('set-spread') %>\`)();
+    function mutate(value) { value.pop(); }
+    const prefix = [null]; mutate(prefix);
+    Reflect.apply(...prefix, eval, globalThis, [mark('effect')]);
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['map', 'from', 'map-iteration', 'set-spread', 'effect']);
+});
+
+test('invocation-local effect summaries stop at one deterministic bounded diagnostic', t => {
+  const source = [
+    'function mutate(value) {',
+    ...Array.from({ length: 8500 }, () => 'value;'),
+    'value.pop();',
+    '}',
+    'const prefix = [null]; mutate(prefix);',
+    'Reflect.apply(...prefix, eval, globalThis, [configuredSource]);',
+  ].join('\n');
+  const relativePath = 'packages/example/src/invocation-effect-limit.ts';
+  const startedAt = performance.now();
+  const firstFindings = scanSource(source, relativePath);
+  const secondFindings = scanSource(source, relativePath);
+  const elapsedMilliseconds = performance.now() - startedAt;
+
+  assert.deepEqual(firstFindings, secondFindings);
+  assert.deepEqual(
+    firstFindings.map(finding => [finding.kind, finding.reason]),
+    [['analysis-limit', 'invocation-effect-limit']]
+  );
+  assert.ok(elapsedMilliseconds < 3000, `two bounded effect-summary scans took ${Math.round(elapsedMilliseconds)}ms`);
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSources(root, [{ relativePath, source }], ['--max-old-space-size=128']);
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(invocation-effect-limit\)/);
+  assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure|RangeError/i);
+  assert.ok(Buffer.byteLength(result.stderr) < 4096, `effect diagnostics were ${result.stderr.length} bytes`);
+});
+
+test('the guard CLI rejects mapper, collection-iteration, and local-effect review cases', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const reviewCases = [
+    mapperReviewCases[0],
+    mapperReviewCases[1],
+    collectionIterationReviewCases[0],
+    collectionIterationReviewCases[1],
+    sideEffectFunctionReviewCases[0],
+    sideEffectFunctionReviewCases[1],
+  ];
+  const sources = reviewCases.map((reviewCase, index) => ({
+    relativePath: `packages/example/src/final-review-${index}.ts`,
+    source: reviewCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+  assert.ok(Buffer.byteLength(result.stderr) < 8192, `review diagnostics were ${result.stderr.length} bytes`);
+});
+
+test('the production npm lint path rejects the minimal eval and Lodash review cases', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const reviewCases = [mapperReviewCases[0], collectionIterationReviewCases[1], sideEffectFunctionReviewCases[0]];
+  const sources = reviewCases.map((reviewCase, index) => ({
+    relativePath: `packages/example/src/production-final-review-${index}.ts`,
+    source: reviewCase.source,
+  }));
+  const result = invokeNpmLintWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
+test('the guard CLI accepts safe mapper, collection, and local-effect controls', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = safeMapperCollectionAndEffectCases.map((safeCase, index) => ({
+    relativePath: `packages/example/src/safe-final-review-${index}.ts`,
+    source: safeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test('deleting safe intrinsic own properties exposes tracked prototype callables', () => {
