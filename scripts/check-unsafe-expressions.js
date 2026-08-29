@@ -38,10 +38,12 @@ const allowedExclusionKinds = new Set(['generated', 'vendored']);
 const maximumTrackedInvocationArguments = 64;
 const maximumTrackedPositionalAlternatives = 64;
 const maximumDependencyCompositionWork = 4096;
+const maximumAnalysisWork = 131072;
 const maximumSyntacticNesting = 256;
 const maximumFindingsPerFile = 128;
 const maximumRepositoryFindings = 512;
 const analysisLimitKind = 'analysis-limit';
+const unknownReflectTargetLimitKind = `${analysisLimitKind}:unknown-reflect-target`;
 const positionalMutationMethods = new Set([
   'copyWithin',
   'fill',
@@ -57,14 +59,30 @@ const origins = Object.freeze({
   arrayObject: 'array-object',
   arrayPrototype: 'array-prototype',
   builtinEval: 'builtin-eval',
+  functionObject: 'function-object',
+  functionPrototype: 'function-prototype',
+  functionPrototypeApply: 'function-prototype-apply',
+  functionPrototypeBind: 'function-prototype-bind',
+  functionPrototypeCall: 'function-prototype-call',
   globalObject: 'global-object',
+  jsonObject: 'json-object',
+  knownSafeCallable: 'known-safe-callable',
   lodashObject: 'lodash-object',
   lodashRunInContext: 'lodash-run-in-context',
   lodashTemplate: 'lodash-template',
   lodashTemplateNamespace: 'lodash-template-namespace',
+  objectAssign: 'object-assign',
+  objectDefineProperties: 'object-define-properties',
+  objectDefineProperty: 'object-define-property',
+  objectGetOwnPropertyDescriptor: 'object-get-own-property-descriptor',
+  objectObject: 'object-object',
+  objectSetPrototypeOf: 'object-set-prototype-of',
   reflectApply: 'reflect-apply',
   reflectConstruct: 'reflect-construct',
+  reflectGet: 'reflect-get',
   reflectObject: 'reflect-object',
+  reflectSet: 'reflect-set',
+  reflectSetPrototypeOf: 'reflect-set-prototype-of',
 });
 
 const defaultSourceExclusionManifest = JSON.parse(
@@ -169,11 +187,32 @@ function collectBindings(sourceFile) {
   const propagationQueue = [];
   const queuedPropagationOperations = new Set();
   const unknownValueAtom = Object.freeze({ kind: 'unknown-value' });
+  let remainingAnalysisWork = maximumAnalysisWork;
   let remainingDependencyCompositionWork = maximumDependencyCompositionWork;
+  let analysisWorkLimit;
   let dependencyCompositionLimit;
   let activePropagationOperation;
+  let activeAnalysisNode = sourceFile;
+
+  function analysisStopped() {
+    return analysisWorkLimit !== undefined || dependencyCompositionLimit !== undefined;
+  }
+
+  function consumeAnalysisWork(node = activeAnalysisNode) {
+    if (analysisWorkLimit) return false;
+    if (remainingAnalysisWork > 0) {
+      remainingAnalysisWork -= 1;
+      return true;
+    }
+    analysisWorkLimit = {
+      reason: 'analysis-work-limit',
+      position: node.getStart(sourceFile),
+    };
+    return false;
+  }
 
   function consumeDependencyCompositionWork(node) {
+    if (!consumeAnalysisWork(node)) return false;
     if (remainingDependencyCompositionWork > 0) {
       remainingDependencyCompositionWork -= 1;
       return true;
@@ -196,6 +235,7 @@ function collectBindings(sourceFile) {
   function mergeValue(target, source) {
     let changed = false;
     for (const atom of source) {
+      if (!consumeAnalysisWork()) return changed;
       if (!target.has(atom)) {
         target.add(atom);
         changed = true;
@@ -205,24 +245,28 @@ function collectBindings(sourceFile) {
   }
 
   function trackPropagationDependency(value) {
-    if (!activePropagationOperation || dependencyCompositionLimit) return;
+    if (!activePropagationOperation || analysisStopped()) return;
     let subscribers = propagationSubscribers.get(value);
     if (!subscribers) {
       subscribers = new Set();
       propagationSubscribers.set(value, subscribers);
     }
+    if (subscribers.has(activePropagationOperation) || !consumeAnalysisWork()) return;
     subscribers.add(activePropagationOperation);
   }
 
   function enqueuePropagationOperation(operation) {
-    if (dependencyCompositionLimit || queuedPropagationOperations.has(operation)) return;
+    if (analysisStopped() || queuedPropagationOperations.has(operation) || !consumeAnalysisWork(operation.node)) return;
     queuedPropagationOperations.add(operation);
     propagationQueue.push(operation);
   }
 
   function notifyPropagationSubscribers(value) {
-    if (dependencyCompositionLimit) return;
-    for (const operation of propagationSubscribers.get(value) ?? []) enqueuePropagationOperation(operation);
+    if (analysisStopped()) return;
+    for (const operation of propagationSubscribers.get(value) ?? []) {
+      if (!consumeAnalysisWork(operation.node)) return;
+      enqueuePropagationOperation(operation);
+    }
   }
 
   function mergeTracked(target, source) {
@@ -457,9 +501,14 @@ function collectBindings(sourceFile) {
       trackPropagationDependency(binding.value);
       return binding.value.size > 0 ? new Set(binding.value) : unknownValue();
     }
+    if (identifier.text === 'undefined') return literalValue(undefined);
     if (identifier.text === 'eval') return originValue(origins.builtinEval);
     if (identifier.text === '_') return originValue(origins.lodashObject);
     if (identifier.text === 'Array') return originValue(origins.arrayObject);
+    if (identifier.text === 'Date') return originValue(origins.knownSafeCallable);
+    if (identifier.text === 'Function') return originValue(origins.functionObject);
+    if (identifier.text === 'JSON') return originValue(origins.jsonObject);
+    if (identifier.text === 'Object') return originValue(origins.objectObject);
     if (globalEvalObjects.has(identifier.text)) return originValue(origins.globalObject);
     if (identifier.text === 'Reflect') return originValue(origins.reflectObject);
     return unknownValue();
@@ -472,16 +521,38 @@ function collectBindings(sourceFile) {
 
     if (origin === origins.arrayObject) {
       if (matches('prototype')) result.add(origins.arrayPrototype);
+      if (matches('of')) result.add(origins.knownSafeCallable);
     } else if (origin === origins.arrayPrototype) {
       mergeValue(result, positionalMutationValue(propertyName === undefined ? undefined : [propertyName]));
+    } else if (origin === origins.functionObject) {
+      if (matches('prototype')) result.add(origins.functionPrototype);
+    } else if (origin === origins.functionPrototype) {
+      if (matches('apply')) result.add(origins.functionPrototypeApply);
+      if (matches('bind')) result.add(origins.functionPrototypeBind);
+      if (matches('call')) result.add(origins.functionPrototypeCall);
     } else if (origin === origins.globalObject) {
+      if (matches('Array')) result.add(origins.arrayObject);
       if (matches('eval')) result.add(origins.builtinEval);
+      if (matches('Function')) result.add(origins.functionObject);
+      if (matches('JSON')) result.add(origins.jsonObject);
+      if (matches('Object')) result.add(origins.objectObject);
       if (matches('Reflect')) result.add(origins.reflectObject);
       if (matches('_')) result.add(origins.lodashObject);
       if ([...globalEvalObjects].some(matches)) result.add(origins.globalObject);
+    } else if (origin === origins.jsonObject) {
+      if (matches('parse') || matches('stringify')) result.add(origins.knownSafeCallable);
+    } else if (origin === origins.objectObject) {
+      if (matches('assign')) result.add(origins.objectAssign);
+      if (matches('defineProperties')) result.add(origins.objectDefineProperties);
+      if (matches('defineProperty')) result.add(origins.objectDefineProperty);
+      if (matches('getOwnPropertyDescriptor')) result.add(origins.objectGetOwnPropertyDescriptor);
+      if (matches('setPrototypeOf')) result.add(origins.objectSetPrototypeOf);
     } else if (origin === origins.reflectObject) {
       if (matches('apply')) result.add(origins.reflectApply);
       if (matches('construct')) result.add(origins.reflectConstruct);
+      if (matches('get')) result.add(origins.reflectGet);
+      if (matches('set')) result.add(origins.reflectSet);
+      if (matches('setPrototypeOf')) result.add(origins.reflectSetPrototypeOf);
     } else if (origin === origins.lodashObject) {
       if (matches('template')) result.add(origins.lodashTemplate);
       if (matches('runInContext')) result.add(origins.lodashRunInContext);
@@ -500,10 +571,21 @@ function collectBindings(sourceFile) {
     }
     return (
       atom === origins.builtinEval ||
+      atom === origins.functionPrototypeApply ||
+      atom === origins.functionPrototypeBind ||
+      atom === origins.functionPrototypeCall ||
       atom === origins.lodashRunInContext ||
       atom === origins.lodashTemplate ||
+      atom === origins.objectAssign ||
+      atom === origins.objectDefineProperties ||
+      atom === origins.objectDefineProperty ||
+      atom === origins.objectGetOwnPropertyDescriptor ||
+      atom === origins.objectSetPrototypeOf ||
       atom === origins.reflectApply ||
-      atom === origins.reflectConstruct
+      atom === origins.reflectConstruct ||
+      atom === origins.reflectGet ||
+      atom === origins.reflectSet ||
+      atom === origins.reflectSetPrototypeOf
     );
   }
 
@@ -538,6 +620,20 @@ function collectBindings(sourceFile) {
         const nextSeen = new Set(seen);
         nextSeen.add(atom);
         if (hasUnsafeCallable(atom.target, nextSeen)) return true;
+      }
+    }
+    return false;
+  }
+
+  function hasUnknownValue(value, seen = new Set()) {
+    if (value.size === 0) return true;
+    for (const atom of value) {
+      if (typeof atom === 'string') continue;
+      if (atom.kind === 'unknown-value') return true;
+      if ((atom.kind === 'bound-callable' || atom.kind === 'invocation-method') && !seen.has(atom)) {
+        const nextSeen = new Set(seen);
+        nextSeen.add(atom);
+        if (hasUnknownValue(atom.target, nextSeen)) return true;
       }
     }
     return false;
@@ -671,20 +767,108 @@ function collectBindings(sourceFile) {
     if (changed) notifyPropagationSubscribers(carrier);
   }
 
-  function invalidateCarrierPositionalLayout(carrier) {
+  function invalidateCarrierPositionalLayout(carrier, additionalValues = new Set()) {
     if (!carrier.positional) return;
     const uncertainValues = new Set();
     for (const [propertyName, propertyValue] of carrier.properties) {
       if (/^(0|[1-9]\d*)$/.test(propertyName)) mergeValue(uncertainValues, propertyValue);
     }
+    mergeValue(uncertainValues, additionalValues);
     mergeCarrierPositionalState(carrier, new Set(), true, uncertainValues);
+  }
+
+  function propertyNamesFromValue(value) {
+    const names = [];
+    let uncertain = value.size === 0;
+    for (const atom of value) {
+      if (typeof atom !== 'string' && atom.kind === 'literal') names.push(String(atom.value));
+      else uncertain = true;
+    }
+    return uncertain ? undefined : [...new Set(names)];
+  }
+
+  function propertyNamesAffectPositionalLayout(propertyNames) {
+    return (
+      propertyNames === undefined ||
+      propertyNames.some(propertyName => propertyName === 'length' || /^(0|[1-9]\d*)$/.test(propertyName))
+    );
+  }
+
+  function invalidatePositionalTargets(targetValue, propertyNames, additionalValues = new Set()) {
+    if (!propertyNamesAffectPositionalLayout(propertyNames)) return;
+    for (const atom of targetValue) {
+      if (typeof atom !== 'string' && atom.kind === 'carrier') {
+        invalidateCarrierPositionalLayout(atom, additionalValues);
+      }
+    }
+  }
+
+  function positionalWritesFromCarriers(values, descriptors = false) {
+    const writtenValues = new Set();
+    let mayAffectLayout = values.length === 0;
+    for (const value of values) {
+      if (value.size === 0) mayAffectLayout = true;
+      for (const atom of value) {
+        if (typeof atom === 'string' || atom.kind === 'unknown-value') {
+          mayAffectLayout = true;
+          if (typeof atom !== 'string') writtenValues.add(atom);
+          continue;
+        }
+        if (atom.kind !== 'carrier') continue;
+        trackPropagationDependency(atom);
+        if (atom.unknownProperty.size > 0) {
+          mayAffectLayout = true;
+          mergeValue(writtenValues, atom.unknownProperty);
+        }
+        for (const [propertyName, propertyValue] of atom.properties) {
+          if (!propertyNamesAffectPositionalLayout([propertyName])) continue;
+          mayAffectLayout = true;
+          mergeValue(writtenValues, propertyValue);
+          if (descriptors) mergeValue(writtenValues, getProperty(propertyValue, ['get', 'set', 'value']));
+        }
+      }
+    }
+    return { mayAffectLayout, writtenValues };
+  }
+
+  function applyPositionalMutationIntrinsic(atom, argumentValues, thisValue) {
+    if (atom === origins.objectAssign) {
+      const writes = positionalWritesFromCarriers(argumentValues.slice(1));
+      if (writes.mayAffectLayout)
+        invalidatePositionalTargets(argumentValues[0] ?? new Set(), undefined, writes.writtenValues);
+      return true;
+    }
+    if (atom === origins.objectDefineProperty || atom === origins.reflectSet) {
+      const propertyNames = propertyNamesFromValue(argumentValues[1] ?? new Set());
+      const assignedValue =
+        atom === origins.objectDefineProperty
+          ? getProperty(argumentValues[2] ?? new Set(), ['get', 'set', 'value'])
+          : (argumentValues[2] ?? new Set());
+      invalidatePositionalTargets(argumentValues[0] ?? new Set(), propertyNames, assignedValue);
+      return true;
+    }
+    if (atom === origins.objectDefineProperties) {
+      const writes = positionalWritesFromCarriers([argumentValues[1] ?? new Set()], true);
+      if (writes.mayAffectLayout)
+        invalidatePositionalTargets(argumentValues[0] ?? new Set(), undefined, writes.writtenValues);
+      return true;
+    }
+    if (atom === origins.objectSetPrototypeOf || atom === origins.reflectSetPrototypeOf) {
+      invalidatePositionalTargets(argumentValues[0] ?? new Set(), undefined, argumentValues[1] ?? new Set());
+      return true;
+    }
+    if (typeof atom !== 'string' && atom.kind === 'positional-mutator') {
+      invalidatePositionalThisValue(thisValue);
+      return true;
+    }
+    return false;
   }
 
   function invalidatePositionalWrite(node) {
     const current = unwrapExpression(node);
     if (!ts.isPropertyAccessExpression(current) && !ts.isElementAccessExpression(current)) return;
     const propertyNames = memberPropertyNames(current);
-    if (propertyNames !== undefined && !propertyNames.includes('length')) return;
+    if (!propertyNamesAffectPositionalLayout(propertyNames)) return;
     for (const atom of evaluateExpression(current.expression)) {
       if (typeof atom !== 'string' && atom.kind === 'carrier') invalidateCarrierPositionalLayout(atom);
     }
@@ -835,9 +1019,23 @@ function collectBindings(sourceFile) {
     }
   }
 
+  function reflectedPropertyValue(argumentValues) {
+    return getProperty(argumentValues[0] ?? new Set(), propertyNamesFromValue(argumentValues[1] ?? new Set()));
+  }
+
+  function propertyDescriptorValue(argumentValues, invocationNode) {
+    const descriptor = carrierFor(invocationNode);
+    putCarrierProperty(descriptor, ['value'], reflectedPropertyValue(argumentValues));
+    return new Set([descriptor]);
+  }
+
   function invokeTracked(callable, argumentValues, invocationNode, seen = new Set(), thisValue) {
     const invocation = { result: new Set(), kinds: new Set() };
     for (const atom of callable) {
+      if (typeof atom !== 'string' && atom.kind === 'unknown-value') {
+        invocation.result.add(atom);
+        continue;
+      }
       if (!isTrackedCallable(atom)) continue;
       if (!consumeDependencyCompositionWork(invocationNode)) {
         invocation.kinds.add(analysisLimitKind);
@@ -851,6 +1049,7 @@ function collectBindings(sourceFile) {
         invocation.result.add(origins.lodashObject);
       } else if (atom === origins.reflectApply || atom === origins.reflectConstruct) {
         const target = argumentValues[0] ?? new Set();
+        if (hasUnknownValue(target)) invocation.kinds.add(unknownReflectTargetLimitKind);
         const argumentCarrier = argumentValues[atom === origins.reflectApply ? 2 : 1] ?? new Set();
         const targetThisValue = atom === origins.reflectApply ? argumentValues[1] : undefined;
         const expansion = positionalLayouts(argumentCarrier);
@@ -859,8 +1058,45 @@ function collectBindings(sourceFile) {
           mergeInvocation(invocation, invokeTracked(target, layout, invocationNode, seen, targetThisValue));
         }
         if (hasUnsafeCallable(target)) mergePositionalLimit(invocation, expansion);
-      } else if (typeof atom !== 'string' && atom.kind === 'positional-mutator') {
-        invalidatePositionalThisValue(thisValue);
+      } else if (atom === origins.reflectGet) {
+        mergeValue(invocation.result, reflectedPropertyValue(argumentValues));
+      } else if (atom === origins.objectGetOwnPropertyDescriptor) {
+        mergeValue(invocation.result, propertyDescriptorValue(argumentValues, invocationNode));
+      } else if (atom === origins.functionPrototypeCall) {
+        mergeInvocation(
+          invocation,
+          invokeTracked(thisValue ?? new Set(), argumentValues.slice(1), invocationNode, seen, argumentValues[0])
+        );
+      } else if (atom === origins.functionPrototypeApply) {
+        const expansion = positionalLayouts(argumentValues[1] ?? new Set());
+        const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
+        for (const layout of layouts) {
+          mergeInvocation(
+            invocation,
+            invokeTracked(thisValue ?? new Set(), layout, invocationNode, seen, argumentValues[0])
+          );
+        }
+        if (hasUnsafeCallable(thisValue ?? new Set())) mergePositionalLimit(invocation, expansion);
+      } else if (atom === origins.functionPrototypeBind) {
+        invocation.result.add(
+          boundCallableFor(
+            invocationNode,
+            thisValue ?? new Set(),
+            argumentValues[0] ?? new Set(),
+            argumentValues.slice(1)
+          )
+        );
+      } else if (applyPositionalMutationIntrinsic(atom, argumentValues, thisValue)) {
+        if (
+          atom === origins.objectAssign ||
+          atom === origins.objectDefineProperties ||
+          atom === origins.objectDefineProperty ||
+          atom === origins.objectSetPrototypeOf
+        ) {
+          mergeValue(invocation.result, argumentValues[0] ?? new Set());
+        } else if (atom === origins.reflectSet || atom === origins.reflectSetPrototypeOf) {
+          mergeValue(invocation.result, literalValue(true));
+        }
       } else if (typeof atom !== 'string' && !seen.has(atom)) {
         const nextSeen = new Set(seen);
         nextSeen.add(atom);
@@ -915,11 +1151,27 @@ function collectBindings(sourceFile) {
         const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
         for (const layout of layouts) {
           invokePositionalMutators(argumentValues[0] ?? new Set(), layout, invocationNode, seen, argumentValues[1]);
-          if (dependencyCompositionLimit) return;
+          if (analysisStopped()) return;
         }
-      } else if (typeof atom !== 'string' && atom.kind === 'positional-mutator') {
+      } else if (atom === origins.functionPrototypeCall) {
         if (!consumeDependencyCompositionWork(invocationNode)) return;
-        invalidatePositionalThisValue(thisValue);
+        invokePositionalMutators(
+          thisValue ?? new Set(),
+          argumentValues.slice(1),
+          invocationNode,
+          seen,
+          argumentValues[0]
+        );
+      } else if (atom === origins.functionPrototypeApply) {
+        if (!consumeDependencyCompositionWork(invocationNode)) return;
+        const expansion = positionalLayouts(argumentValues[1] ?? new Set());
+        const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
+        for (const layout of layouts) {
+          invokePositionalMutators(thisValue ?? new Set(), layout, invocationNode, seen, argumentValues[0]);
+          if (analysisStopped()) return;
+        }
+      } else if (applyPositionalMutationIntrinsic(atom, argumentValues, thisValue)) {
+        if (!consumeDependencyCompositionWork(invocationNode)) return;
       } else if (
         typeof atom !== 'string' &&
         (atom.kind === 'bound-callable' || atom.kind === 'invocation-method') &&
@@ -946,7 +1198,7 @@ function collectBindings(sourceFile) {
           const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
           for (const layout of layouts) {
             invokePositionalMutators(atom.target, layout, invocationNode, nextSeen, argumentValues[0]);
-            if (dependencyCompositionLimit) return;
+            if (analysisStopped()) return;
           }
         }
       }
@@ -1043,7 +1295,7 @@ function collectBindings(sourceFile) {
     const expansion = positionalExpansionForNodes([...node.arguments]);
     for (const layout of expansion.layouts) {
       invokePositionalMutators(callee, layout, node, new Set(), thisValue);
-      if (dependencyCompositionLimit) return;
+      if (analysisStopped()) return;
     }
   }
 
@@ -1052,6 +1304,7 @@ function collectBindings(sourceFile) {
     const current = unwrapExpression(node);
     if (ts.isIdentifier(current)) return identifierValue(current);
     if (ts.isStringLiteralLike(current) || ts.isNumericLiteral(current)) return literalValue(current.text);
+    if (current.kind === ts.SyntaxKind.NullKeyword) return literalValue(null);
     if (current.kind === ts.SyntaxKind.TrueKeyword) return literalValue(true);
     if (current.kind === ts.SyntaxKind.FalseKeyword) return literalValue(false);
     if (ts.isNoSubstitutionTemplateLiteral(current)) return literalValue(current.text);
@@ -1207,6 +1460,10 @@ function collectBindings(sourceFile) {
     if (name.text === 'eval') return originValue(origins.builtinEval);
     if (name.text === '_') return originValue(origins.lodashObject);
     if (name.text === 'Array') return originValue(origins.arrayObject);
+    if (name.text === 'Date') return originValue(origins.knownSafeCallable);
+    if (name.text === 'Function') return originValue(origins.functionObject);
+    if (name.text === 'JSON') return originValue(origins.jsonObject);
+    if (name.text === 'Object') return originValue(origins.objectObject);
     if (globalEvalObjects.has(name.text)) return originValue(origins.globalObject);
     if (name.text === 'Reflect') return originValue(origins.reflectObject);
     return new Set();
@@ -1221,19 +1478,23 @@ function collectBindings(sourceFile) {
   }
 
   function collectPropagationOperations(node) {
-    let operation;
+    if (analysisStopped()) return;
+    let run;
     if (ts.isVariableDeclaration(node)) {
-      operation = () => {
+      run = () => {
         if (node.initializer) bindPattern(node.name, evaluateExpression(node.initializer));
         else if (isAmbientVariableDeclaration(node)) bindPattern(node.name, ambientGlobalValue(node.name));
       };
     } else if (ts.isParameter(node)) {
-      operation = () => bindPattern(node.name, node.initializer ? evaluateExpression(node.initializer) : new Set());
-    } else if (
-      (ts.isForInStatement(node) || ts.isForOfStatement(node)) &&
-      !ts.isVariableDeclarationList(node.initializer)
-    ) {
-      operation = () => invalidatePositionalWrite(node.initializer);
+      run = () => bindPattern(node.name, node.initializer ? evaluateExpression(node.initializer) : new Set());
+    } else if (ts.isForInStatement(node) || ts.isForOfStatement(node)) {
+      run = () => {
+        if (ts.isVariableDeclarationList(node.initializer)) {
+          for (const declaration of node.initializer.declarations) bindPattern(declaration.name, unknownValue());
+        } else {
+          assignToTarget(node.initializer, unknownValue());
+        }
+      };
     } else if (
       ts.isBinaryExpression(node) &&
       [
@@ -1243,35 +1504,38 @@ function collectBindings(sourceFile) {
         ts.SyntaxKind.QuestionQuestionEqualsToken,
       ].includes(node.operatorToken.kind)
     ) {
-      operation = () => assignToTarget(node.left, evaluateExpression(node.right));
+      run = () => assignToTarget(node.left, evaluateExpression(node.right));
     } else if (ts.isBinaryExpression(node) && ts.isAssignmentOperator(node.operatorToken.kind)) {
-      operation = () => invalidatePositionalWrite(node.left);
+      run = () => invalidatePositionalWrite(node.left);
     } else if (
       (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
       (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)
     ) {
-      operation = () => invalidatePositionalWrite(node.operand);
+      run = () => invalidatePositionalWrite(node.operand);
     } else if (ts.isCallExpression(node)) {
-      operation = () => {
+      run = () => {
         invalidatePositionalMutationCall(node);
         invalidateIndirectPositionalMutationCall(node);
       };
     } else if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) {
-      operation = () => evaluateExpression(node);
+      run = () => evaluateExpression(node);
     }
-    if (operation) enqueuePropagationOperation(operation);
+    if (run) enqueuePropagationOperation({ node, run });
     ts.forEachChild(node, collectPropagationOperations);
   }
 
   collectPropagationOperations(sourceFile);
-  for (let queueIndex = 0; queueIndex < propagationQueue.length && !dependencyCompositionLimit; queueIndex += 1) {
+  for (let queueIndex = 0; queueIndex < propagationQueue.length && !analysisStopped(); queueIndex += 1) {
     const operation = propagationQueue[queueIndex];
     queuedPropagationOperations.delete(operation);
     activePropagationOperation = operation;
+    activeAnalysisNode = operation.node;
     try {
-      operation();
+      if (!consumeAnalysisWork(operation.node)) break;
+      operation.run();
     } finally {
       activePropagationOperation = undefined;
+      activeAnalysisNode = sourceFile;
     }
   }
 
@@ -1288,7 +1552,7 @@ function collectBindings(sourceFile) {
   }
 
   function analysisLimit() {
-    return dependencyCompositionLimit;
+    return dependencyCompositionLimit ?? analysisWorkLimit;
   }
 
   return { analysisLimit, unsafeKindsForCall, unsafeKindsForNew, unsafeKindsForTag };
@@ -1366,8 +1630,12 @@ function scanSource(source, relativePath) {
     const pending = [sourceFile];
 
     function addFindings(node, kinds) {
-      for (const kind of kinds) {
+      for (const reportedKind of kinds) {
         if (findings.length >= maximumFindingsPerFile) return;
+        const analysisReason = reportedKind.startsWith(`${analysisLimitKind}:`)
+          ? reportedKind.slice(analysisLimitKind.length + 1)
+          : undefined;
+        const kind = analysisReason ? analysisLimitKind : reportedKind;
         const start = node.getStart(sourceFile);
         const location = sourceFile.getLineAndCharacterOfPosition(start);
         const sourceText = source.slice(start, node.end);
@@ -1378,7 +1646,7 @@ function scanSource(source, relativePath) {
           column: location.character + 1,
           fingerprint: findingFingerprint(kind, sourceText),
         };
-        if (kind === analysisLimitKind) finding.reason = 'positional-layout-limit';
+        if (kind === analysisLimitKind) finding.reason = analysisReason ?? 'positional-layout-limit';
         findings.push(finding);
       }
     }
