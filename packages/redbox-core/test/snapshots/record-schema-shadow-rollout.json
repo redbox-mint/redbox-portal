@@ -16,20 +16,20 @@
     "maxReportBytes": 65536
   },
   "summary": {
-    "formsChecked": 8,
-    "schemasChecked": 16,
-    "completeSchemas": 12,
+    "formsChecked": 10,
+    "schemasChecked": 20,
+    "completeSchemas": 16,
     "partialSchemas": 4,
     "unsupportedComponents": 0,
     "legacyNullability": 0,
-    "schemaWarnings": 16,
-    "unknownPropertyProbesAccepted": 16
+    "schemaWarnings": 20,
+    "unknownPropertyProbesAccepted": 20
   },
   "limitHeadroom": {
     "cacheEntries": {
       "limit": 128,
-      "observedMaximum": 16,
-      "remaining": 112
+      "observedMaximum": 20,
+      "remaining": 108
     },
     "maxDepth": {
       "limit": 64,
@@ -300,6 +300,34 @@
       "shadowWarningCodes": ["record-schema.type"]
     },
     {
+      "form": "dev-hook/demoRdmp-1.0-draft",
+      "kind": "create",
+      "digest": "b41336f81cceb93fb4f04e5087d49ec7970aee4c930c2093c208d4993fc252e0",
+      "completeness": "complete",
+      "byteLength": 1266,
+      "observedNodeDepth": 2,
+      "observedProperties": 12,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "legacyNullabilityCount": 0,
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/demoRdmp-1.0-draft",
+      "kind": "update",
+      "digest": "0646cd096fd0e857ea833095ab572b3e60570b857a59a372bc067a1b15179b19",
+      "completeness": "complete",
+      "byteLength": 1266,
+      "observedNodeDepth": 2,
+      "observedProperties": 12,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "legacyNullabilityCount": 0,
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
       "form": "dev-hook/existing-locations-1.0-draft",
       "kind": "create",
       "digest": "071f51d6f5807aaad6e24d9ef57da3a511c7bb8d86eed2daeca0eda283e180d8",
@@ -321,6 +349,34 @@
       "byteLength": 748,
       "observedNodeDepth": 1,
       "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "legacyNullabilityCount": 0,
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/researchActivity-1.0-draft",
+      "kind": "create",
+      "digest": "4959370b1d0c9375de4dede6f35ba2944a4986d455eaed3ea542d2d8501822e0",
+      "completeness": "complete",
+      "byteLength": 1032,
+      "observedNodeDepth": 2,
+      "observedProperties": 8,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "legacyNullabilityCount": 0,
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/researchActivity-1.0-draft",
+      "kind": "update",
+      "digest": "62cdc16101adb0d707fbd8377c0e881bc76dfd7154f844ef15ff7cde431bcc3d",
+      "completeness": "complete",
+      "byteLength": 1032,
+      "observedNodeDepth": 2,
+      "observedProperties": 8,
       "diagnosticCount": 0,
       "diagnosticCodes": [],
       "legacyNullabilityCount": 0,

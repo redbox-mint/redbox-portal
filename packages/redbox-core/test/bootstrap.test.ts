@@ -510,6 +510,8 @@ describe('record schema bootstrap lifecycle', function () {
         agendaqueueservice: { init: immediate },
         workspacetypesservice: { bootstrap: () => of(undefined) },
         cacheservice: { bootstrap: immediate },
+        generationpersistenceservice: { bootstrap: immediate },
+        generationbootstrapservice: { bootstrap: immediate },
         recordschemaservice: {
           bootstrap: async () => {
             events.push('record-schema-started');
