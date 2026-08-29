@@ -678,6 +678,70 @@ const mutableSpreadPrefixCases = [
       if (flag) prefix.length -= 1;
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
+  {
+    name: 'a borrowed carrier mutator call',
+    source: `const prefix = [null];
+      prefix.pop.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a borrowed Array prototype mutator call',
+    source: `const prefix = [null];
+      Array.prototype.pop.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an applied carrier mutator',
+    source: `const prefix = [null];
+      prefix.pop.apply(prefix, []);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a bound carrier mutator',
+    source: `const prefix = [null];
+      const mutate = prefix.pop.bind(prefix);
+      mutate();
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a reflected Array prototype mutator',
+    source: `const prefix = [null];
+      Reflect.apply(Array.prototype.pop, prefix, []);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a reflected bound Array prototype mutator',
+    source: `const prefix = [null];
+      const mutate = Reflect.apply.bind(Reflect, Array.prototype.pop, prefix);
+      mutate([]);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a computed borrowed carrier mutator',
+    source: `const prefix = [null];
+      const method = 'pop';
+      prefix[method].call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a for-of length assignment',
+    source: `const prefix = [null];
+      for (prefix.length of [0]) consume(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+];
+
+const targetSensitiveUnsafeSpreadCases = [
+  {
+    name: 'Reflect.apply receives an unknown prefix for a Reflect.apply target',
+    source: `const prefix = loadPrefix();
+      Reflect.apply(Reflect.apply, null, [...prefix, eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'Reflect.construct receives an unknown prefix for a Reflect.construct target',
+    source: `const prefix = loadPrefix();
+      Reflect.construct(Reflect.construct, [...prefix, _.template, [configuredSource]]);`,
+  },
 ];
 const globalLodashCases = [
   {
@@ -725,6 +789,16 @@ const safeSpreadCases = [
   {
     name: 'unsafe callable values passed to a safe target',
     source: `Reflect.apply(...[Array.of, null, [eval, _.template]]);`,
+  },
+  {
+    name: 'unsafe callable data follows an unknown spread for a safe Reflect.apply target',
+    source: `const prefix = loadPrefix();
+      Reflect.apply(Array.of, null, [...prefix, _.template]);`,
+  },
+  {
+    name: 'unsafe callable data follows an unknown spread for a safe Reflect.construct target',
+    source: `const prefix = loadPrefix();
+      Reflect.construct(Array, [...prefix, _.template]);`,
   },
   {
     name: 'ordinary function receiving spread unsafe callable values',
@@ -1190,6 +1264,33 @@ test('unknown-length spread prefixes fail closed when a tracked callable can shi
   }
 });
 
+test('nested Reflect expansion limits remain gated to unsafe targets', () => {
+  for (const unsafeCase of targetSensitiveUnsafeSpreadCases) {
+    const findings = scanSource(unsafeCase.source, 'packages/example/src/unsafe-reflect-target.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit'),
+      `${unsafeCase.name} should fail closed: ${JSON.stringify(findings)}`
+    );
+  }
+});
+
+test('the guard CLI rejects unknown positional layouts for tracked unsafe Reflect targets', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = targetSensitiveUnsafeSpreadCases.map((unsafeCase, index) => ({
+    relativePath: `packages/example/src/unsafe-reflect-target-${index}.ts`,
+    source: unsafeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(positional-layout-limit\)/);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
 test('flat callable composition exhausts a deterministic global work budget', t => {
   const rebindings = Array.from({ length: 10 }, () => 'callable = callable.bind(null);').join('\n');
   const source = `let callable = eval;\n${rebindings}\ncallable(configuredSource);`;
@@ -1222,6 +1323,34 @@ test('flat callable composition exhausts a deterministic global work budget', t 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /analysis-limit .*\(dependency-composition-limit\)/);
   assert.doesNotMatch(result.stderr, /RangeError|Maximum call stack size exceeded/);
+});
+
+test('large flat callable composition stops promptly after the global work limit', t => {
+  const rebindings = Array.from({ length: 5000 }, () => 'callable = callable.bind(null);').join('\n');
+  const source = `let callable = eval;\n${rebindings}\ncallable(configuredSource);`;
+  const startedAt = performance.now();
+  const firstFindings = scanSource(source, 'packages/example/src/large-flat-composition.ts');
+  const secondFindings = scanSource(source, 'packages/example/src/large-flat-composition.ts');
+  const elapsedMilliseconds = performance.now() - startedAt;
+
+  assert.deepEqual(firstFindings, secondFindings);
+  assert.deepEqual(
+    firstFindings.map(finding => [finding.kind, finding.reason]),
+    [['analysis-limit', 'dependency-composition-limit']]
+  );
+  assert.ok(
+    elapsedMilliseconds < 8000,
+    `two bounded large flat-composition scans took ${Math.round(elapsedMilliseconds)}ms`
+  );
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSource(root, source);
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(dependency-composition-limit\)/);
+  assert.doesNotMatch(result.stderr, /RangeError|Maximum call stack size exceeded/);
+  assert.ok(result.stderr.length < 4096, `large-composition diagnostics were ${result.stderr.length} bytes`);
 });
 
 test('deep call composition returns one bounded fail-closed diagnostic without a RangeError', t => {
