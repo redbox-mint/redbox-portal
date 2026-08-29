@@ -784,6 +784,116 @@ const mutableSpreadPrefixCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
   {
+    name: 'Reflect.set writes an eval target through its receiver',
+    source: `const prefix = [];
+      Reflect.set({}, '0', eval, prefix);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.set.call writes through its receiver',
+    source: `const prefix = [];
+      Reflect.set.call(Reflect, {}, '0', eval, prefix);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.set.apply writes through its receiver',
+    source: `const prefix = [];
+      Reflect.set.apply(Reflect, [{}, '0', eval, prefix]);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a bound Reflect.set writes through its receiver',
+    source: `const prefix = [];
+      Reflect.set.bind(Reflect, {}, '0', eval, prefix)();
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.apply invokes a receiver-sensitive Reflect.set',
+    source: `const prefix = [];
+      Reflect.apply(Reflect.set, Reflect, [{}, '0', eval, prefix]);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a direct Symbol.iterator replacement yields eval',
+    source: `const prefix = [null];
+      prefix[Symbol.iterator] = function* replacement() { yield eval; };
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a global Symbol.iterator replacement yields a compiler',
+    source: `const prefix = [null];
+      prefix[globalThis.Symbol.iterator] = function* replacement() { yield _.template; };
+      Reflect.construct(...prefix, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown direct Symbol.iterator replacement fails closed',
+    source: `const prefix = [null];
+      prefix[Symbol.iterator] = loadIterator();
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional direct Symbol.iterator replacement fails closed',
+    source: `const prefix = [null];
+      prefix[Symbol.iterator] = flag ? function* () { yield JSON.parse; } : loadIterator();
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperty replaces Symbol.iterator',
+    source: `const prefix = [null];
+      Object.defineProperty(prefix, Symbol.iterator, { value: function* () { yield eval; } });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties replaces Symbol.iterator',
+    source: `const prefix = [null];
+      Object.defineProperties(prefix, {
+        [Symbol.iterator]: { value: function* () { yield eval; } }
+      });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.assign replaces Symbol.iterator',
+    source: `const prefix = [null];
+      Object.assign(prefix, { *[Symbol.iterator]() { yield eval; } });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty writes carrier length',
+    source: `const prefix = [null];
+      Reflect.defineProperty(prefix, 'length', { value: 0 });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty writes a carrier index',
+    source: `const prefix = [];
+      Reflect.defineProperty(prefix, '0', { value: eval });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty.call writes carrier length',
+    source: `const prefix = [null];
+      Reflect.defineProperty.call(Reflect, prefix, 'length', { value: 0 });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty.apply writes carrier length',
+    source: `const prefix = [null];
+      Reflect.defineProperty.apply(Reflect, [prefix, 'length', { value: 0 }]);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a bound Reflect.defineProperty writes carrier length',
+    source: `const prefix = [null];
+      Reflect.defineProperty.bind(Reflect, prefix, 'length', { value: 0 })();
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.apply invokes Reflect.defineProperty',
+    source: `const prefix = [null];
+      Reflect.apply(Reflect.defineProperty, Reflect, [prefix, 'length', { value: 0 }]);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
     name: 'Object.setPrototypeOf replaces the carrier iterator',
     source: `const prefix = [null];
       Object.setPrototypeOf(prefix, { *[Symbol.iterator]() {} });
@@ -794,6 +904,48 @@ const mutableSpreadPrefixCases = [
     source: `const prefix = [null];
       Reflect.setPrototypeOf(prefix, { *[Symbol.iterator]() {} });
       Reflect.construct(...prefix, _.template, [configuredSource]);`,
+  },
+  {
+    name: 'Object.setPrototypeOf installs an iterator that yields eval',
+    source: `const prefix = [null];
+      Object.setPrototypeOf(prefix, { *[Symbol.iterator]() { yield eval; } });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.setPrototypeOf installs an iterator that yields a compiler',
+    source: `const prefix = [null];
+      Reflect.setPrototypeOf(prefix, { *[Symbol.iterator]() { yield _.template; } });
+      Reflect.construct(...prefix, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown replacement prototype iterator fails closed',
+    source: `const prefix = [null];
+      Object.setPrototypeOf(prefix, loadPrototype());
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional replacement prototype iterator fails closed',
+    source: `const prefix = [null];
+      Reflect.setPrototypeOf(prefix, flag ? { *[Symbol.iterator]() { yield JSON.parse; } } : loadPrototype());
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a replacement prototype supplies an eval index',
+    source: `const prefix = [,];
+      Object.setPrototypeOf(prefix, { 0: eval });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a direct __proto__ write installs an unsafe iterator',
+    source: `const prefix = [null];
+      prefix.__proto__ = { *[Symbol.iterator]() { yield eval; } };
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an Array prototype iterator replacement affects array carriers',
+    source: `Array.prototype[Symbol.iterator] = function* replacement() { yield eval; };
+      const prefix = [null];
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
   },
   {
     name: 'an array destructuring target in for-of writes carrier length',
@@ -832,6 +984,86 @@ const mutableSpreadPrefixCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
   {
+    name: 'Object.getOwnPropertyDescriptors retrieves a carrier mutator',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptors(Array.prototype).pop.value.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.get extracts a mutator from plural descriptors',
+    source: `const prefix = [null];
+      Reflect.get(Object.getOwnPropertyDescriptors(Array.prototype).pop, 'value').call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'plural descriptor extraction composes call and apply',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptors.call(Object, Array.prototype).pop.value.apply(prefix, []);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a reflected plural descriptor mutator is borrowed',
+    source: `const prefix = [null];
+      const descriptors = Reflect.apply(Object.getOwnPropertyDescriptors, Object, [Array.prototype]);
+      Reflect.apply(descriptors.pop.value, prefix, []);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a plural descriptor mutator is bound',
+    source: `const prefix = [null];
+      const mutate = Object.getOwnPropertyDescriptors(Array.prototype).pop.value.bind(prefix);
+      mutate();
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'globalThis plural descriptor extraction retrieves a mutator',
+    source: `const prefix = [null];
+      globalThis.Object.getOwnPropertyDescriptors(globalThis.Array.prototype).pop.value.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.getOwnPropertyDescriptor retrieves a carrier mutator',
+    source: `const prefix = [null];
+      Reflect.getOwnPropertyDescriptor(Array.prototype, 'pop').value.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.getPrototypeOf retrieves a carrier mutator',
+    source: `const prefix = [null];
+      Object.getPrototypeOf(prefix).pop.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.getPrototypeOf retrieves a reflected carrier mutator',
+    source: `const prefix = [null];
+      Reflect.apply(Reflect.get(Reflect.getPrototypeOf(prefix), 'pop'), prefix, []);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'prototype and descriptor extraction compose',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptor(Object.getPrototypeOf(prefix), 'pop').value.call(prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Function.prototype.call.call invokes a plural descriptor mutator',
+    source: `const prefix = [null];
+      Function.prototype.call.call(
+        Object.getOwnPropertyDescriptors(Array.prototype).pop.value,
+        prefix
+      );
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'the __proto__ descriptor setter replaces a carrier iterator',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(
+        prefix,
+        { *[Symbol.iterator]() { yield eval; } }
+      );
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
     name: 'Function.prototype.call.call invokes a carrier mutator',
     source: `const prefix = [null];
       Function.prototype.call.call(Array.prototype.pop, prefix);
@@ -845,6 +1077,14 @@ const mutableSpreadPrefixCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
 ];
+const productionCarrierReviewCases = mutableSpreadPrefixCases.filter(({ name }) =>
+  [
+    'Reflect.set writes an eval target through its receiver',
+    'Object.setPrototypeOf installs an iterator that yields eval',
+    'Reflect.defineProperty writes carrier length',
+    'Object.getOwnPropertyDescriptors retrieves a carrier mutator',
+  ].includes(name)
+);
 
 const targetSensitiveUnsafeSpreadCases = [
   {
@@ -943,6 +1183,25 @@ const safeSpreadCases = [
     name: 'unsafe callable data follows an unknown spread for a safe Reflect.construct target',
     source: `const prefix = loadPrefix();
       Reflect.construct(Array, [...prefix, _.template]);`,
+  },
+  {
+    name: 'a known safe replacement iterator supplies a safe Reflect.apply target',
+    source: `const prefix = [null];
+      prefix[Symbol.iterator] = function* replacement() { yield JSON.parse; };
+      Reflect.apply(...prefix, null, ['{}']);`,
+  },
+  {
+    name: 'replacement iterators do not affect Reflect.apply array-like arguments for a safe target',
+    source: `const argumentsList = ['data'];
+      argumentsList[Symbol.iterator] = loadIterator();
+      Reflect.apply(Array.of, null, argumentsList);`,
+  },
+  {
+    name: 'an ordinary callee may consume an unknown replacement iterator as data',
+    source: `const collect = (...values) => values;
+      const values = [null];
+      values[Symbol.iterator] = loadIterator();
+      collect(...values, eval, _.template);`,
   },
   {
     name: 'ordinary function receiving spread unsafe callable values',
@@ -1376,6 +1635,24 @@ test('the guard CLI rejects tracked mutable spread prefixes without executing th
     source: mutationCase.source,
   }));
   const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(positional-layout-limit\)/);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
+test('the production npm lint path rejects every focused carrier review mechanism', t => {
+  assert.equal(productionCarrierReviewCases.length, 4);
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = productionCarrierReviewCases.map((reviewCase, index) => ({
+    relativePath: `packages/example/src/production-carrier-review-${index}.ts`,
+    source: reviewCase.source,
+  }));
+  const result = invokeNpmLintWithTrackedSources(root, sources);
 
   assert.equal(result.error, undefined);
   assert.notEqual(result.status, 0);
