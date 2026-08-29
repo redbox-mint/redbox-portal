@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { execFileSync, spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { performance } = require('node:perf_hooks');
 const test = require('node:test');
 
 const {
@@ -14,6 +15,7 @@ const {
   isScannedSourcePath,
   normalizeRelativePath,
   runGuard,
+  scanRepository,
   scanSource,
   sourceExclusionsRelativePath,
   validateAllowlist,
@@ -502,6 +504,151 @@ const invocationCompositionCases = [
     source: `function run({ nested: { compile = _.template } = {} } = {}) { compile(configuredSource); }`,
   },
 ];
+const spreadInvocationCases = [
+  {
+    name: 'Reflect.apply direct spread invocation',
+    kind: 'direct-eval',
+    source: `Reflect.apply(...[eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'Reflect.apply.call spread invocation',
+    kind: 'direct-eval',
+    source: `Reflect.apply.call(...[null, eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'Reflect.apply.apply spread invocation',
+    kind: 'direct-eval',
+    source: `Reflect.apply.apply(...[null, [eval, globalThis, [configuredSource]]]);`,
+  },
+  {
+    name: 'Reflect.apply.bind.call spread invocation',
+    kind: 'direct-eval',
+    source: `Reflect.apply.bind.call(...[Reflect.apply, Reflect, eval, globalThis])(...[[configuredSource]]);`,
+  },
+  {
+    name: 'bound Reflect.apply spread invoker',
+    kind: 'direct-eval',
+    source: `const invoke = Reflect.apply.bind(Reflect); invoke(...[eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'nested Reflect.apply.call.call spread invocation',
+    kind: 'direct-eval',
+    source: `Reflect.apply.call.call(...[Reflect.apply, null, eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'aliased Reflect.apply spread invocation',
+    kind: 'direct-eval',
+    source: `const invoke = Reflect.apply; invoke(...[eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'Reflect.construct direct spread invocation',
+    kind: 'lodash-template',
+    source: `Reflect.construct(...[_.template, [configuredSource]]);`,
+  },
+  {
+    name: 'Reflect.construct.call spread invocation',
+    kind: 'lodash-template',
+    source: `Reflect.construct.call(...[null, _.template, [configuredSource]]);`,
+  },
+  {
+    name: 'Reflect.construct.apply spread invocation',
+    kind: 'lodash-template',
+    source: `Reflect.construct.apply(...[null, [_.template, [configuredSource]]]);`,
+  },
+  {
+    name: 'Reflect.construct.bind.call spread invocation',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind.call(...[Reflect.construct, Reflect, _.template])(...[[configuredSource]]);`,
+  },
+  {
+    name: 'bound Reflect.construct spread invoker',
+    kind: 'lodash-template',
+    source: `const invoke = Reflect.construct.bind(Reflect); invoke(...[_.template, [configuredSource]]);`,
+  },
+  {
+    name: 'nested Reflect.construct.call.call spread invocation',
+    kind: 'lodash-template',
+    source: `Reflect.construct.call.call(...[Reflect.construct, null, _.template, [configuredSource]]);`,
+  },
+  {
+    name: 'aliased Reflect.construct spread invocation',
+    kind: 'lodash-template',
+    source: `const invoke = Reflect.construct; invoke(...[_.template, [configuredSource]]);`,
+  },
+];
+const globalLodashCases = [
+  {
+    name: 'globalThis Lodash global',
+    source: `globalThis._.template(configuredSource);`,
+  },
+  {
+    name: 'global Lodash global',
+    source: `global._.template(configuredSource);`,
+  },
+  {
+    name: 'window Lodash global',
+    source: `window._.template(configuredSource);`,
+  },
+  {
+    name: 'self Lodash global',
+    source: `self._.template(configuredSource);`,
+  },
+  {
+    name: 'computed global Lodash member',
+    source: `globalThis['_'].template(configuredSource);`,
+  },
+  {
+    name: 'aliased global root Lodash member',
+    source: `const root = globalThis; root._.template(configuredSource);`,
+  },
+  {
+    name: 'global Lodash runInContext result',
+    source: `window._.runInContext().template(configuredSource);`,
+  },
+  {
+    name: 'destructured global Lodash member',
+    source: `const { _: lodash } = globalThis; lodash.template(configuredSource);`,
+  },
+  {
+    name: 'nested recognized global root',
+    source: `window.globalThis._.template(configuredSource);`,
+  },
+];
+const safeSpreadCases = [
+  {
+    name: 'ordinary Reflect targets with spread arguments',
+    source: `Reflect.apply(...[JSON.parse, null, ['{}']]); Reflect.construct(...[Date, []]);`,
+  },
+  {
+    name: 'unsafe callable values passed to a safe target',
+    source: `Reflect.apply(...[Array.of, null, [eval, _.template]]);`,
+  },
+  {
+    name: 'ordinary function receiving spread unsafe callable values',
+    source: `const collect = (...values) => values; collect(...[eval, _.template]);`,
+  },
+  {
+    name: 'shadowed invocation globals with spread arguments',
+    source: `function run(eval, Reflect, globalThis, _) {
+      Reflect.apply(...[eval, globalThis, [configuredSource]]);
+      Reflect.construct(...[_.template, [configuredSource]]);
+    }`,
+  },
+  {
+    name: 'shadowed global roots with Lodash-looking members',
+    source: `function run(globalThis, global, window, self) {
+      globalThis._.template(configuredSource);
+      global._.template(configuredSource);
+      window._.runInContext().template(configuredSource);
+      const { _: lodash } = self;
+      lodash.template(configuredSource);
+    }`,
+  },
+  {
+    name: 'arbitrary local Lodash-looking property chain',
+    source: `const holder = { _: { template: value => value } }; holder._.template(configuredSource);`,
+  },
+];
 const safeInvocationCompositionCases = [
   {
     name: 'shadowed eval Reflect globalThis and Lodash globals',
@@ -706,6 +853,27 @@ test('scanSource rejects every invocation-provenance composition', () => {
   }
 });
 
+test('scanSource rejects spread invocation provenance for Reflect.apply and Reflect.construct', () => {
+  for (const invocation of spreadInvocationCases) {
+    const findings = scanSource(invocation.source, 'packages/example/src/runtime.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === invocation.kind),
+      `${invocation.name} should produce a ${invocation.kind} finding`
+    );
+  }
+});
+
+test('scanSource resolves the configured Lodash global through recognized global objects', () => {
+  for (const lodashAccess of globalLodashCases) {
+    assert.ok(
+      scanSource(lodashAccess.source, 'packages/example/src/runtime.ts').some(
+        finding => finding.kind === 'lodash-template'
+      ),
+      `${lodashAccess.name} should produce a lodash-template finding`
+    );
+  }
+});
+
 test('the npm lint path rejects every invocation-provenance composition in tracked sources', t => {
   const root = createEndToEndGuardRepository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -724,8 +892,37 @@ test('the npm lint path rejects every invocation-provenance composition in track
   }
 });
 
+test('the npm lint path rejects spread invocation and global Lodash bypasses in tracked sources', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const unsafeCases = [...spreadInvocationCases, ...globalLodashCases];
+  const sources = unsafeCases.map((unsafeCase, index) => ({
+    relativePath: `packages/example/src/review-bypass-${index}.ts`,
+    source: unsafeCase.source,
+  }));
+  const result = invokeNpmLintWithTrackedSources(root, sources);
+
+  assert.notEqual(result.status, 0);
+  for (const [index, unsafeCase] of unsafeCases.entries()) {
+    assert.ok(
+      result.stderr.includes(`Unexpected unsafe execution: packages/example/src/review-bypass-${index}.ts:`),
+      `${unsafeCase.name} was not rejected:\n${result.stderr}`
+    );
+  }
+});
+
 test('scanSource keeps the invocation-composition negative matrix clean', () => {
   for (const safeCase of safeInvocationCompositionCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/runtime.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
+test('scanSource keeps safe spread invocations and shadowed global roots clean', () => {
+  for (const safeCase of safeSpreadCases) {
     assert.deepEqual(
       scanSource(safeCase.source, 'packages/example/src/runtime.ts'),
       [],
@@ -744,6 +941,76 @@ test('the guard CLI accepts the tracked invocation-composition negative matrix',
   const result = invokeGuardWithTrackedSources(root, sources);
 
   assert.equal(result.status, 0, result.stderr);
+});
+
+test('the guard CLI accepts safe spread invocations in tracked sources', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = safeSpreadCases.map((safeCase, index) => ({
+    relativePath: `packages/example/src/safe-spread-${index}.ts`,
+    source: safeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('the dependency worklist resolves reverse aliases and cycles without quadratic rescans', () => {
+  const aliasCount = 4000;
+  const aliases = Array.from({ length: aliasCount + 1 }, (_, index) => `alias${index}`);
+  const source = [
+    `let ${aliases.join(', ')};`,
+    ...Array.from({ length: aliasCount }, (_, index) => `alias${index} = alias${index + 1};`),
+    `alias${aliasCount} = eval;`,
+    'alias0(configuredSource);',
+  ].join('\n');
+  const startedAt = performance.now();
+  const findings = scanSource(source, 'packages/example/src/reverse-aliases.ts');
+  const elapsedMilliseconds = performance.now() - startedAt;
+
+  assert.deepEqual(
+    findings.map(finding => finding.kind),
+    ['direct-eval']
+  );
+  assert.ok(
+    elapsedMilliseconds < 2500,
+    `reverse provenance took ${Math.round(elapsedMilliseconds)}ms; expected dependency-driven propagation`
+  );
+  assert.deepEqual(
+    scanSource(
+      `let first, second, third;
+       first = second;
+       second = third;
+       third = first;
+       third = eval;
+       first(configuredSource);`,
+      'packages/example/src/cyclic-aliases.ts'
+    ).map(finding => finding.kind),
+    ['direct-eval']
+  );
+  assert.deepEqual(
+    scanSource(
+      `let invocationArguments, lodash;
+       const invoke = Reflect.apply.bind(Reflect, ...invocationArguments);
+       lodash = invoke([]);
+       invocationArguments = [_.runInContext, _];
+       lodash.template(configuredSource);`,
+      'packages/example/src/composed-reverse-aliases.ts'
+    ).map(finding => finding.kind),
+    ['lodash-template']
+  );
+});
+
+test('spread provenance remains positionally bounded to 64 invocation arguments', () => {
+  const trailingArguments = Array.from({ length: 128 }, () => 'null').join(', ');
+  const unsafeSource = `Reflect.apply(...[eval, globalThis, [configuredSource], ${trailingArguments}]);`;
+  const safeSource = `Reflect.apply(...[JSON.parse, null, ['{}'], eval, _.template, ${trailingArguments}]);`;
+
+  assert.deepEqual(
+    scanSource(unsafeSource, 'packages/example/src/bounded-spread.ts').map(finding => finding.kind),
+    ['direct-eval']
+  );
+  assert.deepEqual(scanSource(safeSource, 'packages/example/src/bounded-safe-spread.ts'), []);
 });
 
 test('the guard invocation rejects every provenance bypass', async t => {
@@ -995,6 +1262,32 @@ test('normalizes repository paths and keeps only declared non-runtime roots out 
   assert.throws(() => normalizeRelativePath('../packages/example/src/runtime.ts'));
   assert.throws(() => normalizeRelativePath('packages\\example\\src\\runtime.ts'));
   assert.throws(() => normalizeRelativePath('/packages/example/src/runtime.ts'));
+});
+
+test('recovers unsafe calls from malformed tracked source without losing bounded diagnostics', () => {
+  const findings = scanSource(
+    `const incomplete = ;
+     eval(configuredSource);
+     const alsoIncomplete = {`,
+    'packages/example/src/malformed-runtime.ts'
+  );
+
+  assert.deepEqual(
+    findings.map(finding => finding.kind),
+    ['direct-eval']
+  );
+});
+
+test('refuses a Git-tracked source symlink before reading its target', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const symlinkPath = path.join(root, 'packages/example/src/runtime.ts');
+  fs.mkdirSync(path.dirname(symlinkPath), { recursive: true });
+  fs.writeFileSync(path.join(root, 'safe-target.txt'), 'eval(configuredSource);\n');
+  fs.symlinkSync('../../../safe-target.txt', symlinkPath);
+  execFileSync('git', ['add', '.'], { cwd: root });
+
+  assert.throws(() => scanRepository(root, new Set()), /Refusing to scan source symlink/);
 });
 
 test('the repository findings exactly match the bounded legacy allowlist', () => {
