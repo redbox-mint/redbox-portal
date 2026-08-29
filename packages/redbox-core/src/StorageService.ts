@@ -127,7 +127,8 @@ export interface StorageService {
     fieldNames?: unknown,
     filterString?: unknown,
     filterMode?: unknown,
-    secondarySort?: unknown
+    secondarySort?: unknown,
+    bypassRecordAcl?: boolean
   ): Promise<StorageServiceResponse>;
   getDeletedRecords(
     workflowState: unknown,
@@ -142,7 +143,9 @@ export interface StorageService {
     sort: unknown,
     fieldNames?: unknown,
     filterString?: unknown,
-    filterMode?: unknown
+    filterMode?: unknown,
+    secondarySort?: unknown,
+    bypassRecordAcl?: boolean
   ): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
   exportAllPlans(
@@ -152,7 +155,8 @@ export interface StorageService {
     format: unknown,
     modBefore: unknown,
     modAfter: unknown,
-    recType: unknown
+    recType: unknown,
+    bypassRecordAcl?: boolean
   ): Readable;
 
   /**

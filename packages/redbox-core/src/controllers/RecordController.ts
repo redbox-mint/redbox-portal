@@ -34,7 +34,11 @@ import {
   RecordModel,
   UserModel,
   RoleModel,
+  requireAllowedResource,
+  requireRequestResourceAuthorization,
+  asScopeKey,
 } from '../index';
+import type { AuthorizationContext } from '../index';
 import { DateTime } from 'luxon';
 import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
@@ -67,6 +71,7 @@ import {
   recordSaveResultHeaderOption,
   recordSaveResultHeaders,
 } from '../RecordHttpConcurrency';
+import { sendAuthorizationResourceError } from '../policies/authorization-response';
 
 type AnyRecord = Record<string, unknown>;
 type ControllerRecord = AnyRecord & {
@@ -406,14 +411,15 @@ export namespace Controllers {
       result.setProjectedMetadata(null);
       let current: RecordModel | null = null;
       try {
-        current = await this.recordsService.getMeta(oid);
+        current = await this.getAuthorizedRecord(req, oid, 'read');
       } catch {
         current = null;
       }
       if (!current || _.isEmpty(current)) {
         try {
-          current = await this.recordsService.getDeletedRecordMeta(oid, brand);
+          current = await this.getAuthorizedDeletedRecord(req, oid, 'read');
         } catch {
+          result.setConcurrencyMetadata(undefined);
           return false;
         }
       }
@@ -421,7 +427,7 @@ export namespace Controllers {
         !current ||
         _.isEmpty(current) ||
         !this.recordBelongsToBrand(current as AnyRecord, brand) ||
-        !(await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, current)))
+        !(await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, current, req.authorization)))
       ) {
         result.setConcurrencyMetadata(undefined);
         return false;
@@ -430,7 +436,7 @@ export namespace Controllers {
       // A certified non-write still belongs to this record. The browser checks
       // that identity before presenting the returned conflict for review.
       result.oid = oid;
-      const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, current));
+      const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, current, req.authorization));
       if (!hasEditAccess) {
         result.problems = [
           recordSaveProblem(
@@ -489,7 +495,23 @@ export namespace Controllers {
     }
 
     private getReqBrand(req: Sails.Req): BrandingModel {
-      return BrandingService.getBrand((req.session.branding as string) ?? '');
+      return BrandingService.getBrandFromReq(req);
+    }
+
+    private async getAuthorizedRecord(req: Sails.Req, oid: string, mode: 'read' | 'update'): Promise<RecordModel> {
+      const { context, requiredScope } = requireRequestResourceAuthorization(req);
+      return requireAllowedResource(await this.recordsService.getAuthorizedMeta(context, requiredScope, oid, mode));
+    }
+
+    private async getAuthorizedDeletedRecord(
+      req: Sails.Req,
+      oid: string,
+      mode: 'read' | 'update'
+    ): Promise<RecordModel> {
+      const { context, requiredScope } = requireRequestResourceAuthorization(req);
+      return requireAllowedResource(
+        await this.recordsService.getAuthorizedDeletedRecordMeta(context, requiredScope, oid, mode)
+      );
     }
 
     private getSavedRecordPageTitle(record: AnyRecord, locals?: globalThis.Record<string, unknown>): string {
@@ -560,7 +582,8 @@ export namespace Controllers {
     private async filterRelationshipGraphByAccess(
       brand: BrandingModel,
       user: AnyRecord | undefined,
-      graph: RecordRelationshipGraph
+      graph: RecordRelationshipGraph,
+      req?: Sails.Req
     ): Promise<RecordRelationshipGraph> {
       const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
       const allowedTargetOids = new Set<string>();
@@ -579,7 +602,7 @@ export namespace Controllers {
           if (!brand?.id || _.get(record, 'metaMetadata.brandId') !== brand.id) {
             continue;
           }
-          const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record));
+          const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record, req?.authorization));
           if (hasAccess) {
             keptRecords.push(record);
             allowedTargetOids.add(recordOid);
@@ -700,17 +723,21 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.recordsService.getMeta(oid);
+        const record = await this.getAuthorizedRecord(req, oid, 'read');
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, { status: 404 });
         }
-        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        const hasViewAccess = await firstValueFrom(
+          this.hasViewAccess(brand, req.user ?? {}, record, req.authorization)
+        );
         if (hasViewAccess) {
           const representation = recordRepresentationConcurrency(record);
           const formName = record.metaMetadata?.['form'] as string | undefined;
           if (formName) {
             try {
-              const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
+              const hasEditAccess = await firstValueFrom(
+                this.hasEditAccess(brand, req.user ?? {}, record, req.authorization)
+              );
               const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
               const clientFormConfig = await this.getEffectiveClientFormConfig(
                 req,
@@ -757,7 +784,8 @@ export namespace Controllers {
           const filteredRelationships = await this.filterRelationshipGraphByAccess(
             brand,
             req.user ?? {},
-            relationships
+            relationships,
+            req
           );
           return this.sendResp(req, res, {
             data: record.metadata,
@@ -774,6 +802,7 @@ export namespace Controllers {
           });
         }
       } catch (err) {
+        if (sendAuthorizationResourceError(req, res, err)) return;
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Error retrieving metadata' }],
@@ -828,12 +857,12 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.recordsService.getMeta(oid);
+        const record = await this.getAuthorizedRecord(req, oid, 'read');
         if (_.isEmpty(record)) {
           return res.notFound();
         }
 
-        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record));
+        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, record, req.authorization));
         if (!hasViewAccess) {
           return res.forbidden();
         }
@@ -843,6 +872,7 @@ export namespace Controllers {
           title: this.formatDocumentTitle(pageTitle, locals),
         });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         sails.log.error(error);
         return res.serverError();
       }
@@ -865,8 +895,9 @@ export namespace Controllers {
       let existingRecord: RecordModel | undefined;
       if (hasExistingRecord) {
         try {
-          existingRecord = await this.recordsService.getMeta(oid);
+          existingRecord = await this.getAuthorizedRecord(req, oid, 'update');
         } catch (error) {
+          if (sendAuthorizationResourceError(req, res, error)) return;
           sails.log.error(error);
           return res.serverError();
         }
@@ -956,23 +987,25 @@ export namespace Controllers {
     protected hasEditAccess(
       brand: BrandingModel,
       user: AnyRecord | undefined,
-      currentRec: AnyRecord
+      currentRec: AnyRecord,
+      context?: AuthorizationContext
     ): Observable<boolean> {
       sails.log.verbose('Current Record: ');
       sails.log.verbose(currentRec);
       const u = user ?? {};
-      return of(this.recordsService.hasEditAccess(brand, u, (u['roles'] ?? []) as AnyRecord[], currentRec));
+      return of(this.recordsService.hasEditAccess(brand, u, (u['roles'] ?? []) as AnyRecord[], currentRec, context));
     }
 
     protected hasViewAccess(
       brand: BrandingModel,
       user: AnyRecord | undefined,
-      currentRec: AnyRecord
+      currentRec: AnyRecord,
+      context?: AuthorizationContext
     ): Observable<boolean> {
       sails.log.verbose('Current Record: ');
       sails.log.verbose(currentRec);
       const u = user ?? {};
-      return of(this.recordsService.hasViewAccess(brand, u, (u['roles'] ?? []) as AnyRecord[], currentRec));
+      return of(this.recordsService.hasViewAccess(brand, u, (u['roles'] ?? []) as AnyRecord[], currentRec, context));
     }
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
@@ -998,7 +1031,7 @@ export namespace Controllers {
           }
         } else {
           // defaults to retrieve the form of the current workflow state...
-          currentRec = await this.recordsService.getMeta(oid);
+          currentRec = await this.getAuthorizedRecord(req, oid, editMode ? 'update' : 'read');
           if (_.isEmpty(currentRec)) {
             return this.sendResp(req, res, {
               status: 404,
@@ -1010,10 +1043,10 @@ export namespace Controllers {
           let hasAccess: boolean;
           if (editMode) {
             //find form to edit a record
-            hasAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec));
+            hasAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec, req.authorization));
           } else {
             //find form to view a record
-            hasAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
+            hasAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec, req.authorization));
           }
 
           // Check user's record access
@@ -1136,6 +1169,7 @@ export namespace Controllers {
           });
         }
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         const msg = (error as { message?: string }).message;
         const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition', detail: msg };
         return this.sendResp(req, res, {
@@ -1161,6 +1195,8 @@ export namespace Controllers {
           });
         }
         const brand: BrandingModel = this.getReqBrand(req);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        requireAllowedResource(this.recordsService.authorizeBrandOperation(context, requiredScope));
         const metadata = req.body;
         const record: AnyRecord = {
           metaMetadata: {},
@@ -1232,6 +1268,7 @@ export namespace Controllers {
           return this.sendSaveFailure(req, res, createResponse, createResponse.message);
         }
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         return this.sendResp(req, res, {
           errors: [this.asError(error)],
           displayErrors: [{ detail: 'Failed to save record' }],
@@ -1249,16 +1286,17 @@ export namespace Controllers {
 
       let currentRec: RecordModel;
       try {
-        currentRec = await firstValueFrom(this.getRecord(oid));
-      } catch {
-        return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+        currentRec = await firstValueFrom(this.getRecord(oid, req, 'update'));
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
       if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
       }
 
       try {
-        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
+        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec, req.authorization));
         if (!hasEditAccess) {
           return this.sendResp(req, res, {
             status: 403,
@@ -1288,17 +1326,21 @@ export namespace Controllers {
     public async getDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const brand: BrandingModel = this.getReqBrand(req);
-      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Deleted record not found.' }] });
-      const record = await this.recordsService.getDeletedRecordMeta(oid, brand);
-      if (!record) return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Deleted record not found.' }] });
-      if (!(await firstValueFrom(this.hasViewAccess(brand, req.user, record)))) {
-        return this.sendResp(req, res, { status: 403, displayErrors: [{ detail: 'Access to this deleted record is denied.' }] });
+      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404 });
+      let record: RecordModel;
+      try {
+        record = await this.getAuthorizedDeletedRecord(req, oid, 'read');
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
       const representation = recordRepresentationConcurrency(record);
       const formName = String(record.metaMetadata?.['form'] ?? '').trim();
       if (formName) {
         try {
-          const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
+          const hasEditAccess = await firstValueFrom(
+            this.hasEditAccess(brand, req.user ?? {}, record, req.authorization)
+          );
           const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
           const clientFormConfig = await this.getEffectiveClientFormConfig(
             req,
@@ -1355,9 +1397,11 @@ export namespace Controllers {
       }
       const user = req.user;
       const brand: BrandingModel = this.getReqBrand(req);
-      const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
-      if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
-        return this.sendResp(req, res, { status: 404 });
+      try {
+        await this.getAuthorizedDeletedRecord(req, oid, 'update');
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
       const saveRequest = this.mutationSaveContext(req, oid, 'restore');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
@@ -1381,9 +1425,11 @@ export namespace Controllers {
       }
       const user = req.user;
       const brand: BrandingModel = this.getReqBrand(req);
-      const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
-      if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
-        return this.sendResp(req, res, { status: 404 });
+      try {
+        await this.getAuthorizedDeletedRecord(req, oid, 'update');
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
       const saveRequest = this.mutationSaveContext(req, oid, 'purge');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
@@ -1428,14 +1474,15 @@ export namespace Controllers {
 
       let currentRec: RecordModel;
       try {
-        currentRec = await firstValueFrom(this.getRecord(oid));
-      } catch {
-        return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
+        currentRec = await firstValueFrom(this.getRecord(oid, req, 'update'));
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
       if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
         return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
       }
-      const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
+      const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec, req.authorization));
       if (!hasEditAccess) {
         return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
       }
@@ -1538,8 +1585,8 @@ export namespace Controllers {
       );
     }
 
-    protected getRecord(oid: string): Observable<RecordModel> {
-      return from(this.recordsService.getMeta(oid)).pipe(
+    protected getRecord(oid: string, req?: Sails.Req, mode: 'read' | 'update' = 'read'): Observable<RecordModel> {
+      return from(req ? this.getAuthorizedRecord(req, oid, mode) : this.recordsService.getMeta(oid)).pipe(
         flatMap(currentRec => {
           if (_.isEmpty(currentRec)) {
             return throwError(new Error(`Failed to update meta, cannot find existing record with oid: ${oid}`));
@@ -1616,11 +1663,13 @@ export namespace Controllers {
         return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       }
       try {
-        const currentRec = await firstValueFrom(this.getRecord(oid));
+        const currentRec = await firstValueFrom(this.getRecord(oid, req, 'update'));
         if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
         }
-        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
+        const hasEditAccess = await firstValueFrom(
+          this.hasEditAccess(brand, req.user, currentRec as AnyRecord, req.authorization)
+        );
         if (!hasEditAccess) {
           return this.sendResp(req, res, {
             status: 403,
@@ -1659,6 +1708,15 @@ export namespace Controllers {
 
     public async search(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
+      let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
+      try {
+        authorization = requireRequestResourceAuthorization(req);
+        requireAllowedResource(
+          this.recordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
+      }
       const type = req.param('type');
       let rows: string | number = req.param('rows');
       let page: string | number = req.param('page');
@@ -1722,7 +1780,8 @@ export namespace Controllers {
           (user?.roles ?? []) as RoleModel[],
           sails.config.record.search.returnFields,
           start,
-          rows as number
+          rows as number,
+          authorization.context.effectiveScopeKeys.includes(asScopeKey('record.read.all'))
         );
         searchRes['page'] = page;
         this.sendResp(req, res, { data: searchRes });
@@ -2094,10 +2153,10 @@ export namespace Controllers {
         return;
       }
       const that = this;
-      const currentRec = await firstValueFrom(this.getRecord(oid));
+      const currentRec = await firstValueFrom(this.getRecord(oid, req, method === 'get' ? 'read' : 'update'));
 
       if (method == 'get') {
-        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec));
+        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec, req.authorization));
 
         if (!hasViewAccess) {
           sails.log.error('Error: edit error no permissions in do attachment.');
@@ -2198,7 +2257,9 @@ export namespace Controllers {
           }
         }
       } else {
-        const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user, currentRec as AnyRecord));
+        const hasEditAccess = await firstValueFrom(
+          this.hasEditAccess(brand, req.user, currentRec as AnyRecord, req.authorization)
+        );
         if (!hasEditAccess) {
           sails.log.error('Error: edit error no permissions in do attachment.');
           return this.sendResp(req, res, {
@@ -2301,8 +2362,14 @@ export namespace Controllers {
       }
 
       const relationshipOptions = this.parseRelationshipExpandOptions(req);
+      await this.getAuthorizedRecord(req, oid, 'read');
       const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand, relationshipOptions);
-      const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relatedRecords);
+      const filteredRelationships = await this.filterRelationshipGraphByAccess(
+        brand,
+        req.user ?? {},
+        relatedRecords,
+        req
+      );
       return this.buildLegacyRelatedRecordsResponse(filteredRelationships);
     }
 
@@ -2313,6 +2380,7 @@ export namespace Controllers {
       }
 
       try {
+        await this.getAuthorizedRecord(req, oid, 'update');
         return await this.recordsService.getResolvedPermissionsSummary(oid);
       } catch (error) {
         sails.log.error(`Failed to resolve permissions for record '${oid}'`, error);
@@ -2327,11 +2395,13 @@ export namespace Controllers {
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
       }
       try {
-        const record = await this.recordsService.getMeta(oid);
+        const record = await this.getAuthorizedRecord(req, oid, 'update');
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
         }
-        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        const hasViewAccess = await firstValueFrom(
+          this.hasViewAccess(brand, req.user ?? {}, record, req.authorization)
+        );
         if (!hasViewAccess) {
           return this.sendResp(req, res, {
             status: 403,
@@ -2346,6 +2416,7 @@ export namespace Controllers {
           headers: representation.headers,
         });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         return this.sendResp(req, res, {
           status: 500,
           errors: [this.asError(error)],
@@ -2359,11 +2430,13 @@ export namespace Controllers {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       try {
-        const record = await this.recordsService.getMeta(oid);
+        const record = await this.getAuthorizedRecord(req, oid, 'read');
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
         }
-        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        const hasViewAccess = await firstValueFrom(
+          this.hasViewAccess(brand, req.user ?? {}, record, req.authorization)
+        );
         if (!hasViewAccess) {
           return this.sendResp(req, res, {
             status: 403,
@@ -2376,6 +2449,7 @@ export namespace Controllers {
         return this.sendResp(req, res, { data: attachments });
       } catch (error) {
         sails.log.error('Failed to get attachments', error);
+        if (sendAuthorizationResourceError(req, res, error)) return;
         return this.sendResp(req, res, {
           status: 500,
           errors: [this.asError(error)],
@@ -2388,9 +2462,11 @@ export namespace Controllers {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid');
       const datastreamId = req.param('datastreamId');
-      const currentRec = await firstValueFrom(this.getRecord(oid));
+      const currentRec = await firstValueFrom(this.getRecord(oid, req, 'read'));
 
-      const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user, currentRec as AnyRecord));
+      const hasViewAccess = await firstValueFrom(
+        this.hasViewAccess(brand, req.user, currentRec as AnyRecord, req.authorization)
+      );
       if (!hasViewAccess) {
         return throwError(new Error(TranslationService.t('edit-error-no-permissions')));
       } else {
@@ -2539,6 +2615,15 @@ export namespace Controllers {
 
     public async getRecordList(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
+      let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
+      try {
+        authorization = requireRequestResourceAuthorization(req);
+        requireAllowedResource(
+          this.recordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
+      }
 
       const editAccessOnly = req.query.editOnly;
 
@@ -2606,7 +2691,8 @@ export namespace Controllers {
           filterFields,
           filterString,
           filterMode,
-          secondarySort
+          secondarySort,
+          authorization.context
         );
         if (response) {
           this.sendResp(req, res, { data: response });
@@ -2625,6 +2711,15 @@ export namespace Controllers {
 
     public async getDeletedRecordList(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
+      let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
+      try {
+        authorization = requireRequestResourceAuthorization(req);
+        requireAllowedResource(
+          this.recordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
+      }
       const editAccessOnly = req.query.editOnly;
 
       let roles: AnyRecord[] = [];
@@ -2685,7 +2780,8 @@ export namespace Controllers {
           sort,
           filterFields,
           filterString,
-          filterMode
+          filterMode,
+          authorization.context
         );
         if (response) {
           this.sendResp(req, res, { data: response });
@@ -2703,7 +2799,15 @@ export namespace Controllers {
     }
 
     public renderDeletedRecords(req: Sails.Req, res: Sails.Res) {
-      return this.sendView(req, res, 'admin/deletedRecords');
+      try {
+        const authorization = requireRequestResourceAuthorization(req);
+        requireAllowedResource(
+          this.recordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
+        return this.sendView(req, res, 'admin/deletedRecords');
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
+      }
     }
 
     private getDocMetadata(doc: { [key: string]: unknown }): { [key: string]: unknown } {
@@ -2733,7 +2837,8 @@ export namespace Controllers {
       filterFields: unknown = undefined,
       filterString: unknown = undefined,
       filterMode: unknown = undefined,
-      secondarySort: unknown = undefined
+      secondarySort: unknown = undefined,
+      context?: AuthorizationContext
     ) {
       const username = user['username'] as string;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -2756,7 +2861,8 @@ export namespace Controllers {
         filterFields,
         filterString,
         filterMode,
-        secondarySort
+        secondarySort,
+        context?.effectiveScopeKeys.includes(asScopeKey('record.read.all')) ?? false
       );
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve records!`);
@@ -2786,7 +2892,7 @@ export namespace Controllers {
         item['metadata'] = this.getDocMetadata(doc);
         item['dateCreated'] = doc['dateCreated'];
         item['dateModified'] = doc['lastSaveDate'];
-        item['hasEditAccess'] = this.recordsService.hasEditAccess(brand, user, roles, doc);
+        item['hasEditAccess'] = this.recordsService.hasEditAccess(brand, user, roles, doc, context);
         items.push(item);
       }
 
@@ -2807,7 +2913,8 @@ export namespace Controllers {
       sort: unknown = undefined,
       filterFields: unknown = undefined,
       filterString: unknown = undefined,
-      filterMode: unknown = undefined
+      filterMode: unknown = undefined,
+      context?: AuthorizationContext
     ) {
       const username = user['username'] as string;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -2829,7 +2936,9 @@ export namespace Controllers {
         sort,
         filterFields,
         filterString,
-        filterMode
+        filterMode,
+        undefined,
+        context?.effectiveScopeKeys.includes(asScopeKey('record.read.all')) ?? false
       );
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve deleted records!`);

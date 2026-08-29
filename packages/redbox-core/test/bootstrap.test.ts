@@ -13,6 +13,7 @@ import {
   RECORD_SCHEMA_PROBLEM_CODES,
   RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
   recordSchema,
+  publicAuthorization,
   StorageServiceResponse,
   type RecordContractContributorRegistration,
 } from '../src';
@@ -67,6 +68,7 @@ describe('bootstrap pre-lift setup', function () {
       controller: 'hook/LateController',
       action: 'show',
       summary: 'Late hook route',
+      authorization: publicAuthorization('Late test hook route.'),
     };
     const lateHookReq = createReq();
 
@@ -485,6 +487,8 @@ describe('record schema bootstrap lifecycle', function () {
       log,
       services: {
         brandingservice,
+        authorizationscopeservice: { bootstrap: immediate },
+        authorizationbootstrapservice: { bootstrap: immediate },
         rolesservice: { bootstrap: () => of([]), getRolesWithBrand: () => of([]) },
         reportsservice: { bootstrapData: immediate },
         namedqueryservice: { bootstrapData: immediate },

@@ -78,13 +78,16 @@ services:
   mongodb:
     image: mongo:latest@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
     pull_policy: 'missing'
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    volumes:
+      - './mongo-replica-set-healthcheck.js:/opt/redbox/mongo-replica-set-healthcheck.js:ro'
     networks:
       main:
         aliases:
           - mongodb
     # No published ports needed in CI
     healthcheck:
-      test: [ 'CMD-SHELL', "echo 'db.runCommand(\"ping\").ok' | mongosh" ]
+      test: ['CMD', 'mongosh', '--quiet', '--file', '/opt/redbox/mongo-replica-set-healthcheck.js']
       interval: '10s'
       timeout: '5s'
       retries: 10

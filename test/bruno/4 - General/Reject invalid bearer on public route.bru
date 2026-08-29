@@ -1,0 +1,27 @@
+meta {
+  name: Reject invalid bearer on public route
+  type: http
+  seq: 1.2
+}
+
+get {
+  url: {{host}}/default/rdmp/locales/en/translation.json
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer phase-6-invalid-credential
+}
+
+tests {
+  test("Public classification does not ignore a supplied invalid credential", function () {
+    expect(res.getStatus()).to.equal(401);
+    expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/problem+json");
+    expect(res.getBody()).to.deep.include({
+      status: 401,
+      code: "invalid-bearer-credential"
+    });
+  });
+}

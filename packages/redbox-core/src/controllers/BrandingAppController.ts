@@ -60,7 +60,7 @@ export namespace Controllers {
     /** Canonical Admin state: active, draft, versions, limits, counters, warnings */
     async config(req: Sails.Req, res: Sails.Res) {
       try {
-        const branding = getRouteParam(req, 'branding');
+        const branding = BrandingService.getBrandFromReq(req).name;
         const state = await BrandingService.getAdminState(branding);
         return this.sendState(req, res, state);
       } catch (e: unknown) {
@@ -70,7 +70,7 @@ export namespace Controllers {
 
     /** Replace validated colour draft with expected revision */
     async draft(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const actor = req.user;
       const body = (req.body ?? {}) as Record<string, unknown>;
       const variablesInput = body.variables;
@@ -98,7 +98,7 @@ export namespace Controllers {
 
     /** Multipart face upload (`face`) with expected revision field */
     async uploadFace(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const slot = getRouteParam(req, 'slot');
       const actor = req.user;
       const maxBytes = getBrandingPositiveInt('typefaceFaceMaxBytes', BRANDING_TYPEFACE_FACE_MAX_BYTES);
@@ -142,7 +142,7 @@ export namespace Controllers {
 
     /** Remove one draft face */
     async deleteFace(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const slot = getRouteParam(req, 'slot');
       const actor = req.user;
       try {
@@ -161,7 +161,7 @@ export namespace Controllers {
 
     /** Set draft typeface to Default Typography */
     async useDefault(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const actor = req.user;
       try {
         const body = (req.body ?? {}) as Record<string, unknown>;
@@ -178,7 +178,7 @@ export namespace Controllers {
 
     /** Copy active typeface to draft only */
     async revert(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const actor = req.user;
       try {
         const body = (req.body ?? {}) as Record<string, unknown>;
@@ -195,7 +195,7 @@ export namespace Controllers {
 
     /** Create a single-use CSS preview for the exact draft revision */
     async preview(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = getRouteParam(req, 'portal');
       try {
         const body = (req.body ?? {}) as Record<string, unknown>;
@@ -216,7 +216,7 @@ export namespace Controllers {
     /** List newest retained versions */
     async versions(req: Sails.Req, res: Sails.Res) {
       try {
-        const branding = getRouteParam(req, 'branding');
+        const branding = BrandingService.getBrandFromReq(req).name;
         const versions = await BrandingService.listVersions(branding);
         return this.sendResp(req, res, { data: versions, headers: this.getNoCacheHeaders() });
       } catch (e: unknown) {
@@ -226,7 +226,7 @@ export namespace Controllers {
 
     /** Preview a retained version without mutating draft */
     async versionPreview(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = getRouteParam(req, 'portal');
       const versionId = getRouteParam(req, 'versionId');
       try {
@@ -242,7 +242,7 @@ export namespace Controllers {
 
     /** Publish the draft using both expected counters */
     async publish(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = getRouteParam(req, 'portal');
       const actor = req.user;
       try {
@@ -263,7 +263,7 @@ export namespace Controllers {
 
     /** Immediately restore a retained version as a new version */
     async restore(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const versionId = getRouteParam(req, 'versionId');
       const actor = req.user;
       try {
@@ -286,7 +286,7 @@ export namespace Controllers {
      * Returns a Deprecation header; removal is scheduled for the next major release.
      */
     async rollback(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const versionId = getRouteParam(req, 'versionId');
       const actor = req.user;
       try {
@@ -309,7 +309,7 @@ export namespace Controllers {
 
     /** Upload logo */
     async logo(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = getRouteParam(req, 'portal');
       try {
         if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {
@@ -352,7 +352,7 @@ export namespace Controllers {
 
     /** Upload favicon */
     async favicon(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = getRouteParam(req, 'portal');
       try {
         if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {

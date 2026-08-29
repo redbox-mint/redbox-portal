@@ -2,7 +2,6 @@ import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { from } from 'rxjs';
 
-
 export namespace Controllers {
   /**
    * Responsible for all things related to the Dashboard
@@ -10,14 +9,10 @@ export namespace Controllers {
    * @author <a target='_' href='https://github.com/andrewbrazzatti'>Andrew Brazzatti</a>
    */
   export class Reports extends controllers.Core.Controller {
-
-
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-        'render'
-    ];
+    protected override _exportedMethods: string[] = ['render'];
 
     /**
      **************************************************************************************************
@@ -25,17 +20,15 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() {
-
-    }
+    public bootstrap() {}
 
     public render(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
 
       from(ReportsService.findAllReportsForBrand(brand)).subscribe(reports => {
         const locals = req.options!.locals as globalThis.Record<string, unknown>;
-        locals["reports"] = reports;
-        locals["isAdmin"] = this.isBrandAdmin(req, brand);
+        locals['reports'] = reports;
+        locals['isAdmin'] = this.isBrandAdmin(req, brand);
         return this.sendView(req, res, 'admin/reports');
       });
     }
@@ -48,8 +41,6 @@ export namespace Controllers {
         return role?.name === 'Admin' && roleBrandId === brand.id;
       });
     }
-
-
 
     /**
      **************************************************************************************************

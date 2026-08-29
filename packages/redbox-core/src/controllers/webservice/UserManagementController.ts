@@ -27,6 +27,7 @@ import {
 import { UserAttributes } from '../../waterline-models/User';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
+import { sendAuthorizationResourceError } from '../../policies/authorization-response';
 
 export namespace Controllers {
   /**
@@ -58,7 +59,9 @@ export namespace Controllers {
     private async enrichUsersWithLinkMetadata(users: UserAttributes[], brandId?: string): Promise<UserAttributes[]> {
       const links =
         typeof UserLink !== 'undefined'
-          ? await UserLink.find(_.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' })
+          ? await UserLink.find(
+              _.isEmpty(brandId) ? { status: 'active' } : { brandId: brandId, status: 'active' }
+            ).limit(1000)
           : [];
       const linkCountByPrimary = _.countBy(
         links as globalThis.Record<string, unknown>[],
@@ -70,7 +73,7 @@ export namespace Controllers {
         )
       );
       const primaryUsers =
-        _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds });
+        _.isEmpty(primaryIds) || typeof User === 'undefined' ? [] : await User.find({ id: primaryIds }).limit(1000);
       const primaryUsernamesById = _.reduce(
         primaryUsers as globalThis.Record<string, unknown>[],
         (acc, user) => {
@@ -103,13 +106,18 @@ export namespace Controllers {
 
     private async getFilteredUserRecords(
       queryObject: Record<string, unknown>,
-      brandId: string | undefined,
+      brandId: string,
       includeDisabled: boolean
     ): Promise<UserAttributes[]> {
-      const dbQuery = includeDisabled ? queryObject : { ...queryObject, loginDisabled: { '!=': true } };
-
-      const users = await User.find({ where: dbQuery });
-      let userRecords = await this.enrichUsersWithLinkMetadata(users as UserAttributes[], brandId);
+      const users = await firstValueFrom(UsersService.getUsersForBrand(brandId));
+      const filterEntries = Object.entries(queryObject);
+      const matchingUsers =
+        filterEntries.length === 0
+          ? users
+          : users.filter((user: UserAttributes) =>
+              filterEntries.every(([field, value]) => String(Reflect.get(user, field) ?? '') === String(value ?? ''))
+            );
+      let userRecords = await this.enrichUsersWithLinkMetadata(matchingUsers as UserAttributes[], brandId);
       userRecords = await UsersService.enrichUsersWithEffectiveDisabledState(userRecords);
 
       if (!includeDisabled) {
@@ -125,39 +133,25 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     private async requireUserInBrand(userId: string, brandId: string): Promise<UserAttributes | null> {
-      const user = await firstValueFrom(UsersService.getUserWithId(userId));
-      if (!user) {
-        return null;
-      }
-      const roles = (user.roles ?? []) as unknown as Array<Record<string, unknown>>;
-      const hasBrandRole = _.some(roles, (role: Record<string, unknown>) => {
-        const branding = role.branding as string | Record<string, unknown> | undefined;
-        const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
-        return roleBrandId === brandId;
-      });
-      if (hasBrandRole) {
-        return user;
-      }
-      const isLinked = typeof UserLink !== 'undefined'
-        ? await UserLink.findOne({
-            brandId: brandId,
-            status: 'active',
-            or: [
-              { primaryUserId: userId },
-              { secondaryUserId: userId }
-            ]
-          } as Record<string, unknown>)
-        : null;
-      if (isLinked) {
-        return user;
-      }
-      return null;
+      return await firstValueFrom(UsersService.getUserForBrand(userId, brandId));
     }
 
-    private mergeBrandRoleIds(user: UserModel | UserAttributes, brandId: string, brandRoleIds: Array<string | number>): Array<string | number> {
+    private sendOpaqueUserNotFound(req: Sails.Req, res: Sails.Res) {
+      return this.sendResp(req, res, {
+        status: 404,
+        displayErrors: [{ detail: 'Resource was not found.' }],
+        headers: this.getNoCacheHeaders(),
+      });
+    }
+
+    private mergeBrandRoleIds(
+      user: UserModel | UserAttributes,
+      brandId: string,
+      brandRoleIds: Array<string | number>
+    ): Array<string | number> {
       const foreignRoleIds = ((user.roles ?? []) as unknown as Array<Record<string, unknown>>)
         .filter((role: Record<string, unknown>) => {
           const branding = role.branding as string | Record<string, unknown> | undefined;
@@ -180,14 +174,16 @@ export namespace Controllers {
       if (searchField != null && searchQuery != null) {
         queryObject[searchField] = searchQuery;
       }
-      const page: number = query.page != null ? parseInt(String(query.page), 10) : 1;
-      const pageSize: number = query.pageSize != null ? parseInt(String(query.pageSize), 10) : 10;
+      const parsedPage = query.page != null ? parseInt(String(query.page), 10) : 1;
+      const parsedPageSize = query.pageSize != null ? parseInt(String(query.pageSize), 10) : 10;
+      const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+      const pageSize = Number.isInteger(parsedPageSize) && parsedPageSize > 0 ? Math.min(parsedPageSize, 100) : 10;
       const skip = (page - 1) * pageSize;
       const response: ListAPIResponse<UserAttributes> = new ListAPIResponse<UserAttributes>();
 
       try {
         const includeDisabled = query.includeDisabled === 'true';
-        const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+        const brandId = String(_.get(BrandingService.getBrandFromReq(req), 'id') ?? '');
         const userRecords = await this.getFilteredUserRecords(queryObject, brandId, includeDisabled);
         const count = userRecords.length;
         response.summary.numFound = count;
@@ -214,39 +210,34 @@ export namespace Controllers {
       }
     }
 
-    public getUser(req: Sails.Req, res: Sails.Res) {
-      const that = this;
+    public async getUser(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { query } = validated;
-      const searchField = query.searchBy as string;
-      const searchQuery = query.query as string;
-      const queryObject: Record<string, unknown> = {};
-      queryObject[searchField] = searchQuery;
-      User.findOne(queryObject).exec(function (err: unknown, user: UserAttributes | null) {
-        if (err != null) {
-          sails.log.error(err);
-          return that.sendResp(req, res, {
-            status: 500,
-            displayErrors: [{ detail: (err as Error)?.message ?? 'An error has occurred' }],
-            headers: that.getNoCacheHeaders(),
-          });
-        }
-        if (user != null) {
-          delete user['token'];
-          delete user['password'];
-          return that.apiRespond(req, res, user);
-        }
-
-        const errorResponse = new APIErrorResponse(
-          'No user found with given criteria',
-          `Searchby: ${searchField} and Query: ${searchQuery}`
-        );
-        return that.sendResp(req, res, {
-          status: 404,
-          displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
-          headers: that.getNoCacheHeaders(),
+      const searchField = String(query.searchBy ?? '').trim();
+      const searchQuery = String(query.query ?? '').trim();
+      if (!['id', 'username', 'email', 'name'].includes(searchField) || !searchQuery) {
+        return this.sendResp(req, res, {
+          status: 400,
+          displayErrors: [{ detail: 'Invalid user search criteria.' }],
+          headers: this.getNoCacheHeaders(),
         });
-      });
+      }
+      try {
+        const brandId = String(BrandingService.getBrandFromReq(req).id ?? '');
+        const user = await firstValueFrom(UsersService.findUserForBrand(searchField, searchQuery, brandId));
+        if (!user) {
+          return this.sendOpaqueUserNotFound(req, res);
+        }
+        return this.apiRespond(req, res, this.sanitizeUserForResponse(user as UserAttributes));
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: 'An error has occurred' }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
     }
 
     public createUser(req: Sails.Req, res: Sails.Res) {
@@ -271,8 +262,7 @@ export namespace Controllers {
               _.isString(role) ? role : ((role as globalThis.Record<string, unknown>)?.name as string)
             )
             .filter((roleName: unknown) => !_.isEmpty(roleName));
-          const brand: BrandingModel =
-            BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+          const brand: BrandingModel = BrandingService.getBrandFromReq(req);
           const roleIds = brand?.roles ? RolesService.getRoleIds(brand.roles, roles) : [];
           if (_.isEmpty(roleIds)) {
             sails.log.warn('UserManagementController.createUser - No role ids resolved, skipping role assignment.');
@@ -313,28 +303,31 @@ export namespace Controllers {
               async (existingUser: UserModel | null) => {
                 try {
                   if (existingUser) {
-                    const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+                    const brand: BrandingModel = BrandingService.getBrandFromReq(req);
                     if (brand?.id) {
-                      const hasBrandRole = _.some((existingUser.roles ?? []) as unknown as Array<Record<string, unknown>>, (role: Record<string, unknown>) => {
-                        const branding = role.branding as string | Record<string, unknown> | undefined;
-                        const roleBrandId = _.isObject(branding) ? String((branding as Record<string, unknown>).id ?? '') : String(branding ?? '');
-                        return roleBrandId === brand.id;
-                      });
+                      const hasBrandRole = _.some(
+                        (existingUser.roles ?? []) as unknown as Array<Record<string, unknown>>,
+                        (role: Record<string, unknown>) => {
+                          const branding = role.branding as string | Record<string, unknown> | undefined;
+                          const roleBrandId = _.isObject(branding)
+                            ? String((branding as Record<string, unknown>).id ?? '')
+                            : String(branding ?? '');
+                          return roleBrandId === brand.id;
+                        }
+                      );
                       if (!hasBrandRole) {
-                        const isLinked = typeof UserLink !== 'undefined'
-                          ? await UserLink.findOne({
-                              brandId: brand.id,
-                              status: 'active',
-                              or: [
-                                { primaryUserId: existingUser.id },
-                                { secondaryUserId: existingUser.id }
-                              ]
-                            } as Record<string, unknown>)
-                          : null;
+                        const isLinked =
+                          typeof UserLink !== 'undefined'
+                            ? await UserLink.findOne({
+                                brandId: brand.id,
+                                status: 'active',
+                                or: [{ primaryUserId: existingUser.id }, { secondaryUserId: existingUser.id }],
+                              } as Record<string, unknown>)
+                            : null;
                         if (!isLinked) {
                           return this.sendResp(req, res, {
-                            status: 403,
-                            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+                            status: 404,
+                            displayErrors: [{ detail: 'Resource was not found.' }],
                             headers: this.getNoCacheHeaders(),
                           });
                         }
@@ -384,24 +377,25 @@ export namespace Controllers {
     public async updateUser(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const userReq: UserModel = validated.body as UserModel;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string) ?? BrandingService.getDefault();
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       let targetUser: UserAttributes | null = null;
       if (brand?.id) {
         targetUser = await this.requireUserInBrand(userReq.id || '', brand.id);
         if (!targetUser) {
           return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            status: 404,
+            displayErrors: [{ detail: 'Resource was not found.' }],
             headers: this.getNoCacheHeaders(),
           });
         }
       }
 
-      UsersService.updateUserDetails(
+      UsersService.updateUserDetailsForBrand(
         userReq.id || '',
         userReq.name || '',
         userReq.email || '',
-        userReq.password || ''
+        userReq.password || '',
+        String(brand.id ?? '')
       ).subscribe(
         (userResponse: unknown[]) => {
           const response: unknown[] = userResponse;
@@ -423,21 +417,24 @@ export namespace Controllers {
                 _.isString(role) ? role : ((role as globalThis.Record<string, unknown>)?.name as string)
               )
               .filter((roleName: unknown) => !_.isEmpty(roleName));
-            const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+            const brand: BrandingModel = BrandingService.getBrandFromReq(req);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
             const mergedRoleIds = this.mergeBrandRoleIds(targetUser ?? userReq, brand.id, roleIds);
-            UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, mergedRoleIds).subscribe(
+            UsersService.updateUserRoles(
+              (user as globalThis.Record<string, unknown>).id as string,
+              mergedRoleIds
+            ).subscribe(
               (user: unknown) => {
-            //TODO: Add roles to the response
-            const u = user as globalThis.Record<string, unknown>;
-            const userResponse = new CreateUserAPIResponse();
-            userResponse.id = u.id as string;
-            userResponse.username = u.username as string;
-            userResponse.name = u.name as string;
-            userResponse.email = u.email as string;
-            userResponse.type = u.type as string;
-            userResponse.lastLogin = u.lastLogin as Date | null;
-            return this.apiRespond(req, res, userResponse, 201);
+                //TODO: Add roles to the response
+                const u = user as globalThis.Record<string, unknown>;
+                const userResponse = new CreateUserAPIResponse();
+                userResponse.id = u.id as string;
+                userResponse.username = u.username as string;
+                userResponse.name = u.name as string;
+                userResponse.email = u.email as string;
+                userResponse.type = u.type as string;
+                userResponse.lastLogin = u.lastLogin as Date | null;
+                return this.apiRespond(req, res, userResponse, 201);
               },
               (error: unknown) => {
                 sails.log.error('Failed to update user roles:');
@@ -490,14 +487,14 @@ export namespace Controllers {
     public async generateAPIToken(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const userid = validated.query.id as string;
-      const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+      const brandId = _.get(BrandingService.getBrandFromReq(req), 'id');
 
       if (userid && brandId) {
         const targetUser = await this.requireUserInBrand(userid, brandId);
         if (!targetUser) {
           return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            status: 404,
+            displayErrors: [{ detail: 'Resource was not found.' }],
             headers: this.getNoCacheHeaders(),
           });
         }
@@ -505,7 +502,7 @@ export namespace Controllers {
 
       if (userid) {
         const uuid: string = uuidv4();
-        UsersService.setUserKey(userid, uuid).subscribe(
+        UsersService.setUserKeyForBrand(userid, uuid, String(brandId)).subscribe(
           (userResponse: UserModel) => {
             const user: UserModel = userResponse;
             const response = new UserAPITokenAPIResponse();
@@ -539,14 +536,14 @@ export namespace Controllers {
     public async revokeAPIToken(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const userid = validated.query.id as string;
-      const brandId = _.get(BrandingService.getBrand(req.session.branding as string), 'id');
+      const brandId = _.get(BrandingService.getBrandFromReq(req), 'id');
 
       if (userid && brandId) {
         const targetUser = await this.requireUserInBrand(userid, brandId);
         if (!targetUser) {
           return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            status: 404,
+            displayErrors: [{ detail: 'Resource was not found.' }],
             headers: this.getNoCacheHeaders(),
           });
         }
@@ -554,7 +551,7 @@ export namespace Controllers {
 
       if (userid) {
         const uuid: string = '';
-        UsersService.setUserKey(userid, uuid).subscribe(
+        UsersService.setUserKeyForBrand(userid, uuid, String(brandId)).subscribe(
           (userResponse: UserModel) => {
             const user: UserModel = userResponse;
             const response = new UserAPITokenAPIResponse();
@@ -589,7 +586,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { query } = validated;
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {
             status: 400,
@@ -597,18 +594,19 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
+        const primaryUserId = String(query.primaryUserId ?? '');
+        if (primaryUserId && !(await this.requireUserInBrand(primaryUserId, String(brand.id)))) {
+          return this.sendOpaqueUserNotFound(req, res);
+        }
         const candidates = await firstValueFrom(
-          UsersService.searchLinkCandidates(
-            String(query.query ?? ''),
-            String(brand.id),
-            String(query.primaryUserId ?? '')
-          )
+          UsersService.searchLinkCandidates(String(query.query ?? ''), String(brand.id), primaryUserId)
         );
         return this.sendResp(req, res, {
           data: candidates,
           headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         sails.log.error(error);
         return this.sendResp(req, res, {
           status: 500,
@@ -622,7 +620,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params } = validated;
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {
             status: 400,
@@ -630,12 +628,15 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        const links = await firstValueFrom(UsersService.getLinkedAccounts(String(params.id ?? '')));
+        const links = await firstValueFrom(
+          UsersService.getLinkedAccountsForBrand(String(params.id ?? ''), String(brand.id))
+        );
         return this.sendResp(req, res, {
           data: links,
           headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         sails.log.error(error);
         return this.sendResp(req, res, {
           status: 500,
@@ -657,16 +658,7 @@ export namespace Controllers {
       }
 
       try {
-        const user = await firstValueFrom(UsersService.getUserWithId(userId));
-        if (user == null) {
-          return this.sendResp(req, res, {
-            status: 404,
-            displayErrors: [{ detail: 'User not found' }],
-            headers: this.getNoCacheHeaders(),
-          });
-        }
-
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {
             status: 400,
@@ -674,8 +666,12 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
+        const user = await this.requireUserInBrand(userId, String(brand.id));
+        if (user == null) {
+          return this.sendOpaqueUserNotFound(req, res);
+        }
 
-        const auditResponse = await UsersService.getUserAudit(userId);
+        const auditResponse = await UsersService.getUserAuditForBrand(userId, String(brand.id));
         return this.sendResp(req, res, {
           data: {
             user: this.sanitizeUserForResponse(user as UserAttributes),
@@ -685,6 +681,7 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         sails.log.error(error);
         return this.sendResp(req, res, {
           status: 500,
@@ -718,7 +715,7 @@ export namespace Controllers {
       }
 
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {
             status: 400,
@@ -740,6 +737,7 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         sails.log.error('Failed to link accounts:');
         sails.log.error(error);
 
@@ -768,7 +766,7 @@ export namespace Controllers {
 
     public listSystemRoles(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
       response.summary.numFound = brand.roles.length;
       response.records = brand.roles;
@@ -782,7 +780,7 @@ export namespace Controllers {
       const roleName = (body.roleName as string | undefined) ?? (validated.query.roleName as string | undefined);
       sails.log.verbose('createSystemRole - roleName ' + roleName);
       if (!_.isUndefined(roleName)) {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         await RolesService.createRoleWithBrand(brand, roleName);
         const response: APIActionResponse = new APIActionResponse(
           roleName + ' create call success',
@@ -812,7 +810,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {
             status: 400,
@@ -830,14 +828,15 @@ export namespace Controllers {
         const targetUser = await this.requireUserInBrand(userId, brand.id);
         if (!targetUser) {
           return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            status: 404,
+            displayErrors: [{ detail: 'Resource was not found.' }],
             headers: this.getNoCacheHeaders(),
           });
         }
-        await UsersService.disableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        await UsersService.disableUserForBrand(userId, String(req.user?.username ?? 'system'), String(brand.id));
         return this.apiRespond(req, res, { status: true, message: 'User disabled successfully' });
       } catch (err) {
+        if (sendAuthorizationResourceError(req, res, err)) return;
         sails.log.error(err);
         return this.sendResp(req, res, {
           status: 500,
@@ -858,7 +857,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         if (!brand || !brand.id) {
           return this.sendResp(req, res, {
             status: 400,
@@ -869,14 +868,15 @@ export namespace Controllers {
         const targetUser = await this.requireUserInBrand(userId, brand.id);
         if (!targetUser) {
           return this.sendResp(req, res, {
-            status: 403,
-            displayErrors: [{ detail: 'Unauthorized cross-brand access' }],
+            status: 404,
+            displayErrors: [{ detail: 'Resource was not found.' }],
             headers: this.getNoCacheHeaders(),
           });
         }
-        await UsersService.enableUser(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        await UsersService.enableUserForBrand(userId, String(req.user?.username ?? 'system'), String(brand.id));
         return this.apiRespond(req, res, { status: true, message: 'User enabled successfully' });
       } catch (err) {
+        if (sendAuthorizationResourceError(req, res, err)) return;
         sails.log.error(err);
         return this.sendResp(req, res, {
           status: 500,

@@ -4,7 +4,7 @@ export interface RunWithOptionalTransactionOptions {
 }
 
 export function isUnsupportedTransactionAdapterError(error: unknown): boolean {
-  const message = String((error as Error)?.message ?? error).toLowerCase();
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
   return message.includes('transactional') && message.includes('adapter');
 }
 
@@ -21,8 +21,8 @@ export async function runWithOptionalTransaction<T>(
         throw error;
       }
       options.logger?.warn?.(
-        options.unsupportedAdapterWarning
-        ?? 'Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.'
+        options.unsupportedAdapterWarning ??
+          'Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.'
       );
       return work(undefined);
     }

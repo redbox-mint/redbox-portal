@@ -2,6 +2,9 @@ export * from './AttachmentAccessAudit';
 export * from './AttachmentMetadata';
 export * from './AppConfig';
 export * from './AsynchProgress';
+export * from './AuthorizationAudit';
+export * from './AuthorizationScope';
+export * from './AuthorizationShadowMismatch';
 export * from './BrandingConfig';
 export * from './BrandingConfigHistory';
 export * from './CacheEntry';
@@ -25,6 +28,10 @@ export * from './PathRule';
 export * from './RecordType';
 export * from './RBReport';
 export * from './Role';
+export * from './RoleAssignment';
+export * from './RoleScopeOverride';
+export * from './RoleTemplate';
+export * from './RoleTemplateRevision';
 export * from './ThemeConfig';
 export * from './User';
 export * from './UserLink';
@@ -41,6 +48,9 @@ import { AttachmentAccessAuditWLDef } from './AttachmentAccessAudit';
 import { AttachmentMetadataWLDef } from './AttachmentMetadata';
 import { AppConfigWLDef } from './AppConfig';
 import { AsynchProgressWLDef } from './AsynchProgress';
+import { AuthorizationAuditWLDef } from './AuthorizationAudit';
+import { AuthorizationScopeWLDef } from './AuthorizationScope';
+import { AuthorizationShadowMismatchWLDef } from './AuthorizationShadowMismatch';
 import { BrandingConfigWLDef } from './BrandingConfig';
 import { BrandingConfigHistoryWLDef } from './BrandingConfigHistory';
 import { CacheEntryWLDef } from './CacheEntry';
@@ -64,6 +74,10 @@ import { PathRuleWLDef } from './PathRule';
 import { RecordTypeWLDef } from './RecordType';
 import { ReportWLDef } from './RBReport';
 import { RoleWLDef } from './Role';
+import { RoleAssignmentWLDef } from './RoleAssignment';
+import { RoleScopeOverrideWLDef } from './RoleScopeOverride';
+import { RoleTemplateWLDef } from './RoleTemplate';
+import { RoleTemplateRevisionWLDef } from './RoleTemplateRevision';
 import { ThemeConfigWLDef } from './ThemeConfig';
 import { UserWLDef } from './User';
 import { UserLinkWLDef } from './UserLink';
@@ -83,6 +97,9 @@ export const WaterlineModels = {
   AttachmentMetadata: AttachmentMetadataWLDef,
   AppConfig: AppConfigWLDef,
   AsynchProgress: AsynchProgressWLDef,
+  AuthorizationAudit: AuthorizationAuditWLDef,
+  AuthorizationScope: AuthorizationScopeWLDef,
+  AuthorizationShadowMismatch: AuthorizationShadowMismatchWLDef,
   BrandingConfig: BrandingConfigWLDef,
   BrandingConfigHistory: BrandingConfigHistoryWLDef,
   CacheEntry: CacheEntryWLDef,
@@ -106,6 +123,10 @@ export const WaterlineModels = {
   RecordType: RecordTypeWLDef,
   RBReport: ReportWLDef,
   Role: RoleWLDef,
+  RoleAssignment: RoleAssignmentWLDef,
+  RoleScopeOverride: RoleScopeOverrideWLDef,
+  RoleTemplate: RoleTemplateWLDef,
+  RoleTemplateRevision: RoleTemplateRevisionWLDef,
   ThemeConfig: ThemeConfigWLDef,
   User: UserWLDef,
   UserLink: UserLinkWLDef,

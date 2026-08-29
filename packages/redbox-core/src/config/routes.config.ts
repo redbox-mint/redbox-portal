@@ -5,12 +5,19 @@
  * URL to controller/action mapping configuration.
  */
 
-import { buildMergedApiRouteConfig } from '../api-routes';
+import { buildCoreApiRouteConfig } from '../api-routes';
+import {
+  coreRouteAuthorization,
+  createRouteId,
+  normalizeRouteAuthorization,
+  type RouteAuthorization,
+} from '../authorization';
 
 export interface RouteTargetObject {
+  target?: string;
   controller?: string;
   action?: string;
-  policy?: string | string[];
+  policy?: string;
   csrf?: boolean;
   skipAssets?: boolean;
   locals?: Record<string, unknown> & {
@@ -18,6 +25,8 @@ export interface RouteTargetObject {
     pageTitle?: string;
   };
   view?: string;
+  authorization: RouteAuthorization;
+  routeId: string;
 }
 
 export type RouteTarget = string | RouteTargetObject | ((req: Sails.Req, res: Sails.Res) => unknown);
@@ -26,7 +35,14 @@ export interface RoutesConfig {
   [routePattern: string]: RouteTarget;
 }
 
-export const routes: RoutesConfig = {
+type RawRouteTargetObject = Omit<RouteTargetObject, 'authorization' | 'routeId'> & {
+  authorization?: RouteAuthorization;
+  routeId?: string;
+};
+type RawRouteTarget = string | RawRouteTargetObject;
+type RawRoutesConfig = Record<string, RawRouteTarget>;
+
+const rawRoutes: RawRoutesConfig = {
   // CSRF Token
   'GET /csrfToken': (_req, res) => res.json({ _csrf: res.locals._csrf }),
 
@@ -77,11 +93,11 @@ export const routes: RoutesConfig = {
     controller: 'BrandingController',
     action: 'createPreview',
   },
-  '/:branding/:portal/images/logo': {
+  'get /:branding/:portal/images/logo': {
     controller: 'BrandingController',
     action: 'renderImage',
   },
-  '/:branding/:portal/images/favicon': {
+  'get /:branding/:portal/images/favicon': {
     controller: 'BrandingController',
     action: 'renderFavicon',
   },
@@ -423,7 +439,7 @@ export const routes: RoutesConfig = {
     action: 'editor',
   },
 
-  ...buildMergedApiRouteConfig(),
+  ...buildCoreApiRouteConfig(),
 
   // Translation routes
   'get /:branding/:portal/locales/:lng/:ns.json': {
@@ -461,3 +477,61 @@ export const routes: RoutesConfig = {
     action: 'updateBundleEnabled',
   },
 };
+
+function parseRouteTarget(target: RawRouteTarget): RawRouteTargetObject {
+  if (typeof target !== 'string') return target;
+  const separator = target.lastIndexOf('.');
+  if (separator <= 0 || separator === target.length - 1) {
+    throw new Error(`Invalid string route target: ${target}`);
+  }
+  return {
+    controller: target.slice(0, separator),
+    action: target.slice(separator + 1),
+  };
+}
+
+function parseRoutePattern(routePattern: string): { method?: string; path: string } {
+  const normalized = routePattern.trim();
+  if (normalized.startsWith('/')) return { path: normalized };
+  const separator = normalized.indexOf(' ');
+  if (separator < 1) return { path: normalized };
+  return {
+    method: normalized.slice(0, separator),
+    path: normalized.slice(separator + 1),
+  };
+}
+
+export function attachRouteAuthorizations(routeConfig: RawRoutesConfig): RoutesConfig {
+  return Object.fromEntries(
+    Object.entries(routeConfig).map(([routePattern, rawTarget]) => {
+      const target = parseRouteTarget(rawTarget);
+      const parsedPattern = parseRoutePattern(routePattern);
+      const authorization =
+        target.authorization ?? coreRouteAuthorization(routePattern, target.controller, target.action);
+      if (authorization === undefined) {
+        throw new Error(
+          `Route ${routePattern} (${target.controller ?? 'no-controller'}#${target.action ?? 'no-action'}) must declare authorization metadata.`
+        );
+      }
+      const normalizedAuthorization = normalizeRouteAuthorization(authorization);
+      const routeId =
+        target.routeId ??
+        createRouteId({
+          ...parsedPattern,
+          controller: target.controller,
+          action: target.action,
+          authorization: normalizedAuthorization,
+        });
+      return [
+        routePattern,
+        Object.freeze({
+          ...target,
+          authorization: normalizedAuthorization,
+          routeId,
+        }),
+      ];
+    })
+  );
+}
+
+export const routes: RoutesConfig = attachRouteAuthorizations(rawRoutes);

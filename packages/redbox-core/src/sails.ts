@@ -3,6 +3,8 @@ import express = require('express');
 import type { SailsConfig } from './config';
 import type { ApiRouteDefinition } from './api-routes/types';
 import type { ValidatedApiRouteRequest } from './api-routes/validation';
+import type { AuthorizationAuthMethod, AuthorizationContext } from './authorization';
+import type { RequestResourceAuthorization } from './api-routes/request-resource-authorization';
 
 // Augment express-session to include Sails-specific session properties
 declare module 'express-session' {
@@ -210,7 +212,7 @@ declare global {
       id: string;
     }
 
-    export interface NextFunction extends express.NextFunction { }
+    export interface NextFunction extends express.NextFunction {}
 
     export interface ReqOptions {
       locals?: globalThis.Record<string, unknown>;
@@ -223,6 +225,10 @@ declare global {
       user?: globalThis.Record<string, unknown>;
       apiRoute?: ApiRouteDefinition;
       apiRequest?: ValidatedApiRouteRequest;
+      authorization?: AuthorizationContext;
+      authorizationAuthMethod?: Extract<AuthorizationAuthMethod, 'anonymous' | 'session' | 'bearer'>;
+      authorizationRequestId?: string;
+      resourceAuthorization?: RequestResourceAuthorization;
       query: { [key: string]: string | undefined };
       param(name: string, defaultValue?: string): string;
       isAuthenticated(): this is Express.AuthenticatedRequest;
@@ -236,6 +242,7 @@ declare global {
       params?: globalThis.Record<string, unknown>;
       body?: globalThis.Record<string, unknown>;
       session?: express.Request['session'];
+      authorization?: AuthorizationContext;
     }
 
     // Sails.js Response interface - uses intersection type to add Sails-specific methods
@@ -290,13 +297,13 @@ declare global {
 
       skip(num: number): QueryBuilder;
 
-      sort(criteria: string | { [key: string]: "ASC" | "DESC" }[]): QueryBuilder;
+      sort(criteria: string | { [key: string]: 'ASC' | 'DESC' }[]): QueryBuilder;
 
       populate(association: string): QueryBuilder;
       populate(association: string, filter: object): QueryBuilder;
     }
 
-    export interface Controller { }
+    export interface Controller {}
   }
 }
 
@@ -304,4 +311,4 @@ declare global {
 // Use: import type { Sails } from '@researchdatabox/redbox-core';
 // Or:  export type SailsApplication = Sails.Application;
 
-export { }; // Ensure the file is treated as a module
+export {}; // Ensure the file is treated as a module

@@ -6,6 +6,9 @@ import { IntegrationAuditParams } from '../IntegrationAuditParams';
 import { RecordAuditActionType } from '../model/storage/RecordAuditModel';
 import { IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
 import type { IntegrationStatusRecordContext } from '../services/IntegrationAuditService';
+import { requireAllowedResource } from '../authorization';
+import { requireRequestResourceAuthorization } from '../api-routes';
+import type { AuthorizationContext } from '../authorization';
 
 type AnyRecord = Record<string, unknown>;
 type AuditPath = Array<string | number>;
@@ -41,15 +44,14 @@ export namespace Controllers {
       this.recordsService = sails.services.recordsservice as unknown as RecordsService;
     }
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
     }
 
     private getReqBrand(req: Sails.Req): BrandingModel {
-      const requestedBranding = String(req.param('branding') ?? req.session?.branding ?? '').trim();
-      return BrandingService.getBrand(requestedBranding) ?? BrandingService.getDefault();
+      return BrandingService.getBrandFromReq(req);
     }
 
     private getSafeRouteSegment(value: unknown): string {
@@ -70,11 +72,11 @@ export namespace Controllers {
     private buildRawAuditUrl(req: Sails.Req, oid: string): string {
       const brand = this.getReqBrand(req);
       const branding = this.resolveRouteSegment(
-        req.param('branding'),
-        req.options?.locals?.branding,
-        req.session?.branding,
         brand?.name,
         brand?.id,
+        req.param('branding'),
+        req.options?.locals?.branding,
+        req.session?.branding
       );
       const portal = this.resolveRouteSegment(req.param('portal'), req.options?.locals?.portal, req.session?.portal);
 
@@ -85,9 +87,22 @@ export namespace Controllers {
       return `/${branding}/${portal}/api/records/audit/${encodeURIComponent(oid)}`;
     }
 
-    protected hasViewAccess(brand: BrandingModel, user: AnyRecord | undefined, record: AnyRecord): Observable<boolean> {
+    protected hasViewAccess(
+      brand: BrandingModel,
+      user: AnyRecord | undefined,
+      record: AnyRecord,
+      context?: AuthorizationContext
+    ): Observable<boolean> {
       const currentUser = user ?? {};
-      return of(this.recordsService.hasViewAccess(brand, currentUser, (currentUser['roles'] ?? []) as AnyRecord[], record));
+      return of(
+        this.recordsService.hasViewAccess(
+          brand,
+          currentUser,
+          (currentUser['roles'] ?? []) as AnyRecord[],
+          record,
+          context
+        )
+      );
     }
 
     private isBrandAdmin(req: Sails.Req): boolean {
@@ -148,8 +163,16 @@ export namespace Controllers {
       const itemName = String(itemRecord['name'] ?? component?.['name'] ?? layout?.['name'] ?? '').trim();
       const nextPath = itemName ? [...parentPath, itemName] : parentPath;
       const label =
-        String(layout?.['config'] && _.isPlainObject(layout['config']) ? (layout['config'] as AnyRecord)['label'] ?? '' : '') ||
-        String(component?.['config'] && _.isPlainObject(component['config']) ? (component['config'] as AnyRecord)['label'] ?? '' : '');
+        String(
+          layout?.['config'] && _.isPlainObject(layout['config'])
+            ? ((layout['config'] as AnyRecord)['label'] ?? '')
+            : ''
+        ) ||
+        String(
+          component?.['config'] && _.isPlainObject(component['config'])
+            ? ((component['config'] as AnyRecord)['label'] ?? '')
+            : ''
+        );
 
       if (itemName && label) {
         mappings.set(nextPath.join('.'), label);
@@ -172,7 +195,7 @@ export namespace Controllers {
     }
 
     private async buildFieldLabelMap(record: AnyRecord, brand: BrandingModel): Promise<Map<string, string>> {
-      const metaMetadata = (_.isPlainObject(record?.metaMetadata) ? (record.metaMetadata as AnyRecord) : {});
+      const metaMetadata = _.isPlainObject(record?.metaMetadata) ? (record.metaMetadata as AnyRecord) : {};
       const formName = String(metaMetadata['form'] ?? metaMetadata['formName'] ?? '').trim();
       if (_.isEmpty(formName)) {
         return new Map<string, string>();
@@ -238,17 +261,17 @@ export namespace Controllers {
         return persistedId;
       }
       const oid = String(auditRecord['redboxOid'] ?? '');
-      const timestamp = String(auditRecord['createdAt'] ?? auditRecord['updatedAt'] ?? auditRecord['dateCreated'] ?? '');
+      const timestamp = String(
+        auditRecord['createdAt'] ?? auditRecord['updatedAt'] ?? auditRecord['dateCreated'] ?? ''
+      );
       return `${oid}:${timestamp}:${index}`;
     }
 
-    private async getRecordOrSendNotFound(req: Sails.Req, res: Sails.Res, oid: string): Promise<AnyRecord | null> {
-      const record = await this.recordsService.getMeta(oid);
-      if (_.isEmpty(record)) {
-        await this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Record not found' }] });
-        return null;
-      }
-      return record as unknown as AnyRecord;
+    private async getAuthorizedRecord(req: Sails.Req, oid: string): Promise<AnyRecord> {
+      const { context, requiredScope } = requireRequestResourceAuthorization(req);
+      return requireAllowedResource(
+        await this.recordsService.getAuthorizedMeta(context, requiredScope, oid, 'read')
+      ) as unknown as AnyRecord;
     }
 
     private parsePositiveInt(value: unknown, defaultValue: number): number {
@@ -264,9 +287,10 @@ export namespace Controllers {
 
       if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
         const [year, month, day] = raw.split('-').map(part => parseInt(part, 10));
-        const date = boundary === 'start'
-          ? new Date(year, month - 1, day, 0, 0, 0, 0)
-          : new Date(year, month - 1, day, 23, 59, 59, 999);
+        const date =
+          boundary === 'start'
+            ? new Date(year, month - 1, day, 0, 0, 0, 0)
+            : new Date(year, month - 1, day, 23, 59, 59, 999);
         return Number.isNaN(date.getTime()) ? null : date;
       }
 
@@ -281,13 +305,12 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.recordsService.getMeta(oid);
-        if (_.isEmpty(record)) {
-          return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Record not found' }] });
-        }
+        const record = await this.getAuthorizedRecord(req, oid);
 
         const brand = this.getReqBrand(req);
-        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record as unknown as AnyRecord));
+        const hasViewAccess = await firstValueFrom(
+          this.hasViewAccess(brand, req.user ?? {}, record as unknown as AnyRecord, req.authorization)
+        );
         if (!hasViewAccess) {
           return this.sendResp(req, res, {
             status: 403,
@@ -318,12 +341,11 @@ export namespace Controllers {
 
       try {
         const brand = this.getReqBrand(req);
-        const record = await this.getRecordOrSendNotFound(req, res, oid);
-        if (record == null) {
-          return;
-        }
+        const record = await this.getAuthorizedRecord(req, oid);
 
-        const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        const hasViewAccess = await firstValueFrom(
+          this.hasViewAccess(brand, req.user ?? {}, record, req.authorization)
+        );
         if (!hasViewAccess) {
           return this.sendResp(req, res, {
             status: 403,
@@ -365,7 +387,8 @@ export namespace Controllers {
         ascendingAudit.forEach((auditRecord, index) => {
           const currentRecord = _.isPlainObject(auditRecord['record']) ? (auditRecord['record'] as AnyRecord) : {};
           const previousAudit = index > 0 ? ascendingAudit[index - 1] : null;
-          const previousRecord = previousAudit && _.isPlainObject(previousAudit['record']) ? (previousAudit['record'] as AnyRecord) : null;
+          const previousRecord =
+            previousAudit && _.isPlainObject(previousAudit['record']) ? (previousAudit['record'] as AnyRecord) : null;
           const action = String(auditRecord['action'] ?? '');
           const currentMetadata = currentRecord['metadata'];
           const previousMetadata = previousRecord?.['metadata'];
@@ -385,8 +408,9 @@ export namespace Controllers {
                 note: '@record-audit-note-no-previous-snapshot',
               };
             } else {
-              const changes = FormRecordConsistencyService.compareRecords(previousMetadata, currentMetadata, ['metadata'])
-                .map(change => this.mapChange(change, fieldLabelMap));
+              const changes = FormRecordConsistencyService.compareRecords(previousMetadata, currentMetadata, [
+                'metadata',
+              ]).map(change => this.mapChange(change, fieldLabelMap));
               changeSummary = {
                 available: true,
                 count: changes.length,
@@ -444,10 +468,7 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.getRecordOrSendNotFound(req, res, oid);
-        if (record == null) {
-          return;
-        }
+        await this.getAuthorizedRecord(req, oid);
         const permissionsSummary = await this.recordsService.getResolvedPermissionsSummary(oid);
         return this.sendResp(req, res, { data: permissionsSummary });
       } catch (error) {
@@ -459,9 +480,22 @@ export namespace Controllers {
       }
     }
 
-    private hasEditAccess(brand: BrandingModel, user: AnyRecord | undefined, record: AnyRecord): Observable<boolean> {
+    private hasEditAccess(
+      brand: BrandingModel,
+      user: AnyRecord | undefined,
+      record: AnyRecord,
+      context?: AuthorizationContext
+    ): Observable<boolean> {
       const currentUser = user ?? {};
-      return of(this.recordsService.hasEditAccess(brand, currentUser, (currentUser['roles'] ?? []) as AnyRecord[], record));
+      return of(
+        this.recordsService.hasEditAccess(
+          brand,
+          currentUser,
+          (currentUser['roles'] ?? []) as AnyRecord[],
+          record,
+          context
+        )
+      );
     }
 
     public async getIntegrationStatusData(req: Sails.Req, res: Sails.Res) {
@@ -472,12 +506,9 @@ export namespace Controllers {
 
       try {
         const brand = this.getReqBrand(req);
-        const record = await this.getRecordOrSendNotFound(req, res, oid);
-        if (record == null) {
-          return;
-        }
+        const record = await this.getAuthorizedRecord(req, oid);
 
-        const hasView = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
+        const hasView = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record, req.authorization));
         if (!hasView) {
           return this.sendResp(req, res, {
             status: 403,
@@ -494,7 +525,9 @@ export namespace Controllers {
         }
 
         const brandConfig = sails.config.brandingAware(brand.name);
-        const citationDoiPath = String(_.get(brandConfig, 'doiPublishing.writeBack.citationDoiPath') ?? 'metadata.citation_doi');
+        const citationDoiPath = String(
+          _.get(brandConfig, 'doiPublishing.writeBack.citationDoiPath') ?? 'metadata.citation_doi'
+        );
 
         // Build record context for outcome derivation.
         const recordContext: IntegrationStatusRecordContext = {
@@ -529,10 +562,7 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.getRecordOrSendNotFound(req, res, oid);
-        if (record == null) {
-          return;
-        }
+        await this.getAuthorizedRecord(req, oid);
 
         const page = this.parsePositiveInt(req.param('page'), 1);
         const pageSize = Math.min(this.parsePositiveInt(req.param('pageSize'), 20), 100);
@@ -547,10 +577,16 @@ export namespace Controllers {
         params.page = page;
         params.pageSize = pageSize;
         if (!_.isNil(rawDateFrom) && !_.isEmpty(String(rawDateFrom).trim()) && dateFrom == null) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid integration audit start date.' }] });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Invalid integration audit start date.' }],
+          });
         }
         if (!_.isNil(rawDateTo) && !_.isEmpty(String(rawDateTo).trim()) && dateTo == null) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid integration audit end date.' }] });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Invalid integration audit end date.' }],
+          });
         }
         if (dateFrom != null && dateTo != null && dateFrom.getTime() > dateTo.getTime()) {
           return this.sendResp(req, res, {
@@ -569,7 +605,10 @@ export namespace Controllers {
         }
         if (!_.isEmpty(status)) {
           if (!VALID_INTEGRATION_AUDIT_STATUSES.has(status)) {
-            return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid integration audit status.' }] });
+            return this.sendResp(req, res, {
+              status: 400,
+              displayErrors: [{ detail: 'Invalid integration audit status.' }],
+            });
           }
           params.status = status as IntegrationAuditStatus;
         }

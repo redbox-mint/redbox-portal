@@ -5,7 +5,7 @@
  * Policy mapping configuration for controller actions.
  */
 
-import { registerCoreApiRoutes, type ApiRouteDefinition } from '../api-routes';
+import { AUTHORIZATION_API_BASE_PATH, registerCoreApiRoutes, type ApiRouteDefinition } from '../api-routes';
 
 export type PolicyName = string;
 export type PolicyChain = PolicyName | PolicyName[] | boolean;
@@ -29,18 +29,17 @@ const defaultPolicies: PolicyName[] = [
   'i18nLanguages',
   'menuResolver',
   'isWebServiceAuthenticated',
-  'checkAuth',
+  'resolveAuthorizationContext',
+  'authorizeRequest',
   'contentSecurityPolicy',
 ];
 
 const apiValidationPolicies: PolicyName[] = [...defaultPolicies, 'validateApiContractRequest'];
-const recordSchemaApiValidationPolicies: PolicyName[] = apiValidationPolicies.map(policy =>
-  policy === 'checkAuth' ? 'checkRecordSchemaAuth' : policy
-);
+const recordSchemaApiValidationPolicies: PolicyName[] = [...apiValidationPolicies];
 const noCachePlusDefaultPolicies: PolicyName[] = ['noCache', ...defaultPolicies];
 const noCachePlusApiValidationPolicies: PolicyName[] = ['noCache', ...apiValidationPolicies];
 const doAttachmentPolicies: PolicyName[] = noCachePlusDefaultPolicies.flatMap(policy =>
-  policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy]
+  policy === 'resolveAuthorizationContext' ? ['companionAttachmentUploadAuth', policy] : [policy]
 );
 const publicTranslationPolicies: PolicyName[] = [
   'noCache',
@@ -48,9 +47,13 @@ const publicTranslationPolicies: PolicyName[] = [
   'checkBrandingValid',
   'setLang',
   'prepWs',
+  'isWebServiceAuthenticated',
 ];
 
-const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
+const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'isWebServiceAuthenticated', 'contentSecurityPolicy'];
+const authenticatedInfoPolicies: PolicyName[] = noCachePlusDefaultPolicies.flatMap(policy =>
+  policy === 'contentSecurityPolicy' ? ['isAuthenticated', policy] : [policy]
+);
 
 export function buildContractApiPolicies(
   apiRoutes: readonly ApiRouteDefinition[] = registerCoreApiRoutes()
@@ -60,7 +63,14 @@ export function buildContractApiPolicies(
     acc[route.controller] = {
       '*': noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
-      [route.action]: noCachePlusApiValidationPolicies,
+      [route.action]:
+        route.authorization.kind === 'scope' &&
+        route.path.startsWith(AUTHORIZATION_API_BASE_PATH) &&
+        ['post', 'put', 'patch', 'delete'].includes(route.method)
+          ? noCachePlusApiValidationPolicies.flatMap(policy =>
+              policy === 'validateApiContractRequest' ? ['protectSessionMutation', policy] : [policy]
+            )
+          : noCachePlusApiValidationPolicies,
     };
     return acc;
   }, {} as PoliciesConfig);
@@ -96,7 +106,7 @@ export const policies: PoliciesConfig = {
     aafLogin: noCachePlusCspNoncePolicy,
     openidConnectLogin: noCachePlusCspNoncePolicy,
     beginOidc: noCachePlusCspNoncePolicy,
-    info: ['noCache', 'isAuthenticated', 'contentSecurityPolicy'],
+    info: authenticatedInfoPolicies,
   },
   RenderViewController: {
     render: noCachePlusDefaultPolicies,

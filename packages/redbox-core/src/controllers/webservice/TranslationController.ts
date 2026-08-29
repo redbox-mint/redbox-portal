@@ -34,8 +34,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { query } = validated;
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const branding: BrandingModel = BrandingService.getBrandFromReq(req);
         const locale = query.locale as string;
         const namespace = (query.namespace as string) || 'translation';
         const keyPrefix = query.keyPrefix as string | undefined;
@@ -58,8 +57,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params } = validated;
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const branding: BrandingModel = BrandingService.getBrandFromReq(req);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
         const key = params.key as string;
@@ -89,8 +87,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const branding: BrandingModel = BrandingService.getBrandFromReq(req);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
         const key = params.key as string;
@@ -106,7 +103,8 @@ export namespace Controllers {
           description,
         });
         // Auto-refresh server-side i18n cache; best-effort and non-blocking
-        try { await TranslationService.reloadResources();
+        try {
+          await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.setEntry] reload failed', err.message);
@@ -127,8 +125,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params } = validated;
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const branding: BrandingModel = BrandingService.getBrandFromReq(req);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
         const key = params.key as string;
@@ -143,7 +140,8 @@ export namespace Controllers {
           });
         }
         // Refresh i18n cache after deletion
-        try { await TranslationService.reloadResources();
+        try {
+          await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.deleteEntry] reload failed', err.message);
@@ -164,8 +162,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params } = validated;
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const branding: BrandingModel = BrandingService.getBrandFromReq(req);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
 
@@ -194,21 +191,23 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params, body, query } = validated;
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const branding: BrandingModel = BrandingService.getBrandFromReq(req);
         const locale = params.locale as string;
         const namespace = (params.namespace as string) || 'translation';
         const bodyObj = body as Record<string, unknown>;
         const data = (bodyObj?.data || body) as Record<string, unknown>;
-        const splitToEntries = bodyObj?.splitToEntries != null ? bodyObj.splitToEntries === true : query.splitToEntries !== false;
-        const overwriteEntries = bodyObj?.overwriteEntries != null ? bodyObj.overwriteEntries === true : query.overwriteEntries !== false;
+        const splitToEntries =
+          bodyObj?.splitToEntries != null ? bodyObj.splitToEntries === true : query.splitToEntries !== false;
+        const overwriteEntries =
+          bodyObj?.overwriteEntries != null ? bodyObj.overwriteEntries === true : query.overwriteEntries !== false;
 
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, undefined, {
           splitToEntries,
           overwriteEntries,
         });
         // Refresh i18n cache after bundle update
-        try { await TranslationService.reloadResources();
+        try {
+          await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.setBundle] reload failed', err.message);
@@ -227,15 +226,15 @@ export namespace Controllers {
 
     public async updateBundleEnabled(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const branding: BrandingModel = BrandingService.getBrand(brandName);
+        const branding: BrandingModel = BrandingService.getBrandFromReq(req);
         const locale = String(req.params['locale'] ?? '');
         const namespace = String(req.params['namespace'] ?? 'translation');
         const enabled = req.query['enabled'] === 'true' || req.body?.enabled === true || req.body?.enabled === 'true';
 
         const bundle = await I18nEntriesService.updateBundleEnabled(branding, locale, namespace, enabled);
         // Refresh i18n cache after bundle update
-        try { await TranslationService.reloadResources();
+        try {
+          await TranslationService.reloadResources();
         } catch (e) {
           const err = this.asError(e);
           sails.log.warn('[TranslationController.updateBundleEnabled] reload failed', err.message);

@@ -1,8 +1,16 @@
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
-import { buildSailsRouteConfig, ensureUniqueApiRoutes, isRecord, toRouteMap, validateApiRouteConsistency } from './helpers';
-import { ApiRouteDefinition, type ApiRouteProvider } from './types';
+import {
+  buildSailsRouteConfig,
+  ensureUniqueApiRoutes,
+  isRecord,
+  toRouteMap,
+  validateApiRouteConsistency,
+} from './helpers';
+import { ApiRouteDefinition, type ApiRouteProvider, type HttpMethod } from './types';
+import { normalizeRouteAuthorization } from '../authorization';
 import { appConfigApiRoutes } from './groups/appconfig';
+import { authorizationApiRoutes } from './groups/authorization';
 import { adminApiRoutes } from './groups/admin';
 import { brandingApiRoutes } from './groups/branding';
 import { dashboardConfigApiRoutes } from './groups/dashboard-config';
@@ -29,7 +37,14 @@ const apiDocumentInfo = {
   description: 'Contract-first API routes for the ReDBox Portal',
 } as const;
 
+const HTTP_METHODS: readonly HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch', 'head'];
+
+function isHttpMethod(value: unknown): value is HttpMethod {
+  return typeof value === 'string' && HTTP_METHODS.some(method => method === value);
+}
+
 const coreApiRouteGroups = [
+  authorizationApiRoutes,
   recordApiRoutes,
   recordSchemaApiRoutes,
   userApiRoutes,
@@ -56,34 +71,71 @@ export function registerCoreApiRoutes(): ApiRouteDefinition[] {
   return [...ensureUniqueApiRoutes(coreApiRouteGroups.flat(), 'core API routes')];
 }
 
-export function registerHookApiRoutes(): ApiRouteDefinition[] {
-  const sailsConfig =
-    typeof sails === 'undefined' ? {} : ((sails as unknown as { config?: Record<string, unknown> }).config ?? {});
-  const hookProviders = sailsConfig['apiRoutesHooks'] as ApiRouteProvider[] | undefined;
+function configuredHookProviders(): readonly ApiRouteProvider[] {
+  const hookProviders = typeof sails === 'undefined' ? undefined : sails.config.apiRoutesHooks;
   if (!Array.isArray(hookProviders)) {
     return [];
   }
-  const routes = hookProviders
-    .flatMap(provider => {
-      if (typeof provider === 'function') {
-        const providedRoutes = provider();
-        return Array.isArray(providedRoutes) ? providedRoutes : [];
+  return hookProviders;
+}
+
+export function registerHookApiRoutes(
+  hookProviders: readonly ApiRouteProvider[] = configuredHookProviders()
+): ApiRouteDefinition[] {
+  const routes = hookProviders.flatMap((provider, providerIndex) => {
+    if (typeof provider !== 'function') {
+      throw new Error(`Hook API route provider at index ${providerIndex} must be a synchronous function.`);
+    }
+    const providedRoutes: unknown = provider();
+    if (!Array.isArray(providedRoutes)) {
+      throw new Error(`Hook API route provider at index ${providerIndex} must synchronously return an array.`);
+    }
+    return providedRoutes.map((route: unknown, routeIndex): ApiRouteDefinition => {
+      if (
+        !isRecord(route) ||
+        !isHttpMethod(route.method) ||
+        typeof route.path !== 'string' ||
+        !route.path.startsWith('/') ||
+        typeof route.controller !== 'string' ||
+        route.controller.trim().length === 0 ||
+        typeof route.action !== 'string' ||
+        route.action.trim().length === 0
+      ) {
+        throw new Error(
+          `Hook API route provider at index ${providerIndex} returned an invalid route at index ${routeIndex}.`
+        );
       }
-      return [];
-    })
-    .filter((route): route is ApiRouteDefinition => typeof route === 'object' && route !== null && 'path' in route);
+      return {
+        ...route,
+        method: route.method,
+        path: route.path,
+        controller: route.controller,
+        action: route.action,
+        authorization: normalizeRouteAuthorization(route.authorization),
+      };
+    });
+  });
   return [...ensureUniqueApiRoutes(routes, 'hook API routes')];
 }
 
 function getRuntimeRouteTable(): Record<string, unknown> | undefined {
-  const sailsConfig =
-    typeof sails === 'undefined' ? {} : ((sails as unknown as { config?: Record<string, unknown> }).config ?? {});
-  const runtimeRoutes = sailsConfig['routes'];
+  const runtimeRoutes = typeof sails === 'undefined' ? undefined : sails.config.routes;
   return isRecord(runtimeRoutes) ? runtimeRoutes : undefined;
 }
 
-export function getMergedApiRoutes(): ApiRouteDefinition[] {
-  const routes = [...ensureUniqueApiRoutes([...registerCoreApiRoutes(), ...registerHookApiRoutes()], 'merged API routes')];
+function mergedApiRoutes(hookProviders: readonly ApiRouteProvider[]): ApiRouteDefinition[] {
+  return [
+    ...ensureUniqueApiRoutes(
+      [...registerCoreApiRoutes(), ...registerHookApiRoutes(hookProviders)],
+      'merged API routes'
+    ),
+  ];
+}
+
+export function getMergedApiRoutes(
+  hookProviders: readonly ApiRouteProvider[] = configuredHookProviders()
+): ApiRouteDefinition[] {
+  const routes = mergedApiRoutes(hookProviders);
   const runtimeRoutes = getRuntimeRouteTable();
   if (runtimeRoutes) {
     validateApiRouteConsistency(routes, runtimeRoutes, 'merged runtime route table');
@@ -99,8 +151,8 @@ export function buildCoreApiRouteConfig() {
   return buildSailsRouteConfig(registerCoreApiRoutes());
 }
 
-export function buildMergedApiRouteConfig() {
-  return buildSailsRouteConfig(getMergedApiRoutes());
+export function buildMergedApiRouteConfig(hookProviders?: readonly ApiRouteProvider[]) {
+  return buildSailsRouteConfig(hookProviders === undefined ? getMergedApiRoutes() : mergedApiRoutes(hookProviders));
 }
 
 function buildApiOpenApiDocumentForRoutes(

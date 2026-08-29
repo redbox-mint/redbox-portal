@@ -63,13 +63,18 @@ body:json {
 }
 
 tests {
-  test("Status code is 400", function () {
-      expect(res.getStatus()).to.equal(400);
+  test("Status code is 404", function () {
+      expect(res.getStatus()).to.equal(404);
   });
 
-  test("Body has json with error", function () {
-     var jsonData = res.getBody();
-      expect(jsonData).to.have.property('message');
-      expect(jsonData.message).to.eql("Failed to update meta, cannot find existing record with oid: doesNotExist.");
+  test("Body is bounded Problem Details", function () {
+      const jsonData = res.getBody();
+      expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/problem+json");
+      expect(jsonData.status).to.equal(404);
+      expect(jsonData).to.have.property("type");
+      expect(jsonData).to.have.property("title");
+      expect(jsonData).to.have.property("detail");
+      expect(jsonData).to.have.property("requestId");
+      expect(jsonData).not.to.have.property("stack");
   });
 }

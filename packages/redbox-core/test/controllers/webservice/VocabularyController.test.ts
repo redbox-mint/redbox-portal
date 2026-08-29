@@ -1,10 +1,12 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { Controllers } from '../../../src/controllers/webservice/VocabularyController';
+import { authorizationRequestFixture } from '../../fixtures/authorization-request.fixtures';
 
 function makeReq(req: Record<string, unknown>): Sails.Req {
   return {
+    ...authorizationRequestFixture({ scope: 'vocabulary.read' }),
     ...req,
     apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
       params: (req.params ?? {}) as Record<string, unknown>,
@@ -23,23 +25,26 @@ describe('Webservice VocabularyController', () => {
       services: {
         vocabularyservice: {
           list: sinon.stub().resolves({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
+          listAuthorized: sinon.stub().resolves({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
           getById: sinon.stub().resolves({ id: 'v1' }),
           getTree: sinon.stub().resolves([]),
+          getAuthorizedTree: sinon.stub().resolves({ vocabulary: { id: 'v1' }, entries: [] }),
           create: sinon.stub().resolves({ id: 'v1' }),
           update: sinon.stub().resolves({ id: 'v1' }),
-          delete: sinon.stub().resolves()
+          delete: sinon.stub().resolves(),
+          requireAuthorizedBrandOperation: sinon.stub().returns('default'),
         },
         brandingservice: {
           getBrandNameFromReq: sinon.stub().returns('default'),
           getBrand: sinon.stub().returns({ id: 'default' }),
-          getBrandFromReq: sinon.stub().returns({ id: 'default' })
+          getBrandFromReq: sinon.stub().returns({ id: 'default' }),
         },
         rvaimportservice: {
           importRvaVocabulary: sinon.stub().resolves({ id: 'v2' }),
-          syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' })
-        }
+          syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' }),
+        },
       },
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() }
+      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
     };
     controller = new Controllers.Vocabulary();
     (global as any).BrandingService = (global as any).sails.services.brandingservice;

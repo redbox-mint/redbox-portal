@@ -215,6 +215,15 @@ export namespace Services {
     }
 
     public getBrandNameFromReq(req: Sails.ReqParamProvider): string {
+      if (req?.authorization !== undefined) {
+        const authoritativeBrand = req.authorization.brand;
+        if (!authoritativeBrand?.exists || !authoritativeBrand.authorized || !authoritativeBrand.id) {
+          throw new Error('authorization-brand-unavailable');
+        }
+        const resolved = this.getBrandById(authoritativeBrand.id);
+        if (!resolved) throw new Error('authorization-brand-unavailable');
+        return resolved.name;
+      }
       let branding = null;
       if (req && req.params) {
         const paramBranding = req.params['branding'];
@@ -240,6 +249,15 @@ export namespace Services {
     }
 
     public getBrandFromReq(req: Sails.ReqParamProvider): BrandingModel {
+      if (req?.authorization !== undefined) {
+        const authoritativeBrand = req.authorization.brand;
+        if (!authoritativeBrand?.exists || !authoritativeBrand.authorized || !authoritativeBrand.id) {
+          throw new Error('authorization-brand-unavailable');
+        }
+        const resolved = this.getBrandById(authoritativeBrand.id);
+        if (!resolved) throw new Error('authorization-brand-unavailable');
+        return resolved;
+      }
       return this.getBrand(this.getBrandNameFromReq(req));
     }
 

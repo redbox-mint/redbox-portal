@@ -4,10 +4,14 @@ import {
   Controllers as controllers,
   HarvestRunService as HarvestRunServiceContract,
   ListAPIResponse,
+  RecordsService as RecordsServiceContract,
   getValidatedApiRequest,
+  requireAllowedResource,
+  requireRequestResourceAuthorization,
 } from '../../index';
 
 declare const HarvestRunService: HarvestRunServiceContract;
+declare const RecordsService: RecordsServiceContract;
 
 export namespace Controllers {
   export class HarvestRun extends controllers.Core.Controller {
@@ -15,6 +19,10 @@ export namespace Controllers {
 
     private parsePageSize(value: unknown): number {
       return Math.min(this.parsePositiveInt(value, 'pageSize') ?? 20, 100);
+    }
+
+    private asError(error: unknown): Error {
+      return error instanceof Error ? error : new Error(String(error));
     }
 
     private parseDate(value: unknown, fieldName: string): Date | undefined {
@@ -41,7 +49,10 @@ export namespace Controllers {
 
     public async listRuns(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const brand: BrandingModel = requireAllowedResource(
+          RecordsService.authorizeBrandOperation(context, requiredScope)
+        );
         const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const page = this.parsePositiveInt(query.page, 'page') ?? 1;
@@ -58,16 +69,20 @@ export namespace Controllers {
           pageSize,
         });
 
-        const response = new ListAPIResponse<typeof result.rows[number]>();
+        const response = new ListAPIResponse<(typeof result.rows)[number]>();
         response.summary.numFound = result.total;
         response.summary.page = page;
         response.summary.start = (page - 1) * pageSize;
         response.records = result.rows;
         return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const errorResponse = error instanceof APIErrorResponse ? error : new APIErrorResponse(error instanceof Error ? error.message : String(error));
+        const errorResponse =
+          error instanceof APIErrorResponse
+            ? error
+            : new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
           status: error instanceof APIErrorResponse ? 400 : 500,
+          errors: [this.asError(error)],
           displayErrors: [{ detail: errorResponse.message }],
           headers: this.getNoCacheHeaders(),
         });
@@ -76,7 +91,10 @@ export namespace Controllers {
 
     public async getRun(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const brand: BrandingModel = requireAllowedResource(
+          RecordsService.authorizeBrandOperation(context, requiredScope)
+        );
         const validated = getValidatedApiRequest(req);
         const runId = String(validated.params.id ?? '').trim();
         if (_.isEmpty(runId)) {
@@ -100,6 +118,7 @@ export namespace Controllers {
         const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
           status: 500,
+          errors: [this.asError(error)],
           displayErrors: [{ detail: errorResponse.message }],
           headers: this.getNoCacheHeaders(),
         });
@@ -108,7 +127,10 @@ export namespace Controllers {
 
     public async listRunEvents(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const brand: BrandingModel = requireAllowedResource(
+          RecordsService.authorizeBrandOperation(context, requiredScope)
+        );
         const validated = getValidatedApiRequest(req);
         const runId = String(validated.params.id ?? '').trim();
         if (_.isEmpty(runId)) {
@@ -142,16 +164,20 @@ export namespace Controllers {
           pageSize,
         });
 
-        const response = new ListAPIResponse<typeof result.rows[number]>();
+        const response = new ListAPIResponse<(typeof result.rows)[number]>();
         response.summary.numFound = result.total;
         response.summary.page = page;
         response.summary.start = (page - 1) * pageSize;
         response.records = result.rows;
         return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        const errorResponse = error instanceof APIErrorResponse ? error : new APIErrorResponse(error instanceof Error ? error.message : String(error));
+        const errorResponse =
+          error instanceof APIErrorResponse
+            ? error
+            : new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
           status: error instanceof APIErrorResponse ? 400 : 500,
+          errors: [this.asError(error)],
           displayErrors: [{ detail: errorResponse.message }],
           headers: this.getNoCacheHeaders(),
         });

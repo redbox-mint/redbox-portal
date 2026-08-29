@@ -65,8 +65,11 @@ import {
   harvestRoute,
   legacyHarvestRoute,
   isRecordSchemaEnabled,
+  requireAllowedResource,
+  requireRequestResourceAuthorization,
+  asScopeKey,
 } from '../../index';
-import type { RecordSchemaService } from '../../index';
+import type { AuthorizationContext, RecordSchemaService } from '../../index';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
 import {
   createRecordSaveContext,
@@ -90,6 +93,7 @@ import {
 } from '../../RecordHttpConcurrency';
 import { recordSchemaDescribedByLink, recordSchemaImmutableUrl } from '../../api-routes/record-schema-response';
 import { isFormRecordAccessUser } from '../../services/form-record-access-user';
+import { sendAuthorizationResourceError } from '../../policies/authorization-response';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
@@ -275,7 +279,7 @@ export namespace Controllers {
       const headers = { ...recordSaveResultHeaders(result) };
       if (result.schemaOutcome) {
         const immutableUrl = recordSchemaImmutableUrl(
-          BrandingService.getBrandNameFromReq(req).trim(),
+          BrandingService.getBrandFromReq(req).name.trim(),
           BrandingService.getPortalFromReq(req).trim(),
           result.schemaOutcome.digest,
           BrandingService.getRootContext()
@@ -298,7 +302,7 @@ export namespace Controllers {
       }
 
       try {
-        const branding = BrandingService.getBrandNameFromReq(req).trim();
+        const branding = brand.name.trim();
         const portal = BrandingService.getPortalFromReq(req).trim();
         if (!branding || !portal) {
           return headers;
@@ -350,7 +354,8 @@ export namespace Controllers {
       brand: BrandingModel,
       user: globalThis.Record<string, unknown>,
       oid: string,
-      result: RecordSaveResponse
+      result: RecordSaveResponse,
+      req?: Sails.Req
     ): Promise<boolean> {
       // Only a certified non-write reloads and re-projects current state. An
       // ambiguous outcome must stay a 5xx rather than be narrowed to a 403.
@@ -361,20 +366,35 @@ export namespace Controllers {
         return true;
       }
       result.setProjectedMetadata(null);
-      let latest = await this.requireRecordInBrand(oid, brand);
+      let latest: RecordModel | null = null;
+      try {
+        latest = await this.requireRecordInBrand(oid, brand, req, 'read');
+      } catch {
+        latest = null;
+      }
       if (!latest) {
         try {
-          latest = await this.RecordsService.getDeletedRecordMeta(oid, brand);
+          if (req?.authorization) {
+            const { context, requiredScope } = requireRequestResourceAuthorization(req);
+            latest = requireAllowedResource(
+              await this.RecordsService.getAuthorizedDeletedRecordMeta(context, requiredScope, oid, 'read')
+            );
+          } else {
+            latest = await this.RecordsService.getDeletedRecordMeta(oid, brand);
+          }
         } catch {
           latest = null;
         }
-        if (!latest) return false;
+        if (!latest) {
+          result.setConcurrencyMetadata(undefined);
+          return false;
+        }
       }
-      if (!this.hasViewAccess(brand, user, latest)) {
+      if (!this.hasViewAccess(brand, user, latest, req)) {
         result.setConcurrencyMetadata(undefined);
         return false;
       }
-      if (!this.hasEditAccess(brand, user, latest)) {
+      if (!this.hasEditAccess(brand, user, latest, req)) {
         result.problems = [
           recordSaveProblem(
             'authorization',
@@ -406,14 +426,14 @@ export namespace Controllers {
       result: RecordSaveResponse
     ) {
       if (!result.wasPersisted()) {
-        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result, req))) {
           return this.sendPrivateSaveFailure(req, res);
         }
         return this.sendSaveFailure(req, res, result, `Failed to update record with oid ${oid}.`);
       }
-      const current = await this.requireRecordInBrand(result.oid, brand);
+      const current = await this.requireRecordInBrand(result.oid, brand, req, 'update');
       const authorization =
-        current && this.hasViewAccess(brand, req.user ?? {}, current) ? current.authorization : null;
+        current && this.hasViewAccess(brand, req.user ?? {}, current, req) ? current.authorization : null;
       return this.sendResp(req, res, {
         data: authorization,
         meta: { ...result },
@@ -461,27 +481,30 @@ export namespace Controllers {
     private hasViewAccess(
       brand: BrandingModel,
       user: globalThis.Record<string, unknown> | undefined,
-      record: globalThis.Record<string, unknown>
+      record: globalThis.Record<string, unknown>,
+      req?: Sails.Req
     ): boolean {
       const currentUser = user ?? {};
       const roles = (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[];
-      return this.RecordsService.hasViewAccess(brand, currentUser, roles, record);
+      return this.RecordsService.hasViewAccess(brand, currentUser, roles, record, req?.authorization);
     }
 
     private hasEditAccess(
       brand: BrandingModel,
       user: globalThis.Record<string, unknown> | undefined,
-      record: globalThis.Record<string, unknown>
+      record: globalThis.Record<string, unknown>,
+      req?: Sails.Req
     ): boolean {
       const currentUser = user ?? {};
       const roles = (currentUser['roles'] ?? []) as globalThis.Record<string, unknown>[];
-      return this.RecordsService.hasEditAccess(brand, currentUser, roles, record);
+      return this.RecordsService.hasEditAccess(brand, currentUser, roles, record, req?.authorization);
     }
 
     private async filterRelationshipGraphByAccess(
       brand: BrandingModel,
       user: globalThis.Record<string, unknown> | undefined,
-      graph: RecordRelationshipGraph
+      graph: RecordRelationshipGraph,
+      req?: Sails.Req
     ): Promise<RecordRelationshipGraph> {
       const filteredRelatedObjects: globalThis.Record<string, unknown[]> = {};
       const allowedTargetOids = new Set<string>();
@@ -497,7 +520,7 @@ export namespace Controllers {
           if (!recordOid) {
             continue;
           }
-          const hasAccess = recordOid === graph.rootOid || (await this.hasViewAccess(brand, user, record));
+          const hasAccess = recordOid === graph.rootOid || (await this.hasViewAccess(brand, user, record, req));
           if (hasAccess) {
             allowedTargetOids.add(recordOid);
             keptRecords.push(record);
@@ -525,7 +548,21 @@ export namespace Controllers {
       };
     }
 
-    private async requireRecordInBrand(oid: string, brand: BrandingModel): Promise<RecordModel | null> {
+    private bypassRecordAcl(context: AuthorizationContext, mode: 'read' | 'update'): boolean {
+      const scope = asScopeKey(mode === 'read' ? 'record.read.all' : 'record.update.all');
+      return context.effectiveScopeKeys.includes(scope);
+    }
+
+    private async requireRecordInBrand(
+      oid: string,
+      brand: BrandingModel,
+      req?: Sails.Req,
+      mode: 'read' | 'update' = 'read'
+    ): Promise<RecordModel | null> {
+      if (req?.authorization !== undefined) {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        return requireAllowedResource(await this.RecordsService.getAuthorizedMeta(context, requiredScope, oid, mode));
+      }
       try {
         const record = await this.RecordsService.getMeta(oid);
         if (_.isEmpty(record)) {
@@ -545,19 +582,28 @@ export namespace Controllers {
     private async requireDeletedRecordInBrand(
       oid: string,
       brand: BrandingModel,
-      user: globalThis.Record<string, unknown>
+      user: globalThis.Record<string, unknown>,
+      req?: Sails.Req
     ): Promise<boolean> {
       if (!brand?.id) {
         return false;
       }
-      const deletedRecord = await this.RecordsService.getDeletedRecordMeta(oid, brand);
+      let deletedRecord: RecordModel | null;
+      if (req?.authorization) {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        deletedRecord = requireAllowedResource(
+          await this.RecordsService.getAuthorizedDeletedRecordMeta(context, requiredScope, oid, 'update')
+        );
+      } else {
+        deletedRecord = await this.RecordsService.getDeletedRecordMeta(oid, brand);
+      }
       if (!deletedRecord) {
         return false;
       }
       const deletedBrandId = String(_.get(deletedRecord, 'metaMetadata.brandId', '') ?? '');
       if (deletedBrandId && deletedBrandId !== String(brand.id)) return false;
       const roles = Array.isArray(user.roles) ? (user.roles as globalThis.Record<string, unknown>[]) : [];
-      return this.RecordsService.hasEditAccess(brand, user, roles, deletedRecord);
+      return this.RecordsService.hasEditAccess(brand, user, roles, deletedRecord, req?.authorization);
     }
 
     private async sendLifecycleResult(
@@ -569,7 +615,7 @@ export namespace Controllers {
       detail: string
     ) {
       if (!result.wasPersisted()) {
-        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result, req))) {
           return this.sendPrivateSaveFailure(req, res);
         }
         return this.sendSaveFailure(req, res, result, detail);
@@ -585,14 +631,14 @@ export namespace Controllers {
     public async getPermissions(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
 
       try {
-        const record = await this.requireRecordInBrand(oid, brand);
+        const record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) {
           return this.sendResp(req, res, { status: 404 });
         }
-        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+        if (!this.hasViewAccess(brand, req.user ?? {}, record, req)) {
           return this.sendResp(req, res, { status: 403 });
         }
         const representation = recordRepresentationConcurrency(record);
@@ -602,6 +648,7 @@ export namespace Controllers {
           headers: representation.headers,
         });
       } catch (err) {
+        if (sendAuthorizationResourceError(req, res, err)) return;
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Failed to get record permission.' }],
@@ -610,7 +657,7 @@ export namespace Controllers {
     }
 
     public async addUserEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -623,7 +670,7 @@ export namespace Controllers {
 
       let record: RecordModel | null;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record.authorization.edit = _.union(record['authorization']['edit'], users);
@@ -660,7 +707,7 @@ export namespace Controllers {
     }
 
     public async addUserView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -673,7 +720,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['view'] = _.union(record['authorization']['view'], users);
@@ -710,7 +757,7 @@ export namespace Controllers {
     }
 
     public async removeUserEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -723,7 +770,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['edit'] = _.difference(record['authorization']['edit'], users);
@@ -760,7 +807,7 @@ export namespace Controllers {
     }
 
     public async removeUserView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -773,7 +820,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['view'] = _.difference(record['authorization']['view'], users);
@@ -812,17 +859,17 @@ export namespace Controllers {
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
 
       try {
-        const record = await this.requireRecordInBrand(oid, brand);
+        const record = await this.requireRecordInBrand(oid, brand, req, 'read');
         if (!record) {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ detail: `Cannot find an accessible record with oid: ${oid}` }],
           });
         }
-        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+        if (!this.hasViewAccess(brand, req.user ?? {}, record, req)) {
           return this.sendResp(req, res, { status: 403 });
         }
         const representation = recordRepresentationConcurrency(record);
@@ -840,7 +887,12 @@ export namespace Controllers {
           brand,
           this.parseRelationshipExpandOptions(req, 1)
         );
-        const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relationships);
+        const filteredRelationships = await this.filterRelationshipGraphByAccess(
+          brand,
+          req.user ?? {},
+          relationships,
+          req
+        );
         return this.sendResp(req, res, {
           data: {
             metadata: record.metadata,
@@ -872,6 +924,8 @@ export namespace Controllers {
       }
 
       try {
+        const brand = BrandingService.getBrandFromReq(req);
+        await this.requireRecordInBrand(oid, brand, req, 'read');
         const audit = await this.RecordsService.getRecordAudit(params);
         const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(audit);
@@ -887,18 +941,18 @@ export namespace Controllers {
     }
 
     public async getObjectMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       sails.log.debug('brand is...');
       sails.log.debug(brand);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
 
       try {
-        const record = await this.requireRecordInBrand(oid, brand);
+        const record = await this.requireRecordInBrand(oid, brand, req, 'read');
         if (!record) {
           return this.sendResp(req, res, { status: 404 });
         }
-        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+        if (!this.hasViewAccess(brand, req.user ?? {}, record, req)) {
           return this.sendResp(req, res, { status: 403 });
         }
         const representation = recordRepresentationConcurrency(record);
@@ -916,7 +970,7 @@ export namespace Controllers {
     }
 
     public async updateMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
@@ -937,7 +991,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) {
           return this.sendResp(req, res, {
             status: 400,
@@ -980,7 +1034,7 @@ export namespace Controllers {
             headers: this.recordSaveDiscoveryHeaders(req, result),
           });
         }
-        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result, req))) {
           return this.sendPrivateSaveFailure(req, res);
         }
         return this.sendSaveFailure(req, res, result, 'Update Metadata failed');
@@ -993,7 +1047,7 @@ export namespace Controllers {
     }
 
     public async updateObjectMeta(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
@@ -1004,7 +1058,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) {
           return this.sendResp(req, res, { status: 404 });
         }
@@ -1033,7 +1087,7 @@ export namespace Controllers {
             headers: recordSaveResultHeaders(result),
           });
         }
-        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result, req))) {
           return this.sendPrivateSaveFailure(req, res);
         }
         return this.sendSaveFailure(req, res, result, 'Update Object Metadata failed');
@@ -1043,7 +1097,15 @@ export namespace Controllers {
     }
 
     public create(req: Sails.Req, res: Sails.Res): void {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+      try {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        requireAllowedResource(this.RecordsService.authorizeBrandOperation(context, requiredScope));
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        this.sendResp(req, res, { errors: [this.asError(error)] });
+        return;
+      }
       const validated = getValidatedApiRequest(req);
       const recordType = validated.params.recordType as string;
       const parsedOperation = parsePublicValidationOperation(validated.query.operation);
@@ -1178,16 +1240,16 @@ export namespace Controllers {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const datastreamId = validated.params.datastreamId as string;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       try {
         // Attachment bytes follow the same current-authorization boundary as
         // the record metadata they belong to. The bundled datastream adapter
         // ignores the request context, so this is the only view-access check.
-        const record = await this.requireRecordInBrand(oid, brand);
+        const record = await this.requireRecordInBrand(oid, brand, req, 'read');
         if (!record) {
           return this.sendResp(req, res, { status: 404 });
         }
-        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+        if (!this.hasViewAccess(brand, req.user ?? {}, record, req)) {
           return this.sendResp(req, res, { status: 403 });
         }
         let found: globalThis.Record<string, unknown> | null = null;
@@ -1258,8 +1320,10 @@ export namespace Controllers {
             displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
           });
         }
-      } catch {
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         return this.sendResp(req, res, {
+          errors: [this.asError(error)],
           status: 500,
           displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
         });
@@ -1269,7 +1333,7 @@ export namespace Controllers {
     public async addDataStreams(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
       if (!saveRequest.valid) {
         return this.sendConcurrencyRequestFailure(req, res, saveRequest);
@@ -1278,11 +1342,17 @@ export namespace Controllers {
       // Reject an inaccessible target before accepting bytes into staging.
       // RecordsService repeats this authorization against its authoritative
       // snapshot and owns the final compare-and-set below.
-      const record = await this.requireRecordInBrand(oid, brand);
+      let record: RecordModel;
+      try {
+        record = (await this.requireRecordInBrand(oid, brand, req, 'update')) as RecordModel;
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
+      }
       if (!record) {
         return this.sendResp(req, res, { status: 404 });
       }
-      if (!this.hasEditAccess(brand, req.user ?? {}, record)) {
+      if (!this.hasEditAccess(brand, req.user ?? {}, record, req)) {
         return this.sendPrivateSaveFailure(req, res);
       }
 
@@ -1380,12 +1450,12 @@ export namespace Controllers {
               // a tokenless compatible request cannot write an old metadata
               // snapshot. The original request context remains unchanged so a
               // supplied stale If-Match is still rejected by RecordsService.
-              const authoritativeRecord = await self.requireRecordInBrand(oid, brand);
+              const authoritativeRecord = await self.requireRecordInBrand(oid, brand, req, 'update');
               if (!authoritativeRecord) {
                 await cleanupStagedFiles();
                 return self.sendResp(req, res, { status: 404 });
               }
-              if (!self.hasEditAccess(brand, req.user ?? {}, authoritativeRecord)) {
+              if (!self.hasEditAccess(brand, req.user ?? {}, authoritativeRecord, req)) {
                 await cleanupStagedFiles();
                 return self.sendPrivateSaveFailure(req, res);
               }
@@ -1402,7 +1472,7 @@ export namespace Controllers {
               );
               if (!saveResult.wasPersisted()) {
                 await cleanupStagedFiles();
-                if (!(await self.projectSafeSaveFailure(brand, req.user ?? {}, oid, saveResult))) {
+                if (!(await self.projectSafeSaveFailure(brand, req.user ?? {}, oid, saveResult, req))) {
                   return self.sendPrivateSaveFailure(req, res);
                 }
                 return self.sendSaveFailure(req, res, saveResult, defaultErrorMessage);
@@ -1438,6 +1508,7 @@ export namespace Controllers {
               }
             } catch (error) {
               await cleanupStagedFiles();
+              if (sendAuthorizationResourceError(req, res, error)) return;
               if (saveResult?.wasPersisted()) {
                 saveResult.addProblem({
                   kind: 'processing',
@@ -1500,7 +1571,8 @@ export namespace Controllers {
       packageType: unknown = undefined,
       sort: unknown = undefined,
       fieldNames: unknown = undefined,
-      filterString: unknown = undefined
+      filterString: unknown = undefined,
+      context?: AuthorizationContext
     ) {
       const username = (user as globalThis.Record<string, unknown>).username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -1527,7 +1599,10 @@ export namespace Controllers {
         packageType,
         sort,
         fieldNames,
-        filterString
+        filterString,
+        undefined,
+        undefined,
+        context ? this.bypassRecordAcl(context, 'read') : false
       );
       sails.log.debug(results);
       const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
@@ -1553,7 +1628,7 @@ export namespace Controllers {
         item['metadata'] = docMetadata;
         item['dateCreated'] = doc['dateCreated'];
         item['dateModified'] = doc['lastSaveDate'];
-        item['hasEditAccess'] = this.RecordsService.hasEditAccess(brand, user, roles, doc);
+        item['hasEditAccess'] = this.RecordsService.hasEditAccess(brand, user, roles, doc, context);
         items.push(item);
       }
       apiReponse.records = items;
@@ -1572,7 +1647,8 @@ export namespace Controllers {
       packageType: unknown = undefined,
       sort: unknown = undefined,
       fieldNames: unknown = undefined,
-      filterString: unknown = undefined
+      filterString: unknown = undefined,
+      context?: AuthorizationContext
     ) {
       const username = (user as globalThis.Record<string, unknown>).username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -1599,7 +1675,10 @@ export namespace Controllers {
         packageType,
         sort,
         fieldNames,
-        filterString
+        filterString,
+        undefined,
+        undefined,
+        context ? this.bypassRecordAcl(context, 'read') : false
       );
       sails.log.debug(results);
       const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
@@ -1646,10 +1725,19 @@ export namespace Controllers {
 
     public listRecords(req: Sails.Req, res: Sails.Res) {
       //sails.log.debug('api-list-records');
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const editAccessOnly = query.editOnly;
+      let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
+      try {
+        authorization = requireRequestResourceAuthorization(req);
+        requireAllowedResource(
+          this.RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
+      }
 
       let roles: globalThis.Record<string, unknown>[] = [];
       let username = 'guest';
@@ -1697,7 +1785,8 @@ export namespace Controllers {
           packageType,
           sort,
           filterFields,
-          filterString
+          filterString,
+          authorization.context
         )
           .then(response => {
             this.sendResp(req, res, { data: response });
@@ -1711,31 +1800,33 @@ export namespace Controllers {
     public async getDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-      const user = req.user ?? ({} as globalThis.Record<string, unknown>);
-      const record = await this.RecordsService.getDeletedRecordMeta(oid, brand);
-      if (!record) return this.sendResp(req, res, { status: 404 });
-      const roles = Array.isArray(user.roles) ? (user.roles as globalThis.Record<string, unknown>[]) : [];
-      if (!this.RecordsService.hasViewAccess(brand, user, roles, record)) {
-        return this.sendResp(req, res, { status: 403 });
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+      try {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const record = requireAllowedResource(
+          await this.RecordsService.getAuthorizedDeletedRecordMeta(context, requiredScope, oid, 'read')
+        );
+        const representation = recordRepresentationConcurrency(record);
+        return this.sendResp(req, res, {
+          data: record.metadata,
+          meta: {
+            oid,
+            lifecycleState: record.lifecycleState,
+            lifecycle: record.lifecycle,
+            ...representation.metadata,
+          },
+          headers: representation.headers,
+        });
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
-      const representation = recordRepresentationConcurrency(record);
-      return this.sendResp(req, res, {
-        data: record.metadata,
-        meta: {
-          oid,
-          lifecycleState: record.lifecycleState,
-          lifecycle: record.lifecycle,
-          ...representation.metadata,
-        },
-        headers: representation.headers,
-      });
     }
 
     public async restoreRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -1747,19 +1838,23 @@ export namespace Controllers {
       const saveRequest = this.mutationSaveContext(req, oid, 'restore');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
 
-      if (!(await this.requireDeletedRecordInBrand(oid, brand, user))) {
-        return this.sendResp(req, res, { status: 404 });
+      try {
+        if (!(await this.requireDeletedRecordInBrand(oid, brand, user, req))) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        const response = await this.RecordsService.restoreRecord(oid, user, brand, saveRequest.context);
+        return this.sendLifecycleResult(req, res, brand, oid, response, `Restore attempt failed for OID: ${oid}`);
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
-
-      const response = await this.RecordsService.restoreRecord(oid, user, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, brand, oid, response, `Restore attempt failed for OID: ${oid}`);
     }
 
     public async deleteRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const permanentlyDelete = validated.query.permanent === 'true';
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -1775,29 +1870,29 @@ export namespace Controllers {
       }
       const saveRequest = this.mutationSaveContext(req, oid, permanentlyDelete ? 'purge' : 'delete');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
-      const record = await this.requireRecordInBrand(oid, brand);
-      if (!record) {
-        return this.sendResp(req, res, {
-          status: 404,
-          displayErrors: [{ detail: 'Record not found!' }],
-        });
+      try {
+        const record = await this.requireRecordInBrand(oid, brand, req, 'update');
+        if (!record) return this.sendResp(req, res, { status: 404 });
+        const recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
+        const response = await this.RecordsService.delete(
+          oid,
+          permanentlyDelete,
+          record,
+          recordType,
+          user,
+          saveRequest.context
+        );
+        return this.sendLifecycleResult(req, res, brand, oid, response, `Delete attempt failed for OID: ${oid}`);
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
-      const recordType = await firstValueFrom(RecordTypesService.get(brand, record.metaMetadata.type));
-      const response = await this.RecordsService.delete(
-        oid,
-        permanentlyDelete,
-        record,
-        recordType,
-        user,
-        saveRequest.context
-      );
-      return this.sendLifecycleResult(req, res, brand, oid, response, `Delete attempt failed for OID: ${oid}`);
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
@@ -1807,11 +1902,16 @@ export namespace Controllers {
       }
       const saveRequest = this.mutationSaveContext(req, oid, 'purge');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
-      if (!(await this.requireDeletedRecordInBrand(oid, brand, user))) {
-        return this.sendResp(req, res, { status: 404 });
+      try {
+        if (!(await this.requireDeletedRecordInBrand(oid, brand, user, req))) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        const response = await this.RecordsService.destroyDeletedRecord(oid, user, brand, saveRequest.context);
+        return this.sendLifecycleResult(req, res, brand, oid, response, `Destroy attempt failed for OID: ${oid}`);
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
       }
-      const response = await this.RecordsService.destroyDeletedRecord(oid, user, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, brand, oid, response, `Destroy attempt failed for OID: ${oid}`);
     }
 
     public async transitionWorkflow(req: Sails.Req, res: Sails.Res) {
@@ -1837,8 +1937,8 @@ export namespace Controllers {
             displayErrors: [{ detail: 'Missing ID of record.' }],
           });
         }
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
-        const record = await this.requireRecordInBrand(oid, brand);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+        const record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) {
           return this.sendResp(req, res, {
             status: 404,
@@ -1850,7 +1950,8 @@ export namespace Controllers {
             brand,
             req.user ?? {},
             ((req.user ?? {}).roles as globalThis.Record<string, unknown>[]) ?? [],
-            record
+            record,
+            req.authorization
           )
         ) {
           return this.sendResp(req, res, {
@@ -1891,7 +1992,7 @@ export namespace Controllers {
             ...recordSaveResultHeaderOption(response),
           });
         }
-        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, response))) {
+        if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, response, req))) {
           return this.sendPrivateSaveFailure(req, res);
         }
         if (isLegacyApi) {
@@ -1903,6 +2004,7 @@ export namespace Controllers {
         }
         return this.sendSaveFailure(req, res, response, 'Workflow transition failed');
       } catch (err) {
+        if (sendAuthorizationResourceError(req, res, err)) return;
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
           displayErrors: [{ detail: `Failed to transition workflow to ${targetStepName} for oid ${oid}.` }],
@@ -1919,15 +2021,15 @@ export namespace Controllers {
           displayErrors: [{ detail: 'Missing ID of record.' }],
         });
       }
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       try {
         // Listing a record's attachments discloses record content, so it uses
         // the same current-authorization boundary as the metadata read.
-        const record = await this.requireRecordInBrand(oid, brand);
+        const record = await this.requireRecordInBrand(oid, brand, req, 'read');
         if (!record) {
           return this.sendResp(req, res, { status: 404 });
         }
-        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+        if (!this.hasViewAccess(brand, req.user ?? {}, record, req)) {
           return this.sendResp(req, res, { status: 403 });
         }
         const attachments = await this.RecordsService.getAttachments(oid, undefined, {
@@ -1938,8 +2040,10 @@ export namespace Controllers {
         response.summary.page = 1;
         response.records = attachments;
         return this.sendResp(req, res, { data: response });
-      } catch {
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         return this.sendResp(req, res, {
+          errors: [this.asError(error)],
           status: 500,
           displayErrors: [{ detail: 'Failed to list attachments.' }],
         });
@@ -1947,7 +2051,7 @@ export namespace Controllers {
     }
 
     public async addRoleEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -1959,7 +2063,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (roles != null && roles.length > 0) {
           record['authorization']['editRoles'] = _.union(record['authorization']['editRoles'], roles);
@@ -1993,7 +2097,7 @@ export namespace Controllers {
     }
 
     public async addRoleView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -2005,7 +2109,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (roles != null && roles.length > 0) {
           record['authorization']['viewRoles'] = _.union(record['authorization']['viewRoles'], roles);
@@ -2039,7 +2143,7 @@ export namespace Controllers {
     }
 
     public async removeRoleEdit(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -2051,7 +2155,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (roles != null && roles.length > 0) {
           record['authorization']['editRoles'] = _.difference(record['authorization']['editRoles'], roles);
@@ -2085,7 +2189,7 @@ export namespace Controllers {
     }
 
     public async removeRoleView(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const saveRequest = this.mutationSaveContext(req, oid, 'update');
@@ -2097,7 +2201,7 @@ export namespace Controllers {
 
       let record;
       try {
-        record = await this.requireRecordInBrand(oid, brand);
+        record = await this.requireRecordInBrand(oid, brand, req, 'update');
         if (!record) return this.sendResp(req, res, { status: 404 });
         if (users != null && users.length > 0) {
           record['authorization']['viewRoles'] = _.difference(record['authorization']['viewRoles'], users);
@@ -2131,23 +2235,23 @@ export namespace Controllers {
     }
 
     public async harvest(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      try {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const brand = requireAllowedResource(this.RecordsService.authorizeBrandOperation(context, requiredScope));
+        const validated = getValidatedApiRequest(req);
+        const recordType = validated.params.recordType as string;
+        const updateMode = _.isEmpty(validated.query.updateMode) ? 'override' : (validated.query.updateMode as string);
+        const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
-      const validated = getValidatedApiRequest(req);
-      const recordType = validated.params.recordType as string;
-      const updateMode = _.isEmpty(validated.query.updateMode) ? 'override' : (validated.query.updateMode as string);
-      const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
-
-      if (recordTypeModel == null) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: 'Record Type provided is not valid' }],
-        });
-      }
-      const user = (req.user ?? {}) as UserModel;
-      const body = validated.body as globalThis.Record<string, unknown> | undefined;
-      if (body != null) {
-        try {
+        if (recordTypeModel == null) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Record Type provided is not valid' }],
+          });
+        }
+        const user = (req.user ?? {}) as UserModel;
+        const body = validated.body as globalThis.Record<string, unknown> | undefined;
+        if (body != null) {
           if (!_.isEmpty(body['sourceRunId'])) {
             if (!_.isEmpty(validated.query.updateMode)) {
               return this.sendResp(req, res, {
@@ -2174,35 +2278,35 @@ export namespace Controllers {
             this.saveContext(req, 'create')
           );
           return this.sendResp(req, res, { data: recordResponses });
-        } catch (error) {
-          const err = error as { statusCode?: number; message?: string };
-          return this.sendResp(req, res, {
-            status: typeof err?.statusCode === 'number' ? err.statusCode : 500,
-            errors: [this.asError(error)],
-            displayErrors: [{ detail: err?.message ?? 'Failed to process harvest request.' }],
-          });
         }
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
+      } catch (error) {
+        const err = error as { statusCode?: number; message?: string };
+        return this.sendResp(req, res, {
+          status: typeof err?.statusCode === 'number' ? err.statusCode : 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: err?.message ?? 'Failed to process harvest request.' }],
+        });
       }
-      return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
     }
 
     public async legacyHarvest(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      try {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const brand = requireAllowedResource(this.RecordsService.authorizeBrandOperation(context, requiredScope));
+        const validated = getValidatedApiRequest(req);
+        const recordType = validated.params.recordType as string;
+        const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
 
-      const validated = getValidatedApiRequest(req);
-      const recordType = validated.params.recordType as string;
-      const recordTypeModel: RecordTypeModel = await firstValueFrom(RecordTypesService.get(brand, recordType));
-
-      if (recordTypeModel == null) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ detail: 'Record Type provided is not valid' }],
-        });
-      }
-      const user = (req.user ?? {}) as UserModel;
-      const body = validated.body as globalThis.Record<string, unknown> | undefined;
-      if (body != null) {
-        try {
+        if (recordTypeModel == null) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Record Type provided is not valid' }],
+          });
+        }
+        const user = (req.user ?? {}) as UserModel;
+        const body = validated.body as globalThis.Record<string, unknown> | undefined;
+        if (body != null) {
           const recordResponses = await HarvestRunService.submitLegacyRecords(
             brand,
             recordTypeModel,
@@ -2212,16 +2316,16 @@ export namespace Controllers {
             this.saveContext(req, 'create')
           );
           return this.sendResp(req, res, { data: recordResponses });
-        } catch (error) {
-          const err = error as { statusCode?: number; message?: string };
-          return this.sendResp(req, res, {
-            status: typeof err?.statusCode === 'number' ? err.statusCode : 500,
-            errors: [this.asError(error)],
-            displayErrors: [{ detail: err?.message ?? 'Failed to process legacy harvest request.' }],
-          });
         }
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
+      } catch (error) {
+        const err = error as { statusCode?: number; message?: string };
+        return this.sendResp(req, res, {
+          status: typeof err?.statusCode === 'number' ? err.statusCode : 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: err?.message ?? 'Failed to process legacy harvest request.' }],
+        });
       }
-      return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
     }
 
     private async findExistingHarvestRecord(harvestId: string, recordType: string) {
@@ -2317,10 +2421,19 @@ export namespace Controllers {
     }
 
     public listDeletedRecords(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       const validated = getValidatedApiRequest(req);
       const { query } = validated;
       const editAccessOnly = query.editOnly;
+      let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
+      try {
+        authorization = requireRequestResourceAuthorization(req);
+        requireAllowedResource(
+          this.RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [this.asError(error)] });
+      }
 
       let roles: globalThis.Record<string, unknown>[] = [];
       let user: globalThis.Record<string, unknown> = {};
@@ -2364,7 +2477,8 @@ export namespace Controllers {
           packageType,
           sort,
           filterFields,
-          filterString
+          filterString,
+          authorization.context
         )
           .then(response => {
             this.sendResp(req, res, { data: response });

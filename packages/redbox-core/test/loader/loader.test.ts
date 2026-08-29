@@ -6,6 +6,7 @@ const fsPromises = fs.promises;
 import * as os from 'os';
 import * as sinon from 'sinon';
 
+import { asScopeKey } from '../../src/authorization';
 import * as redboxLoader from '../../src/loader';
 
 async function createHookModule(sandboxDir: string, packageName: string, packageJson: Record<string, unknown>, indexJs: string): Promise<void> {
@@ -155,6 +156,20 @@ describe('redbox-loader', function () {
             expect(brandingDefaults.menu.items.map(item => item.id)).to.deep.equal(['home-auth', 'plan']);
             expect(brandingDefaults.menu.items[1]).to.not.have.property('requiredRoles');
             expect(brandingDefaults.homePanels.panels.map(panel => panel.id)).to.deep.equal(['plan']);
+        });
+
+        it('replaces policy arrays so generated contract chains cannot retain hook-config tails', function () {
+            const generatedContractChain = ['authenticate', 'authorize', 'validate'];
+            const merged = redboxLoader.mergeRedboxConfig(
+                'policies',
+                {},
+                { 'hook/WidgetController': { create: ['custom-1', 'custom-2', 'custom-3', 'custom-4'] } },
+                { 'hook/WidgetController': { create: generatedContractChain } }
+            );
+
+            expect((merged['hook/WidgetController'] as { create: string[] }).create).to.deep.equal(
+                generatedContractChain
+            );
         });
     });
 
@@ -397,6 +412,22 @@ describe('redbox-loader', function () {
             expect(shimContents.some(content => content.includes('test.hook_config'))).to.be.false;
         });
 
+        it('should mount hook contract routes and enforce their generated policy chains', async function () {
+            await redboxLoader.generateConfigShims(configDir, []);
+
+            const routesContent = await fsPromises.readFile(path.join(configDir, 'routes.js'), 'utf8');
+            const policiesContent = await fsPromises.readFile(path.join(configDir, 'policies.js'), 'utf8');
+
+            expect(routesContent).to.include("require('./apiRoutesHooks')");
+            expect(routesContent).to.include('buildMergedApiRouteConfig(apiRoutesHooks)');
+            expect(policiesContent).to.include("require('./apiRoutesHooks')");
+            expect(policiesContent).to.include(
+                'buildContractApiPolicies(registerHookApiRoutes(apiRoutesHooks))'
+            );
+            expect(() => new vm.Script(routesContent)).to.not.throw();
+            expect(() => new vm.Script(policiesContent)).to.not.throw();
+        });
+
         it('should merge agenda queue jobs as a map keyed by name', function () {
             const merged = redboxLoader.mergeRedboxConfig('agendaQueue', {
                 jobs: {
@@ -589,6 +620,7 @@ describe('redbox-loader', function () {
             expect(result.hookPolicies).to.deep.equal({});
             expect(result.hookBootstraps).to.deep.equal([]);
             expect(result.hookApiRoutes).to.deep.equal([]);
+            expect(result.hookAuthorizationScopes).to.deep.equal([]);
             expect(result.hookMigrations).to.deep.equal([]);
         });
 
@@ -679,6 +711,102 @@ describe('redbox-loader', function () {
             const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
 
             expect(result.hookApiRoutes).to.deep.equal([{ name: packageName, module: packageName }]);
+        });
+
+        it('should discover and validate synchronous hook authorization scopes', async function () {
+            const packageName = 'redbox-hook-example';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '2.3.4',
+                    sails: { hasAuthorizationScopes: true },
+                },
+                `module.exports.registerRedboxAuthorizationScopes = function() {
+                    return [{
+                        key: 'example.read',
+                        label: 'Read example data',
+                        description: 'Read data owned by the example hook.',
+                        risk: 'read'
+                    }];
+                };`
+            );
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({ name: 'test-app', dependencies: { [packageName]: '2.3.4' }, devDependencies: {} })
+            );
+
+            const result = await redboxLoader.findAndRegisterHooks(sandboxDir);
+
+            expect(result.hookAuthorizationScopes).to.have.length(1);
+            expect(result.hookAuthorizationScopes[0].source).to.deep.include({
+                sourceType: 'hook',
+                sourcePackage: packageName,
+                sourceVersion: '2.3.4',
+            });
+            expect(result.hookAuthorizationScopes[0].source.definitions[0].key).to.equal('example.read');
+        });
+
+        it('should fail closed for an asynchronous authorization scope provider', async function () {
+            const packageName = 'redbox-hook-async-scopes';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '1.0.0',
+                    sails: { hasAuthorizationScopes: true },
+                },
+                `module.exports.registerRedboxAuthorizationScopes = async function() { return []; };`
+            );
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({ name: 'test-app', dependencies: { [packageName]: '1.0.0' }, devDependencies: {} })
+            );
+
+            let failure: unknown;
+            try {
+                await redboxLoader.findAndRegisterHooks(sandboxDir);
+            } catch (error) {
+                failure = error;
+            }
+            expect(failure).to.be.instanceOf(Error);
+            expect((failure as Error).message).to.include('must synchronously return an array');
+        });
+
+        it('should fail closed for malformed hook scope metadata', async function () {
+            const packageName = 'redbox-hook-example';
+            await createHookModule(
+                sandboxDir,
+                packageName,
+                {
+                    name: packageName,
+                    version: '1.0.0',
+                    sails: { hasAuthorizationScopes: true },
+                },
+                `module.exports.registerRedboxAuthorizationScopes = function() {
+                    return [{
+                        key: 'example.read*',
+                        label: 'Read example data',
+                        description: 'Read data owned by the example hook.',
+                        risk: 'read'
+                    }];
+                };`
+            );
+            await fsPromises.writeFile(
+                path.join(sandboxDir, 'package.json'),
+                JSON.stringify({ name: 'test-app', dependencies: { [packageName]: '1.0.0' }, devDependencies: {} })
+            );
+
+            let failure: unknown;
+            try {
+                await redboxLoader.findAndRegisterHooks(sandboxDir);
+            } catch (error) {
+                failure = error;
+            }
+            expect(failure).to.be.instanceOf(Error);
+            expect((failure as Error).message).to.include('Invalid scope key');
         });
 
         it('should resolve hook registry collisions using root hookLoadPriority', async function () {
@@ -898,6 +1026,39 @@ describe('redbox-loader', function () {
             expect(content).to.include("registerHookApiRoutes");
             expect(content).to.include("module.exports.apiRoutesHooks = [");
             expect(content).to.include("require('redbox-hook-api-routes').registerHookApiRoutes");
+            expect(() => new vm.Script(content)).to.not.throw();
+        });
+    });
+
+    describe('generateAuthorizationScopeHookConfig', function () {
+        it('should generate a data-only config shim for validated hook scopes', async function () {
+            const configDir = path.join(sandboxDir, 'config');
+            const registrations = [
+                {
+                    name: 'redbox-hook-example',
+                    module: 'redbox-hook-example',
+                    source: {
+                        sourceType: 'hook' as const,
+                        sourcePackage: 'redbox-hook-example',
+                        sourceVersion: '1.0.0',
+                        definitions: [
+                            {
+                                key: asScopeKey('example.read'),
+                                label: 'Read example data',
+                                description: 'Read data owned by the example hook.',
+                                risk: 'read' as const,
+                            },
+                        ],
+                    },
+                },
+            ];
+
+            const result = await redboxLoader.generateAuthorizationScopeHookConfig(configDir, registrations);
+
+            expect(result).to.deep.equal({ generated: 1, total: 1 });
+            const content = await fsPromises.readFile(path.join(configDir, 'authorizationScopeSources.js'), 'utf8');
+            expect(content).to.include('module.exports.authorizationScopeSources');
+            expect(content).to.include('example.read');
             expect(() => new vm.Script(content)).to.not.throw();
         });
     });

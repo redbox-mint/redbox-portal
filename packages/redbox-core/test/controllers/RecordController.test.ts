@@ -9,6 +9,62 @@ import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { routes, RouteTargetObject } from '../../src/config/routes.config';
 import { Services as FormConsistencyServices } from '../../src/services/FormRecordConsistencyService';
 import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../fixtures/metadata-projection.fixtures';
+import { allowedResource, deniedResource } from '../../src/authorization';
+import { authorizationRequestFixture } from '../fixtures/authorization-request.fixtures';
+
+const allowedDecision = { allowed: true, reasonCode: 'allowed' } as const;
+const missingDecision = { allowed: false, reasonCode: 'resource-not-found' } as const;
+const deniedDecision = { allowed: false, reasonCode: 'record-acl-denied' } as const;
+
+function withAuthorizedRecordLookups(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const service: Record<string, any> = {
+    getMeta: sinon.stub(),
+    getDeletedRecordMeta: sinon.stub(),
+    hasViewAccess: sinon.stub().returns(true),
+    hasEditAccess: sinon.stub().returns(true),
+    ...overrides,
+  };
+
+  service.getAuthorizedMeta ??= sinon
+    .stub()
+    .callsFake(async (_context: unknown, _scope: unknown, oid: string, mode: 'read' | 'update') => {
+      let record: unknown = null;
+      try {
+        record = await service.getMeta(oid);
+      } catch {
+        record = null;
+      }
+      if (record == null) return deniedResource(missingDecision);
+      const allowed = mode === 'read' ? service.hasViewAccess() : service.hasEditAccess();
+      return allowed ? allowedResource(allowedDecision, record) : deniedResource(deniedDecision);
+    });
+  service.getAuthorizedDeletedRecordMeta ??= sinon
+    .stub()
+    .callsFake(async (_context: unknown, _scope: unknown, oid: string, mode: 'read' | 'update') => {
+      let record: unknown = null;
+      try {
+        record = await service.getDeletedRecordMeta(oid);
+      } catch {
+        record = null;
+      }
+      if (record == null) return deniedResource(missingDecision);
+      const allowed = mode === 'read' ? service.hasViewAccess() : service.hasEditAccess();
+      return allowed ? allowedResource(allowedDecision, record) : deniedResource(deniedDecision);
+    });
+  service.authorizeBrandOperation ??= sinon
+    .stub()
+    .returns(allowedResource(allowedDecision, { id: 'brand-1', name: 'default' }));
+
+  return service;
+}
+
+function authorizationResponseStub(): Sails.Res {
+  const response: Record<string, sinon.SinonStub> = {};
+  response.status = sinon.stub().returns(response);
+  response.type = sinon.stub().returns(response);
+  response.json = sinon.stub().returns(response);
+  return response as unknown as Sails.Res;
+}
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -49,6 +105,7 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any)._ = require('lodash');
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).RecordTypesService = {
       get: sinon.stub(),
@@ -83,14 +140,14 @@ describe('RecordController getWorkflowSteps', () => {
     };
 
     controller = new Controllers.Record();
-    controller.recordsService = {
+    controller.recordsService = withAuthorizedRecordLookups({
       getMeta: sinon.stub(),
       getDeletedRecordMeta: sinon.stub(),
       hasViewAccess: sinon.stub().returns(true),
       hasEditAccess: sinon.stub().returns(true),
       getAttachments: sinon.stub(),
       getResolvedPermissionsSummary: sinon.stub(),
-    } as any;
+    }) as any;
   });
 
   afterEach(() => {
@@ -234,6 +291,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('renders record view with saved metadata title', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       session: { branding: 'default' },
     } as unknown as Sails.Req;
@@ -254,6 +312,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('falls back to record type label for record view when metadata title is empty', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       session: { branding: 'default' },
     } as unknown as Sails.Req;
@@ -273,6 +332,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('falls back to oid for record view when metadata title and record type are missing', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       session: { branding: 'default' },
     } as unknown as Sails.Req;
@@ -290,21 +350,24 @@ describe('RecordController getWorkflowSteps', () => {
     expect(sendViewStub.firstCall.args[3]).to.deep.equal({ title: 'oid-1 | Site' });
   });
 
-  it('preserves existing error path when record metadata fetch fails for view', async () => {
+  it('returns an opaque not-found response when the authorized record lookup fails', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       session: { branding: 'default' },
     } as unknown as Sails.Req;
-    const res = { serverError: sinon.stub() } as unknown as Sails.Res;
+    const res = authorizationResponseStub();
     (controller.recordsService.getMeta as sinon.SinonStub).rejects(new Error('boom'));
 
     await controller.view(req, res);
 
-    expect((res.serverError as any).calledOnce).to.be.true;
+    expect((res.status as any).calledOnceWithExactly(404)).to.be.true;
+    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 404, code: 'resource-not-found' });
   });
 
   it('returns badRequest when record oid is empty', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('   '),
       session: { branding: 'default' },
     } as unknown as Sails.Req;
@@ -322,12 +385,11 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('returns forbidden when view access is denied', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       session: { branding: 'default' },
     } as unknown as Sails.Req;
-    const res = {
-      forbidden: sinon.stub(),
-    } as unknown as Sails.Res;
+    const res = authorizationResponseStub();
     const sendViewStub = sinon.stub(controller, 'sendView');
     (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       redboxOid: 'oid-1',
@@ -338,7 +400,8 @@ describe('RecordController getWorkflowSteps', () => {
 
     await controller.view(req, res);
 
-    expect((res.forbidden as any).calledOnce).to.be.true;
+    expect((res.status as any).calledOnceWithExactly(403)).to.be.true;
+    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 403, code: 'resource-denied' });
     expect(sendViewStub.called).to.be.false;
     expect((controller.recordsService.getMeta as sinon.SinonStub).calledOnce).to.be.true;
   });
@@ -436,6 +499,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('returns server error when attachment listing fails', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.attachments.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       session: { branding: 'default' },
       user: { username: 'alice' },
@@ -457,6 +521,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('returns resolved permissions when the user can view the record', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.permissions.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       user: { username: 'alice' },
       session: { branding: 'default' },
@@ -481,6 +546,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('returns revision metadata and ETag on an authorized browser record read', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       query: {},
       user: { username: 'alice' },
@@ -590,6 +656,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('rejects permission requests when the user cannot view the record', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.permissions.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       user: { username: 'alice' },
       session: { branding: 'default' },
@@ -610,17 +677,20 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('returns not found when permission metadata does not exist', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.permissions.read' }),
       param: sinon.stub().withArgs('oid').returns('oid-1'),
       user: { username: 'alice' },
       session: { branding: 'default' },
     } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
+    const res = authorizationResponseStub();
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
     (controller.recordsService.getMeta as sinon.SinonStub).resolves(null);
 
     await controller.getPermissions(req, res);
 
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+    expect(sendRespStub.called).to.be.false;
+    expect((res.status as any).calledOnceWithExactly(404)).to.be.true;
+    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 404, code: 'resource-not-found' });
   });
 
   for (const missingRecord of [undefined, null, {}]) {
@@ -882,6 +952,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('uses saved metadata title on existing edit routes', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       param: sinon.stub().callsFake((name: string) => (name === 'oid' ? 'oid-1' : '')),
       query: {},
       session: { branding: 'default' },
@@ -1118,7 +1189,7 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect(
       await (controller as any).projectSafeSaveFailure(
-        { user: { username: 'alice' } },
+        { ...authorizationRequestFixture({ scope: 'record.update' }), user: { username: 'alice' } },
         { id: 'brand-1' },
         'oid-1',
         result
@@ -1136,7 +1207,7 @@ describe('RecordController getWorkflowSteps', () => {
     result.setProjectedMetadata({ attackerCandidate: 'must-not-return' });
     expect(
       await (controller as any).projectSafeSaveFailure(
-        { user: { username: 'alice' } },
+        { ...authorizationRequestFixture({ scope: 'record.update' }), user: { username: 'alice' } },
         { id: 'brand-1' },
         'oid-1',
         result
@@ -1169,7 +1240,7 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect(
       await (controller as any).projectSafeSaveFailure(
-        { user: { username: 'alice' } },
+        { ...authorizationRequestFixture({ scope: 'record.update' }), user: { username: 'alice' } },
         { id: 'brand-1' },
         'oid-1',
         result
@@ -1202,7 +1273,11 @@ describe('RecordController getWorkflowSteps', () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await (controller as any).sendLifecycleResult(
-      { user: { username: 'alice' }, headers: { 'x-redbox-api-version': '2.0' } },
+      {
+        ...authorizationRequestFixture({ scope: 'record.delete' }),
+        user: { username: 'alice' },
+        headers: { 'x-redbox-api-version': '2.0' },
+      },
       {},
       { id: 'brand-1' },
       'oid-1',
@@ -1238,6 +1313,7 @@ describe('RecordController getWorkflowSteps', () => {
       .returns(of({ name: 'draft', config: { form: 'dataset-draft' } }));
     (controller.recordsService as any).getRecordFormFingerprint = sinon.stub().returns('form-fingerprint-1');
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       param: sinon
         .stub()
         .callsFake((name: string) => (name === 'name' ? 'dataset' : name === 'formName' ? 'dataset-draft' : undefined)),
@@ -1289,6 +1365,7 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).RecordTypesService.get.returns(of(recordType));
     (controller.recordsService as any).getRecordFormFingerprint = sinon.stub().resolves('form-fingerprint-2');
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       param: sinon
         .stub()
         .callsFake((name: string) =>
@@ -1327,6 +1404,7 @@ describe('RecordController getWorkflowSteps', () => {
     (controller.recordsService as any).getRecordFormFingerprint = sinon.stub();
     (global as any).FormsService.getForm = sinon.stub();
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       param: sinon
         .stub()
         .callsFake((name: string) =>
@@ -1463,7 +1541,7 @@ describe('RecordController getWorkflowSteps', () => {
 
     await controller.getWorkflowSteps(req, res);
 
-    expect((global as any).BrandingService.getBrand.calledWith('default')).to.be.true;
+    expect((global as any).BrandingService.getBrandFromReq.calledWith(req)).to.be.true;
     expect((global as any).RecordTypesService.get.calledWith(sinon.match({ id: 'brand-1' }), 'dataset')).to.be.true;
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]).to.deep.equal({
@@ -1689,12 +1767,12 @@ describe('RecordController getWorkflowSteps', () => {
     saved.success = true;
     const updateMeta = sinon.stub().resolves(saved);
     const legacyPremutation = sinon.stub();
-    controller.recordsService = {
+    controller.recordsService = withAuthorizedRecordLookups({
       getMeta: sinon.stub().resolves(currentRecord),
       hasEditAccess: sinon.stub().returns(true),
       updateMeta,
       setWorkflowStepRelatedMetadata: legacyPremutation,
-    } as any;
+    }) as any;
     (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
     (global as any).WorkflowStepsService.get = sinon.stub().returns(of(nextStep));
     const params: Record<string, unknown> = {
@@ -1702,6 +1780,7 @@ describe('RecordController getWorkflowSteps', () => {
       targetStep: 'review',
     };
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.transition' }),
       body: { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
       headers: {
         'if-match': formatRecordEntityTag('oid-1', 4),
@@ -1778,14 +1857,15 @@ describe('RecordController getWorkflowSteps', () => {
     saved.outcome = 'saved';
     saved.success = true;
     const updateMeta = sinon.stub().resolves(saved);
-    controller.recordsService = {
+    controller.recordsService = withAuthorizedRecordLookups({
       getMeta: sinon.stub().resolves(currentRecord),
       hasEditAccess: sinon.stub().returns(true),
       updateMeta,
-    } as any;
+    }) as any;
     (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
     (global as any).WorkflowStepsService.get = sinon.stub();
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       body: { title: 'After', targetStep: 'published', operation: 'publish' },
       headers: {},
       params: { oid: 'oid-1' },
@@ -1864,13 +1944,14 @@ describe('RecordController getWorkflowSteps', () => {
         ...(testCase.code === 'form-definition-changed' ? { formFingerprint: 'current-form-fingerprint' } : {}),
       });
       const updateMeta = sinon.stub().resolves(result);
-      controller.recordsService = {
+      controller.recordsService = withAuthorizedRecordLookups({
         getMeta: sinon.stub().resolves(currentRecord),
         hasEditAccess: sinon.stub().returns(true),
         hasViewAccess: sinon.stub().returns(true),
         updateMeta,
-      } as any;
+      }) as any;
       const req = {
+        ...authorizationRequestFixture({ scope: 'record.update' }),
         body: { title: 'Rejected' },
         headers: { 'x-redbox-api-version': '2.0', ...testCase.headers },
         params: { oid: 'oid-1' },
@@ -1939,13 +2020,14 @@ describe('RecordController getWorkflowSteps', () => {
     saved.outcome = 'saved';
     saved.success = true;
     const updateMeta = sinon.stub().resolves(saved);
-    controller.recordsService = {
+    controller.recordsService = withAuthorizedRecordLookups({
       getMeta: sinon.stub().resolves(currentRecord),
       hasEditAccess: sinon.stub().returns(true),
       updateMeta,
-    } as any;
+    }) as any;
     (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       body: rawDelta,
       headers: {},
       params: { oid: 'oid-1' },
@@ -1978,12 +2060,13 @@ describe('RecordController getWorkflowSteps', () => {
     saved.outcome = 'saved';
     saved.success = true;
     const create = sinon.stub().resolves(saved);
-    controller.recordsService = {
+    controller.recordsService = withAuthorizedRecordLookups({
       create,
       getMeta: sinon.stub().resolves({ redboxOid: 'oid-created', metadata: {}, metaMetadata: {} }),
-    } as any;
+    }) as any;
     (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
     const req = {
+      ...authorizationRequestFixture({ scope: 'record.create' }),
       body: { title: 'Created', targetStep: 'published', operation: 'publish' },
       headers: {},
       params: { recordType: 'dataset' },
@@ -2018,13 +2101,14 @@ describe('RecordController getWorkflowSteps', () => {
     const deleteRecord = sinon.stub();
     const getMeta = sinon.stub().resolves(null);
     const hasEditAccess = sinon.stub().returns(true);
-    controller.recordsService = {
+    controller.recordsService = withAuthorizedRecordLookups({
       getMeta,
       hasEditAccess,
       updateMeta,
       delete: deleteRecord,
-    } as any;
+    }) as any;
     const baseRequest = {
+      ...authorizationRequestFixture({ scope: 'record.update' }),
       body: { title: 'Rejected' },
       headers: {},
       params: { oid: 'oid-1' },
@@ -2033,38 +2117,36 @@ describe('RecordController getWorkflowSteps', () => {
       user: { username: 'tester' },
       param: sinon.stub().withArgs('oid').returns('oid-1'),
     } as unknown as Sails.Req;
+    const res = authorizationResponseStub();
+    const resetAuthorizationResponse = () => {
+      (res.status as unknown as sinon.SinonStub).resetHistory();
+      (res.type as unknown as sinon.SinonStub).resetHistory();
+      (res.json as unknown as sinon.SinonStub).resetHistory();
+    };
+    const expectAuthorizationProblem = (status: number, code: string) => {
+      expect((res.status as unknown as sinon.SinonStub).calledOnceWithExactly(status)).to.be.true;
+      expect((res.json as unknown as sinon.SinonStub).firstCall.args[0]).to.deep.include({ status, code });
+    };
 
-    await (controller as any).updateInternal(baseRequest, {} as Sails.Res);
-    expect(sendResp.firstCall.args[2]).to.deep.equal({
-      status: 404,
-      displayErrors: [{ code: 'missing-record' }],
-    });
+    await (controller as any).updateInternal(baseRequest, res);
+    expectAuthorizationProblem(404, 'resource-not-found');
 
-    sendResp.resetHistory();
-    await controller.delete(baseRequest, {} as Sails.Res);
-    expect(sendResp.firstCall.args[2]).to.deep.equal({
-      status: 404,
-      displayErrors: [{ code: 'missing-record' }],
-    });
+    resetAuthorizationResponse();
+    await controller.delete(baseRequest, res);
+    expectAuthorizationProblem(404, 'resource-not-found');
     expect(updateMeta.notCalled).to.equal(true);
     expect(deleteRecord.notCalled).to.equal(true);
 
     getMeta.resetBehavior();
     getMeta.rejects(new Error('private lookup failure'));
-    sendResp.resetHistory();
-    await (controller as any).updateInternal(baseRequest, {} as Sails.Res);
-    expect(sendResp.firstCall.args[2]).to.deep.equal({
-      status: 404,
-      displayErrors: [{ code: 'missing-record' }],
-    });
+    resetAuthorizationResponse();
+    await (controller as any).updateInternal(baseRequest, res);
+    expectAuthorizationProblem(404, 'resource-not-found');
 
-    sendResp.resetHistory();
-    await controller.delete(baseRequest, {} as Sails.Res);
-    expect(sendResp.firstCall.args[2]).to.deep.equal({
-      status: 404,
-      displayErrors: [{ code: 'missing-record' }],
-    });
-    expect(JSON.stringify(sendResp.args)).not.to.include('private lookup failure');
+    resetAuthorizationResponse();
+    await controller.delete(baseRequest, res);
+    expectAuthorizationProblem(404, 'resource-not-found');
+    expect(JSON.stringify((res.json as unknown as sinon.SinonStub).args)).not.to.include('private lookup failure');
 
     getMeta.resetBehavior();
     getMeta.resolves({
@@ -2074,19 +2156,14 @@ describe('RecordController getWorkflowSteps', () => {
       authorization: {},
     });
     hasEditAccess.returns(false);
-    sendResp.resetHistory();
-    await (controller as any).updateInternal(baseRequest, {} as Sails.Res);
-    expect(sendResp.firstCall.args[2]).to.deep.equal({
-      status: 403,
-      displayErrors: [{ code: 'not-authorised' }],
-    });
+    resetAuthorizationResponse();
+    await (controller as any).updateInternal(baseRequest, res);
+    expectAuthorizationProblem(403, 'resource-denied');
 
-    sendResp.resetHistory();
-    await controller.delete(baseRequest, {} as Sails.Res);
-    expect(sendResp.firstCall.args[2]).to.deep.equal({
-      status: 403,
-      displayErrors: [{ code: 'edit-error-no-permissions' }],
-    });
+    resetAuthorizationResponse();
+    await controller.delete(baseRequest, res);
+    expectAuthorizationProblem(403, 'resource-denied');
+    expect(sendResp.called).to.equal(false);
     expect(updateMeta.notCalled).to.equal(true);
     expect(deleteRecord.notCalled).to.equal(true);
   });
@@ -2161,6 +2238,7 @@ describe('RecordController TUS URL generation', () => {
     (global as any).BrandingService = {
       getBrandAndPortalPath: sinon.stub().returns('/default/rdmp'),
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((value: string) => value),
@@ -2445,9 +2523,11 @@ describe('AsynchController authorization', () => {
 
   const makeRequest = (
     values: Record<string, unknown>,
-    user: Record<string, unknown> | undefined = { username: 'alice', roles: [] }
+    user: Record<string, unknown> | undefined = { username: 'alice', roles: [] },
+    scope = 'workspace.read'
   ) =>
     ({
+      ...authorizationRequestFixture({ scope, username: 'alice' }),
       isSocket: true,
       session: { branding: 'default' },
       user,
@@ -2459,7 +2539,10 @@ describe('AsynchController authorization', () => {
     originalBrandingService = (global as any).BrandingService;
     originalAsynchsService = (global as any).AsynchsService;
     (global as any)._ = require('lodash');
-    (global as any).BrandingService = { getBrand: sinon.stub().returns({ id: 'brand-1' }) };
+    (global as any).BrandingService = {
+      getBrand: sinon.stub().returns({ id: 'brand-1' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1' }),
+    };
     (global as any).AsynchsService = {
       get: sinon.stub().returns(of([])),
       finish: sinon.stub().returns(of([{ id: 'job-1', relatedRecordId: 'record-1' }])),
@@ -2471,6 +2554,18 @@ describe('AsynchController authorization', () => {
         recordsservice: {
           getMeta: sinon.stub(),
           hasViewAccess: sinon.stub().returns(true),
+          authorizeRecordCollection: sinon
+            .stub()
+            .returns(allowedResource(allowedDecision, { id: 'brand-1', name: 'default' })),
+          getAuthorizedMeta: sinon.stub(),
+        },
+        authorizationservice: {
+          resolveUserContext: sinon
+            .stub()
+            .callsFake(
+              async () => authorizationRequestFixture({ scope: 'workspace.read', username: 'alice' }).authorization
+            ),
+          authorizeBrandEntity: sinon.stub().returns(allowedDecision),
         },
       },
       sockets: {
@@ -2480,6 +2575,17 @@ describe('AsynchController authorization', () => {
         broadcast: sinon.stub(),
       },
     };
+    const recordsService = (global as any).sails.services.recordsservice;
+    recordsService.getAuthorizedMeta.callsFake(async (_context: unknown, _scope: unknown, oid: string) => {
+      let record: unknown = null;
+      try {
+        record = await recordsService.getMeta(oid);
+      } catch {
+        record = null;
+      }
+      if (record == null) return deniedResource(missingDecision);
+      return recordsService.hasViewAccess() ? allowedResource(allowedDecision, record) : deniedResource(deniedDecision);
+    });
     controller = new AsynchControllers.Asynch();
     sinon.stub(controller as any, 'getNoCacheHeaders').returns({});
   });
@@ -2544,37 +2650,41 @@ describe('AsynchController authorization', () => {
     expect(sendResp.callCount).to.equal(4);
   });
 
-  it('only stops jobs owned by the authenticated user', () => {
+  it('only stops jobs owned by the authenticated user', async () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
     (global as any).AsynchsService.get.returns(of([{ id: 'job-1', started_by: 'alice' }]));
-    controller.stop(makeRequest({ id: 'job-1' }), {} as Sails.Res);
+    await controller.stop(makeRequest({ id: 'job-1' }, undefined, 'workspace.manage'), {} as Sails.Res);
     expect((global as any).AsynchsService.finish.calledOnce).to.be.true;
 
     (global as any).AsynchsService.get.returns(of([{ id: 'job-2', started_by: 'bob' }]));
-    controller.stop(makeRequest({ id: 'job-2' }), {} as Sails.Res);
+    await controller.stop(makeRequest({ id: 'job-2' }, undefined, 'workspace.manage'), {} as Sails.Res);
     expect(sendResp.getCalls().some(call => call.args[2]?.status === 403)).to.be.true;
 
     (global as any).AsynchsService.get.returns(of([]));
-    controller.stop(makeRequest({ id: 'missing' }, undefined), {} as Sails.Res);
+    await controller.stop(makeRequest({ id: 'missing' }, undefined, 'workspace.manage'), {} as Sails.Res);
     expect((global as any).AsynchsService.finish.callCount).to.equal(1);
   });
 
-  it('only updates jobs owned by the authenticated user', () => {
+  it('only updates jobs owned by the authenticated user', async () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
     (global as any).AsynchsService.get.returns(of([{ id: 'job-1', started_by: 'alice' }]));
-    controller.update(
-      makeRequest({
-        id: 'job-1',
-        relatedRecordId: 'record-1',
-        taskType: 'export',
-        status: 'running',
-      }),
+    await controller.update(
+      makeRequest(
+        {
+          id: 'job-1',
+          relatedRecordId: 'record-1',
+          taskType: 'export',
+          status: 'running',
+        },
+        undefined,
+        'workspace.manage'
+      ),
       {} as Sails.Res
     );
     expect((global as any).AsynchsService.update.calledOnce).to.be.true;
 
     (global as any).AsynchsService.get.returns(of([{ id: 'job-2', started_by: 'bob' }]));
-    controller.update(makeRequest({ id: 'job-2' }), {} as Sails.Res);
+    await controller.update(makeRequest({ id: 'job-2' }, undefined, 'workspace.manage'), {} as Sails.Res);
     expect(sendResp.getCalls().some(call => call.args[2]?.status === 403)).to.be.true;
   });
 });

@@ -19,7 +19,7 @@ export namespace Controllers {
     ];
 
     private getActor(req: Sails.Req): FigshareVocabularyServiceModule.ActorContext {
-      const brand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req));
+      const brand = BrandingService.getBrandFromReq(req);
       const user = req.user as { id?: string | number; username?: string } | undefined;
       return {
         brandId: String(brand?.id ?? ''),
@@ -154,18 +154,17 @@ export namespace Controllers {
         const { params, body } = getValidatedApiRequest(req);
         const payload = this.asRecord(body);
         const changes = Array.isArray(payload.changes)
-          ? payload.changes.map((entry) => {
-            const change = this.asRecord(entry);
-            return {
-              op: change.op === 'remove' ? ('remove' as const) : ('add' as const),
-              localEntryId: String(change.localEntryId ?? ''),
-              figshareCategoryId: String(change.figshareCategoryId ?? ''),
-              matchType: change.matchType == null ? undefined : String(change.matchType),
-              status: change.status == null
-                ? undefined
-                : (String(change.status) as 'proposed' | 'approved' | 'rejected'),
-            };
-          })
+          ? payload.changes.map(entry => {
+              const change = this.asRecord(entry);
+              return {
+                op: change.op === 'remove' ? ('remove' as const) : ('add' as const),
+                localEntryId: String(change.localEntryId ?? ''),
+                figshareCategoryId: String(change.figshareCategoryId ?? ''),
+                matchType: change.matchType == null ? undefined : String(change.matchType),
+                status:
+                  change.status == null ? undefined : (String(change.status) as 'proposed' | 'approved' | 'rejected'),
+              };
+            })
           : [];
         const crosswalk = await FigshareVocabularyService.saveMappings(
           String(params.id ?? ''),

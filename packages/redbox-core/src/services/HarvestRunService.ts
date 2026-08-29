@@ -469,10 +469,15 @@ export namespace Services {
       });
     }
 
-    private async findExistingHarvestRecord(harvestId: string, recordType: string): Promise<AnyRecord[]> {
+    private async findExistingHarvestRecord(
+      brandId: string,
+      harvestId: string,
+      recordType: string
+    ): Promise<AnyRecord[]> {
       return (await Record.find({
         harvestId,
         'metaMetadata.type': recordType,
+        'metaMetadata.brandId': brandId,
       }).meta({
         enableExperimentalDeepTargets: true,
       })) as AnyRecord[];
@@ -1518,7 +1523,7 @@ export namespace Services {
         const recordRequest = (_.isPlainObject(record['recordRequest']) ? record['recordRequest'] : undefined) as
           | AnyRecord
           | undefined;
-        const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
+        const existingRecord = await this.findExistingHarvestRecord(String(brand.id ?? ''), harvestId, recordType);
         if (existingRecord.length === 0 || updateMode === 'create') {
           recordResponses.push(
             await this.legacyCreateHarvestRecord(
@@ -1593,7 +1598,7 @@ export namespace Services {
         const metadata = (_.isPlainObject(record['metadata']) ? record['metadata'] : undefined) as
           | AnyRecord
           | undefined;
-        const existingRecord = await this.findExistingHarvestRecord(harvestId, recordType);
+        const existingRecord = await this.findExistingHarvestRecord(String(brand.id ?? ''), harvestId, recordType);
         if (existingRecord.length === 0) {
           responses.push(
             await this.legacyCreateHarvestRecord(

@@ -19,6 +19,15 @@ export class AsynchProgressClass {
   @Attr({ type: 'string', required: true })
   public started_by!: string;
 
+  @Attr({ type: 'string' })
+  public actorId?: string;
+
+  @Attr({ type: 'string' })
+  public operationId?: string;
+
+  @Attr({ type: 'string' })
+  public requiredScope?: string;
+
   @Attr({ type: 'number' })
   public currentIdx?: number;
 
@@ -55,6 +64,9 @@ export interface AsynchProgressAttributes extends Sails.WaterlineAttributes {
   name: string;
   relatedRecordId?: string;
   started_by: string;
+  actorId?: string;
+  operationId?: string;
+  requiredScope?: string;
   status?: string;
   targetIdx?: number;
   taskType?: string;

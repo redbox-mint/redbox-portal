@@ -264,7 +264,7 @@ export namespace Controllers {
     /** Create a preview token (JSON) for a caller-supplied draft revision (legacy public surface) */
     public async createPreview(req: Sails.Req, res: Sails.Res) {
       try {
-        const branding = req.param('branding');
+        const branding = BrandingService.getBrandFromReq(req).name;
         const portal = req.param('portal');
         const brand = await BrandingConfig.findOne({ name: branding });
         if (!brand) {

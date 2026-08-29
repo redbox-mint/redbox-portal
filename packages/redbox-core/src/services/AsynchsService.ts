@@ -29,42 +29,41 @@ export namespace Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class Asynchs extends services.Core.Service {
-
-    protected override _exportedMethods: string[] = [
-      'start',
-      'update',
-      'finish',
-      'get'
-    ];
+    protected override _exportedMethods: string[] = ['start', 'update', 'finish', 'get'];
 
     public start(progressObj: Record<string, unknown>): Observable<Record<string, unknown>> {
       if (_.isEmpty(progressObj.date_started) || _.isUndefined(progressObj.date_completed)) {
-  // Using ISO-like local timestamp without timezone
-  progressObj.date_started = DateTime.local().toFormat("yyyy-LL-dd'T'HH:mm:ss");
+        // Using ISO-like local timestamp without timezone
+        progressObj.date_started = DateTime.local().toFormat("yyyy-LL-dd'T'HH:mm:ss");
       }
       return super.getObservable<Record<string, unknown>>(AsynchProgress.create(progressObj));
     }
 
-    public update(criteria: Record<string, unknown>, progressObj: Record<string, unknown>): Observable<Record<string, unknown>[]> {
+    public update(
+      criteria: Record<string, unknown>,
+      progressObj: Record<string, unknown>
+    ): Observable<Record<string, unknown>[]> {
       return super.getObservable<Record<string, unknown>[]>(AsynchProgress.update(criteria, progressObj));
     }
 
-    public finish(progressId: string, progressObj: Record<string, unknown> | null = null): Observable<Record<string, unknown>[]> {
+    public finish(
+      progressIdOrCriteria: string | Record<string, unknown>,
+      progressObj: Record<string, unknown> | null = null
+    ): Observable<Record<string, unknown>[]> {
       if (progressObj) {
-          progressObj.date_completed = DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss');
+        progressObj.date_completed = DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss');
       } else {
-          progressObj = {date_completed: DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss')};
+        progressObj = { date_completed: DateTime.local().toFormat('yyyy-LL-dd HH:mm:ss') };
       }
       progressObj.status = 'finished';
-      return super.getObservable<Record<string, unknown>[]>(AsynchProgress.update({id:progressId}, progressObj));
+      const criteria = typeof progressIdOrCriteria === 'string' ? { id: progressIdOrCriteria } : progressIdOrCriteria;
+      return super.getObservable<Record<string, unknown>[]>(AsynchProgress.update(criteria, progressObj));
     }
 
     public get(criteria: Record<string, unknown>): Observable<Record<string, unknown>[]> {
-      return super.getObservable<Record<string, unknown>[]>(AsynchProgress.find(criteria));
+      return super.getObservable<Record<string, unknown>[]>(AsynchProgress.find(criteria).sort('id ASC').limit(100));
     }
-
   }
-
 }
 
 declare global {

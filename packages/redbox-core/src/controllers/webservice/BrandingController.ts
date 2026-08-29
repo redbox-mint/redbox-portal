@@ -53,7 +53,7 @@ export namespace Controllers {
     async config(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       try {
         const state = await BrandingService.getAdminState(branding);
         return this.sendAdminState(req, res, state);
@@ -66,7 +66,7 @@ export namespace Controllers {
     async draft(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const actor = req.user;
       try {
         const bodyObj = body as Record<string, unknown>;
@@ -83,7 +83,7 @@ export namespace Controllers {
     async uploadFace(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const slot = params.slot as string;
       const actor = req.user;
       const maxBytes = getBrandingPositiveInt('typefaceFaceMaxBytes', BRANDING_TYPEFACE_FACE_MAX_BYTES);
@@ -143,7 +143,7 @@ export namespace Controllers {
     async deleteFace(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const slot = params.slot as string;
       const actor = req.user;
       try {
@@ -164,7 +164,7 @@ export namespace Controllers {
     async useDefault(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const actor = req.user;
       try {
         const bodyObj = (body ?? {}) as Record<string, unknown>;
@@ -183,7 +183,7 @@ export namespace Controllers {
     async revert(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const actor = req.user;
       try {
         const bodyObj = (body ?? {}) as Record<string, unknown>;
@@ -202,7 +202,7 @@ export namespace Controllers {
     async preview(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = params.portal as string;
       try {
         const bodyObj = (body ?? {}) as Record<string, unknown>;
@@ -224,7 +224,7 @@ export namespace Controllers {
     async versions(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       try {
         const versions = await BrandingService.listVersions(branding);
         return this.sendResp(req, res, { data: versions, headers: this.getNoCacheHeaders() });
@@ -237,7 +237,7 @@ export namespace Controllers {
     async versionPreview(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = params.portal as string;
       const versionId = params.versionId as string;
       try {
@@ -254,7 +254,7 @@ export namespace Controllers {
     async publish(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = params.portal as string;
       const actor = req.user;
       try {
@@ -277,7 +277,7 @@ export namespace Controllers {
     async restore(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const versionId = params.versionId as string;
       const actor = req.user;
       try {
@@ -302,7 +302,7 @@ export namespace Controllers {
     async rollback(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const versionId = params.versionId as string;
       const actor = req.user;
       try {
@@ -325,7 +325,7 @@ export namespace Controllers {
     async logo(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = params.portal as string;
       try {
         const reqObj = req as unknown as globalThis.Record<string, unknown>;
@@ -376,7 +376,7 @@ export namespace Controllers {
     async favicon(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       const portal = params.portal as string;
       try {
         const reqObj = req as unknown as globalThis.Record<string, unknown>;
@@ -428,7 +428,7 @@ export namespace Controllers {
     async history(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
+      const branding = BrandingService.getBrandFromReq(req).name;
       try {
         const versions = await BrandingService.listVersions(branding);
         return this.sendResp(req, res, { data: versions, headers: this.getNoCacheHeaders() });

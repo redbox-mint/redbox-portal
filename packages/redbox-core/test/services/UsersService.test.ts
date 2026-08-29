@@ -627,6 +627,105 @@ describe('UsersService', function () {
     });
   });
 
+  describe('Phase 7 brand-scoped user contracts', function () {
+    it('returns a user only when a role or active account link belongs to the requested brand', async function () {
+      configureModelMethod(mockUser.findOne, {
+        id: 'user-1',
+        username: 'user1',
+        roles: [{ branding: 'brand-2' }],
+      });
+      configureModelMethod(mockUserLink.findOne, null);
+
+      const foreign = await UsersService.getUserForBrand('user-1', 'brand-1').toPromise();
+
+      expect(foreign).to.equal(null);
+      expect(mockUserLink.findOne.firstCall.args[0]).to.deep.equal({
+        brandId: 'brand-1',
+        status: 'active',
+        or: [{ primaryUserId: 'user-1' }, { secondaryUserId: 'user-1' }],
+      });
+
+      configureModelMethod(mockUserLink.findOne, {
+        brandId: 'brand-1',
+        status: 'active',
+        primaryUserId: 'user-1',
+      });
+      const linked = await UsersService.getUserForBrand('user-1', 'brand-1').toPromise();
+      expect(linked?.id).to.equal('user-1');
+    });
+
+    it('uses an opaque not-found error and a brand predicate for linked-account reads', async function () {
+      configureModelMethod(mockUser.findOne, {
+        id: 'primary-1',
+        username: 'primary',
+        roles: [{ branding: 'brand-1' }],
+      });
+      configureModelMethod(mockUserLink.find, []);
+
+      const result = await UsersService.getLinkedAccountsForBrand('primary-1', 'brand-1').toPromise();
+      expect(result.primary.id).to.equal('primary-1');
+      expect(mockUserLink.find.firstCall.args[0]).to.deep.equal({
+        primaryUserId: 'primary-1',
+        status: 'active',
+        brandId: 'brand-1',
+      });
+
+      configureModelMethod(mockUser.findOne, {
+        id: 'foreign-1',
+        username: 'foreign',
+        roles: [{ branding: 'brand-2' }],
+      });
+      configureModelMethod(mockUserLink.findOne, null);
+      try {
+        await UsersService.getLinkedAccountsForBrand('foreign-1', 'brand-1').toPromise();
+        expect.fail('Expected a cross-brand lookup to fail');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.not-found');
+      }
+    });
+
+    it('checks brand membership before updating profile data', async function () {
+      configureModelMethod(mockUser.findOne, {
+        id: 'user-1',
+        username: 'user1',
+        roles: [{ branding: 'brand-2' }],
+      });
+      configureModelMethod(mockUserLink.findOne, null);
+
+      try {
+        await UsersService.updateUserDetailsForBrand(
+          'user-1',
+          'Updated User',
+          'updated@example.test',
+          '',
+          'brand-1'
+        ).toPromise();
+        expect.fail('Expected a cross-brand update to fail');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.not-found');
+      }
+      expect(mockUser.update.called).to.equal(false);
+
+      configureModelMethod(mockUser.findOne, {
+        id: 'user-1',
+        username: 'user1',
+        roles: [{ branding: 'brand-1' }],
+      });
+      configureModelMethod(mockUser.update, [{ id: 'user-1', name: 'Updated User' }]);
+
+      const updated = await UsersService.updateUserDetailsForBrand(
+        'user-1',
+        'Updated User',
+        'updated@example.test',
+        '',
+        'brand-1'
+      ).toPromise();
+
+      expect(updated?.[1]?.[0]?.name).to.equal('Updated User');
+      expect(mockUser.update.calledOnce).to.equal(true);
+    });
+  });
+
   describe('getEffectiveUser', function () {
     it('should resolve a linked alias to its primary user', async function () {
       mockUser.findOne.onFirstCall().returns(
@@ -1280,6 +1379,7 @@ describe('UsersService', function () {
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('updateUserRoles');
       expect(exported).to.have.property('updateUserDetails');
+      expect(exported).to.have.property('updateUserDetailsForBrand');
       expect(exported).to.have.property('getUserWithId');
       expect(exported).to.have.property('getUserWithUsername');
       expect(exported).to.have.property('addLocalUser');
@@ -1290,16 +1390,23 @@ describe('UsersService', function () {
       expect(exported).to.have.property('findAndAssignAccessToRecords');
       expect(exported).to.have.property('getUsers');
       expect(exported).to.have.property('getUsersForBrand');
+      expect(exported).to.have.property('getUserForBrand');
+      expect(exported).to.have.property('findUserForBrand');
       expect(exported).to.have.property('getEffectiveUser');
       expect(exported).to.have.property('getLinkedAccounts');
+      expect(exported).to.have.property('getLinkedAccountsForBrand');
       expect(exported).to.have.property('searchLinkCandidates');
       expect(exported).to.have.property('linkAccounts');
       expect(exported).to.have.property('addUserAuditEvent');
       expect(exported).to.have.property('checkAuthorizedEmail');
       expect(exported).to.have.property('enrichUsersWithEffectiveDisabledState');
       expect(exported).to.have.property('disableUser');
+      expect(exported).to.have.property('disableUserForBrand');
       expect(exported).to.have.property('enableUser');
+      expect(exported).to.have.property('enableUserForBrand');
       expect(exported).to.have.property('getUserAudit');
+      expect(exported).to.have.property('getUserAuditForBrand');
+      expect(exported).to.have.property('setUserKeyForBrand');
     });
   });
 

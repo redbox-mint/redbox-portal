@@ -4,14 +4,12 @@ import {
   ResourcesApi,
   ServicesApi,
   Version as RvaVersion,
-  Vocabulary as RvaVocabulary
+  Vocabulary as RvaVocabulary,
 } from '@researchdatabox/rva-registry-openapi-generated-node';
 import { Services as services } from '../CoreService';
 import { VocabularyAttributes } from '../waterline-models';
 import { Services as VocabularyServiceModule } from './VocabularyService';
 import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
-
-
 
 export namespace Services {
   interface RvaSearchResult {
@@ -44,11 +42,7 @@ export namespace Services {
   }
 
   export class RvaImport extends services.Core.Service {
-    protected override _exportedMethods: string[] = [
-      'searchRva',
-      'importRvaVocabulary',
-      'syncRvaVocabulary'
-    ];
+    protected override _exportedMethods: string[] = ['searchRva', 'importRvaVocabulary', 'syncRvaVocabulary'];
 
     private client: AxiosInstance | null = null;
     private configuration: RvaConfiguration | null = null;
@@ -90,7 +84,6 @@ export namespace Services {
       return this.servicesClient;
     }
 
-
     public async searchRva(query: string): Promise<RvaSearchResult[]> {
       const search = String(query ?? '').trim();
       if (!search) {
@@ -102,14 +95,17 @@ export namespace Services {
       return this.extractSearchResults(response.data);
     }
 
-    public async importRvaVocabulary(rvaId: string, versionId?: string, branding?: string): Promise<VocabularyAttributes> {
+    public async importRvaVocabulary(
+      rvaId: string,
+      versionId?: string,
+      branding?: string
+    ): Promise<VocabularyAttributes> {
       const metadata = await this.getVocabularyById(rvaId);
       const selectedVersionId = versionId || this.selectVersionId(metadata.version);
       if (!selectedVersionId) {
         throw new Error(`Missing RVA version id for rvaId: ${rvaId}`);
       }
       const concepts = await this.getConceptTree(selectedVersionId);
-
 
       const vocabulary = await VocabularyService.create({
         name: String(metadata.title ?? metadata.slug ?? rvaId),
@@ -122,14 +118,21 @@ export namespace Services {
         lastSyncedAt: new Date().toISOString(),
         type: this.hasChildren(concepts) ? 'tree' : 'flat',
         branding: branding || String(sails.config?.auth?.defaultBrand || 'default'),
-        entries: this.toVocabularyEntries(concepts)
+        entries: this.toVocabularyEntries(concepts),
       });
 
       return vocabulary;
     }
 
-    public async syncRvaVocabulary(vocabularyId: string, versionId?: string): Promise<{ updated: number; created: number; skipped: number; lastSyncedAt: string }> {
-      const vocabulary = await Vocabulary.findOne({ id: vocabularyId });
+    public async syncRvaVocabulary(
+      vocabularyId: string,
+      versionId?: string,
+      branding?: string
+    ): Promise<{ updated: number; created: number; skipped: number; lastSyncedAt: string }> {
+      const vocabulary = await Vocabulary.findOne({
+        id: vocabularyId,
+        ...(branding ? { branding } : {}),
+      });
       if (!vocabulary) {
         throw new Error('Vocabulary not found');
       }
@@ -149,14 +152,17 @@ export namespace Services {
 
       const counters = await runWithOptionalTransaction(
         Vocabulary.getDatastore(),
-        async (connection) => {
+        async connection => {
           const results = await VocabularyService.upsertEntries(String(vocabulary.id), entries, connection);
-          const updaterQuery = Vocabulary.updateOne({ id: vocabulary.id }).set({
+          const updaterQuery = Vocabulary.updateOne({
+            id: vocabulary.id,
+            ...(branding ? { branding } : {}),
+          }).set({
             sourceVersionId: selectedVersionId,
             lastSyncedAt,
             name: String(metadata.title ?? vocabulary.name),
             description: metadata.description ?? vocabulary.description,
-            owner: metadata.owner ?? vocabulary.owner
+            owner: metadata.owner ?? vocabulary.owner,
           });
           try {
             await this.executeQuery(updaterQuery, connection);
@@ -171,13 +177,14 @@ export namespace Services {
         },
         {
           logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.'
+          unsupportedAdapterWarning:
+            'Transactions are not supported by this datastore adapter. Falling back to non-transactional execution.',
         }
       );
 
       return {
         ...counters,
-        lastSyncedAt
+        lastSyncedAt,
       };
     }
 
@@ -195,18 +202,20 @@ export namespace Services {
       const response = this.asRecord(body?.response);
       const docs = Array.isArray(response?.docs) ? response.docs : [];
 
-      return docs.map((doc) => {
-        const record = this.asRecord(doc);
-        const id = this.asString(record?.id) ?? '';
-        const title = this.asString(record?.title) ?? this.asString(record?.name) ?? '';
-        return {
-          id,
-          title,
-          slug: this.asString(record?.slug),
-          description: this.asString(record?.description),
-          owner: this.asString(record?.owner)
-        };
-      }).filter((record) => record.id.length > 0);
+      return docs
+        .map(doc => {
+          const record = this.asRecord(doc);
+          const id = this.asString(record?.id) ?? '';
+          const title = this.asString(record?.title) ?? this.asString(record?.name) ?? '';
+          return {
+            id,
+            title,
+            slug: this.asString(record?.slug),
+            description: this.asString(record?.description),
+            owner: this.asString(record?.owner),
+          };
+        })
+        .filter(record => record.id.length > 0);
     }
 
     private asString(value: unknown): string | undefined {
@@ -231,14 +240,9 @@ export namespace Services {
 
     private async getVocabularyById(rvaId: string): Promise<RvaVocabularyResponse> {
       const id = await this.resolveVocabularyId(rvaId);
-      const response = await this.resourcesApi.getVocabularyById(
-        id,
-        true,
-        true,
-        true,
-        true,
-        { headers: { Accept: 'application/json' } }
-      );
+      const response = await this.resourcesApi.getVocabularyById(id, true, true, true, true, {
+        headers: { Accept: 'application/json' },
+      });
       return response.data as RvaVocabulary;
     }
 
@@ -304,7 +308,7 @@ export namespace Services {
         return querySlug;
       }
 
-      const ldaIndex = pathSegments.findIndex((segment) => segment.toLowerCase() === 'lda');
+      const ldaIndex = pathSegments.findIndex(segment => segment.toLowerCase() === 'lda');
       if (ldaIndex >= 0 && ldaIndex + 1 < pathSegments.length) {
         const candidate = pathSegments[ldaIndex + 1].trim();
         if (candidate && !/^\d+$/.test(candidate)) {
@@ -317,9 +321,11 @@ export namespace Services {
 
     private async findVocabularyIdBySlug(slug: string): Promise<number | null> {
       const normalizedSlug = slug.toLowerCase();
-      const response = await this.servicesApi.search(JSON.stringify({ q: slug, pp: 50 }), { headers: { Accept: 'application/json' } });
+      const response = await this.servicesApi.search(JSON.stringify({ q: slug, pp: 50 }), {
+        headers: { Accept: 'application/json' },
+      });
       const results = this.extractSearchResults(response.data);
-      const exactMatch = results.find((result) => String(result.slug ?? '').toLowerCase() === normalizedSlug);
+      const exactMatch = results.find(result => String(result.slug ?? '').toLowerCase() === normalizedSlug);
       if (!exactMatch?.id) {
         return null;
       }
@@ -344,7 +350,7 @@ export namespace Services {
       const id = this.parseIdAsNumber(versionId, 'version');
       try {
         const response = await this.resourcesApi.getVersionArtefactConceptTree(id, {
-          headers: { Accept: 'text/plain' }
+          headers: { Accept: 'text/plain' },
         });
         return this.parseConceptTreeResponse(response.data);
       } catch (error) {
@@ -368,11 +374,15 @@ export namespace Services {
     }
 
     private isNoCurrentConceptTreeError(responseData: unknown): boolean {
-      return String(responseData ?? '').toLowerCase().includes('no current concept tree');
+      return String(responseData ?? '')
+        .toLowerCase()
+        .includes('no current concept tree');
     }
 
     private getLegacyBaseUrl(): string {
-      const configured = String(_.get(sails.config, 'vocab.rva.baseUrl', 'https://vocabs.ardc.edu.au/registry')).replace(/\/$/, '');
+      const configured = String(
+        _.get(sails.config, 'vocab.rva.baseUrl', 'https://vocabs.ardc.edu.au/registry')
+      ).replace(/\/$/, '');
       if (configured.endsWith('/repository/api/rva')) {
         return configured;
       }
@@ -434,10 +444,10 @@ export namespace Services {
         return '';
       }
 
-      const importableVersions = list.filter((item) => item['do-import'] === true);
+      const importableVersions = list.filter(item => item['do-import'] === true);
       const preferredVersions = importableVersions.length > 0 ? importableVersions : list;
 
-      const current = preferredVersions.find((item) => String(item.status ?? '').toLowerCase() === 'current');
+      const current = preferredVersions.find(item => String(item.status ?? '').toLowerCase() === 'current');
       if (current?.id) {
         return String(current.id);
       }
@@ -461,7 +471,7 @@ export namespace Services {
     }
 
     private hasChildren(nodes: RvaConceptNode[]): boolean {
-      return nodes.some((node) => this.getChildNodes(node).length > 0);
+      return nodes.some(node => this.getChildNodes(node).length > 0);
     }
 
     private makeUniqueIdentifier(identifier: string, used: Set<string>): string {
@@ -502,7 +512,7 @@ export namespace Services {
           value: String(node.notation ?? node.value ?? node.identifier ?? node.iri ?? node.id ?? ''),
           identifier: this.makeUniqueIdentifier(rawIdentifier, usedIdentifiers),
           order: index,
-          historical: false
+          historical: false,
         });
 
         const children = this.getChildNodes(node);

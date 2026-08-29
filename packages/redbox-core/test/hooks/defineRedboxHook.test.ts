@@ -73,6 +73,13 @@ describe('defineRedboxHook', function () {
     expect(hook.defaults).to.deep.equal({});
   });
 
+  it('exposes the synchronous authorization scope provider for loader discovery', function () {
+    const provider = () => [];
+    const hook = defineRedboxHook({ registerRedboxAuthorizationScopes: provider });
+
+    expect(hook.registerRedboxAuthorizationScopes).to.equal(provider);
+  });
+
   it('accepts and waits for callback-style initializers', async function () {
     // Baseline callback case: the initializer finishes asynchronously (`setImmediate` defers
     // to a later event-loop tick) and signals completion via `done()`. The wrapper's promise

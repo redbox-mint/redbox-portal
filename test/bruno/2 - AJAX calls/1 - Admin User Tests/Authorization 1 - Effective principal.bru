@@ -1,0 +1,37 @@
+meta {
+  name: Authorization - Effective principal
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/me
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns the caller-safe effective system administrator projection", function () {
+    const body = res.getBody();
+    expect(body.brand.name).to.equal("default");
+    expect(body.principal.category).to.equal("system-admin");
+    expect(body.roles).to.be.an("array").and.not.empty;
+    expect(body.scopeKeys).to.include("authorization.self.read");
+    expect(body.scopeKeys).to.include("system.authorization.manage");
+    expect(body.principal).not.to.have.property("username");
+  });
+}

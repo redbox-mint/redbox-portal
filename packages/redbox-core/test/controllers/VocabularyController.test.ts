@@ -1,7 +1,8 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { Controllers } from '../../src/controllers/VocabularyController';
+import { authorizationRequestFixture } from '../fixtures/authorization-request.fixtures';
 
 describe('Ajax VocabularyController', () => {
   let controller: Controllers.Vocabulary;
@@ -11,22 +12,26 @@ describe('Ajax VocabularyController', () => {
       services: {
         vocabularyservice: {
           list: sinon.stub().resolves({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
+          listAuthorized: sinon.stub().resolves({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
           getById: sinon.stub().resolves({ id: 'v1' }),
           getTree: sinon.stub().resolves([]),
           create: sinon.stub().resolves({ id: 'v1' }),
+          createAuthorized: sinon.stub().resolves({ id: 'v1' }),
           update: sinon.stub().resolves({ id: 'v1' }),
-          delete: sinon.stub().resolves()
+          delete: sinon.stub().resolves(),
+          requireAuthorizedBrandOperation: sinon.stub().returns('default'),
         },
         brandingservice: {
           getBrandNameFromReq: sinon.stub().returns('default'),
-          getBrand: sinon.stub().returns({ id: 'default' })
+          getBrand: sinon.stub().returns({ id: 'default' }),
+          getBrandFromReq: sinon.stub().returns({ id: 'default' }),
         },
         rvaimportservice: {
           importRvaVocabulary: sinon.stub().resolves({ id: 'v2' }),
-          syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' })
-        }
+          syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' }),
+        },
       },
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() }
+      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() },
     };
     controller = new Controllers.Vocabulary();
     (global as any).BrandingService = (global as any).sails.services.brandingservice;
@@ -43,7 +48,7 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('renders manager view', async () => {
-    const req = {} as Sails.Req;
+    const req = authorizationRequestFixture({ scope: 'vocabulary.read' }) as Sails.Req;
     const res = {} as Sails.Res;
     const sendView = sinon.stub(controller as any, 'sendView');
 
@@ -53,7 +58,11 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('creates vocabulary', async () => {
-    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = {
+      ...authorizationRequestFixture({ scope: 'vocabulary.create' }),
+      body: { name: 'Test', type: 'flat', source: 'local' },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -63,10 +72,14 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('returns 500 with errors array when create throws unexpectedly', async () => {
-    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = {
+      ...authorizationRequestFixture({ scope: 'vocabulary.create' }),
+      body: { name: 'Test', type: 'flat', source: 'local' },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
-    (global as any).sails.services.vocabularyservice.create.rejects(new Error('database unavailable'));
+    (global as any).sails.services.vocabularyservice.createAuthorized.rejects(new Error('database unavailable'));
 
     await controller.create(req, res);
 
@@ -78,7 +91,11 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('lists vocabularies with wrapped data and meta', async () => {
-    const req = { param: sinon.stub().returns(undefined), session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = {
+      ...authorizationRequestFixture({ scope: 'vocabulary.read' }),
+      param: sinon.stub().returns(undefined),
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 

@@ -46,12 +46,7 @@ export namespace Controllers {
 
     /** The brand comes from the route; never fall back to the default brand. */
     private resolveBrand(req: Sails.Req): BrandingModel {
-      const brandName = String(req.param('branding') ?? '').trim();
-      const brand = brandName ? BrandingService.getBrand(brandName) : null;
-      if (!brand) {
-        throw new DashboardConfigServices.DashboardConfigError('target-not-found', `Brand "${brandName}" was not found.`);
-      }
-      return brand;
+      return BrandingService.getBrandFromReq(req);
     }
 
     /** The signed-in administrator; record field catalogues follow their access. */

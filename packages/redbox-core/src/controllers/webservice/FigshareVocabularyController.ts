@@ -21,7 +21,7 @@ export namespace Controllers {
     ];
 
     private getActor(req: Sails.Req): FigshareVocabularyServiceModule.ActorContext {
-      const brand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req));
+      const brand = BrandingService.getBrandFromReq(req);
       const user = req.user as { id?: string | number; username?: string } | undefined;
       return {
         brandId: String(brand?.id ?? ''),
@@ -226,16 +226,16 @@ export namespace Controllers {
         const { params, body } = getValidatedApiRequest(req);
         const payload = this.asRecord(body);
         const manualMappings = Array.isArray(payload.manualMappings)
-          ? payload.manualMappings.map((entry) => {
-            const mapping = this.asRecord(entry);
-            return {
-              localEntryId: mapping.localEntryId == null ? undefined : String(mapping.localEntryId),
-              localEntryKey: mapping.localEntryKey == null ? undefined : String(mapping.localEntryKey),
-              figshareSourceIds: Array.isArray(mapping.figshareSourceIds)
-                ? mapping.figshareSourceIds.map((value) => String(value))
-                : [],
-            };
-          })
+          ? payload.manualMappings.map(entry => {
+              const mapping = this.asRecord(entry);
+              return {
+                localEntryId: mapping.localEntryId == null ? undefined : String(mapping.localEntryId),
+                localEntryKey: mapping.localEntryKey == null ? undefined : String(mapping.localEntryKey),
+                figshareSourceIds: Array.isArray(mapping.figshareSourceIds)
+                  ? mapping.figshareSourceIds.map(value => String(value))
+                  : [],
+              };
+            })
           : [];
         const result = await FigshareVocabularyService.applyPreview(
           String(params.runId ?? ''),
@@ -243,7 +243,7 @@ export namespace Controllers {
             remoteHash: String(payload.remoteHash ?? ''),
             expectedRevision: payload.expectedRevision == null ? undefined : Number(payload.expectedRevision),
             approvedProposalIds: Array.isArray(payload.approvedProposalIds)
-              ? payload.approvedProposalIds.map((value) => String(value))
+              ? payload.approvedProposalIds.map(value => String(value))
               : [],
             manualMappings,
           },

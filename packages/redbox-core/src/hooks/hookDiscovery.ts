@@ -3,6 +3,7 @@ import path from 'path';
 
 export interface RedboxHookPackageMetadata {
   name: string;
+  version: string;
   module: string;
   packageJsonPath: string;
   rootPath: string;
@@ -19,6 +20,7 @@ export interface RedboxHookDiscoveryOptions {
 }
 
 type PackageJson = {
+  version?: unknown;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   hookLoadPriority?: unknown;
@@ -44,6 +46,7 @@ const hookCapabilityFlags = [
   'hasFormConfigs',
   'hasMigrations',
   'hasApiRoutes',
+  'hasAuthorizationScopes',
 ];
 
 function warn(message: string): void {
@@ -133,10 +136,7 @@ export function readHookLoadPriority(appPath: string): string[] {
   return normalizeHookLoadPriority(appPackageJson?.hookLoadPriority);
 }
 
-export function compareHookPrecedence(
-  a: RedboxHookPackageMetadata,
-  b: RedboxHookPackageMetadata
-): number {
+export function compareHookPrecedence(a: RedboxHookPackageMetadata, b: RedboxHookPackageMetadata): number {
   const aListed = typeof a.listedPriorityIndex === 'number';
   const bListed = typeof b.listedPriorityIndex === 'number';
 
@@ -179,10 +179,7 @@ export function discoverRedboxHookPackages(
   const dependencyNames = Object.keys(dependencies).sort();
   const dependencySignature = buildDependencySignature(resolvedAppPath, dependencyNames);
   const cached = hookDiscoveryCache.get(resolvedAppPath);
-  if (
-    cached?.packageJsonContent === packageJsonContent
-    && cached.dependencySignature === dependencySignature
-  ) {
+  if (cached?.packageJsonContent === packageJsonContent && cached.dependencySignature === dependencySignature) {
     return [...cached.hooks];
   }
 
@@ -204,6 +201,10 @@ export function discoverRedboxHookPackages(
     const listedPriorityIndex = listedPriorityIndexes.get(dependencyName);
     hooks.push({
       name: dependencyName,
+      version:
+        typeof dependencyPackageJson.version === 'string' && dependencyPackageJson.version.trim().length > 0
+          ? dependencyPackageJson.version.trim()
+          : '0.0.0',
       module: dependencyName,
       packageJsonPath,
       rootPath: path.dirname(packageJsonPath),

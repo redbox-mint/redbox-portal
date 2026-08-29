@@ -3,6 +3,9 @@ import {
   BrandingModel,
   Controllers as controllers,
   getValidatedApiRequest,
+  requireAllowedResource,
+  requireRequestResourceAuthorization,
+  asScopeKey,
 } from '../../index';
 import { pipeline } from 'node:stream/promises';
 import { EXPORT_CONTENT_TYPES } from '../../constants/export';
@@ -29,7 +32,10 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params, query } = validated;
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const authorization = requireRequestResourceAuthorization(req);
+        const brand: BrandingModel = requireAllowedResource(
+          RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
         const format = params.format as string;
         const recType = query.recType as string;
         const before: string | null = _.isEmpty(query.before) ? null : (query.before as string);
@@ -47,7 +53,8 @@ export namespace Controllers {
               format,
               before,
               after,
-              recType
+              recType,
+              authorization.context.effectiveScopeKeys.includes(asScopeKey('record.read.all'))
             ),
             res
           );
@@ -63,6 +70,7 @@ export namespace Controllers {
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(error instanceof Error ? error.message : String(error));
         return this.sendResp(req, res, {
+          errors: [error instanceof Error ? error : new Error(String(error))],
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),

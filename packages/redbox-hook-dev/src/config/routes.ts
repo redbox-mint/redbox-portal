@@ -4,8 +4,14 @@
  * Sets the root redirect to the demo rdmp portal home.
  */
 
-import type { RoutesConfig } from '@researchdatabox/redbox-core';
+import { createRouteId, scopeAuthorization, type RoutesConfig } from '@researchdatabox/redbox-core';
 
-export const routes = {
-  '/': '/default/rdmp/home',
-} as unknown as Partial<RoutesConfig>;
+const rootAuthorization = scopeAuthorization('portal.home.read');
+
+export const routes: Partial<RoutesConfig> = {
+  '/': {
+    target: '/default/rdmp/home',
+    authorization: rootAuthorization,
+    routeId: createRouteId({ path: '/', action: 'redirect', authorization: rootAuthorization }),
+  },
+};

@@ -94,6 +94,9 @@ import {
   type PoliciesConfig,
 } from '../../src/config/policies.config';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
+import { publicAuthorization } from '../../src/authorization';
+
+const TEST_ROUTE_AUTHORIZATION = publicAuthorization('Test-only route.');
 
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
@@ -206,7 +209,14 @@ describe('API routes contract layer', function () {
     };
 
     try {
-      const customRoute = apiRoute('get', '/:branding/:portal/api/custom', 'webservice/CustomController', 'show');
+      const customRoute = apiRoute(
+        'get',
+        '/:branding/:portal/api/custom',
+        'webservice/CustomController',
+        'show',
+        undefined,
+        { authorization: TEST_ROUTE_AUTHORIZATION }
+      );
 
       expect(customRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Readers', 'Editors']);
 
@@ -242,6 +252,7 @@ describe('API routes contract layer', function () {
       controller: 'hook/ExampleController',
       action: 'show',
       summary: 'Hook example route',
+      authorization: TEST_ROUTE_AUTHORIZATION,
     };
 
     const globalWithSails = globalThis as typeof globalThis & {
@@ -278,6 +289,42 @@ describe('API routes contract layer', function () {
         globalWithSails.sails = previousSails;
       }
     }
+  });
+
+  it('should build hook route config from explicit pre-lift providers', function () {
+    const hookRoute: ApiRouteDefinition = {
+      method: 'get',
+      path: '/:branding/:portal/api/hooks/pre-lift',
+      controller: 'hook/PreLiftController',
+      action: 'show',
+      authorization: TEST_ROUTE_AUTHORIZATION,
+    };
+
+    const routeConfig = buildMergedApiRouteConfig([() => [hookRoute]]);
+
+    expect(routeConfig).to.have.property('get /:branding/:portal/api/hooks/pre-lift');
+    expect(routeConfig['get /:branding/:portal/api/hooks/pre-lift']).to.include({
+      controller: 'hook/PreLiftController',
+      action: 'show',
+    });
+  });
+
+  it('should fail closed for malformed hook route providers', function () {
+    expect(() => buildMergedApiRouteConfig([(() => Promise.resolve([])) as never])).to.throw(
+      'must synchronously return an array'
+    );
+    expect(() =>
+      buildMergedApiRouteConfig([
+        () => [
+          {
+            method: 'get',
+            path: '/:branding/:portal/api/hooks/missing-authorization',
+            controller: 'hook/InvalidController',
+            action: 'show',
+          } as ApiRouteDefinition,
+        ],
+      ])
+    ).to.throw('Route authorization declaration must be an object');
   });
 
   it('should fail when the merged runtime route table includes an uncontracted legacy API route', function () {
@@ -323,12 +370,14 @@ describe('API routes contract layer', function () {
         path: '/api/duplicates',
         controller: 'duplicates/FirstController',
         action: 'show',
+        authorization: TEST_ROUTE_AUTHORIZATION,
       },
       {
         method: 'get',
         path: '/api/duplicates',
         controller: 'duplicates/SecondController',
         action: 'show',
+        authorization: TEST_ROUTE_AUTHORIZATION,
       },
     ];
 
@@ -347,18 +396,21 @@ describe('API routes contract layer', function () {
         path: '/api/widgets/:id*',
         controller: 'widgets/WildcardController',
         action: 'show',
+        authorization: TEST_ROUTE_AUTHORIZATION,
       },
       {
         method: 'get',
         path: '/api/widgets/:id',
         controller: 'widgets/ParamController',
         action: 'show',
+        authorization: TEST_ROUTE_AUTHORIZATION,
       },
       {
         method: 'get',
         path: '/api/widgets/static',
         controller: 'widgets/StaticController',
         action: 'show',
+        authorization: TEST_ROUTE_AUTHORIZATION,
       },
     ]);
 
@@ -370,11 +422,17 @@ describe('API routes contract layer', function () {
   });
 
   it('should leave contract-first route auth to controller policies', function () {
-    const routeConfig = buildSailsRouteConfig([apiRoute('get', '/api/widgets', 'webservice/WidgetController', 'list')]);
+    const routeConfig = buildSailsRouteConfig([
+      apiRoute('get', '/api/widgets', 'webservice/WidgetController', 'list', undefined, {
+        authorization: TEST_ROUTE_AUTHORIZATION,
+      }),
+    ]);
 
     expect(routeConfig['get /api/widgets']).to.deep.equal({
       controller: 'webservice/WidgetController',
       action: 'list',
+      authorization: TEST_ROUTE_AUTHORIZATION,
+      routeId: 'GET /api/widgets (webservice/WidgetController#list)',
       csrf: false,
     });
   });
@@ -398,6 +456,9 @@ describe('API routes contract layer', function () {
       .that.deep.equals({
         controller: 'webservice/IntegrationAuditController',
         action: 'getAuditLog',
+        authorization: { kind: 'scope', scope: 'integration.audit.read' },
+        routeId:
+          'GET /:branding/:portal/api/integration-audit/:oid (webservice/IntegrationAuditController#getAuditLog)',
         csrf: false,
       });
   });
@@ -423,6 +484,8 @@ describe('API routes contract layer', function () {
       expect(routeConfig[`${route.method} ${route.path}`]).to.deep.equal({
         controller: 'webservice/RecordSchemaController',
         action: route.action,
+        authorization: route.authorization,
+        routeId: route.routeId,
         csrf: false,
       });
     }
@@ -589,7 +652,8 @@ describe('API routes contract layer', function () {
       'i18nLanguages',
       'menuResolver',
       'isWebServiceAuthenticated',
-      'checkRecordSchemaAuth',
+      'resolveAuthorizationContext',
+      'authorizeRequest',
       'contentSecurityPolicy',
       'validateApiContractRequest',
     ];
@@ -604,7 +668,8 @@ describe('API routes contract layer', function () {
         'i18nLanguages',
         'menuResolver',
         'isWebServiceAuthenticated',
-        'checkAuth',
+        'resolveAuthorizationContext',
+        'authorizeRequest',
         'contentSecurityPolicy',
       ],
       create: schemaActionPolicies,
@@ -614,7 +679,7 @@ describe('API routes contract layer', function () {
   });
 
   it('should keep every non-schema contract API action on the exact no-store validation policy chain', function () {
-    const expectedPolicies = [
+    const baseExpectedPolicies = [
       'noCache',
       'brandingAndPortal',
       'checkBrandingValid',
@@ -623,7 +688,8 @@ describe('API routes contract layer', function () {
       'i18nLanguages',
       'menuResolver',
       'isWebServiceAuthenticated',
-      'checkAuth',
+      'resolveAuthorizationContext',
+      'authorizeRequest',
       'contentSecurityPolicy',
       'validateApiContractRequest',
     ];
@@ -632,6 +698,13 @@ describe('API routes contract layer', function () {
       if (route.controller === 'webservice/RecordSchemaController') continue;
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
+      const expectedPolicies =
+        route.path.startsWith('/:branding/:portal/api/authorization') &&
+        ['post', 'put', 'patch', 'delete'].includes(route.method)
+          ? baseExpectedPolicies.flatMap(policy =>
+              policy === 'validateApiContractRequest' ? ['protectSessionMutation', policy] : [policy]
+            )
+          : baseExpectedPolicies;
       expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
     }
   });
@@ -642,6 +715,7 @@ describe('API routes contract layer', function () {
       path: '/:branding/:portal/api/hooks/widgets',
       controller: 'hooks/WidgetController',
       action: 'create',
+      authorization: TEST_ROUTE_AUTHORIZATION,
     };
     const hookPolicies = buildContractApiPolicies([hookRoute]);
     const targetPolicies: PoliciesConfig = {
@@ -659,7 +733,8 @@ describe('API routes contract layer', function () {
       'i18nLanguages',
       'menuResolver',
       'isWebServiceAuthenticated',
-      'checkAuth',
+      'resolveAuthorizationContext',
+      'authorizeRequest',
       'contentSecurityPolicy',
       'validateApiContractRequest',
     ]);
@@ -675,7 +750,8 @@ describe('API routes contract layer', function () {
         'i18nLanguages',
         'menuResolver',
         'isWebServiceAuthenticated',
-        'checkAuth',
+        'resolveAuthorizationContext',
+        'authorizeRequest',
         'contentSecurityPolicy',
       ],
       customAction: ['customPolicy'],
@@ -688,7 +764,8 @@ describe('API routes contract layer', function () {
         'i18nLanguages',
         'menuResolver',
         'isWebServiceAuthenticated',
-        'checkAuth',
+        'resolveAuthorizationContext',
+        'authorizeRequest',
         'contentSecurityPolicy',
         'validateApiContractRequest',
       ],
@@ -701,6 +778,7 @@ describe('API routes contract layer', function () {
       path: '/:branding/:portal/api/users',
       controller: 'hooks/DuplicateUsersController',
       action: 'create',
+      authorization: TEST_ROUTE_AUTHORIZATION,
     };
 
     const globalWithSails = globalThis as typeof globalThis & {
@@ -1527,6 +1605,7 @@ describe('API routes contract layer', function () {
       path: '/:branding/:portal/api/uploads/logo',
       controller: 'webservice/UploadController',
       action: 'store',
+      authorization: TEST_ROUTE_AUTHORIZATION,
       request: {
         body: {
           required: true,

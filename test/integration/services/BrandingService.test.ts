@@ -3,7 +3,6 @@ const { expect } = require('chai');
 const _ = require('lodash');
 
 describe('The BrandingService', function () {
-
   before(function (done) {
     done();
   });
@@ -23,7 +22,7 @@ describe('The BrandingService', function () {
   });
 
   it('should resolve the correct brand and portal', function (done) {
-    var req = { 'params': { 'branding': sails.config.auth.defaultBrand, 'portal': sails.config.auth.defaultPortal } };
+    var req = { params: { branding: sails.config.auth.defaultBrand, portal: sails.config.auth.defaultPortal } };
     var rootContext = BrandingService.getRootContext();
     var path = BrandingService.getBrandAndPortalPath(req);
     path.should.equal(rootContext + '/' + req.params.branding + '/' + req.params.portal);
@@ -93,10 +92,17 @@ describe('The BrandingService', function () {
       const name = 'branding-preview:' + token;
       const entry = await CacheEntry.findOne({ name });
       // Manually age the entry beyond TTL
-      const ttlSeconds = Number.isFinite(_.get(sails, 'config.branding.previewTtlSeconds')) ? sails.config.branding.previewTtlSeconds : 300;
+      const ttlSeconds = Number.isFinite(_.get(sails, 'config.branding.previewTtlSeconds'))
+        ? sails.config.branding.previewTtlSeconds
+        : 300;
       const expiredTs = Math.floor(Date.now() / 1000) - (ttlSeconds + 10);
       await CacheEntry.update({ id: entry.id }).set({ ts_added: expiredTs });
-      let err; try { await BrandingService.fetchPreview(token); } catch (e) { err = e; }
+      let err;
+      try {
+        await BrandingService.fetchPreview(token);
+      } catch (e) {
+        err = e;
+      }
       expect(err).to.exist;
       expect(err.message).to.match(/preview-expired/);
     });

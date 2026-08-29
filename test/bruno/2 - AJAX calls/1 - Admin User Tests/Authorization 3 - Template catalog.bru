@@ -1,0 +1,36 @@
+meta {
+  name: Authorization - Template catalog
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/templates?status=active&limit=2
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns templates with immutable revision summaries", function () {
+    const body = res.getBody();
+    expect(body.items).to.have.length(2);
+    expect(body.items[0].revisions).to.be.an("array").and.not.empty;
+    expect(body.items[0].revisions[0]).not.to.have.property("scopeKeys");
+    expect(body.items[0].revisionsTruncated).to.be.a("boolean");
+    expect(body.items.map(item => item.key)).to.deep.equal(body.items.map(item => item.key).sort());
+  });
+}

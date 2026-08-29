@@ -1,6 +1,6 @@
 /**
  * Config Types Index
- * 
+ *
  * Exports all config interfaces and default values for sails.config typing.
  * These are used by the redbox-core loader to generate shim files in config/.
  */
@@ -25,6 +25,7 @@ export * from './log.config';
 export * from './ng2.config';
 // Auth config
 export * from './auth.config';
+export * from './authorization.config';
 // Sails core configs
 export * from './blueprints.config';
 export * from './cors.config';
@@ -79,6 +80,7 @@ export * from './recordSchema.config';
 export * from './harvestRuns.config';
 
 import type { ApiRouteProvider } from '../api-routes';
+import type { ScopeRegistrySource } from '../authorization';
 import type { RecordContractContributorDiscoveryState } from '../record-contract/contributor-registry';
 
 // Import config values for the Config namespace
@@ -132,10 +134,16 @@ import { companion, CompanionConfig } from './companion.config';
 
 // Auth config import
 import { auth } from './auth.config';
+import { authorization, AuthorizationConfig } from './authorization.config';
 import type { NextFunction, Request, Response } from 'express';
 // Complex/Large config imports (interface-only)
 import { BrandingConfig, branding } from './branding.config';
-import { BrandingConfigurationDefaultsConfig, brandingConfigurationDefaults, BrandAuthConfig, AuthBootstrapConfig } from './brandingConfigurationDefaults.config';
+import {
+  BrandingConfigurationDefaultsConfig,
+  brandingConfigurationDefaults,
+  BrandAuthConfig,
+  AuthBootstrapConfig,
+} from './brandingConfigurationDefaults.config';
 import { RaidConfig, raid } from './raid.config';
 
 import { RecordTypeConfig, recordtype } from './recordtype.config';
@@ -163,8 +171,8 @@ import { WebAnalytics } from '../configmodels/WebAnalytics';
  * Returns branding-specific configuration based on brand name
  */
 export type BrandingAwareFunction = (brandName?: string) => BrandingConfigurationDefaultsConfig & {
-    authorizedDomainsEmails?: AuthorizedDomainsEmails;
-    webAnalytics?: WebAnalytics;
+  authorizedDomainsEmails?: AuthorizedDomainsEmails;
+  webAnalytics?: WebAnalytics;
 };
 
 /**
@@ -176,11 +184,11 @@ export type AuthConfig = AuthBootstrapConfig & BrandAuthConfig;
  * Passport strategy config with authenticate method
  */
 export interface PassportConfig {
-    authenticate: (
-        strategy: string,
-        options?: Record<string, unknown>
-    ) => (req: Request, res: Response, next?: NextFunction) => void;
-    [strategyName: string]: unknown;
+  authenticate: (
+    strategy: string,
+    options?: Record<string, unknown>
+  ) => (req: Request, res: Response, next?: NextFunction) => void;
+  [strategyName: string]: unknown;
 }
 
 /**
@@ -188,103 +196,104 @@ export interface PassportConfig {
  * Provides type-safe access to all configuration values
  */
 export interface SailsConfig {
-    // Core config keys (migrated)
-    api: ReDBoxAPIConfig;
-    appmode: AppModeConfig;
-    record: RecordConfig;
-    vocab: VocabConfig;
-    datastores: DatastoresConfig;
-    sockets: SocketsConfig;
-    static_assets: StaticAssetsConfig;
-    http: HttpConfig;
-    i18n: I18nConfig;
-    search: SearchConfig;
-    namedQuery: NamedQueryConfig;
-    action: ActionConfig;
-    dynamicasset: DynamicAssetConfig;
-    peopleSearch: PeopleSearchConfig;
-    reusableFormDefinitions: ReusableFormDefinitions;
-    log: LogConfig;
-    ng2: Ng2Config;
+  // Core config keys (migrated)
+  api: ReDBoxAPIConfig;
+  appmode: AppModeConfig;
+  record: RecordConfig;
+  vocab: VocabConfig;
+  datastores: DatastoresConfig;
+  sockets: SocketsConfig;
+  static_assets: StaticAssetsConfig;
+  http: HttpConfig;
+  i18n: I18nConfig;
+  search: SearchConfig;
+  namedQuery: NamedQueryConfig;
+  action: ActionConfig;
+  dynamicasset: DynamicAssetConfig;
+  peopleSearch: PeopleSearchConfig;
+  reusableFormDefinitions: ReusableFormDefinitions;
+  log: LogConfig;
+  ng2: Ng2Config;
 
-    // Sails core configs
-    blueprints: BlueprintsConfig;
-    cors: CorsConfig;
-    redboxSession: RedboxSessionConfig;
-    companion: CompanionConfig;
-    security: SecurityConfig;
-    globals: GlobalsConfig;
-    models: ModelsConfig;
-    orm: OrmConfig;
-    policies: PoliciesConfig;
-    session: SessionConfigOrDisabled;
-    views: ViewsConfig;
-    routes: RoutesConfig;
-    bootstrap: BootstrapConfig;
-    apiRoutesHooks?: ApiRouteProvider[];
+  // Sails core configs
+  blueprints: BlueprintsConfig;
+  cors: CorsConfig;
+  redboxSession: RedboxSessionConfig;
+  companion: CompanionConfig;
+  security: SecurityConfig;
+  globals: GlobalsConfig;
+  models: ModelsConfig;
+  orm: OrmConfig;
+  policies: PoliciesConfig;
+  session: SessionConfigOrDisabled;
+  views: ViewsConfig;
+  routes: RoutesConfig;
+  bootstrap: BootstrapConfig;
+  apiRoutesHooks?: ApiRouteProvider[];
+  authorizationScopeSources?: readonly ScopeRegistrySource[];
 
-    // Feature configs
-    queue: QueueConfig;
-    storage: StorageConfig;
-    orcid: OrcidConfig;
-    mint: MintConfig;
-    jsonld: JsonLdConfig;
-    emailnotification: EmailNotificationConfig;
-    agendaQueue: AgendaQueueConfig;
-    crontab: CrontabConfig;
-    figshareDev: FigshareDevConfig;
-    solr: SolrSearchConfig;
-    form: FormConfig;
-    webpack: WebpackConfig;
+  // Feature configs
+  queue: QueueConfig;
+  storage: StorageConfig;
+  orcid: OrcidConfig;
+  mint: MintConfig;
+  jsonld: JsonLdConfig;
+  emailnotification: EmailNotificationConfig;
+  agendaQueue: AgendaQueueConfig;
+  crontab: CrontabConfig;
+  figshareDev: FigshareDevConfig;
+  solr: SolrSearchConfig;
+  form: FormConfig;
+  webpack: WebpackConfig;
 
-    // Security configs
-    csp: ContentSecurityPolicyConfig;
-    dompurify: DomPurifyConfig;
+  // Security configs
+  csp: ContentSecurityPolicyConfig;
+  dompurify: DomPurifyConfig;
 
+  // Complex/Large configs
+  branding: BrandingConfig;
+  brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
+  raid: RaidConfig;
+  recordtype: RecordTypeConfig;
+  workflow: WorkflowConfig;
+  dashboardview: DashboardViewConfig;
 
-    // Complex/Large configs
-    branding: BrandingConfig;
-    brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
-    raid: RaidConfig;
-    recordtype: RecordTypeConfig;
-    workflow: WorkflowConfig;
-    dashboardview: DashboardViewConfig;
+  // Miscellaneous configs
+  autoreload: AutoreloadConfig;
+  custom: CustomConfig;
+  dynamicconfig: DynamicConfigConfig;
+  dashboardtype: DashboardTypeConfig;
+  workspacetype: WorkspaceTypeConfig;
+  lognamespace: LogNamespaceConfig;
+  redboxToCkan: RedboxToCkanConfig;
+  typescript: TypeScriptHookConfig;
+  custom_cache: CustomCacheConfig;
+  validators: ValidatorsConfig;
+  recordValidation: RecordValidationConfig;
+  recordSchema: RecordSchemaConfig;
+  harvestRuns: HarvestRunsConfig;
 
-    // Miscellaneous configs
-    autoreload: AutoreloadConfig;
-    custom: CustomConfig;
-    dynamicconfig: DynamicConfigConfig;
-    dashboardtype: DashboardTypeConfig;
-    workspacetype: WorkspaceTypeConfig;
-    lognamespace: LogNamespaceConfig;
-    redboxToCkan: RedboxToCkanConfig;
-    typescript: TypeScriptHookConfig;
-    custom_cache: CustomCacheConfig;
-    validators: ValidatorsConfig;
-    recordValidation: RecordValidationConfig;
-    recordSchema: RecordSchemaConfig;
-    harvestRuns: HarvestRunsConfig;
+  // Auth-related configs
+  auth: AuthConfig;
+  authorization: AuthorizationConfig;
+  passport: PassportConfig;
 
-    // Auth-related configs
-    auth: AuthConfig;
-    passport: PassportConfig;
+  // Runtime/function configs
+  brandingAware: BrandingAwareFunction;
 
-    // Runtime/function configs
-    brandingAware: BrandingAwareFunction;
+  // Legacy/runtime flags
+  angularDev?: string | boolean;
+  workspacetype_services?: string[];
 
-    // Legacy/runtime flags
-    angularDev?: string | boolean;
-    workspacetype_services?: string[];
+  // Sails built-in configs
+  appPath: string;
+  appUrl: string;
+  environment: string;
+  port: number;
 
-    // Sails built-in configs
-    appPath: string;
-    appUrl: string;
-    environment: string;
-    port: number;
-
-    // Runtime state (can be set at runtime)
-    startupMinute?: number;
-    recordContractContributorState?: RecordContractContributorDiscoveryState;
+  // Runtime state (can be set at runtime)
+  startupMinute?: number;
+  recordContractContributorState?: RecordContractContributorDiscoveryState;
 }
 
 /**
@@ -292,73 +301,74 @@ export interface SailsConfig {
  * Used by the redbox-core loader for shim generation
  */
 export const Config = {
-    api,
-    appmode,
-    record,
-    vocab,
-    sockets,
-    static_assets,
-    http,
-    i18n,
-    search,
-    namedQuery,
-    action,
-    dynamicasset,
-    peopleSearch,
-    reusableFormDefinitions,
-    log,
-    ng2,
-    webpack,
-    // Auth config
-    auth,
-    // Sails core configs with default values
-    blueprints,
-    cors,
-    security,
-    globals,
-    datastores,
-    models,
-    orm,
-    session,
-    views,
-    routes,
-    policies,
-    // Feature configs with default values
-    queue,
-    storage,
-    orcid,
-    mint,
-    jsonld,
-    emailnotification,
-    agendaQueue,
-    crontab,
-    figshareDev,
-    solr,
-    // Security configs with default values
-    csp,
-    dompurify,
-    // Miscellaneous configs with default values
-    autoreload,
-    custom,
-    dynamicconfig,
-    dashboardtype,
-    workspacetype,
-    lognamespace,
-    redboxToCkan,
-    typescript,
-    custom_cache,
-    redboxSession,
-    companion,
-    brandingConfigurationDefaults,
-    branding,
-    raid,
-    recordtype,
-    workflow,
-    dashboardview,
-    validators,
-    recordValidation,
-    recordSchema,
-    harvestRuns,
+  api,
+  appmode,
+  record,
+  vocab,
+  sockets,
+  static_assets,
+  http,
+  i18n,
+  search,
+  namedQuery,
+  action,
+  dynamicasset,
+  peopleSearch,
+  reusableFormDefinitions,
+  log,
+  ng2,
+  webpack,
+  // Auth config
+  auth,
+  authorization,
+  // Sails core configs with default values
+  blueprints,
+  cors,
+  security,
+  globals,
+  datastores,
+  models,
+  orm,
+  session,
+  views,
+  routes,
+  policies,
+  // Feature configs with default values
+  queue,
+  storage,
+  orcid,
+  mint,
+  jsonld,
+  emailnotification,
+  agendaQueue,
+  crontab,
+  figshareDev,
+  solr,
+  // Security configs with default values
+  csp,
+  dompurify,
+  // Miscellaneous configs with default values
+  autoreload,
+  custom,
+  dynamicconfig,
+  dashboardtype,
+  workspacetype,
+  lognamespace,
+  redboxToCkan,
+  typescript,
+  custom_cache,
+  redboxSession,
+  companion,
+  brandingConfigurationDefaults,
+  branding,
+  raid,
+  recordtype,
+  workflow,
+  dashboardview,
+  validators,
+  recordValidation,
+  recordSchema,
+  harvestRuns,
 } as const;
 
 // Type for the Config object
