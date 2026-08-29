@@ -354,9 +354,6 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/user/revokeKey': 'UserController.revokeUserKey',
   'post /:branding/:portal/user/update': 'UserController.update',
 
-  // Action routes
-  'post /:branding/:portal/action/:action': 'ActionController.callService',
-
   // App config routes
   'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',
   'post /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.saveAppConfig',

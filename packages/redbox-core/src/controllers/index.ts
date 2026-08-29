@@ -3,7 +3,6 @@
  */
 
 // API controller imports
-import * as ActionControllerModule from './ActionController';
 import * as AdminControllerModule from './AdminController';
 import * as AppConfigControllerModule from './AppConfigController';
 import * as AsynchControllerModule from './AsynchController';
@@ -55,7 +54,6 @@ function getOrCreate(name: string, factory: () => unknown): unknown {
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
-    get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
     get AsynchController() { return getOrCreate('AsynchController', () => new AsynchControllerModule.Controllers.Asynch().exports()); },
@@ -103,7 +101,6 @@ export const WebserviceControllerExports: Record<string, unknown> = {
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
-    'ActionController',
     'AdminController',
     'AppConfigController',
     'AsynchController',

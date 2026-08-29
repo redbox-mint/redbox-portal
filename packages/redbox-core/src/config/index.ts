@@ -17,7 +17,6 @@ export * from './http.config';
 export * from './i18n.config';
 export * from './search.config';
 export * from './namedQuery.config';
-export * from './action.config';
 export * from './dynamicasset.config';
 export * from './peopleSearch.config';
 export * from './reusableFormDefinitions.config';
@@ -90,7 +89,6 @@ import { http, HttpConfig } from './http.config';
 import { i18n, I18nConfig } from './i18n.config';
 import { search, SearchConfig } from './search.config';
 import { namedQuery, NamedQueryConfig } from './namedQuery.config';
-import { action, ActionConfig } from './action.config';
 import { dynamicasset, DynamicAssetConfig } from './dynamicasset.config';
 import { peopleSearch, PeopleSearchConfig } from './peopleSearch.config';
 import { reusableFormDefinitions, ReusableFormDefinitions } from './reusableFormDefinitions.config';
@@ -197,7 +195,6 @@ export interface SailsConfig {
     i18n: I18nConfig;
     search: SearchConfig;
     namedQuery: NamedQueryConfig;
-    action: ActionConfig;
     dynamicasset: DynamicAssetConfig;
     peopleSearch: PeopleSearchConfig;
     reusableFormDefinitions: ReusableFormDefinitions;
@@ -297,7 +294,6 @@ export const Config = {
     i18n,
     search,
     namedQuery,
-    action,
     dynamicasset,
     peopleSearch,
     reusableFormDefinitions,
