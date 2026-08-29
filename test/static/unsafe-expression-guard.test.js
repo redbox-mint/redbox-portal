@@ -1135,6 +1135,86 @@ const multiHopPrototypeCases = [
       Reflect.apply(...prefix, globalThis, [configuredSource]);`,
   },
 ];
+const inheritedDescriptorProvenanceCases = [
+  {
+    name: 'Object.defineProperty reads an inherited setter field',
+    source: `const descriptorPrototype = { set(value) { this[0] = eval; } };
+      const target = {};
+      Object.defineProperty(target, 'x', Object.create(descriptorPrototype));
+      const args = [null];
+      Reflect.set(target, 'x', 1, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty reads a multi-hop inherited getter field',
+    source: `const descriptorRoot = { get() { this[0] = eval; return true; } };
+      const descriptorPrototype = Object.create(descriptorRoot);
+      const target = {};
+      Reflect.defineProperty(target, 'x', Object.create(descriptorPrototype));
+      const args = [null];
+      Reflect.get(target, 'x', args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties reads inherited descriptor fields',
+    source: `const descriptorPrototype = { set(value) { this[0] = eval; } };
+      const target = {};
+      Object.defineProperties(target, { x: Object.create(descriptorPrototype) });
+      const args = [null];
+      Reflect.set(target, 'x', 1, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.create reads inherited fields from its descriptor map',
+    source: `const descriptorPrototype = { get() { this[0] = eval; return true; } };
+      const target = Object.create(null, { x: Object.create(descriptorPrototype) });
+      const args = [null];
+      Reflect.get(target, 'x', args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.setPrototypeOf supplies a descriptor field prototype',
+    source: `const descriptor = {};
+      Object.setPrototypeOf(descriptor, { set(value) { this[0] = eval; } });
+      const target = {};
+      Object.defineProperty(target, 'x', descriptor);
+      const args = [null];
+      Reflect.set(target, 'x', 1, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.setPrototypeOf supplies a descriptor field prototype',
+    source: `const descriptor = {};
+      Reflect.setPrototypeOf(descriptor, { get() { this[0] = eval; return true; } });
+      const target = {};
+      Reflect.defineProperty(target, 'x', descriptor);
+      const args = [null];
+      Reflect.get(target, 'x', args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional descriptor prototype fails closed',
+    source: `const descriptor = Object.create(
+        flag ? { set(value) { this[0] = eval; } } : loadDescriptorPrototype()
+      );
+      const target = {};
+      Object.defineProperty(target, 'x', descriptor);
+      const args = [null];
+      Reflect.set(target, 'x', 1, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an inherited descriptor-field getter fails closed',
+    source: `const descriptorPrototype = {
+        get set() { return function setter(value) { this[0] = eval; }; }
+      };
+      const target = {};
+      Reflect.defineProperty(target, 'x', Object.create(descriptorPrototype));
+      const args = [null];
+      Reflect.set(target, 'x', 1, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+];
 const accessorReceiverMutationCases = [
   {
     name: 'Reflect.set invokes a direct non-positional setter with the carrier receiver',
@@ -1218,6 +1298,158 @@ const accessorReceiverMutationCases = [
       const prefix = [null];
       Reflect.apply(Reflect.get, Reflect, [target, key, prefix]);
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+];
+const observedAccessorSideEffectCases = [
+  {
+    name: 'a standalone property read observes a carrier getter',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', { get() { this[0] = eval; return true; } });
+      args.x;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a void property read observes a carrier getter',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', { get() { this[0] = eval; return true; } });
+      void args.x;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional property read observes a carrier getter',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', { get() { this[0] = eval; return true; } });
+      flag && args.x;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an assigned computed property read observes a carrier getter',
+    source: `const key = 'x';
+      const args = [null];
+      Object.defineProperty(args, key, { get() { this[0] = eval; return true; } });
+      const observed = args[key];
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'object binding destructuring observes a carrier getter',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', { get() { this[0] = eval; return true; } });
+      const { x } = args;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'object assignment destructuring observes a carrier getter',
+    source: `let observed;
+      const args = [null];
+      Object.defineProperty(args, 'x', { get() { this[0] = eval; return true; } });
+      ({ x: observed } = args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'object spread observes a carrier getter',
+    source: `const args = [null];
+      args.__defineGetter__('x', function getter() { this[0] = eval; return true; });
+      const copy = { ...args };
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an inherited getter is observed through ordinary property access',
+    source: `Object.defineProperty(Array.prototype, 'x', {
+        get() { this[0] = eval; return true; }
+      });
+      const args = [null];
+      args.x;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'ordinary assignment observes a carrier setter',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', { set(value) { this[0] = eval; } });
+      args.x = true;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'ordinary assignment observes an inherited carrier setter',
+    source: `Object.defineProperty(Array.prototype, 'x', {
+        set(value) { this[0] = eval; }
+      });
+      const args = [null];
+      args.x = true;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperty observes a descriptor-field getter',
+    source: `const args = [null];
+      args.__defineGetter__('value', function valueGetter() { this[0] = eval; return true; });
+      Object.defineProperty({}, 'x', args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties observes a descriptor-map getter',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', {
+        enumerable: true,
+        get() { this[0] = eval; return { value: true }; }
+      });
+      Object.defineProperties({}, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.assign observes a source getter',
+    source: `const args = [null];
+      args.__defineGetter__('x', function sourceGetter() { this[0] = eval; return true; });
+      Object.assign({}, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a bound Object.assign observes a source getter',
+    source: `const args = [null];
+      args.__defineGetter__('x', function sourceGetter() { this[0] = eval; return true; });
+      const copy = Object.assign.bind(Object, {});
+      copy(args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'descriptor-extracted Object.assign observes a source getter',
+    source: `const args = [null];
+      args.__defineGetter__('x', function sourceGetter() { this[0] = eval; return true; });
+      Object.getOwnPropertyDescriptor(Object, 'assign').value({}, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.apply preserves descriptor-field reads',
+    source: `const args = [null];
+      args.__defineGetter__('value', function valueGetter() { this[0] = eval; return true; });
+      Reflect.apply(Object.defineProperty, Object, [{}, 'x', args]);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Function.prototype.call.call preserves descriptor-map reads',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', {
+        enumerable: true,
+        get() { this[0] = eval; return { value: true }; }
+      });
+      Function.prototype.call.call(Object.defineProperties, Object, {}, args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: '__defineSetter__ is observed by ordinary assignment',
+    source: `const args = [null];
+      args.__defineSetter__('x', function setter(value) { this[0] = eval; });
+      args.x = true;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a descriptor-extracted __defineGetter__ is observed by a read',
+    source: `const args = [null];
+      Object.getOwnPropertyDescriptors(Object.prototype).__defineGetter__.value.call(
+        args,
+        'x',
+        function getter() { this[0] = eval; return true; }
+      );
+      args.x;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
   },
 ];
 const objectAssignPrototypeCases = [
@@ -1384,16 +1616,145 @@ const safeReflectiveCarrierCases = [
       Reflect.get(target, 'harmless', prefix);
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
+  {
+    name: 'an own undefined descriptor field shadows an inherited setter field',
+    source: `const descriptor = Object.create({ set(value) { this[0] = eval; } });
+      Object.defineProperty(descriptor, 'set', { value: undefined });
+      const target = {};
+      Object.defineProperty(target, 'x', descriptor);
+      const args = [null];
+      Reflect.set(target, 'x', true, args);
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'ordinary data reads and destructuring preserve a carrier layout',
+    source: `const args = [null];
+      Object.defineProperty(args, 'x', { value: true });
+      const direct = args.x;
+      const { x } = args;
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'ordinary data spread and Object.assign preserve a carrier layout',
+    source: `const args = [null];
+      args.x = true;
+      const copy = { ...args };
+      Object.assign({}, args);
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+];
+const safePluralDescriptorTargetCases = [
+  {
+    name: 'Array.of from plural descriptors',
+    source: `const target = Object.getOwnPropertyDescriptors(Array).of.value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'globalThis.Array.of from plural descriptors',
+    source: `const target = Object.getOwnPropertyDescriptors(globalThis.Array).of.value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'an aliased plural descriptor extractor returns Array.of',
+    source: `const descriptorsOf = Object.getOwnPropertyDescriptors;
+      const target = descriptorsOf(Array).of.value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'Object.getOwnPropertyDescriptors.call returns Array.of',
+    source: `const target = Object.getOwnPropertyDescriptors.call(Object, Array).of.value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'a bound plural descriptor extractor returns Array.of',
+    source: `const descriptorsOfArray = Object.getOwnPropertyDescriptors.bind(Object, Array);
+      const target = descriptorsOfArray().of.value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'Reflect.apply returns plural Array descriptors',
+    source: `const descriptors = Reflect.apply(Object.getOwnPropertyDescriptors, Object, [Array]);
+      const target = Reflect.get(Reflect.get(descriptors, 'of'), 'value');
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'singular descriptor extraction returns Array.of',
+    source: `const target = Reflect.getOwnPropertyDescriptor(Array, 'of').value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'plural global descriptors return the Array constructor',
+    source: `const target = Object.getOwnPropertyDescriptors(globalThis).Array.value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'plural JSON descriptors return JSON.parse',
+    source: `const target = Object.getOwnPropertyDescriptors(globalThis.JSON).parse.value;
+      Reflect.apply(target, null, ['{}', eval, _.template]);`,
+  },
+  {
+    name: 'Array construction remains a known-safe target',
+    source: `Reflect.construct(globalThis.Array, [eval, _.template]);`,
+  },
+];
+const unsafePluralDescriptorTargetCases = [
+  {
+    name: 'a conditional plural descriptor target may be eval',
+    kind: 'direct-eval',
+    source: `const safe = Object.getOwnPropertyDescriptors(Array).of.value;
+      const target = flag ? safe : eval;
+      Reflect.apply(target, null, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional plural descriptor target may be Lodash template',
+    kind: 'lodash-template',
+    source: `const safe = Object.getOwnPropertyDescriptors(globalThis.Array).of.value;
+      const target = flag ? safe : _.template;
+      Reflect.apply(target, null, [configuredSource]);`,
+  },
+  {
+    name: 'a reassigned Array.of retains eval provenance',
+    kind: 'direct-eval',
+    source: `Array.of = eval;
+      const target = Object.getOwnPropertyDescriptors(Array).of.value;
+      Reflect.apply(target, null, [configuredSource]);`,
+  },
+  {
+    name: 'a reassigned global Array constructor retains eval provenance',
+    kind: 'direct-eval',
+    source: `globalThis.Array = eval;
+      const target = Object.getOwnPropertyDescriptors(globalThis).Array.value;
+      Reflect.apply(target, null, [configuredSource]);`,
+  },
+  {
+    name: 'a reassigned descriptor-extracted Object method retains eval provenance',
+    kind: 'direct-eval',
+    source: `Object.assign = eval;
+      const target = Object.getOwnPropertyDescriptors(Object).assign.value;
+      Reflect.apply(target, null, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown alternative to Array.of fails closed',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflect-target',
+    source: `const safe = Object.getOwnPropertyDescriptors(Array).of.value;
+      const target = flag ? safe : loadTarget();
+      Reflect.apply(target, null, [configuredSource]);`,
+  },
 ];
 const reviewedReflectiveMutationCases = [
   ...multiHopPrototypeCases,
+  ...inheritedDescriptorProvenanceCases,
   ...accessorReceiverMutationCases,
+  ...observedAccessorSideEffectCases,
   ...objectAssignPrototypeCases,
   ...legacyAccessorMutationCases,
 ];
 const productionBlockingReviewCases = [
   multiHopPrototypeCases[0],
+  inheritedDescriptorProvenanceCases[0],
   accessorReceiverMutationCases[0],
+  observedAccessorSideEffectCases[0],
   objectAssignPrototypeCases[0],
   legacyAccessorMutationCases[2],
 ];
@@ -1947,7 +2308,7 @@ test('mutable spread prefixes fail closed after length-changing writes and mutat
   }
 });
 
-test('multi-hop prototypes, receiver accessors, Object.assign, and legacy accessors fail closed', () => {
+test('reviewed prototype, descriptor, accessor, Object.assign, and legacy paths fail closed', () => {
   for (const reviewCase of reviewedReflectiveMutationCases) {
     const firstFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
     const secondFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
@@ -1960,12 +2321,56 @@ test('multi-hop prototypes, receiver accessors, Object.assign, and legacy access
   }
 });
 
+test('inherited descriptor fields are resolved recursively and fail closed', () => {
+  for (const descriptorCase of inheritedDescriptorProvenanceCases) {
+    const findings = scanSource(descriptorCase.source, 'packages/example/src/inherited-descriptor.ts');
+    assert.deepEqual(
+      findings.map(finding => [finding.kind, finding.reason]),
+      [['analysis-limit', 'positional-layout-limit']],
+      `${descriptorCase.name} should produce one bounded fail-closed finding`
+    );
+  }
+});
+
+test('observed accessor side effects invalidate only their possible carrier receivers', () => {
+  for (const accessorCase of observedAccessorSideEffectCases) {
+    const findings = scanSource(accessorCase.source, 'packages/example/src/observed-accessor.ts');
+    assert.deepEqual(
+      findings.map(finding => [finding.kind, finding.reason]),
+      [['analysis-limit', 'positional-layout-limit']],
+      `${accessorCase.name} should produce one bounded fail-closed finding`
+    );
+  }
+});
+
 test('known-safe reflective carrier operations remain clean', () => {
   for (const safeCase of safeReflectiveCarrierCases) {
     assert.deepEqual(
       scanSource(safeCase.source, 'packages/example/src/safe-reflective-carrier.ts'),
       [],
       `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
+test('plural descriptor extraction preserves known-safe builtin targets', () => {
+  for (const safeCase of safePluralDescriptorTargetCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/safe-plural-descriptor.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
+test('plural descriptor targets retain unsafe and unknown alternatives', () => {
+  for (const unsafeCase of unsafePluralDescriptorTargetCases) {
+    const findings = scanSource(unsafeCase.source, 'packages/example/src/unsafe-plural-descriptor.ts');
+    assert.ok(
+      findings.some(
+        finding => finding.kind === unsafeCase.kind && (!unsafeCase.reason || finding.reason === unsafeCase.reason)
+      ),
+      `${unsafeCase.name} should preserve unsafe provenance: ${JSON.stringify(findings)}`
     );
   }
 });
@@ -1992,6 +2397,18 @@ test('the guard CLI accepts known-safe reflective carrier operations', t => {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const sources = safeReflectiveCarrierCases.map((safeCase, index) => ({
     relativePath: `packages/example/src/safe-reflective-carrier-${index}.ts`,
+    source: safeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('the guard CLI accepts known-safe plural descriptor targets', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = safePluralDescriptorTargetCases.map((safeCase, index) => ({
+    relativePath: `packages/example/src/safe-plural-descriptor-${index}.ts`,
     source: safeCase.source,
   }));
   const result = invokeGuardWithTrackedSources(root, sources);
@@ -2034,8 +2451,8 @@ test('the production npm lint path rejects every focused carrier review mechanis
   }
 });
 
-test('the production npm lint path rejects all four blocking review classes', t => {
-  assert.equal(productionBlockingReviewCases.length, 4);
+test('the production npm lint path rejects all blocking review classes', t => {
+  assert.equal(productionBlockingReviewCases.length, 6);
   const root = createEndToEndGuardRepository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const sources = productionBlockingReviewCases.map((reviewCase, index) => ({
@@ -2247,6 +2664,63 @@ test('set merges and propagation subscribers share a deterministic analysis budg
   assert.match(result.stderr, /analysis-limit .*\(analysis-work-limit\)/);
   assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure/i);
   assert.ok(result.stderr.length < 4096, `set-propagation diagnostics were ${result.stderr.length} bytes`);
+});
+
+test('large descriptor dependencies, callable composition, and accessor fan-out stay bounded under low heap', t => {
+  const stressCases = [
+    {
+      relativePath: 'packages/example/src/descriptor-prototype-3000.ts',
+      source: [
+        'let descriptor = { set(value) { this[0] = eval; } };',
+        ...Array.from({ length: 3000 }, () => 'descriptor = Object.create(descriptor);'),
+        "const target = {}; Object.defineProperty(target, 'x', descriptor);",
+        "const args = [null]; Reflect.set(target, 'x', 1, args);",
+        'Reflect.apply(...args, globalThis, [configuredSource]);',
+      ].join('\n'),
+    },
+    {
+      relativePath: 'packages/example/src/callable-composition-5000.ts',
+      source: [
+        'let callable = eval;',
+        ...Array.from({ length: 5000 }, () => 'callable = callable.bind(null);'),
+        'callable(configuredSource);',
+      ].join('\n'),
+    },
+    {
+      relativePath: 'packages/example/src/accessor-carrier-fanout-8000.ts',
+      source: [
+        'const args = [null];',
+        ...Array.from({ length: 8000 }, (_, index) => `const observed${index} = args.x;`),
+        "Object.defineProperty(args, 'x', { get() { this[0] = eval; return true; } });",
+        'args.x;',
+        'Reflect.apply(...args, globalThis, [configuredSource]);',
+      ].join('\n'),
+    },
+  ];
+
+  for (const stressCase of stressCases) {
+    const firstFindings = scanSource(stressCase.source, stressCase.relativePath);
+    const secondFindings = scanSource(stressCase.source, stressCase.relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${stressCase.relativePath} should be deterministic`);
+    assert.deepEqual(
+      firstFindings.map(finding => [finding.kind, finding.reason]),
+      [['analysis-limit', 'analysis-work-limit']],
+      `${stressCase.relativePath} should stop at one global work sentinel`
+    );
+  }
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSources(root, stressCases, ['--max-old-space-size=128']);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(analysis-work-limit\)/);
+  assert.doesNotMatch(result.stderr, /heap out of memory|SIGABRT|allocation failure|RangeError/i);
+  assert.ok(result.stderr.length < 4096, `large-stress diagnostics were ${result.stderr.length} bytes`);
+  for (const { relativePath } of stressCases) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
 });
 
 test('deep call composition returns one bounded fail-closed diagnostic without a RangeError', t => {
