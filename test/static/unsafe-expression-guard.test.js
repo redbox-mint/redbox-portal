@@ -13,6 +13,8 @@ const {
   documentationRelativePath,
   isManagedOrRemovedPath,
   isScannedSourcePath,
+  maximumFindingsPerFile,
+  maximumRepositoryFindings,
   normalizeRelativePath,
   runGuard,
   scanRepository,
@@ -576,6 +578,74 @@ const spreadInvocationCases = [
     source: `const invoke = Reflect.construct; invoke(...[_.template, [configuredSource]]);`,
   },
 ];
+const variableLengthSpreadCases = [
+  {
+    name: 'a conditional Reflect.apply prefix',
+    kind: 'direct-eval',
+    source: `Reflect.apply(...(flag ? [] : [null]), eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a reassigned prefix through a Reflect.apply alias',
+    kind: 'direct-eval',
+    source: `let prefix = []; prefix = [null]; const invoke = Reflect.apply;
+      invoke(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a computed nested mixed-array prefix',
+    kind: 'direct-eval',
+    source: `const choices = { short: [], long: [null] };
+      Reflect.apply(...[...choices[key]], eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a Reflect.apply.call prefix',
+    kind: 'direct-eval',
+    source: `Reflect.apply.call(...(flag ? [] : [null]), null, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a Reflect.apply.apply prefix',
+    kind: 'direct-eval',
+    source: `Reflect.apply.apply(...(flag ? [] : [null]), null, [eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'a Reflect.apply.bind prefix',
+    kind: 'direct-eval',
+    source: `Reflect.apply.bind(...(flag ? [] : [null]), Reflect, eval, globalThis)([configuredSource]);`,
+  },
+  {
+    name: 'a Reflect.apply.bind.call prefix',
+    kind: 'direct-eval',
+    source: `Reflect.apply.bind.call(...(flag ? [] : [null]), Reflect.apply, Reflect, eval, globalThis)(
+      [configuredSource]
+    );`,
+  },
+  {
+    name: 'a conditional Reflect.construct prefix',
+    kind: 'lodash-template',
+    source: `Reflect.construct(...(flag ? [] : [null]), _.template, [configuredSource]);`,
+  },
+  {
+    name: 'a Reflect.construct.call prefix',
+    kind: 'lodash-template',
+    source: `Reflect.construct.call(...(flag ? [] : [null]), null, _.template, [configuredSource]);`,
+  },
+  {
+    name: 'a Reflect.construct.apply prefix',
+    kind: 'lodash-template',
+    source: `Reflect.construct.apply(...(flag ? [] : [null]), null, [_.template, [configuredSource]]);`,
+  },
+  {
+    name: 'a Reflect.construct.bind prefix',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind(...(flag ? [] : [null]), Reflect, _.template)([configuredSource]);`,
+  },
+  {
+    name: 'a Reflect.construct.bind.call prefix',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind.call(...(flag ? [] : [null]), Reflect.construct, Reflect, _.template)(
+      [configuredSource]
+    );`,
+  },
+];
 const globalLodashCases = [
   {
     name: 'globalThis Lodash global',
@@ -1011,6 +1081,98 @@ test('spread provenance remains positionally bounded to 64 invocation arguments'
     ['direct-eval']
   );
   assert.deepEqual(scanSource(safeSource, 'packages/example/src/bounded-safe-spread.ts'), []);
+});
+
+test('variable-length spread prefixes retain every executable positional alternative', () => {
+  for (const spreadCase of variableLengthSpreadCases) {
+    const findings = scanSource(spreadCase.source, 'packages/example/src/variable-spread.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === spreadCase.kind),
+      `${spreadCase.name} should produce a ${spreadCase.kind} finding: ${JSON.stringify(findings)}`
+    );
+  }
+});
+
+test('unknown-length spread prefixes fail closed when a tracked callable can shift position', () => {
+  for (const source of [
+    `const prefix = loadPrefix();
+     Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+    `const prefix = flag ? [] : loadPrefix();
+     Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+    `let prefix = [];
+     prefix = loadPrefix();
+     Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+    `const carriers = { selected: loadPrefix() };
+     Reflect.construct(...carriers[key], _.template, [configuredSource]);`,
+    `let prefix;
+     const invoke = Reflect.apply.bind.call(Reflect.apply, ...prefix, Reflect, eval, globalThis);
+     invoke([configuredSource]);`,
+  ]) {
+    const findings = scanSource(source, 'packages/example/src/unknown-spread.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit'),
+      `unknown positional provenance should fail closed: ${JSON.stringify(findings)}`
+    );
+  }
+});
+
+test('deep call composition returns one bounded fail-closed diagnostic without a RangeError', t => {
+  const callDepth = 4000;
+  const source = `${'Reflect.apply.call('.repeat(callDepth)}null${', null)'.repeat(callDepth)};`;
+  const findings = scanSource(source, 'packages/example/src/deep-composition.ts');
+
+  assert.deepEqual(
+    findings.map(finding => [finding.kind, finding.reason]),
+    [['analysis-limit', 'syntactic-nesting-limit']]
+  );
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSource(root, source);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(syntactic-nesting-limit\)/);
+  assert.doesNotMatch(result.stderr, /RangeError|Maximum call stack size exceeded/);
+  assert.ok(result.stderr.length < 4096, `deep-composition diagnostics were ${result.stderr.length} bytes`);
+});
+
+test('per-file unsafe-site findings and CLI diagnostics are explicitly capped', t => {
+  const source = Array.from({ length: 5000 }, () => 'eval(configuredSource);').join('\n');
+  const findings = scanSource(source, 'packages/example/src/many-unsafe-sites.ts');
+
+  assert.equal(findings.length, maximumFindingsPerFile + 1);
+  assert.ok(findings.slice(0, maximumFindingsPerFile).every(finding => finding.kind === 'direct-eval'));
+  assert.deepEqual([findings.at(-1).kind, findings.at(-1).reason], ['analysis-limit', 'per-file-finding-limit']);
+
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const result = invokeGuardWithTrackedSource(root, source);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(per-file-finding-limit\)/);
+  assert.ok(result.stderr.length < 65536, `unsafe-site diagnostics were ${result.stderr.length} bytes`);
+});
+
+test('repository findings stop at an explicit overall cap', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const source = Array.from({ length: maximumFindingsPerFile + 32 }, () => 'eval(configuredSource);').join('\n');
+  const sources = Array.from({ length: 5 }, (_, index) => ({
+    relativePath: `packages/example/src/many-unsafe-sites-${index}.ts`,
+    source,
+  }));
+  for (const fixture of sources) {
+    const absolutePath = path.join(root, ...fixture.relativePath.split('/'));
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, fixture.source);
+  }
+  execFileSync('git', ['add', '.'], { cwd: root });
+
+  const findings = scanRepository(root, new Set());
+  assert.equal(findings.length, maximumRepositoryFindings + 1);
+  assert.equal(
+    findings.filter(finding => finding.kind === 'analysis-limit' && finding.reason === 'repository-finding-limit')
+      .length,
+    1
+  );
 });
 
 test('the guard invocation rejects every provenance bypass', async t => {
