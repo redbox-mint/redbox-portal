@@ -810,6 +810,23 @@ function collectBindings(sourceFile) {
     const result = new Set();
     for (const atom of value) {
       if (typeof atom === 'string') {
+        const state = builtinPrototypeState(atom);
+        if (state) {
+          trackPropagationDependency(state);
+          if (propertyNames === undefined) {
+            for (const propertyValue of state.properties.values()) mergeValue(result, propertyValue);
+            if ([...state.accessors.values()].some(accessor => accessor.get.size > 0)) {
+              result.add(unknownValueAtom);
+            }
+          } else {
+            for (const propertyName of propertyNames) {
+              mergeValue(result, state.properties.get(propertyName) ?? new Set());
+              if (state.accessors.get(propertyName)?.get.size > 0) result.add(unknownValueAtom);
+            }
+          }
+          mergeValue(result, state.unknownProperty);
+          if (state.unknownAccessors.get.size > 0) result.add(unknownValueAtom);
+        }
         if (propertyNames === undefined) mergeValue(result, specialProperty(atom, undefined));
         else for (const propertyName of propertyNames) mergeValue(result, specialProperty(atom, propertyName));
         continue;
@@ -952,9 +969,16 @@ function collectBindings(sourceFile) {
 
   function builtinPrototypeState(origin) {
     if (
+      origin !== origins.arrayObject &&
       origin !== origins.arrayPrototype &&
+      origin !== origins.functionObject &&
       origin !== origins.functionPrototype &&
-      origin !== origins.objectPrototype
+      origin !== origins.globalObject &&
+      origin !== origins.jsonObject &&
+      origin !== origins.objectObject &&
+      origin !== origins.objectPrototype &&
+      origin !== origins.reflectObject &&
+      origin !== origins.symbolObject
     ) {
       return undefined;
     }
@@ -1045,6 +1069,7 @@ function collectBindings(sourceFile) {
 
   function descriptorFieldValues(descriptorValue, field) {
     const result = new Set();
+    invalidateAccessorReceiver(descriptorValue, [field], 'get', descriptorValue);
     for (const atom of descriptorValue) {
       if (typeof atom === 'string' || atom.kind === 'unknown-value') {
         result.add(unknownValueAtom);
@@ -1052,11 +1077,14 @@ function collectBindings(sourceFile) {
       }
       if (atom.kind !== 'carrier') continue;
       trackPropagationDependency(atom);
-      mergeValue(result, atom.properties.get(field) ?? new Set());
-      if (atom.accessors.get(field)?.get.size > 0) result.add(unknownValueAtom);
+      const propertyValue = atom.properties.get(field);
+      const accessor = atom.accessors.get(field);
+      const hasOwnField = propertyValue !== undefined || accessor !== undefined;
+      if (propertyValue) mergeValue(result, propertyValue);
+      if (accessor?.get.size > 0) result.add(unknownValueAtom);
       if (atom.unknownProperty.size > 0 || atom.unknownAccessors.get.size > 0) result.add(unknownValueAtom);
-      for (const prototype of effectivePrototypes(atom)) {
-        if (typeof prototype !== 'string' && prototype.kind === 'unknown-value') result.add(unknownValueAtom);
+      if (!hasOwnField || atom.unknownProperty.size > 0 || atom.unknownAccessors.get.size > 0) {
+        mergeValue(result, prototypePropertyValues(effectivePrototypes(atom), [field]));
       }
     }
     return result;
@@ -1164,6 +1192,26 @@ function collectBindings(sourceFile) {
   function invalidateAccessorReceiver(targetValue, propertyNames, kind, receiverValue) {
     if (accessorMayRun(targetValue, propertyNames, kind)) {
       invalidatePositionalTargets(receiverValue, undefined, unknownValue());
+    }
+  }
+
+  function observedPropertyValue(value, propertyNames, node) {
+    invalidateAccessorReceiver(value, propertyNames, 'get', value);
+    return getProperty(value, propertyNames, node);
+  }
+
+  function observeOwnAccessorReads(value) {
+    for (const atom of value) {
+      const target = abstractTarget(atom);
+      if (!target) continue;
+      trackPropagationDependency(target);
+      if (
+        target.unknownAccessors.get.size > 0 ||
+        [...target.accessors.values()].some(accessor => accessor.get.size > 0)
+      ) {
+        invalidatePositionalTargets(value, undefined, unknownValue());
+        return;
+      }
     }
   }
 
@@ -1302,9 +1350,9 @@ function collectBindings(sourceFile) {
         }
         if (typeof source === 'string' || source.kind !== 'carrier') continue;
         trackPropagationDependency(source);
-        for (const [propertyName, propertyValue] of source.properties) {
+        for (const propertyName of new Set([...source.properties.keys(), ...source.accessors.keys()])) {
           const propertyNames = [propertyName];
-          invalidateAccessorReceiver(new Set([source]), propertyNames, 'get', new Set([source]));
+          const propertyValue = observedPropertyValue(new Set([source]), propertyNames);
           const invokesTargetSetter = accessorMayRun(targetValue, propertyNames, 'set');
           if (invokesTargetSetter) invalidatePositionalTargets(targetValue, undefined, unknownValue());
           invalidatePositionalTargets(targetValue, propertyNames, propertyValue);
@@ -1336,12 +1384,14 @@ function collectBindings(sourceFile) {
       }
       if (descriptors.kind !== 'carrier') continue;
       trackPropagationDependency(descriptors);
-      for (const [propertyName, descriptorValue] of descriptors.properties) {
+      for (const propertyName of new Set([...descriptors.properties.keys(), ...descriptors.accessors.keys()])) {
+        const descriptorValue = observedPropertyValue(new Set([descriptors]), [propertyName]);
         recordDescriptorAccessors(targetValue, [propertyName], descriptorValue);
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
         if (dataValue.size > 0) recordTargetProperty(targetValue, [propertyName], dataValue);
       }
-      if (descriptors.unknownProperty.size > 0) {
+      if (descriptors.unknownProperty.size > 0 || descriptors.unknownAccessors.get.size > 0) {
+        invalidateAccessorReceiver(new Set([descriptors]), undefined, 'get', new Set([descriptors]));
         recordTargetAccessor(targetValue, undefined, 'get', unknownValue());
         recordTargetAccessor(targetValue, undefined, 'set', unknownValue());
       }
@@ -1364,7 +1414,11 @@ function collectBindings(sourceFile) {
       const propertyNames = propertyNamesFromValue(argumentValues[1] ?? new Set());
       const assignedValue =
         atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty
-          ? getProperty(argumentValues[2] ?? new Set(), ['get', 'set', 'value'])
+          ? new Set(
+              ['get', 'set', 'value'].flatMap(field => [
+                ...descriptorFieldValues(argumentValues[2] ?? new Set(), field),
+              ])
+            )
           : (argumentValues[2] ?? new Set());
       invalidatePositionalTargets(argumentValues[0] ?? new Set(), propertyNames, assignedValue);
       if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
@@ -1445,8 +1499,12 @@ function collectBindings(sourceFile) {
         }
       } else if (atom.kind === 'carrier') {
         trackPropagationDependency(atom);
-        for (const [propertyName, propertyValue] of atom.properties) {
+        for (const propertyName of new Set([...atom.properties.keys(), ...atom.accessors.keys()])) {
+          const propertyValue = observedPropertyValue(new Set([atom]), [propertyName]);
           putCarrierProperty(carrier, [propertyName], propertyValue);
+        }
+        if (atom.unknownProperty.size > 0 || atom.unknownAccessors.get.size > 0) {
+          invalidateAccessorReceiver(new Set([atom]), undefined, 'get', new Set([atom]));
         }
         putCarrierProperty(carrier, undefined, atom.unknownProperty);
       }
@@ -1630,8 +1688,10 @@ function collectBindings(sourceFile) {
   }
 
   function ownPropertyNames(atom) {
+    if (atom === origins.arrayObject) return ['of'];
     if (atom === origins.arrayPrototype) return [...positionalMutationMethods];
     if (atom === origins.functionPrototype) return ['apply', 'bind', 'call'];
+    if (atom === origins.jsonObject) return ['parse', 'stringify'];
     if (atom === origins.objectObject) {
       return [
         'assign',
@@ -2128,7 +2188,10 @@ function collectBindings(sourceFile) {
     }
     if (ts.isObjectBindingPattern(name)) {
       for (const element of name.elements) {
-        let elementValue = element.dotDotDotToken ? value : getProperty(value, bindingElementPropertyNames(element));
+        if (element.dotDotDotToken) observeOwnAccessorReads(value);
+        let elementValue = element.dotDotDotToken
+          ? value
+          : observedPropertyValue(value, bindingElementPropertyNames(element));
         if (element.initializer) {
           elementValue = new Set(elementValue);
           mergeValue(elementValue, evaluateExpression(element.initializer));
@@ -2141,7 +2204,7 @@ function collectBindings(sourceFile) {
       if (!ts.isBindingElement(element)) continue;
       let elementValue = element.dotDotDotToken
         ? arrayRestValue(value, index, element)
-        : getProperty(value, [String(index)]);
+        : observedPropertyValue(value, [String(index)]);
       if (element.initializer) {
         elementValue = new Set(elementValue);
         mergeValue(elementValue, evaluateExpression(element.initializer));
@@ -2181,14 +2244,50 @@ function collectBindings(sourceFile) {
     if (ts.isObjectLiteralExpression(current)) {
       for (const property of current.properties) {
         if (ts.isShorthandPropertyAssignment(property)) {
-          assignToTarget(property.name, getProperty(value, [property.name.text]));
+          assignToTarget(property.name, observedPropertyValue(value, [property.name.text]));
         } else if (ts.isPropertyAssignment(property)) {
-          assignToTarget(property.initializer, getProperty(value, declaredPropertyNames(property.name)));
+          assignToTarget(property.initializer, observedPropertyValue(value, declaredPropertyNames(property.name)));
         } else if (ts.isSpreadAssignment(property)) {
+          observeOwnAccessorReads(value);
           assignToTarget(property.expression, value);
         }
       }
     }
+  }
+
+  function isWriteOnlyPropertyAccess(node) {
+    let current = node;
+    while (current.parent) {
+      const parent = current.parent;
+      if (
+        ((ts.isParenthesizedExpression(parent) ||
+          ts.isAsExpression(parent) ||
+          ts.isTypeAssertionExpression(parent) ||
+          ts.isNonNullExpression(parent) ||
+          ts.isSatisfiesExpression(parent) ||
+          ts.isPartiallyEmittedExpression(parent)) &&
+          parent.expression === current) ||
+        (ts.isPropertyAssignment(parent) && parent.initializer === current) ||
+        ((ts.isSpreadAssignment(parent) || ts.isSpreadElement(parent)) && parent.expression === current) ||
+        (ts.isObjectLiteralExpression(parent) && parent.properties.includes(current)) ||
+        (ts.isArrayLiteralExpression(parent) && parent.elements.includes(current))
+      ) {
+        current = parent;
+        continue;
+      }
+      break;
+    }
+    const parent = current.parent;
+    if (!parent) return false;
+    if (ts.isDeleteExpression(parent) && parent.expression === current) return true;
+    if (
+      ts.isBinaryExpression(parent) &&
+      parent.left === current &&
+      parent.operatorToken.kind === ts.SyntaxKind.EqualsToken
+    ) {
+      return true;
+    }
+    return (ts.isForInStatement(parent) || ts.isForOfStatement(parent)) && parent.initializer === current;
   }
 
   function ambientGlobalValue(name) {
@@ -2256,6 +2355,11 @@ function collectBindings(sourceFile) {
         invalidatePositionalMutationCall(node);
         invalidateIndirectPositionalMutationCall(node);
       };
+    } else if (
+      (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) &&
+      !isWriteOnlyPropertyAccess(node)
+    ) {
+      run = () => evaluateExpression(node);
     } else if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) {
       run = () => evaluateExpression(node);
     }
