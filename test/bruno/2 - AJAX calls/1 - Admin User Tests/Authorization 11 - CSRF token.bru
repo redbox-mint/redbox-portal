@@ -1,0 +1,32 @@
+meta {
+  name: Authorization - CSRF token
+  type: http
+  seq: 53
+}
+
+get {
+  url: {{host}}/csrfToken
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Returns the configured CSRF bootstrap shape", function () {
+    expect(res.getStatus()).to.equal(200);
+    const token = res.getBody()._csrf;
+    // The general integration profile disables global Sails CSRF, so the
+    // bootstrap value is intentionally empty there. Production defaults to
+    // CSRF enabled and returns a session-bound token from this same route.
+    expect(token).to.be.a("string");
+  });
+}

@@ -11,8 +11,8 @@ The currently delivered routes are under:
 /:branding/:portal/api/authorization
 ```
 
-The remaining assignment, audit, explain, readiness, import, and export routes
-described in the authorization design are not part of the current surface yet.
+The remaining audit, explain, readiness, import, and export routes described in
+the authorization design are not part of the current surface yet.
 
 ## Authentication and route scopes
 
@@ -41,6 +41,13 @@ performed by services.
 | `POST /roles/:key/inactivation-preview`   | `authorization.role.manage`   | Preview bounded assignment, record, and configuration impact.                                 |
 | `POST /roles/:key/inactivate`             | `authorization.role.manage`   | Inactivate an eligible role while retaining assignments and history.                          |
 | `DELETE /roles/:key`                      | `authorization.role.manage`   | Preview, then confirm, deletion of a never-used dependency-free role.                          |
+| `GET /assignments`                        | `authorization.assignment.read` | Filtered, cursor-paginated assignments in the active authorization context.                 |
+| `PUT /assignments/:roleKey/users/:userId` | `authorization.assignment.manage` | Idempotently grant or reactivate the documented manual source tuple.                       |
+| `DELETE /assignments/:roleKey/users/:userId` | `authorization.assignment.manage` | Revoke only the documented manual source tuple with CAS.                                |
+| `POST /assignments/:assignmentId/suppress` | `authorization.assignment.manage` | Locally suppress one exact external source tuple with CAS.                                |
+| `POST /assignments/:assignmentId/unsuppress` | `authorization.assignment.manage` | Remove local suppression without inventing provider presence.                           |
+| `POST /assignments/bulk-preview`          | `authorization.assignment.manage` | Validate and preview at most 100 manual assignment rows.                                  |
+| `POST /assignments/bulk-apply`            | `authorization.assignment.manage` | Atomically apply an unchanged, confirmed assignment preview.                              |
 
 Session-authenticated mutation requests must pass the existing ReDBox CSRF
 token. Bearer-authenticated mutation requests do not use browser CSRF state.
@@ -191,6 +198,75 @@ transaction, and a success audit on the same connection. If the adapter cannot
 provide that guarantee, the API returns `503` without falling back to a partial
 write.
 
+## Assignment catalog and mutations
+
+`GET /assignments` is ordered by immutable assignment ID and accepts `cursor`,
+`limit`, `userId`, `roleKey`, `source`, `status`, `sourcePresent`, and `expiry`.
+The page size is bounded to `1..100`. `sourcePresent` is the literal query value
+`true` or `false`; `expiry` is `expired`, `unexpired`, or `never`. Each item
+contains its exact source tuple, state, version, optional expiry, and bounded
+assignment/revocation/suppression provenance. Brand administrators see only
+rows whose assignment and role both belong to the active brand. A caller with
+`system.authorization.manage` may additionally see the protected global
+system-role context; neither actor type can use this route to enumerate another
+brand. Missing roles or inconsistent persisted ownership fail closed instead of
+returning a partially trusted page.
+
+The single-user `PUT` and `DELETE` routes always address `source: "manual"` and
+`sourceKey: "manual"`; request bodies cannot select an external source or a
+brand. `PUT` accepts an optional `expectedVersion`, reason, and offset ISO-8601
+`expiresAt`. Expiry must be in the future. Repeating an already-active grant
+with the same expiry is a successful no-op with `changed: false`; a revoked or
+expired tuple is reactivated in place so its source history is retained.
+`DELETE` requires `expectedVersion` and revokes only that manual tuple. Other
+manual keys and external tuples continue to contribute authority.
+
+Through this contract API, external tuples are changed only by the
+assignment-ID suppression routes. Both require `expectedVersion` and reject
+manual sources. Suppression retains
+the provider's last `sourcePresent` value. Unsuppression becomes active only
+when the provider still requests the tuple; otherwise the tuple becomes
+revoked. Assignment-ID lookup validates the role and assignment against the
+active brand or the explicitly authorized protected global system context, and
+inaccessible IDs return the same opaque `404` as missing IDs.
+
+Every grant/reactivation checks the role status, implicit-Guest prohibition,
+target-user canonicalization, the caller's delegation ceiling, and protected
+system-role authority. Removing effective protected administrator authority
+rechecks brand/system quorum under a role lock. System-role writes require
+`system.authorization.manage`; brand administrators receive an opaque `404`
+for the global role. Successful changes and the legacy `User.roles` projection
+are committed with the authoritative assignment and audit event in one
+required transaction.
+
+### Bulk preview and apply
+
+Bulk bodies accept JSON rows directly, a JSON-encoded row string, or a CSV
+string. String payloads are limited to 256 KiB and every form contains between
+1 and 100 rows. CSV headers are selected from `action`, `principalId`,
+`roleKey`, `sourceKey`, `expiresAt`, and `expectedVersion`; duplicate or unknown
+headers are invalid, and `action`, `principalId`, and `roleKey` are required.
+Every CSV record must have exactly one value per declared header. JSON row
+objects reject unknown fields, and `expiresAt` is valid only for `grant` rows.
+Rows are manual `grant` or `revoke` actions and duplicate canonical
+user/role/source tuples in one batch are rejected.
+
+Preview resolves canonical users and current assignment versions on the
+server, validates expiry, delegation, brand ownership, and row CAS, and reports
+`grant`, `revoke`, `no-op`, or bounded `invalid` outcomes. It returns no token
+when any row is invalid or the whole batch is a no-op. The signed token binds
+the normalized rows, resolved targets and versions, reason, actor, active
+brand, and short expiry.
+
+Apply re-previews before token verification and again inside one required
+transaction. A changed command/token or concurrent state change returns `409`;
+a semantically invalid batch returns `422`. No valid row is written when any
+row is invalid. Each changed row writes its own assignment audit event and the
+batch writes one summary event with a shared `batchId`; no-op rows do not claim
+a change audit. Legacy role projection and all audits share the assignment
+transaction, and an unavailable transaction returns `503` without partial
+writes.
+
 ## Problem Details
 
 Authorization contract failures use `application/problem+json` independently
@@ -227,14 +303,16 @@ and OpenAPI. After changing this surface, run:
 
 ```bash
 npm run validate:api-routes
-npm --prefix packages/redbox-core test -- --grep "authorization contract API routes|webservice AuthorizationController|AuthorizationScopeService contract queries"
-RBPORTAL_MOCHA_TEST_PATHS="test/integration/services/AuthorizationPhase8.test.ts" npm run test:mocha:mount
+npm --prefix packages/redbox-core test -- --grep "authorization contract API routes|webservice AuthorizationController|RoleAdministrationService|AuthorizationScopeService contract queries"
+RBPORTAL_MOCHA_TEST_PATHS=$'test/integration/services/AuthorizationPhase8.test.ts\ntest/integration/services/AuthorizationPhase8Assignments.test.ts' npm run test:mocha:mount
 npm run test:bruno:general:mount
 ```
 
 The focused Mocha integration fixture exercises catalog pagination,
 scope-ceiling denial, opaque revision lookup, transactional template
 publication, cross-brand role hiding, the complete role lifecycle, and atomic
-selected-role template upgrades. The general Bruno collection exercises the
-session-authenticated `/me`, scope/template/role catalogs, role detail, and
-bounded invalid/missing Problem Details paths.
+selected-role template upgrades. The assignment fixture adds source-specific
+mutation, expiry, idempotency, concurrency, protected quorum, cross-brand,
+confirmation, atomic bulk, audit, and legacy-projection coverage. The general
+Bruno collection exercises the session-authenticated catalogs and assignment
+happy/error workflows through the mounted HTTP stack.

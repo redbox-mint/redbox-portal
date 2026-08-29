@@ -1,0 +1,28 @@
+meta {
+  name: Authorization - Invalid assignment filter
+  type: http
+  seq: 53
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/assignments?sourcePresent=maybe
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Rejects invalid assignment filters before the controller", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody()).to.include({ status: 400, code: "authorization.invalid-request" });
+  });
+}

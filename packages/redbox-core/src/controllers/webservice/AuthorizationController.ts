@@ -1,15 +1,19 @@
 import { Controllers as controllers } from '../../CoreController';
 import {
   AuthorizationAdministrationError,
+  ASSIGNMENT_EXPIRY_FILTERS,
   AUTHORIZATION_ROLE_STATUSES,
   AUTHORIZATION_SCOPE_RISKS,
   AUTHORIZATION_SCOPE_SOURCE_TYPES,
   AUTHORIZATION_SCOPE_STATUSES,
   PROTECTED_ROLE_KINDS,
+  ROLE_ASSIGNMENT_SOURCES,
+  ROLE_ASSIGNMENT_STATUSES,
   asRoleKey,
   asScopeKey,
   requireRequestAuthorizationContext,
   type AuthorizationContext,
+  type BulkAssignmentRow,
   type RolloutMode,
 } from '../../authorization';
 import { getValidatedApiRequest } from '../../api-routes';
@@ -30,6 +34,12 @@ function optionalNullableString(value: unknown): string | null | undefined {
 
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' ? value : undefined;
+}
+
+function optionalQueryBoolean(value: unknown): boolean | undefined {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return undefined;
 }
 
 function optionalEnum<const T extends readonly string[]>(values: T, value: unknown): T[number] | undefined {
@@ -98,6 +108,29 @@ function selectedRoleVersions(
     return Object.freeze({
       roleId: requiredString(row.roleId, 'roleId'),
       expectedVersion: requiredPositiveInteger(row.expectedVersion, 'expectedVersion'),
+    });
+  });
+}
+
+function requiredBulkAssignmentRows(value: unknown): readonly BulkAssignmentRow[] | string {
+  if (typeof value === 'string') return value;
+  if (!Array.isArray(value)) {
+    throw new AuthorizationAdministrationError('authorization.bulk-invalid', 422, 'Assignment rows are required.');
+  }
+  return value.map(entry => {
+    if (!isRecord(entry) || (entry.action !== 'grant' && entry.action !== 'revoke')) {
+      throw new AuthorizationAdministrationError('authorization.bulk-invalid', 422, 'An assignment row is invalid.');
+    }
+    const sourceKey = optionalString(entry.sourceKey);
+    const expiresAt = optionalString(entry.expiresAt);
+    const expectedVersion = optionalNumber(entry.expectedVersion);
+    return Object.freeze({
+      action: entry.action,
+      principalId: requiredString(entry.principalId, 'principalId'),
+      roleKey: requiredRoleKey(entry.roleKey),
+      ...(sourceKey === undefined ? {} : { sourceKey }),
+      ...(expiresAt === undefined ? {} : { expiresAt }),
+      ...(expectedVersion === undefined ? {} : { expectedVersion }),
     });
   });
 }
@@ -175,6 +208,13 @@ export namespace Controllers {
       'previewRoleInactivation',
       'inactivateRole',
       'deleteRole',
+      'listAssignments',
+      'grantAssignment',
+      'revokeAssignment',
+      'suppressAssignment',
+      'unsuppressAssignment',
+      'previewBulkAssignments',
+      'applyBulkAssignments',
     ];
 
     private actor(req: Sails.Req): AuthorizationContext {
@@ -522,6 +562,149 @@ export namespace Controllers {
           confirmationToken === undefined
             ? await RoleAdministrationService.previewRoleDeletion(command)
             : await RoleAdministrationService.deleteRole({ ...command, confirmationToken });
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async listAssignments(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const actor = this.actor(req);
+        const query = getValidatedApiRequest(req).query;
+        const page = await RoleAdministrationService.listAssignments({
+          actor,
+          brandId: activeBrandId(actor),
+          cursor: optionalString(query.cursor),
+          limit: optionalNumber(query.limit),
+          principalId: optionalString(query.userId),
+          roleKey: optionalString(query.roleKey),
+          source: optionalEnum(ROLE_ASSIGNMENT_SOURCES, query.source),
+          status: optionalEnum(ROLE_ASSIGNMENT_STATUSES, query.status),
+          sourcePresent: optionalQueryBoolean(query.sourcePresent),
+          expiry: optionalEnum(ASSIGNMENT_EXPIRY_FILTERS, query.expiry),
+        });
+        return this.sendResp(req, res, { data: page, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    private assignmentUserCommand(req: Sails.Req) {
+      const actor = this.actor(req);
+      const validated = getValidatedApiRequest(req);
+      const body = requestBody(req);
+      const roleKey = requiredRoleKey(validated.params.roleKey);
+      const requestBrandId = activeBrandId(actor);
+      return {
+        actor,
+        brandId: roleKey === 'system-admin' ? undefined : requestBrandId,
+        principalId: requiredString(validated.params.userId, 'userId'),
+        roleKey,
+        reason: optionalString(body.reason),
+        requestId: ensureAuthorizationRequestId(req),
+      };
+    }
+
+    public async grantAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const body = requestBody(req);
+        const result = await RoleAdministrationService.grantAssignment({
+          ...this.assignmentUserCommand(req),
+          source: 'manual',
+          sourceKey: 'manual',
+          expectedVersion: optionalNumber(body.expectedVersion),
+          expiresAt: optionalString(body.expiresAt),
+        });
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async revokeAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const body = requestBody(req);
+        const result = await RoleAdministrationService.revokeAssignment({
+          ...this.assignmentUserCommand(req),
+          source: 'manual',
+          sourceKey: 'manual',
+          expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
+        });
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    private assignmentByIdCommand(req: Sails.Req) {
+      const actor = this.actor(req);
+      const validated = getValidatedApiRequest(req);
+      const body = requestBody(req);
+      return {
+        actor,
+        brandId: activeBrandId(actor),
+        assignmentId: requiredString(validated.params.assignmentId, 'assignmentId'),
+        expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
+        reason: optionalString(body.reason),
+        requestId: ensureAuthorizationRequestId(req),
+      };
+    }
+
+    public async suppressAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const result = await RoleAdministrationService.suppressAssignment(this.assignmentByIdCommand(req));
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async unsuppressAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const result = await RoleAdministrationService.unsuppressAssignment(this.assignmentByIdCommand(req));
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    private bulkAssignmentCommand(req: Sails.Req) {
+      const actor = this.actor(req);
+      const body = requestBody(req);
+      return {
+        actor,
+        brandId: activeBrandId(actor),
+        rows: requiredBulkAssignmentRows(body.rows),
+        format: optionalEnum(['json', 'csv'] as const, body.format),
+        reason: optionalString(body.reason),
+        requestId: ensureAuthorizationRequestId(req),
+      };
+    }
+
+    public async previewBulkAssignments(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const preview = await RoleAdministrationService.previewBulkAssignments(this.bulkAssignmentCommand(req));
+        return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async applyBulkAssignments(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const body = requestBody(req);
+        const result = await RoleAdministrationService.applyBulkAssignments({
+          ...this.bulkAssignmentCommand(req),
+          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+        });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
         sendAuthorizationContractProblem(req, res, error);

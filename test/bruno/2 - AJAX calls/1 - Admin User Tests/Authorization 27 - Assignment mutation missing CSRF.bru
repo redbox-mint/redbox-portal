@@ -1,0 +1,33 @@
+meta {
+  name: Authorization - Assignment mutation missing CSRF
+  type: http
+  seq: 53
+}
+
+put {
+  url: {{host}}/default/rdmp/api/authorization/assignments/Librarians/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  X-Source: jsclient
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Fails closed for a session mutation without CSRF", function () {
+    expect(res.getStatus()).to.equal(403);
+    expect(res.getBody()).to.include({ status: 403, code: "access-denied" });
+  });
+}

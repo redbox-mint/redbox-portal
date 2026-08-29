@@ -1,23 +1,30 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'mocha';
 import {
+  applyAuthorizationBulkAssignmentsRoute,
   applyAuthorizationBulkTemplateUpgradeRoute,
   applyAuthorizationRoleScopesRoute,
   applyAuthorizationRoleTemplateUpgradeRoute,
   buildCoreApiOpenApiDocument,
   createAuthorizationRoleRoute,
   deleteAuthorizationRoleRoute,
+  grantAuthorizationAssignmentRoute,
   getAuthorizationMeRoute,
   getAuthorizationRoleRoute,
   getAuthorizationTemplateRevisionRoute,
   inactivateAuthorizationRoleRoute,
+  listAuthorizationAssignmentsRoute,
   listAuthorizationScopesRoute,
   listAuthorizationRolesRoute,
   previewAuthorizationBulkTemplateUpgradeRoute,
+  previewAuthorizationBulkAssignmentsRoute,
   previewAuthorizationRoleInactivationRoute,
   previewAuthorizationRoleScopesRoute,
   previewAuthorizationRoleTemplateUpgradeRoute,
   publishAuthorizationTemplateRevisionRoute,
+  revokeAuthorizationAssignmentRoute,
+  suppressAuthorizationAssignmentRoute,
+  unsuppressAuthorizationAssignmentRoute,
   registerCoreApiRoutes,
   updateAuthorizationRoleRoute,
   validateApiRouteRequest,
@@ -32,7 +39,7 @@ describe('authorization contract API routes', function () {
 
   it('registers the read-side contract with explicit business scopes', () => {
     const routes = registerCoreApiRoutes().filter(route => route.controller === 'webservice/AuthorizationController');
-    assert.equal(routes.length, 18);
+    assert.equal(routes.length, 25);
     assert.deepEqual(
       routes.map(route => [route.method, route.path, route.action, route.authorization]),
       [
@@ -144,6 +151,48 @@ describe('authorization contract API routes', function () {
           'deleteRole',
           { kind: 'scope', scope: 'authorization.role.manage' },
         ],
+        [
+          'get',
+          '/:branding/:portal/api/authorization/assignments',
+          'listAssignments',
+          { kind: 'scope', scope: 'authorization.assignment.read' },
+        ],
+        [
+          'put',
+          '/:branding/:portal/api/authorization/assignments/:roleKey/users/:userId',
+          'grantAssignment',
+          { kind: 'scope', scope: 'authorization.assignment.manage' },
+        ],
+        [
+          'delete',
+          '/:branding/:portal/api/authorization/assignments/:roleKey/users/:userId',
+          'revokeAssignment',
+          { kind: 'scope', scope: 'authorization.assignment.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/assignments/:assignmentId/suppress',
+          'suppressAssignment',
+          { kind: 'scope', scope: 'authorization.assignment.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/assignments/:assignmentId/unsuppress',
+          'unsuppressAssignment',
+          { kind: 'scope', scope: 'authorization.assignment.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/assignments/bulk-preview',
+          'previewBulkAssignments',
+          { kind: 'scope', scope: 'authorization.assignment.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/assignments/bulk-apply',
+          'applyBulkAssignments',
+          { kind: 'scope', scope: 'authorization.assignment.manage' },
+        ],
       ]
     );
   });
@@ -153,7 +202,15 @@ describe('authorization contract API routes', function () {
     assert.equal(typeof controllerPolicies, 'object');
     assert.ok(!Array.isArray(controllerPolicies));
     const actionPolicies = controllerPolicies as Record<string, readonly string[]>;
-    for (const action of ['getMe', 'listScopes', 'listTemplates', 'getTemplateRevision', 'listRoles', 'getRole']) {
+    for (const action of [
+      'getMe',
+      'listScopes',
+      'listTemplates',
+      'getTemplateRevision',
+      'listRoles',
+      'getRole',
+      'listAssignments',
+    ]) {
       assert.equal(actionPolicies[action].includes('protectSessionMutation'), false, action);
     }
     for (const action of [
@@ -169,6 +226,12 @@ describe('authorization contract API routes', function () {
       'previewRoleInactivation',
       'inactivateRole',
       'deleteRole',
+      'grantAssignment',
+      'revokeAssignment',
+      'suppressAssignment',
+      'unsuppressAssignment',
+      'previewBulkAssignments',
+      'applyBulkAssignments',
     ]) {
       assert.equal(actionPolicies[action].includes('protectSessionMutation'), true, action);
       assert.ok(
@@ -369,6 +432,91 @@ describe('authorization contract API routes', function () {
       true
     );
     assert.equal(getAuthorizationRoleRoute.request?.params?.safeParse({ key: 'Grandfathered Role' }).success, true);
+    assert.equal(
+      listAuthorizationAssignmentsRoute.request?.query?.safeParse({
+        limit: '100',
+        roleKey: 'Grandfathered Role',
+        source: 'external',
+        status: 'suppressed',
+        sourcePresent: 'false',
+        expiry: 'never',
+      }).success,
+      true
+    );
+    assert.equal(
+      listAuthorizationAssignmentsRoute.request?.query?.safeParse({ sourcePresent: '0', expiry: 'all' }).success,
+      false
+    );
+    assert.equal(
+      grantAuthorizationAssignmentRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      }).success,
+      true
+    );
+    assert.equal(
+      grantAuthorizationAssignmentRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        source: 'external',
+        brandId: 'another-brand',
+      }).success,
+      false
+    );
+    assert.equal(
+      revokeAuthorizationAssignmentRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        expectedVersion: 1,
+        sourceKey: 'external-source',
+      }).success,
+      false
+    );
+    assert.equal(
+      suppressAuthorizationAssignmentRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        expectedVersion: 1,
+      }).success,
+      true
+    );
+    assert.equal(
+      unsuppressAuthorizationAssignmentRoute.request?.params?.safeParse({ assignmentId: 'assignment-1' }).success,
+      true
+    );
+    const bulkRows = [{ action: 'grant', principalId: 'user-1', roleKey: 'Researcher' }];
+    assert.equal(
+      previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: bulkRows,
+      }).success,
+      true
+    );
+    assert.equal(
+      previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        format: 'csv',
+        rows: bulkRows,
+      }).success,
+      false
+    );
+    assert.equal(
+      applyAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: bulkRows,
+      }).success,
+      false
+    );
+    assert.equal(
+      applyAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: Array.from({ length: 101 }, () => bulkRows[0]),
+        confirmationToken: 'opaque',
+      }).success,
+      false
+    );
+    assert.equal(
+      previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: [
+          {
+            action: 'revoke',
+            principalId: 'user-1',
+            roleKey: 'Researcher',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+          },
+        ],
+      }).success,
+      false
+    );
     const boundedProblem = {
       type: 'https://redboxresearchdata.com/problems/authorization/not-found',
       title: 'Resource was not found',
@@ -430,5 +578,36 @@ describe('authorization contract API routes', function () {
       }).success,
       false
     );
+  });
+
+  it('publishes the assignment filters, scope, and typed mutation response in OpenAPI', () => {
+    const document = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' }) as {
+      paths: Record<
+        string,
+        Record<
+          string,
+          {
+            parameters?: Array<{ in?: string; name?: string }>;
+            responses?: Record<
+              string,
+              { content?: Record<string, { schema?: { safeParse(value: unknown): unknown } }> }
+            >;
+            'x-redbox-scope'?: string;
+          }
+        >
+      >;
+    };
+    const list = document.paths['/default/rdmp/api/authorization/assignments']?.get;
+    const grant = document.paths['/default/rdmp/api/authorization/assignments/{roleKey}/users/{userId}']?.put;
+
+    assert.equal(list?.['x-redbox-scope'], 'authorization.assignment.read');
+    assert.deepEqual(
+      list?.parameters?.filter(parameter => parameter.in === 'query').map(parameter => parameter.name),
+      ['cursor', 'limit', 'userId', 'roleKey', 'source', 'status', 'sourcePresent', 'expiry']
+    );
+    assert.equal(grant?.['x-redbox-scope'], 'authorization.assignment.manage');
+    for (const status of ['400', '401', '403', '404', '409', '422', '500', '503']) {
+      assert.deepEqual(Object.keys(grant?.responses?.[status]?.content ?? {}), ['application/problem+json']);
+    }
   });
 });

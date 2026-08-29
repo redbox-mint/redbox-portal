@@ -1,0 +1,42 @@
+meta {
+  name: Authorization - Bulk assignment apply
+  type: http
+  seq: 53
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/bulk-apply
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "rows": [
+      {
+        "action": "grant",
+        "principalId": "{{researcherUserId}}",
+        "roleKey": "Librarians"
+      }
+    ],
+    "reason": "Reviewed Bruno assignment batch",
+    "confirmationToken": "{{authorizationBulkToken}}"
+  }
+}
+
+tests {
+  test("Applies the unchanged batch atomically", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.changed).to.equal(true);
+    expect(body.data).to.include({ appliedCount: 1, noOpCount: 0 });
+    expect(body.batchId).to.be.a("string").and.not.empty;
+  });
+}

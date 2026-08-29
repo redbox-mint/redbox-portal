@@ -1,0 +1,32 @@
+meta {
+  name: Authorization - Invalid assignment expiry
+  type: http
+  seq: 53
+}
+
+put {
+  url: {{host}}/default/rdmp/api/authorization/assignments/Librarians/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expiresAt": "2000-01-01T00:00:00.000Z",
+    "reason": "Exercise expiry validation"
+  }
+}
+
+tests {
+  test("Rejects a non-future expiry without writing", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody()).to.include({ status: 400, code: "authorization.invalid-role" });
+  });
+}

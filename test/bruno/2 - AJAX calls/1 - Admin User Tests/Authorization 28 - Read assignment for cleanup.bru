@@ -1,0 +1,30 @@
+meta {
+  name: Authorization - Read assignment for cleanup
+  type: http
+  seq: 53
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/assignments?userId={{researcherUserId}}&roleKey=Librarians&source=manual&status=active&limit=1
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Reads the post-batch CAS version", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.items).to.have.length(1);
+    bru.setVar("authorizationCleanupVersion", body.items[0].version);
+  });
+}

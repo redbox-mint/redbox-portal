@@ -2,6 +2,17 @@ import { scopeAuthorization } from '../../authorization';
 import { apiRoute } from '../route-factory';
 import {
   authorizationApiVersionHeadersSchema,
+  authorizationAssignmentCatalogPageSchema,
+  authorizationAssignmentGrantBodySchema,
+  authorizationAssignmentMutationBodySchema,
+  authorizationAssignmentMutationResultSchema,
+  authorizationAssignmentParamsSchema,
+  authorizationAssignmentQuerySchema,
+  authorizationAssignmentUserParamsSchema,
+  authorizationBulkApplyBodySchema,
+  authorizationBulkAssignmentMutationSchema,
+  authorizationBulkAssignmentPreviewSchema,
+  authorizationBulkPreviewBodySchema,
   authorizationBulkTemplateUpgradeApplyBodySchema,
   authorizationBulkTemplateUpgradeMutationSchema,
   authorizationBulkTemplateUpgradePreviewBodySchema,
@@ -419,6 +430,145 @@ export const deleteAuthorizationRoleRoute = apiRoute(
   }
 );
 
+export const listAuthorizationAssignmentsRoute = apiRoute(
+  'get',
+  `${BASE_PATH}/assignments`,
+  CONTROLLER,
+  'listAssignments',
+  { headers: authorizationApiVersionHeadersSchema, query: authorizationAssignmentQuerySchema },
+  {
+    authorization: scopeAuthorization('authorization.assignment.read'),
+    tags: ['Authorization'],
+    summary: 'List assignments in the active authorization context',
+    description:
+      'Brand administrators see only active-brand assignments. A system administrator also sees the single protected global system-role assignment context.',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationAssignmentCatalogPageSchema, 'Cursor-paginated assignment catalog'),
+    },
+  }
+);
+
+export const grantAuthorizationAssignmentRoute = apiRoute(
+  'put',
+  `${BASE_PATH}/assignments/:roleKey/users/:userId`,
+  CONTROLLER,
+  'grantAssignment',
+  {
+    headers: authorizationApiVersionHeadersSchema,
+    params: authorizationAssignmentUserParamsSchema,
+    body: jsonBody(authorizationAssignmentGrantBodySchema),
+  },
+  {
+    authorization: scopeAuthorization('authorization.assignment.manage'),
+    tags: ['Authorization'],
+    summary: 'Idempotently grant or reactivate one manual assignment',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationAssignmentMutationResultSchema, 'Manual assignment granted or unchanged'),
+    },
+  }
+);
+
+export const revokeAuthorizationAssignmentRoute = apiRoute(
+  'delete',
+  `${BASE_PATH}/assignments/:roleKey/users/:userId`,
+  CONTROLLER,
+  'revokeAssignment',
+  {
+    headers: authorizationApiVersionHeadersSchema,
+    params: authorizationAssignmentUserParamsSchema,
+    body: jsonBody(authorizationAssignmentMutationBodySchema),
+  },
+  {
+    authorization: scopeAuthorization('authorization.assignment.manage'),
+    tags: ['Authorization'],
+    summary: 'Revoke only the exact manual assignment source',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationAssignmentMutationResultSchema, 'Manual assignment revoked or unchanged'),
+    },
+  }
+);
+
+export const suppressAuthorizationAssignmentRoute = apiRoute(
+  'post',
+  `${BASE_PATH}/assignments/:assignmentId/suppress`,
+  CONTROLLER,
+  'suppressAssignment',
+  {
+    headers: authorizationApiVersionHeadersSchema,
+    params: authorizationAssignmentParamsSchema,
+    body: jsonBody(authorizationAssignmentMutationBodySchema),
+  },
+  {
+    authorization: scopeAuthorization('authorization.assignment.manage'),
+    tags: ['Authorization'],
+    summary: 'Locally suppress one external assignment source tuple',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationAssignmentMutationResultSchema, 'External assignment suppressed'),
+    },
+  }
+);
+
+export const unsuppressAuthorizationAssignmentRoute = apiRoute(
+  'post',
+  `${BASE_PATH}/assignments/:assignmentId/unsuppress`,
+  CONTROLLER,
+  'unsuppressAssignment',
+  {
+    headers: authorizationApiVersionHeadersSchema,
+    params: authorizationAssignmentParamsSchema,
+    body: jsonBody(authorizationAssignmentMutationBodySchema),
+  },
+  {
+    authorization: scopeAuthorization('authorization.assignment.manage'),
+    tags: ['Authorization'],
+    summary: 'Remove local suppression from one external assignment source tuple',
+    description:
+      'The assignment becomes active only when the latest successful provider synchronization still requests it.',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationAssignmentMutationResultSchema, 'External assignment unsuppressed'),
+    },
+  }
+);
+
+export const previewAuthorizationBulkAssignmentsRoute = apiRoute(
+  'post',
+  `${BASE_PATH}/assignments/bulk-preview`,
+  CONTROLLER,
+  'previewBulkAssignments',
+  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationBulkPreviewBodySchema) },
+  {
+    authorization: scopeAuthorization('authorization.assignment.manage'),
+    tags: ['Authorization'],
+    summary: 'Validate and preview one bounded manual assignment batch',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationBulkAssignmentPreviewSchema, 'Assignment batch validation preview'),
+    },
+  }
+);
+
+export const applyAuthorizationBulkAssignmentsRoute = apiRoute(
+  'post',
+  `${BASE_PATH}/assignments/bulk-apply`,
+  CONTROLLER,
+  'applyBulkAssignments',
+  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationBulkApplyBodySchema) },
+  {
+    authorization: scopeAuthorization('authorization.assignment.manage'),
+    tags: ['Authorization'],
+    summary: 'Atomically apply one unchanged confirmed manual assignment batch',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationBulkAssignmentMutationSchema, 'Assignment batch applied transactionally'),
+    },
+  }
+);
+
 export const authorizationApiRoutes = [
   getAuthorizationMeRoute,
   listAuthorizationScopesRoute,
@@ -438,4 +588,11 @@ export const authorizationApiRoutes = [
   previewAuthorizationRoleInactivationRoute,
   inactivateAuthorizationRoleRoute,
   deleteAuthorizationRoleRoute,
+  listAuthorizationAssignmentsRoute,
+  grantAuthorizationAssignmentRoute,
+  revokeAuthorizationAssignmentRoute,
+  suppressAuthorizationAssignmentRoute,
+  unsuppressAuthorizationAssignmentRoute,
+  previewAuthorizationBulkAssignmentsRoute,
+  applyAuthorizationBulkAssignmentsRoute,
 ] as const;

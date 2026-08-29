@@ -295,8 +295,36 @@ export interface AssignmentAdministrationSnapshot {
   readonly sourceKey: string;
   readonly status: RoleAssignmentStatus;
   readonly sourcePresent: boolean;
+  readonly assignedBy: string;
+  readonly assignedAt: string;
   readonly expiresAt?: string;
+  readonly revokedBy?: string;
+  readonly revokedAt?: string;
+  readonly suppressedBy?: string;
+  readonly suppressedAt?: string;
+  readonly reason?: string;
   readonly version: number;
+}
+
+export const ASSIGNMENT_EXPIRY_FILTERS = ['expired', 'unexpired', 'never'] as const;
+export type AssignmentExpiryFilter = (typeof ASSIGNMENT_EXPIRY_FILTERS)[number];
+
+export interface AssignmentCatalogQuery {
+  readonly actor: AuthorizationContext;
+  readonly brandId: string;
+  readonly cursor?: string;
+  readonly limit?: number;
+  readonly principalId?: string;
+  readonly roleKey?: string;
+  readonly source?: RoleAssignmentSource;
+  readonly status?: RoleAssignmentStatus;
+  readonly sourcePresent?: boolean;
+  readonly expiry?: AssignmentExpiryFilter;
+}
+
+export interface AssignmentCatalogPage {
+  readonly items: readonly AssignmentAdministrationSnapshot[];
+  readonly nextCursor?: string;
 }
 
 export interface RoleDependencySummary {
@@ -588,6 +616,7 @@ function parseCsvRecords(payload: string): string[][] {
   let row: string[] = [];
   let field = '';
   let quoted = false;
+  let quotedFieldClosed = false;
   for (let index = 0; index < payload.length; index += 1) {
     const character = payload[index];
     if (quoted) {
@@ -596,22 +625,31 @@ function parseCsvRecords(payload: string): string[][] {
         index += 1;
       } else if (character === '"') {
         quoted = false;
+        quotedFieldClosed = true;
       } else {
         field += character;
       }
       continue;
     }
+    if (quotedFieldClosed && character !== ',' && character !== '\n' && character !== '\r') {
+      throw new Error('A closing CSV quote must be followed by a delimiter or line ending.');
+    }
     if (character === '"') {
       if (field.length !== 0) throw new Error('A quoted CSV field must begin at the start of a field.');
       quoted = true;
+      quotedFieldClosed = false;
     } else if (character === ',') {
       row.push(field);
       field = '';
+      quotedFieldClosed = false;
     } else if (character === '\n') {
       row.push(field.replace(/\r$/u, ''));
       if (row.some(value => value.length > 0)) rows.push(row);
       row = [];
       field = '';
+      quotedFieldClosed = false;
+    } else if (quotedFieldClosed && character === '\r') {
+      if (payload[index + 1] !== '\n') throw new Error('A CSV carriage return must be followed by a line feed.');
     } else {
       field += character;
     }
@@ -626,18 +664,47 @@ function isBulkAssignmentAction(value: unknown): value is BulkAssignmentAction {
   return value === 'grant' || value === 'revoke';
 }
 
-function normalizeBulkRow(value: unknown): BulkAssignmentRow {
+const BULK_ASSIGNMENT_ROW_FIELDS = new Set([
+  'action',
+  'principalId',
+  'roleKey',
+  'sourceKey',
+  'expiresAt',
+  'expectedVersion',
+]);
+
+function normalizeBulkRow(value: unknown, fromCsv: boolean): BulkAssignmentRow {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('Each assignment row must be an object.');
   }
   const row = value as Record<string, unknown>;
+  if (Object.keys(row).some(field => !BULK_ASSIGNMENT_ROW_FIELDS.has(field))) {
+    throw new Error('Assignment rows contain an unknown field.');
+  }
   if (!isBulkAssignmentAction(row.action) || typeof row.principalId !== 'string' || typeof row.roleKey !== 'string') {
     throw new Error('Each assignment row requires action, principalId, and roleKey.');
   }
+  const sourceKey =
+    fromCsv && row.sourceKey === ''
+      ? undefined
+      : row.sourceKey === undefined
+        ? undefined
+        : requiredAuthorizationText(row.sourceKey, 'sourceKey', 128);
+  const expiresAt =
+    fromCsv && row.expiresAt === ''
+      ? undefined
+      : row.expiresAt === undefined
+        ? undefined
+        : requiredAuthorizationText(row.expiresAt, 'expiresAt', 64);
+  if (row.action === 'revoke' && expiresAt !== undefined) {
+    throw new Error('Revoke rows cannot supply expiresAt.');
+  }
   const expectedVersion =
-    typeof row.expectedVersion === 'string' && row.expectedVersion.trim().length > 0
+    fromCsv && typeof row.expectedVersion === 'string' && row.expectedVersion.trim().length > 0
       ? Number(row.expectedVersion)
-      : row.expectedVersion;
+      : fromCsv && row.expectedVersion === ''
+        ? undefined
+        : row.expectedVersion;
   if (expectedVersion !== undefined && (!Number.isSafeInteger(expectedVersion) || Number(expectedVersion) < 1)) {
     throw new Error('Assignment expectedVersion must be a positive integer.');
   }
@@ -645,12 +712,8 @@ function normalizeBulkRow(value: unknown): BulkAssignmentRow {
     action: row.action,
     principalId: requiredAuthorizationText(row.principalId, 'principalId', 128),
     roleKey: requiredAuthorizationText(row.roleKey, 'roleKey', 128),
-    ...(typeof row.sourceKey === 'string' && row.sourceKey.trim().length > 0
-      ? { sourceKey: requiredAuthorizationText(row.sourceKey, 'sourceKey', 128) }
-      : {}),
-    ...(typeof row.expiresAt === 'string' && row.expiresAt.trim().length > 0
-      ? { expiresAt: row.expiresAt.trim() }
-      : {}),
+    ...(sourceKey === undefined ? {} : { sourceKey }),
+    ...(expiresAt === undefined ? {} : { expiresAt }),
     ...(expectedVersion === undefined ? {} : { expectedVersion: Number(expectedVersion) }),
   });
 }
@@ -660,6 +723,7 @@ export function parseBulkAssignmentRows(
   format: 'json' | 'csv' = 'json'
 ): readonly BulkAssignmentRow[] {
   let parsed: unknown;
+  let fromCsv = false;
   if (typeof input === 'string') {
     if (Buffer.byteLength(input, 'utf8') > AUTHORIZATION_ADMIN_MAX_BULK_BYTES) {
       throw new AuthorizationAdministrationError(
@@ -672,6 +736,7 @@ export function parseBulkAssignmentRows(
       if (format === 'json') {
         parsed = JSON.parse(input);
       } else {
+        fromCsv = true;
         const records = parseCsvRecords(input);
         if (records.length === 0) parsed = [];
         else {
@@ -686,6 +751,12 @@ export function parseBulkAssignmentRows(
           ]);
           if (new Set(headers).size !== headers.length || headers.some(header => !expectedHeaders.has(header))) {
             throw new Error('CSV headers are invalid or duplicated.');
+          }
+          if (!['action', 'principalId', 'roleKey'].every(header => headers.includes(header))) {
+            throw new Error('CSV headers must include action, principalId, and roleKey.');
+          }
+          if (records.slice(1).some(record => record.length !== headers.length)) {
+            throw new Error('Each CSV row must contain exactly one value for every header.');
           }
           parsed = records
             .slice(1)
@@ -710,9 +781,8 @@ export function parseBulkAssignmentRows(
     );
   }
   try {
-    return Object.freeze(parsed.map(normalizeBulkRow));
+    return Object.freeze(parsed.map(row => normalizeBulkRow(row, fromCsv)));
   } catch (error) {
-    if (error instanceof AuthorizationAdministrationError) throw error;
     throw new AuthorizationAdministrationError(
       'authorization.bulk-invalid',
       422,

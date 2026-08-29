@@ -1,0 +1,44 @@
+meta {
+  name: Authorization - Grant assignment
+  type: http
+  seq: 53
+}
+
+put {
+  url: {{host}}/default/rdmp/api/authorization/assignments/Librarians/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expiresAt": "2099-01-01T00:00:00.000Z",
+    "reason": "Reviewed Bruno assignment grant"
+  }
+}
+
+tests {
+  test("Creates the exact manual source tuple", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.changed).to.equal(true);
+    expect(body.data).to.include({
+      principalId: bru.getEnvVar("researcherUserId"),
+      roleKey: "Librarians",
+      source: "manual",
+      sourceKey: "manual",
+      status: "active",
+      sourcePresent: true,
+      expiresAt: "2099-01-01T00:00:00.000Z"
+    });
+    bru.setVar("authorizationAssignmentId", body.data.id);
+    bru.setVar("authorizationAssignmentVersion", body.data.version);
+  });
+}

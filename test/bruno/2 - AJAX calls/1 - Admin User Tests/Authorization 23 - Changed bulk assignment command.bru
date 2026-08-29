@@ -1,0 +1,39 @@
+meta {
+  name: Authorization - Changed bulk assignment command
+  type: http
+  seq: 53
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/bulk-apply
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "rows": [
+      {
+        "action": "grant",
+        "principalId": "{{researcherUserId}}",
+        "roleKey": "Librarians"
+      }
+    ],
+    "reason": "Changed after preview",
+    "confirmationToken": "{{authorizationBulkToken}}"
+  }
+}
+
+tests {
+  test("Rejects a token bound to a different reviewed command", function () {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getBody()).to.include({ status: 409, code: "authorization.preview-stale" });
+  });
+}
