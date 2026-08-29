@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "documentation": "support/wiki/Legacy-Unsafe-Expression-Inventory.md",
+  "entries": [
+    {
+      "path": "assets/default/default/js/v0_3_1-leaflet-omnivore.min.js",
+      "kind": "vendored",
+      "source": "Leaflet Omnivore 0.3.1 browser distribution",
+      "rationale": "Third-party minified browser distribution containing its bundled upstream dependencies."
+    },
+    {
+      "path": "assets/default/default/js/vocab_widget_v2.js",
+      "kind": "vendored",
+      "source": "ANDS Vocabulary Widget service",
+      "rationale": "Third-party browser plugin retained with its upstream copyright and Apache license notice."
+    },
+    {
+      "path": "assets/js/dependencies/sails.io.js",
+      "kind": "generated",
+      "source": "sails.io.js and socket.io-client browser distribution",
+      "rationale": "Generated third-party browser bundle retained under the explicit dependencies asset directory."
+    }
+  ]
+}

@@ -11,8 +11,9 @@ const ts = require('typescript');
 const repositoryRoot = path.resolve(__dirname, '..');
 const allowlistRelativePath = 'support/security/unsafe-expression-allowlist.json';
 const documentationRelativePath = 'support/wiki/Legacy-Unsafe-Expression-Inventory.md';
+const sourceExclusionsRelativePath = 'support/security/unsafe-expression-source-exclusions.json';
 const sourceExtensions = new Set(['.cjs', '.js', '.mjs', '.ts', '.tsx']);
-const excludedPathPrefixes = ['assets/', 'support/', 'test/'];
+const excludedPathPrefixes = ['support/', 'test/'];
 const excludedPathSegments = new Set(['coverage', 'dist', 'node_modules', 'test', 'tests']);
 const managedPathPrefixes = [
   'packages/redbox-core/src/action-execution/',
@@ -31,6 +32,34 @@ const allowedRootKeys = new Set(['schemaVersion', 'documentation', 'entries']);
 const allowedEntryKeys = new Set(['id', 'kind', 'path', 'fingerprint', 'owner', 'rationale', 'followUp']);
 const allowedKinds = new Set(['direct-eval', 'lodash-template']);
 const globalEvalObjects = new Set(['global', 'globalThis', 'self', 'window']);
+const allowedExclusionRootKeys = new Set(['schemaVersion', 'documentation', 'entries']);
+const allowedExclusionEntryKeys = new Set(['path', 'kind', 'source', 'rationale']);
+const allowedExclusionKinds = new Set(['generated', 'vendored']);
+const origins = Object.freeze({
+  builtinEval: 'builtin-eval',
+  evalBind: 'eval-bind',
+  evalInvoker: 'eval-invoker',
+  globalObject: 'global-object',
+  lodashObject: 'lodash-object',
+  lodashRunInContext: 'lodash-run-in-context',
+  lodashRunInContextBind: 'lodash-run-in-context-bind',
+  lodashTemplate: 'lodash-template',
+  lodashTemplateBind: 'lodash-template-bind',
+  lodashTemplateInvoker: 'lodash-template-invoker',
+  lodashTemplateNamespace: 'lodash-template-namespace',
+  reflectApply: 'reflect-apply',
+  reflectApplyBind: 'reflect-apply-bind',
+  reflectObject: 'reflect-object',
+});
+
+const defaultSourceExclusionManifest = JSON.parse(
+  fs.readFileSync(path.join(repositoryRoot, sourceExclusionsRelativePath), 'utf8')
+);
+const defaultSourceExclusionPaths = new Set(
+  Array.isArray(defaultSourceExclusionManifest.entries)
+    ? defaultSourceExclusionManifest.entries.map(entry => entry.path)
+    : []
+);
 
 function normalizeRelativePath(relativePath) {
   if (typeof relativePath !== 'string' || relativePath.length === 0 || relativePath.includes('\\')) {
@@ -46,7 +75,7 @@ function normalizeRelativePath(relativePath) {
   return normalized;
 }
 
-function isScannedSourcePath(relativePath) {
+function isScannedSourcePath(relativePath, excludedSourcePaths = defaultSourceExclusionPaths) {
   let normalized;
   try {
     normalized = normalizeRelativePath(relativePath);
@@ -55,6 +84,7 @@ function isScannedSourcePath(relativePath) {
   }
   if (!sourceExtensions.has(path.posix.extname(normalized))) return false;
   if (excludedPathPrefixes.some(prefix => normalized.startsWith(prefix))) return false;
+  if (excludedSourcePaths.has(normalized)) return false;
   return !normalized.split('/').some(segment => excludedPathSegments.has(segment));
 }
 
@@ -98,196 +128,589 @@ function literalPropertyName(node) {
   return undefined;
 }
 
-function memberParts(node) {
-  const current = unwrapExpression(node);
-  if (ts.isPropertyAccessExpression(current)) {
-    return { object: current.expression, property: current.name.text };
-  }
-  if (ts.isElementAccessExpression(current) && current.argumentExpression) {
-    return { object: current.expression, property: literalPropertyName(current.argumentExpression) };
-  }
-  return undefined;
-}
-
-function requiredModuleName(node) {
-  const current = unwrapExpression(node);
-  if (
-    !ts.isCallExpression(current) ||
-    !ts.isIdentifier(unwrapExpression(current.expression)) ||
-    unwrapExpression(current.expression).text !== 'require' ||
-    current.arguments.length !== 1
-  ) {
-    return undefined;
-  }
-  return literalPropertyName(current.arguments[0]);
-}
-
 function isLodashModule(moduleName) {
   return moduleName === 'lodash' || moduleName === 'lodash-es';
 }
 
 function isLodashTemplateModule(moduleName) {
-  return moduleName === 'lodash/template' || moduleName === 'lodash-es/template';
+  return /^(lodash|lodash-es)\/template(?:\.js)?$/.test(moduleName ?? '');
 }
 
 function collectBindings(sourceFile) {
-  const lodashObjects = new Set(['_']);
-  const lodashTemplates = new Set();
-  const evalAliases = new Set(['eval']);
+  const nodeScopes = new WeakMap();
+  const declarationBindings = new WeakMap();
+  const carrierAtoms = new WeakMap();
+  const literalAtoms = new Map();
+  let propagationChanged = false;
 
-  function isGlobalEvalMember(node) {
-    const parts = memberParts(node);
-    if (!parts || parts.property !== 'eval') return false;
-    const object = unwrapExpression(parts.object);
-    return ts.isIdentifier(object) && globalEvalObjects.has(object.text);
+  function createScope(parent, kind) {
+    return { parent, kind, bindings: new Map() };
   }
 
-  function isEvalReference(node) {
-    const current = unwrapExpression(node);
-    if (ts.isIdentifier(current)) return evalAliases.has(current.text);
-    if (isGlobalEvalMember(current)) return true;
-    return (
-      ts.isBinaryExpression(current) &&
-      current.operatorToken.kind === ts.SyntaxKind.CommaToken &&
-      isEvalReference(current.right)
-    );
-  }
+  const rootScope = createScope(undefined, 'source');
 
-  function isLodashObjectReference(node) {
-    const current = unwrapExpression(node);
-    if (ts.isIdentifier(current)) return lodashObjects.has(current.text);
-    return isLodashModule(requiredModuleName(current));
-  }
-
-  function isLodashTemplateReference(node) {
-    const current = unwrapExpression(node);
-    if (ts.isIdentifier(current)) return lodashTemplates.has(current.text);
-    if (isLodashTemplateModule(requiredModuleName(current))) return true;
-    const parts = memberParts(current);
-    return !!parts && parts.property === 'template' && isLodashObjectReference(parts.object);
-  }
-
-  function isCallableReference(node, referenceCheck) {
-    if (referenceCheck(node)) return true;
-    const parts = memberParts(node);
-    return !!parts && ['apply', 'bind', 'call'].includes(parts.property) && referenceCheck(parts.object);
-  }
-
-  function bindName(name, initializer) {
-    if (!initializer) return false;
+  function mergeValue(target, source) {
     let changed = false;
-    if (ts.isIdentifier(name)) {
-      if (isLodashObjectReference(initializer) && !lodashObjects.has(name.text)) {
-        lodashObjects.add(name.text);
-        changed = true;
-      }
-      if (isLodashTemplateModule(requiredModuleName(initializer)) && !lodashTemplates.has(name.text)) {
-        lodashTemplates.add(name.text);
-        changed = true;
-      }
-      if (isLodashTemplateReference(initializer) && !lodashTemplates.has(name.text)) {
-        lodashTemplates.add(name.text);
-        changed = true;
-      }
-      if (isEvalReference(initializer) && !evalAliases.has(name.text)) {
-        evalAliases.add(name.text);
-        changed = true;
-      }
-      const currentInitializer = unwrapExpression(initializer);
-      if (ts.isCallExpression(currentInitializer)) {
-        const calledMember = memberParts(currentInitializer.expression);
-        if (
-          calledMember?.property === 'bind' &&
-          isLodashTemplateReference(calledMember.object) &&
-          !lodashTemplates.has(name.text)
-        ) {
-          lodashTemplates.add(name.text);
-          changed = true;
-        }
-        if (calledMember?.property === 'bind' && isEvalReference(calledMember.object) && !evalAliases.has(name.text)) {
-          evalAliases.add(name.text);
-          changed = true;
-        }
-      }
-      return changed;
-    }
-    if (!ts.isObjectBindingPattern(name)) return changed;
-    const lodashSource = isLodashObjectReference(initializer);
-    const currentInitializer = unwrapExpression(initializer);
-    const globalEvalSource = ts.isIdentifier(currentInitializer) && globalEvalObjects.has(currentInitializer.text);
-    for (const element of name.elements) {
-      if (!ts.isIdentifier(element.name)) continue;
-      const propertyName = element.propertyName
-        ? ts.isIdentifier(element.propertyName)
-          ? element.propertyName.text
-          : literalPropertyName(element.propertyName)
-        : element.name.text;
-      if (lodashSource && propertyName === 'template' && !lodashTemplates.has(element.name.text)) {
-        lodashTemplates.add(element.name.text);
-        changed = true;
-      }
-      if (globalEvalSource && propertyName === 'eval' && !evalAliases.has(element.name.text)) {
-        evalAliases.add(element.name.text);
+    for (const atom of source) {
+      if (!target.has(atom)) {
+        target.add(atom);
         changed = true;
       }
     }
     return changed;
   }
 
-  for (const statement of sourceFile.statements) {
-    if (ts.isImportEqualsDeclaration(statement) && ts.isExternalModuleReference(statement.moduleReference)) {
-      const moduleName = statement.moduleReference.expression
-        ? literalPropertyName(statement.moduleReference.expression)
-        : undefined;
-      if (isLodashModule(moduleName)) lodashObjects.add(statement.name.text);
-      if (isLodashTemplateModule(moduleName)) lodashTemplates.add(statement.name.text);
-      continue;
+  function mergeTracked(target, source) {
+    if (mergeValue(target, source)) propagationChanged = true;
+  }
+
+  function originValue(...values) {
+    return new Set(values);
+  }
+
+  function literalValue(value) {
+    const key = `${typeof value}\0${String(value)}`;
+    let atom = literalAtoms.get(key);
+    if (!atom) {
+      atom = { kind: 'literal', value };
+      literalAtoms.set(key, atom);
     }
-    if (!ts.isImportDeclaration(statement)) continue;
-    const moduleName = literalPropertyName(statement.moduleSpecifier);
-    if (!isLodashModule(moduleName) && !isLodashTemplateModule(moduleName)) continue;
-    const clause = statement.importClause;
-    if (!clause) continue;
+    return new Set([atom]);
+  }
+
+  function carrierFor(node) {
+    let atom = carrierAtoms.get(node);
+    if (!atom) {
+      atom = { kind: 'carrier', properties: new Map(), unknownProperty: new Set() };
+      carrierAtoms.set(node, atom);
+    }
+    return atom;
+  }
+
+  function declareIdentifier(identifier, scope) {
+    let binding = scope.bindings.get(identifier.text);
+    if (!binding) {
+      binding = { name: identifier.text, value: new Set() };
+      scope.bindings.set(identifier.text, binding);
+    }
+    declarationBindings.set(identifier, binding);
+    return binding;
+  }
+
+  function declareBindingName(name, scope) {
+    if (ts.isIdentifier(name)) {
+      declareIdentifier(name, scope);
+      return;
+    }
+    for (const element of name.elements) {
+      if (ts.isBindingElement(element)) declareBindingName(element.name, scope);
+    }
+  }
+
+  function nearestVariableScope(scope) {
+    let current = scope;
+    while (current.kind !== 'function' && current.kind !== 'source') current = current.parent;
+    return current;
+  }
+
+  function variableDeclarationScope(node, scope) {
+    const declarationList = node.parent;
+    if (ts.isVariableDeclarationList(declarationList) && (declarationList.flags & ts.NodeFlags.BlockScoped) === 0) {
+      return nearestVariableScope(scope);
+    }
+    return scope;
+  }
+
+  function lookupBinding(identifier) {
+    let scope = nodeScopes.get(identifier);
+    while (scope) {
+      const binding = scope.bindings.get(identifier.text);
+      if (binding) return binding;
+      scope = scope.parent;
+    }
+    return undefined;
+  }
+
+  function moduleValue(moduleName, namespaceImport = false) {
+    if (isLodashModule(moduleName)) return originValue(origins.lodashObject);
     if (isLodashTemplateModule(moduleName)) {
-      if (clause.name) lodashTemplates.add(clause.name.text);
-      if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
-        lodashTemplates.add(clause.namedBindings.name.text);
-      }
-      continue;
+      return originValue(namespaceImport ? origins.lodashTemplateNamespace : origins.lodashTemplate);
     }
-    if (clause.name) lodashObjects.add(clause.name.text);
+    return new Set();
+  }
+
+  function seedImportBinding(identifier, value) {
+    const binding = declarationBindings.get(identifier);
+    if (binding) mergeValue(binding.value, value);
+  }
+
+  function seedImportDeclaration(node) {
+    const moduleName = literalPropertyName(node.moduleSpecifier);
+    if (!isLodashModule(moduleName) && !isLodashTemplateModule(moduleName)) return;
+    const clause = node.importClause;
+    if (!clause) return;
+
+    if (clause.name) seedImportBinding(clause.name, moduleValue(moduleName));
     if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
-      lodashObjects.add(clause.namedBindings.name.text);
+      seedImportBinding(clause.namedBindings.name, moduleValue(moduleName, isLodashTemplateModule(moduleName)));
     }
-    if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
-      for (const element of clause.namedBindings.elements) {
-        if ((element.propertyName ?? element.name).text === 'template') lodashTemplates.add(element.name.text);
+    if (!clause.namedBindings || !ts.isNamedImports(clause.namedBindings)) return;
+    for (const element of clause.namedBindings.elements) {
+      const importedName = (element.propertyName ?? element.name).text;
+      if (isLodashTemplateModule(moduleName)) {
+        if (importedName === 'default' || importedName === 'template') {
+          seedImportBinding(element.name, originValue(origins.lodashTemplate));
+        }
+      } else if (importedName === 'default') {
+        seedImportBinding(element.name, originValue(origins.lodashObject));
+      } else if (importedName === 'template') {
+        seedImportBinding(element.name, originValue(origins.lodashTemplate));
+      } else if (importedName === 'runInContext') {
+        seedImportBinding(element.name, originValue(origins.lodashRunInContext));
       }
     }
   }
 
-  let changed = true;
-  while (changed) {
-    changed = false;
-    function visitAliases(node) {
-      if (ts.isVariableDeclaration(node)) {
-        changed = bindName(node.name, node.initializer) || changed;
-      } else if (
-        ts.isBinaryExpression(node) &&
-        node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-        ts.isIdentifier(unwrapExpression(node.left))
+  function visitDecorators(node, scope) {
+    if (!ts.canHaveDecorators(node)) return;
+    for (const decorator of ts.getDecorators(node) ?? []) visitScopes(decorator, scope);
+  }
+
+  function visitScopes(node, scope) {
+    nodeScopes.set(node, scope);
+
+    if (ts.isImportDeclaration(node)) {
+      const clause = node.importClause;
+      if (clause?.name) declareIdentifier(clause.name, scope);
+      if (clause?.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+        declareIdentifier(clause.namedBindings.name, scope);
+      }
+      if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+        for (const element of clause.namedBindings.elements) declareIdentifier(element.name, scope);
+      }
+      seedImportDeclaration(node);
+      ts.forEachChild(node, child => visitScopes(child, scope));
+      return;
+    }
+
+    if (ts.isImportEqualsDeclaration(node)) {
+      const binding = declareIdentifier(node.name, scope);
+      if (ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression) {
+        mergeValue(binding.value, moduleValue(literalPropertyName(node.moduleReference.expression)));
+      }
+      ts.forEachChild(node, child => visitScopes(child, scope));
+      return;
+    }
+
+    if (ts.isVariableDeclaration(node)) {
+      declareBindingName(node.name, variableDeclarationScope(node, scope));
+      ts.forEachChild(node, child => visitScopes(child, scope));
+      return;
+    }
+
+    if (ts.isFunctionDeclaration(node) && node.name) declareIdentifier(node.name, scope);
+    if (ts.isClassDeclaration(node) && node.name) declareIdentifier(node.name, scope);
+    if (ts.isEnumDeclaration(node) || ts.isModuleDeclaration(node)) declareIdentifier(node.name, scope);
+
+    if (ts.isFunctionLike(node)) {
+      visitDecorators(node, scope);
+      if (node.name && ts.isComputedPropertyName(node.name)) visitScopes(node.name, scope);
+      const functionScope = createScope(scope, 'function');
+      nodeScopes.set(node, functionScope);
+      if (ts.isFunctionExpression(node) && node.name) declareIdentifier(node.name, functionScope);
+      for (const parameter of node.parameters) declareBindingName(parameter.name, functionScope);
+      for (const parameter of node.parameters) visitScopes(parameter, functionScope);
+      if (node.body) visitScopes(node.body, functionScope);
+      return;
+    }
+
+    if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
+      const classScope = createScope(scope, 'block');
+      nodeScopes.set(node, classScope);
+      if (node.name) declareIdentifier(node.name, classScope);
+      ts.forEachChild(node, child => visitScopes(child, classScope));
+      return;
+    }
+
+    if (ts.isCatchClause(node)) {
+      const catchScope = createScope(scope, 'block');
+      nodeScopes.set(node, catchScope);
+      if (node.variableDeclaration) declareBindingName(node.variableDeclaration.name, catchScope);
+      if (node.variableDeclaration) visitScopes(node.variableDeclaration, catchScope);
+      visitScopes(node.block, catchScope);
+      return;
+    }
+
+    if (ts.isForStatement(node) || ts.isForInStatement(node) || ts.isForOfStatement(node)) {
+      const loopScope = createScope(scope, 'block');
+      nodeScopes.set(node, loopScope);
+      ts.forEachChild(node, child => visitScopes(child, loopScope));
+      return;
+    }
+
+    if (ts.isBlock(node) || ts.isCaseBlock(node) || ts.isModuleBlock(node)) {
+      const blockScope = createScope(scope, 'block');
+      nodeScopes.set(node, blockScope);
+      ts.forEachChild(node, child => visitScopes(child, blockScope));
+      return;
+    }
+
+    ts.forEachChild(node, child => visitScopes(child, scope));
+  }
+
+  visitScopes(sourceFile, rootScope);
+
+  function identifierValue(identifier) {
+    const binding = lookupBinding(identifier);
+    if (binding) return new Set(binding.value);
+    if (identifier.text === 'eval') return originValue(origins.builtinEval);
+    if (identifier.text === '_') return originValue(origins.lodashObject);
+    if (globalEvalObjects.has(identifier.text)) return originValue(origins.globalObject);
+    if (identifier.text === 'Reflect') return originValue(origins.reflectObject);
+    return new Set();
+  }
+
+  function specialProperty(origin, propertyName) {
+    const result = new Set();
+    const unknown = propertyName === undefined;
+    const matches = name => unknown || propertyName === name;
+
+    if (origin === origins.builtinEval) {
+      if (matches('call') || matches('apply')) result.add(origins.evalInvoker);
+      if (matches('bind')) result.add(origins.evalBind);
+    } else if (origin === origins.evalInvoker) {
+      if (matches('bind')) result.add(origins.evalBind);
+    } else if (origin === origins.globalObject) {
+      if (matches('eval')) result.add(origins.builtinEval);
+      if (matches('Reflect')) result.add(origins.reflectObject);
+      if ([...globalEvalObjects].some(matches)) result.add(origins.globalObject);
+    } else if (origin === origins.reflectObject) {
+      if (matches('apply')) result.add(origins.reflectApply);
+    } else if (origin === origins.reflectApply) {
+      if (matches('bind')) result.add(origins.reflectApplyBind);
+    } else if (origin === origins.lodashObject) {
+      if (matches('template')) result.add(origins.lodashTemplate);
+      if (matches('runInContext')) result.add(origins.lodashRunInContext);
+      if (matches('default')) result.add(origins.lodashObject);
+    } else if (origin === origins.lodashTemplateNamespace) {
+      if (matches('default') || matches('template')) result.add(origins.lodashTemplate);
+    } else if (origin === origins.lodashTemplate) {
+      if (matches('call') || matches('apply')) result.add(origins.lodashTemplateInvoker);
+      if (matches('bind')) result.add(origins.lodashTemplateBind);
+      if (matches('default')) result.add(origins.lodashTemplate);
+    } else if (origin === origins.lodashTemplateInvoker) {
+      if (matches('bind')) result.add(origins.lodashTemplateBind);
+    } else if (origin === origins.lodashRunInContext) {
+      if (matches('bind')) result.add(origins.lodashRunInContextBind);
+    }
+    return result;
+  }
+
+  function staticPropertyNames(node) {
+    const current = unwrapExpression(node);
+    if (ts.isComputedPropertyName(current)) return staticPropertyNames(current.expression);
+    if (ts.isStringLiteralLike(current) || ts.isNumericLiteral(current)) return [String(current.text)];
+    const names = [];
+    for (const atom of evaluateExpression(current)) {
+      if (typeof atom !== 'string' && atom.kind === 'literal') names.push(String(atom.value));
+    }
+    return [...new Set(names)];
+  }
+
+  function declaredPropertyNames(node) {
+    if (ts.isComputedPropertyName(node)) {
+      const names = staticPropertyNames(node.expression);
+      return names.length > 0 ? names : undefined;
+    }
+    if (ts.isIdentifier(node) || ts.isPrivateIdentifier(node)) return [node.text];
+    const name = literalPropertyName(node);
+    return name === undefined ? undefined : [String(name)];
+  }
+
+  function memberPropertyNames(node) {
+    const current = unwrapExpression(node);
+    if (ts.isPropertyAccessExpression(current)) return [current.name.text];
+    if (!ts.isElementAccessExpression(current) || !current.argumentExpression) return undefined;
+    const names = staticPropertyNames(current.argumentExpression);
+    return names.length > 0 ? names : undefined;
+  }
+
+  function getProperty(value, propertyNames) {
+    const result = new Set();
+    for (const atom of value) {
+      if (typeof atom === 'string') {
+        if (propertyNames === undefined) mergeValue(result, specialProperty(atom, undefined));
+        else for (const propertyName of propertyNames) mergeValue(result, specialProperty(atom, propertyName));
+        continue;
+      }
+      if (atom.kind !== 'carrier') continue;
+      if (propertyNames === undefined) {
+        for (const propertyValue of atom.properties.values()) mergeValue(result, propertyValue);
+      } else {
+        for (const propertyName of propertyNames) {
+          const propertyValue = atom.properties.get(propertyName);
+          if (propertyValue) mergeValue(result, propertyValue);
+        }
+      }
+      mergeValue(result, atom.unknownProperty);
+    }
+    return result;
+  }
+
+  function putCarrierProperty(carrier, propertyNames, value) {
+    if (propertyNames === undefined) {
+      mergeTracked(carrier.unknownProperty, value);
+      return;
+    }
+    for (const propertyName of propertyNames) {
+      let target = carrier.properties.get(propertyName);
+      if (!target) {
+        target = new Set();
+        carrier.properties.set(propertyName, target);
+      }
+      mergeTracked(target, value);
+    }
+  }
+
+  function spreadProperties(carrier, value) {
+    for (const atom of value) {
+      if (typeof atom === 'string') {
+        for (const propertyName of ['default', 'runInContext', 'template']) {
+          const propertyValue = specialProperty(atom, propertyName);
+          if (propertyValue.size > 0) putCarrierProperty(carrier, [propertyName], propertyValue);
+        }
+      } else if (atom.kind === 'carrier') {
+        for (const [propertyName, propertyValue] of atom.properties) {
+          putCarrierProperty(carrier, [propertyName], propertyValue);
+        }
+        putCarrierProperty(carrier, undefined, atom.unknownProperty);
+      }
+    }
+  }
+
+  function isUnboundRequireCall(node) {
+    const current = unwrapExpression(node);
+    if (!ts.isCallExpression(current) || current.arguments.length !== 1) return false;
+    const callee = unwrapExpression(current.expression);
+    return ts.isIdentifier(callee) && callee.text === 'require' && !lookupBinding(callee);
+  }
+
+  function evaluateCallResult(callee) {
+    const result = new Set();
+    for (const atom of callee) {
+      if (atom === origins.evalBind) result.add(origins.builtinEval);
+      else if (atom === origins.lodashTemplateBind) result.add(origins.lodashTemplate);
+      else if (atom === origins.lodashRunInContext || atom === origins.lodashRunInContextBind) {
+        result.add(origins.lodashObject);
+      } else if (atom === origins.reflectApplyBind) result.add(origins.reflectApply);
+    }
+    return result;
+  }
+
+  function evaluateExpression(node) {
+    if (!node) return new Set();
+    const current = unwrapExpression(node);
+    if (ts.isIdentifier(current)) return identifierValue(current);
+    if (ts.isStringLiteralLike(current) || ts.isNumericLiteral(current)) return literalValue(current.text);
+    if (current.kind === ts.SyntaxKind.TrueKeyword) return literalValue(true);
+    if (current.kind === ts.SyntaxKind.FalseKeyword) return literalValue(false);
+    if (ts.isNoSubstitutionTemplateLiteral(current)) return literalValue(current.text);
+
+    if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
+      return getProperty(evaluateExpression(current.expression), memberPropertyNames(current));
+    }
+
+    if (ts.isObjectLiteralExpression(current)) {
+      const carrier = carrierFor(current);
+      for (const property of current.properties) {
+        if (ts.isPropertyAssignment(property)) {
+          putCarrierProperty(carrier, declaredPropertyNames(property.name), evaluateExpression(property.initializer));
+        } else if (ts.isShorthandPropertyAssignment(property)) {
+          putCarrierProperty(carrier, [property.name.text], evaluateExpression(property.name));
+        } else if (ts.isSpreadAssignment(property)) {
+          spreadProperties(carrier, evaluateExpression(property.expression));
+        }
+      }
+      return new Set([carrier]);
+    }
+
+    if (ts.isArrayLiteralExpression(current)) {
+      const carrier = carrierFor(current);
+      for (const [index, element] of current.elements.entries()) {
+        if (ts.isOmittedExpression(element)) continue;
+        if (ts.isSpreadElement(element)) {
+          putCarrierProperty(carrier, undefined, getProperty(evaluateExpression(element.expression), undefined));
+        } else {
+          putCarrierProperty(carrier, [String(index)], evaluateExpression(element));
+        }
+      }
+      return new Set([carrier]);
+    }
+
+    if (ts.isCallExpression(current)) {
+      if (isUnboundRequireCall(current)) return moduleValue(literalPropertyName(current.arguments[0]));
+      return evaluateCallResult(evaluateExpression(current.expression));
+    }
+
+    if (ts.isConditionalExpression(current)) {
+      const result = evaluateExpression(current.whenTrue);
+      mergeValue(result, evaluateExpression(current.whenFalse));
+      return result;
+    }
+
+    if (ts.isBinaryExpression(current)) {
+      if (current.operatorToken.kind === ts.SyntaxKind.CommaToken) return evaluateExpression(current.right);
+      if (
+        current.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
+        current.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken ||
+        current.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken
       ) {
-        changed = bindName(unwrapExpression(node.left), node.right) || changed;
+        const result = evaluateExpression(current.left);
+        mergeValue(result, evaluateExpression(current.right));
+        return result;
       }
-      ts.forEachChild(node, visitAliases);
+      if (current.operatorToken.kind === ts.SyntaxKind.EqualsToken) return evaluateExpression(current.right);
     }
-    visitAliases(sourceFile);
+
+    if (ts.isAwaitExpression(current) || ts.isYieldExpression(current) || ts.isSpreadElement(current)) {
+      return evaluateExpression(current.expression);
+    }
+    return new Set();
   }
 
-  return {
-    isEvalCallable: node => isCallableReference(node, isEvalReference),
-    isLodashTemplateCallable: node => isCallableReference(node, isLodashTemplateReference),
-  };
+  function bindingForDeclarationName(identifier) {
+    return declarationBindings.get(identifier) ?? lookupBinding(identifier);
+  }
+
+  function bindingElementPropertyNames(element) {
+    if (element.propertyName) return declaredPropertyNames(element.propertyName);
+    return ts.isIdentifier(element.name) ? [element.name.text] : undefined;
+  }
+
+  function bindPattern(name, value) {
+    if (ts.isIdentifier(name)) {
+      const binding = bindingForDeclarationName(name);
+      if (binding) mergeTracked(binding.value, value);
+      return;
+    }
+    if (ts.isObjectBindingPattern(name)) {
+      for (const element of name.elements) {
+        let elementValue = element.dotDotDotToken ? value : getProperty(value, bindingElementPropertyNames(element));
+        if (element.initializer) {
+          elementValue = new Set(elementValue);
+          mergeValue(elementValue, evaluateExpression(element.initializer));
+        }
+        bindPattern(element.name, elementValue);
+      }
+      return;
+    }
+    for (const [index, element] of name.elements.entries()) {
+      if (!ts.isBindingElement(element)) continue;
+      let elementValue = element.dotDotDotToken ? getProperty(value, undefined) : getProperty(value, [String(index)]);
+      if (element.initializer) {
+        elementValue = new Set(elementValue);
+        mergeValue(elementValue, evaluateExpression(element.initializer));
+      }
+      bindPattern(element.name, elementValue);
+    }
+  }
+
+  function assignToTarget(node, value) {
+    const current = unwrapExpression(node);
+    if (ts.isIdentifier(current)) {
+      const binding = lookupBinding(current);
+      if (binding) mergeTracked(binding.value, value);
+      return;
+    }
+    if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
+      for (const atom of evaluateExpression(current.expression)) {
+        if (typeof atom !== 'string' && atom.kind === 'carrier') {
+          putCarrierProperty(atom, memberPropertyNames(current), value);
+        }
+      }
+      return;
+    }
+    if (ts.isArrayLiteralExpression(current)) {
+      for (const [index, element] of current.elements.entries()) {
+        if (ts.isOmittedExpression(element)) continue;
+        assignToTarget(element, getProperty(value, [String(index)]));
+      }
+      return;
+    }
+    if (ts.isObjectLiteralExpression(current)) {
+      for (const property of current.properties) {
+        if (ts.isShorthandPropertyAssignment(property)) {
+          assignToTarget(property.name, getProperty(value, [property.name.text]));
+        } else if (ts.isPropertyAssignment(property)) {
+          assignToTarget(property.initializer, getProperty(value, declaredPropertyNames(property.name)));
+        } else if (ts.isSpreadAssignment(property)) {
+          assignToTarget(property.expression, value);
+        }
+      }
+    }
+  }
+
+  function ambientGlobalValue(name) {
+    if (!ts.isIdentifier(name)) return new Set();
+    if (name.text === 'eval') return originValue(origins.builtinEval);
+    if (name.text === '_') return originValue(origins.lodashObject);
+    if (globalEvalObjects.has(name.text)) return originValue(origins.globalObject);
+    if (name.text === 'Reflect') return originValue(origins.reflectObject);
+    return new Set();
+  }
+
+  function isAmbientVariableDeclaration(node) {
+    const statement = node.parent?.parent;
+    return (
+      ts.isVariableStatement(statement) &&
+      statement.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.DeclareKeyword)
+    );
+  }
+
+  function visitPropagation(node) {
+    if (ts.isVariableDeclaration(node)) {
+      if (node.initializer) bindPattern(node.name, evaluateExpression(node.initializer));
+      else if (isAmbientVariableDeclaration(node)) bindPattern(node.name, ambientGlobalValue(node.name));
+    } else if (
+      ts.isBinaryExpression(node) &&
+      [
+        ts.SyntaxKind.EqualsToken,
+        ts.SyntaxKind.AmpersandAmpersandEqualsToken,
+        ts.SyntaxKind.BarBarEqualsToken,
+        ts.SyntaxKind.QuestionQuestionEqualsToken,
+      ].includes(node.operatorToken.kind)
+    ) {
+      assignToTarget(node.left, evaluateExpression(node.right));
+    } else if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) {
+      evaluateExpression(node);
+    }
+    ts.forEachChild(node, visitPropagation);
+  }
+
+  do {
+    propagationChanged = false;
+    visitPropagation(sourceFile);
+  } while (propagationChanged);
+
+  function dangerousKinds(value) {
+    const kinds = new Set();
+    if (value.has(origins.builtinEval) || value.has(origins.evalInvoker)) kinds.add('direct-eval');
+    if (value.has(origins.lodashTemplate) || value.has(origins.lodashTemplateInvoker)) {
+      kinds.add('lodash-template');
+    }
+    return kinds;
+  }
+
+  function unsafeKindsForCall(node) {
+    const callee = evaluateExpression(node.expression);
+    const kinds = dangerousKinds(callee);
+    if (callee.has(origins.reflectApply) && node.arguments.length > 0) {
+      for (const kind of dangerousKinds(evaluateExpression(node.arguments[0]))) kinds.add(kind);
+    }
+    return kinds;
+  }
+
+  return { unsafeKindsForCall };
 }
 
 function findingFingerprint(kind, sourceText) {
@@ -309,10 +732,7 @@ function scanSource(source, relativePath) {
 
   function visit(node) {
     if (ts.isCallExpression(node)) {
-      let kind;
-      if (bindings.isEvalCallable(node.expression)) kind = 'direct-eval';
-      else if (bindings.isLodashTemplateCallable(node.expression)) kind = 'lodash-template';
-      if (kind) {
+      for (const kind of bindings.unsafeKindsForCall(node)) {
         const start = node.getStart(sourceFile);
         const location = sourceFile.getLineAndCharacterOfPosition(start);
         const sourceText = source.slice(start, node.end);
@@ -331,14 +751,19 @@ function scanSource(source, relativePath) {
   return findings;
 }
 
-function trackedSourcePaths(root = repositoryRoot) {
+function trackedSourcePaths(root = repositoryRoot, excludedSourcePaths = defaultSourceExclusionPaths) {
   const output = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' });
-  return output.split('\0').filter(Boolean).map(normalizeRelativePath).filter(isScannedSourcePath).sort();
+  return output
+    .split('\0')
+    .filter(Boolean)
+    .map(normalizeRelativePath)
+    .filter(relativePath => isScannedSourcePath(relativePath, excludedSourcePaths))
+    .sort();
 }
 
-function scanRepository(root = repositoryRoot) {
+function scanRepository(root = repositoryRoot, excludedSourcePaths = defaultSourceExclusionPaths) {
   const findings = [];
-  for (const relativePath of trackedSourcePaths(root)) {
+  for (const relativePath of trackedSourcePaths(root, excludedSourcePaths)) {
     const absolutePath = path.join(root, ...relativePath.split('/'));
     const stats = fs.lstatSync(absolutePath);
     if (stats.isSymbolicLink()) throw new Error(`Refusing to scan source symlink: ${relativePath}`);
@@ -375,7 +800,77 @@ function documentationRow(entry) {
     .join(' | ')} |`;
 }
 
-function validateAllowlist(allowlist, documentation) {
+function sourceExclusionDocumentationRow(entry) {
+  return `| ${[`\`${entry.path}\``, `\`${entry.kind}\``, entry.source, entry.rationale]
+    .map(markdownCell)
+    .join(' | ')} |`;
+}
+
+function validateSourceExclusions(manifest, documentation, root = repositoryRoot) {
+  const errors = [];
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    return ['Source-exclusion manifest root must be an object.'];
+  }
+  if (!ownKeysAre(manifest, allowedExclusionRootKeys)) {
+    errors.push('Source-exclusion manifest root contains unknown fields.');
+  }
+  if (manifest.schemaVersion !== 1) errors.push('Source-exclusion manifest schemaVersion must be 1.');
+  if (manifest.documentation !== documentationRelativePath) {
+    errors.push(`Source-exclusion manifest documentation must be ${documentationRelativePath}.`);
+  }
+  if (!Array.isArray(manifest.entries)) return [...errors, 'Source-exclusion manifest entries must be an array.'];
+
+  const paths = new Set();
+  for (const [index, entry] of manifest.entries.entries()) {
+    const label = `source exclusions[${index}]`;
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      errors.push(`${label} must be an object.`);
+      continue;
+    }
+    if (!ownKeysAre(entry, allowedExclusionEntryKeys) || Object.keys(entry).length !== allowedExclusionEntryKeys.size) {
+      errors.push(`${label} must contain exactly path, kind, source, and rationale.`);
+      continue;
+    }
+    let normalizedPath;
+    try {
+      normalizedPath = normalizeRelativePath(entry.path);
+      if (!normalizedPath.startsWith('assets/')) errors.push(`${label}.path must name an assets file.`);
+      if (!sourceExtensions.has(path.posix.extname(normalizedPath))) {
+        errors.push(`${label}.path must name a JavaScript or TypeScript source file.`);
+      }
+      if (paths.has(normalizedPath)) errors.push(`${label}.path duplicates ${normalizedPath}.`);
+      paths.add(normalizedPath);
+      const absolutePath = path.join(root, ...normalizedPath.split('/'));
+      if (!fs.existsSync(absolutePath) || !fs.lstatSync(absolutePath).isFile()) {
+        errors.push(`${label}.path does not name a regular repository file.`);
+      } else {
+        try {
+          execFileSync('git', ['ls-files', '--error-unmatch', '--', normalizedPath], {
+            cwd: root,
+            stdio: 'ignore',
+          });
+        } catch {
+          errors.push(`${label}.path must name a Git-tracked file.`);
+        }
+      }
+    } catch (error) {
+      errors.push(`${label}.path is invalid: ${error.message}`);
+    }
+    if (!allowedExclusionKinds.has(entry.kind)) errors.push(`${label}.kind must be generated or vendored.`);
+    if (typeof entry.source !== 'string' || entry.source.trim().length < 10) {
+      errors.push(`${label}.source must identify the upstream or generator.`);
+    }
+    if (typeof entry.rationale !== 'string' || entry.rationale.trim().length < 20) {
+      errors.push(`${label}.rationale must explain why first-party review does not apply.`);
+    }
+    if (documentation && !documentation.includes(sourceExclusionDocumentationRow(entry))) {
+      errors.push(`${label} is not explicitly mirrored in ${documentationRelativePath}.`);
+    }
+  }
+  return errors;
+}
+
+function validateAllowlist(allowlist, documentation, excludedSourcePaths = defaultSourceExclusionPaths) {
   const errors = [];
   if (!allowlist || typeof allowlist !== 'object' || Array.isArray(allowlist)) {
     return ['Allowlist root must be an object.'];
@@ -409,7 +904,9 @@ function validateAllowlist(allowlist, documentation) {
     if (!allowedKinds.has(entry.kind)) errors.push(`${label}.kind is unsupported.`);
     try {
       normalizeRelativePath(entry.path);
-      if (!isScannedSourcePath(entry.path)) errors.push(`${label}.path is outside the first-party source scan.`);
+      if (!isScannedSourcePath(entry.path, excludedSourcePaths)) {
+        errors.push(`${label}.path is outside the first-party source scan.`);
+      }
       if (isManagedOrRemovedPath(entry.path))
         errors.push(`${label}.path cannot allowlist managed or removed action code.`);
     } catch (error) {
@@ -456,11 +953,18 @@ function compareFindingsToAllowlist(findings, entries) {
 
 function runGuard(root = repositoryRoot) {
   const allowlist = readJson(allowlistRelativePath, root);
+  const sourceExclusions = readJson(sourceExclusionsRelativePath, root);
   const documentation = fs.readFileSync(path.join(root, ...documentationRelativePath.split('/')), 'utf8');
-  const metadataErrors = validateAllowlist(allowlist, documentation);
-  const findings = scanRepository(root);
+  const excludedSourcePaths = new Set(
+    Array.isArray(sourceExclusions.entries) ? sourceExclusions.entries.map(entry => entry.path) : []
+  );
+  const metadataErrors = [
+    ...validateSourceExclusions(sourceExclusions, documentation, root),
+    ...validateAllowlist(allowlist, documentation, excludedSourcePaths),
+  ];
+  const findings = scanRepository(root, excludedSourcePaths);
   const comparison = compareFindingsToAllowlist(findings, Array.isArray(allowlist.entries) ? allowlist.entries : []);
-  return { allowlist, findings, metadataErrors, ...comparison };
+  return { allowlist, findings, metadataErrors, sourceExclusions, ...comparison };
 }
 
 function formatFinding(finding) {
@@ -504,5 +1008,8 @@ module.exports = {
   runGuard,
   scanRepository,
   scanSource,
+  sourceExclusionDocumentationRow,
+  sourceExclusionsRelativePath,
   validateAllowlist,
+  validateSourceExclusions,
 };
