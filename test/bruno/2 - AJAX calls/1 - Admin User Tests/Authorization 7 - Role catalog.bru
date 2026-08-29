@@ -1,0 +1,36 @@
+meta {
+  name: Authorization - Role catalog
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/roles?status=active&limit=2
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns a bounded current-brand role page", function () {
+    const body = res.getBody();
+    expect(body.items).to.have.length(2);
+    expect(body.items.every(item => item.contextType === "brand")).to.equal(true);
+    expect(body.items.every(item => item.status === "active")).to.equal(true);
+    expect(body.items.map(item => item.key)).to.deep.equal(body.items.map(item => item.key).sort());
+    expect(body.nextCursor).to.equal(body.items[1].key);
+  });
+}

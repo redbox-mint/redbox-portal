@@ -1,0 +1,39 @@
+meta {
+  name: Authorization - Missing role
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/roles/missing-phase-8-role
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("Returns an opaque bounded not-found problem", function () {
+    const body = res.getBody();
+    expect(res.headers["content-type"]).to.include("application/problem+json");
+    expect(body).to.include({
+      status: 404,
+      code: "authorization.not-found"
+    });
+    expect(body.requestId).to.be.a("string").and.not.empty;
+    expect(body.title).to.equal("Resource was not found");
+    expect(body.detail).to.equal("Resource was not found");
+  });
+}
