@@ -23,6 +23,7 @@ const {
 const repositoryRoot = path.resolve(__dirname, '../..');
 const allowlist = JSON.parse(fs.readFileSync(path.join(repositoryRoot, allowlistRelativePath), 'utf8'));
 const documentation = fs.readFileSync(path.join(repositoryRoot, documentationRelativePath), 'utf8');
+const packageJson = JSON.parse(fs.readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8'));
 const sourceExclusions = JSON.parse(fs.readFileSync(path.join(repositoryRoot, sourceExclusionsRelativePath), 'utf8'));
 const expectedEntryIds = [
   'legacy-eval-email-notify-success',
@@ -54,6 +55,16 @@ const bypassCases = [
     source: `const executors = [eval]; const execute = executors[0]; execute(configuredSource);`,
   },
   {
+    name: 'an array-rest carrier reindexes an eval alias',
+    kind: 'direct-eval',
+    source: `const [...carrier] = [eval]; carrier[0](configuredSource);`,
+  },
+  {
+    name: 'an offset array-rest carrier reindexes an eval alias',
+    kind: 'direct-eval',
+    source: `const [safe, ...carrier] = [JSON.parse, eval]; carrier[0](configuredSource);`,
+  },
+  {
     name: 'an object carries an eval alias',
     kind: 'direct-eval',
     source: `const executors = { evaluate: eval }; executors.evaluate(configuredSource);`,
@@ -72,6 +83,21 @@ const bypassCases = [
     name: 'Lodash runInContext returns a template-bearing namespace',
     kind: 'lodash-template',
     source: `import lodash from 'lodash'; lodash.runInContext().template(configuredSource);`,
+  },
+  {
+    name: 'a bound Lodash runInContext remains callable until invoked',
+    kind: 'lodash-template',
+    source: `import lodash from 'lodash'; const ric = lodash.runInContext.bind(lodash); ric().template(configuredSource);`,
+  },
+  {
+    name: 'Lodash runInContext.call returns a template-bearing namespace',
+    kind: 'lodash-template',
+    source: `import lodash from 'lodash'; lodash.runInContext.call(lodash).template(configuredSource);`,
+  },
+  {
+    name: 'Lodash runInContext.apply returns a template-bearing namespace',
+    kind: 'lodash-template',
+    source: `import lodash from 'lodash'; lodash.runInContext.apply(lodash, []).template(configuredSource);`,
   },
   {
     name: 'computed destructuring carries Lodash template',
@@ -133,6 +159,65 @@ const bypassCases = [
     kind: 'lodash-template',
     source: `import compile from 'lodash-es/template'; Reflect.apply(compile, undefined, [configuredSource]);`,
   },
+  {
+    name: 'a bound Reflect.apply retains its builtin eval target',
+    kind: 'direct-eval',
+    source: `const invoke = Reflect.apply.bind(Reflect, eval, globalThis); invoke([configuredSource]);`,
+  },
+  {
+    name: 'Reflect.apply.call invokes builtin eval',
+    kind: 'direct-eval',
+    source: `Reflect.apply.call(null, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.apply.apply invokes builtin eval',
+    kind: 'direct-eval',
+    source: `Reflect.apply.apply(null, [eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'a Lodash template compiler is invoked as a constructor',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; new compile(configuredSource);`,
+  },
+  {
+    name: 'a Lodash template compiler is invoked as a template tag',
+    kind: 'lodash-template',
+    source: "import compile from 'lodash/template'; compile`configured source`;",
+  },
+  {
+    name: 'Reflect.construct invokes a Lodash template compiler',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; Reflect.construct(compile, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.construct.call invokes a Lodash template compiler',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; Reflect.construct.call(null, compile, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.construct.apply invokes a Lodash template compiler',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; Reflect.construct.apply(null, [compile, [configuredSource]]);`,
+  },
+  {
+    name: 'a bound Reflect.construct retains its Lodash template target',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; const invoke = Reflect.construct.bind(Reflect, compile); invoke([configuredSource]);`,
+  },
+];
+const sourceExtensionCases = [
+  {
+    extension: '.jsx',
+    source: `const view = <div />; eval(configuredSource);`,
+  },
+  {
+    extension: '.mts',
+    source: `export {}; eval(configuredSource);`,
+  },
+  {
+    extension: '.cts',
+    source: `export = {}; eval(configuredSource);`,
+  },
 ];
 
 function writeJson(filePath, value) {
@@ -163,15 +248,21 @@ function createEndToEndGuardRepository() {
   return root;
 }
 
-function invokeGuardWithTrackedSource(root, source, relativePath = 'packages/example/src/runtime.ts') {
-  const absolutePath = path.join(root, ...relativePath.split('/'));
-  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  fs.writeFileSync(absolutePath, source);
+function invokeGuardWithTrackedSources(root, sources) {
+  for (const { relativePath, source } of sources) {
+    const absolutePath = path.join(root, ...relativePath.split('/'));
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, source);
+  }
   execFileSync('git', ['add', '.'], { cwd: root });
   return spawnSync(process.execPath, ['scripts/check-unsafe-expressions.js'], {
     cwd: root,
     encoding: 'utf8',
   });
+}
+
+function invokeGuardWithTrackedSource(root, source, relativePath = 'packages/example/src/runtime.ts') {
+  return invokeGuardWithTrackedSources(root, [{ relativePath, source }]);
 }
 
 test('detects direct eval without matching comments, strings, or property names', () => {
@@ -255,6 +346,49 @@ test('the guard invocation rejects every provenance bypass', async t => {
   }
 });
 
+test('scans JSX and explicit TypeScript module extensions in packages and first-party assets', () => {
+  for (const { extension, source } of sourceExtensionCases) {
+    for (const relativePath of [
+      `packages/example/src/runtime${extension}`,
+      `assets/default/default/js/first-party-runtime${extension}`,
+    ]) {
+      assert.equal(isScannedSourcePath(relativePath), true, `${relativePath} should be scanned`);
+      assert.deepEqual(
+        scanSource(source, relativePath).map(finding => finding.kind),
+        ['direct-eval'],
+        `${relativePath} should use the appropriate parser mode and reject builtin eval`
+      );
+    }
+  }
+});
+
+test('the guard invocation rejects JSX, MTS, and CTS in package and first-party asset paths', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = sourceExtensionCases.flatMap(({ extension, source }) => [
+    { relativePath: `packages/example/src/runtime${extension}`, source },
+    { relativePath: `assets/default/default/js/first-party-runtime${extension}`, source },
+  ]);
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.notEqual(result.status, 0);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
+test('standard lint keeps both the guard CLI and its regression suite enabled', () => {
+  assert.match(packageJson.scripts.lint, /npm run lint:unsafe-expressions/);
+  assert.equal(
+    packageJson.scripts['lint:unsafe-expressions'],
+    'node scripts/check-unsafe-expressions.js && npm run test:unsafe-expressions'
+  );
+  assert.equal(
+    packageJson.scripts['test:unsafe-expressions'],
+    'node --test test/static/unsafe-expression-guard.test.js'
+  );
+});
+
 test('does not confuse safe template APIs and local render functions with Lodash', () => {
   const findings = scanSource(
     `
@@ -269,6 +403,22 @@ test('does not confuse safe template APIs and local render functions with Lodash
   assert.deepEqual(findings, []);
 });
 
+test('distinguishes bound callables from invocation results', () => {
+  const findings = scanSource(
+    `
+      import lodash from 'lodash';
+      const ric = lodash.runInContext.bind(lodash);
+      const invoke = Reflect.apply.bind(Reflect, eval, globalThis);
+      ric.template(configuredSource);
+      ric();
+      void invoke;
+    `,
+    'packages/example/src/runtime.ts'
+  );
+
+  assert.deepEqual(findings, []);
+});
+
 test('respects lexical shadowing and excludes Handlebars and JSONata APIs', () => {
   const findings = scanSource(
     `
@@ -276,9 +426,18 @@ test('respects lexical shadowing and excludes Handlebars and JSONata APIs', () =
       import jsonata from 'jsonata';
       function runLocal(eval, Reflect, globalThis, _) {
         const carrier = { evaluate: eval, compile: _.template };
+        const [...rest] = [eval];
+        const ric = _.runInContext.bind(_);
         Reflect.apply(carrier.evaluate, globalThis, [configuredSource]);
+        Reflect.apply.call(null, carrier.evaluate, globalThis, [configuredSource]);
+        Reflect.construct(carrier.compile, [configuredSource]);
         carrier.compile(configuredSource);
+        rest[0](configuredSource);
+        ric().template(configuredSource);
       }
+      const compile = function (source) { return source; };
+      new compile(configuredSource);
+      compile\`configured source\`;
       Handlebars.compile(configuredSource)({});
       jsonata(configuredSource).evaluate({});
       $eval(configuredSource);

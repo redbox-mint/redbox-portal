@@ -12,7 +12,7 @@ const repositoryRoot = path.resolve(__dirname, '..');
 const allowlistRelativePath = 'support/security/unsafe-expression-allowlist.json';
 const documentationRelativePath = 'support/wiki/Legacy-Unsafe-Expression-Inventory.md';
 const sourceExclusionsRelativePath = 'support/security/unsafe-expression-source-exclusions.json';
-const sourceExtensions = new Set(['.cjs', '.js', '.mjs', '.ts', '.tsx']);
+const sourceExtensions = new Set(['.cjs', '.cts', '.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx']);
 const excludedPathPrefixes = ['support/', 'test/'];
 const excludedPathSegments = new Set(['coverage', 'dist', 'node_modules', 'test', 'tests']);
 const managedPathPrefixes = [
@@ -43,12 +43,19 @@ const origins = Object.freeze({
   lodashObject: 'lodash-object',
   lodashRunInContext: 'lodash-run-in-context',
   lodashRunInContextBind: 'lodash-run-in-context-bind',
+  lodashRunInContextInvoker: 'lodash-run-in-context-invoker',
   lodashTemplate: 'lodash-template',
   lodashTemplateBind: 'lodash-template-bind',
   lodashTemplateInvoker: 'lodash-template-invoker',
   lodashTemplateNamespace: 'lodash-template-namespace',
   reflectApply: 'reflect-apply',
+  reflectApplyApply: 'reflect-apply-apply',
   reflectApplyBind: 'reflect-apply-bind',
+  reflectApplyCall: 'reflect-apply-call',
+  reflectConstruct: 'reflect-construct',
+  reflectConstructApply: 'reflect-construct-apply',
+  reflectConstructBind: 'reflect-construct-bind',
+  reflectConstructCall: 'reflect-construct-call',
   reflectObject: 'reflect-object',
 });
 
@@ -100,6 +107,12 @@ function scriptKind(relativePath) {
       return ts.ScriptKind.JS;
     case '.mjs':
       return ts.ScriptKind.JS;
+    case '.jsx':
+      return ts.ScriptKind.JSX;
+    case '.cts':
+    case '.mts':
+    case '.ts':
+      return ts.ScriptKind.TS;
     case '.tsx':
       return ts.ScriptKind.TSX;
     default:
@@ -139,6 +152,7 @@ function isLodashTemplateModule(moduleName) {
 function collectBindings(sourceFile) {
   const nodeScopes = new WeakMap();
   const declarationBindings = new WeakMap();
+  const boundReflectAtoms = new WeakMap();
   const carrierAtoms = new WeakMap();
   const literalAtoms = new Map();
   let propagationChanged = false;
@@ -386,8 +400,15 @@ function collectBindings(sourceFile) {
       if ([...globalEvalObjects].some(matches)) result.add(origins.globalObject);
     } else if (origin === origins.reflectObject) {
       if (matches('apply')) result.add(origins.reflectApply);
+      if (matches('construct')) result.add(origins.reflectConstruct);
     } else if (origin === origins.reflectApply) {
       if (matches('bind')) result.add(origins.reflectApplyBind);
+      if (matches('call')) result.add(origins.reflectApplyCall);
+      if (matches('apply')) result.add(origins.reflectApplyApply);
+    } else if (origin === origins.reflectConstruct) {
+      if (matches('bind')) result.add(origins.reflectConstructBind);
+      if (matches('call')) result.add(origins.reflectConstructCall);
+      if (matches('apply')) result.add(origins.reflectConstructApply);
     } else if (origin === origins.lodashObject) {
       if (matches('template')) result.add(origins.lodashTemplate);
       if (matches('runInContext')) result.add(origins.lodashRunInContext);
@@ -402,6 +423,7 @@ function collectBindings(sourceFile) {
       if (matches('bind')) result.add(origins.lodashTemplateBind);
     } else if (origin === origins.lodashRunInContext) {
       if (matches('bind')) result.add(origins.lodashRunInContextBind);
+      if (matches('call') || matches('apply')) result.add(origins.lodashRunInContextInvoker);
     }
     return result;
   }
@@ -488,6 +510,21 @@ function collectBindings(sourceFile) {
     }
   }
 
+  function arrayRestValue(value, startIndex, node) {
+    const restCarrier = carrierFor(node);
+    for (const atom of value) {
+      if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
+      for (const [propertyName, propertyValue] of atom.properties) {
+        if (!/^(0|[1-9]\d*)$/.test(propertyName)) continue;
+        const sourceIndex = Number(propertyName);
+        if (!Number.isSafeInteger(sourceIndex) || sourceIndex < startIndex) continue;
+        putCarrierProperty(restCarrier, [String(sourceIndex - startIndex)], propertyValue);
+      }
+      putCarrierProperty(restCarrier, undefined, atom.unknownProperty);
+    }
+    return new Set([restCarrier]);
+  }
+
   function isUnboundRequireCall(node) {
     const current = unwrapExpression(node);
     if (!ts.isCallExpression(current) || current.arguments.length !== 1) return false;
@@ -495,15 +532,61 @@ function collectBindings(sourceFile) {
     return ts.isIdentifier(callee) && callee.text === 'require' && !lookupBinding(callee);
   }
 
-  function evaluateCallResult(callee) {
-    const result = new Set();
+  function boundReflectInvoker(node, operation) {
+    let atom = boundReflectAtoms.get(node);
+    if (!atom) {
+      atom = { kind: 'bound-reflect-invoker', operation, boundArguments: [] };
+      boundReflectAtoms.set(node, atom);
+    }
+    for (const [index, argument] of node.arguments.slice(1).entries()) {
+      let argumentValue = atom.boundArguments[index];
+      if (!argumentValue) {
+        argumentValue = new Set();
+        atom.boundArguments[index] = argumentValue;
+      }
+      mergeTracked(argumentValue, evaluateExpression(argument));
+    }
+    return atom;
+  }
+
+  function reflectInvocationTargets(callee, node) {
+    const targets = new Set();
     for (const atom of callee) {
+      if (atom === origins.reflectApply || atom === origins.reflectConstruct) {
+        if (node.arguments[0]) mergeValue(targets, evaluateExpression(node.arguments[0]));
+      } else if (atom === origins.reflectApplyCall || atom === origins.reflectConstructCall) {
+        if (node.arguments[1]) mergeValue(targets, evaluateExpression(node.arguments[1]));
+      } else if (atom === origins.reflectApplyApply || atom === origins.reflectConstructApply) {
+        if (node.arguments[1]) {
+          mergeValue(targets, getProperty(evaluateExpression(node.arguments[1]), ['0']));
+        }
+      } else if (typeof atom !== 'string' && atom.kind === 'bound-reflect-invoker') {
+        if (atom.boundArguments[0]) mergeValue(targets, atom.boundArguments[0]);
+        else if (node.arguments[0]) mergeValue(targets, evaluateExpression(node.arguments[0]));
+      }
+    }
+    return targets;
+  }
+
+  function mergeKnownCallResult(result, callable) {
+    for (const atom of callable) {
       if (atom === origins.evalBind) result.add(origins.builtinEval);
       else if (atom === origins.lodashTemplateBind) result.add(origins.lodashTemplate);
-      else if (atom === origins.lodashRunInContext || atom === origins.lodashRunInContextBind) {
+      else if (atom === origins.lodashRunInContextBind) result.add(origins.lodashRunInContext);
+      else if (atom === origins.lodashRunInContext || atom === origins.lodashRunInContextInvoker) {
         result.add(origins.lodashObject);
-      } else if (atom === origins.reflectApplyBind) result.add(origins.reflectApply);
+      }
     }
+  }
+
+  function evaluateCallResult(callee, node) {
+    const result = new Set();
+    for (const atom of callee) {
+      if (atom === origins.reflectApplyBind) result.add(boundReflectInvoker(node, 'apply'));
+      else if (atom === origins.reflectConstructBind) result.add(boundReflectInvoker(node, 'construct'));
+    }
+    mergeKnownCallResult(result, callee);
+    mergeKnownCallResult(result, reflectInvocationTargets(callee, node));
     return result;
   }
 
@@ -549,7 +632,7 @@ function collectBindings(sourceFile) {
 
     if (ts.isCallExpression(current)) {
       if (isUnboundRequireCall(current)) return moduleValue(literalPropertyName(current.arguments[0]));
-      return evaluateCallResult(evaluateExpression(current.expression));
+      return evaluateCallResult(evaluateExpression(current.expression), current);
     }
 
     if (ts.isConditionalExpression(current)) {
@@ -606,7 +689,9 @@ function collectBindings(sourceFile) {
     }
     for (const [index, element] of name.elements.entries()) {
       if (!ts.isBindingElement(element)) continue;
-      let elementValue = element.dotDotDotToken ? getProperty(value, undefined) : getProperty(value, [String(index)]);
+      let elementValue = element.dotDotDotToken
+        ? arrayRestValue(value, index, element)
+        : getProperty(value, [String(index)]);
       if (element.initializer) {
         elementValue = new Set(elementValue);
         mergeValue(elementValue, evaluateExpression(element.initializer));
@@ -633,7 +718,8 @@ function collectBindings(sourceFile) {
     if (ts.isArrayLiteralExpression(current)) {
       for (const [index, element] of current.elements.entries()) {
         if (ts.isOmittedExpression(element)) continue;
-        assignToTarget(element, getProperty(value, [String(index)]));
+        if (ts.isSpreadElement(element)) assignToTarget(element.expression, arrayRestValue(value, index, element));
+        else assignToTarget(element, getProperty(value, [String(index)]));
       }
       return;
     }
@@ -704,13 +790,15 @@ function collectBindings(sourceFile) {
   function unsafeKindsForCall(node) {
     const callee = evaluateExpression(node.expression);
     const kinds = dangerousKinds(callee);
-    if (callee.has(origins.reflectApply) && node.arguments.length > 0) {
-      for (const kind of dangerousKinds(evaluateExpression(node.arguments[0]))) kinds.add(kind);
-    }
+    for (const kind of dangerousKinds(reflectInvocationTargets(callee, node))) kinds.add(kind);
     return kinds;
   }
 
-  return { unsafeKindsForCall };
+  function unsafeKindsForExpression(node) {
+    return dangerousKinds(evaluateExpression(node));
+  }
+
+  return { unsafeKindsForCall, unsafeKindsForExpression };
 }
 
 function findingFingerprint(kind, sourceText) {
@@ -730,20 +818,28 @@ function scanSource(source, relativePath) {
   const bindings = collectBindings(sourceFile);
   const findings = [];
 
+  function addFindings(node, kinds) {
+    for (const kind of kinds) {
+      const start = node.getStart(sourceFile);
+      const location = sourceFile.getLineAndCharacterOfPosition(start);
+      const sourceText = source.slice(start, node.end);
+      findings.push({
+        kind,
+        path: normalizedPath,
+        line: location.line + 1,
+        column: location.character + 1,
+        fingerprint: findingFingerprint(kind, sourceText),
+      });
+    }
+  }
+
   function visit(node) {
     if (ts.isCallExpression(node)) {
-      for (const kind of bindings.unsafeKindsForCall(node)) {
-        const start = node.getStart(sourceFile);
-        const location = sourceFile.getLineAndCharacterOfPosition(start);
-        const sourceText = source.slice(start, node.end);
-        findings.push({
-          kind,
-          path: normalizedPath,
-          line: location.line + 1,
-          column: location.character + 1,
-          fingerprint: findingFingerprint(kind, sourceText),
-        });
-      }
+      addFindings(node, bindings.unsafeKindsForCall(node));
+    } else if (ts.isNewExpression(node)) {
+      addFindings(node, bindings.unsafeKindsForExpression(node.expression));
+    } else if (ts.isTaggedTemplateExpression(node)) {
+      addFindings(node, bindings.unsafeKindsForExpression(node.tag));
     }
     ts.forEachChild(node, visit);
   }
