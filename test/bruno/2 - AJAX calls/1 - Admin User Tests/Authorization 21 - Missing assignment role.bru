@@ -1,0 +1,31 @@
+meta {
+  name: Authorization - Missing assignment role
+  type: http
+  seq: 53
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/authorization/assignments/missing-phase-84-role/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expectedVersion": 1
+  }
+}
+
+tests {
+  test("Hides missing or inaccessible assignment roles", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getBody()).to.include({ status: 404, code: "authorization.not-found" });
+  });
+}

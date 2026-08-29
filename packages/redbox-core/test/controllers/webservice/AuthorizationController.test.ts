@@ -8,6 +8,7 @@ import {
   type AuthorizationContext,
 } from '../../../src/authorization';
 import { Controllers } from '../../../src/controllers/webservice/AuthorizationController';
+import { AuthorizationTransactionUnavailableError } from '../../../src/utilities/RequiredTransactionUtils';
 
 function context(scopeKeys: readonly string[]): AuthorizationContext {
   return freezeAuthorizationContext({
@@ -331,6 +332,181 @@ describe('webservice AuthorizationController', () => {
     );
   });
 
+  it('forwards only validated assignment filters inside the active brand', async () => {
+    const actor = context(['authorization.assignment.read']);
+    let received: Record<string, unknown> | undefined;
+    Reflect.set(globalThis, 'RoleAdministrationService', {
+      listAssignments: (query: Record<string, unknown>) => {
+        received = query;
+        return Promise.resolve({ items: [] });
+      },
+    });
+    const controller = new Controllers.Authorization();
+    captureSendResp(controller);
+    await controller.listAssignments(
+      {
+        authorization: actor,
+        apiRequest: {
+          params: {},
+          query: {
+            cursor: 'assignment-1',
+            limit: 25,
+            userId: 'user-2',
+            roleKey: 'Researcher',
+            source: 'external',
+            status: 'suppressed',
+            sourcePresent: 'false',
+            expiry: 'never',
+          },
+          body: undefined,
+          files: {},
+        },
+      } as unknown as Sails.Req,
+      {} as Sails.Res
+    );
+
+    assert.deepEqual(received, {
+      actor,
+      brandId: 'brand-1',
+      cursor: 'assignment-1',
+      limit: 25,
+      principalId: 'user-2',
+      roleKey: 'Researcher',
+      source: 'external',
+      status: 'suppressed',
+      sourcePresent: false,
+      expiry: 'never',
+    });
+  });
+
+  it('forces single-user assignment routes to the documented manual source tuple', async () => {
+    const actor = context(['authorization.assignment.manage', 'system.authorization.manage']);
+    const commands: Array<Record<string, unknown>> = [];
+    Reflect.set(globalThis, 'RoleAdministrationService', {
+      grantAssignment: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ data: { id: 'assignment-1' }, version: 1, changed: true });
+      },
+      revokeAssignment: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ data: { id: 'assignment-1' }, version: 2, changed: true });
+      },
+    });
+    const request = (roleKey: string, body: Record<string, unknown>) =>
+      ({
+        authorization: actor,
+        authorizationRequestId: 'request-assignment',
+        apiRequest: { params: { roleKey, userId: 'target-user' }, query: {}, body, files: {} },
+      }) as unknown as Sails.Req;
+
+    const controller = new Controllers.Authorization();
+    captureSendResp(controller);
+    await controller.grantAssignment(
+      request('Researcher', { expiresAt: '2099-01-01T00:00:00.000Z', reason: 'Reviewed grant' }),
+      {} as Sails.Res
+    );
+    await controller.revokeAssignment(
+      request('Researcher', { expectedVersion: 1, reason: 'Reviewed revoke' }),
+      {} as Sails.Res
+    );
+    await controller.grantAssignment(request('system-admin', {}), {} as Sails.Res);
+
+    assert.deepEqual(
+      commands.map(command => ({
+        brandId: command.brandId,
+        roleKey: command.roleKey,
+        source: command.source,
+        sourceKey: command.sourceKey,
+        expectedVersion: command.expectedVersion,
+      })),
+      [
+        {
+          brandId: 'brand-1',
+          roleKey: 'Researcher',
+          source: 'manual',
+          sourceKey: 'manual',
+          expectedVersion: undefined,
+        },
+        {
+          brandId: 'brand-1',
+          roleKey: 'Researcher',
+          source: 'manual',
+          sourceKey: 'manual',
+          expectedVersion: 1,
+        },
+        {
+          brandId: undefined,
+          roleKey: 'system-admin',
+          source: 'manual',
+          sourceKey: 'manual',
+          expectedVersion: undefined,
+        },
+      ]
+    );
+  });
+
+  it('dispatches external suppression and unchanged bulk preview/apply commands', async () => {
+    const actor = context(['authorization.assignment.manage']);
+    const commands: Array<Record<string, unknown>> = [];
+    Reflect.set(globalThis, 'RoleAdministrationService', {
+      suppressAssignment: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ data: { status: 'suppressed' }, version: 2, changed: true });
+      },
+      unsuppressAssignment: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ data: { status: 'active' }, version: 3, changed: true });
+      },
+      previewBulkAssignments: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ rows: [], invalidCount: 0, confirmationToken: 'bulk-token' });
+      },
+      applyBulkAssignments: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ data: { appliedCount: 1 }, version: 1, changed: true });
+      },
+    });
+    const byIdRequest = {
+      authorization: actor,
+      authorizationRequestId: 'request-suppression',
+      apiRequest: {
+        params: { assignmentId: 'assignment-1' },
+        query: {},
+        body: { expectedVersion: 1, reason: 'Local source decision' },
+        files: {},
+      },
+    } as unknown as Sails.Req;
+    const rows = [{ action: 'grant', principalId: 'user-2', roleKey: 'Researcher' }];
+    const bulkRequest = (body: Record<string, unknown>) =>
+      ({
+        authorization: actor,
+        authorizationRequestId: 'request-bulk',
+        apiRequest: { params: {}, query: {}, body, files: {} },
+      }) as unknown as Sails.Req;
+    const controller = new Controllers.Authorization();
+    captureSendResp(controller);
+
+    await controller.suppressAssignment(byIdRequest, {} as Sails.Res);
+    await controller.unsuppressAssignment(byIdRequest, {} as Sails.Res);
+    await controller.previewBulkAssignments(bulkRequest({ rows, reason: 'Reviewed batch' }), {} as Sails.Res);
+    await controller.applyBulkAssignments(
+      bulkRequest({ rows, reason: 'Reviewed batch', confirmationToken: 'bulk-token' }),
+      {} as Sails.Res
+    );
+
+    assert.deepEqual(
+      commands.map(command => [command.assignmentId, command.brandId, command.confirmationToken]),
+      [
+        ['assignment-1', 'brand-1', undefined],
+        ['assignment-1', 'brand-1', undefined],
+        [undefined, 'brand-1', undefined],
+        [undefined, 'brand-1', 'bulk-token'],
+      ]
+    );
+    assert.deepEqual(commands[2].rows, rows);
+    assert.deepEqual(commands[3].rows, rows);
+  });
+
   it('previews then publishes an unchanged template revision command', async () => {
     const actor = context(['system.authorization.manage']);
     const commands: Array<Record<string, unknown>> = [];
@@ -437,6 +613,33 @@ describe('webservice AuthorizationController', () => {
     assert.equal(problem.capture.body?.code, 'authorization.scope-denied');
     assert.equal(problem.capture.body?.requestId, 'request-problem');
     assert.equal(JSON.stringify(problem.capture.body).includes('Sensitive role topology'), false);
+  });
+
+  it('fails closed with 503 when an assignment mutation cannot obtain a required transaction', async () => {
+    Reflect.set(globalThis, 'RoleAdministrationService', {
+      grantAssignment: () =>
+        Promise.reject(new AuthorizationTransactionUnavailableError('Sensitive datastore topology detail.')),
+    });
+    const controller = new Controllers.Authorization();
+    const problem = problemResponse();
+    const req = {
+      authorization: context(['authorization.assignment.manage']),
+      authorizationRequestId: 'request-assignment-transaction',
+      path: '/default/rdmp/api/authorization/assignments/Researcher/users/user-2',
+      apiRequest: {
+        params: { roleKey: 'Researcher', userId: 'user-2' },
+        query: {},
+        body: {},
+        files: {},
+      },
+    } as unknown as Sails.Req;
+
+    await controller.grantAssignment(req, problem.res);
+
+    assert.equal(problem.capture.status, 503);
+    assert.equal(problem.capture.type, 'application/problem+json');
+    assert.equal(problem.capture.body?.code, 'authorization.transaction-unavailable');
+    assert.equal(JSON.stringify(problem.capture.body).includes('Sensitive datastore'), false);
   });
 
   it('never reflects query-string credentials through the Problem Details instance', async () => {

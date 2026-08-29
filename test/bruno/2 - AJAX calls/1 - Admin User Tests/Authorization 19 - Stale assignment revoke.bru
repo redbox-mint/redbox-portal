@@ -1,0 +1,32 @@
+meta {
+  name: Authorization - Stale assignment revoke
+  type: http
+  seq: 53
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/authorization/assignments/Librarians/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expectedVersion": 999999,
+    "reason": "Exercise assignment CAS"
+  }
+}
+
+tests {
+  test("Rejects stale optimistic concurrency state", function () {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getBody()).to.include({ status: 409, code: "authorization.version-conflict" });
+  });
+}

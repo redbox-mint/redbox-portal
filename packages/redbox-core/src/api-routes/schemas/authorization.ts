@@ -4,6 +4,7 @@ import {
   AUTHORIZATION_AUDIT_EVENT_TYPES,
   AUTHORIZATION_AUDIT_OUTCOMES,
   AUTHORIZATION_AUDIT_TARGET_TYPES,
+  ASSIGNMENT_EXPIRY_FILTERS,
   AUTHORIZATION_AUTH_METHODS,
   AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS,
   AUTHORIZATION_MAX_SCOPE_SET_SIZE,
@@ -127,6 +128,17 @@ export const authorizationRoleQuerySchema = authorizationPageQuerySchema.extend(
   templateKey: templateKeyField.optional(),
 });
 
+export const authorizationAssignmentQuerySchema = z.object({
+  cursor: identifierField.optional(),
+  limit: z.coerce.number().int().min(1).max(AUTHORIZATION_API_MAX_PAGE_SIZE).optional(),
+  userId: identifierField.optional(),
+  roleKey: roleKeyField.optional(),
+  source: z.enum(ROLE_ASSIGNMENT_SOURCES).optional(),
+  status: z.enum(ROLE_ASSIGNMENT_STATUSES).optional(),
+  sourcePresent: z.enum(['true', 'false']).optional(),
+  expiry: z.enum(ASSIGNMENT_EXPIRY_FILTERS).optional(),
+});
+
 export const authorizationTemplateRevisionParamsSchema = z.object({
   key: templateKeyField,
   revision: z.coerce.number().int().min(1),
@@ -134,6 +146,11 @@ export const authorizationTemplateRevisionParamsSchema = z.object({
 
 export const authorizationTemplateParamsSchema = z.object({ key: templateKeyField });
 export const authorizationRoleParamsSchema = z.object({ key: roleKeyField });
+export const authorizationAssignmentUserParamsSchema = z.object({
+  roleKey: roleKeyField,
+  userId: identifierField,
+});
+export const authorizationAssignmentParamsSchema = z.object({ assignmentId: identifierField });
 
 export const authorizationScopeSchema = z
   .object({
@@ -425,19 +442,44 @@ export const authorizationAssignmentSchema = z
     roleKey: roleKeyField,
     brandId: identifierField.optional(),
     source: z.enum(ROLE_ASSIGNMENT_SOURCES),
-    sourceKey: z.string(),
+    sourceKey: z.string().min(1).max(128),
     status: z.enum(ROLE_ASSIGNMENT_STATUSES),
     sourcePresent: z.boolean(),
-    assignedBy: z.string().optional(),
-    assignedAt: isoDateTimeField.optional(),
+    assignedBy: z.string().min(1).max(256),
+    assignedAt: isoDateTimeField,
     expiresAt: isoDateTimeField.optional(),
-    revokedBy: z.string().optional(),
+    revokedBy: z.string().min(1).max(256).optional(),
     revokedAt: isoDateTimeField.optional(),
-    suppressedBy: z.string().optional(),
+    suppressedBy: z.string().min(1).max(256).optional(),
     suppressedAt: isoDateTimeField.optional(),
+    reason: z.string().min(1).max(AUTHORIZATION_API_MAX_REASON_LENGTH).optional(),
     version: positiveVersionField,
   })
+  .strict()
   .openapi({ description: 'Sourced role assignment administration projection' });
+
+export const authorizationAssignmentCatalogPageSchema = z
+  .object({
+    items: z.array(authorizationAssignmentSchema).max(AUTHORIZATION_API_MAX_PAGE_SIZE),
+    nextCursor: identifierField.optional(),
+  })
+  .strict()
+  .openapi({ description: 'Cursor-paginated active-brand and authorized system assignment catalog' });
+
+export const authorizationAssignmentGrantBodySchema = z
+  .object({
+    expectedVersion: positiveVersionField.optional(),
+    expiresAt: isoDateTimeField.optional(),
+    reason: reasonField,
+  })
+  .strict();
+
+export const authorizationAssignmentMutationBodySchema = z
+  .object({
+    expectedVersion: positiveVersionField,
+    reason: reasonField,
+  })
+  .strict();
 
 export const authorizationAuditSchema = z
   .object({
@@ -461,31 +503,117 @@ export const authorizationAuditSchema = z
   })
   .openapi({ description: 'Redacted append-only authorization audit event' });
 
-export const authorizationExpectedVersionBodySchema = z.object({
-  expectedVersion: positiveVersionField,
-  confirmationToken: z.string().min(1).max(8_192).optional(),
-  reason: optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH),
-});
+export const authorizationExpectedVersionBodySchema = z
+  .object({
+    expectedVersion: positiveVersionField,
+    confirmationToken: z.string().min(1).max(8_192).optional(),
+    reason: optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH),
+  })
+  .strict();
 
-export const authorizationBulkRowsSchema = z
-  .array(
-    z.object({
-      action: z.enum(['grant', 'revoke']),
-      principalId: identifierField,
-      roleKey: roleKeyField,
-      sourceKey: optionalTextField(128),
+const authorizationBulkAssignmentRowBaseShape = {
+  principalId: identifierField,
+  roleKey: roleKeyField,
+  sourceKey: optionalTextField(128),
+  expectedVersion: positiveVersionField.optional(),
+};
+
+export const authorizationBulkAssignmentRowSchema = z.union([
+  z
+    .object({
+      ...authorizationBulkAssignmentRowBaseShape,
+      action: z.literal('grant'),
       expiresAt: isoDateTimeField.optional(),
-      expectedVersion: positiveVersionField.optional(),
     })
-  )
-  .max(100);
+    .strict(),
+  z
+    .object({
+      ...authorizationBulkAssignmentRowBaseShape,
+      action: z.literal('revoke'),
+    })
+    .strict(),
+]);
 
-export const authorizationBulkRequestSchema = z.object({
-  format: z.enum(['json', 'csv']).optional(),
+export const authorizationBulkRowsSchema = z.array(authorizationBulkAssignmentRowSchema).max(100);
+
+const authorizationJsonBulkRequestShape = {
+  format: z.literal('json').optional(),
   rows: z.union([authorizationBulkRowsSchema, z.string().max(256 * 1_024)]),
-  confirmationToken: z.string().min(1).max(8_192).optional(),
   reason: optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH),
-});
+};
+const authorizationCsvBulkRequestShape = {
+  format: z.literal('csv'),
+  rows: z.string().max(256 * 1_024),
+  reason: optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH),
+};
+
+export const authorizationBulkPreviewBodySchema = z.union([
+  z.object(authorizationJsonBulkRequestShape).strict(),
+  z.object(authorizationCsvBulkRequestShape).strict(),
+]);
+
+export const authorizationBulkApplyBodySchema = z.union([
+  z.object({ ...authorizationJsonBulkRequestShape, confirmationToken: confirmationTokenField }).strict(),
+  z.object({ ...authorizationCsvBulkRequestShape, confirmationToken: confirmationTokenField }).strict(),
+]);
+
+export const authorizationBulkRequestSchema = z.union([
+  authorizationBulkPreviewBodySchema,
+  authorizationBulkApplyBodySchema,
+]);
+
+export const authorizationBulkAssignmentRowPreviewSchema = z
+  .object({
+    index: z.number().int().min(0).max(99),
+    row: authorizationBulkAssignmentRowSchema,
+    normalizedPrincipalId: identifierField.optional(),
+    assignmentId: identifierField.optional(),
+    assignmentVersion: positiveVersionField.optional(),
+    outcome: z.enum(['grant', 'revoke', 'no-op', 'invalid']),
+    errorCode: z.string().min(1).max(128).optional(),
+  })
+  .strict();
+
+export const authorizationBulkAssignmentPreviewSchema = z
+  .object({
+    rows: z.array(authorizationBulkAssignmentRowPreviewSchema).min(1).max(100),
+    grantCount: z.number().int().min(0).max(100),
+    revokeCount: z.number().int().min(0).max(100),
+    noOpCount: z.number().int().min(0).max(100),
+    invalidCount: z.number().int().min(0).max(100),
+    confirmationToken: confirmationTokenField.optional(),
+  })
+  .strict()
+  .openapi({ description: 'Bounded manual assignment batch validation and impact preview' });
+
+export const authorizationAssignmentMutationResultSchema = z
+  .object({
+    data: authorizationAssignmentSchema,
+    version: positiveVersionField,
+    auditEventId: identifierField,
+    requestId: identifierField,
+    changed: z.boolean(),
+  })
+  .strict()
+  .openapi({ description: 'Versioned and audited sourced assignment mutation result' });
+
+export const authorizationBulkAssignmentMutationSchema = z
+  .object({
+    data: z
+      .object({
+        appliedCount: z.number().int().min(0).max(100),
+        noOpCount: z.number().int().min(0).max(100),
+        rowResults: z.array(authorizationBulkAssignmentRowPreviewSchema).min(1).max(100),
+      })
+      .strict(),
+    version: positiveVersionField,
+    auditEventId: identifierField,
+    requestId: identifierField,
+    batchId: identifierField,
+    changed: z.boolean(),
+  })
+  .strict()
+  .openapi({ description: 'Atomic assignment batch result with per-row outcomes and batch audit identity' });
 
 export const authorizationPreviewSchema = z
   .object({

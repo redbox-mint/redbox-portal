@@ -1,0 +1,32 @@
+meta {
+  name: Authorization - Cleanup assignment
+  type: http
+  seq: 53
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/authorization/assignments/Librarians/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationCleanupVersion}},
+    "reason": "Clean up Bruno assignment fixture"
+  }
+}
+
+tests {
+  test("Leaves the reusable fixture without effective Librarian authority", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.status).to.equal("revoked");
+  });
+}

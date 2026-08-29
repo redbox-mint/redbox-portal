@@ -1,0 +1,39 @@
+meta {
+  name: Authorization - Replay bulk assignment token
+  type: http
+  seq: 53
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/bulk-apply
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "rows": [
+      {
+        "action": "grant",
+        "principalId": "{{researcherUserId}}",
+        "roleKey": "Librarians"
+      }
+    ],
+    "reason": "Reviewed Bruno assignment batch",
+    "confirmationToken": "{{authorizationBulkToken}}"
+  }
+}
+
+tests {
+  test("Rejects a token after assignment state changed", function () {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getBody()).to.include({ status: 409, code: "authorization.preview-stale" });
+  });
+}

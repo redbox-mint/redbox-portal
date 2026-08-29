@@ -1,0 +1,32 @@
+meta {
+  name: Authorization - Reject manual suppression
+  type: http
+  seq: 53
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/{{authorizationAssignmentId}}/suppress
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationAssignmentVersion}},
+    "reason": "Manual sources cannot be suppressed"
+  }
+}
+
+tests {
+  test("Restricts suppression to external source tuples", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody()).to.include({ status: 400, code: "authorization.invalid-role" });
+  });
+}

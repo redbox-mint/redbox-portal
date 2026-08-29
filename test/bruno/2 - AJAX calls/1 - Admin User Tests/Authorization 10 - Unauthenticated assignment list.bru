@@ -1,0 +1,23 @@
+meta {
+  name: Authorization - Unauthenticated assignment list
+  type: http
+  seq: 53
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/assignments?limit=1
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Cookie: not-a-valid-session
+}
+
+tests {
+  test("Returns typed authentication failure", function () {
+    expect(res.getStatus()).to.equal(401);
+    expect(res.getBody()).to.include({ status: 401, code: "authentication-required" });
+  });
+}

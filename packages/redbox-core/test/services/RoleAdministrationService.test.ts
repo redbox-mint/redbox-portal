@@ -80,6 +80,7 @@ describe('RoleAdministrationService', () => {
       'grantAssignment',
       'inactivateRole',
       'getRole',
+      'listAssignments',
       'listRoles',
       'previewBulkAssignments',
       'previewBulkTemplateUpgrade',
@@ -168,6 +169,218 @@ describe('RoleAdministrationService', () => {
         },
       ],
     });
+  });
+
+  it('lists only active-brand assignments with bounded provenance and server-side filters', async () => {
+    let assignmentCriteria: Record<string, unknown> | undefined;
+    Reflect.set(globalThis, 'RoleAssignment', {
+      find(criteria: Record<string, unknown>) {
+        assignmentCriteria = criteria;
+        return {
+          sort: () => ({
+            limit: () =>
+              Promise.resolve([
+                {
+                  id: 'assignment-1',
+                  principalId: 'user-1',
+                  role: 'role-1',
+                  branding: 'brand-1',
+                  source: 'external',
+                  sourceKey: 'oidc::researchers',
+                  status: 'suppressed',
+                  sourcePresent: false,
+                  assignedBy: 'provider-sync',
+                  assignedAt: new Date('2026-08-20T00:00:00.000Z'),
+                  suppressedBy: 'operator-1',
+                  suppressedAt: new Date('2026-08-21T00:00:00.000Z'),
+                  reason: 'Reviewed local suppression',
+                  version: 3,
+                },
+              ]),
+          }),
+        };
+      },
+    });
+    Reflect.set(globalThis, 'Role', {
+      find: () => ({
+        limit: () =>
+          Promise.resolve([
+            {
+              id: 'role-1',
+              name: 'Researcher',
+              key: 'Researcher',
+              contextType: 'brand',
+              branding: 'brand-1',
+              protectedKind: 'none',
+              status: 'active',
+            },
+          ]),
+      }),
+    });
+    const assignmentReader = freezeAuthorizationContext({
+      ...reader,
+      grantedScopeKeys: [asScopeKey('authorization.assignment.read')],
+      effectiveScopeKeys: [asScopeKey('authorization.assignment.read')],
+    });
+
+    const page = await new Services.RoleAdministrationService().listAssignments({
+      actor: assignmentReader,
+      brandId: 'brand-1',
+      cursor: 'assignment-0',
+      limit: 25,
+      principalId: 'user-1',
+      source: 'external',
+      status: 'suppressed',
+      sourcePresent: false,
+      expiry: 'never',
+    });
+
+    assert.deepEqual(assignmentCriteria, {
+      and: [
+        { branding: 'brand-1' },
+        { id: { '>': 'assignment-0' } },
+        { principalId: 'user-1' },
+        { source: 'external' },
+        { status: 'suppressed' },
+        { sourcePresent: false },
+        { expiresAt: null },
+      ],
+    });
+    assert.deepEqual(page, {
+      items: [
+        {
+          id: 'assignment-1',
+          principalId: 'user-1',
+          roleId: 'role-1',
+          roleKey: 'Researcher',
+          brandId: 'brand-1',
+          source: 'external',
+          sourceKey: 'oidc::researchers',
+          status: 'suppressed',
+          sourcePresent: false,
+          assignedBy: 'provider-sync',
+          assignedAt: '2026-08-20T00:00:00.000Z',
+          suppressedBy: 'operator-1',
+          suppressedAt: '2026-08-21T00:00:00.000Z',
+          reason: 'Reviewed local suppression',
+          version: 3,
+        },
+      ],
+    });
+  });
+
+  it('includes protected global assignments only for explicit system authorization managers', async () => {
+    let assignmentCriteria: Record<string, unknown> | undefined;
+    Reflect.set(globalThis, 'RoleAssignment', {
+      find(criteria: Record<string, unknown>) {
+        assignmentCriteria = criteria;
+        return {
+          sort: () => ({
+            limit: () =>
+              Promise.resolve([
+                {
+                  id: 'system-assignment-1',
+                  principalId: 'system-user',
+                  role: 'system-role',
+                  source: 'manual',
+                  sourceKey: 'manual',
+                  status: 'active',
+                  sourcePresent: true,
+                  assignedBy: 'operator-1',
+                  assignedAt: new Date('2026-08-20T00:00:00.000Z'),
+                  version: 1,
+                },
+              ]),
+          }),
+        };
+      },
+    });
+    Reflect.set(globalThis, 'Role', {
+      find: () => ({
+        limit: () =>
+          Promise.resolve([
+            {
+              id: 'system-role',
+              name: 'system-admin',
+              key: 'system-admin',
+              contextType: 'system',
+              protectedKind: 'system-admin',
+              status: 'active',
+            },
+          ]),
+      }),
+    });
+    const systemReader = freezeAuthorizationContext({
+      ...reader,
+      grantedScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
+      effectiveScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
+    });
+
+    const page = await new Services.RoleAdministrationService().listAssignments({
+      actor: systemReader,
+      brandId: 'brand-1',
+      roleKey: 'system-admin',
+    });
+
+    assert.deepEqual(assignmentCriteria, {
+      and: [{ or: [{ branding: 'brand-1' }, { branding: null }] }, { role: ['system-role'] }],
+    });
+    assert.equal(page.items[0].brandId, undefined);
+    assert.equal(page.items[0].roleKey, 'system-admin');
+  });
+
+  it('fails closed when a protected system assignment or role has persisted brand ownership', async () => {
+    Reflect.set(globalThis, 'RoleAssignment', {
+      find: () => ({
+        sort: () => ({
+          limit: () =>
+            Promise.resolve([
+              {
+                id: 'system-assignment-1',
+                principalId: 'system-user',
+                role: 'system-role',
+                source: 'manual',
+                sourceKey: 'manual',
+                status: 'active',
+                sourcePresent: true,
+                assignedBy: 'operator-1',
+                assignedAt: new Date('2026-08-20T00:00:00.000Z'),
+                version: 1,
+              },
+            ]),
+        }),
+      }),
+    });
+    Reflect.set(globalThis, 'Role', {
+      find: () => ({
+        limit: () =>
+          Promise.resolve([
+            {
+              id: 'system-role',
+              name: 'system-admin',
+              key: 'system-admin',
+              contextType: 'system',
+              branding: 'foreign-brand',
+              protectedKind: 'system-admin',
+              status: 'active',
+            },
+          ]),
+      }),
+    });
+    const systemReader = freezeAuthorizationContext({
+      ...reader,
+      grantedScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
+      effectiveScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
+    });
+
+    await assert.rejects(
+      new Services.RoleAdministrationService().listAssignments({
+        actor: systemReader,
+        brandId: 'brand-1',
+      }),
+      (error: unknown) =>
+        typeof error === 'object' && error !== null && 'code' in error && error.code === 'authorization.not-found'
+    );
   });
 
   it('returns an opaque not-found result before querying another brand', async () => {

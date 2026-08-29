@@ -43,7 +43,7 @@ These tests run the Sails.js backend logic in a Docker container.
     - DOI live tests use `datacite_username`, `datacite_password`, `datacite_doiPrefix`, and optional `datacite_baseUrl` when you need to point at a different Datacite host.
     - **Fast Mode**: Use `npm run test:mocha:mount` to mount your local source into the container for dev and avoid image rebuilds.
     - **CI Mode**: `npm run test:mocha` runs against the locally built image (the CircleCI path).
-    - **Custom Paths**: Provide additional test globs via CLI args or the `RBPORTAL_MOCHA_TEST_PATHS` env var (space-delimited). Both are combined.
+    - **Custom Paths**: Provide test globs to the npm/Docker workflow with the `RBPORTAL_MOCHA_TEST_PATHS` environment variable, one path per line.
       - Example: `RBPORTAL_MOCHA_TEST_PATHS="test/integration/**/auth*.test.ts" npm run test:mocha`
       - Example live run: `RUN_LIVE_INTEGRATION_TESTS=true RBPORTAL_MOCHA_TEST_PATHS="test/integration/services/FormVocabularyService.test.ts" npm run test:mocha:mount`
 
@@ -70,6 +70,7 @@ These tests use **Bruno** to make actual HTTP requests against a running instanc
       - disable-user
       - enable-user
       - get-user-audit
+    - The same collection includes authorization assignment coverage for session-authenticated reads, bearer mutations, fail-closed session mutation without CSRF, manual grant/idempotency/revoke, expiry validation, stale CAS, external-only suppression checks, and confirmed atomic bulk preview/apply/replay behavior.
 
 ### 4. Frontend Unit Tests (`test:angular`)
 

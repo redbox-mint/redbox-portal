@@ -1,0 +1,43 @@
+meta {
+  name: Authorization - Invalid bulk assignment apply
+  type: http
+  seq: 53
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/bulk-apply
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "rows": [
+      {
+        "action": "grant",
+        "principalId": "{{researcherUserId}}",
+        "roleKey": "Librarians"
+      },
+      {
+        "action": "revoke",
+        "principalId": "{{researcherUserId}}",
+        "roleKey": "Librarians"
+      }
+    ],
+    "confirmationToken": "invalid-token"
+  }
+}
+
+tests {
+  test("Rejects duplicate source tuples before any partial apply", function () {
+    expect(res.getStatus()).to.equal(422);
+    expect(res.getBody()).to.include({ status: 422, code: "authorization.bulk-invalid" });
+  });
+}

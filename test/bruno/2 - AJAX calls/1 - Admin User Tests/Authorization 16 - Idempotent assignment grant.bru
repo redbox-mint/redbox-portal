@@ -1,0 +1,35 @@
+meta {
+  name: Authorization - Idempotent assignment grant
+  type: http
+  seq: 53
+}
+
+put {
+  url: {{host}}/default/rdmp/api/authorization/assignments/Librarians/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expiresAt": "2099-01-01T00:00:00.000Z",
+    "reason": "Repeat reviewed Bruno assignment grant"
+  }
+}
+
+tests {
+  test("Returns a no-op without creating another tuple", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.changed).to.equal(false);
+    expect(body.data.id).to.equal(bru.getVar("authorizationAssignmentId"));
+    expect(body.data.version).to.equal(bru.getVar("authorizationAssignmentVersion"));
+  });
+}

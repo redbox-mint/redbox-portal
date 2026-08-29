@@ -30,12 +30,14 @@ For the full REST API reference, see the [REST API Documentation](https://github
 The configurable authorization model exposes runtime-validated routes for the
 caller's safe effective projection, the deployed scope catalog, immutable role
 templates, system-authorized template publication, and current-brand role
-catalog/create/configure/upgrade/inactivate/delete lifecycle. These routes use
-business-capability scopes, required transactional mutations, and bounded
-Problem Details instead of treating legacy role names as authority. See the
-[Authorization Contract API](Authorization-Contract-API) for the exact current
-surface, pagination/filter bounds, preview/apply handshake, and verification
-commands.
+catalog/create/configure/upgrade/inactivate/delete lifecycle. It also exposes
+the current authorization-context assignment catalog, idempotent manual
+grant/revoke, external-source suppression, and bounded atomic bulk assignment
+preview/apply. These routes use business-capability scopes, required
+transactional mutations, and bounded Problem Details instead of treating
+legacy role names as authority. See the [Authorization Contract
+API](Authorization-Contract-API) for the exact current surface,
+pagination/filter bounds, preview/apply handshake, and verification commands.
 
 ### Record schema contracts
 

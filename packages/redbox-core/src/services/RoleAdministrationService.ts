@@ -33,6 +33,8 @@ import {
   type ApplyScopeAdoptionCommand,
   type AssignmentAdministrationSnapshot,
   type AssignmentByIdCommand,
+  type AssignmentCatalogPage,
+  type AssignmentCatalogQuery,
   type AuthorizationAdministrationCommand,
   type AuthorizationAuditEventType,
   type AuthorizationConfirmationClaims,
@@ -85,6 +87,7 @@ import { runWithRequiredTransaction } from '../utilities/RequiredTransactionUtil
 const ROLE_MANAGE_SCOPE = 'authorization.role.manage' as ScopeKey;
 const ROLE_READ_SCOPE = 'authorization.role.read' as ScopeKey;
 const ASSIGNMENT_MANAGE_SCOPE = 'authorization.assignment.manage' as ScopeKey;
+const ASSIGNMENT_READ_SCOPE = 'authorization.assignment.read' as ScopeKey;
 const SYSTEM_MANAGE_SCOPE = 'system.authorization.manage' as ScopeKey;
 const MANUAL_SOURCE_KEY = 'manual';
 const MAX_LINK_DEPTH = 16;
@@ -408,6 +411,7 @@ export namespace Services {
       'listRoles',
       'previewRoleDeletion',
       'deleteRole',
+      'listAssignments',
       'grantAssignment',
       'revokeAssignment',
       'suppressAssignment',
@@ -847,6 +851,93 @@ export namespace Services {
         throw new AuthorizationAdministrationError('authorization.invalid-query', 400, 'A role key is required.');
       }
       return this.snapshot(await this.loadRoleState(await this.findRole(key, brandId)));
+    }
+
+    public async listAssignments(query: AssignmentCatalogQuery): Promise<AssignmentCatalogPage> {
+      this.requireScope(
+        { actor: query.actor, brandId: query.brandId, requestId: 'authorization-assignment-catalog-read' },
+        ASSIGNMENT_READ_SCOPE,
+        query.brandId
+      );
+      const limit = boundedRoleCatalogLimit(query.limit);
+      const cursor = boundedRoleQueryText(query.cursor, 'cursor', 256, true);
+      const principalId = boundedRoleQueryText(query.principalId, 'userId', 256, true);
+      const roleKey = boundedRoleQueryText(query.roleKey, 'roleKey', 256, true);
+      const includeSystemAssignments = query.actor.effectiveScopeKeys.includes(SYSTEM_MANAGE_SCOPE);
+
+      let selectedRoleIds: readonly string[] | undefined;
+      if (roleKey !== undefined) {
+        const roleContexts: Record<string, unknown>[] = [
+          { branding: query.brandId, contextType: 'brand', key: roleKey },
+          { branding: query.brandId, contextType: 'brand', name: roleKey },
+        ];
+        if (includeSystemAssignments) {
+          roleContexts.push(
+            { branding: null, contextType: 'system', protectedKind: 'system-admin', key: roleKey },
+            { branding: null, contextType: 'system', protectedKind: 'system-admin', name: roleKey }
+          );
+        }
+        const matchingRoles = (await Role.find({ or: roleContexts }).limit(4)) as RoleAttributes[];
+        selectedRoleIds = uniqueStrings(matchingRoles.map(role => role.id));
+        if (selectedRoleIds.length === 0) return Object.freeze({ items: Object.freeze([]) });
+      }
+
+      const criteriaParts: Record<string, unknown>[] = [
+        includeSystemAssignments
+          ? { or: [{ branding: query.brandId }, { branding: null }] }
+          : { branding: query.brandId },
+      ];
+      if (cursor !== undefined) criteriaParts.push({ id: { '>': cursor } });
+      if (principalId !== undefined) criteriaParts.push({ principalId });
+      if (selectedRoleIds !== undefined) criteriaParts.push({ role: selectedRoleIds });
+      if (query.source !== undefined) criteriaParts.push({ source: query.source });
+      if (query.status !== undefined) criteriaParts.push({ status: query.status });
+      if (query.sourcePresent !== undefined) criteriaParts.push({ sourcePresent: query.sourcePresent });
+      if (query.expiry === 'expired') criteriaParts.push({ expiresAt: { '<=': this.dependencies.now() } });
+      if (query.expiry === 'never') criteriaParts.push({ expiresAt: null });
+      if (query.expiry === 'unexpired') {
+        criteriaParts.push({ or: [{ expiresAt: null }, { expiresAt: { '>': this.dependencies.now() } }] });
+      }
+
+      const rows = (await RoleAssignment.find({ and: criteriaParts })
+        .sort('id ASC')
+        .limit(limit + 1)) as RoleAssignmentAttributes[];
+      const page = rows.slice(0, limit);
+      const roleIds = uniqueStrings(
+        page.map(assignment => associationId(assignment.role)).filter((value): value is string => value !== undefined)
+      );
+      const roles = roleIds.length
+        ? ((await Role.find({ id: roleIds }).limit(roleIds.length)) as RoleAttributes[])
+        : [];
+      const rolesById = new Map(roles.map(role => [role.id, role]));
+      const items = Object.freeze(
+        page.map(assignment => {
+          const roleId = associationId(assignment.role);
+          const role = roleId === undefined ? undefined : rolesById.get(roleId);
+          const assignmentBrandId = associationId(assignment.branding);
+          const roleBrandId = role === undefined ? undefined : associationId(role.branding);
+          const validBrandRole =
+            role?.contextType === 'brand' && assignmentBrandId === query.brandId && roleBrandId === query.brandId;
+          const validSystemRole =
+            includeSystemAssignments &&
+            role?.contextType === 'system' &&
+            role.protectedKind === 'system-admin' &&
+            roleBrandId === undefined &&
+            assignmentBrandId === undefined;
+          if (role === undefined || (!validBrandRole && !validSystemRole)) {
+            throw new AuthorizationAdministrationError(
+              'authorization.not-found',
+              404,
+              'Assignment state was not found in the active authorization context.'
+            );
+          }
+          return this.assignmentSnapshot(assignment, role);
+        })
+      );
+      return Object.freeze({
+        items,
+        ...(rows.length > limit && items.length > 0 ? { nextCursor: items[items.length - 1].id } : {}),
+      });
     }
 
     private async replaceOverrides(
@@ -1926,13 +2017,6 @@ export namespace Services {
     }
 
     private assignmentRoleScope(command: AuthorizationAdministrationCommand, role: RoleAttributes): void {
-      if (role.status !== 'active') {
-        throw new AuthorizationAdministrationError(
-          'authorization.invalid-role',
-          400,
-          'Inactive roles cannot be assigned.'
-        );
-      }
       if (role.protectedKind === 'guest') {
         throw new AuthorizationAdministrationError(
           'authorization.protected-role',
@@ -1942,9 +2026,52 @@ export namespace Services {
       }
       const brandId = associationId(role.branding);
       if (role.contextType === 'system') {
+        if (role.protectedKind !== 'system-admin' || brandId !== undefined) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target role was not found.');
+        }
+        if (!command.actor.effectiveScopeKeys.includes(SYSTEM_MANAGE_SCOPE)) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target role was not found.');
+        }
         this.requireScope(command, SYSTEM_MANAGE_SCOPE);
       } else {
+        if (role.contextType !== 'brand' || brandId === undefined || command.brandId !== brandId) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target role was not found.');
+        }
         this.requireScope(command, ASSIGNMENT_MANAGE_SCOPE, brandId);
+      }
+    }
+
+    private requireAssignableRole(role: RoleAttributes): void {
+      if (role.status !== 'active') {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-role',
+          400,
+          'Inactive roles cannot be assigned.'
+        );
+      }
+    }
+
+    private assertAssignmentRoleContext(assignment: RoleAssignmentAttributes, role: RoleAttributes): void {
+      const assignmentRoleId = associationId(assignment.role);
+      const assignmentBrandId = associationId(assignment.branding);
+      const roleBrandId = associationId(role.branding);
+      const validBrandContext =
+        assignmentRoleId === role.id &&
+        role.contextType === 'brand' &&
+        roleBrandId !== undefined &&
+        assignmentBrandId === roleBrandId;
+      const validSystemContext =
+        assignmentRoleId === role.id &&
+        role.contextType === 'system' &&
+        role.protectedKind === 'system-admin' &&
+        roleBrandId === undefined &&
+        assignmentBrandId === undefined;
+      if (!validBrandContext && !validSystemContext) {
+        throw new AuthorizationAdministrationError(
+          'authorization.not-found',
+          404,
+          'The assignment was not found in the active authorization context.'
+        );
       }
     }
 
@@ -1984,6 +2111,12 @@ export namespace Services {
       role: RoleAttributes
     ): AssignmentAdministrationSnapshot {
       const expiresAt = assignment.expiresAt == null ? undefined : new Date(assignment.expiresAt).toISOString();
+      const revokedAt = assignment.revokedAt == null ? undefined : new Date(assignment.revokedAt).toISOString();
+      const suppressedAt =
+        assignment.suppressedAt == null ? undefined : new Date(assignment.suppressedAt).toISOString();
+      const reason = optionalAuthorizationText(assignment.reason, 1_000);
+      const revokedBy = optionalAuthorizationText(assignment.revokedBy, 256);
+      const suppressedBy = optionalAuthorizationText(assignment.suppressedBy, 256);
       return Object.freeze({
         id: assignment.id,
         principalId: assignment.principalId,
@@ -1994,7 +2127,14 @@ export namespace Services {
         sourceKey: assignment.sourceKey,
         status: assignment.status,
         sourcePresent: assignment.sourcePresent,
-        expiresAt,
+        assignedBy: requiredAuthorizationText(assignment.assignedBy, 'assignedBy', 256),
+        assignedAt: new Date(assignment.assignedAt).toISOString(),
+        ...(expiresAt === undefined ? {} : { expiresAt }),
+        ...(revokedBy === undefined ? {} : { revokedBy }),
+        ...(revokedAt === undefined ? {} : { revokedAt }),
+        ...(suppressedBy === undefined ? {} : { suppressedBy }),
+        ...(suppressedAt === undefined ? {} : { suppressedAt }),
+        ...(reason === undefined ? {} : { reason }),
         version: assignment.version,
       });
     }
@@ -2004,17 +2144,25 @@ export namespace Services {
       role: RoleAttributes,
       connection: Sails.Connection
     ): Promise<void> {
+      const roleBrandId = associationId(role.branding);
+      const validBrandRole = role.contextType === 'brand' && roleBrandId !== undefined;
+      const validSystemRole =
+        role.contextType === 'system' && role.protectedKind === 'system-admin' && roleBrandId === undefined;
+      if (!validBrandRole && !validSystemRole) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target role was not found.');
+      }
       const assignments = (await RoleAssignment.find({
         principalType: 'user',
         principalId,
         role: role.id,
+        branding: validBrandRole ? roleBrandId : null,
         status: 'active',
         sourcePresent: true,
+        or: [{ expiresAt: null }, { expiresAt: { '>': this.dependencies.now() } }],
       })
-        .limit(AUTHORIZATION_ADMIN_MAX_BULK_ROWS + 1)
+        .limit(1)
         .usingConnection(connection)) as RoleAssignmentAttributes[];
-      const effective =
-        role.status === 'active' && assignments.some(assignment => activeAt(assignment, this.dependencies.now()));
+      const effective = role.status === 'active' && assignments.length > 0;
       const query = effective
         ? User.addToCollection(principalId, 'roles').members([role.id])
         : User.removeFromCollection(principalId, 'roles').members([role.id]);
@@ -2045,14 +2193,14 @@ export namespace Services {
       const roleCriteria: Record<string, unknown> = {
         protectedKind: role.protectedKind,
         status: 'active',
-        ...(role.protectedKind === 'brand-admin'
-          ? { branding: associationId(role.branding), contextType: 'brand' }
-          : { contextType: 'system' }),
+        branding: role.protectedKind === 'brand-admin' ? associationId(role.branding) : null,
+        ...(role.protectedKind === 'brand-admin' ? { contextType: 'brand' } : { contextType: 'system' }),
       };
       const protectedRoles = (await Role.find(roleCriteria).limit(100).usingConnection(connection)) as RoleAttributes[];
       const roleIds = protectedRoles.map(candidate => candidate.id);
       const rows = (await RoleAssignment.find({
         role: roleIds,
+        branding: role.protectedKind === 'brand-admin' ? associationId(role.branding) : null,
         status: 'active',
         sourcePresent: true,
         or: [{ expiresAt: null }, { expiresAt: { '>': this.dependencies.now() } }],
@@ -2092,6 +2240,7 @@ export namespace Services {
     ): Promise<AssignmentMutationOutcome> {
       const sourceKey = requiredAuthorizationText(command.sourceKey, 'sourceKey', 128);
       const existing = await this.findAssignmentByTuple(principalId, role.id, command.source, sourceKey, connection);
+      if (existing !== undefined) this.assertAssignmentRoleContext(existing, role);
       const now = this.dependencies.now();
       const expiresAt = normalizedExpiry(command.expiresAt, now);
       if (existing === undefined) {
@@ -2155,6 +2304,7 @@ export namespace Services {
       return this.runMutation(command, auditInput, async connection => {
         const role = await this.findRole(command.roleKey, command.brandId, connection);
         this.assignmentRoleScope(command, role);
+        this.requireAssignableRole(role);
         await this.validateAssignmentDelegation(command, role, connection);
         const user = await this.canonicalUser(command.principalId, connection);
         const outcome = await this.grantWithinTransaction(command, role, user.id, connection);
@@ -2193,6 +2343,7 @@ export namespace Services {
         );
         if (assignment === undefined)
           throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The assignment was not found.');
+        this.assertAssignmentRoleContext(assignment, role);
         if (assignment.version !== positiveVersion(command.expectedVersion))
           throw new AuthorizationAdministrationError('authorization.version-conflict', 409, 'The assignment changed.');
         if (activeAt(assignment, this.dependencies.now()))
@@ -2246,8 +2397,6 @@ export namespace Services {
         | undefined;
       if (assignment === undefined)
         throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The assignment was not found.');
-      if (assignment.version !== positiveVersion(command.expectedVersion))
-        throw new AuthorizationAdministrationError('authorization.version-conflict', 409, 'The assignment changed.');
       const roleId = associationId(assignment.role);
       const role =
         roleId === undefined
@@ -2256,6 +2405,9 @@ export namespace Services {
       if (role === undefined)
         throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The assignment was not found.');
       this.assignmentRoleScope(command, role);
+      this.assertAssignmentRoleContext(assignment, role);
+      if (assignment.version !== positiveVersion(command.expectedVersion))
+        throw new AuthorizationAdministrationError('authorization.version-conflict', 409, 'The assignment changed.');
       return { assignment, role };
     }
 
@@ -2325,7 +2477,10 @@ export namespace Services {
             'The assignment is not externally suppressed.'
           );
         }
-        if (assignment.sourcePresent) await this.validateAssignmentDelegation(command, role, connection);
+        if (assignment.sourcePresent) {
+          this.requireAssignableRole(role);
+          await this.validateAssignmentDelegation(command, role, connection);
+        }
         const now = this.dependencies.now();
         const updated = requireUpdatedRow(
           (await RoleAssignment.updateOne({ id: assignment.id, version: assignment.version })
@@ -2424,6 +2579,7 @@ export namespace Services {
         for (const roleKey of roleKeys) {
           const role = await this.findRole(roleKey, command.brandId, connection);
           this.assignmentRoleScope(command, role);
+          this.requireAssignableRole(role);
           await this.validateAssignmentDelegation(command, role, connection);
           roles.push(role);
         }
@@ -2452,7 +2608,17 @@ export namespace Services {
           if (role === undefined && roleId !== undefined) {
             role = (await Role.findOne({ id: roleId }).usingConnection(connection)) as RoleAttributes | undefined;
           }
-          if (role?.protectedKind === 'brand-admin' || role?.protectedKind === 'system-admin')
+          if (role === undefined) {
+            throw new AuthorizationAdministrationError(
+              'authorization.not-found',
+              404,
+              'External assignment state was not found in the active authorization context.'
+            );
+          }
+          this.assignmentRoleScope(command, role);
+          this.assertAssignmentRoleContext(assignment, role);
+          rolesById.set(role.id, role);
+          if (role.protectedKind === 'brand-admin' || role.protectedKind === 'system-admin')
             protectedRoles.set(role.id, role);
         }
         for (const role of roles) {
@@ -2566,13 +2732,17 @@ export namespace Services {
       connection: Sails.Connection
     ): Promise<readonly BulkAssignmentRowPreview[]> {
       const previews: BulkAssignmentRowPreview[] = [];
+      const seenTuples = new Set<string>();
       for (let index = 0; index < rows.length; index += 1) {
         const row = rows[index];
         try {
           const user = await this.canonicalUser(row.principalId, connection);
           const role = await this.findRole(row.roleKey, command.brandId, connection);
           this.assignmentRoleScope(command, role);
-          if (row.action === 'grant') await this.validateAssignmentDelegation(command, role, connection);
+          if (row.action === 'grant') {
+            this.requireAssignableRole(role);
+            await this.validateAssignmentDelegation(command, role, connection);
+          }
           const assignment = await this.findAssignmentByTuple(
             user.id,
             role.id,
@@ -2580,21 +2750,41 @@ export namespace Services {
             row.sourceKey ?? MANUAL_SOURCE_KEY,
             connection
           );
-          const outcome =
-            row.action === 'grant'
-              ? assignment !== undefined && activeAt(assignment, this.dependencies.now())
-                ? 'no-op'
-                : 'grant'
-              : assignment === undefined || assignment.status === 'revoked'
-                ? 'no-op'
-                : 'revoke';
-          if (row.action === 'revoke' && assignment !== undefined && row.expectedVersion !== assignment.version) {
+          if (assignment !== undefined) this.assertAssignmentRoleContext(assignment, role);
+          const now = this.dependencies.now();
+          const desiredExpiry = row.action === 'grant' ? normalizedExpiry(row.expiresAt, now) : undefined;
+          if (
+            row.expectedVersion !== undefined &&
+            (assignment === undefined || assignment.version !== positiveVersion(row.expectedVersion))
+          ) {
             throw new AuthorizationAdministrationError(
               'authorization.version-conflict',
               409,
               'The assignment version is stale.'
             );
           }
+          const currentExpiry =
+            assignment?.expiresAt == null ? undefined : new Date(assignment.expiresAt).toISOString();
+          const outcome =
+            row.action === 'grant'
+              ? assignment !== undefined &&
+                assignment.status === 'active' &&
+                assignment.sourcePresent &&
+                currentExpiry === desiredExpiry
+                ? 'no-op'
+                : 'grant'
+              : assignment === undefined || assignment.status === 'revoked'
+                ? 'no-op'
+                : 'revoke';
+          const tupleKey = `${user.id}\u0000${role.id}\u0000${row.sourceKey ?? MANUAL_SOURCE_KEY}`;
+          if (seenTuples.has(tupleKey)) {
+            throw new AuthorizationAdministrationError(
+              'authorization.bulk-invalid',
+              422,
+              'A manual assignment source tuple may appear only once per batch.'
+            );
+          }
+          seenTuples.add(tupleKey);
           previews.push(
             Object.freeze({
               index,
@@ -2629,7 +2819,10 @@ export namespace Services {
       const revokeCount = previews.filter(row => row.outcome === 'revoke').length;
       const noOpCount = previews.filter(row => row.outcome === 'no-op').length;
       const invalidCount = previews.filter(row => row.outcome === 'invalid').length;
-      const content = { rows: previews.map(row => ({ ...row, row: { ...row.row } })) };
+      const content = {
+        rows: previews.map(row => ({ ...row, row: { ...row.row } })),
+        reason: optionalAuthorizationText(command.reason, 1_000),
+      };
       return Object.freeze({
         rows: previews,
         grantCount,
@@ -2658,7 +2851,10 @@ export namespace Services {
           'The assignment batch contains invalid rows.'
         );
       }
-      const content = { rows: previewRows.map(row => ({ ...row, row: { ...row.row } })) };
+      const content = {
+        rows: previewRows.map(row => ({ ...row, row: { ...row.row } })),
+        reason: optionalAuthorizationText(command.reason, 1_000),
+      };
       this.verifyConfirmation(
         command,
         command.confirmationToken,
@@ -2677,8 +2873,10 @@ export namespace Services {
       return this.runMutation(command, auditInput, async connection => {
         const fresh = await this.bulkPreviewRows(command, rows, connection);
         if (
-          authorizationContentHash({ rows: fresh.map(row => ({ ...row, row: { ...row.row } })) }) !==
-          authorizationContentHash(content)
+          authorizationContentHash({
+            rows: fresh.map(row => ({ ...row, row: { ...row.row } })),
+            reason: optionalAuthorizationText(command.reason, 1_000),
+          }) !== authorizationContentHash(content)
         ) {
           throw new AuthorizationAdministrationError(
             'authorization.preview-stale',
@@ -2695,10 +2893,20 @@ export namespace Services {
           }
           const row = rowPreview.row;
           const role = await this.findRole(row.roleKey, command.brandId, connection);
+          this.assignmentRoleScope(command, role);
           if (rowPreview.outcome === 'grant') {
+            this.requireAssignableRole(role);
+            const principalId = rowPreview.normalizedPrincipalId;
+            if (principalId === undefined) {
+              throw new AuthorizationAdministrationError(
+                'authorization.preview-stale',
+                409,
+                'The assignment batch target changed since preview.'
+              );
+            }
             const grantCommand: GrantAssignmentCommand = {
               ...command,
-              principalId: rowPreview.normalizedPrincipalId!,
+              principalId,
               roleKey: row.roleKey,
               source: 'manual',
               sourceKey: row.sourceKey ?? MANUAL_SOURCE_KEY,
@@ -2706,13 +2914,8 @@ export namespace Services {
               expectedVersion: rowPreview.assignmentVersion,
               batchId,
             };
-            const outcome = await this.grantWithinTransaction(
-              grantCommand,
-              role,
-              rowPreview.normalizedPrincipalId!,
-              connection
-            );
-            await this.projectLegacyAuthority(rowPreview.normalizedPrincipalId!, role, connection);
+            const outcome = await this.grantWithinTransaction(grantCommand, role, principalId, connection);
+            await this.projectLegacyAuthority(principalId, role, connection);
             await this.dependencies.audit().createSucceededEvent(
               this.auditInput(grantCommand, outcome.eventType, 'role-assignment', outcome.assignment.id, {
                 after: this.assignmentSnapshot(outcome.assignment, role),
@@ -2720,9 +2923,24 @@ export namespace Services {
               connection
             );
           } else {
+            if (rowPreview.assignmentId === undefined) {
+              throw new AuthorizationAdministrationError(
+                'authorization.preview-stale',
+                409,
+                'The assignment batch target changed since preview.'
+              );
+            }
             const assignment = (await RoleAssignment.findOne({ id: rowPreview.assignmentId }).usingConnection(
               connection
-            )) as RoleAssignmentAttributes;
+            )) as RoleAssignmentAttributes | undefined;
+            if (assignment === undefined) {
+              throw new AuthorizationAdministrationError(
+                'authorization.preview-stale',
+                409,
+                'The assignment batch target changed since preview.'
+              );
+            }
+            this.assertAssignmentRoleContext(assignment, role);
             if (activeAt(assignment, this.dependencies.now()))
               await this.lockProtectedRole(role, this.actorId(command), connection);
             const updated = requireUpdatedRow(
@@ -2731,6 +2949,7 @@ export namespace Services {
                   status: 'revoked',
                   revokedBy: this.actorId(command),
                   revokedAt: this.dependencies.now(),
+                  reason: optionalAuthorizationText(command.reason, 1_000),
                   version: assignment.version + 1,
                 })
                 .usingConnection(connection)) as RoleAssignmentAttributes | undefined,

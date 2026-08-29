@@ -110,5 +110,23 @@ describe('authorization administration contracts', () => {
         error instanceof AuthorizationAdministrationError && error.code === 'authorization.bulk-invalid'
     );
     assert.throws(() => parseBulkAssignmentRows('action,principalId,roleKey,unexpected\ngrant,u,r,x', 'csv'));
+    assert.throws(() => parseBulkAssignmentRows('action,principalId\ngrant,u', 'csv'));
+    assert.throws(() => parseBulkAssignmentRows('action,principalId,roleKey\ngrant,u,r,extra', 'csv'));
+    assert.throws(() =>
+      parseBulkAssignmentRows('[{"action":"grant","principalId":"u","roleKey":"r","impactCount":1}]')
+    );
+    assert.throws(() =>
+      parseBulkAssignmentRows(
+        '[{"action":"revoke","principalId":"u","roleKey":"r","expiresAt":"2099-01-01T00:00:00Z"}]'
+      )
+    );
+    assert.throws(
+      () => parseBulkAssignmentRows('[{"action":"grant","principalId":"","roleKey":"r"}]'),
+      (error: unknown) =>
+        error instanceof AuthorizationAdministrationError &&
+        error.code === 'authorization.bulk-invalid' &&
+        error.status === 422
+    );
+    assert.throws(() => parseBulkAssignmentRows('action,principalId,roleKey\ngrant,"user"x,r', 'csv'));
   });
 });

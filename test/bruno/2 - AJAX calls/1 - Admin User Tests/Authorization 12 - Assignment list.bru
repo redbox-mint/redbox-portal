@@ -1,0 +1,31 @@
+meta {
+  name: Authorization - Assignment list
+  type: http
+  seq: 53
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/assignments?userId={{researcherUserId}}&limit=25
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Returns only the requested user's bounded assignments", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.items).to.be.an("array");
+    expect(body.items.every(item => item.principalId === bru.getEnvVar("researcherUserId"))).to.equal(true);
+    expect(body.items.every(item => item.sourceKey && item.assignedAt && item.version >= 1)).to.equal(true);
+  });
+}
