@@ -4,7 +4,6 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as AppConfigServiceModule } from '../services/AppConfigService';
 import { Services as BrandingServiceModule } from '../services/BrandingService';
 
-
 export namespace Controllers {
   /**
    * Responsible for all things related to application configuration
@@ -12,7 +11,6 @@ export namespace Controllers {
    * @class AppConfig
    */
   export class AppConfig extends controllers.Core.Controller {
-
     constructor() {
       super();
     }
@@ -20,24 +18,20 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-      'getAppConfigForm',
-      'saveAppConfig',
-      'editAppConfig'
-    ];
+    protected override _exportedMethods: string[] = ['getAppConfigForm', 'saveAppConfig', 'editAppConfig'];
 
     /**
      * Helpers for accessing services
      */
     private get appConfigService(): AppConfigServiceModule.AppConfigs {
-        return sails.services['appconfigservice'] as unknown as AppConfigServiceModule.AppConfigs;
+      return sails.services['appconfigservice'] as unknown as AppConfigServiceModule.AppConfigs;
     }
 
     private get brandingService(): BrandingServiceModule.Branding {
-        return sails.services['brandingservice'] as unknown as BrandingServiceModule.Branding;
+      return sails.services['brandingservice'] as unknown as BrandingServiceModule.Branding;
     }
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     public async editAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
@@ -53,7 +47,7 @@ export namespace Controllers {
 
         return this.sendView(req, res, 'admin/appconfig', {
           configKey: appConfigId,
-          formTitle: modelInfo.title
+          formTitle: modelInfo.title,
         });
       } catch (error) {
         sails.log.error(error);
@@ -62,14 +56,14 @@ export namespace Controllers {
     }
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = this.brandingService.getBrandFromReq(req) as BrandingModel;
         const appConfigId: string = req.param('appConfigId');
         const appConfig = req.body;
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
         //TODO: validate post body against key?
-        const savedConfig = await this.appConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
+        const savedConfig = await this.appConfigService.createOrUpdateConfig(brand, appConfigId, appConfig);
         return res.json(savedConfig);
       } catch (error) {
         sails.log.error(error);
@@ -79,12 +73,12 @@ export namespace Controllers {
 
     public async getAppConfigForm(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = this.brandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = this.brandingService.getBrandFromReq(req) as BrandingModel;
         const appConfigId: string = req.param('appConfigId');
         if (appConfigId === undefined) {
           return res.badRequest('appConfigId is required');
         }
-        const appConfig = await this.appConfigService.getAppConfigForm(brand, appConfigId)
+        const appConfig = await this.appConfigService.getAppConfigForm(brand, appConfigId);
 
         return res.json(appConfig);
       } catch (error) {

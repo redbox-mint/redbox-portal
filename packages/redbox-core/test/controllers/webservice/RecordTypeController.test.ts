@@ -62,6 +62,7 @@ describe('Webservice RecordTypeController schema discovery', function () {
     Reflect.set(globalThis, 'BrandingService', {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'internal-brand' }),
       getBrandNameFromReq: sinon.stub().returns('public brand'),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'public brand' }),
       getPortalFromReq: sinon.stub().returns('portal/subpath'),
       getRootContext: sinon.stub().returns(''),
     });

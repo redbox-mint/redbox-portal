@@ -39,7 +39,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { query } = validated;
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const queryName = query.queryName as string;
         const namedQuery = await NamedQueryService.getNamedQueryConfig(brand, queryName);
         if (!namedQuery) {
@@ -84,7 +84,7 @@ export namespace Controllers {
 
     public async listConfigs(req: Sails.Req, res: Sails.Res) {
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         return this.sendResp(req, res, {
           data: await ReportsService.listConfigs(brand),
           status: 200,
@@ -98,7 +98,7 @@ export namespace Controllers {
     public async getConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const report = await ReportsService.getConfig(brand, validated.params.name as string);
         if (!report) {
           const errorResponse = new APIErrorResponse('Report not found');
@@ -117,7 +117,7 @@ export namespace Controllers {
     public async createConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         return this.sendResp(req, res, {
           data: await ReportsService.createConfig(brand, validated.body as ReportConfigDto),
           status: 201,
@@ -131,7 +131,7 @@ export namespace Controllers {
     public async updateConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         return this.sendResp(req, res, {
           data: await ReportsService.updateConfig(
             brand,
@@ -149,7 +149,7 @@ export namespace Controllers {
     public async deleteConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         return this.sendResp(req, res, {
           data: await ReportsService.deleteConfig(brand, validated.params.name as string),
           status: 200,
@@ -163,7 +163,7 @@ export namespace Controllers {
     public async previewConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         return this.sendResp(req, res, {
           data: await ReportsService.previewConfig(brand, validated.body as ReportConfigDto, req),
           status: 200,

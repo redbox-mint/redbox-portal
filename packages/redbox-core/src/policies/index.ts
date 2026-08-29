@@ -14,6 +14,9 @@ export { disallowedHeadRequestHandler } from './disallowedHeadRequestHandler';
 export { i18nLanguages } from './i18nLanguages';
 export { isAuthenticated } from './isAuthenticated';
 export { isWebServiceAuthenticated } from './isWebServiceAuthenticated';
+export { resolveAuthorizationContext } from './resolveAuthorizationContext';
+export { authorizeRequest } from './authorizeRequest';
+export { protectSessionMutation } from './protectSessionMutation';
 export { menuResolver } from './menuResolver';
 export { noCache } from './noCache';
 export { prepWs } from './prepWs';
@@ -31,6 +34,9 @@ import { disallowedHeadRequestHandler } from './disallowedHeadRequestHandler';
 import { i18nLanguages } from './i18nLanguages';
 import { isAuthenticated } from './isAuthenticated';
 import { isWebServiceAuthenticated } from './isWebServiceAuthenticated';
+import { resolveAuthorizationContext } from './resolveAuthorizationContext';
+import { authorizeRequest } from './authorizeRequest';
+import { protectSessionMutation } from './protectSessionMutation';
 import { menuResolver } from './menuResolver';
 import { noCache } from './noCache';
 import { prepWs } from './prepWs';
@@ -49,6 +55,9 @@ export const Policies = {
   i18nLanguages,
   isAuthenticated,
   isWebServiceAuthenticated,
+  resolveAuthorizationContext,
+  authorizeRequest,
+  protectSessionMutation,
   menuResolver,
   noCache,
   prepWs,

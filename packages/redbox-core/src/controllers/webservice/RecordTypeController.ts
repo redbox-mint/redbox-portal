@@ -48,13 +48,14 @@ export namespace Controllers {
 
     private discoverableRecordType(
       req: Sails.Req,
+      brand: BrandingModel,
       recordType: RecordTypeModel,
       fallbackName?: string
     ): DiscoverableRecordType {
       if (!isRecordSchemaEnabled(sails.config.recordSchema)) {
         return recordType;
       }
-      const branding = BrandingService.getBrandNameFromReq(req).trim();
+      const branding = brand.name.trim();
       const portal = BrandingService.getPortalFromReq(req).trim();
       const name = this.publicRecordTypeName(recordType, fallbackName);
       return {
@@ -73,10 +74,10 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const { query } = validated;
         const name = query.name as string;
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const recordType = await firstValueFrom(RecordTypesService.get(brand, name));
 
-        return this.apiRespond(req, res, this.discoverableRecordType(req, recordType, name), 200);
+        return this.apiRespond(req, res, this.discoverableRecordType(req, brand, recordType, name), 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
@@ -90,13 +91,13 @@ export namespace Controllers {
     public async listRecordTypes(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const recordTypes: RecordTypeModel[] = await firstValueFrom(RecordTypesService.getAll(brand));
         const response: ListAPIResponse<DiscoverableRecordType> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = recordTypes.length;
         response.summary = summary;
-        response.records = recordTypes.map(recordType => this.discoverableRecordType(req, recordType));
+        response.records = recordTypes.map(recordType => this.discoverableRecordType(req, brand, recordType));
         return this.apiRespond(req, res, response);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));

@@ -1,5 +1,5 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { Controllers } from '../../src/controllers/FormVocabularyController';
 
@@ -31,6 +31,12 @@ describe('FormVocabularyController', () => {
         },
         brandingservice: {
           getBrand: sinon.stub().returns({ id: 'default' }),
+          getBrandFromReq: sinon
+            .stub()
+            .callsFake((req: Sails.Req) => req.authorization?.brand ?? { id: 'default', name: 'default' }),
+          getBrandNameFromReq: sinon
+            .stub()
+            .callsFake((req: Sails.Req) => String(req.authorization?.brand?.name ?? 'default')),
         },
       },
       config: { auth: { defaultBrand: 'default' } },
@@ -62,7 +68,11 @@ describe('FormVocabularyController', () => {
   });
 
   it('returns vocabulary from get', async () => {
-    (global as any).VocabularyService.getByIdOrSlug.resolves({ id: 'v1', name: 'Access rights', slug: 'access-rights' });
+    (global as any).VocabularyService.getByIdOrSlug.resolves({
+      id: 'v1',
+      name: 'Access rights',
+      slug: 'access-rights',
+    });
     const req = makeReq({ branding: 'default', vocabIdOrSlug: 'access-rights' });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -71,6 +81,24 @@ describe('FormVocabularyController', () => {
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.data?.id).to.equal('v1');
     expect(sendResp.firstCall.args[2]?.data?.slug).to.equal('access-rights');
+  });
+
+  it('uses the authorization brand instead of a spoofed route brand', async () => {
+    (global as any).VocabularyService.getByIdOrSlug.resolves({
+      id: 'v1',
+      name: 'Access rights',
+      slug: 'access-rights',
+    });
+    const req = makeReq(
+      { branding: 'other-brand', vocabIdOrSlug: 'access-rights' },
+      { authorization: { brand: { id: 'brand-1', name: 'default' } } }
+    );
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+
+    await controller.get(req, {} as Sails.Res);
+
+    expect((global as any).VocabularyService.getByIdOrSlug.calledWith('brand-1', 'access-rights')).to.equal(true);
+    expect(sendResp.firstCall.args[2]?.data?.id).to.equal('v1');
   });
 
   it('returns 404 from get when vocab is missing', async () => {
@@ -150,12 +178,16 @@ describe('FormVocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.data).to.have.length(1);
     expect(sendResp.firstCall.args[2]?.meta?.vocabularyId).to.equal('v1');
     expect(sendResp.firstCall.args[2]?.meta?.parentId).to.equal(null);
-    expect((global as any).VocabularyService.getChildren.calledWith('default', 'anzsrc-2020-for', undefined)).to.equal(true);
+    expect((global as any).VocabularyService.getChildren.calledWith('default', 'anzsrc-2020-for', undefined)).to.equal(
+      true
+    );
   });
 
   it('returns nested children when parentId is provided', async () => {
     (global as any).VocabularyService.getChildren.resolves({
-      entries: [{ id: 'e2', label: 'Pure Mathematics', value: '0101', notation: '0101', parent: 'e1', hasChildren: false }],
+      entries: [
+        { id: 'e2', label: 'Pure Mathematics', value: '0101', notation: '0101', parent: 'e1', hasChildren: false },
+      ],
       meta: { vocabularyId: 'v1', parentId: 'e1', total: 1 },
     });
     const req = makeReq({ branding: 'default', vocabIdOrSlug: 'anzsrc-2020-for', parentId: 'e1' });
@@ -268,13 +300,19 @@ describe('FormVocabularyController', () => {
   });
 
   it('proxies externalEntries to FormVocabularyService.findInExternalService', async () => {
-    (global as any).FormVocabularyService.findInExternalService.resolves({ response: { docs: [{ utf8_name: ['Australia'] }] } });
+    (global as any).FormVocabularyService.findInExternalService.resolves({
+      response: { docs: [{ utf8_name: ['Australia'] }] },
+    });
     const req = makeReq({ provider: 'geonamesCountries' }, { body: { options: { query: 'Aus' } } });
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.externalEntries(req, {} as Sails.Res);
 
-    expect((global as any).FormVocabularyService.findInExternalService.calledOnceWith('geonamesCountries', { options: { query: 'Aus' } })).to.equal(true);
+    expect(
+      (global as any).FormVocabularyService.findInExternalService.calledOnceWith('geonamesCountries', {
+        options: { query: 'Aus' },
+      })
+    ).to.equal(true);
     expect(sendResp.calledOnce).to.equal(true);
     expect(sendResp.firstCall.args[2]?.data?.response).to.not.equal(undefined);
   });
@@ -334,7 +372,10 @@ describe('FormVocabularyController', () => {
     const error = new Error('missing') as Error & { code?: string };
     error.code = 'service-lookup-not-configured';
     (global as any).FormVocabularyService.findInServiceLookup.rejects(error);
-    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'missing' }, { body: { search: 'jan', start: 0, rows: 25 } });
+    const req = makeReq(
+      { branding: 'default', portal: 'rdmp', serviceId: 'missing' },
+      { body: { search: 'jan', start: 0, rows: 25 } }
+    );
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.serviceEntries(req, {} as Sails.Res);
@@ -347,9 +388,12 @@ describe('FormVocabularyController', () => {
   it('proxies serviceEntries to FormVocabularyService.findInServiceLookup', async () => {
     (global as any).FormVocabularyService.findInServiceLookup.resolves({
       data: [{ label: 'Jane Doe', value: 'party-1', sourceType: 'service' }],
-      meta: { total: 1 }
+      meta: { total: 1 },
     });
-    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 5, rows: 10 } });
+    const req = makeReq(
+      { branding: 'default', portal: 'rdmp', serviceId: 'contributors' },
+      { body: { search: 'jan', start: 5, rows: 10 } }
+    );
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.serviceEntries(req, {} as Sails.Res);
@@ -361,7 +405,7 @@ describe('FormVocabularyController', () => {
       start: 5,
       rows: 10,
       branding: 'default',
-      portal: 'rdmp'
+      portal: 'rdmp',
     });
     expect(sendResp.firstCall.args[2]?.data).to.have.length(1);
     expect(sendResp.firstCall.args[2]?.meta?.total).to.equal(1);
@@ -371,7 +415,10 @@ describe('FormVocabularyController', () => {
     const error = new Error('bad target') as Error & { code?: string };
     error.code = 'service-lookup-invalid-target';
     (global as any).FormVocabularyService.findInServiceLookup.rejects(error);
-    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 0, rows: 25 } });
+    const req = makeReq(
+      { branding: 'default', portal: 'rdmp', serviceId: 'contributors' },
+      { body: { search: 'jan', start: 0, rows: 25 } }
+    );
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.serviceEntries(req, {} as Sails.Res);
@@ -385,7 +432,10 @@ describe('FormVocabularyController', () => {
     const error = new Error('bad response') as Error & { code?: string };
     error.code = 'service-lookup-invalid-response';
     (global as any).FormVocabularyService.findInServiceLookup.rejects(error);
-    const req = makeReq({ branding: 'default', portal: 'rdmp', serviceId: 'contributors' }, { body: { search: 'jan', start: 0, rows: 25 } });
+    const req = makeReq(
+      { branding: 'default', portal: 'rdmp', serviceId: 'contributors' },
+      { body: { search: 'jan', start: 0, rows: 25 } }
+    );
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.serviceEntries(req, {} as Sails.Res);

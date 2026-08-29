@@ -6,6 +6,8 @@ import {
   getValidatedApiRequest,
   getFormRoute,
   listFormsRoute,
+  requireAllowedResource,
+  requireRequestResourceAuthorization,
 } from '../../index';
 import { FormAttributes } from '../../waterline-models/Form';
 import { BrandingModel } from '../../model/storage/BrandingModel';
@@ -34,7 +36,7 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     public async getForm(req: Sails.Req, res: Sails.Res) {
       try {
@@ -45,8 +47,7 @@ export namespace Controllers {
         const oid = typeof query.oid === 'string' ? query.oid.trim() : '';
         const requestedRecordType = typeof query.recordType === 'string' ? query.recordType.trim() : '';
         const targetStep = typeof query.targetStep === 'string' ? query.targetStep.trim() : undefined;
-        const brand: BrandingModel =
-          BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider);
         const form = await firstValueFrom(FormsService.getFormByName(name, editable, String(brand.id)));
         if (!form) {
           return this.sendResp(req, res, {
@@ -56,42 +57,28 @@ export namespace Controllers {
           });
         }
         let record = null;
-        let recordContextResolved = !oid;
         if (oid) {
-          try {
-            const recordsService = sails.services.recordsservice as unknown as RecordsService;
-            const loaded = await recordsService.getMeta(oid);
-            const recordBrandId = String(loaded?.metaMetadata?.brandId ?? '').trim();
-            if (recordBrandId === String(brand.id)) {
-              record = loaded;
-              recordContextResolved = true;
-            }
-          } catch (error: unknown) {
-            const errorType = error instanceof Error ? error.name : typeof error;
-            sails.log.warn(
-              `Validation operation discovery record context could not be resolved (errorType=${errorType}).`
-            );
-            record = null;
-          }
+          const recordsService = sails.services.recordsservice as unknown as RecordsService;
+          const { context, requiredScope } = requireRequestResourceAuthorization(req);
+          record = requireAllowedResource(await recordsService.getAuthorizedMeta(context, requiredScope, oid, 'read'));
         }
-        const validationOperations = recordContextResolved
-          ? await FormsService.discoverValidationOperations({
-              brand,
-              form,
-              recordType: record
-                ? String(record.metaMetadata?.type ?? '')
-                : requestedRecordType || String(form.configuration?.type ?? ''),
-              record,
-              user: req.user,
-              editable,
-              targetStep,
-            })
-          : [];
+        const validationOperations = await FormsService.discoverValidationOperations({
+          brand,
+          form,
+          recordType: record
+            ? String(record.metaMetadata?.type ?? '')
+            : requestedRecordType || String(form.configuration?.type ?? ''),
+          record,
+          user: req.user,
+          editable,
+          targetStep,
+        });
         return this.apiRespond(req, res, FormsService.toPublicForm(form, validationOperations), 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
           status: 500,
+          errors: [error instanceof Error ? error : new Error(String(error))],
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),
         });
@@ -101,8 +88,7 @@ export namespace Controllers {
     public async listForms(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
-        const brand: BrandingModel =
-          BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req as Sails.ReqParamProvider);
         const forms: FormAttributes[] = await firstValueFrom(FormsService.listForms(String(brand.id)));
         const response: ListAPIResponse<FormAttributes> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();

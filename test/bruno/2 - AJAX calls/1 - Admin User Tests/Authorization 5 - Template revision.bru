@@ -1,0 +1,36 @@
+meta {
+  name: Authorization - Template revision
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/templates/researcher/revisions/1
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns the requested immutable template revision", function () {
+    const body = res.getBody();
+    expect(body.templateKey).to.equal("researcher");
+    expect(body.revision).to.equal(1);
+    expect(body.scopeKeys).to.be.an("array");
+    expect(body.publishedBy).to.be.a("string").and.not.empty;
+    expect(body.publishedAt).to.be.a("string").and.not.empty;
+  });
+}

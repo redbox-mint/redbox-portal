@@ -1981,6 +1981,80 @@ describe('MongoStorageService', function () {
     expect(`${query['metadata.title']}`).to.include('a\\+b');
   });
 
+  it('uses immutable same-brand role keys for ACL filters and excludes foreign/global roles', async function () {
+    const runStub = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
+
+    await service.getRecords(
+      '',
+      'rdmp',
+      0,
+      10,
+      'user',
+      [
+        { key: 'Researcher', name: 'Renamed label', branding: { id: 'brand-1' } },
+        { key: 'Foreign', branding: { id: 'brand-2' } },
+        { key: 'system-administrator' },
+      ],
+      { id: 'brand-1' }
+    );
+
+    const query = runStub.firstCall.args[1];
+    const acl = query.$and[0].$or;
+    expect(acl[2]['authorization.editRoles'].$in).to.deep.equal(['Researcher']);
+    expect(acl[3]['authorization.viewRoles'].$in).to.deep.equal(['Researcher']);
+  });
+
+  it('bypasses only active/deleted ACL clauses while retaining the brand predicate', async function () {
+    const recordRun = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
+    const deletedRun = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+
+    await service.getRecords(
+      '',
+      'rdmp',
+      0,
+      10,
+      'user',
+      [],
+      { id: 'brand-1' },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true
+    );
+    await service.getDeletedRecords(
+      '',
+      ['rdmp'],
+      0,
+      10,
+      'user',
+      [],
+      { id: 'brand-1' },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true
+    );
+
+    const activeQuery = recordRun.firstCall.args[1];
+    const deletedQuery = deletedRun.firstCall.args[1];
+    expect(activeQuery['metaMetadata.brandId']).to.equal('brand-1');
+    expect(activeQuery).to.not.have.property('$and');
+    expect(deletedQuery['deletedRecordMetadata.metaMetadata.brandId']).to.equal('brand-1');
+    expect(
+      deletedQuery.$and.some((entry: any) =>
+        entry.$or?.some((clause: any) => clause['deletedRecordMetadata.authorization.view'])
+      )
+    ).to.equal(false);
+  });
+
   it('builds record queries for array filters, package types, workflow, and equal matching', async function () {
     const runStub = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
 

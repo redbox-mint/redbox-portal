@@ -1,10 +1,16 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import * as lodash from 'lodash';
 import * as fs from 'node:fs/promises';
 import { Services as VocabularyServiceModule } from '../../src/services/VocabularyService';
 import type { VocabularyAttributes } from '../../src/waterline-models';
+import {
+  asScopeKey,
+  freezeAuthorizationContext,
+  type AuthorizationDecision,
+  type ScopeKey,
+} from '../../src/authorization';
 
 type ReaddirResult = Awaited<ReturnType<typeof fs.readdir>>;
 
@@ -44,9 +50,9 @@ type VocabularyEntryModelStub = {
   find: (...args: unknown[]) => {
     sort: (...args: unknown[]) => {
       skip: (...args: unknown[]) => {
-        limit: (...args: unknown[]) => Promise<Array<Record<string, unknown>>>
-      }
-    }
+        limit: (...args: unknown[]) => Promise<Array<Record<string, unknown>>>;
+      };
+    };
   };
   destroy: (...args: unknown[]) => Promise<void>;
   findOne: (...args: unknown[]) => Promise<null>;
@@ -75,17 +81,21 @@ describe('VocabularyService', () => {
       config: { auth: { defaultBrand: 'default' } },
       services: {
         brandingservice: { getDefault: sinon.stub().returns('default') },
-        rvaimportservice: { importRvaVocabulary: sinon.stub().resolves({ id: 'rva-v1' }) }
-      }
+        rvaimportservice: { importRvaVocabulary: sinon.stub().resolves({ id: 'rva-v1' }) },
+      },
     };
 
     g.Vocabulary = {
       count: sinon.stub().resolves(1),
-      find: sinon.stub().returns({ sort: sinon.stub().returnsThis(), skip: sinon.stub().returnsThis(), limit: sinon.stub().resolves([{ id: 'v1', name: 'V1' }]) }),
+      find: sinon.stub().returns({
+        sort: sinon.stub().returnsThis(),
+        skip: sinon.stub().returnsThis(),
+        limit: sinon.stub().resolves([{ id: 'v1', name: 'V1' }]),
+      }),
       findOne: sinon.stub().resolves({ id: 'v1', name: 'V1', type: 'flat' }),
       create: sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'v1' }) }),
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves({ id: 'v1' }) }),
-      destroyOne: sinon.stub().resolves()
+      destroyOne: sinon.stub().resolves(),
     };
 
     g.VocabularyEntry = {
@@ -93,31 +103,31 @@ describe('VocabularyService', () => {
       find: sinon.stub().returns({
         sort: sinon.stub().returns({
           skip: sinon.stub().returns({
-            limit: sinon.stub().resolves([])
-          })
-        })
+            limit: sinon.stub().resolves([]),
+          }),
+        }),
       }),
       destroy: sinon.stub().resolves(),
       findOne: sinon.stub().resolves(null),
       create: sinon.stub().returns({ fetch: sinon.stub().resolves({ id: 'e1' }) }),
-      updateOne: sinon.stub().returns({ set: sinon.stub().resolves({ id: 'e1' }) })
+      updateOne: sinon.stub().returns({ set: sinon.stub().resolves({ id: 'e1' }) }),
     };
 
     const entries = [
       { id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0 },
-      { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 }
+      { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 },
     ];
     g.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().callsFake(() => ({
         skip: sinon.stub().returns({
-          limit: sinon.stub().resolves(entries)
-        })
-      }))
+          limit: sinon.stub().resolves(entries),
+        }),
+      })),
     });
 
     service = new VocabularyServiceModule.VocabularyService();
     g.BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'default' })
+      getBrand: sinon.stub().returns({ id: 'default' }),
     };
   });
 
@@ -158,7 +168,9 @@ describe('VocabularyService', () => {
     });
 
     it('allows a local vocabulary', async () => {
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v1', name: 'V1', source: 'local' }) as unknown as VocabularyModelStub['findOne'];
+      g.Vocabulary.findOne = sinon
+        .stub()
+        .resolves({ id: 'v1', name: 'V1', source: 'local' }) as unknown as VocabularyModelStub['findOne'];
       await service.assertMutableVocabulary('v1');
       expect(figshareSourceFindOne.called).to.be.false;
     });
@@ -170,7 +182,11 @@ describe('VocabularyService', () => {
     });
 
     it('rejects an external vocabulary that is still owned by a figshare source', async () => {
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-mirror', name: 'ANZSRC mirror', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
+      g.Vocabulary.findOne = sinon.stub().resolves({
+        id: 'v-mirror',
+        name: 'ANZSRC mirror',
+        source: 'external',
+      }) as unknown as VocabularyModelStub['findOne'];
       figshareSourceFindOne.resolves({ id: 'src-1', vocabulary: 'v-mirror' });
 
       let raised: Error | undefined;
@@ -187,7 +203,9 @@ describe('VocabularyService', () => {
     });
 
     it('allows an external vocabulary whose figshare source has been removed', async () => {
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'v-orphan', name: 'Orphan', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
+      g.Vocabulary.findOne = sinon
+        .stub()
+        .resolves({ id: 'v-orphan', name: 'Orphan', source: 'external' }) as unknown as VocabularyModelStub['findOne'];
       await service.assertMutableVocabulary('v-orphan');
       expect(figshareSourceFindOne.calledOnce).to.be.true;
     });
@@ -200,7 +218,7 @@ describe('VocabularyService', () => {
       value: ' SCI ',
       identifier: 'science',
       order: 0,
-      historical: true
+      historical: true,
     });
     expect(normalized.label).to.equal('Science');
     expect(normalized.value).to.equal('SCI');
@@ -211,8 +229,8 @@ describe('VocabularyService', () => {
     g.VocabularyEntry.find = sinon.stub().returns({
       sort: sinon.stub().resolves([
         { id: 'e1', vocabulary: 'v1', label: 'Parent', value: 'parent', order: 0 },
-        { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 }
-      ])
+        { id: 'e2', vocabulary: 'v1', label: 'Child', value: 'child', parent: 'e1', order: 1 },
+      ]),
     }) as unknown as VocabularyEntryModelStub['find'];
     const tree = await service.getTree('v1');
     expect(tree).to.have.length(1);
@@ -237,7 +255,13 @@ describe('VocabularyService', () => {
   });
 
   it('gets entries with metadata and search filter', async () => {
-    g.Vocabulary.findOne = sinon.stub().onFirstCall().resolves({ id: 'v1', name: 'Access rights', type: 'flat', slug: 'access-rights', branding: 'default' }) as unknown as VocabularyModelStub['findOne'];
+    g.Vocabulary.findOne = sinon.stub().onFirstCall().resolves({
+      id: 'v1',
+      name: 'Access rights',
+      type: 'flat',
+      slug: 'access-rights',
+      branding: 'default',
+    }) as unknown as VocabularyModelStub['findOne'];
     const countStub = sinon.stub().resolves(2);
     g.VocabularyEntry.count = countStub as unknown as VocabularyEntryModelStub['count'];
     const findStub = sinon.stub().returns({
@@ -245,10 +269,10 @@ describe('VocabularyService', () => {
         skip: sinon.stub().returns({
           limit: sinon.stub().resolves([
             { id: 'e1', label: 'Open', value: 'open' },
-            { id: 'e2', label: 'Closed', value: 'closed' }
-          ])
-        })
-      })
+            { id: 'e2', label: 'Closed', value: 'closed' },
+          ]),
+        }),
+      }),
     });
     g.VocabularyEntry.find = findStub as unknown as VocabularyEntryModelStub['find'];
 
@@ -271,24 +295,28 @@ describe('VocabularyService', () => {
 
   it('getChildren returns direct root entries and hasChildren metadata', async () => {
     g.Vocabulary.findOne = sinon.stub().resolves({
-      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+      id: 'v1',
+      name: 'ANZSRC',
+      type: 'tree',
+      slug: 'anzsrc-2020-for',
+      branding: 'default',
     }) as unknown as VocabularyModelStub['findOne'];
     g.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
     g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
       if (typeof criteria.parent === 'object' && criteria.parent !== null) {
         return Promise.resolve([
-          { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' }
+          { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' },
         ]);
       }
       return {
         sort: sinon.stub().resolves(
           criteria.parent === null
             ? [
-              { id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null },
-              { id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null }
-            ]
+                { id: 'e1', label: 'Mathematical Sciences', value: '01', identifier: '01', parent: null },
+                { id: 'e2', label: 'Physical Sciences', value: '02', identifier: '02', parent: null },
+              ]
             : []
-        )
+        ),
       };
     }) as unknown as VocabularyEntryModelStub['find'];
 
@@ -303,10 +331,18 @@ describe('VocabularyService', () => {
 
   it('getChildren returns only direct children for supplied parentId', async () => {
     g.Vocabulary.findOne = sinon.stub().resolves({
-      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+      id: 'v1',
+      name: 'ANZSRC',
+      type: 'tree',
+      slug: 'anzsrc-2020-for',
+      branding: 'default',
     }) as unknown as VocabularyModelStub['findOne'];
     g.VocabularyEntry.findOne = sinon.stub().resolves({
-      id: 'e1', vocabulary: 'v1', label: 'Mathematical Sciences', value: '01', parent: null
+      id: 'e1',
+      vocabulary: 'v1',
+      label: 'Mathematical Sciences',
+      value: '01',
+      parent: null,
     }) as unknown as VocabularyEntryModelStub['findOne'];
     g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
       if (typeof criteria.parent === 'object' && criteria.parent !== null) {
@@ -316,24 +352,28 @@ describe('VocabularyService', () => {
         sort: sinon.stub().resolves(
           criteria.parent === 'e1'
             ? [
-              { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' },
-              { id: 'e4', label: 'Applied Mathematics', value: '0102', identifier: '0102', parent: 'e1' }
-            ]
+                { id: 'e3', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: 'e1' },
+                { id: 'e4', label: 'Applied Mathematics', value: '0102', identifier: '0102', parent: 'e1' },
+              ]
             : []
-        )
+        ),
       };
     }) as unknown as VocabularyEntryModelStub['find'];
 
     const result = await service.getChildren('default', 'anzsrc-2020-for', 'e1');
 
     expect(result?.entries).to.have.length(2);
-    expect(result?.entries.every((entry) => entry.parent === 'e1')).to.equal(true);
+    expect(result?.entries.every(entry => entry.parent === 'e1')).to.equal(true);
     expect(result?.meta.parentId).to.equal('e1');
   });
 
   it('getChildren rejects with invalid-parent-id when parent does not belong to vocabulary', async () => {
     g.Vocabulary.findOne = sinon.stub().resolves({
-      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+      id: 'v1',
+      name: 'ANZSRC',
+      type: 'tree',
+      slug: 'anzsrc-2020-for',
+      branding: 'default',
     }) as unknown as VocabularyModelStub['findOne'];
     g.VocabularyEntry.findOne = sinon.stub().resolves(null) as unknown as VocabularyEntryModelStub['findOne'];
 
@@ -350,25 +390,29 @@ describe('VocabularyService', () => {
 
   it('getChildren tolerates orphan and cycle-like entries by returning direct rows only', async () => {
     g.Vocabulary.findOne = sinon.stub().resolves({
-      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+      id: 'v1',
+      name: 'ANZSRC',
+      type: 'tree',
+      slug: 'anzsrc-2020-for',
+      branding: 'default',
     }) as unknown as VocabularyModelStub['findOne'];
     g.VocabularyEntry.findOne = sinon.stub().resolves({
-      id: 'e1', vocabulary: 'v1', label: 'Node A', value: 'A', parent: 'e2'
+      id: 'e1',
+      vocabulary: 'v1',
+      label: 'Node A',
+      value: 'A',
+      parent: 'e2',
     }) as unknown as VocabularyEntryModelStub['findOne'];
     g.VocabularyEntry.find = sinon.stub().callsFake((criteria: Record<string, unknown>) => {
       if (typeof criteria.parent === 'object' && criteria.parent !== null) {
-        return Promise.resolve([
-          { id: 'e1', label: 'Node A', value: 'A', identifier: 'A', parent: 'e2' }
-        ]);
+        return Promise.resolve([{ id: 'e1', label: 'Node A', value: 'A', identifier: 'A', parent: 'e2' }]);
       }
       return {
-        sort: sinon.stub().resolves(
-          criteria.parent === 'e1'
-            ? [
-              { id: 'e2', label: 'Node B', value: 'B', identifier: 'B', parent: 'e1' }
-            ]
-            : []
-        )
+        sort: sinon
+          .stub()
+          .resolves(
+            criteria.parent === 'e1' ? [{ id: 'e2', label: 'Node B', value: 'B', identifier: 'B', parent: 'e1' }] : []
+          ),
       };
     }) as unknown as VocabularyEntryModelStub['find'];
 
@@ -381,10 +425,19 @@ describe('VocabularyService', () => {
 
   it('getEntryByNotation resolves identifier and value matches within the vocabulary', async () => {
     g.Vocabulary.findOne = sinon.stub().resolves({
-      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+      id: 'v1',
+      name: 'ANZSRC',
+      type: 'tree',
+      slug: 'anzsrc-2020-for',
+      branding: 'default',
     }) as unknown as VocabularyModelStub['findOne'];
     g.VocabularyEntry.findOne = sinon.stub().resolves({
-      id: 'e1', vocabulary: 'v1', label: 'Pure Mathematics', value: '0101', identifier: '0101', parent: null
+      id: 'e1',
+      vocabulary: 'v1',
+      label: 'Pure Mathematics',
+      value: '0101',
+      identifier: '0101',
+      parent: null,
     }) as unknown as VocabularyEntryModelStub['findOne'];
 
     const result = await service.getEntryByNotation('default', 'anzsrc-2020-for', '0101');
@@ -395,17 +448,27 @@ describe('VocabularyService', () => {
 
   it('getAncestorChain returns root-to-leaf order', async () => {
     g.Vocabulary.findOne = sinon.stub().resolves({
-      id: 'v1', name: 'ANZSRC', type: 'tree', slug: 'anzsrc-2020-for', branding: 'default'
+      id: 'v1',
+      name: 'ANZSRC',
+      type: 'tree',
+      slug: 'anzsrc-2020-for',
+      branding: 'default',
     }) as unknown as VocabularyModelStub['findOne'];
     const findOneStub = sinon.stub();
-    findOneStub.onCall(0).resolves({ id: 'e3', vocabulary: 'v1', label: 'Leaf', value: '010101', identifier: '010101', parent: 'e2' });
-    findOneStub.onCall(1).resolves({ id: 'e2', vocabulary: 'v1', label: 'Child', value: '0101', identifier: '0101', parent: 'e1' });
-    findOneStub.onCall(2).resolves({ id: 'e1', vocabulary: 'v1', label: 'Root', value: '01', identifier: '01', parent: null });
+    findOneStub
+      .onCall(0)
+      .resolves({ id: 'e3', vocabulary: 'v1', label: 'Leaf', value: '010101', identifier: '010101', parent: 'e2' });
+    findOneStub
+      .onCall(1)
+      .resolves({ id: 'e2', vocabulary: 'v1', label: 'Child', value: '0101', identifier: '0101', parent: 'e1' });
+    findOneStub
+      .onCall(2)
+      .resolves({ id: 'e1', vocabulary: 'v1', label: 'Root', value: '01', identifier: '01', parent: null });
     g.VocabularyEntry.findOne = findOneStub as unknown as VocabularyEntryModelStub['findOne'];
 
     const chain = await service.getAncestorChain('default', 'anzsrc-2020-for', '010101');
 
-    expect(chain.map((entry) => entry.id)).to.deep.equal(['e1', 'e2', 'e3']);
+    expect(chain.map(entry => entry.id)).to.deep.equal(['e1', 'e2', 'e3']);
   });
 
   it('upserts entries with synthetic parent ids by remapping parents after create', async () => {
@@ -415,9 +478,12 @@ describe('VocabularyService', () => {
 
     const createFetchParent = sinon.stub().resolves({ id: 'db-parent' });
     const createFetchChild = sinon.stub().resolves({ id: 'db-child' });
-    g.VocabularyEntry.create = sinon.stub()
-      .onFirstCall().returns({ fetch: createFetchParent })
-      .onSecondCall().returns({ fetch: createFetchChild }) as unknown as VocabularyEntryModelStub['create'];
+    g.VocabularyEntry.create = sinon
+      .stub()
+      .onFirstCall()
+      .returns({ fetch: createFetchParent })
+      .onSecondCall()
+      .returns({ fetch: createFetchChild }) as unknown as VocabularyEntryModelStub['create'];
 
     g.VocabularyEntry.findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
       if (criteria.id === 'db-parent') {
@@ -441,21 +507,125 @@ describe('VocabularyService', () => {
     expect(result.created).to.equal(2);
     expect(result.updated).to.equal(0);
     expect(result.skipped).to.equal(2);
-    const setPayloads = updateSetStub.getCalls().map((call) => call.args[0]);
-    expect(setPayloads.some((payload) => payload?.parent === 'db-parent')).to.equal(true);
+    const setPayloads = updateSetStub.getCalls().map(call => call.args[0]);
+    expect(setPayloads.some(payload => payload?.parent === 'db-parent')).to.equal(true);
+  });
+
+  describe('Phase 7 brand resource gates', () => {
+    const requiredScope = asScopeKey('vocabulary.manage');
+    const brandId = 'brand-a';
+    const context = freezeAuthorizationContext({
+      contextType: 'brand',
+      principal: {
+        category: 'authenticated',
+        authMethod: 'session',
+        active: true,
+        userId: 'user-1',
+      },
+      brand: { id: brandId, name: 'Brand A', exists: true, authorized: true },
+      grantedScopeKeys: [requiredScope],
+      effectiveScopeKeys: [requiredScope],
+    });
+
+    function authDecision(
+      allowed: boolean,
+      reasonCode: AuthorizationDecision['reasonCode'],
+      scope: ScopeKey = requiredScope
+    ): AuthorizationDecision {
+      return { allowed, reasonCode, requiredScope: scope, brandId };
+    }
+
+    beforeEach(() => {
+      g.sails.services.authorizationservice = {
+        authorizeAction: sinon.stub().returns(authDecision(true, 'allowed')),
+        authorizeBrandEntity: sinon
+          .stub()
+          .callsFake((_context: unknown, _scope: ScopeKey, entityBrandId: string | undefined) =>
+            entityBrandId === brandId ? authDecision(true, 'allowed') : authDecision(false, 'resource-not-found')
+          ),
+      };
+      g.BrandingService.getBrand = sinon
+        .stub()
+        .callsFake(nameOrId => (nameOrId === brandId || nameOrId === 'Brand A' ? { id: brandId } : null));
+    });
+
+    it('constrains both ID and slug lookup to the active brand and hides foreign/missing entities identically', async () => {
+      const findOne = sinon.stub().callsFake(async (criteria: Record<string, unknown>) => {
+        if (criteria.branding !== brandId) {
+          return { id: 'foreign-vocabulary', slug: 'foreign', branding: 'brand-b', type: 'flat' };
+        }
+        return null;
+      });
+      g.Vocabulary.findOne = findOne as unknown as VocabularyModelStub['findOne'];
+
+      let thrown: unknown;
+      try {
+        await service.getAuthorizedByIdOrSlug(context, requiredScope, 'foreign-vocabulary');
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect((thrown as Error & { status?: number }).status).to.equal(404);
+      expect(findOne.callCount).to.equal(2);
+      expect(findOne.firstCall.args[0]).to.deep.equal({ id: 'foreign-vocabulary', branding: brandId });
+      expect(findOne.secondCall.args[0]).to.deep.equal({ slug: 'foreign-vocabulary', branding: brandId });
+    });
+
+    it('does not query entries by notation when the parent vocabulary is outside the active brand', async () => {
+      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      const entryLookup = sinon.stub().resolves({ id: 'foreign-entry', vocabulary: 'foreign-vocabulary' });
+      g.VocabularyEntry.findOne = entryLookup as unknown as VocabularyEntryModelStub['findOne'];
+
+      const entry = await service.getEntryByNotation(brandId, 'foreign-vocabulary', 'SECRET');
+
+      expect(entry).to.equal(null);
+      expect(entryLookup.called).to.equal(false);
+    });
+
+    it('derives branding on create and preserves it on update regardless of payload branding', async () => {
+      const create = sinon
+        .stub(service, 'create')
+        .resolves({ id: 'v1', name: 'Vocabulary', branding: brandId, type: 'flat' } as VocabularyAttributes);
+      await service.createAuthorized(context, requiredScope, {
+        name: 'Vocabulary',
+        branding: 'brand-b',
+      });
+      expect(create.firstCall.args[0].branding).to.equal(brandId);
+
+      g.Vocabulary.findOne = sinon.stub().resolves({
+        id: 'v1',
+        name: 'Vocabulary',
+        slug: 'vocabulary',
+        branding: brandId,
+        type: 'flat',
+      }) as unknown as VocabularyModelStub['findOne'];
+      const update = sinon
+        .stub(service, 'update')
+        .resolves({ id: 'v1', name: 'Renamed', branding: brandId, type: 'flat' } as VocabularyAttributes);
+      await service.updateAuthorized(context, requiredScope, 'v1', {
+        name: 'Renamed',
+        branding: 'brand-b',
+      });
+
+      expect(update.firstCall.args[0]).to.equal('v1');
+      expect(update.firstCall.args[2]).to.equal(brandId);
+      expect(update.firstCall.args[1].branding).to.equal(undefined);
+    });
   });
 
   describe('bootstrapData', () => {
     const stubBootstrapFileOps = (): { readdirStub: sinon.SinonStub; readFileStub: sinon.SinonStub } => {
       const readdirStub = sinon.stub();
       const readFileStub = sinon.stub();
-      sinon.stub(
-        service as unknown as { getBootstrapFileOps: () => Pick<typeof fs, 'readdir' | 'readFile'> },
-        'getBootstrapFileOps'
-      ).returns({
-        readdir: readdirStub as unknown as typeof fs.readdir,
-        readFile: readFileStub as unknown as typeof fs.readFile
-      });
+      sinon
+        .stub(
+          service as unknown as { getBootstrapFileOps: () => Pick<typeof fs, 'readdir' | 'readFile'> },
+          'getBootstrapFileOps'
+        )
+        .returns({
+          readdir: readdirStub as unknown as typeof fs.readdir,
+          readFile: readFileStub as unknown as typeof fs.readFile,
+        });
       return { readdirStub, readFileStub };
     };
 
@@ -473,13 +643,15 @@ describe('VocabularyService', () => {
     it('creates vocabulary from valid local bootstrap json when vocabulary does not exist', async () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'local.json' }] as unknown as ReaddirResult);
-      readFileStub.resolves(JSON.stringify({
-        name: 'ANZSRC Type of Activity',
-        slug: 'anzsrc-toa',
-        description: 'desc',
-        type: 'flat',
-        entries: [{ label: 'A', value: 'a' }]
-      }));
+      readFileStub.resolves(
+        JSON.stringify({
+          name: 'ANZSRC Type of Activity',
+          slug: 'anzsrc-toa',
+          description: 'desc',
+          type: 'flat',
+          entries: [{ label: 'A', value: 'a' }],
+        })
+      );
       g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       const createStub = sinon.stub(service, 'create').resolves({ id: 'v-created' } as unknown as VocabularyAttributes);
 
@@ -496,7 +668,9 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'local.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ name: 'Existing', slug: 'existing' }));
-      g.Vocabulary.findOne = sinon.stub().resolves({ id: 'existing-id', name: 'Existing', type: 'flat' }) as unknown as VocabularyModelStub['findOne'];
+      g.Vocabulary.findOne = sinon
+        .stub()
+        .resolves({ id: 'existing-id', name: 'Existing', type: 'flat' }) as unknown as VocabularyModelStub['findOne'];
       const createStub = sinon.stub(service, 'create');
 
       await service.bootstrapData();
@@ -508,11 +682,13 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([
         { isFile: () => true, name: 'a-bad.json' },
-        { isFile: () => true, name: 'b-good.json' }
+        { isFile: () => true, name: 'b-good.json' },
       ] as unknown as ReaddirResult);
       readFileStub
-        .onFirstCall().resolves('{invalid json')
-        .onSecondCall().resolves(JSON.stringify({ name: 'Good', slug: 'good' }));
+        .onFirstCall()
+        .resolves('{invalid json')
+        .onSecondCall()
+        .resolves(JSON.stringify({ name: 'Good', slug: 'good' }));
       g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       const createStub = sinon.stub(service, 'create').resolves({ id: 'good-id' } as unknown as VocabularyAttributes);
 
@@ -537,14 +713,17 @@ describe('VocabularyService', () => {
     it('imports rva vocabularies when missing and skips existing ones', async () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
-      readFileStub.resolves(JSON.stringify({
-        imports: [{ rvaId: '316' }, { rvaId: '317' }]
-      }));
+      readFileStub.resolves(
+        JSON.stringify({
+          imports: [{ rvaId: '316' }, { rvaId: '317' }],
+        })
+      );
       const findOneStub = sinon.stub();
       findOneStub.onFirstCall().resolves(null);
       findOneStub.onSecondCall().resolves({ id: 'existing-rva', name: 'Existing RVA', type: 'flat' });
       g.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
-      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub })
+        .importRvaVocabulary;
 
       await service.bootstrapData();
 
@@ -557,7 +736,8 @@ describe('VocabularyService', () => {
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
       readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
       readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
-      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub })
+        .importRvaVocabulary;
 
       await service.bootstrapData();
 
@@ -569,18 +749,21 @@ describe('VocabularyService', () => {
       readdirStub.resolves([
         { isFile: () => true, name: 'z.json' },
         { isFile: () => true, name: 'a.json' },
-        { isFile: () => true, name: 'm.json' }
+        { isFile: () => true, name: 'm.json' },
       ] as unknown as ReaddirResult);
       readFileStub
-        .onFirstCall().resolves(JSON.stringify({ name: 'A', slug: 'a' }))
-        .onSecondCall().resolves(JSON.stringify({ name: 'M', slug: 'm' }))
-        .onThirdCall().resolves(JSON.stringify({ name: 'Z', slug: 'z' }));
+        .onFirstCall()
+        .resolves(JSON.stringify({ name: 'A', slug: 'a' }))
+        .onSecondCall()
+        .resolves(JSON.stringify({ name: 'M', slug: 'm' }))
+        .onThirdCall()
+        .resolves(JSON.stringify({ name: 'Z', slug: 'z' }));
       g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
       sinon.stub(service, 'create').resolves({ id: 'created' } as unknown as VocabularyAttributes);
 
       await service.bootstrapData();
 
-      const readOrder = readFileStub.getCalls().map((call) => String(call.args[0]).split('/').pop());
+      const readOrder = readFileStub.getCalls().map(call => String(call.args[0]).split('/').pop());
       expect(readOrder).to.deep.equal(['a.json', 'm.json', 'z.json']);
     });
   });

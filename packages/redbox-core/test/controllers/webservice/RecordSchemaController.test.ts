@@ -609,7 +609,11 @@ describe('Webservice RecordSchemaController', function () {
         trace: sinon.stub(),
       },
     });
-    Reflect.set(globalThis, 'BrandingService', { getBrand, getRootContext: sinon.stub().returns('') });
+    Reflect.set(globalThis, 'BrandingService', {
+      getBrand,
+      getBrandFromReq: sinon.stub().returns(resolvedBrand),
+      getRootContext: sinon.stub().returns(''),
+    });
     Reflect.set(globalThis, '_', lodash);
 
     controller = new TestRecordSchemaController();
@@ -670,7 +674,7 @@ describe('Webservice RecordSchemaController', function () {
 
     await controller.create(req, res);
 
-    expect(getBrand.calledOnceWithExactly('default')).to.equal(true);
+    expect(getBrand.called).to.equal(false);
     expect(
       resolver.resolveCreate.calledOnceWithExactly({
         brand: 'brand-1',

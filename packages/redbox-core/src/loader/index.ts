@@ -4,6 +4,13 @@ import path from 'path';
 import { performance } from 'perf_hooks';
 
 import type { ApiRouteDefinition } from '../api-routes';
+import {
+    CORE_AUTHORIZATION_CATALOG_VERSION,
+    createCoreAuthorizationScopeSource,
+    createScopeRegistry,
+    type AuthorizationScopeProvider,
+    type ScopeRegistrySource,
+} from '../authorization';
 import { getHookProcessingOrder } from '../hooks/hookDiscovery';
 import {
     createCoreRecordContractContributors,
@@ -45,6 +52,11 @@ export interface HookApiRouteRegistration extends HookModuleRegistration {
     name: string;
 }
 
+export interface HookAuthorizationScopeRegistration extends HookModuleRegistration {
+    name: string;
+    source: ScopeRegistrySource;
+}
+
 export interface HookModuleRegistration {
     module: string;
 }
@@ -65,6 +77,7 @@ export interface HookRegistrations {
     hookBootstraps: HookBootstrapRegistration[];
     hookMigrations: HookMigrationRegistration[];
     hookApiRoutes: HookApiRouteRegistration[];
+    hookAuthorizationScopes: HookAuthorizationScopeRegistration[];
     hookServices: Record<string, HookServiceRegistration>;
     hookControllers: Record<string, HookControllerRegistration>;
     hookWebserviceControllers: Record<string, HookControllerRegistration>;
@@ -114,6 +127,7 @@ export interface GenerateAllShimsStats {
     formConfigStats: FormConfigGenerationStats;
     configShimStats: GenerationStats;
     apiRouteHookStats: GenerationStats;
+    authorizationScopeHookStats: GenerationStats;
     bootstrapStats: BootstrapGenerationStats;
     migrationStats: GenerationStats;
 }
@@ -196,6 +210,14 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
         return mergeAgendaQueueConfig(...configs);
     }
     if (name === 'brandingConfigurationDefaults') {
+        return _.mergeWith({}, ...configs, (_objValue: unknown, srcValue: unknown) => {
+            if (Array.isArray(srcValue)) {
+                return srcValue;
+            }
+            return undefined;
+        }) as RedboxConfigMap;
+    }
+    if (name === 'policies') {
         return _.mergeWith({}, ...configs, (_objValue: unknown, srcValue: unknown) => {
             if (Array.isArray(srcValue)) {
                 return srcValue;
@@ -427,6 +449,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
     const hookBootstraps: HookBootstrapRegistration[] = [];
     const hookMigrations: HookMigrationRegistration[] = [];
     const hookApiRoutes: HookApiRouteRegistration[] = [];
+    const hookAuthorizationScopes: HookAuthorizationScopeRegistration[] = [];
     const hookServices: Record<string, HookServiceRegistration> = {};
     const hookControllers: Record<string, HookControllerRegistration> = {};
     const hookWebserviceControllers: Record<string, HookControllerRegistration> = {};
@@ -449,6 +472,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                     hasBootstrap?: boolean;
                     hasMigrations?: boolean;
                     hasApiRoutes?: boolean;
+                    hasAuthorizationScopes?: boolean;
                     hasServices?: boolean;
                     hasControllers?: boolean;
                     hasFormConfigs?: boolean;
@@ -524,6 +548,35 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
                 }
             }
 
+            if (depPackageJson.sails?.hasAuthorizationScopes === true) {
+                log.verbose(`Found hook with authorization scopes: ${depName}`);
+                const hookModule = require(depModulePath) as {
+                    registerRedboxAuthorizationScopes?: AuthorizationScopeProvider;
+                };
+                if (typeof hookModule.registerRedboxAuthorizationScopes !== 'function') {
+                    throw new Error(
+                        `Hook ${depName} has 'hasAuthorizationScopes: true' but no 'registerRedboxAuthorizationScopes' function`
+                    );
+                }
+                const definitions = hookModule.registerRedboxAuthorizationScopes();
+                if (!Array.isArray(definitions)) {
+                    throw new Error(
+                        `Hook ${depName} registerRedboxAuthorizationScopes() must synchronously return an array.`
+                    );
+                }
+                hookAuthorizationScopes.push({
+                    name: depName,
+                    module: depName,
+                    source: Object.freeze({
+                        sourceType: 'hook',
+                        sourcePackage: depName,
+                        sourceVersion: hookPackage.version,
+                        definitions: Object.freeze([...definitions]),
+                    }),
+                });
+                log.verbose(`Registered ${definitions.length} authorization scopes from ${depName}`);
+            }
+
             if (depPackageJson.sails?.hasServices === true) {
                 log.verbose(`Found hook with services: ${depName}`);
                 const hookModule = require(depModulePath) as {
@@ -579,9 +632,17 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
             }
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
+            if (hookPackage.sails.hasAuthorizationScopes === true) {
+                throw new Error(`Could not register authorization scopes from ${depName}: ${message}`, { cause: err });
+            }
             log.verbose(`Could not process dependency ${depName}: ${message}`);
         }
     }
+
+    createScopeRegistry([
+        createCoreAuthorizationScopeSource(CORE_AUTHORIZATION_CATALOG_VERSION),
+        ...hookAuthorizationScopes.map(registration => registration.source),
+    ]);
 
     return {
         hookModels,
@@ -589,6 +650,7 @@ export async function findAndRegisterHooks(appPath: string): Promise<HookRegistr
         hookBootstraps,
         hookMigrations,
         hookApiRoutes,
+        hookAuthorizationScopes,
         hookServices,
         hookControllers,
         hookWebserviceControllers,
@@ -703,6 +765,18 @@ export async function generateApiRouteHookConfig(
 
     const hookProviders = hookApiRoutes.map(hook => sanitizePackageNameForVar(hook.name, 'apiRoutes'));
     const content = `'use strict';\n/**\n * apiRoutesHooks config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Provides hook-contributed API route factories for buildMergedApiRouteConfig().\n */\n${hookImports ? `${hookImports}\n\n` : ''}module.exports.apiRoutesHooks = [${hookProviders.join(', ')}];\n`;
+
+    const written = await writeFileIfChanged(filePath, content);
+    return { generated: written ? 1 : 0, total: 1 };
+}
+
+export async function generateAuthorizationScopeHookConfig(
+    configDir: string,
+    hookAuthorizationScopes: HookAuthorizationScopeRegistration[]
+): Promise<GenerationStats> {
+    const filePath = path.join(configDir, 'authorizationScopeSources.js');
+    const sources = hookAuthorizationScopes.map(registration => registration.source);
+    const content = `'use strict';\n/**\n * authorizationScopeSources config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Contains validated, synchronous hook scope declarations in deterministic hook order.\n */\nmodule.exports.authorizationScopeSources = ${JSON.stringify(sources, null, 2)};\n`;
 
     const written = await writeFileIfChanged(filePath, content);
     return { generated: written ? 1 : 0, total: 1 };
@@ -1100,10 +1174,21 @@ export async function generateConfigShims(
             });
 
             const mergeArgs = [`Config.${name} || {}`, ...hookMerges];
-            const mergeStatement =
+            let mergeStatement =
                 hookMerges.length > 0 ? `mergeRedboxConfig('${name}', ${mergeArgs.join(', ')})` : `Config.${name}`;
+            let authorizationRouteImports = '';
 
-            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (root hookLoadPriority precedence; unlisted hooks use package-name fallback)\n * Debug view: see support/debug-config/resolved.js\n */\nconst { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
+            if (name === 'routes') {
+                authorizationRouteImports =
+                    "const { apiRoutesHooks = [] } = require('./apiRoutesHooks');\nconst { buildMergedApiRouteConfig } = require('@researchdatabox/redbox-core');";
+                mergeStatement = `mergeRedboxConfig('routes', ${mergeArgs.join(', ')}, buildMergedApiRouteConfig(apiRoutesHooks))`;
+            } else if (name === 'policies') {
+                authorizationRouteImports =
+                    "const { apiRoutesHooks = [] } = require('./apiRoutesHooks');\nconst { buildContractApiPolicies, registerHookApiRoutes } = require('@researchdatabox/redbox-core');";
+                mergeStatement = `mergeRedboxConfig('policies', ${mergeArgs.join(', ')}, buildContractApiPolicies(registerHookApiRoutes(apiRoutesHooks)))`;
+            }
+
+            const content = `'use strict';\n/**\n * ${name} config shim\n * Auto-generated by @researchdatabox/redbox-core loader\n * Do not edit manually - regenerated when .regenerate-shims marker exists\n *\n * Merges: core config + hook configs (root hookLoadPriority precedence; unlisted hooks use package-name fallback)\n * Debug view: see support/debug-config/resolved.js\n */\nconst { Config, mergeRedboxConfig } = require('@researchdatabox/redbox-core');\n${authorizationRouteImports}\n${hookImports}\n\nmodule.exports.${name} = ${mergeStatement};\n`;
             const written = await writeFileIfChanged(filePath, content);
             if (written) {
                 generated++;
@@ -1271,6 +1356,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             hookBootstraps,
             hookMigrations,
             hookApiRoutes,
+            hookAuthorizationScopes,
             hookServices,
             hookControllers,
             hookWebserviceControllers,
@@ -1311,6 +1397,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             formConfigStats,
             configShimStats,
             apiRouteHookStats,
+            authorizationScopeHookStats,
             bootstrapStats,
             migrationStats,
         ] = await Promise.all([
@@ -1323,6 +1410,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
             generateFormConfigShims(formConfigDir, hookFormConfigs),
             generateConfigShims(configDir, hookConfigs),
             generateApiRouteHookConfig(configDir, hookApiRoutes),
+            generateAuthorizationScopeHookConfig(configDir, hookAuthorizationScopes),
             generateBootstrapShim(configDir, hookBootstraps),
             generateMigrationConfigShim(configDir, appPath, hookMigrations),
         ]);
@@ -1339,6 +1427,9 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
         );
         log.verbose(`Config Shims: ${configShimStats.generated}/${configShimStats.total} written`);
         log.verbose(`API route hooks: ${apiRouteHookStats.generated}/${apiRouteHookStats.total} written (${hookApiRoutes.length} hooks)`);
+        log.verbose(
+            `Authorization scope hooks: ${authorizationScopeHookStats.generated}/${authorizationScopeHookStats.total} written (${hookAuthorizationScopes.length} hooks)`
+        );
         log.verbose(`Bootstrap: ${bootstrapStats.generated}/${bootstrapStats.total} written (${bootstrapStats.hookCount} hook bootstraps)`);
         log.verbose(`Migrations: ${migrationStats.generated}/${migrationStats.total} written (${hookMigrations.length} hooks)`);
 
@@ -1371,6 +1462,7 @@ export async function generateAllShims(appPath: string, options: LoaderOptions =
                 formConfigStats,
                 configShimStats,
                 apiRouteHookStats,
+                authorizationScopeHookStats,
                 bootstrapStats,
                 migrationStats,
             },

@@ -1,0 +1,38 @@
+meta {
+  name: Authorization - Invalid page limit
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/scopes?limit=101&search=must-not-be-reflected
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("Returns bounded Problem Details", function () {
+    const body = res.getBody();
+    expect(res.headers["content-type"]).to.include("application/problem+json");
+    expect(body).to.include({
+      status: 400,
+      code: "authorization.invalid-request"
+    });
+    expect(body.requestId).to.be.a("string").and.not.empty;
+    expect(JSON.stringify(body)).not.to.include("must-not-be-reflected");
+  });
+}

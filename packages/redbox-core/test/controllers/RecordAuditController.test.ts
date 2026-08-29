@@ -3,6 +3,9 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordAuditController';
 import { RecordAuditActionType } from '../../src/model/storage/RecordAuditModel';
+import { authorizationRequestFixture } from '../fixtures/authorization-request.fixtures';
+
+const AUTHORIZED_REQUEST = authorizationRequestFixture({ scope: 'record.audit.read' });
 
 describe('RecordAuditController', () => {
   let controller: Controllers.RecordAudit;
@@ -44,6 +47,11 @@ describe('RecordAuditController', () => {
             metaMetadata: { form: 'rdmp-form', brandId: 'brand-1' },
             metadata: { contributors: [{ name: 'New Name' }] },
           }),
+          getAuthorizedMeta: sinon.stub().callsFake(async (_context, requiredScope, oid) => ({
+            allowed: true,
+            decision: { allowed: true, reasonCode: 'allowed', requiredScope, brandId: 'brand-1' },
+            resource: await (global as any).sails.services.recordsservice.getMeta(oid),
+          })),
           hasViewAccess: sinon.stub().returns(true),
           getRecordAudit: sinon.stub().resolves([
             {
@@ -77,20 +85,21 @@ describe('RecordAuditController', () => {
     (global as any)._ = require('lodash');
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getDefault: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).FormsService = {
-      getFormByName: sinon.stub().returns(of({
-        configuration: [
-          {
-            name: 'contributors',
-            component: { config: { label: 'Contributors' } },
-            children: [
-              { name: 'name', component: { config: { label: 'Contributor Name' } } },
-            ],
-          },
-        ],
-      })),
+      getFormByName: sinon.stub().returns(
+        of({
+          configuration: [
+            {
+              name: 'contributors',
+              component: { config: { label: 'Contributors' } },
+              children: [{ name: 'name', component: { config: { label: 'Contributor Name' } } }],
+            },
+          ],
+        })
+      ),
     };
     (global as any).FormRecordConsistencyService = {
       compareRecords: sinon.stub().returns([
@@ -105,17 +114,31 @@ describe('RecordAuditController', () => {
     (global as any).IntegrationAuditService = {
       getTraceAuditLog: sinon.stub().resolves({
         total: 1,
-        rows: [{
-          id: 'trace-1',
-          traceId: 'trace-1',
-          startedAt: '2026-03-03T00:00:00Z',
-          completedAt: '2026-03-03T00:01:00Z',
-          durationMs: 60000,
-          status: 'success',
-          actions: ['publish'],
-          eventCount: 1,
-          events: [{ id: 'integration-1', redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1', depth: 0, hasChildren: false }],
-        }],
+        rows: [
+          {
+            id: 'trace-1',
+            traceId: 'trace-1',
+            startedAt: '2026-03-03T00:00:00Z',
+            completedAt: '2026-03-03T00:01:00Z',
+            durationMs: 60000,
+            status: 'success',
+            actions: ['publish'],
+            eventCount: 1,
+            events: [
+              {
+                id: 'integration-1',
+                redboxOid: 'oid-1',
+                startedAt: '2026-03-03T00:00:00Z',
+                status: 'success',
+                integrationAction: 'publish',
+                traceId: 'trace-1',
+                spanId: 'span-1',
+                depth: 0,
+                hasChildren: false,
+              },
+            ],
+          },
+        ],
       }),
       getStatusSummaryWithOutcomes: sinon.stub().resolves([]),
     };
@@ -139,7 +162,11 @@ describe('RecordAuditController', () => {
   });
 
   it('returns 400 from render when oid is missing', async () => {
-    const req = { param: sinon.stub().returns(''), options: { locals: {} }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = {
+      param: sinon.stub().returns(''),
+      options: { locals: {} },
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -153,6 +180,7 @@ describe('RecordAuditController', () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: { branding: 'default', portal: 'rdmp' } },
       session: { branding: 'default' },
@@ -179,6 +207,7 @@ describe('RecordAuditController', () => {
     param.withArgs('action').returns('');
     param.withArgs('workflowState').returns('');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default', portal: 'rdmp' },
@@ -227,6 +256,7 @@ describe('RecordAuditController', () => {
     param.withArgs('action').returns('updated');
     param.withArgs('workflowState').returns('Draft');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default', portal: 'rdmp' },
@@ -239,9 +269,18 @@ describe('RecordAuditController', () => {
 
     assert.equal((global as any).sails.services.recordsservice.getRecordAudit.calledOnce, true);
     assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.action, 'updated');
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.workflowState, 'Draft');
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom?.toISOString(), new Date(2026, 2, 1, 0, 0, 0, 0).toISOString());
-    assert.equal((global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
+    assert.equal(
+      (global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.workflowState,
+      'Draft'
+    );
+    assert.equal(
+      (global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateFrom?.toISOString(),
+      new Date(2026, 2, 1, 0, 0, 0, 0).toISOString()
+    );
+    assert.equal(
+      (global as any).sails.services.recordsservice.getRecordAudit.firstCall.args[0]?.dateTo?.toISOString(),
+      new Date(2026, 2, 31, 23, 59, 59, 999).toISOString()
+    );
     assert.equal(sendResp.calledOnce, true);
   });
 
@@ -255,6 +294,7 @@ describe('RecordAuditController', () => {
     param.withArgs('action').returns('');
     param.withArgs('workflowState').returns('');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default', portal: 'rdmp' },
@@ -277,6 +317,7 @@ describe('RecordAuditController', () => {
     param.withArgs('branding').returns('../bad-brand');
     param.withArgs('portal').returns('rdmp');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: { branding: 'default' } },
       session: { branding: 'default', portal: 'rdmp' },
@@ -294,6 +335,7 @@ describe('RecordAuditController', () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default' },
@@ -318,6 +360,7 @@ describe('RecordAuditController', () => {
     param.withArgs('dateFrom').returns('2026-03-01');
     param.withArgs('dateTo').returns('2026-03-31');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default' },
@@ -329,10 +372,19 @@ describe('RecordAuditController', () => {
     await controller.getIntegrationAuditData(req, res);
 
     assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.calledOnce, true);
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.integrationName, 'figshare');
+    assert.equal(
+      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.integrationName,
+      'figshare'
+    );
     assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.status, 'success');
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateFrom?.toISOString(), new Date(2026, 2, 1, 0, 0, 0, 0).toISOString());
-    assert.equal((global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(), new Date(2026, 2, 31, 23, 59, 59, 999).toISOString());
+    assert.equal(
+      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateFrom?.toISOString(),
+      new Date(2026, 2, 1, 0, 0, 0, 0).toISOString()
+    );
+    assert.equal(
+      (global as any).IntegrationAuditService.getTraceAuditLog.firstCall.args[0]?.dateTo?.toISOString(),
+      new Date(2026, 2, 31, 23, 59, 59, 999).toISOString()
+    );
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.page, 2);
     assert.equal(sendResp.firstCall.args[2]?.data?.summary?.pageSize, 10);
   });
@@ -355,6 +407,7 @@ describe('RecordAuditController', () => {
     const param = sinon.stub();
     param.withArgs('oid').returns('oid-1');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default', portal: 'rdmp' },
@@ -366,22 +419,39 @@ describe('RecordAuditController', () => {
     await controller.getIntegrationStatusData(req, res);
 
     assert.equal((global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.calledOnce, true);
-    assert.equal((global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.firstCall.args[1]?.citationDoi, '10.1234/custom-doi');
+    assert.equal(
+      (global as any).IntegrationAuditService.getStatusSummaryWithOutcomes.firstCall.args[1]?.citationDoi,
+      '10.1234/custom-doi'
+    );
     assert.equal(sendResp.calledOnce, true);
   });
 
   it('preserves the fallback integration audit id when a row id is missing', async () => {
     (global as any).IntegrationAuditService.getTraceAuditLog.resolves({
       total: 1,
-      rows: [{
-        id: undefined,
-        traceId: 'trace-1',
-        startedAt: '2026-03-03T00:00:00Z',
-        status: 'success',
-        actions: ['publish'],
-        eventCount: 1,
-        events: [{ id: undefined, redboxOid: 'oid-1', startedAt: '2026-03-03T00:00:00Z', status: 'success', integrationAction: 'publish', traceId: 'trace-1', spanId: 'span-1', depth: 0, hasChildren: false }],
-      }],
+      rows: [
+        {
+          id: undefined,
+          traceId: 'trace-1',
+          startedAt: '2026-03-03T00:00:00Z',
+          status: 'success',
+          actions: ['publish'],
+          eventCount: 1,
+          events: [
+            {
+              id: undefined,
+              redboxOid: 'oid-1',
+              startedAt: '2026-03-03T00:00:00Z',
+              status: 'success',
+              integrationAction: 'publish',
+              traceId: 'trace-1',
+              spanId: 'span-1',
+              depth: 0,
+              hasChildren: false,
+            },
+          ],
+        },
+      ],
     });
 
     const param = sinon.stub();
@@ -393,6 +463,7 @@ describe('RecordAuditController', () => {
     param.withArgs('dateFrom').returns('');
     param.withArgs('dateTo').returns('');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default' },
@@ -417,6 +488,7 @@ describe('RecordAuditController', () => {
     param.withArgs('dateFrom').returns('');
     param.withArgs('dateTo').returns('');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default' },
@@ -444,6 +516,7 @@ describe('RecordAuditController', () => {
     param.withArgs('dateFrom').returns('not-a-date');
     param.withArgs('dateTo').returns('');
     const req = {
+      ...AUTHORIZED_REQUEST,
       param,
       options: { locals: {} },
       session: { branding: 'default' },

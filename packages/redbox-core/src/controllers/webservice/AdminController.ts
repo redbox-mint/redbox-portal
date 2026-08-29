@@ -22,7 +22,7 @@ export namespace Controllers {
      */
     protected override _exportedMethods: string[] = ['refreshCachedResources', 'setAppConfig', 'getAppConfig'];
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     public async refreshCachedResources(req: Sails.Req, res: Sails.Res) {
       try {
@@ -47,8 +47,7 @@ export namespace Controllers {
         const { params, body } = validated;
         const configKey = params.configKey as string;
 
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-        const brand: BrandingModel = BrandingService.getBrand(brandName);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
 
         await AppConfigService.createOrUpdateConfig(brand, configKey, body as Record<string, unknown>);
 
@@ -71,9 +70,7 @@ export namespace Controllers {
         const { params } = validated;
         const validatedConfigKey = params.configKey as string | undefined;
 
-        const brandName: string = BrandingService.getBrandNameFromReq(req);
-
-        const brand: BrandingModel = BrandingService.getBrand(brandName);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
 
         let config: unknown = AppConfigService.getAppConfigurationForBrand(brand.name);
         if (!_.isEmpty(validatedConfigKey)) {

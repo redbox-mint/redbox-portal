@@ -10,7 +10,7 @@ export namespace Controllers {
       'getQuery',
       'createQuery',
       'updateQuery',
-      'deleteQuery'
+      'deleteQuery',
     ];
 
     private asError(error: unknown): Error {
@@ -32,11 +32,15 @@ export namespace Controllers {
     }
 
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
-      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      return this.sendResp(req, res, {
+        status: this.statusForError(error),
+        errors: [this.asError(error)],
+        headers: this.getNoCacheHeaders(),
+      });
     }
 
     private resolveBrand(req: Sails.Req): BrandingModel {
-      return BrandingService.getBrand(req.session.branding as string);
+      return BrandingService.getBrandFromReq(req);
     }
 
     public async listQueries(req: Sails.Req, res: Sails.Res) {
@@ -63,11 +67,19 @@ export namespace Controllers {
         const brand = this.resolveBrand(req);
         const name = req.param('name');
         if (!name) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'name is required', status: '400' }], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'name is required', status: '400' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         const query = await NamedQueryService.getNamedQueryConfig(brand, name);
         if (!query) {
-          return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: `Named query '${name}' not found`, status: '404' }], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: `Named query '${name}' not found`, status: '404' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         return this.sendResp(req, res, { data: query, headers: this.getNoCacheHeaders() });
       } catch (error) {
@@ -81,10 +93,18 @@ export namespace Controllers {
         const body = (req.body as Record<string, unknown>) || {};
         const name = body['name'] as string;
         if (!name || !/^[A-Za-z0-9_-]+$/.test(name)) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'name is required and must be URL safe', status: '400' }], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'name is required and must be URL safe', status: '400' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         if (name === 'collections') {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: "'collections' is a reserved name and cannot be used", status: '400' }], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: "'collections' is a reserved name and cannot be used", status: '400' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         await NamedQueryService.create(brand, name, body as unknown as NamedQueryDefinition);
         return this.sendResp(req, res, { status: 201, data: { name }, headers: this.getNoCacheHeaders() });
@@ -98,11 +118,19 @@ export namespace Controllers {
         const brand = this.resolveBrand(req);
         const name = req.param('name');
         if (!name) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'name is required', status: '400' }], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'name is required', status: '400' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         const body = (req.body as Record<string, unknown>) || {};
         if (body['name'] && body['name'] !== name) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Named query name cannot be changed', status: '400' }], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Named query name cannot be changed', status: '400' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         await NamedQueryService.update(brand, name, body as unknown as NamedQueryDefinition);
         return this.sendResp(req, res, { data: { name }, headers: this.getNoCacheHeaders() });
@@ -116,7 +144,11 @@ export namespace Controllers {
         const brand = this.resolveBrand(req);
         const name = req.param('name');
         if (!name) {
-          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'name is required', status: '400' }], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'name is required', status: '400' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         await NamedQueryService.delete(brand, name);
         return this.sendResp(req, res, { data: { name }, headers: this.getNoCacheHeaders() });

@@ -19,7 +19,14 @@
 
 import { QueueService } from '../QueueService';
 import { SearchService } from '../SearchService';
-import type { SolrSearchConfig, SolrCoreConfig, SolrCoreOptions, SolrCoreSchema, SolrFieldDefinition, SolrCopyFieldDefinition } from '../config/solr.config';
+import type {
+  SolrSearchConfig,
+  SolrCoreConfig,
+  SolrCoreOptions,
+  SolrCoreSchema,
+  SolrFieldDefinition,
+  SolrCopyFieldDefinition,
+} from '../config/solr.config';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
 import { RoleModel } from '../model/storage/RoleModel';
@@ -27,22 +34,24 @@ import { RecordModel } from '../model/storage/RecordModel';
 import { SolrDocument } from '../model/SolrDocument';
 import { Services as services } from '../CoreService';
 import { RecordsService } from '../RecordsService';
+import { effectiveRecordRoleKeys } from '../authorization';
 
 type SolrOptions = SolrCoreOptions;
 type SolrCore = SolrCoreConfig;
 type SolrConfig = SolrSearchConfig;
 
 const axios = require('axios');
-type FlatModule = { flatten: (obj: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown> };
-type LuceneEscapeQueryModule = ((value: string) => string) | { escape?: (value: string) => string; default?: (value: string) => string };
+type FlatModule = {
+  flatten: (obj: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown>;
+};
+type LuceneEscapeQueryModule =
+  ((value: string) => string) | { escape?: (value: string) => string; default?: (value: string) => string };
 let flat: FlatModule | null = null;
-const luceneEscapeQueryModule: LuceneEscapeQueryModule = require("lucene-escape-query");
+const luceneEscapeQueryModule: LuceneEscapeQueryModule = require('lucene-escape-query');
 const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
     ? luceneEscapeQueryModule
-    : (luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default || ((value: string) => value));
-
-
+    : luceneEscapeQueryModule?.escape || luceneEscapeQueryModule?.default || ((value: string) => value);
 
 class SolrClient {
   options: SolrOptions;
@@ -90,7 +99,6 @@ class SolrClient {
       throw err;
     }
   }
-
 }
 // Create a minimal SolrClient class if not already available
 class Solr {
@@ -111,7 +119,12 @@ export namespace Services {
   type PreIndexCopyConfig = { source: string; dest: string };
   type PreIndexJsonStringConfig = { source: string; dest?: string };
   type PreIndexTemplateConfig = { source?: string; dest?: string; template: string };
-  type PreIndexFlattenSpecialConfig = { field: string; source: string; dest?: string; options?: Record<string, unknown> };
+  type PreIndexFlattenSpecialConfig = {
+    field: string;
+    source: string;
+    dest?: string;
+    options?: Record<string, unknown>;
+  };
   type SolrSchema = {
     fields?: SolrFieldDefinition[];
     dynamicFields?: SolrFieldDefinition[];
@@ -127,13 +140,14 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'index',
       'remove',
+      'removeByBrand',
       'searchFuzzy',
       'solrAddOrUpdate',
       'solrDelete',
       'searchAdvanced',
       'preIndex',
-      'init'
-    ]
+      'init',
+    ];
 
     protected queueService!: QueueService;
     private clients: {
@@ -142,7 +156,7 @@ export namespace Services {
 
     constructor() {
       super();
-      this.logHeader = "SolrIndexer::";
+      this.logHeader = 'SolrIndexer::';
     }
 
     public override init() {
@@ -155,7 +169,7 @@ export namespace Services {
     }
 
     protected override async processDynamicImports() {
-      flat = await import("flat");
+      flat = await import('flat');
     }
 
     protected initClient(ref: SolrSearchService = this) {
@@ -198,12 +212,19 @@ export namespace Services {
     }
 
     private isSchemaDefinitionEmpty(schemaDef: SolrCoreSchema): boolean {
-      return schemaDef['add-field'].length === 0 &&
+      return (
+        schemaDef['add-field'].length === 0 &&
         schemaDef['add-dynamic-field'].length === 0 &&
-        schemaDef['add-copy-field'].length === 0;
+        schemaDef['add-copy-field'].length === 0
+      );
     }
 
-    private getMissingSchemaDefinitions(coreId: string, core: SolrCore, liveSchema: SolrSchema, ref: SolrSearchService = this): SolrCoreSchema {
+    private getMissingSchemaDefinitions(
+      coreId: string,
+      core: SolrCore,
+      liveSchema: SolrSchema,
+      ref: SolrSearchService = this
+    ): SolrCoreSchema {
       const configuredFields = [...(core.schema['add-field'] || [])];
       if (core.initSchemaFlag && !configuredFields.some(field => field.name === core.initSchemaFlag?.name)) {
         configuredFields.push({ ...core.initSchemaFlag });
@@ -211,41 +232,63 @@ export namespace Services {
 
       return {
         'add-field': ref.getMissingFieldDefinitions(coreId, configuredFields, liveSchema.fields || [], ref),
-        'add-dynamic-field': ref.getMissingFieldDefinitions(coreId, core.schema['add-dynamic-field'] || [], liveSchema.dynamicFields || [], ref),
-        'add-copy-field': (core.schema['add-copy-field'] || []).filter(copyField =>
-          !(liveSchema.copyFields || []).some(liveCopyField =>
-            liveCopyField.source === copyField.source && liveCopyField.dest === copyField.dest))
+        'add-dynamic-field': ref.getMissingFieldDefinitions(
+          coreId,
+          core.schema['add-dynamic-field'] || [],
+          liveSchema.dynamicFields || [],
+          ref
+        ),
+        'add-copy-field': (core.schema['add-copy-field'] || []).filter(
+          copyField =>
+            !(liveSchema.copyFields || []).some(
+              liveCopyField => liveCopyField.source === copyField.source && liveCopyField.dest === copyField.dest
+            )
+        ),
       };
     }
 
-    private getMissingFieldDefinitions(coreId: string, configured: SolrFieldDefinition[], live: SolrFieldDefinition[], ref: SolrSearchService): SolrFieldDefinition[] {
+    private getMissingFieldDefinitions(
+      coreId: string,
+      configured: SolrFieldDefinition[],
+      live: SolrFieldDefinition[],
+      ref: SolrSearchService
+    ): SolrFieldDefinition[] {
       return configured.filter(desired => {
         const existing = live.find(field => field.name === desired.name);
         if (!existing) {
           return true;
         }
         if (!ref.schemaFieldsMatch(desired, existing)) {
-          sails.log.error(JSON.stringify({
-            message: 'Solr schema definition conflict; existing field will not be replaced.',
-            core: coreId,
-            fieldName: desired.name,
-            desiredDefinition: desired,
-            liveDefinition: existing
-          }));
+          sails.log.error(
+            JSON.stringify({
+              message: 'Solr schema definition conflict; existing field will not be replaced.',
+              core: coreId,
+              fieldName: desired.name,
+              desiredDefinition: desired,
+              liveDefinition: existing,
+            })
+          );
         }
         return false;
       });
     }
 
     private schemaFieldsMatch(desired: SolrFieldDefinition, live: SolrFieldDefinition): boolean {
-      const properties: Array<keyof SolrFieldDefinition> = ['name', 'type', 'indexed', 'stored', 'multiValued', 'required', 'docValues'];
+      const properties: Array<keyof SolrFieldDefinition> = [
+        'name',
+        'type',
+        'indexed',
+        'stored',
+        'multiValued',
+        'required',
+        'docValues',
+      ];
       return properties.every(property => {
         if (desired[property] === undefined) {
           return true;
         }
-        const liveValue = live[property] === undefined && typeof desired[property] === 'boolean'
-          ? false
-          : live[property];
+        const liveValue =
+          live[property] === undefined && typeof desired[property] === 'boolean' ? false : live[property];
         return desired[property] === liveValue;
       });
     }
@@ -268,7 +311,9 @@ export namespace Services {
         try {
           tryCtr++;
           sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
-          const solrStat = await axios.get(urlCheck).then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
+          const solrStat = await axios
+            .get(urlCheck)
+            .then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
           sails.log.verbose(`${ref.logHeader} Response is:`);
           sails.log.verbose(JSON.stringify(solrStat));
           if (solrStat.status[coreName].instanceDir) {
@@ -297,10 +342,8 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} adding indexing job: ${id} with data:`);
       data.id = id;
       sails.log.verbose(JSON.stringify(data));
-      return this.enqueueOrRunNow(
-        sails.config.solr.createOrUpdateJobName,
-        data,
-        async (job) => this.solrAddOrUpdate(job as QueueJob<RecordModel>)
+      return this.enqueueOrRunNow(sails.config.solr.createOrUpdateJobName, data, async job =>
+        this.solrAddOrUpdate(job as QueueJob<RecordModel>)
       );
     }
 
@@ -309,10 +352,19 @@ export namespace Services {
       const data = { id: id };
 
       sails.log.verbose(JSON.stringify(data));
-      void this.enqueueOrRunNow(
-        sails.config.solr.deleteJobName,
-        data,
-        async (job) => this.solrDelete(job as QueueJob<RecordModel>, undefined)
+      void this.enqueueOrRunNow(sails.config.solr.deleteJobName, data, async job =>
+        this.solrDelete(job as QueueJob<RecordModel>, undefined)
+      );
+    }
+
+    /** Deletes only documents owned by the authorized brand; never expands `*` across cores/brands. */
+    public async removeByBrand(brandId: string): Promise<void> {
+      const normalizedBrandId = String(brandId ?? '').trim();
+      if (!normalizedBrandId) throw new Error('A brand id is required to remove indexed records.');
+      await Promise.all(
+        Object.values(this.clients).map(async client => {
+          await client.delete('metaMetadata_brandId', normalizedBrandId);
+        })
       );
     }
 
@@ -337,19 +389,38 @@ export namespace Services {
       }
     }
 
-
-    public async searchAdvanced(coreId: string = 'default', type: string, query: string | URLSearchParams): Promise<Record<string, unknown>> {
+    public async searchAdvanced(
+      coreId: string = 'default',
+      type: string,
+      query: string | URLSearchParams
+    ): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
       const url = `${this.getBaseUrl(core.options)}${coreName}/select`;
       const params = query instanceof URLSearchParams ? query : this.parseQueryFragment(query);
       sails.log.verbose(`Searching advanced using: ${url}`);
-      const response = await axios.get(url, { params }).then((response: { data: Record<string, unknown> }) => response.data);
+      const response = await axios
+        .get(url, { params })
+        .then((response: { data: Record<string, unknown> }) => response.data);
       return response;
     }
 
-    public async searchFuzzy(coreId: string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: SearchField[], facetSearches: SearchField[], brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start: number = 0, rows: number = 10): Promise<Record<string, unknown>> {
+    public async searchFuzzy(
+      coreId: string = 'default',
+      type: string,
+      workflowState: string,
+      searchQuery: string,
+      exactSearches: SearchField[],
+      facetSearches: SearchField[],
+      brand: BrandingModel,
+      user: UserModel,
+      roles: RoleModel[],
+      returnFields: string[],
+      start: number = 0,
+      rows: number = 10,
+      bypassRecordAcl: boolean = false
+    ): Promise<Record<string, unknown>> {
       const username = user.username;
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
@@ -382,7 +453,7 @@ export namespace Services {
       allParams.push({ key: 'wt', value: 'json' });
       allParams.push({ key: 'sort', value: 'date_object_modified desc' });
 
-      this.addAuthParams(allParams, username, roles, brand, false);
+      if (!bypassRecordAcl) this.addAuthParams(allParams, username, roles, brand, false);
 
       const params = new URLSearchParams();
       for (const param of allParams) {
@@ -392,8 +463,12 @@ export namespace Services {
       const url = `${baseUrl}?${params.toString()}`;
       sails.log.verbose(`Searching fuzzy using: ${url}`);
       const response = await axios.get(baseUrl, { params }).then((response: { data: SolrResponse }) => response.data);
-      const customResp: { records: Array<Record<string, unknown>>; facets?: Array<{ name: string; values: Array<{ value: string; count: number }> }>; totalItems?: number } = {
-        records: []
+      const customResp: {
+        records: Array<Record<string, unknown>>;
+        facets?: Array<{ name: string; values: Array<{ value: string; count: number }> }>;
+        totalItems?: number;
+      } = {
+        records: [],
       };
       const totalItems = response.response.numFound;
 
@@ -407,7 +482,12 @@ export namespace Services {
             customDoc[retField] = fieldValue;
           }
         });
-        customDoc["hasEditAccess"] = RecordsService.hasEditAccess(brand, user, roles as unknown as Array<Record<string, unknown>>, solrdoc);
+        customDoc['hasEditAccess'] = RecordsService.hasEditAccess(
+          brand,
+          user,
+          roles as unknown as Array<Record<string, unknown>>,
+          solrdoc
+        );
         customResp.records.push(customDoc);
       });
       // check if have facets turned on...
@@ -421,12 +501,12 @@ export namespace Services {
           for (let i = 0, j = 0; i < numFacetsValues; i++) {
             facetValues.push({
               value: String(facet_field[j++]),
-              count: Number(facet_field[j++])
+              count: Number(facet_field[j++]),
             });
           }
           facets.push({
             name: facet_name,
-            values: facetValues
+            values: facetValues,
           });
         });
       }
@@ -457,14 +537,13 @@ export namespace Services {
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
         await this.clients[coreId].commit();
         await this.clientSleep();
-
       } catch (err) {
         sails.log.error(`${this.logHeader} Failed to solrAddOrUpdate, while pre-processing index: `);
         sails.log.error(JSON.stringify(err));
       }
     }
 
-    // TODO: This method shouldn't need to be public 
+    // TODO: This method shouldn't need to be public
     // but can't unit test it easily if it isn't
     public preIndex(data: SolrDocument): Record<string, unknown> {
       let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
@@ -494,7 +573,10 @@ export namespace Services {
       _.each(copyObj, (copyConfig: PreIndexCopyConfig) => {
         _.set(processedData, copyConfig.dest, _.get(data, copyConfig.source));
       });
-      const jsonStringObj = _.get(sails.config.solr.cores, coreId + '.preIndex.jsonString') as unknown as PreIndexJsonStringConfig[];
+      const jsonStringObj = _.get(
+        sails.config.solr.cores,
+        coreId + '.preIndex.jsonString'
+      ) as unknown as PreIndexJsonStringConfig[];
       _.each(jsonStringObj, (jsonStringConfig: PreIndexJsonStringConfig) => {
         let setProperty: string = jsonStringConfig.source;
         if (jsonStringConfig.dest != null) {
@@ -502,7 +584,10 @@ export namespace Services {
         }
         _.set(processedData, setProperty, JSON.stringify(_.get(data, jsonStringConfig.source, undefined)));
       });
-      const templateObj = _.get(sails.config.solr.cores, coreId + '.preIndex.template') as unknown as PreIndexTemplateConfig[];
+      const templateObj = _.get(
+        sails.config.solr.cores,
+        coreId + '.preIndex.template'
+      ) as unknown as PreIndexTemplateConfig[];
       //Evaluate a template to generate a value for the solr document
       _.each(templateObj, (templateConfig: PreIndexTemplateConfig) => {
         let setProperty: string = templateConfig.source ?? '';
@@ -513,22 +598,26 @@ export namespace Services {
         // If no source property set, use the whole data object
         let templateData: unknown;
         if (templateConfig.source != null) {
-          templateData = _.get(data, templateConfig.source)
+          templateData = _.get(data, templateConfig.source);
         } else {
           templateData = _.cloneDeep(data);
         }
 
-        const template = _.template(templateConfig.template)
+        const template = _.template(templateConfig.template);
         _.set(processedData, setProperty, template({ data: templateData }));
       });
 
-      const flattenSpecialObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.special') as unknown as PreIndexFlattenSpecialConfig[];
+      const flattenSpecialObj = _.get(
+        sails.config.solr.cores,
+        coreId + '.preIndex.flatten.special'
+      ) as unknown as PreIndexFlattenSpecialConfig[];
       // flattening...
       // first remove those with special flattening options
       _.each(flattenSpecialObj, (specialFlattenConfig: PreIndexFlattenSpecialConfig) => {
         _.unset(processedData, specialFlattenConfig.field);
       });
-      const flattenOptionsObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.options') as unknown as Record<string, unknown> | undefined;
+      const flattenOptionsObj = _.get(sails.config.solr.cores, coreId + '.preIndex.flatten.options') as unknown as
+        Record<string, unknown> | undefined;
       const flatModule = flat;
       if (!flatModule) {
         throw new Error('flat module not loaded');
@@ -558,23 +647,26 @@ export namespace Services {
       return luceneEscapeQuery(String(str ?? ''));
     }
 
-    protected addAuthParams(allParams: Array<{ key: string; value: string }> | URLSearchParams, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
-
-      let roleString = ""
-      let matched = false;
-      for (let i = 0; i < roles.length; i++) {
-        const role = roles[i]
-        const roleBrandId = (role.branding as BrandingModel | string | undefined);
-        if ((typeof roleBrandId === 'object' ? roleBrandId?.id : roleBrandId) == brand.id) {
-          if (matched) {
-            roleString += " OR ";
-            matched = false;
-          }
-          roleString += roles[i].name;
-          matched = true;
-        }
+    protected addAuthParams(
+      allParams: Array<{ key: string; value: string }> | URLSearchParams,
+      username: string,
+      roles: RoleModel[],
+      brand: BrandingModel,
+      editAccessOnly: boolean | undefined = undefined
+    ) {
+      const roleKeys = effectiveRecordRoleKeys(roles, brand.id).map(roleKey => this.luceneEscape(roleKey));
+      const escapedUsername = this.luceneEscape(username);
+      // A principal can hold no role in the active brand (for example a system-only
+      // assignment). Emitting an empty `authorization_viewRoles:()` would be a Lucene
+      // parse error, so the role clauses are included only when there is a key to match.
+      const anyRole = roleKeys.join(' OR ');
+      const clauses = [`authorization_edit:${escapedUsername}`];
+      if (!editAccessOnly) {
+        clauses.push(`authorization_view:${escapedUsername}`);
+        if (roleKeys.length > 0) clauses.push(`authorization_viewRoles:(${anyRole})`);
       }
-      const fqValue = "authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
+      if (roleKeys.length > 0) clauses.push(`authorization_editRoles:(${anyRole})`);
+      const fqValue = clauses.join(' OR ');
       if (allParams instanceof URLSearchParams) {
         allParams.append('fq', fqValue);
       } else {
@@ -595,7 +687,13 @@ export namespace Services {
       return params;
     }
 
-    protected addAuthFilter(url: string, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
+    protected addAuthFilter(
+      url: string,
+      username: string,
+      roles: RoleModel[],
+      brand: BrandingModel,
+      editAccessOnly: boolean | undefined = undefined
+    ) {
       const allParams: Array<{ key: string; value: string }> = [];
       this.addAuthParams(allParams, username, roles, brand, editAccessOnly);
       return url + allParams.map(param => `&${param.key}=${param.value}`).join('');

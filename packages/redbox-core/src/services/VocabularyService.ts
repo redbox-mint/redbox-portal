@@ -5,7 +5,13 @@ import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 import { promiseWithTimeout } from '../utilities/PromiseUtils';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { toBoolean } from "@researchdatabox/sails-ng-common";
+import { toBoolean } from '@researchdatabox/sails-ng-common';
+import {
+  authorizationResourceError,
+  type AuthorizationContext,
+  type AuthorizationDecision,
+  type ScopeKey,
+} from '../authorization';
 
 export namespace Services {
   type VocabType = 'flat' | 'tree';
@@ -21,20 +27,21 @@ export namespace Services {
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   const RVA_IMPORT_TIMEOUT_MS = 30_000;
 
-  export type VocabularyEntryInput =
-    Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'> & {
-      parent?: string | null;
-      children?: VocabularyEntryInput[];
-    };
+  export type VocabularyEntryInput = Pick<
+    VocabularyEntryAttributes,
+    'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'
+  > & {
+    parent?: string | null;
+    children?: VocabularyEntryInput[];
+  };
 
-  export type VocabularyInput =
-    Omit<Partial<VocabularyAttributes>, 'entries' | 'branding' | 'type' | 'source'> & {
-      name: string;
-      branding: string;
-      type?: VocabType;
-      source?: VocabSource;
-      entries?: VocabularyEntryInput[];
-    };
+  export type VocabularyInput = Omit<Partial<VocabularyAttributes>, 'entries' | 'branding' | 'type' | 'source'> & {
+    name: string;
+    branding: string;
+    type?: VocabType;
+    source?: VocabSource;
+    entries?: VocabularyEntryInput[];
+  };
 
   export interface VocabularyListOptions {
     q?: string;
@@ -143,19 +150,20 @@ export namespace Services {
   }
 
   type VocabularyListWhere = {
+    branding?: string;
     type?: VocabularyAttributes['type'];
     source?: VocabularyAttributes['source'];
-    or?: Array<
-      { name: { contains: string } } |
-      { slug: { contains: string } }
-    >;
+    or?: Array<{ name: { contains: string } } | { slug: { contains: string } }>;
   };
 
   export class VocabularyService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'list',
+      'listAuthorized',
+      'requireAuthorizedBrandOperation',
       'getById',
       'getByIdOrSlug',
+      'getAuthorizedByIdOrSlug',
       'getEntries',
       'getChildren',
       'getEntryByNotation',
@@ -163,35 +171,93 @@ export namespace Services {
       'expandPaths',
       'bootstrapData',
       'create',
+      'createAuthorized',
       'update',
+      'updateAuthorized',
       'reorderEntries',
+      'reorderEntriesAuthorized',
       'delete',
+      'deleteAuthorized',
       'getTree',
+      'getAuthorizedTree',
       'normalizeEntry',
       'validateParent',
       'upsertEntries',
-      'assertMutableVocabulary'
+      'assertMutableVocabulary',
     ];
+
+    private getAuthorizationService(): {
+      authorizeAction(context: AuthorizationContext, requiredScope: ScopeKey): AuthorizationDecision;
+      authorizeBrandEntity(
+        context: AuthorizationContext,
+        requiredScope: ScopeKey,
+        entityBrandId: string | undefined
+      ): AuthorizationDecision;
+    } {
+      const service = sails.services.authorizationservice as unknown as {
+        authorizeAction?: (context: AuthorizationContext, requiredScope: ScopeKey) => AuthorizationDecision;
+        authorizeBrandEntity?: (
+          context: AuthorizationContext,
+          requiredScope: ScopeKey,
+          entityBrandId: string | undefined
+        ) => AuthorizationDecision;
+      };
+      if (typeof service?.authorizeAction !== 'function' || typeof service.authorizeBrandEntity !== 'function') {
+        throw new Error('AuthorizationService is unavailable for a protected vocabulary operation.');
+      }
+      return service as {
+        authorizeAction(context: AuthorizationContext, requiredScope: ScopeKey): AuthorizationDecision;
+        authorizeBrandEntity(
+          context: AuthorizationContext,
+          requiredScope: ScopeKey,
+          entityBrandId: string | undefined
+        ): AuthorizationDecision;
+      };
+    }
+
+    private requireAuthorizedBrand(context: AuthorizationContext, requiredScope: ScopeKey): string {
+      const authorization = this.getAuthorizationService();
+      const actionDecision = authorization.authorizeAction(context, requiredScope);
+      if (!actionDecision.allowed) throw authorizationResourceError(actionDecision);
+      const brandId = context.brand?.id;
+      const brandDecision = authorization.authorizeBrandEntity(context, requiredScope, brandId);
+      if (!brandDecision.allowed || !brandId) throw authorizationResourceError(brandDecision);
+      return brandId;
+    }
+
+    /** Action-first gate for brand-scoped operations that do not address an existing vocabulary. */
+    public requireAuthorizedBrandOperation(context: AuthorizationContext, requiredScope: ScopeKey): string {
+      return this.requireAuthorizedBrand(context, requiredScope);
+    }
 
     /**
      * Externally managed mirrors (a `source=external` vocabulary owned by a Figshare
      * source) are only mutable through FigshareVocabularyService.applyPreview. Local
      * clones created from a mirror are ordinary local vocabularies and stay editable.
      */
-    public async assertMutableVocabulary(vocabularyId: string, connection?: Sails.Connection): Promise<void> {
+    public async assertMutableVocabulary(
+      vocabularyId: string,
+      connection?: Sails.Connection,
+      brandId?: string
+    ): Promise<void> {
       const id = String(vocabularyId ?? '').trim();
       if (!id) {
         return;
       }
       const vocabulary = await this.executeQuery(
-        Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>,
+        Vocabulary.findOne({
+          id,
+          ...(brandId ? { branding: brandId } : {}),
+        }) as Sails.WaterlinePromise<VocabularyAttributes | null>,
         connection
       );
       if (!vocabulary || vocabulary.source !== 'external') {
         return;
       }
       const managedSource = await this.executeQuery(
-        FigshareVocabularySource.findOne({ vocabulary: id }) as Sails.WaterlinePromise<FigshareVocabularySourceAttributes | null>,
+        FigshareVocabularySource.findOne({
+          vocabulary: id,
+        }) as Sails.WaterlinePromise<FigshareVocabularySourceAttributes | null>,
         connection
       );
       if (managedSource) {
@@ -210,9 +276,9 @@ export namespace Services {
 
     private async executeFindQuery<T>(query: Sails.QueryBuilder, connection?: Sails.Connection): Promise<T> {
       if (connection) {
-        return await query.usingConnection(connection) as T;
+        return (await query.usingConnection(connection)) as T;
       }
-      return await query as T;
+      return (await query) as T;
     }
 
     private async createAndFetch<T>(createQuery: Sails.WaterlinePromise<T>, connection?: Sails.Connection): Promise<T> {
@@ -240,8 +306,9 @@ export namespace Services {
         return brandingString;
       }
 
-
-      const globals = globalThis as { BrandingService?: { getBrand?: (nameOrId: string) => { id?: string | number } | null } };
+      const globals = globalThis as {
+        BrandingService?: { getBrand?: (nameOrId: string) => { id?: string | number } | null };
+      };
       const brandingService = globals.BrandingService;
       const brand = brandingService?.getBrand?.(brandingString);
       if (brand?.id) {
@@ -251,7 +318,9 @@ export namespace Services {
       return brandingString;
     }
 
-    public async list(options: VocabularyListOptions): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
+    public async list(
+      options: VocabularyListOptions
+    ): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
       const parsedLimit = Number.parseInt(String(options.limit ?? 25), 10);
       const parsedOffset = Number.parseInt(String(options.offset ?? 0), 10);
       const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(200, parsedLimit) : 25;
@@ -265,22 +334,46 @@ export namespace Services {
       if (options.source && VALID_SOURCES.has(options.source as VocabSource)) {
         where.source = options.source as VocabularyAttributes['source'];
       }
-      // Branding is single-tenant for this admin feature; avoid ObjectId/string mismatch
-      // filtering at query time which can hide records in Mongo-backed environments.
+      const branding = this.resolveBrandingId(options.branding);
+      if (branding) where.branding = branding;
       if (options.q) {
-        where.or = [
-          { name: { contains: options.q } },
-          { slug: { contains: options.q } }
-        ];
+        where.or = [{ name: { contains: options.q } }, { slug: { contains: options.q } }];
       }
 
-      const total = await Vocabulary.count(where);
-      const data = await Vocabulary.find(where).sort(sort).skip(offset).limit(limit) as VocabularyAttributes[];
+      const [total, data] = await Promise.all([
+        Vocabulary.count(where),
+        Vocabulary.find(where).sort(sort).skip(offset).limit(limit) as unknown as Promise<VocabularyAttributes[]>,
+      ]);
       return { data, meta: { total, limit, offset } };
+    }
+
+    public async listAuthorized(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      options: Omit<VocabularyListOptions, 'branding'>
+    ): Promise<{ data: VocabularyAttributes[]; meta: { total: number; limit: number; offset: number } }> {
+      const brandId = this.requireAuthorizedBrand(context, requiredScope);
+      return await this.list({ ...options, branding: brandId });
     }
 
     public async getById(id: string): Promise<VocabularyAttributes | null> {
       return await Vocabulary.findOne({ id });
+    }
+
+    public async getAuthorizedByIdOrSlug(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      idOrSlug: string
+    ): Promise<VocabularyAttributes> {
+      const brandId = this.requireAuthorizedBrand(context, requiredScope);
+      const vocabulary = await this.getByIdOrSlug(brandId, idOrSlug);
+      const decision = this.getAuthorizationService().authorizeBrandEntity(
+        context,
+        requiredScope,
+        vocabulary ? this.resolveBrandingId(vocabulary.branding) : undefined
+      );
+      if (!decision.allowed || !vocabulary) throw authorizationResourceError(decision);
+      return vocabulary;
     }
 
     public async getByIdOrSlug(branding: string, idOrSlug: string): Promise<VocabularyAttributes | null> {
@@ -290,11 +383,17 @@ export namespace Services {
         return null;
       }
 
-      const byId = await Vocabulary.findOne({ id: normalizedIdOrSlug, branding: normalizedBranding }) as VocabularyAttributes | null;
+      const byId = (await Vocabulary.findOne({
+        id: normalizedIdOrSlug,
+        branding: normalizedBranding,
+      })) as VocabularyAttributes | null;
       if (byId) {
         return byId;
       }
-      return await Vocabulary.findOne({ slug: normalizedIdOrSlug, branding: normalizedBranding }) as VocabularyAttributes | null;
+      return (await Vocabulary.findOne({
+        slug: normalizedIdOrSlug,
+        branding: normalizedBranding,
+      })) as VocabularyAttributes | null;
     }
 
     public async getEntries(
@@ -311,10 +410,12 @@ export namespace Services {
       const parsedOffset = Number.parseInt(String(options?.offset ?? 0), 10);
       const limit = Number.isInteger(parsedLimit) && parsedLimit > 0 ? Math.min(1000, parsedLimit) : 200;
       const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
-      const search = String(options?.search ?? '').trim().toLowerCase();
+      const search = String(options?.search ?? '')
+        .trim()
+        .toLowerCase();
 
       const where: { vocabulary: string; labelLower?: { contains: string }; historical?: boolean } = {
-        vocabulary: String(vocabulary.id)
+        vocabulary: String(vocabulary.id),
       };
       if (search) {
         where.labelLower = { contains: search };
@@ -324,10 +425,10 @@ export namespace Services {
       }
 
       const total = await VocabularyEntry.count(where);
-      const entries = await VocabularyEntry.find(where)
+      const entries = (await VocabularyEntry.find(where)
         .sort([{ order: 'ASC' }, { label: 'ASC' }])
         .skip(offset)
-        .limit(limit) as VocabularyEntryAttributes[];
+        .limit(limit)) as VocabularyEntryAttributes[];
 
       return {
         entries,
@@ -335,8 +436,8 @@ export namespace Services {
           total,
           limit,
           offset,
-          vocabularyId: String(vocabulary.id)
-        }
+          vocabularyId: String(vocabulary.id),
+        },
       };
     }
 
@@ -352,10 +453,10 @@ export namespace Services {
 
       const normalizedParentId = String(parentId ?? '').trim();
       if (normalizedParentId) {
-        const parentEntry = await VocabularyEntry.findOne({
+        const parentEntry = (await VocabularyEntry.findOne({
           id: normalizedParentId,
-          vocabulary: String(vocabulary.id)
-        }) as VocabularyEntryAttributes | null;
+          vocabulary: String(vocabulary.id),
+        })) as VocabularyEntryAttributes | null;
         if (!parentEntry) {
           throw new InvalidParentIdError();
         }
@@ -366,17 +467,19 @@ export namespace Services {
       };
       where.parent = normalizedParentId || null;
 
-      const entries = await VocabularyEntry.find(where)
-        .sort([{ order: 'ASC' }, { label: 'ASC' }]) as VocabularyEntryAttributes[];
+      const entries = (await VocabularyEntry.find(where).sort([
+        { order: 'ASC' },
+        { label: 'ASC' },
+      ])) as VocabularyEntryAttributes[];
 
-      const childParentIds = entries.map((entry) => String(entry.id));
+      const childParentIds = entries.map(entry => String(entry.id));
       const hasChildrenById = new Map<string, boolean>();
 
       if (childParentIds.length > 0) {
-        const descendants = await VocabularyEntry.find({
+        const descendants = (await VocabularyEntry.find({
           vocabulary: String(vocabulary.id),
-          parent: { in: childParentIds }
-        }) as VocabularyEntryAttributes[];
+          parent: { in: childParentIds },
+        })) as VocabularyEntryAttributes[];
 
         for (const descendant of descendants) {
           const descendantParent = String(descendant.parent ?? '');
@@ -386,7 +489,7 @@ export namespace Services {
         }
       }
 
-      const responseEntries: VocabularyChildrenNode[] = entries.map((entry) =>
+      const responseEntries: VocabularyChildrenNode[] = entries.map(entry =>
         this.toVocabularyChildrenNode(entry, hasChildrenById.get(String(entry.id)) === true)
       );
 
@@ -395,8 +498,8 @@ export namespace Services {
         meta: {
           vocabularyId: String(vocabulary.id),
           parentId: normalizedParentId || null,
-          total: responseEntries.length
-        }
+          total: responseEntries.length,
+        },
       };
     }
 
@@ -412,9 +515,7 @@ export namespace Services {
 
       const normalizedNotations = Array.from(
         new Set(
-          (notations ?? [])
-            .map((notation) => String(notation ?? '').trim())
-            .filter((notation) => notation.length > 0)
+          (notations ?? []).map(notation => String(notation ?? '').trim()).filter(notation => notation.length > 0)
         )
       );
       if (normalizedNotations.length === 0) {
@@ -422,8 +523,8 @@ export namespace Services {
           paths: {},
           meta: {
             vocabularyId: String(vocabulary.id),
-            notations: []
-          }
+            notations: [],
+          },
         };
       }
 
@@ -442,10 +543,10 @@ export namespace Services {
         if (entryCache.has(normalizedEntryId)) {
           return entryCache.get(normalizedEntryId) ?? null;
         }
-        const entry = await VocabularyEntry.findOne({
+        const entry = (await VocabularyEntry.findOne({
           id: normalizedEntryId,
-          vocabulary: vocabularyId
-        }) as VocabularyEntryAttributes | null;
+          vocabulary: vocabularyId,
+        })) as VocabularyEntryAttributes | null;
         entryCache.set(normalizedEntryId, entry);
         return entry;
       };
@@ -460,20 +561,20 @@ export namespace Services {
         }
 
         const normalizedNotationLower = normalizedNotation.toLowerCase();
-        const exactMatch = await VocabularyEntry.findOne({
+        const exactMatch = (await VocabularyEntry.findOne({
           vocabulary: vocabularyId,
-          identifier: normalizedNotation
-        }) as VocabularyEntryAttributes | null;
+          identifier: normalizedNotation,
+        })) as VocabularyEntryAttributes | null;
         if (exactMatch) {
           notationCache.set(normalizedNotation, exactMatch);
           entryCache.set(String(exactMatch.id), exactMatch);
           return exactMatch;
         }
 
-        const lowerMatch = await VocabularyEntry.findOne({
+        const lowerMatch = (await VocabularyEntry.findOne({
           vocabulary: vocabularyId,
-          valueLower: normalizedNotationLower
-        }) as VocabularyEntryAttributes | null;
+          valueLower: normalizedNotationLower,
+        })) as VocabularyEntryAttributes | null;
         notationCache.set(normalizedNotation, lowerMatch);
         if (lowerMatch) {
           entryCache.set(String(lowerMatch.id), lowerMatch);
@@ -509,10 +610,10 @@ export namespace Services {
       const hasChildrenById = new Map<string, boolean>();
       const childrenByParentId = new Map<string, VocabularyEntryAttributes[]>();
       if (chainIds.length > 0) {
-        const descendants = await VocabularyEntry.find({
+        const descendants = (await VocabularyEntry.find({
           vocabulary: vocabularyId,
-          parent: { in: chainIds }
-        }) as VocabularyEntryAttributes[];
+          parent: { in: chainIds },
+        })) as VocabularyEntryAttributes[];
 
         for (const descendant of descendants) {
           const descendantParent = String(descendant.parent ?? '').trim();
@@ -545,14 +646,14 @@ export namespace Services {
 
         const directChildren = childrenByParentId.get(entryId) ?? [];
         if (directChildren.length > 0) {
-          node.children = directChildren.map((child) => {
+          node.children = directChildren.map(child => {
             const childNode = buildNode(child);
             if (chainEntries.has(String(child.id ?? '').trim())) {
               return childNode;
             }
             return {
               ...childNode,
-              children: childNode.children ?? []
+              children: childNode.children ?? [],
             };
           });
         }
@@ -561,15 +662,15 @@ export namespace Services {
       };
 
       for (const { notation, chain } of orderedChains) {
-        paths[notation] = chain.map((entry) => buildNode(entry));
+        paths[notation] = chain.map(entry => buildNode(entry));
       }
 
       return {
         paths,
         meta: {
           vocabularyId,
-          notations: normalizedNotations
-        }
+          notations: normalizedNotations,
+        },
       };
     }
 
@@ -585,13 +686,10 @@ export namespace Services {
         return null;
       }
 
-      return await VocabularyEntry.findOne({
+      return (await VocabularyEntry.findOne({
         vocabulary: String(vocabulary.id),
-        or: [
-          { identifier: normalizedNotation },
-          { valueLower: normalizedNotationLower }
-        ]
-      }) as VocabularyEntryAttributes | null;
+        or: [{ identifier: normalizedNotation }, { valueLower: normalizedNotationLower }],
+      })) as VocabularyEntryAttributes | null;
     }
 
     public async getAncestorChain(
@@ -620,19 +718,16 @@ export namespace Services {
         if (!parentId) {
           break;
         }
-        cursor = await VocabularyEntry.findOne({
+        cursor = (await VocabularyEntry.findOne({
           id: parentId,
-          vocabulary: String(cursor.vocabulary)
-        }) as VocabularyEntryAttributes | null;
+          vocabulary: String(cursor.vocabulary),
+        })) as VocabularyEntryAttributes | null;
       }
 
       return chain;
     }
 
-    private toVocabularyChildrenNode(
-      entry: VocabularyEntryAttributes,
-      hasChildren: boolean
-    ): VocabularyChildrenNode {
+    private toVocabularyChildrenNode(entry: VocabularyEntryAttributes, hasChildren: boolean): VocabularyChildrenNode {
       const id = String(entry.id);
       const parent = entry.parent ? String(entry.parent) : null;
       const notation = String(entry.identifier ?? '').trim() || String(entry.value ?? '').trim();
@@ -642,7 +737,7 @@ export namespace Services {
         value: String(entry.value ?? ''),
         notation: notation || undefined,
         parent,
-        hasChildren
+        hasChildren,
       };
     }
 
@@ -650,7 +745,7 @@ export namespace Services {
       const payload: VocabularyInput = {
         ...input,
         type: input.type ?? 'flat',
-        source: input.source ?? 'local'
+        source: input.source ?? 'local',
       };
 
       const entries = payload.entries ?? [];
@@ -665,7 +760,7 @@ export namespace Services {
         sourceVersionId: payload.sourceVersionId,
         lastSyncedAt: payload.lastSyncedAt,
         owner: payload.owner,
-        branding: this.resolveBrandingId(payload.branding)
+        branding: this.resolveBrandingId(payload.branding),
       };
       if (payload.slug) {
         createPayload.slug = payload.slug;
@@ -673,20 +768,19 @@ export namespace Services {
 
       return runWithOptionalTransaction(
         this.getDatastore(),
-        async (connection) => {
+        async connection => {
           let created: VocabularyAttributes | null = null;
           try {
-            created = await this.createAndFetch<VocabularyAttributes>(
-              Vocabulary.create(createPayload),
-              connection
-            );
+            created = await this.createAndFetch<VocabularyAttributes>(Vocabulary.create(createPayload), connection);
             if (!created) {
               throw new Error('Vocabulary create failed');
             }
             if (entries.length > 0) {
               await this.replaceEntries(created.id, created.type === 'flat', entries, connection);
             }
-            const findQuery = Vocabulary.findOne({ id: created.id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+            const findQuery = Vocabulary.findOne({
+              id: created.id,
+            }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
             const saved = await this.executeQuery(findQuery, connection);
             if (!saved) {
               throw new Error('Vocabulary create failed');
@@ -706,9 +800,19 @@ export namespace Services {
         },
         {
           logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional create.'
+          unsupportedAdapterWarning:
+            'Transactions are not supported by this datastore adapter. Falling back to non-transactional create.',
         }
       );
+    }
+
+    public async createAuthorized(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      input: Omit<VocabularyInput, 'branding'> & { branding?: unknown }
+    ): Promise<VocabularyAttributes> {
+      const brandId = this.requireAuthorizedBrand(context, requiredScope);
+      return await this.create({ ...input, branding: brandId } as VocabularyInput);
     }
 
     public async bootstrapData(): Promise<void> {
@@ -719,8 +823,8 @@ export namespace Services {
       try {
         const fileEntries = await fileOps.readdir(bootstrapPath, { withFileTypes: true });
         fileNames = fileEntries
-          .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
-          .map((entry) => entry.name)
+          .filter(entry => entry.isFile() && entry.name.endsWith('.json'))
+          .map(entry => entry.name)
           .sort((a, b) => a.localeCompare(b));
       } catch (error) {
         const ioError = error as NodeJS.ErrnoException;
@@ -752,16 +856,18 @@ export namespace Services {
       }
     }
 
-    public async update(id: string, input: Partial<VocabularyInput>): Promise<VocabularyAttributes> {
-      const existing = await Vocabulary.findOne({ id });
+    public async update(id: string, input: Partial<VocabularyInput>, brandId?: string): Promise<VocabularyAttributes> {
+      const criteria = { id, ...(brandId ? { branding: brandId } : {}) };
+      const existing = await Vocabulary.findOne(criteria);
       if (!existing) {
         throw new Error('Vocabulary not found');
       }
-      await this.assertMutableVocabulary(id);
+      await this.assertMutableVocabulary(id, undefined, brandId);
 
       const updatePayload: Partial<VocabularyInput> = { ...input };
       const entries = updatePayload.entries;
       delete updatePayload.entries;
+      if (brandId) delete updatePayload.branding;
 
       const modelUpdate: Partial<VocabularyAttributes> = {
         name: updatePayload.name,
@@ -771,7 +877,7 @@ export namespace Services {
         sourceId: updatePayload.sourceId,
         sourceVersionId: updatePayload.sourceVersionId,
         lastSyncedAt: updatePayload.lastSyncedAt,
-        owner: updatePayload.owner
+        owner: updatePayload.owner,
       };
       if (typeof updatePayload.branding !== 'undefined') {
         modelUpdate.branding = this.resolveBrandingId(updatePayload.branding);
@@ -782,10 +888,12 @@ export namespace Services {
 
       return runWithOptionalTransaction(
         this.getDatastore(),
-        async (connection) => {
-          const updateQuery = Vocabulary.updateOne({ id }).set(modelUpdate) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+        async connection => {
+          const updateQuery = Vocabulary.updateOne(criteria).set(
+            modelUpdate
+          ) as Sails.WaterlinePromise<VocabularyAttributes | null>;
           await this.executeQuery(updateQuery, connection);
-          const updatedQuery = Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+          const updatedQuery = Vocabulary.findOne(criteria) as Sails.WaterlinePromise<VocabularyAttributes | null>;
           const updated = await this.executeQuery(updatedQuery, connection);
           if (!updated) {
             throw new Error('Vocabulary not found');
@@ -795,7 +903,7 @@ export namespace Services {
             await this.replaceEntries(id, updated.type === 'flat', entries, connection);
           }
 
-          const refreshedQuery = Vocabulary.findOne({ id }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+          const refreshedQuery = Vocabulary.findOne(criteria) as Sails.WaterlinePromise<VocabularyAttributes | null>;
           const refreshed = await this.executeQuery(refreshedQuery, connection);
           if (!refreshed) {
             throw new Error('Vocabulary not found');
@@ -804,27 +912,46 @@ export namespace Services {
         },
         {
           logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional update.'
+          unsupportedAdapterWarning:
+            'Transactions are not supported by this datastore adapter. Falling back to non-transactional update.',
         }
       );
     }
 
-    public async reorderEntries(vocabularyId: string, entryOrders: Array<{ id: string; order: number }>): Promise<number> {
+    public async updateAuthorized(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      id: string,
+      input: Partial<VocabularyInput>
+    ): Promise<VocabularyAttributes> {
+      const vocabulary = await this.getAuthorizedByIdOrSlug(context, requiredScope, id);
+      const { branding: _ignoredPayloadBranding, ...brandPreservingInput } = input;
+      return await this.update(String(vocabulary.id), brandPreservingInput, context.brand?.id);
+    }
+
+    public async reorderEntries(
+      vocabularyId: string,
+      entryOrders: Array<{ id: string; order: number }>,
+      brandId?: string
+    ): Promise<number> {
       if (!Array.isArray(entryOrders) || entryOrders.length === 0) {
         return 0;
       }
-      await this.assertMutableVocabulary(vocabularyId);
+      await this.assertMutableVocabulary(vocabularyId, undefined, brandId);
 
       return runWithOptionalTransaction(
         this.getDatastore(),
-        async (connection) => {
-          const vocabularyQuery = Vocabulary.findOne({ id: vocabularyId }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
+        async connection => {
+          const vocabularyQuery = Vocabulary.findOne({
+            id: vocabularyId,
+            ...(brandId ? { branding: brandId } : {}),
+          }) as Sails.WaterlinePromise<VocabularyAttributes | null>;
           const vocabulary = await this.executeQuery(vocabularyQuery, connection);
           if (!vocabulary) {
             throw new Error('Vocabulary not found');
           }
 
-          const requestedIds = entryOrders.map((entry) => String(entry.id));
+          const requestedIds = entryOrders.map(entry => String(entry.id));
           const dedupedIds = new Set(requestedIds);
           if (requestedIds.length !== dedupedIds.size) {
             throw new Error('entryOrders contains duplicate ids');
@@ -844,7 +971,9 @@ export namespace Services {
 
           let updated = 0;
           for (const entryOrder of entryOrders) {
-            const updateQuery = VocabularyEntry.updateOne({ id: entryOrder.id }).set({ order: entryOrder.order }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+            const updateQuery = VocabularyEntry.updateOne({ id: entryOrder.id }).set({
+              order: entryOrder.order,
+            }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
             const updatedEntry = await this.executeQuery(updateQuery, connection);
             if (updatedEntry) {
               updated++;
@@ -855,15 +984,34 @@ export namespace Services {
         },
         {
           logger: sails.log,
-          unsupportedAdapterWarning: 'Transactions are not supported by this datastore adapter. Falling back to non-transactional reorder.'
+          unsupportedAdapterWarning:
+            'Transactions are not supported by this datastore adapter. Falling back to non-transactional reorder.',
         }
       );
     }
 
-    public async delete(id: string): Promise<void> {
-      await this.assertMutableVocabulary(id);
+    public async reorderEntriesAuthorized(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      vocabularyId: string,
+      entryOrders: Array<{ id: string; order: number }>
+    ): Promise<number> {
+      const vocabulary = await this.getAuthorizedByIdOrSlug(context, requiredScope, vocabularyId);
+      return await this.reorderEntries(String(vocabulary.id), entryOrders, context.brand?.id);
+    }
+
+    public async delete(id: string, brandId?: string): Promise<void> {
+      const criteria = { id, ...(brandId ? { branding: brandId } : {}) };
+      const vocabulary = await Vocabulary.findOne(criteria);
+      if (!vocabulary) throw new Error('Vocabulary not found');
+      await this.assertMutableVocabulary(id, undefined, brandId);
       await VocabularyEntry.destroy({ vocabulary: id });
-      await Vocabulary.destroyOne({ id });
+      await Vocabulary.destroyOne(criteria);
+    }
+
+    public async deleteAuthorized(context: AuthorizationContext, requiredScope: ScopeKey, id: string): Promise<void> {
+      const vocabulary = await this.getAuthorizedByIdOrSlug(context, requiredScope, id);
+      await this.delete(String(vocabulary.id), context.brand?.id);
     }
 
     public normalizeEntry(entry: VocabularyEntryInput): VocabularyEntryInput {
@@ -871,11 +1019,16 @@ export namespace Services {
         ...entry,
         label: String(entry.label ?? '').trim(),
         value: String(entry.value ?? '').trim(),
-        historical: toBoolean(entry.historical)
+        historical: toBoolean(entry.historical),
       };
     }
 
-    public async validateParent(vocabularyId: string, entryId: string | null, parentId: string | null, connection?: Sails.Connection): Promise<void> {
+    public async validateParent(
+      vocabularyId: string,
+      entryId: string | null,
+      parentId: string | null,
+      connection?: Sails.Connection
+    ): Promise<void> {
       if (!parentId) {
         return;
       }
@@ -883,7 +1036,9 @@ export namespace Services {
         throw new Error('VocabularyEntry cannot parent itself');
       }
 
-      const parentQuery = VocabularyEntry.findOne({ id: parentId }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+      const parentQuery = VocabularyEntry.findOne({
+        id: parentId,
+      }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
       const parent = await this.executeQuery<VocabularyEntryAttributes | null>(parentQuery, connection);
       if (!parent) {
         throw new Error('VocabularyEntry.parent not found');
@@ -901,21 +1056,25 @@ export namespace Services {
         if (String(cursor.parent) === entryId) {
           throw new Error('VocabularyEntry cycle detected');
         }
-        const cursorQuery = VocabularyEntry.findOne({ id: String(cursor.parent) }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        const cursorQuery = VocabularyEntry.findOne({
+          id: String(cursor.parent),
+        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         cursor = await this.executeQuery(cursorQuery, connection);
       }
     }
 
     public async getTree(vocabularyId: string): Promise<VocabularyTreeNode[]> {
-      const entries = await VocabularyEntry.find({ vocabulary: vocabularyId })
-        .sort([{ order: 'ASC' }, { label: 'ASC' }]) as VocabularyEntryAttributes[];
+      const entries = (await VocabularyEntry.find({ vocabulary: vocabularyId }).sort([
+        { order: 'ASC' },
+        { label: 'ASC' },
+      ])) as VocabularyEntryAttributes[];
       const nodes: Record<string, VocabularyTreeNode> = {};
       const roots: VocabularyTreeNode[] = [];
 
       for (const entry of entries) {
         const node: VocabularyTreeNode = {
           ...entry,
-          children: []
+          children: [],
         };
         nodes[String(entry.id)] = node;
       }
@@ -932,7 +1091,21 @@ export namespace Services {
       return roots;
     }
 
-    public async upsertEntries(vocabularyId: string, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<{ created: number; updated: number; skipped: number }> {
+    public async getAuthorizedTree(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      vocabularyIdOrSlug: string
+    ): Promise<{ vocabulary: VocabularyAttributes; entries: VocabularyTreeNode[] }> {
+      const vocabulary = await this.getAuthorizedByIdOrSlug(context, requiredScope, vocabularyIdOrSlug);
+      const entries = await this.getTree(String(vocabulary.id));
+      return { vocabulary, entries };
+    }
+
+    public async upsertEntries(
+      vocabularyId: string,
+      entries: VocabularyEntryInput[],
+      connection?: Sails.Connection
+    ): Promise<{ created: number; updated: number; skipped: number }> {
       await this.assertMutableVocabulary(vocabularyId);
       let created = 0;
       let updated = 0;
@@ -949,11 +1122,17 @@ export namespace Services {
 
         let existing: VocabularyEntryAttributes | null = null;
         if (entry.identifier) {
-          const byIdentifier = VocabularyEntry.findOne({ vocabulary: vocabularyId, identifier: entry.identifier }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+          const byIdentifier = VocabularyEntry.findOne({
+            vocabulary: vocabularyId,
+            identifier: entry.identifier,
+          }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
           existing = await this.executeQuery(byIdentifier, connection);
         }
         if (!existing) {
-          const byValue = VocabularyEntry.findOne({ vocabulary: vocabularyId, valueLower: entry.value.toLowerCase() }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+          const byValue = VocabularyEntry.findOne({
+            vocabulary: vocabularyId,
+            valueLower: entry.value.toLowerCase(),
+          }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
           existing = await this.executeQuery(byValue, connection);
         }
 
@@ -964,7 +1143,7 @@ export namespace Services {
             value: entry.value,
             identifier: entry.identifier,
             order: entry.order ?? 0,
-            historical: entry.historical ?? false
+            historical: entry.historical ?? false,
           });
           const createdEntry = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
           const createdEntryId = String(createdEntry.id);
@@ -986,17 +1165,17 @@ export namespace Services {
           value: entry.value,
           identifier: entry.identifier,
           order: entry.order ?? existing.order ?? 0,
-          historical: entry.historical ?? existing.historical ?? false
+          historical: entry.historical ?? existing.historical ?? false,
         }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
         updated++;
       }
 
       for (const assignment of parentAssignments) {
-        const parentCandidate = assignment.parent ? inputIdToEntryId[assignment.parent] ?? assignment.parent : null;
+        const parentCandidate = assignment.parent ? (inputIdToEntryId[assignment.parent] ?? assignment.parent) : null;
         await this.validateParent(vocabularyId, assignment.entryId, parentCandidate, connection);
         const parentUpdateQuery = VocabularyEntry.updateOne({ id: assignment.entryId }).set({
-          parent: parentCandidate ?? null
+          parent: parentCandidate ?? null,
         }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(parentUpdateQuery, connection);
       }
@@ -1004,7 +1183,12 @@ export namespace Services {
       return { created, updated, skipped };
     }
 
-    private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<void> {
+    private async replaceEntries(
+      vocabularyId: string,
+      isFlat: boolean,
+      entries: VocabularyEntryInput[],
+      connection?: Sails.Connection
+    ): Promise<void> {
       const flatEntries = this.flattenEntries(entries);
       if (isFlat && flatEntries.some(entry => entry.parent)) {
         throw new Error('Vocabulary.type = flat does not support parent entries');
@@ -1026,7 +1210,7 @@ export namespace Services {
           value: normalized.value,
           identifier: normalized.identifier,
           order: normalized.order ?? 0,
-          historical: normalized.historical ?? false
+          historical: normalized.historical ?? false,
         });
         const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
 
@@ -1043,15 +1227,15 @@ export namespace Services {
           continue;
         }
         await this.validateParent(vocabularyId, entryId, mappedParentId, connection);
-        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({ parent: mappedParentId }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({
+          parent: mappedParentId,
+        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
       }
     }
 
     private getDatastore(): Sails.Datastore | null {
-      return Vocabulary.getDatastore?.()
-        ?? sails.getDatastore?.()
-        ?? null;
+      return Vocabulary.getDatastore?.() ?? sails.getDatastore?.() ?? null;
     }
 
     private getBootstrapDataPath(): string {
@@ -1063,7 +1247,11 @@ export namespace Services {
       return fs;
     }
 
-    private async processVocabularyBootstrapFile(basePath: string, fileName: string, defaultBranding: string): Promise<void> {
+    private async processVocabularyBootstrapFile(
+      basePath: string,
+      fileName: string,
+      defaultBranding: string
+    ): Promise<void> {
       const filePath = path.join(basePath, fileName);
       const parsed = await this.readJsonFile<BootstrapVocabularyFile>(filePath);
       if (!parsed) {
@@ -1077,7 +1265,7 @@ export namespace Services {
         return;
       }
 
-      const existing = await Vocabulary.findOne({ slug, branding: defaultBranding }) as VocabularyAttributes | null;
+      const existing = (await Vocabulary.findOne({ slug, branding: defaultBranding })) as VocabularyAttributes | null;
       if (existing) {
         sails.log.verbose(`Skipping existing vocabulary bootstrap data: ${slug}`);
         return;
@@ -1086,7 +1274,7 @@ export namespace Services {
       const createPayload: VocabularyInput = {
         name,
         slug,
-        branding: defaultBranding
+        branding: defaultBranding,
       };
 
       if (typeof parsed.description === 'string') {
@@ -1122,15 +1310,21 @@ export namespace Services {
         return;
       }
 
-      const imports = Array.isArray(parsed.imports) ? parsed.imports as BootstrapRvaImportItem[] : [];
+      const imports = Array.isArray(parsed.imports) ? (parsed.imports as BootstrapRvaImportItem[]) : [];
       if (!Array.isArray(parsed.imports)) {
         sails.log.error(`Invalid RVA imports format in bootstrap file: ${fileName}`);
         return;
       }
 
-      const rvaImportService = sails.services.rvaimportservice as {
-        importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<VocabularyAttributes>;
-      } | undefined;
+      const rvaImportService = sails.services.rvaimportservice as
+        | {
+            importRvaVocabulary: (
+              rvaId: string,
+              versionId?: string,
+              branding?: string
+            ) => Promise<VocabularyAttributes>;
+          }
+        | undefined;
       if (!rvaImportService?.importRvaVocabulary) {
         sails.log.error('RVA import service unavailable while processing vocabulary bootstrap data');
         return;
@@ -1144,7 +1338,7 @@ export namespace Services {
         }
 
         const sourceKey = `rva:${rvaId}`;
-        const existing = await Vocabulary.findOne({ rvaSourceKey: sourceKey }) as VocabularyAttributes | null;
+        const existing = (await Vocabulary.findOne({ rvaSourceKey: sourceKey })) as VocabularyAttributes | null;
         if (existing) {
           sails.log.verbose(`Skipping existing RVA bootstrap import: ${sourceKey}`);
           continue;
@@ -1184,9 +1378,7 @@ export namespace Services {
     }
 
     private toBootstrapEntry(rawEntry: unknown, index: number, branch: string): VocabularyEntryInput {
-      const entry = (rawEntry && typeof rawEntry === 'object')
-        ? rawEntry as BootstrapVocabularyEntryInput
-        : {};
+      const entry = rawEntry && typeof rawEntry === 'object' ? (rawEntry as BootstrapVocabularyEntryInput) : {};
 
       const generatedId = typeof entry.id !== 'undefined' ? String(entry.id) : `${branch}-${index}`;
       const normalized: VocabularyEntryInput = {
@@ -1194,7 +1386,7 @@ export namespace Services {
         label: String(entry.label ?? '').trim(),
         value: String(entry.value ?? '').trim(),
         order: typeof entry.order === 'number' ? entry.order : index,
-        historical: typeof entry.historical === 'undefined' ? false : toBoolean(entry.historical)
+        historical: typeof entry.historical === 'undefined' ? false : toBoolean(entry.historical),
       };
 
       if (typeof entry.identifier === 'string' && entry.identifier.trim()) {
@@ -1204,12 +1396,18 @@ export namespace Services {
         normalized.parent = String(entry.parent);
       }
       if (Array.isArray(entry.children)) {
-        normalized.children = entry.children.map((child, childIndex) => this.toBootstrapEntry(child, childIndex, generatedId));
+        normalized.children = entry.children.map((child, childIndex) =>
+          this.toBootstrapEntry(child, childIndex, generatedId)
+        );
       }
       return normalized;
     }
 
-    private flattenEntries(entries: VocabularyEntryInput[], parentId: string | null = null, branch: string = 'n'): VocabularyEntryInput[] {
+    private flattenEntries(
+      entries: VocabularyEntryInput[],
+      parentId: string | null = null,
+      branch: string = 'n'
+    ): VocabularyEntryInput[] {
       const flat: VocabularyEntryInput[] = [];
       entries.forEach((entry, index) => {
         const generatedId = entry.id ?? `${branch}-${index}`;
@@ -1217,7 +1415,7 @@ export namespace Services {
           ...entry,
           id: generatedId,
           order: entry.order ?? index,
-          parent: parentId ?? entry.parent
+          parent: parentId ?? entry.parent,
         };
         flat.push(normalized);
         if (entry.children && entry.children.length > 0) {
@@ -1227,7 +1425,6 @@ export namespace Services {
       return flat;
     }
   }
-
 }
 
 declare global {

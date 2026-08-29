@@ -30,6 +30,7 @@ import { UserModel } from '../model/storage/UserModel';
 import { UserAttributes } from '../waterline-models/User';
 import { Services as services } from '../CoreService';
 import { redactObject } from '../utilities/RedactionUtils';
+import { AuthorizationResourceError } from '../authorization/errors';
 
 import * as crypto from 'crypto';
 
@@ -161,6 +162,7 @@ export namespace Services {
       'bootstrap',
       'updateUserRoles',
       'updateUserDetails',
+      'updateUserDetailsForBrand',
       'getUserWithId',
       'getUserWithUsername',
       'addLocalUser',
@@ -172,16 +174,23 @@ export namespace Services {
       'findAndAssignAccessToRecords',
       'getUsers',
       'getUsersForBrand',
+      'getUserForBrand',
+      'findUserForBrand',
       'getEffectiveUser',
       'getLinkedAccounts',
+      'getLinkedAccountsForBrand',
       'searchLinkCandidates',
       'linkAccounts',
       'addUserAuditEvent',
       'checkAuthorizedEmail',
       'enrichUsersWithEffectiveDisabledState',
       'disableUser',
+      'disableUserForBrand',
       'enableUser',
+      'enableUserForBrand',
       'getUserAudit',
+      'getUserAuditForBrand',
+      'setUserKeyForBrand',
     ];
 
     searchService!: SearchService;
@@ -218,6 +227,29 @@ export namespace Services {
         const roleBrandId = _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
         return roleBrandId === brandId;
       }) as AnyRecord[];
+    }
+
+    private async userBelongsToBrand(user: UserAttributes | null | undefined, brandId: string): Promise<boolean> {
+      if (user == null || _.isEmpty(brandId)) {
+        return false;
+      }
+      if (this.hasRoleInBrand(user, brandId)) {
+        return true;
+      }
+      if (typeof UserLink === 'undefined') {
+        return false;
+      }
+      const userId = String(user.id ?? '');
+      const activeLink = await UserLink.findOne({
+        brandId,
+        status: 'active',
+        or: [{ primaryUserId: userId }, { secondaryUserId: userId }],
+      } as AnyRecord);
+      return activeLink != null;
+    }
+
+    private opaqueUserNotFound(): AuthorizationResourceError {
+      return new AuthorizationResourceError('authorization.not-found', 404);
     }
 
     private toLinkedUserSummary(user: UserAttributes, linkedAt?: string | Date): LinkedUserSummary {
@@ -396,7 +428,7 @@ export namespace Services {
       const primaryIds = _.uniq(
         _.compact(_.map(users, (u: T) => (!_.isEmpty(u.linkedPrimaryUserId) ? String(u.linkedPrimaryUserId) : null)))
       );
-      const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds });
+      const primaryUsers = _.isEmpty(primaryIds) ? [] : await User.find({ id: primaryIds }).limit(1000);
       const primaryUsersById = _.keyBy(primaryUsers as AnyRecord[], (u: AnyRecord) => String(u.id ?? ''));
 
       return _.map(users, (user: T) => {
@@ -430,6 +462,14 @@ export namespace Services {
       await this.addUserAuditEvent({ username: actor }, 'disable-user', { userId, brandId });
     }
 
+    public async disableUserForBrand(userId: string, actor: string, brandId: string): Promise<void> {
+      const target = await firstValueFrom(this.getUserForBrand(userId, brandId));
+      if (!target) {
+        throw this.opaqueUserNotFound();
+      }
+      await this.disableUser(String(target.id ?? userId), actor, brandId);
+    }
+
     public async enableUser(userId: string, actor: string, brandId: string): Promise<void> {
       const user = await User.findOne({ id: userId });
       if (user == null) {
@@ -440,6 +480,14 @@ export namespace Services {
       }
       await User.update({ id: userId }).set({ loginDisabled: false });
       await this.addUserAuditEvent({ username: actor }, 'enable-user', { userId, brandId });
+    }
+
+    public async enableUserForBrand(userId: string, actor: string, brandId: string): Promise<void> {
+      const target = await firstValueFrom(this.getUserForBrand(userId, brandId));
+      if (!target) {
+        throw this.opaqueUserNotFound();
+      }
+      await this.enableUser(String(target.id ?? userId), actor, brandId);
     }
 
     private toAuditActor(user: unknown): UserAuditActor {
@@ -671,9 +719,11 @@ export namespace Services {
         const rows = await UserAudit.find({
           action: directAuditActions,
           or: [{ 'user.id': String(selectedUser.id ?? '') }, { 'user.username': String(selectedUser.username ?? '') }],
-        }).meta({
-          enableExperimentalDeepTargets: true,
-        });
+        })
+          .limit(1000)
+          .meta({
+            enableExperimentalDeepTargets: true,
+          });
         return rows as unknown as UserAuditRow[];
       } catch (error) {
         sails.log.error('Failed to query direct user audit rows with deep targets enabled.');
@@ -703,7 +753,7 @@ export namespace Services {
         or: _.map(adminAuditContextFilters, (contextFilter: string) => ({
           additionalContext: { contains: contextFilter },
         })),
-      })) as unknown as UserAuditRow[];
+      }).limit(1000)) as unknown as UserAuditRow[];
 
       const matchingDirectRows = _.filter(directRows, (row: UserAuditRow) =>
         this.matchesSelectedUserForDirectAudit(selectedUserRecord, row)
@@ -740,6 +790,14 @@ export namespace Services {
           truncated,
         },
       };
+    }
+
+    public async getUserAuditForBrand(userId: string, brandId: string): Promise<UserAuditResponse> {
+      const target = await firstValueFrom(this.getUserForBrand(userId, brandId));
+      if (!target) {
+        throw this.opaqueUserNotFound();
+      }
+      return await this.getUserAudit(String(target.id ?? userId));
     }
 
     protected localAuthInit() {
@@ -2075,7 +2133,7 @@ export namespace Services {
      * @return Collection of all users (local and AAF)
      */
     public getUsers = (): Observable<UserModel[]> => {
-      return super.getObservable<UserModel[]>(User.find({}).populate('roles'));
+      return super.getObservable<UserModel[]>(User.find({}).limit(1000).populate('roles'));
     };
 
     /**
@@ -2088,10 +2146,12 @@ export namespace Services {
         return of([]);
       }
 
-      return super.getObservable<UserModel[]>(User.find({}).populate('roles')).pipe(
+      return super.getObservable<UserModel[]>(User.find({}).limit(1000).populate('roles')).pipe(
         flatMap(async (users: UserModel[]) => {
           const activeLinks =
-            typeof UserLink !== 'undefined' ? await UserLink.find({ brandId: brandId, status: 'active' }) : [];
+            typeof UserLink !== 'undefined'
+              ? await UserLink.find({ brandId: brandId, status: 'active' }).limit(1000)
+              : [];
           const linkedSecondaryIds = new Set(
             _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).secondaryUserId ?? ''))
           );
@@ -2099,6 +2159,45 @@ export namespace Services {
             return this.hasRoleInBrand(user, String(brandId)) || linkedSecondaryIds.has(String(user.id ?? ''));
           });
         })
+      );
+    };
+
+    /**
+     * Resolve a user only when they are a member of the supplied brand. Missing
+     * and cross-brand identifiers intentionally have the same null result.
+     */
+    public getUserForBrand = (userId: string, brandId: string): Observable<UserModel | null> => {
+      const normalizedUserId = String(userId ?? '').trim();
+      const normalizedBrandId = String(brandId ?? '').trim();
+      if (!normalizedUserId || !normalizedBrandId) {
+        return of(null);
+      }
+      return from(
+        (async () => {
+          const user = await firstValueFrom(this.getUserWithId(normalizedUserId));
+          return (await this.userBelongsToBrand(user, normalizedBrandId)) ? user : null;
+        })()
+      );
+    };
+
+    /** Brand-constrained replacement for controller-supplied arbitrary User.findOne criteria. */
+    public findUserForBrand = (
+      searchField: string,
+      searchValue: string,
+      brandId: string
+    ): Observable<UserModel | null> => {
+      const field = String(searchField ?? '').trim();
+      const value = String(searchValue ?? '').trim();
+      const normalizedBrandId = String(brandId ?? '').trim();
+      const allowedFields = new Set(['id', 'username', 'email', 'name']);
+      if (!allowedFields.has(field) || !value || !normalizedBrandId) {
+        return of(null);
+      }
+      return from(
+        (async () => {
+          const user = (await User.findOne({ [field]: value }).populate('roles')) as UserModel | null;
+          return (await this.userBelongsToBrand(user, normalizedBrandId)) ? user : null;
+        })()
       );
     };
 
@@ -2141,7 +2240,10 @@ export namespace Services {
       );
     };
 
-    public getLinkedAccounts = (primaryUserId: string | UserModel): Observable<UserLinkResponse> => {
+    private getLinkedAccountsInternal(
+      primaryUserId: string | UserModel,
+      brandId?: string
+    ): Observable<UserLinkResponse> {
       return from(
         (async () => {
           const primaryUser = await firstValueFrom(this.getEffectiveUser(primaryUserId));
@@ -2152,12 +2254,18 @@ export namespace Services {
           const primaryUserObj = primaryUser as UserModel;
           const links =
             typeof UserLink !== 'undefined'
-              ? await UserLink.find({ primaryUserId: String(primaryUserObj.id ?? ''), status: 'active' })
+              ? await UserLink.find({
+                  primaryUserId: String(primaryUserObj.id ?? ''),
+                  status: 'active',
+                  ...(brandId ? { brandId } : {}),
+                }).limit(1000)
               : [];
           const secondaryIds = _.map(links as AnyRecord[], (link: unknown) =>
             String((link as AnyRecord).secondaryUserId ?? '')
           );
-          const secondaryUsers = _.isEmpty(secondaryIds) ? [] : await User.find({ id: secondaryIds }).populate('roles');
+          const secondaryUsers = _.isEmpty(secondaryIds)
+            ? []
+            : await User.find({ id: secondaryIds }).limit(1000).populate('roles');
           const secondaryUsersById = _.keyBy(secondaryUsers as UserModel[], (user: UserModel) => String(user.id ?? ''));
           const linkedAccounts = _.compact(
             _.map(links as AnyRecord[], (link: unknown) => {
@@ -2175,6 +2283,23 @@ export namespace Services {
             primary: this.toLinkedUserSummary(primaryUserObj),
             linkedAccounts: linkedAccounts,
           };
+        })()
+      );
+    }
+
+    /** @deprecated Protected callers must use getLinkedAccountsForBrand. */
+    public getLinkedAccounts = (primaryUserId: string | UserModel): Observable<UserLinkResponse> => {
+      return this.getLinkedAccountsInternal(primaryUserId);
+    };
+
+    public getLinkedAccountsForBrand = (userId: string, brandId: string): Observable<UserLinkResponse> => {
+      return from(
+        (async () => {
+          const user = await firstValueFrom(this.getUserForBrand(userId, brandId));
+          if (!user) {
+            throw this.opaqueUserNotFound();
+          }
+          return await firstValueFrom(this.getLinkedAccountsInternal(user, brandId));
         })()
       );
     };
@@ -2204,7 +2329,7 @@ export namespace Services {
             ];
           }
 
-          const users = await User.find(userWhere).populate('roles');
+          const users = await User.find(userWhere).limit(100).populate('roles');
           const enrichedUsers = await this.enrichUsersWithEffectiveDisabledState(users as UserAttributes[]);
           let primaryUserIdsWithLinkedAccounts = new Set<string>();
           if (typeof UserLink !== 'undefined' && !_.isEmpty(enrichedUsers)) {
@@ -2212,7 +2337,7 @@ export namespace Services {
             const activeLinks = await UserLink.find({
               status: 'active',
               primaryUserId: candidateUserIds,
-            });
+            }).limit(100);
             primaryUserIdsWithLinkedAccounts = new Set(
               _.map(activeLinks as AnyRecord[], (link: unknown) => String((link as AnyRecord).primaryUserId ?? ''))
             );
@@ -2265,7 +2390,7 @@ export namespace Services {
           const primaryEffective = await firstValueFrom(this.getEffectiveUser(primaryUserId));
           const secondaryUser = await firstValueFrom(this.getUserWithId(secondaryUserId));
           if (_.isEmpty(primaryEffective) || _.isEmpty(secondaryUser)) {
-            throw new Error('Both users must exist before linking');
+            throw this.opaqueUserNotFound();
           }
 
           const primaryUser = primaryEffective as UserModel;
@@ -2291,7 +2416,7 @@ export namespace Services {
             throw new Error('Secondary user is already linked to another primary account');
           }
           if (!this.hasRoleInBrand(primaryUser, brandId)) {
-            throw new Error('Primary user must already belong to the current brand');
+            throw this.opaqueUserNotFound();
           }
 
           const secondaryBrandRoles = this.getRolesForBrand(secondaryUserObj, brandId);
@@ -2304,7 +2429,7 @@ export namespace Services {
             return roleBrandId !== brandId;
           });
           if (!_.isEmpty(secondaryForeignRoles)) {
-            throw new Error('Secondary user belongs to a different brand and cannot be linked here');
+            throw this.opaqueUserNotFound();
           }
 
           const existingLink =
@@ -2381,7 +2506,9 @@ export namespace Services {
             recordsRewritten: recordsRewritten,
           });
 
-          const linkedAccounts = await firstValueFrom(this.getLinkedAccounts(primaryUser as UserModel));
+          const linkedAccounts = await firstValueFrom(
+            this.getLinkedAccountsInternal(primaryUser as UserModel, brandId)
+          );
           return {
             ...linkedAccounts,
             impact: {
@@ -2418,6 +2545,18 @@ export namespace Services {
             return throwError(new Error('No such user with id:' + userid));
           }
         })
+      );
+    };
+
+    public setUserKeyForBrand = (userid: string, uuid: string | null, brandId: string): Observable<UserModel> => {
+      return from(
+        (async () => {
+          const target = await firstValueFrom(this.getUserForBrand(userid, brandId));
+          if (!target) {
+            throw this.opaqueUserNotFound();
+          }
+          return await firstValueFrom(this.setUserKey(String(target.id ?? userid), uuid));
+        })()
       );
     };
 
@@ -2461,6 +2600,25 @@ export namespace Services {
             return throwError(new Error('No such user with id:' + userid));
           }
         })
+      );
+    };
+
+    /** Mutate user profile data only after resolving brand membership opaquely. */
+    public updateUserDetailsForBrand = (
+      userid: string | number,
+      name: string,
+      email: string,
+      password: string,
+      brandId: string
+    ): Observable<UserModel[]> => {
+      return from(
+        (async () => {
+          const target = await firstValueFrom(this.getUserForBrand(String(userid), brandId));
+          if (!target) {
+            throw this.opaqueUserNotFound();
+          }
+          return await firstValueFrom(this.updateUserDetails(userid, name, email, password));
+        })()
       );
     };
 
@@ -2538,18 +2696,19 @@ export namespace Services {
       if (!_.isEmpty(source) && !_.isUndefined(source) && !_.isNull(source)) {
         queryObj['type'] = source;
       }
-      return this.getObservable<UserModel[]>(User.find(queryObj).populate('roles')).pipe(
-        flatMap(users => {
+      return this.getObservable<UserModel[]>(User.find(queryObj).limit(100).populate('roles')).pipe(
+        flatMap(async users => {
           if (brandId) {
-            _.remove(users, (user: unknown) => {
-              const userObj = user as AnyRecord;
-              const isInBrand = _.find(userObj.roles as AnyRecord[], (role: unknown) => {
-                return (role as AnyRecord).branding == brandId;
-              });
-              return !isInBrand;
-            });
+            const activeLinks =
+              typeof UserLink !== 'undefined' ? await UserLink.find({ brandId, status: 'active' }).limit(1000) : [];
+            const linkedSecondaryIds = new Set(
+              _.map(activeLinks as AnyRecord[], link => String(link.secondaryUserId ?? ''))
+            );
+            return users.filter(
+              user => this.hasRoleInBrand(user, brandId) || linkedSecondaryIds.has(String(user.id ?? ''))
+            );
           }
-          return of(users);
+          return users;
         })
       );
     }

@@ -33,13 +33,13 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const validated = getValidatedApiRequest(req);
         const { params, body } = validated;
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const appConfigId = params.appConfigId as string;
         const appConfig = body;
         await AppConfigService.createOrUpdateConfig(brand, appConfigId, appConfig as Record<string, unknown>);
@@ -59,7 +59,7 @@ export namespace Controllers {
       try {
         const validated = getValidatedApiRequest(req);
         const { params } = validated;
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const appConfigId = params.appConfigId as string;
         const appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
 

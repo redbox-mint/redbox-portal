@@ -1,6 +1,7 @@
 import * as sinon from 'sinon';
 
 import { Controllers } from '../../../src/controllers/webservice/HarvestRunController';
+import { authorizationRequestFixture } from '../../fixtures/authorization-request.fixtures';
 
 let expect: Chai.ExpectStatic;
 
@@ -9,6 +10,7 @@ describe('Webservice HarvestRunController', () => {
   let originalSails: any;
   let originalBrandingService: any;
   let originalHarvestRunService: any;
+  let originalRecordsService: any;
   let originalLodash: any;
 
   before(async () => {
@@ -20,6 +22,7 @@ describe('Webservice HarvestRunController', () => {
     originalSails = (global as any).sails;
     originalBrandingService = (global as any).BrandingService;
     originalHarvestRunService = (global as any).HarvestRunService;
+    originalRecordsService = (global as any).RecordsService;
     originalLodash = (global as any)._;
 
     (global as any).sails = {
@@ -51,6 +54,12 @@ describe('Webservice HarvestRunController', () => {
       runExists: sinon.stub().resolves(true),
       listRunEvents: sinon.stub().resolves({ rows: [{ id: 'event-1', harvestId: 'harvest-1' }], total: 1 }),
     };
+    (global as any).RecordsService = {
+      authorizeBrandOperation: sinon.stub().returns({
+        allowed: true,
+        resource: { id: 'brand-1', name: 'default' },
+      }),
+    };
     (global as any)._ = require('lodash');
 
     controller = new Controllers.HarvestRun();
@@ -61,11 +70,13 @@ describe('Webservice HarvestRunController', () => {
     (global as any).sails = originalSails;
     (global as any).BrandingService = originalBrandingService;
     (global as any).HarvestRunService = originalHarvestRunService;
+    (global as any).RecordsService = originalRecordsService;
     (global as any)._ = originalLodash;
   });
 
   it('returns paginated runs', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'harvest.read' }),
       session: { branding: 'default' },
       apiRequest: {
         params: {},
@@ -86,6 +97,7 @@ describe('Webservice HarvestRunController', () => {
 
   it('caps run page size to match the service limit', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'harvest.read' }),
       session: { branding: 'default' },
       apiRequest: {
         params: {},
@@ -107,6 +119,7 @@ describe('Webservice HarvestRunController', () => {
   it('returns 404 when a run is not found', async () => {
     (global as any).HarvestRunService.getRun.resolves(null);
     const req = {
+      ...authorizationRequestFixture({ scope: 'harvest.read' }),
       session: { branding: 'default' },
       apiRequest: {
         params: { id: 'run-1' },
@@ -124,6 +137,7 @@ describe('Webservice HarvestRunController', () => {
 
   it('returns paginated run events', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'harvest.read' }),
       session: { branding: 'default' },
       apiRequest: {
         params: { id: 'run-1' },
@@ -144,6 +158,7 @@ describe('Webservice HarvestRunController', () => {
 
   it('caps event page size to match the service limit', async () => {
     const req = {
+      ...authorizationRequestFixture({ scope: 'harvest.read' }),
       session: { branding: 'default' },
       apiRequest: {
         params: { id: 'run-1' },
@@ -166,6 +181,7 @@ describe('Webservice HarvestRunController', () => {
   it('returns 404 when listing events for a missing run', async () => {
     (global as any).HarvestRunService.runExists.resolves(false);
     const req = {
+      ...authorizationRequestFixture({ scope: 'harvest.read' }),
       session: { branding: 'default' },
       apiRequest: {
         params: { id: 'run-1' },

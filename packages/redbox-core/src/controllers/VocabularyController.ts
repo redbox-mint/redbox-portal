@@ -1,6 +1,8 @@
 import { Controllers as controllers } from '../CoreController';
 import { ListAPIResponse, ListAPISummary } from '../model';
 import { Services as VocabularyServiceModule } from '../services/VocabularyService';
+import { requireRequestResourceAuthorization } from '../api-routes';
+import { sendAuthorizationResourceError } from '../policies/authorization-response';
 
 const VALID_VOCAB_TYPES = new Set(['flat', 'tree']);
 const VALID_VOCAB_SOURCES = new Set(['local', 'rva', 'external']);
@@ -11,13 +13,12 @@ export namespace Controllers {
       return sails.services['brandingservice'] as Sails.DynamicService & {
         getBrandNameFromReq: (req: Sails.Req) => string;
         getBrand: (nameOrId: string) => { id?: string | number } | null;
+        getBrandFromReq: (req: Sails.Req) => { id?: string | number };
       };
     }
 
     private resolveBrandingId(req: Sails.Req): string {
-      const brandingNameOrId = this.brandingService.getBrandNameFromReq(req);
-      const branding = this.brandingService.getBrand(brandingNameOrId);
-      return String(branding?.id ?? brandingNameOrId);
+      return String(this.brandingService.getBrandFromReq(req).id ?? '');
     }
 
     private asError(error: unknown): Error {
@@ -98,11 +99,14 @@ export namespace Controllers {
       return sanitized as VocabularyServiceModule.VocabularyEntryInput;
     }
 
-    private sanitizeCreatePayload(req: Sails.Req): { payload?: VocabularyServiceModule.VocabularyInput; errors: Error[] } {
+    private sanitizeCreatePayload(req: Sails.Req): {
+      payload?: VocabularyServiceModule.VocabularyInput;
+      errors: Error[];
+    } {
       const errors: string[] = [];
       const body = this.asRecord(req.body);
       const payload: Partial<VocabularyServiceModule.VocabularyInput> = {
-        branding: this.resolveBrandingId(req)
+        branding: this.resolveBrandingId(req),
       };
 
       const name = String(body.name ?? '').trim();
@@ -156,10 +160,16 @@ export namespace Controllers {
         }
       }
 
-      return { payload: errors.length === 0 ? payload as VocabularyServiceModule.VocabularyInput : undefined, errors: errors.map((error) => this.asError(error)) };
+      return {
+        payload: errors.length === 0 ? (payload as VocabularyServiceModule.VocabularyInput) : undefined,
+        errors: errors.map(error => this.asError(error)),
+      };
     }
 
-    private sanitizeUpdatePayload(req: Sails.Req): { payload?: Partial<VocabularyServiceModule.VocabularyInput>; errors: Error[] } {
+    private sanitizeUpdatePayload(req: Sails.Req): {
+      payload?: Partial<VocabularyServiceModule.VocabularyInput>;
+      errors: Error[];
+    } {
       const errors: string[] = [];
       const body = this.asRecord(req.body);
       const payload: Partial<VocabularyServiceModule.VocabularyInput> = {};
@@ -206,9 +216,8 @@ export namespace Controllers {
       if (typeof body.owner !== 'undefined') {
         payload.owner = String(body.owner).trim();
       }
-      if (typeof body.branding !== 'undefined') {
-        payload.branding = String(body.branding).trim();
-      }
+      // Branding is intentionally ignored on update; the immutable request
+      // context owns the tenant boundary.
       if (typeof body.entries !== 'undefined') {
         if (!Array.isArray(body.entries)) {
           errors.push('entries must be an array');
@@ -219,7 +228,7 @@ export namespace Controllers {
         }
       }
 
-      return { payload: errors.length === 0 ? payload : undefined, errors: errors.map((error) => this.asError(error)) };
+      return { payload: errors.length === 0 ? payload : undefined, errors: errors.map(error => this.asError(error)) };
     }
 
     protected override _exportedMethods: string[] = [
@@ -230,25 +239,32 @@ export namespace Controllers {
       'update',
       'delete',
       'import',
-      'sync'
+      'sync',
     ];
 
     public async manager(req: Sails.Req, res: Sails.Res) {
-      return this.sendView(req, res, 'admin/vocabulary');
+      try {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        VocabularyService.requireAuthorizedBrandOperation(context, requiredScope);
+        return this.sendView(req, res, 'admin/vocabulary');
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
+      }
     }
 
     public async list(req: Sails.Req, res: Sails.Res) {
       try {
         const limit = this.parseNonNegativeIntegerParam(req.param('limit'), 25, 200);
         const offset = this.parseNonNegativeIntegerParam(req.param('offset'), 0);
-        const result = await VocabularyService.list({
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const result = await VocabularyService.listAuthorized(context, requiredScope, {
           q: req.param('q'),
           type: req.param('type'),
           source: req.param('source'),
           limit,
           offset,
           sort: req.param('sort'),
-          branding: this.resolveBrandingId(req)
         });
         const response = new ListAPIResponse<unknown>();
         const summary = new ListAPISummary();
@@ -259,24 +275,31 @@ export namespace Controllers {
         response.records = result.data;
         return this.sendResp(req, res, {
           data: response,
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
     public async get(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
-        const vocabulary = await VocabularyService.getById(id);
-        if (!vocabulary) {
-          return this.sendResp(req, res, { status: 404, displayErrors: [{ title: 'Vocabulary not found' }], headers: this.getNoCacheHeaders() });
-        }
-        const entries = await VocabularyService.getTree(id);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const { vocabulary, entries } = await VocabularyService.getAuthorizedTree(context, requiredScope, id);
         return this.sendResp(req, res, { data: { vocabulary, entries }, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
@@ -286,10 +309,16 @@ export namespace Controllers {
         if (errors.length > 0 || !payload) {
           return this.sendResp(req, res, { status: 400, errors, headers: this.getNoCacheHeaders() });
         }
-        const created = await VocabularyService.create(payload);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const created = await VocabularyService.createAuthorized(context, requiredScope, payload);
         return this.sendResp(req, res, { status: 201, data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
@@ -300,20 +329,32 @@ export namespace Controllers {
         if (errors.length > 0 || !payload) {
           return this.sendResp(req, res, { status: 400, errors, headers: this.getNoCacheHeaders() });
         }
-        const updated = await VocabularyService.update(id, payload);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const updated = await VocabularyService.updateAuthorized(context, requiredScope, id, payload);
         return this.sendResp(req, res, { data: updated, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
     public async delete(req: Sails.Req, res: Sails.Res) {
       try {
         const id = String(req.param('id') || '');
-        await VocabularyService.delete(id);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        await VocabularyService.deleteAuthorized(context, requiredScope, id);
         return this.sendResp(req, res, { status: 204, headers: this.getNoCacheHeaders() });
       } catch (error) {
-        return this.sendResp(req, res, { status: 500, errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
@@ -321,12 +362,19 @@ export namespace Controllers {
       try {
         const rvaId = String(req.body?.rvaId || '');
         if (!rvaId.trim()) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('rvaId is required')], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, {
+            status: 400,
+            errors: [new Error('rvaId is required')],
+            headers: this.getNoCacheHeaders(),
+          });
         }
         const versionId = req.body?.versionId ? String(req.body.versionId) : undefined;
-        const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, this.resolveBrandingId(req));
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const brandId = VocabularyService.requireAuthorizedBrandOperation(context, requiredScope);
+        const created = await RvaImportService.importRvaVocabulary(rvaId, versionId, brandId);
         return this.sendResp(req, res, { data: created, headers: this.getNoCacheHeaders() });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         const detail = this.asError(error).message;
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }
@@ -339,13 +387,16 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             errors: [this.asError(new Error('Missing required id'))],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         const versionId = req.body?.versionId ? String(req.body.versionId) : undefined;
-        const result = await RvaImportService.syncRvaVocabulary(id, versionId);
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const vocabulary = await VocabularyService.getAuthorizedByIdOrSlug(context, requiredScope, id);
+        const result = await RvaImportService.syncRvaVocabulary(String(vocabulary.id), versionId, context.brand?.id);
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
         const detail = this.asError(error).message;
         return this.sendResp(req, res, { status: 400, displayErrors: [{ detail }], headers: this.getNoCacheHeaders() });
       }

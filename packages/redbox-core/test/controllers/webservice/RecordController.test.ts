@@ -17,6 +17,11 @@ import {
   updateMetaRoute,
   validateApiRouteRequest,
 } from '../../../src/api-routes';
+import { allowedResource, deniedResource } from '../../../src/authorization';
+import { authorizationRequestFixture } from '../../fixtures/authorization-request.fixtures';
+
+const allowedAuthorizationDecision = { allowed: true, reasonCode: 'allowed' } as const;
+const missingAuthorizationDecision = { allowed: false, reasonCode: 'resource-not-found' } as const;
 
 type PermissionCase = {
   name: string;
@@ -42,6 +47,7 @@ interface RecordControllerResponseFixture {
   readonly response: Sails.Res;
   readonly set: sinon.SinonStub<[field: string | Record<string, string>, value?: string], Sails.Res>;
   readonly status: sinon.SinonStub<[statusCode: number], Sails.Res>;
+  readonly type: sinon.SinonStub<[contentType: string], Sails.Res>;
   readonly json: sinon.SinonStub<[body: unknown], Sails.Res>;
 }
 
@@ -53,15 +59,28 @@ function recordControllerResponseFixture(): RecordControllerResponseFixture {
   const response: Sails.Res = Object.create(null);
   const set = sinon.stub<[field: string | Record<string, string>, value?: string], Sails.Res>().returns(response);
   const status = sinon.stub<[statusCode: number], Sails.Res>().returns(response);
+  const type = sinon.stub<[contentType: string], Sails.Res>().returns(response);
   const json = sinon.stub<[body: unknown], Sails.Res>().returns(response);
   Reflect.set(response, 'set', set);
   Reflect.set(response, 'status', status);
+  Reflect.set(response, 'type', type);
   Reflect.set(response, 'json', json);
-  return { response, set, status, json };
+  return { response, set, status, type, json };
+}
+
+function expectAuthorizationProblem(
+  fixture: RecordControllerResponseFixture,
+  status: 401 | 403 | 404,
+  code: 'authentication-required' | 'resource-denied' | 'resource-not-found'
+): void {
+  expect(fixture.status.calledOnceWithExactly(status)).to.equal(true);
+  expect(fixture.json.firstCall.args[0]).to.deep.include({ status, code });
 }
 
 function makeThrowingRequest(apiRequest: Sails.Req['apiRequest'], extra: Partial<Sails.Req> = {}): Sails.Req {
+  const requestedBrand = String(apiRequest?.params?.branding ?? 'default');
   const request = {
+    ...authorizationRequestFixture({ scope: 'record.read', brandName: requestedBrand }),
     session: { branding: 'default' },
     user: { username: 'tester' },
     apiRequest,
@@ -238,6 +257,10 @@ describe('Webservice RecordController body source', () => {
     getMeta: sinon.SinonStub;
     getDeletedRecord: sinon.SinonStub;
     getDeletedRecordMeta: sinon.SinonStub;
+    getAuthorizedMeta: sinon.SinonStub;
+    getAuthorizedDeletedRecordMeta: sinon.SinonStub;
+    authorizeBrandOperation: sinon.SinonStub;
+    authorizeRecordCollection: sinon.SinonStub;
     updateMeta: sinon.SinonStub;
     updateMetaInternal: sinon.SinonStub;
     create: sinon.SinonStub;
@@ -286,6 +309,7 @@ describe('Webservice RecordController body source', () => {
     (global as any)._ = require('lodash');
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandAndPortalPath: sinon.stub().returns('/default/default'),
       getBrandNameFromReq: sinon
         .stub()
@@ -315,6 +339,14 @@ describe('Webservice RecordController body source', () => {
       getMeta: sinon.stub(),
       getDeletedRecord: sinon.stub(),
       getDeletedRecordMeta: sinon.stub(),
+      getAuthorizedMeta: sinon.stub(),
+      getAuthorizedDeletedRecordMeta: sinon.stub(),
+      authorizeBrandOperation: sinon
+        .stub()
+        .returns(allowedResource(allowedAuthorizationDecision, { id: 'brand-1', name: 'default' })),
+      authorizeRecordCollection: sinon
+        .stub()
+        .returns(allowedResource(allowedAuthorizationDecision, { id: 'brand-1', name: 'default' })),
       updateMeta: sinon.stub(),
       updateMetaInternal: sinon.stub(),
       create: sinon.stub(),
@@ -327,6 +359,46 @@ describe('Webservice RecordController body source', () => {
       getAttachments: sinon.stub().resolves([]),
       setWorkflowStepRelatedMetadata: sinon.stub(),
     };
+    recordsService.getAuthorizedMeta.callsFake(async (context: any, _scope: unknown, oid: string, mode: string) => {
+      let record = null;
+      try {
+        record = await recordsService.getMeta(oid);
+      } catch {
+        record = null;
+      }
+      if (record == null) return deniedResource(missingAuthorizationDecision);
+      if (String(record.metaMetadata?.brandId ?? '') !== String(context.brand?.id ?? '')) {
+        return deniedResource({ allowed: false, reasonCode: 'resource-brand-mismatch' });
+      }
+      const hasAccess =
+        mode === 'update'
+          ? recordsService.hasEditAccess({}, {}, [], record, context)
+          : recordsService.hasViewAccess({}, {}, [], record, context);
+      return hasAccess
+        ? allowedResource(allowedAuthorizationDecision, record)
+        : deniedResource({ allowed: false, reasonCode: 'record-acl-denied' });
+    });
+    recordsService.getAuthorizedDeletedRecordMeta.callsFake(
+      async (context: any, _scope: unknown, oid: string, mode: string) => {
+        let record = null;
+        try {
+          record = await recordsService.getDeletedRecordMeta(oid, { id: 'brand-1', name: 'default' });
+        } catch {
+          record = null;
+        }
+        if (record == null) return deniedResource(missingAuthorizationDecision);
+        if (String(record.metaMetadata?.brandId ?? '') !== String(context.brand?.id ?? '')) {
+          return deniedResource({ allowed: false, reasonCode: 'resource-brand-mismatch' });
+        }
+        const hasAccess =
+          mode === 'update'
+            ? recordsService.hasEditAccess({}, {}, [], record, context)
+            : recordsService.hasViewAccess({}, {}, [], record, context);
+        return hasAccess
+          ? allowedResource(allowedAuthorizationDecision, record)
+          : deniedResource({ allowed: false, reasonCode: 'record-acl-denied' });
+      }
+    );
     controller.RecordsService = recordsService as never;
     controller.DatastreamService = {
       addDatastreams: sinon.stub(),
@@ -340,8 +412,8 @@ describe('Webservice RecordController body source', () => {
       const schemaIfMatch = `"sha256:${updateDigest}"`;
       const updateArtifactId = `/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
       const createArtifactId = `/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
-      const updatePublicUrl = `/redbox/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
-      const createPublicUrl = `/redbox/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
+      const updatePublicUrl = `/redbox/default/tenant-portal/api/records/schemas/${updateDigest}`;
+      const createPublicUrl = `/redbox/default/tenant-portal/api/records/schemas/${createDigest}`;
       (global as any).BrandingService.getRootContext.returns('/redbox');
       recordsService.getMeta.resolves({
         redboxOid: 'record-1',
@@ -565,12 +637,12 @@ describe('Webservice RecordController body source', () => {
         user: { username: 'tester', roles: [] },
       }
     );
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    const response = recordControllerResponseFixture();
 
-    await controller.restoreRecord(req, {} as Sails.Res);
+    await controller.restoreRecord(req, response.response);
 
     expect(recordsService.restoreRecord.called).to.be.false;
-    expect(sendRespStub.firstCall.args[2].status).to.equal(404);
+    expectAuthorizationProblem(response, 404, 'resource-not-found');
   });
 
   afterEach(() => {
@@ -1618,11 +1690,11 @@ describe('Webservice RecordController body source', () => {
         body: {},
         files: {},
       });
-      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+      const response = recordControllerResponseFixture();
 
-      await controller.transitionWorkflow(req, {} as Sails.Res);
+      await controller.transitionWorkflow(req, response.response);
 
-      expect(sendRespStub.firstCall.args[2].status).to.equal(404);
+      expectAuthorizationProblem(response, 404, 'resource-not-found');
       expect(recordsService.hasEditAccess.notCalled).to.equal(true);
       expect((global as any).WorkflowStepsService.get.notCalled).to.equal(true);
       expect(recordsService.updateMeta.notCalled).to.equal(true);
@@ -2003,16 +2075,15 @@ describe('Webservice RecordController body source', () => {
         body: {},
         files: {},
       });
-      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+      const response = recordControllerResponseFixture();
 
-      await controller.restoreRecord(req, {} as Sails.Res);
+      await controller.restoreRecord(req, response.response);
 
       expect(recordsService.getDeletedRecordMeta.calledOnce).to.be.true;
       expect(recordsService.getDeletedRecordMeta.calledWithMatch('record-1', { id: 'brand-1' })).to.be.true;
       expect(recordsService.getMeta.called).to.be.false;
       expect(recordsService.restoreRecord.called).to.be.false;
-      expect(sendRespStub.calledOnce).to.be.true;
-      expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+      expectAuthorizationProblem(response, 404, 'resource-not-found');
     });
 
     it('does not permanently delete an active record when no deleted record exists', async () => {
@@ -2026,16 +2097,15 @@ describe('Webservice RecordController body source', () => {
         body: {},
         files: {},
       });
-      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+      const response = recordControllerResponseFixture();
 
-      await controller.destroyDeletedRecord(req, {} as Sails.Res);
+      await controller.destroyDeletedRecord(req, response.response);
 
       expect(recordsService.getDeletedRecordMeta.calledOnce).to.be.true;
       expect(recordsService.getDeletedRecordMeta.calledWithMatch('record-1', { id: 'brand-1' })).to.be.true;
       expect(recordsService.getMeta.called).to.be.false;
       expect(recordsService.destroyDeletedRecord.called).to.be.false;
-      expect(sendRespStub.calledOnce).to.be.true;
-      expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+      expectAuthorizationProblem(response, 404, 'resource-not-found');
     });
     for (const method of ['restoreRecord', 'destroyDeletedRecord'] as const) {
       it(`rejects ${method} when the deleted record belongs to another brand`, async () => {
@@ -2049,16 +2119,16 @@ describe('Webservice RecordController body source', () => {
           body: {},
           files: {},
         });
-        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+        const response = recordControllerResponseFixture();
 
-        await controller[method](req, {} as Sails.Res);
+        await controller[method](req, response.response);
 
-        expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+        expectAuthorizationProblem(response, 404, 'resource-not-found');
         expect(recordsService[method].called).to.be.false;
       });
     }
 
-    it('propagates deleted-record storage failures', async () => {
+    it('maps deleted-record storage failures to an opaque not-found response', async () => {
       recordsService.getDeletedRecordMeta.rejects(new Error('storage unavailable'));
       const req = makeThrowingRequest({
         params: { oid: 'record-1' },
@@ -2067,14 +2137,12 @@ describe('Webservice RecordController body source', () => {
         files: {},
       });
 
-      let caught: unknown;
-      try {
-        await controller.restoreRecord(req, {} as Sails.Res);
-      } catch (error) {
-        caught = error;
-      }
+      const response = recordControllerResponseFixture();
 
-      expect(caught).to.be.an('error').with.property('message', 'storage unavailable');
+      await controller.restoreRecord(req, response.response);
+
+      expectAuthorizationProblem(response, 404, 'resource-not-found');
+      expect(JSON.stringify(response.json.args)).not.to.include('storage unavailable');
       expect(recordsService.restoreRecord.called).to.be.false;
     });
   });
@@ -2089,22 +2157,22 @@ describe('Webservice RecordController body source', () => {
       });
 
     for (const testCase of [
-      { name: 'download', invoke: (req: Sails.Req) => controller.getDataStream(req, {} as Sails.Res) },
-      { name: 'list', invoke: (req: Sails.Req) => controller.listDatastreams(req, {} as Sails.Res) },
+      { name: 'download', invoke: (req: Sails.Req, res: Sails.Res) => controller.getDataStream(req, res) },
+      { name: 'list', invoke: (req: Sails.Req, res: Sails.Res) => controller.listDatastreams(req, res) },
     ]) {
       it(`returns non-disclosing 404/403 responses before ${testCase.name} attachment access`, async () => {
-        const sendResp = sinon.stub(controller as any, 'sendResp');
         recordsService.getMeta.resolves({
           redboxOid: 'record-1',
           metaMetadata: { brandId: 'different-brand' },
           metadata: { privateValue: 'must-not-return' },
           authorization: {},
         });
+        const missingResponse = recordControllerResponseFixture();
 
-        await testCase.invoke(readRequest(testCase.name === 'list'));
-        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 404 });
+        await testCase.invoke(readRequest(testCase.name === 'list'), missingResponse.response);
+        expectAuthorizationProblem(missingResponse, 404, 'resource-not-found');
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
-        expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
+        expect(JSON.stringify(missingResponse.json.args), testCase.name).not.to.include('must-not-return');
 
         recordsService.getMeta.resolves({
           redboxOid: 'record-1',
@@ -2113,12 +2181,12 @@ describe('Webservice RecordController body source', () => {
           authorization: {},
         });
         recordsService.hasViewAccess.returns(false);
-        sendResp.resetHistory();
+        const deniedResponse = recordControllerResponseFixture();
 
-        await testCase.invoke(readRequest(testCase.name === 'list'));
-        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 403 });
+        await testCase.invoke(readRequest(testCase.name === 'list'), deniedResponse.response);
+        expectAuthorizationProblem(deniedResponse, 403, 'resource-denied');
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
-        expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
+        expect(JSON.stringify(deniedResponse.json.args), testCase.name).not.to.include('must-not-return');
       });
     }
 
@@ -2187,14 +2255,14 @@ describe('Webservice RecordController body source', () => {
       recordsService.getMeta.resolves(activeRecord());
       recordsService.hasEditAccess.returns(false);
       const unauthorizedFile = sinon.stub();
-      const unauthorizedSend = sinon.stub(controller as any, 'sendResp');
+      const unauthorizedResponse = recordControllerResponseFixture();
       await controller.addDataStreams(
         uploadRequest({ 'if-match': formatRecordEntityTag('record-1', 5) }, unauthorizedFile),
-        {} as Sails.Res
+        unauthorizedResponse.response
       );
       expect(unauthorizedFile.notCalled).to.equal(true);
       expect(recordsService.updateMeta.notCalled).to.equal(true);
-      expect(unauthorizedSend.firstCall.args[2]).to.deep.include({ status: 403 });
+      expectAuthorizationProblem(unauthorizedResponse, 403, 'resource-denied');
     });
 
     it('routes a standalone upload through RecordsService CAS before finalizing bytes', async () => {
@@ -2326,24 +2394,21 @@ describe('Webservice RecordController body source', () => {
       recordsService.getMeta.onFirstCall().resolves(activeRecord());
       recordsService.getMeta.onSecondCall().resolves(currentRecord);
       recordsService.hasEditAccess.onFirstCall().returns(true);
-      recordsService.hasEditAccess.onSecondCall().returns(false);
+      recordsService.hasEditAccess.onSecondCall().returns(true);
+      recordsService.hasEditAccess.onThirdCall().returns(false);
       const removeStagedDatastream = sinon.stub().resolves();
       const addDatastreams = sinon.stub();
       controller.DatastreamService = { addDatastreams, removeStagedDatastream } as never;
-      const sendResp = sinon.stub(controller as any, 'sendResp');
+      const response = recordControllerResponseFixture();
 
-      await controller.addDataStreams(uploadRequest({}), {} as Sails.Res);
+      await controller.addDataStreams(uploadRequest({}), response.response);
       await flushPromises();
 
       expect(recordsService.updateMeta.notCalled).to.equal(true);
       expect(addDatastreams.notCalled).to.equal(true);
       expect(removeStagedDatastream.calledWith('staged-file-1')).to.equal(true);
-      expect(sendResp.firstCall.args[2]).to.deep.equal({
-        status: 403,
-        displayErrors: [{ code: 'not-authorised' }],
-        v1: { message: 'Not authorised.' },
-      });
-      expect(JSON.stringify(sendResp.firstCall.args[2])).not.to.include('must-not-return');
+      expectAuthorizationProblem(response, 403, 'resource-denied');
+      expect(JSON.stringify(response.json.args)).not.to.include('must-not-return');
     });
 
     it('does not finalize a strict missing or stale upload claim and removes certified abandoned staging', async () => {
@@ -2742,6 +2807,7 @@ describe('Webservice RecordController getMeta', () => {
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandNameFromReq: sinon.stub().returns('public brand'),
       getPortalFromReq: sinon.stub().returns('tenant portal'),
       getRootContext: sinon.stub().returns(''),
@@ -2831,7 +2897,7 @@ describe('Webservice RecordController getMeta', () => {
 
     assert.deepEqual(resolveUpdate.firstCall.args[0], {
       brand: 'brand-1',
-      branding: 'public brand',
+      branding: 'default',
       portal: 'tenant portal',
       oid: 'oid-1',
       caller: { brand: { id: 'brand-1', name: 'default' }, user },
@@ -2841,7 +2907,7 @@ describe('Webservice RecordController getMeta', () => {
       meta: { oid: 'oid-1', revision: 2, entityTag: formatRecordEntityTag('oid-1', 2) },
       headers: {
         ETag: formatRecordEntityTag('oid-1', 2),
-        Link: `</public%20brand/tenant%20portal/api/records/schemas/${digest}>; rel="describedby"; type="application/schema+json"`,
+        Link: `</default/tenant%20portal/api/records/schemas/${digest}>; rel="describedby"; type="application/schema+json"`,
       },
     });
     assert.equal(JSON.stringify(sendResp.firstCall.args[2]?.data).includes(digest), false);

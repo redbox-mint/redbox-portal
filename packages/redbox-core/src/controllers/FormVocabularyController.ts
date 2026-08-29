@@ -7,7 +7,6 @@ type FormVocabularyExternalServiceParams = Parameters<typeof FormVocabularyServi
 
 export namespace Controllers {
   export class FormVocabulary extends controllers.Core.Controller {
-
     protected override _exportedMethods: string[] = [
       'get',
       'entries',
@@ -15,25 +14,34 @@ export namespace Controllers {
       'expandPath',
       'getRecords',
       'externalEntries',
-      'serviceEntries'
+      'serviceEntries',
     ];
 
     private parseNotationList(rawNotation: unknown): string[] {
       const values = Array.isArray(rawNotation)
-        ? rawNotation.flatMap((item) => String(item ?? '').split(','))
+        ? rawNotation.flatMap(item => String(item ?? '').split(','))
         : String(rawNotation ?? '').split(',');
-      return Array.from(new Set(values.map((item) => String(item ?? '').trim()).filter((item) => item.length > 0)));
+      return Array.from(new Set(values.map(item => String(item ?? '').trim()).filter(item => item.length > 0)));
+    }
+
+    /**
+     * Vocabulary ownership comes from the immutable request authorization
+     * context. The route parameter is presentation/routing state only and must
+     * never select another brand's vocabulary rows.
+     */
+    private resolveBrandId(req: Sails.Req): string {
+      return String(BrandingService.getBrandFromReq(req).id ?? '').trim();
     }
 
     public async get(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      const branding = String(req.param('branding') ?? '').trim();
+      const branding = this.resolveBrandId(req);
       const vocabIdOrSlug = String(req.param('vocabIdOrSlug') ?? '').trim();
 
       if (!vocabIdOrSlug) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-vocabulary-id-or-slug' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -46,7 +54,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'vocabulary-service-error' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -54,7 +62,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 404,
           displayErrors: [{ code: 'vocabulary-not-found' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -62,20 +70,20 @@ export namespace Controllers {
         data: {
           id: vocabulary.id,
           name: vocabulary.name,
-          slug: vocabulary.slug
+          slug: vocabulary.slug,
         },
-        headers: this.getNoCacheHeaders()
+        headers: this.getNoCacheHeaders(),
       });
     }
 
     public async entries(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      const branding = String(req.param('branding') ?? '').trim();
+      const branding = this.resolveBrandId(req);
       const vocabIdOrSlug = String(req.param('vocabIdOrSlug') ?? '').trim();
       if (!vocabIdOrSlug) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-vocabulary-id-or-slug' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -89,12 +97,14 @@ export namespace Controllers {
       const limit = hasLimit ? Number.parseInt(String(rawLimit), 10) : undefined;
       const offset = hasOffset ? Number.parseInt(String(rawOffset), 10) : undefined;
 
-      if ((hasLimit && (!Number.isInteger(limit) || (limit ?? 0) <= 0)) ||
-        (hasOffset && (!Number.isInteger(offset) || (offset ?? -1) < 0))) {
+      if (
+        (hasLimit && (!Number.isInteger(limit) || (limit ?? 0) <= 0)) ||
+        (hasOffset && (!Number.isInteger(offset) || (offset ?? -1) < 0))
+      ) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-query-params' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -112,7 +122,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'internal-server-error' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -120,25 +130,25 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 404,
           displayErrors: [{ code: 'vocabulary-not-found' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
       return this.sendResp(req, res, {
         data: result.entries,
         meta: result.meta,
-        headers: this.getNoCacheHeaders()
+        headers: this.getNoCacheHeaders(),
       });
     }
 
     public async children(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      const branding = String(req.param('branding') ?? '').trim();
+      const branding = this.resolveBrandId(req);
       const vocabIdOrSlug = String(req.param('vocabIdOrSlug') ?? '').trim();
       if (!vocabIdOrSlug) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-vocabulary-id-or-slug' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -149,14 +159,14 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ code: 'vocabulary-not-found' }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
 
         return this.sendResp(req, res, {
           data: result.entries,
           meta: result.meta,
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
         const errorCode = String((error as { code?: string } | null)?.code ?? '');
@@ -164,7 +174,7 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ code: 'invalid-parent-id' }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         sails.log.verbose('Error getting vocabulary children:');
@@ -172,19 +182,19 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'vocabulary-children-failed' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async expandPath(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      const branding = String(req.param('branding') ?? '').trim();
+      const branding = this.resolveBrandId(req);
       const vocabIdOrSlug = String(req.param('vocabIdOrSlug') ?? '').trim();
       if (!vocabIdOrSlug) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-vocabulary-id-or-slug' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -193,14 +203,14 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-query-params' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
       if (notations.length > 100) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'too-many-notations' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -210,14 +220,14 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ code: 'vocabulary-not-found' }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
 
         return this.sendResp(req, res, {
           data: result.paths,
           meta: result.meta,
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
         sails.log.verbose('Error expanding vocabulary path:');
@@ -225,7 +235,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'vocabulary-expand-path-failed' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
@@ -241,17 +251,19 @@ export namespace Controllers {
       const start = Number(req.param('start'));
       const rows = Number(req.param('rows'));
 
-      if (!queryId ||
+      if (
+        !queryId ||
         (hasStart && (!Number.isFinite(start) || start < 0)) ||
-        (hasRows && (!Number.isFinite(rows) || rows <= 0))) {
+        (hasRows && (!Number.isFinite(rows) || rows <= 0))
+      ) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-query-params' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
       try {
         const response = await FormVocabularyService.findRecords(
           queryId,
@@ -263,7 +275,7 @@ export namespace Controllers {
         );
         return this.sendResp(req, res, {
           data: response,
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
         const errorCode = String((error as { code?: string } | null)?.code ?? '');
@@ -271,14 +283,14 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ code: errorCode }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         if (errorCode === 'query-vocab-invalid-config') {
           return this.sendResp(req, res, {
             status: 500,
             displayErrors: [{ code: errorCode }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
 
@@ -287,7 +299,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'query-vocab-failed' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
@@ -298,7 +310,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-query-params' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
@@ -309,7 +321,7 @@ export namespace Controllers {
         );
         return this.sendResp(req, res, {
           data: response,
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
         const errorCode = String((error as { code?: string } | null)?.code ?? '');
@@ -317,14 +329,14 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ code: errorCode }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         if (errorCode === 'external-vocab-invalid-config') {
           return this.sendResp(req, res, {
             status: 500,
             displayErrors: [{ code: errorCode }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
 
@@ -333,16 +345,17 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'query-vocab-failed' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }
 
     public async serviceEntries(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const serviceId = String(req.param('serviceId') ?? '').trim();
-      const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body)
-        ? req.body as Record<string, unknown>
-        : {};
+      const body =
+        req.body && typeof req.body === 'object' && !Array.isArray(req.body)
+          ? (req.body as Record<string, unknown>)
+          : {};
       const rawStart = body['start'] ?? req.param('start') ?? 0;
       const rawRows = body['rows'] ?? req.param('rows') ?? 25;
       const search = String(body['search'] ?? req.param('search') ?? '');
@@ -353,25 +366,25 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ code: 'invalid-query-params' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
 
       try {
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const response = await FormVocabularyService.findInServiceLookup(serviceId, {
           search,
           start,
           rows,
-          branding: String(req.param('branding') ?? req.session.branding ?? ''),
+          branding: brand.name,
           portal: String(req.param('portal') ?? ''),
           brand,
-          user: req.user && typeof req.user === 'object' ? req.user as Record<string, unknown> : {}
+          user: req.user && typeof req.user === 'object' ? (req.user as Record<string, unknown>) : {},
         });
         return this.sendResp(req, res, {
           data: response.data,
           meta: response.meta,
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
         const errorCode = String((error as { code?: string } | null)?.code ?? '');
@@ -379,14 +392,14 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 404,
             displayErrors: [{ code: errorCode }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
         if (errorCode === 'service-lookup-invalid-target' || errorCode === 'service-lookup-invalid-response') {
           return this.sendResp(req, res, {
             status: 500,
             displayErrors: [{ code: errorCode }],
-            headers: this.getNoCacheHeaders()
+            headers: this.getNoCacheHeaders(),
           });
         }
 
@@ -395,7 +408,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 500,
           displayErrors: [{ code: 'query-vocab-failed' }],
-          headers: this.getNoCacheHeaders()
+          headers: this.getNoCacheHeaders(),
         });
       }
     }

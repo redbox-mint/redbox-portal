@@ -159,6 +159,25 @@ export * from './model/storage/HarvestRunModel';
 export { ILogger } from './Logger';
 
 export * from './model';
+export * from './authorization';
+export {
+  AUTHORIZATION_PERSISTENCE_MODEL_INDEXES,
+  ensureAuthorizationPersistenceIndexes,
+} from './services/AuthorizationPersistenceService';
+export type {
+  AuthorizationExplanationResource,
+  AuthorizationRecordAclInput,
+  AuthorizationRecordMode,
+  AuthorizationServiceDependencies,
+  AuthorizationUserAuthMethod,
+} from './services/AuthorizationService';
+export type {
+  AuthorizationRolloutDependencies,
+  AuthorizationRolloutInput,
+  AuthorizationRolloutResult,
+  AuthorizationShadowMismatchInput,
+} from './services/AuthorizationRolloutService';
+export type { RoleAssignmentCreateRecord } from './waterline-models/RoleAssignment';
 export * from './record-contract';
 export * from './decorator';
 export * from './decorators';
@@ -282,5 +301,6 @@ export * from './visitor/template.visitor';
 export * from './visitor/validator.visitor';
 export * from './visitor/vocab-inline.visitor';
 export * from './utilities/ContextVariableUtils';
+export * from './utilities/RequiredTransactionUtils';
 export * from './visitor/visitor-helpers';
 export * from './api-routes';

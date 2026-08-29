@@ -1,0 +1,27 @@
+meta {
+  name: Reject invalid bearer on scoped API
+  type: http
+  seq: 1.1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/users
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer phase-6-invalid-credential
+}
+
+tests {
+  test("Returns bounded Problem Details instead of falling through", function () {
+    expect(res.getStatus()).to.equal(401);
+    expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/problem+json");
+    expect(res.getBody()).to.deep.include({
+      status: 401,
+      code: "invalid-bearer-credential"
+    });
+  });
+}

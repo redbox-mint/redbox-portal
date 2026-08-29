@@ -1,7 +1,16 @@
-import { Controllers as controllers, IntegrationAuditParams, ListAPIResponse } from '../../index';
+import {
+  Controllers as controllers,
+  IntegrationAuditParams,
+  ListAPIResponse,
+  RecordsService as RecordsServiceContract,
+  requireAllowedResource,
+  requireRequestResourceAuthorization,
+} from '../../index';
 import { IntegrationAuditStatus } from '../../model/storage/IntegrationAuditModel';
 
 const VALID_INTEGRATION_AUDIT_STATUSES = new Set<string>(Object.values(IntegrationAuditStatus));
+
+declare const RecordsService: RecordsServiceContract;
 
 export namespace Controllers {
   export class IntegrationAudit extends controllers.Core.Controller {
@@ -86,6 +95,8 @@ export namespace Controllers {
       params.pageSize = pageSize ?? 20;
 
       try {
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        requireAllowedResource(await RecordsService.getAuthorizedMeta(context, requiredScope, oid, 'read'));
         const audit = await IntegrationAuditService.getAuditLog(params);
         const response = new ListAPIResponse<Record<string, unknown>>();
         response.summary.numFound = audit.total;

@@ -12,6 +12,7 @@ The ReDBox Portal is built on the [SailsJS framework](https://sailsjs.com/) and 
 Please see the [SailsJS documentation](https://sailsjs.com/documentation/reference/configuration) for more information on its structure and configuration options.
 
 There are several configuration items that are specific to the ReDBox Portal:
+
 1. `record.js` manages configuration around record management and the portal's interaction with the ReDBox and Mint services
 2. `auth.js` manages configuration around authorisation and authentication
 3. [emailnotification.js](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Email-Notifications) manages configuration of email notifications
@@ -21,6 +22,32 @@ There are several configuration items that are specific to the ReDBox Portal:
 7. [RAiD publishing AppConfig](Configuring-RAiD-Publishing) manages brand-specific credentials, mapping, retry, and audit behaviour for RAiD minting
 8. [`recordValidation`](Server-Side-Form-Validation-Operations) controls authoritative form-validation timeout, bounded shadow reporting, and global/operation rollout modes
 9. [`recordSchema`](Record-Schema-Contract-Operations) controls the default-disabled record-schema contract feature, unknown-property policy, compiler/cache limits, retention, and integration pins
+10. `authorization` controls the deployment-wide route authorization rollout mode (`legacy`, `shadow`, or `enforce`) and optional legacy evidence collection during enforce
+
+### Authorization rollout configuration
+
+Route authorization defaults to `legacy`. Change the mode only after reviewing
+the readiness and shadow evidence described in
+[Application Authorization and Permission Model](Application-Authorization-and-Permission-Model).
+The value is deployment-wide: every portal instance must use the same mode.
+
+```javascript
+authorization: {
+  mode: 'shadow',
+  collectLegacyEvidenceInEnforce: true,
+  confirmationSecret: process.env.AUTHORIZATION_CONFIRMATION_SECRET
+}
+```
+
+Container deployments can set the mode through the normal Sails environment
+override convention, for example `sails_authorization__mode=shadow`. A bad mode,
+missing route declaration, or unknown declared scope fails startup validation.
+`confirmationSecret`, when supplied, must contain at least 32 characters and is
+used only to sign short-lived, actor/brand/operation/version-bound preview
+tokens. If it is omitted, ReDBox uses the configured `redboxSession.secret` so
+existing deployments retain one signing-key rotation boundary. A production
+deployment must override the shipped development session secret. The Sails
+environment override is `sails_authorization__confirmationSecret`.
 
 ## Configuration Defaults (redbox-core)
 
@@ -31,6 +58,7 @@ All core configuration defaults are now centralized in the `@researchdatabox/red
 - **Shim generation**: The [Redbox Loader](Redbox-Loader) generates `config/*.js` shims that export these defaults
 
 This means:
+
 - Core defaults are type-safe and documented in TypeScript
 - Changes to defaults are made in `redbox-core`
 - Environment or deployment-specific overrides still work via `config/env/*.js`
@@ -40,12 +68,12 @@ This means:
 ```typescript
 // packages/redbox-core/src/config/appmode.config.ts
 export interface AppModeConfig {
-    bootstrapAlways: boolean;
-    bootstrapOnce?: boolean;
+  bootstrapAlways: boolean;
+  bootstrapOnce?: boolean;
 }
 
 export const appmode: AppModeConfig = {
-    bootstrapAlways: true
+  bootstrapAlways: true,
 };
 ```
 
@@ -63,21 +91,21 @@ Hooks can provide additional configuration by declaring `hasConfig: true` in the
 
 ```json
 {
-    "name": "my-redbox-hook",
-    "sails": {
-        "hasConfig": true
-    }
+  "name": "my-redbox-hook",
+  "sails": {
+    "hasConfig": true
+  }
 }
 ```
 
 ```javascript
 // Hook's index.js
-module.exports.registerRedboxConfig = function() {
-    return {
-        record: {
-            customSetting: 'value'
-        }
-    };
+module.exports.registerRedboxConfig = function () {
+  return {
+    record: {
+      customSetting: 'value',
+    },
+  };
 };
 ```
 
@@ -132,10 +160,10 @@ EXPORT_BOOTSTRAP_CONFIG_JSON=true npm start
 
 This generates two files in `support/debug-config/`:
 
-| File | Description |
-|---|---|
-| `pre-lift-config.json` | Config from core-types + hooks BEFORE Sails merges environment config |
-| `post-bootstrap-config.json` | Final sails.config AFTER environment config and bootstrap |
+| File                         | Description                                                           |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `pre-lift-config.json`       | Config from core-types + hooks BEFORE Sails merges environment config |
+| `post-bootstrap-config.json` | Final sails.config AFTER environment config and bootstrap             |
 
 Compare these files to identify where a setting is being overwritten.
 

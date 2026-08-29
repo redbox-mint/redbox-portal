@@ -94,12 +94,18 @@ function specializeParameters(parameters: Record<string, unknown>[] | undefined,
   return nextParameters.length ? nextParameters : undefined;
 }
 
-function specializeOperation(operation: Record<string, unknown>, options: OpenApiBuildOptions): Record<string, unknown> {
+function specializeOperation(
+  operation: Record<string, unknown>,
+  options: OpenApiBuildOptions
+): Record<string, unknown> {
   if (!options.branding && !options.portal) {
     return operation;
   }
 
-  const specializedParameters = specializeParameters(operation.parameters as Record<string, unknown>[] | undefined, options);
+  const specializedParameters = specializeParameters(
+    operation.parameters as Record<string, unknown>[] | undefined,
+    options
+  );
   return {
     ...operation,
     ...(specializedParameters ? { parameters: specializedParameters } : {}),
@@ -115,7 +121,10 @@ function specializeOpenApiDocument(document: OpenApiDocument, options: OpenApiBu
     Object.entries(document.paths).map(([path, operations]) => [
       specializeOpenApiPath(path, options),
       Object.fromEntries(
-        Object.entries(operations).map(([method, operation]) => [method, specializeOperation(operation as Record<string, unknown>, options)])
+        Object.entries(operations).map(([method, operation]) => [
+          method,
+          specializeOperation(operation as Record<string, unknown>, options),
+        ])
       ),
     ])
   );
@@ -246,6 +255,10 @@ function buildResponses(
           400: responseField(apiErrorResponseSchema, 'Bad request'),
           500: responseField(apiErrorResponseSchema, 'Internal server error'),
         };
+  if (route.includeDefaultResponses !== false && route.authorization.kind === 'scope') {
+    defaultResponses[401] = responseField(apiErrorResponseSchema, 'Authentication required or credential invalid');
+    defaultResponses[403] = responseField(apiErrorResponseSchema, 'Insufficient authorization');
+  }
   const responseDefinitions: Record<string, ApiResponseDefinition> = {
     ...defaultResponses,
     ...routeResponses,
@@ -267,10 +280,10 @@ function buildResponses(
       ...(Object.keys(content).length ? { content } : {}),
       ...(response.headers
         ? {
-          headers: Object.fromEntries(
-            Object.entries(response.headers).map(([name, schema]) => [name, { schema: toOpenApiSchema(schema) }])
-          ),
-        }
+            headers: Object.fromEntries(
+              Object.entries(response.headers).map(([name, schema]) => [name, { schema: toOpenApiSchema(schema) }])
+            ),
+          }
         : {}),
     };
   }
@@ -347,13 +360,18 @@ export function buildOpenApiDocument(
         summary: route.summary,
         description: route.description,
         operationId: route.operationId,
-        security: route.security
-          ? route.security.map(entry => ({ ...entry }))
-          : [{ bearerAuth: [] }],
+        security:
+          route.authorization.kind === 'scope'
+            ? route.security
+              ? route.security.map(entry => ({ ...entry }))
+              : [{ bearerAuth: [] }]
+            : [],
         parameters: buildParameters(route, toOpenApiSchema),
         requestBody: buildRequestBody(route, toOpenApiSchema),
         responses: buildResponses(route, toOpenApiSchema),
         ...(route.extensions ?? {}),
+        ...(route.authorization.kind === 'scope' ? { 'x-redbox-scope': route.authorization.scope } : {}),
+        ...(route.extensions?.['x-redbox-roles'] === undefined ? {} : { 'x-redbox-roles-deprecated': true }),
       };
       return acc;
     },
@@ -362,15 +380,20 @@ export function buildOpenApiDocument(
 
   const componentSchemas = getComponentSchemas();
 
-  return sanitizeOpenApiValue(specializeOpenApiDocument({
-    openapi: '3.0.3',
-    info,
-    paths,
-    components: {
-      securitySchemes: {
-        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+  return sanitizeOpenApiValue(
+    specializeOpenApiDocument(
+      {
+        openapi: '3.0.3',
+        info,
+        paths,
+        components: {
+          securitySchemes: {
+            bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'Opaque legacy bearer token' },
+          },
+          ...(componentSchemas ? { schemas: componentSchemas } : {}),
+        },
       },
-      ...(componentSchemas ? { schemas: componentSchemas } : {}),
-    },
-  }, options));
+      options
+    )
+  );
 }

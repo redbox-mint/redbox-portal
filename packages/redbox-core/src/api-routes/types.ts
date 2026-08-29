@@ -1,4 +1,5 @@
 import type { ZodType } from 'zod';
+import type { RouteAuthorization } from '../authorization';
 
 export type HttpMethod = 'get' | 'post' | 'put' | 'delete' | 'patch' | 'head';
 export type ApiRequestSource = 'params' | 'query' | 'headers' | 'body';
@@ -65,8 +66,10 @@ export interface ApiRouteDefinition extends ApiOpenApiMetadata {
   path: string;
   controller: string;
   action: string;
+  authorization: RouteAuthorization;
+  routeId?: string;
   csrf?: boolean;
-  policy?: string | string[];
+  policy?: string;
   skipAssets?: boolean;
   locals?: Record<string, unknown>;
   view?: string;

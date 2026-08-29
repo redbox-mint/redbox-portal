@@ -1,5 +1,6 @@
 import '../sails';
 import type { ApiRouteDefinition } from '../api-routes';
+import type { AuthorizationScopeProvider } from '../authorization';
 import type { RecordContractContributor } from '../record-contract';
 
 type HookFactoryResult = {
@@ -36,6 +37,7 @@ export type DefineRedboxHookOptions = {
   initialize?: HookInitializer;
   registerRedboxConfig?: () => HookRegistrationMap;
   registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
+  registerRedboxAuthorizationScopes?: AuthorizationScopeProvider;
   registerRedboxControllers?: () => HookRegistrationMap;
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
@@ -47,6 +49,7 @@ export type DefineRedboxHookOptions = {
 type DefinedRedboxHook = ((sails: Sails.Application) => HookFactoryResult) & {
   registerRedboxConfig?: () => HookRegistrationMap;
   registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
+  registerRedboxAuthorizationScopes?: AuthorizationScopeProvider;
   registerRedboxControllers?: () => HookRegistrationMap;
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
@@ -113,6 +116,10 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
 
   if (options.registerHookApiRoutes) {
     hookFactory.registerHookApiRoutes = options.registerHookApiRoutes;
+  }
+
+  if (options.registerRedboxAuthorizationScopes) {
+    hookFactory.registerRedboxAuthorizationScopes = options.registerRedboxAuthorizationScopes;
   }
 
   if (options.registerRedboxControllers) {

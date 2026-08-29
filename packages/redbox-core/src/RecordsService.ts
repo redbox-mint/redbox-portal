@@ -1,7 +1,8 @@
 import StorageServiceResponse from './StorageServiceResponse';
 import { cloneDeep, isEqual } from 'lodash';
 import { DatastreamRequestContext } from './DatastreamService';
-import { DeletedRecordModel, RecordModel, UserModel } from './model';
+import { BrandingModel, DeletedRecordModel, RecordModel, UserModel } from './model';
+import type { AuthorizationContext, AuthorizationResourceResult, ScopeKey } from './authorization';
 import type { FormAttributes } from './waterline-models';
 import { NormalizedRecordRelation } from './config/recordtype.config';
 import type { RecordSaveContext, RecordSaveResponse } from './RecordSaveResponse';
@@ -213,9 +214,21 @@ export interface RecordsService {
     recordTypeName: string,
     workflowStepName: string
   ): Promise<boolean>;
-  hasEditAccess(brand: unknown, user: UserInput, roles: AnyRecord[], record: RecordInput): boolean;
+  hasEditAccess(
+    brand: unknown,
+    user: UserInput,
+    roles: AnyRecord[],
+    record: RecordInput,
+    context?: AuthorizationContext
+  ): boolean;
   hasTransitionRoleAuthorization(step: unknown, user: UserInput): boolean;
-  hasViewAccess(brand: unknown, user: UserInput, roles: object[], record: RecordInput): boolean;
+  hasViewAccess(
+    brand: unknown,
+    user: UserInput,
+    roles: object[],
+    record: RecordInput,
+    context?: AuthorizationContext
+  ): boolean;
   appendToRecord(
     targetRecordOid: string,
     linkData: unknown,
@@ -272,7 +285,9 @@ export interface RecordsService {
     sort: unknown,
     fieldNames?: unknown,
     filterString?: unknown,
-    filterMode?: unknown
+    filterMode?: unknown,
+    secondarySort?: unknown,
+    bypassRecordAcl?: boolean
   ): Promise<StorageServiceResponse>;
   getRecords(
     workflowState: unknown,
@@ -288,7 +303,8 @@ export interface RecordsService {
     fieldNames?: unknown,
     filterString?: unknown,
     filterMode?: unknown,
-    secondarySort?: unknown
+    secondarySort?: unknown,
+    bypassRecordAcl?: boolean
   ): Promise<StorageServiceResponse>;
   create(
     brand: unknown,
@@ -328,6 +344,21 @@ export interface RecordsService {
     context?: RecordSaveContext
   ): Promise<RecordSaveResponse>;
   getMeta(oid: string): Promise<RecordModel>;
+  getAuthorizedMeta(
+    context: AuthorizationContext,
+    requiredScope: ScopeKey,
+    oid: string,
+    mode: 'read' | 'update'
+  ): Promise<AuthorizationResourceResult<RecordModel>>;
+  authorizeBrandOperation(
+    context: AuthorizationContext,
+    requiredScope: ScopeKey
+  ): AuthorizationResourceResult<BrandingModel>;
+  authorizeRecordCollection(
+    context: AuthorizationContext,
+    requiredScope: ScopeKey,
+    mode?: 'read' | 'update'
+  ): AuthorizationResourceResult<BrandingModel>;
   /** The sole authoritative form-contract fingerprint used by form delivery and every save. */
   getRecordFormFingerprint(
     record: RecordInput,
@@ -344,6 +375,12 @@ export interface RecordsService {
   ): Promise<RecordSaveResponse>;
   getDeletedRecord(oid: string, brand?: unknown): Promise<DeletedRecordModel | null>;
   getDeletedRecordMeta(oid: string, brand?: unknown): Promise<RecordModel | null>;
+  getAuthorizedDeletedRecordMeta(
+    context: AuthorizationContext,
+    requiredScope: ScopeKey,
+    oid: string,
+    mode: 'read' | 'update'
+  ): Promise<AuthorizationResourceResult<RecordModel>>;
   recoverLifecycleOperation(tombstone: DeletedRecordModel): Promise<'completed' | 'cancelled' | 'retained'>;
   recoverLifecycleOperations(limit?: number): Promise<{
     inspected: number;
@@ -369,7 +406,8 @@ export interface RecordsService {
     format: unknown,
     modBefore: unknown,
     modAfter: unknown,
-    recType: unknown
+    recType: unknown,
+    bypassRecordAcl?: boolean
   ): unknown;
   bootstrapData(): Promise<void>;
   // Probably to be retired or reimplemented in a different service

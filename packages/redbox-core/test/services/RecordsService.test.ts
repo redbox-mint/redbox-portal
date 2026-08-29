@@ -262,7 +262,7 @@ describe('RecordsService', function () {
     };
     Object.assign(globalThis, { FormsService: mockFormsService });
     (global as any).RolesService = {
-      getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', name: 'Admin' }),
+      getAdminFromBrand: sinon.stub().returns({ id: 'role-admin', key: 'Admin', name: 'Admin', branding: 'brand-1' }),
       getRole: sinon.stub().returns(null),
     };
     (global as any).UsersService = {
@@ -699,6 +699,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'testuser', roles: [] };
       const record = {
+        metaMetadata: { brandId: brand.id },
         authorization: {
           edit: ['testuser'],
           view: ['testuser'],
@@ -712,9 +713,10 @@ describe('RecordsService', function () {
 
     it('should return true for user with edit role', function () {
       const brand = { id: 'brand-1', name: 'default' };
-      const adminRole = { id: 'role-admin', name: 'Admin' };
+      const adminRole = { id: 'role-admin', key: 'Admin', name: 'Admin', branding: brand.id };
       const user = { username: 'adminuser', roles: [adminRole] };
       const record = {
+        metaMetadata: { brandId: brand.id },
         authorization: {
           edit: ['otheruser'],
           view: ['otheruser'],
@@ -734,6 +736,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'regularuser', roles: [] };
       const record = {
+        metaMetadata: { brandId: brand.id },
         authorization: {
           edit: ['otheruser'],
           view: ['otheruser'],
@@ -749,6 +752,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'testuser', roles: [] };
       const record = {
+        metaMetadata_brandId: brand.id,
         authorization_edit: ['testuser'],
         authorization_view: ['testuser'],
       };
@@ -762,8 +766,8 @@ describe('RecordsService', function () {
   describe('hasCreateAccess', function () {
     it('denies a form-visible role that is absent from the normal starting-step create projection', async function () {
       const brand = { id: 'brand-1', name: 'default' };
-      const viewerRole = { id: 'role-viewer', name: 'Viewer' };
-      const creatorRole = { id: 'role-creator', name: 'Creator' };
+      const viewerRole = { id: 'role-viewer', key: 'Viewer', name: 'Viewer', branding: brand.id };
+      const creatorRole = { id: 'role-creator', key: 'Creator', name: 'Creator', branding: brand.id };
       const user = { username: 'viewer', roles: [viewerRole] };
       (global as any).RolesService.getRole = sinon
         .stub()
@@ -850,8 +854,8 @@ describe('RecordsService', function () {
 
     it('preserves starting-step ACL precedence when authorizing a targeted create', async function () {
       const brand = { id: 'brand-1', name: 'default' };
-      const adminRole = { id: 'role-admin', name: 'Admin' };
-      const publisherRole = { id: 'role-publisher', name: 'Publisher' };
+      const adminRole = { id: 'role-admin', key: 'Admin', name: 'Admin', branding: brand.id };
+      const publisherRole = { id: 'role-publisher', key: 'Publisher', name: 'Publisher', branding: brand.id };
       const user = { username: 'admin', roles: [adminRole] };
       (global as any).RolesService.getRole = sinon
         .stub()
@@ -881,8 +885,8 @@ describe('RecordsService', function () {
 
     it('denies targeted create discovery when the caller lacks the target transition role', async function () {
       const brand = { id: 'brand-1', name: 'default' };
-      const adminRole = { id: 'role-admin', name: 'Admin' };
-      const publisherRole = { id: 'role-publisher', name: 'Publisher' };
+      const adminRole = { id: 'role-admin', key: 'Admin', name: 'Admin', branding: brand.id };
+      const publisherRole = { id: 'role-publisher', key: 'Publisher', name: 'Publisher', branding: brand.id };
       const user = { username: 'admin', roles: [adminRole] };
       (global as any).RolesService.getRole = sinon
         .stub()
@@ -916,6 +920,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'viewer', roles: [] };
       const record = {
+        metaMetadata: { brandId: brand.id },
         authorization: {
           edit: ['owner'],
           view: ['owner', 'viewer'],
@@ -931,6 +936,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'editor', roles: [] };
       const record = {
+        metaMetadata: { brandId: brand.id },
         authorization: {
           edit: ['editor'],
           view: ['viewer'],
@@ -946,6 +952,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'stranger', roles: [] };
       const record = {
+        metaMetadata: { brandId: brand.id },
         authorization: {
           edit: ['owner'],
           view: ['viewer'],
@@ -961,6 +968,7 @@ describe('RecordsService', function () {
       const brand = { id: 'brand-1', name: 'default' };
       const user = { username: 'viewer', roles: [] };
       const record = {
+        metaMetadata_brandId: brand.id,
         authorization_edit: ['owner'],
         authorization_view: ['owner', 'viewer'],
       };
@@ -1085,6 +1093,26 @@ describe('RecordsService', function () {
 
       expect(result).to.include('authorization_edit:testuser');
       expect(result).to.not.include('authorization_view:testuser');
+    });
+
+    it('uses immutable same-brand role keys without emitting empty Lucene role groups', function () {
+      const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
+      const brand = { id: 'brand-1' };
+      const roles = [
+        { key: 'Researcher', name: 'Renamed label', branding: { id: 'brand-1' } },
+        { key: 'Foreign', branding: { id: 'brand-2' } },
+        { key: 'system-administrator' },
+      ];
+
+      const result = (RecordsService as any).addAuthFilter(url, 'testuser', roles, brand);
+      const noRoleResult = (RecordsService as any).addAuthFilter(url, 'testuser', [], brand);
+
+      expect(result).to.include('authorization_viewRoles:(Researcher)');
+      expect(result).to.include('authorization_editRoles:(Researcher)');
+      expect(result).not.to.include('Renamed label');
+      expect(result).not.to.include('Foreign');
+      expect(result).not.to.include('system-administrator');
+      expect(noRoleResult).not.to.include('Roles:()');
     });
   });
 
@@ -4038,7 +4066,7 @@ describe('RecordsService', function () {
       });
 
     const authorizeCreateFromStartingStep = (roleName = 'Researcher') => {
-      const role = { id: `role-${roleName.toLowerCase()}`, name: roleName };
+      const role = { id: `role-${roleName.toLowerCase()}`, key: roleName, name: roleName, branding: 'brand-1' };
       (global as any).RolesService.getRole = sinon
         .stub()
         .callsFake((_brand: unknown, configuredName: string) => (configuredName === roleName ? role : null));
@@ -4741,7 +4769,7 @@ describe('RecordsService', function () {
         { name: 'rdmp', hooks: {}, searchable: false },
         {
           username: 'user-1',
-          roles: [researcherRole, { id: 'role-publisher', name: 'Publisher' }],
+          roles: [researcherRole, { id: 'role-publisher', key: 'Publisher', name: 'Publisher', branding: 'brand-1' }],
         },
         true,
         false,
@@ -4767,7 +4795,7 @@ describe('RecordsService', function () {
           brand: { id: 'brand-1', name: 'default' },
           user: {
             username: 'user-1',
-            roles: [researcherRole, { id: 'role-publisher', name: 'Publisher' }],
+            roles: [researcherRole, { id: 'role-publisher', key: 'Publisher', name: 'Publisher', branding: 'brand-1' }],
           },
         },
       });
@@ -4842,8 +4870,8 @@ describe('RecordsService', function () {
 
     it('rejects a public create before schema resolution when submitted authorization self-grants edit access', async function () {
       enableRecordSchema();
-      const creatorRole = { id: 'role-creator', name: 'Creator' };
-      const deniedRole = { id: 'role-denied', name: 'Denied' };
+      const creatorRole = { id: 'role-creator', key: 'Creator', name: 'Creator', branding: 'brand-1' };
+      const deniedRole = { id: 'role-denied', key: 'Denied', name: 'Denied', branding: 'brand-1' };
       (global as any).RolesService.getRole = sinon
         .stub()
         .callsFake((_brand: unknown, name: string) => (name === 'Creator' ? creatorRole : null));
@@ -5391,7 +5419,7 @@ describe('RecordsService', function () {
     });
 
     it('authorizes public no-ACL harvest creates from workflow roles in disabled, shadow, and enforce modes', async function () {
-      const harvesterRole = { id: 'role-harvester', name: 'Harvester' };
+      const harvesterRole = { id: 'role-harvester', key: 'Harvester', name: 'Harvester', branding: 'brand-1' };
       (global as any).RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
         roleName === harvesterRole.name ? harvesterRole : null
       );
@@ -5465,7 +5493,7 @@ describe('RecordsService', function () {
     });
 
     it('rejects unauthorized public no-ACL harvest creates before schema resolution in every mode', async function () {
-      const harvesterRole = { id: 'role-harvester', name: 'Harvester' };
+      const harvesterRole = { id: 'role-harvester', key: 'Harvester', name: 'Harvester', branding: 'brand-1' };
       (global as any).RolesService.getRole.callsFake((_brand: unknown, roleName: string) =>
         roleName === harvesterRole.name ? harvesterRole : null
       );
@@ -5502,7 +5530,10 @@ describe('RecordsService', function () {
           { id: 'brand-1' },
           harvestRequest,
           { name: 'rdmp', hooks: {}, searchable: false },
-          { username: 'researcher', roles: [{ id: 'role-researcher', name: 'Researcher' }] },
+          {
+            username: 'researcher',
+            roles: [{ id: 'role-researcher', key: 'Researcher', name: 'Researcher', branding: 'brand-1' }],
+          },
           false,
           false,
           undefined,
@@ -10695,7 +10726,10 @@ describe('RecordsService', function () {
         truncated: false,
       });
       mockSails.services.recordschemaservice = { resolveUpdate, validateResolvedArtifact };
-      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
+      const user = {
+        username: 'owner',
+        roles: [{ id: 'role-researcher', key: 'Researcher', name: 'Researcher', branding: 'brand-1' }],
+      };
 
       const appendStored = {
         ...baseRecord(),
@@ -10742,7 +10776,10 @@ describe('RecordsService', function () {
       enableRecordSchema();
       enableInternalRecordMutationStorage();
       mockSails.config.recordValidation = { mode: 'enforce' };
-      const actor = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
+      const actor = {
+        username: 'owner',
+        roles: [{ id: 'role-researcher', key: 'Researcher', name: 'Researcher', branding: 'brand-1' }],
+      };
       const stored = {
         ...baseRecord(),
         revision: 1,

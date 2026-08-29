@@ -1,7 +1,7 @@
 import { ZodIssue, ZodType } from 'zod';
 
 import { ApiFileConstraint, ApiRequestDefinition, ApiRouteDefinition } from './types';
-import { getRequestFiles, isRecord } from './helpers';
+import { getRequestFiles, isRecord, isStrictObjectSchema } from './helpers';
 import { buildRequestSourceInput, extractApiRequest } from './request-extraction';
 
 export interface ApiValidationIssue {
@@ -18,7 +18,7 @@ export interface ApiValidationOptions {
   files?: Record<string, unknown[]>;
 }
 
-export interface ApiRouteValidationOptions extends ApiValidationOptions { }
+export interface ApiRouteValidationOptions extends ApiValidationOptions {}
 
 function formatIssuePath(path: (string | number)[]): string {
   if (!path.length) {
@@ -53,7 +53,13 @@ function validateSource(
   if (!schema) {
     return;
   }
-  const value = buildRequestSourceInput(req, request, source, schema);
+  // Validate strict request bodies before field projection so they can reject
+  // undeclared authority-bearing properties. Other sources still need projection
+  // because the framework adds fields that are not part of each action's contract.
+  const value =
+    source === 'body' && isStrictObjectSchema(schema)
+      ? buildRequestSourceInput(req, request, source)
+      : buildRequestSourceInput(req, request, source, schema);
   const result = schema.safeParse(value);
   if (!result.success) {
     addZodIssues(prefix, result.error.issues, issues);
@@ -115,9 +121,8 @@ function getHeaderValue(req: Sails.Req, name: string): string | string[] | undef
 
 function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | undefined {
   const contentTypeHeader = getHeaderValue(req, 'content-type');
-  const requestContentType = typeof contentTypeHeader === 'string'
-    ? contentTypeHeader.split(';')[0]?.trim().toLowerCase()
-    : undefined;
+  const requestContentType =
+    typeof contentTypeHeader === 'string' ? contentTypeHeader.split(';')[0]?.trim().toLowerCase() : undefined;
   if (!requestContentType) {
     return contentTypes[0];
   }
@@ -211,7 +216,9 @@ export function validateApiRouteFiles(
 
 export function getValidatedApiRequest(req: Sails.Req): ValidatedApiRouteRequest {
   if (!req.apiRequest) {
-    throw new Error(`Missing validated API request context for ${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`);
+    throw new Error(
+      `Missing validated API request context for ${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`
+    );
   }
   return req.apiRequest;
 }

@@ -27,7 +27,6 @@ export namespace Controllers {
    * TranslationController - serves i18next namespace JSON for http-backend.
    */
   export class Translation extends controllers.Core.Controller {
-
     /**
      * Exported methods, accessible from internet.
      */
@@ -37,7 +36,7 @@ export namespace Controllers {
       'listEntriesApp',
       'setEntryApp',
       'getBundleApp',
-      'setBundleApp'
+      'setBundleApp',
     ];
 
     public async getNamespace(req: Sails.Req, res: Sails.Res) {
@@ -105,19 +104,21 @@ export namespace Controllers {
 
         // From DB bundles using I18nEntriesService
         const bundles = await I18nEntriesService.listBundles(branding);
-        bundles.forEach((b) => b?.locale && langCodes.add(b.locale));
+        bundles.forEach(b => b?.locale && langCodes.add(b.locale));
 
         const codes = Array.from(langCodes);
         const bundleMap = new Map(bundles.map(b => [b.locale, b]));
 
-        const list = await Promise.all(codes.map(async code => {
-          const bundle = bundleMap.get(code);
-          return {
-            code: code,
-            displayName: bundle?.displayName || await I18nEntriesService.getLanguageDisplayName(code),
-            enabled: bundle?.enabled !== false // defaults to true if not set
-          };
-        }));
+        const list = await Promise.all(
+          codes.map(async code => {
+            const bundle = bundleMap.get(code);
+            return {
+              code: code,
+              displayName: bundle?.displayName || (await I18nEntriesService.getLanguageDisplayName(code)),
+              enabled: bundle?.enabled !== false, // defaults to true if not set
+            };
+          })
+        );
 
         list.sort((a, b) => a.displayName.localeCompare(b.displayName));
         return res.json(list);
@@ -132,9 +133,7 @@ export namespace Controllers {
      */
     public async listEntriesApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = toParamString(req.params.branding);
-        const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const branding = BrandingService.getBrandFromReq(req);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
         const keyPrefix = req.param('keyPrefix');
@@ -148,9 +147,7 @@ export namespace Controllers {
 
     public async setEntryApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = toParamString(req.params.branding);
-        const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const branding = BrandingService.getBrandFromReq(req);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
         const key = req.param('key');
@@ -158,8 +155,19 @@ export namespace Controllers {
         const category = req.body?.category;
         const contentFormat = req.body?.contentFormat;
         const description = req.body?.description;
-        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, { category, contentFormat, description });
-        try { await TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setEntryApp] reload failed', e instanceof Error ? e.message : String(e)); }
+        const saved = await I18nEntriesService.setEntry(branding, locale, namespace, key, value, {
+          category,
+          contentFormat,
+          description,
+        });
+        try {
+          await TranslationService.reloadResources();
+        } catch (e: unknown) {
+          sails.log.warn(
+            '[TranslationController.setEntryApp] reload failed',
+            e instanceof Error ? e.message : String(e)
+          );
+        }
         return res.json(saved);
       } catch (err) {
         sails.log.error('Error in TranslationController.setEntryApp:', err);
@@ -169,9 +177,7 @@ export namespace Controllers {
 
     public async getBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = toParamString(req.params.branding);
-        const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const branding = BrandingService.getBrandFromReq(req);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
         const bundle = await I18nEntriesService.getBundle(branding, locale, namespace);
@@ -185,15 +191,20 @@ export namespace Controllers {
 
     public async setBundleApp(req: Sails.Req, res: Sails.Res) {
       try {
-        const brandingName = toParamString(req.params.branding);
-        const branding = BrandingService.getBrand(brandingName);
-        if (!branding) return res.badRequest({ message: `Unknown branding: ${brandingName}` });
+        const branding = BrandingService.getBrandFromReq(req);
         const locale = req.param('locale');
         const namespace = req.param('namespace') || 'translation';
         const data = req.body?.data || req.body;
         const displayName = req.body?.displayName;
         const bundle = await I18nEntriesService.setBundle(branding, locale, namespace, data, displayName);
-        try { await TranslationService.reloadResources(); } catch (e: unknown) { sails.log.warn('[TranslationController.setBundleApp] reload failed', e instanceof Error ? e.message : String(e)); }
+        try {
+          await TranslationService.reloadResources();
+        } catch (e: unknown) {
+          sails.log.warn(
+            '[TranslationController.setBundleApp] reload failed',
+            e instanceof Error ? e.message : String(e)
+          );
+        }
         return res.json(bundle);
       } catch (err) {
         sails.log.error('Error in TranslationController.setBundleApp:', err);

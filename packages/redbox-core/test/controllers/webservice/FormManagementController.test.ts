@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/FormManagementController';
 import { Services as FormsServices } from '../../../src/services/FormsService';
 import type { FormAttributes } from '../../../src/waterline-models/Form';
+import { asScopeKey, deniedResource, type AuthorizationDecision } from '../../../src/authorization';
 
 let expect: Chai.ExpectStatic;
 
@@ -139,7 +140,7 @@ describe('Webservice FormManagementController validation operation metadata', fu
     expect(JSON.stringify(body)).not.to.include('secret');
   });
 
-  it('omits discovery when a requested record context cannot be loaded safely', async function () {
+  it('fails opaquely when a requested record context cannot be loaded safely', async function () {
     sinon.stub(formsService, 'getFormByName').returns(
       of({
         id: 'form-1',
@@ -149,10 +150,16 @@ describe('Webservice FormManagementController validation operation metadata', fu
       })
     );
     const discover = sinon.stub(formsService, 'discoverValidationOperations').resolves([{ name: 'submit' }]);
-    (global as any).sails.services.recordsservice = {
-      getMeta: sinon.stub().rejects(new Error('raw storage failure')),
+    const decision: AuthorizationDecision = {
+      allowed: false,
+      reasonCode: 'resource-not-found',
+      requiredScope: asScopeKey('record.read'),
+      brandId: 'brand-1',
     };
-    const respond = sinon.stub(controller as any, 'apiRespond');
+    (global as any).sails.services.recordsservice = {
+      getAuthorizedMeta: sinon.stub().resolves(deniedResource(decision)),
+    };
+    const sendResp = sinon.stub(controller as any, 'sendResp');
     const req = {
       apiRequest: {
         params: {},
@@ -161,16 +168,20 @@ describe('Webservice FormManagementController validation operation metadata', fu
         files: {},
       },
       user: { username: 'alice', roles: [] },
+      resourceAuthorization: {
+        context: {},
+        requiredScope: asScopeKey('form.read'),
+        routeId: 'form-get',
+      },
     } as unknown as Sails.Req;
 
     await controller.getForm(req, {} as Sails.Res);
 
     expect(discover.called).to.equal(false);
-    expect(respond.firstCall.args[2].validationOperations).to.deep.equal([]);
-    expect(JSON.stringify(respond.firstCall.args[2])).not.to.include('raw storage failure');
+    expect(sendResp.firstCall.args[2].errors[0]).to.include({ status: 404 });
   });
 
-  it('omits discovery when the loaded record belongs to another brand', async function () {
+  it('uses the same opaque response when the record belongs to another brand', async function () {
     sinon.stub(formsService, 'getFormByName').returns(
       of({
         id: 'form-1',
@@ -180,14 +191,16 @@ describe('Webservice FormManagementController validation operation metadata', fu
       })
     );
     const discover = sinon.stub(formsService, 'discoverValidationOperations').resolves([{ name: 'submit' }]);
-    (global as any).sails.services.recordsservice = {
-      getMeta: sinon.stub().resolves({
-        redboxOid: 'other-brand-record',
-        metadata: {},
-        metaMetadata: { brandId: 'brand-2', type: 'dataset', form: 'dataset-draft' },
-      }),
+    const decision: AuthorizationDecision = {
+      allowed: false,
+      reasonCode: 'resource-brand-mismatch',
+      requiredScope: asScopeKey('record.read'),
+      brandId: 'brand-1',
     };
-    const respond = sinon.stub(controller as any, 'apiRespond');
+    (global as any).sails.services.recordsservice = {
+      getAuthorizedMeta: sinon.stub().resolves(deniedResource(decision)),
+    };
+    const sendResp = sinon.stub(controller as any, 'sendResp');
     const req = {
       apiRequest: {
         params: {},
@@ -196,11 +209,16 @@ describe('Webservice FormManagementController validation operation metadata', fu
         files: {},
       },
       user: { username: 'alice', roles: [] },
+      resourceAuthorization: {
+        context: {},
+        requiredScope: asScopeKey('form.read'),
+        routeId: 'form-get',
+      },
     } as unknown as Sails.Req;
 
     await controller.getForm(req, {} as Sails.Res);
 
     expect(discover.called).to.equal(false);
-    expect(respond.firstCall.args[2].validationOperations).to.deep.equal([]);
+    expect(sendResp.firstCall.args[2].errors[0]).to.include({ status: 404 });
   });
 });

@@ -18,6 +18,18 @@ export class WorkspaceAsyncClass {
   @Attr({ type: 'string', required: true })
   public started_by!: string;
 
+  @Attr({ type: 'string' })
+  public actorId?: string;
+
+  @Attr({ type: 'string' })
+  public operationId?: string;
+
+  @Attr({ type: 'string' })
+  public branding?: string;
+
+  @Attr({ type: 'string' })
+  public requiredScope?: string;
+
   @Attr({ type: 'string', required: true })
   public service!: string;
 
@@ -48,6 +60,10 @@ export interface WorkspaceAsyncAttributes extends Sails.WaterlineAttributes {
   recordType: string;
   service: string;
   started_by: string;
+  actorId?: string;
+  operationId?: string;
+  branding?: string;
+  requiredScope?: string;
   status?: string;
 }
 

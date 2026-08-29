@@ -178,8 +178,16 @@ Hooks must export registration functions:
 | `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence) |
 | `hasBootstrap` | `registerRedboxBootstrap()` | Returns async bootstrap function |
 | `hasApiRoutes` | `registerHookApiRoutes()` | Returns an array of contract-first API route definitions |
+| `hasAuthorizationScopes` | `registerRedboxAuthorizationScopes()` | Synchronously returns hook-owned authorization scope definitions |
 | `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
 | `hasFormConfigs` | `registerRedboxFormConfigs()` | Returns form config registry |
+
+Contract API route providers are collected into `config/apiRoutesHooks.js`. The generated
+`routes.js` shim mounts the merged core and hook route map, and the generated `policies.js`
+shim adds the contract validation and authorization chain for every hook route. Scope
+providers are validated synchronously during discovery and emitted as data in
+`config/authorizationScopeSources.js`; invalid keys, namespace ownership, metadata,
+duplicates, and replacements fail startup generation.
 
 ### Hook Load Priority
 

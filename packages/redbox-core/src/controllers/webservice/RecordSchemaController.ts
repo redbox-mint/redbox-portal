@@ -164,8 +164,8 @@ export namespace Controllers {
       };
     }
 
-    private brand(branding: string): BrandingModel | undefined {
-      const brand = BrandingService.getBrand(branding);
+    private brand(req: Sails.Req): BrandingModel | undefined {
+      const brand = BrandingService.getBrandFromReq(req);
       if (brand === undefined || brand === null) {
         return undefined;
       }
@@ -348,15 +348,17 @@ export namespace Controllers {
       let instance = '/api/records/schemas/create';
       try {
         const { params, query, headers = {} } = getValidatedApiRequest(req);
-        const branding = this.normalizedRequired(params.branding);
+        const requestedBranding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const recordType = this.normalizedRequired(params.recordType);
         const rootContext = BrandingService.getRootContext();
-        instance = recordSchemaCreateResolverUrl(branding, portal, recordType, rootContext);
+        instance = recordSchemaCreateResolverUrl(requestedBranding, portal, recordType, rootContext);
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
-        const brand = this.brand(branding);
+        const brand = this.brand(req);
         if (!brand) return this.sendProblem(req, res, 'not-found', instance);
+        const branding = brand.name.trim();
+        instance = recordSchemaCreateResolverUrl(branding, portal, recordType, rootContext);
         const result = await this.RecordSchemaService.resolveCreate({
           brand: brand.id.trim(),
           branding,
@@ -382,15 +384,17 @@ export namespace Controllers {
       let instance = '/api/records/schemas/update';
       try {
         const { params, query, headers = {} } = getValidatedApiRequest(req);
-        const branding = this.normalizedRequired(params.branding);
+        const requestedBranding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const oid = this.normalizedRequired(params.oid);
         const rootContext = BrandingService.getRootContext();
-        instance = recordSchemaUpdateResolverUrl(branding, portal, oid, rootContext);
+        instance = recordSchemaUpdateResolverUrl(requestedBranding, portal, oid, rootContext);
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
-        const brand = this.brand(branding);
+        const brand = this.brand(req);
         if (!brand) return this.sendProblem(req, res, 'not-found', instance);
+        const branding = brand.name.trim();
+        instance = recordSchemaUpdateResolverUrl(branding, portal, oid, rootContext);
         const result = await this.RecordSchemaService.resolveUpdate({
           brand: brand.id.trim(),
           branding,
@@ -416,14 +420,16 @@ export namespace Controllers {
       let instance = '/api/records/schemas';
       try {
         const { params, headers = {} } = getValidatedApiRequest(req);
-        const branding = this.normalizedRequired(params.branding);
+        const requestedBranding = this.normalizedRequired(params.branding);
         const portal = this.normalizedRequired(params.portal);
         const digest = this.normalizedRequired(params.digest);
-        instance = recordSchemaImmutableUrl(branding, portal, digest, BrandingService.getRootContext());
+        instance = recordSchemaImmutableUrl(requestedBranding, portal, digest, BrandingService.getRootContext());
         const user = this.authenticatedUser(req);
         if (!user) return this.sendProblem(req, res, 'authentication-required', instance);
-        const brand = this.brand(branding);
+        const brand = this.brand(req);
         if (!brand) return this.sendProblem(req, res, 'not-found', instance);
+        const branding = brand.name.trim();
+        instance = recordSchemaImmutableUrl(branding, portal, digest, BrandingService.getRootContext());
         const result = await this.RecordSchemaService.resolveImmutable({
           brand: brand.id.trim(),
           branding,

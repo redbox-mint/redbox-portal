@@ -51,6 +51,7 @@ describe('Webservice FigshareCrosswalkController', () => {
     (global as any).BrandingService = {
       getBrandNameFromReq: sinon.stub().returns('default'),
       getBrand: sinon.stub().returns({ id: 'brand-1' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1' }),
     };
 
     controller = new Controllers.FigshareCrosswalk();
@@ -109,14 +110,14 @@ describe('Webservice FigshareCrosswalkController', () => {
 
       await controller.list(req, res);
 
-      expect(service.listCrosswalks.firstCall.args[1]).to.deep.equal({ brandId: '', userId: '7' });
+      expect(service.listCrosswalks.firstCall.args[1]).to.deep.equal({ brandId: 'brand-1', userId: '7' });
 
       sendResp.resetHistory();
       service.listCrosswalks.resetHistory();
 
       await controller.list(makeReq({ query: {} }), res);
 
-      expect(service.listCrosswalks.firstCall.args[1]).to.deep.equal({ brandId: '', userId: 'unknown' });
+      expect(service.listCrosswalks.firstCall.args[1]).to.deep.equal({ brandId: 'brand-1', userId: 'unknown' });
     });
 
     it('maps service errors to an error response', async () => {

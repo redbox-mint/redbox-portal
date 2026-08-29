@@ -21,10 +21,11 @@
 
 import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
-import { TemplateCompileInput } from "@researchdatabox/sails-ng-common";
-import { firstValueFrom } from "rxjs";
+import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
+import { firstValueFrom } from 'rxjs';
 import { FormAttributes } from '../waterline-models';
-
+import { requireAllowedResource } from '../authorization';
+import { requireRequestResourceAuthorization } from '../api-routes';
 
 /**
  * Package that contains all Controllers.
@@ -51,7 +52,7 @@ export namespace Controllers {
       'getDashboardViewTemplates',
     ];
 
-    private _recordTypeAuto = "auto";
+    private _recordTypeAuto = 'auto';
 
     /**
      **************************************************************************************************
@@ -66,95 +67,93 @@ export namespace Controllers {
      */
 
     public get(req: Sails.Req, res: Sails.Res) {
-      let assetId = req.param("asset");
-      if (!assetId) assetId = 'apiClientConfig.json'
+      let assetId = req.param('asset');
+      if (!assetId) assetId = 'apiClientConfig.json';
       sails.log.verbose(`Geting asset: ${assetId}`);
       this.sendAssetView(res, assetId, { layout: false });
     }
 
     public async getFormCompiledItems(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const editMode = req.query.edit == "true";
-      const formMode = editMode ? "edit" : "view";
-      const recordType = req.param("recordType") || this._recordTypeAuto;
-      const oid = req.param("oid") || "";
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+      const editMode = req.query.edit == 'true';
+      const formMode = editMode ? 'edit' : 'view';
+      const recordType = req.param('recordType') || this._recordTypeAuto;
+      const oid = req.param('oid') || '';
       const reusableFormDefs = sails.config.reusableFormDefinitions;
 
       try {
         // TODO: this block is very similar to RecordController.getForm - refactor to service?
-        const userRoles = ((req.user?.roles ?? []) as globalThis.Record<string, unknown>[]).map((role) => role?.name as string).filter((name) => !!name);
+        const userRoles = ((req.user?.roles ?? []) as globalThis.Record<string, unknown>[])
+          .map(role => role?.name as string)
+          .filter(name => !!name);
         let form: FormAttributes | null, recordMetadata;
         if (!oid) {
           recordMetadata = null;
-          form = await firstValueFrom<FormAttributes>(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
+          form = await firstValueFrom<FormAttributes>(
+            FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode)
+          );
         } else {
-          const record = await RecordsService.getMeta(oid);
-          const recordAny = record as unknown as Record<string, unknown>;
-          let hasAccess: boolean = false;
-          if (editMode) {
-            //find form to edit a record
-            hasAccess = await RecordsService.hasEditAccess(brand, req.user!, (req.user!.roles ?? []) as globalThis.Record<string, unknown>[], recordAny);
-          } else {
-            //find form to view a record
-            hasAccess = await RecordsService.hasViewAccess(brand, req.user!, (req.user!.roles ?? []) as globalThis.Record<string, unknown>[], recordAny);
-          }
-          if (!hasAccess) {
-            return this.sendResp(req, res, {
-              status: 403,
-              displayErrors: [{ code: 'view-error-no-permissions' }],
-              v1: { message: TranslationService.t('view-error-no-permissions') }
-            });
-          }
+          const { context, requiredScope } = requireRequestResourceAuthorization(req);
+          const record = requireAllowedResource(
+            await RecordsService.getAuthorizedMeta(context, requiredScope, oid, editMode ? 'update' : 'read')
+          );
           recordMetadata = record?.metadata ?? {};
-          form = await FormsService.getForm(brand, "", editMode, "", record);
+          form = await FormsService.getForm(brand, '', editMode, '', record);
         }
 
         const formConfig = form?.configuration;
         if (!formConfig) {
           return this.sendResp(req, res, {
             status: 500,
-            displayErrors: [{ detail: "Form configuration not found." }],
+            displayErrors: [{ detail: 'Form configuration not found.' }],
           });
         }
-        const entries: TemplateCompileInput[] = await FormRecordConsistencyService.extractRawTemplates(formConfig, formMode, userRoles, recordMetadata, reusableFormDefs) || [];
+        const entries: TemplateCompileInput[] =
+          (await FormRecordConsistencyService.extractRawTemplates(
+            formConfig,
+            formMode,
+            userRoles,
+            recordMetadata,
+            reusableFormDefs
+          )) || [];
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
         return this.sendResp(req, res, {
           status: 500,
           errors: [this.asError(error)],
-          displayErrors: [{ detail: "Could not get form data." }],
+          displayErrors: [{ detail: 'Could not get form data.' }],
         });
       }
     }
 
     /**
-    * Provide the client script that can run the report expressions as jsonata expressions.
-    * @param req
-    * @param res
-    */
+     * Provide the client script that can run the report expressions as jsonata expressions.
+     * @param req
+     * @param res
+     */
     public async getAdminReportTemplates(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const reportName = req.param("reportName") || "";
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+      const reportName = req.param('reportName') || '';
 
       try {
         const entries = await ReportsService.extractReportTemplates(brand, reportName);
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
-        sails.log.error("Could not build report templates:", error);
+        sails.log.error('Could not build report templates:', error);
         return res.serverError();
       }
     }
 
     /**
-    * Provide the client script that can run the dashboard expressions as jsonata expressions.
-    * @param req
-    * @param res
-    */
+     * Provide the client script that can run the dashboard expressions as jsonata expressions.
+     * @param req
+     * @param res
+     */
     public async getRecordDashboardTemplates(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const recordType = req.param("recordType") || "";
-      const workflowStage = req.param("workflowStage") || "";
-      const dashboardType = req.param("dashboardType") || "standard";
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+      const recordType = req.param('recordType') || '';
+      const workflowStage = req.param('workflowStage') || '';
+      const dashboardType = req.param('dashboardType') || 'standard';
 
       if (!recordType || !workflowStage) {
         sails.log.warn(`getRecordDashboardTemplates called without recordType or workflowStage`);
@@ -162,19 +161,24 @@ export namespace Controllers {
       }
 
       try {
-        const entries = await DashboardTypesService.extractDashboardTemplates(brand, recordType, workflowStage, dashboardType);
+        const entries = await DashboardTypesService.extractDashboardTemplates(
+          brand,
+          recordType,
+          workflowStage,
+          dashboardType
+        );
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
-        sails.log.error("Could not build dashboard templates:", error);
+        sails.log.error('Could not build dashboard templates:', error);
         return res.serverError();
       }
     }
 
     public async getDashboardViewTemplates(req: Sails.Req, res: Sails.Res) {
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      const dashboardView = req.param("dashboardView") || "";
-      const stepName = req.param("stepName") || "";
-      const dashboardType = req.param("dashboardType") || "";
+      const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+      const dashboardView = req.param('dashboardView') || '';
+      const stepName = req.param('stepName') || '';
+      const dashboardType = req.param('dashboardType') || '';
 
       if (!dashboardView || !stepName) {
         sails.log.warn(`getDashboardViewTemplates called without dashboardView or stepName`);
@@ -182,10 +186,15 @@ export namespace Controllers {
       }
 
       try {
-        const entries = await DashboardTypesService.extractDashboardViewTemplates(brand, dashboardView, stepName, dashboardType);
+        const entries = await DashboardTypesService.extractDashboardViewTemplates(
+          brand,
+          dashboardView,
+          stepName,
+          dashboardType
+        );
         return this.sendClientMappingJavascript(res, entries);
       } catch (error) {
-        sails.log.error("Could not build dashboard view templates:", error);
+        sails.log.error('Could not build dashboard view templates:', error);
         return res.serverError();
       }
     }
@@ -194,13 +203,13 @@ export namespace Controllers {
       inputs = inputs || [];
       const entries = TemplateService.buildClientMapping(inputs);
       const entryKeys = inputs.map(i => TemplateService.buildKeyString(i.key)).sort();
-      const assetId = "dynamicScriptAsset";
+      const assetId = 'dynamicScriptAsset';
       sails.log.verbose(`Responding with asset '${assetId}' with ${inputs.length} keys: ${entryKeys.join(', ')}`);
       return this.sendAssetView(res, assetId, {
         entries: entries.map(i => {
-          return { key: TemplateService.buildKeyString(i.key), value: i.value }
+          return { key: TemplateService.buildKeyString(i.key), value: i.value };
         }),
-        layout: false
+        layout: false,
       });
     }
 
@@ -214,9 +223,9 @@ export namespace Controllers {
     }
 
     /**
-   **************************************************************************************************
-   **************************************** Override magic methods **********************************
-   **************************************************************************************************
-   */
+     **************************************************************************************************
+     **************************************** Override magic methods **********************************
+     **************************************************************************************************
+     */
   }
 }

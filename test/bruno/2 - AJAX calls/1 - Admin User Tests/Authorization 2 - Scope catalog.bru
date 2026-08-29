@@ -1,0 +1,36 @@
+meta {
+  name: Authorization - Scope catalog
+  type: http
+  seq: 52
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/scopes?namespace=authorization&limit=2
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const bruHelper = require("./bruno-helpers.js");
+  bruHelper.setCookies({bru, req});
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Returns a bounded authorization namespace page", function () {
+    const body = res.getBody();
+    expect(body.generation).to.be.a("string").and.not.empty;
+    expect(body.items).to.have.length(2);
+    expect(body.nextCursor).to.equal(body.items[1].key);
+    expect(body.items.every(item => item.namespace === "authorization")).to.equal(true);
+    expect(body.items.map(item => item.key)).to.deep.equal(body.items.map(item => item.key).sort());
+  });
+}

@@ -3,7 +3,6 @@ const { expect } = require('chai');
 const _ = require('lodash');
 
 describe('The BrandingService', function () {
-
   before(function (done) {
     done();
   });
@@ -23,7 +22,7 @@ describe('The BrandingService', function () {
   });
 
   it('should resolve the correct brand and portal', function (done) {
-    var req = { 'params': { 'branding': sails.config.auth.defaultBrand, 'portal': sails.config.auth.defaultPortal } };
+    var req = { params: { branding: sails.config.auth.defaultBrand, portal: sails.config.auth.defaultPortal } };
     var rootContext = BrandingService.getRootContext();
     var path = BrandingService.getBrandAndPortalPath(req);
     path.should.equal(rootContext + '/' + req.params.branding + '/' + req.params.portal);
@@ -48,17 +47,33 @@ describe('The BrandingService', function () {
     });
 
     it('saveDraft accepts valid variables and rejects invalid keys', async () => {
-      const updated = await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#ffffff' }, actor: admin });
+      const updated = await BrandingService.saveDraft({
+        branding: 'default',
+        variables: { 'site-branding-area-background-color': '#ffffff' },
+        actor: admin,
+      });
       expect(updated.variables).to.have.property('site-branding-area-background-color', '#ffffff');
 
       let err;
-      try { await BrandingService.saveDraft({ branding: 'default', variables: { 'branding-font-family': 'Arial, sans-serif' }, actor: admin }); } catch (e) { err = e; }
+      try {
+        await BrandingService.saveDraft({
+          branding: 'default',
+          variables: { 'branding-font-family': 'Arial, sans-serif' },
+          actor: admin,
+        });
+      } catch (e) {
+        err = e;
+      }
       expect(err).to.exist;
       expect(err.message).to.match(/Invalid variable key/);
     });
 
     it('preview issues token and stores CSS', async () => {
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#abcabc' }, actor: admin });
+      await BrandingService.saveDraft({
+        branding: 'default',
+        variables: { 'site-branding-area-background-color': '#abcabc' },
+        actor: admin,
+      });
       const { token, url, hash } = await BrandingService.preview('default', 'default');
       expect(token).to.match(/^[0-9a-f]{32}$/);
       expect(url).to.include(token);
@@ -70,15 +85,26 @@ describe('The BrandingService', function () {
     });
 
     it('preview token expires after TTL', async () => {
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#123123' }, actor: admin });
+      await BrandingService.saveDraft({
+        branding: 'default',
+        variables: { 'site-branding-area-background-color': '#123123' },
+        actor: admin,
+      });
       const { token } = await BrandingService.preview('default', 'default');
       const name = 'branding-preview:' + token;
       const entry = await CacheEntry.findOne({ name });
       // Manually age the entry beyond TTL
-      const ttlSeconds = Number.isFinite(_.get(sails, 'config.branding.previewTtlSeconds')) ? sails.config.branding.previewTtlSeconds : 300;
+      const ttlSeconds = Number.isFinite(_.get(sails, 'config.branding.previewTtlSeconds'))
+        ? sails.config.branding.previewTtlSeconds
+        : 300;
       const expiredTs = Math.floor(Date.now() / 1000) - (ttlSeconds + 10);
       await CacheEntry.update({ id: entry.id }).set({ ts_added: expiredTs });
-      let err; try { await BrandingService.fetchPreview(token); } catch (e) { err = e; }
+      let err;
+      try {
+        await BrandingService.fetchPreview(token);
+      } catch (e) {
+        err = e;
+      }
       expect(err).to.exist;
       expect(err.message).to.match(/preview-expired/);
     });
@@ -88,7 +114,11 @@ describe('The BrandingService', function () {
       const starting = await BrandingConfig.findOne({ name: 'default' });
       const baseVersion = (starting && starting.version) || 0;
       // First draft & publish
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#aabbcc' }, actor: admin });
+      await BrandingService.saveDraft({
+        branding: 'default',
+        variables: { 'site-branding-area-background-color': '#aabbcc' },
+        actor: admin,
+      });
       const pub1 = await BrandingService.publish('default', 'default', admin);
       expect(pub1.version).to.equal(baseVersion + 1);
       const brandAfterFirst = await BrandingConfig.findOne({ name: 'default' });
@@ -98,7 +128,11 @@ describe('The BrandingService', function () {
       expect(brandAfterFirst.css).to.include('--rb-site-branding-area-background-color: #aabbcc;');
 
       // Second draft & publish with different value
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#112233' }, actor: admin });
+      await BrandingService.saveDraft({
+        branding: 'default',
+        variables: { 'site-branding-area-background-color': '#112233' },
+        actor: admin,
+      });
       const pub2 = await BrandingService.publish('default', 'default', admin);
       expect(pub2.version).to.equal(baseVersion + 2);
       const brandAfterSecond = await BrandingConfig.findOne({ name: 'default' });
@@ -108,7 +142,7 @@ describe('The BrandingService', function () {
       const firstHistory = histories2.find(h => h.version === baseVersion + 1);
 
       // Rollback to first version
-      const rollbackRes = await BrandingService.rollback(firstHistory.id, admin);
+      const rollbackRes = await BrandingService.rollback(firstHistory.id, admin, brandAfterSecond.id);
       expect(rollbackRes.version).to.equal(baseVersion + 1);
       const brandAfterRollback = await BrandingConfig.findOne({ name: 'default' });
       expect(brandAfterRollback.variables['site-branding-area-background-color']).to.equal('#aabbcc');

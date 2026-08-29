@@ -14,7 +14,8 @@ declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLo
 function mapError(e: Error): { status: number; body: unknown } {
   const msg = e.message || '';
   if (msg === 'unauthorized') return { status: 403, body: { error: 'forbidden' } };
-  if (msg.startsWith('Invalid variable key') || msg.startsWith('Invalid variable value')) return { status: 400, body: { error: 'invalid-variable', detail: msg } };
+  if (msg.startsWith('Invalid variable key') || msg.startsWith('Invalid variable value'))
+    return { status: 400, body: { error: 'invalid-variable', detail: msg } };
   if (msg.startsWith('contrast-violation')) return { status: 400, body: { error: 'contrast', detail: msg } };
   if (msg === 'branding-not-found') return { status: 404, body: { error: 'branding-not-found' } };
   if (msg === 'history-not-found') return { status: 404, body: { error: 'history-not-found' } };
@@ -31,9 +32,7 @@ export namespace Controllers {
     /** 9.1 Return current draft/active branding config + logo meta */
     async config(req: Sails.Req, res: Sails.Res) {
       try {
-        const branding = getRouteParam(req, 'branding');
-        const brand = BrandingService.getBrand(branding);
-        if (!brand) return res.status(404).json({ error: 'branding-not-found' });
+        const brand = BrandingService.getBrandFromReq(req);
         return res.ok({ branding: brand });
       } catch (e: unknown) {
         const { status, body } = mapError(e as Error);
@@ -43,7 +42,6 @@ export namespace Controllers {
 
     /** 9.2 Save draft variables */
     async draft(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
       const actor = req.user;
       // Validate variables if provided
       const variablesInput = req.body?.variables;
@@ -52,12 +50,13 @@ export namespace Controllers {
           return res.status(400).json({ error: 'Invalid variables in request body' });
         }
       }
-      
+
       // Coerce variables to empty object if missing
       const variables = variablesInput || {};
-      
+
       try {
-        const updated = await BrandingService.saveDraft({ branding, variables, actor });
+        const brand = BrandingService.getBrandFromReq(req);
+        const updated = await BrandingService.saveDraft({ branding: brand.name, variables, actor });
         return res.ok({ branding: updated });
       } catch (e: unknown) {
         const { status, body } = mapError(e as Error);
@@ -67,14 +66,13 @@ export namespace Controllers {
 
     /** 9.3 Create preview token */
     async preview(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
       const portal = getRouteParam(req, 'portal');
       try {
-        const { token, url, hash } = await BrandingService.preview(branding, portal);
+        const brand = BrandingService.getBrandFromReq(req);
+        const { token, url, hash } = await BrandingService.preview(brand.name, portal);
         let brandConfig: unknown = null;
         try {
-          brandConfig = await BrandingService.getBrandingFromDB(branding);
-
+          brandConfig = await BrandingService.getBrandingFromDB(brand.name);
         } catch (_e) {
           sails.log.warn('Failed to fetch brand config for preview:', _e);
         }
@@ -88,12 +86,14 @@ export namespace Controllers {
 
     /** 9.4 Publish draft */
     async publish(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
       const portal = getRouteParam(req, 'portal');
       const actor = req.user;
       try {
+        const brand = BrandingService.getBrandFromReq(req);
         const expectedVersion = req.body?.expectedVersion;
-        const { version, hash, idempotent } = await BrandingService.publish(branding, portal, actor, { expectedVersion });
+        const { version, hash, idempotent } = await BrandingService.publish(brand.name, portal, actor, {
+          expectedVersion,
+        });
         const body: globalThis.Record<string, unknown> = { version, hash };
         if (idempotent) body.idempotent = true;
         return res.ok(body);
@@ -105,21 +105,36 @@ export namespace Controllers {
 
     /** 9.5 Upload logo */
     async logo(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
       const portal = getRouteParam(req, 'portal');
       try {
+        const brand = BrandingService.getBrandFromReq(req);
         if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<globalThis.Record<string, unknown>[]>((resolve, reject) => {
-          try { ((req as globalThis.Record<string, unknown>).file as (name: string) => { upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void })('logo').upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) => err ? reject(err) : resolve(uploaded)); } catch (_e) { resolve([]); }
+          try {
+            (
+              (req as globalThis.Record<string, unknown>).file as (name: string) => {
+                upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void;
+              }
+            )('logo').upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) =>
+              err ? reject(err) : resolve(uploaded)
+            );
+          } catch (_e) {
+            resolve([]);
+          }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];
         const fs = require('fs').promises;
         const buf = await fs.readFile(f.fd);
         try {
-          const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type as string });
+          const { hash } = await BrandingLogoService.putLogo({
+            branding: brand.name,
+            portal,
+            fileBuffer: buf,
+            contentType: f.type as string,
+          });
           await fs.unlink(f.fd);
           return res.ok({ hash });
         } catch (e) {
@@ -134,21 +149,36 @@ export namespace Controllers {
 
     /** 9.6 Upload favicon */
     async favicon(req: Sails.Req, res: Sails.Res) {
-      const branding = getRouteParam(req, 'branding');
       const portal = getRouteParam(req, 'portal');
       try {
+        const brand = BrandingService.getBrandFromReq(req);
         if (!(req._fileparser && typeof (req as globalThis.Record<string, unknown>).file === 'function')) {
           return res.badRequest({ error: 'no-file' });
         }
         const files = await new Promise<globalThis.Record<string, unknown>[]>((resolve, reject) => {
-          try { ((req as globalThis.Record<string, unknown>).file as (name: string) => { upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void })('favicon').upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) => err ? reject(err) : resolve(uploaded)); } catch (_e) { resolve([]); }
+          try {
+            (
+              (req as globalThis.Record<string, unknown>).file as (name: string) => {
+                upload: (cb: (err: unknown, uploaded: globalThis.Record<string, unknown>[]) => void) => void;
+              }
+            )('favicon').upload((err: unknown, uploaded: globalThis.Record<string, unknown>[]) =>
+              err ? reject(err) : resolve(uploaded)
+            );
+          } catch (_e) {
+            resolve([]);
+          }
         });
         if (!files || !files.length) return res.badRequest({ error: 'no-file' });
         const f = files[0];
         const fs = require('fs').promises;
         const buf = await fs.readFile(f.fd);
         try {
-          const { hash } = await BrandingLogoService.putFavicon({ branding, portal, fileBuffer: buf, contentType: f.type as string });
+          const { hash } = await BrandingLogoService.putFavicon({
+            branding: brand.name,
+            portal,
+            fileBuffer: buf,
+            contentType: f.type as string,
+          });
           await fs.unlink(f.fd);
           return res.ok({ hash });
         } catch (e) {

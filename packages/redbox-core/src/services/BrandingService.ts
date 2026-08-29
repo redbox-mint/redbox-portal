@@ -34,7 +34,6 @@ export namespace Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class Branding extends services.Core.Service {
-
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'loadAvailableBrands',
@@ -55,55 +54,63 @@ export namespace Services {
       'fetchPreview',
       'publish',
       'rollback',
-      'refreshBrandingCache'
+      'refreshBrandingCache',
     ];
 
-    protected availableBrandings: string[] = []
-    protected brandings: BrandingModel[] = []
+    protected availableBrandings: string[] = [];
+    protected brandings: BrandingModel[] = [];
     protected dBrand = { name: 'default' };
 
     public bootstrap = (): Observable<BrandingModel> => {
-      return super.getObservable(BrandingConfig.findOne(this.dBrand))
-        .pipe(flatMap(defaultBrand => {
+      return super.getObservable(BrandingConfig.findOne(this.dBrand)).pipe(
+        flatMap(defaultBrand => {
           if (_.isEmpty(defaultBrand)) {
             // create default brand
             sails.log.verbose("Default brand doesn't exist, creating...");
-            return super.getObservable(BrandingConfig.create(this.dBrand))
+            return super.getObservable(BrandingConfig.create(this.dBrand));
           }
-          sails.log.verbose("Default brand already exists...");
+          sails.log.verbose('Default brand already exists...');
           return of(defaultBrand);
-        })
-          , flatMap(this.loadAvailableBrands));
-    }
+        }),
+        flatMap(this.loadAvailableBrands)
+      );
+    };
 
     public loadAvailableBrands = (_defBrand: unknown): Observable<BrandingModel> => {
-      sails.log.verbose("Loading available brands......");
+      sails.log.verbose('Loading available brands......');
       // Find all the BrandingConfig we have and add them to the availableBrandings array.
       // A policy is configured to reject any branding values not present in this array.
-      return super.getObservable(BrandingConfig.find({}).populate('roles'))
-        .pipe(flatMap(brands => {
+      return super.getObservable(BrandingConfig.find({}).populate('roles')).pipe(
+        flatMap(brands => {
           this.brandings = brands as BrandingModel[];
           this.availableBrandings = _.map(this.brandings, 'name');
           const defBrandEntry: BrandingModel = this.getDefault();
           if (defBrandEntry == null) {
-            sails.log.error("Failed to load default brand!");
-            return throwError(new Error("Failed to load default brand!"));
+            sails.log.error('Failed to load default brand!');
+            return throwError(new Error('Failed to load default brand!'));
           }
           return of(defBrandEntry);
-        }));
-    }
+        })
+      );
+    };
 
     public getDefault = (): BrandingModel => {
-      return _.find(this.brandings, (o: BrandingModel) => { return o.name == this.dBrand.name }) as BrandingModel;
-    }
+      return _.find(this.brandings, (o: BrandingModel) => {
+        return o.name == this.dBrand.name;
+      }) as BrandingModel;
+    };
 
     public getBrand = (name: string): BrandingModel => {
-      return _.find(this.brandings, (o: BrandingModel) => { return o.name == name }) as BrandingModel;
-    }
+      return _.find(this.brandings, (o: BrandingModel) => {
+        return o.name == name;
+      }) as BrandingModel;
+    };
 
     public getBrandById = (id: string): BrandingModel => {
-      return _.find(this.brandings, (o: BrandingModel) => { return o.id == id }) as BrandingModel;
-    }
+      return _.find(this.brandings, (o: BrandingModel) => {
+        return o.id == id;
+      }) as BrandingModel;
+    };
 
     public async getBrandingFromDB(name: string): Promise<BrandingModel> {
       return BrandingConfig.findOne({ name: name }) as unknown as BrandingModel;
@@ -111,7 +118,7 @@ export namespace Services {
 
     public getAvailable = (): string[] => {
       return this.availableBrandings;
-    }
+    };
 
     public getBrandAndPortalPath(req: Sails.ReqParamProvider): string {
       const branding = this.getBrandNameFromReq(req);
@@ -129,7 +136,6 @@ export namespace Services {
     }
 
     public getRootContext(): string {
-
       const rootContext = sails.config.http.rootContext;
       if (_.isEmpty(rootContext)) {
         return ``;
@@ -138,12 +144,20 @@ export namespace Services {
       }
     }
 
-
     public getFullPath(req: Sails.ReqParamProvider): string {
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
     }
 
     public getBrandNameFromReq(req: Sails.ReqParamProvider): string {
+      if (req?.authorization !== undefined) {
+        const authoritativeBrand = req.authorization.brand;
+        if (!authoritativeBrand?.exists || !authoritativeBrand.authorized || !authoritativeBrand.id) {
+          throw new Error('authorization-brand-unavailable');
+        }
+        const resolved = this.getBrandById(authoritativeBrand.id);
+        if (!resolved) throw new Error('authorization-brand-unavailable');
+        return resolved.name;
+      }
       let branding = null;
       if (req && req.params) {
         const paramBranding = req.params['branding'];
@@ -169,6 +183,15 @@ export namespace Services {
     }
 
     public getBrandFromReq(req: Sails.ReqParamProvider): BrandingModel {
+      if (req?.authorization !== undefined) {
+        const authoritativeBrand = req.authorization.brand;
+        if (!authoritativeBrand?.exists || !authoritativeBrand.authorized || !authoritativeBrand.id) {
+          throw new Error('authorization-brand-unavailable');
+        }
+        const resolved = this.getBrandById(authoritativeBrand.id);
+        if (!resolved) throw new Error('authorization-brand-unavailable');
+        return resolved;
+      }
       return this.getBrand(this.getBrandNameFromReq(req));
     }
 
@@ -198,7 +221,11 @@ export namespace Services {
     }
 
     /** Save draft variables after whitelist + contrast validation */
-    public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: unknown; }): Promise<BrandingModel | null> {
+    public async saveDraft(input: {
+      branding: string;
+      variables: Record<string, string>;
+      actor?: unknown;
+    }): Promise<BrandingModel | null> {
       const normalized = BrandingThemeCssService.validateVariables(input.variables || {});
       const brand = await BrandingConfig.findOne({ name: input.branding });
       if (!brand) throw new Error('branding-not-found');
@@ -208,7 +235,7 @@ export namespace Services {
     }
 
     /** Generate preview token storing compiled CSS in CacheEntry */
-    public async preview(branding: string, portal: string): Promise<{ token: string; url: string; hash: string; }> {
+    public async preview(branding: string, portal: string): Promise<{ token: string; url: string; hash: string }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
       const { css, hash } = BrandingThemeCssService.generate(brand.variables || {});
@@ -221,7 +248,7 @@ export namespace Services {
     }
 
     /** Fetch preview CSS (helper for tests); enforces TTL */
-    public async fetchPreview(token: string): Promise<{ css: string; branding: string; portal: string; hash: string; }> {
+    public async fetchPreview(token: string): Promise<{ css: string; branding: string; portal: string; hash: string }> {
       const ttl = _.get(sails, 'config.branding.previewTtlSeconds', 300);
       const name = `branding-preview:${token}`;
       const entry = await CacheEntry.findOne({ name });
@@ -233,11 +260,16 @@ export namespace Services {
       }
       // Single-use: destroy after first successful fetch
       await CacheEntry.destroy({ id: entry.id });
-      return entry.data as { css: string; branding: string; portal: string; hash: string; };
+      return entry.data as { css: string; branding: string; portal: string; hash: string };
     }
 
     /** Publish current draft (variables) -> CSS, bump version, persist hash, history */
-    public async publish(branding: string, portal: string, _actor: unknown, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
+    public async publish(
+      branding: string,
+      portal: string,
+      _actor: unknown,
+      opts?: { expectedVersion?: number }
+    ): Promise<{ version: number; hash: string; idempotent?: boolean }> {
       const brand = await BrandingConfig.findOne({ name: branding });
       if (!brand) throw new Error('branding-not-found');
       if (opts?.expectedVersion != null && brand.version != null && opts.expectedVersion !== brand.version) {
@@ -250,36 +282,51 @@ export namespace Services {
       }
       const newVersion = (brand.version || 0) + 1;
       await BrandingConfig.update({ id: brand.id }, { css, hash, version: newVersion });
-      await BrandingConfigHistory.create({ branding: brand.id, version: newVersion, hash, css, variables: brand.variables });
+      await BrandingConfigHistory.create({
+        branding: brand.id,
+        version: newVersion,
+        hash,
+        css,
+        variables: brand.variables,
+      });
       await this.refreshBrandingCache(brand.id);
       return { version: newVersion, hash };
     }
 
     /** Rollback to a previous published version via history id */
-    public async rollback(historyId: string, _actor: unknown): Promise<{ version: number; hash: string; branding: BrandingModel | null; }> {
-      const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding') as unknown as BrandingConfigHistoryAttributes | null;
+    public async rollback(
+      historyId: string,
+      _actor: unknown,
+      brandId: string
+    ): Promise<{ version: number; hash: string; branding: BrandingModel | null }> {
+      const historyEntry = (await BrandingConfigHistory.findOne({ id: historyId }).populate(
+        'branding'
+      )) as unknown as BrandingConfigHistoryAttributes | null;
       if (!historyEntry) throw new Error('history-not-found');
       const branding = historyEntry.branding as unknown as BrandingModel | null;
-      if (!branding) throw new Error('branding-not-found');
+      if (!branding || branding.id !== brandId) throw new Error('history-not-found');
 
       // Restore variables, CSS, hash from history
-      await BrandingConfig.update({ id: (branding as BrandingModel).id }, {
-        variables: historyEntry.variables,
-        css: historyEntry.css,
-        hash: historyEntry.hash,
-        version: historyEntry.version
-      });
+      await BrandingConfig.update(
+        { id: (branding as BrandingModel).id },
+        {
+          variables: historyEntry.variables,
+          css: historyEntry.css,
+          hash: historyEntry.hash,
+          version: historyEntry.version,
+        }
+      );
       const refreshed = await this.refreshBrandingCache((branding as BrandingModel).id);
       return {
         version: historyEntry.version,
         hash: historyEntry.hash,
-        branding: refreshed
+        branding: refreshed,
       };
     }
 
     /** Refresh a single branding record in the in-memory cache (this.brandings & availableBrandings) */
     public async refreshBrandingCache(id: string): Promise<BrandingModel | null> {
-      const updated = await BrandingConfig.findOne({ id }).populate('roles') as unknown as BrandingModel | null;
+      const updated = (await BrandingConfig.findOne({ id }).populate('roles')) as unknown as BrandingModel | null;
       if (updated) {
         const idx = this.brandings.findIndex((b: BrandingModel) => b.id === id);
         if (idx >= 0) {
@@ -291,9 +338,7 @@ export namespace Services {
       }
       return updated;
     }
-
   }
-
 }
 
 declare global {

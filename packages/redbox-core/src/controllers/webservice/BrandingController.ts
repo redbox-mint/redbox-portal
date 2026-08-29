@@ -9,18 +9,24 @@ import {
   brandingLogoRoute,
   brandingFaviconRoute,
   brandingHistoryRoute,
+  requireRequestResourceAuthorization,
 } from '../../index';
 
-function mapError(e: unknown): { status: number; displayErrors: Array<{ code?: string; title?: string; detail?: string }> } {
+function mapError(e: unknown): {
+  status: number;
+  displayErrors: Array<{ code?: string; title?: string; detail?: string }>;
+} {
   const msg = (e instanceof Error ? e.message : String(e)) || '';
   if (msg === 'unauthorized') return { status: 403, displayErrors: [{ code: 'forbidden' }] };
-  if (msg.startsWith('Invalid variable key') || msg.startsWith('Invalid variable value')) return { status: 400, displayErrors: [{ code: 'invalid-variable', detail: msg }] };
+  if (msg.startsWith('Invalid variable key') || msg.startsWith('Invalid variable value'))
+    return { status: 400, displayErrors: [{ code: 'invalid-variable', detail: msg }] };
   if (msg.startsWith('contrast-violation')) return { status: 400, displayErrors: [{ code: 'contrast', detail: msg }] };
   if (msg === 'branding-not-found') return { status: 404, displayErrors: [{ code: 'branding-not-found' }] };
   if (msg === 'history-not-found') return { status: 404, displayErrors: [{ code: 'history-not-found' }] };
   if (msg === 'publish-conflict') return { status: 409, displayErrors: [{ code: 'publish-conflict' }] };
   if (msg.startsWith('logo-invalid')) return { status: 400, displayErrors: [{ code: 'logo-invalid', detail: msg }] };
-  if (msg.startsWith('favicon-invalid')) return { status: 400, displayErrors: [{ code: 'favicon-invalid', detail: msg }] };
+  if (msg.startsWith('favicon-invalid'))
+    return { status: 400, displayErrors: [{ code: 'favicon-invalid', detail: msg }] };
   return { status: 500, displayErrors: [{ code: 'server-error', detail: msg }] };
 }
 
@@ -30,17 +36,25 @@ function toValidationDisplayErrors(issues: Array<{ path: string; message: string
 
 export namespace Controllers {
   export class Branding extends controllers.Core.Controller {
-    protected override _exportedMethods: string[] = ['draft', 'preview', 'publish', 'rollback', 'logo', 'favicon', 'history'];
+    protected override _exportedMethods: string[] = [
+      'draft',
+      'preview',
+      'publish',
+      'rollback',
+      'logo',
+      'favicon',
+      'history',
+    ];
 
     async draft(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
-      const { params, body } = validated;
-      const branding = params.branding as string;
+      const { body } = validated;
       const actor = req.user;
       try {
+        const brand = BrandingService.getBrandFromReq(req);
         const bodyObj = body as Record<string, unknown>;
         const variables = (bodyObj?.variables || {}) as Record<string, string>;
-        const updated = await BrandingService.saveDraft({ branding, variables, actor });
+        const updated = await BrandingService.saveDraft({ branding: brand.name, variables, actor });
         return this.apiRespond(req, res, { branding: updated }, 200);
       } catch (e: unknown) {
         const { status, displayErrors } = mapError(e);
@@ -55,29 +69,34 @@ export namespace Controllers {
     async preview(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
       const portal = params.portal as string;
       try {
-        const { token, url, hash } = await BrandingService.preview(branding, portal);
+        const brand = BrandingService.getBrandFromReq(req);
+        const { token, url, hash } = await BrandingService.preview(brand.name, portal);
         // Fetch current draft (variables) so response matches test expectation body.branding.variables
         let brandConfig: unknown = null;
         try {
           // Prefer a service helper if available; fallback to direct model query
           if (typeof BrandingService.getBrand === 'function') {
-            brandConfig = await BrandingService.getBrand(branding);
+            brandConfig = brand;
           }
         } catch (_e) {
           sails.log.debug('Failed to fetch brand config for preview:', _e);
         }
         // Provide both legacy (token/url) and expected (previewToken/previewUrl) keys
-        return this.apiRespond(req, res, {
-          token,
-          url,
-          hash,
-          previewToken: token,
-          previewUrl: url,
-          branding: brandConfig || undefined,
-        }, 200);
+        return this.apiRespond(
+          req,
+          res,
+          {
+            token,
+            url,
+            hash,
+            previewToken: token,
+            previewUrl: url,
+            branding: brandConfig || undefined,
+          },
+          200
+        );
       } catch (e: unknown) {
         const { status, displayErrors } = mapError(e);
         return this.sendResp(req, res, {
@@ -90,13 +109,13 @@ export namespace Controllers {
     async publish(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params, body } = validated;
-      const branding = params.branding as string;
       const portal = params.portal as string;
       const actor = req.user;
       try {
+        const brand = BrandingService.getBrandFromReq(req);
         const bodyObj = body as Record<string, unknown>;
         const expectedVersion = bodyObj?.expectedVersion as number | undefined;
-        const { version, hash, idempotent } = await BrandingService.publish(branding, portal, actor, {
+        const { version, hash, idempotent } = await BrandingService.publish(brand.name, portal, actor, {
           expectedVersion,
         });
         const respBody: globalThis.Record<string, unknown> = { version, hash };
@@ -117,7 +136,10 @@ export namespace Controllers {
       const versionId = params.versionId as string;
       const actor = req.user;
       try {
-        const { version, hash } = await BrandingService.rollback(versionId, actor);
+        const { context } = requireRequestResourceAuthorization(req);
+        const brandId = context.brand?.id;
+        if (!brandId) throw new Error('history-not-found');
+        const { version, hash } = await BrandingService.rollback(versionId, actor, brandId);
         return this.apiRespond(req, res, { version, hash }, 200);
       } catch (e: unknown) {
         const { status, displayErrors } = mapError(e);
@@ -131,9 +153,9 @@ export namespace Controllers {
     async logo(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
       const portal = params.portal as string;
       try {
+        const brand = BrandingService.getBrandFromReq(req);
         const reqObj = req as unknown as globalThis.Record<string, unknown>;
         if (!(reqObj._fileparser && typeof reqObj.file === 'function')) {
           return this.sendResp(req, res, {
@@ -165,7 +187,12 @@ export namespace Controllers {
           req.apiRequest = { ...validated, files: { logo: files } };
           const f = files[0];
           const buf = await fs.readFile(f.fd);
-          const { hash } = await BrandingLogoService.putLogo({ branding, portal, fileBuffer: buf, contentType: f.type });
+          const { hash } = await BrandingLogoService.putLogo({
+            branding: brand.name,
+            portal,
+            fileBuffer: buf,
+            contentType: f.type,
+          });
           return this.apiRespond(req, res, { hash }, 200);
         } finally {
           await Promise.all(files.map(file => fs.unlink(file.fd).catch(() => undefined)));
@@ -182,9 +209,9 @@ export namespace Controllers {
     async favicon(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { params } = validated;
-      const branding = params.branding as string;
       const portal = params.portal as string;
       try {
+        const brand = BrandingService.getBrandFromReq(req);
         const reqObj = req as unknown as globalThis.Record<string, unknown>;
         if (!(reqObj._fileparser && typeof reqObj.file === 'function')) {
           return this.sendResp(req, res, {
@@ -216,7 +243,12 @@ export namespace Controllers {
           req.apiRequest = { ...validated, files: { favicon: files } };
           const f = files[0];
           const buf = await fs.readFile(f.fd);
-          const { hash } = await BrandingLogoService.putFavicon({ branding, portal, fileBuffer: buf, contentType: f.type });
+          const { hash } = await BrandingLogoService.putFavicon({
+            branding: brand.name,
+            portal,
+            fileBuffer: buf,
+            contentType: f.type,
+          });
           return this.apiRespond(req, res, { hash }, 200);
         } finally {
           await Promise.all(files.map(file => fs.unlink(file.fd).catch(() => undefined)));
@@ -231,13 +263,10 @@ export namespace Controllers {
       }
     }
     async history(req: Sails.Req, res: Sails.Res) {
-      const validated = getValidatedApiRequest(req);
-      const { params } = validated;
-      const branding = params.branding as string;
+      getValidatedApiRequest(req);
 
       try {
-        const brand = await BrandingService.getBrand(branding);
-        if (!brand) throw new Error('branding-not-found');
+        const brand = BrandingService.getBrandFromReq(req);
         const histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
         return this.apiRespond(req, res, histories, 200);
       } catch (e: unknown) {

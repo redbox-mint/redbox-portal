@@ -14,7 +14,7 @@ headers {
 }
 
 tests {
-  test("Status code is 403 (unauthorized)", function () {
-    expect(res.getStatus()).to.equal(403);
+  test("Status code is 401 (unauthenticated request rejected)", function () {
+    expect(res.getStatus()).to.equal(401);
   });
 }

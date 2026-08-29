@@ -28,6 +28,7 @@ import * as NamedQueryControllerModule from './NamedQueryController';
 
 // Webservice controller imports
 import * as WSAdminControllerModule from './webservice/AdminController';
+import * as WSAuthorizationControllerModule from './webservice/AuthorizationController';
 import * as WSAppConfigControllerModule from './webservice/AppConfigController';
 import * as WSBrandingControllerModule from './webservice/BrandingController';
 import * as WSExportControllerModule from './webservice/ExportController';
@@ -50,103 +51,233 @@ import * as WSNamedQueryControllerModule from './webservice/NamedQueryController
 // Lazy instantiation cache
 const controllerCache: Record<string, unknown> = {};
 function getOrCreate(name: string, factory: () => unknown): unknown {
-    if (!controllerCache[name]) controllerCache[name] = factory();
-    return controllerCache[name];
+  if (!controllerCache[name]) controllerCache[name] = factory();
+  return controllerCache[name];
 }
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
-    get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
-    get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
-    get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
-    get AsynchController() { return getOrCreate('AsynchController', () => new AsynchControllerModule.Controllers.Asynch().exports()); },
-    get BrandingAppController() { return getOrCreate('BrandingAppController', () => new BrandingAppControllerModule.Controllers.BrandingApp().exports()); },
-    get BrandingController() { return getOrCreate('BrandingController', () => new BrandingControllerModule.Controllers.Branding().exports()); },
-    get DynamicAssetController() { return getOrCreate('DynamicAssetController', () => new DynamicAssetControllerModule.Controllers.DynamicAsset().exports()); },
-    get EmailController() { return getOrCreate('EmailController', () => new EmailControllerModule.Controllers.Email().exports()); },
-    get ExportController() { return getOrCreate('ExportController', () => new ExportControllerModule.Controllers.Export().exports()); },
-    get RecordAuditController() { return getOrCreate('RecordAuditController', () => new RecordAuditControllerModule.Controllers.RecordAudit().exports()); },
-    get RecordController() { return getOrCreate('RecordController', () => new RecordControllerModule.Controllers.Record().exports()); },
-    get RenderViewController() { return getOrCreate('RenderViewController', () => new RenderViewControllerModule.Controllers.RenderView().exports()); },
-    get ReportController() { return getOrCreate('ReportController', () => new ReportControllerModule.Controllers.Report().exports()); },
-    get ReportsController() { return getOrCreate('ReportsController', () => new ReportsControllerModule.Controllers.Reports().exports()); },
-    get TranslationController() { return getOrCreate('TranslationController', () => new TranslationControllerModule.Controllers.Translation().exports()); },
-    get UserController() { return getOrCreate('UserController', () => new UserControllerModule.Controllers.User().exports()); },
-    get VocabularyController() { return getOrCreate('VocabularyController', () => new VocabularyControllerModule.Controllers.Vocabulary().exports()); },
-    get WorkspaceAsyncController() { return getOrCreate('WorkspaceAsyncController', () => new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()); },
-    get WorkspaceTypesController() { return getOrCreate('WorkspaceTypesController', () => new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()); },
-    get FormVocabularyController() { return getOrCreate('FormVocabularyController', () => new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()); },
-    get DashboardConfigController() { return getOrCreate('DashboardConfigController', () => new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
-    get NamedQueryController() { return getOrCreate('NamedQueryController', () => new NamedQueryControllerModule.Controllers.NamedQuery().exports()); },
+  get ActionController() {
+    return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports());
+  },
+  get AdminController() {
+    return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports());
+  },
+  get AppConfigController() {
+    return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports());
+  },
+  get AsynchController() {
+    return getOrCreate('AsynchController', () => new AsynchControllerModule.Controllers.Asynch().exports());
+  },
+  get BrandingAppController() {
+    return getOrCreate('BrandingAppController', () =>
+      new BrandingAppControllerModule.Controllers.BrandingApp().exports()
+    );
+  },
+  get BrandingController() {
+    return getOrCreate('BrandingController', () => new BrandingControllerModule.Controllers.Branding().exports());
+  },
+  get DynamicAssetController() {
+    return getOrCreate('DynamicAssetController', () =>
+      new DynamicAssetControllerModule.Controllers.DynamicAsset().exports()
+    );
+  },
+  get EmailController() {
+    return getOrCreate('EmailController', () => new EmailControllerModule.Controllers.Email().exports());
+  },
+  get ExportController() {
+    return getOrCreate('ExportController', () => new ExportControllerModule.Controllers.Export().exports());
+  },
+  get RecordAuditController() {
+    return getOrCreate('RecordAuditController', () =>
+      new RecordAuditControllerModule.Controllers.RecordAudit().exports()
+    );
+  },
+  get RecordController() {
+    return getOrCreate('RecordController', () => new RecordControllerModule.Controllers.Record().exports());
+  },
+  get RenderViewController() {
+    return getOrCreate('RenderViewController', () => new RenderViewControllerModule.Controllers.RenderView().exports());
+  },
+  get ReportController() {
+    return getOrCreate('ReportController', () => new ReportControllerModule.Controllers.Report().exports());
+  },
+  get ReportsController() {
+    return getOrCreate('ReportsController', () => new ReportsControllerModule.Controllers.Reports().exports());
+  },
+  get TranslationController() {
+    return getOrCreate('TranslationController', () =>
+      new TranslationControllerModule.Controllers.Translation().exports()
+    );
+  },
+  get UserController() {
+    return getOrCreate('UserController', () => new UserControllerModule.Controllers.User().exports());
+  },
+  get VocabularyController() {
+    return getOrCreate('VocabularyController', () => new VocabularyControllerModule.Controllers.Vocabulary().exports());
+  },
+  get WorkspaceAsyncController() {
+    return getOrCreate('WorkspaceAsyncController', () =>
+      new WorkspaceAsyncControllerModule.Controllers.WorkspaceAsync().exports()
+    );
+  },
+  get WorkspaceTypesController() {
+    return getOrCreate('WorkspaceTypesController', () =>
+      new WorkspaceTypesControllerModule.Controllers.WorkspaceTypes().exports()
+    );
+  },
+  get FormVocabularyController() {
+    return getOrCreate('FormVocabularyController', () =>
+      new FormVocabularyControllerModule.Controllers.FormVocabulary().exports()
+    );
+  },
+  get DashboardConfigController() {
+    return getOrCreate('DashboardConfigController', () =>
+      new DashboardConfigControllerModule.Controllers.DashboardConfig().exports()
+    );
+  },
+  get NamedQueryController() {
+    return getOrCreate('NamedQueryController', () => new NamedQueryControllerModule.Controllers.NamedQuery().exports());
+  },
 };
 
 // Webservice Controllers export (separate object, not prefixed)
 export const WebserviceControllerExports: Record<string, unknown> = {
-    get AdminController() { return getOrCreate('WS_AdminController', () => new WSAdminControllerModule.Controllers.Admin().exports()); },
-    get AppConfigController() { return getOrCreate('WS_AppConfigController', () => new WSAppConfigControllerModule.Controllers.AppConfig().exports()); },
-    get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
-    get ExportController() { return getOrCreate('WS_ExportController', () => new WSExportControllerModule.Controllers.Export().exports()); },
-    get FigshareCrosswalkController() { return getOrCreate('WS_FigshareCrosswalkController', () => new WSFigshareCrosswalkControllerModule.Controllers.FigshareCrosswalk().exports()); },
-    get FigshareVocabularyController() { return getOrCreate('WS_FigshareVocabularyController', () => new WSFigshareVocabularyControllerModule.Controllers.FigshareVocabulary().exports()); },
-    get FormManagementController() { return getOrCreate('WS_FormManagementController', () => new WSFormManagementControllerModule.Controllers.FormManagement().exports()); },
-    get HarvestRunController() { return getOrCreate('WS_HarvestRunController', () => new WSHarvestRunControllerModule.Controllers.HarvestRun().exports()); },
-    get IntegrationAuditController() { return getOrCreate('WS_IntegrationAuditController', () => new WSIntegrationAuditControllerModule.Controllers.IntegrationAudit().exports()); },
-    get RecordController() { return getOrCreate('WS_RecordController', () => new WSRecordControllerModule.Controllers.Record().exports()); },
-    get RecordSchemaController() { return getOrCreate('WS_RecordSchemaController', () => new WSRecordSchemaControllerModule.Controllers.RecordSchema().exports()); },
-    get RecordTypeController() { return getOrCreate('WS_RecordTypeController', () => new WSRecordTypeControllerModule.Controllers.RecordType().exports()); },
-    get ReportController() { return getOrCreate('WS_ReportController', () => new WSReportControllerModule.Controllers.Report().exports()); },
-    get SearchController() { return getOrCreate('WS_SearchController', () => new WSSearchControllerModule.Controllers.Search().exports()); },
-    get TranslationController() { return getOrCreate('WS_TranslationController', () => new WSTranslationControllerModule.Controllers.Translation().exports()); },
-    get UserManagementController() { return getOrCreate('WS_UserManagementController', () => new WSUserManagementControllerModule.Controllers.UserManagement().exports()); },
-    get VocabularyController() { return getOrCreate('WS_VocabularyController', () => new WSVocabularyControllerModule.Controllers.Vocabulary().exports()); },
-    get DashboardConfigController() { return getOrCreate('WS_DashboardConfigController', () => new WSDashboardConfigControllerModule.Controllers.DashboardConfig().exports()); },
-    get NamedQueryController() { return getOrCreate('WS_NamedQueryController', () => new WSNamedQueryControllerModule.Controllers.NamedQuery().exports()); },
+  get AdminController() {
+    return getOrCreate('WS_AdminController', () => new WSAdminControllerModule.Controllers.Admin().exports());
+  },
+  get AuthorizationController() {
+    return getOrCreate('WS_AuthorizationController', () =>
+      new WSAuthorizationControllerModule.Controllers.Authorization().exports()
+    );
+  },
+  get AppConfigController() {
+    return getOrCreate('WS_AppConfigController', () =>
+      new WSAppConfigControllerModule.Controllers.AppConfig().exports()
+    );
+  },
+  get BrandingController() {
+    return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports());
+  },
+  get ExportController() {
+    return getOrCreate('WS_ExportController', () => new WSExportControllerModule.Controllers.Export().exports());
+  },
+  get FigshareCrosswalkController() {
+    return getOrCreate('WS_FigshareCrosswalkController', () =>
+      new WSFigshareCrosswalkControllerModule.Controllers.FigshareCrosswalk().exports()
+    );
+  },
+  get FigshareVocabularyController() {
+    return getOrCreate('WS_FigshareVocabularyController', () =>
+      new WSFigshareVocabularyControllerModule.Controllers.FigshareVocabulary().exports()
+    );
+  },
+  get FormManagementController() {
+    return getOrCreate('WS_FormManagementController', () =>
+      new WSFormManagementControllerModule.Controllers.FormManagement().exports()
+    );
+  },
+  get HarvestRunController() {
+    return getOrCreate('WS_HarvestRunController', () =>
+      new WSHarvestRunControllerModule.Controllers.HarvestRun().exports()
+    );
+  },
+  get IntegrationAuditController() {
+    return getOrCreate('WS_IntegrationAuditController', () =>
+      new WSIntegrationAuditControllerModule.Controllers.IntegrationAudit().exports()
+    );
+  },
+  get RecordController() {
+    return getOrCreate('WS_RecordController', () => new WSRecordControllerModule.Controllers.Record().exports());
+  },
+  get RecordSchemaController() {
+    return getOrCreate('WS_RecordSchemaController', () =>
+      new WSRecordSchemaControllerModule.Controllers.RecordSchema().exports()
+    );
+  },
+  get RecordTypeController() {
+    return getOrCreate('WS_RecordTypeController', () =>
+      new WSRecordTypeControllerModule.Controllers.RecordType().exports()
+    );
+  },
+  get ReportController() {
+    return getOrCreate('WS_ReportController', () => new WSReportControllerModule.Controllers.Report().exports());
+  },
+  get SearchController() {
+    return getOrCreate('WS_SearchController', () => new WSSearchControllerModule.Controllers.Search().exports());
+  },
+  get TranslationController() {
+    return getOrCreate('WS_TranslationController', () =>
+      new WSTranslationControllerModule.Controllers.Translation().exports()
+    );
+  },
+  get UserManagementController() {
+    return getOrCreate('WS_UserManagementController', () =>
+      new WSUserManagementControllerModule.Controllers.UserManagement().exports()
+    );
+  },
+  get VocabularyController() {
+    return getOrCreate('WS_VocabularyController', () =>
+      new WSVocabularyControllerModule.Controllers.Vocabulary().exports()
+    );
+  },
+  get DashboardConfigController() {
+    return getOrCreate('WS_DashboardConfigController', () =>
+      new WSDashboardConfigControllerModule.Controllers.DashboardConfig().exports()
+    );
+  },
+  get NamedQueryController() {
+    return getOrCreate('WS_NamedQueryController', () =>
+      new WSNamedQueryControllerModule.Controllers.NamedQuery().exports()
+    );
+  },
 };
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
-    'ActionController',
-    'AdminController',
-    'AppConfigController',
-    'AsynchController',
-    'BrandingAppController',
-    'BrandingController',
-    'DashboardConfigController',
-    'DynamicAssetController',
-    'EmailController',
-    'ExportController',
-    'FormVocabularyController',
-    'RecordAuditController',
-    'RecordController',
-    'RenderViewController',
-    'ReportController',
-    'ReportsController',
-    'TranslationController',
-    'UserController',
-    'VocabularyController',
-    'WorkspaceAsyncController',
-    'WorkspaceTypesController',
-    'NamedQueryController',
+  'ActionController',
+  'AdminController',
+  'AppConfigController',
+  'AsynchController',
+  'BrandingAppController',
+  'BrandingController',
+  'DashboardConfigController',
+  'DynamicAssetController',
+  'EmailController',
+  'ExportController',
+  'FormVocabularyController',
+  'RecordAuditController',
+  'RecordController',
+  'RenderViewController',
+  'ReportController',
+  'ReportsController',
+  'TranslationController',
+  'UserController',
+  'VocabularyController',
+  'WorkspaceAsyncController',
+  'WorkspaceTypesController',
+  'NamedQueryController',
 ];
 
 export const WebserviceControllerNames = [
-    'AdminController',
-    'AppConfigController',
-    'BrandingController',
-    'DashboardConfigController',
-    'ExportController',
-    'FigshareCrosswalkController',
-    'FigshareVocabularyController',
-    'FormManagementController',
-    'HarvestRunController',
-    'IntegrationAuditController',
-    'RecordController',
-    'RecordSchemaController',
-    'RecordTypeController',
-    'ReportController',
-    'SearchController',
-    'TranslationController',
-    'UserManagementController',
-    'VocabularyController',
-    'NamedQueryController',
+  'AdminController',
+  'AuthorizationController',
+  'AppConfigController',
+  'BrandingController',
+  'DashboardConfigController',
+  'ExportController',
+  'FigshareCrosswalkController',
+  'FigshareVocabularyController',
+  'FormManagementController',
+  'HarvestRunController',
+  'IntegrationAuditController',
+  'RecordController',
+  'RecordSchemaController',
+  'RecordTypeController',
+  'ReportController',
+  'SearchController',
+  'TranslationController',
+  'UserManagementController',
+  'VocabularyController',
+  'NamedQueryController',
 ];

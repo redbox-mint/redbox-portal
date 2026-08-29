@@ -54,6 +54,7 @@ describe('Webservice FigshareVocabularyController', () => {
     (global as any).BrandingService = {
       getBrandNameFromReq: sinon.stub().returns('default'),
       getBrand: sinon.stub().returns({ id: 'brand-1' }),
+      getBrandFromReq: sinon.stub().returns({ id: 'brand-1' }),
     };
 
     controller = new Controllers.FigshareVocabulary();
@@ -132,12 +133,12 @@ describe('Webservice FigshareVocabularyController', () => {
       expect(service.discoverTaxonomies.firstCall.args[1]).to.deep.equal({ brandId: 'brand-1', userId: '42' });
     });
 
-    it('falls back to unknown actor and empty brand when neither resolves', async () => {
+    it('falls back to an unknown actor while retaining the authorized brand', async () => {
       (global as any).BrandingService.getBrand.returns(undefined);
 
       await controller.listCatalogues(makeReq({ query: {} }), res);
 
-      expect(service.discoverTaxonomies.firstCall.args[1]).to.deep.equal({ brandId: '', userId: 'unknown' });
+      expect(service.discoverTaxonomies.firstCall.args[1]).to.deep.equal({ brandId: 'brand-1', userId: 'unknown' });
     });
   });
 

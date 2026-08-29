@@ -31,6 +31,16 @@ import {
 import { RecordsService } from '../RecordsService';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
+import {
+  allowedResource,
+  asScopeKey,
+  deniedResource,
+  effectiveRecordRoleKeys,
+  type AuthorizationContext,
+  type AuthorizationDecision,
+  type AuthorizationResourceResult,
+  type ScopeKey,
+} from '../authorization';
 
 declare const RedboxJavaStorageService: unknown;
 import { StorageService } from '../StorageService';
@@ -395,6 +405,21 @@ export namespace Services {
         input: unknown;
       }>
     ): ValidateResolvedRecordSchemaResult;
+  };
+  type RuntimeAuthorizationService = {
+    authorizeAction(context: AuthorizationContext, requiredScope: ScopeKey): AuthorizationDecision;
+    authorizeBrandEntity(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      entityBrandId: string | undefined
+    ): AuthorizationDecision;
+    authorizeRecord(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      record: Readonly<Record<string, unknown>> | null | undefined,
+      mode: 'read' | 'update'
+    ): Promise<AuthorizationDecision>;
+    hasScope(context: AuthorizationContext, scopeKey: ScopeKey): boolean;
   };
   type CreateRecordSchemaResolver = RecordSchemaArtifactValidator & {
     resolveCreate(request: ResolveCreateRecordSchemaRequest): Promise<ResolveCreateRecordSchemaResult>;
@@ -2225,12 +2250,20 @@ export namespace Services {
      * persistence data and must never grant the capability that permits schema
      * compilation or grant persistence.
      */
+    /**
+     * Builds the synthetic ACL a create is authorized against. The active brand is
+     * stamped in because `hasEditAccess` requires every record it evaluates to carry a
+     * brand that matches the caller's; a projection without one is indistinguishable
+     * from a cross-brand record and would deny every create.
+     */
     private createAuthorizationProjection(
+      brand: unknown,
       workflowSteps: readonly WorkflowStepLike[],
       recordType?: RecordTypeLike,
       user?: AnyRecord
     ): AnyRecord {
-      const projection = { authorization: {} } as AnyRecord;
+      const brandId = String((brand as BrandingModel | undefined)?.id ?? '').trim();
+      const projection = { authorization: {}, metaMetadata: { brandId } } as AnyRecord;
       const authorization = projection.authorization as AnyRecord;
       for (const workflowStep of workflowSteps) {
         const configured = this.recordObject(_.get(workflowStep, 'config.authorization'));
@@ -2276,7 +2309,7 @@ export namespace Services {
         brandObj,
         user,
         roles,
-        this.createAuthorizationProjection(workflowSteps, recordType, user)
+        this.createAuthorizationProjection(brandObj, workflowSteps, recordType, user)
       );
     }
 
@@ -3954,12 +3987,69 @@ export namespace Services {
       }
     }
 
+    private getAuthorizationService(): RuntimeAuthorizationService {
+      const service = sails.services.authorizationservice as unknown as
+        Partial<RuntimeAuthorizationService> | undefined;
+      if (
+        service === undefined ||
+        typeof service.authorizeAction !== 'function' ||
+        typeof service.authorizeBrandEntity !== 'function' ||
+        typeof service.authorizeRecord !== 'function' ||
+        typeof service.hasScope !== 'function'
+      ) {
+        throw new Error('AuthorizationService is unavailable for a protected record operation.');
+      }
+      return service as RuntimeAuthorizationService;
+    }
+
+    private brandFromAuthorizationContext(context: AuthorizationContext): BrandingModel | undefined {
+      const brandId = context.brand?.id?.trim();
+      if (!brandId || !context.brand?.exists || !context.brand.authorized) return undefined;
+      return BrandingService.getBrandById(brandId);
+    }
+
+    public authorizeBrandOperation(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey
+    ): AuthorizationResourceResult<BrandingModel> {
+      const authorizationService = this.getAuthorizationService();
+      const actionDecision = authorizationService.authorizeAction(context, requiredScope);
+      if (!actionDecision.allowed) return deniedResource(actionDecision);
+      const brand = this.brandFromAuthorizationContext(context);
+      const decision = authorizationService.authorizeBrandEntity(context, requiredScope, brand?.id);
+      return decision.allowed && brand !== undefined ? allowedResource(decision, brand) : deniedResource(decision);
+    }
+
+    /**
+     * Composes a route-specific record capability with the base record action.
+     * Broad scopes are deliberately not accepted here; they only bypass the
+     * per-record ACL in authorizeRecord().
+     */
+    public authorizeRecordCollection(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      mode: 'read' | 'update' = 'read'
+    ): AuthorizationResourceResult<BrandingModel> {
+      const authorizationService = this.getAuthorizationService();
+      const routeDecision = authorizationService.authorizeAction(context, requiredScope);
+      if (!routeDecision.allowed) return deniedResource(routeDecision);
+      const baseScope = asScopeKey(mode === 'read' ? 'record.read' : 'record.update');
+      const baseDecision = authorizationService.authorizeAction(context, baseScope);
+      if (!baseDecision.allowed) return deniedResource(baseDecision);
+      const brand = this.brandFromAuthorizationContext(context);
+      const brandDecision = authorizationService.authorizeBrandEntity(context, baseScope, brand?.id);
+      return brandDecision.allowed && brand !== undefined
+        ? allowedResource(brandDecision, brand)
+        : deniedResource(brandDecision);
+    }
+
     protected override _exportedMethods: string[] = [
       'create',
       'updateMeta',
       'updateMetaInternal',
       'mutateMetaInternal',
       'getMeta',
+      'getAuthorizedMeta',
       'getRecordFormFingerprint',
       'getRecordAudit',
       'getResolvedPermissionsSummary',
@@ -3979,6 +4069,7 @@ export namespace Services {
       'getDeletedRecords',
       'getDeletedRecord',
       'getDeletedRecordMeta',
+      'getAuthorizedDeletedRecordMeta',
       'recoverLifecycleOperation',
       'recoverLifecycleOperations',
       'updateNotificationLog',
@@ -3993,6 +4084,8 @@ export namespace Services {
       'appendToRecord',
       'removeFromRecord',
       'getRecords',
+      'authorizeBrandOperation',
+      'authorizeRecordCollection',
       'exportAllPlans',
       'storeRecordAudit',
       'reconcilePostCommitSave',
@@ -4320,6 +4413,7 @@ export namespace Services {
       const schemaEnabled = this.recordSchemaEnabled();
       if (schemaEnabled) {
         const authorizationProjection = this.createAuthorizationProjection(
+          brandObj,
           targetStepName ? [startingWfStep, wfStep] : [startingWfStep],
           recordTypeObj,
           userObj
@@ -4373,6 +4467,12 @@ export namespace Services {
       }
 
       if (!schemaEnabled) {
+        // The legacy no-schema path still authorizes the constructed create
+        // candidate. Bind that temporary projection to the server-resolved
+        // brand before applying workflow ACLs: hasEditAccess deliberately
+        // rejects brandless records, while request metadata must never choose
+        // the brand used by the authorization decision.
+        _.set(recordObj, 'metaMetadata.brandId', String(brandObj?.id ?? '').trim());
         this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
         if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
         if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
@@ -4417,10 +4517,7 @@ export namespace Services {
       const formFingerprintRequired = tracker.context.routeFamily === 'browser' && concurrencyMode === 'strict';
       if (suppliedFormFingerprint || formFingerprintRequired) {
         try {
-          currentFormFingerprint = await this.getRecordFormFingerprint(
-            createFormFingerprintRecord,
-            recordTypeObj,
-          );
+          currentFormFingerprint = await this.getRecordFormFingerprint(createFormFingerprintRecord, recordTypeObj);
         } catch (error) {
           tracker.recordPrimaryNotApplied(
             this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
@@ -6221,6 +6318,33 @@ export namespace Services {
       return this.storageService.getMeta(oid) as Promise<RecordModel>;
     }
 
+    /**
+     * Controller/hook-facing record lookup. The action gate is evaluated before
+     * the identifier is loaded, then the authoritative record brand and ACL are
+     * composed without returning a denied resource to the caller.
+     */
+    async getAuthorizedMeta(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      oid: string,
+      mode: 'read' | 'update'
+    ): Promise<AuthorizationResourceResult<RecordModel>> {
+      const authorizationService = this.getAuthorizationService();
+      const collectionDecision = this.authorizeRecordCollection(context, requiredScope, mode);
+      if (!collectionDecision.allowed) return deniedResource(collectionDecision.decision);
+
+      let record: RecordModel | null = null;
+      try {
+        const loaded = await this.getMeta(oid);
+        if (!_.isEmpty(loaded)) record = loaded;
+      } catch {
+        record = null;
+      }
+      const baseScope = asScopeKey(mode === 'read' ? 'record.read' : 'record.update');
+      const decision = await authorizationService.authorizeRecord(context, baseScope, record, mode);
+      return decision.allowed && record !== null ? allowedResource(decision, record) : deniedResource(decision);
+    }
+
     private recordReferencesAttachment(
       record: AnyRecord | null | undefined,
       attachmentId: string,
@@ -7101,7 +7225,8 @@ export namespace Services {
       fieldNames: unknown = undefined,
       filterString: unknown = undefined,
       filterMode: unknown = undefined,
-      secondarySort: unknown = undefined
+      secondarySort: unknown = undefined,
+      bypassRecordAcl = false
     ): Promise<StorageServiceResponse> {
       return this.storageService.getRecords(
         workflowState,
@@ -7117,7 +7242,8 @@ export namespace Services {
         fieldNames,
         filterString,
         filterMode,
-        secondarySort
+        secondarySort,
+        bypassRecordAcl
       );
     }
 
@@ -7128,9 +7254,19 @@ export namespace Services {
       format: unknown,
       modBefore: unknown,
       modAfter: unknown,
-      recType: unknown
+      recType: unknown,
+      bypassRecordAcl = false
     ): Readable {
-      return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType);
+      return this.storageService.exportAllPlans(
+        username,
+        roles,
+        brand,
+        format,
+        modBefore,
+        modAfter,
+        recType,
+        bypassRecordAcl
+      );
     }
 
     // Gets attachments for this record, will use the `sails.config.record.datastreamService` if set, otherwise will use this service
@@ -7390,7 +7526,13 @@ export namespace Services {
      * Fine-grained access to the record, converted to sync.
      *
      */
-    public hasViewAccess(brand: unknown, user: AnyRecord, roles: object[], record: AnyRecord): boolean {
+    public hasViewAccess(
+      brand: unknown,
+      user: AnyRecord,
+      roles: object[],
+      record: AnyRecord,
+      context?: AuthorizationContext
+    ): boolean {
       const auth = record.authorization as AnyRecord | undefined;
       const editArr = auth ? auth.edit : record.authorization_edit;
       const editRolesArr = auth ? auth.editRoles : record.authorization_editRoles;
@@ -7398,6 +7540,15 @@ export namespace Services {
       const viewRolesArr = auth ? auth.viewRoles : record.authorization_viewRoles;
       const uname = String(user.username ?? '');
       const brandObj = brand as BrandingModel;
+
+      const activeBrandId = String(brandObj?.id ?? '').trim();
+      const recordBrandId = String(
+        _.get(record, 'metaMetadata.brandId', record.metaMetadata_brandId ?? record.brandId ?? record.branding) ?? ''
+      ).trim();
+      if (!activeBrandId || !recordBrandId || recordBrandId !== activeBrandId) return false;
+      if (context !== undefined && this.getAuthorizationService().hasScope(context, asScopeKey('record.read.all'))) {
+        return true;
+      }
 
       const combinedViewArr = _.union(this.asArray(viewArr) ?? [], this.asArray(editArr) ?? []);
       const combinedViewRolesArr = _.union(this.asArray(viewRolesArr) ?? [], this.asArray(editRolesArr) ?? []);
@@ -7408,30 +7559,35 @@ export namespace Services {
       if (!_.isUndefined(isInUserView)) {
         return true;
       }
-      const isInRoleView = _.find(combinedViewRolesArr, (roleName: unknown) => {
-        const role = RolesService.getRole(brandObj, String(roleName));
-        return (
-          role &&
-          !_.isUndefined(
-            _.find(roles, (r: AnyRecord) => {
-              return role.id == r.id;
-            })
-          )
-        );
-      });
-      return !_.isUndefined(isInRoleView);
+      const effectiveKeys = new Set(effectiveRecordRoleKeys(roles as AnyRecord[], brandObj?.id));
+      return combinedViewRolesArr.some((roleName: unknown) => effectiveKeys.has(String(roleName)));
     }
 
     /**
      * Fine-grained access to the record, converted to sync.
      *
      */
-    public hasEditAccess(brand: unknown, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
+    public hasEditAccess(
+      brand: unknown,
+      user: AnyRecord,
+      roles: AnyRecord[],
+      record: AnyRecord,
+      context?: AuthorizationContext
+    ): boolean {
       const auth = record.authorization as AnyRecord | undefined;
       const editArr = auth ? auth.edit : record.authorization_edit;
       const editRolesArr = auth ? auth.editRoles : record.authorization_editRoles;
       const uname = String(user.username ?? '');
       const brandObj = brand as BrandingModel;
+
+      const activeBrandId = String(brandObj?.id ?? '').trim();
+      const recordBrandId = String(
+        _.get(record, 'metaMetadata.brandId', record.metaMetadata_brandId ?? record.brandId ?? record.branding) ?? ''
+      ).trim();
+      if (!activeBrandId || !recordBrandId || recordBrandId !== activeBrandId) return false;
+      if (context !== undefined && this.getAuthorizationService().hasScope(context, asScopeKey('record.update.all'))) {
+        return true;
+      }
 
       const isInUserEdit = _.find(this.asArray(editArr), (username: unknown) => {
         return uname == username;
@@ -7439,18 +7595,8 @@ export namespace Services {
       if (!_.isUndefined(isInUserEdit)) {
         return true;
       }
-      const isInRoleEdit = _.find(this.asArray(editRolesArr), (roleName: unknown) => {
-        const role = RolesService.getRole(brandObj, String(roleName));
-        return (
-          role &&
-          !_.isUndefined(
-            _.find(roles, (r: AnyRecord) => {
-              return role.id == r.id;
-            })
-          )
-        );
-      });
-      return !_.isUndefined(isInRoleEdit);
+      const effectiveKeys = new Set(effectiveRecordRoleKeys(roles, brandObj?.id));
+      return (this.asArray(editRolesArr) ?? []).some((roleName: unknown) => effectiveKeys.has(String(roleName)));
     }
 
     public searchFuzzy(
@@ -7545,31 +7691,17 @@ export namespace Services {
     ) {
       const brandObj = brand as AnyRecord;
       const usernameStr = String(username ?? '');
-      let urlStr = String(url ?? '');
-      let roleString = '';
-      let matched = false;
-      for (let i = 0; i < roles.length; i++) {
-        const role = roles[i];
-        if (role.branding == brandObj.id) {
-          if (matched) {
-            roleString += ' OR ';
-            matched = false;
-          }
-          roleString += roles[i].name;
-          matched = true;
-        }
+      const urlStr = String(url ?? '');
+      const roleString = effectiveRecordRoleKeys(roles, brandObj.id)
+        .map(roleKey => this.luceneEscape(roleKey))
+        .join(' OR ');
+      const clauses = [`authorization_edit:${this.luceneEscape(usernameStr)}`];
+      if (!editAccessOnly) {
+        clauses.push(`authorization_view:${this.luceneEscape(usernameStr)}`);
+        if (roleString) clauses.push(`authorization_viewRoles:(${roleString})`);
       }
-      urlStr =
-        urlStr +
-        '&fq=authorization_edit:' +
-        usernameStr +
-        (editAccessOnly
-          ? ''
-          : ' OR authorization_view:' + usernameStr + ' OR authorization_viewRoles:(' + roleString + ')') +
-        ' OR authorization_editRoles:(' +
-        roleString +
-        ')';
-      return urlStr;
+      if (roleString) clauses.push(`authorization_editRoles:(${roleString})`);
+      return `${urlStr}&fq=${clauses.join(' OR ')}`;
     }
 
     protected getSearchTypeUrl(type: unknown, searchField: string | null = null, searchStr: string | null = null) {
@@ -7988,6 +8120,25 @@ export namespace Services {
       return await this.storageService.getDeletedRecordMeta(oid);
     }
 
+    async getAuthorizedDeletedRecordMeta(
+      context: AuthorizationContext,
+      requiredScope: ScopeKey,
+      oid: string,
+      mode: 'read' | 'update'
+    ): Promise<AuthorizationResourceResult<RecordModel>> {
+      const brandResult = this.authorizeRecordCollection(context, requiredScope, mode);
+      if (!brandResult.allowed) return deniedResource(brandResult.decision);
+      let record: RecordModel | null = null;
+      try {
+        record = await this.getDeletedRecordMeta(oid, brandResult.resource);
+      } catch {
+        record = null;
+      }
+      const baseScope = asScopeKey(mode === 'read' ? 'record.read' : 'record.update');
+      const decision = await this.getAuthorizationService().authorizeRecord(context, baseScope, record, mode);
+      return decision.allowed && record !== null ? allowedResource(decision, record) : deniedResource(decision);
+    }
+
     private lifecycleRecoveryContext(operation: DeletedRecordLifecycleOperation): RecordSaveContext {
       return createRecordSaveContext({
         routeFamily: 'internal',
@@ -8309,7 +8460,9 @@ export namespace Services {
       sort: unknown,
       fieldNames?: unknown,
       filterString?: unknown,
-      filterMode?: unknown
+      filterMode?: unknown,
+      secondarySort?: unknown,
+      bypassRecordAcl = false
     ): Promise<StorageServiceResponse> {
       return await this.storageService.getDeletedRecords(
         workflowState,
@@ -8324,7 +8477,9 @@ export namespace Services {
         sort,
         fieldNames,
         filterString,
-        filterMode
+        filterMode,
+        secondarySort,
+        bypassRecordAcl
       );
     }
 

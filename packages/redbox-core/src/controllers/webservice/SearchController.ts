@@ -14,6 +14,9 @@ import {
   indexRecordRoute,
   indexAllRecordsRoute,
   removeAllIndexedRoute,
+  requireAllowedResource,
+  requireRequestResourceAuthorization,
+  asScopeKey,
 } from '../../index';
 import { normalizeSearchQuery } from '../../api-routes/groups/search-query';
 import { firstValueFrom } from 'rxjs';
@@ -55,28 +58,38 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
 
     public override async index(req: Sails.Req, res: Sails.Res) {
-      const validated = getValidatedApiRequest(req);
-      const { query } = validated;
-      const oid = query.oid as string;
-      const record: RecordModel = await this.RecordsService.getMeta(oid);
-      if (!(await this.searchService.index(oid, record))) {
-        throw new Error('Index request was not accepted.');
-      }
+      try {
+        const validated = getValidatedApiRequest(req);
+        const { query } = validated;
+        const oid = query.oid as string;
+        const { context, requiredScope } = requireRequestResourceAuthorization(req);
+        const record: RecordModel = requireAllowedResource(
+          await this.RecordsService.getAuthorizedMeta(context, requiredScope, oid, 'update')
+        );
+        if (!(await this.searchService.index(oid, record))) {
+          throw new Error('Index request was not accepted.');
+        }
 
-      return this.apiRespond(
-        req,
-        res,
-        new APIObjectActionResponse(oid, 'Index request added to message queue for processing'),
-        200
-      );
+        return this.apiRespond(
+          req,
+          res,
+          new APIObjectActionResponse(oid, 'Index request added to message queue for processing'),
+          200
+        );
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [error instanceof Error ? error : new Error(String(error))] });
+      }
     }
 
     public async indexAll(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const authorization = requireRequestResourceAuthorization(req);
+      const brand: BrandingModel = requireAllowedResource(
+        this.RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'update')
+      );
       sails.log.verbose(`SearchController::indexAll() -> Indexing all records has been requested!`);
       const itemsPerPage = 100;
       let itemsRead = 0;
@@ -97,7 +110,10 @@ export namespace Controllers {
           undefined,
           undefined,
           undefined,
-          undefined
+          undefined,
+          undefined,
+          undefined,
+          true
         );
         if (itemsRead == 0) {
           totalItems = response.totalItems;
@@ -129,9 +145,14 @@ export namespace Controllers {
     public async removeAll(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       sails.log.verbose(`SearchController::removeAll() -> Removing all records has been requested!`);
-
-      // delete all documents by specifying id as '*'
-      await this.searchService.remove('*');
+      const authorization = requireRequestResourceAuthorization(req);
+      const brand = requireAllowedResource(
+        this.RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'update')
+      );
+      if (typeof this.searchService.removeByBrand !== 'function') {
+        throw new Error('The configured search service cannot remove one brand safely.');
+      }
+      await this.searchService.removeByBrand(brand.id);
 
       sails.log.verbose(`SearchController::indexAll() -> Submitted request to remove all`);
       return this.apiRespond(
@@ -145,7 +166,10 @@ export namespace Controllers {
     public async search(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const { query } = validated;
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const authorization = requireRequestResourceAuthorization(req);
+      const brand: BrandingModel = requireAllowedResource(
+        this.RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+      );
       const type = query.type as string | undefined;
       const workflow = query.workflow as string | undefined;
       const searchString = query.searchStr as string | undefined;
@@ -171,13 +195,17 @@ export namespace Controllers {
           brand,
           req.user! as unknown as UserModel,
           req.user!.roles as unknown as RoleModel[],
-          sails.config.record.search.returnFields
+          sails.config.record.search.returnFields,
+          undefined,
+          undefined,
+          authorization.context.effectiveScopeKeys.includes(asScopeKey('record.read.all'))
         );
         this.apiRespond(req, res, searchRes);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorResponse = new APIErrorResponse(errorMessage);
         this.sendResp(req, res, {
+          errors: [error instanceof Error ? error : new Error(String(error))],
           status: 500,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
           headers: this.getNoCacheHeaders(),

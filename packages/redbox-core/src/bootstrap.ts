@@ -47,6 +47,9 @@ export async function coreBootstrap(): Promise<void> {
   const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
   sails.log.verbose('Branding service, bootstrapped.');
 
+  await sails.services.authorizationscopeservice.bootstrap();
+  sails.log.verbose('Authorization scope catalog and templates, reconciled.');
+
   const _rolesBootstrapResult = await lastValueFrom(
     sails.services.rolesservice.bootstrap(defaultBrand) as Observable<unknown>
   );
@@ -70,6 +73,9 @@ export async function coreBootstrap(): Promise<void> {
     sails.services.usersservice.bootstrap(defRoles) as Observable<{ defUser: unknown; defRoles: unknown }>
   );
   sails.log.verbose('Users service, bootstrapped.');
+
+  await sails.services.authorizationbootstrapservice.bootstrap({ bootstrapUser: defUserAndDefRoles.defUser });
+  sails.log.verbose('Protected authorization state, reconciled.');
 
   const _pathRulesBootstrapResult = await lastValueFrom(
     sails.services.pathrulesservice.bootstrap(
@@ -248,4 +254,9 @@ export async function preLiftSetup(): Promise<void> {
   }
 
   resetResolvedApiRouteCache();
+  const authorizationRolloutService = sails.services.authorizationrolloutservice;
+  if (authorizationRolloutService && typeof authorizationRolloutService.validateRouteConfiguration === 'function') {
+    authorizationRolloutService.validateRouteConfiguration();
+    sails.log.verbose('Authorization route declarations and rollout mode validated.');
+  }
 }

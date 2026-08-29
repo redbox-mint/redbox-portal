@@ -8,6 +8,14 @@ import * as AgendaQueueServiceModule from './AgendaQueueService';
 import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
 import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
+import * as AuthorizationAuditServiceModule from './AuthorizationAuditService';
+import * as AuthorizationBootstrapServiceModule from './AuthorizationBootstrapService';
+import * as AuthorizationMigrationServiceModule from './AuthorizationMigrationService';
+import * as AuthorizationPersistenceServiceModule from './AuthorizationPersistenceService';
+import * as AuthorizationRolloutServiceModule from './AuthorizationRolloutService';
+import * as AuthorizationScopeServiceModule from './AuthorizationScopeService';
+import * as AuthorizationServiceModule from './AuthorizationService';
+import * as RoleAdministrationServiceModule from './RoleAdministrationService';
 import * as BrandingLogoServiceModule from './BrandingLogoService';
 import * as BrandingServiceModule from './BrandingService';
 import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
@@ -64,6 +72,14 @@ export { AgendaQueueServiceModule as AgendaQueueService };
 export { AttachmentMetadataServiceModule as AttachmentMetadataService };
 export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
+export { AuthorizationAuditServiceModule as AuthorizationAuditService };
+export { AuthorizationBootstrapServiceModule as AuthorizationBootstrapService };
+export { AuthorizationMigrationServiceModule as AuthorizationMigrationService };
+export { AuthorizationPersistenceServiceModule as AuthorizationPersistenceService };
+export { AuthorizationRolloutServiceModule as AuthorizationRolloutService };
+export { AuthorizationScopeServiceModule as AuthorizationScopeService };
+export { AuthorizationServiceModule as AuthorizationService };
+export { RoleAdministrationServiceModule as RoleAdministrationService };
 export { BrandingLogoServiceModule as BrandingLogoService };
 export { BrandingServiceModule as BrandingService };
 export { BrandingThemeCssServiceModule as BrandingThemeCssService };
@@ -182,6 +198,46 @@ export const ServiceExports = {
   },
   get AsynchsService() {
     return getOrCreateService('AsynchsService', () => new AsynchsServiceModule.Services.Asynchs().exports());
+  },
+  get AuthorizationAuditService() {
+    return getOrCreateService('AuthorizationAuditService', () =>
+      new AuthorizationAuditServiceModule.Services.AuthorizationAuditService().exports()
+    );
+  },
+  get AuthorizationBootstrapService() {
+    return getOrCreateService('AuthorizationBootstrapService', () =>
+      new AuthorizationBootstrapServiceModule.Services.AuthorizationBootstrapService().exports()
+    );
+  },
+  get AuthorizationMigrationService() {
+    return getOrCreateService('AuthorizationMigrationService', () =>
+      new AuthorizationMigrationServiceModule.Services.AuthorizationMigrationService().exports()
+    );
+  },
+  get AuthorizationPersistenceService() {
+    return getOrCreateService('AuthorizationPersistenceService', () =>
+      new AuthorizationPersistenceServiceModule.Services.AuthorizationPersistenceService().exports()
+    );
+  },
+  get AuthorizationRolloutService() {
+    return getOrCreateService('AuthorizationRolloutService', () =>
+      new AuthorizationRolloutServiceModule.Services.AuthorizationRolloutService().exports()
+    );
+  },
+  get AuthorizationScopeService() {
+    return getOrCreateService('AuthorizationScopeService', () =>
+      new AuthorizationScopeServiceModule.Services.AuthorizationScopeService().exports()
+    );
+  },
+  get AuthorizationService() {
+    return getOrCreateService('AuthorizationService', () =>
+      new AuthorizationServiceModule.Services.AuthorizationService().exports()
+    );
+  },
+  get RoleAdministrationService() {
+    return getOrCreateService('RoleAdministrationService', () =>
+      new RoleAdministrationServiceModule.Services.RoleAdministrationService().exports()
+    );
   },
   get BrandingLogoService() {
     return getOrCreateService('BrandingLogoService', () =>

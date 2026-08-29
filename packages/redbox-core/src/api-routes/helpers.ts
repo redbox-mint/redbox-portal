@@ -15,6 +15,7 @@ import { isEqual } from 'lodash';
 import UrlPattern from 'url-pattern';
 
 import { auth as defaultAuthConfig } from '../config/auth.config';
+import { createRouteId } from '../authorization';
 
 import {
   ApiFileConstraint,
@@ -332,6 +333,8 @@ export function buildSailsRouteEntry(route: ApiRouteDefinition): Record<string, 
   const entry: Record<string, unknown> = {
     controller: route.controller,
     action: route.action,
+    authorization: route.authorization,
+    routeId: route.routeId ?? createRouteId(route),
   };
   if (typeof route.csrf === 'boolean') {
     entry.csrf = route.csrf;
@@ -498,18 +501,23 @@ export function isZodObjectSchema(schema: ApiSchemaField | undefined): schema is
 }
 
 export function isPassthroughObjectSchema(schema: ZodType): schema is ZodObject<ZodRawShape> {
-  return schema instanceof ZodObject && 'catchall' in schema._zod.def && (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown';
+  return (
+    schema instanceof ZodObject &&
+    'catchall' in schema._zod.def &&
+    (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'unknown'
+  );
+}
+
+export function isStrictObjectSchema(schema: ZodType): schema is ZodObject<ZodRawShape> {
+  return (
+    schema instanceof ZodObject &&
+    'catchall' in schema._zod.def &&
+    (schema._zod.def as { catchall?: { type: string } }).catchall?.type === 'never'
+  );
 }
 
 export function isOptionalSchema(schema: ZodType): boolean {
   return schema instanceof ZodOptional;
-}
-
-function isIntegerSchema(schema: ZodType): boolean {
-  return (
-    schema instanceof ZodNumber &&
-    (schema._zod.def as { checks?: Array<{ format?: string }> }).checks?.some((check) => check.format === 'safeint') === true
-  );
 }
 
 function coercePrimitiveValue(value: unknown, schema: ZodType): unknown {
@@ -523,7 +531,7 @@ function coercePrimitiveValue(value: unknown, schema: ZodType): unknown {
     if (typeof value === 'string' && value.trim() !== '') {
       const coerced = Number(value);
       if (Number.isFinite(coerced)) {
-        return isIntegerSchema(schema) ? Math.trunc(coerced) : coerced;
+        return coerced;
       }
     }
     return value;

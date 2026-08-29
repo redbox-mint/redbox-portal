@@ -4,13 +4,17 @@ export * from './helpers';
 export * from './request-extraction';
 export * from './validation';
 export * from './route-resolution';
+export * from './authorization-route-resolution';
+export * from './request-resource-authorization';
 export * from './route-registry';
 export * from './openapi';
 export * from './apib';
 export * from './record-schema-openapi';
 export * from './record-schema-response';
 export * from './schemas/common';
+export * from './schemas/authorization';
 
+export * from './groups/authorization';
 export * from './groups/records';
 export * from './groups/record-schemas';
 export * from './groups/users';

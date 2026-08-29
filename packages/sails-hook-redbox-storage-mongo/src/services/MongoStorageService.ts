@@ -55,6 +55,7 @@ import {
   type RecordStorageMutationOptions,
   type StorageMutationNonApplicationReason,
   type StorageServiceCapabilities,
+  effectiveRecordRoleKeys,
 } from '@researchdatabox/redbox-core';
 import type {
   RecordSchemaArtifactInput,
@@ -2719,7 +2720,8 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode: string = 'regex',
-      secondarySort = undefined
+      secondarySort = undefined,
+      bypassRecordAcl = false
     ) {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
@@ -2761,7 +2763,7 @@ export namespace Services {
           { 'deletedRecordMetadata.authorization.viewRoles': { $in: roleNames } },
         ],
       };
-      andArray.push(permissions);
+      if (!bypassRecordAcl) andArray.push(permissions);
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
         const typeArray = [];
         _.each(recordType, rType => {
@@ -2794,7 +2796,7 @@ export namespace Services {
         }
       }
 
-      query['$and'] = andArray;
+      if (andArray.length > 0) query['$and'] = andArray;
 
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
       sails.log.verbose(`Options: ${JSON.stringify(options)}`);
@@ -2820,7 +2822,8 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode = undefined,
-      secondarySort = undefined
+      secondarySort = undefined,
+      bypassRecordAcl = false
     ) {
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
@@ -2865,7 +2868,7 @@ export namespace Services {
           { 'authorization.viewRoles': { $in: roleNames } },
         ],
       };
-      andArray.push(permissions);
+      if (!bypassRecordAcl) andArray.push(permissions);
       if (_.isArray(recordType)) {
         if (recordType.length > 1) {
           const typeArray = [];
@@ -2913,7 +2916,7 @@ export namespace Services {
         }
       }
 
-      query['$and'] = andArray;
+      if (andArray.length > 0) query['$and'] = andArray;
 
       sails.log.verbose(query);
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
@@ -2964,7 +2967,16 @@ export namespace Services {
       }
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): stream.Readable {
+    public exportAllPlans(
+      username,
+      roles,
+      brand,
+      format,
+      modBefore,
+      modAfter,
+      recType,
+      bypassRecordAcl = false
+    ): stream.Readable {
       const andArray = [];
       const query = {
         'metaMetadata.brandId': brand.id,
@@ -2979,7 +2991,7 @@ export namespace Services {
           { 'authorization.viewRoles': { $in: roleNames } },
         ],
       };
-      andArray.push(permissions);
+      if (!bypassRecordAcl) andArray.push(permissions);
       const options = {
         limit: _.toNumber(sails.config.record.export.maxRecords),
         sort: {
@@ -3000,7 +3012,7 @@ export namespace Services {
           },
         });
       }
-      query['$and'] = andArray;
+      if (andArray.length > 0) query['$and'] = andArray;
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
       sails.log.verbose(`Options: ${JSON.stringify(options)}`);
       if (format == 'csv') {
@@ -3074,16 +3086,7 @@ export namespace Services {
     }
 
     protected getRoleNames(roles, brand) {
-      const roleNames = [];
-
-      for (let i = 0; i < roles.length; i++) {
-        const role = roles[i];
-        if (role.branding == brand.id) {
-          roleNames.push(roles[i].name);
-        }
-      }
-
-      return roleNames;
+      return effectiveRecordRoleKeys(roles, brand.id);
     }
 
     public async addDatastreams(oid: string, fileIds: Datastream[]): Promise<DatastreamServiceResponse> {

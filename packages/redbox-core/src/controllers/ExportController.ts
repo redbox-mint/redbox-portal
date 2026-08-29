@@ -24,6 +24,8 @@ import { pipeline } from 'node:stream/promises';
 import { BrandingModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 import { EXPORT_CONTENT_TYPES } from '../constants/export';
+import { asScopeKey, requireAllowedResource } from '../authorization';
+import { requireRequestResourceAuthorization } from '../api-routes';
 
 export namespace Controllers {
   /**
@@ -32,14 +34,10 @@ export namespace Controllers {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class Export extends controllers.Core.Controller {
-
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = [
-        'index',
-        'downloadRecs'
-    ];
+    protected override _exportedMethods: string[] = ['index', 'downloadRecs'];
 
     /**
      * *************************************************************************************************
@@ -47,11 +45,22 @@ export namespace Controllers {
      * *************************************************************************************************
      */
     public override index(req: Sails.Req, res: Sails.Res) {
-      return this.sendView(req, res, 'export/index');
+      try {
+        const authorization = requireRequestResourceAuthorization(req);
+        requireAllowedResource(
+          RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+        );
+        return this.sendView(req, res, 'export/index');
+      } catch (error) {
+        return this.sendResp(req, res, { errors: [error instanceof Error ? error : new Error(String(error))] });
+      }
     }
 
     public async downloadRecs(req: Sails.Req, res: Sails.Res) {
-      const brand:BrandingModel = BrandingService.getBrand(req.session.branding as string);
+      const authorization = requireRequestResourceAuthorization(req);
+      const brand: BrandingModel = requireAllowedResource(
+        RecordsService.authorizeRecordCollection(authorization.context, authorization.requiredScope, 'read')
+      );
       const format = req.param('format');
       const recType = req.param('recType');
       const before = _.isEmpty(req.query.before) ? null : req.query.before;
@@ -60,9 +69,18 @@ export namespace Controllers {
       if (format == 'csv' || format == 'json') {
         res.attachment(filename);
         res.set('Content-Type', EXPORT_CONTENT_TYPES[format]);
-        sails.log.verbose("filename "+filename);
+        sails.log.verbose('filename ' + filename);
         await pipeline(
-          RecordsService.exportAllPlans(req.user!.username, req.user!.roles as globalThis.Record<string, unknown>[], brand, format, before, after, recType),
+          RecordsService.exportAllPlans(
+            req.user!.username,
+            req.user!.roles as globalThis.Record<string, unknown>[],
+            brand,
+            format,
+            before,
+            after,
+            recType,
+            authorization.context.effectiveScopeKeys.includes(asScopeKey('record.read.all'))
+          ),
           res
         );
         return res;

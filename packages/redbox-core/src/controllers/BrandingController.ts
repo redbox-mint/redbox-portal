@@ -14,15 +14,14 @@ declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLo
 declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
 
 export namespace Controllers {
-
   export class Branding extends controllers.Core.Controller {
     private static readonly CSS_CACHE_MAX_SIZE = 100;
     private static readonly CSS_CACHE_TTL_MS = 5 * 60 * 1000;
     private readonly cssMinifier = new CleanCSS({
       level: {
         1: { all: true },
-        2: { all: false }
-      }
+        2: { all: false },
+      },
     });
     private readonly cssResponseCache = new Map<string, { css: string; etag: string; createdAt: number }>();
 
@@ -63,7 +62,7 @@ export namespace Controllers {
         return undefined;
       }
 
-      if ((Date.now() - entry.createdAt) > Branding.CSS_CACHE_TTL_MS) {
+      if (Date.now() - entry.createdAt > Branding.CSS_CACHE_TTL_MS) {
         this.cssResponseCache.delete(cacheKey);
         return undefined;
       }
@@ -98,7 +97,7 @@ export namespace Controllers {
       'renderSwaggerJSON',
       'renderSwaggerYAML',
       'renderPreviewCss',
-      'createPreview'
+      'createPreview',
     ];
 
     public init() {
@@ -144,7 +143,9 @@ export namespace Controllers {
         if (!cachedBrandCss) {
           const minifiedCss = this.minifyCss(brand.css);
           const minifiedHash = crypto.createHash('sha256').update(minifiedCss).digest('hex').substring(0, 32);
-          const hasValidStoredHash = Boolean(brand.hash && /^[a-f0-9]+$/.test(brand.hash) && brand.hash === minifiedHash);
+          const hasValidStoredHash = Boolean(
+            brand.hash && /^[a-f0-9]+$/.test(brand.hash) && brand.hash === minifiedHash
+          );
           const safeHash = hasValidStoredHash ? brand.hash! : minifiedHash;
 
           if (!hasValidStoredHash && brand.id) {
@@ -212,9 +213,9 @@ export namespace Controllers {
     /** Create a preview token (JSON) */
     public async createPreview(req: Sails.Req, res: Sails.Res) {
       try {
-        const branding = req.param('branding');
-        const portal = req.param('portal');
-        const result = await BrandingService.preview(branding, portal);
+        const brand = BrandingService.getBrandFromReq(req);
+        const portal = BrandingService.getPortalFromReq(req);
+        const result = await BrandingService.preview(brand.name, portal);
         return res.json(result);
       } catch (e: unknown) {
         return res.status(500).json({ error: 'preview-error', message: (e as Error).message });
@@ -237,7 +238,6 @@ export namespace Controllers {
         })
       );
     }
-
 
     /**
      *
@@ -292,11 +292,12 @@ export namespace Controllers {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
         const logo = brand?.logo as Record<string, unknown> | undefined;
-        const storageId = typeof logo?.storageKey === 'string'
-          ? logo.storageKey
-          : typeof logo?.gridFsId === 'string'
-            ? logo.gridFsId
-            : null;
+        const storageId =
+          typeof logo?.storageKey === 'string'
+            ? logo.storageKey
+            : typeof logo?.gridFsId === 'string'
+              ? logo.gridFsId
+              : null;
         if (!brand || !logo || !storageId) {
           // fallback to static
           res.contentType(sails.config.static_assets.imageType);
@@ -310,9 +311,7 @@ export namespace Controllers {
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
         res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
-        const etagSeed = expectedSha256
-          ? expectedSha256
-          : crypto.createHash('sha256').update(buf).digest('hex');
+        const etagSeed = expectedSha256 ? expectedSha256 : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'logo-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
@@ -346,9 +345,7 @@ export namespace Controllers {
         const { buffer: buf, favicon } = resolved;
         const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
         res.contentType((favicon.contentType as string) || 'image/png');
-        const etagSeed = expectedSha256
-          ? expectedSha256
-          : crypto.createHash('sha256').update(buf).digest('hex');
+        const etagSeed = expectedSha256 ? expectedSha256 : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'favicon-');
         res.set('ETag', etag);
         res.set('Cache-Control', 'public, no-cache');
