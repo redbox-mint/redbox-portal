@@ -13,6 +13,7 @@ const {
   documentationRelativePath,
   isManagedOrRemovedPath,
   isScannedSourcePath,
+  maximumDiagnosticOutputBytes,
   maximumFindingsPerFile,
   maximumRepositoryFindings,
   normalizeRelativePath,
@@ -1878,6 +1879,90 @@ const unknownPluralDescriptorInvocationCases = [
       parse.call(null, configuredSource);`,
   },
 ];
+const returnedReflectiveTargetCases = [
+  {
+    name: 'a function returns Reflect.apply for direct invocation',
+    kind: 'direct-eval',
+    source: `function loadTarget() { return Reflect.apply; }
+      const target = loadTarget();
+      target(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an arrow returns Reflect.construct for direct invocation',
+    kind: 'lodash-template',
+    source: `const loadTarget = () => Reflect.construct;
+      const target = loadTarget();
+      target(_.template, [configuredSource]);`,
+  },
+  {
+    name: 'a function returns a local Reflect.apply alias',
+    kind: 'direct-eval',
+    source: `function loadTarget() {
+        const reflectiveTarget = globalThis.Reflect.apply;
+        return reflectiveTarget;
+      }
+      loadTarget()(eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a returned conditional Reflect target retains its unknown alternative',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `function loadTarget() { return flag ? Reflect.apply : loadUnknownTarget(); }
+      const target = loadTarget();
+      target(eval, globalThis, [configuredSource]);`,
+  },
+];
+const unsafeIntrinsicDeletionCases = [
+  {
+    name: 'delete exposes an eval-valued Array.of prototype property',
+    kind: 'direct-eval',
+    source: `Object.setPrototypeOf(Array, { of: eval });
+      delete Array.of;
+      Array.of(configuredSource);`,
+  },
+  {
+    name: 'Reflect.deleteProperty exposes an eval-valued Array.of prototype property',
+    kind: 'direct-eval',
+    source: `Object.setPrototypeOf(Array, { of: eval });
+      Reflect.deleteProperty(Array, 'of');
+      Array.of(configuredSource);`,
+  },
+  {
+    name: 'delete exposes an eval-valued Reflect.apply prototype property',
+    kind: 'direct-eval',
+    source: `Object.setPrototypeOf(Reflect, { apply: eval });
+      delete Reflect.apply;
+      Reflect.apply(configuredSource);`,
+  },
+  {
+    name: 'Reflect.deleteProperty exposes a Lodash-valued JSON.parse prototype property',
+    kind: 'lodash-template',
+    source: `Object.setPrototypeOf(JSON, { parse: _.template });
+      Reflect.deleteProperty(JSON, 'parse');
+      JSON.parse(configuredSource);`,
+  },
+];
+const unknownDescriptorMapInvocationCases = [
+  {
+    name: 'an unknown defineProperties map may install a callable',
+    source: `const target = {};
+      Object.defineProperties(target, loadDescriptors());
+      target.run(configuredSource);`,
+  },
+  {
+    name: 'an unknown descriptor-map spread may install a callable',
+    source: `const descriptors = { ...loadDescriptors() };
+      const target = {};
+      Reflect.apply(Object.defineProperties, Object, [target, descriptors]);
+      target.run(configuredSource);`,
+  },
+  {
+    name: 'Object.assign from an unknown source is fail closed only when invoked',
+    source: `const target = {};
+      Object.assign(target, loadData());
+      Reflect.apply(target.run, null, [configuredSource]);`,
+  },
+];
 const builtinPrototypeCallableCases = [
   {
     name: 'Object.setPrototypeOf adds an eval method to Array',
@@ -1954,6 +2039,62 @@ const builtinPrototypeCallableCases = [
   },
 ];
 const iteratorReceiverMutationCases = [
+  {
+    name: 'array binding destructuring follows a replacement iterator receiver alias',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        const receiver = this;
+        receiver[0] = eval;
+        receiver[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      const [ignored] = args;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Array.from follows a replacement iterator receiver alias',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        const receiver = this;
+        Reflect.set(receiver, '0', eval);
+        receiver[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      Array.from(args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'manual iterator advancement follows a replacement iterator receiver alias',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        const receiver = this;
+        Object.defineProperty(receiver, '0', { value: eval });
+        receiver[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      const iterator = args[Symbol.iterator]();
+      iterator.next();
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'for-of follows a replacement iterator receiver alias',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        const receiver = this;
+        Object.assign(receiver, { 0: eval });
+        receiver[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      for (const ignored of args) {}
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'array spread follows a replacement iterator receiver alias',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        const receiver = this;
+        receiver[0] = eval;
+        receiver[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      [...args];
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
   {
     name: 'array binding destructuring executes a receiver-mutating replacement iterator',
     source: `const args = [null];
@@ -2053,6 +2194,41 @@ const safeAccessorAndBuiltinPrototypeCases = [
       Array.of(eval, _.template);`,
   },
   {
+    name: 'singular Array.of descriptor extraction ignores an unsafe replacement prototype property',
+    source: `Object.setPrototypeOf(Array, { of: eval });
+      const target = Object.getOwnPropertyDescriptor(Array, 'of').value;
+      Reflect.apply(target, null, [eval, _.template]);`,
+  },
+  {
+    name: 'a returned known-safe callable stays clean',
+    source: `function loadTarget() { return Array.of; }
+      const target = loadTarget();
+      target(eval, _.template);`,
+  },
+  {
+    name: 'deleting Array.of may expose a known-safe prototype callable',
+    source: `Object.setPrototypeOf(Array, { of: JSON.parse });
+      Reflect.deleteProperty(Array, 'of');
+      Array.of('{}');`,
+  },
+  {
+    name: 'unknown data and descriptor maps stay clean when used only as data',
+    source: `const data = { ...loadData() };
+      const descriptors = { ...loadDescriptors() };
+      Object.defineProperties({}, descriptors);
+      JSON.stringify(data);`,
+  },
+  {
+    name: 'creating a manual iterator does not execute its body before next',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        const receiver = this;
+        receiver[0] = eval;
+      };
+      const iterator = args[Symbol.iterator]();
+      Reflect.apply(...[Array.of, null, [iterator, eval, _.template]]);`,
+  },
+  {
     name: 'Array.of shadows an unknown replacement prototype',
     source: `Reflect.setPrototypeOf(Array, loadPrototype());
       Reflect.apply(Array.of, null, [eval, _.template]);`,
@@ -2122,18 +2298,22 @@ const targetSensitiveUnsafeSpreadCases = [
 const unknownReflectTargetCases = [
   {
     name: 'an unknown Reflect.apply target',
+    kind: 'direct-eval',
     source: `function loadTarget() { return Reflect.apply; }
       const target = loadTarget();
       Reflect.apply(target, null, [eval, globalThis, [configuredSource]]);`,
   },
   {
     name: 'an unknown Reflect.construct target',
+    kind: 'lodash-template',
     source: `function loadTarget() { return Reflect.construct; }
       const target = loadTarget();
       Reflect.apply(target, null, [_.template, [configuredSource]]);`,
   },
   {
     name: 'a conditional target with unknown provenance',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflect-target',
     source: `const target = flag ? Array.of : loadTarget();
       Reflect.apply(target, null, [eval, globalThis, [configuredSource]]);`,
   },
@@ -2744,6 +2924,48 @@ test('unknown plural descriptor callables fail closed without tainting ordinary 
   }
 });
 
+test('returned reflective targets retain executable provenance through direct invocation', () => {
+  for (const targetCase of returnedReflectiveTargetCases) {
+    const firstFindings = scanSource(targetCase.source, 'packages/example/src/returned-reflective-target.ts');
+    const secondFindings = scanSource(targetCase.source, 'packages/example/src/returned-reflective-target.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${targetCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding => finding.kind === targetCase.kind && (!targetCase.reason || finding.reason === targetCase.reason)
+      ),
+      `${targetCase.name} should preserve reflective provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${targetCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('deleting safe intrinsic own properties exposes tracked prototype callables', () => {
+  for (const deletionCase of unsafeIntrinsicDeletionCases) {
+    const findings = scanSource(deletionCase.source, 'packages/example/src/intrinsic-deletion.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === deletionCase.kind),
+      `${deletionCase.name} should expose unsafe prototype provenance: ${JSON.stringify(findings)}`
+    );
+  }
+});
+
+test('unknown plural descriptor maps and data spreads fail closed only at invocation', () => {
+  for (const descriptorCase of unknownDescriptorMapInvocationCases) {
+    const firstFindings = scanSource(descriptorCase.source, 'packages/example/src/unknown-descriptor-map.ts');
+    const secondFindings = scanSource(descriptorCase.source, 'packages/example/src/unknown-descriptor-map.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${descriptorCase.name} should be deterministic`);
+    assert.deepEqual(
+      firstFindings.map(finding => finding.kind),
+      ['analysis-limit'],
+      `${descriptorCase.name} should produce one fail-closed finding`
+    );
+    assert.ok(
+      ['unknown-reflect-target', 'unknown-reflective-callable'].includes(firstFindings[0].reason),
+      `${descriptorCase.name} reported an unexpected reason: ${JSON.stringify(firstFindings)}`
+    );
+  }
+});
+
 test('built-in callable lookup follows bounded effective prototype chains', () => {
   for (const prototypeCase of builtinPrototypeCallableCases) {
     const findings = scanSource(prototypeCase.source, 'packages/example/src/builtin-prototype.ts');
@@ -2782,6 +3004,30 @@ test('known-safe accessor, built-in own-property, and iterator cases remain clea
       `${safeCase.name} should not produce a finding`
     );
   }
+});
+
+test('the guard CLI rejects returned reflection, deletion fall-through, and unknown descriptor maps', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = [
+    ...returnedReflectiveTargetCases,
+    ...unsafeIntrinsicDeletionCases,
+    ...unknownDescriptorMapInvocationCases,
+  ].map((reviewCase, index) => ({
+    relativePath: `packages/example/src/focused-security-fix-${index}.ts`,
+    source: reviewCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+  assert.ok(
+    Buffer.byteLength(result.stderr) <= maximumDiagnosticOutputBytes,
+    `focused security diagnostics were ${Buffer.byteLength(result.stderr)} bytes`
+  );
 });
 
 test('the guard CLI rejects the reviewed reflective mutation paths', t => {
@@ -2973,7 +3219,7 @@ test('unknown or conditional Reflect target provenance fails closed', () => {
     const findings = scanSource(unsafeCase.source, 'packages/example/src/unknown-reflect-target.ts');
     assert.deepEqual(
       findings.map(finding => [finding.kind, finding.reason]),
-      [['analysis-limit', 'unknown-reflect-target']],
+      [[unsafeCase.kind, unsafeCase.reason]],
       `${unsafeCase.name} should produce one bounded fail-closed diagnostic`
     );
   }
@@ -3182,7 +3428,10 @@ test('per-file unsafe-site findings and CLI diagnostics are explicitly capped', 
   const result = invokeGuardWithTrackedSource(root, source);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /analysis-limit .*\(per-file-finding-limit\)/);
-  assert.ok(result.stderr.length < 65536, `unsafe-site diagnostics were ${result.stderr.length} bytes`);
+  assert.ok(
+    Buffer.byteLength(result.stderr) <= maximumDiagnosticOutputBytes,
+    `unsafe-site diagnostics were ${Buffer.byteLength(result.stderr)} bytes`
+  );
 });
 
 test('repository findings stop at an explicit overall cap', t => {
@@ -3207,6 +3456,20 @@ test('repository findings stop at an explicit overall cap', t => {
       .length,
     1
   );
+
+  const result = spawnSync(process.execPath, [path.join(root, 'scripts/check-unsafe-expressions.js')], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 10000,
+  });
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.ok(
+    Buffer.byteLength(result.stderr) <= maximumDiagnosticOutputBytes,
+    `repository diagnostics were ${Buffer.byteLength(result.stderr)} bytes`
+  );
+  assert.match(result.stderr, /Unsafe-expression diagnostics truncated at 65536 bytes\./);
+  assert.doesNotMatch(result.stderr, /RangeError|heap out of memory|SIGABRT/i);
 });
 
 test('the guard invocation rejects every provenance bypass', async t => {
