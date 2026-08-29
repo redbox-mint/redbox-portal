@@ -38,4 +38,3 @@ export const generationInitialState: GenerationState = {
   error: null,
   commitPending: false,
 };
-

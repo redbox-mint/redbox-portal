@@ -124,4 +124,3 @@ export class GenerationPatchApplierService {
     return pointerParts(pointer).at(-1) ?? pointer;
   }
 }
-

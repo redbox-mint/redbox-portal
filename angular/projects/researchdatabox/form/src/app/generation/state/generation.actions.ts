@@ -35,4 +35,3 @@ export const fieldReviewed = createAction('[Generation] Field Reviewed', props<{
 export const commitStarted = createAction('[Generation] Commit Started');
 export const commitFinished = createAction('[Generation] Commit Finished');
 export const commitFailed = createAction('[Generation] Commit Failed', props<{ error: string }>());
-

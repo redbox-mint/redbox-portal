@@ -11,4 +11,3 @@ export function provideGenerationFeature(): EnvironmentProviders {
     provideEffects(GenerationEffects),
   ]);
 }
-

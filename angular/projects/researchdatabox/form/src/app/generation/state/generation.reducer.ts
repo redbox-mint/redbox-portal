@@ -40,4 +40,3 @@ export const generationReducer = createReducer(
   on(GenerationActions.commitFinished, (state) => ({ ...state, commitPending: false, status: 'committed' as const })),
   on(GenerationActions.commitFailed, (state, { error }) => ({ ...state, commitPending: true, error })),
 );
-
