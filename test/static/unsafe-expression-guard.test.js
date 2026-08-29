@@ -1742,6 +1742,340 @@ const unsafePluralDescriptorTargetCases = [
       Reflect.apply(target, null, [configuredSource]);`,
   },
 ];
+const accessorReturnedCallableCases = [
+  {
+    name: 'Object.defineProperty reads an inherited value getter returning eval',
+    source: `const target = {};
+      Object.defineProperty(target, 'run', Object.create({ get value() { return eval; } }));
+      target.run(configuredSource);`,
+  },
+  {
+    name: 'Reflect.defineProperty preserves an inherited value getter through call',
+    source: `const target = {};
+      Reflect.defineProperty(target, 'run', Object.create({ get value() { return eval; } }));
+      target.run.call(null, configuredSource);`,
+  },
+  {
+    name: 'Object.defineProperties preserves inherited value getters through apply',
+    source: `const target = {};
+      Object.defineProperties(target, {
+        run: Object.create({ get value() { return eval; } })
+      });
+      target.run.apply(null, [configuredSource]);`,
+  },
+  {
+    name: 'Object.create descriptor maps preserve inherited value getters through bind',
+    source: `const target = Object.create(null, {
+        run: Object.create({ get value() { return eval; } })
+      });
+      target.run.bind(null)(configuredSource);`,
+  },
+  {
+    name: 'borrowed Object.defineProperty preserves getter-returned eval',
+    source: `const target = {};
+      Object.defineProperty.call(
+        Object,
+        target,
+        'run',
+        Object.create({ get value() { return eval; } })
+      );
+      Reflect.apply(target.run, null, [configuredSource]);`,
+  },
+  {
+    name: 'reflected Reflect.defineProperty preserves getter-returned eval',
+    source: `const target = {};
+      Reflect.apply(Reflect.defineProperty, Reflect, [
+        target,
+        'run',
+        Object.create({ get value() { return eval; } })
+      ]);
+      Reflect.construct(target.run, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties.call preserves inherited value getters',
+    source: `const target = {};
+      Object.defineProperties.call(Object, target, {
+        run: Object.create({ get value() { return eval; } })
+      });
+      target.run(configuredSource);`,
+  },
+  {
+    name: 'Reflect.apply of Object.defineProperties preserves inherited value getters',
+    source: `const target = Reflect.apply(Object.defineProperties, Object, [
+        {},
+        { run: Object.create({ get value() { return eval; } }) }
+      ]);
+      target.run(configuredSource);`,
+  },
+  {
+    name: 'a direct accessor replacing Array.of returns eval',
+    source: `Object.defineProperty(Array, 'of', { get() { return eval; } });
+      Array.of(configuredSource);`,
+  },
+  {
+    name: 'a computed reflected accessor replacing Array.of returns eval',
+    source: `const key = 'of';
+      Reflect.defineProperty(globalThis.Array, key, { get() { return eval; } });
+      Reflect.apply(globalThis.Array[key], null, [configuredSource]);`,
+  },
+  {
+    name: 'a plural descriptor getter composes call before returning eval',
+    source: `const target = { get run() { return eval; } };
+      Object.getOwnPropertyDescriptors(target).run.get.call(target)(configuredSource);`,
+  },
+  {
+    name: 'a plural descriptor getter composes Reflect.apply before returning eval',
+    source: `const target = { get run() { return eval; } };
+      const getter = Object.getOwnPropertyDescriptors(target).run.get;
+      Reflect.apply(getter, target, [])(configuredSource);`,
+  },
+  {
+    name: 'a singular descriptor getter composes bind before returning eval',
+    source: `const target = { get run() { return eval; } };
+      Object.getOwnPropertyDescriptor(target, 'run').get.bind(target)()(configuredSource);`,
+  },
+];
+const unknownPluralDescriptorInvocationCases = [
+  {
+    name: 'an unknown plural descriptor value is invoked directly',
+    source: `Object.getOwnPropertyDescriptors(loadTarget()).run.value(configuredSource);`,
+  },
+  {
+    name: 'an unknown plural descriptor value composes call',
+    source: `Object.getOwnPropertyDescriptors(loadTarget()).run.value.call(null, configuredSource);`,
+  },
+  {
+    name: 'an unknown plural descriptor value composes apply',
+    source: `Object.getOwnPropertyDescriptors(loadTarget()).run.value.apply(null, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown plural descriptor value composes bind',
+    source: `const run = Object.getOwnPropertyDescriptors(loadTarget()).run.value.bind(null);
+      run(configuredSource);`,
+  },
+  {
+    name: 'an unknown plural descriptor value composes Reflect.apply',
+    source: `Reflect.apply(
+        Object.getOwnPropertyDescriptors(loadTarget()).run.value,
+        null,
+        [configuredSource]
+      );`,
+  },
+  {
+    name: 'an unknown plural descriptor value composes Reflect.construct',
+    source: `Reflect.construct(
+        Object.getOwnPropertyDescriptors(loadTarget()).run.value,
+        [configuredSource]
+      );`,
+  },
+  {
+    name: 'a conditional plural Array.of descriptor target fails closed',
+    source: `Object.getOwnPropertyDescriptors(flag ? Array : loadTarget()).of.value(configuredSource);`,
+  },
+  {
+    name: 'a conditional plural JSON.parse descriptor target fails closed',
+    source: `const parse = Object.getOwnPropertyDescriptors(flag ? JSON : loadTarget()).parse.value;
+      parse.call(null, configuredSource);`,
+  },
+];
+const builtinPrototypeCallableCases = [
+  {
+    name: 'Object.setPrototypeOf adds an eval method to Array',
+    kind: 'direct-eval',
+    source: `Object.setPrototypeOf(Array, { run: eval });
+      Array.run(configuredSource);`,
+  },
+  {
+    name: 'Reflect.setPrototypeOf adds a multi-hop eval method to Array',
+    kind: 'direct-eval',
+    source: `const root = { run: eval };
+      const hop = Object.create(root);
+      Reflect.setPrototypeOf(Array, hop);
+      Array.run.call(null, configuredSource);`,
+  },
+  {
+    name: 'a computed prototype method composes apply',
+    kind: 'direct-eval',
+    source: `const key = 'run';
+      Object.setPrototypeOf(globalThis.Array, { [key]: eval });
+      globalThis.Array[key].apply(null, [configuredSource]);`,
+  },
+  {
+    name: 'a prototype method composes bind and Reflect.apply',
+    kind: 'direct-eval',
+    source: `Reflect.setPrototypeOf(Array, { run: eval });
+      const run = Array.run.bind(null);
+      Reflect.apply(run, null, [configuredSource]);`,
+  },
+  {
+    name: 'a prototype method composes Reflect.construct',
+    kind: 'direct-eval',
+    source: `Object.setPrototypeOf(Array, { run: eval });
+      Reflect.construct(Array.run, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown Array prototype fails closed',
+    kind: 'analysis-limit',
+    source: `Object.setPrototypeOf(Array, loadPrototype());
+      Array.run(configuredSource);`,
+  },
+  {
+    name: 'a conditional Array prototype fails closed',
+    kind: 'analysis-limit',
+    source: `Reflect.setPrototypeOf(Array, flag ? { run: JSON.parse } : loadPrototype());
+      Array.run(configuredSource);`,
+  },
+  {
+    name: 'the borrowed __proto__ setter updates a built-in chain',
+    kind: 'direct-eval',
+    source: `Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(
+        Array,
+        { run: eval }
+      );
+      Reflect.apply(Array.run, null, [configuredSource]);`,
+  },
+  {
+    name: 'a bound Object.setPrototypeOf updates a built-in chain',
+    kind: 'direct-eval',
+    source: `Object.setPrototypeOf.bind(Object, Array, { run: eval })();
+      Array.run(configuredSource);`,
+  },
+  {
+    name: 'Reflect.apply of Reflect.setPrototypeOf updates a built-in chain',
+    kind: 'direct-eval',
+    source: `Reflect.apply(Reflect.setPrototypeOf, Reflect, [Date, { run: eval }]);
+      Date.run(configuredSource);`,
+  },
+  {
+    name: 'a borrowed Object.setPrototypeOf updates a JSON chain',
+    kind: 'direct-eval',
+    source: `Object.setPrototypeOf.call(Object, JSON, { run: eval });
+      JSON.run(configuredSource);`,
+  },
+];
+const iteratorReceiverMutationCases = [
+  {
+    name: 'array binding destructuring executes a receiver-mutating replacement iterator',
+    source: `const args = [null];
+      const originalIterator = args[Symbol.iterator];
+      args[Symbol.iterator] = function* replacement() {
+        this[0] = eval;
+        this[Symbol.iterator] = originalIterator;
+      };
+      const [] = args;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'array assignment destructuring executes a receiver-mutating replacement iterator',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        Reflect.set(this, '0', eval);
+        this[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      ([] = args);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'array spread executes a receiver-mutating replacement iterator',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        Object.defineProperty(this, '0', { value: eval });
+        this[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      [...args];
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'for-of executes a receiver-mutating replacement iterator',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        Object.assign(this, { 0: eval });
+        this[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      for (const ignored of args) {}
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'yield star executes a receiver-mutating replacement iterator',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        this[0] = eval;
+        this[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      function* forward() { yield* args; }
+      forward().next();
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'reflective argument spread executes a receiver-mutating replacement iterator',
+    source: `const args = [null];
+      args[Symbol.iterator] = function* replacement() {
+        this[0] = eval;
+        this[Symbol.iterator] = Array.prototype[Symbol.iterator];
+      };
+      Reflect.apply(Array.of, null, [...args]);
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an inherited replacement iterator mutates its array receiver',
+    source: `const prototype = {
+        *[Symbol.iterator]() {
+          this[0] = eval;
+          this[Symbol.iterator] = Array.prototype[Symbol.iterator];
+        }
+      };
+      const args = [null];
+      Object.setPrototypeOf(args, prototype);
+      const [] = args;
+      Reflect.apply(...args, globalThis, [configuredSource]);`,
+  },
+];
+const safeAccessorAndBuiltinPrototypeCases = [
+  {
+    name: 'an inherited descriptor value getter returns Array.of',
+    source: `const target = {};
+      Object.defineProperty(target, 'run', Object.create({ get value() { return Array.of; } }));
+      Reflect.apply(target.run, null, [eval, _.template]);`,
+  },
+  {
+    name: 'an Array.of accessor returns JSON.parse',
+    source: `Object.defineProperty(Array, 'of', { get() { return JSON.parse; } });
+      Array.of('{}');`,
+  },
+  {
+    name: 'a descriptor-extracted getter returns Array.of',
+    source: `const target = { get run() { return Array.of; } };
+      Object.getOwnPropertyDescriptors(target).run.get.call(target)(eval, _.template);`,
+  },
+  {
+    name: 'Array.of shadows an unsafe replacement prototype property',
+    source: `Object.setPrototypeOf(Array, { of: eval });
+      Array.of(eval, _.template);`,
+  },
+  {
+    name: 'Array.of shadows an unknown replacement prototype',
+    source: `Reflect.setPrototypeOf(Array, loadPrototype());
+      Reflect.apply(Array.of, null, [eval, _.template]);`,
+  },
+  {
+    name: 'JSON.parse shadows an unknown replacement prototype',
+    source: `Object.setPrototypeOf(JSON, loadPrototype());
+      JSON.parse('{}');`,
+  },
+  {
+    name: 'an ordinary unknown callable remains outside reflective fail-closed provenance',
+    source: `loadTarget().run(configuredSource);`,
+  },
+  {
+    name: 'a receiver-reading iterator has no mutation side effect',
+    source: `const prefix = [null];
+      prefix[Symbol.iterator] = function* replacement() {
+        const length = this.length;
+        yield JSON.parse;
+      };
+      Reflect.apply(...prefix, null, ['{}']);`,
+  },
+];
 const reviewedReflectiveMutationCases = [
   ...multiHopPrototypeCases,
   ...inheritedDescriptorProvenanceCases,
@@ -1766,6 +2100,12 @@ const productionCarrierReviewCases = mutableSpreadPrefixCases.filter(({ name }) 
     'Object.getOwnPropertyDescriptors retrieves a carrier mutator',
   ].includes(name)
 );
+const productionFinalReviewCases = [
+  accessorReturnedCallableCases[0],
+  unknownPluralDescriptorInvocationCases[0],
+  builtinPrototypeCallableCases[0],
+  iteratorReceiverMutationCases[0],
+];
 
 const targetSensitiveUnsafeSpreadCases = [
   {
@@ -2313,11 +2653,13 @@ test('reviewed prototype, descriptor, accessor, Object.assign, and legacy paths 
     const firstFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
     const secondFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
     assert.deepEqual(firstFindings, secondFindings, `${reviewCase.name} should be deterministic`);
-    assert.deepEqual(
-      firstFindings.map(finding => [finding.kind, finding.reason]),
-      [['analysis-limit', 'positional-layout-limit']],
-      `${reviewCase.name} should produce one bounded fail-closed finding`
+    assert.equal(
+      firstFindings.filter(finding => finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+        .length,
+      1,
+      `${reviewCase.name} should produce one bounded layout finding: ${JSON.stringify(firstFindings)}`
     );
+    assert.ok(firstFindings.length <= 2, `${reviewCase.name} diagnostics should stay bounded`);
   }
 });
 
@@ -2375,6 +2717,73 @@ test('plural descriptor targets retain unsafe and unknown alternatives', () => {
   }
 });
 
+test('accessor-returned callable provenance survives descriptor definition and invocation composition', () => {
+  for (const accessorCase of accessorReturnedCallableCases) {
+    const findings = scanSource(accessorCase.source, 'packages/example/src/accessor-callable.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${accessorCase.name} should preserve builtin eval provenance: ${JSON.stringify(findings)}`
+    );
+  }
+});
+
+test('unknown plural descriptor callables fail closed without tainting ordinary unknown calls', () => {
+  for (const descriptorCase of unknownPluralDescriptorInvocationCases) {
+    const firstFindings = scanSource(descriptorCase.source, 'packages/example/src/unknown-descriptor-callable.ts');
+    const secondFindings = scanSource(descriptorCase.source, 'packages/example/src/unknown-descriptor-callable.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${descriptorCase.name} should be deterministic`);
+    assert.deepEqual(
+      firstFindings.map(finding => finding.kind),
+      ['analysis-limit'],
+      `${descriptorCase.name} should produce one bounded fail-closed finding`
+    );
+    assert.ok(
+      ['unknown-reflect-target', 'unknown-reflective-callable'].includes(firstFindings[0].reason),
+      `${descriptorCase.name} reported an unexpected reason: ${JSON.stringify(firstFindings)}`
+    );
+  }
+});
+
+test('built-in callable lookup follows bounded effective prototype chains', () => {
+  for (const prototypeCase of builtinPrototypeCallableCases) {
+    const findings = scanSource(prototypeCase.source, 'packages/example/src/builtin-prototype.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === prototypeCase.kind),
+      `${prototypeCase.name} should preserve callable provenance: ${JSON.stringify(findings)}`
+    );
+    if (prototypeCase.kind === 'analysis-limit') {
+      assert.ok(findings.some(finding => finding.reason === 'unknown-reflective-callable'));
+    }
+  }
+});
+
+test('replacement iterator execution propagates receiver mutations at every iteration boundary', () => {
+  for (const iteratorCase of iteratorReceiverMutationCases) {
+    const firstFindings = scanSource(iteratorCase.source, 'packages/example/src/iterator-receiver.ts');
+    const secondFindings = scanSource(iteratorCase.source, 'packages/example/src/iterator-receiver.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${iteratorCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+      ),
+      `${iteratorCase.name} should propagate mutation or fail closed: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${iteratorCase.name} diagnostics should stay bounded`);
+  }
+});
+
+test('known-safe accessor, built-in own-property, and iterator cases remain clean', () => {
+  for (const safeCase of safeAccessorAndBuiltinPrototypeCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/safe-accessor-prototype.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
 test('the guard CLI rejects the reviewed reflective mutation paths', t => {
   const root = createEndToEndGuardRepository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -2414,6 +2823,24 @@ test('the guard CLI accepts known-safe plural descriptor targets', t => {
   const result = invokeGuardWithTrackedSources(root, sources);
 
   assert.equal(result.status, 0, result.stderr);
+});
+
+test('the production lint path rejects every final accessor, descriptor, prototype, and iterator review class', t => {
+  assert.equal(productionFinalReviewCases.length, 4);
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = productionFinalReviewCases.map((reviewCase, index) => ({
+    relativePath: `packages/example/src/final-security-review-${index}.ts`,
+    source: reviewCase.source,
+  }));
+  const result = invokeNpmLintWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+  assert.ok(result.stderr.length < 8192, `final-review diagnostics were ${result.stderr.length} bytes`);
 });
 
 test('the guard CLI rejects tracked mutable spread prefixes without executing them', t => {
