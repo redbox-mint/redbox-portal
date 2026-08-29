@@ -205,6 +205,347 @@ const bypassCases = [
     source: `import compile from 'lodash/template'; const invoke = Reflect.construct.bind(Reflect, compile); invoke([configuredSource]);`,
   },
 ];
+const invocationCompositionCases = [
+  {
+    name: 'eval.bind.call returns an eval callable',
+    kind: 'direct-eval',
+    source: `eval.bind.call(eval, globalThis)(configuredSource);`,
+  },
+  {
+    name: 'eval.bind.apply returns an eval callable',
+    kind: 'direct-eval',
+    source: `eval.bind.apply(eval, [globalThis])(configuredSource);`,
+  },
+  {
+    name: 'eval.call.bind invokes eval',
+    kind: 'direct-eval',
+    source: `eval.call.bind(eval, globalThis)(configuredSource);`,
+  },
+  {
+    name: 'eval.apply.bind invokes eval',
+    kind: 'direct-eval',
+    source: `eval.apply.bind(eval, globalThis)([configuredSource]);`,
+  },
+  {
+    name: 'a global eval member composes bind and call',
+    kind: 'direct-eval',
+    source: `globalThis.eval.bind.call(globalThis.eval, globalThis)(configuredSource);`,
+  },
+  {
+    name: 'a computed global eval member composes bind and apply',
+    kind: 'direct-eval',
+    source: `globalThis['eval'].bind.apply(globalThis.eval, [globalThis])(configuredSource);`,
+  },
+  {
+    name: 'Reflect.apply.bind.call retains its eval target',
+    kind: 'direct-eval',
+    source: `Reflect.apply.bind.call(Reflect.apply, Reflect, eval, globalThis)([configuredSource]);`,
+  },
+  {
+    name: 'Reflect.apply.bind.apply retains its eval target',
+    kind: 'direct-eval',
+    source: `Reflect.apply.bind.apply(Reflect.apply, [Reflect, eval, globalThis])([configuredSource]);`,
+  },
+  {
+    name: 'a bound Reflect.apply composes call',
+    kind: 'direct-eval',
+    source: `Reflect.apply.bind(Reflect, eval, globalThis).call(null, [configuredSource]);`,
+  },
+  {
+    name: 'a bound Reflect.apply composes apply',
+    kind: 'direct-eval',
+    source: `Reflect.apply.bind(Reflect, eval, globalThis).apply(null, [[configuredSource]]);`,
+  },
+  {
+    name: 'an aliased bound Reflect.apply composes call',
+    kind: 'direct-eval',
+    source: `const invoke = Reflect.apply.bind(Reflect, eval); invoke.call(null, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an aliased bound Reflect.apply composes apply',
+    kind: 'direct-eval',
+    source: `const invoke = Reflect.apply.bind(Reflect, eval); invoke.apply(null, [globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'nested Reflect.apply.call.call invokes eval',
+    kind: 'direct-eval',
+    source: `Reflect.apply.call.call(Reflect.apply, null, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'nested Reflect.apply.call.apply invokes eval',
+    kind: 'direct-eval',
+    source: `Reflect.apply.call.apply(Reflect.apply, [null, eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'nested Reflect.apply.apply.call invokes eval',
+    kind: 'direct-eval',
+    source: `Reflect.apply.apply.call(Reflect.apply, Reflect, [eval, globalThis, [configuredSource]]);`,
+  },
+  {
+    name: 'globalThis Reflect.apply invokes a global eval member',
+    kind: 'direct-eval',
+    source: `globalThis.Reflect.apply(globalThis.eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'globalThis Reflect.apply.call invokes a global eval member',
+    kind: 'direct-eval',
+    source: `globalThis.Reflect.apply.call(null, globalThis.eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'window Reflect.apply bind composition invokes window eval',
+    kind: 'direct-eval',
+    source: `window.Reflect.apply.bind(window.Reflect, window.eval, window)([configuredSource]);`,
+  },
+  {
+    name: 'a default parameter aliases eval',
+    kind: 'direct-eval',
+    source: `function run(execute = eval) { execute(configuredSource); }`,
+  },
+  {
+    name: 'an arrow default parameter aliases global eval',
+    kind: 'direct-eval',
+    source: `const run = (execute = globalThis.eval) => execute(configuredSource);`,
+  },
+  {
+    name: 'a default object parameter carries eval',
+    kind: 'direct-eval',
+    source: `function run({ execute = eval } = {}) { execute(configuredSource); }`,
+  },
+  {
+    name: 'a default array parameter carries eval',
+    kind: 'direct-eval',
+    source: `function run([execute = eval] = []) { execute(configuredSource); }`,
+  },
+  {
+    name: 'a default rest parameter carries eval',
+    kind: 'direct-eval',
+    source: `function run(...[execute = eval]) { execute(configuredSource); }`,
+  },
+  {
+    name: 'a nested default parameter carries eval',
+    kind: 'direct-eval',
+    source: `function run({ nested: { execute = eval } = {} } = {}) { execute(configuredSource); }`,
+  },
+  {
+    name: 'a rest carrier destructuring default aliases eval',
+    kind: 'direct-eval',
+    source: `function run(...values) { const [execute = eval] = values; execute(configuredSource); }`,
+  },
+  {
+    name: 'Lodash template.bind.call returns a compiler',
+    kind: 'lodash-template',
+    source: `_.template.bind.call(_.template, _)(configuredSource);`,
+  },
+  {
+    name: 'Lodash template.bind.apply returns a compiler',
+    kind: 'lodash-template',
+    source: `_.template.bind.apply(_.template, [_])(configuredSource);`,
+  },
+  {
+    name: 'an imported compiler composes bind and call',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; compile.bind.call(compile, null)(configuredSource);`,
+  },
+  {
+    name: 'an imported compiler composes bind and apply',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; compile.bind.apply(compile, [null])(configuredSource);`,
+  },
+  {
+    name: 'Lodash runInContext.bind.call returns a namespace',
+    kind: 'lodash-template',
+    source: `_.runInContext.bind.call(_.runInContext, _)().template(configuredSource);`,
+  },
+  {
+    name: 'Lodash runInContext.bind.apply returns a namespace',
+    kind: 'lodash-template',
+    source: `_.runInContext.bind.apply(_.runInContext, [_])().template(configuredSource);`,
+  },
+  {
+    name: 'an imported runInContext result exposes template',
+    kind: 'lodash-template',
+    source: `import { runInContext } from 'lodash'; runInContext().template(configuredSource);`,
+  },
+  {
+    name: 'an aliased runInContext result exposes template',
+    kind: 'lodash-template',
+    source: `const createLodash = _.runInContext; createLodash().template(configuredSource);`,
+  },
+  {
+    name: 'a constructed Lodash runInContext result exposes template',
+    kind: 'lodash-template',
+    source: `(new _.runInContext()).template(configuredSource);`,
+  },
+  {
+    name: 'a constructed imported runInContext result exposes template',
+    kind: 'lodash-template',
+    source: `import { runInContext } from 'lodash'; (new runInContext()).template(configuredSource);`,
+  },
+  {
+    name: 'Reflect.construct invokes a Lodash member compiler',
+    kind: 'lodash-template',
+    source: `Reflect.construct(_.template, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.construct.call invokes a Lodash member compiler',
+    kind: 'lodash-template',
+    source: `Reflect.construct.call(null, _.template, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.construct.apply invokes a Lodash member compiler',
+    kind: 'lodash-template',
+    source: `Reflect.construct.apply(null, [_.template, [configuredSource]]);`,
+  },
+  {
+    name: 'a bound Reflect.construct invokes a Lodash member compiler',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind(Reflect, _.template)([configuredSource]);`,
+  },
+  {
+    name: 'Reflect.construct.bind.call retains its compiler target',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind.call(Reflect.construct, Reflect, _.template)([configuredSource]);`,
+  },
+  {
+    name: 'Reflect.construct.bind.apply retains its compiler target',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind.apply(Reflect.construct, [Reflect, _.template])([configuredSource]);`,
+  },
+  {
+    name: 'a bound Reflect.construct composes call',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind(Reflect, _.template).call(null, [configuredSource]);`,
+  },
+  {
+    name: 'a bound Reflect.construct composes apply',
+    kind: 'lodash-template',
+    source: `Reflect.construct.bind(Reflect, _.template).apply(null, [[configuredSource]]);`,
+  },
+  {
+    name: 'nested Reflect.construct.call.call invokes a compiler',
+    kind: 'lodash-template',
+    source: `Reflect.construct.call.call(Reflect.construct, null, _.template, [configuredSource]);`,
+  },
+  {
+    name: 'nested Reflect.construct.call.apply invokes a compiler',
+    kind: 'lodash-template',
+    source: `Reflect.construct.call.apply(Reflect.construct, [null, _.template, [configuredSource]]);`,
+  },
+  {
+    name: 'globalThis Reflect.construct invokes a compiler',
+    kind: 'lodash-template',
+    source: `globalThis.Reflect.construct(_.template, [configuredSource]);`,
+  },
+  {
+    name: 'window Reflect.construct bind composition invokes a compiler',
+    kind: 'lodash-template',
+    source: `window.Reflect.construct.bind(window.Reflect, _.template)([configuredSource]);`,
+  },
+  {
+    name: 'new invokes a Lodash member compiler',
+    kind: 'lodash-template',
+    source: `new _.template(configuredSource);`,
+  },
+  {
+    name: 'new invokes an aliased Lodash compiler',
+    kind: 'lodash-template',
+    source: `const compile = _.template; new compile(configuredSource);`,
+  },
+  {
+    name: 'a Lodash member compiler is used as a tag',
+    kind: 'lodash-template',
+    source: '_.template`configured source`;',
+  },
+  {
+    name: 'an aliased Lodash compiler is used as a tag',
+    kind: 'lodash-template',
+    source: 'const compile = _.template; compile`configured source`;',
+  },
+  {
+    name: 'new invokes a bound Lodash compiler',
+    kind: 'lodash-template',
+    source: `const compile = _.template.bind(_); new compile(configuredSource);`,
+  },
+  {
+    name: 'a bound Lodash compiler is used as a tag',
+    kind: 'lodash-template',
+    source: 'const compile = _.template.bind(_); compile`configured source`;',
+  },
+  {
+    name: 'a default parameter aliases an imported compiler',
+    kind: 'lodash-template',
+    source: `import compile from 'lodash/template'; function run(candidate = compile) { candidate(configuredSource); }`,
+  },
+  {
+    name: 'an arrow default parameter aliases a Lodash member compiler',
+    kind: 'lodash-template',
+    source: `const run = (compile = _.template) => compile(configuredSource);`,
+  },
+  {
+    name: 'a default object parameter carries a compiler',
+    kind: 'lodash-template',
+    source: `function run({ compile = _.template } = {}) { compile(configuredSource); }`,
+  },
+  {
+    name: 'a default array parameter carries a compiler',
+    kind: 'lodash-template',
+    source: `function run([compile = _.template] = []) { compile(configuredSource); }`,
+  },
+  {
+    name: 'a default rest parameter carries a compiler',
+    kind: 'lodash-template',
+    source: `function run(...[compile = _.template]) { compile(configuredSource); }`,
+  },
+  {
+    name: 'a nested default parameter carries a compiler',
+    kind: 'lodash-template',
+    source: `function run({ nested: { compile = _.template } = {} } = {}) { compile(configuredSource); }`,
+  },
+];
+const safeInvocationCompositionCases = [
+  {
+    name: 'shadowed eval Reflect globalThis and Lodash globals',
+    source: `function run(eval, Reflect, globalThis, _) {
+      eval.bind.call(eval, globalThis)(configuredSource);
+      Reflect.apply.bind.call(Reflect.apply, Reflect, eval, globalThis)([configuredSource]);
+      Reflect.construct.bind.call(Reflect.construct, Reflect, _.template)([configuredSource]);
+      _.template.bind.call(_.template, _)(configuredSource);
+    }`,
+  },
+  {
+    name: 'shadowed global member roots',
+    source: `function run(globalThis, window) {
+      globalThis.Reflect.apply(globalThis.eval, globalThis, [configuredSource]);
+      window.Reflect.construct(window._.template, [configuredSource]);
+    }`,
+  },
+  {
+    name: 'local constructors and template tags',
+    source: 'const compile = value => value; new compile(configuredSource); compile`configured source`;',
+  },
+  {
+    name: 'ordinary Reflect constructors and their compositions',
+    source: `Reflect.construct(Date, []);
+      Reflect.construct.call(null, Date, []);
+      Reflect.construct.apply(null, [Date, []]);
+      Reflect.construct.bind(Reflect, Date)([]);`,
+  },
+  {
+    name: 'uninvoked bound unsafe callables',
+    source: `const direct = eval.bind.call(eval, globalThis);
+      const reflected = Reflect.apply.bind.call(Reflect.apply, Reflect, eval, globalThis);
+      const compile = _.template.bind.call(_.template, _);
+      const construct = Reflect.construct.bind(Reflect, _.template);
+      void direct; void reflected; void compile; void construct;`,
+  },
+  {
+    name: 'Handlebars and JSONata bound APIs',
+    source: `import Handlebars from 'handlebars';
+      import jsonata from 'jsonata';
+      Handlebars.compile.bind(Handlebars)(configuredSource)({});
+      jsonata.bind(null)(configuredSource).evaluate({});`,
+  },
+];
 const sourceExtensionCases = [
   {
     extension: '.jsx',
@@ -244,6 +585,14 @@ function createEndToEndGuardRepository() {
   });
   fs.mkdirSync(path.dirname(path.join(root, documentationRelativePath)), { recursive: true });
   fs.writeFileSync(path.join(root, documentationRelativePath), '# Test inventory\n');
+  writeJson(path.join(root, 'package.json'), {
+    private: true,
+    scripts: {
+      lint: 'npm run lint:unsafe-expressions',
+      'lint:unsafe-expressions': 'node scripts/check-unsafe-expressions.js && npm run test:unsafe-expressions',
+      'test:unsafe-expressions': 'node --test test/static/unsafe-expression-guard.test.js',
+    },
+  });
   execFileSync('git', ['init', '--quiet'], { cwd: root });
   return root;
 }
@@ -263,6 +612,20 @@ function invokeGuardWithTrackedSources(root, sources) {
 
 function invokeGuardWithTrackedSource(root, source, relativePath = 'packages/example/src/runtime.ts') {
   return invokeGuardWithTrackedSources(root, [{ relativePath, source }]);
+}
+
+function invokeNpmLintWithTrackedSources(root, sources) {
+  for (const { relativePath, source } of sources) {
+    const absolutePath = path.join(root, ...relativePath.split('/'));
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, source);
+  }
+  execFileSync('git', ['add', '.'], { cwd: root });
+  return spawnSync('npm', ['run', 'lint'], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, npm_config_update_notifier: 'false' },
+  });
 }
 
 test('detects direct eval without matching comments, strings, or property names', () => {
@@ -332,6 +695,56 @@ for (const bypass of bypassCases) {
     );
   });
 }
+
+test('scanSource rejects every invocation-provenance composition', () => {
+  for (const composition of invocationCompositionCases) {
+    const findings = scanSource(composition.source, 'packages/example/src/runtime.ts');
+    assert.ok(
+      findings.some(finding => finding.kind === composition.kind),
+      `${composition.name} should produce a ${composition.kind} finding`
+    );
+  }
+});
+
+test('the npm lint path rejects every invocation-provenance composition in tracked sources', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = invocationCompositionCases.map((composition, index) => ({
+    relativePath: `packages/example/src/composition-${index}.ts`,
+    source: composition.source,
+  }));
+  const result = invokeNpmLintWithTrackedSources(root, sources);
+
+  assert.notEqual(result.status, 0);
+  for (const [index, composition] of invocationCompositionCases.entries()) {
+    const prefix = `Unexpected unsafe execution: packages/example/src/composition-${index}.ts:`;
+    const diagnostic = result.stderr.split('\n').find(line => line.startsWith(prefix));
+    assert.ok(diagnostic, `${composition.name} was not rejected:\n${result.stderr}`);
+    assert.ok(diagnostic.includes(` ${composition.kind} `), `${composition.name} reported the wrong kind`);
+  }
+});
+
+test('scanSource keeps the invocation-composition negative matrix clean', () => {
+  for (const safeCase of safeInvocationCompositionCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/runtime.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
+test('the guard CLI accepts the tracked invocation-composition negative matrix', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = safeInvocationCompositionCases.map((safeCase, index) => ({
+    relativePath: `packages/example/src/safe-composition-${index}.ts`,
+    source: safeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.status, 0, result.stderr);
+});
 
 test('the guard invocation rejects every provenance bypass', async t => {
   const root = createEndToEndGuardRepository();
