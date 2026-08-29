@@ -54,6 +54,8 @@ const positionalMutationMethods = new Set([
   'unshift',
 ]);
 const origins = Object.freeze({
+  arrayObject: 'array-object',
+  arrayPrototype: 'array-prototype',
   builtinEval: 'builtin-eval',
   globalObject: 'global-object',
   lodashObject: 'lodash-object',
@@ -162,6 +164,7 @@ function collectBindings(sourceFile) {
   const carrierAtoms = new WeakMap();
   const invocationMethodAtoms = new WeakMap();
   const literalAtoms = new Map();
+  const positionalMutationAtoms = new Map();
   const propagationSubscribers = new WeakMap();
   const propagationQueue = [];
   const queuedPropagationOperations = new Set();
@@ -202,7 +205,7 @@ function collectBindings(sourceFile) {
   }
 
   function trackPropagationDependency(value) {
-    if (!activePropagationOperation) return;
+    if (!activePropagationOperation || dependencyCompositionLimit) return;
     let subscribers = propagationSubscribers.get(value);
     if (!subscribers) {
       subscribers = new Set();
@@ -212,12 +215,13 @@ function collectBindings(sourceFile) {
   }
 
   function enqueuePropagationOperation(operation) {
-    if (queuedPropagationOperations.has(operation)) return;
+    if (dependencyCompositionLimit || queuedPropagationOperations.has(operation)) return;
     queuedPropagationOperations.add(operation);
     propagationQueue.push(operation);
   }
 
   function notifyPropagationSubscribers(value) {
+    if (dependencyCompositionLimit) return;
     for (const operation of propagationSubscribers.get(value) ?? []) enqueuePropagationOperation(operation);
   }
 
@@ -455,6 +459,7 @@ function collectBindings(sourceFile) {
     }
     if (identifier.text === 'eval') return originValue(origins.builtinEval);
     if (identifier.text === '_') return originValue(origins.lodashObject);
+    if (identifier.text === 'Array') return originValue(origins.arrayObject);
     if (globalEvalObjects.has(identifier.text)) return originValue(origins.globalObject);
     if (identifier.text === 'Reflect') return originValue(origins.reflectObject);
     return unknownValue();
@@ -465,7 +470,11 @@ function collectBindings(sourceFile) {
     const unknown = propertyName === undefined;
     const matches = name => unknown || propertyName === name;
 
-    if (origin === origins.globalObject) {
+    if (origin === origins.arrayObject) {
+      if (matches('prototype')) result.add(origins.arrayPrototype);
+    } else if (origin === origins.arrayPrototype) {
+      mergeValue(result, positionalMutationValue(propertyName === undefined ? undefined : [propertyName]));
+    } else if (origin === origins.globalObject) {
       if (matches('eval')) result.add(origins.builtinEval);
       if (matches('Reflect')) result.add(origins.reflectObject);
       if (matches('_')) result.add(origins.lodashObject);
@@ -487,7 +496,7 @@ function collectBindings(sourceFile) {
 
   function isTrackedCallable(atom) {
     if (typeof atom !== 'string') {
-      return atom.kind === 'bound-callable' || atom.kind === 'invocation-method';
+      return atom.kind === 'bound-callable' || atom.kind === 'invocation-method' || atom.kind === 'positional-mutator';
     }
     return (
       atom === origins.builtinEval ||
@@ -496,6 +505,42 @@ function collectBindings(sourceFile) {
       atom === origins.reflectApply ||
       atom === origins.reflectConstruct
     );
+  }
+
+  function positionalMutationValue(propertyNames) {
+    const result = new Set();
+    for (const method of positionalMutationMethods) {
+      if (propertyNames !== undefined && !propertyNames.includes(method)) continue;
+      let atom = positionalMutationAtoms.get(method);
+      if (!atom) {
+        atom = Object.freeze({ kind: 'positional-mutator', method });
+        positionalMutationAtoms.set(method, atom);
+      }
+      result.add(atom);
+    }
+    return result;
+  }
+
+  function hasUnsafeCallable(value, seen = new Set()) {
+    for (const atom of value) {
+      if (typeof atom === 'string') {
+        if (
+          atom === origins.builtinEval ||
+          atom === origins.lodashRunInContext ||
+          atom === origins.lodashTemplate ||
+          atom === origins.reflectApply ||
+          atom === origins.reflectConstruct
+        ) {
+          return true;
+        }
+      } else if ((atom.kind === 'bound-callable' || atom.kind === 'invocation-method') && !seen.has(atom)) {
+        trackPropagationDependency(atom.target);
+        const nextSeen = new Set(seen);
+        nextSeen.add(atom);
+        if (hasUnsafeCallable(atom.target, nextSeen)) return true;
+      }
+    }
+    return false;
   }
 
   function invocationMethodFor(node, method, target) {
@@ -556,6 +601,7 @@ function collectBindings(sourceFile) {
       }
       if (atom.kind !== 'carrier') continue;
       trackPropagationDependency(atom);
+      if (atom.positional) mergeValue(result, positionalMutationValue(propertyNames));
       if (propertyNames === undefined) {
         for (const propertyValue of atom.properties.values()) mergeValue(result, propertyValue);
       } else {
@@ -705,13 +751,14 @@ function collectBindings(sourceFile) {
     return ts.isIdentifier(callee) && callee.text === 'require' && !lookupBinding(callee);
   }
 
-  function boundCallableFor(node, target, boundArguments) {
+  function boundCallableFor(node, target, boundThis, boundArguments) {
     let atom = boundCallableAtoms.get(node);
     if (!atom) {
-      atom = { kind: 'bound-callable', target: new Set(), boundArguments: [] };
+      atom = { kind: 'bound-callable', target: new Set(), boundThis: new Set(), boundArguments: [] };
       boundCallableAtoms.set(node, atom);
     }
     mergeCallableValue(atom, atom.target, target);
+    mergeCallableValue(atom, atom.boundThis, boundThis);
     for (const [index, boundValue] of boundArguments.entries()) {
       let storedValue = atom.boundArguments[index];
       if (!storedValue) {
@@ -776,17 +823,19 @@ function collectBindings(sourceFile) {
     mergeValue(target.kinds, source.kinds);
   }
 
-  function hasTrackedCallable(value) {
-    return [...value].some(isTrackedCallable);
-  }
-
   function mergePositionalLimit(invocation, expansion) {
-    if (hasTrackedCallable(expansion.uncertainValues)) {
+    if (hasUnsafeCallable(expansion.uncertainValues)) {
       invocation.kinds.add(analysisLimitKind);
     }
   }
 
-  function invokeTracked(callable, argumentValues, invocationNode, seen = new Set()) {
+  function invalidatePositionalThisValue(thisValue) {
+    for (const atom of thisValue ?? []) {
+      if (typeof atom !== 'string' && atom.kind === 'carrier') invalidateCarrierPositionalLayout(atom);
+    }
+  }
+
+  function invokeTracked(callable, argumentValues, invocationNode, seen = new Set(), thisValue) {
     const invocation = { result: new Set(), kinds: new Set() };
     for (const atom of callable) {
       if (!isTrackedCallable(atom)) continue;
@@ -803,41 +852,105 @@ function collectBindings(sourceFile) {
       } else if (atom === origins.reflectApply || atom === origins.reflectConstruct) {
         const target = argumentValues[0] ?? new Set();
         const argumentCarrier = argumentValues[atom === origins.reflectApply ? 2 : 1] ?? new Set();
+        const targetThisValue = atom === origins.reflectApply ? argumentValues[1] : undefined;
         const expansion = positionalLayouts(argumentCarrier);
         const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
         for (const layout of layouts) {
-          mergeInvocation(invocation, invokeTracked(target, layout, invocationNode, seen));
+          mergeInvocation(invocation, invokeTracked(target, layout, invocationNode, seen, targetThisValue));
         }
-        mergePositionalLimit(invocation, expansion);
+        if (hasUnsafeCallable(target)) mergePositionalLimit(invocation, expansion);
+      } else if (typeof atom !== 'string' && atom.kind === 'positional-mutator') {
+        invalidatePositionalThisValue(thisValue);
       } else if (typeof atom !== 'string' && !seen.has(atom)) {
         const nextSeen = new Set(seen);
         nextSeen.add(atom);
         if (atom.kind === 'bound-callable') {
           trackPropagationDependency(atom);
           trackPropagationDependency(atom.target);
+          trackPropagationDependency(atom.boundThis);
           for (const boundArgument of atom.boundArguments) trackPropagationDependency(boundArgument);
           mergeInvocation(
             invocation,
-            invokeTracked(atom.target, [...atom.boundArguments, ...argumentValues], invocationNode, nextSeen)
+            invokeTracked(
+              atom.target,
+              [...atom.boundArguments, ...argumentValues],
+              invocationNode,
+              nextSeen,
+              atom.boundThis
+            )
           );
         } else if (atom.kind === 'invocation-method' && atom.method === 'call') {
           trackPropagationDependency(atom.target);
-          mergeInvocation(invocation, invokeTracked(atom.target, argumentValues.slice(1), invocationNode, nextSeen));
+          mergeInvocation(
+            invocation,
+            invokeTracked(atom.target, argumentValues.slice(1), invocationNode, nextSeen, argumentValues[0])
+          );
         } else if (atom.kind === 'invocation-method' && atom.method === 'apply') {
           trackPropagationDependency(atom.target);
           const expansion = positionalLayouts(argumentValues[1] ?? new Set());
           const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
           for (const layout of layouts) {
-            mergeInvocation(invocation, invokeTracked(atom.target, layout, invocationNode, nextSeen));
+            mergeInvocation(
+              invocation,
+              invokeTracked(atom.target, layout, invocationNode, nextSeen, argumentValues[0])
+            );
           }
-          mergePositionalLimit(invocation, expansion);
+          if (hasUnsafeCallable(atom.target)) mergePositionalLimit(invocation, expansion);
         } else if (atom.kind === 'invocation-method' && atom.method === 'bind') {
           trackPropagationDependency(atom.target);
-          invocation.result.add(boundCallableFor(invocationNode, atom.target, argumentValues.slice(1)));
+          invocation.result.add(
+            boundCallableFor(invocationNode, atom.target, argumentValues[0] ?? new Set(), argumentValues.slice(1))
+          );
         }
       }
     }
     return invocation;
+  }
+
+  function invokePositionalMutators(callable, argumentValues, invocationNode, seen = new Set(), thisValue) {
+    for (const atom of callable) {
+      if (atom === origins.reflectApply) {
+        if (!consumeDependencyCompositionWork(invocationNode)) return;
+        const expansion = positionalLayouts(argumentValues[2] ?? new Set());
+        const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
+        for (const layout of layouts) {
+          invokePositionalMutators(argumentValues[0] ?? new Set(), layout, invocationNode, seen, argumentValues[1]);
+          if (dependencyCompositionLimit) return;
+        }
+      } else if (typeof atom !== 'string' && atom.kind === 'positional-mutator') {
+        if (!consumeDependencyCompositionWork(invocationNode)) return;
+        invalidatePositionalThisValue(thisValue);
+      } else if (
+        typeof atom !== 'string' &&
+        (atom.kind === 'bound-callable' || atom.kind === 'invocation-method') &&
+        !seen.has(atom)
+      ) {
+        if (!consumeDependencyCompositionWork(invocationNode)) return;
+        const nextSeen = new Set(seen);
+        nextSeen.add(atom);
+        trackPropagationDependency(atom.target);
+        if (atom.kind === 'bound-callable') {
+          trackPropagationDependency(atom.boundThis);
+          for (const boundArgument of atom.boundArguments) trackPropagationDependency(boundArgument);
+          invokePositionalMutators(
+            atom.target,
+            [...atom.boundArguments, ...argumentValues],
+            invocationNode,
+            nextSeen,
+            atom.boundThis
+          );
+        } else if (atom.method === 'call') {
+          invokePositionalMutators(atom.target, argumentValues.slice(1), invocationNode, nextSeen, argumentValues[0]);
+        } else if (atom.method === 'apply') {
+          const expansion = positionalLayouts(argumentValues[1] ?? new Set());
+          const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
+          for (const layout of layouts) {
+            invokePositionalMutators(atom.target, layout, invocationNode, nextSeen, argumentValues[0]);
+            if (dependencyCompositionLimit) return;
+          }
+        }
+      }
+    }
   }
 
   function appendPositionalValue(layout, value, uncertainValues) {
@@ -906,13 +1019,32 @@ function collectBindings(sourceFile) {
 
   function evaluateInvocation(calleeNode, argumentNodes, invocationNode) {
     const callee = evaluateExpression(calleeNode);
+    const unwrappedCallee = unwrapExpression(calleeNode);
+    const thisValue =
+      ts.isPropertyAccessExpression(unwrappedCallee) || ts.isElementAccessExpression(unwrappedCallee)
+        ? evaluateExpression(unwrappedCallee.expression)
+        : undefined;
     const expansion = positionalExpansionForNodes(argumentNodes);
     const invocation = { result: new Set(), kinds: new Set() };
     for (const layout of expansion.layouts) {
-      mergeInvocation(invocation, invokeTracked(callee, layout, invocationNode));
+      mergeInvocation(invocation, invokeTracked(callee, layout, invocationNode, new Set(), thisValue));
     }
-    if (hasTrackedCallable(callee)) mergePositionalLimit(invocation, expansion);
+    if (hasUnsafeCallable(callee)) mergePositionalLimit(invocation, expansion);
     return invocation;
+  }
+
+  function invalidateIndirectPositionalMutationCall(node) {
+    const callee = evaluateExpression(node.expression);
+    const unwrappedCallee = unwrapExpression(node.expression);
+    const thisValue =
+      ts.isPropertyAccessExpression(unwrappedCallee) || ts.isElementAccessExpression(unwrappedCallee)
+        ? evaluateExpression(unwrappedCallee.expression)
+        : undefined;
+    const expansion = positionalExpansionForNodes([...node.arguments]);
+    for (const layout of expansion.layouts) {
+      invokePositionalMutators(callee, layout, node, new Set(), thisValue);
+      if (dependencyCompositionLimit) return;
+    }
   }
 
   function evaluateExpression(node) {
@@ -1074,6 +1206,7 @@ function collectBindings(sourceFile) {
     if (!ts.isIdentifier(name)) return new Set();
     if (name.text === 'eval') return originValue(origins.builtinEval);
     if (name.text === '_') return originValue(origins.lodashObject);
+    if (name.text === 'Array') return originValue(origins.arrayObject);
     if (globalEvalObjects.has(name.text)) return originValue(origins.globalObject);
     if (name.text === 'Reflect') return originValue(origins.reflectObject);
     return new Set();
@@ -1097,6 +1230,11 @@ function collectBindings(sourceFile) {
     } else if (ts.isParameter(node)) {
       operation = () => bindPattern(node.name, node.initializer ? evaluateExpression(node.initializer) : new Set());
     } else if (
+      (ts.isForInStatement(node) || ts.isForOfStatement(node)) &&
+      !ts.isVariableDeclarationList(node.initializer)
+    ) {
+      operation = () => invalidatePositionalWrite(node.initializer);
+    } else if (
       ts.isBinaryExpression(node) &&
       [
         ts.SyntaxKind.EqualsToken,
@@ -1114,7 +1252,10 @@ function collectBindings(sourceFile) {
     ) {
       operation = () => invalidatePositionalWrite(node.operand);
     } else if (ts.isCallExpression(node)) {
-      operation = () => invalidatePositionalMutationCall(node);
+      operation = () => {
+        invalidatePositionalMutationCall(node);
+        invalidateIndirectPositionalMutationCall(node);
+      };
     } else if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) {
       operation = () => evaluateExpression(node);
     }
@@ -1123,7 +1264,7 @@ function collectBindings(sourceFile) {
   }
 
   collectPropagationOperations(sourceFile);
-  for (let queueIndex = 0; queueIndex < propagationQueue.length; queueIndex += 1) {
+  for (let queueIndex = 0; queueIndex < propagationQueue.length && !dependencyCompositionLimit; queueIndex += 1) {
     const operation = propagationQueue[queueIndex];
     queuedPropagationOperations.delete(operation);
     activePropagationOperation = operation;
