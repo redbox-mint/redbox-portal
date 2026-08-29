@@ -1077,6 +1077,326 @@ const mutableSpreadPrefixCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
 ];
+const multiHopPrototypeCases = [
+  {
+    name: 'a second-hop iterator yields eval',
+    source: `const root = { *[Symbol.iterator]() { yield eval; } };
+      const hop = { __proto__: root };
+      const prefix = [null];
+      Object.setPrototypeOf(prefix, hop);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.create carries a second-hop Lodash iterator',
+    source: `const root = { *[Symbol.iterator]() { yield _.template; } };
+      const hop = Object.create(root);
+      const prefix = [null];
+      Reflect.setPrototypeOf(prefix, hop);
+      Reflect.construct(...prefix, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown second-hop prototype fails closed',
+    source: `const root = loadPrototype();
+      const hop = { __proto__: root };
+      const prefix = [null];
+      Object.setPrototypeOf(prefix, hop);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a conditional second-hop prototype fails closed',
+    source: `const root = flag
+        ? { *[Symbol.iterator]() { yield JSON.parse; } }
+        : loadPrototype();
+      const hop = { __proto__: root };
+      const prefix = [null];
+      Reflect.setPrototypeOf(prefix, hop);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty installs a second-hop iterator',
+    source: `const root = {};
+      Reflect.defineProperty(root, Symbol.iterator, {
+        value: function* replacement() { yield eval; }
+      });
+      const hop = { __proto__: root };
+      const prefix = [null];
+      Object.setPrototypeOf(prefix, hop);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperties installs a second-hop iterator',
+    source: `const root = {};
+      Object.defineProperties(root, {
+        [Symbol.iterator]: { value: function* replacement() { yield eval; } }
+      });
+      const hop = { __proto__: root };
+      const prefix = [null];
+      Object.setPrototypeOf(prefix, hop);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+];
+const accessorReceiverMutationCases = [
+  {
+    name: 'Reflect.set invokes a direct non-positional setter with the carrier receiver',
+    source: `const prefix = [null];
+      const target = { set harmless(value) { this.length = 0; } };
+      Reflect.set(target, 'harmless', true, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.set invokes a prototype setter with the carrier receiver',
+    source: `const prototype = { set harmless(value) { this[0] = eval; } };
+      const target = { __proto__: prototype };
+      const prefix = [null];
+      Reflect.set(target, 'harmless', true, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown Reflect.set target may expose a setter',
+    source: `const prefix = [null];
+      Reflect.set(loadTarget(), 'harmless', true, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an aliased Reflect.set call retains receiver semantics',
+    source: `const prefix = [null];
+      const target = { set harmless(value) { this[Symbol.iterator] = loadIterator(); } };
+      const write = Reflect.set;
+      write.call(Reflect, target, 'harmless', true, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.get invokes a direct non-positional getter with the carrier receiver',
+    source: `const prefix = [null];
+      const target = { get harmless() { this.length = 0; return true; } };
+      Reflect.get(target, 'harmless', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.get invokes a prototype getter with the carrier receiver',
+    source: `const prototype = { get harmless() { this[0] = eval; return true; } };
+      const target = { __proto__: prototype };
+      const prefix = [null];
+      Reflect.get.call(Reflect, target, 'harmless', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown aliased Reflect.get target may expose a getter',
+    source: `const prefix = [null];
+      const read = Reflect.get;
+      read.call(Reflect, loadTarget(), 'harmless', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.defineProperty accessors retain Reflect.get receiver semantics',
+    source: `const target = {};
+      Object.defineProperty(target, 'harmless', { get() { return true; } });
+      const prefix = [null];
+      Reflect.get(target, 'harmless', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an unknown descriptor may install a receiver-sensitive getter',
+    source: `const target = {};
+      Object.defineProperty(target, 'harmless', loadDescriptor());
+      const prefix = [null];
+      Reflect.get(target, 'harmless', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.defineProperty accessors retain Reflect.set receiver semantics',
+    source: `const target = {};
+      Reflect.defineProperty(target, 'harmless', { set(value) {} });
+      const prefix = [null];
+      Reflect.set(target, 'harmless', true, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.apply preserves computed Reflect.get receiver semantics',
+    source: `const key = 'harmless';
+      const target = { get [key]() { this[Symbol.iterator] = loadIterator(); return true; } };
+      const prefix = [null];
+      Reflect.apply(Reflect.get, Reflect, [target, key, prefix]);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+];
+const objectAssignPrototypeCases = [
+  {
+    name: 'Object.assign invokes the inherited __proto__ setter',
+    source: `const prefix = [null];
+      Object.assign(prefix, {
+        ['__proto__']: { *[Symbol.iterator]() { yield eval; } }
+      });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'borrowed Object.assign preserves computed __proto__ provenance',
+    source: `const key = '__proto__';
+      const prefix = [null];
+      Object.assign.call(Object, prefix, {
+        [key]: { *[Symbol.iterator]() { yield eval; } }
+      });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'conditional Object.assign __proto__ values fail closed',
+    source: `const prefix = [null];
+      Object.assign(prefix, { ['__proto__']: flag ? {} : loadPrototype() });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+];
+const legacyAccessorMutationCases = [
+  {
+    name: 'a directly borrowed __defineGetter__ installs an iterator getter',
+    source: `const prefix = [null];
+      prefix.__defineGetter__(Symbol.iterator, function iteratorGetter() { return loadIterator(); });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.prototype __defineGetter__ installs a numeric getter',
+    source: `const prefix = [null];
+      Object.prototype.__defineGetter__.call(prefix, '0', function indexGetter() { return eval; });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'the plural descriptor extracts __defineGetter__',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptors(Object.prototype).__defineGetter__.value.apply(prefix, [
+        '0',
+        function indexGetter() { return eval; }
+      ]);
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'the singular descriptor extracts __defineGetter__',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptor(Object.prototype, '__defineGetter__').value.call(
+        prefix,
+        Symbol.iterator,
+        function iteratorGetter() { return loadIterator(); }
+      );
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'the reflected singular descriptor extracts __defineGetter__',
+    source: `const prefix = [null];
+      Reflect.getOwnPropertyDescriptor(Object.prototype, '__defineGetter__').value.call(
+        prefix,
+        '0',
+        function indexGetter() { return eval; }
+      );
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'computed descriptor extraction composes Function.prototype.call.call',
+    source: `const key = '__defineGetter__';
+      const install = Object.getOwnPropertyDescriptor(Object.prototype, key).value;
+      const prefix = [null];
+      Function.prototype.call.call(install, prefix, '0', function indexGetter() { return eval; });
+      Reflect.apply(...prefix, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'descriptor-extracted __defineSetter__ invalidates a numeric position',
+    source: `const prefix = [null];
+      Object.getOwnPropertyDescriptors(Object.prototype).__defineSetter__.value.call(
+        prefix,
+        '0',
+        function indexSetter(value) {}
+      );
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+];
+const safeReflectiveCarrierCases = [
+  {
+    name: 'a nearer known-safe iterator shadows an unsafe root iterator',
+    source: `const root = { *[Symbol.iterator]() { yield eval; } };
+      const hop = {
+        __proto__: root,
+        *[Symbol.iterator]() { yield JSON.parse; }
+      };
+      const prefix = [null];
+      Object.setPrototypeOf(prefix, hop);
+      Reflect.apply(...prefix, null, ['{}']);`,
+  },
+  {
+    name: 'a known-safe iterator survives a multi-hop chain',
+    source: `const root = {
+        *[Symbol.iterator]() { yield JSON.parse; yield null; yield ['{}']; }
+      };
+      const hop = { __proto__: root };
+      const prefix = [null];
+      Reflect.setPrototypeOf(prefix, hop);
+      Reflect.apply(...prefix);`,
+  },
+  {
+    name: 'Reflect.set on a known data property does not invalidate its receiver',
+    source: `const target = { harmless: 0 };
+      const prefix = [null];
+      Reflect.set(target, 'harmless', 1, prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Reflect.get on a known data property does not invalidate its receiver',
+    source: `const target = { harmless: 0 };
+      const prefix = [null];
+      Reflect.get(target, 'harmless', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'the known-safe legacy __proto__ getter does not invalidate its receiver',
+    source: `const prefix = [null];
+      Reflect.get(Object.prototype, '__proto__', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'Object.assign with ordinary properties preserves the carrier layout',
+    source: `const prefix = [null];
+      Object.assign(prefix, { harmless: true });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a non-computed object-literal __proto__ is not assigned',
+    source: `const unsafePrototype = { *[Symbol.iterator]() { yield eval; } };
+      const prefix = [null];
+      Object.assign(prefix, { __proto__: unsafePrototype });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an own data __proto__ property shadows the legacy setter',
+    source: `const prefix = [null];
+      Object.defineProperty(prefix, '__proto__', { value: null, writable: true });
+      Object.assign(prefix, {
+        ['__proto__']: { *[Symbol.iterator]() { yield eval; } }
+      });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an unobserved non-positional legacy getter preserves the carrier layout',
+    source: `const prefix = [null];
+      prefix.__defineGetter__('metadata', function metadataGetter() { return eval; });
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a data descriptor does not acquire getter receiver side effects',
+    source: `const target = {};
+      Object.defineProperty(target, 'harmless', { value: true });
+      const prefix = [null];
+      Reflect.get(target, 'harmless', prefix);
+      Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
+  },
+];
+const reviewedReflectiveMutationCases = [
+  ...multiHopPrototypeCases,
+  ...accessorReceiverMutationCases,
+  ...objectAssignPrototypeCases,
+  ...legacyAccessorMutationCases,
+];
+const productionBlockingReviewCases = [
+  multiHopPrototypeCases[0],
+  accessorReceiverMutationCases[0],
+  objectAssignPrototypeCases[0],
+  legacyAccessorMutationCases[2],
+];
 const productionCarrierReviewCases = mutableSpreadPrefixCases.filter(({ name }) =>
   [
     'Reflect.set writes an eval target through its receiver',
@@ -1627,6 +1947,58 @@ test('mutable spread prefixes fail closed after length-changing writes and mutat
   }
 });
 
+test('multi-hop prototypes, receiver accessors, Object.assign, and legacy accessors fail closed', () => {
+  for (const reviewCase of reviewedReflectiveMutationCases) {
+    const firstFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
+    const secondFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
+    assert.deepEqual(firstFindings, secondFindings, `${reviewCase.name} should be deterministic`);
+    assert.deepEqual(
+      firstFindings.map(finding => [finding.kind, finding.reason]),
+      [['analysis-limit', 'positional-layout-limit']],
+      `${reviewCase.name} should produce one bounded fail-closed finding`
+    );
+  }
+});
+
+test('known-safe reflective carrier operations remain clean', () => {
+  for (const safeCase of safeReflectiveCarrierCases) {
+    assert.deepEqual(
+      scanSource(safeCase.source, 'packages/example/src/safe-reflective-carrier.ts'),
+      [],
+      `${safeCase.name} should not produce a finding`
+    );
+  }
+});
+
+test('the guard CLI rejects the reviewed reflective mutation paths', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = reviewedReflectiveMutationCases.map((reviewCase, index) => ({
+    relativePath: `packages/example/src/reflective-mutation-${index}.ts`,
+    source: reviewCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(positional-layout-limit\)/);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
+test('the guard CLI accepts known-safe reflective carrier operations', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = safeReflectiveCarrierCases.map((safeCase, index) => ({
+    relativePath: `packages/example/src/safe-reflective-carrier-${index}.ts`,
+    source: safeCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('the guard CLI rejects tracked mutable spread prefixes without executing them', t => {
   const root = createEndToEndGuardRepository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -1650,6 +2022,24 @@ test('the production npm lint path rejects every focused carrier review mechanis
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const sources = productionCarrierReviewCases.map((reviewCase, index) => ({
     relativePath: `packages/example/src/production-carrier-review-${index}.ts`,
+    source: reviewCase.source,
+  }));
+  const result = invokeNpmLintWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /analysis-limit .*\(positional-layout-limit\)/);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
+test('the production npm lint path rejects all four blocking review classes', t => {
+  assert.equal(productionBlockingReviewCases.length, 4);
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = productionBlockingReviewCases.map((reviewCase, index) => ({
+    relativePath: `packages/example/src/production-blocking-review-${index}.ts`,
     source: reviewCase.source,
   }));
   const result = invokeNpmLintWithTrackedSources(root, sources);
