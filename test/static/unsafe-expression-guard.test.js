@@ -3013,6 +3013,64 @@ const mapperReviewCases = [
     source: `Array(new Array(eval))[0][0](configuredSource);`,
   },
   {
+    name: 'a borrowed ordinary Array call retains eval provenance',
+    kind: 'direct-eval',
+    source: `Array.call(null, eval)[0](configuredSource);`,
+  },
+  {
+    name: 'a bound ordinary Array call retains Lodash provenance',
+    kind: 'lodash-template',
+    source: `Array.bind(null, _.template)()[0](configuredTemplate)();`,
+  },
+  {
+    name: 'a reflected ordinary Array call retains eval provenance',
+    kind: 'direct-eval',
+    source: `Reflect.apply(Array, null, [eval])[0](configuredSource);`,
+  },
+  {
+    name: 'Array.map fails closed when a later callback write crosses the tracked position boundary',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const input = [${Array.from({ length: 65 }, (_, index) => index).join(',')}];
+      const values = input.map(function (value, index, array) {
+        if (index === 0) array[64] = eval;
+        return array[index];
+      });
+      values[64](configuredSource);`,
+  },
+  {
+    name: 'an ordinary array literal fails closed at the tracked position boundary',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const values = [${Array.from({ length: 65 }, (_, index) => (index === 64 ? 'eval' : index)).join(
+      ','
+    )}]; values[64](configuredSource);`,
+  },
+  {
+    name: 'an ordinary Array call fails closed at the tracked position boundary',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const values = Array(${Array.from({ length: 65 }, (_, index) => (index === 64 ? 'eval' : index)).join(
+      ','
+    )}); values[64](configuredSource);`,
+  },
+  {
+    name: 'an ordinary Array constructor fails closed at the tracked position boundary',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const values = new Array(${Array.from({ length: 65 }, (_, index) => (index === 64 ? 'eval' : index)).join(
+      ','
+    )}); values[64](configuredSource);`,
+  },
+  {
+    name: 'Array.of fails closed at the tracked position boundary',
+    kind: 'analysis-limit',
+    reason: 'unknown-reflective-callable',
+    source: `const values = Array.of(${Array.from({ length: 65 }, (_, index) => (index === 64 ? 'eval' : index)).join(
+      ','
+    )}); values[64](configuredSource);`,
+  },
+  {
     name: 'an unknown map callback fails closed when its result is invoked',
     kind: 'analysis-limit',
     reason: 'unknown-reflective-callable',
@@ -3290,6 +3348,15 @@ const sideEffectFunctionReviewCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
   {
+    name: 'an invoked nested default captures and mutates its outer parameter',
+    source: `function prepare(args) {
+        function nested(value = args) { value.pop(); }
+        nested();
+      }
+      const args = [null]; prepare(args);
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+  {
     name: 'an invoked nested arrow mutates its captured parameter',
     source: `function mutate(value) { const nested = () => value.shift(); nested(); }
       const prefix = [null]; mutate(prefix);
@@ -3304,6 +3371,37 @@ const sideEffectFunctionReviewCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
   {
+    name: 'a returned closure composes a nested default effect',
+    source: `function prepare(args) {
+        return function () {
+          function nested(value = args) { value.pop(); }
+          nested();
+        };
+      }
+      const args = [null]; prepare(args)();
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'a nested local factory returns an invoked carrier-mutating closure',
+    source: `function prepare(args) {
+        function makeMutator() {
+          return function (value = args) { value.pop(); };
+        }
+        makeMutator()();
+      }
+      const args = [null]; prepare(args);
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+  {
+    name: 'an ambiguous parameterized local closure factory fails closed',
+    source: `function prepare(args) {
+        function makeMutator(value) { return function () { value.pop(); }; }
+        makeMutator(args)();
+      }
+      const args = [null]; prepare(args);
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+  {
     name: 'an observed getter read invokes its captured carrier effect',
     source: `const prefix = [null];
       const observed = { get value() { prefix.pop(); return JSON.parse; } };
@@ -3311,10 +3409,31 @@ const sideEffectFunctionReviewCases = [
       Reflect.apply(...prefix, eval, globalThis, [configuredSource]);`,
   },
   {
+    name: 'an observed descriptor getter composes a nested captured carrier effect',
+    source: `const args = [null];
+      const holder = {};
+      Object.defineProperty(holder, 'trigger', {
+        get() {
+          function nested(value = args) { value.pop(); }
+          nested();
+          return JSON.parse;
+        }
+      });
+      void holder.trigger;
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
+  },
+  {
     name: 'a defaulted carrier parameter is materialized before effect gating',
     source: `function mutate(value = prefix) { value.pop(); }
       const prefix = [null]; mutate();
       Reflect.apply(...prefix, _.template, _, [configuredTemplate])();`,
+  },
+  {
+    name: 'a default parameter factory mutates a captured invocation carrier',
+    source: `const args = [null];
+      function prepare(value = (args.pop(), JSON.parse)) { value('{}'); }
+      prepare();
+      Reflect.apply(...args, eval, globalThis, [configuredSource]);`,
   },
   {
     name: 'a function-valued default composes its carrier effect',
@@ -3421,6 +3540,22 @@ const safeMapperCollectionAndEffectCases = [
   {
     name: 'known-safe mapper callable result',
     source: `const values = [0].map(() => Array.of); values[0](configuredSource);`,
+  },
+  {
+    name: 'an unsafe overflow value does not taint a known-safe earlier array position',
+    source: `const values = [JSON.parse, ${Array.from({ length: 63 }, (_, index) => index).join(',')}, eval];
+      values[0]('{}');`,
+  },
+  {
+    name: 'a known-safe ordinary Array boundary value remains precise',
+    source: `const values = new Array(${Array.from({ length: 64 }, (_, index) => index).join(',')}, JSON.parse);
+      values[64]('{}');`,
+  },
+  {
+    name: 'a known-safe mapper result remains precise at the tracked position boundary',
+    source: `const input = [${Array.from({ length: 65 }, (_, index) => index).join(',')}];
+      const values = input.map(() => JSON.parse);
+      values[64]('{}');`,
   },
   {
     name: 'Map and Set safe data iteration',
@@ -4589,9 +4724,12 @@ test('side-effect-only local functions invalidate eval and Lodash invocation car
           finding.kind === 'direct-eval' ||
           finding.kind === 'lodash-template' ||
           (finding.kind === 'analysis-limit' &&
-            ['positional-layout-limit', 'unknown-reflect-target', 'unknown-reflective-callable'].includes(
-              finding.reason
-            ))
+            [
+              'invocation-effect-limit',
+              'positional-layout-limit',
+              'unknown-reflect-target',
+              'unknown-reflective-callable',
+            ].includes(finding.reason))
       ),
       `${effectCase.name} should preserve or fail closed on the carrier effect: ${JSON.stringify(firstFindings)}`
     );
@@ -4695,8 +4833,30 @@ test('mapper, collection, and local-effect reproductions execute only isolated m
       return array[index];
     });
     mutableMapped[1](mark('map-later-element'));
+    const borrowedInput = [0, 1];
+    const borrowedMapped = Array.prototype.map.call(borrowedInput, function (value, index, array) {
+      if (index === 0) array[1] = eval;
+      return array[index];
+    });
+    borrowedMapped[1](mark('map-borrowed-later-element'));
+    const boundInput = [0, 1];
+    const boundMapped = Array.prototype.map.bind(boundInput, function (value, index, array) {
+      if (index === 0) array[1] = eval;
+      return array[index];
+    })();
+    boundMapped[1](mark('map-bound-later-element'));
+    const boundaryInput = Array.from({ length: 65 }, (_, index) => index);
+    const boundaryMapped = boundaryInput.map(function (value, index, array) {
+      if (index === 0) array[64] = eval;
+      return array[index];
+    });
+    boundaryMapped[64](mark('map-boundary-later-element'));
     const from = Array.from([0], () => require('lodash/template'));
     from[0](\`<% globalThis[${serializedMarkerKey}].push('from') %>\`)();
+    new Array(eval)[0](mark('array-new-constructor'));
+    Array.call(null, eval)[0](mark('array-borrowed-constructor'));
+    Array.bind(null, eval)()[0](mark('array-bound-constructor'));
+    Reflect.apply(Array, null, [eval])[0](mark('array-reflected-constructor'));
     Array(require('lodash/template'))[0](
       \`<% globalThis[${serializedMarkerKey}].push('array-constructor') %>\`
     )();
@@ -4704,6 +4864,12 @@ test('mapper, collection, and local-effect reproductions execute only isolated m
     const mutableMap = new Map();
     mutableMap.set('run', eval);
     for (const execute of mutableMap.values()) execute(mark('map-mutation'));
+    const keyMap = new Map();
+    keyMap.set(eval, 'value');
+    [...keyMap.keys()][0](mark('map-key-spread'));
+    const nextMap = new Map();
+    nextMap.set('run', eval);
+    nextMap.values().next().value(mark('map-manual-next'));
     const setValues = [...new Set([require('lodash/template')])];
     setValues[0](\`<% globalThis[${serializedMarkerKey}].push('set-spread') %>\`)();
     const mutableSet = new Set();
@@ -4711,12 +4877,53 @@ test('mapper, collection, and local-effect reproductions execute only isolated m
     mutableSet.entries().next().value[1](
       \`<% globalThis[${serializedMarkerKey}].push('set-mutation') %>\`
     )();
+    const destructuredSet = new Set();
+    destructuredSet.add(eval);
+    const [setRun] = destructuredSet;
+    setRun(mark('set-destructure'));
+    const loadValues = () => [eval];
+    new Set(loadValues()).entries().next().value[1](mark('set-unknown-source-entry'));
     function mutate(value) { value.pop(); }
     const prefix = [null]; mutate(prefix);
     Reflect.apply(...prefix, eval, globalThis, [mark('effect')]);
     function nestedMutate(value) { function nested() { value.pop(); } nested(); }
     const nestedPrefix = [null]; nestedMutate(nestedPrefix);
     Reflect.apply(...nestedPrefix, eval, globalThis, [mark('nested-effect')]);
+    function nestedDefaultMutate(args) {
+      function nested(value = args) { value.pop(); }
+      nested();
+    }
+    const nestedDefaultPrefix = [null]; nestedDefaultMutate(nestedDefaultPrefix);
+    Reflect.apply(...nestedDefaultPrefix, eval, globalThis, [mark('nested-default-effect')]);
+    function localFactoryMutate(args) {
+      function makeMutator() {
+        return function (value = args) { value.pop(); };
+      }
+      makeMutator()();
+    }
+    const localFactoryPrefix = [null]; localFactoryMutate(localFactoryPrefix);
+    Reflect.apply(...localFactoryPrefix, eval, globalThis, [mark('local-factory-effect')]);
+    function parameterFactoryMutate(args) {
+      function makeMutator(value) { return function () { value.pop(); }; }
+      makeMutator(args)();
+    }
+    const parameterFactoryPrefix = [null]; parameterFactoryMutate(parameterFactoryPrefix);
+    Reflect.apply(...parameterFactoryPrefix, eval, globalThis, [mark('parameter-factory-effect')]);
+    const getterPrefix = [null];
+    const holder = {};
+    Object.defineProperty(holder, 'trigger', {
+      get() {
+        function nested(value = getterPrefix) { value.pop(); }
+        nested();
+        return JSON.parse;
+      }
+    });
+    void holder.trigger;
+    Reflect.apply(...getterPrefix, eval, globalThis, [mark('getter-nested-effect')]);
+    const defaultPrefix = [null];
+    function defaultMutate(value = (defaultPrefix.pop(), JSON.parse)) { value('{}'); }
+    defaultMutate();
+    Reflect.apply(...defaultPrefix, eval, globalThis, [mark('default-factory-effect')]);
     process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
     delete globalThis[${serializedMarkerKey}];
   `;
@@ -4731,14 +4938,30 @@ test('mapper, collection, and local-effect reproductions execute only isolated m
   assert.deepEqual(JSON.parse(result.stdout), [
     'map',
     'map-later-element',
+    'map-borrowed-later-element',
+    'map-bound-later-element',
+    'map-boundary-later-element',
     'from',
+    'array-new-constructor',
+    'array-borrowed-constructor',
+    'array-bound-constructor',
+    'array-reflected-constructor',
     'array-constructor',
     'map-iteration',
     'map-mutation',
+    'map-key-spread',
+    'map-manual-next',
     'set-spread',
     'set-mutation',
+    'set-destructure',
+    'set-unknown-source-entry',
     'effect',
     'nested-effect',
+    'nested-default-effect',
+    'local-factory-effect',
+    'parameter-factory-effect',
+    'getter-nested-effect',
+    'default-factory-effect',
   ]);
 });
 
