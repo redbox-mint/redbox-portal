@@ -36,6 +36,11 @@ const allowedExclusionRootKeys = new Set(['schemaVersion', 'documentation', 'ent
 const allowedExclusionEntryKeys = new Set(['path', 'kind', 'source', 'rationale']);
 const allowedExclusionKinds = new Set(['generated', 'vendored']);
 const maximumTrackedInvocationArguments = 64;
+const maximumTrackedPositionalAlternatives = 64;
+const maximumSyntacticNesting = 256;
+const maximumFindingsPerFile = 128;
+const maximumRepositoryFindings = 512;
+const analysisLimitKind = 'analysis-limit';
 const origins = Object.freeze({
   builtinEval: 'builtin-eval',
   globalObject: 'global-object',
@@ -148,6 +153,7 @@ function collectBindings(sourceFile) {
   const propagationSubscribers = new WeakMap();
   const propagationQueue = [];
   const queuedPropagationOperations = new Set();
+  const unknownValueAtom = Object.freeze({ kind: 'unknown-value' });
   let activePropagationOperation;
 
   function createScope(parent, kind) {
@@ -207,6 +213,10 @@ function collectBindings(sourceFile) {
     return new Set(values);
   }
 
+  function unknownValue() {
+    return new Set([unknownValueAtom]);
+  }
+
   function literalValue(value) {
     const key = `${typeof value}\0${String(value)}`;
     let atom = literalAtoms.get(key);
@@ -217,11 +227,21 @@ function collectBindings(sourceFile) {
     return new Set([atom]);
   }
 
-  function carrierFor(node) {
+  function carrierFor(node, positional = false) {
     let atom = carrierAtoms.get(node);
     if (!atom) {
-      atom = { kind: 'carrier', properties: new Map(), unknownProperty: new Set() };
+      atom = {
+        kind: 'carrier',
+        properties: new Map(),
+        unknownProperty: new Set(),
+        positional,
+        positionalLengths: new Set(),
+        positionalUncertain: false,
+        uncertainPositionalValues: new Set(),
+      };
       carrierAtoms.set(node, atom);
+    } else if (positional) {
+      atom.positional = true;
     }
     return atom;
   }
@@ -403,13 +423,13 @@ function collectBindings(sourceFile) {
     const binding = lookupBinding(identifier);
     if (binding) {
       trackPropagationDependency(binding.value);
-      return new Set(binding.value);
+      return binding.value.size > 0 ? new Set(binding.value) : unknownValue();
     }
     if (identifier.text === 'eval') return originValue(origins.builtinEval);
     if (identifier.text === '_') return originValue(origins.lodashObject);
     if (globalEvalObjects.has(identifier.text)) return originValue(origins.globalObject);
     if (identifier.text === 'Reflect') return originValue(origins.reflectObject);
-    return new Set();
+    return unknownValue();
   }
 
   function specialProperty(origin, propertyName) {
@@ -502,6 +522,10 @@ function collectBindings(sourceFile) {
         else for (const propertyName of propertyNames) mergeValue(result, specialProperty(atom, propertyName));
         continue;
       }
+      if (atom.kind === 'unknown-value') {
+        result.add(atom);
+        continue;
+      }
       if (atom.kind !== 'carrier') continue;
       trackPropagationDependency(atom);
       if (propertyNames === undefined) {
@@ -527,6 +551,13 @@ function collectBindings(sourceFile) {
   function putCarrierProperty(carrier, propertyNames, value) {
     if (propertyNames === undefined) {
       mergeCarrierProperty(carrier, carrier.unknownProperty, value);
+      if (carrier.positional) {
+        if (!carrier.positionalUncertain) {
+          carrier.positionalUncertain = true;
+          notifyPropagationSubscribers(carrier);
+        }
+        mergeCarrierProperty(carrier, carrier.uncertainPositionalValues, value);
+      }
       return;
     }
     for (const propertyName of propertyNames) {
@@ -536,7 +567,34 @@ function collectBindings(sourceFile) {
         carrier.properties.set(propertyName, target);
       }
       mergeCarrierProperty(carrier, target, value);
+      if (carrier.positional && /^(0|[1-9]\d*)$/.test(propertyName)) {
+        const index = Number(propertyName);
+        if (Number.isSafeInteger(index) && [...carrier.positionalLengths].some(length => index >= length)) {
+          const boundedLength = Math.min(index + 1, maximumTrackedInvocationArguments);
+          if (!carrier.positionalLengths.has(boundedLength)) {
+            carrier.positionalLengths.add(boundedLength);
+            notifyPropagationSubscribers(carrier);
+          }
+        }
+      }
     }
+  }
+
+  function mergeCarrierPositionalState(carrier, lengths, positionalUncertain, uncertainValues) {
+    let changed = false;
+    for (const length of lengths) {
+      const boundedLength = Math.min(length, maximumTrackedInvocationArguments);
+      if (!carrier.positionalLengths.has(boundedLength)) {
+        carrier.positionalLengths.add(boundedLength);
+        changed = true;
+      }
+    }
+    if (positionalUncertain && !carrier.positionalUncertain) {
+      carrier.positionalUncertain = true;
+      changed = true;
+    }
+    if (mergeValue(carrier.uncertainPositionalValues, uncertainValues)) changed = true;
+    if (changed) notifyPropagationSubscribers(carrier);
   }
 
   function spreadProperties(carrier, value) {
@@ -557,7 +615,9 @@ function collectBindings(sourceFile) {
   }
 
   function arrayRestValue(value, startIndex, node) {
-    const restCarrier = carrierFor(node);
+    const restCarrier = carrierFor(node, true);
+    const restLengths = new Set();
+    const uncertainValues = new Set();
     for (const atom of value) {
       if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
       trackPropagationDependency(atom);
@@ -568,7 +628,16 @@ function collectBindings(sourceFile) {
         putCarrierProperty(restCarrier, [String(sourceIndex - startIndex)], propertyValue);
       }
       putCarrierProperty(restCarrier, undefined, atom.unknownProperty);
+      for (const length of atom.positionalLengths) restLengths.add(Math.max(0, length - startIndex));
+      mergeValue(uncertainValues, atom.uncertainPositionalValues);
     }
+    mergeCarrierPositionalState(
+      restCarrier,
+      restLengths,
+      value.size === 0 ||
+        [...value].some(atom => typeof atom === 'string' || atom.kind !== 'carrier' || atom.positionalUncertain),
+      uncertainValues
+    );
     return new Set([restCarrier]);
   }
 
@@ -597,30 +666,67 @@ function collectBindings(sourceFile) {
     return atom;
   }
 
-  function positionalValues(value) {
-    let maximumIndex = -1;
-    let hasUnknownProperty = false;
+  function carrierPositionValue(carrier, index) {
+    const result = new Set(carrier.properties.get(String(index)) ?? []);
+    mergeValue(result, carrier.unknownProperty);
+    return result;
+  }
+
+  function positionalLayouts(value) {
+    const layouts = [];
+    const uncertainValues = new Set();
+    let uncertainPositioning = value.size === 0;
+
     for (const atom of value) {
-      if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
+      if (typeof atom === 'string' || atom.kind !== 'carrier') {
+        uncertainPositioning = true;
+        if (isTrackedCallable(atom)) uncertainValues.add(atom);
+        continue;
+      }
       trackPropagationDependency(atom);
-      hasUnknownProperty ||= atom.unknownProperty.size > 0;
-      for (const propertyName of atom.properties.keys()) {
-        if (!/^(0|[1-9]\d*)$/.test(propertyName)) continue;
-        const index = Number(propertyName);
-        if (!Number.isSafeInteger(index)) continue;
-        if (index >= maximumTrackedInvocationArguments) hasUnknownProperty = true;
-        maximumIndex = Math.max(maximumIndex, Math.min(index, maximumTrackedInvocationArguments - 1));
+      const numericIndices = [...atom.properties.keys()]
+        .filter(propertyName => /^(0|[1-9]\d*)$/.test(propertyName))
+        .map(Number)
+        .filter(Number.isSafeInteger);
+      let lengths = [...atom.positionalLengths];
+      if (lengths.length === 0 && numericIndices.length > 0) {
+        lengths = [Math.min(Math.max(...numericIndices) + 1, maximumTrackedInvocationArguments)];
+        uncertainPositioning = true;
+      } else if (lengths.length === 0) {
+        uncertainPositioning = true;
+      }
+      mergeValue(uncertainValues, atom.uncertainPositionalValues);
+      if (atom.positionalUncertain || atom.unknownProperty.size > 0) {
+        uncertainPositioning = true;
+        mergeValue(uncertainValues, atom.unknownProperty);
+      }
+      for (const length of lengths) {
+        const layout = Array.from({ length }, (_, index) => carrierPositionValue(atom, index));
+        if (layouts.length < maximumTrackedPositionalAlternatives) {
+          layouts.push(layout);
+        } else {
+          uncertainPositioning = true;
+          for (const positionalValue of layout) mergeValue(uncertainValues, positionalValue);
+        }
       }
     }
-    if (maximumIndex < 0) return hasUnknownProperty ? [getProperty(value, undefined)] : [];
-    const result = Array.from({ length: maximumIndex + 1 }, (_, index) => getProperty(value, [String(index)]));
-    if (hasUnknownProperty) mergeValue(result[result.length - 1], getProperty(value, undefined));
-    return result;
+
+    return { layouts, uncertainPositioning, uncertainValues };
   }
 
   function mergeInvocation(target, source) {
     mergeValue(target.result, source.result);
     mergeValue(target.kinds, source.kinds);
+  }
+
+  function hasTrackedCallable(value) {
+    return [...value].some(isTrackedCallable);
+  }
+
+  function mergePositionalLimit(invocation, expansion) {
+    if (hasTrackedCallable(expansion.uncertainValues)) {
+      invocation.kinds.add(analysisLimitKind);
+    }
   }
 
   function invokeTracked(callable, argumentValues, invocationNode, seen = new Set()) {
@@ -635,7 +741,12 @@ function collectBindings(sourceFile) {
       } else if (atom === origins.reflectApply || atom === origins.reflectConstruct) {
         const target = argumentValues[0] ?? new Set();
         const argumentCarrier = argumentValues[atom === origins.reflectApply ? 2 : 1] ?? new Set();
-        mergeInvocation(invocation, invokeTracked(target, positionalValues(argumentCarrier), invocationNode, seen));
+        const expansion = positionalLayouts(argumentCarrier);
+        const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
+        for (const layout of layouts) {
+          mergeInvocation(invocation, invokeTracked(target, layout, invocationNode, seen));
+        }
+        mergePositionalLimit(invocation, expansion);
       } else if (typeof atom !== 'string' && !seen.has(atom)) {
         const nextSeen = new Set(seen);
         nextSeen.add(atom);
@@ -652,8 +763,12 @@ function collectBindings(sourceFile) {
           mergeInvocation(invocation, invokeTracked(atom.target, argumentValues.slice(1), invocationNode, nextSeen));
         } else if (atom.kind === 'invocation-method' && atom.method === 'apply') {
           trackPropagationDependency(atom.target);
-          const appliedArguments = positionalValues(argumentValues[1] ?? new Set());
-          mergeInvocation(invocation, invokeTracked(atom.target, appliedArguments, invocationNode, nextSeen));
+          const expansion = positionalLayouts(argumentValues[1] ?? new Set());
+          const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
+          for (const layout of layouts) {
+            mergeInvocation(invocation, invokeTracked(atom.target, layout, invocationNode, nextSeen));
+          }
+          mergePositionalLimit(invocation, expansion);
         } else if (atom.kind === 'invocation-method' && atom.method === 'bind') {
           trackPropagationDependency(atom.target);
           invocation.result.add(boundCallableFor(invocationNode, atom.target, argumentValues.slice(1)));
@@ -663,32 +778,79 @@ function collectBindings(sourceFile) {
     return invocation;
   }
 
-  function appendInvocationValue(values, value) {
-    if (values.length < maximumTrackedInvocationArguments) {
-      values.push(value);
-      return;
+  function appendPositionalValue(layout, value, uncertainValues) {
+    const result = [...layout];
+    if (result.length < maximumTrackedInvocationArguments) {
+      result.push(value);
+    } else {
+      mergeValue(result[maximumTrackedInvocationArguments - 1], value);
+      mergeValue(uncertainValues, value);
     }
-    mergeValue(values[maximumTrackedInvocationArguments - 1], value);
+    return result;
   }
 
-  function invocationArgumentValues(argumentNodes) {
-    const values = [];
-    for (const argument of argumentNodes) {
-      if (ts.isSpreadElement(argument)) {
-        for (const spreadValue of positionalValues(evaluateExpression(argument.expression))) {
-          appendInvocationValue(values, spreadValue);
+  function mergeLayoutValues(target, layouts) {
+    for (const layout of layouts) {
+      for (const value of layout) mergeValue(target, value);
+    }
+  }
+
+  function appendExpansionValue(expansion, value) {
+    if (expansion.uncertainPositioning) mergeValue(expansion.uncertainValues, value);
+    expansion.layouts = expansion.layouts.map(layout =>
+      appendPositionalValue(layout, value, expansion.uncertainValues)
+    );
+  }
+
+  function appendSpreadExpansion(expansion, spreadExpansion) {
+    if (expansion.uncertainPositioning) mergeLayoutValues(expansion.uncertainValues, spreadExpansion.layouts);
+    mergeValue(expansion.uncertainValues, spreadExpansion.uncertainValues);
+    if (spreadExpansion.uncertainPositioning) {
+      expansion.uncertainPositioning = true;
+      mergeLayoutValues(expansion.uncertainValues, spreadExpansion.layouts);
+    }
+    const suffixes = spreadExpansion.layouts.length > 0 ? spreadExpansion.layouts : [[]];
+    const combined = [];
+    for (const prefix of expansion.layouts) {
+      for (const suffix of suffixes) {
+        let layout = prefix;
+        for (const value of suffix) {
+          layout = appendPositionalValue(layout, value, expansion.uncertainValues);
         }
-      } else {
-        appendInvocationValue(values, evaluateExpression(argument));
+        if (combined.length < maximumTrackedPositionalAlternatives) {
+          combined.push(layout);
+        } else {
+          expansion.uncertainPositioning = true;
+          mergeLayoutValues(expansion.uncertainValues, [layout]);
+        }
       }
     }
-    return values;
+    expansion.layouts = combined;
+  }
+
+  function positionalExpansionForNodes(nodes) {
+    const expansion = { layouts: [[]], uncertainPositioning: false, uncertainValues: new Set() };
+    for (const node of nodes) {
+      if (ts.isOmittedExpression(node)) {
+        appendExpansionValue(expansion, new Set());
+      } else if (ts.isSpreadElement(node)) {
+        appendSpreadExpansion(expansion, positionalLayouts(evaluateExpression(node.expression)));
+      } else {
+        appendExpansionValue(expansion, evaluateExpression(node));
+      }
+    }
+    return expansion;
   }
 
   function evaluateInvocation(calleeNode, argumentNodes, invocationNode) {
     const callee = evaluateExpression(calleeNode);
-    const argumentValues = invocationArgumentValues(argumentNodes);
-    return invokeTracked(callee, argumentValues, invocationNode);
+    const expansion = positionalExpansionForNodes(argumentNodes);
+    const invocation = { result: new Set(), kinds: new Set() };
+    for (const layout of expansion.layouts) {
+      mergeInvocation(invocation, invokeTracked(callee, layout, invocationNode));
+    }
+    mergePositionalLimit(invocation, expansion);
+    return invocation;
   }
 
   function evaluateExpression(node) {
@@ -719,43 +881,28 @@ function collectBindings(sourceFile) {
     }
 
     if (ts.isArrayLiteralExpression(current)) {
-      const carrier = carrierFor(current);
-      let index = 0;
-      for (const element of current.elements) {
-        if (ts.isOmittedExpression(element)) {
-          index += 1;
-          continue;
-        }
-        if (ts.isSpreadElement(element)) {
-          const spreadValue = evaluateExpression(element.expression);
-          const expandedValues = positionalValues(spreadValue);
-          for (const expandedValue of expandedValues) {
-            if (index < maximumTrackedInvocationArguments) {
-              putCarrierProperty(carrier, [String(index)], expandedValue);
-            } else {
-              putCarrierProperty(carrier, undefined, expandedValue);
-            }
-            index += 1;
-          }
-        } else {
-          if (index < maximumTrackedInvocationArguments) {
-            putCarrierProperty(carrier, [String(index)], evaluateExpression(element));
-          } else {
-            putCarrierProperty(carrier, undefined, evaluateExpression(element));
-          }
-          index += 1;
+      const carrier = carrierFor(current, true);
+      const expansion = positionalExpansionForNodes([...current.elements]);
+      const lengths = new Set();
+      for (const layout of expansion.layouts) {
+        lengths.add(layout.length);
+        for (const [index, value] of layout.entries()) {
+          putCarrierProperty(carrier, [String(index)], value);
         }
       }
+      mergeCarrierPositionalState(carrier, lengths, expansion.uncertainPositioning, expansion.uncertainValues);
       return new Set([carrier]);
     }
 
     if (ts.isCallExpression(current)) {
       if (isUnboundRequireCall(current)) return moduleValue(literalPropertyName(current.arguments[0]));
-      return evaluateInvocation(current.expression, [...current.arguments], current).result;
+      const result = evaluateInvocation(current.expression, [...current.arguments], current).result;
+      return result.size > 0 ? result : unknownValue();
     }
 
     if (ts.isNewExpression(current)) {
-      return evaluateInvocation(current.expression, [...(current.arguments ?? [])], current).result;
+      const result = evaluateInvocation(current.expression, [...(current.arguments ?? [])], current).result;
+      return result.size > 0 ? result : unknownValue();
     }
 
     if (ts.isConditionalExpression(current)) {
@@ -781,7 +928,7 @@ function collectBindings(sourceFile) {
     if (ts.isAwaitExpression(current) || ts.isYieldExpression(current) || ts.isSpreadElement(current)) {
       return evaluateExpression(current.expression);
     }
-    return new Set();
+    return unknownValue();
   }
 
   function bindingForDeclarationName(identifier) {
@@ -934,45 +1081,112 @@ function findingFingerprint(kind, sourceText) {
   return `sha256:${crypto.createHash('sha256').update(`${kind}\0${normalizedSource}`).digest('hex')}`;
 }
 
+function sourceLocation(source, position) {
+  const prefix = source.slice(0, position);
+  const lines = prefix.split(/\r?\n/);
+  return { line: lines.length, column: lines.at(-1).length + 1 };
+}
+
+function analysisLimitFinding(relativePath, source, reason, position = 0) {
+  return {
+    kind: analysisLimitKind,
+    path: relativePath,
+    ...sourceLocation(source, position),
+    fingerprint: findingFingerprint(analysisLimitKind, reason),
+    reason,
+  };
+}
+
+function syntacticNestingLimitPosition(source) {
+  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, source);
+  const openingTokens = new Set([
+    ts.SyntaxKind.OpenBraceToken,
+    ts.SyntaxKind.OpenBracketToken,
+    ts.SyntaxKind.OpenParenToken,
+  ]);
+  const closingTokens = new Set([
+    ts.SyntaxKind.CloseBraceToken,
+    ts.SyntaxKind.CloseBracketToken,
+    ts.SyntaxKind.CloseParenToken,
+  ]);
+  let depth = 0;
+  for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
+    if (openingTokens.has(token)) {
+      depth += 1;
+      if (depth > maximumSyntacticNesting) return scanner.getTokenPos();
+    } else if (closingTokens.has(token)) {
+      depth = Math.max(0, depth - 1);
+    }
+  }
+  return undefined;
+}
+
 function scanSource(source, relativePath) {
   const normalizedPath = normalizeRelativePath(relativePath);
-  const sourceFile = ts.createSourceFile(
-    normalizedPath,
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    scriptKind(normalizedPath)
-  );
-  const bindings = collectBindings(sourceFile);
-  const findings = [];
+  const nestingLimitPosition = syntacticNestingLimitPosition(source);
+  if (nestingLimitPosition !== undefined) {
+    return [analysisLimitFinding(normalizedPath, source, 'syntactic-nesting-limit', nestingLimitPosition)];
+  }
 
-  function addFindings(node, kinds) {
-    for (const kind of kinds) {
-      const start = node.getStart(sourceFile);
-      const location = sourceFile.getLineAndCharacterOfPosition(start);
-      const sourceText = source.slice(start, node.end);
-      findings.push({
-        kind,
-        path: normalizedPath,
-        line: location.line + 1,
-        column: location.character + 1,
-        fingerprint: findingFingerprint(kind, sourceText),
+  let sourceFile;
+  try {
+    sourceFile = ts.createSourceFile(normalizedPath, source, ts.ScriptTarget.Latest, true, scriptKind(normalizedPath));
+  } catch (error) {
+    if (error instanceof RangeError) {
+      return [analysisLimitFinding(normalizedPath, source, 'parser-resource-limit')];
+    }
+    throw error;
+  }
+
+  try {
+    const bindings = collectBindings(sourceFile);
+    const findings = [];
+    const pending = [sourceFile];
+
+    function addFindings(node, kinds) {
+      for (const kind of kinds) {
+        if (findings.length >= maximumFindingsPerFile) return;
+        const start = node.getStart(sourceFile);
+        const location = sourceFile.getLineAndCharacterOfPosition(start);
+        const sourceText = source.slice(start, node.end);
+        const finding = {
+          kind,
+          path: normalizedPath,
+          line: location.line + 1,
+          column: location.character + 1,
+          fingerprint: findingFingerprint(kind, sourceText),
+        };
+        if (kind === analysisLimitKind) finding.reason = 'positional-layout-limit';
+        findings.push(finding);
+      }
+    }
+
+    while (pending.length > 0 && findings.length < maximumFindingsPerFile) {
+      const node = pending.pop();
+      if (ts.isCallExpression(node)) {
+        addFindings(node, bindings.unsafeKindsForCall(node));
+      } else if (ts.isNewExpression(node)) {
+        addFindings(node, bindings.unsafeKindsForNew(node));
+      } else if (ts.isTaggedTemplateExpression(node)) {
+        addFindings(node, bindings.unsafeKindsForTag(node));
+      }
+      const children = [];
+      ts.forEachChild(node, child => {
+        children.push(child);
       });
+      for (let index = children.length - 1; index >= 0; index -= 1) pending.push(children[index]);
     }
-  }
-
-  function visit(node) {
-    if (ts.isCallExpression(node)) {
-      addFindings(node, bindings.unsafeKindsForCall(node));
-    } else if (ts.isNewExpression(node)) {
-      addFindings(node, bindings.unsafeKindsForNew(node));
-    } else if (ts.isTaggedTemplateExpression(node)) {
-      addFindings(node, bindings.unsafeKindsForTag(node));
+    if (pending.length > 0) {
+      const position = Math.min(pending.at(-1).getStart(sourceFile), source.length);
+      findings.push(analysisLimitFinding(normalizedPath, source, 'per-file-finding-limit', position));
     }
-    ts.forEachChild(node, visit);
+    return findings;
+  } catch (error) {
+    if (error instanceof RangeError) {
+      return [analysisLimitFinding(normalizedPath, source, 'analysis-resource-limit')];
+    }
+    throw error;
   }
-  visit(sourceFile);
-  return findings;
 }
 
 function trackedSourcePaths(root = repositoryRoot, excludedSourcePaths = defaultSourceExclusionPaths) {
@@ -987,13 +1201,24 @@ function trackedSourcePaths(root = repositoryRoot, excludedSourcePaths = default
 
 function scanRepository(root = repositoryRoot, excludedSourcePaths = defaultSourceExclusionPaths) {
   const findings = [];
+  let limitFinding;
   for (const relativePath of trackedSourcePaths(root, excludedSourcePaths)) {
     const absolutePath = path.join(root, ...relativePath.split('/'));
     const stats = fs.lstatSync(absolutePath);
     if (stats.isSymbolicLink()) throw new Error(`Refusing to scan source symlink: ${relativePath}`);
     if (!stats.isFile()) continue;
-    findings.push(...scanSource(fs.readFileSync(absolutePath, 'utf8'), relativePath));
+    if (limitFinding) continue;
+    const source = fs.readFileSync(absolutePath, 'utf8');
+    for (const finding of scanSource(source, relativePath)) {
+      if (findings.length < maximumRepositoryFindings) {
+        findings.push(finding);
+      } else {
+        limitFinding = analysisLimitFinding(relativePath, source, 'repository-finding-limit');
+        break;
+      }
+    }
   }
+  if (limitFinding) findings.push(limitFinding);
   return findings.sort(
     (left, right) => left.path.localeCompare(right.path) || left.line - right.line || left.column - right.column
   );
@@ -1192,7 +1417,8 @@ function runGuard(root = repositoryRoot) {
 }
 
 function formatFinding(finding) {
-  return `${finding.path}:${finding.line}:${finding.column} ${finding.kind} ${finding.fingerprint}`;
+  const reason = finding.reason ? ` (${finding.reason})` : '';
+  return `${finding.path}:${finding.line}:${finding.column} ${finding.kind} ${finding.fingerprint}${reason}`;
 }
 
 function main() {
@@ -1228,6 +1454,8 @@ module.exports = {
   documentationRow,
   isManagedOrRemovedPath,
   isScannedSourcePath,
+  maximumFindingsPerFile,
+  maximumRepositoryFindings,
   normalizeRelativePath,
   runGuard,
   scanRepository,
