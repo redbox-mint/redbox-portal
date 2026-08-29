@@ -39,8 +39,10 @@ const maximumTrackedInvocationArguments = 64;
 const maximumTrackedPositionalAlternatives = 64;
 const maximumCallableRecursionDepth = 128;
 const maximumDependencyCompositionWork = 4096;
+const maximumInvocationEffectWork = 8192;
+const maximumPropagationSubscribersPerValue = 512;
 const maximumReturnProvenanceWork = 8192;
-const maximumAnalysisWork = 393216;
+const maximumAnalysisWork = 786432;
 const maximumSyntacticNesting = 256;
 const maximumFindingsPerFile = 128;
 const maximumRepositoryFindings = 512;
@@ -82,6 +84,7 @@ const origins = Object.freeze({
   lodashTemplateNamespace: 'lodash-template-namespace',
   mapEntries: 'map-entries',
   mapGet: 'map-get',
+  mapKeys: 'map-keys',
   mapObject: 'map-object',
   mapPrototype: 'map-prototype',
   mapSet: 'map-set',
@@ -112,6 +115,7 @@ const origins = Object.freeze({
   reflectSet: 'reflect-set',
   reflectSetPrototypeOf: 'reflect-set-prototype-of',
   setAdd: 'set-add',
+  setEntries: 'set-entries',
   setObject: 'set-object',
   setPrototype: 'set-prototype',
   setValues: 'set-values',
@@ -121,14 +125,17 @@ const origins = Object.freeze({
 function isNonComposingIntrinsic(atom) {
   return (
     atom === origins.arrayOf ||
+    atom === origins.knownSafeCallable ||
     atom === origins.mapEntries ||
     atom === origins.mapGet ||
+    atom === origins.mapKeys ||
     atom === origins.mapObject ||
     atom === origins.mapSet ||
     atom === origins.mapValues ||
     atom === origins.objectEntries ||
     atom === origins.objectValues ||
     atom === origins.setAdd ||
+    atom === origins.setEntries ||
     atom === origins.setObject ||
     atom === origins.setValues
   );
@@ -254,6 +261,7 @@ function collectBindings(sourceFile) {
     kind: 'unknown-value',
     callableReason: 'return-provenance-limit',
   });
+  const knownDataAtom = Object.freeze({ kind: 'known-data' });
   const opaqueThisValueAtom = Object.freeze({ kind: 'unknown-value', opaqueThis: true });
   const builtinPrototypeStates = new Map();
   const activeIteratorFunctions = new Set();
@@ -342,6 +350,16 @@ function collectBindings(sourceFile) {
       propagationSubscribers.set(value, subscribers);
     }
     if (subscribers.has(activePropagationOperation) || !consumeAnalysisWork()) return;
+    const carriesCarrier =
+      value.kind === 'carrier' ||
+      (value instanceof Set && [...value].some(atom => typeof atom !== 'string' && atom.kind === 'carrier'));
+    if (carriesCarrier && subscribers.size >= maximumPropagationSubscribersPerValue) {
+      analysisWorkLimit = {
+        reason: 'analysis-work-limit',
+        position: activePropagationOperation.node.getStart(sourceFile),
+      };
+      return;
+    }
     subscribers.add(activePropagationOperation);
   }
 
@@ -409,11 +427,14 @@ function collectBindings(sourceFile) {
     return {
       accessors: new Map(),
       collectionEntries: new Map(),
+      collectionKeys: new Set(),
+      collectionUnkeyedKeys: new Set(),
       collectionKind: undefined,
       collectionUnknown: false,
       collectionValues: new Set(),
       iteratorUnknownEntry: false,
       deletedProperties: new Set(),
+      invocationSensitive: false,
       kind: 'carrier',
       unknownAccessors: { get: new Set(), set: new Set() },
       unknownPropertyDeletion: false,
@@ -715,6 +736,7 @@ function collectBindings(sourceFile) {
     } else if (origin === origins.mapPrototype) {
       if (matches('entries') || matches(iteratorPropertyName)) result.add(origins.mapEntries);
       if (matches('get')) result.add(origins.mapGet);
+      if (matches('keys')) result.add(origins.mapKeys);
       if (matches('set')) result.add(origins.mapSet);
       if (matches('values')) result.add(origins.mapValues);
     } else if (origin === origins.objectObject) {
@@ -746,7 +768,8 @@ function collectBindings(sourceFile) {
       if (matches('prototype')) result.add(origins.setPrototype);
     } else if (origin === origins.setPrototype) {
       if (matches('add')) result.add(origins.setAdd);
-      if (matches('entries') || matches('keys') || matches('values') || matches(iteratorPropertyName)) {
+      if (matches('entries')) result.add(origins.setEntries);
+      if (matches('keys') || matches('values') || matches(iteratorPropertyName)) {
         result.add(origins.setValues);
       }
     } else if (origin === origins.symbolObject) {
@@ -773,6 +796,8 @@ function collectBindings(sourceFile) {
         (atom.kind === 'function-value' &&
           (atom.iteratorNode.asteriskToken ||
             atom.outerReturnBindings.size > 0 ||
+            atom.hasInvocationEffects ||
+            atom.effectProvenanceUncertain ||
             atom.parameterDependentReturn ||
             atom.receiverDependentReturn ||
             atom.returnProvenanceUncertain ||
@@ -792,8 +817,10 @@ function collectBindings(sourceFile) {
       atom === origins.functionPrototypeCall ||
       atom === origins.lodashRunInContext ||
       atom === origins.lodashTemplate ||
+      atom === origins.knownSafeCallable ||
       atom === origins.mapEntries ||
       atom === origins.mapGet ||
+      atom === origins.mapKeys ||
       atom === origins.mapObject ||
       atom === origins.mapSet ||
       atom === origins.mapValues ||
@@ -820,6 +847,7 @@ function collectBindings(sourceFile) {
       atom === origins.reflectSet ||
       atom === origins.reflectSetPrototypeOf ||
       atom === origins.setAdd ||
+      atom === origins.setEntries ||
       atom === origins.setObject ||
       atom === origins.setValues
     );
@@ -850,6 +878,11 @@ function collectBindings(sourceFile) {
       localReturnBindingWrites: new Map(),
       localReturnMutationWrites: new Map(),
       localReturnDependents: new Map(),
+      hasInvocationEffects: false,
+      effectParameterIndices: new Set(),
+      receiverInvocationEffect: false,
+      outerEffectBindings: new Set(),
+      effectProvenanceUncertain: false,
       parameterDependentReturn: false,
       mutationDependentReturn: false,
       receiverDependentReturn: false,
@@ -875,6 +908,7 @@ function collectBindings(sourceFile) {
     const provenanceReturnNames = new Set(['Reflect', '_', 'eval', 'global', 'globalThis', 'self', 'window']);
     const outerReturnBindings = new Set();
     const parameterBindings = new Set();
+    const parameterBindingIndices = new Map();
     const bindingWrites = new Map();
     const bindingMutationWrites = new Map();
     const effectCalls = [];
@@ -886,6 +920,8 @@ function collectBindings(sourceFile) {
     let receiverDependentReturn = false;
     let requiresInvocationEffects = false;
     let returnProvenanceUncertain = false;
+    let hasInvocationEffects = false;
+    let effectProvenanceUncertain = false;
     let remainingReturnProvenanceWork = maximumReturnProvenanceWork;
     const functionScope = nodeScopes.get(node);
 
@@ -898,18 +934,23 @@ function collectBindings(sourceFile) {
       return false;
     }
 
-    function collectParameterBindings(name) {
+    function collectParameterBindings(name, parameterIndex) {
       if (ts.isIdentifier(name)) {
         const binding = declarationBindings.get(name);
-        if (binding) parameterBindings.add(binding);
+        if (binding) {
+          parameterBindings.add(binding);
+          parameterBindingIndices.set(binding, parameterIndex);
+        }
         return;
       }
       for (const element of name.elements) {
-        if (ts.isBindingElement(element)) collectParameterBindings(element.name);
+        if (ts.isBindingElement(element)) collectParameterBindings(element.name, parameterIndex);
       }
     }
 
-    for (const parameter of node.parameters) collectParameterBindings(parameter.name);
+    for (const [parameterIndex, parameter] of node.parameters.entries()) {
+      collectParameterBindings(parameter.name, parameterIndex);
+    }
 
     function addBindingWrite(binding, expression) {
       if (!binding || !expression) return;
@@ -1013,6 +1054,45 @@ function collectBindings(sourceFile) {
     if (ts.isArrowFunction(node) && !ts.isBlock(node.body)) returnExpressions.push(node.body);
     else if (node.body) collectReturnWrites(node.body);
 
+    const outerEffectBindings = new Set();
+    const referencedOuterBindings = new Set();
+    const referencedEffectParameters = new Set();
+    let receiverInvocationEffect = false;
+    let remainingInvocationEffectWork = maximumInvocationEffectWork;
+
+    function collectInvocationEffects(current) {
+      if (remainingInvocationEffectWork <= 0) {
+        effectProvenanceUncertain = true;
+        hasInvocationEffects = true;
+        return;
+      }
+      remainingInvocationEffectWork -= 1;
+      if (current !== node.body && ts.isFunctionLike(current)) return;
+      if (current.kind === ts.SyntaxKind.ThisKeyword) receiverInvocationEffect = true;
+      if (ts.isIdentifier(current)) {
+        const binding = lookupBinding(current);
+        if (binding && !bindingIsLocal(binding)) referencedOuterBindings.add(binding);
+        if (binding && parameterBindings.has(binding)) referencedEffectParameters.add(binding);
+      }
+      if (
+        ts.isCallExpression(current) ||
+        ts.isDeleteExpression(current) ||
+        ((ts.isPrefixUnaryExpression(current) || ts.isPostfixUnaryExpression(current)) &&
+          (current.operator === ts.SyntaxKind.PlusPlusToken || current.operator === ts.SyntaxKind.MinusMinusToken)) ||
+        (ts.isBinaryExpression(current) &&
+          ts.isAssignmentOperator(current.operatorToken.kind) &&
+          !ts.isIdentifier(unwrapExpression(current.left)))
+      ) {
+        hasInvocationEffects = true;
+      }
+      ts.forEachChild(current, collectInvocationEffects);
+    }
+
+    if (node.body) collectInvocationEffects(node.body);
+    if (hasInvocationEffects) {
+      for (const binding of referencedOuterBindings) outerEffectBindings.add(binding);
+    }
+
     function visitDirectReturnDependencies(current) {
       if (ts.isIdentifier(current) && !lookupBinding(current) && directReturnNames.has(current.text)) {
         found = true;
@@ -1036,13 +1116,15 @@ function collectBindings(sourceFile) {
         const nested = functionHasPotentialTrackedReturn(current);
         if (
           nested.mayTrackCallResult ||
+          nested.hasInvocationEffects ||
           (directCallable && (nested.localAliasDependentReturn || nested.parameterDependentReturn)) ||
           nested.receiverDependentReturn ||
+          nested.effectProvenanceUncertain ||
           nested.returnProvenanceUncertain
         ) {
           found = true;
         }
-        for (const binding of nested.outerReturnBindings) {
+        for (const binding of new Set([...nested.outerReturnBindings, ...nested.outerEffectBindings])) {
           if (parameterBindings.has(binding)) parameterDependentReturn = true;
           else if (bindingIsLocal(binding)) {
             localAliasDependentReturn = true;
@@ -1165,6 +1247,13 @@ function collectBindings(sourceFile) {
       ),
       localReturnDependents,
       outerReturnBindings,
+      hasInvocationEffects,
+      effectParameterIndices: new Set(
+        [...referencedEffectParameters].map(binding => parameterBindingIndices.get(binding))
+      ),
+      receiverInvocationEffect,
+      outerEffectBindings,
+      effectProvenanceUncertain,
       mutationDependentReturn,
       parameterDependentReturn,
       receiverDependentReturn,
@@ -1189,6 +1278,11 @@ function collectBindings(sourceFile) {
         localReturnBindingWrites: returnProvenance.localReturnBindingWrites,
         localReturnMutationWrites: returnProvenance.localReturnMutationWrites,
         localReturnDependents: returnProvenance.localReturnDependents,
+        hasInvocationEffects: returnProvenance.hasInvocationEffects,
+        effectParameterIndices: returnProvenance.effectParameterIndices,
+        receiverInvocationEffect: returnProvenance.receiverInvocationEffect,
+        outerEffectBindings: returnProvenance.outerEffectBindings,
+        effectProvenanceUncertain: returnProvenance.effectProvenanceUncertain,
         outerReturnBindings: returnProvenance.outerReturnBindings,
         mutationDependentReturn: returnProvenance.mutationDependentReturn,
         parameterDependentReturn: returnProvenance.parameterDependentReturn,
@@ -1464,14 +1558,17 @@ function collectBindings(sourceFile) {
     }
 
     try {
+      const carrierEffectInvocation =
+        atom.hasInvocationEffects && functionInvocationMayAffectCarrier(atom, argumentValues, receiverValue);
       if (
-        atom.requiresInvocationEffects &&
-        (invocationCarriesMutationProvenance(argumentValues) ||
-          invocationCarriesMutationProvenance([receiverValue]) ||
-          (argumentValues.length === 0 && atom.mayTrackCallResult))
+        carrierEffectInvocation ||
+        (atom.requiresInvocationEffects &&
+          (invocationCarriesMutationProvenance(argumentValues) ||
+            invocationCarriesMutationProvenance([receiverValue]) ||
+            (argumentValues.length === 0 && atom.mayTrackCallResult)))
       ) {
         const previousUnknownCarrierInvalidation = state.allowUnknownCarrierInvalidation;
-        state.allowUnknownCarrierInvalidation = atom.mutationDependentReturn;
+        state.allowUnknownCarrierInvalidation = carrierEffectInvocation || atom.mutationDependentReturn;
         try {
           executeFunctionInvocationEffects(root);
         } finally {
@@ -1691,9 +1788,8 @@ function collectBindings(sourceFile) {
       if (atom.kind === 'function-value' && atom.trackCallResult !== true) {
         if (atom.iteratorNode.asteriskToken) {
           scanIteratorFunction(atom);
-          if (!atom.iteratorUnknown && atom.iteratorValues.size > 0) continue;
         }
-        return true;
+        continue;
       }
       if ((atom.kind === 'bound-callable' || atom.kind === 'invocation-method') && !seen.has(atom)) {
         const nextSeen = new Set(seen);
@@ -2706,6 +2802,27 @@ function collectBindings(sourceFile) {
     return observedPropertyValue(new Set([carrier]), [String(index)]);
   }
 
+  function appendIterableLayout(layouts, uncertainValues, value, unknown, node) {
+    const yielded = iteratorYieldValue(value, node);
+    const layout = [];
+    let overflow = false;
+    for (const atom of yielded) {
+      if (layout.length >= maximumTrackedInvocationArguments) {
+        overflow = true;
+        uncertainValues.add(atom);
+        continue;
+      }
+      layout.push(new Set([atom]));
+    }
+    if (layouts.length < maximumTrackedPositionalAlternatives) layouts.push(layout);
+    else overflow = true;
+    if (unknown || overflow) {
+      mergeValue(uncertainValues, yielded);
+      mergeValue(uncertainValues, unknownReflectiveCallableValue());
+    }
+    return unknown || overflow;
+  }
+
   function positionalLayouts(value) {
     const layouts = [];
     const uncertainValues = new Set();
@@ -2722,8 +2839,32 @@ function collectBindings(sourceFile) {
       trackPropagationDependency(atom);
       const replacementIterator = replacementIteratorValues(new Set([atom]));
       if (replacementIterator.size > 0) {
+        const produced = observeIteratorExecution(new Set([atom]), replacementIterator);
+        if (atom.collectionKind) {
+          uncertainPositioning =
+            appendIterableLayout(
+              layouts,
+              uncertainValues,
+              produced,
+              hasUnknownValue(replacementIterator),
+              activeAnalysisNode
+            ) || uncertainPositioning;
+          continue;
+        }
         uncertainPositioning = true;
-        mergeValue(uncertainValues, observeIteratorExecution(new Set([atom]), replacementIterator));
+        mergeValue(uncertainValues, produced);
+      } else if (atom.collectionKind === 'map') {
+        const entries = collectionEntryValues(new Set([atom]), activeAnalysisNode);
+        uncertainPositioning =
+          appendIterableLayout(layouts, uncertainValues, entries.result, entries.unknown, activeAnalysisNode) ||
+          uncertainPositioning;
+        continue;
+      } else if (atom.collectionKind === 'set') {
+        const values = collectionValues(new Set([atom]), 'set');
+        uncertainPositioning =
+          appendIterableLayout(layouts, uncertainValues, values.result, values.unknown, activeAnalysisNode) ||
+          uncertainPositioning;
+        continue;
       }
       const inheritedPositionalValues = prototypePositionalValues(effectivePrototypes(atom));
       if (inheritedPositionalValues.size > 0) {
@@ -2809,16 +2950,64 @@ function collectBindings(sourceFile) {
     return new Set([object]);
   }
 
+  function mapperInvocationValue(callback, argumentValues, thisValue, invocationNode) {
+    const invocation = invokeTracked(callback, argumentValues, invocationNode, new Set(), thisValue, false, true);
+    const result = new Set();
+    let ambiguous = callback.size === 0;
+    for (const atom of callback) {
+      if (typeof atom !== 'string' && atom.kind === 'unknown-value') ambiguous = true;
+    }
+    for (const atom of invocation.result) {
+      if (typeof atom !== 'string' && atom.kind === 'unknown-value' && atom.callableReason === undefined) {
+        result.add(unknownReflectiveCallableAtom);
+      } else {
+        result.add(atom);
+      }
+    }
+    if (result.size === 0) {
+      mergeValue(result, ambiguous ? unknownReflectiveCallableValue() : literalValue(undefined));
+    }
+    return { result, kinds: invocation.kinds };
+  }
+
   function arrayFromValue(argumentValues, invocationNode) {
     const array = syntheticCarrierFor(invocationNode, 'array-from-result', true);
     const expansion = positionalLayouts(argumentValues[0] ?? new Set());
+    const mapper = argumentValues[1] ?? new Set();
+    const callableMapper = new Set();
+    let includesUnmapped = argumentValues.length < 2 || mapper.size === 0;
+    for (const atom of mapper) {
+      if (typeof atom !== 'string' && atom.kind === 'literal' && atom.value === undefined) {
+        includesUnmapped = true;
+      } else {
+        callableMapper.add(atom);
+      }
+    }
+    const kinds = new Set();
     const lengths = new Set();
     for (const layout of expansion.layouts) {
       lengths.add(layout.length);
-      for (const [index, value] of layout.entries()) putCarrierProperty(array, [String(index)], value);
+      for (const [index, value] of layout.entries()) {
+        const mappedValue = new Set(includesUnmapped ? value : []);
+        if (callableMapper.size > 0) {
+          const callbackInvocation = mapperInvocationValue(
+            callableMapper,
+            [value, literalValue(index)],
+            argumentValues[2] ?? new Set(),
+            invocationNode
+          );
+          mergeValue(mappedValue, callbackInvocation.result);
+          mergeValue(kinds, callbackInvocation.kinds);
+        } else if (!includesUnmapped) {
+          mergeValue(mappedValue, unknownReflectiveCallableValue());
+        }
+        putCarrierProperty(array, [String(index)], mappedValue);
+      }
     }
-    mergeCarrierPositionalState(array, lengths, expansion.uncertainPositioning, expansion.uncertainValues);
-    return new Set([array]);
+    const uncertainValues = new Set(expansion.uncertainValues);
+    if (expansion.uncertainPositioning) mergeValue(uncertainValues, unknownReflectiveCallableValue());
+    mergeCarrierPositionalState(array, lengths, expansion.uncertainPositioning, uncertainValues);
+    return { result: new Set([array]), kinds };
   }
 
   function arrayOfValue(argumentValues, invocationNode) {
@@ -2851,16 +3040,38 @@ function collectBindings(sourceFile) {
     if (overflow) markCollectionUnknown(carrier);
   }
 
+  function mergeCollectionKey(carrier, value, unkeyed = false) {
+    const boundedValue = new Set();
+    let overflow = false;
+    for (const atom of value) {
+      if (carrier.collectionKeys.has(atom)) {
+        if (unkeyed) mergeCarrierProperty(carrier, carrier.collectionUnkeyedKeys, new Set([atom]));
+        continue;
+      }
+      if (carrier.collectionKeys.size + boundedValue.size >= maximumTrackedInvocationArguments) {
+        overflow = true;
+        break;
+      }
+      boundedValue.add(atom);
+    }
+    if (mergeValue(carrier.collectionKeys, boundedValue)) notifyPropagationSubscribers(carrier);
+    if (unkeyed) mergeCarrierProperty(carrier, carrier.collectionUnkeyedKeys, boundedValue);
+    if (overflow) markCollectionUnknown(carrier);
+  }
+
   function putMapEntry(carrier, keyValue, entryValue) {
     const propertyNames = propertyNamesFromValue(keyValue);
     if (propertyNames === undefined) {
+      mergeCollectionKey(carrier, keyValue, true);
       mergeCollectionValue(carrier, entryValue);
       return;
     }
+    mergeCollectionKey(carrier, keyValue);
     for (const propertyName of propertyNames) {
       let stored = carrier.collectionEntries.get(propertyName);
       if (!stored) {
         if (carrier.collectionEntries.size >= maximumTrackedInvocationArguments) {
+          mergeCollectionKey(carrier, keyValue, true);
           mergeCollectionValue(carrier, entryValue);
           markCollectionUnknown(carrier);
           continue;
@@ -2908,7 +3119,7 @@ function collectBindings(sourceFile) {
     return new Set([carrier]);
   }
 
-  function collectionValues(receiverValue, kind) {
+  function collectionValues(receiverValue, kind, keys = false) {
     const result = new Set();
     let unknown = receiverValue.size === 0;
     for (const atom of receiverValue) {
@@ -2918,8 +3129,12 @@ function collectBindings(sourceFile) {
       }
       if (atom.kind !== 'carrier' || atom.collectionKind !== kind) continue;
       trackPropagationDependency(atom);
-      for (const value of atom.collectionEntries.values()) mergeValue(result, value);
-      mergeValue(result, atom.collectionValues);
+      if (kind === 'map' && keys) {
+        mergeValue(result, atom.collectionKeys);
+      } else {
+        for (const value of atom.collectionEntries.values()) mergeValue(result, value);
+        mergeValue(result, atom.collectionValues);
+      }
       if (atom.collectionUnknown) unknown = true;
     }
     if (unknown) mergeValue(result, unknownValue());
@@ -2975,10 +3190,18 @@ function collectBindings(sourceFile) {
         result.add(entry);
         entryIndex += 1;
       }
-      if (atom.collectionValues.size > 0) {
+      if (atom.collectionValues.size > 0 || atom.collectionUnkeyedKeys.size > 0) {
         const entry = syntheticCarrierFor(invocationNode, `map-entry-${entryIndex}`, true);
-        putCarrierProperty(entry, ['0'], unknownValue());
-        putCarrierProperty(entry, ['1'], atom.collectionValues);
+        putCarrierProperty(
+          entry,
+          ['0'],
+          atom.collectionUnkeyedKeys.size > 0 ? atom.collectionUnkeyedKeys : unknownValue()
+        );
+        putCarrierProperty(
+          entry,
+          ['1'],
+          atom.collectionValues.size > 0 ? atom.collectionValues : unknownReflectiveCallableValue()
+        );
         mergeCarrierPositionalState(entry, new Set([2]), false, new Set());
         result.add(entry);
         entryIndex += 1;
@@ -2994,6 +3217,34 @@ function collectBindings(sourceFile) {
       result.add(entry);
     }
     return { result, unknown };
+  }
+
+  function setEntryValues(receiverValue, invocationNode) {
+    const values = collectionValues(receiverValue, 'set');
+    const result = new Set();
+    let entryIndex = 0;
+    for (const value of values.result) {
+      if (entryIndex >= maximumTrackedInvocationArguments || !consumeAnalysisWork(invocationNode)) {
+        values.unknown = true;
+        break;
+      }
+      const entry = syntheticCarrierFor(invocationNode, `set-entry-${entryIndex}`, true);
+      const entryValue = new Set([value]);
+      putCarrierProperty(entry, ['0'], entryValue);
+      putCarrierProperty(entry, ['1'], entryValue);
+      mergeCarrierPositionalState(entry, new Set([2]), false, new Set());
+      result.add(entry);
+      entryIndex += 1;
+    }
+    if (values.unknown) {
+      const entry = syntheticCarrierFor(invocationNode, 'set-entry-unknown', true);
+      entry.iteratorUnknownEntry = true;
+      putCarrierProperty(entry, ['0'], unknownValue());
+      putCarrierProperty(entry, ['1'], unknownValue());
+      mergeCarrierPositionalState(entry, new Set([2]), false, new Set());
+      result.add(entry);
+    }
+    return { result, unknown: values.unknown };
   }
 
   function objectProjectionValue(argumentValues, invocationNode, entries) {
@@ -3053,20 +3304,14 @@ function collectBindings(sourceFile) {
     for (const layout of expansion.layouts) {
       lengths.add(layout.length);
       for (const [index, sourceValue] of layout.entries()) {
-        const callbackInvocation = invokeTracked(
+        const callbackInvocation = mapperInvocationValue(
           callback,
           [sourceValue, literalValue(index), receiverValue],
-          invocationNode,
-          new Set()
+          argumentValues[1] ?? new Set(),
+          invocationNode
         );
         for (const kind of callbackInvocation.kinds) kinds.add(kind);
-        const mappedValue =
-          callbackInvocation.result.size > 0
-            ? callbackInvocation.result
-            : callback.has(origins.knownSafeCallable) || !hasUnsafePositionalValue(sourceValue)
-              ? literalValue(undefined)
-              : unknownReflectiveCallableValue();
-        putCarrierProperty(mapped, [String(index)], mappedValue);
+        putCarrierProperty(mapped, [String(index)], callbackInvocation.result);
       }
     }
     const uncertainValues = new Set(expansion.uncertainValues);
@@ -3290,6 +3535,90 @@ function collectBindings(sourceFile) {
     return argumentValues.some(value => returnBindingCarriesTrackedProvenance(value, new Set(), { count: 256 }, false));
   }
 
+  function valueCarriesCarrier(value, seen = new Set(), remaining = { count: 256 }) {
+    for (const atom of value) {
+      if (typeof atom === 'string' || atom.kind === 'literal' || atom.kind === 'known-data') continue;
+      if (seen.has(atom)) continue;
+      if (remaining.count <= 0) return true;
+      remaining.count -= 1;
+      seen.add(atom);
+      if (atom.kind === 'carrier') {
+        trackPropagationDependency(atom);
+        if (atom.invocationSensitive) return true;
+        const nestedValues = [
+          ...atom.collectionEntries.values(),
+          atom.collectionKeys,
+          atom.collectionUnkeyedKeys,
+          atom.collectionValues,
+          ...atom.properties.values(),
+          ...[...atom.accessors.values()].flatMap(accessor => [accessor.get, accessor.set]),
+          atom.unknownProperty,
+          atom.unknownAccessors.get,
+          atom.unknownAccessors.set,
+          atom.uncertainPositionalValues,
+        ];
+        if (nestedValues.some(nested => valueCarriesCarrier(nested, seen, remaining))) return true;
+      } else if (atom.kind === 'bound-callable') {
+        if (
+          valueCarriesCarrier(atom.boundThis, seen, remaining) ||
+          atom.boundArguments.some(argument => valueCarriesCarrier(argument, seen, remaining))
+        ) {
+          return true;
+        }
+      } else if (atom.kind === 'function-value') {
+        for (const captured of atom.capturedBindings.values()) {
+          if (valueCarriesCarrier(captured, seen, remaining)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function markInvocationSensitive(value, seen = new Set(), remaining = { count: 256 }) {
+    for (const atom of value) {
+      if (typeof atom === 'string' || seen.has(atom)) continue;
+      if (remaining.count <= 0) return;
+      remaining.count -= 1;
+      seen.add(atom);
+      if (atom.kind === 'carrier') {
+        if ((propagationSubscribers.get(atom)?.size ?? 0) >= maximumPropagationSubscribersPerValue) {
+          analysisWorkLimit = {
+            reason: 'analysis-work-limit',
+            position: activeAnalysisNode.getStart(sourceFile),
+          };
+          return;
+        }
+        if (!atom.invocationSensitive) {
+          atom.invocationSensitive = true;
+          notifyPropagationSubscribers(atom);
+        }
+        continue;
+      }
+      if (atom.kind === 'bound-callable') {
+        markInvocationSensitive(atom.boundThis, seen, remaining);
+        for (const argument of atom.boundArguments) markInvocationSensitive(argument, seen, remaining);
+      }
+    }
+  }
+
+  function functionInvocationMayAffectCarrier(atom, argumentValues, thisValue) {
+    if (
+      atom.effectProvenanceUncertain &&
+      [...argumentValues, thisValue ?? new Set()].some(value => valueCarriesCarrier(value))
+    ) {
+      return true;
+    }
+    for (const parameterIndex of atom.effectParameterIndices) {
+      if (valueCarriesCarrier(argumentValues[parameterIndex] ?? new Set())) return true;
+    }
+    if (atom.receiverInvocationEffect && valueCarriesCarrier(thisValue ?? new Set())) return true;
+    for (const binding of atom.outerEffectBindings) {
+      const value = activeInvocationBindingValue(binding) ?? atom.capturedBindings.get(binding) ?? binding.value;
+      if (valueCarriesCarrier(value)) return true;
+    }
+    return false;
+  }
+
   function invocationCarriesMutationProvenance(argumentValues) {
     function carries(value, seen, remaining) {
       if (remaining.count <= 0) return true;
@@ -3303,6 +3632,8 @@ function collectBindings(sourceFile) {
         if (atom.kind === 'carrier') {
           const nestedValues = [
             ...atom.collectionEntries.values(),
+            atom.collectionKeys,
+            atom.collectionUnkeyedKeys,
             atom.collectionValues,
             ...atom.properties.values(),
             ...[...atom.accessors.values()].flatMap(accessor => [accessor.get, accessor.set]),
@@ -3371,6 +3702,8 @@ function collectBindings(sourceFile) {
       seen.add(atom);
       const nestedValues = [
         ...atom.collectionEntries.values(),
+        atom.collectionKeys,
+        atom.collectionUnkeyedKeys,
         atom.collectionValues,
         ...atom.properties.values(),
         ...[...atom.accessors.values()].flatMap(accessor => [accessor.get, accessor.set]),
@@ -3391,7 +3724,8 @@ function collectBindings(sourceFile) {
     invocationNode,
     seen = new Set(),
     thisValue,
-    suppressUnknownCallableLimit = false
+    suppressUnknownCallableLimit = false,
+    forceFunctionInvocation = false
   ) {
     const invocation = { result: new Set(), kinds: new Set() };
     if (activeCallableRecursionDepth >= maximumCallableRecursionDepth) {
@@ -3413,7 +3747,23 @@ function collectBindings(sourceFile) {
           atom.kind === 'function-value' &&
           atom.mutationDependentReturn &&
           invocationCarriesMutationProvenance(argumentValues);
-        if (!isTrackedCallable(atom) && !mutationInvocation) continue;
+        const carrierEffectInvocation =
+          typeof atom !== 'string' &&
+          atom.kind === 'function-value' &&
+          atom.hasInvocationEffects &&
+          functionInvocationMayAffectCarrier(atom, argumentValues, thisValue);
+        const forcedLocalFunctionInvocation =
+          forceFunctionInvocation && typeof atom !== 'string' && atom.kind === 'function-value';
+        if (!isTrackedCallable(atom) && !mutationInvocation && !forcedLocalFunctionInvocation) continue;
+        if (
+          typeof atom !== 'string' &&
+          atom.kind === 'function-value' &&
+          atom.effectProvenanceUncertain &&
+          carrierEffectInvocation
+        ) {
+          invocation.kinds.add(`${analysisLimitKind}:invocation-effect-limit`);
+          continue;
+        }
         if (typeof atom !== 'string' && atom.kind === 'function-value' && atom.returnProvenanceUncertain) {
           invocation.kinds.add(`${analysisLimitKind}:return-provenance-limit`);
           continue;
@@ -3425,6 +3775,8 @@ function collectBindings(sourceFile) {
           atom.trackCallResult !== true &&
           !atom.mayTrackCallResult &&
           !mutationInvocation &&
+          !carrierEffectInvocation &&
+          !forcedLocalFunctionInvocation &&
           !(atom.parameterDependentReturn && invocationCarriesTrackedProvenance(argumentValues)) &&
           !(
             atom.receiverDependentReturn &&
@@ -3448,8 +3800,10 @@ function collectBindings(sourceFile) {
           invocation.kinds.add('lodash-template');
         } else if (atom === origins.lodashRunInContext) {
           invocation.result.add(origins.lodashObject);
+        } else if (atom === origins.knownSafeCallable) {
+          invocation.result.add(knownDataAtom);
         } else if (atom === origins.arrayFrom) {
-          mergeValue(invocation.result, arrayFromValue(argumentValues, invocationNode));
+          mergeInvocation(invocation, arrayFromValue(argumentValues, invocationNode));
         } else if (atom === origins.arrayMap) {
           mergeInvocation(invocation, arrayMapValue(argumentValues, thisValue ?? new Set(), invocationNode));
         } else if (atom === origins.arrayOf) {
@@ -3485,13 +3839,22 @@ function collectBindings(sourceFile) {
             }
           }
           mergeValue(invocation.result, thisValue ?? new Set());
-        } else if (atom === origins.mapValues || atom === origins.setValues) {
-          const values = collectionValues(thisValue ?? new Set(), atom === origins.mapValues ? 'map' : 'set');
+        } else if (atom === origins.mapKeys || atom === origins.mapValues || atom === origins.setValues) {
+          const values = collectionValues(
+            thisValue ?? new Set(),
+            atom === origins.setValues ? 'set' : 'map',
+            atom === origins.mapKeys
+          );
           invocation.result.add(
             valueIteratorInvocationFor(invocationNode, values.result, thisValue ?? new Set(), values.unknown)
           );
         } else if (atom === origins.mapEntries) {
           const entries = collectionEntryValues(thisValue ?? new Set(), invocationNode);
+          invocation.result.add(
+            valueIteratorInvocationFor(invocationNode, entries.result, thisValue ?? new Set(), entries.unknown)
+          );
+        } else if (atom === origins.setEntries) {
+          const entries = setEntryValues(thisValue ?? new Set(), invocationNode);
           invocation.result.add(
             valueIteratorInvocationFor(invocationNode, entries.result, thisValue ?? new Set(), entries.unknown)
           );
@@ -3504,12 +3867,14 @@ function collectBindings(sourceFile) {
           typeof atom !== 'string' &&
           atom.kind === 'function-value' &&
           (atom.outerReturnBindings.size > 0 ||
+            atom.hasInvocationEffects ||
             atom.mutationDependentReturn ||
             atom.parameterDependentReturn ||
             atom.receiverDependentReturn ||
             atom.returnProvenanceUncertain ||
             atom.trackCallResult === true ||
             atom.mayTrackCallResult ||
+            forcedLocalFunctionInvocation ||
             atom.iteratorNode.asteriskToken)
         ) {
           if (atom.iteratorNode.asteriskToken) {
@@ -3532,7 +3897,10 @@ function collectBindings(sourceFile) {
           const expansion = positionalLayouts(argumentCarrier);
           const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
           for (const layout of layouts) {
-            mergeInvocation(invocation, invokeTracked(target, layout, invocationNode, seen, targetThisValue, true));
+            mergeInvocation(
+              invocation,
+              invokeTracked(target, layout, invocationNode, seen, targetThisValue, true, forceFunctionInvocation)
+            );
           }
           if (hasUnsafeCallable(target)) mergePositionalLimit(invocation, expansion);
           if (
@@ -3570,7 +3938,8 @@ function collectBindings(sourceFile) {
               invocationNode,
               seen,
               argumentValues[0],
-              suppressUnknownCallableLimit
+              suppressUnknownCallableLimit,
+              forceFunctionInvocation
             )
           );
         } else if (atom === origins.functionPrototypeApply) {
@@ -3585,7 +3954,8 @@ function collectBindings(sourceFile) {
                 invocationNode,
                 seen,
                 argumentValues[0],
-                suppressUnknownCallableLimit
+                suppressUnknownCallableLimit,
+                forceFunctionInvocation
               )
             );
           }
@@ -3645,7 +4015,8 @@ function collectBindings(sourceFile) {
                 invocationNode,
                 nextSeen,
                 atom.boundThis,
-                suppressUnknownCallableLimit
+                suppressUnknownCallableLimit,
+                forceFunctionInvocation
               )
             );
           } else if (atom.kind === 'invocation-method' && atom.method === 'call') {
@@ -3658,7 +4029,8 @@ function collectBindings(sourceFile) {
                 invocationNode,
                 nextSeen,
                 argumentValues[0],
-                suppressUnknownCallableLimit
+                suppressUnknownCallableLimit,
+                forceFunctionInvocation
               )
             );
           } else if (atom.kind === 'invocation-method' && atom.method === 'apply') {
@@ -3674,7 +4046,8 @@ function collectBindings(sourceFile) {
                   invocationNode,
                   nextSeen,
                   argumentValues[0],
-                  suppressUnknownCallableLimit
+                  suppressUnknownCallableLimit,
+                  forceFunctionInvocation
                 )
               );
             }
@@ -3894,6 +4267,36 @@ function collectBindings(sourceFile) {
     }
   }
 
+  function callableHasLocalCarrierEffects(value, seen = new Set()) {
+    for (const atom of value) {
+      if (typeof atom === 'string' || seen.has(atom)) continue;
+      seen.add(atom);
+      if (atom.kind === 'function-value' && (atom.hasInvocationEffects || atom.effectProvenanceUncertain)) {
+        return true;
+      }
+      if (
+        (atom.kind === 'bound-callable' || atom.kind === 'invocation-method') &&
+        callableHasLocalCarrierEffects(atom.target, seen)
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function markUnsafeInvocationCarriers(node) {
+    const callee = evaluateExpression(node.expression);
+    if (!hasUnsafeCallable(callee)) return callee;
+    const unwrappedCallee = unwrapExpression(node.expression);
+    if (ts.isPropertyAccessExpression(unwrappedCallee) || ts.isElementAccessExpression(unwrappedCallee)) {
+      markInvocationSensitive(evaluateExpression(unwrappedCallee.expression));
+    }
+    for (const argument of node.arguments) {
+      markInvocationSensitive(evaluateExpression(ts.isSpreadElement(argument) ? argument.expression : argument));
+    }
+    return callee;
+  }
+
   function evaluateExpression(node) {
     if (!node) return new Set();
     const current = unwrapExpression(node);
@@ -3991,10 +4394,18 @@ function collectBindings(sourceFile) {
         return result;
       }
       if (current.operatorToken.kind === ts.SyntaxKind.EqualsToken) return evaluateExpression(current.right);
+      return new Set([knownDataAtom]);
     }
 
     if (ts.isAwaitExpression(current) || ts.isYieldExpression(current) || ts.isSpreadElement(current)) {
       return evaluateExpression(current.expression);
+    }
+    if (
+      ts.isPrefixUnaryExpression(current) ||
+      ts.isPostfixUnaryExpression(current) ||
+      ts.isTemplateExpression(current)
+    ) {
+      return new Set([knownDataAtom]);
     }
     return unknownValue();
   }
@@ -4204,6 +4615,10 @@ function collectBindings(sourceFile) {
       run = () => {
         invalidatePositionalMutationCall(node);
         invalidateIndirectPositionalMutationCall(node);
+        const callee = markUnsafeInvocationCarriers(node);
+        if (callableHasLocalCarrierEffects(callee)) {
+          evaluateInvocation(node.expression, [...node.arguments], node);
+        }
       };
     } else if (
       (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) &&
