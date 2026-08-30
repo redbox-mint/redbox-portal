@@ -5621,6 +5621,223 @@ test('helper-installed builtin prototype methods execute isolated runtime marker
   assert.deepEqual(JSON.parse(result.stdout), ['array', 'map', 'set']);
 });
 
+const conditionalSpreadMutationCases = [
+  {
+    name: 'direct fill preserves the unsafe conditional argument layout from the review',
+    kind: 'direct-eval',
+    source: `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[JSON.parse,-1]:[eval,-1];v.fill(...args);
+      v[64](configuredSource);`,
+  },
+  {
+    name: 'borrowed fill preserves the unmodified conditional receiver from the review',
+    kind: 'direct-eval',
+    source: `const first=Array(64).fill(JSON.parse);first.push(eval);
+      const second=Array(65).fill(JSON.parse);
+      const args=flag?[first,JSON.parse,-1]:[second,JSON.parse,-1];
+      Array.prototype.fill.call(...args);first[64](configuredSource);`,
+  },
+  {
+    name: 'helper fill preserves the unmodified conditional receiver from the review',
+    kind: 'direct-eval',
+    source: `function fill(value,...args){value.fill(...args)}
+      const first=Array(64).fill(JSON.parse);first.push(eval);
+      const second=Array(65).fill(JSON.parse);
+      const args=flag?[first,JSON.parse,-1]:[second,JSON.parse,-1];
+      fill(...args);first[64](configuredSource);`,
+  },
+  {
+    name: 'direct fill preserves a conditional Lodash template carrier',
+    kind: 'lodash-template',
+    source: `const v=Array(64).fill(JSON.parse);v.push(require('lodash').template);
+      const args=flag?[JSON.parse,-1]:[require('lodash').template,-1];v.fill(...args);
+      v[64](configuredSource);`,
+  },
+  {
+    name: 'direct spread fill applies an unsafe second argument layout',
+    kind: 'direct-eval',
+    source: `const v=Array(65).fill(JSON.parse);
+      const args=flag?[JSON.parse,-1]:[eval,-1];v.fill(...args);
+      v[64](configuredSource);`,
+  },
+  {
+    name: 'borrowed spread fill applies an unsafe second argument layout',
+    kind: 'direct-eval',
+    source: `const v=Array(65).fill(JSON.parse);
+      const args=flag?[v,JSON.parse,-1]:[v,eval,-1];
+      Array.prototype.fill.call(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'helper spread fill applies an unsafe second argument layout',
+    kind: 'direct-eval',
+    source: `function fill(value,...args){value.fill(...args)}
+      const v=Array(65).fill(JSON.parse);
+      const args=flag?[v,JSON.parse,-1]:[v,eval,-1];
+      fill(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'direct fill applies a distinct variable-length argument layout',
+    kind: 'direct-eval',
+    source: `const v=Array(65).fill(JSON.parse);
+      const args=flag?[JSON.parse,-1]:[eval];v.fill(...args);
+      v[64](configuredSource);`,
+  },
+  {
+    name: 'borrowed fill applies a distinct variable-length receiver layout',
+    kind: 'direct-eval',
+    source: `const v=Array(65).fill(JSON.parse);
+      const args=flag?[v,JSON.parse,-1]:[v,eval];
+      Array.prototype.fill.call(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'helper fill applies a distinct variable-length forwarded layout',
+    kind: 'direct-eval',
+    source: `function fill(value,...args){value.fill(...args)}
+      const v=Array(65).fill(JSON.parse);
+      const args=flag?[v,JSON.parse,-1]:[v,eval];
+      fill(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'a direct call preserves both conditional receiver and spread argument alternatives',
+    kind: 'direct-eval',
+    source: `const first=Array(64).fill(JSON.parse);first.push(eval);
+      const second=Array(65).fill(JSON.parse);
+      const args=flag?[JSON.parse,-1]:[eval,-1];
+      (choice?first:second).fill(...args);first[64](configuredSource);`,
+  },
+  {
+    name: 'a borrowed crossing mutation correlates spread receiver and argument alternatives',
+    kind: 'direct-eval',
+    source: `const first=Array(64).fill(JSON.parse);const second=Array(64).fill(JSON.parse);
+      const args=flag?[second,JSON.parse]:[first,eval];
+      Array.prototype.push.call(...args);first[64](configuredSource);`,
+  },
+  {
+    name: 'a helper crossing mutation correlates spread receiver and argument alternatives',
+    kind: 'direct-eval',
+    source: `function push(value,...args){value.push(...args)}
+      const first=Array(64).fill(JSON.parse);const second=Array(64).fill(JSON.parse);
+      const args=flag?[second,JSON.parse]:[first,eval];
+      push(...args);first[64](configuredSource);`,
+  },
+  {
+    name: 'conditional spread push crosses the tracking boundary with eval',
+    kind: 'direct-eval',
+    source: `const v=Array(64).fill(JSON.parse);const args=flag?[JSON.parse]:[eval];
+      v.push(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'conditional spread splice crosses the tracking boundary with eval',
+    kind: 'direct-eval',
+    source: `const v=Array(64).fill(JSON.parse);
+      const args=flag?[64,0,JSON.parse]:[64,0,eval];
+      v.splice(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'conditional copyWithin cannot erase the untouched unsafe layout',
+    kind: 'direct-eval',
+    source: `const v=[eval,JSON.parse];const args=flag?[0,1,2]:[1,0,1];
+      v.copyWithin(...args);v[0](configuredSource);`,
+  },
+];
+
+test('conditional spread mutations retain every receiver and argument provenance layout', () => {
+  for (const [index, mutationCase] of conditionalSpreadMutationCases.entries()) {
+    const relativePath = `packages/example/src/conditional-spread-mutation-${index}.ts`;
+    const firstFindings = scanSource(mutationCase.source, relativePath);
+    const secondFindings = scanSource(mutationCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${mutationCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === mutationCase.kind),
+      `${mutationCase.name} should retain executable provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${mutationCase.name} diagnostics should remain bounded`);
+  }
+});
+
+test('deterministic direct, borrowed, and helper spread overwrites remain precise', () => {
+  const safeCases = [
+    `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=[JSON.parse,-1];v.fill(...args);v[64]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=[v,JSON.parse,-1];Array.prototype.fill.call(...args);v[64]('{}');`,
+    `function fill(value,...args){value.fill(...args)}
+      const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=[v,JSON.parse,-1];fill(...args);v[64]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[JSON.parse,-1]:[JSON.stringify,-1];v.fill(...args);v[64]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[v,JSON.parse,-1]:[v,JSON.stringify,-1];
+      Array.prototype.fill.call(...args);v[64]('{}');`,
+    `function fill(value,...args){value.fill(...args)}
+      const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[v,JSON.parse,-1]:[v,JSON.stringify,-1];fill(...args);v[64]('{}');`,
+  ];
+  for (const [index, source] of safeCases.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-deterministic-spread-overwrite-${index}.ts`),
+      [],
+      `deterministic spread overwrite ${index} should replace stale provenance`
+    );
+  }
+});
+
+test('conditional spread review sources execute isolated runtime markers', () => {
+  const markerKey = '__a12_conditional_spread_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    { const flag=false;const configuredSource=mark('direct');
+      const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[JSON.parse,-1]:[eval,-1];v.fill(...args);v[64](configuredSource); }
+    { const flag=false;const configuredSource=mark('borrowed');
+      const first=Array(64).fill(JSON.parse);first.push(eval);const second=Array(65).fill(JSON.parse);
+      const args=flag?[first,JSON.parse,-1]:[second,JSON.parse,-1];
+      Array.prototype.fill.call(...args);first[64](configuredSource); }
+    { const flag=false;const configuredSource=mark('helper');
+      function fill(value,...args){value.fill(...args)}
+      const first=Array(64).fill(JSON.parse);first.push(eval);const second=Array(65).fill(JSON.parse);
+      const args=flag?[first,JSON.parse,-1]:[second,JSON.parse,-1];
+      fill(...args);first[64](configuredSource); }
+    { const flag=false;const lodash=require('lodash');
+      const configuredSource=\`<% globalThis[${serializedMarkerKey}].push('lodash') %>\`;
+      const v=Array(64).fill(JSON.parse);v.push(lodash.template);
+      const args=flag?[JSON.parse,-1]:[lodash.template,-1];v.fill(...args);v[64](configuredSource)(); }
+    { const parse=JSON.parse;
+      JSON.parse=value=>{globalThis[${serializedMarkerKey}].push('safe-overwrite');return parse(value)};
+      const v=Array(64).fill(JSON.parse);v.push(eval);v.fill(JSON.parse,-1);v[64]('{}');
+      JSON.parse=parse; }
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['direct', 'borrowed', 'helper', 'lodash', 'safe-overwrite']);
+});
+
+test('the guard CLI rejects the conditional spread review sources', t => {
+  const root = createEndToEndGuardRepository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sources = conditionalSpreadMutationCases.slice(0, 4).map((mutationCase, index) => ({
+    relativePath: `packages/example/src/conditional-spread-review-${index}.ts`,
+    source: mutationCase.source,
+  }));
+  const result = invokeGuardWithTrackedSources(root, sources);
+
+  assert.equal(result.error, undefined);
+  assert.notEqual(result.status, 0);
+  for (const { relativePath } of sources) {
+    assert.ok(result.stderr.includes(`Unexpected unsafe execution: ${relativePath}:`), result.stderr);
+  }
+});
+
 test('exact array lengths remain synchronized when ordinary mutations cross the tracking boundary', () => {
   const unsafeCases = [
     {
