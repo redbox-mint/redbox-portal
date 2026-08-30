@@ -5484,6 +5484,38 @@ test('helper-installed callable provenance survives extraction, forwarding, prot
       source: `function arm(value) { value.run ??= eval; }
         const holder = {}; arm(holder); const run = holder.run; run(configuredSource);`,
     },
+    {
+      name: 'Array.prototype method installed by a helper',
+      source: `function arm(value) { value.map = eval; }
+        arm(Array.prototype); [].map(configuredSource);`,
+    },
+    {
+      name: 'Map.prototype method installed by a helper',
+      source: `function arm(value) { value.set = eval; }
+        arm(Map.prototype); new Map().set(configuredSource);`,
+    },
+    {
+      name: 'Set.prototype method installed by a helper',
+      source: `function arm(value) { value.add = eval; }
+        arm(Set.prototype); new Set().add(configuredSource);`,
+    },
+    {
+      name: 'aliased Array prototype helper and inherited destructuring',
+      source: `function arm(value) { value.map = eval; }
+        const install = arm; const prototype = Array.prototype; install(prototype);
+        const { map: run } = []; run(configuredSource);`,
+    },
+    {
+      name: 'forwarded Map prototype helper and inherited extraction',
+      source: `function arm(value) { value.set = eval; }
+        function relay(value) { arm(value); }
+        relay(Map.prototype); const run = new Map().set; run(configuredSource);`,
+    },
+    {
+      name: 'returned Set prototype installer closure',
+      source: `function arm(value) { return () => { value.add = eval; }; }
+        arm(Set.prototype)(); const { add: run } = new Set(); run(configuredSource);`,
+    },
   ];
 
   for (const dependencyCase of dependencyCases) {
@@ -5539,6 +5571,42 @@ test('helper carrier dependency reproductions execute isolated runtime markers',
   ]);
 });
 
+test('helper-installed builtin prototype methods execute isolated runtime markers', () => {
+  const markerKey = '__a12_builtin_prototype_helper_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    const originalArrayMap = Array.prototype.map;
+    const originalMapSet = Map.prototype.set;
+    const originalSetAdd = Set.prototype.add;
+    try {
+      { function arm(value) { value.map = eval; } arm(Array.prototype); [].map(mark('array')); }
+      Array.prototype.map = originalArrayMap;
+      { function arm(value) { value.set = eval; } const install = arm;
+        install(Map.prototype); new Map().set(mark('map')); }
+      Map.prototype.set = originalMapSet;
+      { function arm(value) { return () => { value.add = eval; }; }
+        arm(Set.prototype)(); new Set().add(mark('set')); }
+    } finally {
+      Array.prototype.map = originalArrayMap;
+      Map.prototype.set = originalMapSet;
+      Set.prototype.add = originalSetAdd;
+    }
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['array', 'map', 'set']);
+});
+
 test('bounded overflow mutations preserve precise known tracked positions', () => {
   const safeTail = Array.from({ length: 63 }, (_, index) => String(index + 1)).join(',');
   const safeCases = [
@@ -5554,6 +5622,20 @@ test('bounded overflow mutations preserve precise known tracked positions', () =
       values.fill(JSON.parse, 0, 1); values[0]('{}');`,
     `const values = [eval, ${safeTail}, eval];
       values.splice(0, 1, JSON.parse); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.fill(eval, -1); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.copyWithin(-1, 64, 65); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.copyWithin(-1, 0, 1); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.splice(-1, 0, eval); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.splice(64); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.splice(1); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.copyWithin(-1, 0, 1); values[64]('{}');`,
   ];
   for (const [index, source] of safeCases.entries()) {
     const relativePath = `packages/example/src/safe-bounded-overflow-${index}.ts`;
@@ -5570,6 +5652,12 @@ test('bounded overflow mutations preserve precise known tracked positions', () =
       values.fill(eval, 64); values[64](configuredSource);`,
     `const values = [JSON.parse, ${safeTail}, eval];
       values.splice(64, 0, eval); values[64](configuredSource);`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.fill(eval, -1); values[64](configuredSource);`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.copyWithin(-1, 64, 65); values[64](configuredSource);`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.splice(-1, 0, eval); values[64](configuredSource);`,
   ];
   for (const [index, source] of failClosedCases.entries()) {
     const findings = scanSource(source, `packages/example/src/fail-closed-overflow-${index}.ts`);
@@ -5592,6 +5680,13 @@ test('bounded overflow safe positions execute only JSON.parse', () => {
     { const values = [JSON.parse, ${safeTail}, eval]; values.copyWithin(1, 0, 1); values[0]('{}'); }
     { const values = [JSON.parse, ${safeTail}, eval]; values.fill(eval, 1, 2); values[0]('{}'); }
     { const values = [JSON.parse, ${safeTail}, eval]; values.splice(1, 0, eval); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.fill(eval, -1); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.copyWithin(-1, 64, 65); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.copyWithin(-1, 0, 1); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.splice(-1, 0, eval); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.splice(64); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.splice(1); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.copyWithin(-1, 0, 1); values[64]('{}'); }
     JSON.parse = parse;
     process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
     delete globalThis[${serializedMarkerKey}];
@@ -5604,7 +5699,45 @@ test('bounded overflow safe positions execute only JSON.parse', () => {
 
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(JSON.parse(result.stdout), ['safe', 'safe', 'safe']);
+  assert.deepEqual(JSON.parse(result.stdout), [
+    'safe',
+    'safe',
+    'safe',
+    'safe',
+    'safe',
+    'safe',
+    'safe',
+    'safe',
+    'safe',
+    'safe',
+  ]);
+});
+
+test('negative overflow mutations execute unsafe tail values without touching the safe prefix', () => {
+  const markerKey = '__a12_negative_overflow_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const safeTail = Array.from({ length: 63 }, () => 'null').join(',');
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    { const values = [JSON.parse, ${safeTail}, eval]; values.fill(eval, -1);
+      values[64](mark('fill')); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.copyWithin(-1, 64, 65);
+      values[64](mark('copyWithin')); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.splice(-1, 0, eval);
+      values[64](mark('splice')); }
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['fill', 'copyWithin', 'splice']);
 });
 
 test('invocation-local effect summaries stop at one deterministic bounded diagnostic', t => {
