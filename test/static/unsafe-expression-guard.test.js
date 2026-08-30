@@ -6362,6 +6362,212 @@ test('inherited boundary pop reproductions execute isolated runtime markers', ()
   assert.deepEqual(JSON.parse(result.stdout), ['direct', 'borrowed', 'reflected', 'helper', 'helper-reflected']);
 });
 
+test('deterministic length truncation exposes inherited callables and clears stale own provenance', () => {
+  const unsafeCases = [
+    {
+      name: 'direct length assignment',
+      mutation: 'values.length=1;',
+    },
+    {
+      name: 'tracked-boundary length assignment',
+      prefix: 'const prototype=[];prototype[64]=eval;const values=Array(65).fill(JSON.parse);',
+      mutation: 'values.length=64;',
+      invocation: 'values[64](configuredSource);',
+    },
+    {
+      name: 'helper-forwarded length assignment',
+      prefix: 'function truncate(value){value.length=1}',
+      mutation: 'truncate(values);',
+    },
+    {
+      name: 'Reflect.set length assignment',
+      mutation: "Reflect.set(values,'length',1);",
+    },
+    {
+      name: 'Object.assign length assignment',
+      mutation: 'Object.assign(values,{length:1});',
+    },
+    {
+      name: 'Object.defineProperty length assignment',
+      mutation: "Object.defineProperty(values,'length',{value:1});",
+    },
+    {
+      name: 'Reflect.defineProperty length assignment',
+      mutation: "Reflect.defineProperty(values,'length',{value:1});",
+    },
+    {
+      name: 'Object.defineProperties length assignment',
+      mutation: 'Object.defineProperties(values,{length:{value:1}});',
+    },
+  ];
+
+  for (const [index, unsafeCase] of unsafeCases.entries()) {
+    const source =
+      unsafeCase.prefix && unsafeCase.name === 'tracked-boundary length assignment'
+        ? `${unsafeCase.prefix}Object.setPrototypeOf(values,prototype);
+          ${unsafeCase.mutation}${unsafeCase.invocation}`
+        : `${unsafeCase.prefix ?? ''}const prototype=[];prototype[1]=eval;
+          const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+          ${unsafeCase.mutation}values[1](configuredSource);`;
+    const relativePath = `packages/example/src/length-truncation-${index}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${unsafeCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${unsafeCase.name} should expose inherited eval: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${unsafeCase.name} diagnostics should remain bounded`);
+  }
+
+  const safeCases = [
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      values.length=2;values[1]('{}');`,
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextLength=flag?1:2;values.length=nextLength;values[0]('{}');`,
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      values.length=2;values[1]('{}');`,
+    `const prototype=[];prototype[1]=JSON.parse;
+      const values=[JSON.parse,eval];Object.setPrototypeOf(values,prototype);
+      values.length=1;values[1]('{}');`,
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      values.length=1;values[1]=JSON.parse;values[1]('{}');`,
+    `const prototype=[];prototype[64]=JSON.parse;
+      const values=Array(65).fill(JSON.parse);values[64]=eval;Object.setPrototypeOf(values,prototype);
+      values.length=64;values[64]('{}');`,
+    `const prototype=[];prototype[64]=eval;
+      const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      values.length=66;values[64]('{}');`,
+  ];
+  for (const [index, source] of safeCases.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-length-update-${index}.ts`),
+      [],
+      `safe length update ${index} should retain bounded precision`
+    );
+  }
+});
+
+test('deterministic length truncation mechanisms execute isolated runtime markers', () => {
+  const markerKey = '__a12_length_truncation_marker__';
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    "{const p=[];p[1]=eval;const v=[JSON.parse,JSON.parse];Object.setPrototypeOf(v,p);v.length=1;v[1](mark('direct'));}",
+    "{const p=[];p[64]=eval;const v=Array(65).fill(JSON.parse);Object.setPrototypeOf(v,p);v.length=64;v[64](mark('index-64'));}",
+    "{function truncate(v){v.length=1}const p=[];p[1]=eval;const v=[JSON.parse,JSON.parse];Object.setPrototypeOf(v,p);truncate(v);v[1](mark('helper'));}",
+    "{const p=[];p[1]=eval;const v=[JSON.parse,JSON.parse];Object.setPrototypeOf(v,p);Reflect.set(v,'length',1);v[1](mark('reflect-set'));}",
+    "{const p=[];p[1]=eval;const v=[JSON.parse,JSON.parse];Object.setPrototypeOf(v,p);Object.assign(v,{length:1});v[1](mark('assign'));}",
+    "{const p=[];p[1]=eval;const v=[JSON.parse,JSON.parse];Object.setPrototypeOf(v,p);Object.defineProperty(v,'length',{value:1});v[1](mark('define'));}",
+    "{const p=[];p[1]=eval;const v=[JSON.parse,JSON.parse];Object.setPrototypeOf(v,p);Reflect.defineProperty(v,'length',{value:1});v[1](mark('reflect-define'));}",
+    "{const p=[];p[1]=eval;const v=[JSON.parse,JSON.parse];Object.setPrototypeOf(v,p);Object.defineProperties(v,{length:{value:1}});v[1](mark('defines'));}",
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), [
+    'direct',
+    'index-64',
+    'helper',
+    'reflect-set',
+    'assign',
+    'define',
+    'reflect-define',
+    'defines',
+  ]);
+});
+
+test('sparse inherited values materialize as bounded own properties across array mutations', () => {
+  const safeCases = [
+    `const prototype=[];prototype[64]=eval;prototype[65]=JSON.parse;
+      const values=Array(66);Object.setPrototypeOf(values,prototype);
+      values.shift();values[64]('{}');`,
+    `const prototype=[];prototype[64]=eval;prototype[65]=JSON.parse;
+      const values=Array(66);Object.setPrototypeOf(values,prototype);
+      Array.prototype.splice.call(values,64,1);values[64]('{}');`,
+    `const prototype=[];prototype[0]=JSON.parse;prototype[64]=eval;
+      const values=Array(65);Object.setPrototypeOf(values,prototype);
+      Reflect.apply(Array.prototype.copyWithin,values,[64,0,1]);values[64]('{}');`,
+    `function move(value){value.reverse()}const prototype=[];prototype[0]=JSON.parse;prototype[64]=eval;
+      const values=Array(65);const alias=values;Object.setPrototypeOf(alias,prototype);
+      move(alias);values[64]('{}');`,
+    `function move(value,...args){value.splice(...args)}
+      const prototype=[];prototype[64]=eval;prototype[65]=JSON.parse;
+      const values=Array(66);Object.setPrototypeOf(values,prototype);
+      const args=flag?[64,1]:[64,1];move(values,...args);values[64]('{}');`,
+  ];
+  for (const [index, source] of safeCases.entries()) {
+    const relativePath = `packages/example/src/safe-inherited-materialization-${index}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `safe materialization ${index} should be deterministic`);
+    assert.deepEqual(firstFindings, [], `safe materialization ${index} should invoke only JSON.parse`);
+  }
+
+  const unsafeCases = [
+    `const prototype=[];prototype[64]=JSON.parse;prototype[65]=eval;
+      const values=Array(66);Object.setPrototypeOf(values,prototype);
+      values.shift();values[64](configuredSource);`,
+    `const prototype=[];prototype[64]=JSON.parse;prototype[65]=eval;
+      const values=Array(66);Object.setPrototypeOf(values,prototype);
+      Array.prototype.splice.call(values,64,1);values[64](configuredSource);`,
+    `const prototype=[];prototype[0]=eval;prototype[64]=JSON.parse;
+      const values=Array(65);Object.setPrototypeOf(values,prototype);
+      Reflect.apply(Array.prototype.copyWithin,values,[64,0,1]);values[64](configuredSource);`,
+    `function move(value){value.reverse()}const prototype=[];prototype[0]=eval;
+      const values=Array(65);Object.setPrototypeOf(values,prototype);
+      move(values);values[64](configuredSource);`,
+    `const prototype=[];prototype[64]=eval;prototype[65]=JSON.parse;
+      const values=Array(66);Object.setPrototypeOf(values,prototype);
+      const other=Array(66).fill(JSON.parse);(flag?values:other).shift();
+      values[64](configuredSource);`,
+    `const prototype=[];prototype[64]=eval;prototype[65]=JSON.parse;
+      const values=Array(66);Object.setPrototypeOf(values,prototype);
+      const args=flag?[64,1]:[64,0];values.splice(...args);values[64](configuredSource);`,
+  ];
+  for (const [index, source] of unsafeCases.entries()) {
+    const findings = scanSource(source, `packages/example/src/unsafe-inherited-materialization-${index}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `unsafe materialization ${index} should retain inherited eval: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `unsafe materialization ${index} diagnostics should remain bounded`);
+  }
+});
+
+test('sparse inherited safe materializations execute only JSON.parse', () => {
+  const markerKey = '__a12_inherited_materialization_marker__';
+  const source = [
+    `globalThis.${markerKey}=[];const parse=JSON.parse;`,
+    `JSON.parse=value=>{globalThis.${markerKey}.push('safe');return parse(value)};`,
+    "{const p=[];p[64]=eval;p[65]=JSON.parse;const v=Array(66);Object.setPrototypeOf(v,p);v.shift();v[64]('{}');}",
+    "{const p=[];p[64]=eval;p[65]=JSON.parse;const v=Array(66);Object.setPrototypeOf(v,p);Array.prototype.splice.call(v,64,1);v[64]('{}');}",
+    "{const p=[];p[0]=JSON.parse;p[64]=eval;const v=Array(65);Object.setPrototypeOf(v,p);Reflect.apply(Array.prototype.copyWithin,v,[64,0,1]);v[64]('{}');}",
+    "{function move(v){v.reverse()}const p=[];p[0]=JSON.parse;p[64]=eval;const v=Array(65);Object.setPrototypeOf(v,p);move(v);v[64]('{}');}",
+    `JSON.parse=parse;process.stdout.write(JSON.stringify(globalThis.${markerKey}));
+      delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['safe', 'safe', 'safe', 'safe']);
+});
+
 test('bounded overflow mutations preserve precise known tracked positions', () => {
   const safeTail = Array.from({ length: 63 }, (_, index) => String(index + 1)).join(',');
   const safeCases = [
