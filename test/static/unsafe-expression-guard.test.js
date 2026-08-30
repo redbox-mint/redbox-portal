@@ -5621,8 +5621,8 @@ test('helper-installed builtin prototype methods execute isolated runtime marker
   assert.deepEqual(JSON.parse(result.stdout), ['array', 'map', 'set']);
 });
 
-function saturatedMutationAlternatives(safe, unsafe) {
-  let expression = unsafe;
+function saturatedMutationAlternatives(safe, unsafe, trailing) {
+  let expression = trailing === undefined ? unsafe : `choice===64?${unsafe}:(${trailing})`;
   for (let index = 63; index >= 0; index -= 1) {
     expression = `choice===${index}?${safe}:(${expression})`;
   }
@@ -5724,6 +5724,95 @@ test('saturated unsafe mutation layouts execute isolated runtime markers', () =>
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), ['direct', 'borrowed', 'helper', 'lodash']);
+});
+
+const omittedBoundSaturatedMutationLayoutCases = [
+  {
+    name: 'direct fill retains a discarded full-array layout',
+    kind: 'direct-eval',
+    source: `const choice=64;const v=Array(65).fill(JSON.parse);
+      const args=${saturatedMutationAlternatives('[JSON.parse,0,0]', '[eval]')};
+      v.fill(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'borrowed fill retains a discarded full-array layout',
+    kind: 'direct-eval',
+    source: `const choice=64;const v=Array(65).fill(JSON.parse);
+      const args=${saturatedMutationAlternatives('[v,JSON.parse,0,0]', '[v,eval]')};
+      Array.prototype.fill.call(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'helper fill retains a discarded full-array layout',
+    kind: 'direct-eval',
+    source: `function fill(value,...args){value.fill(...args)}
+      const choice=64;const v=Array(65).fill(JSON.parse);
+      const args=${saturatedMutationAlternatives('[v,JSON.parse,0,0]', '[v,eval]')};
+      fill(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'Lodash fill retains a discarded full-array layout',
+    kind: 'lodash-template',
+    source: `const choice=64;const v=Array(65).fill(JSON.parse);const lodash=require('lodash');
+      const args=${saturatedMutationAlternatives('[JSON.parse,0,0]', '[lodash.template]')};
+      v.fill(...args);v[64](configuredSource);`,
+  },
+  {
+    name: 'a discarded unsafe full-array layout remains visible before a safe fallback',
+    kind: 'direct-eval',
+    source: `const choice=64;const v=Array(65).fill(JSON.parse);
+      const args=${saturatedMutationAlternatives('[JSON.parse,0,0]', '[eval]', '[JSON.stringify,0,0]')};
+      v.fill(...args);v[64](configuredSource);`,
+  },
+];
+
+test('saturated mutation summaries retain omitted-bound arity and provenance', () => {
+  for (const [index, mutationCase] of omittedBoundSaturatedMutationLayoutCases.entries()) {
+    const relativePath = `packages/example/src/omitted-bound-saturated-mutation-layout-${index}.ts`;
+    const firstFindings = scanSource(mutationCase.source, relativePath);
+    const secondFindings = scanSource(mutationCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${mutationCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === mutationCase.kind),
+      `${mutationCase.name} should retain discarded provenance and arity: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${mutationCase.name} diagnostics should remain bounded`);
+  }
+});
+
+test('discarded omitted-bound mutation layouts execute isolated runtime markers', () => {
+  const markerKey = '__a12_omitted_bound_saturation_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const directAlternatives = saturatedMutationAlternatives('[JSON.parse,0,0]', '[eval]');
+  const forwardedAlternatives = saturatedMutationAlternatives('[v,JSON.parse,0,0]', '[v,eval]');
+  const lodashAlternatives = saturatedMutationAlternatives('[JSON.parse,0,0]', '[lodash.template]');
+  const unsafeNotLastAlternatives = saturatedMutationAlternatives('[JSON.parse,0,0]', '[eval]', '[JSON.stringify,0,0]');
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    { const choice=64;const v=Array(65).fill(JSON.parse);const args=${directAlternatives};
+      v.fill(...args);v[64](mark('direct')); }
+    { const choice=64;const v=Array(65).fill(JSON.parse);const args=${forwardedAlternatives};
+      Array.prototype.fill.call(...args);v[64](mark('borrowed')); }
+    { function fill(value,...args){value.fill(...args)}
+      const choice=64;const v=Array(65).fill(JSON.parse);const args=${forwardedAlternatives};
+      fill(...args);v[64](mark('helper')); }
+    { const choice=64;const v=Array(65).fill(JSON.parse);const lodash=require('lodash');
+      const args=${lodashAlternatives};v.fill(...args);
+      v[64](\`<% globalThis[${serializedMarkerKey}].push('lodash') %>\`)(); }
+    { const choice=64;const v=Array(65).fill(JSON.parse);const args=${unsafeNotLastAlternatives};
+      v.fill(...args);v[64](mark('unsafe-not-last')); }
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['direct', 'borrowed', 'helper', 'lodash', 'unsafe-not-last']);
 });
 
 const conditionalSpreadMutationCases = [

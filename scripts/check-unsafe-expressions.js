@@ -3866,18 +3866,18 @@ function collectBindings(sourceFile) {
     return observedPropertyValue(new Set([carrier]), [String(index)], undefined, false);
   }
 
-  function mergeLayoutSummary(summary, layout) {
+  function mergeLayoutSummary(summaries, layout) {
+    let summary = summaries.get(layout.length);
+    if (!summary) {
+      summary = Array.from({ length: layout.length }, () => new Set());
+      summaries.set(layout.length, summary);
+    }
     for (const [index, value] of layout.entries()) {
-      let summaryValue = summary[index];
-      if (!summaryValue) {
-        summaryValue = new Set();
-        summary[index] = summaryValue;
-      }
-      mergeValue(summaryValue, value);
+      mergeValue(summary[index], value);
     }
   }
 
-  function appendIterableLayout(layouts, saturatedLayout, uncertainValues, value, unknown, node) {
+  function appendIterableLayout(layouts, saturatedLayouts, uncertainValues, value, unknown, node) {
     const yielded = iteratorYieldValue(value, node);
     const layout = [];
     let positionalOverflow = false;
@@ -3892,7 +3892,7 @@ function collectBindings(sourceFile) {
     let layoutSaturated = false;
     if (layouts.length < maximumTrackedPositionalAlternatives) layouts.push(layout);
     else {
-      mergeLayoutSummary(saturatedLayout, layout);
+      mergeLayoutSummary(saturatedLayouts, layout);
       layoutSaturated = true;
     }
     if (unknown || positionalOverflow || layoutSaturated) {
@@ -3907,7 +3907,7 @@ function collectBindings(sourceFile) {
 
   function positionalLayouts(value) {
     const layouts = [];
-    const saturatedLayout = [];
+    const saturatedLayouts = new Map();
     const exactPositionalLengths = new Set();
     const uncertainValues = new Set();
     const overflowPositionalValues = new Set();
@@ -3921,7 +3921,7 @@ function collectBindings(sourceFile) {
         mergeValue(producedValues, iteratorProducedValues(atom.iterators));
         const appended = appendIterableLayout(
           layouts,
-          saturatedLayout,
+          saturatedLayouts,
           uncertainValues,
           producedValues,
           atom.unknown,
@@ -3946,7 +3946,7 @@ function collectBindings(sourceFile) {
         if (atom.collectionKind) {
           const appended = appendIterableLayout(
             layouts,
-            saturatedLayout,
+            saturatedLayouts,
             uncertainValues,
             produced,
             hasUnknownValue(replacementIterator),
@@ -3963,7 +3963,7 @@ function collectBindings(sourceFile) {
         const entries = collectionEntryValues(new Set([atom]), activeAnalysisNode);
         const appended = appendIterableLayout(
           layouts,
-          saturatedLayout,
+          saturatedLayouts,
           uncertainValues,
           entries.result,
           entries.unknown,
@@ -3976,7 +3976,7 @@ function collectBindings(sourceFile) {
         const values = collectionValues(new Set([atom]), 'set');
         const appended = appendIterableLayout(
           layouts,
-          saturatedLayout,
+          saturatedLayouts,
           uncertainValues,
           values.result,
           values.unknown,
@@ -4025,7 +4025,7 @@ function collectBindings(sourceFile) {
           layouts.push(layout);
         } else {
           uncertainPositioning = true;
-          mergeLayoutSummary(saturatedLayout, layout);
+          mergeLayoutSummary(saturatedLayouts, layout);
           for (const positionalValue of layout) mergeValue(uncertainValues, positionalValue);
           mergeValue(uncertainValues, unknownReflectiveCallableValue());
         }
@@ -4034,7 +4034,7 @@ function collectBindings(sourceFile) {
 
     return {
       layouts,
-      saturatedLayout,
+      saturatedLayouts,
       exactPositionalLengths,
       uncertainPositioning,
       unmodeledPositioning,
@@ -4047,6 +4047,7 @@ function collectBindings(sourceFile) {
   function positionalValueAt(expansion, index) {
     const result = new Set();
     for (const layout of expansion.layouts) mergeValue(result, layout[index] ?? new Set());
+    for (const layout of expansion.saturatedLayouts.values()) mergeValue(result, layout[index] ?? new Set());
     if (expansion.uncertainPositioning) mergeValue(result, expansion.uncertainValues);
     if (expansion.positionalOverflowStart !== undefined && index >= expansion.positionalOverflowStart) {
       mergeValue(result, expansion.overflowPositionalValues);
@@ -4064,6 +4065,9 @@ function collectBindings(sourceFile) {
       mergeValue(result, unknownReflectiveCallableValue());
     }
     for (const layout of expansion.layouts) {
+      for (const value of layout) mergeValue(result, value);
+    }
+    for (const layout of expansion.saturatedLayouts.values()) {
       for (const value of layout) mergeValue(result, value);
     }
     return result;
@@ -5732,8 +5736,12 @@ function collectBindings(sourceFile) {
   function appendExpansionValue(expansion, value) {
     if (expansion.uncertainPositioning) mergeValue(expansion.uncertainValues, value);
     expansion.layouts = expansion.layouts.map(layout => appendPositionalValue(expansion, layout, value));
-    if (expansion.saturatedLayout.length > 0) {
-      expansion.saturatedLayout = appendPositionalValue(expansion, expansion.saturatedLayout, value);
+    if (expansion.saturatedLayouts.size > 0) {
+      const appendedSummaries = new Map();
+      for (const layout of expansion.saturatedLayouts.values()) {
+        mergeLayoutSummary(appendedSummaries, appendPositionalValue(expansion, layout, value));
+      }
+      expansion.saturatedLayouts = appendedSummaries;
     }
   }
 
@@ -5745,7 +5753,7 @@ function collectBindings(sourceFile) {
 
   function appendSpreadExpansion(expansion, spreadExpansion) {
     const prefixLayouts = expansion.layouts;
-    const prefixSaturatedLayout = expansion.saturatedLayout;
+    const prefixSaturatedLayouts = expansion.saturatedLayouts;
     if (expansion.uncertainPositioning) mergeLayoutValues(expansion.uncertainValues, spreadExpansion.layouts);
     mergeValue(expansion.uncertainValues, spreadExpansion.uncertainValues);
     if (spreadExpansion.uncertainPositioning) {
@@ -5755,7 +5763,7 @@ function collectBindings(sourceFile) {
     expansion.unmodeledPositioning = expansion.unmodeledPositioning || spreadExpansion.unmodeledPositioning;
     const suffixes = spreadExpansion.layouts.length > 0 ? spreadExpansion.layouts : [[]];
     const combined = [];
-    const saturatedLayout = [];
+    const saturatedLayouts = new Map();
     for (const prefix of prefixLayouts) {
       for (const suffix of suffixes) {
         const layout = combinedPositionalLayout(expansion, prefix, suffix);
@@ -5763,32 +5771,26 @@ function collectBindings(sourceFile) {
           combined.push(layout);
         } else {
           expansion.uncertainPositioning = true;
-          mergeLayoutSummary(saturatedLayout, layout);
+          mergeLayoutSummary(saturatedLayouts, layout);
           mergeLayoutValues(expansion.uncertainValues, [layout]);
         }
       }
     }
-    if (prefixSaturatedLayout.length > 0) {
+    for (const prefixSummary of prefixSaturatedLayouts.values()) {
       for (const suffix of suffixes) {
-        mergeLayoutSummary(saturatedLayout, combinedPositionalLayout(expansion, prefixSaturatedLayout, suffix));
+        mergeLayoutSummary(saturatedLayouts, combinedPositionalLayout(expansion, prefixSummary, suffix));
       }
     }
-    if (spreadExpansion.saturatedLayout.length > 0) {
+    for (const suffixSummary of spreadExpansion.saturatedLayouts.values()) {
       for (const prefix of prefixLayouts) {
-        mergeLayoutSummary(
-          saturatedLayout,
-          combinedPositionalLayout(expansion, prefix, spreadExpansion.saturatedLayout)
-        );
+        mergeLayoutSummary(saturatedLayouts, combinedPositionalLayout(expansion, prefix, suffixSummary));
       }
-      if (prefixSaturatedLayout.length > 0) {
-        mergeLayoutSummary(
-          saturatedLayout,
-          combinedPositionalLayout(expansion, prefixSaturatedLayout, spreadExpansion.saturatedLayout)
-        );
+      for (const prefixSummary of prefixSaturatedLayouts.values()) {
+        mergeLayoutSummary(saturatedLayouts, combinedPositionalLayout(expansion, prefixSummary, suffixSummary));
       }
     }
     expansion.layouts = combined;
-    expansion.saturatedLayout = saturatedLayout;
+    expansion.saturatedLayouts = saturatedLayouts;
     if (spreadExpansion.positionalOverflowStart !== undefined) {
       const shiftedOverflowStart = Math.min(
         ...prefixLayouts.map(prefix => prefix.length + spreadExpansion.positionalOverflowStart)
@@ -5800,7 +5802,7 @@ function collectBindings(sourceFile) {
   function positionalExpansionForNodes(nodes) {
     const expansion = {
       layouts: [[]],
-      saturatedLayout: [],
+      saturatedLayouts: new Map(),
       uncertainPositioning: false,
       unmodeledPositioning: false,
       uncertainValues: new Set(),
@@ -5820,17 +5822,11 @@ function collectBindings(sourceFile) {
   }
 
   function forEachMutationLayout(expansion, useEmptyFallback, visit) {
-    let candidateLayouts = useEmptyFallback && expansion.layouts.length === 0 ? [[]] : expansion.layouts;
-    const summarizedUncertainty = expansion.saturatedLayout.map(value => new Set(value));
-    if (summarizedUncertainty.length > 0) {
-      if (candidateLayouts.length === 0) {
-        candidateLayouts = [summarizedUncertainty];
-      } else {
-        const finalLayout = candidateLayouts[candidateLayouts.length - 1].map(value => new Set(value));
-        mergeLayoutSummary(finalLayout, summarizedUncertainty);
-        candidateLayouts = [...candidateLayouts.slice(0, -1), finalLayout];
-      }
+    let candidateLayouts = [...expansion.layouts];
+    for (const layout of expansion.saturatedLayouts.values()) {
+      candidateLayouts.push(layout.map(value => new Set(value)));
     }
+    if (useEmptyFallback && candidateLayouts.length === 0) candidateLayouts = [[]];
     let layouts = candidateLayouts;
     if (candidateLayouts.length > 1 && candidateLayouts.every(layout => layout.length === candidateLayouts[0].length)) {
       const mergedLayout = Array.from({ length: candidateLayouts[0].length }, () => new Set());
