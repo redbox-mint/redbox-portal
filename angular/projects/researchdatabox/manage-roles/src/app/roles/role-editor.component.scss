@@ -1,0 +1,75 @@
+.editor-backdrop {
+  background: rgba(9, 24, 38, 0.58);
+  inset: 0;
+  position: fixed;
+  z-index: 1020;
+}
+.role-editor {
+  background: #fff;
+  box-shadow: -0.5rem 0 2rem rgba(0, 0, 0, 0.25);
+  height: 100vh;
+  max-width: 48rem;
+  overflow: auto;
+  padding: 1.5rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: calc(100% - 1rem);
+  z-index: 1030;
+}
+.role-editor:focus {
+  outline: 4px solid rgba(51, 122, 183, 0.4);
+  outline-offset: -4px;
+}
+.role-editor__header {
+  align-items: flex-start;
+  border-bottom: 1px solid #d7e0e7;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+}
+.role-editor__header h2 {
+  margin: 0;
+}
+.role-editor__eyebrow {
+  color: #607286;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.role-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.role-editor__section {
+  border-top: 1px solid #d7e0e7;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+.role-editor__section--danger {
+  border-left: 4px solid #d58512;
+  padding-left: 1rem;
+}
+.role-identity {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+.role-identity div {
+  background: #f3f6f8;
+  padding: 0.65rem;
+}
+.role-identity dt,
+.role-identity dd {
+  margin: 0;
+}
+.compact-input {
+  display: inline-block;
+  margin-right: 0.5rem;
+  max-width: 8rem;
+}

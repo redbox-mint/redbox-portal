@@ -1,0 +1,51 @@
+.preview-backdrop {
+  background: rgba(9, 24, 38, 0.58);
+  inset: 0;
+  position: fixed;
+  z-index: 1040;
+}
+.preview-dialog {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+  left: 50%;
+  max-height: 85vh;
+  max-width: 42rem;
+  overflow: auto;
+  padding: 1.5rem;
+  position: fixed;
+  top: 8vh;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  z-index: 1050;
+}
+.preview-dialog:focus {
+  outline: 4px solid rgba(51, 122, 183, 0.4);
+}
+.preview-dialog header {
+  border-bottom: 1px solid #d7e0e7;
+  margin-bottom: 1rem;
+}
+.preview-dialog h2 {
+  margin-top: 0;
+}
+.preview-dialog footer {
+  border-top: 1px solid #d7e0e7;
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+.preview-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+.preview-grid div {
+  background: #f4f7f9;
+  padding: 0.5rem;
+}
+.preview-grid dt,
+.preview-grid dd {
+  margin: 0;
+}

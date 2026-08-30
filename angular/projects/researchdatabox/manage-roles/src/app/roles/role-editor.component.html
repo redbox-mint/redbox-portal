@@ -1,0 +1,260 @@
+<div class="editor-backdrop" aria-hidden="true"></div>
+<section
+  #editorDialog
+  class="role-editor"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="role-editor-heading"
+  [attr.aria-busy]="loading || pending"
+  [attr.aria-hidden]="preview ? 'true' : null"
+  [attr.inert]="preview ? '' : null"
+  tabindex="-1"
+  (keydown.tab)="trapFocus($event)"
+>
+  <header class="role-editor__header">
+    <div>
+      <p class="role-editor__eyebrow">{{ editing ? 'Role details' : 'New role' }}</p>
+      <h2 id="role-editor-heading">{{ editing ? role?.displayName || roleKey : 'Create a role' }}</h2>
+    </div>
+    <button type="button" class="btn btn-default" [disabled]="pending" (click)="closed.emit()">Close</button>
+  </header>
+
+  @if (error) {
+    <div class="alert alert-danger" role="alert">
+      {{ error.message }}
+      @if (error.requestId) {
+        <span>Request {{ error.requestId }}.</span>
+      }
+      @if (error.isConflict) {
+        <div class="role-editor__actions">
+          <button
+            type="button"
+            class="btn btn-default btn-sm"
+            [disabled]="loading || pending"
+            (click)="loadRole(false)"
+          >
+            Reload for comparison
+          </button>
+          <button type="button" class="btn btn-default btn-sm" [disabled]="loading || pending" (click)="loadRole(true)">
+            Discard input and use server version
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  @if (serverComparison) {
+    <div class="alert alert-info" role="status">
+      Server version {{ serverComparison.version }} currently has label
+      <strong>{{ serverComparison.displayName }}</strong> and {{ serverComparison.effectiveScopeKeys.length }} effective
+      scopes. Compared with your retained input, the server has {{ serverOnlyScopeCount }} additional scopes and your
+      editor has {{ editorOnlyScopeCount }} additional scopes. Your editor input remains unchanged.
+    </div>
+  }
+
+  @if (!editing) {
+    <div class="form-group">
+      <label for="role-creation-kind">Creation source</label>
+      <select
+        id="role-creation-kind"
+        class="form-control"
+        [(ngModel)]="creationKind"
+        (change)="creationSourceChanged()"
+      >
+        <option value="custom">Custom role</option>
+        @if (templatesAvailable) {
+          <option value="template">From template</option>
+        }
+        <option value="clone">Clone same-brand role</option>
+      </select>
+    </div>
+    @if (creationKind === 'template') {
+      <div class="form-group">
+        <label for="role-template">Template</label>
+        <select id="role-template" class="form-control" [(ngModel)]="templateKey" (change)="creationSourceChanged()">
+          <option value="">Select a template</option>
+          @for (template of templates; track template.key) {
+            <option [value]="template.key">{{ template.displayName }} · revision {{ template.currentRevision }}</option>
+          }
+        </select>
+      </div>
+    }
+    @if (creationKind === 'clone') {
+      <div class="form-group">
+        <label for="clone-role">Role to clone</label>
+        <select id="clone-role" class="form-control" [(ngModel)]="cloneRoleKey" (change)="creationSourceChanged()">
+          <option value="">Select a role</option>
+          @for (candidate of cloneRoles; track candidate.id) {
+            <option [value]="candidate.key">{{ candidate.displayName }} ({{ candidate.key }})</option>
+          }
+        </select>
+        @if (clonePreview) {
+          <p class="help-block">
+            Copies {{ clonePreview.effectiveScopeKeys.length }} effective scopes. Assignments and protected identity are
+            never copied.
+          </p>
+        }
+      </div>
+    }
+    <div class="form-group">
+      <label for="new-role-key">Immutable key</label>
+      <input
+        id="new-role-key"
+        class="form-control"
+        type="text"
+        maxlength="64"
+        pattern="[a-z][a-z0-9-]{0,63}"
+        [(ngModel)]="key"
+      />
+      <p class="help-block">Lowercase letters, numbers, and hyphens. This value cannot be renamed.</p>
+    </div>
+  } @else if (role) {
+    <dl class="role-identity">
+      <div>
+        <dt>Immutable key</dt>
+        <dd>
+          <code>{{ role.key }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Version</dt>
+        <dd>{{ role.version }}</dd>
+      </div>
+      <div>
+        <dt>Status</dt>
+        <dd>{{ role.status }}</dd>
+      </div>
+      <div>
+        <dt>Protection</dt>
+        <dd>{{ role.protectedKind === 'none' ? 'Not protected' : role.protectedKind }}</dd>
+      </div>
+    </dl>
+  }
+
+  <div class="form-group">
+    <label for="role-display-name">Display label</label>
+    <input
+      id="role-display-name"
+      class="form-control"
+      type="text"
+      maxlength="256"
+      [readonly]="editing && !canManage"
+      [(ngModel)]="displayName"
+    />
+  </div>
+  <div class="form-group">
+    <label for="role-description">Description</label>
+    <textarea
+      id="role-description"
+      class="form-control"
+      rows="3"
+      maxlength="2000"
+      [readonly]="editing && !canManage"
+      [(ngModel)]="description"
+    ></textarea>
+  </div>
+  @if (canManage || !editing) {
+    <div class="form-group">
+      <label for="role-reason">Reason for change <span class="text-muted">(optional)</span></label>
+      <textarea id="role-reason" class="form-control" rows="2" maxlength="1000" [(ngModel)]="reason"></textarea>
+    </div>
+  }
+
+  @if (creationKind !== 'clone' || editing) {
+    @if (!scopeCatalogAvailable) {
+      <div class="alert alert-warning" role="status">
+        The complete scope catalog is unavailable. Existing scopes are preserved, and scope-changing controls are
+        disabled.
+      </div>
+    }
+    <authorization-scope-selector
+      [scopes]="scopes"
+      [baseScopeKeys]="role?.baseScopeKeys ?? []"
+      [selectedScopeKeys]="selectedScopeKeys"
+      [delegableScopeKeys]="delegableScopeKeys"
+      [disabled]="loading || pending || !scopeCatalogAvailable || (editing && !canManage)"
+      (selectedScopeKeysChange)="selectedScopeKeys = $event"
+    />
+  } @else if (clonePreview) {
+    <h3>Copied-scope preview</h3>
+    <ul>
+      @for (scope of clonePreview.effectiveScopeKeys; track scope) {
+        <li>
+          <code>{{ scope }}</code>
+        </li>
+      }
+    </ul>
+  }
+
+  @if (editing && role && canManage) {
+    <div class="role-editor__actions">
+      <button type="button" class="btn btn-primary" [disabled]="pending" (click)="saveMetadata()">
+        Save label and description
+      </button>
+      <button
+        type="button"
+        class="btn btn-info"
+        [disabled]="loading || pending || !scopeCatalogAvailable"
+        (click)="previewScopes($event)"
+      >
+        Preview scope changes
+      </button>
+    </div>
+    @if (role.templateKey) {
+      <section class="role-editor__section" aria-labelledby="template-upgrade-heading">
+        <h3 id="template-upgrade-heading">Template upgrade</h3>
+        <p>Pinned to {{ role.templateKey }} revision {{ role.templateRevision }}.</p>
+        <label for="target-template-revision">Target revision</label>
+        <input
+          id="target-template-revision"
+          class="form-control compact-input"
+          type="number"
+          min="1"
+          [(ngModel)]="targetRevision"
+        />
+        <button
+          type="button"
+          class="btn btn-info"
+          [disabled]="pending || !targetRevision"
+          (click)="previewTemplateUpgrade($event)"
+        >
+          Preview upgrade
+        </button>
+      </section>
+    }
+    @if (!protectedRole && role.status === 'active') {
+      <section class="role-editor__section role-editor__section--danger" aria-labelledby="role-lifecycle-heading">
+        <h3 id="role-lifecycle-heading">Role lifecycle</h3>
+        <p>
+          Both operations use a fresh server dependency scan. A delete button appears only in the eligible server
+          preview.
+        </p>
+        <button type="button" class="btn btn-warning" [disabled]="pending" (click)="previewInactivation($event)">
+          Preview inactivation
+        </button>
+        <button type="button" class="btn btn-default" [disabled]="pending" (click)="previewDeletion($event)">
+          Check deletion eligibility
+        </button>
+      </section>
+    }
+  } @else if (!editing) {
+    <div class="role-editor__actions">
+      <button type="button" class="btn btn-primary" [disabled]="loading || pending" (click)="createRole()">
+        Create role
+      </button>
+      <button type="button" class="btn btn-default" [disabled]="pending" (click)="closed.emit()">Cancel</button>
+    </div>
+  }
+  <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
+</section>
+
+@if (preview) {
+  <authorization-impact-preview
+    [preview]="preview"
+    [pending]="pending"
+    [confirmLabel]="previewApplyLabel"
+    [returnFocusTo]="previewReturnFocus"
+    (confirmed)="applyPreview()"
+    (dismissed)="dismissPreview()"
+  />
+}

@@ -1,0 +1,46 @@
+.section-heading h2 {
+  margin-top: 0;
+}
+.filter-grid,
+.grant-grid {
+  align-items: end;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(10rem, 1fr));
+}
+.filter-grid {
+  background: #f3f6f8;
+  margin: 1rem 0;
+  padding: 1rem;
+}
+.filter-grid .form-group,
+.grant-grid .form-group {
+  margin: 0;
+}
+.filter-actions {
+  display: flex;
+}
+.grant-panel {
+  border-left: 4px solid #337ab7;
+  margin: 1.5rem 0;
+  padding: 0.25rem 0 1rem 1rem;
+}
+.grant-panel .btn {
+  margin-top: 1rem;
+}
+td .btn {
+  margin: 0.15rem;
+  white-space: normal;
+}
+@media (max-width: 900px) {
+  .filter-grid,
+  .grant-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .filter-grid,
+  .grant-grid {
+    grid-template-columns: 1fr;
+  }
+}

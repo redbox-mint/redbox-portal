@@ -1,0 +1,124 @@
+<section aria-labelledby="scope-catalog-heading" [attr.aria-busy]="loading">
+  <h2 id="scope-catalog-heading">Scope Catalog</h2>
+  <p>
+    Read-only deployed capability definitions. Registry generation: <code>{{ generation || 'loading' }}</code
+    >.
+  </p>
+  @if (error) {
+    <div class="alert alert-danger" role="alert">
+      {{ error.message }}
+      @if (error.requestId) {
+        Request {{ error.requestId }}.
+      }
+    </div>
+  }
+  @if (usageError) {
+    <div class="alert alert-warning" role="status">
+      Role usage is unavailable; scope definitions remain read-only. {{ usageError.message }}
+    </div>
+  }
+  <form class="filter-grid" (submit)="$event.preventDefault(); loadScopes(false)">
+    <div class="form-group">
+      <label for="scope-search">Search</label
+      ><input id="scope-search" class="form-control" type="search" maxlength="128" [(ngModel)]="search" name="search" />
+    </div>
+    <div class="form-group">
+      <label for="scope-namespace">Namespace</label
+      ><input
+        id="scope-namespace"
+        class="form-control"
+        type="text"
+        maxlength="256"
+        [(ngModel)]="namespace"
+        name="namespace"
+      />
+    </div>
+    <div class="form-group">
+      <label for="scope-risk">Risk</label
+      ><select id="scope-risk" class="form-control" [(ngModel)]="risk" name="risk">
+        <option value="">Any risk</option>
+        <option value="read">Read</option>
+        <option value="write">Write</option>
+        <option value="admin">Admin</option>
+        <option value="system">System</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="scope-source">Source</label
+      ><select id="scope-source" class="form-control" [(ngModel)]="sourceType" name="sourceType">
+        <option value="">Any source</option>
+        <option value="core">Core</option>
+        <option value="hook">Hook</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="scope-status">Status</label
+      ><select id="scope-status" class="form-control" [(ngModel)]="status" name="status">
+        <option value="">Any status</option>
+        <option value="active">Active</option>
+        <option value="deprecated">Deprecated</option>
+        <option value="orphaned">Orphaned</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-default" type="submit" [disabled]="loading">Apply filters</button
+      ><button class="btn btn-link" type="button" [disabled]="loading" (click)="resetFilters()">Reset</button>
+    </div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-striped table-hover">
+      <caption class="sr-only">
+        Read-only authorization scope definitions and bounded current-brand role usage
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Capability</th>
+          <th scope="col">Risk / status</th>
+          <th scope="col">Source</th>
+          <th scope="col">Replacement</th>
+          <th scope="col">Role usage</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (scope of scopes; track scope.key) {
+          <tr>
+            <td>
+              <strong>{{ scope.label }}</strong
+              ><br /><code>{{ scope.key }}</code>
+              <p>{{ scope.description }}</p>
+            </td>
+            <td>
+              <strong>Risk: {{ scope.risk }}</strong
+              ><br />Status: {{ scope.status }}
+            </td>
+            <td>
+              {{ scope.sourceType }}<br /><code>{{ scope.sourcePackage }}</code
+              ><br />Version {{ scope.sourceVersion }}
+            </td>
+            <td>
+              @if (scope.replacementKey) {
+                <code>{{ scope.replacementKey }}</code>
+              } @else {
+                None
+              }
+            </td>
+            <td>{{ usageLabel(scope.key) }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5">{{ loading ? 'Loading scopes…' : 'No scope definitions match these filters.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (roleUsageTruncated) {
+    <p class="help-block">Role usage is reported as a lower bound from the first 100 current-brand roles.</p>
+  }
+  @if (nextCursor) {
+    <button type="button" class="btn btn-default" [disabled]="loading" (click)="loadScopes(true)">
+      Load more scopes
+    </button>
+  }
+  <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
+</section>

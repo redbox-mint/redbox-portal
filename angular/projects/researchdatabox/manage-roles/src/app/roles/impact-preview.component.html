@@ -1,0 +1,108 @@
+<div class="preview-backdrop" aria-hidden="true"></div>
+<section
+  #dialog
+  class="preview-dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="impact-preview-heading"
+  tabindex="-1"
+  (keydown.tab)="trapFocus($event)"
+>
+  <header>
+    <h2 id="impact-preview-heading">Server impact preview</h2>
+    <p>
+      Operation: <strong>{{ preview.operation }}</strong>
+    </p>
+  </header>
+  @if (rolePreview; as roleImpact) {
+    @if (roleImpact.addedScopeKeys.length) {
+      <h3>Scopes added</h3>
+      <ul>
+        @for (scope of roleImpact.addedScopeKeys; track scope) {
+          <li>
+            <code>{{ scope }}</code>
+          </li>
+        }
+      </ul>
+    }
+    @if (roleImpact.removedScopeKeys.length) {
+      <h3>Scopes removed</h3>
+      <ul>
+        @for (scope of roleImpact.removedScopeKeys; track scope) {
+          <li>
+            <code>{{ scope }}</code>
+          </li>
+        }
+      </ul>
+    }
+    <p>
+      Affected assignments: <strong>{{ roleImpact.affectedAssignments }}</strong>
+    </p>
+    @if (roleImpact.dependencies; as dependencies) {
+      <h3>Dependencies</h3>
+      <dl class="preview-grid">
+        <div>
+          <dt>Assignment rows</dt>
+          <dd>{{ dependencies.assignmentRows }}</dd>
+        </div>
+        <div>
+          <dt>Legacy memberships</dt>
+          <dd>{{ dependencies.legacyUserAssociations }}</dd>
+        </div>
+        <div>
+          <dt>Active records</dt>
+          <dd>{{ dependencies.activeRecords }}</dd>
+        </div>
+        <div>
+          <dt>Deleted records</dt>
+          <dd>{{ dependencies.deletedRecords }}</dd>
+        </div>
+        <div>
+          <dt>Configuration references</dt>
+          <dd>{{ dependencies.storedConfigReferences + dependencies.runtimeConfigReferences }}</dd>
+        </div>
+        <div>
+          <dt>Scan complete</dt>
+          <dd>{{ dependencies.scanIncomplete ? 'No' : 'Yes' }}</dd>
+        </div>
+      </dl>
+    }
+  } @else if (bulkPreview; as bulkImpact) {
+    <p>
+      Selected roles: <strong>{{ bulkImpact.roles.length }}</strong>
+    </p>
+    <ul>
+      @for (role of bulkImpact.roles; track role.roleId) {
+        <li>{{ describeBulkRole(role) }}</li>
+      }
+    </ul>
+  }
+  @if (preview.warnings.length) {
+    <div class="alert alert-warning" role="status">
+      <strong>Warnings</strong>
+      <ul>
+        @for (warning of preview.warnings; track $index) {
+          <li>{{ warning }}</li>
+        }
+      </ul>
+    </div>
+  }
+  @if (preview.fatalErrors.length) {
+    <div class="alert alert-danger" role="alert">
+      <strong>Cannot apply</strong>
+      <ul>
+        @for (fatal of preview.fatalErrors; track $index) {
+          <li>{{ fatal }}</li>
+        }
+      </ul>
+    </div>
+  }
+  <footer>
+    @if (showConfirm) {
+      <button type="button" class="btn btn-primary" [disabled]="!canConfirm" (click)="confirmed.emit()">
+        {{ confirmLabel }}
+      </button>
+    }
+    <button type="button" class="btn btn-default" [disabled]="pending" (click)="dismissed.emit()">Cancel</button>
+  </footer>
+</section>

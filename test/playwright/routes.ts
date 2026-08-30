@@ -154,7 +154,12 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'manage-roles',
-    requiredSelectors: ['manage-roles table', '#role-Admin', 'input[aria-label="Search for name"]'],
+    requiredSelectors: [
+      '#authorization-admin-heading',
+      '[role="tablist"]',
+      '#authorization-tab-roles',
+      'authorization-role-list table',
+    ],
     fallbackSelectors: ['manage-roles img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/manage-roles/browser/main',
