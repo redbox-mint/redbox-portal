@@ -116,6 +116,10 @@ describe('webservice AuthorizationController', () => {
     }
     Reflect.deleteProperty(globalThis, 'AuthorizationScopeService');
     Reflect.deleteProperty(globalThis, 'RoleAdministrationService');
+    Reflect.deleteProperty(globalThis, 'AuthorizationAuditService');
+    Reflect.deleteProperty(globalThis, 'AuthorizationService');
+    Reflect.deleteProperty(globalThis, 'AuthorizationReadinessService');
+    Reflect.deleteProperty(globalThis, 'AuthorizationConfigurationService');
   });
 
   it('returns a caller-safe /me projection and hides assignment provenance without assignment-read scope', async () => {
@@ -522,15 +526,16 @@ describe('webservice AuthorizationController', () => {
     });
     const controller = new Controllers.Authorization();
     const first = captureSendResp(controller);
+    const baseApiRequest = {
+      params: { key: 'researcher' },
+      query: {},
+      body: { expectedVersion: 1, scopeKeys: ['record.read'], notes: 'Add record access' },
+      files: {},
+    };
     const baseRequest = {
       authorization: actor,
       authorizationRequestId: 'request-1',
-      apiRequest: {
-        params: { key: 'researcher' },
-        query: {},
-        body: { expectedVersion: 1, scopeKeys: ['record.read'], notes: 'Add record access' },
-        files: {},
-      },
+      apiRequest: baseApiRequest,
     } as unknown as Sails.Req;
 
     await controller.publishTemplateRevision(baseRequest, {} as Sails.Res);
@@ -544,8 +549,8 @@ describe('webservice AuthorizationController', () => {
     const applyRequest = {
       ...baseRequest,
       apiRequest: {
-        ...baseRequest.apiRequest,
-        body: { ...baseRequest.apiRequest.body, confirmationToken: 'confirmation' },
+        ...baseApiRequest,
+        body: { ...baseApiRequest.body, confirmationToken: 'confirmation' },
       },
     } as unknown as Sails.Req;
     await secondController.publishTemplateRevision(applyRequest, {} as Sails.Res);
@@ -640,6 +645,156 @@ describe('webservice AuthorizationController', () => {
     assert.equal(problem.capture.type, 'application/problem+json');
     assert.equal(problem.capture.body?.code, 'authorization.transaction-unavailable');
     assert.equal(JSON.stringify(problem.capture.body).includes('Sensitive datastore'), false);
+  });
+
+  it('dispatches bounded audit, explanation, readiness, export, and import contracts without deriving authority from input', async () => {
+    const actor = context(['authorization.audit.read', 'authorization.explain', 'system.authorization.manage']);
+    const commands: Array<readonly [string, Record<string, unknown>]> = [];
+    Reflect.set(globalThis, 'AuthorizationAuditService', {
+      queryEvents: (command: Record<string, unknown>) => {
+        commands.push(['audit', command]);
+        return Promise.resolve({ items: [] });
+      },
+    });
+    Reflect.set(globalThis, 'AuthorizationService', {
+      explainDecision: (
+        receivedActor: AuthorizationContext,
+        subjectId: string,
+        brandId: string,
+        scopeKey: string,
+        resource: Record<string, unknown>
+      ) => {
+        commands.push(['explain', { actor: receivedActor, subjectId, brandId, scopeKey, resource }]);
+        return Promise.resolve({ explained: true, decision: { allowed: true, reasonCode: 'allowed' } });
+      },
+    });
+    Reflect.set(globalThis, 'AuthorizationReadinessService', {
+      getReport: (receivedActor: AuthorizationContext) => {
+        commands.push(['readiness', { actor: receivedActor }]);
+        return Promise.resolve({ readyForEnforce: false });
+      },
+    });
+    Reflect.set(globalThis, 'RoleAdministrationService', {
+      previewConfigurationImport: (command: Record<string, unknown>) => {
+        commands.push(['import-preview', command]);
+        return Promise.resolve({ operation: 'config-import', fatalErrors: [] });
+      },
+      applyConfigurationImport: (command: Record<string, unknown>) => {
+        commands.push(['import-apply', command]);
+        return Promise.resolve({ data: {}, changed: true });
+      },
+    });
+    Reflect.set(globalThis, 'AuthorizationConfigurationService', {
+      exportConfiguration: (command: Record<string, unknown>) => {
+        commands.push(['export', command]);
+        return Promise.resolve({ schemaVersion: 1, templates: [], roles: [] });
+      },
+    });
+    const controller = new Controllers.Authorization();
+    captureSendResp(controller);
+    const request = (
+      body: Record<string, unknown>,
+      query: Record<string, unknown> = {},
+      headers: Record<string, unknown> = {}
+    ) =>
+      ({
+        authorization: actor,
+        authorizationRequestId: 'request-phase85',
+        apiRequest: { params: {}, query, headers, body, files: {} },
+      }) as unknown as Sails.Req;
+    const document = { schemaVersion: 1, templates: [], roles: [{ key: 'role' }] };
+
+    await controller.listAudit(
+      request({}, { limit: 25, brandId: 'brand-1', outcome: 'denied', targetType: 'role' }),
+      {} as Sails.Res
+    );
+    await controller.explainDecision(
+      request({
+        subjectId: 'subject-1',
+        brandId: 'brand-1',
+        scopeKey: 'record.read',
+        resource: { found: true, brandId: 'brand-1', recordAcl: 'allowed' },
+      }),
+      {} as Sails.Res
+    );
+    await controller.getReadiness(request({}), {} as Sails.Res);
+    await controller.exportConfiguration(
+      request(
+        {},
+        {
+          includeAssignments: 'true',
+          includeSystemAssignments: 'false',
+        },
+        { 'x-redbox-authorization-confirmation': 'sensitive-export-token' }
+      ),
+      {} as Sails.Res
+    );
+    await controller.previewImport(request({ document, reason: 'Reviewed' }), {} as Sails.Res);
+    await controller.applyImport(
+      request({ document, reason: 'Reviewed', confirmationToken: 'import-token' }),
+      {} as Sails.Res
+    );
+
+    assert.deepEqual(
+      commands.map(([name]) => name),
+      ['audit', 'explain', 'readiness', 'export', 'import-preview', 'import-apply']
+    );
+    assert.equal(
+      commands.every(([, command]) => command.actor === actor),
+      true
+    );
+    assert.deepEqual(commands[0][1], {
+      actor,
+      cursor: undefined,
+      limit: 25,
+      actorId: undefined,
+      brandId: 'brand-1',
+      eventType: undefined,
+      outcome: 'denied',
+      targetType: 'role',
+      targetId: undefined,
+    });
+    assert.deepEqual(commands[1][1].resource, {
+      found: true,
+      brandId: 'brand-1',
+      recordAcl: 'allowed',
+    });
+    assert.deepEqual(commands[3][1], {
+      actor,
+      includeAssignments: true,
+      includeSystemAssignments: false,
+      confirmationToken: 'sensitive-export-token',
+      requestId: 'request-phase85',
+    });
+    assert.equal(commands[4][1].confirmationToken, undefined);
+    assert.equal(commands[5][1].confirmationToken, 'import-token');
+  });
+
+  it('returns an opaque not-found problem when explanation authority is absent in a foreign brand', async () => {
+    Reflect.set(globalThis, 'AuthorizationService', {
+      explainDecision: () =>
+        Promise.resolve({ explained: false, decision: { allowed: false, reasonCode: 'brand-not-authorized' } }),
+    });
+    const controller = new Controllers.Authorization();
+    const problem = problemResponse();
+    await controller.explainDecision(
+      {
+        authorization: context(['authorization.explain']),
+        authorizationRequestId: 'request-foreign-explain',
+        path: '/default/rdmp/api/authorization/explain',
+        apiRequest: {
+          params: {},
+          query: {},
+          body: { subjectId: 'subject-1', brandId: 'foreign-brand', scopeKey: 'record.read' },
+          files: {},
+        },
+      } as unknown as Sails.Req,
+      problem.res
+    );
+
+    assert.equal(problem.capture.status, 404);
+    assert.equal(problem.capture.body?.code, 'authorization.not-found');
+    assert.equal(JSON.stringify(problem.capture.body).includes('foreign-brand'), false);
   });
 
   it('never reflects query-string credentials through the Problem Details instance', async () => {

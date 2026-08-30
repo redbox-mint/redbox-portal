@@ -11,8 +11,11 @@ The currently delivered routes are under:
 /:branding/:portal/api/authorization
 ```
 
-The remaining audit, explain, readiness, import, and export routes described in
-the authorization design are not part of the current surface yet.
+The surface includes the audit, explanation, rollout-readiness, and
+configuration import/export operations required for deployment-wide
+authorization administration. These operations use the same runtime schemas,
+business-scope policies, Problem Details, and API-version envelope contract as
+the role and assignment routes.
 
 ## Authentication and route scopes
 
@@ -48,6 +51,12 @@ performed by services.
 | `POST /assignments/:assignmentId/unsuppress` | `authorization.assignment.manage` | Remove local suppression without inventing provider presence.                           |
 | `POST /assignments/bulk-preview`          | `authorization.assignment.manage` | Validate and preview at most 100 manual assignment rows.                                  |
 | `POST /assignments/bulk-apply`            | `authorization.assignment.manage` | Atomically apply an unchanged, confirmed assignment preview.                              |
+| `GET /audit`                               | `authorization.audit.read`        | Filtered, cursor-paginated, redacted authorization events.                                |
+| `POST /explain`                            | `authorization.explain`           | Read-only explanation of one subject, brand, scope, and optional resource decision.       |
+| `GET /rollout/readiness`                   | `system.authorization.manage`     | Bounded deployment-wide readiness evidence; it never changes rollout mode.                |
+| `GET /export`                              | `system.authorization.manage`     | Deterministic versioned configuration export with separately confirmed assignment modes.  |
+| `POST /import-preview`                     | `system.authorization.manage`     | Strictly parse and preview a bounded configuration document.                              |
+| `POST /import-apply`                       | `system.authorization.manage`     | Atomically apply the unchanged, confirmed configuration preview.                          |
 
 Session-authenticated mutation requests must pass the existing ReDBox CSRF
 token. Bearer-authenticated mutation requests do not use browser CSRF state.
@@ -267,6 +276,95 @@ a change audit. Legacy role projection and all audits share the assignment
 transaction, and an unavailable transaction returns `503` without partial
 writes.
 
+## Audit query and decision explanation
+
+`GET /audit` sorts newest first by occurrence time and immutable event ID. Its
+opaque keyset cursor is limited to 1,024 characters, page size defaults to 50,
+and `limit` is bounded to `1..100`. It accepts exact `actorId`, `brandId`,
+`eventType`, `outcome`, `targetType`, and `targetId` filters. A brand reader is
+always forced to the active brand; supplying another brand returns the same
+opaque `404` as an unavailable context. A system administrator may query a
+selected brand or omit `brandId` for deployment-wide results.
+
+Audit snapshots are redacted again at read time and omit Waterline IDs and
+timestamps that are not part of the public event contract. Passwords, bearer
+or authorization values, CSRF/session material, raw claims, and other sensitive
+keys are never returned. A malformed cursor or persisted audit row fails closed
+instead of producing a partially trusted page.
+
+`POST /explain` accepts a strict `subjectId`, `brandId`, and `scopeKey`, plus an
+optional resource projection containing only `found`, `brandId`, and
+`recordAcl`. It resolves the subject's current authority and returns the
+decision, bounded role/assignment provenance, effective scopes, token ceiling,
+and fail-closed resolution evidence without running a mutation or creating
+synthetic authority. The caller must hold `authorization.explain` in the target
+context. Missing or inaccessible brands remain opaque, and an in-context scope
+denial returns `403` without disclosing another brand's topology.
+
+## Rollout readiness
+
+`GET /rollout/readiness` is a system-administrator-only, read-only report. It
+checks the deployed registry projection and orphaned scopes, authorization route
+declarations, migration and bounded persistence drift, datastore transaction
+support, unresolved shadow mismatches, at least one effective administrator per
+brand, and the protected minimum of two effective system administrators. The
+response reports the complete missing-brand count but at most 100 sorted brand
+identifiers, along with bounded blocker/warning codes and subjects; it never
+returns raw records or configuration secrets. `readyForEnforce` is true only
+when no blocker exists.
+
+The readiness route does not switch authorization mode, repair drift, adopt new
+system scopes, or provide the Phase 8.6 stop-gate decision. Operators must treat
+a failed or truncated dependency check as not ready.
+
+## Configuration export and import
+
+`GET /export` returns a deterministic schema-version `1` document: templates
+and immutable revisions sort by key/revision, roles sort by brand/key, effective
+scope arrays are normalized, and assignments sort by their complete context and
+source tuple. The service takes a transactional snapshot, rejects malformed
+persistence relationships, bounds the combined scan to 5,000 rows and the
+serialized result to 1 MiB, and writes a redacted
+`authorization.config-exported` audit event.
+
+Assignments and user identifiers are absent by default. Setting
+`includeAssignments=true` first returns only counts, a content hash, and a
+five-minute confirmation token. Repeat the unchanged request with that token in
+the `X-ReDBox-Authorization-Confirmation` header to receive manual assignment
+tuples; confirmation tokens never enter URLs. Protected system-administrator recovery
+tuples remain excluded unless `includeSystemAssignments=true` is also supplied
+and bound into the same confirmation. That second flag is invalid without
+`includeAssignments=true`. A confirmed sensitive-export token is consumed by
+the successful export audit insert and cannot be replayed, including under a
+concurrent duplicate request. No route exports user objects, credentials, raw
+claims, or ephemeral resolution evidence.
+
+Import accepts either a strict document object or a JSON-encoded document
+string. The serialized input is limited to 256 KiB and 500 combined template,
+template-revision, role, and assignment rows. Unknown properties, unsupported schema versions,
+duplicate canonical tuples, invalid dates, missing brands/templates, malformed
+persistence state, and over-limit input fail closed. Documents carry CAS
+versions for templates, roles, and assignments; immutable template history
+must be retained as an exact prefix. Imports cannot invent global templates,
+change protected identities or lifecycle state, create system/protected roles,
+create recovery authority, alter implicit Guest, exceed the actor's delegation
+ceiling, adopt new scopes into the protected system role, schedule expiry of the
+last non-expiring administrator authority, or drop protected scope floors/quorum.
+System-role broadening remains available only through the dedicated
+scope-adoption preview/apply operation. The specialized import planner executes
+behind `RoleAdministrationService`, which remains the supported mutation facade.
+
+`POST /import-preview` computes all changes and bounded row-level fatal codes on
+the server. A clean changing plan receives a five-minute confirmation token;
+an invalid or all-no-op plan does not. The token binds the actor, normalized
+document hash, reason, and a hash of the current template/role/assignment state.
+`POST /import-apply` rebuilds the plan inside one required transaction and
+rejects changed commands, version races, expired tokens, and replays after state
+changes with `409`. Any semantic row failure returns `422` with no writes.
+Successful apply updates the legacy membership projection, rechecks protected
+administrator quorum under role locks, and commits each changed-row audit plus
+the `authorization.config-imported` batch event on the same connection.
+
 ## Problem Details
 
 Authorization contract failures use `application/problem+json` independently
@@ -303,8 +401,8 @@ and OpenAPI. After changing this surface, run:
 
 ```bash
 npm run validate:api-routes
-npm --prefix packages/redbox-core test -- --grep "authorization contract API routes|webservice AuthorizationController|RoleAdministrationService|AuthorizationScopeService contract queries"
-RBPORTAL_MOCHA_TEST_PATHS=$'test/integration/services/AuthorizationPhase8.test.ts\ntest/integration/services/AuthorizationPhase8Assignments.test.ts' npm run test:mocha:mount
+npm --prefix packages/redbox-core test -- --grep "authorization contract API routes|webservice AuthorizationController|AuthorizationAuditService|AuthorizationConfigurationService|AuthorizationReadinessService"
+RBPORTAL_MOCHA_TEST_PATHS=$'test/integration/services/AuthorizationPhase8.test.ts\ntest/integration/services/AuthorizationPhase8Assignments.test.ts\ntest/integration/services/AuthorizationPhase85.test.ts' npm run test:mocha:mount
 npm run test:bruno:general:mount
 ```
 
@@ -314,5 +412,10 @@ publication, cross-brand role hiding, the complete role lifecycle, and atomic
 selected-role template upgrades. The assignment fixture adds source-specific
 mutation, expiry, idempotency, concurrency, protected quorum, cross-brand,
 confirmation, atomic bulk, audit, and legacy-projection coverage. The general
-Bruno collection exercises the session-authenticated catalogs and assignment
-happy/error workflows through the mounted HTTP stack.
+Bruno collection exercises the session-authenticated catalogs, assignment
+happy/error workflows, redacted audit query, read-only explanation, readiness,
+default and separately confirmed assignment export, no-op import preview, and
+malformed import rejection through the mounted HTTP stack. The Phase 8.5
+integration fixture additionally proves transactional import, replay
+protection, protected-quorum rollback, cross-brand opacity, and readiness
+against the real persistence adapter.

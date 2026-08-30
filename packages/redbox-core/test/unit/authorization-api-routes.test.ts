@@ -3,21 +3,27 @@ import { describe, it } from 'mocha';
 import {
   applyAuthorizationBulkAssignmentsRoute,
   applyAuthorizationBulkTemplateUpgradeRoute,
+  applyAuthorizationImportRoute,
   applyAuthorizationRoleScopesRoute,
   applyAuthorizationRoleTemplateUpgradeRoute,
   buildCoreApiOpenApiDocument,
   createAuthorizationRoleRoute,
   deleteAuthorizationRoleRoute,
+  explainAuthorizationDecisionRoute,
+  exportAuthorizationConfigurationRoute,
   grantAuthorizationAssignmentRoute,
   getAuthorizationMeRoute,
+  getAuthorizationReadinessRoute,
   getAuthorizationRoleRoute,
   getAuthorizationTemplateRevisionRoute,
   inactivateAuthorizationRoleRoute,
   listAuthorizationAssignmentsRoute,
+  listAuthorizationAuditRoute,
   listAuthorizationScopesRoute,
   listAuthorizationRolesRoute,
   previewAuthorizationBulkTemplateUpgradeRoute,
   previewAuthorizationBulkAssignmentsRoute,
+  previewAuthorizationImportRoute,
   previewAuthorizationRoleInactivationRoute,
   previewAuthorizationRoleScopesRoute,
   previewAuthorizationRoleTemplateUpgradeRoute,
@@ -39,7 +45,7 @@ describe('authorization contract API routes', function () {
 
   it('registers the read-side contract with explicit business scopes', () => {
     const routes = registerCoreApiRoutes().filter(route => route.controller === 'webservice/AuthorizationController');
-    assert.equal(routes.length, 25);
+    assert.equal(routes.length, 31);
     assert.deepEqual(
       routes.map(route => [route.method, route.path, route.action, route.authorization]),
       [
@@ -193,6 +199,42 @@ describe('authorization contract API routes', function () {
           'applyBulkAssignments',
           { kind: 'scope', scope: 'authorization.assignment.manage' },
         ],
+        [
+          'get',
+          '/:branding/:portal/api/authorization/audit',
+          'listAudit',
+          { kind: 'scope', scope: 'authorization.audit.read' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/explain',
+          'explainDecision',
+          { kind: 'scope', scope: 'authorization.explain' },
+        ],
+        [
+          'get',
+          '/:branding/:portal/api/authorization/rollout/readiness',
+          'getReadiness',
+          { kind: 'scope', scope: 'system.authorization.manage' },
+        ],
+        [
+          'get',
+          '/:branding/:portal/api/authorization/export',
+          'exportConfiguration',
+          { kind: 'scope', scope: 'system.authorization.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/import-preview',
+          'previewImport',
+          { kind: 'scope', scope: 'system.authorization.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/import-apply',
+          'applyImport',
+          { kind: 'scope', scope: 'system.authorization.manage' },
+        ],
       ]
     );
   });
@@ -210,6 +252,9 @@ describe('authorization contract API routes', function () {
       'listRoles',
       'getRole',
       'listAssignments',
+      'listAudit',
+      'getReadiness',
+      'exportConfiguration',
     ]) {
       assert.equal(actionPolicies[action].includes('protectSessionMutation'), false, action);
     }
@@ -232,6 +277,9 @@ describe('authorization contract API routes', function () {
       'unsuppressAssignment',
       'previewBulkAssignments',
       'applyBulkAssignments',
+      'explainDecision',
+      'previewImport',
+      'applyImport',
     ]) {
       assert.equal(actionPolicies[action].includes('protectSessionMutation'), true, action);
       assert.ok(
@@ -492,6 +540,136 @@ describe('authorization contract API routes', function () {
       false
     );
     assert.equal(
+      listAuthorizationAuditRoute.request?.query?.safeParse({
+        limit: '100',
+        eventType: 'role.updated',
+        outcome: 'denied',
+        targetType: 'role',
+      }).success,
+      true
+    );
+    assert.equal(listAuthorizationAuditRoute.request?.query?.safeParse({ limit: '101' }).success, false);
+    assert.equal(
+      explainAuthorizationDecisionRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        subjectId: 'user-1',
+        brandId: 'brand-1',
+        scopeKey: 'record.read',
+        resource: { found: true, brandId: 'brand-1', recordAcl: 'allowed' },
+      }).success,
+      true
+    );
+    assert.equal(
+      explainAuthorizationDecisionRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        subjectId: 'user-1',
+        brandId: 'brand-1',
+        scopeKey: 'record.read',
+        resource: { recordId: 'must-not-be-queried' },
+      }).success,
+      false
+    );
+    assert.equal(getAuthorizationReadinessRoute.request?.body, undefined);
+    assert.equal(
+      exportAuthorizationConfigurationRoute.request?.query?.safeParse({
+        includeAssignments: 'true',
+        includeSystemAssignments: 'false',
+      }).success,
+      true
+    );
+    assert.equal(
+      exportAuthorizationConfigurationRoute.request?.headers?.safeParse({
+        'x-redbox-authorization-confirmation': 'opaque',
+      }).success,
+      true
+    );
+    assert.equal(
+      exportAuthorizationConfigurationRoute.request?.query?.safeParse({ confirmationToken: 'must-not-enter-a-url' })
+        .success,
+      false
+    );
+    assert.equal(
+      exportAuthorizationConfigurationRoute.request?.query?.safeParse({ includeAssignments: '1' }).success,
+      false
+    );
+    const configuration = {
+      schemaVersion: 1,
+      templates: [
+        {
+          key: 'researcher',
+          displayName: 'Researchers',
+          description: 'Researcher template',
+          protectedKind: 'none',
+          status: 'active',
+          version: 1,
+          revisions: [{ revision: 1, scopeKeys: ['record.read'] }],
+        },
+      ],
+      roles: [],
+    };
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: configuration,
+      }).success,
+      true
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: { ...configuration, unknown: true },
+      }).success,
+      false
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: {
+          ...configuration,
+          roles: [
+            {
+              brandId: 'b'.repeat(129),
+              key: 'researcher',
+              displayName: 'Researchers',
+              protectedKind: 'none',
+              status: 'active',
+              effectiveScopeKeys: ['record.read'],
+              version: 1,
+            },
+          ],
+        },
+      }).success,
+      false
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: {
+          ...configuration,
+          roles: [
+            {
+              brandId: 'brand-1',
+              key: 'researcher',
+              displayName: 'Researchers',
+              description: '   ',
+              protectedKind: 'none',
+              status: 'active',
+              effectiveScopeKeys: ['record.read'],
+              version: 1,
+            },
+          ],
+        },
+      }).success,
+      false
+    );
+    assert.equal(
+      applyAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: configuration,
+      }).success,
+      false
+    );
+    assert.equal(
+      applyAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: configuration,
+        confirmationToken: 'opaque',
+      }).success,
+      true
+    );
+    assert.equal(
       applyAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
         rows: bulkRows,
       }).success,
@@ -609,5 +787,49 @@ describe('authorization contract API routes', function () {
     for (const status of ['400', '401', '403', '404', '409', '422', '500', '503']) {
       assert.deepEqual(Object.keys(grant?.responses?.[status]?.content ?? {}), ['application/problem+json']);
     }
+  });
+
+  it('publishes exact audit, explain, readiness, export, and import OpenAPI operations', () => {
+    const document = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' }) as {
+      paths: Record<
+        string,
+        Record<
+          string,
+          {
+            'x-redbox-scope'?: string;
+            parameters?: Array<{ name: string; in: string }>;
+            responses?: Record<string, unknown>;
+          }
+        >
+      >;
+    };
+    const expected = [
+      ['/default/rdmp/api/authorization/audit', 'get', 'authorization.audit.read'],
+      ['/default/rdmp/api/authorization/explain', 'post', 'authorization.explain'],
+      ['/default/rdmp/api/authorization/rollout/readiness', 'get', 'system.authorization.manage'],
+      ['/default/rdmp/api/authorization/export', 'get', 'system.authorization.manage'],
+      ['/default/rdmp/api/authorization/import-preview', 'post', 'system.authorization.manage'],
+      ['/default/rdmp/api/authorization/import-apply', 'post', 'system.authorization.manage'],
+    ] as const;
+    for (const [path, method, scope] of expected) {
+      const operation = document.paths[path]?.[method];
+      assert.equal(operation?.['x-redbox-scope'], scope, `${method.toUpperCase()} ${path}`);
+      for (const status of ['400', '401', '403', '404', '409', '422', '500', '503']) {
+        assert.ok(operation?.responses?.[status], `${method.toUpperCase()} ${path} ${status}`);
+      }
+    }
+    const exportOperation = document.paths['/default/rdmp/api/authorization/export']?.get;
+    assert.equal(
+      exportOperation?.parameters?.some(
+        parameter => parameter.in === 'header' && parameter.name === 'x-redbox-authorization-confirmation'
+      ),
+      true
+    );
+    assert.equal(
+      exportOperation?.parameters?.some(
+        parameter => parameter.in === 'query' && parameter.name === 'confirmationToken'
+      ),
+      false
+    );
   });
 });

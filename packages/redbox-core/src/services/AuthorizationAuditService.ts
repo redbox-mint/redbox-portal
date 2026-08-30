@@ -6,6 +6,7 @@ import {
   AUTHORIZATION_AUDIT_EVENT_TYPES,
   AUTHORIZATION_AUDIT_OUTCOMES,
   AUTHORIZATION_AUDIT_TARGET_TYPES,
+  AuthorizationAdministrationError,
   AuthorizationPersistenceValidationError,
   redactAuthorizationPersistenceValue,
   sanitizeAuthorizationText,
@@ -14,6 +15,8 @@ import {
   type AuthorizationAuditEventType,
   type AuthorizationAuditOutcome,
   type AuthorizationAuditTargetType,
+  type AuthorizationContext,
+  type ScopeKey,
 } from '../authorization';
 import type {
   AuthorizationAuditAttributes,
@@ -68,6 +71,17 @@ export interface AuthorizationAuditReadFilter {
 
 export interface AuthorizationAuditReadResult {
   readonly events: readonly AuthorizationAuditAttributes[];
+  readonly nextCursor?: string;
+}
+
+export interface AuthorizationAuditQuery extends AuthorizationAuditReadFilter {
+  readonly actor: AuthorizationContext;
+  /** Optional only for system administrators; brand readers are forced to their active brand. */
+  readonly brandId?: string;
+}
+
+export interface AuthorizationAuditQueryResult {
+  readonly items: readonly Omit<AuthorizationAuditAttributes, 'id' | 'createdAt' | 'updatedAt'>[];
   readonly nextCursor?: string;
 }
 
@@ -175,6 +189,22 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function nestedErrorCode(error: unknown, visited = new WeakSet<object>()): unknown {
+  if (!isObject(error) || visited.has(error)) return undefined;
+  visited.add(error);
+  if (error.code !== undefined) return error.code;
+  for (const nested of [error.raw, error.cause, error.details]) {
+    const code = nestedErrorCode(nested, visited);
+    if (code !== undefined) return code;
+  }
+  return undefined;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  const code = nestedErrorCode(error);
+  return code === 'E_UNIQUE' || code === 11_000;
+}
+
 function isAuthorizationAuditAttributes(value: unknown): value is AuthorizationAuditAttributes {
   if (!isObject(value)) {
     return false;
@@ -223,6 +253,9 @@ function encodeCursor(event: AuthorizationAuditAttributes): string {
 }
 
 function decodeCursor(cursor: string): AuthorizationAuditCursor {
+  if (cursor.length < 1 || cursor.length > 1_024) {
+    throw new AuthorizationPersistenceValidationError('audit-event-invalid', 'Authorization audit cursor is invalid.');
+  }
   let value: unknown;
   try {
     value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
@@ -278,7 +311,9 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'applyRetention',
       'createSucceededEvent',
+      'createSucceededEventOnce',
       'probeTransactions',
+      'queryEvents',
       'readEvents',
       'recordAttempt',
     ];
@@ -312,6 +347,49 @@ export namespace Services {
       }
       const event = createAuthorizationAuditEvent(input, 'succeeded', this.eventFactory);
       return this.persistEvent(event, connection);
+    }
+
+    /**
+     * Appends a successful event using a caller-owned, unpredictable replay key as
+     * the unique event id. This is used only when the audit insert is also the
+     * durable one-time consumption record for a confirmed read operation.
+     */
+    public async createSucceededEventOnce(
+      input: AuthorizationAuditEventInput,
+      replayKey: string,
+      connection: Sails.Connection | null | undefined
+    ): Promise<AuthorizationAuditAttributes> {
+      if (connection == null) {
+        throw new AuthorizationPersistenceValidationError(
+          'audit-event-invalid',
+          'One-time authorization audit events require the caller transaction connection.'
+        );
+      }
+      const eventId = requireSanitizedText(replayKey, 'eventId', 128);
+      const existing = await AuthorizationAudit.findOne({ eventId }).usingConnection(connection);
+      if (existing != null) {
+        throw new AuthorizationAdministrationError(
+          'authorization.preview-stale',
+          409,
+          'The authorization confirmation token has already been used.'
+        );
+      }
+      const event = createAuthorizationAuditEvent(input, 'succeeded', {
+        eventId: () => eventId,
+        now: () => this.eventFactory.now(),
+      });
+      try {
+        return await this.persistEvent(event, connection);
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          throw new AuthorizationAdministrationError(
+            'authorization.preview-stale',
+            409,
+            'The authorization confirmation token has already been used.'
+          );
+        }
+        throw error;
+      }
     }
 
     public async recordAttempt(
@@ -392,6 +470,67 @@ export namespace Services {
       return Object.freeze({
         events,
         nextCursor: value.length > limit && lastEvent !== undefined ? encodeCursor(lastEvent) : undefined,
+      });
+    }
+
+    public async queryEvents(query: AuthorizationAuditQuery): Promise<AuthorizationAuditQueryResult> {
+      const actorId = query.actor.principal.userId ?? query.actor.principal.operationId;
+      const auditScope = 'authorization.audit.read' as ScopeKey;
+      const systemScope = 'system.authorization.manage' as ScopeKey;
+      if (!query.actor.principal.active || actorId === undefined) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      if (!query.actor.effectiveScopeKeys.includes(auditScope)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.scope-denied',
+          403,
+          'Audit read authority is required.'
+        );
+      }
+      const isSystemAdministrator = query.actor.effectiveScopeKeys.includes(systemScope);
+      let brandId = query.brandId;
+      if (!isSystemAdministrator) {
+        const activeBrandId = query.actor.brand?.id;
+        if (
+          query.actor.contextType !== 'brand' ||
+          query.actor.brand?.exists !== true ||
+          query.actor.brand.authorized !== true ||
+          activeBrandId === undefined ||
+          (brandId !== undefined && brandId !== activeBrandId)
+        ) {
+          throw new AuthorizationAdministrationError(
+            'authorization.not-found',
+            404,
+            'The requested audit context was not found.'
+          );
+        }
+        brandId = activeBrandId;
+      }
+      const result = await this.readEvents({
+        actorId: query.actorId,
+        brandId,
+        cursor: query.cursor,
+        eventType: query.eventType,
+        outcome: query.outcome,
+        targetId: query.targetId,
+        targetType: query.targetType,
+        limit: query.limit,
+      });
+      return Object.freeze({
+        items: Object.freeze(
+          result.events.map(event => {
+            const projection: Record<string, unknown> = { ...event };
+            delete projection.id;
+            delete projection.createdAt;
+            delete projection.updatedAt;
+            return Object.freeze(projection) as Omit<AuthorizationAuditAttributes, 'id' | 'createdAt' | 'updatedAt'>;
+          })
+        ),
+        ...(result.nextCursor === undefined ? {} : { nextCursor: result.nextCursor }),
       });
     }
 

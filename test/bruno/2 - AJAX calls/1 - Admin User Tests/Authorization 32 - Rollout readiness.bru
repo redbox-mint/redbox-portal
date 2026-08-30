@@ -1,0 +1,30 @@
+meta {
+  name: Authorization - Rollout readiness
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/rollout/readiness
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+tests {
+  test("Returns bounded deployment-wide readiness evidence", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.readyForEnforce).to.be.a("boolean");
+    expect(body.routes.valid).to.be.a("boolean");
+    expect(body.transactions.available).to.be.a("boolean");
+    expect(body.administrators.requiredSystemAdministratorCount).to.equal(2);
+    expect(body.blockers).to.be.an("array").with.length.at.most(100);
+    expect(body.warnings).to.be.an("array").with.length.at.most(100);
+  });
+}

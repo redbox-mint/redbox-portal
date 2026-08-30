@@ -33,5 +33,6 @@ tests {
     expect(body.scopeKeys).to.include("authorization.self.read");
     expect(body.scopeKeys).to.include("system.authorization.manage");
     expect(body.principal).not.to.have.property("username");
+    bru.setVar("authorizationActorUserId", body.principal.userId);
   });
 }

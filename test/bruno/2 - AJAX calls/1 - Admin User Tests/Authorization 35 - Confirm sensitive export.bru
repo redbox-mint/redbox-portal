@@ -1,0 +1,28 @@
+meta {
+  name: Authorization - Confirm sensitive export
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/export?includeAssignments=true
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  X-ReDBox-Authorization-Confirmation: {{authorizationSensitiveExportToken}}
+  X-Source: jsclient
+}
+
+tests {
+  test("Returns the unchanged confirmed assignment-bearing document", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.schemaVersion).to.equal(1);
+    expect(body.assignments).to.be.an("array");
+    expect(body.assignments.every(row => row.source !== "recovery")).to.equal(true);
+  });
+}

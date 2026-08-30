@@ -1,0 +1,28 @@
+meta {
+  name: Authorization - Sensitive export preview
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/export?includeAssignments=true
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+tests {
+  test("Requires a separately bound confirmation for assignment export", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body).to.include({ operation: "config-export-sensitive", includeAssignments: true });
+    expect(body.confirmationToken).to.be.a("string").and.not.empty;
+    expect(body.documentHash).to.have.length(64);
+    bru.setVar("authorizationSensitiveExportToken", body.confirmationToken);
+  });
+}

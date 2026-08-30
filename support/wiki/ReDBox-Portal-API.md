@@ -33,11 +33,16 @@ templates, system-authorized template publication, and current-brand role
 catalog/create/configure/upgrade/inactivate/delete lifecycle. It also exposes
 the current authorization-context assignment catalog, idempotent manual
 grant/revoke, external-source suppression, and bounded atomic bulk assignment
-preview/apply. These routes use business-capability scopes, required
-transactional mutations, and bounded Problem Details instead of treating
-legacy role names as authority. See the [Authorization Contract
-API](Authorization-Contract-API) for the exact current surface,
-pagination/filter bounds, preview/apply handshake, and verification commands.
+preview/apply. Deployment administration adds redacted audit queries,
+read-only decision explanations, rollout-readiness evidence, deterministic
+configuration export, and confirmed transactional import. Assignment-bearing
+exports require separate confirmation and protected system assignments require
+an additional explicit option. These routes use business-capability scopes,
+required transactional mutations, optimistic concurrency, and bounded Problem
+Details instead of treating legacy role names as authority. See the
+[Authorization Contract API](Authorization-Contract-API) for the exact current
+surface, pagination/payload bounds, confirmation handshakes, and verification
+commands.
 
 ### Record schema contracts
 

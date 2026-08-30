@@ -27,6 +27,7 @@ import {
   verifyAuthorizationConfirmationToken,
   type ApplyBulkAssignmentsCommand,
   type ApplyBulkTemplateUpgradeCommand,
+  type ApplyAuthorizationConfigurationImportCommand,
   type ApplyRoleLifecycleCommand,
   type ApplyRoleScopesCommand,
   type ApplyRoleTemplateUpgradeCommand,
@@ -40,6 +41,8 @@ import {
   type AuthorizationConfirmationClaims,
   type AuthorizationConfirmationOperation,
   type AuthorizationContext,
+  type AuthorizationConfigurationImportPreview,
+  type AuthorizationConfigurationImportResult,
   type AuthorizationMutationResult,
   type AuthorizationPreviewResult,
   type BulkAssignmentPreview,
@@ -55,6 +58,7 @@ import {
   type GrantAssignmentCommand,
   type PreviewBulkAssignmentsCommand,
   type PreviewBulkTemplateUpgradeCommand,
+  type PreviewAuthorizationConfigurationImportCommand,
   type PreviewRoleLifecycleCommand,
   type PreviewRoleScopesCommand,
   type PreviewRoleTemplateUpgradeCommand,
@@ -75,6 +79,7 @@ import {
   type UpdateRoleCommand,
 } from '../authorization';
 import type { AuthorizationAuditEventInput } from './AuthorizationAuditService';
+import * as AuthorizationConfigurationServiceModule from './AuthorizationConfigurationService';
 import type { AuthorizationAuditAttributes } from '../waterline-models/AuthorizationAudit';
 import type { RoleAttributes } from '../waterline-models/Role';
 import type { RoleAssignmentAttributes } from '../waterline-models/RoleAssignment';
@@ -103,12 +108,20 @@ interface AuditWriter {
   ): Promise<{ readonly persisted: boolean }>;
 }
 
+interface ConfigurationImportWriter {
+  previewImport(
+    command: PreviewAuthorizationConfigurationImportCommand
+  ): Promise<AuthorizationConfigurationImportPreview>;
+  applyImport(command: ApplyAuthorizationConfigurationImportCommand): Promise<AuthorizationConfigurationImportResult>;
+}
+
 export interface RoleAdministrationServiceDependencies {
   readonly now: () => Date;
   readonly randomId: () => string;
   readonly getRegistry: () => ScopeRegistry;
   readonly getConfirmationSecret: () => string;
   readonly audit: () => AuditWriter;
+  readonly configurationImport: () => ConfigurationImportWriter;
   readonly runTransaction: <T>(work: (connection: Sails.Connection) => Promise<T>) => Promise<T>;
 }
 
@@ -173,6 +186,14 @@ function activeAt(assignment: RoleAssignmentAttributes, now: Date): boolean {
   if (assignment.expiresAt == null) return true;
   const expiry = new Date(assignment.expiresAt);
   return !Number.isNaN(expiry.getTime()) && expiry.getTime() > now.getTime();
+}
+
+function isProtectedAdministratorRole(role: RoleAttributes): boolean {
+  return role.protectedKind === 'brand-admin' || role.protectedKind === 'system-admin';
+}
+
+function isCanonicalActiveUser(user: UserAttributes): boolean {
+  return user.loginDisabled !== true && user.accountLinkState !== 'linked-alias' && !user.linkedPrimaryUserId?.trim();
 }
 
 function normalizedExpiry(value: string | undefined, now: Date): string | undefined {
@@ -376,6 +397,7 @@ function hasExactReference(
 }
 
 function defaultDependencies(): RoleAdministrationServiceDependencies {
+  const configurationImport = new AuthorizationConfigurationServiceModule.Services.AuthorizationConfigurationService();
   return {
     now: () => new Date(),
     randomId: randomUUID,
@@ -388,6 +410,7 @@ function defaultDependencies(): RoleAdministrationServiceDependencies {
       return secret;
     },
     audit: () => AuthorizationAuditService,
+    configurationImport: () => configurationImport,
     runTransaction: work => runWithRequiredTransaction(Role.getDatastore(), work),
   };
 }
@@ -422,6 +445,8 @@ export namespace Services {
       'applyBulkAssignments',
       'previewScopeAdoption',
       'applyScopeAdoption',
+      'previewConfigurationImport',
+      'applyConfigurationImport',
     ];
 
     private readonly dependencies: RoleAdministrationServiceDependencies;
@@ -442,6 +467,20 @@ export namespace Services {
         );
       }
       return actorId;
+    }
+
+    /** The administration service remains the only supported mutation facade. */
+    public previewConfigurationImport(
+      command: PreviewAuthorizationConfigurationImportCommand
+    ): Promise<AuthorizationConfigurationImportPreview> {
+      return this.dependencies.configurationImport().previewImport(command);
+    }
+
+    /** The specialized import planner executes behind the single-writer facade. */
+    public applyConfigurationImport(
+      command: ApplyAuthorizationConfigurationImportCommand
+    ): Promise<AuthorizationConfigurationImportResult> {
+      return this.dependencies.configurationImport().applyImport(command);
     }
 
     private requireScope(command: AuthorizationAdministrationCommand, scopeKey: ScopeKey, brandId?: string): void {
@@ -2188,8 +2227,12 @@ export namespace Services {
       }
     }
 
-    private async assertAdministratorQuorum(role: RoleAttributes, connection: Sails.Connection): Promise<void> {
-      if (role.protectedKind !== 'brand-admin' && role.protectedKind !== 'system-admin') return;
+    private async assertAdministratorQuorum(
+      role: RoleAttributes,
+      connection: Sails.Connection,
+      requireNonExpiring = false
+    ): Promise<void> {
+      if (!isProtectedAdministratorRole(role)) return;
       const roleCriteria: Record<string, unknown> = {
         protectedKind: role.protectedKind,
         status: 'active',
@@ -2199,11 +2242,14 @@ export namespace Services {
       const protectedRoles = (await Role.find(roleCriteria).limit(100).usingConnection(connection)) as RoleAttributes[];
       const roleIds = protectedRoles.map(candidate => candidate.id);
       const rows = (await RoleAssignment.find({
+        principalType: 'user',
         role: roleIds,
         branding: role.protectedKind === 'brand-admin' ? associationId(role.branding) : null,
         status: 'active',
         sourcePresent: true,
-        or: [{ expiresAt: null }, { expiresAt: { '>': this.dependencies.now() } }],
+        ...(requireNonExpiring
+          ? { expiresAt: null }
+          : { or: [{ expiresAt: null }, { expiresAt: { '>': this.dependencies.now() } }] }),
       })
         .limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS + 1)
         .usingConnection(connection)) as RoleAssignmentAttributes[];
@@ -2220,14 +2266,14 @@ export namespace Services {
             .limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS)
             .usingConnection(connection)) as UserAttributes[])
         : [];
-      const activePrincipals = new Set(
-        users.filter(user => user.accountLinkState !== 'linked-alias').map(user => user.id)
-      );
+      const activePrincipals = new Set(users.filter(isCanonicalActiveUser).map(user => user.id));
       if (activePrincipals.size === 0) {
         throw new AuthorizationAdministrationError(
           role.protectedKind === 'system-admin' ? 'authorization.last-system-admin' : 'authorization.last-brand-admin',
           409,
-          'The operation would remove the final effective administrator.'
+          requireNonExpiring
+            ? 'The operation would schedule removal of the final effective administrator.'
+            : 'The operation would remove the final effective administrator.'
         );
       }
     }
@@ -2244,6 +2290,9 @@ export namespace Services {
       const now = this.dependencies.now();
       const expiresAt = normalizedExpiry(command.expiresAt, now);
       if (existing === undefined) {
+        if (isProtectedAdministratorRole(role) && expiresAt !== undefined) {
+          await this.lockProtectedRole(role, this.actorId(command), connection);
+        }
         const created = (await RoleAssignment.create({
           principalType: 'user',
           principalId,
@@ -2261,6 +2310,9 @@ export namespace Services {
         })
           .fetch()
           .usingConnection(connection)) as RoleAssignmentAttributes;
+        if (isProtectedAdministratorRole(role) && expiresAt !== undefined) {
+          await this.assertAdministratorQuorum(role, connection, true);
+        }
         return { assignment: created, changed: true, eventType: 'assignment.created' };
       }
       if (existing.status === 'suppressed') {
@@ -2275,7 +2327,13 @@ export namespace Services {
       }
       const existingExpiry = existing.expiresAt == null ? undefined : new Date(existing.expiresAt).toISOString();
       if (existing.status === 'active' && existing.sourcePresent && existingExpiry === expiresAt) {
+        if (isProtectedAdministratorRole(role) && expiresAt !== undefined) {
+          await this.assertAdministratorQuorum(role, connection, true);
+        }
         return { assignment: existing, changed: false, eventType: 'assignment.noop' };
+      }
+      if (isProtectedAdministratorRole(role) && expiresAt !== undefined) {
+        await this.lockProtectedRole(role, this.actorId(command), connection);
       }
       const updated = (await RoleAssignment.updateOne({ id: existing.id, version: existing.version })
         .set({
@@ -2294,6 +2352,9 @@ export namespace Services {
         .usingConnection(connection)) as RoleAssignmentAttributes | undefined;
       if (updated == null)
         throw new AuthorizationAdministrationError('authorization.version-conflict', 409, 'The assignment changed.');
+      if (isProtectedAdministratorRole(role) && expiresAt !== undefined) {
+        await this.assertAdministratorQuorum(role, connection, true);
+      }
       return { assignment: updated, changed: true, eventType: 'assignment.reactivated' };
     }
 

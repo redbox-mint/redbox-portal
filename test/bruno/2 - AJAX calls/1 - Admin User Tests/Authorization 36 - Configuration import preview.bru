@@ -1,0 +1,37 @@
+meta {
+  name: Authorization - Configuration import preview
+  type: http
+  seq: 54
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/import-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "document": {{authorizationConfigurationDocument}},
+    "reason": "Verify the exported configuration without mutation"
+  }
+}
+
+tests {
+  test("Previews the unchanged exported document as a safe no-op", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.operation).to.equal("config-import");
+    expect(body.fatalErrors).to.deep.equal([]);
+    expect(body.templateChanges + body.roleChanges + body.assignmentChanges).to.equal(0);
+    expect(body.noOpCount).to.be.greaterThan(0);
+    expect(body).not.to.have.property("confirmationToken");
+  });
+}

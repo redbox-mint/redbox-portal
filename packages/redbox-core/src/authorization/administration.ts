@@ -17,6 +17,9 @@ export const AUTHORIZATION_ADMIN_CONFIRMATION_TTL_MS = 5 * 60 * 1_000;
 export const AUTHORIZATION_ADMIN_MAX_BULK_ROWS = 100;
 export const AUTHORIZATION_ADMIN_MAX_BULK_BYTES = 256 * 1_024;
 export const AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS = 5_000;
+export const AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES = 1_024 * 1_024;
+export const AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS = 500;
+export const AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES = 256 * 1_024;
 export const AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS = 1_000;
 export const AUTHORIZATION_ADMIN_MAX_REFERENCE_SCAN_ROWS = 1_000;
 export const AUTHORIZATION_ADMIN_MAX_REFERENCE_SCAN_VALUES = 100_000;
@@ -396,6 +399,8 @@ export interface AuthorizationConfigurationTemplate {
   readonly description: string;
   readonly protectedKind: ProtectedRoleKind;
   readonly status: 'active' | 'inactive';
+  /** Optimistic-concurrency version of the exported template. */
+  readonly version: number;
   readonly revisions: readonly AuthorizationConfigurationTemplateRevision[];
 }
 
@@ -409,6 +414,8 @@ export interface AuthorizationConfigurationRole {
   readonly templateKey?: string;
   readonly templateRevision?: number;
   readonly effectiveScopeKeys: readonly string[];
+  /** Optimistic-concurrency version of the exported role. */
+  readonly version: number;
 }
 
 export interface AuthorizationConfigurationAssignment {
@@ -420,6 +427,8 @@ export interface AuthorizationConfigurationAssignment {
   readonly status: RoleAssignmentStatus;
   readonly sourcePresent: boolean;
   readonly expiresAt?: string;
+  /** Optimistic-concurrency version of the exported assignment source tuple. */
+  readonly version: number;
 }
 
 export interface AuthorizationConfigurationDocument {
@@ -445,12 +454,40 @@ export interface ApplyAuthorizationConfigurationImportCommand extends PreviewAut
 }
 
 export interface AuthorizationConfigurationImportPreview {
+  readonly operation: 'config-import';
   readonly documentHash: string;
   readonly templateChanges: number;
   readonly roleChanges: number;
   readonly assignmentChanges: number;
+  readonly noOpCount: number;
   readonly fatalErrors: readonly string[];
   readonly confirmationToken?: string;
+}
+
+export interface AuthorizationConfigurationExportPreview {
+  readonly operation: 'config-export-sensitive';
+  readonly includeAssignments: true;
+  readonly includeSystemAssignments: boolean;
+  readonly templateCount: number;
+  readonly roleCount: number;
+  readonly assignmentCount: number;
+  readonly documentHash: string;
+  readonly confirmationToken: string;
+}
+
+export interface AuthorizationConfigurationImportResult {
+  readonly data: Readonly<{
+    templateChanges: number;
+    roleChanges: number;
+    assignmentChanges: number;
+    noOpCount: number;
+    documentHash: string;
+  }>;
+  readonly version: 1;
+  readonly auditEventId: string;
+  readonly requestId: string;
+  readonly batchId: string;
+  readonly changed: true;
 }
 
 export const AUTHORIZATION_CONFIRMATION_OPERATIONS = [

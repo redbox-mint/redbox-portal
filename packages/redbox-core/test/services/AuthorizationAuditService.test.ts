@@ -1,11 +1,42 @@
 import { strict as assert } from 'node:assert';
 import { afterEach, beforeEach, describe, it } from 'mocha';
+import { asRoleKey, asScopeKey, freezeAuthorizationContext, type AuthorizationContext } from '../../src/authorization';
 import {
   AUTHORIZATION_AUDIT_SCHEMA_VERSION,
   Services,
   createAuthorizationAuditEvent,
   type AuthorizationAuditEventFactory,
 } from '../../src/services/AuthorizationAuditService';
+
+function actorContext(scopeKeys: readonly string[], brandId = 'brand-1'): AuthorizationContext {
+  return freezeAuthorizationContext({
+    contextType: 'brand',
+    principal: { category: 'authenticated', authMethod: 'session', active: true, userId: 'reader-1' },
+    brand: { requestedIdentifier: brandId, id: brandId, name: brandId, exists: true, authorized: true },
+    roles: [
+      {
+        id: 'reader-role',
+        key: asRoleKey('audit-reader'),
+        name: 'audit-reader',
+        displayName: 'Audit reader',
+        contextType: 'brand',
+        brandId,
+        protectedKind: 'none',
+        implicit: false,
+        assignmentCount: 1,
+        assignmentsTruncated: false,
+        assignments: [],
+        effectiveScopeKeys: scopeKeys.map(asScopeKey),
+        inactiveScopeKeys: [],
+        missingScopeKeys: [],
+      },
+    ],
+    compatibilityRoles: [],
+    grantedScopeKeys: scopeKeys.map(asScopeKey),
+    effectiveScopeKeys: scopeKeys.map(asScopeKey),
+    scopeProvenance: [],
+  });
+}
 
 const FACTORY: AuthorizationAuditEventFactory = Object.freeze({
   eventId: () => '00000000-0000-4000-8000-000000000001',
@@ -68,6 +99,7 @@ describe('AuthorizationAuditService', () => {
   it('exports append/read/retention operations but no update or arbitrary destroy', () => {
     const exported = new Services.AuthorizationAuditService(FACTORY).exports();
     assert.equal(typeof exported.createSucceededEvent, 'function');
+    assert.equal(typeof exported.createSucceededEventOnce, 'function');
     assert.equal(typeof exported.recordAttempt, 'function');
     assert.equal(typeof exported.readEvents, 'function');
     assert.equal(typeof exported.applyRetention, 'function');
@@ -102,6 +134,43 @@ describe('AuthorizationAuditService', () => {
     assert.equal(createdEvent?.eventId, '00000000-0000-4000-8000-000000000001');
     assert.equal(Object.isFrozen(createdEvent), false);
     await assert.rejects(service.createSucceededEvent(EVENT_INPUT, undefined), /caller transaction connection/);
+  });
+
+  it('consumes a confirmation replay key exactly once and maps duplicate-key races to a stale preview', async () => {
+    const connection = Object.freeze({ lease: 'audit-transaction' });
+    let existing = false;
+    const findQuery = {
+      usingConnection(leasedConnection: Sails.Connection) {
+        assert.equal(leasedConnection, connection);
+        return Promise.resolve(existing ? { eventId: 'confirmation-nonce' } : undefined);
+      },
+    };
+    const createQuery = {
+      fetch() {
+        return createQuery;
+      },
+      usingConnection(leasedConnection: Sails.Connection) {
+        assert.equal(leasedConnection, connection);
+        existing = true;
+        return Promise.resolve({ ...EVENT_INPUT, id: 'audit-1', eventId: 'confirmation-nonce' });
+      },
+    };
+    Reflect.set(globalThis, 'AuthorizationAudit', {
+      findOne: () => findQuery,
+      create: () => createQuery,
+    });
+
+    const service = new Services.AuthorizationAuditService(FACTORY);
+    const event = await service.createSucceededEventOnce(EVENT_INPUT, 'confirmation-nonce', connection);
+    assert.equal(event.eventId, 'confirmation-nonce');
+    await assert.rejects(
+      service.createSucceededEventOnce(EVENT_INPUT, 'confirmation-nonce', connection),
+      (error: unknown) =>
+        typeof error === 'object' &&
+        error !== null &&
+        Reflect.get(error, 'code') === 'authorization.preview-stale' &&
+        Reflect.get(error, 'status') === 409
+    );
   });
 
   it('keeps a denied attempt denied when independent audit persistence is unavailable', async () => {
@@ -350,6 +419,95 @@ describe('AuthorizationAuditService', () => {
     ]);
     assert.deepEqual(limitsSeen, [3, 3]);
     assert.deepEqual(filter, { actorId: 'operator-1', limit: 2 });
+  });
+
+  it('forces brand audit readers to their active brand and strips storage-only fields', async () => {
+    let criteria: Record<string, unknown> | undefined;
+    Reflect.set(globalThis, 'AuthorizationAudit', {
+      find(value: Record<string, unknown>) {
+        criteria = value;
+        const query = {
+          sort() {
+            return query;
+          },
+          limit() {
+            return query;
+          },
+          then(resolve: (events: Record<string, unknown>[]) => unknown) {
+            return Promise.resolve([
+              {
+                id: 'database-id',
+                eventId: 'event-1',
+                schemaVersion: 1,
+                eventType: 'role.updated',
+                outcome: 'succeeded',
+                actorType: 'user',
+                actorId: 'operator-1',
+                authMethod: 'session',
+                brandId: 'brand-1',
+                targetType: 'role',
+                occurredAt: '2026-08-28T00:00:00.000Z',
+                createdAt: 1,
+                updatedAt: 2,
+              },
+            ]).then(resolve);
+          },
+        };
+        return query;
+      },
+    });
+    const service = new Services.AuthorizationAuditService(FACTORY);
+    const page = await service.queryEvents({
+      actor: actorContext(['authorization.audit.read']),
+      targetType: 'role',
+      limit: 10,
+    });
+
+    assert.deepEqual(criteria, { brandId: 'brand-1', targetType: 'role' });
+    assert.equal(page.items.length, 1);
+    assert.equal('id' in page.items[0], false);
+    assert.equal('createdAt' in page.items[0], false);
+    assert.equal('updatedAt' in page.items[0], false);
+    assert.equal(Object.isFrozen(page.items[0]), true);
+  });
+
+  it('hides foreign audit topology from brand readers and permits an explicit brand only to system readers', async () => {
+    const service = new Services.AuthorizationAuditService(FACTORY);
+    await assert.rejects(
+      service.queryEvents({
+        actor: actorContext(['authorization.audit.read']),
+        brandId: 'foreign-brand',
+      }),
+      (error: unknown) =>
+        typeof error === 'object' &&
+        error !== null &&
+        Reflect.get(error, 'code') === 'authorization.not-found' &&
+        Reflect.get(error, 'status') === 404
+    );
+
+    let criteria: Record<string, unknown> | undefined;
+    Reflect.set(globalThis, 'AuthorizationAudit', {
+      find(value: Record<string, unknown>) {
+        criteria = value;
+        const query = {
+          sort() {
+            return query;
+          },
+          limit() {
+            return query;
+          },
+          then(resolve: (events: Record<string, unknown>[]) => unknown) {
+            return Promise.resolve([]).then(resolve);
+          },
+        };
+        return query;
+      },
+    });
+    await service.queryEvents({
+      actor: actorContext(['authorization.audit.read', 'system.authorization.manage']),
+      brandId: 'foreign-brand',
+    });
+    assert.deepEqual(criteria, { brandId: 'foreign-brand' });
   });
 
   it('rejects an unsafe retention date boundary before opening a transaction', async () => {
