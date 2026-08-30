@@ -1,0 +1,35 @@
+meta {
+  name: Authorization - Role scope preview
+  type: http
+  seq: 69
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/roles/bruno-phase86-role/scope-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationRoleVersion}},
+    "scopeKeys": ["authorization.self.read"],
+    "reason": "Review the complete desired scope set"
+  }
+}
+
+tests {
+  test("Returns a server-authoritative scope preview", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.operation).to.equal("role-scopes");
+    expect(body.confirmationToken).to.be.a("string").and.not.empty;
+    bru.setVar("authorizationRoleScopeToken", body.confirmationToken);
+  });
+}

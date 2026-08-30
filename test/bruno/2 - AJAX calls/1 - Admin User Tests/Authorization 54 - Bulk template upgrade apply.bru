@@ -1,0 +1,46 @@
+meta {
+  name: Authorization - Bulk template upgrade apply
+  type: http
+  seq: 77
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/template-upgrades/bulk-apply
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "templateKey": "researcher",
+    "targetRevision": {{authorizationNextTemplateRevision}},
+    "roles": [
+      {
+        "roleId": "{{authorizationBulkUpgradeRoleId}}",
+        "expectedVersion": {{authorizationBulkUpgradeRoleVersion}}
+      }
+    ],
+    "reason": "Review only the explicitly selected role",
+    "confirmationToken": "{{authorizationBulkUpgradeToken}}"
+  }
+}
+
+tests {
+  test("Applies the selected-role upgrade atomically", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.changed).to.equal(true);
+    expect(body.data).to.include({ appliedCount: 1, noOpCount: 0 });
+    expect(body.batchId).to.be.a("string").and.not.empty;
+    bru.setVar(
+      "authorizationBulkUpgradeRoleVersion",
+      Number(bru.getVar("authorizationBulkUpgradeRoleVersion")) + 1
+    );
+  });
+}

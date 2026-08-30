@@ -1,0 +1,39 @@
+meta {
+  name: Authorization - Grant restricted bearer assignment
+  type: http
+  seq: 61
+}
+
+put {
+  url: {{host}}/default/rdmp/api/authorization/assignments/Researcher/users/{{researcherUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "expiresAt": "2099-01-01T00:00:00.000Z",
+    "reason": "Prepare the restricted bearer authorization fixture"
+  }
+}
+
+tests {
+  test("Gives the restricted fixture only ordinary researcher authority", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data).to.include({
+      principalId: bru.getEnvVar("researcherUserId"),
+      roleKey: "Researcher",
+      source: "manual",
+      sourceKey: "manual",
+      status: "active",
+      sourcePresent: true
+    });
+  });
+}

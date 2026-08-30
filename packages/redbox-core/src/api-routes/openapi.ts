@@ -47,6 +47,32 @@ function getWildcardPathParameterNames(path: string): Set<string> {
   return wildcardPathParameterNames;
 }
 
+function getPathParameterNames(path: string): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+  const pathParameterPattern = /:([A-Za-z0-9_]+)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = pathParameterPattern.exec(path)) !== null) {
+    const name = match[1];
+    if (!seen.has(name)) {
+      names.push(name);
+      seen.add(name);
+    }
+  }
+
+  return names;
+}
+
+const FRAMEWORK_PATH_PARAMETER_DESCRIPTIONS = Object.freeze({
+  branding: 'Branding context resolved by the request pipeline.',
+  portal: 'Portal context resolved by the request pipeline.',
+});
+
+function isFrameworkPathParameter(name: string): name is keyof typeof FRAMEWORK_PATH_PARAMETER_DESCRIPTIONS {
+  return Object.hasOwn(FRAMEWORK_PATH_PARAMETER_DESCRIPTIONS, name);
+}
+
 function toOpenApiPath(path: string): string {
   return path
     .replace(/:([A-Za-z0-9_]+)\*/g, '{$1}')
@@ -239,6 +265,29 @@ function buildParameters(
   addParameters('path', route.request?.params);
   addParameters('query', route.request?.query);
   addParameters('header', route.request?.headers);
+
+  const declaredPathParameters = new Set(
+    params
+      .filter(parameter => parameter.in === 'path' && typeof parameter.name === 'string')
+      .flatMap(parameter => (typeof parameter.name === 'string' ? [parameter.name] : []))
+  );
+  for (const name of getPathParameterNames(route.path)) {
+    if (declaredPathParameters.has(name)) {
+      continue;
+    }
+    if (!isFrameworkPathParameter(name)) {
+      throw new Error(
+        `API route ${route.method.toUpperCase()} ${route.path} must declare path parameter '${name}' in request.params.`
+      );
+    }
+    params.push({
+      name,
+      in: 'path',
+      required: true,
+      schema: { type: 'string', minLength: 1 },
+      description: FRAMEWORK_PATH_PARAMETER_DESCRIPTIONS[name],
+    });
+  }
   return params;
 }
 

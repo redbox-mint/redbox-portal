@@ -185,6 +185,39 @@ describe('API routes contract layer', function () {
     expect(pathParameters.some(parameter => parameter.name === 'portal')).to.equal(false);
   });
 
+  it('should document framework path context without masking undeclared action parameters', function () {
+    const genericDocument = buildCoreApiOpenApiDocument();
+    const listUsersRoute = asOpenApiOperation(genericDocument.paths['/{branding}/{portal}/api/users']?.get);
+    const pathParameters = listUsersRoute.parameters?.filter(parameter => parameter.in === 'path') ?? [];
+
+    expect(pathParameters).to.deep.include({
+      name: 'branding',
+      in: 'path',
+      required: true,
+      schema: { type: 'string', minLength: 1 },
+      description: 'Branding context resolved by the request pipeline.',
+    });
+    expect(pathParameters).to.deep.include({
+      name: 'portal',
+      in: 'path',
+      required: true,
+      schema: { type: 'string', minLength: 1 },
+      description: 'Portal context resolved by the request pipeline.',
+    });
+
+    const invalidRoute = apiRoute(
+      'get',
+      '/:branding/:portal/api/widgets/:widgetId',
+      'webservice/WidgetController',
+      'getWidget',
+      undefined,
+      { authorization: TEST_ROUTE_AUTHORIZATION }
+    );
+    expect(() => buildOpenApiDocument([invalidRoute], { title: 'Invalid API', version: '1.0.0' })).to.throw(
+      "must declare path parameter 'widgetId' in request.params"
+    );
+  });
+
   it('should include x-redbox-roles from the default auth rules in OpenAPI', function () {
     const document = buildCoreApiOpenApiDocument();
     const operation = document.paths['/{branding}/{portal}/api/users']?.get as Record<string, unknown>;

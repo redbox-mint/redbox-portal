@@ -190,9 +190,19 @@ function transactionErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
 }
 
+function isMongoIllegalOperation(error: unknown): boolean {
+  if (!isRecord(error)) {
+    return false;
+  }
+  const code = typeof error.code === 'number' ? error.code : undefined;
+  const codeName = typeof error.codeName === 'string' ? error.codeName : undefined;
+  return code === 20 || codeName === 'IllegalOperation';
+}
+
 export function isUnavailableTransactionCapabilityError(error: unknown): boolean {
   const message = transactionErrorMessage(error);
   return (
+    isMongoIllegalOperation(error) ||
     isUnsupportedTransactionAdapterError(error) ||
     message.includes('transactions are not supported') ||
     message.includes('does not support transactions') ||

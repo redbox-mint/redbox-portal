@@ -1,0 +1,35 @@
+meta {
+  name: Authorization - Configuration import change preview
+  type: http
+  seq: 85
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/import-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "document": {{authorizationImportDocument}},
+    "reason": "Review a bounded role import"
+  }
+}
+
+tests {
+  test("Previews a changing configuration without writing", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body).to.include({ operation: "config-import", roleChanges: 1 });
+    expect(body.fatalErrors).to.deep.equal([]);
+    expect(body.confirmationToken).to.be.a("string").and.not.empty;
+    bru.setVar("authorizationImportToken", body.confirmationToken);
+  });
+}

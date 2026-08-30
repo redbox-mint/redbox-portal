@@ -6,6 +6,8 @@ import {
   applyAuthorizationImportRoute,
   applyAuthorizationRoleScopesRoute,
   applyAuthorizationRoleTemplateUpgradeRoute,
+  authorizationApiRoutes,
+  buildCoreApiRouteConfig,
   buildCoreApiOpenApiDocument,
   createAuthorizationRoleRoute,
   deleteAuthorizationRoleRoute,
@@ -16,6 +18,7 @@ import {
   getAuthorizationReadinessRoute,
   getAuthorizationRoleRoute,
   getAuthorizationTemplateRevisionRoute,
+  getObjectSchemaShape,
   inactivateAuthorizationRoleRoute,
   listAuthorizationAssignmentsRoute,
   listAuthorizationAuditRoute,
@@ -36,6 +39,7 @@ import {
   validateApiRouteRequest,
 } from '../../src/api-routes';
 import { authorizationProblemSchema } from '../../src/api-routes/schemas/authorization';
+import { AUTHORIZATION_ADMIN_MAX_BULK_BYTES, AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES } from '../../src/authorization';
 import { policies } from '../../src/config/policies.config';
 
 describe('authorization contract API routes', function () {
@@ -290,6 +294,105 @@ describe('authorization contract API routes', function () {
     }
   });
 
+  it('keeps every runtime authorization route and generated OpenAPI operation in lockstep', () => {
+    const runtimeRoutes = buildCoreApiRouteConfig() as Record<string, Record<string, unknown>>;
+    const document = buildCoreApiOpenApiDocument() as {
+      paths: Record<
+        string,
+        Record<
+          string,
+          {
+            operationId?: string;
+            parameters?: Array<{ in?: string; name?: string; required?: boolean }>;
+            requestBody?: { required?: boolean; content?: Record<string, unknown> };
+            responses?: Record<string, { content?: Record<string, { schema?: Record<string, unknown> }> }>;
+            security?: Array<Record<string, unknown>>;
+            tags?: string[];
+            'x-redbox-scope'?: string;
+          }
+        >
+      >;
+    };
+    const authorizationRuntimeRoutes = Object.entries(runtimeRoutes).filter(
+      ([, target]) => target.controller === 'webservice/AuthorizationController'
+    );
+
+    assert.equal(authorizationApiRoutes.length, 31);
+    assert.equal(authorizationRuntimeRoutes.length, authorizationApiRoutes.length);
+
+    for (const route of authorizationApiRoutes) {
+      const runtimeKey = `${route.method} ${route.path}`;
+      assert.deepEqual(runtimeRoutes[runtimeKey], {
+        controller: route.controller,
+        action: route.action,
+        authorization: route.authorization,
+        routeId: route.routeId,
+        csrf: false,
+      });
+
+      const openApiPath = route.path
+        .replace(/:([A-Za-z0-9_]+)\*/gu, '{$1}')
+        .replace(/:([A-Za-z0-9_]+)\?/gu, '{$1}')
+        .replace(/:([A-Za-z0-9_]+)/gu, '{$1}');
+      const operation = document.paths[openApiPath]?.[route.method];
+      assert.ok(operation, `${route.method.toUpperCase()} ${route.path}`);
+      assert.equal(operation.operationId, route.operationId);
+      assert.deepEqual(operation.tags, ['Authorization']);
+      assert.equal(
+        operation['x-redbox-scope'],
+        route.authorization.kind === 'scope' ? route.authorization.scope : undefined
+      );
+      assert.deepEqual(operation.security, [{ bearerAuth: [] }]);
+
+      const parameters = new Set(operation.parameters?.map(parameter => `${parameter.in}:${parameter.name}`));
+      for (const [location, schema] of [
+        ['path', route.request?.params],
+        ['query', route.request?.query],
+        ['header', route.request?.headers],
+      ] as const) {
+        for (const name of Object.keys(getObjectSchemaShape(schema) ?? {})) {
+          assert.ok(parameters.has(`${location}:${name}`), `${runtimeKey} ${location}:${name}`);
+        }
+      }
+      const pathNames = [...route.path.matchAll(/:([A-Za-z0-9_]+)/gu)].map(match => match[1]);
+      for (const name of pathNames) {
+        const parameter = operation.parameters?.find(candidate => candidate.in === 'path' && candidate.name === name);
+        assert.equal(parameter?.required, true, `${runtimeKey} path:${name}`);
+      }
+
+      const requestContent = route.request?.body?.content;
+      assert.equal(operation.requestBody !== undefined, requestContent !== undefined, `${runtimeKey} request body`);
+      if (requestContent !== undefined) {
+        assert.equal(operation.requestBody?.required, route.request?.body?.required ?? false, runtimeKey);
+        assert.deepEqual(Object.keys(operation.requestBody?.content ?? {}).sort(), Object.keys(requestContent).sort());
+      }
+
+      assert.deepEqual(
+        Object.keys(operation.responses ?? {}).sort(),
+        Object.keys(route.responses ?? {}).sort(),
+        runtimeKey
+      );
+      for (const status of ['400', '401', '403', '404', '409', '422', '500', '503']) {
+        const problem = operation.responses?.[status]?.content?.['application/problem+json'];
+        assert.ok(problem, `${runtimeKey} ${status}`);
+        assert.deepEqual(problem.schema?.required, [
+          'type',
+          'title',
+          'status',
+          'detail',
+          'instance',
+          'code',
+          'requestId',
+        ]);
+      }
+      for (const [status, response] of Object.entries(operation.responses ?? {})) {
+        if (Number(status) >= 400) continue;
+        const successSchema = response.content?.['application/json']?.schema;
+        assert.equal(Array.isArray(successSchema?.anyOf), true, `${runtimeKey} ${status} success envelope`);
+      }
+    }
+  });
+
   it('publishes matching OpenAPI scope and Problem Details contracts', () => {
     const document = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' }) as {
       paths: Record<
@@ -319,6 +422,24 @@ describe('authorization contract API routes', function () {
       assert.deepEqual(Object.keys(response?.content ?? {}), ['application/problem+json']);
       assert.ok((response?.content?.['application/problem+json']?.schema?.required as string[]).includes('requestId'));
     }
+  });
+
+  it('publishes the runtime UTF-8 payload and non-empty row bounds in OpenAPI', () => {
+    const document = buildCoreApiOpenApiDocument();
+    const bulkOperation = document.paths['/{branding}/{portal}/api/authorization/assignments/bulk-preview']?.post as {
+      requestBody?: { content?: Record<string, { schema?: unknown }> };
+    };
+    const importOperation = document.paths['/{branding}/{portal}/api/authorization/import-preview']?.post as {
+      requestBody?: { content?: Record<string, { schema?: unknown }> };
+    };
+    const bulkSchema = JSON.stringify(bulkOperation.requestBody?.content?.['application/json']?.schema);
+    const importSchema = JSON.stringify(importOperation.requestBody?.content?.['application/json']?.schema);
+
+    assert.ok(bulkSchema.includes('"minItems":1'));
+    assert.ok(bulkSchema.includes(`"maxLength":${AUTHORIZATION_ADMIN_MAX_BULK_BYTES}`));
+    assert.ok(bulkSchema.includes(`maximum ${AUTHORIZATION_ADMIN_MAX_BULK_BYTES} UTF-8 bytes`));
+    assert.ok(importSchema.includes(`"maxLength":${AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES}`));
+    assert.ok(importSchema.includes(`maximum ${AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES} UTF-8 bytes`));
   });
 
   it('declares bounded request schemas at the route source', () => {
@@ -526,11 +647,37 @@ describe('authorization contract API routes', function () {
       true
     );
     const bulkRows = [{ action: 'grant', principalId: 'user-1', roleKey: 'Researcher' }];
+    const serializedBulkRows = JSON.stringify(bulkRows);
+    const maxByteBulkRows = serializedBulkRows.padEnd(AUTHORIZATION_ADMIN_MAX_BULK_BYTES, ' ');
     assert.equal(
       previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
         rows: bulkRows,
       }).success,
       true
+    );
+    assert.equal(
+      previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: [],
+      }).success,
+      false
+    );
+    assert.equal(
+      previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: maxByteBulkRows,
+      }).success,
+      true
+    );
+    assert.equal(
+      previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: `${maxByteBulkRows} `,
+      }).success,
+      false
+    );
+    assert.equal(
+      previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        rows: '😀'.repeat(AUTHORIZATION_ADMIN_MAX_BULK_BYTES / 4 + 1),
+      }).success,
+      false
     );
     assert.equal(
       previewAuthorizationBulkAssignmentsRoute.request?.body?.content['application/json']?.schema?.safeParse({
@@ -605,6 +752,8 @@ describe('authorization contract API routes', function () {
       ],
       roles: [],
     };
+    const serializedConfiguration = JSON.stringify(configuration);
+    const maxByteConfiguration = serializedConfiguration.padEnd(AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES, ' ');
     assert.equal(
       previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
         document: configuration,
@@ -614,6 +763,24 @@ describe('authorization contract API routes', function () {
     assert.equal(
       previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
         document: { ...configuration, unknown: true },
+      }).success,
+      false
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: maxByteConfiguration,
+      }).success,
+      true
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: `${maxByteConfiguration} `,
+      }).success,
+      false
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: '😀'.repeat(AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES / 4 + 1),
       }).success,
       false
     );

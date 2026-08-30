@@ -1,0 +1,36 @@
+meta {
+  name: Authorization - Role scope apply
+  type: http
+  seq: 70
+}
+
+put {
+  url: {{host}}/default/rdmp/api/authorization/roles/bruno-phase86-role/scopes
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationRoleVersion}},
+    "scopeKeys": ["authorization.self.read"],
+    "reason": "Review the complete desired scope set",
+    "confirmationToken": "{{authorizationRoleScopeToken}}"
+  }
+}
+
+tests {
+  test("Applies the unchanged confirmed scope set", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.changed).to.equal(true);
+    expect(body.data.effectiveScopeKeys).to.deep.equal(["authorization.self.read"]);
+    bru.setVar("authorizationRoleVersion", body.version);
+  });
+}

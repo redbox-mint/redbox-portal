@@ -1,0 +1,37 @@
+meta {
+  name: Authorization - Malformed bulk JSON
+  type: http
+  seq: 90
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/bulk-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "rows": {{authorizationMalformedBulkJson}}
+  }
+}
+
+script:pre-request {
+  bru.setVar("authorizationMalformedBulkJson", JSON.stringify('[{"action":"grant"'));
+}
+
+tests {
+  test("Rejects malformed JSON-encoded rows semantically", function () {
+    expect(res.getStatus()).to.equal(422);
+    expect(res.headers["content-type"]).to.include("application/problem+json");
+    const body = res.getBody();
+    expect(body).to.include({ status: 422, code: "authorization.bulk-invalid" });
+    expect(body.requestId).to.be.a("string").and.not.empty;
+  });
+}

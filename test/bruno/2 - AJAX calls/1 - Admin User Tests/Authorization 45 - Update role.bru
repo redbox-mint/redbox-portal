@@ -1,0 +1,35 @@
+meta {
+  name: Authorization - Update role
+  type: http
+  seq: 68
+}
+
+patch {
+  url: {{host}}/default/rdmp/api/authorization/roles/bruno-phase86-role
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationRoleVersion}},
+    "description": "Updated through the authorization contract",
+    "reason": "Exercise role metadata CAS"
+  }
+}
+
+tests {
+  test("Updates only reviewed role metadata", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.data.description).to.equal("Updated through the authorization contract");
+    expect(body.data.displayName).to.equal("Bruno Phase 8.6 role");
+    bru.setVar("authorizationRoleVersion", body.version);
+  });
+}

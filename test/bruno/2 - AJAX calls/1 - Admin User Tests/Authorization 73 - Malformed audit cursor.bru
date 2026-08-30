@@ -1,0 +1,23 @@
+meta {
+  name: Authorization - Malformed audit cursor
+  type: http
+  seq: 96
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/audit?cursor=not-a-valid-audit-cursor
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Rejects a malformed keyset cursor", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody()).to.include({ status: 400, code: "authorization.audit-event-invalid" });
+  });
+}

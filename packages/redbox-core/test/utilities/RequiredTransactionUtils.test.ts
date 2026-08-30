@@ -72,6 +72,25 @@ describe('RequiredTransactionUtils', () => {
     assert.equal(invocations, 0);
   });
 
+  it('converts MongoDB IllegalOperation failures without relying on driver message text', async () => {
+    let invocations = 0;
+    const datastore = datastoreWithTransaction(async work => {
+      await work(Object.freeze({ lease: 'failed-commit' }));
+      throw Object.assign(new Error("Failing command via 'failCommand' failpoint"), {
+        code: 20,
+        codeName: 'IllegalOperation',
+      });
+    });
+
+    await assert.rejects(
+      runWithRequiredTransaction(datastore, async () => {
+        invocations += 1;
+      }),
+      (error: unknown) => error instanceof AuthorizationTransactionUnavailableError
+    );
+    assert.equal(invocations, 1);
+  });
+
   it('runs a read-only probe inside the leased transaction', async () => {
     const connection = Object.freeze({ lease: 'probe' });
     let observedConnection: Sails.Connection;

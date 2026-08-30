@@ -1,0 +1,34 @@
+meta {
+  name: Authorization - Malformed import JSON
+  type: http
+  seq: 95
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/import-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "document": {{authorizationMalformedImportJson}}
+  }
+}
+
+script:pre-request {
+  bru.setVar("authorizationMalformedImportJson", JSON.stringify('{"schemaVersion":1'));
+}
+
+tests {
+  test("Rejects a malformed JSON-encoded import without persistence access", function () {
+    expect(res.getStatus()).to.equal(422);
+    expect(res.getBody()).to.include({ status: 422, code: "authorization.bulk-invalid" });
+  });
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Authorization - Prepare configuration import
+  type: http
+  seq: 84
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/export
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Builds a deterministic bounded import document", function () {
+    expect(res.getStatus()).to.equal(200);
+    const document = res.getBody();
+    const currentBrandId = document.roles.find(role => typeof role.brandId === "string")?.brandId;
+    expect(currentBrandId).to.be.a("string").and.not.empty;
+    document.roles.push({
+      brandId: currentBrandId,
+      key: "bruno-phase86-imported",
+      displayName: "Bruno Phase 8.6 imported role",
+      description: "Created through confirmed configuration import",
+      protectedKind: "none",
+      status: "active",
+      effectiveScopeKeys: ["authorization.self.read"],
+      version: 1
+    });
+    document.roles.sort((left, right) =>
+      `${left.brandId || ""}:${left.key}`.localeCompare(`${right.brandId || ""}:${right.key}`)
+    );
+    bru.setVar("authorizationImportDocument", JSON.stringify(document));
+  });
+}

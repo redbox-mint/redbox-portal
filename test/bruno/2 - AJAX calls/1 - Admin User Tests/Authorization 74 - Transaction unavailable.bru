@@ -1,0 +1,55 @@
+meta {
+  name: Authorization - Transaction unavailable
+  type: http
+  seq: 97
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/roles
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+script:pre-request {
+  const { MongoClient } = require("mongodb");
+  const client = new MongoClient("mongodb://mongodb:27017/?replicaSet=rs0");
+  await client.connect();
+  try {
+    await client.db("admin").command({
+      configureFailPoint: "failCommand",
+      mode: { times: 1 },
+      data: {
+        failCommands: ["commitTransaction"],
+        errorCode: 20
+      }
+    });
+  } finally {
+    await client.close();
+  }
+}
+
+body:json {
+  {
+    "key": "transaction-support-required",
+    "displayName": "Transaction support required"
+  }
+}
+
+tests {
+  test("Fails closed when the datastore cannot provide transactions", function () {
+    expect(res.getStatus()).to.equal(503);
+    expect(res.headers["content-type"]).to.include("application/problem+json");
+    const body = res.getBody();
+    expect(body).to.include({
+      status: 503,
+      code: "authorization.transaction-unavailable"
+    });
+    expect(body.requestId).to.be.a("string").and.not.empty;
+  });
+}

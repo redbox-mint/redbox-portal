@@ -72,6 +72,7 @@ These tests use **Bruno** to make actual HTTP requests against a running instanc
       - get-user-audit
     - The same collection includes authorization assignment coverage for session-authenticated reads, bearer mutations, fail-closed session mutation without CSRF, manual grant/idempotency/revoke, expiry validation, stale CAS, external-only suppression checks, and confirmed atomic bulk preview/apply/replay behavior.
     - Authorization Phase 8.5 coverage adds redacted audit pagination, read-only explanation, bounded rollout readiness, default and separately confirmed assignment export, exported-document import preview, and malformed-import rejection. `test/integration/services/AuthorizationPhase85.test.ts` supplies the persistence-backed atomic import, one-time confirmation and stale-token replay checks, protected-quorum/expiry rollback, protected system-scope adoption rejection, cross-brand opacity, and readiness checks.
+    - Authorization Phase 8.6 coverage completes the HTTP happy/error matrix for template publication, role lifecycle and selected-role template upgrades, changing import apply, restricted bearer denial, payload/pagination/filter bounds, malformed JSON/CSV/import input, no-partial-write evidence, protected-role rejection, and typed `400/401/403/404/409/422/503` responses. The general profile enables MongoDB test commands only so a single-use `commitTransaction` failpoint can prove the real HTTP `503` path and rollback behavior.
 
 ### 4. Frontend Unit Tests (`test:angular`)
 

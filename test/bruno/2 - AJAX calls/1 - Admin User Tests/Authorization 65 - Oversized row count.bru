@@ -1,0 +1,39 @@
+meta {
+  name: Authorization - Oversized row count
+  type: http
+  seq: 88
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/bulk-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "rows": {{authorizationOversizedRows}}
+  }
+}
+
+script:pre-request {
+  const rows = Array.from({ length: 101 }, (_, index) => ({
+    action: "grant",
+    principalId: `phase86-user-${index}`,
+    roleKey: "Researcher"
+  }));
+  bru.setVar("authorizationOversizedRows", JSON.stringify(rows));
+}
+
+tests {
+  test("Rejects more than 100 rows at the HTTP contract boundary", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody()).to.include({ status: 400, code: "authorization.invalid-request" });
+  });
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Authorization - Verify no partial bulk write
+  type: http
+  seq: 93
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/assignments?userId={{researcherUserId}}&roleKey=bruno-phase86-bulk-role&source=manual&status=active
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Confirms the valid row from the rejected batch was not written", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().items).to.deep.equal([]);
+  });
+}

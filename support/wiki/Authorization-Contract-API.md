@@ -412,10 +412,31 @@ publication, cross-brand role hiding, the complete role lifecycle, and atomic
 selected-role template upgrades. The assignment fixture adds source-specific
 mutation, expiry, idempotency, concurrency, protected quorum, cross-brand,
 confirmation, atomic bulk, audit, and legacy-projection coverage. The general
-Bruno collection exercises the session-authenticated catalogs, assignment
-happy/error workflows, redacted audit query, read-only explanation, readiness,
-default and separately confirmed assignment export, no-op import preview, and
-malformed import rejection through the mounted HTTP stack. The Phase 8.5
-integration fixture additionally proves transactional import, replay
-protection, protected-quorum rollback, cross-brand opacity, and readiness
-against the real persistence adapter.
+Bruno collection exercises the session projection, legacy-mode restricted-bearer
+denial, and enforce-mode restricted-bearer projection,
+template publication, role CRUD and every preview/apply lifecycle, selected-role
+template upgrades, assignment workflows, redacted audit, explanation,
+readiness, confirmed export/import, and the documented `400`, `401`, `403`,
+`404`, `409`, `422`, and `503` Problem Details matrix through the mounted HTTP
+stack. Its boundary cases include over-limit cursors and row counts, UTF-8 byte
+limits, malformed JSON/CSV/import input, duplicate rows, and a post-failure read
+that proves an invalid bulk apply wrote no valid row. The `503` case uses a
+single-use MongoDB `commitTransaction` failpoint in the test profile and verifies
+that the failed transaction is reported as unavailable rather than retried or
+partially committed. The Phase 8.5 integration fixture additionally proves
+transactional import, replay protection, protected-quorum rollback,
+cross-brand opacity, and readiness against the real persistence adapter.
+
+Set `RBPORTAL_AUTHORIZATION_MODE=enforce` for the mounted general profile and
+the runner forwards that value to Bruno as `authorizationMode`. For a focused
+manual `bru run`, pass `--env-var authorizationMode=enforce` when verifying the
+authoritative restricted-bearer projection. The default general profile continues
+to verify the deliberate legacy-mode denial.
+
+The OpenAPI audit walks every authorization route and compares the generated
+operation with the runtime controller/action, authorization scope, security,
+path/query/header parameters, request body media types, response statuses,
+versioned success envelopes, and Problem Details schema. Generic generated
+paths always declare every required Sails path segment, including `branding`
+and `portal`. String bulk/import limits are documented and enforced in UTF-8
+bytes as well as characters.

@@ -1,0 +1,34 @@
+meta {
+  name: Authorization - Role inactivation apply
+  type: http
+  seq: 81
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/roles/bruno-phase86-role/inactivate
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationRoleVersion}},
+    "reason": "Review the role retirement impact",
+    "confirmationToken": "{{authorizationRoleInactivationToken}}"
+  }
+}
+
+tests {
+  test("Inactivates the unchanged reviewed role", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.data.status).to.equal("inactive");
+    bru.setVar("authorizationRoleVersion", body.version);
+  });
+}

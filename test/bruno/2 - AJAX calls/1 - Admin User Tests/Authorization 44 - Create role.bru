@@ -1,0 +1,40 @@
+meta {
+  name: Authorization - Create role
+  type: http
+  seq: 67
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/roles
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "key": "bruno-phase86-role",
+    "displayName": "Bruno Phase 8.6 role",
+    "description": "Template-backed role lifecycle fixture",
+    "templateKey": "researcher",
+    "templateRevision": {{authorizationTemplateRevision}},
+    "scopeKeys": [],
+    "reason": "Create the reviewed Phase 8.6 role"
+  }
+}
+
+tests {
+  test("Creates a template-backed current-brand role transactionally", function () {
+    expect(res.getStatus()).to.equal(201);
+    const body = res.getBody();
+    expect(body.changed).to.equal(true);
+    expect(body.data).to.include({ key: "bruno-phase86-role", templateKey: "researcher" });
+    bru.setVar("authorizationRoleId", body.data.id);
+    bru.setVar("authorizationRoleVersion", body.version);
+  });
+}

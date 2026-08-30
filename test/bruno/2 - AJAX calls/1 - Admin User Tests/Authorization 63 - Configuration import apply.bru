@@ -1,0 +1,35 @@
+meta {
+  name: Authorization - Configuration import apply
+  type: http
+  seq: 86
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/import-apply
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "document": {{authorizationImportDocument}},
+    "reason": "Review a bounded role import",
+    "confirmationToken": "{{authorizationImportToken}}"
+  }
+}
+
+tests {
+  test("Applies the unchanged import in one transaction", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.changed).to.equal(true);
+    expect(body.data.roleChanges).to.equal(1);
+    expect(body.batchId).to.be.a("string").and.not.empty;
+  });
+}

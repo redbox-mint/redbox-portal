@@ -1,0 +1,28 @@
+meta {
+  name: Authorization - Verify transaction rollback
+  type: http
+  seq: 98
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/roles/transaction-support-required
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Confirms the failed transaction did not persist its role", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.headers["content-type"]).to.include("application/problem+json");
+    expect(res.getBody()).to.include({
+      status: 404,
+      code: "authorization.not-found"
+    });
+    expect(res.getBody().requestId).to.be.a("string").and.not.empty;
+  });
+}

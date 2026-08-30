@@ -1,0 +1,36 @@
+meta {
+  name: Authorization - Template publish apply
+  type: http
+  seq: 72
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/templates/researcher/revisions
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationTemplateVersion}},
+    "scopeKeys": {{authorizationPublishedTemplateScopes}},
+    "notes": "Phase 8.6 generated contract verification",
+    "reason": "Review a deterministic immutable revision",
+    "confirmationToken": "{{authorizationTemplatePublishToken}}"
+  }
+}
+
+tests {
+  test("Publishes the unchanged template revision transactionally", function () {
+    expect(res.getStatus()).to.equal(201);
+    const body = res.getBody();
+    expect(body.changed).to.equal(true);
+    expect(body.data.revision).to.equal(Number(bru.getVar("authorizationNextTemplateRevision")));
+  });
+}

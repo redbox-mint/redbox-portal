@@ -18,6 +18,9 @@ headers {
 tests {
   test("Returns typed authentication failure", function () {
     expect(res.getStatus()).to.equal(401);
-    expect(res.getBody()).to.include({ status: 401, code: "authentication-required" });
+    expect(res.headers["content-type"]).to.include("application/problem+json");
+    const body = res.getBody();
+    expect(body).to.include({ status: 401, code: "authentication-required" });
+    expect(body.requestId).to.be.a("string").and.not.empty;
   });
 }
