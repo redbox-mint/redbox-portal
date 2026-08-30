@@ -6596,6 +6596,143 @@ test('conditional length truncation exposes inherited callables through every su
   }
 });
 
+test('opaque length writes are superseded by later strong indexed replacements', () => {
+  const mutationCases = [
+    ['direct assignment', '', 'values.length=nextLength;'],
+    [
+      'helper-forwarded assignment',
+      'function setLength(value,length){value.length=length}',
+      'setLength(values,nextLength);',
+    ],
+    ['Reflect.set', '', "Reflect.set(values,'length',nextLength);"],
+    ['Object.assign', '', 'Object.assign(values,{length:nextLength});'],
+    ['Object.defineProperty', '', "Object.defineProperty(values,'length',{value:nextLength});"],
+    ['Reflect.defineProperty', '', "Reflect.defineProperty(values,'length',{value:nextLength});"],
+    ['Object.defineProperties', '', 'Object.defineProperties(values,{length:{value:nextLength}});'],
+  ];
+
+  for (const [index, [name, prefix, mutation]] of mutationCases.entries()) {
+    const source = `${prefix}const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextLength=loadLength();${mutation}
+      values[1]=JSON.parse;values[1]('{}');`;
+    const relativePath = `packages/example/src/safe-opaque-length-replacement-${index}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${name} should be deterministic`);
+    assert.deepEqual(firstFindings, [], `${name} should retain the later definite slot replacement`);
+  }
+
+  const unresolvedSource = `const prototype=[];prototype[1]=eval;
+    const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+    values.length=loadLength();values[1](configuredSource);`;
+  const unresolvedFindings = scanSource(
+    unresolvedSource,
+    'packages/example/src/unresolved-opaque-length-replacement-control.ts'
+  );
+  assert.ok(unresolvedFindings.some(finding => finding.kind === 'direct-eval'));
+  assert.ok(
+    unresolvedFindings.some(
+      finding => finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable'
+    )
+  );
+  assert.ok(unresolvedFindings.length <= 2, 'unresolved opaque length diagnostics should remain bounded');
+});
+
+test('Object.defineProperties applies integer-index descriptors before a later length descriptor', () => {
+  const cases = [
+    {
+      name: 'index 1',
+      source: `const prototype=[];prototype[1]=eval;
+        const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+        Object.defineProperties(values,{
+          length:{value:flag?1:2},
+          1:{value:JSON.parse,configurable:true,writable:true}
+        });
+        values[1](configuredSource);`,
+    },
+    {
+      name: 'index 64',
+      source: `const prototype=[];prototype[64]=eval;
+        const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+        Object.defineProperties(values,{
+          length:{value:flag?64:65},
+          64:{value:JSON.parse,configurable:true,writable:true}
+        });
+        values[64](configuredSource);`,
+    },
+  ];
+
+  for (const [index, descriptorCase] of cases.entries()) {
+    const relativePath = `packages/example/src/define-properties-own-key-order-${index}.ts`;
+    const firstFindings = scanSource(descriptorCase.source, relativePath);
+    const secondFindings = scanSource(descriptorCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${descriptorCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${descriptorCase.name} should expose inherited eval: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${descriptorCase.name} diagnostics should remain bounded`);
+  }
+});
+
+test('opaque length replacements and descriptor own-key ordering execute isolated runtime markers', () => {
+  const markerKey = '__a12_length_replacement_and_order_marker__';
+  const mutationCases = [
+    ['direct', '', 'values.length=nextLength;'],
+    ['helper', 'function setLength(value,length){value.length=length}', 'setLength(values,nextLength);'],
+    ['reflect-set', '', "Reflect.set(values,'length',nextLength);"],
+    ['assign', '', 'Object.assign(values,{length:nextLength});'],
+    ['define', '', "Object.defineProperty(values,'length',{value:nextLength});"],
+    ['reflect-define', '', "Reflect.defineProperty(values,'length',{value:nextLength});"],
+    ['defines', '', 'Object.defineProperties(values,{length:{value:nextLength}});'],
+  ];
+  const replacementBranches = mutationCases.map(
+    ([name, prefix, mutation]) => `{${prefix}const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextLength=loadLength();${mutation}values[1]=JSON.parse;values[1]('{}');
+      globalThis.${markerKey}.push('${name}-safe')}`
+  );
+  const descriptorOrderBranches = [
+    [1, 2],
+    [64, 65],
+  ].flatMap(([index, retainedLength]) =>
+    [true, false].map(
+      flag => `{const flag=${flag};const prototype=[];prototype[${index}]=eval;
+        const values=Array(${retainedLength}).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+        Object.defineProperties(values,{
+          length:{value:flag?${index}:${retainedLength}},
+          ${index}:{value:JSON.parse,configurable:true,writable:true}
+        });
+        if(flag)values[${index}](mark('index-${index}-unsafe'));
+        else{values[${index}]('{}');globalThis.${markerKey}.push('index-${index}-safe')}}`
+    )
+  );
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    'const loadLength=()=>1;',
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...replacementBranches,
+    ...descriptorOrderBranches,
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), [
+    ...mutationCases.map(([name]) => `${name}-safe`),
+    'index-1-unsafe',
+    'index-1-safe',
+    'index-64-unsafe',
+    'index-64-safe',
+  ]);
+});
+
 test('conditional length alternatives execute vulnerable and safe runtime branches', () => {
   const markerKey = '__a12_conditional_length_truncation_marker__';
   const mutationCases = [
