@@ -1,156 +1,152 @@
-import { Component, Inject, ViewChild } from '@angular/core';
-import { ModalDirective } from 'ngx-bootstrap/modal';
-import { LoggerService, TranslationService, UserService, BaseComponent } from '@researchdatabox/portal-ng-common';
-import { Role, User } from '@researchdatabox/portal-ng-common';
-import * as _ from 'lodash';
+import { Component, ElementRef, Inject, QueryList, ViewChildren } from '@angular/core';
+import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { AuthorizationMe, AuthorizationUiErrorState } from './authorization-admin.models';
+import { AuthorizationAdminService } from './authorization-admin.service';
+
+export type AuthorizationAdminTab = 'roles' | 'assignments' | 'scopes' | 'audit';
+
+interface TabDefinition {
+  id: AuthorizationAdminTab;
+  label: string;
+  requiredScope: string;
+}
 
 @Component({
-    selector: 'manage-roles',
-    templateUrl: './manage-roles.component.html',
-    styleUrls: ['./manage-roles.component.scss'],
-    standalone: false
+  selector: 'manage-roles',
+  templateUrl: './manage-roles.component.html',
+  styleUrls: ['./manage-roles.component.scss'],
+  standalone: false,
 })
 export class ManageRolesComponent extends BaseComponent {
-  title = '@researchdatabox/manage-roles';
+  public readonly tabs: TabDefinition[] = [
+    { id: 'roles', label: 'Roles', requiredScope: 'authorization.role.read' },
+    { id: 'assignments', label: 'Assignments', requiredScope: 'authorization.assignment.read' },
+    { id: 'scopes', label: 'Scope Catalog', requiredScope: 'authorization.scope.read' },
+    { id: 'audit', label: 'Audit', requiredScope: 'authorization.audit.read' },
+  ];
 
-  users: User[] = [];
-  filteredUsers: any[] = [];
-  searchFilter: { 
-                  name: string, 
-                  role: any, 
-                  prevName: string, 
-                  prevRole: any, 
-                  roles: any[] } = { 
-                                     name: '', 
-                                     role: null, 
-                                     prevName: '', 
-                                     prevRole:null, 
-                                     roles: [ {value: null, label:'Any', checked:true}]
-                                    };
-  roles: Role[] = [];
-  hiddenUsers = ['admin'];
-  currentUser: User = {username:'', name:'', email:'', roles:[]} as any;
-  saveMsg = "";
-  saveMsgType ="info";
+  public projection?: AuthorizationMe;
+  public activeTab?: AuthorizationAdminTab;
+  public loadingProjection = false;
+  public projectionError?: AuthorizationUiErrorState;
+  public liveMessage = '';
 
-  isDetailsModalShown: boolean = false;
-  @ViewChild('roleDetailsModal', { static: false }) roleDetailsModal?: ModalDirective;
+  @ViewChildren('tabButton') private tabButtons?: QueryList<ElementRef<HTMLButtonElement>>;
+  private projectionRequestId = 0;
 
-  
   constructor(
-    @Inject(LoggerService) private loggerService: LoggerService,
-    @Inject(TranslationService) private translationService: TranslationService,
-    @Inject(UserService) private userService: UserService
+    @Inject(LoggerService) private readonly loggerService: LoggerService,
+    @Inject(TranslationService) translationService: TranslationService,
+    @Inject(AuthorizationAdminService) private readonly authorizationAdminService: AuthorizationAdminService
   ) {
     super();
-    this.loggerService.debug(`Manage Roles waiting for deps to init...`); 
-    this.initDependencies = [this.translationService, this.userService];
+    this.initDependencies = [translationService, authorizationAdminService];
   }
 
-  protected override async initComponent():Promise<void> {
-    let roles: any = await this.userService.getBrandRoles();
-    this.roles = roles;
-    _.forEach(roles, (role:any) => {
-      this.searchFilter.roles.push({value:role.name, label:role.name, checked:false});
-      _.forEach(role.users, (user:any) => {
-        if (!_.includes(this.hiddenUsers, user.username)) {
-          // flattening the tree, match by username
-          let existingUser: any = _.find(this.users, (existingUser:any) => { return existingUser.username == user.username});
-          if (_.isEmpty(existingUser)) {
-            existingUser = user;
-            existingUser.roles = [role.name];
-            this.users.push(existingUser);
-          } else {
-            existingUser.roles.push(role.name);
-          }
-        }
-      });
-    });
-    _.map(this.users, (user:any)=> {user.roleStr = _.join(user.roles, ', ')});
-    this.filteredUsers = this.users;
-    this.loggerService.debug(`Manage Roles initComponent done`);
+  public get availableTabs(): TabDefinition[] {
+    return this.tabs.filter(tab => this.hasScope(tab.requiredScope));
   }
 
-  editUser(username:string) {
-    this.setSaveMessage();
-    let currUser = _.find(this.users, (user:any)=>{return user.username == username});
-    if(!_.isUndefined(currUser)) {
-      this.currentUser = currUser;
-      this.currentUser.newRoles = _.map(this.roles, (r:any) => {
-        return {name: r.name, id:r.id, users: [], hasRole: _.includes(this.currentUser.roles, r.name)};
-      });
-      this.showDetailsModal();
+  public get stagedRollout(): boolean {
+    return this.projection?.rolloutMode === 'legacy' || this.projection?.rolloutMode === 'shadow';
+  }
+
+  public hasScope(scopeKey: string): boolean {
+    return this.projection?.scopeKeys.includes(scopeKey) ?? false;
+  }
+
+  protected override async initComponent(): Promise<void> {
+    const requestedTab = new URL(window.location.href).searchParams.get('tab');
+    await this.reloadProjection(false);
+    const fallback = this.availableTabs[0]?.id;
+    this.activeTab =
+      this.isAuthorizationAdminTab(requestedTab) && this.availableTabs.some(tab => tab.id === requestedTab)
+        ? requestedTab
+        : fallback;
+    this.persistTab();
+    this.loggerService.debug('Authorization administration app initialized.');
+  }
+
+  public async reloadProjection(announce = true): Promise<void> {
+    const requestId = ++this.projectionRequestId;
+    this.loadingProjection = true;
+    this.projectionError = undefined;
+    try {
+      const projection = await this.authorizationAdminService.getMe();
+      if (requestId !== this.projectionRequestId) {
+        return;
+      }
+      this.projection = projection;
+      if (!this.availableTabs.some(tab => tab.id === this.activeTab)) {
+        this.activeTab = this.availableTabs[0]?.id;
+        this.persistTab();
+      }
+      if (announce) {
+        this.liveMessage = 'Authorization state refreshed after the change.';
+      }
+    } catch (error) {
+      if (requestId !== this.projectionRequestId) {
+        return;
+      }
+      this.projection = undefined;
+      this.activeTab = undefined;
+      this.projectionError = this.authorizationAdminService.toUiError(error);
+      this.liveMessage = this.projectionError.message;
+    } finally {
+      if (requestId === this.projectionRequestId) {
+        this.loadingProjection = false;
+      }
     }
   }
 
-  showDetailsModal(): void {
-    this.isDetailsModalShown = true;
-    this.roleDetailsModal?.show();
-  }
-
-  hideDetailsModal(): void {
-    if(!_.isUndefined(this.roleDetailsModal)) {
-      this.roleDetailsModal.hide();
-    }
-  }
-
-  onDetailsModalHidden(): void {
-    this.isDetailsModalShown = false;
-  }
-
-  async saveCurrentUser($event:any) {
-    let hasRole:boolean = false;
-    let newRoles:any[] = [];
-    _.forEach(this.currentUser.newRoles, (role:any) => {
-      hasRole = hasRole || role.hasRole;
-      if (role.hasRole)
-        newRoles.push(role.name);
-    });
-    if (!hasRole) {
-      this.setSaveMessage("Please select at least one role!", "danger");
+  public selectTab(tab: AuthorizationAdminTab, focus = false): void {
+    if (!this.availableTabs.some(candidate => candidate.id === tab)) {
       return;
     }
-    this.setSaveMessage("Saving...", "primary");
-    let saveRes:any = await this.userService.updateUserRoles(this.currentUser.id, newRoles); //SaveResult
-    if (saveRes.status) {
-      this.currentUser.roles = newRoles;
-      this.currentUser.roleStr =  _.join(this.currentUser.roles);
-      this.setSaveMessage();
-      this.hideDetailsModal();
-    } else {
-      this.setSaveMessage(saveRes.message, "danger");
+    this.activeTab = tab;
+    this.persistTab();
+    if (focus) {
+      queueMicrotask(() => this.focusActiveTab());
     }
   }
 
-  setSaveMessage(msg:string="", type:string="primary") {
-    this.saveMsg = msg;
-    this.saveMsgType = type;
-  }
-
-  onFilterChange(roleFilter:any=null) {
-    if (roleFilter) {
-      roleFilter.checked = true;
-      this.searchFilter.role = roleFilter.value;
-      _.map(this.searchFilter.roles, (role:any)=> role.checked = roleFilter.value == role.value );
+  public onTabKeydown(event: KeyboardEvent, currentIndex: number): void {
+    const tabs = this.availableTabs;
+    if (!tabs.length) {
+      return;
     }
-    if (this.searchFilter.name != this.searchFilter.prevName || this.searchFilter.role != this.searchFilter.prevRole) {
-      this.searchFilter.prevName = this.searchFilter.name;
-      this.searchFilter.prevRole = this.searchFilter.role;
-      var nameFilter =_.isEmpty(this.searchFilter.name) ? "" : _.trim(this.searchFilter.name);
-      // run filter change...
-      this.filteredUsers = _.filter(this.users, (user:any) => {
-        var hasRole = this.searchFilter.role == null ?  true : _.includes(user.roles, this.searchFilter.role);
-        var hasNameMatch = nameFilter == "" ? true : (_.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0);
-        return hasRole && hasNameMatch;
-      });
+    let nextIndex: number | undefined;
+    if (event.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1;
+    }
+    if (nextIndex !== undefined) {
+      event.preventDefault();
+      this.selectTab(tabs[nextIndex].id, true);
     }
   }
 
-  resetFilter() {
-    this.searchFilter.name = '';
-    this.searchFilter.role = null;
-    _.map(this.searchFilter.roles, (role:any)=> role.checked = role.value == null);
-    this.onFilterChange();
+  private persistTab(): void {
+    if (!this.activeTab) {
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', this.activeTab);
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
 
+  private focusActiveTab(): void {
+    this.tabButtons
+      ?.find(button => button.nativeElement.id === `authorization-tab-${this.activeTab}`)
+      ?.nativeElement.focus();
+  }
+
+  private isAuthorizationAdminTab(value: string | null): value is AuthorizationAdminTab {
+    return value !== null && this.tabs.some(tab => tab.id === value);
+  }
 }

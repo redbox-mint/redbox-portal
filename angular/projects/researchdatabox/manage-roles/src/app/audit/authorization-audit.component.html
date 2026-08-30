@@ -1,0 +1,166 @@
+<section aria-labelledby="audit-heading" [attr.aria-busy]="loading">
+  <h2 id="audit-heading">Authorization Audit</h2>
+  <p>Append-only, server-redacted authorization changes. Snapshot text is rendered as escaped content.</p>
+  @if (error) {
+    <div class="alert alert-danger" role="alert">
+      {{ error.message }}
+      @if (error.requestId) {
+        Request {{ error.requestId }}.
+      }
+    </div>
+  }
+  <form class="filter-grid" (submit)="$event.preventDefault(); loadAudit(false)">
+    <div class="form-group">
+      <label for="audit-from"
+        >Occurred from <span class="text-muted">({{ timezone }})</span></label
+      ><input
+        id="audit-from"
+        class="form-control"
+        type="datetime-local"
+        [(ngModel)]="occurredFrom"
+        name="occurredFrom"
+      />
+    </div>
+    <div class="form-group">
+      <label for="audit-to"
+        >Occurred to <span class="text-muted">({{ timezone }})</span></label
+      ><input id="audit-to" class="form-control" type="datetime-local" [(ngModel)]="occurredTo" name="occurredTo" />
+    </div>
+    <div class="form-group">
+      <label for="audit-event">Event type</label
+      ><select id="audit-event" class="form-control" [(ngModel)]="eventType" name="eventType">
+        <option value="">All event types</option>
+        @for (option of eventTypes; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="audit-outcome">Outcome</label
+      ><select id="audit-outcome" class="form-control" [(ngModel)]="outcome" name="outcome">
+        <option value="">All outcomes</option>
+        @for (option of outcomes; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="audit-actor">Actor ID</label
+      ><input id="audit-actor" class="form-control" type="text" maxlength="128" [(ngModel)]="actorId" name="actorId" />
+    </div>
+    <div class="form-group">
+      <label for="audit-target-type">Target type</label
+      ><select id="audit-target-type" class="form-control" [(ngModel)]="targetType" name="targetType">
+        <option value="">All target types</option>
+        @for (option of targetTypes; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="audit-target-id">Target ID</label
+      ><input
+        id="audit-target-id"
+        class="form-control"
+        type="text"
+        maxlength="128"
+        [(ngModel)]="targetId"
+        name="targetId"
+      />
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-default" type="submit" [disabled]="loading">Apply server filters</button
+      ><button class="btn btn-link" type="button" [disabled]="loading" (click)="resetFilters()">Reset</button>
+    </div>
+  </form>
+  <p class="help-block">
+    The time range filters the loaded page locally; event, outcome, actor, and target filters are enforced by the
+    server.
+  </p>
+  <div class="table-responsive">
+    <table class="table table-striped table-hover">
+      <caption class="sr-only">
+        Redacted authorization audit events, newest first
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Occurred</th>
+          <th scope="col">Event / outcome</th>
+          <th scope="col">Actor</th>
+          <th scope="col">Target</th>
+          <th scope="col">Correlation</th>
+          <th scope="col">Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (event of visibleEvents; track event.eventId) {
+          <tr>
+            <td>{{ event.occurredAt | date: 'medium' }}</td>
+            <td>
+              <strong>{{ event.eventType }}</strong
+              ><br />{{ event.outcome }}
+              @if (event.reasonCode) {
+                · {{ event.reasonCode }}
+              }
+            </td>
+            <td>
+              {{ event.actorType }}<br /><code>{{ event.actorId }}</code>
+            </td>
+            <td>
+              {{ event.targetType }}<br /><code>{{ event.targetId || 'none' }}</code>
+            </td>
+            <td>
+              @if (event.requestId) {
+                Request <code>{{ event.requestId }}</code
+                ><br />
+              }
+              @if (event.batchId) {
+                Batch <code>{{ event.batchId }}</code>
+              }
+            </td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-default btn-sm"
+                [attr.aria-expanded]="expandedEventId === event.eventId"
+                [attr.aria-controls]="'audit-details-' + event.eventId"
+                [attr.aria-label]="
+                  (expandedEventId === event.eventId ? 'Hide' : 'Show') + ' redacted diff for ' + event.eventType
+                "
+                (click)="toggleDetails(event.eventId)"
+              >
+                {{ expandedEventId === event.eventId ? 'Hide' : 'Show' }} redacted diff
+              </button>
+            </td>
+          </tr>
+          @if (expandedEventId === event.eventId) {
+            <tr [id]="'audit-details-' + event.eventId">
+              <td colspan="6">
+                <div class="snapshot-grid">
+                  <section>
+                    <h3>Before</h3>
+                    <pre>{{ formatSnapshot(event.before) }}</pre>
+                  </section>
+                  <section>
+                    <h3>After</h3>
+                    <pre>{{ formatSnapshot(event.after) }}</pre>
+                  </section>
+                </div>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr>
+            <td colspan="6">{{ loading ? 'Loading audit events…' : 'No audit events match these filters.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (nextCursor) {
+    <button type="button" class="btn btn-default" [disabled]="loading" (click)="loadAudit(true)">
+      Load more audit events
+    </button>
+  }
+  <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
+</section>

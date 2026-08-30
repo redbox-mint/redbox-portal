@@ -1,0 +1,33 @@
+.scope-selector {
+  max-height: 28rem;
+  overflow: auto;
+}
+.scope-selector fieldset {
+  border: 1px solid #d7e0e7;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+}
+.scope-selector legend {
+  border: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  width: auto;
+}
+.scope-selector__row {
+  border-top: 1px solid #e6ecef;
+  padding: 0.75rem 0 0.25rem 1.25rem;
+}
+.scope-selector__row p {
+  color: #52667a;
+  margin: 0.35rem 0;
+}
+.scope-state {
+  display: block;
+  font-weight: 600;
+}
+.scope-status-warning {
+  color: #7a3e00;
+  display: block;
+  font-weight: 600;
+}

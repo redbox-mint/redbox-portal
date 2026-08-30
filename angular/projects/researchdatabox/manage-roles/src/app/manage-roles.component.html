@@ -1,114 +1,104 @@
 @if (isReady) {
-  <div class="col-md-offset-2 col-md-8">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <span class="panel-title">
-          {{ 'manage-roles-title' | i18next }}
-        </span>
+  <section class="authorization-admin" aria-labelledby="authorization-admin-heading">
+    <header class="authorization-admin__header">
+      <div>
+        <p class="authorization-admin__eyebrow">Administration</p>
+        <h1 id="authorization-admin-heading">Authorization</h1>
+        @if (projection?.brand; as brand) {
+          <p class="authorization-admin__context">
+            Active brand: <strong>{{ brand.name }}</strong>
+          </p>
+        }
       </div>
-      <div class="panel-body overflow-scroll">
-        <div class="input-group">
-          <span class="input-group-addon" id="name-addon">{{ 'manage-roles-filter-name' | i18next }}</span>
-          <input type="text" (keyup)="onFilterChange(null)" [(ngModel)]="searchFilter.name" class="form-control" placeholder="{{ 'manage-roles-filter-name-placeholder' | i18next }}" [attr.aria-label]="'manage-roles-filter-name' | i18next ">
-          <span (click)="resetFilter()" class="input-group-btn"><button class="btn btn-primary" type='button'>Reset</button></span>
+      @if (projection) {
+        <div class="rollout-summary" aria-label="Authorization rollout mode">
+          <span class="status-label">Rollout mode</span>
+          <strong>{{ projection.rolloutMode }}</strong>
         </div>
-        <div>
-          <br/>
-        </div>
-        <div class="row">
-          <div class="col-xs-3">
-            {{ 'manage-roles-filter-label' | i18next }}
-          </div>
-          <div class="col-xs-4" >
-            <fieldset>
-              <legend [hidden]="true"><span></span></legend>
-              @for (roleFilter of searchFilter.roles; track roleFilter) {
-                <div  >
-                  <input [checked]="roleFilter.checked" (change)="onFilterChange(roleFilter)" id="role-{{roleFilter.value}}" name="role-filter" type="radio" >
-                  <label for="role-{{roleFilter.value}}" >&nbsp;{{roleFilter.label}}</label>
-                </div>
-              }
-            </fieldset>
-          </div>
-          <div class="col-xs-4" ></div>
-        </div>
-        <div>
-          <br/>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped table-hover">
-            <thead>
-              <tr>
-                <th>{{ 'manage-roles-name' | i18next }}</th>
-                <th>{{ 'manage-roles-email' | i18next }}</th>
-                <th>{{ 'manage-roles-role' | i18next }}</th>
-                <th>{{ 'manage-roles-action' | i18next }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (user of filteredUsers; track user) {
-                <tr>
-                  <td>{{user.name}}</td>
-                  <td>{{user.email}}</td>
-                  <td>{{user.roleStr}}</td>
-                  <td>
-                    <a style="cursor:pointer" (click)="editUser(user.username)" >Edit</a>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+      }
+    </header>
+
+    @if (stagedRollout) {
+      <div class="alert alert-warning staged-notice" role="status">
+        Custom scope changes are evaluated by the new authorization engine, but are not authoritative while rollout mode
+        is
+        <strong>{{ projection?.rolloutMode }}</strong
+        >.
       </div>
-    </div>
-  </div>
-}
-<!-- Modal -->
-@if (isDetailsModalShown) {
-  <div [config]="{backdrop: 'static', show: true}" (onHidden)="onDetailsModalHidden()" bsModal #roleDetailsModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="detailsform" >
-    <div class="modal-dialog modal-md">
-      <!-- Modal content-->
-      <div class="modal-content">
-        <div class="modal-header">
-          <span class="modal-title h4-header">{{ 'manage-roles-edit' | i18next }}</span>
-        </div>
-        <div class="modal-body">
-          <form >
-            <div class="table-responsive">
-              <table class="table">
-                <tbody>
-                  <tr>
-                    <td>{{ 'manage-roles-name' | i18next }}</td>
-                    <td>{{currentUser.name}}</td>
-                  </tr>
-                  <tr>
-                    <td>{{ 'manage-roles-email' | i18next }}</td>
-                    <td>{{currentUser.email}}</td>
-                  </tr>
-                  <tr>
-                    <td>{{ 'manage-roles-role' | i18next }}</td>
-                    <td>
-                      @for (role of currentUser.newRoles; track role) {
-                        <div>
-                          <label class="checkbox-inline" for="cb_{{role.id}}">
-                            <input  id="cb_{{role.id}}" type="checkbox" value="{{role.id}}" [(ngModel)]="role.hasRole" [ngModelOptions]="{standalone: true}">
-                            {{role.name}}
-                          </label>
-                        </div>
-                      }
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </form>
-          <div class="bg-{{saveMsgType}} center-block">{{saveMsg}}</div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" (click)="saveCurrentUser($event)">{{ 'manage-roles-save' | i18next }}</button>
-          <button type="button" class="btn btn-default" (click)="hideDetailsModal()">{{ 'manage-roles-cancel' | i18next }}</button>
-        </div>
+    }
+
+    @if (projectionError) {
+      <div class="alert alert-danger" role="alert">
+        <strong>Authorization could not be loaded.</strong> {{ projectionError.message }}
+        @if (projectionError.requestId) {
+          <span>Request {{ projectionError.requestId }}.</span>
+        }
+        <button
+          class="btn btn-default btn-sm"
+          type="button"
+          [disabled]="loadingProjection"
+          (click)="reloadProjection(false)"
+        >
+          Retry
+        </button>
       </div>
-    </div>
-  </div>
+    }
+
+    @if (projection && availableTabs.length) {
+      <div class="authorization-tabs" role="tablist" aria-label="Authorization administration sections">
+        @for (tab of availableTabs; track tab.id; let index = $index) {
+          <button
+            #tabButton
+            type="button"
+            role="tab"
+            class="authorization-tabs__tab"
+            [class.authorization-tabs__tab--active]="activeTab === tab.id"
+            [id]="'authorization-tab-' + tab.id"
+            [attr.aria-selected]="activeTab === tab.id"
+            aria-controls="authorization-panel"
+            [attr.tabindex]="activeTab === tab.id ? 0 : -1"
+            (click)="selectTab(tab.id)"
+            (keydown)="onTabKeydown($event, index)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+
+      @if (activeTab; as selectedTab) {
+        <div
+          id="authorization-panel"
+          class="authorization-panel"
+          role="tabpanel"
+          [attr.aria-labelledby]="'authorization-tab-' + selectedTab"
+          tabindex="0"
+        >
+          @switch (selectedTab) {
+            @case ('roles') {
+              <authorization-role-list [scopeKeys]="projection.scopeKeys" (authorizationChanged)="reloadProjection()" />
+            }
+            @case ('assignments') {
+              <authorization-assignment-list
+                [scopeKeys]="projection.scopeKeys"
+                [effectiveRoles]="projection.roles"
+                (authorizationChanged)="reloadProjection()"
+              />
+            }
+            @case ('scopes') {
+              <authorization-scope-catalog [scopeKeys]="projection.scopeKeys" />
+            }
+            @case ('audit') {
+              <authorization-audit />
+            }
+          }
+        </div>
+      }
+    } @else if (projection) {
+      <div class="alert alert-warning" role="status">
+        You do not have access to any authorization administration section in this brand.
+      </div>
+    }
+
+    <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
+  </section>
 }

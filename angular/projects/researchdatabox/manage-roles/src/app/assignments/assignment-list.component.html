@@ -1,0 +1,279 @@
+<section aria-labelledby="assignments-heading" [attr.aria-busy]="loading || mutationPending">
+  <div class="section-heading">
+    <div>
+      <h2 id="assignments-heading">Assignments</h2>
+      <p>Each row is one source of authority. Revoking a manual row does not revoke external sources.</p>
+    </div>
+  </div>
+  @if (error) {
+    <div class="alert alert-danger" role="alert">
+      {{ error.message }}
+      @if (error.requestId) {
+        <span>Request {{ error.requestId }}.</span>
+      }
+      @if (error.isConflict) {
+        <button type="button" class="btn btn-default btn-sm" (click)="reloadAssignmentForComparison()">
+          Reload for comparison
+        </button>
+      }
+    </div>
+  }
+  @if (roleLoadError) {
+    <div class="alert alert-warning" role="status">
+      Role choices could not be loaded, so new grants are unavailable. {{ roleLoadError.message }}
+      @if (roleLoadError.requestId) {
+        <span>Request {{ roleLoadError.requestId }}.</span>
+      }
+    </div>
+  }
+
+  <form class="filter-grid" (submit)="$event.preventDefault(); loadAssignments(false)">
+    <div class="form-group">
+      <label for="assignment-user">User ID</label
+      ><input
+        id="assignment-user"
+        class="form-control"
+        type="search"
+        maxlength="256"
+        [(ngModel)]="userId"
+        name="userId"
+      />
+    </div>
+    <div class="form-group">
+      <label for="assignment-role">Role</label
+      ><select id="assignment-role" class="form-control" [(ngModel)]="roleKey" name="roleKey">
+        <option value="">Any role</option>
+        @for (role of availableRoles; track role.id) {
+          <option [value]="role.key">{{ role.displayName }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="assignment-source">Source</label
+      ><select id="assignment-source" class="form-control" [(ngModel)]="source" name="source">
+        <option value="">Any source</option>
+        <option value="manual">Manual</option>
+        <option value="onboarding">Onboarding</option>
+        <option value="migration">Migration</option>
+        <option value="external">External provider</option>
+        <option value="recovery">Recovery</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="assignment-status">Status</label
+      ><select id="assignment-status" class="form-control" [(ngModel)]="status" name="status">
+        <option value="">Any status</option>
+        <option value="active">Active</option>
+        <option value="revoked">Revoked</option>
+        <option value="suppressed">Suppressed</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="assignment-presence">Source presence</label
+      ><select id="assignment-presence" class="form-control" [(ngModel)]="sourcePresent" name="sourcePresent">
+        <option value="">Either</option>
+        <option value="true">Provider still requests</option>
+        <option value="false">Provider absent</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="assignment-expiry">Expiry</label
+      ><select id="assignment-expiry" class="form-control" [(ngModel)]="expiry" name="expiry">
+        <option value="">Any expiry</option>
+        <option value="expired">Expired</option>
+        <option value="unexpired">Unexpired</option>
+        <option value="never">Never expires</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-default" type="submit" [disabled]="loading">Apply filters</button
+      ><button class="btn btn-link" type="button" [disabled]="loading" (click)="resetFilters()">Reset</button>
+    </div>
+  </form>
+
+  @if (canManage) {
+    <section class="grant-panel" aria-labelledby="grant-assignment-heading">
+      <h3 id="grant-assignment-heading">
+        {{
+          editingManualAssignment ? 'Edit or reactivate a manual assignment' : 'Grant or reactivate a manual assignment'
+        }}
+      </h3>
+      @if (editingManualAssignment) {
+        <p class="help-block">The update will require the assignment version shown in the table.</p>
+      }
+      @if (serverComparisonAssignment) {
+        <div class="alert alert-info" role="status">
+          The server row is now version {{ serverComparisonAssignment.version }} with status
+          {{ serverComparisonAssignment.status }}. Your expiry and reason remain unchanged.
+          <button type="button" class="btn btn-default btn-sm" (click)="useServerAssignmentVersion()">
+            Use server version for retry
+          </button>
+        </div>
+      }
+      <div class="grant-grid">
+        <div class="form-group">
+          <label for="grant-user">User ID</label
+          ><input
+            id="grant-user"
+            class="form-control"
+            type="text"
+            maxlength="256"
+            [readonly]="editingManualAssignment"
+            [(ngModel)]="grantUserId"
+          />
+        </div>
+        <div class="form-group">
+          <label for="grant-role">Role</label
+          ><select id="grant-role" class="form-control" [disabled]="editingManualAssignment" [(ngModel)]="grantRoleKey">
+            <option value="">Select a role</option>
+            @for (role of availableRoles; track role.id) {
+              <option [value]="role.key" [disabled]="!grantRoleAllowed(role)">
+                {{ role.displayName }}
+                @if (role.protectedKind === 'guest') {
+                  — implicit Guest cannot be assigned
+                } @else if (!role.delegable) {
+                  — outside your delegation ceiling
+                }
+              </option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="grant-expiry"
+            >Expires at <span class="text-muted">(optional, {{ timezone }})</span></label
+          ><input id="grant-expiry" class="form-control" type="datetime-local" [(ngModel)]="grantExpiresAt" />
+        </div>
+        <div class="form-group">
+          <label for="assignment-reason">Reason <span class="text-muted">(optional)</span></label
+          ><input
+            id="assignment-reason"
+            class="form-control"
+            type="text"
+            maxlength="1000"
+            [(ngModel)]="mutationReason"
+          />
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary" [disabled]="mutationPending" (click)="grantAssignment()">
+        {{ editingManualAssignment ? 'Save expiry / reactivate' : 'Grant / reactivate' }}
+      </button>
+      @if (editingManualAssignment) {
+        <button type="button" class="btn btn-default" [disabled]="mutationPending" (click)="cancelManualEdit()">
+          Cancel edit
+        </button>
+      }
+    </section>
+  }
+
+  <div class="table-responsive">
+    <table class="table table-striped table-hover">
+      <caption class="sr-only">
+        Authorization assignment sources, provenance, expiry, and available source-specific actions
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">User / role</th>
+          <th scope="col">Source</th>
+          <th scope="col">Status</th>
+          <th scope="col">Assigned / expiry</th>
+          <th scope="col">Revocation / suppression</th>
+          <th scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (assignment of assignments; track assignment.id) {
+          <tr>
+            <td>
+              <code>{{ assignment.principalId }}</code
+              ><br /><strong>{{ assignment.roleKey }}</strong>
+            </td>
+            <td>
+              {{ assignment.source }} · {{ assignment.sourceKey }}<br /><span>{{
+                assignment.sourcePresent ? 'Provider present' : 'Provider absent'
+              }}</span>
+            </td>
+            <td>
+              <strong>{{ assignment.status }}</strong
+              ><br />Version {{ assignment.version }}
+            </td>
+            <td>
+              {{ assignment.assignedAt | date: 'medium' }} by {{ assignment.assignedBy }}<br />
+              @if (assignment.expiresAt) {
+                Expires {{ assignment.expiresAt | date: 'medium' }}
+              } @else {
+                Never expires
+              }
+            </td>
+            <td>
+              @if (assignment.revokedAt) {
+                Revoked {{ assignment.revokedAt | date: 'medium' }} by {{ assignment.revokedBy }}
+              }
+              @if (assignment.suppressedAt) {
+                Suppressed {{ assignment.suppressedAt | date: 'medium' }} by {{ assignment.suppressedBy }}
+              }
+              @if (!assignment.revokedAt && !assignment.suppressedAt) {
+                None
+              }
+            </td>
+            <td>
+              @if (canRevoke(assignment)) {
+                <button
+                  type="button"
+                  class="btn btn-warning btn-sm"
+                  [disabled]="mutationPending"
+                  (click)="revoke(assignment)"
+                >
+                  Revoke manual source
+                </button>
+              }
+              @if (canEditManualAssignment(assignment)) {
+                <button
+                  type="button"
+                  class="btn btn-default btn-sm"
+                  [disabled]="mutationPending"
+                  (click)="editManualAssignment(assignment)"
+                >
+                  Edit expiry / reactivate
+                </button>
+              }
+              @if (canSuppress(assignment)) {
+                <button
+                  type="button"
+                  class="btn btn-warning btn-sm"
+                  [disabled]="mutationPending"
+                  (click)="suppress(assignment)"
+                >
+                  Suppress external source
+                </button>
+              }
+              @if (canUnsuppress(assignment)) {
+                <button
+                  type="button"
+                  class="btn btn-default btn-sm"
+                  [disabled]="mutationPending"
+                  (click)="unsuppress(assignment)"
+                >
+                  Remove suppression
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6">{{ loading ? 'Loading assignments…' : 'No assignment sources match these filters.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="help-block">
+    Local suppression survives claim synchronization. Removing suppression activates the source only if the provider
+    still requests it.
+  </p>
+  @if (nextCursor) {
+    <button type="button" class="btn btn-default" [disabled]="loading" (click)="loadAssignments(true)">
+      Load more assignments
+    </button>
+  }
+  <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
+</section>

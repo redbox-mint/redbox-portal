@@ -18,7 +18,7 @@ export const baseAssetIncludes = [
   '/styles/theme.css',
   '/js/jquery.min.js',
   '/js/bootstrap.bundle.min.js',
-  '/js/index.bundle.js'
+  '/js/index.bundle.js',
 ];
 
 export const smokeRoutes: SmokeRoute[] = [
@@ -28,7 +28,7 @@ export const smokeRoutes: SmokeRoute[] = [
     type: 'ejs',
     requiredSelectors: ['#main-title', '.main.container'],
     fallbackSelectors: [],
-    requiredAssetIncludes: []
+    requiredAssetIncludes: [],
   },
   {
     path: '/default/rdmp/user/login',
@@ -39,10 +39,7 @@ export const smokeRoutes: SmokeRoute[] = [
     setupSelectors: ['#adminLoginShow a[data-bs-target="#adminLogin"]'],
     requiredSelectors: ['#username', '#password', 'button[type="submit"]'],
     fallbackSelectors: ['local-auth img[src$="/images/loading.svg"]'],
-    requiredAssetIncludes: [
-      '/angular/local-auth/browser/polyfills',
-      '/angular/local-auth/browser/main'
-    ]
+    requiredAssetIncludes: ['/angular/local-auth/browser/polyfills', '/angular/local-auth/browser/main'],
   },
   {
     path: '/default/rdmp/record/search',
@@ -54,8 +51,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/record-search/browser/polyfills',
       '/angular/record-search/browser/main',
-      '/angular/record-search/browser/styles'
-    ]
+      '/angular/record-search/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/dashboard/rdmp',
@@ -67,8 +64,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/dashboard/browser/polyfills',
       '/angular/dashboard/browser/main',
-      '/angular/dashboard/browser/styles'
-    ]
+      '/angular/dashboard/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/record/rdmp/edit',
@@ -80,8 +77,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/form/browser/polyfills',
       '/angular/form/browser/main',
-      '/angular/form/browser/styles'
-    ]
+      '/angular/form/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin',
@@ -89,7 +86,7 @@ export const smokeRoutes: SmokeRoute[] = [
     type: 'ejs',
     requiredSelectors: ['.admin-main-content h1', '.admin-sidebar'],
     fallbackSelectors: [],
-    requiredAssetIncludes: []
+    requiredAssetIncludes: [],
   },
   {
     path: '/default/rdmp/admin/api-docs',
@@ -99,7 +96,12 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['#redoc'],
     fallbackSelectors: ['#redoc img[src$="/images/loading.svg"]'],
     includeBaseAssets: false,
-    requiredAssetIncludes: ['/default/default/js/redoc.standalone.js', '/default/default/js/admin-api-docs-bootstrap.js', '/default/default/js/admin-api-docs-init.js', '/admin/api-docs/openapi.json']
+    requiredAssetIncludes: [
+      '/default/default/js/redoc.standalone.js',
+      '/default/default/js/admin-api-docs-bootstrap.js',
+      '/default/default/js/admin-api-docs-init.js',
+      '/admin/api-docs/openapi.json',
+    ],
   },
   {
     path: '/default/rdmp/admin/reports',
@@ -112,8 +114,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/report-config/browser/polyfills',
       '/angular/report-config/browser/main',
-      '/angular/report-config/browser/styles'
-    ]
+      '/angular/report-config/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/users',
@@ -125,21 +127,26 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/manage-users/browser/polyfills',
       '/angular/manage-users/browser/main',
-      '/angular/manage-users/browser/styles'
-    ]
+      '/angular/manage-users/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/roles',
     auth: 'admin',
     type: 'angular',
     rootSelector: 'manage-roles',
-    requiredSelectors: ['manage-roles table', '#role-Admin', 'input[aria-label="Search for name"]'],
+    requiredSelectors: [
+      '#authorization-admin-heading',
+      '[role="tablist"]',
+      '#authorization-tab-roles',
+      'authorization-role-list table',
+    ],
     fallbackSelectors: ['manage-roles img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/manage-roles/browser/polyfills',
       '/angular/manage-roles/browser/main',
-      '/angular/manage-roles/browser/styles'
-    ]
+      '/angular/manage-roles/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/vocabulary/manager',
@@ -151,8 +158,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/admin-vocabulary/browser/polyfills',
       '/angular/admin-vocabulary/browser/main',
-      '/angular/admin-vocabulary/browser/styles'
-    ]
+      '/angular/admin-vocabulary/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/appconfig/edit/systemMessage',
@@ -164,8 +171,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/app-config/browser/polyfills',
       '/angular/app-config/browser/main',
-      '/angular/app-config/browser/styles'
-    ]
+      '/angular/app-config/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/branding',
@@ -177,8 +184,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/branding/browser/polyfills',
       '/angular/branding/browser/main',
-      '/angular/branding/browser/styles'
-    ]
+      '/angular/branding/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/translation',
@@ -190,8 +197,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/translation/browser/polyfills',
       '/angular/translation/browser/main',
-      '/angular/translation/browser/styles'
-    ]
+      '/angular/translation/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/deletedRecords',
@@ -203,8 +210,8 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/deleted-records/browser/polyfills',
       '/angular/deleted-records/browser/main',
-      '/angular/deleted-records/browser/styles'
-    ]
+      '/angular/deleted-records/browser/styles',
+    ],
   },
   {
     path: '/default/rdmp/admin/harvest-runs',
@@ -216,7 +223,7 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredAssetIncludes: [
       '/angular/harvest-runs/browser/polyfills',
       '/angular/harvest-runs/browser/main',
-      '/angular/harvest-runs/browser/styles'
-    ]
-  }
+      '/angular/harvest-runs/browser/styles',
+    ],
+  },
 ];

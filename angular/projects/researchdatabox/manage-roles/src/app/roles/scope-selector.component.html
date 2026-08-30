@@ -1,0 +1,42 @@
+<section aria-labelledby="scope-selector-heading">
+  <h3 id="scope-selector-heading">Effective scopes</h3>
+  <label for="scope-selector-filter">Filter scopes</label>
+  <input
+    id="scope-selector-filter"
+    class="form-control"
+    type="search"
+    [(ngModel)]="filter"
+    placeholder="Key, label, or description"
+  />
+  <p class="help-block">Template base, local additions, removals, and effective state are shown separately.</p>
+  <div class="scope-selector">
+    @for (group of groups; track group.namespace) {
+      <fieldset>
+        <legend>{{ group.namespace }}</legend>
+        @for (scope of group.scopes; track scope.key) {
+          <div class="checkbox scope-selector__row">
+            <label [for]="'scope-' + scope.key">
+              <input
+                type="checkbox"
+                [id]="'scope-' + scope.key"
+                [checked]="isSelected(scope.key)"
+                [disabled]="selectionDisabled(scope)"
+                [attr.aria-describedby]="'scope-state-' + scope.key"
+                (change)="onToggle(scope, $event)"
+              />
+              <strong>{{ scope.label }}</strong> <code>{{ scope.key }}</code>
+            </label>
+            <span class="label label-default">Risk: {{ scope.risk }}</span>
+            <span class="scope-state" [id]="'scope-state-' + scope.key">{{ stateLabel(scope) }}</span>
+            @if (scope.status !== 'active') {
+              <span class="scope-status-warning">Status: {{ scope.status }}; it cannot be newly selected.</span>
+            }
+            <p>{{ scope.description }}</p>
+          </div>
+        }
+      </fieldset>
+    } @empty {
+      <p>No scopes match this filter.</p>
+    }
+  </div>
+</section>
