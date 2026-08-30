@@ -283,6 +283,7 @@ function collectBindings(sourceFile) {
   const earliestTemporalBoundaryPositions = new WeakMap();
   const literalAtoms = new Map();
   const positionalMutationAtoms = new Map();
+  const positionalLengthApplications = new WeakMap();
   const positionalMutationApplications = new WeakMap();
   const syntheticCarrierAtoms = new WeakMap();
   const invocationEvidence = new WeakMap();
@@ -609,8 +610,11 @@ function collectBindings(sourceFile) {
       unknownProperty: new Set(),
       positional,
       exactPositionalLengths: new Set(),
+      positionalLengthWriteRank: undefined,
       positionalLengths: new Set(),
       positionalOverflowStart: undefined,
+      overflowPositionalProperties: new Map(),
+      overflowPositionalPropertiesUncertain: false,
       overflowPositionalOwnProperties: new Set(),
       overflowPositionalValues: new Set(),
       positionalUncertain: false,
@@ -2274,6 +2278,27 @@ function collectBindings(sourceFile) {
     );
   }
 
+  function boundedOverflowPropertyValue(carrier, propertyName) {
+    if (!carrier.positional || !/^(0|[1-9]\d*)$/.test(propertyName)) return undefined;
+    const index = Number(propertyName);
+    if (
+      !Number.isSafeInteger(index) ||
+      index < maximumTrackedInvocationArguments ||
+      index >= maximumTrackedInvocationArguments * 2
+    ) {
+      return undefined;
+    }
+    return carrier.overflowPositionalProperties.get(index);
+  }
+
+  function overflowPropertyIsPreciselyModeled(carrier, propertyName) {
+    return (
+      (!carrier.overflowPositionalPropertiesUncertain &&
+        boundedOverflowPropertyValue(carrier, propertyName) !== undefined) ||
+      carrier.deletedProperties.has(propertyName)
+    );
+  }
+
   function getProperty(value, propertyNames, node, includeUncertainPositionalValues = true) {
     const result = new Set();
     for (const atom of value) {
@@ -2349,6 +2374,13 @@ function collectBindings(sourceFile) {
         for (const propertyName of propertyNames) {
           const propertyValue = atom.properties.get(propertyName);
           if (propertyValue) mergeValue(result, propertyValue);
+          const boundedOverflowValue = boundedOverflowPropertyValue(atom, propertyName);
+          if (boundedOverflowValue) {
+            mergeValue(result, boundedOverflowValue);
+            if (hasUnsafePositionalValue(boundedOverflowValue)) {
+              mergeValue(result, unknownReflectiveCallableValue());
+            }
+          }
           const accessor = atom.accessors.get(propertyName);
           if (accessor) mergeValue(result, accessorReturnedValues(accessor.get, value));
           const hasOwnProperty =
@@ -2374,7 +2406,10 @@ function collectBindings(sourceFile) {
         atom.positionalOverflowStart !== undefined &&
         (propertyNames === undefined ||
           propertyNames.some(
-            propertyName => /^(0|[1-9]\d*)$/.test(propertyName) && Number(propertyName) >= atom.positionalOverflowStart
+            propertyName =>
+              /^(0|[1-9]\d*)$/.test(propertyName) &&
+              Number(propertyName) >= atom.positionalOverflowStart &&
+              !overflowPropertyIsPreciselyModeled(atom, propertyName)
           ))
       ) {
         mergeValue(result, atom.overflowPositionalValues);
@@ -2431,6 +2466,32 @@ function collectBindings(sourceFile) {
       if (carrier.positional && /^(0|[1-9]\d*)$/.test(propertyName)) {
         const index = Number(propertyName);
         if (Number.isSafeInteger(index) && index >= maximumTrackedInvocationArguments) {
+          if (index < maximumTrackedInvocationArguments * 2) {
+            const boundedValue = new Set(value);
+            if (
+              boundedValue.has(origins.builtinEval) ||
+              boundedValue.has(origins.lodashTemplate) ||
+              hasUnsafePositionalValue(boundedValue)
+            ) {
+              mergeValue(boundedValue, unknownReflectiveCallableValue());
+            }
+            let target = carrier.overflowPositionalProperties.get(index);
+            if (!target) {
+              target = new Set();
+              carrier.overflowPositionalProperties.set(index, target);
+            }
+            const newerStrongWrite =
+              strong && writeRank && (!previousWriteRank || rankPrecedes(previousWriteRank, writeRank));
+            if (newerStrongWrite) replaceTracked(target, boundedValue, carrier);
+            else mergeCarrierProperty(carrier, target, boundedValue);
+            if (writeRank && (!previousWriteRank || !rankEquals(writeRank, previousWriteRank))) {
+              carrier.propertyWriteRanks.set(propertyName, writeRank);
+            }
+            if (strong && value.size === 0) {
+              carrier.overflowPositionalProperties.delete(index);
+              if (carrier.overflowPositionalOwnProperties.delete(index)) notifyPropagationSubscribers(carrier);
+            }
+          }
           mergeCarrierPositionalOverflow(carrier, maximumTrackedInvocationArguments, value);
           if (strong && value.size > 0) mergeCarrierOverflowOwnProperties(carrier, new Set([index]));
           continue;
@@ -2463,6 +2524,10 @@ function collectBindings(sourceFile) {
 
   function mergeCarrierPositionalOverflow(carrier, overflowStart, overflowValues) {
     if (overflowStart === undefined) return;
+    const writeRank = deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode);
+    if (writeRank && carrier.positionalLengthWriteRank && rankPrecedes(writeRank, carrier.positionalLengthWriteRank)) {
+      return;
+    }
     let changed = false;
     const boundedStart = Math.max(0, Math.min(overflowStart, maximumTrackedInvocationArguments));
     if (carrier.positionalOverflowStart === undefined || boundedStart < carrier.positionalOverflowStart) {
@@ -2474,6 +2539,10 @@ function collectBindings(sourceFile) {
   }
 
   function mergeCarrierOverflowOwnProperties(carrier, propertyIndices) {
+    const writeRank = deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode);
+    if (writeRank && carrier.positionalLengthWriteRank && rankPrecedes(writeRank, carrier.positionalLengthWriteRank)) {
+      return;
+    }
     let changed = false;
     const maximumIndex = maximumTrackedInvocationArguments * 2;
     for (const index of propertyIndices) {
@@ -2506,7 +2575,46 @@ function collectBindings(sourceFile) {
     );
   }
 
+  function replaceCarrierOverflowProperties(carrier, properties) {
+    let changed = false;
+    for (const index of [...carrier.overflowPositionalProperties.keys()]) {
+      if (properties.has(index)) continue;
+      carrier.overflowPositionalProperties.delete(index);
+      changed = true;
+    }
+    for (const [index, value] of properties) {
+      let stored = carrier.overflowPositionalProperties.get(index);
+      if (!stored) {
+        stored = new Set();
+        carrier.overflowPositionalProperties.set(index, stored);
+        changed = true;
+      }
+      replaceTracked(stored, value, carrier);
+    }
+    replaceCarrierOverflowOwnProperties(carrier, new Set(properties.keys()));
+    if (carrier.overflowPositionalPropertiesUncertain) {
+      carrier.overflowPositionalPropertiesUncertain = false;
+      changed = true;
+    }
+    if (changed) notifyPropagationSubscribers(carrier);
+  }
+
+  function finalizeOverflowPropertyMutation(carrier, properties) {
+    if (properties) {
+      replaceCarrierOverflowProperties(carrier, properties);
+      return;
+    }
+    if (!carrier.overflowPositionalPropertiesUncertain) {
+      carrier.overflowPositionalPropertiesUncertain = true;
+      notifyPropagationSubscribers(carrier);
+    }
+  }
+
   function mergeCarrierExactPositionalLengths(carrier, lengths) {
+    const writeRank = deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode);
+    if (writeRank && carrier.positionalLengthWriteRank && rankPrecedes(writeRank, carrier.positionalLengthWriteRank)) {
+      return;
+    }
     let changed = false;
     for (const length of lengths) {
       if (!Number.isSafeInteger(length) || length < 0 || carrier.exactPositionalLengths.has(length)) continue;
@@ -2544,6 +2652,10 @@ function collectBindings(sourceFile) {
   }
 
   function mergeCarrierPositionalState(carrier, lengths, positionalUncertain, uncertainValues) {
+    const writeRank = deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode);
+    if (writeRank && carrier.positionalLengthWriteRank && rankPrecedes(writeRank, carrier.positionalLengthWriteRank)) {
+      return;
+    }
     let changed = false;
     for (const length of lengths) {
       const boundedLength = Math.min(length, maximumTrackedInvocationArguments);
@@ -2831,6 +2943,7 @@ function collectBindings(sourceFile) {
           if (typeof atom === 'string') mergeValue(result, specialProperty(atom, undefined));
         } else {
           const propertyValue = target.properties.get(propertyName);
+          const boundedOverflowValue = boundedOverflowPropertyValue(target, propertyName);
           const accessor = target.accessors.get(propertyName);
           hasOwnProperty =
             accessor !== undefined ||
@@ -2838,6 +2951,7 @@ function collectBindings(sourceFile) {
               (!target.positional || !/^(0|[1-9]\d*)$/.test(propertyName) || propertyValue.size > 0)) ||
             positionalOverflowPropertyIsDefinitelyPresent(target, propertyName);
           if (propertyValue) mergeValue(result, propertyValue);
+          if (boundedOverflowValue) mergeValue(result, boundedOverflowValue);
           if (accessor) mergeValue(result, accessorReturnedValues(accessor.get, receiverValue));
           if (target.positional && /^(0|[1-9]\d*)$/.test(propertyName)) {
             const index = Number(propertyName);
@@ -2847,7 +2961,8 @@ function collectBindings(sourceFile) {
             if (
               target.positionalOverflowStart !== undefined &&
               Number.isSafeInteger(index) &&
-              index >= target.positionalOverflowStart
+              index >= target.positionalOverflowStart &&
+              !overflowPropertyIsPreciselyModeled(target, propertyName)
             ) {
               mergeValue(result, retainReflectiveCallableProvenance(target.overflowPositionalValues));
             }
@@ -2965,11 +3080,79 @@ function collectBindings(sourceFile) {
     return lengths.size > 0 ? lengths : undefined;
   }
 
+  function applyDeterministicPositionalLength(carrier, length, writeRank) {
+    const previousLengthWriteRank = carrier.propertyWriteRanks.get('length');
+    if (writeRank && previousLengthWriteRank && rankPrecedes(writeRank, previousLengthWriteRank)) return;
+    if (writeRank) carrier.positionalLengthWriteRank = writeRank;
+    let changed = false;
+    for (const [propertyName, propertyValue] of carrier.properties) {
+      if (!/^(0|[1-9]\d*)$/.test(propertyName) || Number(propertyName) < length) continue;
+      replaceTracked(propertyValue, new Set(), carrier);
+      if (writeRank) carrier.propertyWriteRanks.set(propertyName, writeRank);
+      if (!carrier.deletedProperties.has(propertyName)) {
+        carrier.deletedProperties.add(propertyName);
+        changed = true;
+      }
+    }
+    for (const [propertyName, accessor] of carrier.accessors) {
+      if (!/^(0|[1-9]\d*)$/.test(propertyName) || Number(propertyName) < length) continue;
+      if (accessor.get.size > 0 || accessor.set.size > 0) {
+        replaceTracked(accessor.get, new Set(), carrier);
+        replaceTracked(accessor.set, new Set(), carrier);
+        changed = true;
+      }
+      if (writeRank) carrier.propertyWriteRanks.set(propertyName, writeRank);
+      if (!carrier.deletedProperties.has(propertyName)) {
+        carrier.deletedProperties.add(propertyName);
+        changed = true;
+      }
+    }
+    const boundedEnd = maximumTrackedInvocationArguments * 2;
+    for (let index = Math.max(length, maximumTrackedInvocationArguments); index < boundedEnd; index += 1) {
+      if (carrier.overflowPositionalProperties.delete(index)) changed = true;
+      if (carrier.overflowPositionalOwnProperties.delete(index)) changed = true;
+      const propertyName = String(index);
+      if (writeRank) carrier.propertyWriteRanks.set(propertyName, writeRank);
+      if (!carrier.deletedProperties.has(propertyName)) {
+        carrier.deletedProperties.add(propertyName);
+        changed = true;
+      }
+    }
+    replaceCarrierExactPositionalLengths(carrier, new Set([length]));
+    replaceCarrierPositionalLengths(carrier, new Set([length]));
+    if (length <= maximumTrackedInvocationArguments) {
+      replaceCarrierPositionalOverflow(carrier, undefined, new Set());
+    } else if (carrier.positionalOverflowStart === undefined) {
+      mergeCarrierPositionalOverflow(carrier, maximumTrackedInvocationArguments, new Set());
+    }
+    if (changed) notifyPropagationSubscribers(carrier);
+  }
+
+  function deterministicPositionalLengthAlreadyApplied(carrier, length) {
+    const node = activePropagationOperation?.node ?? activeAnalysisNode;
+    const state = activeFunctionInvocationState();
+    const applications = state ? (state.positionalLengthApplications ??= new WeakMap()) : positionalLengthApplications;
+    let carriers = applications.get(node);
+    if (!carriers) {
+      carriers = new WeakMap();
+      applications.set(node, carriers);
+    }
+    let lengths = carriers.get(carrier);
+    if (!lengths) {
+      lengths = new Set();
+      carriers.set(carrier, lengths);
+    }
+    if (lengths.has(length)) return true;
+    lengths.add(length);
+    return false;
+  }
+
   function invalidatePositionalTargets(
     targetValue,
     propertyNames,
     additionalValues = new Set(),
-    forceKnownIndices = false
+    forceKnownIndices = false,
+    strong = false
   ) {
     if (!propertyNamesAffectPositionalLayout(propertyNames)) return;
     for (const atom of targetValue) {
@@ -2980,6 +3163,16 @@ function collectBindings(sourceFile) {
         if (propertyNames?.length === 1 && propertyNames[0] === 'length') {
           const lengths = positionalLengthValues(additionalValues);
           if (lengths) {
+            if (strong && lengths.size === 1 && targetValue.size === 1 && activeAlternativeMutationDepth === 0) {
+              const length = [...lengths][0];
+              if (deterministicPositionalLengthAlreadyApplied(atom, length)) continue;
+              applyDeterministicPositionalLength(
+                atom,
+                length,
+                deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
+              );
+              continue;
+            }
             mergeCarrierPositionalState(
               atom,
               new Set([...lengths].map(length => Math.min(length, maximumTrackedInvocationArguments))),
@@ -3105,35 +3298,7 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function positionalWritesFromCarriers(values, descriptors = false) {
-    const writtenValues = new Set();
-    let mayAffectLayout = values.length === 0;
-    for (const value of values) {
-      if (value.size === 0) mayAffectLayout = true;
-      for (const atom of value) {
-        if (typeof atom === 'string' || atom.kind === 'unknown-value') {
-          mayAffectLayout = true;
-          if (typeof atom !== 'string') writtenValues.add(atom);
-          continue;
-        }
-        if (atom.kind !== 'carrier') continue;
-        trackPropagationDependency(atom);
-        if (atom.unknownProperty.size > 0) {
-          mayAffectLayout = true;
-          mergeValue(writtenValues, atom.unknownProperty);
-        }
-        for (const [propertyName, propertyValue] of atom.properties) {
-          if (!propertyNamesAffectPositionalLayout([propertyName])) continue;
-          mayAffectLayout = true;
-          mergeValue(writtenValues, propertyValue);
-          if (descriptors) mergeValue(writtenValues, getProperty(propertyValue, ['get', 'set', 'value']));
-        }
-      }
-    }
-    return { mayAffectLayout, writtenValues };
-  }
-
-  function applyObjectAssign(targetValue, sourceValues) {
+  function applyObjectAssign(targetValue, sourceValues, writeNode) {
     for (const sourceValue of sourceValues) {
       for (const source of sourceValue) {
         if (typeof source !== 'string' && source.kind === 'unknown-value') {
@@ -3149,11 +3314,11 @@ function collectBindings(sourceFile) {
           const propertyValue = observedPropertyValue(new Set([source]), propertyNames);
           const invokesTargetSetter = accessorMayRun(targetValue, propertyNames, 'set');
           if (invokesTargetSetter) invalidatePositionalTargets(targetValue, undefined, unknownValue());
-          invalidatePositionalTargets(targetValue, propertyNames, propertyValue);
+          invalidatePositionalTargets(targetValue, propertyNames, propertyValue, false, !invokesTargetSetter);
           if (propertyName === '__proto__' && invokesTargetSetter) {
             setCarrierPrototypes(targetValue, propertyValue, true);
           } else {
-            recordTargetProperty(targetValue, propertyNames, propertyValue);
+            recordTargetProperty(targetValue, propertyNames, propertyValue, writeNode, !invokesTargetSetter);
           }
         }
         if (source.unknownProperty.size > 0 || source.unknownAccessors.get.size > 0) {
@@ -3169,9 +3334,10 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function definePropertiesOnTarget(targetValue, descriptorsValue) {
+  function definePropertiesOnTarget(targetValue, descriptorsValue, writeNode) {
     for (const descriptors of descriptorsValue) {
       if (typeof descriptors === 'string' || descriptors.kind === 'unknown-value') {
+        invalidatePositionalTargets(targetValue, undefined, unknownReflectiveCallableValue());
         recordTargetProperty(targetValue, undefined, unknownReflectiveCallableValue());
         recordTargetAccessor(targetValue, undefined, 'get', unknownReflectiveCallableValue());
         recordTargetAccessor(targetValue, undefined, 'set', unknownReflectiveCallableValue());
@@ -3183,7 +3349,11 @@ function collectBindings(sourceFile) {
         const descriptorValue = observedPropertyValue(new Set([descriptors]), [propertyName]);
         recordDescriptorAccessors(targetValue, [propertyName], descriptorValue);
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
-        if (dataValue.size > 0) recordTargetProperty(targetValue, [propertyName], dataValue);
+        const accessorDescriptor = ['get', 'set'].some(field => descriptorFieldValues(descriptorValue, field).size > 0);
+        if (dataValue.size > 0) {
+          invalidatePositionalTargets(targetValue, [propertyName], dataValue, false, !accessorDescriptor);
+          recordTargetProperty(targetValue, [propertyName], dataValue, writeNode, !accessorDescriptor);
+        }
       }
       if (
         descriptors.unknownProperty.size > 0 ||
@@ -3192,6 +3362,7 @@ function collectBindings(sourceFile) {
         descriptors.unknownSpreadSource
       ) {
         invalidateAccessorReceiver(new Set([descriptors]), undefined, 'get', new Set([descriptors]));
+        invalidatePositionalTargets(targetValue, undefined, unknownReflectiveCallableValue());
         recordTargetProperty(targetValue, undefined, unknownReflectiveCallableValue());
         recordTargetAccessor(targetValue, undefined, 'get', unknownReflectiveCallableValue());
         recordTargetAccessor(targetValue, undefined, 'set', unknownReflectiveCallableValue());
@@ -3239,13 +3410,15 @@ function collectBindings(sourceFile) {
 
   function hasExactMutationArguments(invocationNode, method) {
     const callee = unwrapExpression(invocationNode.expression);
-    if (!ts.isPropertyAccessExpression(callee) && !ts.isElementAccessExpression(callee)) return false;
+    if (!ts.isPropertyAccessExpression(callee) && !ts.isElementAccessExpression(callee)) {
+      return activeAlternativeMutationDepth === 0;
+    }
     const propertyNames = memberPropertyNames(callee);
-    return (
+    const directExactArguments =
       propertyNames?.length === 1 &&
       propertyNames[0] === method &&
-      ![...invocationNode.arguments].some(ts.isSpreadElement)
-    );
+      ![...invocationNode.arguments].some(ts.isSpreadElement);
+    return directExactArguments || activeAlternativeMutationDepth === 0;
   }
 
   function transformedExactPositionalLengths(method, argumentValues, invocationNode, exactLengths) {
@@ -3341,7 +3514,34 @@ function collectBindings(sourceFile) {
     return result;
   }
 
-  function transformedOverflowOwnProperties(method, argumentValues, invocationNode, receiver, exactLength) {
+  function indexedPropertyValueForMutation(receiver, index) {
+    const propertyName = String(index);
+    if (!receiver.deletedProperties.has(propertyName)) {
+      const ownValue =
+        index < maximumTrackedInvocationArguments
+          ? receiver.properties.get(propertyName)
+          : receiver.overflowPositionalProperties.get(index);
+      if (ownValue && ownValue.size > 0) {
+        const result = new Set(ownValue);
+        if (index >= maximumTrackedInvocationArguments && receiver.overflowPositionalPropertiesUncertain) {
+          mergeValue(result, receiver.overflowPositionalValues);
+        }
+        if (
+          index >= maximumTrackedInvocationArguments &&
+          (result.has(origins.builtinEval) || result.has(origins.lodashTemplate) || hasUnsafePositionalValue(result))
+        ) {
+          mergeValue(result, unknownReflectiveCallableValue());
+        }
+        return result;
+      }
+      if (index >= maximumTrackedInvocationArguments && receiver.overflowPositionalOwnProperties.has(index)) {
+        return new Set(receiver.overflowPositionalValues);
+      }
+    }
+    return prototypePropertyValues(effectivePrototypes(receiver), [propertyName], new Set([receiver]));
+  }
+
+  function transformedOverflowProperties(method, argumentValues, invocationNode, receiver, exactLength) {
     let newLength = exactLength;
     let positionalSource;
 
@@ -3349,7 +3549,8 @@ function collectBindings(sourceFile) {
       const start = singleNormalizedPositionalIndexArgument(argumentValues[1], 0, exactLength);
       const end = singleNormalizedPositionalIndexArgument(argumentValues[2], exactLength, exactLength);
       if (start === undefined || end === undefined) return undefined;
-      positionalSource = index => (index >= start && index < end ? true : index);
+      positionalSource = index =>
+        index >= start && index < end ? (argumentValues[0] ?? literalValue(undefined)) : index;
     } else if (method === 'copyWithin') {
       const target = singleNormalizedPositionalIndexArgument(argumentValues[0], 0, exactLength);
       const start = singleNormalizedPositionalIndexArgument(argumentValues[1], 0, exactLength);
@@ -3385,25 +3586,19 @@ function collectBindings(sourceFile) {
       newLength = exactLength - deleteCount + insertedLength;
       positionalSource = index => {
         if (index < start) return index;
-        if (index < start + insertedLength) return true;
+        if (index < start + insertedLength) return spliceArguments[index - start + 2];
         return index - insertedLength + deleteCount;
       };
     } else {
       return undefined;
     }
 
-    const result = new Set();
+    const result = new Map();
     const trackedEnd = Math.min(newLength, maximumTrackedInvocationArguments * 2);
     for (let index = maximumTrackedInvocationArguments; index < trackedEnd; index += 1) {
       const source = positionalSource(index);
-      if (
-        source === true ||
-        (source < maximumTrackedInvocationArguments
-          ? (receiver.properties.get(String(source))?.size ?? 0) > 0 && !receiver.deletedProperties.has(String(source))
-          : receiver.overflowPositionalOwnProperties.has(source) && !receiver.deletedProperties.has(String(source)))
-      ) {
-        result.add(index);
-      }
+      const value = typeof source === 'number' ? indexedPropertyValueForMutation(receiver, source) : new Set(source);
+      if (value.size > 0) result.set(index, value);
     }
     return result;
   }
@@ -3419,8 +3614,8 @@ function collectBindings(sourceFile) {
     }
     const layout = expansion.layouts[0];
     const exactLength = [...expansion.exactPositionalLengths][0];
-    const overflowOwnProperties = strong
-      ? transformedOverflowOwnProperties(method, argumentValues, invocationNode, receiver, exactLength)
+    const overflowProperties = strong
+      ? transformedOverflowProperties(method, argumentValues, invocationNode, receiver, exactLength)
       : undefined;
     const trackedEnd = Math.min(expansion.positionalOverflowStart, layout.length);
     const writeRank = deterministicWriteRank(invocationNode);
@@ -3453,7 +3648,7 @@ function collectBindings(sourceFile) {
           start <= expansion.positionalOverflowStart && end >= exactLength
         );
       }
-      if (overflowOwnProperties) replaceCarrierOverflowOwnProperties(receiver, overflowOwnProperties);
+      finalizeOverflowPropertyMutation(receiver, overflowProperties);
       return true;
     }
 
@@ -3468,7 +3663,7 @@ function collectBindings(sourceFile) {
       for (let index = Math.min(target, trackedEnd); index < trackedDestinationEnd; index += 1) {
         const sourceIndex = start + index - target;
         const copiedValue =
-          sourceIndex < trackedEnd ? layout[sourceIndex] : overflowPositionValue(expansion, layout[index]);
+          sourceIndex < trackedEnd ? layout[sourceIndex] : indexedPropertyValueForMutation(receiver, sourceIndex);
         replacePosition(index, copiedValue);
       }
       if (destinationEnd > expansion.positionalOverflowStart) {
@@ -3478,7 +3673,7 @@ function collectBindings(sourceFile) {
         const overflowWrites = positionalRangeValues(expansion, layout, overflowSourceStart, overflowSourceEnd);
         updateOverflow(overflowWrites, target <= expansion.positionalOverflowStart && destinationEnd >= exactLength);
       }
-      if (overflowOwnProperties) replaceCarrierOverflowOwnProperties(receiver, overflowOwnProperties);
+      finalizeOverflowPropertyMutation(receiver, overflowProperties);
       return true;
     }
 
@@ -3487,14 +3682,14 @@ function collectBindings(sourceFile) {
         const sourceIndex = exactLength - index - 1;
         replacePosition(
           index,
-          sourceIndex < trackedEnd ? layout[sourceIndex] : overflowPositionValue(expansion, layout[index])
+          sourceIndex < trackedEnd ? layout[sourceIndex] : indexedPropertyValueForMutation(receiver, sourceIndex)
         );
       }
       updateOverflow(
         positionalRangeValues(expansion, layout, 0, exactLength - expansion.positionalOverflowStart),
         true
       );
-      if (overflowOwnProperties) replaceCarrierOverflowOwnProperties(receiver, overflowOwnProperties);
+      finalizeOverflowPropertyMutation(receiver, overflowProperties);
       return true;
     }
 
@@ -3539,7 +3734,7 @@ function collectBindings(sourceFile) {
             ? new Set()
             : sourceIndex < trackedEnd
               ? layout[sourceIndex]
-              : overflowPositionValue(expansion, layout[index]);
+              : indexedPropertyValueForMutation(receiver, sourceIndex);
         replacePosition(index, shiftedValue);
       }
       const overflowWrites = new Set();
@@ -3576,7 +3771,7 @@ function collectBindings(sourceFile) {
         mergeCarrierPositionalState(receiver, lengths, false, new Set());
         mergeOverflowWrites(overflowWrites);
       }
-      if (overflowOwnProperties) replaceCarrierOverflowOwnProperties(receiver, overflowOwnProperties);
+      finalizeOverflowPropertyMutation(receiver, overflowProperties);
       return true;
     }
 
@@ -3790,10 +3985,7 @@ function collectBindings(sourceFile) {
       return true;
     }
     if (atom === origins.objectAssign) {
-      const writes = positionalWritesFromCarriers(argumentValues.slice(1));
-      if (writes.mayAffectLayout)
-        invalidatePositionalTargets(argumentValues[0] ?? new Set(), undefined, writes.writtenValues);
-      applyObjectAssign(argumentValues[0] ?? new Set(), argumentValues.slice(1));
+      applyObjectAssign(argumentValues[0] ?? new Set(), argumentValues.slice(1), invocationNode);
       return true;
     }
     if (atom === origins.reflectDeleteProperty) {
@@ -3820,30 +4012,35 @@ function collectBindings(sourceFile) {
         atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty
           ? ['get', 'set'].some(field => descriptorFieldValues(argumentValues[2] ?? new Set(), field).size > 0)
           : false;
-      invalidatePositionalTargets(argumentValues[0] ?? new Set(), propertyNames, assignedValue, accessorDescriptor);
+      invalidatePositionalTargets(
+        argumentValues[0] ?? new Set(),
+        propertyNames,
+        assignedValue,
+        accessorDescriptor,
+        !accessorDescriptor && atom !== origins.reflectSet
+      );
       if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
         const descriptorValue = argumentValues[2] ?? new Set();
         recordDescriptorAccessors(argumentValues[0] ?? new Set(), propertyNames, descriptorValue);
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
-        if (dataValue.size > 0) recordTargetProperty(argumentValues[0] ?? new Set(), propertyNames, dataValue);
+        if (dataValue.size > 0) {
+          recordTargetProperty(argumentValues[0] ?? new Set(), propertyNames, dataValue, invocationNode, true);
+        }
       } else {
         const receiver = argumentValues.length > 3 ? argumentValues[3] : argumentValues[0];
-        invalidatePositionalTargets(receiver ?? new Set(), propertyNames, assignedValue);
         const invokesSetter = accessorMayRun(argumentValues[0] ?? new Set(), propertyNames, 'set');
+        invalidatePositionalTargets(receiver ?? new Set(), propertyNames, assignedValue, false, !invokesSetter);
         if (invokesSetter) invalidatePositionalTargets(receiver ?? new Set(), undefined, unknownValue());
         if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
           setCarrierPrototypes(receiver ?? new Set(), argumentValues[2] ?? new Set(), true);
         } else {
-          recordTargetProperty(receiver ?? new Set(), propertyNames, assignedValue);
+          recordTargetProperty(receiver ?? new Set(), propertyNames, assignedValue, invocationNode, true);
         }
       }
       return true;
     }
     if (atom === origins.objectDefineProperties) {
-      const writes = positionalWritesFromCarriers([argumentValues[1] ?? new Set()], true);
-      if (writes.mayAffectLayout)
-        invalidatePositionalTargets(argumentValues[0] ?? new Set(), undefined, writes.writtenValues);
-      definePropertiesOnTarget(argumentValues[0] ?? new Set(), argumentValues[1] ?? new Set());
+      definePropertiesOnTarget(argumentValues[0] ?? new Set(), argumentValues[1] ?? new Set(), invocationNode);
       return true;
     }
     if (atom === origins.objectSetPrototypeOf || atom === origins.reflectSetPrototypeOf) {
@@ -6337,6 +6534,17 @@ function collectBindings(sourceFile) {
       mergeCarrierPositionalState(carrier, lengths, expansion.uncertainPositioning, expansion.uncertainValues);
       if (![...current.elements].some(ts.isSpreadElement)) {
         mergeCarrierExactPositionalLengths(carrier, new Set([current.elements.length]));
+        for (const [offset, element] of current.elements
+          .slice(maximumTrackedInvocationArguments, maximumTrackedInvocationArguments * 2)
+          .entries()) {
+          if (ts.isOmittedExpression(element)) continue;
+          putCarrierProperty(
+            carrier,
+            [String(maximumTrackedInvocationArguments + offset)],
+            evaluateExpression(element),
+            deterministicWriteRank(element)
+          );
+        }
         mergeCarrierOverflowOwnProperties(
           carrier,
           new Set(
@@ -6479,7 +6687,7 @@ function collectBindings(sourceFile) {
       const targetValue = evaluateExpression(current.expression);
       const invokesSetter = accessorMayRun(targetValue, propertyNames, 'set');
       if (invokesSetter) invalidatePositionalTargets(targetValue, undefined, unknownValue());
-      invalidatePositionalTargets(targetValue, propertyNames, value);
+      invalidatePositionalTargets(targetValue, propertyNames, value, false, !invokesSetter);
       if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
         setCarrierPrototypes(targetValue, value, propertyNames?.includes('__proto__') === true);
       } else {
