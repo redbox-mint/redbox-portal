@@ -3147,6 +3147,27 @@ function collectBindings(sourceFile) {
     return false;
   }
 
+  function recordPossiblePositionalLengthTruncation(carrier, minimumLength, writeRank) {
+    if (writeRank && carrier.positionalLengthWriteRank && rankPrecedes(writeRank, carrier.positionalLengthWriteRank)) {
+      return;
+    }
+    if (writeRank) carrier.positionalLengthWriteRank = writeRank;
+    const propertyNames = new Set([...carrier.properties.keys(), ...carrier.accessors.keys()]);
+    for (const index of carrier.overflowPositionalOwnProperties) propertyNames.add(String(index));
+    let changed = false;
+    for (const propertyName of propertyNames) {
+      if (!/^(0|[1-9]\d*)$/.test(propertyName) || Number(propertyName) < minimumLength) continue;
+      const previousWriteRank = carrier.propertyWriteRanks.get(propertyName);
+      if (writeRank && previousWriteRank && rankPrecedes(writeRank, previousWriteRank)) continue;
+      if (writeRank) carrier.propertyWriteRanks.set(propertyName, writeRank);
+      if (!carrier.deletedProperties.has(propertyName)) {
+        carrier.deletedProperties.add(propertyName);
+        changed = true;
+      }
+    }
+    if (changed) notifyPropagationSubscribers(carrier);
+  }
+
   function invalidatePositionalTargets(
     targetValue,
     propertyNames,
@@ -3173,6 +3194,11 @@ function collectBindings(sourceFile) {
               );
               continue;
             }
+            recordPossiblePositionalLengthTruncation(
+              atom,
+              Math.min(...lengths),
+              deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
+            );
             mergeCarrierPositionalState(
               atom,
               new Set([...lengths].map(length => Math.min(length, maximumTrackedInvocationArguments))),
@@ -3181,6 +3207,11 @@ function collectBindings(sourceFile) {
             );
             continue;
           }
+          recordPossiblePositionalLengthTruncation(
+            atom,
+            0,
+            deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
+          );
         }
         invalidateCarrierPositionalLayout(atom, retainReflectiveCallableProvenance(additionalValues));
       } else if (typeof atom === 'string') {

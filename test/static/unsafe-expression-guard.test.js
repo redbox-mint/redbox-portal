@@ -6452,6 +6452,203 @@ test('deterministic length truncation exposes inherited callables and clears sta
   }
 });
 
+test('conditional length truncation exposes inherited callables through every supported write mechanism', () => {
+  const mutationCases = [
+    {
+      name: 'direct assignment',
+      mutation: 'values.length=nextLength;',
+    },
+    {
+      name: 'helper-forwarded assignment',
+      prefix: 'function setLength(value,length){value.length=length}',
+      mutation: 'setLength(values,nextLength);',
+    },
+    {
+      name: 'Reflect.set',
+      mutation: "Reflect.set(values,'length',nextLength);",
+    },
+    {
+      name: 'Object.assign',
+      mutation: 'Object.assign(values,{length:nextLength});',
+    },
+    {
+      name: 'Object.defineProperty',
+      mutation: "Object.defineProperty(values,'length',{value:nextLength});",
+    },
+    {
+      name: 'Reflect.defineProperty',
+      mutation: "Reflect.defineProperty(values,'length',{value:nextLength});",
+    },
+    {
+      name: 'Object.defineProperties',
+      mutation: 'Object.defineProperties(values,{length:{value:nextLength}});',
+    },
+  ];
+  const scenarios = [
+    {
+      name: 'index 1 across lengths 1/2',
+      setup: `const prototype=[];prototype[1]=eval;
+        const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);`,
+      length: 'const nextLength=flag?1:2;',
+      invocation: 'values[1](configuredSource);',
+    },
+    {
+      name: 'index 64 across lengths 64/65',
+      setup: `const prototype=[];prototype[64]=eval;
+        const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);`,
+      length: 'const nextLength=flag?64:65;',
+      invocation: 'values[64](configuredSource);',
+    },
+    {
+      name: 'index 65 across lengths 64/65',
+      setup: `const prototype=[];prototype[65]=eval;
+        const values=Array(66).fill(JSON.parse);Object.setPrototypeOf(values,prototype);`,
+      length: 'const nextLength=flag?64:65;',
+      invocation: 'values[65](configuredSource);',
+    },
+  ];
+
+  for (const [scenarioIndex, scenario] of scenarios.entries()) {
+    for (const [mutationIndex, mutationCase] of mutationCases.entries()) {
+      const source = `${mutationCase.prefix ?? ''}${scenario.setup}${scenario.length}
+        ${mutationCase.mutation}${scenario.invocation}`;
+      const relativePath = `packages/example/src/conditional-length-truncation-${scenarioIndex}-${mutationIndex}.ts`;
+      const firstFindings = scanSource(source, relativePath);
+      const secondFindings = scanSource(source, relativePath);
+      assert.deepEqual(firstFindings, secondFindings, `${mutationCase.name}, ${scenario.name} should be deterministic`);
+      assert.ok(
+        firstFindings.some(finding => finding.kind === 'direct-eval'),
+        `${mutationCase.name}, ${scenario.name} should expose inherited eval: ${JSON.stringify(firstFindings)}`
+      );
+      assert.ok(firstFindings.length <= 2, `${mutationCase.name}, ${scenario.name} diagnostics should remain bounded`);
+    }
+  }
+
+  const safeCases = [
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextLength=flag?1:2;values.length=nextLength;values[0]('{}');`,
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextLength=flag?2:3;values.length=nextLength;values[1]('{}');`,
+    `const prototype=[];prototype[1]=JSON.parse;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextLength=flag?1:2;values.length=nextLength;values[1]('{}');`,
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextLength=flag?1:2;values.length=nextLength;values[1]=JSON.parse;values[1]('{}');`,
+    `const prototype=[];prototype[63]=eval;
+      const values=Array(64).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      const nextLength=flag?64:65;values.length=nextLength;values[63]('{}');`,
+    `const prototype=[];prototype[1]=eval;
+      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+      const nextValue=flag?1:2;values.size=nextValue;values[1]('{}');`,
+  ];
+  for (const [index, source] of safeCases.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-conditional-length-update-${index}.ts`),
+      [],
+      `safe conditional length control ${index} should retain bounded precision`
+    );
+  }
+
+  const unknownScenarios = [
+    {
+      name: 'index 1',
+      setup: `const prototype=[];prototype[1]=eval;
+        const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);`,
+      invocation: 'values[1](configuredSource);',
+    },
+    {
+      name: 'index 64',
+      setup: `const prototype=[];prototype[64]=eval;
+        const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);`,
+      invocation: 'values[64](configuredSource);',
+    },
+    {
+      name: 'index 65',
+      setup: `const prototype=[];prototype[65]=eval;
+        const values=Array(66).fill(JSON.parse);Object.setPrototypeOf(values,prototype);`,
+      invocation: 'values[65](configuredSource);',
+    },
+  ];
+  for (const [scenarioIndex, scenario] of unknownScenarios.entries()) {
+    for (const [mutationIndex, mutationCase] of mutationCases.entries()) {
+      const source = `${mutationCase.prefix ?? ''}${scenario.setup}const nextLength=loadLength();
+        ${mutationCase.mutation}${scenario.invocation}`;
+      const relativePath = `packages/example/src/unknown-length-truncation-${scenarioIndex}-${mutationIndex}.ts`;
+      const firstFindings = scanSource(source, relativePath);
+      const secondFindings = scanSource(source, relativePath);
+      assert.deepEqual(
+        firstFindings,
+        secondFindings,
+        `${mutationCase.name}, unknown ${scenario.name} should be deterministic`
+      );
+      assert.ok(
+        firstFindings.some(finding => finding.kind === 'direct-eval'),
+        `${mutationCase.name}, unknown ${scenario.name} should retain inherited eval: ${JSON.stringify(firstFindings)}`
+      );
+      assert.ok(
+        firstFindings.length <= 2,
+        `${mutationCase.name}, unknown ${scenario.name} diagnostics should remain bounded`
+      );
+    }
+  }
+});
+
+test('conditional length alternatives execute vulnerable and safe runtime branches', () => {
+  const markerKey = '__a12_conditional_length_truncation_marker__';
+  const mutationCases = [
+    ['direct', '', 'values.length=nextLength;'],
+    ['helper', 'function setLength(value,length){value.length=length}', 'setLength(values,nextLength);'],
+    ['reflect-set', '', "Reflect.set(values,'length',nextLength);"],
+    ['assign', '', 'Object.assign(values,{length:nextLength});'],
+    ['define', '', "Object.defineProperty(values,'length',{value:nextLength});"],
+    ['reflect-define', '', "Reflect.defineProperty(values,'length',{value:nextLength});"],
+    ['defines', '', 'Object.defineProperties(values,{length:{value:nextLength}});'],
+  ];
+  const branches = mutationCases.flatMap(([name, prefix, mutation]) =>
+    [true, false].map(
+      flag => `{${prefix}const flag=${flag};const prototype=[];prototype[1]=eval;
+        const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
+        const nextLength=flag?1:2;${mutation}
+        if(flag)values[1](mark('${name}-unsafe'));
+        else{values[1]('{}');globalThis.${markerKey}.push('${name}-safe')}}`
+    )
+  );
+  branches.push(`{for(const flag of [true,false]){const prototype=[];prototype[64]=eval;
+    const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+    const nextLength=flag?64:65;values.length=nextLength;
+    if(flag)values[64](mark('index-64-unsafe'));
+    else{values[64]('{}');globalThis.${markerKey}.push('index-64-safe')}}}`);
+  branches.push(`{for(const flag of [true,false]){const prototype=[];prototype[65]=eval;
+    const values=Array(66).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+    const nextLength=flag?64:65;values.length=nextLength;
+    if(flag)values[65](mark('index-65-unsafe'));
+    else{values[64]('{}');globalThis.${markerKey}.push('index-65-safe')}}}`);
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...branches,
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), [
+    ...mutationCases.flatMap(([name]) => [`${name}-unsafe`, `${name}-safe`]),
+    'index-64-unsafe',
+    'index-64-safe',
+    'index-65-unsafe',
+    'index-65-safe',
+  ]);
+});
+
 test('deterministic length truncation mechanisms execute isolated runtime markers', () => {
   const markerKey = '__a12_length_truncation_marker__';
   const source = [
