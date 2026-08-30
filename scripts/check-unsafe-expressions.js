@@ -515,18 +515,31 @@ function collectBindings(sourceFile) {
     return false;
   }
 
-  function deterministicWriteRank(node) {
-    if (!node || hasConditionalExecution(node) || followsTemporalBoundary(node)) return undefined;
+  function orderedWriteRank(node, allowConditionalExecution = false) {
+    if (!node || (!allowConditionalExecution && hasConditionalExecution(node)) || followsTemporalBoundary(node)) {
+      return undefined;
+    }
     if (enclosingFunctionNode(node) && activeFunctionInvocationNodes.length === 0) return undefined;
     const rank = [];
     for (const invocationNode of activeFunctionInvocationNodes) {
-      if (ts.isFunctionLike(invocationNode) || hasConditionalExecution(invocationNode)) {
+      if (
+        ts.isFunctionLike(invocationNode) ||
+        (!allowConditionalExecution && hasConditionalExecution(invocationNode))
+      ) {
         return undefined;
       }
       rank.push(invocationNode.getStart(sourceFile));
     }
     rank.push(node.getStart(sourceFile));
     return rank;
+  }
+
+  function deterministicWriteRank(node) {
+    return orderedWriteRank(node);
+  }
+
+  function uncertainWriteRank(node) {
+    return orderedWriteRank(node, true);
   }
 
   function followsTemporalBoundary(node) {
@@ -617,6 +630,8 @@ function collectBindings(sourceFile) {
       positionalOverflowStart: undefined,
       overflowPositionalProperties: new Map(),
       overflowPositionalPropertiesUncertain: false,
+      overflowPositionalPropertiesUncertaintyUnranked: false,
+      overflowPositionalPropertiesUncertaintyWriteRank: undefined,
       overflowPositionalOwnProperties: new Set(),
       overflowPositionalValues: new Set(),
       positionalUncertain: false,
@@ -2266,19 +2281,15 @@ function collectBindings(sourceFile) {
   }
 
   function positionalOverflowPropertyIsDefinitelyPresent(carrier, propertyName) {
-    if (
-      !carrier.positional ||
-      carrier.positionalUncertain ||
-      carrier.positionalOverflowStart === undefined ||
-      !/^(0|[1-9]\d*)$/.test(propertyName)
-    ) {
+    if (!carrier.positional || carrier.positionalOverflowStart === undefined || !/^(0|[1-9]\d*)$/.test(propertyName)) {
       return false;
     }
     const index = Number(propertyName);
     return (
       Number.isSafeInteger(index) &&
       index >= carrier.positionalOverflowStart &&
-      carrier.overflowPositionalOwnProperties.has(index)
+      carrier.overflowPositionalOwnProperties.has(index) &&
+      (!carrier.positionalUncertain || strongPropertyWriteSupersedesPositionalUncertainty(carrier, propertyName))
     );
   }
 
@@ -2297,8 +2308,10 @@ function collectBindings(sourceFile) {
 
   function overflowPropertyIsPreciselyModeled(carrier, propertyName) {
     return (
-      (!carrier.overflowPositionalPropertiesUncertain &&
-        boundedOverflowPropertyValue(carrier, propertyName) !== undefined) ||
+      (boundedOverflowPropertyValue(carrier, propertyName) !== undefined &&
+        (!carrier.positionalUncertain || strongPropertyWriteSupersedesPositionalUncertainty(carrier, propertyName)) &&
+        (!carrier.overflowPositionalPropertiesUncertain ||
+          strongPropertyWriteSupersedesOverflowUncertainty(carrier, propertyName))) ||
       carrier.deletedProperties.has(propertyName)
     );
   }
@@ -2310,6 +2323,16 @@ function collectBindings(sourceFile) {
       strongWriteRank !== undefined &&
       carrier.positionalUncertaintyWriteRank !== undefined &&
       rankPrecedes(carrier.positionalUncertaintyWriteRank, strongWriteRank)
+    );
+  }
+
+  function strongPropertyWriteSupersedesOverflowUncertainty(carrier, propertyName) {
+    const strongWriteRank = carrier.strongPropertyWriteRanks?.get(propertyName);
+    return (
+      !carrier.overflowPositionalPropertiesUncertaintyUnranked &&
+      strongWriteRank !== undefined &&
+      carrier.overflowPositionalPropertiesUncertaintyWriteRank !== undefined &&
+      rankPrecedes(carrier.overflowPositionalPropertiesUncertaintyWriteRank, strongWriteRank)
     );
   }
 
@@ -2652,6 +2675,14 @@ function collectBindings(sourceFile) {
       carrier.overflowPositionalPropertiesUncertain = false;
       changed = true;
     }
+    if (carrier.overflowPositionalPropertiesUncertaintyUnranked) {
+      carrier.overflowPositionalPropertiesUncertaintyUnranked = false;
+      changed = true;
+    }
+    if (carrier.overflowPositionalPropertiesUncertaintyWriteRank !== undefined) {
+      carrier.overflowPositionalPropertiesUncertaintyWriteRank = undefined;
+      changed = true;
+    }
     if (changed) notifyPropagationSubscribers(carrier);
   }
 
@@ -2660,10 +2691,25 @@ function collectBindings(sourceFile) {
       replaceCarrierOverflowProperties(carrier, properties);
       return;
     }
+    let changed = false;
     if (!carrier.overflowPositionalPropertiesUncertain) {
       carrier.overflowPositionalPropertiesUncertain = true;
-      notifyPropagationSubscribers(carrier);
+      changed = true;
     }
+    const writeRank = uncertainWriteRank(activePropagationOperation?.node ?? activeAnalysisNode);
+    if (!writeRank) {
+      if (!carrier.overflowPositionalPropertiesUncertaintyUnranked) {
+        carrier.overflowPositionalPropertiesUncertaintyUnranked = true;
+        changed = true;
+      }
+    } else if (
+      !carrier.overflowPositionalPropertiesUncertaintyWriteRank ||
+      rankPrecedes(carrier.overflowPositionalPropertiesUncertaintyWriteRank, writeRank)
+    ) {
+      carrier.overflowPositionalPropertiesUncertaintyWriteRank = writeRank;
+      changed = true;
+    }
+    if (changed) notifyPropagationSubscribers(carrier);
   }
 
   function mergeCarrierExactPositionalLengths(carrier, lengths) {
@@ -2708,22 +2754,24 @@ function collectBindings(sourceFile) {
   }
 
   function mergeCarrierPositionalState(carrier, lengths, positionalUncertain, uncertainValues) {
-    const writeRank = deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode);
+    const writeNode = activePropagationOperation?.node ?? activeAnalysisNode;
+    const writeRank = deterministicWriteRank(writeNode);
     if (writeRank && carrier.positionalLengthWriteRank && rankPrecedes(writeRank, carrier.positionalLengthWriteRank)) {
       return;
     }
     let changed = false;
     if (positionalUncertain) {
-      if (!writeRank) {
+      const uncertaintyWriteRank = uncertainWriteRank(writeNode);
+      if (!uncertaintyWriteRank) {
         if (!carrier.positionalUncertaintyUnranked) {
           carrier.positionalUncertaintyUnranked = true;
           changed = true;
         }
       } else if (
         !carrier.positionalUncertaintyWriteRank ||
-        rankPrecedes(carrier.positionalUncertaintyWriteRank, writeRank)
+        rankPrecedes(carrier.positionalUncertaintyWriteRank, uncertaintyWriteRank)
       ) {
-        carrier.positionalUncertaintyWriteRank = writeRank;
+        carrier.positionalUncertaintyWriteRank = uncertaintyWriteRank;
         changed = true;
       }
     }
@@ -3271,7 +3319,7 @@ function collectBindings(sourceFile) {
             recordPossiblePositionalLengthTruncation(
               atom,
               Math.min(...lengths),
-              deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
+              uncertainWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
             );
             mergeCarrierPositionalState(
               atom,
@@ -3284,7 +3332,7 @@ function collectBindings(sourceFile) {
           recordPossiblePositionalLengthTruncation(
             atom,
             0,
-            deterministicWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
+            uncertainWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
           );
         }
         invalidateCarrierPositionalLayout(atom, retainReflectiveCallableProvenance(additionalValues));
@@ -4122,14 +4170,20 @@ function collectBindings(sourceFile) {
         propertyNames,
         assignedValue,
         accessorDescriptor,
-        !accessorDescriptor && atom !== origins.reflectSet
+        !accessorDescriptor && atom === origins.objectDefineProperty
       );
       if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
         const descriptorValue = argumentValues[2] ?? new Set();
         recordDescriptorAccessors(argumentValues[0] ?? new Set(), propertyNames, descriptorValue);
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
         if (dataValue.size > 0) {
-          recordTargetProperty(argumentValues[0] ?? new Set(), propertyNames, dataValue, invocationNode, true);
+          recordTargetProperty(
+            argumentValues[0] ?? new Set(),
+            propertyNames,
+            dataValue,
+            invocationNode,
+            atom === origins.objectDefineProperty
+          );
         }
       } else {
         const receiver = argumentValues.length > 3 ? argumentValues[3] : argumentValues[0];
@@ -4139,7 +4193,7 @@ function collectBindings(sourceFile) {
         if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
           setCarrierPrototypes(receiver ?? new Set(), argumentValues[2] ?? new Set(), true);
         } else {
-          recordTargetProperty(receiver ?? new Set(), propertyNames, assignedValue, invocationNode, true);
+          recordTargetProperty(receiver ?? new Set(), propertyNames, assignedValue, invocationNode);
         }
       }
       return true;
