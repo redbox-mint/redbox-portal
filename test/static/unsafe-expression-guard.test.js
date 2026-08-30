@@ -6596,6 +6596,148 @@ test('conditional length truncation exposes inherited callables through every su
   }
 });
 
+test('failed reflective indexed replacements preserve inherited callable provenance', () => {
+  const failureCases = [
+    {
+      name: 'direct Reflect.set blocked by an inherited non-writable slot at index 1',
+      index: 1,
+      prototype: "Object.defineProperty(prototype,'1',{value:eval,writable:false});",
+      mutation: "Reflect.set(values,'1',JSON.parse);",
+    },
+    {
+      name: 'helper Reflect.set blocked by an inherited non-writable slot at index 64',
+      index: 64,
+      prefix: "function replace(value){Reflect.set(value,'64',JSON.parse)}",
+      prototype: "Object.defineProperty(prototype,'64',{value:eval,writable:false});",
+      mutation: 'replace(values);',
+    },
+    {
+      name: 'direct Reflect.set blocked by non-extensibility at index 65',
+      index: 65,
+      prototype: 'prototype[65]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: "Reflect.set(values,'65',JSON.parse);",
+    },
+    {
+      name: 'direct Reflect.defineProperty blocked by non-extensibility at index 1',
+      index: 1,
+      prototype: 'prototype[1]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: "Reflect.defineProperty(values,'1',{value:JSON.parse});",
+    },
+    {
+      name: 'helper Reflect.defineProperty blocked by non-extensibility at index 64',
+      index: 64,
+      prefix: "function replace(value){Reflect.defineProperty(value,'64',{value:JSON.parse})}",
+      prototype: 'prototype[64]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: 'replace(values);',
+    },
+    {
+      name: 'direct Reflect.defineProperty blocked by non-extensibility at index 65',
+      index: 65,
+      prototype: 'prototype[65]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: "Reflect.defineProperty(values,'65',{value:JSON.parse});",
+    },
+  ];
+
+  for (const [caseIndex, failureCase] of failureCases.entries()) {
+    const source = `${failureCase.prefix ?? ''}const prototype=[];${failureCase.prototype}
+      const values=Array(${failureCase.index + 1}).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      values.length=loadLength();${failureCase.beforeMutation ?? ''}${failureCase.mutation}
+      values[${failureCase.index}](configuredSource);`;
+    const relativePath = `packages/example/src/failed-reflective-indexed-replacement-${caseIndex}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${failureCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${failureCase.name} should preserve inherited eval: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(
+      firstFindings.some(
+        finding => finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable'
+      ),
+      `${failureCase.name} should retain reflective uncertainty: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${failureCase.name} diagnostics should remain bounded`);
+  }
+});
+
+test('failed reflective indexed replacements execute isolated runtime markers', () => {
+  const markerKey = '__a12_failed_reflective_replacement_marker__';
+  const cases = [
+    {
+      name: 'set-inherited-1',
+      index: 1,
+      prototype: "Object.defineProperty(prototype,'1',{value:eval,writable:false});",
+      mutation: "Reflect.set(values,'1',JSON.parse)",
+    },
+    {
+      name: 'set-helper-64',
+      index: 64,
+      prefix: "function replace(value){return Reflect.set(value,'64',JSON.parse)}",
+      prototype: "Object.defineProperty(prototype,'64',{value:eval,writable:false});",
+      mutation: 'replace(values)',
+    },
+    {
+      name: 'set-prevent-65',
+      index: 65,
+      prototype: 'prototype[65]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: "Reflect.set(values,'65',JSON.parse)",
+    },
+    {
+      name: 'define-prevent-1',
+      index: 1,
+      prototype: 'prototype[1]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: "Reflect.defineProperty(values,'1',{value:JSON.parse})",
+    },
+    {
+      name: 'define-helper-64',
+      index: 64,
+      prefix: "function replace(value){return Reflect.defineProperty(value,'64',{value:JSON.parse})}",
+      prototype: 'prototype[64]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: 'replace(values)',
+    },
+    {
+      name: 'define-prevent-65',
+      index: 65,
+      prototype: 'prototype[65]=eval;',
+      beforeMutation: 'Object.preventExtensions(values);',
+      mutation: "Reflect.defineProperty(values,'65',{value:JSON.parse})",
+    },
+  ];
+  const branches = cases.map(
+    failureCase => `{${failureCase.prefix ?? ''}const prototype=[];${failureCase.prototype}
+      const values=Array(${failureCase.index + 1}).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      values.length=${failureCase.index};${failureCase.beforeMutation ?? ''}
+      const succeeded=${failureCase.mutation};globalThis.${markerKey}.push('${failureCase.name}-write-'+succeeded);
+      values[${failureCase.index}](mark('${failureCase.name}-eval'));}`
+  );
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...branches,
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(failureCase => [`${failureCase.name}-write-false`, `${failureCase.name}-eval`])
+  );
+});
+
 test('opaque length writes are superseded by later strong indexed replacements', () => {
   const mutationCases = [
     ['direct assignment', '', 'values.length=nextLength;'],
@@ -6610,33 +6752,140 @@ test('opaque length writes are superseded by later strong indexed replacements',
     ['Reflect.defineProperty', '', "Reflect.defineProperty(values,'length',{value:nextLength});"],
     ['Object.defineProperties', '', 'Object.defineProperties(values,{length:{value:nextLength}});'],
   ];
+  const replacementCases = [
+    ['direct replacement', '', 'values[replacementIndex]=JSON.parse;'],
+    [
+      'helper-forwarded replacement',
+      'function replaceIndex(value,index){value[index]=JSON.parse}',
+      'replaceIndex(values,replacementIndex);',
+    ],
+  ];
+  const scenarios = [
+    ['index 1', 1],
+    ['index 64', 64],
+    ['index 65', 65],
+  ];
 
-  for (const [index, [name, prefix, mutation]] of mutationCases.entries()) {
-    const source = `${prefix}const prototype=[];prototype[1]=eval;
-      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
-      const nextLength=loadLength();${mutation}
-      values[1]=JSON.parse;values[1]('{}');`;
-    const relativePath = `packages/example/src/safe-opaque-length-replacement-${index}.ts`;
-    const firstFindings = scanSource(source, relativePath);
-    const secondFindings = scanSource(source, relativePath);
-    assert.deepEqual(firstFindings, secondFindings, `${name} should be deterministic`);
-    assert.deepEqual(firstFindings, [], `${name} should retain the later definite slot replacement`);
+  for (const [scenarioIndex, [scenarioName, replacementIndex]] of scenarios.entries()) {
+    for (const [mutationIndex, [mutationName, mutationPrefix, mutation]] of mutationCases.entries()) {
+      for (const [
+        replacementCaseIndex,
+        [replacementName, replacementPrefix, replacement],
+      ] of replacementCases.entries()) {
+        const source = `${mutationPrefix}${replacementPrefix}const replacementIndex=${replacementIndex};
+          const prototype=[];prototype[replacementIndex]=eval;
+          const values=Array(replacementIndex+1).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+          const nextLength=loadLength();${mutation}${replacement}values[replacementIndex]('{}');`;
+        const relativePath = `packages/example/src/safe-opaque-length-replacement-${scenarioIndex}-${mutationIndex}-${replacementCaseIndex}.ts`;
+        const firstFindings = scanSource(source, relativePath);
+        const secondFindings = scanSource(source, relativePath);
+        assert.deepEqual(
+          firstFindings,
+          secondFindings,
+          `${mutationName}, ${replacementName}, ${scenarioName} should be deterministic`
+        );
+        assert.deepEqual(
+          firstFindings,
+          [],
+          `${mutationName}, ${replacementName}, ${scenarioName} should retain only the later definite slot replacement`
+        );
+      }
+    }
   }
 
-  const unresolvedSource = `const prototype=[];prototype[1]=eval;
-    const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
-    values.length=loadLength();values[1](configuredSource);`;
-  const unresolvedFindings = scanSource(
-    unresolvedSource,
-    'packages/example/src/unresolved-opaque-length-replacement-control.ts'
-  );
-  assert.ok(unresolvedFindings.some(finding => finding.kind === 'direct-eval'));
-  assert.ok(
-    unresolvedFindings.some(
-      finding => finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable'
-    )
-  );
-  assert.ok(unresolvedFindings.length <= 2, 'unresolved opaque length diagnostics should remain bounded');
+  const unresolvedScenarios = [
+    [1, 2],
+    [64, 65],
+    [65, 64],
+  ];
+  for (const [scenarioIndex, [replacementIndex, unresolvedIndex]] of unresolvedScenarios.entries()) {
+    const source = `const prototype=[];prototype[${replacementIndex}]=eval;prototype[${unresolvedIndex}]=eval;
+      const values=Array(${Math.max(replacementIndex, unresolvedIndex) + 1}).fill(JSON.parse);
+      Object.setPrototypeOf(values,prototype);values.length=loadLength();
+      values[${replacementIndex}]=JSON.parse;values[${unresolvedIndex}](configuredSource);`;
+    const relativePath = `packages/example/src/unresolved-opaque-length-replacement-control-${scenarioIndex}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `unresolved slot control ${scenarioIndex} should be deterministic`);
+    assert.ok(firstFindings.some(finding => finding.kind === 'direct-eval'));
+    assert.ok(
+      firstFindings.some(
+        finding => finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable'
+      )
+    );
+    assert.ok(firstFindings.length <= 2, `unresolved slot control ${scenarioIndex} should remain bounded`);
+  }
+});
+
+test('later strong replacements supersede earlier conditional length-write uncertainty', () => {
+  const mutationCases = [
+    ['conditional direct write', '', 'if(flag)values.length=loadLength();'],
+    ['conditional helper call', 'function setLength(value){value.length=loadLength()}', 'if(flag)setLength(values);'],
+    ['conditional helper body', 'function setLength(value){if(flag)value.length=loadLength()}', 'setLength(values);'],
+  ];
+  const replacementCases = [
+    ['direct replacement', '', 'values[replacementIndex]=JSON.parse;'],
+    [
+      'helper-forwarded replacement',
+      'function replaceIndex(value,index){value[index]=JSON.parse}',
+      'replaceIndex(values,replacementIndex);',
+    ],
+  ];
+
+  for (const [scenarioIndex, replacementIndex] of [1, 64, 65].entries()) {
+    for (const [mutationIndex, [mutationName, mutationPrefix, mutation]] of mutationCases.entries()) {
+      for (const [
+        replacementCaseIndex,
+        [replacementName, replacementPrefix, replacement],
+      ] of replacementCases.entries()) {
+        const source = `${mutationPrefix}${replacementPrefix}const replacementIndex=${replacementIndex};
+          const prototype=[];prototype[replacementIndex]=eval;
+          const values=Array(replacementIndex+1).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+          ${mutation}${replacement}values[replacementIndex]('{}');`;
+        const relativePath = `packages/example/src/safe-conditional-length-replacement-${scenarioIndex}-${mutationIndex}-${replacementCaseIndex}.ts`;
+        const firstFindings = scanSource(source, relativePath);
+        const secondFindings = scanSource(source, relativePath);
+        assert.deepEqual(
+          firstFindings,
+          secondFindings,
+          `${mutationName}, ${replacementName}, index ${replacementIndex} should be deterministic`
+        );
+        assert.deepEqual(
+          firstFindings,
+          [],
+          `${mutationName}, ${replacementName}, index ${replacementIndex} should retain the later strong write`
+        );
+      }
+    }
+  }
+
+  for (const [scenarioIndex, replacementIndex] of [1, 64, 65].entries()) {
+    for (const [mutationIndex, [mutationName, mutationPrefix, mutation]] of mutationCases.entries()) {
+      const source = `${mutationPrefix}const replacementIndex=${replacementIndex};
+        const prototype=[];prototype[replacementIndex]=eval;
+        const values=Array(replacementIndex+1).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+        ${mutation}values[replacementIndex](configuredSource);`;
+      const relativePath = `packages/example/src/unresolved-conditional-length-control-${scenarioIndex}-${mutationIndex}.ts`;
+      const firstFindings = scanSource(source, relativePath);
+      const secondFindings = scanSource(source, relativePath);
+      assert.deepEqual(
+        firstFindings,
+        secondFindings,
+        `${mutationName}, unresolved index ${replacementIndex} should be deterministic`
+      );
+      assert.ok(
+        firstFindings.some(finding => finding.kind === 'direct-eval'),
+        `${mutationName}, unresolved index ${replacementIndex} should retain eval: ${JSON.stringify(firstFindings)}`
+      );
+      assert.ok(
+        firstFindings.some(
+          finding => finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable'
+        ),
+        `${mutationName}, unresolved index ${replacementIndex} should retain uncertainty: ${JSON.stringify(firstFindings)}`
+      );
+      assert.ok(firstFindings.length <= 2, `${mutationName}, unresolved index ${replacementIndex} should be bounded`);
+    }
+  }
 });
 
 test('Object.defineProperties applies integer-index descriptors before a later length descriptor', () => {
@@ -6687,11 +6936,13 @@ test('opaque length replacements and descriptor own-key ordering execute isolate
     ['reflect-define', '', "Reflect.defineProperty(values,'length',{value:nextLength});"],
     ['defines', '', 'Object.defineProperties(values,{length:{value:nextLength}});'],
   ];
-  const replacementBranches = mutationCases.map(
-    ([name, prefix, mutation]) => `{${prefix}const prototype=[];prototype[1]=eval;
-      const values=[JSON.parse,JSON.parse];Object.setPrototypeOf(values,prototype);
-      const nextLength=loadLength();${mutation}values[1]=JSON.parse;values[1]('{}');
-      globalThis.${markerKey}.push('${name}-safe')}`
+  const replacementBranches = [1, 64, 65].flatMap(index =>
+    mutationCases.map(
+      ([name, prefix, mutation]) => `{${prefix}const prototype=[];prototype[${index}]=eval;
+        const values=Array(${index + 1}).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+        const nextLength=loadLength();${mutation}values[${index}]=JSON.parse;values[${index}]('{}');
+        globalThis.${markerKey}.push('${name}-${index}-safe')}`
+    )
   );
   const descriptorOrderBranches = [
     [1, 2],
@@ -6725,7 +6976,7 @@ test('opaque length replacements and descriptor own-key ordering execute isolate
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), [
-    ...mutationCases.map(([name]) => `${name}-safe`),
+    ...[1, 64, 65].flatMap(index => mutationCases.map(([name]) => `${name}-${index}-safe`)),
     'index-1-unsafe',
     'index-1-safe',
     'index-64-unsafe',
