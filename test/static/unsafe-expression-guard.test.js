@@ -5976,6 +5976,39 @@ test('deterministic direct, borrowed, and helper spread overwrites remain precis
   }
 });
 
+test('equivalent normalized fill bounds preserve deterministic safe overwrites', () => {
+  const saturatedArguments = saturatedMutationAlternatives('[JSON.parse,-1]', '[JSON.stringify,64]');
+  const safeCases = [
+    `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[JSON.parse,-1]:[JSON.stringify,64];v.fill(...args);v[64]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[v,JSON.parse,-1]:[v,JSON.stringify,64];
+      Array.prototype.fill.call(...args);v[64]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[JSON.parse,-1]:[JSON.stringify,64];
+      Reflect.apply(Array.prototype.fill,v,args);v[64]('{}');`,
+    `function fill(value,...args){value.fill(...args)}
+      const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=flag?[v,JSON.parse,-1]:[v,JSON.stringify,64];fill(...args);v[64]('{}');`,
+    `const choice=64;const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=${saturatedArguments};v.fill(...args);v[64]('{}');`,
+    `function fill(value,...args){value.fill(...args)}
+      const choice=64;const v=Array(64).fill(JSON.parse);v.push(eval);
+      const args=${saturatedMutationAlternatives(
+        '[v,JSON.parse,-1]',
+        '[v,JSON.stringify,64]'
+      )};fill(...args);v[64]('{}');`,
+  ];
+
+  for (const [index, source] of safeCases.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-equivalent-fill-bound-${index}.ts`),
+      [],
+      `equivalent safe fill bound ${index} should replace stale provenance`
+    );
+  }
+});
+
 test('conditional spread review sources execute isolated runtime markers', () => {
   const markerKey = '__a12_conditional_spread_marker__';
   const serializedMarkerKey = JSON.stringify(markerKey);
@@ -6201,6 +6234,132 @@ test('reviewed array boundary crossings execute isolated runtime markers', () =>
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), ['push-splice', 'splice-copyWithin', 'push-delete', 'safe-overwrite']);
+});
+
+test('boundary deletions expose inherited unsafe callables through direct and forwarded mutations', () => {
+  const unsafeCases = [
+    {
+      name: 'direct pop',
+      mutation: 'values.pop();',
+    },
+    {
+      name: 'borrowed pop',
+      mutation: 'Array.prototype.pop.call(values);',
+    },
+    {
+      name: 'reflected pop',
+      mutation: 'Reflect.apply(Array.prototype.pop,values,[]);',
+    },
+    {
+      name: 'helper-forwarded pop',
+      prefix: 'function removeLast(value){value.pop()}',
+      mutation: 'removeLast(values);',
+    },
+    {
+      name: 'helper-forwarded reflected pop',
+      prefix: 'function removeLast(value){Reflect.apply(Array.prototype.pop,value,[])}',
+      mutation: 'removeLast(values);',
+    },
+  ];
+
+  for (const [index, unsafeCase] of unsafeCases.entries()) {
+    const source = `${unsafeCase.prefix ?? ''}
+      const prototype=[];prototype[64]=eval;
+      const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      ${unsafeCase.mutation}values[64](configuredSource);`;
+    const relativePath = `packages/example/src/inherited-boundary-pop-${index}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${unsafeCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${unsafeCase.name} should expose inherited eval: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${unsafeCase.name} diagnostics should remain bounded`);
+  }
+
+  const sparseOverflowCases = [
+    `const prototype=[];prototype[64]=eval;
+      const values=Array(66);values[65]=JSON.parse;Object.setPrototypeOf(values,prototype);
+      values[64](configuredSource);`,
+    `const prototype=[];prototype[64]=eval;
+      const values=Array(66);values[65]=JSON.parse;Object.setPrototypeOf(values,prototype);
+      values.shift();values[63](configuredSource);`,
+    `function shift(value){value.shift()}
+      const prototype=[];prototype[64]=eval;
+      const values=Array(66);values[65]=JSON.parse;Object.setPrototypeOf(values,prototype);
+      shift(values);values[63](configuredSource);`,
+  ];
+  for (const [index, source] of sparseOverflowCases.entries()) {
+    const findings = scanSource(source, `packages/example/src/sparse-inherited-overflow-${index}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `sparse inherited overflow ${index} should retain eval: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `sparse inherited overflow ${index} diagnostics should remain bounded`);
+  }
+
+  const safeCases = [
+    `const prototype=[];prototype[64]=eval;
+      const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);values[64]('{}');`,
+    `const prototype=[];prototype[64]=JSON.parse;
+      const values=Array(65).fill(JSON.stringify);Object.setPrototypeOf(values,prototype);
+      values.pop();values[64]('{}');`,
+    `function removeLast(value){value.pop()}
+      const prototype=[];prototype[63]=eval;
+      const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      removeLast(values);values[63]('{}');`,
+    `function removeLast(value){value.pop()}
+      const prototype=[];prototype[64]=eval;
+      const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      removeLast(values);values.push(JSON.parse);values[64]('{}');`,
+    `const prototype=[];prototype[64]=eval;
+      const values=[${Array.from({ length: 65 }, () => 'JSON.parse').join(',')}];
+      Object.setPrototypeOf(values,prototype);values[64]('{}');`,
+    `const prototype=[];prototype[64]=eval;
+      const values=Array(66).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      values.shift();values[63]('{}');`,
+  ];
+  for (const [index, source] of safeCases.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-inherited-boundary-pop-${index}.ts`),
+      [],
+      `safe inherited boundary control ${index} should remain precise`
+    );
+  }
+});
+
+test('inherited boundary pop reproductions execute isolated runtime markers', () => {
+  const markerKey = '__a12_inherited_boundary_pop_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    const createValues = () => {
+      const prototype=[];prototype[64]=eval;
+      const values=Array(65).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+      return values;
+    };
+    { const values=createValues();values.pop();values[64](mark('direct')); }
+    { const values=createValues();Array.prototype.pop.call(values);values[64](mark('borrowed')); }
+    { const values=createValues();Reflect.apply(Array.prototype.pop,values,[]);
+      values[64](mark('reflected')); }
+    { function removeLast(value){value.pop()}const values=createValues();removeLast(values);
+      values[64](mark('helper')); }
+    { function removeLast(value){Reflect.apply(Array.prototype.pop,value,[])}
+      const values=createValues();removeLast(values);values[64](mark('helper-reflected')); }
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['direct', 'borrowed', 'reflected', 'helper', 'helper-reflected']);
 });
 
 test('bounded overflow mutations preserve precise known tracked positions', () => {
