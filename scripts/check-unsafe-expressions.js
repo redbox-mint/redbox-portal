@@ -607,6 +607,7 @@ function collectBindings(sourceFile) {
       revision: 0,
       unknownProperty: new Set(),
       positional,
+      exactPositionalLengths: new Set(),
       positionalLengths: new Set(),
       positionalOverflowStart: undefined,
       overflowPositionalValues: new Set(),
@@ -2450,6 +2451,38 @@ function collectBindings(sourceFile) {
     if (changed) notifyPropagationSubscribers(carrier);
   }
 
+  function mergeCarrierExactPositionalLengths(carrier, lengths) {
+    let changed = false;
+    for (const length of lengths) {
+      if (!Number.isSafeInteger(length) || length < 0 || carrier.exactPositionalLengths.has(length)) continue;
+      if (carrier.exactPositionalLengths.size >= maximumTrackedPositionalAlternatives) {
+        if (!carrier.positionalUncertain) {
+          carrier.positionalUncertain = true;
+          changed = true;
+        }
+        break;
+      }
+      carrier.exactPositionalLengths.add(length);
+      changed = true;
+    }
+    if (changed) notifyPropagationSubscribers(carrier);
+  }
+
+  function replaceCarrierExactPositionalLength(carrier, length) {
+    const replacement = new Set([length]);
+    replaceTracked(carrier.exactPositionalLengths, replacement, carrier);
+  }
+
+  function replaceCarrierPositionalOverflow(carrier, overflowStart, overflowValues) {
+    const boundedStart =
+      overflowStart === undefined ? undefined : Math.max(0, Math.min(overflowStart, maximumTrackedInvocationArguments));
+    if (carrier.positionalOverflowStart !== boundedStart) {
+      carrier.positionalOverflowStart = boundedStart;
+      notifyPropagationSubscribers(carrier);
+    }
+    replaceTracked(carrier.overflowPositionalValues, overflowValues, carrier);
+  }
+
   function mergeCarrierPositionalState(carrier, lengths, positionalUncertain, uncertainValues) {
     let changed = false;
     for (const length of lengths) {
@@ -3141,15 +3174,29 @@ function collectBindings(sourceFile) {
     return result;
   }
 
+  function positionalRangeValues(expansion, layout, start, end) {
+    const result = new Set();
+    const trackedEnd = Math.min(expansion.positionalOverflowStart, layout.length);
+    for (let index = Math.max(0, start); index < Math.min(end, trackedEnd); index += 1) {
+      mergeValue(result, layout[index]);
+    }
+    if (end > trackedEnd && start < Math.max(...expansion.exactPositionalLengths)) {
+      mergeValue(result, expansion.overflowPositionalValues);
+    }
+    return result;
+  }
+
   function applyKnownOverflowPositionalMutation(method, argumentValues, receiver, invocationNode, expansion) {
     if (
       expansion.positionalOverflowStart === undefined ||
       expansion.uncertainPositioning ||
-      expansion.layouts.length !== 1
+      expansion.layouts.length !== 1 ||
+      expansion.exactPositionalLengths.size !== 1
     ) {
       return false;
     }
     const layout = expansion.layouts[0];
+    const exactLength = [...expansion.exactPositionalLengths][0];
     const trackedEnd = Math.min(expansion.positionalOverflowStart, layout.length);
     const writeRank = deterministicWriteRank(invocationNode);
     const replacePosition = (index, value) => {
@@ -3158,55 +3205,79 @@ function collectBindings(sourceFile) {
     const mergeOverflowWrites = values => {
       mergeCarrierPositionalOverflow(receiver, expansion.positionalOverflowStart, values);
     };
+    const updateOverflow = (values, replacesEveryOverflowPosition) => {
+      if (writeRank && replacesEveryOverflowPosition) {
+        replaceCarrierPositionalOverflow(receiver, expansion.positionalOverflowStart, values);
+      } else {
+        mergeOverflowWrites(values);
+      }
+    };
 
     if (method === 'fill') {
-      const start = singleIntegerArgument(argumentValues[1], 0);
-      const end = singleIntegerArgument(argumentValues[2], Number.POSITIVE_INFINITY);
-      if (start === undefined || end === undefined || start < 0 || end < 0) return false;
+      const rawStart = singleIntegerArgument(argumentValues[1], 0);
+      const rawEnd = singleIntegerArgument(argumentValues[2], exactLength);
+      if (rawStart === undefined || rawEnd === undefined) return false;
+      const start = normalizedPositionalIndex(rawStart, exactLength);
+      const end = normalizedPositionalIndex(rawEnd, exactLength);
       const boundedStart = Math.min(start, trackedEnd);
-      const boundedEnd = Math.min(end, trackedEnd);
+      const boundedEnd = Math.min(Math.max(end, boundedStart), trackedEnd);
       for (let index = boundedStart; index < boundedEnd; index += 1) {
         replacePosition(index, argumentValues[0] ?? literalValue(undefined));
       }
-      if (end > expansion.positionalOverflowStart) {
-        mergeOverflowWrites(argumentValues[0] ?? literalValue(undefined));
+      if (end > start && end > expansion.positionalOverflowStart) {
+        updateOverflow(
+          argumentValues[0] ?? literalValue(undefined),
+          start <= expansion.positionalOverflowStart && end >= exactLength
+        );
       }
       return true;
     }
 
     if (method === 'copyWithin') {
-      const target = singleIntegerArgument(argumentValues[0], 0);
-      const start = singleIntegerArgument(argumentValues[1], 0);
-      const end = singleIntegerArgument(argumentValues[2], Number.POSITIVE_INFINITY);
-      if (target === undefined || start === undefined || end === undefined || target < 0 || start < 0 || end < 0) {
-        return false;
-      }
-      const requestedCount = Math.max(0, end - start);
-      const trackedDestinationEnd = Math.min(trackedEnd, target + requestedCount);
+      const rawTarget = singleIntegerArgument(argumentValues[0], 0);
+      const rawStart = singleIntegerArgument(argumentValues[1], 0);
+      const rawEnd = singleIntegerArgument(argumentValues[2], exactLength);
+      if (rawTarget === undefined || rawStart === undefined || rawEnd === undefined) return false;
+      const target = normalizedPositionalIndex(rawTarget, exactLength);
+      const start = normalizedPositionalIndex(rawStart, exactLength);
+      const end = normalizedPositionalIndex(rawEnd, exactLength);
+      const requestedCount = Math.min(Math.max(0, end - start), exactLength - target);
+      const destinationEnd = target + requestedCount;
+      const trackedDestinationEnd = Math.min(trackedEnd, destinationEnd);
       for (let index = Math.min(target, trackedEnd); index < trackedDestinationEnd; index += 1) {
         const sourceIndex = start + index - target;
         const copiedValue =
           sourceIndex < trackedEnd ? layout[sourceIndex] : overflowPositionValue(expansion, layout[index]);
         replacePosition(index, copiedValue);
       }
-      if (target + requestedCount > expansion.positionalOverflowStart) {
-        const overflowWrites = new Set();
-        for (let index = start; index < Math.min(end, trackedEnd); index += 1) {
-          mergeValue(overflowWrites, layout[index]);
-        }
-        if (end > trackedEnd) mergeValue(overflowWrites, overflowPositionValue(expansion));
-        mergeOverflowWrites(overflowWrites);
+      if (destinationEnd > expansion.positionalOverflowStart) {
+        const overflowDestinationStart = Math.max(target, expansion.positionalOverflowStart);
+        const overflowSourceStart = start + overflowDestinationStart - target;
+        const overflowSourceEnd = start + destinationEnd - target;
+        const overflowWrites = positionalRangeValues(expansion, layout, overflowSourceStart, overflowSourceEnd);
+        updateOverflow(overflowWrites, target <= expansion.positionalOverflowStart && destinationEnd >= exactLength);
       }
       return true;
     }
 
     if (method === 'splice') {
-      const start = singleIntegerArgument(argumentValues[0], 0);
-      const deleteCount = singleIntegerArgument(argumentValues[1]);
-      if (start === undefined || deleteCount === undefined || start < 0 || deleteCount < 0) return false;
+      const rawStart = singleIntegerArgument(argumentValues[0], 0);
+      if (rawStart === undefined) return false;
+      const start = normalizedPositionalIndex(rawStart, exactLength);
+      const requestedDeleteCount = singleIntegerArgument(
+        argumentValues[1],
+        argumentValues.length < 2 ? exactLength - start : undefined
+      );
+      if (requestedDeleteCount === undefined) return false;
+      const deleteCount = Math.min(Math.max(0, requestedDeleteCount), exactLength - start);
       const boundedStart = Math.min(start, trackedEnd);
       const insertedValues = argumentValues.slice(2);
+      const newLength = exactLength - deleteCount + insertedValues.length;
       for (let index = boundedStart; index < trackedEnd; index += 1) {
+        if (index >= newLength) {
+          replacePosition(index, new Set());
+          continue;
+        }
         const insertedIndex = index - start;
         if (insertedIndex >= 0 && insertedIndex < insertedValues.length) {
           replacePosition(index, insertedValues[insertedIndex]);
@@ -3214,13 +3285,44 @@ function collectBindings(sourceFile) {
         }
         const sourceIndex = index - insertedValues.length + deleteCount;
         const shiftedValue =
-          sourceIndex < trackedEnd ? layout[sourceIndex] : overflowPositionValue(expansion, layout[index]);
+          sourceIndex >= exactLength
+            ? new Set()
+            : sourceIndex < trackedEnd
+              ? layout[sourceIndex]
+              : overflowPositionValue(expansion, layout[index]);
         replacePosition(index, shiftedValue);
       }
       const overflowWrites = new Set();
-      for (const value of insertedValues) mergeValue(overflowWrites, value);
-      for (const value of layout.slice(boundedStart)) mergeValue(overflowWrites, value);
-      mergeOverflowWrites(overflowWrites);
+      if (newLength > expansion.positionalOverflowStart) {
+        for (const [index, value] of insertedValues.entries()) {
+          if (start + index >= expansion.positionalOverflowStart) mergeValue(overflowWrites, value);
+        }
+        if (start > expansion.positionalOverflowStart) {
+          mergeValue(
+            overflowWrites,
+            positionalRangeValues(expansion, layout, expansion.positionalOverflowStart, start)
+          );
+        }
+        const suffixStart = start + deleteCount;
+        const overflowSuffixStart = Math.max(
+          suffixStart,
+          expansion.positionalOverflowStart + deleteCount - insertedValues.length
+        );
+        if (overflowSuffixStart < exactLength) {
+          mergeValue(overflowWrites, positionalRangeValues(expansion, layout, overflowSuffixStart, exactLength));
+        }
+      }
+      if (writeRank) {
+        replaceCarrierExactPositionalLength(receiver, newLength);
+        replaceCarrierPositionalOverflow(
+          receiver,
+          newLength > expansion.positionalOverflowStart ? expansion.positionalOverflowStart : undefined,
+          overflowWrites
+        );
+      } else {
+        mergeCarrierExactPositionalLengths(receiver, new Set([newLength]));
+        mergeOverflowWrites(overflowWrites);
+      }
       return true;
     }
 
@@ -3497,6 +3599,7 @@ function collectBindings(sourceFile) {
 
   function arrayRestValue(value, startIndex, node, existingExpansion) {
     const restCarrier = carrierFor(node, true);
+    const exactRestLengths = new Set();
     const restLengths = new Set();
     const uncertainValues = new Set();
     const expansion = existingExpansion ?? positionalLayouts(value);
@@ -3511,6 +3614,7 @@ function collectBindings(sourceFile) {
       }
       putCarrierProperty(restCarrier, undefined, atom.unknownProperty);
       for (const length of atom.positionalLengths) restLengths.add(Math.max(0, length - startIndex));
+      for (const length of atom.exactPositionalLengths) exactRestLengths.add(Math.max(0, length - startIndex));
       mergeValue(uncertainValues, atom.uncertainPositionalValues);
       if (atom.positionalOverflowStart !== undefined) {
         mergeCarrierPositionalOverflow(
@@ -3527,6 +3631,9 @@ function collectBindings(sourceFile) {
       restLengths.add(Math.max(0, layout.length - startIndex));
     }
     mergeValue(uncertainValues, expansion.uncertainValues);
+    for (const length of expansion.exactPositionalLengths) {
+      exactRestLengths.add(Math.max(0, length - startIndex));
+    }
     if (expansion.positionalOverflowStart !== undefined) {
       mergeCarrierPositionalOverflow(
         restCarrier,
@@ -3542,6 +3649,7 @@ function collectBindings(sourceFile) {
         expansion.uncertainPositioning,
       uncertainValues
     );
+    mergeCarrierExactPositionalLengths(restCarrier, exactRestLengths);
     return new Set([restCarrier]);
   }
 
@@ -3623,6 +3731,7 @@ function collectBindings(sourceFile) {
 
   function positionalLayouts(value) {
     const layouts = [];
+    const exactPositionalLengths = new Set();
     const uncertainValues = new Set();
     const overflowPositionalValues = new Set();
     let uncertainPositioning = value.size === 0;
@@ -3698,6 +3807,7 @@ function collectBindings(sourceFile) {
         positionalOverflowStart = atom.positionalOverflowStart;
       }
       mergeValue(overflowPositionalValues, atom.overflowPositionalValues);
+      for (const length of atom.exactPositionalLengths) exactPositionalLengths.add(length);
       if (atom.positionalUncertain || atom.unknownProperty.size > 0) {
         uncertainPositioning = true;
         mergeValue(uncertainValues, atom.unknownProperty);
@@ -3716,6 +3826,7 @@ function collectBindings(sourceFile) {
 
     return {
       layouts,
+      exactPositionalLengths,
       uncertainPositioning,
       uncertainValues,
       positionalOverflowStart,
@@ -3865,6 +3976,7 @@ function collectBindings(sourceFile) {
       mergeValue(uncertainValues, unknownReflectiveCallableValue());
     }
     mergeCarrierPositionalState(array, lengths, expansion.uncertainPositioning, uncertainValues);
+    mergeCarrierExactPositionalLengths(array, expansion.exactPositionalLengths);
     const overflowValues = new Set(includesUnmapped ? expansion.overflowPositionalValues : []);
     if (callableMapper.size > 0 && expansion.positionalOverflowStart !== undefined) {
       resetMapperInvocationState(callableMapper, invocationNode);
@@ -3887,6 +3999,9 @@ function collectBindings(sourceFile) {
       putCarrierProperty(array, [String(index)], value, deterministicWriteRank(invocationNode));
     }
     mergeCarrierPositionalState(array, new Set([argumentValues.length]), false, new Set());
+    if (![...(invocationNode.arguments ?? [])].some(ts.isSpreadElement)) {
+      mergeCarrierExactPositionalLengths(array, new Set([invocationNode.arguments?.length ?? argumentValues.length]));
+    }
     mergeCarrierPositionalOverflow(
       array,
       argumentExpansion?.positionalOverflowStart,
@@ -3901,6 +4016,7 @@ function collectBindings(sourceFile) {
     if (numericLength !== undefined && numericLength >= 0 && numericLength <= 0xffffffff) {
       const boundedLength = Math.min(numericLength, maximumTrackedInvocationArguments);
       mergeCarrierPositionalState(array, new Set([boundedLength]), false, new Set());
+      mergeCarrierExactPositionalLengths(array, new Set([numericLength]));
       if (numericLength > maximumTrackedInvocationArguments) {
         mergeCarrierPositionalOverflow(array, maximumTrackedInvocationArguments, new Set());
       }
@@ -3910,6 +4026,9 @@ function collectBindings(sourceFile) {
       putCarrierProperty(array, [String(index)], value, deterministicWriteRank(invocationNode));
     }
     mergeCarrierPositionalState(array, new Set([argumentValues.length]), false, new Set());
+    if (![...(invocationNode.arguments ?? [])].some(ts.isSpreadElement)) {
+      mergeCarrierExactPositionalLengths(array, new Set([invocationNode.arguments?.length ?? argumentValues.length]));
+    }
     mergeCarrierPositionalOverflow(
       array,
       argumentExpansion?.positionalOverflowStart,
@@ -4284,6 +4403,7 @@ function collectBindings(sourceFile) {
       mergeValue(uncertainValues, unknownReflectiveCallableValue());
     }
     mergeCarrierPositionalState(mapped, lengths, expansion.uncertainPositioning, uncertainValues);
+    mergeCarrierExactPositionalLengths(mapped, expansion.exactPositionalLengths);
     let finalExpansion = positionalLayouts(receiverValue);
     const overflowValues = new Set();
     if (finalExpansion.positionalOverflowStart !== undefined) {
@@ -4575,7 +4695,15 @@ function collectBindings(sourceFile) {
 
   function valueContainsCarrier(value, seen = new Set(), remaining = { count: 256 }) {
     for (const atom of value) {
-      if (typeof atom === 'string' || atom.kind === 'literal' || atom.kind === 'known-data') continue;
+      if (typeof atom === 'string') {
+        const target = abstractTarget(atom);
+        if (target) {
+          trackPropagationDependency(target);
+          return true;
+        }
+        continue;
+      }
+      if (atom.kind === 'literal' || atom.kind === 'known-data') continue;
       if (seen.has(atom)) continue;
       if (remaining.count <= 0) return true;
       remaining.count -= 1;
@@ -5758,6 +5886,9 @@ function collectBindings(sourceFile) {
         }
       }
       mergeCarrierPositionalState(carrier, lengths, expansion.uncertainPositioning, expansion.uncertainValues);
+      if (![...current.elements].some(ts.isSpreadElement)) {
+        mergeCarrierExactPositionalLengths(carrier, new Set([current.elements.length]));
+      }
       mergeCarrierPositionalOverflow(carrier, expansion.positionalOverflowStart, expansion.overflowPositionalValues);
       return new Set([carrier]);
     }
@@ -5796,6 +5927,20 @@ function collectBindings(sourceFile) {
         return result;
       }
       if (current.operatorToken.kind === ts.SyntaxKind.EqualsToken) return evaluateExpression(current.right);
+      return new Set([knownDataAtom]);
+    }
+
+    if (
+      ts.isPrefixUnaryExpression(current) &&
+      [ts.SyntaxKind.PlusToken, ts.SyntaxKind.MinusToken].includes(current.operator)
+    ) {
+      const operand = evaluateExpression(current.operand);
+      if (operand.size === 1) {
+        const atom = [...operand][0];
+        if (typeof atom !== 'string' && atom.kind === 'literal' && atom.valueType === 'number') {
+          return literalValue(current.operator === ts.SyntaxKind.MinusToken ? -atom.value : atom.value);
+        }
+      }
       return new Set([knownDataAtom]);
     }
 
