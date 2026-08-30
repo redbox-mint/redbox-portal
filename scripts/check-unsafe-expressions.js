@@ -603,8 +603,10 @@ function collectBindings(sourceFile) {
       unknownAccessors: { get: new Set(), set: new Set() },
       unknownPropertyDeletion: false,
       unknownSpreadSource: false,
+      ownPropertyNames: new Set(),
       properties: new Map(),
       propertyWriteRanks: new Map(),
+      strongPropertyWriteRanks: new Map(),
       prototypes: new Set(positional ? [origins.arrayPrototype] : []),
       revision: 0,
       unknownProperty: new Set(),
@@ -618,6 +620,8 @@ function collectBindings(sourceFile) {
       overflowPositionalOwnProperties: new Set(),
       overflowPositionalValues: new Set(),
       positionalUncertain: false,
+      positionalUncertaintyUnranked: false,
+      positionalUncertaintyWriteRank: undefined,
       uncertainPositionalValues: new Set(),
       collectionEntryWriteRanks: new Map(),
     };
@@ -2299,6 +2303,16 @@ function collectBindings(sourceFile) {
     );
   }
 
+  function strongPropertyWriteSupersedesPositionalUncertainty(carrier, propertyName) {
+    const strongWriteRank = carrier.strongPropertyWriteRanks?.get(propertyName);
+    return (
+      !carrier.positionalUncertaintyUnranked &&
+      strongWriteRank !== undefined &&
+      carrier.positionalUncertaintyWriteRank !== undefined &&
+      rankPrecedes(carrier.positionalUncertaintyWriteRank, strongWriteRank)
+    );
+  }
+
   function getProperty(value, propertyNames, node, includeUncertainPositionalValues = true) {
     const result = new Set();
     for (const atom of value) {
@@ -2397,7 +2411,12 @@ function collectBindings(sourceFile) {
       if (
         includeUncertainPositionalValues &&
         atom.positionalUncertain &&
-        (propertyNames === undefined || propertyNames.some(propertyName => /^(0|[1-9]\d*)$/.test(propertyName)))
+        (propertyNames === undefined ||
+          propertyNames.some(
+            propertyName =>
+              /^(0|[1-9]\d*)$/.test(propertyName) &&
+              !strongPropertyWriteSupersedesPositionalUncertainty(atom, propertyName)
+          ))
       ) {
         mergeValue(result, atom.uncertainPositionalValues);
       }
@@ -2482,6 +2501,7 @@ function collectBindings(sourceFile) {
             }
             const newerStrongWrite =
               strong && writeRank && (!previousWriteRank || rankPrecedes(previousWriteRank, writeRank));
+            if (newerStrongWrite) recordStrongPropertyWriteRank(carrier, propertyName, writeRank);
             if (newerStrongWrite) replaceTracked(target, boundedValue, carrier);
             else mergeCarrierProperty(carrier, target, boundedValue);
             if (writeRank && (!previousWriteRank || !rankEquals(writeRank, previousWriteRank))) {
@@ -2499,11 +2519,13 @@ function collectBindings(sourceFile) {
       }
       let target = carrier.properties.get(propertyName);
       if (!target) {
+        rememberOwnPropertyName(carrier, propertyName);
         target = new Set();
         carrier.properties.set(propertyName, target);
       }
       const newerStrongWrite =
         strong && writeRank && (!previousWriteRank || rankPrecedes(previousWriteRank, writeRank));
+      if (newerStrongWrite) recordStrongPropertyWriteRank(carrier, propertyName, writeRank);
       if (newerStrongWrite) replaceTracked(target, value, carrier);
       else mergeCarrierProperty(carrier, target, value);
       if (writeRank && (!previousWriteRank || !rankEquals(writeRank, previousWriteRank))) {
@@ -2520,6 +2542,40 @@ function collectBindings(sourceFile) {
         }
       }
     }
+  }
+
+  function recordStrongPropertyWriteRank(carrier, propertyName, writeRank) {
+    const previousStrongWriteRank = carrier.strongPropertyWriteRanks.get(propertyName);
+    if (previousStrongWriteRank && rankEquals(previousStrongWriteRank, writeRank)) return;
+    carrier.strongPropertyWriteRanks.set(propertyName, writeRank);
+    notifyPropagationSubscribers(carrier);
+  }
+
+  function rememberOwnPropertyName(target, propertyName) {
+    target.ownPropertyNames ??= new Set();
+    target.ownPropertyNames.add(propertyName);
+  }
+
+  function arrayIndexPropertyValue(propertyName) {
+    if (!/^(0|[1-9]\d*)$/.test(propertyName)) return undefined;
+    const index = Number(propertyName);
+    return Number.isSafeInteger(index) && index >= 0 && index < 2 ** 32 - 1 ? index : undefined;
+  }
+
+  function ownPropertyNamesInRuntimeOrder(target) {
+    const knownPropertyNames = new Set([...target.properties.keys(), ...target.accessors.keys()]);
+    const insertionOrderedNames = [...(target.ownPropertyNames ?? [])].filter(propertyName =>
+      knownPropertyNames.delete(propertyName)
+    );
+    insertionOrderedNames.push(...knownPropertyNames);
+    const indexedNames = insertionOrderedNames
+      .filter(propertyName => arrayIndexPropertyValue(propertyName) !== undefined)
+      .sort((left, right) => arrayIndexPropertyValue(left) - arrayIndexPropertyValue(right));
+    const stringNames = insertionOrderedNames.filter(
+      propertyName => arrayIndexPropertyValue(propertyName) === undefined && propertyName !== iteratorPropertyName
+    );
+    const symbolNames = insertionOrderedNames.filter(propertyName => propertyName === iteratorPropertyName);
+    return [...indexedNames, ...stringNames, ...symbolNames];
   }
 
   function mergeCarrierPositionalOverflow(carrier, overflowStart, overflowValues) {
@@ -2657,6 +2713,20 @@ function collectBindings(sourceFile) {
       return;
     }
     let changed = false;
+    if (positionalUncertain) {
+      if (!writeRank) {
+        if (!carrier.positionalUncertaintyUnranked) {
+          carrier.positionalUncertaintyUnranked = true;
+          changed = true;
+        }
+      } else if (
+        !carrier.positionalUncertaintyWriteRank ||
+        rankPrecedes(carrier.positionalUncertaintyWriteRank, writeRank)
+      ) {
+        carrier.positionalUncertaintyWriteRank = writeRank;
+        changed = true;
+      }
+    }
     for (const length of lengths) {
       const boundedLength = Math.min(length, maximumTrackedInvocationArguments);
       if (!carrier.positionalLengths.has(boundedLength)) {
@@ -2790,6 +2860,7 @@ function collectBindings(sourceFile) {
     for (const propertyName of propertyNames) {
       let stored = target.properties.get(propertyName);
       if (!stored) {
+        rememberOwnPropertyName(target, propertyName);
         stored = new Set();
         target.properties.set(propertyName, stored);
       }
@@ -2816,6 +2887,7 @@ function collectBindings(sourceFile) {
     for (const propertyName of propertyNames) {
       let accessor = target.accessors.get(propertyName);
       if (!accessor) {
+        rememberOwnPropertyName(target, propertyName);
         accessor = { get: new Set(), set: new Set() };
         target.accessors.set(propertyName, accessor);
       }
@@ -2956,7 +3028,9 @@ function collectBindings(sourceFile) {
           if (target.positional && /^(0|[1-9]\d*)$/.test(propertyName)) {
             const index = Number(propertyName);
             if (target.positionalUncertain) {
-              mergeValue(result, retainReflectiveCallableProvenance(target.uncertainPositionalValues));
+              if (!strongPropertyWriteSupersedesPositionalUncertainty(target, propertyName)) {
+                mergeValue(result, retainReflectiveCallableProvenance(target.uncertainPositionalValues));
+              }
             }
             if (
               target.positionalOverflowStart !== undefined &&
@@ -3340,7 +3414,7 @@ function collectBindings(sourceFile) {
         }
         if (typeof source === 'string' || source.kind !== 'carrier') continue;
         trackPropagationDependency(source);
-        for (const propertyName of new Set([...source.properties.keys(), ...source.accessors.keys()])) {
+        for (const propertyName of ownPropertyNamesInRuntimeOrder(source)) {
           const propertyNames = [propertyName];
           const propertyValue = observedPropertyValue(new Set([source]), propertyNames);
           const invokesTargetSetter = accessorMayRun(targetValue, propertyNames, 'set');
@@ -3376,7 +3450,7 @@ function collectBindings(sourceFile) {
       }
       if (descriptors.kind !== 'carrier') continue;
       trackPropagationDependency(descriptors);
-      for (const propertyName of new Set([...descriptors.properties.keys(), ...descriptors.accessors.keys()])) {
+      for (const propertyName of ownPropertyNamesInRuntimeOrder(descriptors)) {
         const descriptorValue = observedPropertyValue(new Set([descriptors]), [propertyName]);
         recordDescriptorAccessors(targetValue, [propertyName], descriptorValue);
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
@@ -4147,7 +4221,7 @@ function collectBindings(sourceFile) {
           carrier.unknownSpreadSource = true;
           notifyPropagationSubscribers(carrier);
         }
-        for (const propertyName of new Set([...atom.properties.keys(), ...atom.accessors.keys()])) {
+        for (const propertyName of ownPropertyNamesInRuntimeOrder(atom)) {
           const propertyValue = observedPropertyValue(new Set([atom]), [propertyName]);
           putCarrierProperty(carrier, [propertyName], propertyValue);
         }
