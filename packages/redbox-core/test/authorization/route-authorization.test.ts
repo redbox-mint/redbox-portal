@@ -74,6 +74,8 @@ describe('route authorization metadata', function () {
     assert.equal(operation['x-redbox-roles-deprecated'], true);
     assert.deepEqual(operation.security, [{ bearerAuth: [] }]);
     assert.equal(document.components.securitySchemes.bearerAuth.bearerFormat, 'Opaque legacy bearer token');
+    assert.match(document.info.description ?? '', /explicit runtime authorization targets/u);
+    assert.match(document.info.description ?? '', /fail-closed/u);
     assert.ok((operation.responses as Record<string, unknown>)['401']);
     assert.ok((operation.responses as Record<string, unknown>)['403']);
   });

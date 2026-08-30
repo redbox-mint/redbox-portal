@@ -139,6 +139,23 @@ describe('validateApiContractRequest policy', function () {
     expect(res.statusCode).to.equal(undefined);
   });
 
+  it('attaches the schema-parsed request data on success', function () {
+    const req = createReq({
+      path: '/default/rdmp/api/authorization/scopes',
+      originalUrl: '/default/rdmp/api/authorization/scopes?limit=25',
+      url: '/default/rdmp/api/authorization/scopes?limit=25',
+      route: { path: '/:branding/:portal/api/authorization/scopes' },
+      query: { limit: '25' },
+    });
+    const res = createRes();
+
+    validateApiContractRequest(req, res, () => undefined);
+
+    expect(req.apiRequest?.query.limit).to.equal(25);
+    expect(typeof req.apiRequest?.query.limit).to.equal('number');
+    expect(res.statusCode).to.equal(undefined);
+  });
+
   it('returns 400 for invalid params', function () {
     const req = createReq({
       path: '/default/rdmp/api/admin/config/theme',

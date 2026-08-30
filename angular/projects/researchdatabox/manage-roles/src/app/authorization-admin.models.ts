@@ -378,55 +378,6 @@ export interface AssignmentMutationRequest {
   reason?: string;
 }
 
-interface BulkAssignmentRowBase {
-  principalId: string;
-  roleKey: string;
-  sourceKey?: string;
-  expectedVersion?: number;
-}
-
-export type BulkAssignmentRow = BulkAssignmentRowBase &
-  ({ action: 'grant'; expiresAt?: string } | { action: 'revoke'; expiresAt?: never });
-
-export type BulkAssignmentRequest =
-  | {
-      format?: 'json';
-      rows: BulkAssignmentRow[] | string;
-      reason?: string;
-      confirmationToken?: string;
-    }
-  | {
-      format: 'csv';
-      rows: string;
-      reason?: string;
-      confirmationToken?: string;
-    };
-
-export interface BulkAssignmentRowPreview {
-  index: number;
-  row: BulkAssignmentRow;
-  normalizedPrincipalId?: string;
-  assignmentId?: string;
-  assignmentVersion?: number;
-  outcome: 'grant' | 'revoke' | 'no-op' | 'invalid';
-  errorCode?: string;
-}
-
-export interface BulkAssignmentPreview {
-  rows: BulkAssignmentRowPreview[];
-  grantCount: number;
-  revokeCount: number;
-  noOpCount: number;
-  invalidCount: number;
-  confirmationToken?: string;
-}
-
-export interface BulkAssignmentMutationData {
-  appliedCount: number;
-  noOpCount: number;
-  rowResults: BulkAssignmentRowPreview[];
-}
-
 export interface AuditCatalogQuery {
   cursor?: string;
   limit?: number;

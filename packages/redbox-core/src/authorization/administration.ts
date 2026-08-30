@@ -189,10 +189,6 @@ export interface AssignmentByIdCommand extends AuthorizationAdministrationComman
   readonly expectedVersion: number;
 }
 
-export interface ExpireAssignmentCommand extends AssignmentByIdCommand {
-  readonly expiresAt?: string;
-}
-
 export interface ReplaceExternalAssignmentsCommand extends AuthorizationAdministrationCommand {
   readonly brandId: string;
   readonly principalId: string;

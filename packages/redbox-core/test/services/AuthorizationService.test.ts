@@ -347,10 +347,6 @@ function fixture() {
       const ids = new Set(roleIds);
       return overrides.filter(override => ids.has(String(override.role)));
     },
-    readRequestTokenScopeCeiling(req) {
-      const authInfo = req.authInfo as { scopeKeys?: readonly string[] } | undefined;
-      return authInfo?.scopeKeys;
-    },
     recordBrandId(record) {
       const metaMetadata = record.metaMetadata as { brandId?: string } | undefined;
       return metaMetadata?.brandId;
@@ -413,11 +409,11 @@ describe('AuthorizationService', () => {
     assert.equal(Object.isFrozen(context), true);
   });
 
-  it('applies token ceilings last and preserves the token-specific denial reason', async () => {
+  it('applies token ceilings after the RBAC scope union and preserves the ceiling denial reason', async () => {
     const { service } = fixture();
     const context = await service.resolveUserContext('primary', BRAND_A, 'bearer', ['record.read']);
 
-    assert.deepEqual(context.grantedScopeKeys.includes(asScopeKey('system.authorization.manage')), true);
+    assert.equal(context.grantedScopeKeys.includes(asScopeKey('system.authorization.manage')), true);
     assert.deepEqual(context.effectiveScopeKeys, ['record.read']);
     assert.equal(
       service.authorizeAction(context, asScopeKey('system.authorization.manage')).reasonCode,
@@ -455,16 +451,13 @@ describe('AuthorizationService', () => {
     assert.equal((await service.authorizeRecord(context, asScopeKey('record.read'), record, 'read')).allowed, true);
     assert.equal(counts.recordAcl, 0, 'record.read.all must satisfy only the ACL gate without calling the adapter');
 
-    const ceilingContext = await service.resolveUserContext('primary', BRAND_A, 'bearer', ['record.read']);
-    assert.equal(
-      (await service.authorizeRecord(ceilingContext, asScopeKey('record.read'), record, 'read')).allowed,
-      true
-    );
+    const aclContext = await service.resolveUserContext('ordinary', BRAND_A, 'session');
+    assert.equal((await service.authorizeRecord(aclContext, asScopeKey('record.read'), record, 'read')).allowed, true);
     assert.equal(counts.recordAcl, 1);
     assert.equal(
       (
         await service.authorizeRecord(
-          ceilingContext,
+          aclContext,
           asScopeKey('record.read'),
           { ...record, metaMetadata: { brandId: BRAND_B } },
           'read'
@@ -561,6 +554,22 @@ describe('AuthorizationService', () => {
     assert.equal(context.principal.authMethod, 'bearer');
     assert.deepEqual(context.tokenScopeCeiling, []);
     assert.equal(service.hasScope(context, asScopeKey('record.read')), false);
+  });
+
+  it('preserves a ceiling from an attached HTTP credential context while refreshing RBAC authority', async () => {
+    const { service } = fixture();
+    const credentialContext = await service.resolveUserContext('primary', BRAND_A, 'bearer', ['record.read']);
+    const context = await service.resolveRequestContext(
+      request({
+        user: { id: 'primary', username: 'primary-user' },
+        authorization: credentialContext,
+        authorizationAuthMethod: 'bearer',
+      })
+    );
+
+    assert.equal(context.grantedScopeKeys.includes(asScopeKey('system.authorization.manage')), true);
+    assert.deepEqual(context.tokenScopeCeiling, ['record.read']);
+    assert.deepEqual(context.effectiveScopeKeys, ['record.read']);
   });
 
   it('treats a presented bearer without a resolved user as inactive and grants no Guest baseline', async () => {

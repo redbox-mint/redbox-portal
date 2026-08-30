@@ -1,3 +1,4 @@
+import { z } from '../zod-openapi';
 import {
   AUTHORIZATION_AUDIT_ACTOR_TYPES,
   AUTHORIZATION_AUDIT_AUTH_METHODS,
@@ -29,9 +30,9 @@ import {
   ROLLOUT_MODES,
   SCOPE_KEY_MAX_LENGTH,
   SCOPE_KEY_PATTERN,
+  createAuthorizationConfigurationDocumentSchema,
   isRoleKey,
 } from '../../authorization';
-import { z } from '../zod-openapi';
 import type { ApiResponseDefinition, ApiSchemaField } from '../types';
 
 export const AUTHORIZATION_API_DEFAULT_PAGE_SIZE = 50;
@@ -45,7 +46,6 @@ export const AUTHORIZATION_API_VERSIONS = ['1.0', '2.0'] as const;
 
 const identifierField = z.string().trim().min(1).max(256);
 const auditIdentifierField = z.string().trim().min(1).max(128);
-const configurationIdentifierField = z.string().trim().min(1).max(128);
 const optionalTextField = (maxLength: number) => z.string().trim().min(1).max(maxLength).optional();
 const displayNameField = z.string().trim().min(1).max(256);
 const descriptionInputField = z.string().trim().max(2_000);
@@ -410,6 +410,18 @@ export const authorizationRoleScopeApplyBodySchema = authorizationRoleScopePrevi
   .extend({ confirmationToken: confirmationTokenField })
   .strict();
 
+export const authorizationScopeAdoptionPreviewBodySchema = z
+  .object({
+    expectedVersion: positiveVersionField,
+    scopeKey: scopeKeyField,
+    reason: reasonField,
+  })
+  .strict();
+
+export const authorizationScopeAdoptionApplyBodySchema = authorizationScopeAdoptionPreviewBodySchema
+  .extend({ confirmationToken: confirmationTokenField })
+  .strict();
+
 export const authorizationRoleTemplateUpgradePreviewBodySchema = z
   .object({
     expectedVersion: positiveVersionField,
@@ -719,94 +731,14 @@ export const authorizationReadinessSchema = z
   .strict()
   .openapi({ description: 'Bounded system authorization rollout readiness evidence' });
 
-const authorizationConfigurationRevisionSchema = z
-  .object({
-    revision: positiveVersionField,
-    scopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
-    notes: z.string().trim().min(1).max(2_000).optional(),
-  })
-  .strict();
-
-function authorizationConfigurationTemplateSchema(maxRows: number) {
-  return z
-    .object({
-      key: templateKeyField,
-      displayName: displayNameField,
-      description: z.string().trim().min(1).max(2_000),
-      protectedKind: z.enum(PROTECTED_ROLE_KINDS),
-      status: z.enum(AUTHORIZATION_ROLE_STATUSES),
-      version: positiveVersionField,
-      revisions: z.array(authorizationConfigurationRevisionSchema).min(1).max(maxRows),
-    })
-    .strict();
-}
-
-const authorizationConfigurationRoleSchema = z
-  .object({
-    brandId: configurationIdentifierField.optional(),
-    key: roleKeyField,
-    displayName: displayNameField,
-    description: optionalTextField(2_000),
-    protectedKind: z.enum(PROTECTED_ROLE_KINDS),
-    status: z.enum(AUTHORIZATION_ROLE_STATUSES),
-    templateKey: templateKeyField.optional(),
-    templateRevision: positiveVersionField.optional(),
-    effectiveScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
-    version: positiveVersionField,
-  })
-  .strict()
-  .refine(role => (role.templateKey === undefined) === (role.templateRevision === undefined), {
-    error: 'authorization.bulk-invalid',
-  });
-
-const authorizationConfigurationAssignmentSchema = z
-  .object({
-    principalId: configurationIdentifierField,
-    brandId: configurationIdentifierField.optional(),
-    roleKey: roleKeyField,
-    source: z.enum(['manual', 'recovery']),
-    sourceKey: identifierField,
-    status: z.enum(['active', 'revoked']),
-    sourcePresent: z.literal(true),
-    expiresAt: isoDateTimeField.optional(),
-    version: positiveVersionField,
-  })
-  .strict()
-  .refine(assignment => assignment.source !== 'manual' || assignment.sourceKey === 'manual', {
-    error: 'authorization.bulk-invalid',
-  });
-
-function configurationDocumentSchema(maxRows: number, maxBytes: number) {
-  return z
-    .object({
-      schemaVersion: z.literal(1),
-      generatedAt: isoDateTimeField.optional(),
-      templates: z.array(authorizationConfigurationTemplateSchema(maxRows)).max(maxRows),
-      roles: z.array(authorizationConfigurationRoleSchema).max(maxRows),
-      assignments: z.array(authorizationConfigurationAssignmentSchema).max(maxRows).optional(),
-    })
-    .strict()
-    .refine(
-      document => {
-        const rowCount =
-          document.templates.length +
-          document.templates.reduce((count, template) => count + template.revisions.length, 0) +
-          document.roles.length +
-          (document.assignments?.length ?? 0);
-        return rowCount >= 1 && rowCount <= maxRows && Buffer.byteLength(JSON.stringify(document), 'utf8') <= maxBytes;
-      },
-      { error: 'authorization.bulk-invalid' }
-    );
-}
-
-export const authorizationConfigurationDocumentSchema = configurationDocumentSchema(
+export const authorizationConfigurationDocumentSchema = createAuthorizationConfigurationDocumentSchema(
   AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS,
   AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES
 ).openapi({
   description: `Deterministic versioned authorization configuration export document; maximum ${AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS} combined rows and ${AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES} UTF-8 bytes`,
 });
 
-const authorizationConfigurationImportDocumentSchema = configurationDocumentSchema(
+const authorizationConfigurationImportApiSchema = createAuthorizationConfigurationDocumentSchema(
   AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS,
   AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES
 ).openapi({
@@ -839,7 +771,7 @@ export const authorizationConfigurationExportResponseSchema: ApiSchemaField = z.
 ]);
 
 const authorizationConfigurationDocumentInputSchema = z.union([
-  authorizationConfigurationImportDocumentSchema,
+  authorizationConfigurationImportApiSchema,
   utf8PayloadField(AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES, 'JSON-encoded authorization configuration import document'),
 ]);
 
@@ -1060,6 +992,15 @@ export const authorizationRoleScopePreviewSchema = z
   })
   .strict()
   .openapi({ description: 'Server-authoritative preview of an effective role scope change' });
+
+export const authorizationScopeAdoptionPreviewSchema = z
+  .object({
+    operation: z.literal('scope-adoption'),
+    ...authorizationRolePreviewCommonShape,
+    proposed: authorizationRoleSchema,
+  })
+  .strict()
+  .openapi({ description: 'Server-authoritative preview of one protected system-role scope adoption' });
 
 export const authorizationRoleTemplateUpgradePreviewSchema = z
   .object({

@@ -9,6 +9,79 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
     return admin;
   }
 
+  async function protectedSystemAssignment() {
+    const admin = await bootstrapAdmin();
+    await AuthorizationScopeService.bootstrap();
+    await AuthorizationBootstrapService.bootstrap({ bootstrapUser: admin });
+    const systemRole = await Role.findOne({
+      protectedKind: 'system-admin',
+      contextType: 'system',
+      status: 'active',
+    });
+    expect(systemRole).to.exist;
+    const assignment = await RoleAssignment.findOne({
+      principalId: admin.id,
+      role: systemRole.id,
+      source: 'recovery',
+      sourceKey: 'bootstrap-parent-administrator',
+    });
+    expect(assignment).to.exist;
+    return { admin, assignment };
+  }
+
+  async function expectBootstrapPreservesProtectedAssignment(
+    state: Record<string, unknown>,
+    expectedIssueCode: string
+  ): Promise<void> {
+    const { admin, assignment } = await protectedSystemAssignment();
+    const staged = await RoleAssignment.updateOne({ id: assignment.id })
+      .set({
+        expiresAt: null,
+        revokedAt: null,
+        revokedBy: null,
+        suppressedAt: null,
+        suppressedBy: null,
+        ...state,
+        version: assignment.version + 1,
+      })
+      .meta({ skipAllLifecycleCallbacks: true });
+    expect(staged).to.exist;
+
+    try {
+      const result = await AuthorizationBootstrapService.bootstrap({ bootstrapUser: admin });
+      const after = await RoleAssignment.findOne({ id: assignment.id });
+
+      expect(after.status).to.equal(staged.status);
+      expect(after.expiresAt == null ? null : new Date(after.expiresAt).toISOString()).to.equal(
+        staged.expiresAt == null ? null : new Date(staged.expiresAt).toISOString()
+      );
+      expect(after.version).to.equal(staged.version);
+      expect(result.systemAssignmentRepaired).to.equal(false);
+      expect(result.issues).to.deep.include({
+        code: expectedIssueCode,
+        severity: 'blocker',
+        entityType: 'assignment',
+        entityId: assignment.id,
+      });
+    } finally {
+      const current = await RoleAssignment.findOne({ id: assignment.id });
+      await RoleAssignment.updateOne({ id: assignment.id })
+        .set({
+          status: assignment.status,
+          sourcePresent: assignment.sourcePresent,
+          expiresAt: assignment.expiresAt ?? null,
+          revokedAt: assignment.revokedAt ?? null,
+          revokedBy: assignment.revokedBy ?? null,
+          suppressedAt: assignment.suppressedAt ?? null,
+          suppressedBy: assignment.suppressedBy ?? null,
+          assignedBy: assignment.assignedBy,
+          assignedAt: assignment.assignedAt,
+          version: current.version + 1,
+        })
+        .meta({ skipAllLifecycleCallbacks: true });
+    }
+  }
+
   it('establishes fresh protected state and reruns without duplicate catalog or assignments', async () => {
     const admin = await bootstrapAdmin();
     await AuthorizationScopeService.bootstrap();
@@ -41,6 +114,29 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
     expect(guest).to.have.length(1);
     expect(system).to.have.length(1);
     expect(await RoleAssignment.count({ role: system[0].id, principalId: admin.id, status: 'active' })).to.equal(1);
+  });
+
+  it('does not reactivate a revoked protected bootstrap assignment', async () => {
+    const now = new Date();
+    await expectBootstrapPreservesProtectedAssignment(
+      { status: 'revoked', revokedAt: now, revokedBy: 'phase3-test' },
+      'bootstrap-system-assignment-revoked'
+    );
+  });
+
+  it('does not reactivate a suppressed protected bootstrap assignment', async () => {
+    const now = new Date();
+    await expectBootstrapPreservesProtectedAssignment(
+      { status: 'suppressed', suppressedAt: now, suppressedBy: 'phase3-test' },
+      'bootstrap-system-assignment-suppressed'
+    );
+  });
+
+  it('does not reactivate an expired protected bootstrap assignment', async () => {
+    await expectBootstrapPreservesProtectedAssignment(
+      { status: 'active', expiresAt: new Date(Date.now() - 60_000) },
+      'bootstrap-system-assignment-expired'
+    );
   });
 
   it('preserves configurable Guest scope overrides and strips only unsafe ones', async () => {

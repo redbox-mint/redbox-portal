@@ -24,6 +24,14 @@ Browser sessions and bearer credentials resolve the same immutable
 below. The scope check does not replace the active-brand and resource checks
 performed by services.
 
+The matched Sails target's explicit authorization declaration and route ID are
+authoritative. If framework target metadata is unavailable, resolution uses the
+central merged core-and-hook contract map and then the explicitly classified
+`sails.config.routes` map. Controller/action names, URL text, legacy roles, and
+missing `PathRule` entries are not permission sources. An unresolved or
+ambiguous route grants nothing; resource gates fail closed and `enforce` denies
+the request.
+
 | Method and path                           | Required scope                | Result                                                                                       |
 | ----------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------- |
 | `GET /me`                                 | `authorization.self.read`     | Caller-safe effective principal projection. The protected Guest template retains this scope. |
@@ -37,6 +45,8 @@ performed by services.
 | `PATCH /roles/:key`                       | `authorization.role.manage`   | CAS-update the role label or description.                                                     |
 | `POST /roles/:key/scope-preview`          | `authorization.role.manage`   | Preview a desired complete effective scope set.                                               |
 | `PUT /roles/:key/scopes`                  | `authorization.role.manage`   | Apply an unchanged confirmed scope preview.                                                   |
+| `POST /roles/:key/scope-adoption-preview` | `system.authorization.manage` | Preview one deployed scope for the protected system-administrator role.                       |
+| `POST /roles/:key/scope-adoption`         | `system.authorization.manage` | Apply the unchanged confirmed system-scope adoption.                                          |
 | `POST /roles/:key/template-upgrade-preview` | `authorization.role.manage` | Preview a pinned template revision upgrade.                                                   |
 | `POST /roles/:key/template-upgrade`       | `authorization.role.manage`   | Apply an unchanged confirmed template upgrade.                                                |
 | `POST /template-upgrades/bulk-preview`    | `system.authorization.manage` | Preview one revision for at most 100 explicitly selected roles.                               |
@@ -172,7 +182,21 @@ the description.
 Scope changes, template upgrades, and inactivation use separate preview and
 apply routes. A preview computes the proposed role and bounded impact on the
 server. A brand-role apply requires the unchanged desired state, reason, actor,
-active brand, target, expected version, and confirmation token. Template upgrades use
+active brand, target, expected version, and confirmation token.
+
+System-scope adoption uses the same round trip without accepting a brand from
+the request. `POST /roles/:key/scope-adoption-preview` accepts the strict body
+`{ expectedVersion, scopeKey, reason? }`; apply accepts those same fields plus
+`confirmationToken`. The preview returns the proposed role, scope diff, bounded
+assignment/dependency impact, and token. The token's canonical content binds
+the actor, system-role target, expected version, normalized adopted scope,
+resulting desired scope set, normalized reason, and the previewed bounded
+impact. Changing any of those fields or the underlying impact makes apply fail
+with `authorization.preview-stale`; a role version change fails with
+`authorization.version-conflict`. Scope registration itself remains
+non-granting.
+
+Template upgrades use
 a three-way merge so explicit local additions/removals survive a new pinned
 revision. The system-only bulk form accepts at most 100 unique role IDs with
 their versions. Preview returns a bounded conflict code and status for each
@@ -344,7 +368,11 @@ string. The serialized input is limited to 256 KiB and 500 combined template,
 template-revision, role, and assignment rows. Unknown properties, unsupported schema versions,
 duplicate canonical tuples, invalid dates, missing brands/templates, malformed
 persistence state, and over-limit input fail closed. Documents carry CAS
-versions for templates, roles, and assignments; immutable template history
+versions for templates, roles, and assignments; every version and revision is a
+positive JavaScript safe integer. Assignment `sourcePresent` is a boolean in the
+document contract. Deterministic exports currently emit only source-present
+manual/recovery tuples, and semantic import planning rejects unsupported source
+states. Immutable template history
 must be retained as an exact prefix. Imports cannot invent global templates,
 change protected identities or lifecycle state, create system/protected roles,
 create recovery authority, alter implicit Guest, exceed the actor's delegation

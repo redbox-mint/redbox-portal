@@ -12,5 +12,6 @@ export * from './context';
 export * from './decision';
 export * from './shadow-fingerprint';
 export * from './administration';
+export * from './configuration-schema';
 export * from './route-authorization';
 export * from './legacy-route-scope-map';

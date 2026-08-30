@@ -199,10 +199,7 @@ describe('webservice AuthorizationController', () => {
       actor,
       cursor: 'record.read',
       limit: 25,
-      namespace: undefined,
       risk: 'read',
-      search: undefined,
-      sourceType: undefined,
       status: 'active',
     });
     assert.deepEqual(capture.data, { generation: 'generation-1', items: [] });
@@ -261,10 +258,7 @@ describe('webservice AuthorizationController', () => {
     assert.deepEqual(commands[0], {
       actor,
       brandId: 'brand-1',
-      cursor: undefined,
       limit: 25,
-      protectedKind: undefined,
-      search: undefined,
       status: 'active',
       templateKey: 'researcher',
     });
@@ -276,7 +270,6 @@ describe('webservice AuthorizationController', () => {
       description: undefined,
       templateKey: 'researcher',
       templateRevision: 1,
-      cloneRoleKey: undefined,
       desiredScopeKeys: ['authorization.self.read'],
       reason: undefined,
       requestId: 'request-create-role',
@@ -332,6 +325,69 @@ describe('webservice AuthorizationController', () => {
         ['Legacy Role', 'brand-1', 'inactive-token'],
         ['Legacy Role', 'brand-1', undefined],
         ['Legacy Role', 'brand-1', 'delete-token'],
+      ]
+    );
+  });
+
+  it('dispatches system-scope adoption preview and apply without active-brand authority in the command', async () => {
+    const actor = context(['system.authorization.manage']);
+    const commands: Array<Record<string, unknown>> = [];
+    Reflect.set(globalThis, 'RoleAdministrationService', {
+      previewScopeAdoption: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ operation: 'scope-adoption', confirmationToken: 'adoption-token' });
+      },
+      applyScopeAdoption: (command: Record<string, unknown>) => {
+        commands.push(command);
+        return Promise.resolve({ data: { key: 'system-admin' }, version: 2, changed: true });
+      },
+    });
+    const request = (body: Record<string, unknown>) =>
+      ({
+        authorization: actor,
+        authorizationRequestId: 'request-scope-adoption',
+        apiRequest: { params: { key: 'system-admin' }, query: {}, body, files: {} },
+      }) as unknown as Sails.Req;
+
+    const controller = new Controllers.Authorization();
+    captureSendResp(controller);
+    await controller.previewScopeAdoption(
+      request({ expectedVersion: 1, scopeKey: 'authorization.audit.read', reason: 'Reviewed adoption' }),
+      {} as Sails.Res
+    );
+    await controller.applyScopeAdoption(
+      request({
+        expectedVersion: 1,
+        scopeKey: 'authorization.audit.read',
+        reason: 'Reviewed adoption',
+        confirmationToken: 'adoption-token',
+      }),
+      {} as Sails.Res
+    );
+
+    assert.deepEqual(
+      commands.map(command => ({
+        roleKey: command.roleKey,
+        scopeKey: command.scopeKey,
+        expectedVersion: command.expectedVersion,
+        confirmationToken: command.confirmationToken,
+        brandId: command.brandId,
+      })),
+      [
+        {
+          roleKey: 'system-admin',
+          scopeKey: 'authorization.audit.read',
+          expectedVersion: 1,
+          confirmationToken: undefined,
+          brandId: undefined,
+        },
+        {
+          roleKey: 'system-admin',
+          scopeKey: 'authorization.audit.read',
+          expectedVersion: 1,
+          confirmationToken: 'adoption-token',
+          brandId: undefined,
+        },
       ]
     );
   });
@@ -560,7 +616,7 @@ describe('webservice AuthorizationController', () => {
     assert.equal(commands[1].requestId, 'request-1');
   });
 
-  it('normalizes a validated template key before service lookup', async () => {
+  it('consumes the schema-normalized template key during service lookup', async () => {
     let receivedKey: string | undefined;
     Reflect.set(globalThis, 'AuthorizationScopeService', {
       getTemplateRevision: (_actor: AuthorizationContext, key: string) => {
@@ -579,7 +635,7 @@ describe('webservice AuthorizationController', () => {
     const req = {
       authorization: context(['authorization.role.read']),
       apiRequest: {
-        params: { key: '  researcher  ', revision: 1 },
+        params: { key: 'researcher', revision: 1 },
         query: {},
         body: undefined,
         files: {},
@@ -745,14 +801,10 @@ describe('webservice AuthorizationController', () => {
     );
     assert.deepEqual(commands[0][1], {
       actor,
-      cursor: undefined,
       limit: 25,
-      actorId: undefined,
       brandId: 'brand-1',
-      eventType: undefined,
       outcome: 'denied',
       targetType: 'role',
-      targetId: undefined,
     });
     assert.deepEqual(commands[1][1].resource, {
       found: true,

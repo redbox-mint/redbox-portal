@@ -1,91 +1,87 @@
 import { Controllers as controllers } from '../../CoreController';
 import {
   AuthorizationAdministrationError,
-  ASSIGNMENT_EXPIRY_FILTERS,
-  AUTHORIZATION_AUDIT_EVENT_TYPES,
-  AUTHORIZATION_AUDIT_OUTCOMES,
-  AUTHORIZATION_AUDIT_TARGET_TYPES,
-  AUTHORIZATION_RECORD_ACL_OUTCOMES,
-  AUTHORIZATION_ROLE_STATUSES,
-  AUTHORIZATION_SCOPE_RISKS,
-  AUTHORIZATION_SCOPE_SOURCE_TYPES,
-  AUTHORIZATION_SCOPE_STATUSES,
-  PROTECTED_ROLE_KINDS,
-  ROLE_ASSIGNMENT_SOURCES,
-  ROLE_ASSIGNMENT_STATUSES,
-  asRoleKey,
   asScopeKey,
   requireRequestAuthorizationContext,
   type AuthorizationContext,
-  type BulkAssignmentRow,
-  type AuthorizationConfigurationDocument,
   type RolloutMode,
 } from '../../authorization';
 import { getValidatedApiRequest } from '../../api-routes';
+import type {
+  authorizationAssignmentGrantBodySchema,
+  authorizationAssignmentMutationBodySchema,
+  authorizationAssignmentParamsSchema,
+  authorizationAssignmentQuerySchema,
+  authorizationAssignmentUserParamsSchema,
+  authorizationAuditQuerySchema,
+  authorizationBulkApplyBodySchema,
+  authorizationBulkPreviewBodySchema,
+  authorizationBulkTemplateUpgradeApplyBodySchema,
+  authorizationBulkTemplateUpgradePreviewBodySchema,
+  authorizationCreateRoleBodySchema,
+  authorizationExplainBodySchema,
+  authorizationExportQuerySchema,
+  authorizationImportApplyBodySchema,
+  authorizationImportPreviewBodySchema,
+  authorizationRoleDeleteBodySchema,
+  authorizationRoleLifecycleApplyBodySchema,
+  authorizationRoleLifecyclePreviewBodySchema,
+  authorizationRoleParamsSchema,
+  authorizationRoleQuerySchema,
+  authorizationRoleScopeApplyBodySchema,
+  authorizationRoleScopePreviewBodySchema,
+  authorizationRoleTemplateUpgradeApplyBodySchema,
+  authorizationRoleTemplateUpgradePreviewBodySchema,
+  authorizationScopeAdoptionApplyBodySchema,
+  authorizationScopeAdoptionPreviewBodySchema,
+  authorizationScopeCatalogQuerySchema,
+  authorizationSensitiveExportHeadersSchema,
+  authorizationTemplateParamsSchema,
+  authorizationTemplatePublishBodySchema,
+  authorizationTemplateQuerySchema,
+  authorizationTemplateRevisionParamsSchema,
+  authorizationUpdateRoleBodySchema,
+} from '../../api-routes/schemas/authorization';
 import { ensureAuthorizationRequestId } from '../../policies/authorization-response';
 import { sendAuthorizationContractProblem } from '../../responses/authorization-problems';
+import type { output, ZodType } from 'zod';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+type SchemaOutput<Schema extends ZodType> = output<Schema>;
+type EmptyRequestPart = Record<string, never>;
 
-function optionalString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function optionalNullableString(value: unknown): string | null | undefined {
-  return value === null || typeof value === 'string' ? value : undefined;
-}
-
-function optionalNumber(value: unknown): number | undefined {
-  return typeof value === 'number' ? value : undefined;
-}
-
-function optionalQueryBoolean(value: unknown): boolean | undefined {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return undefined;
-}
-
-function optionalEnum<const T extends readonly string[]>(values: T, value: unknown): T[number] | undefined {
-  return typeof value === 'string' && values.some(candidate => candidate === value) ? (value as T[number]) : undefined;
-}
-
-function requiredString(value: unknown, field: string): string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new AuthorizationAdministrationError('authorization.invalid-query', 400, `${field} is required.`);
-  }
-  return value.trim();
-}
-
-function requiredPositiveInteger(value: unknown, field: string): number {
-  if (!Number.isSafeInteger(value) || Number(value) < 1) {
-    throw new AuthorizationAdministrationError(
-      'authorization.invalid-query',
-      400,
-      `${field} must be a positive integer.`
-    );
-  }
-  return Number(value);
-}
-
-function requiredStringArray(value: unknown, field: string): readonly string[] {
-  if (!Array.isArray(value) || !value.every(item => typeof item === 'string')) {
-    throw new AuthorizationAdministrationError('authorization.invalid-query', 400, `${field} must be a string array.`);
-  }
-  return value;
-}
-
-function optionalStringArray(value: unknown, field: string): readonly string[] | undefined {
-  return value === undefined ? undefined : requiredStringArray(value, field);
-}
-
-function requiredRoleKey(value: unknown): string {
-  if (typeof value !== 'string' || value.length > 256) {
-    throw new AuthorizationAdministrationError('authorization.invalid-query', 400, 'A valid role key is required.');
-  }
-  return asRoleKey(value);
-}
+type AssignmentGrantBody = SchemaOutput<typeof authorizationAssignmentGrantBodySchema>;
+type AssignmentMutationBody = SchemaOutput<typeof authorizationAssignmentMutationBodySchema>;
+type AssignmentParams = SchemaOutput<typeof authorizationAssignmentParamsSchema>;
+type AssignmentQuery = SchemaOutput<typeof authorizationAssignmentQuerySchema>;
+type AssignmentUserParams = SchemaOutput<typeof authorizationAssignmentUserParamsSchema>;
+type AuditQuery = SchemaOutput<typeof authorizationAuditQuerySchema>;
+type BulkApplyBody = SchemaOutput<typeof authorizationBulkApplyBodySchema>;
+type BulkPreviewBody = SchemaOutput<typeof authorizationBulkPreviewBodySchema>;
+type BulkTemplateApplyBody = SchemaOutput<typeof authorizationBulkTemplateUpgradeApplyBodySchema>;
+type BulkTemplatePreviewBody = SchemaOutput<typeof authorizationBulkTemplateUpgradePreviewBodySchema>;
+type CreateRoleBody = SchemaOutput<typeof authorizationCreateRoleBodySchema>;
+type ExplainBody = SchemaOutput<typeof authorizationExplainBodySchema>;
+type ExportHeaders = SchemaOutput<typeof authorizationSensitiveExportHeadersSchema>;
+type ExportQuery = SchemaOutput<typeof authorizationExportQuerySchema>;
+type ImportApplyBody = SchemaOutput<typeof authorizationImportApplyBodySchema>;
+type ImportPreviewBody = SchemaOutput<typeof authorizationImportPreviewBodySchema>;
+type RoleDeleteBody = SchemaOutput<typeof authorizationRoleDeleteBodySchema>;
+type RoleLifecycleApplyBody = SchemaOutput<typeof authorizationRoleLifecycleApplyBodySchema>;
+type RoleLifecyclePreviewBody = SchemaOutput<typeof authorizationRoleLifecyclePreviewBodySchema>;
+type RoleParams = SchemaOutput<typeof authorizationRoleParamsSchema>;
+type RoleQuery = SchemaOutput<typeof authorizationRoleQuerySchema>;
+type RoleScopeApplyBody = SchemaOutput<typeof authorizationRoleScopeApplyBodySchema>;
+type RoleScopePreviewBody = SchemaOutput<typeof authorizationRoleScopePreviewBodySchema>;
+type RoleTemplateApplyBody = SchemaOutput<typeof authorizationRoleTemplateUpgradeApplyBodySchema>;
+type RoleTemplatePreviewBody = SchemaOutput<typeof authorizationRoleTemplateUpgradePreviewBodySchema>;
+type ScopeAdoptionApplyBody = SchemaOutput<typeof authorizationScopeAdoptionApplyBodySchema>;
+type ScopeAdoptionPreviewBody = SchemaOutput<typeof authorizationScopeAdoptionPreviewBodySchema>;
+type ScopeCatalogQuery = SchemaOutput<typeof authorizationScopeCatalogQuerySchema>;
+type TemplateParams = SchemaOutput<typeof authorizationTemplateParamsSchema>;
+type TemplatePublishBody = SchemaOutput<typeof authorizationTemplatePublishBodySchema>;
+type TemplateQuery = SchemaOutput<typeof authorizationTemplateQuerySchema>;
+type TemplateRevisionParams = SchemaOutput<typeof authorizationTemplateRevisionParamsSchema>;
+type UpdateRoleBody = SchemaOutput<typeof authorizationUpdateRoleBodySchema>;
 
 function activeBrandId(context: AuthorizationContext): string {
   const brandId = context.brand?.id;
@@ -98,65 +94,6 @@ function activeBrandId(context: AuthorizationContext): string {
     throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The active brand was not found.');
   }
   return brandId;
-}
-
-function selectedRoleVersions(
-  value: unknown
-): readonly { readonly roleId: string; readonly expectedVersion: number }[] {
-  if (!Array.isArray(value)) {
-    throw new AuthorizationAdministrationError('authorization.bulk-invalid', 422, 'Selected roles are required.');
-  }
-  return value.map(row => {
-    if (!isRecord(row)) {
-      throw new AuthorizationAdministrationError('authorization.bulk-invalid', 422, 'A selected role is invalid.');
-    }
-    return Object.freeze({
-      roleId: requiredString(row.roleId, 'roleId'),
-      expectedVersion: requiredPositiveInteger(row.expectedVersion, 'expectedVersion'),
-    });
-  });
-}
-
-function requiredBulkAssignmentRows(value: unknown): readonly BulkAssignmentRow[] | string {
-  if (typeof value === 'string') return value;
-  if (!Array.isArray(value)) {
-    throw new AuthorizationAdministrationError('authorization.bulk-invalid', 422, 'Assignment rows are required.');
-  }
-  return value.map(entry => {
-    if (!isRecord(entry) || (entry.action !== 'grant' && entry.action !== 'revoke')) {
-      throw new AuthorizationAdministrationError('authorization.bulk-invalid', 422, 'An assignment row is invalid.');
-    }
-    const sourceKey = optionalString(entry.sourceKey);
-    const expiresAt = optionalString(entry.expiresAt);
-    const expectedVersion = optionalNumber(entry.expectedVersion);
-    return Object.freeze({
-      action: entry.action,
-      principalId: requiredString(entry.principalId, 'principalId'),
-      roleKey: requiredRoleKey(entry.roleKey),
-      ...(sourceKey === undefined ? {} : { sourceKey }),
-      ...(expiresAt === undefined ? {} : { expiresAt }),
-      ...(expectedVersion === undefined ? {} : { expectedVersion }),
-    });
-  });
-}
-
-function requestBody(req: Sails.Req): Record<string, unknown> {
-  const body = getValidatedApiRequest(req).body;
-  if (!isRecord(body)) {
-    throw new AuthorizationAdministrationError('authorization.invalid-query', 400, 'A JSON request body is required.');
-  }
-  return body;
-}
-
-function requiredConfigurationDocument(value: unknown): AuthorizationConfigurationDocument | string {
-  if (typeof value === 'string' || isRecord(value)) {
-    return value as AuthorizationConfigurationDocument | string;
-  }
-  throw new AuthorizationAdministrationError(
-    'authorization.bulk-invalid',
-    422,
-    'A versioned authorization configuration document is required.'
-  );
 }
 
 function rolloutMode(): RolloutMode {
@@ -217,6 +154,8 @@ export namespace Controllers {
       'updateRole',
       'previewRoleScopes',
       'applyRoleScopes',
+      'previewScopeAdoption',
+      'applyScopeAdoption',
       'previewRoleTemplateUpgrade',
       'applyRoleTemplateUpgrade',
       'previewBulkTemplateUpgrade',
@@ -239,622 +178,529 @@ export namespace Controllers {
       'applyImport',
     ];
 
+    private async execute(req: Sails.Req, res: Sails.Res, work: () => Promise<unknown>): Promise<unknown> {
+      try {
+        return await work();
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
     private actor(req: Sails.Req): AuthorizationContext {
       return requireRequestAuthorizationContext(req);
     }
 
     public async getMe(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        return this.sendResp(req, res, {
+      return this.execute(req, res, async () =>
+        this.sendResp(req, res, {
           data: effectivePrincipalProjection(this.actor(req)),
           headers: this.getNoCacheHeaders(),
-        });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+        })
+      );
     }
 
     public async listScopes(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const validated = getValidatedApiRequest(req);
-        const query = validated.query;
-        const page = await AuthorizationScopeService.listCatalog({
-          actor: this.actor(req),
-          cursor: optionalString(query.cursor),
-          limit: optionalNumber(query.limit),
-          namespace: optionalString(query.namespace),
-          risk: optionalEnum(AUTHORIZATION_SCOPE_RISKS, query.risk),
-          search: optionalString(query.search),
-          sourceType: optionalEnum(AUTHORIZATION_SCOPE_SOURCE_TYPES, query.sourceType),
-          status: optionalEnum(AUTHORIZATION_SCOPE_STATUSES, query.status),
-        });
+      return this.execute(req, res, async () => {
+        const { query } = getValidatedApiRequest<EmptyRequestPart, ScopeCatalogQuery>(req);
+        const page = await AuthorizationScopeService.listCatalog({ actor: this.actor(req), ...query });
         return this.sendResp(req, res, { data: page, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async listTemplates(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const query = getValidatedApiRequest(req).query;
-        const page = await AuthorizationScopeService.listTemplates({
-          actor: this.actor(req),
-          cursor: optionalString(query.cursor),
-          limit: optionalNumber(query.limit),
-          protectedKind: optionalEnum(PROTECTED_ROLE_KINDS, query.protectedKind),
-          search: optionalString(query.search),
-          status: optionalEnum(AUTHORIZATION_ROLE_STATUSES, query.status),
-        });
+      return this.execute(req, res, async () => {
+        const { query } = getValidatedApiRequest<EmptyRequestPart, TemplateQuery>(req);
+        const page = await AuthorizationScopeService.listTemplates({ actor: this.actor(req), ...query });
         return this.sendResp(req, res, { data: page, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async getTemplateRevision(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const params = getValidatedApiRequest(req).params;
+      return this.execute(req, res, async () => {
+        const { params } = getValidatedApiRequest<TemplateRevisionParams>(req);
         const revision = await AuthorizationScopeService.getTemplateRevision(
           this.actor(req),
-          requiredString(params.key, 'key'),
-          requiredPositiveInteger(params.revision, 'revision')
+          params.key,
+          params.revision
         );
         return this.sendResp(req, res, { data: revision, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async publishTemplateRevision(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const validated = getValidatedApiRequest(req);
-        const body = requestBody(req);
-        const templateKey = requiredString(validated.params.key, 'key');
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<TemplateParams, EmptyRequestPart, TemplatePublishBody>(req);
         const command = {
           actor: this.actor(req),
-          templateKey,
-          expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
-          scopeKeys: requiredStringArray(body.scopeKeys, 'scopeKeys'),
-          displayName: optionalString(body.displayName),
-          description: optionalString(body.description),
-          notes: optionalString(body.notes),
-          reason: optionalString(body.reason),
+          templateKey: params.key,
+          expectedVersion: body.expectedVersion,
+          scopeKeys: body.scopeKeys,
+          displayName: body.displayName,
+          description: body.description,
+          notes: body.notes,
+          reason: body.reason,
           requestId: ensureAuthorizationRequestId(req),
         };
-        const confirmationToken = optionalString(body.confirmationToken);
-        if (confirmationToken === undefined) {
+        if (body.confirmationToken === undefined) {
           const preview = await RoleAdministrationService.previewTemplateRevision(command);
           return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
         }
-        const result = await RoleAdministrationService.publishTemplateRevision({ ...command, confirmationToken });
+        const result = await RoleAdministrationService.publishTemplateRevision({
+          ...command,
+          confirmationToken: body.confirmationToken,
+        });
         return this.sendResp(req, res, { status: 201, data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async listRoles(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
         const actor = this.actor(req);
-        const query = getValidatedApiRequest(req).query;
-        const page = await RoleAdministrationService.listRoles({
-          actor,
-          brandId: activeBrandId(actor),
-          cursor: optionalString(query.cursor),
-          limit: optionalNumber(query.limit),
-          protectedKind: optionalEnum(PROTECTED_ROLE_KINDS, query.protectedKind),
-          search: optionalString(query.search),
-          status: optionalEnum(AUTHORIZATION_ROLE_STATUSES, query.status),
-          templateKey: optionalString(query.templateKey),
-        });
+        const { query } = getValidatedApiRequest<EmptyRequestPart, RoleQuery>(req);
+        const page = await RoleAdministrationService.listRoles({ actor, brandId: activeBrandId(actor), ...query });
         return this.sendResp(req, res, { data: page, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async createRole(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
         const actor = this.actor(req);
-        const body = requestBody(req);
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, CreateRoleBody>(req);
+        const desiredScopeKeys = 'scopeKeys' in body ? body.scopeKeys : undefined;
+        const template =
+          'templateKey' in body ? { templateKey: body.templateKey, templateRevision: body.templateRevision } : {};
+        const clone = 'cloneRoleKey' in body ? { cloneRoleKey: body.cloneRoleKey } : {};
         const result = await RoleAdministrationService.createRole({
           actor,
           brandId: activeBrandId(actor),
-          key: requiredString(body.key, 'key'),
-          displayName: requiredString(body.displayName, 'displayName'),
-          description: optionalString(body.description),
-          templateKey: optionalString(body.templateKey),
-          templateRevision: optionalNumber(body.templateRevision),
-          cloneRoleKey: optionalString(body.cloneRoleKey),
-          desiredScopeKeys: optionalStringArray(body.scopeKeys, 'scopeKeys'),
-          reason: optionalString(body.reason),
+          key: body.key,
+          displayName: body.displayName,
+          description: body.description,
+          reason: body.reason,
+          ...template,
+          ...clone,
+          desiredScopeKeys,
           requestId: ensureAuthorizationRequestId(req),
         });
         return this.sendResp(req, res, { status: 201, data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async getRole(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
         const actor = this.actor(req);
-        const role = await RoleAdministrationService.getRole(
-          actor,
-          activeBrandId(actor),
-          requiredRoleKey(getValidatedApiRequest(req).params.key)
-        );
+        const { params } = getValidatedApiRequest<RoleParams>(req);
+        const role = await RoleAdministrationService.getRole(actor, activeBrandId(actor), params.key);
         return this.sendResp(req, res, { data: role, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async updateRole(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
         const actor = this.actor(req);
-        const validated = getValidatedApiRequest(req);
-        const body = requestBody(req);
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, UpdateRoleBody>(req);
         const result = await RoleAdministrationService.updateRole({
           actor,
           brandId: activeBrandId(actor),
-          roleKey: requiredRoleKey(validated.params.key),
-          expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
-          displayName: optionalString(body.displayName),
-          description: optionalNullableString(body.description),
-          reason: optionalString(body.reason),
+          roleKey: params.key,
+          ...body,
           requestId: ensureAuthorizationRequestId(req),
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private roleScopeCommand(req: Sails.Req) {
+    private roleScopeCommand(req: Sails.Req, params: RoleParams, body: RoleScopePreviewBody) {
       const actor = this.actor(req);
-      const validated = getValidatedApiRequest(req);
-      const body = requestBody(req);
       return {
         actor,
         brandId: activeBrandId(actor),
-        roleKey: requiredRoleKey(validated.params.key),
-        expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
-        desiredScopeKeys: requiredStringArray(body.scopeKeys, 'scopeKeys'),
-        reason: optionalString(body.reason),
+        roleKey: params.key,
+        expectedVersion: body.expectedVersion,
+        desiredScopeKeys: body.scopeKeys,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async previewRoleScopes(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const preview = await RoleAdministrationService.previewRoleScopes(this.roleScopeCommand(req));
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, RoleScopePreviewBody>(req);
+        const preview = await RoleAdministrationService.previewRoleScopes(this.roleScopeCommand(req, params, body));
         return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async applyRoleScopes(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, RoleScopeApplyBody>(req);
         const result = await RoleAdministrationService.applyRoleScopes({
-          ...this.roleScopeCommand(req),
-          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+          ...this.roleScopeCommand(req, params, body),
+          confirmationToken: body.confirmationToken,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private roleTemplateUpgradeCommand(req: Sails.Req) {
+    private scopeAdoptionCommand(req: Sails.Req, params: RoleParams, body: ScopeAdoptionPreviewBody) {
+      return {
+        actor: this.actor(req),
+        roleKey: params.key,
+        expectedVersion: body.expectedVersion,
+        scopeKey: body.scopeKey,
+        reason: body.reason,
+        requestId: ensureAuthorizationRequestId(req),
+      };
+    }
+
+    public async previewScopeAdoption(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, ScopeAdoptionPreviewBody>(req);
+        const preview = await RoleAdministrationService.previewScopeAdoption(
+          this.scopeAdoptionCommand(req, params, body)
+        );
+        return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
+      });
+    }
+
+    public async applyScopeAdoption(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, ScopeAdoptionApplyBody>(req);
+        const result = await RoleAdministrationService.applyScopeAdoption({
+          ...this.scopeAdoptionCommand(req, params, body),
+          confirmationToken: body.confirmationToken,
+        });
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      });
+    }
+
+    private roleTemplateUpgradeCommand(req: Sails.Req, params: RoleParams, body: RoleTemplatePreviewBody) {
       const actor = this.actor(req);
-      const validated = getValidatedApiRequest(req);
-      const body = requestBody(req);
       return {
         actor,
         brandId: activeBrandId(actor),
-        roleKey: requiredRoleKey(validated.params.key),
-        expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
-        targetRevision: requiredPositiveInteger(body.targetRevision, 'targetRevision'),
-        reason: optionalString(body.reason),
+        roleKey: params.key,
+        expectedVersion: body.expectedVersion,
+        targetRevision: body.targetRevision,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async previewRoleTemplateUpgrade(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, RoleTemplatePreviewBody>(req);
         const preview = await RoleAdministrationService.previewRoleTemplateUpgrade(
-          this.roleTemplateUpgradeCommand(req)
+          this.roleTemplateUpgradeCommand(req, params, body)
         );
         return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async applyRoleTemplateUpgrade(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, RoleTemplateApplyBody>(req);
         const result = await RoleAdministrationService.applyRoleTemplateUpgrade({
-          ...this.roleTemplateUpgradeCommand(req),
-          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+          ...this.roleTemplateUpgradeCommand(req, params, body),
+          confirmationToken: body.confirmationToken,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private bulkTemplateUpgradeCommand(req: Sails.Req) {
-      const body = requestBody(req);
+    private bulkTemplateUpgradeCommand(req: Sails.Req, body: BulkTemplatePreviewBody) {
       return {
         actor: this.actor(req),
-        templateKey: requiredString(body.templateKey, 'templateKey'),
-        targetRevision: requiredPositiveInteger(body.targetRevision, 'targetRevision'),
-        roles: selectedRoleVersions(body.roles),
-        reason: optionalString(body.reason),
+        templateKey: body.templateKey,
+        targetRevision: body.targetRevision,
+        roles: body.roles,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async previewBulkTemplateUpgrade(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, BulkTemplatePreviewBody>(req);
         const preview = await RoleAdministrationService.previewBulkTemplateUpgrade(
-          this.bulkTemplateUpgradeCommand(req)
+          this.bulkTemplateUpgradeCommand(req, body)
         );
         return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async applyBulkTemplateUpgrade(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, BulkTemplateApplyBody>(req);
         const result = await RoleAdministrationService.applyBulkTemplateUpgrade({
-          ...this.bulkTemplateUpgradeCommand(req),
-          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+          ...this.bulkTemplateUpgradeCommand(req, body),
+          confirmationToken: body.confirmationToken,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private roleLifecycleCommand(req: Sails.Req) {
+    private roleLifecycleCommand(
+      req: Sails.Req,
+      params: RoleParams,
+      body: RoleLifecyclePreviewBody | RoleLifecycleApplyBody | RoleDeleteBody
+    ) {
       const actor = this.actor(req);
-      const validated = getValidatedApiRequest(req);
-      const body = requestBody(req);
       return {
         actor,
         brandId: activeBrandId(actor),
-        roleKey: requiredRoleKey(validated.params.key),
-        expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
-        reason: optionalString(body.reason),
+        roleKey: params.key,
+        expectedVersion: body.expectedVersion,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async previewRoleInactivation(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const preview = await RoleAdministrationService.previewRoleInactivation(this.roleLifecycleCommand(req));
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, RoleLifecyclePreviewBody>(req);
+        const preview = await RoleAdministrationService.previewRoleInactivation(
+          this.roleLifecycleCommand(req, params, body)
+        );
         return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async inactivateRole(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, RoleLifecycleApplyBody>(req);
         const result = await RoleAdministrationService.inactivateRole({
-          ...this.roleLifecycleCommand(req),
-          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+          ...this.roleLifecycleCommand(req, params, body),
+          confirmationToken: body.confirmationToken,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async deleteRole(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
-        const command = this.roleLifecycleCommand(req);
-        const confirmationToken = optionalString(body.confirmationToken);
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<RoleParams, EmptyRequestPart, RoleDeleteBody>(req);
+        const command = this.roleLifecycleCommand(req, params, body);
         const result =
-          confirmationToken === undefined
+          body.confirmationToken === undefined
             ? await RoleAdministrationService.previewRoleDeletion(command)
-            : await RoleAdministrationService.deleteRole({ ...command, confirmationToken });
+            : await RoleAdministrationService.deleteRole({ ...command, confirmationToken: body.confirmationToken });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async listAssignments(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
         const actor = this.actor(req);
-        const query = getValidatedApiRequest(req).query;
+        const { query } = getValidatedApiRequest<EmptyRequestPart, AssignmentQuery>(req);
+        const { userId: principalId, sourcePresent: sourcePresentQuery, ...filters } = query;
+        const sourcePresent = sourcePresentQuery === undefined ? undefined : sourcePresentQuery === 'true';
         const page = await RoleAdministrationService.listAssignments({
           actor,
           brandId: activeBrandId(actor),
-          cursor: optionalString(query.cursor),
-          limit: optionalNumber(query.limit),
-          principalId: optionalString(query.userId),
-          roleKey: optionalString(query.roleKey),
-          source: optionalEnum(ROLE_ASSIGNMENT_SOURCES, query.source),
-          status: optionalEnum(ROLE_ASSIGNMENT_STATUSES, query.status),
-          sourcePresent: optionalQueryBoolean(query.sourcePresent),
-          expiry: optionalEnum(ASSIGNMENT_EXPIRY_FILTERS, query.expiry),
+          ...filters,
+          principalId,
+          sourcePresent,
         });
         return this.sendResp(req, res, { data: page, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private assignmentUserCommand(req: Sails.Req) {
+    private assignmentUserCommand(
+      req: Sails.Req,
+      params: AssignmentUserParams,
+      body: Pick<AssignmentGrantBody | AssignmentMutationBody, 'reason'>
+    ) {
       const actor = this.actor(req);
-      const validated = getValidatedApiRequest(req);
-      const body = requestBody(req);
-      const roleKey = requiredRoleKey(validated.params.roleKey);
       const requestBrandId = activeBrandId(actor);
       return {
         actor,
-        brandId: roleKey === 'system-admin' ? undefined : requestBrandId,
-        principalId: requiredString(validated.params.userId, 'userId'),
-        roleKey,
-        reason: optionalString(body.reason),
+        brandId: params.roleKey === 'system-admin' ? undefined : requestBrandId,
+        principalId: params.userId,
+        roleKey: params.roleKey,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async grantAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<AssignmentUserParams, EmptyRequestPart, AssignmentGrantBody>(
+          req
+        );
         const result = await RoleAdministrationService.grantAssignment({
-          ...this.assignmentUserCommand(req),
+          ...this.assignmentUserCommand(req, params, body),
           source: 'manual',
           sourceKey: 'manual',
-          expectedVersion: optionalNumber(body.expectedVersion),
-          expiresAt: optionalString(body.expiresAt),
+          expectedVersion: body.expectedVersion,
+          expiresAt: body.expiresAt,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async revokeAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<AssignmentUserParams, EmptyRequestPart, AssignmentMutationBody>(
+          req
+        );
         const result = await RoleAdministrationService.revokeAssignment({
-          ...this.assignmentUserCommand(req),
+          ...this.assignmentUserCommand(req, params, body),
           source: 'manual',
           sourceKey: 'manual',
-          expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
+          expectedVersion: body.expectedVersion,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private assignmentByIdCommand(req: Sails.Req) {
+    private assignmentByIdCommand(req: Sails.Req, params: AssignmentParams, body: AssignmentMutationBody) {
       const actor = this.actor(req);
-      const validated = getValidatedApiRequest(req);
-      const body = requestBody(req);
       return {
         actor,
         brandId: activeBrandId(actor),
-        assignmentId: requiredString(validated.params.assignmentId, 'assignmentId'),
-        expectedVersion: requiredPositiveInteger(body.expectedVersion, 'expectedVersion'),
-        reason: optionalString(body.reason),
+        assignmentId: params.assignmentId,
+        expectedVersion: body.expectedVersion,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async suppressAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const result = await RoleAdministrationService.suppressAssignment(this.assignmentByIdCommand(req));
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<AssignmentParams, EmptyRequestPart, AssignmentMutationBody>(
+          req
+        );
+        const result = await RoleAdministrationService.suppressAssignment(
+          this.assignmentByIdCommand(req, params, body)
+        );
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async unsuppressAssignment(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const result = await RoleAdministrationService.unsuppressAssignment(this.assignmentByIdCommand(req));
+      return this.execute(req, res, async () => {
+        const { params, body } = getValidatedApiRequest<AssignmentParams, EmptyRequestPart, AssignmentMutationBody>(
+          req
+        );
+        const result = await RoleAdministrationService.unsuppressAssignment(
+          this.assignmentByIdCommand(req, params, body)
+        );
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private bulkAssignmentCommand(req: Sails.Req) {
+    private bulkAssignmentCommand(req: Sails.Req, body: BulkPreviewBody) {
       const actor = this.actor(req);
-      const body = requestBody(req);
       return {
         actor,
         brandId: activeBrandId(actor),
-        rows: requiredBulkAssignmentRows(body.rows),
-        format: optionalEnum(['json', 'csv'] as const, body.format),
-        reason: optionalString(body.reason),
+        rows: body.rows,
+        format: body.format,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async previewBulkAssignments(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const preview = await RoleAdministrationService.previewBulkAssignments(this.bulkAssignmentCommand(req));
+      return this.execute(req, res, async () => {
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, BulkPreviewBody>(req);
+        const preview = await RoleAdministrationService.previewBulkAssignments(this.bulkAssignmentCommand(req, body));
         return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async applyBulkAssignments(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, BulkApplyBody>(req);
         const result = await RoleAdministrationService.applyBulkAssignments({
-          ...this.bulkAssignmentCommand(req),
-          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+          ...this.bulkAssignmentCommand(req, body),
+          confirmationToken: body.confirmationToken,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async listAudit(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const query = getValidatedApiRequest(req).query;
-        const page = await AuthorizationAuditService.queryEvents({
-          actor: this.actor(req),
-          cursor: optionalString(query.cursor),
-          limit: optionalNumber(query.limit),
-          actorId: optionalString(query.actorId),
-          brandId: optionalString(query.brandId),
-          eventType: optionalEnum(AUTHORIZATION_AUDIT_EVENT_TYPES, query.eventType),
-          outcome: optionalEnum(AUTHORIZATION_AUDIT_OUTCOMES, query.outcome),
-          targetType: optionalEnum(AUTHORIZATION_AUDIT_TARGET_TYPES, query.targetType),
-          targetId: optionalString(query.targetId),
-        });
+      return this.execute(req, res, async () => {
+        const { query } = getValidatedApiRequest<EmptyRequestPart, AuditQuery>(req);
+        const page = await AuthorizationAuditService.queryEvents({ actor: this.actor(req), ...query });
         return this.sendResp(req, res, { data: page, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async explainDecision(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
-        const resource = isRecord(body.resource)
-          ? Object.freeze({
-              ...(typeof body.resource.found === 'boolean' ? { found: body.resource.found } : {}),
-              ...(optionalString(body.resource.brandId) === undefined
-                ? {}
-                : { brandId: optionalString(body.resource.brandId) }),
-              ...(optionalEnum(AUTHORIZATION_RECORD_ACL_OUTCOMES, body.resource.recordAcl) === undefined
-                ? {}
-                : { recordAcl: optionalEnum(AUTHORIZATION_RECORD_ACL_OUTCOMES, body.resource.recordAcl) }),
-            })
-          : undefined;
+      return this.execute(req, res, async () => {
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, ExplainBody>(req);
         const result = await AuthorizationService.explainDecision(
           this.actor(req),
-          requiredString(body.subjectId, 'subjectId'),
-          requiredString(body.brandId, 'brandId'),
-          asScopeKey(requiredString(body.scopeKey, 'scopeKey')),
-          resource
+          body.subjectId,
+          body.brandId,
+          asScopeKey(body.scopeKey),
+          body.resource
         );
         if (!result.explained) {
+          const brandUnavailable =
+            result.decision.reasonCode === 'brand-not-authorized' || result.decision.reasonCode === 'brand-not-found';
           throw new AuthorizationAdministrationError(
-            result.decision.reasonCode === 'brand-not-authorized' || result.decision.reasonCode === 'brand-not-found'
-              ? 'authorization.not-found'
-              : 'authorization.scope-denied',
-            result.decision.reasonCode === 'brand-not-authorized' || result.decision.reasonCode === 'brand-not-found'
-              ? 404
-              : 403,
+            brandUnavailable ? 'authorization.not-found' : 'authorization.scope-denied',
+            brandUnavailable ? 404 : 403,
             'The requested explanation is unavailable.'
           );
         }
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async getReadiness(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
+      return this.execute(req, res, async () => {
         const report = await AuthorizationReadinessService.getReport(this.actor(req));
         return this.sendResp(req, res, { data: report, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async exportConfiguration(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const validated = getValidatedApiRequest(req);
-        const query = validated.query;
+      return this.execute(req, res, async () => {
+        const { query, headers } = getValidatedApiRequest<EmptyRequestPart, ExportQuery, undefined, ExportHeaders>(req);
         const result = await AuthorizationConfigurationService.exportConfiguration({
           actor: this.actor(req),
-          includeAssignments: optionalQueryBoolean(query.includeAssignments),
-          includeSystemAssignments: optionalQueryBoolean(query.includeSystemAssignments),
-          confirmationToken: optionalString(validated.headers?.['x-redbox-authorization-confirmation']),
+          includeAssignments: query.includeAssignments === undefined ? undefined : query.includeAssignments === 'true',
+          includeSystemAssignments:
+            query.includeSystemAssignments === undefined ? undefined : query.includeSystemAssignments === 'true',
+          confirmationToken: headers?.['x-redbox-authorization-confirmation'],
           requestId: ensureAuthorizationRequestId(req),
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
-    private importCommand(req: Sails.Req) {
-      const body = requestBody(req);
+    private importCommand(req: Sails.Req, body: ImportPreviewBody) {
       return {
         actor: this.actor(req),
-        document: requiredConfigurationDocument(body.document),
-        reason: optionalString(body.reason),
+        document: body.document,
+        reason: body.reason,
         requestId: ensureAuthorizationRequestId(req),
       };
     }
 
     public async previewImport(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const preview = await RoleAdministrationService.previewConfigurationImport(this.importCommand(req));
+      return this.execute(req, res, async () => {
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, ImportPreviewBody>(req);
+        const preview = await RoleAdministrationService.previewConfigurationImport(this.importCommand(req, body));
         return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
 
     public async applyImport(req: Sails.Req, res: Sails.Res): Promise<unknown> {
-      try {
-        const body = requestBody(req);
+      return this.execute(req, res, async () => {
+        const { body } = getValidatedApiRequest<EmptyRequestPart, EmptyRequestPart, ImportApplyBody>(req);
         const result = await RoleAdministrationService.applyConfigurationImport({
-          ...this.importCommand(req),
-          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+          ...this.importCommand(req, body),
+          confirmationToken: body.confirmationToken,
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
-      } catch (error) {
-        sendAuthorizationContractProblem(req, res, error);
-        return res;
-      }
+      });
     }
   }
 }

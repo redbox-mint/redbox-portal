@@ -1,7 +1,7 @@
 import { ZodIssue, ZodType } from 'zod';
 
 import { ApiFileConstraint, ApiRequestDefinition, ApiRouteDefinition } from './types';
-import { getRequestFiles, isRecord, isStrictObjectSchema } from './helpers';
+import { isRecord, isStrictObjectSchema } from './helpers';
 import { buildRequestSourceInput, extractApiRequest } from './request-extraction';
 
 export interface ApiValidationIssue {
@@ -49,9 +49,9 @@ function validateSource(
   schema: ZodType | undefined,
   prefix: string,
   issues: ApiValidationIssue[]
-): void {
+): unknown {
   if (!schema) {
-    return;
+    return buildRequestSourceInput(req, request, source);
   }
   // Validate strict request bodies before field projection so they can reject
   // undeclared authority-bearing properties. Other sources still need projection
@@ -63,7 +63,9 @@ function validateSource(
   const result = schema.safeParse(value);
   if (!result.success) {
     addZodIssues(prefix, result.error.issues, issues);
+    return value;
   }
+  return result.data;
 }
 
 function validateFiles(
@@ -130,37 +132,60 @@ function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | un
   return contentTypes.find(contentType => contentType.toLowerCase() === requestContentType) ?? contentTypes[0];
 }
 
-export function validateApiRequest(
+interface ParsedApiRequest {
+  readonly params: Record<string, unknown>;
+  readonly query: Record<string, unknown>;
+  readonly headers: Record<string, unknown>;
+  readonly body: unknown;
+  readonly files: Record<string, unknown[]>;
+}
+
+function validateAndParseApiRequest(
   req: Sails.Req,
   request?: ApiRequestDefinition,
   options: ApiValidationOptions = {}
-): ApiValidationResult {
+): { readonly issues: ApiValidationIssue[]; readonly request: ParsedApiRequest } {
   const issues: ApiValidationIssue[] = [];
   if (!request) {
-    return { valid: true, issues };
+    const extracted = extractApiRequest(req);
+    return { issues, request: extracted };
   }
 
-  validateSource(req, request, 'params', request.params, 'params', issues);
-  validateSource(req, request, 'query', request.query, 'query', issues);
-  validateSource(req, request, 'headers', request.headers, 'headers', issues);
+  const extracted = extractApiRequest(req, request);
+  const params = validateSource(req, request, 'params', request.params, 'params', issues) as Record<string, unknown>;
+  const query = validateSource(req, request, 'query', request.query, 'query', issues) as Record<string, unknown>;
+  const headers = validateSource(req, request, 'headers', request.headers, 'headers', issues) as Record<
+    string,
+    unknown
+  >;
 
   if (request.body?.required && buildRequestSourceInput(req, request, 'body') == null) {
     issues.push({ path: 'body', message: 'Body is required' });
   }
+  let body = extracted.body;
   if (request.body?.content) {
     const contentTypes = Object.keys(request.body.content);
     const contentType = getBodyContentType(req, contentTypes);
     const schema = contentType ? request.body.content[contentType]?.schema : undefined;
     if (schema) {
-      validateSource(req, request, 'body', schema, 'body', issues);
+      body = validateSource(req, request, 'body', schema, 'body', issues);
     }
   }
 
-  const files = options.files ?? getRequestFiles(req);
+  const files = options.files ?? extracted.files;
   if (request.files && (options.files != null || Object.keys(files).length > 0)) {
     validateFiles(files, request.files, issues);
   }
 
+  return { issues, request: { params, query, headers, body, files } };
+}
+
+export function validateApiRequest(
+  req: Sails.Req,
+  request?: ApiRequestDefinition,
+  options: ApiValidationOptions = {}
+): ApiValidationResult {
+  const { issues } = validateAndParseApiRequest(req, request, options);
   return { valid: issues.length === 0, issues };
 }
 
@@ -181,25 +206,30 @@ export interface InvalidApiRequest {
 
 export type ApiRouteRequestResult = ValidatedApiRequest | InvalidApiRequest;
 
-export type ValidatedApiRouteRequest = Omit<ValidatedApiRequest, 'valid'>;
+export type ValidatedApiRouteRequest<
+  Params extends Record<string, unknown> = Record<string, unknown>,
+  Query extends Record<string, unknown> = Record<string, unknown>,
+  Body = unknown,
+  Headers extends Record<string, unknown> = Record<string, unknown>,
+> = Omit<ValidatedApiRequest, 'valid' | 'params' | 'query' | 'body' | 'headers'> & {
+  params: Params;
+  query: Query;
+  body: Body;
+  headers?: Headers;
+};
 
 export function validateApiRouteRequest(
   req: Sails.Req,
   route: ApiRouteDefinition,
   options: ApiRouteValidationOptions = {}
 ): ApiRouteRequestResult {
-  const validation = validateApiRequest(req, route.request, options);
-  if (!validation.valid) {
-    return { valid: false, issues: validation.issues };
+  const validated = validateAndParseApiRequest(req, route.request, options);
+  if (validated.issues.length > 0) {
+    return { valid: false, issues: validated.issues };
   }
-  const extracted = extractApiRequest(req, route.request);
   return {
     valid: true,
-    params: extracted.params,
-    query: extracted.query,
-    headers: extracted.headers,
-    body: extracted.body,
-    files: options.files ?? extracted.files,
+    ...validated.request,
   };
 }
 
@@ -214,11 +244,16 @@ export function validateApiRouteFiles(
   return { valid: issues.length === 0, issues };
 }
 
-export function getValidatedApiRequest(req: Sails.Req): ValidatedApiRouteRequest {
+export function getValidatedApiRequest<
+  Params extends Record<string, unknown> = Record<string, unknown>,
+  Query extends Record<string, unknown> = Record<string, unknown>,
+  Body = unknown,
+  Headers extends Record<string, unknown> = Record<string, unknown>,
+>(req: Sails.Req): ValidatedApiRouteRequest<Params, Query, Body, Headers> {
   if (!req.apiRequest) {
     throw new Error(
       `Missing validated API request context for ${String(req.method).toUpperCase()} ${req.path ?? req.originalUrl}`
     );
   }
-  return req.apiRequest;
+  return req.apiRequest as ValidatedApiRouteRequest<Params, Query, Body, Headers>;
 }

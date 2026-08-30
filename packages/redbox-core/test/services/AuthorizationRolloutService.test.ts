@@ -152,14 +152,45 @@ describe('AuthorizationRolloutService', function () {
     assert.equal(Object.hasOwn(mismatches[0], 'token'), false);
   });
 
-  it('does not invoke the legacy engine in enforce mode when rollback evidence is disabled', function () {
-    const { service } = fixture('enforce', true, false, false, () => assert.fail('legacy authorization was evaluated'));
+  it('ignores a missing legacy PathRule in enforce while preserving legacy-mode compatibility', function () {
+    const originalServices = sails.services;
+    let pathRuleLookups = 0;
+    sails.services = {
+      brandingservice: {
+        getBrandById: () => ({ id: 'brand-1', name: 'default' }),
+        getBrand: () => ({ id: 'brand-1', name: 'default' }),
+      },
+      rolesservice: { getAdmin: () => undefined },
+      pathrulesservice: {
+        getRulesFromPath: () => {
+          pathRuleLookups += 1;
+          return null;
+        },
+        canRead: () => assert.fail('A missing legacy PathRule must not call canRead.'),
+      },
+    };
+    const dependencies = {
+      collectLegacyEvidenceInEnforce: () => false,
+      getRegistry: () => createScopeRegistry([createCoreAuthorizationScopeSource('test')]),
+      authorizeScope: () => decision(false),
+      persistMismatch: async () => undefined,
+    };
 
-    const result = evaluate(service);
+    try {
+      const enforce = new Services.AuthorizationRolloutService({ ...dependencies, getMode: () => 'enforce' });
+      const enforceResult = evaluate(enforce);
+      assert.equal(enforceResult.allowed, false);
+      assert.equal(enforceResult.enforcedBy, 'scope');
+      assert.equal(pathRuleLookups, 0);
 
-    assert.equal(result.allowed, false);
-    assert.equal(result.enforcedBy, 'scope');
-    assert.equal(result.legacyAllowed, undefined);
+      const legacy = new Services.AuthorizationRolloutService({ ...dependencies, getMode: () => 'legacy' });
+      const legacyResult = evaluate(legacy);
+      assert.equal(legacyResult.allowed, true);
+      assert.equal(legacyResult.enforcedBy, 'legacy');
+      assert.equal(pathRuleLookups, 1);
+    } finally {
+      sails.services = originalServices;
+    }
   });
 
   it('denies a missing declaration in enforce even when startup validation was bypassed', function () {

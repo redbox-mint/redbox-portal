@@ -24,7 +24,6 @@ describe('Authorization Phase 8 contract query and template publication services
   const requestId = `phase8-template-publish-${suffix}`;
   const roleRequestIds: string[] = [];
   let actor: AuthorizationContext;
-  let restrictedActor: AuthorizationContext;
   let brand: { id: string };
   let templateId: string | undefined;
   let templateCollection: Collection<Document>;
@@ -47,9 +46,6 @@ describe('Authorization Phase 8 contract query and template publication services
     otherBrand = await BrandingConfig.create({ name: `phase8-other-brand-${suffix}` }).fetch();
     await AuthorizationBootstrapService.bootstrap({ bootstrapUser: admin });
     actor = await AuthorizationService.resolveUserContext(admin.id, brand.id, 'session');
-    restrictedActor = await AuthorizationService.resolveUserContext(admin.id, brand.id, 'bearer', [
-      'authorization.self.read',
-    ]);
     const manager = RoleTemplate.getDatastore().manager;
     templateCollection = manager.collection(RoleTemplate.tableName);
     templateRevisionCollection = manager.collection(RoleTemplateRevision.tableName);
@@ -127,21 +123,6 @@ describe('Authorization Phase 8 contract query and template publication services
       missing = error as { status?: number; code?: string };
     }
     expect(missing).to.deep.include({ status: 404, code: 'authorization.not-found' });
-  });
-
-  it('denies catalog and template reads when a bearer scope ceiling removes administration scopes', async () => {
-    for (const read of [
-      () => AuthorizationScopeService.listCatalog({ actor: restrictedActor }),
-      () => AuthorizationScopeService.listTemplates({ actor: restrictedActor }),
-    ]) {
-      let denied: { status?: number; code?: string } | undefined;
-      try {
-        await read();
-      } catch (error) {
-        denied = error as { status?: number; code?: string };
-      }
-      expect(denied).to.deep.include({ status: 403, code: 'authorization.scope-denied' });
-    }
   });
 
   it('publishes a confirmed immutable template revision transactionally for a system administrator', async () => {

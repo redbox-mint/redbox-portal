@@ -1,6 +1,7 @@
 import { Services as services } from '../CoreService';
 import {
   GUEST_SCOPE_ALLOWLIST,
+  associationIdentity,
   buildRoleIdentityKey,
   type DefaultRoleTemplateDefinition,
   type ScopeKey,
@@ -32,18 +33,10 @@ export interface AuthorizationProtectedBootstrapResult {
   readonly drift: AuthorizationDriftReport;
 }
 
-function associationId(value: unknown): string | undefined {
-  if (typeof value === 'string' || typeof value === 'number') return String(value);
-  if (typeof value === 'object' && value !== null && 'id' in value) {
-    const id = value.id;
-    if (typeof id === 'string' || typeof id === 'number') return String(id);
-  }
-  return undefined;
-}
-
 function userId(value: unknown): string | undefined {
   if (typeof value !== 'object' || value === null || !('id' in value)) return undefined;
-  return associationId(value.id);
+  const id = value.id;
+  return typeof id === 'string' || typeof id === 'number' ? associationIdentity(id) : undefined;
 }
 
 function templateDefinition(key: string): DefaultRoleTemplateDefinition {
@@ -59,7 +52,7 @@ async function templateRecord(key: string): Promise<RoleTemplateAttributes> {
 }
 
 async function bootstrapAudit(
-  eventType: 'role.created' | 'role.updated' | 'role.scopes-updated' | 'assignment.created' | 'assignment.reactivated',
+  eventType: 'role.created' | 'role.updated' | 'role.scopes-updated' | 'assignment.created',
   targetType: 'role' | 'role-assignment',
   targetId: string,
   after: unknown,
@@ -80,6 +73,36 @@ async function bootstrapAudit(
     },
     connection
   );
+}
+
+export type ProtectedSystemAssignmentBootstrapIssueCode =
+  | 'bootstrap-system-assignment-revoked'
+  | 'bootstrap-system-assignment-suppressed'
+  | 'bootstrap-system-assignment-expired'
+  | 'bootstrap-system-assignment-noncanonical';
+
+/**
+ * Bootstrap may create the protected source tuple once, but it must never turn a
+ * persisted denial or expiry back into authority. Even an otherwise-active row with
+ * a future expiry or missing source presence is left untouched for explicit operator
+ * recovery: clearing either state during lift would silently broaden authority.
+ */
+export function protectedSystemAssignmentBootstrapIssue(
+  assignment: Pick<RoleAssignmentAttributes, 'expiresAt' | 'sourcePresent' | 'status'>,
+  now: Date
+): ProtectedSystemAssignmentBootstrapIssueCode | undefined {
+  if (assignment.status === 'revoked') return 'bootstrap-system-assignment-revoked';
+  if (assignment.status === 'suppressed') return 'bootstrap-system-assignment-suppressed';
+  if (assignment.expiresAt != null) {
+    const expiresAt = new Date(assignment.expiresAt).getTime();
+    if (Number.isFinite(expiresAt) && expiresAt <= now.getTime()) {
+      return 'bootstrap-system-assignment-expired';
+    }
+    return 'bootstrap-system-assignment-noncanonical';
+  }
+  return assignment.status === 'active' && assignment.sourcePresent === true
+    ? undefined
+    : 'bootstrap-system-assignment-noncanonical';
 }
 
 /**
@@ -203,7 +226,7 @@ export namespace Services {
               role.identityKey !== expectedIdentity ||
               role.protectedKind !== 'guest' ||
               role.status !== 'active' ||
-              associationId(role.template) !== template.id ||
+              associationIdentity(role.template) !== template.id ||
               role.templateRevision !== definition.revision;
             if (changed) {
               const updated = await Role.updateOne({ id: role.id })
@@ -292,7 +315,7 @@ export namespace Services {
           role.contextType !== 'system' ||
           role.protectedKind !== 'system-admin' ||
           role.status !== 'active' ||
-          associationId(role.template) !== template.id ||
+          associationIdentity(role.template) !== template.id ||
           role.templateRevision !== definition.revision;
         if (changed) {
           const updated = await Role.updateOne({ id: role.id })
@@ -320,7 +343,8 @@ export namespace Services {
 
     private async ensureSystemAssignment(
       role: RoleAttributes,
-      principal: UserAttributes
+      principal: UserAttributes,
+      issues: AuthorizationMigrationIssue[]
     ): Promise<{ created: boolean; repaired: boolean }> {
       return runWithRequiredTransaction(RoleAssignment.getDatastore(), async connection => {
         const existing = await RoleAssignment.findOne({
@@ -356,32 +380,16 @@ export namespace Services {
           );
           return { created: true, repaired: false };
         }
-        if (existing.status === 'active' && existing.sourcePresent === true && existing.expiresAt == null) {
-          return { created: false, repaired: false };
+        const issueCode = protectedSystemAssignmentBootstrapIssue(existing, new Date());
+        if (issueCode !== undefined) {
+          issues.push({
+            code: issueCode,
+            severity: 'blocker',
+            entityType: 'assignment',
+            entityId: existing.id,
+          });
         }
-        const repaired = await RoleAssignment.updateOne({ id: existing.id, version: existing.version })
-          .set({
-            status: 'active',
-            sourcePresent: true,
-            expiresAt: null,
-            revokedAt: null,
-            revokedBy: null,
-            suppressedAt: null,
-            suppressedBy: null,
-            assignedBy: BOOTSTRAP_ACTOR,
-            assignedAt: new Date(),
-            version: existing.version + 1,
-          })
-          .usingConnection(connection);
-        if (repaired == null) throw new Error('Bootstrap system assignment changed concurrently.');
-        await bootstrapAudit(
-          'assignment.reactivated',
-          'role-assignment',
-          repaired.id,
-          { source: 'recovery', sourceKey: BOOTSTRAP_SOURCE_KEY },
-          connection
-        );
-        return { created: false, repaired: true };
+        return { created: false, repaired: false };
       });
     }
 
@@ -397,7 +405,7 @@ export namespace Services {
       let assignment = { created: false, repaired: false };
       if (principal !== undefined && system.role !== undefined) {
         await sails.services.authorizationmigrationservice.migrateUserAssignments(100, [String(principal.id)]);
-        assignment = await this.ensureSystemAssignment(system.role, principal);
+        assignment = await this.ensureSystemAssignment(system.role, principal, issues);
       }
       const drift = (await sails.services.authorizationmigrationservice.reportDrift()) as AuthorizationDriftReport;
       const result: AuthorizationProtectedBootstrapResult = Object.freeze({

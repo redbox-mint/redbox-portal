@@ -5,6 +5,7 @@ import {
   applyAuthorizationBulkTemplateUpgradeRoute,
   applyAuthorizationImportRoute,
   applyAuthorizationRoleScopesRoute,
+  applyAuthorizationScopeAdoptionRoute,
   applyAuthorizationRoleTemplateUpgradeRoute,
   authorizationApiRoutes,
   buildCoreApiRouteConfig,
@@ -29,6 +30,7 @@ import {
   previewAuthorizationImportRoute,
   previewAuthorizationRoleInactivationRoute,
   previewAuthorizationRoleScopesRoute,
+  previewAuthorizationScopeAdoptionRoute,
   previewAuthorizationRoleTemplateUpgradeRoute,
   publishAuthorizationTemplateRevisionRoute,
   revokeAuthorizationAssignmentRoute,
@@ -49,7 +51,7 @@ describe('authorization contract API routes', function () {
 
   it('registers the read-side contract with explicit business scopes', () => {
     const routes = registerCoreApiRoutes().filter(route => route.controller === 'webservice/AuthorizationController');
-    assert.equal(routes.length, 31);
+    assert.equal(routes.length, 33);
     assert.deepEqual(
       routes.map(route => [route.method, route.path, route.action, route.authorization]),
       [
@@ -118,6 +120,18 @@ describe('authorization contract API routes', function () {
           '/:branding/:portal/api/authorization/roles/:key/scopes',
           'applyRoleScopes',
           { kind: 'scope', scope: 'authorization.role.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/roles/:key/scope-adoption-preview',
+          'previewScopeAdoption',
+          { kind: 'scope', scope: 'system.authorization.manage' },
+        ],
+        [
+          'post',
+          '/:branding/:portal/api/authorization/roles/:key/scope-adoption',
+          'applyScopeAdoption',
+          { kind: 'scope', scope: 'system.authorization.manage' },
         ],
         [
           'post',
@@ -268,6 +282,8 @@ describe('authorization contract API routes', function () {
       'updateRole',
       'previewRoleScopes',
       'applyRoleScopes',
+      'previewScopeAdoption',
+      'applyScopeAdoption',
       'previewRoleTemplateUpgrade',
       'applyRoleTemplateUpgrade',
       'previewBulkTemplateUpgrade',
@@ -317,7 +333,7 @@ describe('authorization contract API routes', function () {
       ([, target]) => target.controller === 'webservice/AuthorizationController'
     );
 
-    assert.equal(authorizationApiRoutes.length, 31);
+    assert.equal(authorizationApiRoutes.length, 33);
     assert.equal(authorizationRuntimeRoutes.length, authorizationApiRoutes.length);
 
     for (const route of authorizationApiRoutes) {
@@ -547,6 +563,22 @@ describe('authorization contract API routes', function () {
       false
     );
     assert.equal(
+      previewAuthorizationScopeAdoptionRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        expectedVersion: 2,
+        scopeKey: 'authorization.audit.read',
+      }).success,
+      true
+    );
+    assert.equal(
+      applyAuthorizationScopeAdoptionRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        expectedVersion: 2,
+        scopeKey: 'authorization.audit.read',
+        confirmationToken: 'opaque',
+        desiredScopeKeys: ['system.authorization.manage'],
+      }).success,
+      false
+    );
+    assert.equal(
       previewAuthorizationRoleTemplateUpgradeRoute.request?.body?.content['application/json']?.schema?.safeParse({
         expectedVersion: 2,
         targetRevision: 3,
@@ -759,6 +791,35 @@ describe('authorization contract API routes', function () {
         document: configuration,
       }).success,
       true
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: {
+          ...configuration,
+          assignments: [
+            {
+              principalId: 'user-1',
+              brandId: 'brand-1',
+              roleKey: 'researcher',
+              source: 'manual',
+              sourceKey: 'manual',
+              status: 'revoked',
+              sourcePresent: false,
+              version: 1,
+            },
+          ],
+        },
+      }).success,
+      true
+    );
+    assert.equal(
+      previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
+        document: {
+          ...configuration,
+          templates: [{ ...configuration.templates[0], version: Number.MAX_SAFE_INTEGER + 1 }],
+        },
+      }).success,
+      false
     );
     assert.equal(
       previewAuthorizationImportRoute.request?.body?.content['application/json']?.schema?.safeParse({
