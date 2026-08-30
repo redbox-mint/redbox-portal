@@ -1,0 +1,32 @@
+meta {
+  name: Authorization - Role deletion apply
+  type: http
+  seq: 83
+}
+
+delete {
+  url: {{host}}/default/rdmp/api/authorization/roles/bruno-phase86-role
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationRoleVersion}},
+    "reason": "Review dependency-free deletion",
+    "confirmationToken": "{{authorizationRoleDeleteToken}}"
+  }
+}
+
+tests {
+  test("Deletes only the unchanged dependency-free role", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().changed).to.equal(true);
+  });
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Authorization - Overlong cursor
+  type: http
+  seq: 87
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/scopes?cursor={{authorizationOverlongCursor}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Authorization: Bearer {{token}}
+}
+
+script:pre-request {
+  bru.setVar("authorizationOverlongCursor", "x".repeat(257));
+}
+
+tests {
+  test("Rejects a cursor beyond the documented bound", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody()).to.include({ status: 400, code: "authorization.invalid-request" });
+  });
+}

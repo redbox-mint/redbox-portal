@@ -1,0 +1,31 @@
+meta {
+  name: Authorization - Malformed bulk CSV
+  type: http
+  seq: 91
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/assignments/bulk-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "format": "csv",
+    "rows": "action,principalId,roleKey,roleKey\ngrant,{{researcherUserId}},Researcher,Researcher"
+  }
+}
+
+tests {
+  test("Rejects duplicated CSV headers semantically", function () {
+    expect(res.getStatus()).to.equal(422);
+    expect(res.getBody()).to.include({ status: 422, code: "authorization.bulk-invalid" });
+  });
+}

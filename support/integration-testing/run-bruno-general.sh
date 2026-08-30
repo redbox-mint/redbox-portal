@@ -19,7 +19,10 @@ rm /opt/junit/backend-bruno/backend-bruno-general.xml || true
 
 # Run bruno tests
 node_modules/.bin/bru run \
-  --disable-cookies --env int-test --sandbox developer --format junit --bail \
+  --disable-cookies --env int-test \
+  --env-var "authorizationMode=${RBPORTAL_AUTHORIZATION_MODE:-legacy}" \
+  --reporter-skip-headers Authorization Cookie \
+  --sandbox developer --format junit --bail \
   --output /opt/junit/backend-bruno/backend-bruno-general.xml
 
 status=$?

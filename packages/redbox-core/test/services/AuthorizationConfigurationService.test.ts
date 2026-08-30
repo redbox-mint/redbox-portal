@@ -128,6 +128,10 @@ describe('AuthorizationConfigurationService', () => {
   });
 
   it('rejects malformed and oversized JSON before persistence access', () => {
+    const validSerializedDocument = JSON.stringify(validDocument());
+    const maxByteDocument = validSerializedDocument.padEnd(AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES, ' ');
+    assert.doesNotThrow(() => parseAuthorizationConfigurationDocument(maxByteDocument));
+    assert.throws(() => parseAuthorizationConfigurationDocument(`${maxByteDocument} `), /cannot exceed/);
     assert.throws(() => parseAuthorizationConfigurationDocument('{"schemaVersion":'), /not valid JSON/);
     assert.throws(
       () =>

@@ -1,0 +1,25 @@
+meta {
+  name: Authorization - Protected Guest detail
+  type: http
+  seq: 78
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/roles/Guest
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Captures the protected Guest version without changing it", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.protectedKind).to.equal("guest");
+    bru.setVar("authorizationGuestVersion", body.version);
+  });
+}

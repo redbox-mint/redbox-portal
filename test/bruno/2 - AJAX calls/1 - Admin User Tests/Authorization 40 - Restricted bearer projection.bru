@@ -1,0 +1,34 @@
+meta {
+  name: Authorization - Restricted bearer projection
+  type: http
+  seq: 63
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/me
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{authorizationRestrictedToken}}
+}
+
+tests {
+  test("Honours rollout mode for a restricted bearer", function () {
+    const mode = bru.getEnvVar("authorizationMode") || "legacy";
+    if (mode !== "enforce") {
+      expect(res.getStatus()).to.equal(403);
+      expect(res.getBody()).to.include({ status: 403, code: "access-denied" });
+      return;
+    }
+
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.principal.authMethod).to.equal("bearer");
+    expect(body.scopeKeys).to.include("authorization.self.read");
+    expect(body.scopeKeys).not.to.include("authorization.role.manage");
+    expect(body.scopeKeys).not.to.include("system.authorization.manage");
+  });
+}

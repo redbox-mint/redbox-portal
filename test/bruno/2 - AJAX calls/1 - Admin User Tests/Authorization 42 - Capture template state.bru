@@ -1,0 +1,26 @@
+meta {
+  name: Authorization - Capture template state
+  type: http
+  seq: 65
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/templates?search=researcher&limit=10
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Captures the current template CAS state", function () {
+    expect(res.getStatus()).to.equal(200);
+    const template = res.getBody().items.find(item => item.key === "researcher");
+    expect(template).to.exist;
+    bru.setVar("authorizationTemplateVersion", template.version);
+    bru.setVar("authorizationTemplateRevision", template.currentRevision);
+  });
+}

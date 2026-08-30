@@ -6,6 +6,7 @@ import {
   AUTHORIZATION_AUDIT_TARGET_TYPES,
   AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES,
   AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS,
+  AUTHORIZATION_ADMIN_MAX_BULK_BYTES,
   AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES,
   AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS,
   AUTHORIZATION_DECISION_REASON_CODES,
@@ -61,6 +62,15 @@ const isoDateTimeField = z.string().datetime({ offset: true });
 const confirmationTokenField = z.string().min(1).max(8_192);
 const reasonField = optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH);
 const authorizationSuccessMetaSchema = z.object({}).passthrough();
+
+function utf8PayloadField(maxBytes: number, description: string) {
+  return z
+    .string()
+    .min(1)
+    .max(maxBytes)
+    .refine(value => Buffer.byteLength(value, 'utf8') <= maxBytes, { error: 'authorization.bulk-invalid' })
+    .openapi({ description: `${description}; maximum ${maxBytes} UTF-8 bytes` });
+}
 
 export function authorizationVersionedSuccessSchema(schema: ApiSchemaField): ApiSchemaField {
   return z.union([
@@ -792,12 +802,16 @@ function configurationDocumentSchema(maxRows: number, maxBytes: number) {
 export const authorizationConfigurationDocumentSchema = configurationDocumentSchema(
   AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS,
   AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES
-).openapi({ description: 'Deterministic versioned authorization configuration export document' });
+).openapi({
+  description: `Deterministic versioned authorization configuration export document; maximum ${AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS} combined rows and ${AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES} UTF-8 bytes`,
+});
 
 const authorizationConfigurationImportDocumentSchema = configurationDocumentSchema(
   AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS,
   AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES
-).openapi({ description: 'Bounded versioned authorization configuration import document' });
+).openapi({
+  description: `Bounded versioned authorization configuration import document; maximum ${AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS} combined rows and ${AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES} UTF-8 bytes`,
+});
 
 export const authorizationExportQuerySchema = z
   .object({
@@ -826,7 +840,7 @@ export const authorizationConfigurationExportResponseSchema: ApiSchemaField = z.
 
 const authorizationConfigurationDocumentInputSchema = z.union([
   authorizationConfigurationImportDocumentSchema,
-  z.string().min(1).max(AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES),
+  utf8PayloadField(AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES, 'JSON-encoded authorization configuration import document'),
 ]);
 
 export const authorizationImportPreviewBodySchema = z
@@ -903,16 +917,19 @@ export const authorizationBulkAssignmentRowSchema = z.union([
     .strict(),
 ]);
 
-export const authorizationBulkRowsSchema = z.array(authorizationBulkAssignmentRowSchema).max(100);
+export const authorizationBulkRowsSchema = z.array(authorizationBulkAssignmentRowSchema).min(1).max(100);
 
 const authorizationJsonBulkRequestShape = {
   format: z.literal('json').optional(),
-  rows: z.union([authorizationBulkRowsSchema, z.string().max(256 * 1_024)]),
+  rows: z.union([
+    authorizationBulkRowsSchema,
+    utf8PayloadField(AUTHORIZATION_ADMIN_MAX_BULK_BYTES, 'JSON-encoded assignment rows'),
+  ]),
   reason: optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH),
 };
 const authorizationCsvBulkRequestShape = {
   format: z.literal('csv'),
-  rows: z.string().max(256 * 1_024),
+  rows: utf8PayloadField(AUTHORIZATION_ADMIN_MAX_BULK_BYTES, 'CSV-encoded assignment rows'),
   reason: optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH),
 };
 

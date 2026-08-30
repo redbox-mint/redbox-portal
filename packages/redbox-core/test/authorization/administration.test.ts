@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'mocha';
 import {
+  AUTHORIZATION_ADMIN_MAX_BULK_BYTES,
   AUTHORIZATION_ADMIN_MAX_BULK_ROWS,
   AUTHORIZATION_MAX_SCOPE_SET_SIZE,
   AuthorizationAdministrationError,
@@ -82,6 +83,18 @@ describe('authorization administration contracts', () => {
   });
 
   it('parses bounded JSON and quoted CSV assignment batches deterministically', () => {
+    const validJsonRows = JSON.stringify([{ action: 'grant', principalId: 'u', roleKey: 'researcher' }]);
+    const maxByteJsonRows = validJsonRows.padEnd(AUTHORIZATION_ADMIN_MAX_BULK_BYTES, ' ');
+    assert.deepEqual(parseBulkAssignmentRows(maxByteJsonRows), [
+      { action: 'grant', principalId: 'u', roleKey: 'researcher' },
+    ]);
+    assert.throws(
+      () => parseBulkAssignmentRows(`${maxByteJsonRows} `),
+      (error: unknown) =>
+        error instanceof AuthorizationAdministrationError &&
+        error.code === 'authorization.bulk-invalid' &&
+        error.status === 422
+    );
     assert.deepEqual(
       parseBulkAssignmentRows(
         'action,principalId,roleKey,sourceKey,expiresAt,expectedVersion\nrevoke,"user,one",researcher,manual,,4',
@@ -128,5 +141,12 @@ describe('authorization administration contracts', () => {
         error.status === 422
     );
     assert.throws(() => parseBulkAssignmentRows('action,principalId,roleKey\ngrant,"user"x,r', 'csv'));
+    assert.throws(
+      () => parseBulkAssignmentRows('😀'.repeat(AUTHORIZATION_ADMIN_MAX_BULK_BYTES / 2)),
+      (error: unknown) =>
+        error instanceof AuthorizationAdministrationError &&
+        error.code === 'authorization.bulk-invalid' &&
+        error.status === 422
+    );
   });
 });

@@ -1,0 +1,25 @@
+meta {
+  name: Authorization - Generate restricted bearer
+  type: http
+  seq: 62
+}
+
+post {
+  url: {{host}}/default/rdmp/api/users/token/generate?id={{researcherUserId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Generates a bearer for the ordinary researcher fixture", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.token).to.be.a("string").and.not.empty;
+    bru.setVar("authorizationRestrictedToken", body.token);
+  });
+}

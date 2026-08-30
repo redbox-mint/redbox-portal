@@ -1,0 +1,26 @@
+meta {
+  name: Authorization - Capture template revision
+  type: http
+  seq: 66
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/templates/researcher/revisions/{{authorizationTemplateRevision}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Builds a deterministic reviewed next revision", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    const scopeKeys = [...new Set([...body.scopeKeys, "authorization.role.read"])].sort();
+    expect(scopeKeys.length).to.equal(body.scopeKeys.length + 1);
+    bru.setVar("authorizationPublishedTemplateScopes", JSON.stringify(scopeKeys));
+  });
+}

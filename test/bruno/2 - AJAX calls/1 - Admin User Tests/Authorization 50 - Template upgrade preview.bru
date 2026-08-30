@@ -1,0 +1,35 @@
+meta {
+  name: Authorization - Template upgrade preview
+  type: http
+  seq: 73
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/roles/bruno-phase86-role/template-upgrade-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "expectedVersion": {{authorizationRoleVersion}},
+    "targetRevision": {{authorizationNextTemplateRevision}},
+    "reason": "Review the pinned template upgrade"
+  }
+}
+
+tests {
+  test("Previews the three-way template upgrade", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.operation).to.equal("template-upgrade");
+    expect(body.confirmationToken).to.be.a("string").and.not.empty;
+    bru.setVar("authorizationRoleUpgradeToken", body.confirmationToken);
+  });
+}

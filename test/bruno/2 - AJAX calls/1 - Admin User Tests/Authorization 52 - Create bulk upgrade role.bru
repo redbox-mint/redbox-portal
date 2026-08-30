@@ -1,0 +1,37 @@
+meta {
+  name: Authorization - Create bulk upgrade role
+  type: http
+  seq: 75
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/roles
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "key": "bruno-phase86-bulk-role",
+    "displayName": "Bruno Phase 8.6 bulk role",
+    "templateKey": "researcher",
+    "templateRevision": {{authorizationTemplateRevision}},
+    "reason": "Create an explicitly selected bulk-upgrade fixture"
+  }
+}
+
+tests {
+  test("Creates a role pinned to the reviewed prior revision", function () {
+    expect(res.getStatus()).to.equal(201);
+    const body = res.getBody();
+    expect(body.data.templateRevision).to.equal(Number(bru.getVar("authorizationTemplateRevision")));
+    bru.setVar("authorizationBulkUpgradeRoleId", body.data.id);
+    bru.setVar("authorizationBulkUpgradeRoleVersion", body.version);
+  });
+}
