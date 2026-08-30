@@ -312,6 +312,7 @@ function collectBindings(sourceFile) {
   let activeMutationRecursionDepth = 0;
   let activeDormantInvocationDepth = 0;
   let activeDormantPropagationDepth = 0;
+  let activeAlternativeMutationDepth = 0;
   let remainingAnalysisWork = maximumAnalysisWork;
   let remainingDependencyCompositionWork = maximumDependencyCompositionWork;
   let analysisWorkLimit;
@@ -2663,6 +2664,7 @@ function collectBindings(sourceFile) {
     const writeRank = deterministicWriteRank(writeNode);
     const strongCarrierWrite =
       strong &&
+      activeAlternativeMutationDepth === 0 &&
       writeRank !== undefined &&
       propertyNames?.length === 1 &&
       targetValue.size === 1 &&
@@ -3411,7 +3413,7 @@ function collectBindings(sourceFile) {
     return false;
   }
 
-  function positionalMutationApplicationSet(invocationNode, method) {
+  function positionalMutationApplicationMap(invocationNode, method) {
     const state = activeFunctionInvocationState();
     const applications = state
       ? (state.positionalMutationApplications ??= new WeakMap())
@@ -3421,12 +3423,60 @@ function collectBindings(sourceFile) {
       methods = new Map();
       applications.set(invocationNode, methods);
     }
-    let receivers = methods.get(method);
-    if (!receivers) {
-      receivers = new WeakSet();
-      methods.set(method, receivers);
+    let receiverApplications = methods.get(method);
+    if (!receiverApplications) {
+      receiverApplications = new WeakMap();
+      methods.set(method, receiverApplications);
     }
-    return receivers;
+    return receiverApplications;
+  }
+
+  function mutationArgumentsCovered(previousArguments, argumentValues) {
+    return (
+      previousArguments.length === argumentValues.length &&
+      argumentValues.every((value, index) => [...value].every(atom => previousArguments[index].has(atom)))
+    );
+  }
+
+  function positionalMutationAlreadyApplied(
+    receiverApplications,
+    receiver,
+    argumentValues,
+    expansion,
+    mutationValues,
+    strong
+  ) {
+    let application = receiverApplications.get(receiver);
+    if (!application) {
+      application = {
+        arguments: [],
+        preMutationValues: allPositionalValues(expansion),
+        restoredPreMutationValues: false,
+        saturated: false,
+        strongApplied: false,
+      };
+      receiverApplications.set(receiver, application);
+    }
+
+    if (!strong && application.strongApplied && !application.restoredPreMutationValues) {
+      invalidateCarrierPositionalLayout(receiver, retainReflectiveCallableProvenance(application.preMutationValues));
+      application.restoredPreMutationValues = true;
+    }
+    if (application.saturated) return true;
+    if (application.arguments.some(previous => mutationArgumentsCovered(previous, argumentValues))) {
+      return true;
+    }
+    if (application.arguments.length >= maximumTrackedPositionalAlternatives) {
+      const failClosedValues = new Set(application.preMutationValues);
+      mergeValue(failClosedValues, mutationValues);
+      mergeValue(failClosedValues, unknownReflectiveCallableValue());
+      invalidateCarrierPositionalLayout(receiver, retainReflectiveCallableProvenance(failClosedValues));
+      application.saturated = true;
+      return true;
+    }
+    application.arguments.push(argumentValues.map(value => new Set(value)));
+    if (strong) application.strongApplied = true;
+    return false;
   }
 
   function applyKnownPositionalMutation(method, argumentValues, thisValue, invocationNode) {
@@ -3439,13 +3489,23 @@ function collectBindings(sourceFile) {
     const mutationValues = new Set();
     for (const argumentValue of argumentValues) mergeValue(mutationValues, argumentValue);
     const writeRank = deterministicWriteRank(invocationNode);
-    const strong = writeRank !== undefined && (thisValue?.size ?? 0) === 1;
-    const appliedReceivers = positionalMutationApplicationSet(invocationNode, method);
+    const strong = writeRank !== undefined && (thisValue?.size ?? 0) === 1 && activeAlternativeMutationDepth === 0;
+    const receiverApplications = positionalMutationApplicationMap(invocationNode, method);
     for (const receiver of thisValue ?? []) {
       if (typeof receiver === 'string' || receiver.kind !== 'carrier' || !receiver.positional) continue;
-      if (appliedReceivers.has(receiver)) continue;
-      appliedReceivers.add(receiver);
       const expansion = positionalLayouts(new Set([receiver]));
+      if (
+        positionalMutationAlreadyApplied(
+          receiverApplications,
+          receiver,
+          argumentValues,
+          expansion,
+          mutationValues,
+          strong
+        )
+      ) {
+        continue;
+      }
       if (expansion.positionalOverflowStart !== undefined) {
         if (applyKnownOverflowPositionalMutation(method, argumentValues, receiver, invocationNode, expansion, strong)) {
           continue;
@@ -3514,6 +3574,7 @@ function collectBindings(sourceFile) {
       }
       const writeRank = deterministicWriteRank(invocationNode);
       const strong =
+        activeAlternativeMutationDepth === 0 &&
         writeRank !== undefined &&
         (thisValue?.size ?? 0) === 1 &&
         propertyNamesFromValue(argumentValues[0] ?? new Set())?.length === 1;
@@ -4222,7 +4283,7 @@ function collectBindings(sourceFile) {
 
   function clearCollection(receiverValue, invocationNode, kind) {
     const writeRank = deterministicWriteRank(invocationNode);
-    if (!writeRank || receiverValue.size !== 1) return;
+    if (activeAlternativeMutationDepth > 0 || !writeRank || receiverValue.size !== 1) return;
     const receiver = [...receiverValue][0];
     if (
       typeof receiver === 'string' ||
@@ -5077,7 +5138,9 @@ function collectBindings(sourceFile) {
       invocation.kinds.add(`${analysisLimitKind}:callable-recursion-limit`);
       return invocation;
     }
+    const alternativeCallable = callable.size !== 1;
     activeCallableRecursionDepth += 1;
+    if (alternativeCallable) activeAlternativeMutationDepth += 1;
     try {
       for (const atom of callable) {
         if (typeof atom !== 'string' && atom.kind === 'unknown-value') {
@@ -5208,6 +5271,7 @@ function collectBindings(sourceFile) {
           ) {
             const writeRank = deterministicWriteRank(invocationNode);
             const strong =
+              activeAlternativeMutationDepth === 0 &&
               writeRank !== undefined &&
               (thisValue?.size ?? 0) === 1 &&
               propertyNamesFromValue(argumentValues[0] ?? new Set())?.length === 1;
@@ -5303,8 +5367,7 @@ function collectBindings(sourceFile) {
           const argumentCarrier = argumentValues[atom === origins.reflectApply ? 2 : 1] ?? new Set();
           const targetThisValue = atom === origins.reflectApply ? argumentValues[1] : undefined;
           const expansion = positionalLayouts(argumentCarrier);
-          const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
-          for (const layout of layouts) {
+          forEachMutationLayout(expansion, true, layout => {
             mergeInvocation(
               invocation,
               invokeTracked(
@@ -5318,7 +5381,7 @@ function collectBindings(sourceFile) {
                 expansion
               )
             );
-          }
+          });
           if (hasUnsafeCallable(target)) mergePositionalLimit(invocation, expansion);
           if (
             invocation.kinds.has(unknownReflectTargetLimitKind) &&
@@ -5362,8 +5425,7 @@ function collectBindings(sourceFile) {
           );
         } else if (atom === origins.functionPrototypeApply) {
           const expansion = positionalLayouts(argumentValues[1] ?? new Set());
-          const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
-          for (const layout of layouts) {
+          forEachMutationLayout(expansion, true, layout => {
             mergeInvocation(
               invocation,
               invokeTracked(
@@ -5377,7 +5439,7 @@ function collectBindings(sourceFile) {
                 expansion
               )
             );
-          }
+          });
           if (hasUnsafeCallable(thisValue ?? new Set())) mergePositionalLimit(invocation, expansion);
         } else if (atom === origins.functionPrototypeBind) {
           invocation.result.add(
@@ -5458,8 +5520,7 @@ function collectBindings(sourceFile) {
           } else if (atom.kind === 'invocation-method' && atom.method === 'apply') {
             trackPropagationDependency(atom.target);
             const expansion = positionalLayouts(argumentValues[1] ?? new Set());
-            const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
-            for (const layout of layouts) {
+            forEachMutationLayout(expansion, true, layout => {
               mergeInvocation(
                 invocation,
                 invokeTracked(
@@ -5473,7 +5534,7 @@ function collectBindings(sourceFile) {
                   expansion
                 )
               );
-            }
+            });
             if (hasUnsafeCallable(atom.target)) mergePositionalLimit(invocation, expansion);
           } else if (atom.kind === 'invocation-method' && atom.method === 'bind') {
             trackPropagationDependency(atom.target);
@@ -5490,6 +5551,7 @@ function collectBindings(sourceFile) {
         }
       }
     } finally {
+      if (alternativeCallable) activeAlternativeMutationDepth -= 1;
       activeCallableRecursionDepth -= 1;
     }
     return invocation;
@@ -5516,17 +5578,19 @@ function collectBindings(sourceFile) {
       }
       return;
     }
+    const alternativeCallable = callable.size !== 1;
     activeMutationRecursionDepth += 1;
+    if (alternativeCallable) activeAlternativeMutationDepth += 1;
     try {
       for (const atom of callable) {
         if (atom === origins.reflectApply) {
           if (!consumeDependencyCompositionWork(invocationNode)) return;
           const expansion = positionalLayouts(argumentValues[2] ?? new Set());
-          const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
-          for (const layout of layouts) {
+          const completed = forEachMutationLayout(expansion, true, layout => {
             invokePositionalMutators(argumentValues[0] ?? new Set(), layout, invocationNode, seen, argumentValues[1]);
-            if (analysisStopped()) return;
-          }
+            return !analysisStopped();
+          });
+          if (!completed) return;
         } else if (atom === origins.functionPrototypeCall) {
           if (!consumeDependencyCompositionWork(invocationNode)) return;
           invokePositionalMutators(
@@ -5539,11 +5603,11 @@ function collectBindings(sourceFile) {
         } else if (atom === origins.functionPrototypeApply) {
           if (!consumeDependencyCompositionWork(invocationNode)) return;
           const expansion = positionalLayouts(argumentValues[1] ?? new Set());
-          const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
-          for (const layout of layouts) {
+          const completed = forEachMutationLayout(expansion, true, layout => {
             invokePositionalMutators(thisValue ?? new Set(), layout, invocationNode, seen, argumentValues[0]);
-            if (analysisStopped()) return;
-          }
+            return !analysisStopped();
+          });
+          if (!completed) return;
         } else if (applyPositionalMutationIntrinsic(atom, argumentValues, thisValue, invocationNode)) {
           const hasWork = isNonComposingIntrinsic(atom)
             ? consumeAnalysisWork(invocationNode)
@@ -5572,15 +5636,16 @@ function collectBindings(sourceFile) {
             invokePositionalMutators(atom.target, argumentValues.slice(1), invocationNode, nextSeen, argumentValues[0]);
           } else if (atom.method === 'apply') {
             const expansion = positionalLayouts(argumentValues[1] ?? new Set());
-            const layouts = expansion.layouts.length > 0 ? expansion.layouts : [[]];
-            for (const layout of layouts) {
+            const completed = forEachMutationLayout(expansion, true, layout => {
               invokePositionalMutators(atom.target, layout, invocationNode, nextSeen, argumentValues[0]);
-              if (analysisStopped()) return;
-            }
+              return !analysisStopped();
+            });
+            if (!completed) return;
           }
         }
       }
     } finally {
+      if (alternativeCallable) activeAlternativeMutationDepth -= 1;
       activeMutationRecursionDepth -= 1;
     }
   }
@@ -5670,6 +5735,29 @@ function collectBindings(sourceFile) {
     return expansion;
   }
 
+  function forEachMutationLayout(expansion, useEmptyFallback, visit) {
+    const candidateLayouts = useEmptyFallback && expansion.layouts.length === 0 ? [[]] : expansion.layouts;
+    let layouts = candidateLayouts;
+    if (candidateLayouts.length > 1 && candidateLayouts.every(layout => layout.length === candidateLayouts[0].length)) {
+      const mergedLayout = Array.from({ length: candidateLayouts[0].length }, () => new Set());
+      for (const layout of candidateLayouts) {
+        for (const [index, value] of layout.entries()) mergeValue(mergedLayout[index], value);
+      }
+      layouts = [mergedLayout];
+    }
+    const alternativeLayout =
+      expansion.uncertainPositioning || expansion.positionalOverflowStart !== undefined || layouts.length !== 1;
+    if (alternativeLayout) activeAlternativeMutationDepth += 1;
+    try {
+      for (const layout of layouts) {
+        if (visit(layout) === false) return false;
+      }
+      return true;
+    } finally {
+      if (alternativeLayout) activeAlternativeMutationDepth -= 1;
+    }
+  }
+
   function evaluateInvocation(calleeNode, argumentNodes, invocationNode) {
     const dormant = !activeFunctionInvocationState() && Boolean(enclosingFunctionNode(invocationNode));
     const cached = dormant ? dormantInvocationResults.get(invocationNode) : undefined;
@@ -5684,12 +5772,12 @@ function collectBindings(sourceFile) {
           : undefined;
       const expansion = positionalExpansionForNodes(argumentNodes);
       const invocation = { result: new Set(), kinds: new Set() };
-      for (const layout of expansion.layouts) {
+      forEachMutationLayout(expansion, false, layout => {
         mergeInvocation(
           invocation,
           invokeTracked(callee, layout, invocationNode, new Set(), thisValue, false, false, expansion)
         );
-      }
+      });
       if (hasUnsafeCallable(callee)) mergePositionalLimit(invocation, expansion);
       if (
         invocation.kinds.has(unknownReflectTargetLimitKind) &&
@@ -5714,10 +5802,10 @@ function collectBindings(sourceFile) {
         ? evaluateExpression(unwrappedCallee.expression)
         : undefined;
     const expansion = positionalExpansionForNodes([...node.arguments]);
-    for (const layout of expansion.layouts) {
+    forEachMutationLayout(expansion, false, layout => {
       invokePositionalMutators(callee, layout, node, new Set(), thisValue);
-      if (analysisStopped()) return;
-    }
+      return !analysisStopped();
+    });
   }
 
   function invalidateUnknownInvocationCarrierEffects(node) {
