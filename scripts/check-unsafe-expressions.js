@@ -2468,9 +2468,13 @@ function collectBindings(sourceFile) {
     if (changed) notifyPropagationSubscribers(carrier);
   }
 
-  function replaceCarrierExactPositionalLength(carrier, length) {
-    const replacement = new Set([length]);
-    replaceTracked(carrier.exactPositionalLengths, replacement, carrier);
+  function replaceCarrierExactPositionalLengths(carrier, lengths) {
+    replaceTracked(carrier.exactPositionalLengths, lengths, carrier);
+  }
+
+  function replaceCarrierPositionalLengths(carrier, lengths) {
+    const boundedLengths = new Set([...lengths].map(length => Math.min(length, maximumTrackedInvocationArguments)));
+    replaceTracked(carrier.positionalLengths, boundedLengths, carrier);
   }
 
   function replaceCarrierPositionalOverflow(carrier, overflowStart, overflowValues) {
@@ -3121,6 +3125,53 @@ function collectBindings(sourceFile) {
     return Math.min(index < 0 ? Math.max(length + index, 0) : index, length);
   }
 
+  function hasExactMutationArguments(invocationNode, method) {
+    const callee = unwrapExpression(invocationNode.expression);
+    if (!ts.isPropertyAccessExpression(callee) && !ts.isElementAccessExpression(callee)) return false;
+    const propertyNames = memberPropertyNames(callee);
+    return (
+      propertyNames?.length === 1 &&
+      propertyNames[0] === method &&
+      ![...invocationNode.arguments].some(ts.isSpreadElement)
+    );
+  }
+
+  function transformedExactPositionalLengths(method, argumentValues, invocationNode, exactLengths) {
+    if (exactLengths.size === 0 || method === 'sort') return undefined;
+    if (
+      ['copyWithin', 'fill', 'pop', 'reverse', 'shift'].includes(method) ||
+      hasExactMutationArguments(invocationNode, method)
+    ) {
+      const transformedLengths = new Set();
+      for (const length of exactLengths) {
+        if (method === 'push' || method === 'unshift') {
+          transformedLengths.add(length + argumentValues.length);
+          continue;
+        }
+        if (method === 'pop' || method === 'shift') {
+          transformedLengths.add(Math.max(0, length - 1));
+          continue;
+        }
+        if (method === 'splice') {
+          const rawStart = singleIntegerArgument(argumentValues[0], 0);
+          if (rawStart === undefined) return undefined;
+          const start = normalizedPositionalIndex(rawStart, length);
+          const requestedDeleteCount = singleIntegerArgument(
+            argumentValues[1],
+            argumentValues.length < 2 ? length - start : undefined
+          );
+          if (requestedDeleteCount === undefined) return undefined;
+          const deleteCount = Math.min(Math.max(0, requestedDeleteCount), length - start);
+          transformedLengths.add(length - deleteCount + argumentValues.slice(2).length);
+          continue;
+        }
+        transformedLengths.add(length);
+      }
+      return transformedLengths;
+    }
+    return undefined;
+  }
+
   function transformPositionalLayout(method, layout, argumentValues) {
     const transformed = [...layout];
     if (method === 'push') return [...transformed, ...argumentValues];
@@ -3186,7 +3237,7 @@ function collectBindings(sourceFile) {
     return result;
   }
 
-  function applyKnownOverflowPositionalMutation(method, argumentValues, receiver, invocationNode, expansion) {
+  function applyKnownOverflowPositionalMutation(method, argumentValues, receiver, invocationNode, expansion, strong) {
     if (
       expansion.positionalOverflowStart === undefined ||
       expansion.uncertainPositioning ||
@@ -3200,13 +3251,13 @@ function collectBindings(sourceFile) {
     const trackedEnd = Math.min(expansion.positionalOverflowStart, layout.length);
     const writeRank = deterministicWriteRank(invocationNode);
     const replacePosition = (index, value) => {
-      putCarrierProperty(receiver, [String(index)], value, writeRank, true);
+      putCarrierProperty(receiver, [String(index)], value, writeRank, strong);
     };
     const mergeOverflowWrites = values => {
       mergeCarrierPositionalOverflow(receiver, expansion.positionalOverflowStart, values);
     };
     const updateOverflow = (values, replacesEveryOverflowPosition) => {
-      if (writeRank && replacesEveryOverflowPosition) {
+      if (strong && replacesEveryOverflowPosition) {
         replaceCarrierPositionalOverflow(receiver, expansion.positionalOverflowStart, values);
       } else {
         mergeOverflowWrites(values);
@@ -3260,18 +3311,46 @@ function collectBindings(sourceFile) {
       return true;
     }
 
-    if (method === 'splice') {
-      const rawStart = singleIntegerArgument(argumentValues[0], 0);
+    if (method === 'reverse') {
+      for (let index = 0; index < trackedEnd; index += 1) {
+        const sourceIndex = exactLength - index - 1;
+        replacePosition(
+          index,
+          sourceIndex < trackedEnd ? layout[sourceIndex] : overflowPositionValue(expansion, layout[index])
+        );
+      }
+      updateOverflow(
+        positionalRangeValues(expansion, layout, 0, exactLength - expansion.positionalOverflowStart),
+        true
+      );
+      return true;
+    }
+
+    if (['pop', 'push', 'shift', 'splice', 'unshift'].includes(method)) {
+      if (['push', 'splice', 'unshift'].includes(method) && !hasExactMutationArguments(invocationNode, method)) {
+        return false;
+      }
+      const spliceArguments =
+        method === 'push'
+          ? [literalValue(exactLength), literalValue(0), ...argumentValues]
+          : method === 'unshift'
+            ? [literalValue(0), literalValue(0), ...argumentValues]
+            : method === 'pop'
+              ? [literalValue(-1), literalValue(1)]
+              : method === 'shift'
+                ? [literalValue(0), literalValue(1)]
+                : argumentValues;
+      const rawStart = singleIntegerArgument(spliceArguments[0], 0);
       if (rawStart === undefined) return false;
       const start = normalizedPositionalIndex(rawStart, exactLength);
       const requestedDeleteCount = singleIntegerArgument(
-        argumentValues[1],
-        argumentValues.length < 2 ? exactLength - start : undefined
+        spliceArguments[1],
+        spliceArguments.length < 2 ? exactLength - start : undefined
       );
       if (requestedDeleteCount === undefined) return false;
       const deleteCount = Math.min(Math.max(0, requestedDeleteCount), exactLength - start);
       const boundedStart = Math.min(start, trackedEnd);
-      const insertedValues = argumentValues.slice(2);
+      const insertedValues = spliceArguments.slice(2);
       const newLength = exactLength - deleteCount + insertedValues.length;
       for (let index = boundedStart; index < trackedEnd; index += 1) {
         if (index >= newLength) {
@@ -3312,15 +3391,18 @@ function collectBindings(sourceFile) {
           mergeValue(overflowWrites, positionalRangeValues(expansion, layout, overflowSuffixStart, exactLength));
         }
       }
-      if (writeRank) {
-        replaceCarrierExactPositionalLength(receiver, newLength);
+      const lengths = new Set([newLength]);
+      if (strong) {
+        replaceCarrierExactPositionalLengths(receiver, lengths);
+        replaceCarrierPositionalLengths(receiver, lengths);
         replaceCarrierPositionalOverflow(
           receiver,
           newLength > expansion.positionalOverflowStart ? expansion.positionalOverflowStart : undefined,
           overflowWrites
         );
       } else {
-        mergeCarrierExactPositionalLengths(receiver, new Set([newLength]));
+        mergeCarrierExactPositionalLengths(receiver, lengths);
+        mergeCarrierPositionalState(receiver, lengths, false, new Set());
         mergeOverflowWrites(overflowWrites);
       }
       return true;
@@ -3356,6 +3438,8 @@ function collectBindings(sourceFile) {
     }
     const mutationValues = new Set();
     for (const argumentValue of argumentValues) mergeValue(mutationValues, argumentValue);
+    const writeRank = deterministicWriteRank(invocationNode);
+    const strong = writeRank !== undefined && (thisValue?.size ?? 0) === 1;
     const appliedReceivers = positionalMutationApplicationSet(invocationNode, method);
     for (const receiver of thisValue ?? []) {
       if (typeof receiver === 'string' || receiver.kind !== 'carrier' || !receiver.positional) continue;
@@ -3363,7 +3447,7 @@ function collectBindings(sourceFile) {
       appliedReceivers.add(receiver);
       const expansion = positionalLayouts(new Set([receiver]));
       if (expansion.positionalOverflowStart !== undefined) {
-        if (applyKnownOverflowPositionalMutation(method, argumentValues, receiver, invocationNode, expansion)) {
+        if (applyKnownOverflowPositionalMutation(method, argumentValues, receiver, invocationNode, expansion, strong)) {
           continue;
         }
         const overflowValues = allPositionalValues(expansion);
@@ -3378,6 +3462,12 @@ function collectBindings(sourceFile) {
         continue;
       }
       const lengths = new Set();
+      const exactLengths = transformedExactPositionalLengths(
+        method,
+        argumentValues,
+        invocationNode,
+        expansion.exactPositionalLengths
+      );
       const overflowValues = new Set();
       let overflowStart;
       let uncertain = false;
@@ -3392,7 +3482,7 @@ function collectBindings(sourceFile) {
         const boundedLength = Math.min(transformed.length, maximumTrackedInvocationArguments);
         lengths.add(boundedLength);
         for (let index = 0; index < boundedLength; index += 1) {
-          putCarrierProperty(receiver, [String(index)], transformed[index]);
+          putCarrierProperty(receiver, [String(index)], transformed[index], writeRank, strong);
         }
         if (transformed.length > maximumTrackedInvocationArguments) {
           overflowStart = maximumTrackedInvocationArguments;
@@ -3402,7 +3492,14 @@ function collectBindings(sourceFile) {
           }
         }
       }
-      mergeCarrierPositionalState(receiver, lengths, uncertain, overflowValues);
+      if (strong) {
+        replaceCarrierPositionalLengths(receiver, lengths);
+        replaceCarrierExactPositionalLengths(receiver, exactLengths ?? new Set());
+      } else {
+        mergeCarrierPositionalState(receiver, lengths, uncertain, overflowValues);
+        if (exactLengths) mergeCarrierExactPositionalLengths(receiver, exactLengths);
+      }
+      if (uncertain) invalidateCarrierPositionalLayout(receiver, overflowValues);
       mergeCarrierPositionalOverflow(receiver, overflowStart, overflowValues);
     }
   }

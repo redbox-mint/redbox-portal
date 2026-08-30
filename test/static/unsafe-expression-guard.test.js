@@ -5319,6 +5319,20 @@ test('later writes never erase evidence of an earlier unsafe invocation', () => 
       source: `const values = [eval]; values[0](configuredSource); values[0] = JSON.parse;`,
     },
     {
+      name: 'tracked array fill',
+      source: `const values = [eval]; values[0](configuredSource); values.fill(JSON.parse);`,
+    },
+    {
+      name: 'overflow array fill',
+      source: `const values = Array(64).fill(JSON.parse); values.push(eval);
+        values[64](configuredSource); values.fill(JSON.parse, -1);`,
+    },
+    {
+      name: 'overflow array shift',
+      source: `const values = Array(64).fill(JSON.parse); values.unshift(eval);
+        values[0](configuredSource); values.shift();`,
+    },
+    {
       name: 'Map entry',
       source: `const values = new Map([['run', eval]]); values.get('run')(configuredSource);
         values.set('run', JSON.parse);`,
@@ -5605,6 +5619,177 @@ test('helper-installed builtin prototype methods execute isolated runtime marker
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), ['array', 'map', 'set']);
+});
+
+test('exact array lengths remain synchronized when ordinary mutations cross the tracking boundary', () => {
+  const unsafeCases = [
+    {
+      name: 'push followed by negative tail replacement',
+      source: `const v=Array(64).fill(JSON.parse);v.push(JSON.parse);
+        v.splice(-1,1,eval);v[64](configuredSource);`,
+    },
+    {
+      name: 'tail insertion copied into the tracked prefix',
+      source: `const v=Array(64).fill(JSON.parse);v.splice(64,0,eval);
+        v.copyWithin(0,-1);v[0](configuredSource);`,
+    },
+    {
+      name: 'unsafe overflow tail shifted below the boundary',
+      source: `const v=Array(64).fill(JSON.parse);v.push(eval);
+        v.splice(0,1);v[63](configuredSource);`,
+    },
+  ];
+
+  for (const unsafeCase of unsafeCases) {
+    const relativePath = 'packages/example/src/exact-length-boundary-crossing.ts';
+    const firstFindings = scanSource(unsafeCase.source, relativePath);
+    const secondFindings = scanSource(unsafeCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${unsafeCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${unsafeCase.name} should retain eval provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${unsafeCase.name} diagnostics should remain bounded`);
+  }
+
+  const safeOverwrite = `const v=Array(64).fill(JSON.parse);v.push(eval);
+    v.fill(JSON.parse,-1);v[64]('{}');`;
+  assert.deepEqual(
+    scanSource(safeOverwrite, 'packages/example/src/safe-exact-length-boundary-overwrite.ts'),
+    [],
+    'a deterministic safe tail overwrite should replace stale overflow provenance'
+  );
+});
+
+test('array boundary crossings preserve mutation provenance in both directions', () => {
+  const unsafeCases = [
+    {
+      name: 'two pushes cross upward from 63 slots',
+      source: `const v=Array(63).fill(JSON.parse);v.push(JSON.parse);v.push(eval);
+        v[64](configuredSource);`,
+    },
+    {
+      name: 'pop exposes the preceding unsafe overflow value',
+      source: `const v=Array(64).fill(JSON.parse);v.push(eval);v.push(JSON.parse);v.pop();
+        v[64](configuredSource);`,
+    },
+    {
+      name: 'unshift crosses upward into overflow',
+      source: `const v=Array(64).fill(JSON.parse);v.unshift(eval);v[0](configuredSource);`,
+    },
+    {
+      name: 'shift crosses downward with an unsafe tail',
+      source: `const v=Array(64).fill(JSON.parse);v.push(eval);v.shift();v[63](configuredSource);`,
+    },
+    {
+      name: 'negative splice inserts before the overflow tail',
+      source: `const v=Array(64).fill(JSON.parse);v.push(JSON.parse);v.splice(-1,0,eval);
+        v[64](configuredSource);`,
+    },
+    {
+      name: 'omitted splice count retains an unsafe prefix',
+      source: `const v=Array(64).fill(JSON.parse);v.unshift(eval);v.splice(1);
+        v[0](configuredSource);`,
+    },
+    {
+      name: 'fill writes eval into the overflow tail',
+      source: `const v=Array(64).fill(JSON.parse);v.push(JSON.parse);v.fill(eval,-1);
+        v[64](configuredSource);`,
+    },
+    {
+      name: 'an array alias shifts an unsafe tail below the boundary',
+      source: `const v=Array(64).fill(JSON.parse);const alias=v;alias.push(eval);alias.shift();
+        v[63](configuredSource);`,
+    },
+    {
+      name: 'a borrowed push remains fail closed across a later deletion',
+      source: `const v=Array(64).fill(JSON.parse);Array.prototype.push.call(v,eval);
+        v.splice(0,1);v[63](configuredSource);`,
+    },
+    {
+      name: 'a helper mutation shifts an unsafe tail below the boundary',
+      source: `function mutate(value){value.push(eval);value.shift();}
+        const v=Array(64).fill(JSON.parse);mutate(v);v[63](configuredSource);`,
+    },
+    {
+      name: 'a conditional receiver cannot strongly overwrite both possible tails',
+      source: `const first=Array(64).fill(JSON.parse);first.push(eval);
+        const second=Array(65).fill(JSON.parse);(flag?first:second).fill(JSON.parse,-1);
+        first[64](configuredSource);`,
+    },
+    {
+      name: 'a conditional safe overwrite cannot erase the unsafe tail',
+      source: `const v=Array(64).fill(JSON.parse);v.push(eval);
+        if(flag)v.fill(JSON.parse,-1);v[64](configuredSource);`,
+    },
+  ];
+
+  for (const unsafeCase of unsafeCases) {
+    const relativePath = 'packages/example/src/array-boundary-mutation-matrix.ts';
+    const findings = scanSource(unsafeCase.source, relativePath);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${unsafeCase.name} should retain eval provenance: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${unsafeCase.name} diagnostics should remain bounded`);
+  }
+
+  const safeCases = [
+    `const v=Array(64).fill(JSON.parse);v.push(eval);v.pop();v[63]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.unshift(eval);v.shift();v[0]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);v.splice(-1,1,JSON.parse);v[64]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);v.copyWithin(-1,0,1);v[64]('{}');`,
+    `const v=Array(64).fill(JSON.parse);v.push(eval);v.splice(-1);v[63]('{}');`,
+    `const v=Array(63).fill(JSON.parse);v.push(JSON.parse);v.push(eval);v.pop();v[63]('{}');`,
+    `const v=[eval];v.fill(JSON.parse);v[0]('{}');`,
+    `const v=[eval,JSON.parse];v.copyWithin(0,1);v[0]('{}');`,
+    `const v=[eval];v.splice(0,1,JSON.parse);v[0]('{}');`,
+    `const v=Array(64).fill(JSON.parse);const alias=v;alias.push(eval);
+      alias.fill(JSON.parse,-1);v[64]('{}');`,
+  ];
+  for (const [index, source] of safeCases.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-array-boundary-mutation-${index}.ts`),
+      [],
+      `safe boundary mutation ${index} should replace or remove stale provenance`
+    );
+  }
+});
+
+test('reviewed array boundary crossings execute isolated runtime markers', () => {
+  const markerKey = '__a12_exact_length_boundary_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    const parse = JSON.parse;
+    JSON.parse = value => {
+      globalThis[${serializedMarkerKey}].push('safe-overwrite');
+      return parse(value);
+    };
+    try {
+      { const v=Array(64).fill(JSON.parse);v.push(JSON.parse);v.splice(-1,1,eval);
+        v[64](mark('push-splice')); }
+      { const v=Array(64).fill(JSON.parse);v.splice(64,0,eval);v.copyWithin(0,-1);
+        v[0](mark('splice-copyWithin')); }
+      { const v=Array(64).fill(JSON.parse);v.push(eval);v.splice(0,1);
+        v[63](mark('push-delete')); }
+      { const v=Array(64).fill(JSON.parse);v.push(eval);v.fill(JSON.parse,-1);v[64]('{}'); }
+    } finally {
+      JSON.parse = parse;
+    }
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['push-splice', 'splice-copyWithin', 'push-delete', 'safe-overwrite']);
 });
 
 test('bounded overflow mutations preserve precise known tracked positions', () => {
