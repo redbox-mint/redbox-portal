@@ -1147,6 +1147,7 @@ export namespace Services {
         actorContext.contextType === 'brand' &&
         (actorContext.brand?.id === brandIdentifier || actorContext.brand?.name === brandIdentifier);
       if (brandMatches) return actorContext;
+      if (!actorContext.effectiveScopeKeys.includes(asScopeKey('system.authorization.manage'))) return undefined;
       if (actorContext.principal.userId === undefined) return undefined;
       const authMethod: AuthorizationUserAuthMethod =
         actorContext.principal.authMethod === 'bearer' ? 'bearer' : 'session';
@@ -1168,10 +1169,9 @@ export namespace Services {
       const explanationScope = asScopeKey('authorization.explain');
       const actorTargetContext = await this.actorContextForExplanation(actorContext, brandIdentifier);
       if (actorTargetContext === undefined) {
-        const targetBrand = await this.resolveBrand(brandIdentifier);
         return Object.freeze({
           explained: false,
-          decision: this.authorizeBrandEntity(actorContext, explanationScope, targetBrand.id),
+          decision: Object.freeze({ allowed: false, reasonCode: 'brand-not-authorized' as const }),
         });
       }
       const explanationDecision = this.authorizeAction(actorTargetContext, explanationScope);

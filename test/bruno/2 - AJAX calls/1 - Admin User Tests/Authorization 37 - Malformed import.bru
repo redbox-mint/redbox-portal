@@ -1,0 +1,39 @@
+meta {
+  name: Authorization - Malformed import
+  type: http
+  seq: 54
+}
+
+post {
+  url: {{host}}/default/rdmp/api/authorization/import-preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/problem+json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "document": {
+      "schemaVersion": 1,
+      "templates": [],
+      "roles": [],
+      "unexpectedAuthority": true
+    },
+    "reason": "Must fail closed"
+  }
+}
+
+tests {
+  test("Rejects malformed configuration before controller execution", function () {
+    expect(res.getStatus()).to.equal(400);
+    const body = res.getBody();
+    expect(body).to.include({ status: 400, code: "authorization.invalid-request" });
+    expect(JSON.stringify(body)).not.to.include("unexpectedAuthority");
+  });
+}

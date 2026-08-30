@@ -10,8 +10,10 @@ import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
 import * as AuthorizationAuditServiceModule from './AuthorizationAuditService';
 import * as AuthorizationBootstrapServiceModule from './AuthorizationBootstrapService';
+import * as AuthorizationConfigurationServiceModule from './AuthorizationConfigurationService';
 import * as AuthorizationMigrationServiceModule from './AuthorizationMigrationService';
 import * as AuthorizationPersistenceServiceModule from './AuthorizationPersistenceService';
+import * as AuthorizationReadinessServiceModule from './AuthorizationReadinessService';
 import * as AuthorizationRolloutServiceModule from './AuthorizationRolloutService';
 import * as AuthorizationScopeServiceModule from './AuthorizationScopeService';
 import * as AuthorizationServiceModule from './AuthorizationService';
@@ -74,8 +76,10 @@ export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
 export { AuthorizationAuditServiceModule as AuthorizationAuditService };
 export { AuthorizationBootstrapServiceModule as AuthorizationBootstrapService };
+export { AuthorizationConfigurationServiceModule as AuthorizationConfigurationService };
 export { AuthorizationMigrationServiceModule as AuthorizationMigrationService };
 export { AuthorizationPersistenceServiceModule as AuthorizationPersistenceService };
+export { AuthorizationReadinessServiceModule as AuthorizationReadinessService };
 export { AuthorizationRolloutServiceModule as AuthorizationRolloutService };
 export { AuthorizationScopeServiceModule as AuthorizationScopeService };
 export { AuthorizationServiceModule as AuthorizationService };
@@ -209,6 +213,11 @@ export const ServiceExports = {
       new AuthorizationBootstrapServiceModule.Services.AuthorizationBootstrapService().exports()
     );
   },
+  get AuthorizationConfigurationService() {
+    return getOrCreateService('AuthorizationConfigurationService', () =>
+      new AuthorizationConfigurationServiceModule.Services.AuthorizationConfigurationService().exports()
+    );
+  },
   get AuthorizationMigrationService() {
     return getOrCreateService('AuthorizationMigrationService', () =>
       new AuthorizationMigrationServiceModule.Services.AuthorizationMigrationService().exports()
@@ -217,6 +226,11 @@ export const ServiceExports = {
   get AuthorizationPersistenceService() {
     return getOrCreateService('AuthorizationPersistenceService', () =>
       new AuthorizationPersistenceServiceModule.Services.AuthorizationPersistenceService().exports()
+    );
+  },
+  get AuthorizationReadinessService() {
+    return getOrCreateService('AuthorizationReadinessService', () =>
+      new AuthorizationReadinessServiceModule.Services.AuthorizationReadinessService().exports()
     );
   },
   get AuthorizationRolloutService() {

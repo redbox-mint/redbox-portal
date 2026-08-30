@@ -2,6 +2,8 @@ import { scopeAuthorization } from '../../authorization';
 import { apiRoute } from '../route-factory';
 import {
   authorizationApiVersionHeadersSchema,
+  authorizationAuditPageSchema,
+  authorizationAuditQuerySchema,
   authorizationAssignmentCatalogPageSchema,
   authorizationAssignmentGrantBodySchema,
   authorizationAssignmentMutationBodySchema,
@@ -18,8 +20,17 @@ import {
   authorizationBulkTemplateUpgradePreviewBodySchema,
   authorizationBulkTemplateUpgradePreviewSchema,
   authorizationCreateRoleBodySchema,
+  authorizationConfigurationExportResponseSchema,
+  authorizationConfigurationImportMutationSchema,
+  authorizationConfigurationImportPreviewSchema,
+  authorizationExplainBodySchema,
+  authorizationExplainResultSchema,
+  authorizationExportQuerySchema,
+  authorizationImportApplyBodySchema,
+  authorizationImportPreviewBodySchema,
   authorizationMeSchema,
   authorizationProblemResponses,
+  authorizationReadinessSchema,
   authorizationRoleCatalogPageSchema,
   authorizationRoleDeleteBodySchema,
   authorizationRoleDeleteResponseSchema,
@@ -38,6 +49,7 @@ import {
   authorizationRoleTemplateUpgradePreviewSchema,
   authorizationScopeCatalogPageSchema,
   authorizationScopeCatalogQuerySchema,
+  authorizationSensitiveExportHeadersSchema,
   authorizationTemplatePageSchema,
   authorizationTemplatePublishBodySchema,
   authorizationTemplatePublishResponseSchema,
@@ -569,6 +581,115 @@ export const applyAuthorizationBulkAssignmentsRoute = apiRoute(
   }
 );
 
+export const listAuthorizationAuditRoute = apiRoute(
+  'get',
+  `${BASE_PATH}/audit`,
+  CONTROLLER,
+  'listAudit',
+  { headers: authorizationApiVersionHeadersSchema, query: authorizationAuditQuerySchema },
+  {
+    authorization: scopeAuthorization('authorization.audit.read'),
+    tags: ['Authorization'],
+    summary: 'List redacted authorization audit events',
+    description:
+      'Brand readers are forced to their active brand. System administrators may omit brandId to inspect all bounded contexts.',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationAuditPageSchema, 'Cursor-paginated redacted authorization audit'),
+    },
+  }
+);
+
+export const explainAuthorizationDecisionRoute = apiRoute(
+  'post',
+  `${BASE_PATH}/explain`,
+  CONTROLLER,
+  'explainDecision',
+  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationExplainBodySchema) },
+  {
+    authorization: scopeAuthorization('authorization.explain'),
+    tags: ['Authorization'],
+    summary: 'Explain one hypothetical authorization decision without mutation',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationExplainResultSchema, 'Privileged read-only authorization explanation'),
+    },
+  }
+);
+
+export const getAuthorizationReadinessRoute = apiRoute(
+  'get',
+  `${BASE_PATH}/rollout/readiness`,
+  CONTROLLER,
+  'getReadiness',
+  { headers: authorizationApiVersionHeadersSchema },
+  {
+    authorization: scopeAuthorization('system.authorization.manage'),
+    tags: ['Authorization'],
+    summary: 'Get bounded deployment-wide authorization rollout readiness',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationReadinessSchema, 'Authorization rollout readiness evidence'),
+    },
+  }
+);
+
+export const exportAuthorizationConfigurationRoute = apiRoute(
+  'get',
+  `${BASE_PATH}/export`,
+  CONTROLLER,
+  'exportConfiguration',
+  { headers: authorizationSensitiveExportHeadersSchema, query: authorizationExportQuerySchema },
+  {
+    authorization: scopeAuthorization('system.authorization.manage'),
+    tags: ['Authorization'],
+    summary: 'Export deterministic versioned authorization configuration',
+    description:
+      'Assignment export is excluded by default and uses a separately confirmed preview because it contains user identifiers. Send the token in X-ReDBox-Authorization-Confirmation; protected system assignments require an additional explicit flag.',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(
+        authorizationConfigurationExportResponseSchema,
+        'Configuration document or sensitive-export confirmation preview'
+      ),
+    },
+  }
+);
+
+export const previewAuthorizationImportRoute = apiRoute(
+  'post',
+  `${BASE_PATH}/import-preview`,
+  CONTROLLER,
+  'previewImport',
+  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationImportPreviewBodySchema) },
+  {
+    authorization: scopeAuthorization('system.authorization.manage'),
+    tags: ['Authorization'],
+    summary: 'Validate and preview a bounded versioned authorization import',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationConfigurationImportPreviewSchema, 'Configuration import validation preview'),
+    },
+  }
+);
+
+export const applyAuthorizationImportRoute = apiRoute(
+  'post',
+  `${BASE_PATH}/import-apply`,
+  CONTROLLER,
+  'applyImport',
+  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationImportApplyBodySchema) },
+  {
+    authorization: scopeAuthorization('system.authorization.manage'),
+    tags: ['Authorization'],
+    summary: 'Atomically apply an unchanged confirmed authorization import',
+    responses: {
+      ...authorizationProblemResponses,
+      200: jsonResponse(authorizationConfigurationImportMutationSchema, 'Configuration import applied transactionally'),
+    },
+  }
+);
+
 export const authorizationApiRoutes = [
   getAuthorizationMeRoute,
   listAuthorizationScopesRoute,
@@ -595,4 +716,10 @@ export const authorizationApiRoutes = [
   unsuppressAuthorizationAssignmentRoute,
   previewAuthorizationBulkAssignmentsRoute,
   applyAuthorizationBulkAssignmentsRoute,
+  listAuthorizationAuditRoute,
+  explainAuthorizationDecisionRoute,
+  getAuthorizationReadinessRoute,
+  exportAuthorizationConfigurationRoute,
+  previewAuthorizationImportRoute,
+  applyAuthorizationImportRoute,
 ] as const;

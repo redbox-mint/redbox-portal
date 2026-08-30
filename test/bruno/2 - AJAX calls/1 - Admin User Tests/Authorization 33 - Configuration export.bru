@@ -1,0 +1,29 @@
+meta {
+  name: Authorization - Configuration export
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/export
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+tests {
+  test("Exports a versioned configuration without user assignments by default", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.schemaVersion).to.equal(1);
+    expect(body.templates).to.be.an("array").and.not.empty;
+    expect(body.roles).to.be.an("array").and.not.empty;
+    expect(body).not.to.have.property("assignments");
+    bru.setVar("authorizationConfigurationDocument", JSON.stringify(body));
+  });
+}

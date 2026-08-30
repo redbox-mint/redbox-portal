@@ -55,6 +55,14 @@ form fingerprints, and the typed 409/412/428 response variants. Run both
 `npm run validate:api-routes` and `npm run docs:audit` after changing these
 contracts.
 
+The Authorization REST reference is generated from the same route schemas used
+at runtime. It includes the redacted audit, decision explanation, rollout
+readiness, deterministic configuration export, and confirmed import endpoints,
+including their business-scope policies, strict query/body limits, versioned
+success envelopes, and bounded Problem Details responses. Run
+`npm run validate:api-routes` and `npm run doc:api` after changing this surface;
+do not hand-edit generated OpenAPI artifacts.
+
 The TypeDoc reflection model is an internal intermediate under `.tmp/documentation-intermediate` and is not published.
 
 ## CI and publication

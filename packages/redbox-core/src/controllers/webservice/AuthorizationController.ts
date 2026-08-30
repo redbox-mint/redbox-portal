@@ -2,6 +2,10 @@ import { Controllers as controllers } from '../../CoreController';
 import {
   AuthorizationAdministrationError,
   ASSIGNMENT_EXPIRY_FILTERS,
+  AUTHORIZATION_AUDIT_EVENT_TYPES,
+  AUTHORIZATION_AUDIT_OUTCOMES,
+  AUTHORIZATION_AUDIT_TARGET_TYPES,
+  AUTHORIZATION_RECORD_ACL_OUTCOMES,
   AUTHORIZATION_ROLE_STATUSES,
   AUTHORIZATION_SCOPE_RISKS,
   AUTHORIZATION_SCOPE_SOURCE_TYPES,
@@ -14,6 +18,7 @@ import {
   requireRequestAuthorizationContext,
   type AuthorizationContext,
   type BulkAssignmentRow,
+  type AuthorizationConfigurationDocument,
   type RolloutMode,
 } from '../../authorization';
 import { getValidatedApiRequest } from '../../api-routes';
@@ -143,6 +148,17 @@ function requestBody(req: Sails.Req): Record<string, unknown> {
   return body;
 }
 
+function requiredConfigurationDocument(value: unknown): AuthorizationConfigurationDocument | string {
+  if (typeof value === 'string' || isRecord(value)) {
+    return value as AuthorizationConfigurationDocument | string;
+  }
+  throw new AuthorizationAdministrationError(
+    'authorization.bulk-invalid',
+    422,
+    'A versioned authorization configuration document is required.'
+  );
+}
+
 function rolloutMode(): RolloutMode {
   const mode = sails.config.authorization?.mode;
   return mode === 'shadow' || mode === 'enforce' ? mode : 'legacy';
@@ -215,6 +231,12 @@ export namespace Controllers {
       'unsuppressAssignment',
       'previewBulkAssignments',
       'applyBulkAssignments',
+      'listAudit',
+      'explainDecision',
+      'getReadiness',
+      'exportConfiguration',
+      'previewImport',
+      'applyImport',
     ];
 
     private actor(req: Sails.Req): AuthorizationContext {
@@ -235,7 +257,8 @@ export namespace Controllers {
 
     public async listScopes(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       try {
-        const query = getValidatedApiRequest(req).query;
+        const validated = getValidatedApiRequest(req);
+        const query = validated.query;
         const page = await AuthorizationScopeService.listCatalog({
           actor: this.actor(req),
           cursor: optionalString(query.cursor),
@@ -703,6 +726,128 @@ export namespace Controllers {
         const body = requestBody(req);
         const result = await RoleAdministrationService.applyBulkAssignments({
           ...this.bulkAssignmentCommand(req),
+          confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
+        });
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async listAudit(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const query = getValidatedApiRequest(req).query;
+        const page = await AuthorizationAuditService.queryEvents({
+          actor: this.actor(req),
+          cursor: optionalString(query.cursor),
+          limit: optionalNumber(query.limit),
+          actorId: optionalString(query.actorId),
+          brandId: optionalString(query.brandId),
+          eventType: optionalEnum(AUTHORIZATION_AUDIT_EVENT_TYPES, query.eventType),
+          outcome: optionalEnum(AUTHORIZATION_AUDIT_OUTCOMES, query.outcome),
+          targetType: optionalEnum(AUTHORIZATION_AUDIT_TARGET_TYPES, query.targetType),
+          targetId: optionalString(query.targetId),
+        });
+        return this.sendResp(req, res, { data: page, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async explainDecision(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const body = requestBody(req);
+        const resource = isRecord(body.resource)
+          ? Object.freeze({
+              ...(typeof body.resource.found === 'boolean' ? { found: body.resource.found } : {}),
+              ...(optionalString(body.resource.brandId) === undefined
+                ? {}
+                : { brandId: optionalString(body.resource.brandId) }),
+              ...(optionalEnum(AUTHORIZATION_RECORD_ACL_OUTCOMES, body.resource.recordAcl) === undefined
+                ? {}
+                : { recordAcl: optionalEnum(AUTHORIZATION_RECORD_ACL_OUTCOMES, body.resource.recordAcl) }),
+            })
+          : undefined;
+        const result = await AuthorizationService.explainDecision(
+          this.actor(req),
+          requiredString(body.subjectId, 'subjectId'),
+          requiredString(body.brandId, 'brandId'),
+          asScopeKey(requiredString(body.scopeKey, 'scopeKey')),
+          resource
+        );
+        if (!result.explained) {
+          throw new AuthorizationAdministrationError(
+            result.decision.reasonCode === 'brand-not-authorized' || result.decision.reasonCode === 'brand-not-found'
+              ? 'authorization.not-found'
+              : 'authorization.scope-denied',
+            result.decision.reasonCode === 'brand-not-authorized' || result.decision.reasonCode === 'brand-not-found'
+              ? 404
+              : 403,
+            'The requested explanation is unavailable.'
+          );
+        }
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async getReadiness(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const report = await AuthorizationReadinessService.getReport(this.actor(req));
+        return this.sendResp(req, res, { data: report, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async exportConfiguration(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const validated = getValidatedApiRequest(req);
+        const query = validated.query;
+        const result = await AuthorizationConfigurationService.exportConfiguration({
+          actor: this.actor(req),
+          includeAssignments: optionalQueryBoolean(query.includeAssignments),
+          includeSystemAssignments: optionalQueryBoolean(query.includeSystemAssignments),
+          confirmationToken: optionalString(validated.headers?.['x-redbox-authorization-confirmation']),
+          requestId: ensureAuthorizationRequestId(req),
+        });
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    private importCommand(req: Sails.Req) {
+      const body = requestBody(req);
+      return {
+        actor: this.actor(req),
+        document: requiredConfigurationDocument(body.document),
+        reason: optionalString(body.reason),
+        requestId: ensureAuthorizationRequestId(req),
+      };
+    }
+
+    public async previewImport(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const preview = await RoleAdministrationService.previewConfigurationImport(this.importCommand(req));
+        return this.sendResp(req, res, { data: preview, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        sendAuthorizationContractProblem(req, res, error);
+        return res;
+      }
+    }
+
+    public async applyImport(req: Sails.Req, res: Sails.Res): Promise<unknown> {
+      try {
+        const body = requestBody(req);
+        const result = await RoleAdministrationService.applyConfigurationImport({
+          ...this.importCommand(req),
           confirmationToken: requiredString(body.confirmationToken, 'confirmationToken'),
         });
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });

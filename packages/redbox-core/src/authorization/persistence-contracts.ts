@@ -104,6 +104,7 @@ export const AUTHORIZATION_AUDIT_EVENT_TYPES = [
   'assignment.suppressed',
   'assignment.unsuppressed',
   'audit.retention.completed',
+  'authorization.config-exported',
   'authorization.config-imported',
   'role.cloned',
   'role.created',

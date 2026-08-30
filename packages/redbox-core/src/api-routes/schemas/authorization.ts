@@ -4,11 +4,17 @@ import {
   AUTHORIZATION_AUDIT_EVENT_TYPES,
   AUTHORIZATION_AUDIT_OUTCOMES,
   AUTHORIZATION_AUDIT_TARGET_TYPES,
+  AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES,
+  AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS,
+  AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES,
+  AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS,
+  AUTHORIZATION_DECISION_REASON_CODES,
   ASSIGNMENT_EXPIRY_FILTERS,
   AUTHORIZATION_AUTH_METHODS,
   AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS,
   AUTHORIZATION_MAX_SCOPE_SET_SIZE,
   AUTHORIZATION_PRINCIPAL_CATEGORIES,
+  AUTHORIZATION_RECORD_ACL_OUTCOMES,
   AUTHORIZATION_ROLE_STATUSES,
   AUTHORIZATION_SCOPE_RISKS,
   AUTHORIZATION_SCOPE_SOURCE_TYPES,
@@ -37,6 +43,8 @@ export const AUTHORIZATION_PROBLEM_MEDIA_TYPE = 'application/problem+json' as co
 export const AUTHORIZATION_API_VERSIONS = ['1.0', '2.0'] as const;
 
 const identifierField = z.string().trim().min(1).max(256);
+const auditIdentifierField = z.string().trim().min(1).max(128);
+const configurationIdentifierField = z.string().trim().min(1).max(128);
 const optionalTextField = (maxLength: number) => z.string().trim().min(1).max(maxLength).optional();
 const displayNameField = z.string().trim().min(1).max(256);
 const descriptionInputField = z.string().trim().max(2_000);
@@ -66,6 +74,10 @@ export function authorizationVersionedSuccessSchema(schema: ApiSchemaField): Api
 
 export const authorizationApiVersionHeadersSchema = z.object({
   'x-redbox-api-version': z.enum(AUTHORIZATION_API_VERSIONS).optional(),
+});
+
+export const authorizationSensitiveExportHeadersSchema = authorizationApiVersionHeadersSchema.extend({
+  'x-redbox-authorization-confirmation': confirmationTokenField.optional(),
 });
 
 export const authorizationProblemSchema = z
@@ -483,25 +495,382 @@ export const authorizationAssignmentMutationBodySchema = z
 
 export const authorizationAuditSchema = z
   .object({
-    eventId: identifierField,
+    eventId: auditIdentifierField,
     schemaVersion: positiveVersionField,
     eventType: z.enum(AUTHORIZATION_AUDIT_EVENT_TYPES),
     outcome: z.enum(AUTHORIZATION_AUDIT_OUTCOMES),
     actorType: z.enum(AUTHORIZATION_AUDIT_ACTOR_TYPES),
-    actorId: identifierField,
+    actorId: auditIdentifierField,
     authMethod: z.enum(AUTHORIZATION_AUDIT_AUTH_METHODS),
-    brandId: identifierField.optional(),
+    brandId: auditIdentifierField.optional(),
     targetType: z.enum(AUTHORIZATION_AUDIT_TARGET_TYPES),
-    targetId: identifierField.optional(),
+    targetId: auditIdentifierField.optional(),
     before: z.unknown().optional(),
     after: z.unknown().optional(),
-    reasonCode: z.string().optional(),
-    reason: z.string().optional(),
-    requestId: z.string().optional(),
-    batchId: z.string().optional(),
+    reasonCode: z.string().max(128).optional(),
+    reason: z.string().max(AUTHORIZATION_API_MAX_REASON_LENGTH).optional(),
+    requestId: z.string().max(128).optional(),
+    batchId: z.string().max(128).optional(),
     occurredAt: isoDateTimeField,
   })
+  .strict()
   .openapi({ description: 'Redacted append-only authorization audit event' });
+
+export const authorizationAuditQuerySchema = z.object({
+  cursor: z.string().trim().min(1).max(1_024).optional(),
+  limit: z.coerce.number().int().min(1).max(AUTHORIZATION_API_MAX_PAGE_SIZE).optional(),
+  actorId: auditIdentifierField.optional(),
+  brandId: auditIdentifierField.optional(),
+  eventType: z.enum(AUTHORIZATION_AUDIT_EVENT_TYPES).optional(),
+  outcome: z.enum(AUTHORIZATION_AUDIT_OUTCOMES).optional(),
+  targetType: z.enum(AUTHORIZATION_AUDIT_TARGET_TYPES).optional(),
+  targetId: auditIdentifierField.optional(),
+});
+
+export const authorizationAuditPageSchema = z
+  .object({
+    items: z.array(authorizationAuditSchema).max(AUTHORIZATION_API_MAX_PAGE_SIZE),
+    nextCursor: z.string().max(1_024).optional(),
+  })
+  .strict()
+  .openapi({ description: 'Cursor-paginated, redacted authorization audit events' });
+
+const authorizationDecisionEvidenceSchema = z
+  .object({
+    requiredScopeActive: z.boolean(),
+    principalActive: z.boolean(),
+    principalHasRequiredScope: z.boolean(),
+    brandKnown: z.boolean(),
+    brandAuthorized: z.boolean(),
+    tokenAllowsRequiredScope: z.boolean(),
+    resourceFound: z.boolean(),
+    resourceBrandMatches: z.boolean(),
+    recordAclAllowsAction: z.boolean(),
+  })
+  .strict();
+
+const authorizationDecisionSchema = z
+  .object({
+    allowed: z.boolean(),
+    reasonCode: z.enum(AUTHORIZATION_DECISION_REASON_CODES),
+    requiredScope: scopeKeyField.optional(),
+    brandId: identifierField.optional(),
+    evidence: authorizationDecisionEvidenceSchema.optional(),
+  })
+  .strict();
+
+const authorizationExplanationPrincipalSchema = z
+  .object({
+    category: z.enum(AUTHORIZATION_PRINCIPAL_CATEGORIES),
+    authMethod: z.enum(AUTHORIZATION_AUTH_METHODS),
+    active: z.boolean(),
+    userId: identifierField.optional(),
+    username: z.string().max(256).optional(),
+    operationId: identifierField.optional(),
+  })
+  .strict();
+
+const authorizationExplanationBrandSchema = z
+  .object({
+    requestedIdentifier: identifierField.optional(),
+    id: identifierField.optional(),
+    name: z.string().max(256).optional(),
+    exists: z.boolean(),
+    authorized: z.boolean(),
+  })
+  .strict();
+
+const authorizationExplanationRoleSchema = z
+  .object({
+    id: identifierField,
+    key: roleKeyField,
+    name: roleKeyField,
+    displayName: z.string().max(256),
+    contextType: z.enum(['brand', 'system']),
+    brandId: identifierField.optional(),
+    protectedKind: z.enum(PROTECTED_ROLE_KINDS),
+    implicit: z.boolean(),
+    assignmentCount: z.number().int().min(0),
+    assignmentsTruncated: z.boolean(),
+    assignments: z.array(authorizationAssignmentEvidenceSchema).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+    effectiveScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+    inactiveScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+    missingScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+  })
+  .strict();
+
+const authorizationResolutionEvidenceSchema = z
+  .object({
+    expiredAssignmentIds: z.array(identifierField).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+    ignoredAssignmentIds: z.array(identifierField).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+    inactiveRoleIds: z.array(identifierField).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+    ignoredRoleIds: z.array(identifierField).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+    missingTemplateRevisionRoleIds: z.array(identifierField).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+    inactiveScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+    missingScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+    rejectedScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+  })
+  .strict();
+
+export const authorizationExplainBodySchema = z
+  .object({
+    subjectId: identifierField,
+    brandId: identifierField,
+    scopeKey: scopeKeyField,
+    resource: z
+      .object({
+        found: z.boolean().optional(),
+        brandId: identifierField.optional(),
+        recordAcl: z.enum(AUTHORIZATION_RECORD_ACL_OUTCOMES).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
+export const authorizationExplainResultSchema = z
+  .object({
+    explained: z.literal(true),
+    decision: authorizationDecisionSchema,
+    projection: z
+      .object({
+        principal: authorizationExplanationPrincipalSchema,
+        brand: authorizationExplanationBrandSchema.optional(),
+        roles: z.array(authorizationExplanationRoleSchema).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+        grantedScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+        effectiveScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+        tokenScopeCeiling: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE).optional(),
+        scopeProvenance: z
+          .array(
+            z
+              .object({
+                scopeKey: scopeKeyField,
+                roleIds: z.array(identifierField).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+                roleKeys: z.array(roleKeyField).max(AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS),
+              })
+              .strict()
+          )
+          .max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+        resolutionEvidence: authorizationResolutionEvidenceSchema,
+      })
+      .strict(),
+  })
+  .strict()
+  .openapi({ description: 'Privileged read-only authorization decision explanation' });
+
+const authorizationReadinessFindingSchema = z
+  .object({
+    code: z.string().min(1).max(128),
+    count: z.number().int().min(1),
+    subjects: z.array(identifierField).max(100).optional(),
+  })
+  .strict();
+
+export const authorizationReadinessSchema = z
+  .object({
+    generatedAt: isoDateTimeField,
+    mode: z.enum(ROLLOUT_MODES),
+    readyForEnforce: z.boolean(),
+    registry: z
+      .object({
+        generation: z.string().min(1).max(128),
+        declaredScopeCount: z.number().int().min(0),
+        persistedScopeCount: z.number().int().min(0),
+        orphanedScopeCount: z.number().int().min(0),
+      })
+      .strict(),
+    routes: z.object({ routeCount: z.number().int().min(0), valid: z.boolean() }).strict(),
+    migration: z
+      .object({
+        name: z.string().min(1).max(128),
+        completed: z.boolean(),
+        driftTruncated: z.boolean(),
+        blockerCount: z.number().int().min(0),
+        warningCount: z.number().int().min(0),
+      })
+      .strict(),
+    transactions: z.union([
+      z.object({ available: z.literal(true) }).strict(),
+      z.object({ available: z.literal(false), code: z.literal('authorization.transaction-unavailable') }).strict(),
+    ]),
+    shadow: z.object({ unresolvedMismatchCount: z.number().int().min(0) }).strict(),
+    administrators: z
+      .object({
+        brandCount: z.number().int().min(0),
+        brandsWithoutAdministratorCount: z.number().int().min(0),
+        brandsWithoutAdministrator: z.array(identifierField).max(100),
+        systemAdministratorCount: z.number().int().min(0),
+        requiredSystemAdministratorCount: z.literal(2),
+      })
+      .strict(),
+    blockers: z.array(authorizationReadinessFindingSchema).max(100),
+    warnings: z.array(authorizationReadinessFindingSchema).max(100),
+  })
+  .strict()
+  .openapi({ description: 'Bounded system authorization rollout readiness evidence' });
+
+const authorizationConfigurationRevisionSchema = z
+  .object({
+    revision: positiveVersionField,
+    scopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+    notes: z.string().trim().min(1).max(2_000).optional(),
+  })
+  .strict();
+
+function authorizationConfigurationTemplateSchema(maxRows: number) {
+  return z
+    .object({
+      key: templateKeyField,
+      displayName: displayNameField,
+      description: z.string().trim().min(1).max(2_000),
+      protectedKind: z.enum(PROTECTED_ROLE_KINDS),
+      status: z.enum(AUTHORIZATION_ROLE_STATUSES),
+      version: positiveVersionField,
+      revisions: z.array(authorizationConfigurationRevisionSchema).min(1).max(maxRows),
+    })
+    .strict();
+}
+
+const authorizationConfigurationRoleSchema = z
+  .object({
+    brandId: configurationIdentifierField.optional(),
+    key: roleKeyField,
+    displayName: displayNameField,
+    description: optionalTextField(2_000),
+    protectedKind: z.enum(PROTECTED_ROLE_KINDS),
+    status: z.enum(AUTHORIZATION_ROLE_STATUSES),
+    templateKey: templateKeyField.optional(),
+    templateRevision: positiveVersionField.optional(),
+    effectiveScopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE),
+    version: positiveVersionField,
+  })
+  .strict()
+  .refine(role => (role.templateKey === undefined) === (role.templateRevision === undefined), {
+    error: 'authorization.bulk-invalid',
+  });
+
+const authorizationConfigurationAssignmentSchema = z
+  .object({
+    principalId: configurationIdentifierField,
+    brandId: configurationIdentifierField.optional(),
+    roleKey: roleKeyField,
+    source: z.enum(['manual', 'recovery']),
+    sourceKey: identifierField,
+    status: z.enum(['active', 'revoked']),
+    sourcePresent: z.literal(true),
+    expiresAt: isoDateTimeField.optional(),
+    version: positiveVersionField,
+  })
+  .strict()
+  .refine(assignment => assignment.source !== 'manual' || assignment.sourceKey === 'manual', {
+    error: 'authorization.bulk-invalid',
+  });
+
+function configurationDocumentSchema(maxRows: number, maxBytes: number) {
+  return z
+    .object({
+      schemaVersion: z.literal(1),
+      generatedAt: isoDateTimeField.optional(),
+      templates: z.array(authorizationConfigurationTemplateSchema(maxRows)).max(maxRows),
+      roles: z.array(authorizationConfigurationRoleSchema).max(maxRows),
+      assignments: z.array(authorizationConfigurationAssignmentSchema).max(maxRows).optional(),
+    })
+    .strict()
+    .refine(
+      document => {
+        const rowCount =
+          document.templates.length +
+          document.templates.reduce((count, template) => count + template.revisions.length, 0) +
+          document.roles.length +
+          (document.assignments?.length ?? 0);
+        return rowCount >= 1 && rowCount <= maxRows && Buffer.byteLength(JSON.stringify(document), 'utf8') <= maxBytes;
+      },
+      { error: 'authorization.bulk-invalid' }
+    );
+}
+
+export const authorizationConfigurationDocumentSchema = configurationDocumentSchema(
+  AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS,
+  AUTHORIZATION_ADMIN_MAX_EXPORT_BYTES
+).openapi({ description: 'Deterministic versioned authorization configuration export document' });
+
+const authorizationConfigurationImportDocumentSchema = configurationDocumentSchema(
+  AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS,
+  AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES
+).openapi({ description: 'Bounded versioned authorization configuration import document' });
+
+export const authorizationExportQuerySchema = z
+  .object({
+    includeAssignments: z.enum(['true', 'false']).optional(),
+    includeSystemAssignments: z.enum(['true', 'false']).optional(),
+  })
+  .strict();
+
+export const authorizationConfigurationExportPreviewSchema = z
+  .object({
+    operation: z.literal('config-export-sensitive'),
+    includeAssignments: z.literal(true),
+    includeSystemAssignments: z.boolean(),
+    templateCount: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS),
+    roleCount: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS),
+    assignmentCount: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS),
+    documentHash: z.string().length(64),
+    confirmationToken: confirmationTokenField,
+  })
+  .strict();
+
+export const authorizationConfigurationExportResponseSchema: ApiSchemaField = z.union([
+  authorizationConfigurationDocumentSchema,
+  authorizationConfigurationExportPreviewSchema,
+]);
+
+const authorizationConfigurationDocumentInputSchema = z.union([
+  authorizationConfigurationImportDocumentSchema,
+  z.string().min(1).max(AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES),
+]);
+
+export const authorizationImportPreviewBodySchema = z
+  .object({
+    document: authorizationConfigurationDocumentInputSchema,
+    reason: reasonField,
+  })
+  .strict();
+
+export const authorizationImportApplyBodySchema = authorizationImportPreviewBodySchema
+  .extend({ confirmationToken: confirmationTokenField })
+  .strict();
+
+export const authorizationConfigurationImportPreviewSchema = z
+  .object({
+    operation: z.literal('config-import'),
+    documentHash: z.string().length(64),
+    templateChanges: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+    roleChanges: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+    assignmentChanges: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+    noOpCount: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+    fatalErrors: z.array(z.string().min(1).max(256)).max(100),
+    confirmationToken: confirmationTokenField.optional(),
+  })
+  .strict();
+
+export const authorizationConfigurationImportMutationSchema = z
+  .object({
+    data: z
+      .object({
+        templateChanges: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+        roleChanges: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+        assignmentChanges: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+        noOpCount: z.number().int().min(0).max(AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS),
+        documentHash: z.string().length(64),
+      })
+      .strict(),
+    version: z.literal(1),
+    auditEventId: identifierField,
+    requestId: identifierField,
+    batchId: identifierField,
+    changed: z.literal(true),
+  })
+  .strict();
 
 export const authorizationExpectedVersionBodySchema = z
   .object({

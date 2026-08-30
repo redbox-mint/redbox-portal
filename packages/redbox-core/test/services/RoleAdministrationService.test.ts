@@ -66,11 +66,12 @@ afterEach(() => {
 });
 
 describe('RoleAdministrationService', () => {
-  it('exports only the supported Phase 5 writer operations', () => {
+  it('exports only the supported authorization writer operations', () => {
     const exported = new Services.RoleAdministrationService().exports() as Record<string, unknown>;
     const supported = [
       'applyBulkAssignments',
       'applyBulkTemplateUpgrade',
+      'applyConfigurationImport',
       'applyRoleScopes',
       'applyRoleTemplateUpgrade',
       'applyScopeAdoption',
@@ -84,6 +85,7 @@ describe('RoleAdministrationService', () => {
       'listRoles',
       'previewBulkAssignments',
       'previewBulkTemplateUpgrade',
+      'previewConfigurationImport',
       'previewRoleDeletion',
       'previewRoleInactivation',
       'previewRoleScopes',

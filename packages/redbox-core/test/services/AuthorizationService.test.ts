@@ -634,7 +634,7 @@ describe('AuthorizationService', () => {
       asScopeKey('record.read')
     );
     assert.equal(crossBrandJobExplanation.explained, false);
-    assert.equal(crossBrandJobExplanation.decision.reasonCode, 'resource-not-found');
+    assert.equal(crossBrandJobExplanation.decision.reasonCode, 'brand-not-authorized');
   });
 
   it('deduplicates a large multi-source assignment fixture without per-role or per-scope queries', async () => {

@@ -1,0 +1,33 @@
+meta {
+  name: Authorization - Audit query
+  type: http
+  seq: 54
+}
+
+get {
+  url: {{host}}/default/rdmp/api/authorization/audit?limit=2
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+tests {
+  test("Returns a bounded, redacted authorization audit page", function () {
+    expect(res.getStatus()).to.equal(200);
+    const body = res.getBody();
+    expect(body.items).to.be.an("array");
+    expect(body.items.length).to.be.at.most(2);
+    for (const item of body.items) {
+      expect(item.eventId).to.be.a("string").and.not.empty;
+      expect(item).not.to.have.property("id");
+      expect(item).not.to.have.property("createdAt");
+      expect(item).not.to.have.property("updatedAt");
+      expect(JSON.stringify(item)).not.to.include("Bearer ");
+    }
+  });
+}
