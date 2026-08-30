@@ -114,25 +114,6 @@ describe('AuthorizationAdminService', () => {
     }
   });
 
-  it('types the optional bounded bulk preview API without exposing an unconfirmed apply', async () => {
-    const promise = service.previewBulkAssignments({
-      format: 'csv',
-      rows: 'action,principalId,roleKey\ngrant,user-1,researcher',
-    });
-    await Promise.resolve();
-    const request = http.expectOne(candidate => candidate.url.endsWith('/assignments/bulk-preview'));
-    expect(request.request.body.confirmationToken).toBeUndefined();
-    request.flush({
-      rows: [],
-      grantCount: 1,
-      revokeCount: 0,
-      noOpCount: 0,
-      invalidCount: 0,
-      confirmationToken: 'token',
-    });
-    expect((await promise).grantCount).toBe(1);
-  });
-
   it('does not expose arbitrary server details from a 500 response', async () => {
     const promise = service.getMe();
     await Promise.resolve();

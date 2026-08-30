@@ -12,6 +12,7 @@ import {
   GUEST_SCOPE_FLOOR,
   SYSTEM_ADMIN_SCOPE_FLOOR,
   AuthorizationAdministrationError,
+  authorizationConfigurationImportDocumentSchema,
   authorizationContentHash,
   buildRoleIdentityKey,
   createAuthorizationConfirmationToken,
@@ -38,8 +39,6 @@ import {
   type ExportAuthorizationConfigurationCommand,
   type ApplyAuthorizationConfigurationImportCommand,
   type PreviewAuthorizationConfigurationImportCommand,
-  type RoleAssignmentSource,
-  type RoleAssignmentStatus,
   type RoleScopeOverride,
   type ScopeKey,
   type ScopeRegistry,
@@ -58,7 +57,6 @@ const SYSTEM_MANAGE_SCOPE = 'system.authorization.manage' as ScopeKey;
 const CONFIGURATION_TARGET = 'authorization-configuration-v1';
 const MAX_LINK_DEPTH = 16;
 const MAX_FATAL_ERRORS = 100;
-const ISO_OFFSET_DATE_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 interface AuditWriter {
   createSucceededEvent(
@@ -139,212 +137,33 @@ function compareConfigurationText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function exactKeys(value: Record<string, unknown>, allowed: readonly string[], path: string): void {
-  const allowedKeys = new Set(allowed);
-  if (Object.keys(value).some(key => !allowedKeys.has(key))) {
-    throw invalidImport(`${path} contains an unknown field.`);
-  }
-}
-
 function invalidImport(message: string): AuthorizationAdministrationError {
   return new AuthorizationAdministrationError('authorization.bulk-invalid', 422, message);
 }
 
-function requiredText(value: unknown, path: string, maxLength: number): string {
-  if (typeof value !== 'string') throw invalidImport(`${path} must be a string.`);
-  const text = optionalAuthorizationText(value, maxLength);
-  if (text === undefined || text !== value.trim()) throw invalidImport(`${path} is invalid.`);
-  return text;
-}
-
-function optionalText(value: unknown, path: string, maxLength: number): string | undefined {
-  if (value === undefined) return undefined;
-  return requiredText(value, path, maxLength);
-}
-
-function positiveInteger(value: unknown, path: string): number {
-  if (!Number.isSafeInteger(value) || Number(value) < 1) throw invalidImport(`${path} must be a positive integer.`);
-  return Number(value);
-}
-
-function requiredBoolean(value: unknown, path: string): boolean {
-  if (value !== true && value !== false) throw invalidImport(`${path} must be a boolean.`);
-  return value;
-}
-
-function enumValue<const T extends readonly string[]>(values: T, value: unknown, path: string): T[number] {
-  if (typeof value !== 'string' || !values.some(candidate => candidate === value)) {
-    throw invalidImport(`${path} is invalid.`);
-  }
-  return value as T[number];
-}
-
-function parseIsoDateTime(value: unknown, path: string): string {
-  const text = requiredText(value, path, 64);
-  const match = ISO_OFFSET_DATE_TIME_PATTERN.exec(text);
-  if (match === null) throw invalidImport(`${path} must be an ISO timestamp with an offset.`);
-  const [year, month, day, hour, minute, second] = match.slice(1, 7).map(Number);
-  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
-  const parsed = new Date(text);
-  if (
-    daysInMonth === undefined ||
-    day < 1 ||
-    day > daysInMonth ||
-    hour > 23 ||
-    minute > 59 ||
-    second > 59 ||
-    Number.isNaN(parsed.getTime())
-  ) {
-    throw invalidImport(`${path} must be a valid ISO timestamp.`);
-  }
-  return parsed.toISOString();
-}
-
-function parseScopeKeys(value: unknown, path: string): readonly string[] {
-  if (!Array.isArray(value) || value.length > AUTHORIZATION_MAX_SCOPE_SET_SIZE) {
-    throw invalidImport(`${path} must be a bounded scope-key array.`);
-  }
-  const values = value.map((entry, index) => requiredText(entry, `${path}[${index}]`, 256));
-  let normalized: readonly ScopeKey[];
-  try {
-    normalized = normalizedScopeKeys(values);
-  } catch (_error) {
-    throw invalidImport(`${path} contains an invalid scope key.`);
-  }
-  if (normalized.length !== values.length || normalized.some((scopeKey, index) => scopeKey !== values[index])) {
-    throw invalidImport(`${path} must be sorted and contain no duplicates.`);
-  }
-  return Object.freeze([...normalized]);
-}
-
-function parseTemplateRevision(value: unknown, index: number): AuthorizationConfigurationTemplateRevision {
-  if (!isRecord(value)) throw invalidImport(`templates.revisions[${index}] must be an object.`);
-  exactKeys(value, ['revision', 'scopeKeys', 'notes'], `templates.revisions[${index}]`);
-  const notes = optionalText(value.notes, `templates.revisions[${index}].notes`, 2_000);
+function freezeConfigurationDocument(document: AuthorizationConfigurationDocument): AuthorizationConfigurationDocument {
   return Object.freeze({
-    revision: positiveInteger(value.revision, `templates.revisions[${index}].revision`),
-    scopeKeys: parseScopeKeys(value.scopeKeys, `templates.revisions[${index}].scopeKeys`),
-    ...(notes === undefined ? {} : { notes }),
-  });
-}
-
-function parseTemplate(value: unknown, index: number): AuthorizationConfigurationTemplate {
-  if (!isRecord(value)) throw invalidImport(`templates[${index}] must be an object.`);
-  exactKeys(
-    value,
-    ['key', 'displayName', 'description', 'protectedKind', 'status', 'version', 'revisions'],
-    `templates[${index}]`
-  );
-  const key = requiredText(value.key, `templates[${index}].key`, 64);
-  if (!isNewRoleKey(key)) throw invalidImport(`templates[${index}].key is invalid.`);
-  if (
-    !Array.isArray(value.revisions) ||
-    value.revisions.length < 1 ||
-    value.revisions.length > AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS
-  ) {
-    throw invalidImport(`templates[${index}].revisions must contain a bounded revision history.`);
-  }
-  const revisions = value.revisions.map(parseTemplateRevision);
-  if (revisions.some((revision, revisionIndex) => revision.revision !== revisionIndex + 1)) {
-    throw invalidImport(`templates[${index}].revisions must be contiguous and ordered.`);
-  }
-  return Object.freeze({
-    key,
-    displayName: requiredText(value.displayName, `templates[${index}].displayName`, 256),
-    description: requiredText(value.description, `templates[${index}].description`, 2_000),
-    protectedKind: enumValue(
-      ['none', 'guest', 'brand-admin', 'system-admin'] as const,
-      value.protectedKind,
-      `templates[${index}].protectedKind`
+    ...document,
+    templates: Object.freeze(
+      document.templates.map(template =>
+        Object.freeze({
+          ...template,
+          revisions: Object.freeze(
+            template.revisions.map(revision =>
+              Object.freeze({ ...revision, scopeKeys: Object.freeze([...revision.scopeKeys]) })
+            )
+          ),
+        })
+      )
     ),
-    status: enumValue(['active', 'inactive'] as const, value.status, `templates[${index}].status`),
-    version: positiveInteger(value.version, `templates[${index}].version`),
-    revisions: Object.freeze(revisions),
-  });
-}
-
-function parseRole(value: unknown, index: number): AuthorizationConfigurationRole {
-  if (!isRecord(value)) throw invalidImport(`roles[${index}] must be an object.`);
-  exactKeys(
-    value,
-    [
-      'brandId',
-      'key',
-      'displayName',
-      'description',
-      'protectedKind',
-      'status',
-      'templateKey',
-      'templateRevision',
-      'effectiveScopeKeys',
-      'version',
-    ],
-    `roles[${index}]`
-  );
-  const key = requiredText(value.key, `roles[${index}].key`, 256);
-  if (!isRoleKey(key)) throw invalidImport(`roles[${index}].key is invalid.`);
-  const brandId = optionalText(value.brandId, `roles[${index}].brandId`, 128);
-  const description = optionalText(value.description, `roles[${index}].description`, 2_000);
-  const templateKey = optionalText(value.templateKey, `roles[${index}].templateKey`, 64);
-  if (templateKey !== undefined && !isNewRoleKey(templateKey)) {
-    throw invalidImport(`roles[${index}].templateKey is invalid.`);
-  }
-  const templateRevision =
-    value.templateRevision === undefined
-      ? undefined
-      : positiveInteger(value.templateRevision, `roles[${index}].templateRevision`);
-  if ((templateKey === undefined) !== (templateRevision === undefined)) {
-    throw invalidImport(`roles[${index}] must provide templateKey and templateRevision together.`);
-  }
-  return Object.freeze({
-    ...(brandId === undefined ? {} : { brandId }),
-    key,
-    displayName: requiredText(value.displayName, `roles[${index}].displayName`, 256),
-    ...(description === undefined ? {} : { description }),
-    protectedKind: enumValue(
-      ['none', 'guest', 'brand-admin', 'system-admin'] as const,
-      value.protectedKind,
-      `roles[${index}].protectedKind`
+    roles: Object.freeze(
+      document.roles.map(role =>
+        Object.freeze({ ...role, effectiveScopeKeys: Object.freeze([...role.effectiveScopeKeys]) })
+      )
     ),
-    status: enumValue(['active', 'inactive'] as const, value.status, `roles[${index}].status`),
-    ...(templateKey === undefined ? {} : { templateKey, templateRevision }),
-    effectiveScopeKeys: parseScopeKeys(value.effectiveScopeKeys, `roles[${index}].effectiveScopeKeys`),
-    version: positiveInteger(value.version, `roles[${index}].version`),
-  });
-}
-
-function parseAssignment(value: unknown, index: number): AuthorizationConfigurationAssignment {
-  if (!isRecord(value)) throw invalidImport(`assignments[${index}] must be an object.`);
-  exactKeys(
-    value,
-    ['principalId', 'brandId', 'roleKey', 'source', 'sourceKey', 'status', 'sourcePresent', 'expiresAt', 'version'],
-    `assignments[${index}]`
-  );
-  const roleKey = requiredText(value.roleKey, `assignments[${index}].roleKey`, 256);
-  if (!isRoleKey(roleKey)) throw invalidImport(`assignments[${index}].roleKey is invalid.`);
-  const brandId = optionalText(value.brandId, `assignments[${index}].brandId`, 128);
-  const expiresAt =
-    value.expiresAt === undefined ? undefined : parseIsoDateTime(value.expiresAt, `assignments[${index}].expiresAt`);
-  const source = enumValue(['manual', 'recovery'] as const, value.source, `assignments[${index}].source`);
-  const sourceKey = requiredText(value.sourceKey, `assignments[${index}].sourceKey`, 256);
-  if (source === 'manual' && sourceKey !== 'manual') {
-    throw invalidImport(`assignments[${index}].sourceKey must be manual for a manual source.`);
-  }
-  return Object.freeze({
-    principalId: requiredText(value.principalId, `assignments[${index}].principalId`, 128),
-    ...(brandId === undefined ? {} : { brandId }),
-    roleKey,
-    source: source as RoleAssignmentSource,
-    sourceKey,
-    status: enumValue(
-      ['active', 'revoked'] as const,
-      value.status,
-      `assignments[${index}].status`
-    ) as RoleAssignmentStatus,
-    sourcePresent: requiredBoolean(value.sourcePresent, `assignments[${index}].sourcePresent`),
-    ...(expiresAt === undefined ? {} : { expiresAt }),
-    version: positiveInteger(value.version, `assignments[${index}].version`),
+    ...(document.assignments === undefined
+      ? {}
+      : { assignments: Object.freeze(document.assignments.map(assignment => Object.freeze({ ...assignment }))) }),
   });
 }
 
@@ -362,57 +181,22 @@ export function parseAuthorizationConfigurationDocument(
       throw invalidImport('The configuration import is not valid JSON.');
     }
   } else {
-    let serialized: string;
+    let serialized: string | undefined;
     try {
       serialized = JSON.stringify(input);
     } catch (_error) {
       throw invalidImport('The configuration import is not JSON serializable.');
     }
+    if (serialized === undefined) throw invalidImport('The configuration import is not JSON serializable.');
     if (Buffer.byteLength(serialized, 'utf8') > AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES) {
       throw invalidImport(`Configuration imports cannot exceed ${AUTHORIZATION_ADMIN_MAX_IMPORT_BYTES} bytes.`);
     }
   }
-  if (!isRecord(value)) throw invalidImport('The configuration import must be an object.');
-  exactKeys(value, ['schemaVersion', 'generatedAt', 'templates', 'roles', 'assignments'], 'document');
-  if (value.schemaVersion !== 1) throw invalidImport('The configuration schemaVersion is unsupported.');
-  if (!Array.isArray(value.templates) || !Array.isArray(value.roles)) {
-    throw invalidImport('Configuration templates and roles must be arrays.');
+  const parsed = authorizationConfigurationImportDocumentSchema.safeParse(value);
+  if (!parsed.success) {
+    throw invalidImport('The configuration import did not satisfy the strict versioned document schema.');
   }
-  if (value.assignments !== undefined && !Array.isArray(value.assignments)) {
-    throw invalidImport('Configuration assignments must be an array when supplied.');
-  }
-  if (
-    value.templates.length > AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS ||
-    value.roles.length > AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS ||
-    (Array.isArray(value.assignments) && value.assignments.length > AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS)
-  ) {
-    throw invalidImport('Configuration arrays exceed the bounded row limit.');
-  }
-  const generatedAt = value.generatedAt === undefined ? undefined : parseIsoDateTime(value.generatedAt, 'generatedAt');
-  const templates = value.templates.map(parseTemplate);
-  const roles = value.roles.map(parseRole);
-  const assignments = value.assignments?.map(parseAssignment);
-  const rowCount =
-    templates.length +
-    templates.reduce((count, template) => count + template.revisions.length, 0) +
-    roles.length +
-    (assignments?.length ?? 0);
-  if (rowCount < 1 || rowCount > AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS) {
-    throw invalidImport(
-      `Configuration imports must contain between 1 and ${AUTHORIZATION_ADMIN_MAX_IMPORT_ROWS} rows.`
-    );
-  }
-  const templateKeys = templates.map(template => template.key);
-  if (new Set(templateKeys).size !== templateKeys.length) throw invalidImport('Template keys must be unique.');
-  const roleKeys = roles.map(role => configurationContextKey(role.brandId, role.key));
-  if (new Set(roleKeys).size !== roleKeys.length) throw invalidImport('Role context keys must be unique.');
-  return Object.freeze({
-    schemaVersion: 1 as const,
-    ...(generatedAt === undefined ? {} : { generatedAt }),
-    templates: Object.freeze(templates),
-    roles: Object.freeze(roles),
-    ...(assignments === undefined ? {} : { assignments: Object.freeze(assignments) }),
-  });
+  return freezeConfigurationDocument(parsed.data);
 }
 
 function associationId(value: unknown): string | undefined {

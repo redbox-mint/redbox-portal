@@ -34,7 +34,8 @@ import { namedQueryApiRoutes } from './groups/named-query';
 const apiDocumentInfo = {
   title: 'ReDBox Portal API',
   version: '1.0.0',
-  description: 'Contract-first API routes for the ReDBox Portal',
+  description:
+    'Contract-first API routes with explicit runtime authorization targets, central route-map resolution, and fail-closed handling when authorization metadata cannot be resolved.',
 } as const;
 
 const HTTP_METHODS: readonly HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch', 'head'];

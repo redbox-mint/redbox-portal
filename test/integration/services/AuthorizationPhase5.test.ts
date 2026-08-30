@@ -117,6 +117,92 @@ describe('Authorization Phase 5 role and assignment administration', function ()
     expect(await Role.findOne({ identityKey: `brand:${brand.id}:${rollbackKey}` })).not.to.exist;
   });
 
+  it('round-trips a system-scope adoption preview and rejects changed or stale apply input', async () => {
+    const systemRole = await Role.findOne({ protectedKind: 'system-admin', contextType: 'system', status: 'active' });
+    expect(systemRole).to.exist;
+    const scopeKey = 'authorization.audit.read';
+    const command = {
+      actor,
+      roleKey: systemRole.key,
+      scopeKey,
+      expectedVersion: systemRole.version,
+      reason: 'Adopt a deployed scope through the protected system flow',
+      requestId: requestId('scope-adoption'),
+    };
+    const preview = await RoleAdministrationService.previewScopeAdoption(command);
+    expect(preview.operation).to.equal('scope-adoption');
+    expect(preview.addedScopeKeys).to.deep.equal([scopeKey]);
+    expect(preview.confirmationToken).to.be.a('string').and.not.empty;
+
+    let impactDriftAssignmentId: string | undefined;
+    try {
+      let changedInput: { code?: string } | undefined;
+      try {
+        await RoleAdministrationService.applyScopeAdoption({
+          ...command,
+          scopeKey: 'authorization.explain',
+          confirmationToken: preview.confirmationToken,
+        });
+      } catch (error) {
+        changedInput = error as { code?: string };
+      }
+      expect(changedInput?.code).to.equal('authorization.preview-stale');
+
+      const impactDriftAssignment = await RoleAssignment.create({
+        principalType: 'user',
+        principalId: user.id,
+        role: systemRole.id,
+        source: 'recovery',
+        sourceKey: `phase5-impact-drift-${suffix}`,
+        status: 'active',
+        sourcePresent: true,
+        assignedBy: 'phase5-test',
+        assignedAt: new Date(),
+        version: 1,
+      }).fetch();
+      impactDriftAssignmentId = impactDriftAssignment.id;
+
+      let changedImpact: { code?: string } | undefined;
+      try {
+        await RoleAdministrationService.applyScopeAdoption({
+          ...command,
+          confirmationToken: preview.confirmationToken,
+        });
+      } catch (error) {
+        changedImpact = error as { code?: string };
+      }
+      expect(changedImpact?.code).to.equal('authorization.preview-stale');
+      await RoleAssignment.destroy({ id: impactDriftAssignmentId });
+      impactDriftAssignmentId = undefined;
+
+      const applied = await RoleAdministrationService.applyScopeAdoption({
+        ...command,
+        confirmationToken: preview.confirmationToken,
+      });
+      expect(applied.data.effectiveScopeKeys).to.include(scopeKey);
+
+      let staleState: { code?: string } | undefined;
+      try {
+        await RoleAdministrationService.applyScopeAdoption({
+          ...command,
+          confirmationToken: preview.confirmationToken,
+        });
+      } catch (error) {
+        staleState = error as { code?: string };
+      }
+      expect(staleState?.code).to.equal('authorization.version-conflict');
+    } finally {
+      if (impactDriftAssignmentId !== undefined) {
+        await RoleAssignment.destroy({ id: impactDriftAssignmentId });
+      }
+      await RoleScopeOverride.destroy({ role: systemRole.id, scopeKey });
+      const current = await Role.findOne({ id: systemRole.id });
+      await Role.updateOne({ id: systemRole.id })
+        .set({ version: current.version + 1 })
+        .meta({ skipAllLifecycleCallbacks: true });
+    }
+  });
+
   it('keeps the legacy projection until the final effective assignment source is revoked', async () => {
     const manual = await RoleAdministrationService.grantAssignment({
       actor,

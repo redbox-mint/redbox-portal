@@ -18,7 +18,13 @@ function decision(allowed: boolean, reasonCode: AuthorizationDecision['reasonCod
   return { allowed, reasonCode, requiredScope: SCOPE, brandId: BRAND.id };
 }
 
-function context(options: { active?: boolean; scopes?: readonly (typeof SCOPE)[] } = {}) {
+function context(
+  options: {
+    active?: boolean;
+    scopes?: readonly (typeof SCOPE)[];
+    tokenScopeCeiling?: readonly (typeof SCOPE)[];
+  } = {}
+) {
   const scopes = options.scopes ?? [SCOPE];
   return freezeAuthorizationContext({
     contextType: 'brand',
@@ -32,11 +38,11 @@ function context(options: { active?: boolean; scopes?: readonly (typeof SCOPE)[]
     brand: { ...BRAND, exists: true, authorized: true },
     grantedScopeKeys: scopes,
     effectiveScopeKeys: scopes,
+    tokenScopeCeiling: options.tokenScopeCeiling,
   });
 }
 
-function request() {
-  const attachedContext = context();
+function request(attachedContext = context()) {
   return {
     method: 'GET',
     path: '/brand-a/rdmp/asynch/subscribe',
@@ -102,6 +108,7 @@ describe('AsynchController privileged socket events', () => {
 
       const controller = new Controllers.Asynch();
       const res = response();
+      const attachedContext = context({ tokenScopeCeiling: [SCOPE] });
       const handlers = [
         controller.start.bind(controller),
         controller.stop.bind(controller),
@@ -110,9 +117,14 @@ describe('AsynchController privileged socket events', () => {
         controller.subscribe.bind(controller),
       ];
 
-      for (const handler of handlers) await handler(request(), res);
+      for (const handler of handlers) await handler(request(attachedContext), res);
 
       assert.equal(resolveUserContext.callCount, handlers.length);
+      assert.equal(
+        resolveUserContext.getCalls().every(call => call.args[3] === attachedContext.tokenScopeCeiling),
+        true,
+        'every socket refresh must retain the ceiling attached by the credential context'
+      );
       assert.equal(authorizeBrandEntity.callCount, handlers.length);
       assert.equal((res.status as unknown as sinon.SinonStub).callCount, handlers.length);
       assert.equal(

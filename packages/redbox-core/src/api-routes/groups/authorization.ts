@@ -1,5 +1,5 @@
 import { scopeAuthorization } from '../../authorization';
-import { apiRoute } from '../route-factory';
+import { apiRoute, type ApiRouteMetadata } from '../route-factory';
 import {
   authorizationApiVersionHeadersSchema,
   authorizationAuditPageSchema,
@@ -49,6 +49,9 @@ import {
   authorizationRoleTemplateUpgradePreviewSchema,
   authorizationScopeCatalogPageSchema,
   authorizationScopeCatalogQuerySchema,
+  authorizationScopeAdoptionApplyBodySchema,
+  authorizationScopeAdoptionPreviewBodySchema,
+  authorizationScopeAdoptionPreviewSchema,
   authorizationSensitiveExportHeadersSchema,
   authorizationTemplatePageSchema,
   authorizationTemplatePublishBodySchema,
@@ -60,7 +63,7 @@ import {
   authorizationUpdateRoleBodySchema,
   authorizationVersionedSuccessSchema,
 } from '../schemas/authorization';
-import type { ApiResponseDefinition, ApiSchemaField } from '../types';
+import type { ApiRequestDefinition, ApiResponseDefinition, ApiSchemaField, HttpMethod } from '../types';
 
 const CONTROLLER = 'webservice/AuthorizationController';
 
@@ -70,7 +73,6 @@ const CONTROLLER = 'webservice/AuthorizationController';
  * prefix must never be restated as a literal elsewhere.
  */
 export const AUTHORIZATION_API_BASE_PATH = '/:branding/:portal/api/authorization';
-const BASE_PATH = AUTHORIZATION_API_BASE_PATH;
 
 function jsonResponse(schema: ApiSchemaField, description: string): ApiResponseDefinition {
   return {
@@ -90,82 +92,93 @@ function jsonBody(schema: ApiSchemaField) {
   } as const;
 }
 
-export const getAuthorizationMeRoute = apiRoute(
+type AuthorizationRouteMetadata = Omit<ApiRouteMetadata, 'responses' | 'tags'> & {
+  readonly responses?: Record<number, ApiResponseDefinition>;
+};
+
+function authorizationRoute(
+  method: HttpMethod,
+  path: string,
+  action: string,
+  request: ApiRequestDefinition | undefined,
+  metadata: AuthorizationRouteMetadata
+) {
+  return apiRoute(
+    method,
+    `${AUTHORIZATION_API_BASE_PATH}${path}`,
+    CONTROLLER,
+    action,
+    { headers: authorizationApiVersionHeadersSchema, ...(request ?? {}) },
+    {
+      ...metadata,
+      tags: ['Authorization'],
+      responses: { ...authorizationProblemResponses, ...metadata.responses },
+    }
+  );
+}
+
+export const getAuthorizationMeRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/me`,
-  CONTROLLER,
+  `/me`,
   'getMe',
-  { headers: authorizationApiVersionHeadersSchema },
+  {},
   {
     authorization: scopeAuthorization('authorization.self.read'),
-    tags: ['Authorization'],
     summary: 'Get the caller effective authorization projection',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationMeSchema, 'Caller-safe effective principal projection'),
     },
   }
 );
 
-export const listAuthorizationScopesRoute = apiRoute(
+export const listAuthorizationScopesRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/scopes`,
-  CONTROLLER,
+  `/scopes`,
   'listScopes',
-  { headers: authorizationApiVersionHeadersSchema, query: authorizationScopeCatalogQuerySchema },
+  { query: authorizationScopeCatalogQuerySchema },
   {
     authorization: scopeAuthorization('authorization.scope.read'),
-    tags: ['Authorization'],
     summary: 'List the deployed authorization scope catalog',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationScopeCatalogPageSchema, 'Cursor-paginated scope catalog'),
     },
   }
 );
 
-export const listAuthorizationTemplatesRoute = apiRoute(
+export const listAuthorizationTemplatesRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/templates`,
-  CONTROLLER,
+  `/templates`,
   'listTemplates',
-  { headers: authorizationApiVersionHeadersSchema, query: authorizationTemplateQuerySchema },
+  { query: authorizationTemplateQuerySchema },
   {
     authorization: scopeAuthorization('authorization.role.read'),
-    tags: ['Authorization'],
     summary: 'List role templates and their immutable revisions',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationTemplatePageSchema, 'Cursor-paginated role template catalog'),
     },
   }
 );
 
-export const getAuthorizationTemplateRevisionRoute = apiRoute(
+export const getAuthorizationTemplateRevisionRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/templates/:key/revisions/:revision`,
-  CONTROLLER,
+  `/templates/:key/revisions/:revision`,
   'getTemplateRevision',
-  { headers: authorizationApiVersionHeadersSchema, params: authorizationTemplateRevisionParamsSchema },
+  { params: authorizationTemplateRevisionParamsSchema },
   {
     authorization: scopeAuthorization('authorization.role.read'),
-    tags: ['Authorization'],
     summary: 'Read one immutable role template revision',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationTemplateRevisionDetailSchema, 'Immutable role template revision'),
     },
   }
 );
 
-export const publishAuthorizationTemplateRevisionRoute = apiRoute(
+export const publishAuthorizationTemplateRevisionRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/templates/:key/revisions`,
-  CONTROLLER,
+  `/templates/:key/revisions`,
   'publishTemplateRevision',
   {
     params: authorizationTemplateParamsSchema,
-    headers: authorizationApiVersionHeadersSchema,
     body: {
       required: true,
       content: {
@@ -175,479 +188,427 @@ export const publishAuthorizationTemplateRevisionRoute = apiRoute(
   },
   {
     authorization: scopeAuthorization('system.authorization.manage'),
-    tags: ['Authorization'],
     summary: 'Preview or publish the next immutable role template revision',
     description:
       'Omit confirmationToken to receive a server-authoritative preview, then repeat the unchanged request with that token to publish.',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationTemplatePublishResponseSchema, 'Template publication preview'),
       201: jsonResponse(authorizationTemplatePublishResponseSchema, 'Template revision published'),
     },
   }
 );
 
-export const listAuthorizationRolesRoute = apiRoute(
+export const listAuthorizationRolesRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/roles`,
-  CONTROLLER,
+  `/roles`,
   'listRoles',
-  { headers: authorizationApiVersionHeadersSchema, query: authorizationRoleQuerySchema },
+  { query: authorizationRoleQuerySchema },
   {
     authorization: scopeAuthorization('authorization.role.read'),
-    tags: ['Authorization'],
     summary: 'List roles in the active brand',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleCatalogPageSchema, 'Cursor-paginated current-brand role catalog'),
     },
   }
 );
 
-export const createAuthorizationRoleRoute = apiRoute(
+export const createAuthorizationRoleRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/roles`,
-  CONTROLLER,
+  `/roles`,
   'createRole',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationCreateRoleBodySchema) },
+  { body: jsonBody(authorizationCreateRoleBodySchema) },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Create a custom, template-based, or same-brand cloned role',
     responses: {
-      ...authorizationProblemResponses,
       201: jsonResponse(authorizationRoleMutationResultSchema, 'Role created transactionally'),
     },
   }
 );
 
-export const getAuthorizationRoleRoute = apiRoute(
+export const getAuthorizationRoleRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/roles/:key`,
-  CONTROLLER,
+  `/roles/:key`,
   'getRole',
-  { headers: authorizationApiVersionHeadersSchema, params: authorizationRoleParamsSchema },
+  { params: authorizationRoleParamsSchema },
   {
     authorization: scopeAuthorization('authorization.role.read'),
-    tags: ['Authorization'],
     summary: 'Read one role in the active brand',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleSchema, 'Current role base, overrides, effective scopes, and version'),
     },
   }
 );
 
-export const updateAuthorizationRoleRoute = apiRoute(
+export const updateAuthorizationRoleRoute = authorizationRoute(
   'patch',
-  `${BASE_PATH}/roles/:key`,
-  CONTROLLER,
+  `/roles/:key`,
   'updateRole',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationUpdateRoleBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Update a role label or description with optimistic concurrency',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleMutationResultSchema, 'Role metadata updated transactionally'),
     },
   }
 );
 
-export const previewAuthorizationRoleScopesRoute = apiRoute(
+export const previewAuthorizationRoleScopesRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/roles/:key/scope-preview`,
-  CONTROLLER,
+  `/roles/:key/scope-preview`,
   'previewRoleScopes',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationRoleScopePreviewBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Preview a desired effective role scope set',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleScopePreviewSchema, 'Role scope impact preview'),
     },
   }
 );
 
-export const applyAuthorizationRoleScopesRoute = apiRoute(
+export const applyAuthorizationRoleScopesRoute = authorizationRoute(
   'put',
-  `${BASE_PATH}/roles/:key/scopes`,
-  CONTROLLER,
+  `/roles/:key/scopes`,
   'applyRoleScopes',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationRoleScopeApplyBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Apply a confirmed desired effective role scope set',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleMutationResultSchema, 'Role scopes updated transactionally'),
     },
   }
 );
 
-export const previewAuthorizationRoleTemplateUpgradeRoute = apiRoute(
+export const previewAuthorizationScopeAdoptionRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/roles/:key/template-upgrade-preview`,
-  CONTROLLER,
+  `/roles/:key/scope-adoption-preview`,
+  'previewScopeAdoption',
+  {
+    params: authorizationRoleParamsSchema,
+    body: jsonBody(authorizationScopeAdoptionPreviewBodySchema),
+  },
+  {
+    authorization: scopeAuthorization('system.authorization.manage'),
+    summary: 'Preview adoption of one deployed scope into the protected system role',
+    responses: {
+      200: jsonResponse(authorizationScopeAdoptionPreviewSchema, 'Protected system-scope adoption preview'),
+    },
+  }
+);
+
+export const applyAuthorizationScopeAdoptionRoute = authorizationRoute(
+  'post',
+  `/roles/:key/scope-adoption`,
+  'applyScopeAdoption',
+  {
+    params: authorizationRoleParamsSchema,
+    body: jsonBody(authorizationScopeAdoptionApplyBodySchema),
+  },
+  {
+    authorization: scopeAuthorization('system.authorization.manage'),
+    summary: 'Apply an unchanged confirmed protected system-scope adoption',
+    responses: {
+      200: jsonResponse(authorizationRoleMutationResultSchema, 'Protected system scope adopted transactionally'),
+    },
+  }
+);
+
+export const previewAuthorizationRoleTemplateUpgradeRoute = authorizationRoute(
+  'post',
+  `/roles/:key/template-upgrade-preview`,
   'previewRoleTemplateUpgrade',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationRoleTemplateUpgradePreviewBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Preview a three-way role template revision upgrade',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleTemplateUpgradePreviewSchema, 'Role template upgrade preview'),
     },
   }
 );
 
-export const applyAuthorizationRoleTemplateUpgradeRoute = apiRoute(
+export const applyAuthorizationRoleTemplateUpgradeRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/roles/:key/template-upgrade`,
-  CONTROLLER,
+  `/roles/:key/template-upgrade`,
   'applyRoleTemplateUpgrade',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationRoleTemplateUpgradeApplyBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Apply a confirmed role template revision upgrade',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleMutationResultSchema, 'Role template revision upgraded transactionally'),
     },
   }
 );
 
-export const previewAuthorizationBulkTemplateUpgradeRoute = apiRoute(
+export const previewAuthorizationBulkTemplateUpgradeRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/template-upgrades/bulk-preview`,
-  CONTROLLER,
+  `/template-upgrades/bulk-preview`,
   'previewBulkTemplateUpgrade',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationBulkTemplateUpgradePreviewBodySchema) },
+  { body: jsonBody(authorizationBulkTemplateUpgradePreviewBodySchema) },
   {
     authorization: scopeAuthorization('system.authorization.manage'),
-    tags: ['Authorization'],
     summary: 'Preview one template revision for explicitly selected brand roles',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationBulkTemplateUpgradePreviewSchema, 'Selected-role template upgrade preview'),
     },
   }
 );
 
-export const applyAuthorizationBulkTemplateUpgradeRoute = apiRoute(
+export const applyAuthorizationBulkTemplateUpgradeRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/template-upgrades/bulk-apply`,
-  CONTROLLER,
+  `/template-upgrades/bulk-apply`,
   'applyBulkTemplateUpgrade',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationBulkTemplateUpgradeApplyBodySchema) },
+  { body: jsonBody(authorizationBulkTemplateUpgradeApplyBodySchema) },
   {
     authorization: scopeAuthorization('system.authorization.manage'),
-    tags: ['Authorization'],
     summary: 'Atomically apply a confirmed selected-role template upgrade',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationBulkTemplateUpgradeMutationSchema, 'Selected roles upgraded transactionally'),
     },
   }
 );
 
-export const previewAuthorizationRoleInactivationRoute = apiRoute(
+export const previewAuthorizationRoleInactivationRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/roles/:key/inactivation-preview`,
-  CONTROLLER,
+  `/roles/:key/inactivation-preview`,
   'previewRoleInactivation',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationRoleLifecyclePreviewBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Preview role inactivation impact',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleInactivationPreviewSchema, 'Role inactivation impact preview'),
     },
   }
 );
 
-export const inactivateAuthorizationRoleRoute = apiRoute(
+export const inactivateAuthorizationRoleRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/roles/:key/inactivate`,
-  CONTROLLER,
+  `/roles/:key/inactivate`,
   'inactivateRole',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationRoleLifecycleApplyBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Inactivate an eligible role after confirmed impact review',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleMutationResultSchema, 'Role inactivated transactionally'),
     },
   }
 );
 
-export const deleteAuthorizationRoleRoute = apiRoute(
+export const deleteAuthorizationRoleRoute = authorizationRoute(
   'delete',
-  `${BASE_PATH}/roles/:key`,
-  CONTROLLER,
+  `/roles/:key`,
   'deleteRole',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationRoleParamsSchema,
     body: jsonBody(authorizationRoleDeleteBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.role.manage'),
-    tags: ['Authorization'],
     summary: 'Preview or apply dependency-free role deletion',
     description:
       'Omit confirmationToken to receive the server dependency preview, then repeat the unchanged DELETE body with that token to apply.',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationRoleDeleteResponseSchema, 'Role deletion preview or transactional result'),
     },
   }
 );
 
-export const listAuthorizationAssignmentsRoute = apiRoute(
+export const listAuthorizationAssignmentsRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/assignments`,
-  CONTROLLER,
+  `/assignments`,
   'listAssignments',
-  { headers: authorizationApiVersionHeadersSchema, query: authorizationAssignmentQuerySchema },
+  { query: authorizationAssignmentQuerySchema },
   {
     authorization: scopeAuthorization('authorization.assignment.read'),
-    tags: ['Authorization'],
     summary: 'List assignments in the active authorization context',
     description:
       'Brand administrators see only active-brand assignments. A system administrator also sees the single protected global system-role assignment context.',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationAssignmentCatalogPageSchema, 'Cursor-paginated assignment catalog'),
     },
   }
 );
 
-export const grantAuthorizationAssignmentRoute = apiRoute(
+export const grantAuthorizationAssignmentRoute = authorizationRoute(
   'put',
-  `${BASE_PATH}/assignments/:roleKey/users/:userId`,
-  CONTROLLER,
+  `/assignments/:roleKey/users/:userId`,
   'grantAssignment',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationAssignmentUserParamsSchema,
     body: jsonBody(authorizationAssignmentGrantBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.assignment.manage'),
-    tags: ['Authorization'],
     summary: 'Idempotently grant or reactivate one manual assignment',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationAssignmentMutationResultSchema, 'Manual assignment granted or unchanged'),
     },
   }
 );
 
-export const revokeAuthorizationAssignmentRoute = apiRoute(
+export const revokeAuthorizationAssignmentRoute = authorizationRoute(
   'delete',
-  `${BASE_PATH}/assignments/:roleKey/users/:userId`,
-  CONTROLLER,
+  `/assignments/:roleKey/users/:userId`,
   'revokeAssignment',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationAssignmentUserParamsSchema,
     body: jsonBody(authorizationAssignmentMutationBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.assignment.manage'),
-    tags: ['Authorization'],
     summary: 'Revoke only the exact manual assignment source',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationAssignmentMutationResultSchema, 'Manual assignment revoked or unchanged'),
     },
   }
 );
 
-export const suppressAuthorizationAssignmentRoute = apiRoute(
+export const suppressAuthorizationAssignmentRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/assignments/:assignmentId/suppress`,
-  CONTROLLER,
+  `/assignments/:assignmentId/suppress`,
   'suppressAssignment',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationAssignmentParamsSchema,
     body: jsonBody(authorizationAssignmentMutationBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.assignment.manage'),
-    tags: ['Authorization'],
     summary: 'Locally suppress one external assignment source tuple',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationAssignmentMutationResultSchema, 'External assignment suppressed'),
     },
   }
 );
 
-export const unsuppressAuthorizationAssignmentRoute = apiRoute(
+export const unsuppressAuthorizationAssignmentRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/assignments/:assignmentId/unsuppress`,
-  CONTROLLER,
+  `/assignments/:assignmentId/unsuppress`,
   'unsuppressAssignment',
   {
-    headers: authorizationApiVersionHeadersSchema,
     params: authorizationAssignmentParamsSchema,
     body: jsonBody(authorizationAssignmentMutationBodySchema),
   },
   {
     authorization: scopeAuthorization('authorization.assignment.manage'),
-    tags: ['Authorization'],
     summary: 'Remove local suppression from one external assignment source tuple',
     description:
       'The assignment becomes active only when the latest successful provider synchronization still requests it.',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationAssignmentMutationResultSchema, 'External assignment unsuppressed'),
     },
   }
 );
 
-export const previewAuthorizationBulkAssignmentsRoute = apiRoute(
+export const previewAuthorizationBulkAssignmentsRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/assignments/bulk-preview`,
-  CONTROLLER,
+  `/assignments/bulk-preview`,
   'previewBulkAssignments',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationBulkPreviewBodySchema) },
+  { body: jsonBody(authorizationBulkPreviewBodySchema) },
   {
     authorization: scopeAuthorization('authorization.assignment.manage'),
-    tags: ['Authorization'],
     summary: 'Validate and preview one bounded manual assignment batch',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationBulkAssignmentPreviewSchema, 'Assignment batch validation preview'),
     },
   }
 );
 
-export const applyAuthorizationBulkAssignmentsRoute = apiRoute(
+export const applyAuthorizationBulkAssignmentsRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/assignments/bulk-apply`,
-  CONTROLLER,
+  `/assignments/bulk-apply`,
   'applyBulkAssignments',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationBulkApplyBodySchema) },
+  { body: jsonBody(authorizationBulkApplyBodySchema) },
   {
     authorization: scopeAuthorization('authorization.assignment.manage'),
-    tags: ['Authorization'],
     summary: 'Atomically apply one unchanged confirmed manual assignment batch',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationBulkAssignmentMutationSchema, 'Assignment batch applied transactionally'),
     },
   }
 );
 
-export const listAuthorizationAuditRoute = apiRoute(
+export const listAuthorizationAuditRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/audit`,
-  CONTROLLER,
+  `/audit`,
   'listAudit',
-  { headers: authorizationApiVersionHeadersSchema, query: authorizationAuditQuerySchema },
+  { query: authorizationAuditQuerySchema },
   {
     authorization: scopeAuthorization('authorization.audit.read'),
-    tags: ['Authorization'],
     summary: 'List redacted authorization audit events',
     description:
       'Brand readers are forced to their active brand. System administrators may omit brandId to inspect all bounded contexts.',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationAuditPageSchema, 'Cursor-paginated redacted authorization audit'),
     },
   }
 );
 
-export const explainAuthorizationDecisionRoute = apiRoute(
+export const explainAuthorizationDecisionRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/explain`,
-  CONTROLLER,
+  `/explain`,
   'explainDecision',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationExplainBodySchema) },
+  { body: jsonBody(authorizationExplainBodySchema) },
   {
     authorization: scopeAuthorization('authorization.explain'),
-    tags: ['Authorization'],
     summary: 'Explain one hypothetical authorization decision without mutation',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationExplainResultSchema, 'Privileged read-only authorization explanation'),
     },
   }
 );
 
-export const getAuthorizationReadinessRoute = apiRoute(
+export const getAuthorizationReadinessRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/rollout/readiness`,
-  CONTROLLER,
+  `/rollout/readiness`,
   'getReadiness',
-  { headers: authorizationApiVersionHeadersSchema },
+  {},
   {
     authorization: scopeAuthorization('system.authorization.manage'),
-    tags: ['Authorization'],
     summary: 'Get bounded deployment-wide authorization rollout readiness',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationReadinessSchema, 'Authorization rollout readiness evidence'),
     },
   }
 );
 
-export const exportAuthorizationConfigurationRoute = apiRoute(
+export const exportAuthorizationConfigurationRoute = authorizationRoute(
   'get',
-  `${BASE_PATH}/export`,
-  CONTROLLER,
+  `/export`,
   'exportConfiguration',
   { headers: authorizationSensitiveExportHeadersSchema, query: authorizationExportQuerySchema },
   {
     authorization: scopeAuthorization('system.authorization.manage'),
-    tags: ['Authorization'],
     summary: 'Export deterministic versioned authorization configuration',
     description:
       'Assignment export is excluded by default and uses a separately confirmed preview because it contains user identifiers. Send the token in X-ReDBox-Authorization-Confirmation; protected system assignments require an additional explicit flag.',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(
         authorizationConfigurationExportResponseSchema,
         'Configuration document or sensitive-export confirmation preview'
@@ -656,35 +617,29 @@ export const exportAuthorizationConfigurationRoute = apiRoute(
   }
 );
 
-export const previewAuthorizationImportRoute = apiRoute(
+export const previewAuthorizationImportRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/import-preview`,
-  CONTROLLER,
+  `/import-preview`,
   'previewImport',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationImportPreviewBodySchema) },
+  { body: jsonBody(authorizationImportPreviewBodySchema) },
   {
     authorization: scopeAuthorization('system.authorization.manage'),
-    tags: ['Authorization'],
     summary: 'Validate and preview a bounded versioned authorization import',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationConfigurationImportPreviewSchema, 'Configuration import validation preview'),
     },
   }
 );
 
-export const applyAuthorizationImportRoute = apiRoute(
+export const applyAuthorizationImportRoute = authorizationRoute(
   'post',
-  `${BASE_PATH}/import-apply`,
-  CONTROLLER,
+  `/import-apply`,
   'applyImport',
-  { headers: authorizationApiVersionHeadersSchema, body: jsonBody(authorizationImportApplyBodySchema) },
+  { body: jsonBody(authorizationImportApplyBodySchema) },
   {
     authorization: scopeAuthorization('system.authorization.manage'),
-    tags: ['Authorization'],
     summary: 'Atomically apply an unchanged confirmed authorization import',
     responses: {
-      ...authorizationProblemResponses,
       200: jsonResponse(authorizationConfigurationImportMutationSchema, 'Configuration import applied transactionally'),
     },
   }
@@ -702,6 +657,8 @@ export const authorizationApiRoutes = [
   updateAuthorizationRoleRoute,
   previewAuthorizationRoleScopesRoute,
   applyAuthorizationRoleScopesRoute,
+  previewAuthorizationScopeAdoptionRoute,
+  applyAuthorizationScopeAdoptionRoute,
   previewAuthorizationRoleTemplateUpgradeRoute,
   applyAuthorizationRoleTemplateUpgradeRoute,
   previewAuthorizationBulkTemplateUpgradeRoute,

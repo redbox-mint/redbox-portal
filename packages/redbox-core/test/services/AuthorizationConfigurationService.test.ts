@@ -73,6 +73,31 @@ describe('AuthorizationConfigurationService', () => {
     assert.equal(Object.isFrozen(parsed.assignments), true);
   });
 
+  it('retains boolean source-presence values and rejects unsafe concurrency versions', () => {
+    const document = validDocument();
+    const parsed = parseAuthorizationConfigurationDocument({
+      ...document,
+      assignments: document.assignments?.map(assignment => ({ ...assignment, sourcePresent: false })),
+    });
+
+    assert.equal(parsed.assignments?.[0].sourcePresent, false);
+    assert.throws(() =>
+      parseAuthorizationConfigurationDocument({
+        ...document,
+        templates: [{ ...document.templates[0], version: Number.MAX_SAFE_INTEGER + 1 }],
+      })
+    );
+    assert.throws(() =>
+      parseAuthorizationConfigurationDocument({
+        ...document,
+        assignments: document.assignments?.map(assignment => ({
+          ...assignment,
+          version: Number.MAX_SAFE_INTEGER + 1,
+        })),
+      })
+    );
+  });
+
   it('fails closed on unknown fields, unsorted/duplicate scopes, duplicate role contexts, and non-manual sources', () => {
     const base = validDocument();
     const invalidDocuments: unknown[] = [

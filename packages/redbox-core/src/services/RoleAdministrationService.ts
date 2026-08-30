@@ -53,7 +53,6 @@ import {
   type BulkTemplateUpgradeRoleConflict,
   type BulkTemplateUpgradeRolePreview,
   type CreateRoleCommand,
-  type ExpireAssignmentCommand,
   type ExternalReplacementResult,
   type GrantAssignmentCommand,
   type PreviewBulkAssignmentsCommand,
@@ -297,16 +296,6 @@ function requireUpdatedRow<T>(row: T | null | undefined, message: string): T {
   return row;
 }
 
-function requireUnchangedResourceIdentity(expectedId: string, actualId: string): void {
-  if (actualId !== expectedId) {
-    throw new AuthorizationAdministrationError(
-      'authorization.preview-stale',
-      409,
-      'The authorization target changed since preview.'
-    );
-  }
-}
-
 function requireNewerTemplateRevision(currentRevision: number, targetRevision: number): void {
   if (targetRevision <= currentRevision) {
     throw new AuthorizationAdministrationError(
@@ -439,7 +428,6 @@ export namespace Services {
       'revokeAssignment',
       'suppressAssignment',
       'unsuppressAssignment',
-      'expireAssignment',
       'replaceExternalAssignments',
       'previewBulkAssignments',
       'applyBulkAssignments',
@@ -1437,8 +1425,9 @@ export namespace Services {
     private async scopePreview(
       command: PreviewRoleScopesCommand,
       connection?: Sails.Connection,
-      allowSystemAdoption = false
+      adoptionScopeKey?: ScopeKey
     ): Promise<AuthorizationPreviewResult<RoleAdministrationSnapshot>> {
+      const allowSystemAdoption = adoptionScopeKey !== undefined;
       this.requireScope(command, allowSystemAdoption ? SYSTEM_MANAGE_SCOPE : ROLE_MANAGE_SCOPE, command.brandId);
       const expectedVersion = positiveVersion(command.expectedVersion);
       const role = await this.findRole(command.roleKey, command.brandId, connection);
@@ -1487,12 +1476,21 @@ export namespace Services {
         }),
         version: current.version + 1,
       });
-      const content = {
-        desiredScopeKeys: desired,
-        reason: optionalAuthorizationText(command.reason, 1_000),
-        affectedAssignments: activeAssignments.references,
-        dependencies,
-      };
+      const content =
+        adoptionScopeKey === undefined
+          ? {
+              desiredScopeKeys: desired,
+              reason: optionalAuthorizationText(command.reason, 1_000),
+              affectedAssignments: activeAssignments.references,
+              dependencies,
+            }
+          : this.scopeAdoptionConfirmationContent(
+              adoptionScopeKey,
+              desired,
+              command.reason,
+              activeAssignments.references,
+              dependencies
+            );
       const changed = addedScopeKeys.length > 0 || removedScopeKeys.length > 0;
       const fatalErrors =
         dependencies.scanIncomplete || activeAssignments.incomplete
@@ -2575,48 +2573,6 @@ export namespace Services {
       });
     }
 
-    public async expireAssignment(
-      command: ExpireAssignmentCommand
-    ): Promise<AuthorizationMutationResult<AssignmentAdministrationSnapshot>> {
-      const auditInput = this.auditInput(command, 'assignment.expired', 'role-assignment', command.assignmentId);
-      return this.runMutation(command, auditInput, async connection => {
-        const { assignment, role } = await this.assignmentById(command, connection);
-        const now = this.dependencies.now();
-        const requestedExpiry = command.expiresAt === undefined ? now : new Date(command.expiresAt);
-        if (Number.isNaN(requestedExpiry.getTime())) {
-          throw new AuthorizationAdministrationError('authorization.invalid-role', 400, 'Expiry is invalid.');
-        }
-        const expiresAt = requestedExpiry.toISOString();
-        if (activeAt(assignment, now)) await this.lockProtectedRole(role, this.actorId(command), connection);
-        const updated = requireUpdatedRow(
-          (await RoleAssignment.updateOne({ id: assignment.id, version: assignment.version })
-            .set({
-              expiresAt,
-              version: assignment.version + 1,
-              reason: optionalAuthorizationText(command.reason, 1_000),
-            })
-            .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
-          'The assignment changed since it was read.'
-        );
-        await this.assertAdministratorQuorum(role, connection);
-        await this.projectLegacyAuthority(assignment.principalId, role, connection);
-        const data = this.assignmentSnapshot(updated, role);
-        const audit = await this.dependencies
-          .audit()
-          .createSucceededEvent(
-            { ...auditInput, before: this.assignmentSnapshot(assignment, role), after: data },
-            connection
-          );
-        return Object.freeze({
-          data,
-          version: data.version,
-          auditEventId: audit.eventId,
-          requestId: command.requestId,
-          changed: true,
-        });
-      });
-    }
-
     public async replaceExternalAssignments(
       command: ReplaceExternalAssignmentsCommand
     ): Promise<AuthorizationMutationResult<ExternalReplacementResult>> {
@@ -3049,38 +3005,92 @@ export namespace Services {
       this.requireScope(command, SYSTEM_MANAGE_SCOPE);
       const role = await this.findRole(command.roleKey, undefined);
       const state = await this.loadRoleState(role);
-      const desired = normalizedScopeKeys([...state.effectiveScopeKeys, command.scopeKey]);
-      return this.scopePreview({ ...command, desiredScopeKeys: desired }, undefined, true);
+      const scopeKey = normalizedScopeKeys([command.scopeKey])[0];
+      const desired = normalizedScopeKeys([...state.effectiveScopeKeys, scopeKey]);
+      return this.scopePreview({ ...command, desiredScopeKeys: desired }, undefined, scopeKey);
+    }
+
+    private scopeAdoptionConfirmationContent(
+      scopeKey: ScopeKey,
+      desiredScopeKeys: readonly ScopeKey[],
+      reason: string | undefined,
+      affectedAssignments: number,
+      dependencies: RoleDependencySummary
+    ): Readonly<{
+      scopeKey: ScopeKey;
+      desiredScopeKeys: readonly ScopeKey[];
+      reason?: string;
+      affectedAssignments: number;
+      dependencies: RoleDependencySummary;
+    }> {
+      return Object.freeze({
+        scopeKey,
+        desiredScopeKeys,
+        reason: optionalAuthorizationText(reason, 1_000),
+        affectedAssignments,
+        dependencies,
+      });
     }
 
     public async applyScopeAdoption(
       command: ApplyScopeAdoptionCommand
     ): Promise<AuthorizationMutationResult<RoleAdministrationSnapshot>> {
-      this.requireScope(command, SYSTEM_MANAGE_SCOPE);
-      const role = await this.findRole(command.roleKey, undefined);
-      const state = await this.loadRoleState(role);
-      const expectedVersion = positiveVersion(command.expectedVersion);
-      const desired = normalizedScopeKeys([...state.effectiveScopeKeys, command.scopeKey]);
-      this.verifyConfirmation(command, command.confirmationToken, 'scope-adoption', role.id, expectedVersion, {
-        desiredScopeKeys: desired,
-        reason: optionalAuthorizationText(command.reason, 1_000),
-      });
-      const auditInput = this.auditInput(command, 'scope.adopted', 'role', role.id);
+      const auditInput = this.auditInput(command, 'scope.adopted', 'role', command.roleKey);
       return this.runMutation(command, auditInput, async connection => {
+        this.requireScope(command, SYSTEM_MANAGE_SCOPE);
+        const expectedVersion = positiveVersion(command.expectedVersion);
+        const scopeKey = normalizedScopeKeys([command.scopeKey])[0];
         const fresh = await this.findRole(command.roleKey, undefined, connection);
-        requireUnchangedResourceIdentity(role.id, fresh.id);
         const freshState = await this.loadRoleState(fresh, connection);
         const before = this.snapshot(freshState);
-        if (before.version !== expectedVersion || fresh.protectedKind !== 'system-admin') {
+        if (before.version !== expectedVersion) {
           throw new AuthorizationAdministrationError(
             'authorization.version-conflict',
             409,
             'The system role changed since preview.'
           );
         }
+        if (fresh.protectedKind !== 'system-admin') {
+          throw new AuthorizationAdministrationError(
+            'authorization.protected-role',
+            409,
+            'Scope adoption targets the protected system role.'
+          );
+        }
+        if (freshState.effectiveScopeKeys.includes(scopeKey)) {
+          throw new AuthorizationAdministrationError(
+            'authorization.preview-stale',
+            409,
+            'The scope adoption state changed since preview.'
+          );
+        }
+        const desired = normalizedScopeKeys([...freshState.effectiveScopeKeys, scopeKey]);
         const validation = this.dependencies.getRegistry().validateScopeKeys(desired);
         if (validation.inactiveScopeKeys.length || validation.missingScopeKeys.length)
           throw new AuthorizationAdministrationError('authorization.invalid-scope', 400, 'The scope is unavailable.');
+        const dependencies = await this.dependencySummary(fresh, connection);
+        const activeAssignments = await this.activeAssignmentImpact(fresh, connection);
+        if (dependencies.scanIncomplete || activeAssignments.incomplete) {
+          throw new AuthorizationAdministrationError(
+            'authorization.query-bound-exceeded',
+            409,
+            'The system-role impact exceeds the bounded operation limit.'
+          );
+        }
+        this.verifyConfirmation(
+          command,
+          command.confirmationToken,
+          'scope-adoption',
+          fresh.id,
+          expectedVersion,
+          this.scopeAdoptionConfirmationContent(
+            scopeKey,
+            desired,
+            command.reason,
+            activeAssignments.references,
+            dependencies
+          )
+        );
         const overrides = normalizeRoleScopeOverrides({
           baseScopeKeys: freshState.baseScopeKeys,
           desiredScopeKeys: desired,
@@ -3088,11 +3098,18 @@ export namespace Services {
         await this.replaceOverrides(fresh.id, overrides, this.actorId(command), command.reason, connection);
         const updated = (await Role.updateOne({ id: fresh.id, version: expectedVersion })
           .set({ version: expectedVersion + 1, updatedBy: this.actorId(command) })
-          .usingConnection(connection)) as RoleAttributes;
+          .usingConnection(connection)) as RoleAttributes | undefined;
+        if (updated === undefined) {
+          throw new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'The system role changed since preview.'
+          );
+        }
         const after = this.snapshot(await this.loadRoleState(updated, connection));
         const audit = await this.dependencies
           .audit()
-          .createSucceededEvent({ ...auditInput, before, after, targetId: command.scopeKey }, connection);
+          .createSucceededEvent({ ...auditInput, targetId: fresh.id, before, after }, connection);
         return Object.freeze({
           data: after,
           version: after.version,

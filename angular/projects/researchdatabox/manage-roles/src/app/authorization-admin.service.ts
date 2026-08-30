@@ -18,9 +18,6 @@ import {
   AuthorizationTemplate,
   AuthorizationTemplateRevision,
   AuthorizationUiErrorState,
-  BulkAssignmentPreview,
-  BulkAssignmentMutationData,
-  BulkAssignmentRequest,
   BulkTemplateUpgradePreview,
   BulkTemplateUpgradeRequest,
   CreateRoleRequest,
@@ -237,17 +234,6 @@ export class AuthorizationAdminService extends HttpClientService {
       `/assignments/${encodeURIComponent(assignmentId)}/unsuppress`,
       request
     );
-  }
-
-  public previewBulkAssignments(request: BulkAssignmentRequest): Promise<BulkAssignmentPreview> {
-    const { confirmationToken: _confirmationToken, ...previewRequest } = request;
-    return this.post<BulkAssignmentPreview>('/assignments/bulk-preview', previewRequest);
-  }
-
-  public applyBulkAssignments(
-    request: BulkAssignmentRequest & { confirmationToken: string }
-  ): Promise<AuthorizationMutationResult<BulkAssignmentMutationData>> {
-    return this.post<AuthorizationMutationResult<BulkAssignmentMutationData>>('/assignments/bulk-apply', request);
   }
 
   public listAudit(query: AuditCatalogQuery = {}): Promise<CursorPage<AuthorizationAuditEvent>> {

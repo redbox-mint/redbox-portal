@@ -6,6 +6,7 @@ import {
   requireRequestBrandId,
   requireRequestResourceAuthorization,
 } from '../../src';
+import { resetResolvedApiRouteCache } from '../../src/api-routes';
 
 function context(authorized = true) {
   return freezeAuthorizationContext({
@@ -67,5 +68,42 @@ describe('request resource authorization extraction', () => {
     const unauthorizedBrandReq = request();
     unauthorizedBrandReq.authorization = context(false);
     assert.throws(() => requireRequestBrandId(unauthorizedBrandReq), /authorized brand context/);
+  });
+
+  it('treats explicit runtime target authorization as authoritative over the central contract map', () => {
+    const req = request();
+    req.path = '/brand-a/rdmp/api/records/metadata/record-1';
+    req.options!.authorization = { kind: 'scope', scope: asScopeKey('record.update') };
+    req.options!.routeId = 'explicit-record-update';
+
+    const authorization = requireRequestResourceAuthorization(req);
+
+    assert.equal(authorization.requiredScope, 'record.update');
+    assert.equal(authorization.routeId, 'explicit-record-update');
+  });
+
+  it('falls back to the central contract map when framework route metadata is absent', () => {
+    resetResolvedApiRouteCache();
+    const req = request();
+    req.path = '/brand-a/rdmp/api/records/metadata/record-1';
+    req.route = 'get /:branding/:portal/api/records/metadata/:oid';
+    req.options = {};
+
+    const authorization = requireRequestResourceAuthorization(req);
+
+    assert.equal(authorization.requiredScope, 'record.read');
+    assert.match(authorization.routeId, /RecordController#getMeta/u);
+    resetResolvedApiRouteCache();
+  });
+
+  it('fails closed when neither an explicit target nor a central/configured route resolves', () => {
+    resetResolvedApiRouteCache();
+    const req = request();
+    req.path = '/__authorization_unmapped_resource__';
+    req.route = undefined;
+    req.options = {};
+
+    assert.throws(() => requireRequestResourceAuthorization(req), /requires an explicit scoped route declaration/u);
+    resetResolvedApiRouteCache();
   });
 });

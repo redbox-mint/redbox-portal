@@ -344,11 +344,18 @@ function defaultRecordBrandId(record: Readonly<Record<string, unknown>>): string
 }
 
 function defaultTokenScopeCeiling(req: Sails.Req): readonly string[] | undefined {
+  const attachedCeiling = req.authorization?.tokenScopeCeiling;
   const authInfo = req.authInfo;
-  if (!isRecord(authInfo) || !Array.isArray(authInfo.scopeKeys)) return undefined;
-  return authInfo.scopeKeys.every(scopeKey => typeof scopeKey === 'string')
-    ? Object.freeze(authInfo.scopeKeys.filter((scopeKey): scopeKey is string => typeof scopeKey === 'string'))
-    : Object.freeze([]);
+  const authInfoCeiling =
+    isRecord(authInfo) && Array.isArray(authInfo.scopeKeys)
+      ? authInfo.scopeKeys.every(scopeKey => typeof scopeKey === 'string')
+        ? Object.freeze(authInfo.scopeKeys.filter((scopeKey): scopeKey is string => typeof scopeKey === 'string'))
+        : Object.freeze<string[]>([])
+      : undefined;
+  if (attachedCeiling === undefined) return authInfoCeiling;
+  if (authInfoCeiling === undefined) return attachedCeiling;
+  const authInfoScopeKeys = new Set(authInfoCeiling);
+  return Object.freeze(attachedCeiling.filter(scopeKey => authInfoScopeKeys.has(scopeKey)));
 }
 
 function defaultDependencies(): AuthorizationServiceDependencies {
@@ -974,8 +981,7 @@ export namespace Services {
         const brandIdentifier = requestedBrandIdentifier(req);
         const userId = requestUserIdentifier(req);
         const authMethod = requestUserAuthMethod(req, userId);
-        const tokenScopeCeiling =
-          authMethod === 'bearer' ? this.dependencies.readRequestTokenScopeCeiling(req) : undefined;
+        const tokenScopeCeiling = this.dependencies.readRequestTokenScopeCeiling(req);
         const context =
           userId === undefined
             ? await this.resolveAnonymousContext(brandIdentifier, tokenScopeCeiling, authMethod === 'bearer')

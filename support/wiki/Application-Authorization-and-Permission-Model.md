@@ -3,7 +3,7 @@
 > **Status:** Agreed design direction. OAuth authorization-server selection and
 > deployment are explicitly deferred.
 >
-> **Last reviewed:** 28 August 2026
+> **Last reviewed:** 31 August 2026
 
 This page records the outcome of the permission-model design review. It is the
 shared design boundary for implementation: it documents the current system,
@@ -327,12 +327,25 @@ path is not sufficient for this migration.
   anonymous action declares public access explicitly.
 - API scope metadata belongs with the contract route definition so method and
   action are authoritative and hook routes use the same registry.
+- Core route source may supply metadata inline or resolve an exact
+  action/pattern entry from the reviewed central map. `apiRoute()` and
+  `attachRouteAuthorizations()` perform that resolution while constructing the
+  route tables and throw if it fails. This is not a runtime inference rule;
+  every emitted Sails target already has explicit normalized metadata. Hook
+  routes must declare their authorization and validate it against the merged
+  registry.
+- Runtime resolution first trusts the explicit declaration and stable route ID
+  on the matched Sails target. If framework target metadata is absent, it uses
+  the central merged core-and-hook contract map, then the explicitly classified
+  `sails.config.routes` map. It never infers permission from a controller name,
+  action name, URL, legacy role, or missing `PathRule`.
 - Server-rendered UI routes use the same capability keys. Loading a page uses
   the lowest applicable business capability; individual API mutations still
   enforce their stronger capabilities.
 - A route with neither required scope nor explicit public/pre-auth classification
   fails startup validation in every mode. If startup validation is bypassed,
-  `enforce` still denies the request at runtime.
+  an unresolved or ambiguous declaration grants nothing: resource gates fail
+  closed and `enforce` denies the request at runtime.
 - Infrastructure endpoints such as login callbacks, static assets, and health
   checks use a very small code-declared pre-authentication allowlist visible in
   diagnostics.

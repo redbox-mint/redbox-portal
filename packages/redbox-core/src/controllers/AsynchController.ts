@@ -279,7 +279,8 @@ export namespace Controllers {
       }
 
       const service = sails.services.authorizationservice as unknown as
-        Partial<PrivilegedSocketAuthorizationService> | undefined;
+        | Partial<PrivilegedSocketAuthorizationService>
+        | undefined;
       if (
         service === undefined ||
         typeof service.resolveUserContext !== 'function' ||
@@ -292,7 +293,7 @@ export namespace Controllers {
         userId,
         brandId,
         authMethod,
-        authMethod === 'bearer' ? attached.context.tokenScopeCeiling : undefined
+        attached.context.tokenScopeCeiling
       );
       const decision = service.authorizeBrandEntity(refreshed, attached.requiredScope, refreshed.brand?.id);
       if (!decision.allowed) throw authorizationResourceError(decision);

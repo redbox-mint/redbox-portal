@@ -77,7 +77,6 @@ describe('RoleAdministrationService', () => {
       'applyScopeAdoption',
       'createRole',
       'deleteRole',
-      'expireAssignment',
       'grantAssignment',
       'inactivateRole',
       'getRole',
@@ -1313,6 +1312,125 @@ describe('RoleAdministrationService', () => {
         { reasonCode: 'authorization.preview-stale', outcome: 'denied' },
         { reasonCode: 'authorization.preview-stale', outcome: 'denied' },
       ]);
+    });
+
+    it('round-trips system-scope adoption and rejects tampered or stale impact hashes', async () => {
+      let role = {
+        id: 'system-role-1',
+        name: 'system-administrator',
+        key: 'system-administrator',
+        displayName: 'System administrator',
+        contextType: 'system',
+        protectedKind: 'system-admin',
+        status: 'active',
+        version: 1,
+      };
+      let overrides: Array<{ readonly role: string; readonly scopeKey: string; readonly effect: 'allow' | 'deny' }> =
+        [];
+      let activeAssignments = 0;
+      const emptyCollection = () => ({
+        find: () => ({ limit: () => ({ toArray: () => Promise.resolve([]) }) }),
+      });
+      const connection = Object.freeze({ collection: emptyCollection }) as unknown as Sails.Connection;
+      Reflect.set(globalThis, 'Role', {
+        find: () => ({ limit: () => connectedResult([role]) }),
+        findOne: () => ({ populate: () => connectedResult({ ...role, users: [] }) }),
+        updateOne: (criteria: { readonly id: string; readonly version: number }) => ({
+          set: () => ({
+            usingConnection: async () => {
+              if (criteria.id !== role.id || criteria.version !== role.version) return undefined;
+              role = { ...role, version: role.version + 1 };
+              return role;
+            },
+          }),
+        }),
+      });
+      Reflect.set(globalThis, 'RoleTemplate', { findOne: () => connectedResult(undefined) });
+      Reflect.set(globalThis, 'RoleTemplateRevision', { findOne: () => connectedResult(undefined) });
+      Reflect.set(globalThis, 'RoleScopeOverride', {
+        find: () => ({ sort: () => connectedResult(overrides) }),
+        destroy: () => connectedResult(undefined),
+        createEach: (
+          rows: Array<{ readonly role: string; readonly scopeKey: string; readonly effect: 'allow' | 'deny' }>
+        ) => ({
+          fetch: () => ({
+            usingConnection: async () => {
+              overrides = rows;
+              return rows;
+            },
+          }),
+        }),
+      });
+      Reflect.set(globalThis, 'RoleAssignment', {
+        count: (criteria: { readonly status?: string }) =>
+          connectedResult(criteria.status === 'active' ? activeAssignments : 0),
+      });
+      for (const model of ['AppConfig', 'Form', 'RecordType', 'WorkflowStep']) {
+        Reflect.set(globalThis, model, { find: () => ({ limit: () => connectedResult([]) }) });
+      }
+      for (const model of ['Record', 'DeletedRecord']) {
+        Reflect.set(globalThis, model, {
+          tableName: model.toLowerCase(),
+          getDatastore: () => ({ manager: { collection: emptyCollection } }),
+        });
+      }
+      Reflect.set(globalThis, 'sails', {
+        ...(Reflect.get(globalThis, 'sails') as object | undefined),
+        config: {},
+        models: {},
+      });
+      const systemActor = freezeAuthorizationContext({
+        ...actor,
+        contextType: 'system',
+        grantedScopeKeys: [asScopeKey('system.authorization.manage')],
+        effectiveScopeKeys: [asScopeKey('system.authorization.manage')],
+      });
+      const deniedReasons: string[] = [];
+      const service = new Services.RoleAdministrationService({
+        runTransaction: work => work(connection),
+        getRegistry: () => REGISTRY,
+        getConfirmationSecret: () => 'confirmation-secret-that-is-long-enough',
+        audit: () => ({
+          createSucceededEvent: async () => ({ id: 'audit-1', eventId: 'event-1' }) as never,
+          recordAttempt: async input => {
+            if (input.reasonCode !== undefined) deniedReasons.push(input.reasonCode);
+            return { persisted: true };
+          },
+        }),
+      });
+      const command = {
+        actor: systemActor,
+        roleKey: asRoleKey('system-administrator'),
+        expectedVersion: 1,
+        scopeKey: asScopeKey('record.read'),
+        reason: 'Adopt the reviewed core scope',
+        requestId: 'request-scope-adoption',
+      };
+      const preview = await service.previewScopeAdoption(command);
+      assert.equal(preview.operation, 'scope-adoption');
+      assert.deepEqual(preview.addedScopeKeys, [asScopeKey('record.read')]);
+      assert.equal(typeof preview.confirmationToken, 'string');
+
+      await assert.rejects(
+        service.applyScopeAdoption({
+          ...command,
+          scopeKey: asScopeKey('authorization.self.read'),
+          confirmationToken: preview.confirmationToken!,
+        }),
+        hasCode('authorization.preview-stale')
+      );
+
+      activeAssignments = 1;
+      await assert.rejects(
+        service.applyScopeAdoption({ ...command, confirmationToken: preview.confirmationToken! }),
+        hasCode('authorization.preview-stale')
+      );
+
+      activeAssignments = 0;
+      const applied = await service.applyScopeAdoption({ ...command, confirmationToken: preview.confirmationToken! });
+      assert.equal(applied.version, 2);
+      assert.deepEqual(applied.data.effectiveScopeKeys, [asScopeKey('record.read')]);
+      assert.deepEqual(deniedReasons, ['authorization.preview-stale', 'authorization.preview-stale']);
     });
 
     it('counts only currently effective assignments as preview impact', async () => {
