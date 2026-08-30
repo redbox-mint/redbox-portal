@@ -5308,6 +5308,305 @@ test('safe overwrite controls execute only JSON.parse', () => {
   assert.deepEqual(JSON.parse(result.stdout), ['safe', 'safe', 'safe', 'safe']);
 });
 
+test('later writes never erase evidence of an earlier unsafe invocation', () => {
+  const temporalCases = [
+    {
+      name: 'object property',
+      source: `const holder = { run: eval }; holder.run(configuredSource); holder.run = JSON.parse;`,
+    },
+    {
+      name: 'array position',
+      source: `const values = [eval]; values[0](configuredSource); values[0] = JSON.parse;`,
+    },
+    {
+      name: 'Map entry',
+      source: `const values = new Map([['run', eval]]); values.get('run')(configuredSource);
+        values.set('run', JSON.parse);`,
+    },
+    {
+      name: 'Set clear and repopulation',
+      source: `const values = new Set([eval]); values.values().next().value(configuredSource);
+        values.clear(); values.add(JSON.parse);`,
+    },
+    {
+      name: 'later helper write',
+      source: `function disarm(value) { value.run = JSON.parse; }
+        const holder = { run: eval }; holder.run(configuredSource); disarm(holder);`,
+    },
+    {
+      name: 'logical-or assignment',
+      source: `const holder = { run: eval }; holder.run(configuredSource); holder.run ||= JSON.parse;`,
+    },
+    {
+      name: 'nullish assignment',
+      source: `const holder = { run: eval }; holder.run(configuredSource); holder.run ??= JSON.parse;`,
+    },
+    {
+      name: 'conditional early-return helper',
+      source: `function disarm(value) { if (configuredFlag) return; value.run = JSON.parse; }
+        const holder = { run: eval }; disarm(holder); holder.run(configuredSource);`,
+    },
+    {
+      name: 'deferred async helper write',
+      source: `async function disarm(value) { await later(); value.run = JSON.parse; }
+        const holder = { run: eval }; disarm(holder); holder.run(configuredSource);`,
+    },
+    {
+      name: 'Lodash template compiler',
+      kind: 'lodash-template',
+      source: `import compile from 'lodash/template'; const holder = { run: compile };
+        holder.run(configuredTemplate); holder.run = JSON.parse;`,
+    },
+  ];
+
+  for (const temporalCase of temporalCases) {
+    const relativePath = 'packages/example/src/temporal-overwrite.ts';
+    const firstFindings = scanSource(temporalCase.source, relativePath);
+    const secondFindings = scanSource(temporalCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${temporalCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === (temporalCase.kind ?? 'direct-eval')),
+      `${temporalCase.name} should preserve the earlier unsafe call: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${temporalCase.name} diagnostics should remain bounded`);
+  }
+
+  const logicalControls = [
+    `const holder = { run: eval }; holder.run ||= JSON.parse; holder.run(configuredSource);`,
+    `const holder = { run: eval }; holder.run ??= JSON.parse; holder.run(configuredSource);`,
+  ];
+  for (const [index, source] of logicalControls.entries()) {
+    assert.ok(
+      scanSource(source, `packages/example/src/conditional-overwrite-${index}.ts`).some(
+        finding => finding.kind === 'direct-eval'
+      ),
+      `conditional overwrite ${index} should retain the existing eval value`
+    );
+  }
+});
+
+test('temporal overwrite reproductions execute the unsafe marker before later writes', () => {
+  const markerKey = '__a12_temporal_overwrite_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    (async () => {
+      globalThis[${serializedMarkerKey}] = [];
+      const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+      { const value = { run: eval }; value.run(mark('object')); value.run = JSON.parse; }
+      { const value = [eval]; value[0](mark('array')); value[0] = JSON.parse; }
+      { const value = new Map([['run', eval]]); value.get('run')(mark('map'));
+        value.set('run', JSON.parse); }
+      { const value = new Set([eval]); value.values().next().value(mark('set'));
+        value.clear(); value.add(JSON.parse); }
+      { function disarm(value) { if (true) return; value.run = JSON.parse; }
+        const value = { run: eval }; disarm(value); value.run(mark('early-return')); }
+      { async function disarm(value) { await Promise.resolve(); value.run = JSON.parse; }
+        const value = { run: eval }; const pending = disarm(value); value.run(mark('async')); await pending; }
+      process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+      delete globalThis[${serializedMarkerKey}];
+    })().catch(error => { throw error; });
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['object', 'array', 'map', 'set', 'early-return', 'async']);
+});
+
+test('helper-installed callable provenance survives extraction, forwarding, prototypes, and method overrides', () => {
+  const dependencyCases = [
+    {
+      name: 'property extraction through a carrier alias',
+      source: `function arm(value) { value.run = eval; }
+        const holder = {}; const alias = holder; arm(alias); const run = holder.run; run(configuredSource);`,
+    },
+    {
+      name: 'object binding destructuring',
+      source: `function arm(value) { value.run = eval; }
+        const holder = {}; arm(holder); const { run } = holder; run(configuredSource);`,
+    },
+    {
+      name: 'array binding destructuring',
+      source: `function arm(value) { value[0] = eval; }
+        const holder = []; arm(holder); const [run] = holder; run(configuredSource);`,
+    },
+    {
+      name: 'object assignment destructuring',
+      source: `function arm(value) { value.run = eval; }
+        const holder = {}; let run; arm(holder); ({ run } = holder); run(configuredSource);`,
+    },
+    {
+      name: 'array assignment destructuring',
+      source: `function arm(value) { value[0] = eval; }
+        const holder = []; let run; arm(holder); [run] = holder; run(configuredSource);`,
+    },
+    {
+      name: 'forwarded extracted callable',
+      source: `function arm(value) { value.run = eval; }
+        function invoke(run) { run(configuredSource); }
+        const holder = {}; arm(holder); invoke(holder.run);`,
+    },
+    {
+      name: 'returned installer closure followed by extraction',
+      source: `function arm(value) { return () => { value.run = eval; }; }
+        const holder = {}; const install = arm(holder); install(); const run = holder.run;
+        run(configuredSource);`,
+    },
+    {
+      name: 'inherited helper-installed property',
+      source: `function arm(value) { value.run = eval; }
+        const prototype = {}; arm(prototype); const holder = Object.create(prototype);
+        const run = holder.run; run(configuredSource);`,
+    },
+    {
+      name: 'Array map override',
+      source: `function arm(value) { value.map = eval; }
+        const values = []; const alias = values; arm(alias); const run = values.map; run(configuredSource);`,
+    },
+    {
+      name: 'Map set override',
+      source: `function arm(value) { value.set = eval; }
+        const values = new Map(); const alias = values; arm(alias); const { set: run } = values;
+        run(configuredSource);`,
+    },
+    {
+      name: 'Set add override',
+      source: `function arm(value) { value.add = eval; }
+        const values = new Set(); const alias = values; arm(alias); const run = values.add;
+        run(configuredSource);`,
+    },
+    {
+      name: 'helper logical assignment',
+      source: `function arm(value) { value.run ??= eval; }
+        const holder = {}; arm(holder); const run = holder.run; run(configuredSource);`,
+    },
+  ];
+
+  for (const dependencyCase of dependencyCases) {
+    const relativePath = 'packages/example/src/helper-carrier-dependency.ts';
+    const firstFindings = scanSource(dependencyCase.source, relativePath);
+    const secondFindings = scanSource(dependencyCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${dependencyCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${dependencyCase.name} should retain helper-installed eval: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${dependencyCase.name} diagnostics should remain bounded`);
+  }
+});
+
+test('helper carrier dependency reproductions execute isolated runtime markers', () => {
+  const markerKey = '__a12_helper_dependency_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const mark = name => \`globalThis[${serializedMarkerKey}].push(\${JSON.stringify(name)})\`;
+    function arm(value, property = 'run') { value[property] = eval; }
+    { const value = {}; arm(value); const { run } = value; run(mark('object')); }
+    { const value = []; arm(value, '0'); const [run] = value; run(mark('array')); }
+    { const value = {}; arm(value); const invoke = run => run(mark('forwarded')); invoke(value.run); }
+    { const value = {}; const install = target => () => arm(target); install(value)();
+      const run = value.run; run(mark('closure')); }
+    { const prototype = {}; arm(prototype); const value = Object.create(prototype);
+      value.run(mark('prototype')); }
+    { const value = []; arm(value, 'map'); const run = value.map; run(mark('array-map')); }
+    { const value = new Map(); arm(value, 'set'); const run = value.set; run(mark('map-set')); }
+    { const value = new Set(); arm(value, 'add'); const run = value.add; run(mark('set-add')); }
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), [
+    'object',
+    'array',
+    'forwarded',
+    'closure',
+    'prototype',
+    'array-map',
+    'map-set',
+    'set-add',
+  ]);
+});
+
+test('bounded overflow mutations preserve precise known tracked positions', () => {
+  const safeTail = Array.from({ length: 63 }, (_, index) => String(index + 1)).join(',');
+  const safeCases = [
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.copyWithin(1, 0, 1); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.fill(eval, 1, 2); values[0]('{}');`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.splice(1, 0, eval); values[0]('{}');`,
+    `const values = [eval, JSON.parse, ${safeTail}, eval];
+      values.copyWithin(0, 1, 2); values[0]('{}');`,
+    `const values = [eval, ${safeTail}, eval];
+      values.fill(JSON.parse, 0, 1); values[0]('{}');`,
+    `const values = [eval, ${safeTail}, eval];
+      values.splice(0, 1, JSON.parse); values[0]('{}');`,
+  ];
+  for (const [index, source] of safeCases.entries()) {
+    const relativePath = `packages/example/src/safe-bounded-overflow-${index}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `bounded safe position ${index} should be deterministic`);
+    assert.deepEqual(firstFindings, [], `bounded safe position ${index} should remain precise`);
+  }
+
+  const failClosedCases = [
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.copyWithin(0, 64, 65); values[0](configuredSource);`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.fill(eval, 64); values[64](configuredSource);`,
+    `const values = [JSON.parse, ${safeTail}, eval];
+      values.splice(64, 0, eval); values[64](configuredSource);`,
+  ];
+  for (const [index, source] of failClosedCases.entries()) {
+    const findings = scanSource(source, `packages/example/src/fail-closed-overflow-${index}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'analysis-limit' && finding.reason === 'unknown-reflective-callable'),
+      `overflow position ${index} should remain fail closed: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `overflow position ${index} diagnostics should remain bounded`);
+  }
+});
+
+test('bounded overflow safe positions execute only JSON.parse', () => {
+  const markerKey = '__a12_bounded_overflow_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const safeTail = Array.from({ length: 63 }, () => 'null').join(',');
+  const source = `
+    globalThis[${serializedMarkerKey}] = [];
+    const parse = JSON.parse;
+    JSON.parse = source => { globalThis[${serializedMarkerKey}].push('safe'); return parse(source); };
+    { const values = [JSON.parse, ${safeTail}, eval]; values.copyWithin(1, 0, 1); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.fill(eval, 1, 2); values[0]('{}'); }
+    { const values = [JSON.parse, ${safeTail}, eval]; values.splice(1, 0, eval); values[0]('{}'); }
+    JSON.parse = parse;
+    process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));
+    delete globalThis[${serializedMarkerKey}];
+  `;
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['safe', 'safe', 'safe']);
+});
+
 test('invocation-local effect summaries stop at one deterministic bounded diagnostic', t => {
   const source = [
     'function mutate(value) {',
