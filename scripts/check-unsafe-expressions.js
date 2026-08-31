@@ -2683,7 +2683,9 @@ function collectBindings(sourceFile) {
       ['enumerable', carrier.propertyEnumerabilities],
       ['writable', carrier.propertyWritabilities],
     ]) {
-      const values = attributes?.[field] ?? (map.has(propertyName) ? undefined : new Set([true]));
+      const values =
+        attributes?.[field] ??
+        (map.has(propertyName) && !carrier.deletedProperties.has(propertyName) ? undefined : new Set([true]));
       if (!values || values.size === 0) continue;
       let stored = map.get(propertyName);
       if (!stored) {
@@ -3706,7 +3708,7 @@ function collectBindings(sourceFile) {
     prototypeValue,
     propertyName,
     seen = new Set(),
-    outcome = { requiresReceiverCreation: false }
+    outcome = { requiresReceiverCreation: false, setterConsumesWrite: false }
   ) {
     if (prototypeValue.size === 0) {
       outcome.requiresReceiverCreation = true;
@@ -3735,6 +3737,7 @@ function collectBindings(sourceFile) {
         ) {
           return false;
         }
+        outcome.setterConsumesWrite = true;
         continue;
       }
       const propertyValue = target.properties.get(propertyName);
@@ -3987,7 +3990,8 @@ function collectBindings(sourceFile) {
     propertyNames,
     receiverValue,
     defineProperty,
-    descriptorValue = new Set()
+    descriptorValue = new Set(),
+    writeEffect = undefined
   ) {
     if (propertyNames?.length !== 1) {
       return undefined;
@@ -4021,7 +4025,9 @@ function collectBindings(sourceFile) {
       target.definiteAccessorProperties.has(propertyName)
     ) {
       if (target.uncertainAccessorProperties.has(propertyName)) return false;
-      return target.accessors.get(propertyName).set.size > 0;
+      const setterConsumesWrite = target.accessors.get(propertyName).set.size > 0;
+      if (setterConsumesWrite && writeEffect) writeEffect.setterConsumesWrite = true;
+      return setterConsumesWrite;
     }
     const ownState = indexedOwnDataPropertyState(target, propertyName);
     if (defineProperty && target.accessors.has(propertyName)) {
@@ -4084,12 +4090,23 @@ function collectBindings(sourceFile) {
       }
       return !ownState.mayBeMissing || missingIndexedPropertyCreationIsProven(target, propertyName);
     }
-    if (!ownState.mayBeMissing) return true;
-    const inheritedOutcome = { requiresReceiverCreation: false };
+    if (!ownState.mayBeMissing) {
+      if (writeEffect) writeEffect.receiverOwnProperty = true;
+      return true;
+    }
+    const inheritedOutcome = { requiresReceiverCreation: false, setterConsumesWrite: false };
     if (!inheritedIndexedSetAllowsCreation(effectivePrototypes(target), propertyName, new Set(), inheritedOutcome)) {
       return false;
     }
-    return !inheritedOutcome.requiresReceiverCreation || missingIndexedPropertyCreationIsProven(receiver, propertyName);
+    const succeeds =
+      !inheritedOutcome.requiresReceiverCreation || missingIndexedPropertyCreationIsProven(receiver, propertyName);
+    if (succeeds && writeEffect) {
+      if (ownState.hasModeledDataProperty || inheritedOutcome.requiresReceiverCreation) {
+        writeEffect.receiverOwnProperty = true;
+      }
+      if (inheritedOutcome.setterConsumesWrite) writeEffect.setterConsumesWrite = true;
+    }
+    return succeeds;
   }
 
   function reflectivePropertyWriteFailureIsProven(
@@ -5035,11 +5052,14 @@ function collectBindings(sourceFile) {
               targetValue,
               false
             );
+            const writeEffect = { receiverOwnProperty: false, setterConsumesWrite: false };
             let propertySuccess = reflectivePropertyWriteSuccessIsProven(
               targetValue,
               propertyNames,
               targetValue,
-              false
+              false,
+              undefined,
+              writeEffect
             );
             let propertyOwnState;
             if (targetValue.size === 1) {
@@ -5073,6 +5093,8 @@ function collectBindings(sourceFile) {
               break;
             }
             const invokesTargetSetter = accessorMayRun(targetValue, propertyNames, 'set');
+            const setterDefinitelyConsumesWrite =
+              propertySuccess === true && writeEffect.setterConsumesWrite && !writeEffect.receiverOwnProperty;
             const propertyMayAbort = propertySuccess !== true || invokesSourceGetter || invokesTargetSetter;
             const conditionalProperty = orderMayAbort || propertyMayAbort;
             const forceStrong =
@@ -5095,7 +5117,7 @@ function collectBindings(sourceFile) {
             );
             if (propertyName === '__proto__' && invokesTargetSetter) {
               setCarrierPrototypes(targetValue, propertyValue, true);
-            } else {
+            } else if (!setterDefinitelyConsumesWrite) {
               recordTargetProperty(
                 targetValue,
                 propertyNames,
@@ -6190,6 +6212,7 @@ function collectBindings(sourceFile) {
         : (argumentValues[2] ?? new Set());
       const descriptorKinds = definesProperty ? descriptorKindState(descriptorValue) : undefined;
       const accessorDescriptor = descriptorKinds?.accessorPossible === true;
+      const writeEffect = { receiverOwnProperty: false, setterConsumesWrite: false };
       let reflectiveIndexedSuccess =
         definesProperty || atom === origins.reflectSet
           ? reflectivePropertyWriteSuccessIsProven(
@@ -6197,7 +6220,8 @@ function collectBindings(sourceFile) {
               propertyNames,
               receiverValue ?? new Set(),
               definesProperty,
-              argumentValues[2] ?? new Set()
+              argumentValues[2] ?? new Set(),
+              writeEffect
             )
           : undefined;
       if (definesProperty && reflectiveIndexedSuccess === undefined) {
@@ -6275,9 +6299,22 @@ function collectBindings(sourceFile) {
         if (descriptorConversion === 'maybe') activeAlternativeMutationDepth -= 1;
         return true;
       }
+      const setterDefinitelyConsumesWrite =
+        !definesProperty &&
+        reflectiveIndexedSuccess === true &&
+        writeEffect.setterConsumesWrite &&
+        !writeEffect.receiverOwnProperty;
+      const setterMayConsumeInsteadOfWritingReceiver =
+        !definesProperty &&
+        reflectiveIndexedSuccess === true &&
+        writeEffect.setterConsumesWrite &&
+        writeEffect.receiverOwnProperty;
       const strongDataWrite =
         (!definesProperty || descriptorKinds.dataDefinite) &&
-        (atom === origins.objectDefineProperty || reflectiveIndexedSuccess === true);
+        (atom === origins.objectDefineProperty ||
+          (reflectiveIndexedSuccess === true &&
+            !setterDefinitelyConsumesWrite &&
+            !setterMayConsumeInsteadOfWritingReceiver));
       const forceDescriptorStrong =
         definesProperty &&
         descriptorConversion === 'valid' &&
@@ -6330,6 +6367,18 @@ function collectBindings(sourceFile) {
         }
       } else {
         const invokesSetter = accessorMayRun(targetValue, propertyNames, 'set');
+        let receiverOwnState;
+        if (receiverValue?.size === 1 && propertyNames?.length === 1) {
+          const receiver = [...receiverValue][0];
+          if (typeof receiver !== 'string' && receiver.kind === 'carrier') {
+            receiverOwnState = indexedOwnDataPropertyState(receiver, propertyNames[0]);
+          }
+        }
+        const preserveMissingReceiver =
+          !setterDefinitelyConsumesWrite && invokesSetter && receiverOwnState?.mayBeMissing === true;
+        if (setterMayConsumeInsteadOfWritingReceiver || preserveMissingReceiver) {
+          activeAlternativeMutationDepth += 1;
+        }
         invalidatePositionalTargets(
           receiverValue ?? new Set(),
           propertyNames,
@@ -6340,7 +6389,7 @@ function collectBindings(sourceFile) {
         if (invokesSetter) invalidatePositionalTargets(receiverValue ?? new Set(), undefined, unknownValue());
         if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
           setCarrierPrototypes(receiverValue ?? new Set(), argumentValues[2] ?? new Set(), true);
-        } else {
+        } else if (!setterDefinitelyConsumesWrite) {
           let descriptorAttributes;
           if (strongDataWrite && receiverValue?.size === 1) {
             const receiver = [...receiverValue][0];
@@ -6356,6 +6405,12 @@ function collectBindings(sourceFile) {
             strongDataWrite && !invokesSetter,
             descriptorAttributes
           );
+          if (setterMayConsumeInsteadOfWritingReceiver || preserveMissingReceiver) {
+            recordTargetDeletion(receiverValue ?? new Set(), propertyNames);
+          }
+        }
+        if (setterMayConsumeInsteadOfWritingReceiver || preserveMissingReceiver) {
+          activeAlternativeMutationDepth -= 1;
         }
       }
       if (descriptorConversion === 'maybe') activeAlternativeMutationDepth -= 1;
@@ -9036,11 +9091,14 @@ function collectBindings(sourceFile) {
         recordTargetProperty(writeTargetValue, propertyNames, retainReflectiveCallableProvenance(value), current);
         return;
       }
+      const writeEffect = { receiverOwnProperty: false, setterConsumesWrite: false };
       let writeSuccess = reflectivePropertyWriteSuccessIsProven(
         writeTargetValue,
         propertyNames,
         writeTargetValue,
-        false
+        false,
+        undefined,
+        writeEffect
       );
       let arrayLengthWriteOutcome;
       if (writeSuccess === undefined && propertyNames?.length === 1 && propertyNames[0] === 'length') {
@@ -9062,9 +9120,14 @@ function collectBindings(sourceFile) {
         }
         return;
       }
+      const setterDefinitelyConsumesWrite =
+        writeSuccess === true && writeEffect.setterConsumesWrite && !writeEffect.receiverOwnProperty;
+      const setterMayConsumeInsteadOfWritingReceiver =
+        writeSuccess === true && writeEffect.setterConsumesWrite && writeEffect.receiverOwnProperty;
       const uncertainWrite = writeSuccess !== true;
+      const conditionalReceiverWrite = uncertainWrite || setterMayConsumeInsteadOfWritingReceiver;
       const possiblyAbsentTargets = [];
-      if (uncertainWrite && propertyNames?.length === 1) {
+      if (conditionalReceiverWrite && propertyNames?.length === 1) {
         for (const target of writeTargetValue) {
           if (
             typeof target !== 'string' &&
@@ -9075,7 +9138,7 @@ function collectBindings(sourceFile) {
           }
         }
       }
-      if (uncertainWrite) activeAlternativeMutationDepth += 1;
+      if (conditionalReceiverWrite) activeAlternativeMutationDepth += 1;
       const invokesSetter = accessorMayRun(writeTargetValue, propertyNames, 'set');
       if (invokesSetter) invalidatePositionalTargets(writeTargetValue, undefined, unknownValue());
       invalidatePositionalTargets(
@@ -9087,7 +9150,7 @@ function collectBindings(sourceFile) {
       );
       if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
         setCarrierPrototypes(writeTargetValue, value, propertyNames?.includes('__proto__') === true);
-      } else {
+      } else if (!setterDefinitelyConsumesWrite) {
         let descriptorAttributes;
         if (writeSuccess === true && writeTargetValue.size === 1 && propertyNames?.length === 1) {
           const target = [...writeTargetValue][0];
@@ -9103,11 +9166,11 @@ function collectBindings(sourceFile) {
           writeSuccess === true && writeTargetValue.size === 1 && !invokesSetter,
           descriptorAttributes
         );
-        if (uncertainWrite && propertyNames?.length === 1) {
+        if (conditionalReceiverWrite && propertyNames?.length === 1) {
           for (const target of possiblyAbsentTargets) recordTargetDeletion(new Set([target]), propertyNames);
         }
       }
-      if (uncertainWrite) activeAlternativeMutationDepth -= 1;
+      if (conditionalReceiverWrite) activeAlternativeMutationDepth -= 1;
       return;
     }
     if (ts.isArrayLiteralExpression(current)) {
