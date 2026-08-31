@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { FormDebugStateService } from './form-debug-state.service';
 import { FormComponentEventType } from '../form-state/events/form-component-event.types';
@@ -5,6 +6,7 @@ import { FormComponentEventType } from '../form-state/events/form-component-even
 describe('FormDebugStateService', () => {
   let service: FormDebugStateService;
   let originalBroadcastChannel: typeof BroadcastChannel | undefined;
+  let mockDocumentLocation: { href: string };
   const createFieldValueChangedEvent = (fieldId: string, sourceId: string, value: string) => ({
     type: FormComponentEventType.FIELD_VALUE_CHANGED,
     timestamp: Date.now(),
@@ -14,7 +16,7 @@ describe('FormDebugStateService', () => {
   }) as const;
 
   const setFormDebugUrl = (value?: string, popout = false) => {
-    const url = new URL(window.location.href);
+    const url = new URL(mockDocumentLocation.href);
     url.searchParams.delete('formDebug');
     url.searchParams.delete('formDebugPopout');
     if (value) {
@@ -23,7 +25,7 @@ describe('FormDebugStateService', () => {
     if (popout) {
       url.searchParams.set('formDebugPopout', '1');
     }
-    window.history.replaceState({}, '', url.toString());
+    mockDocumentLocation.href = url.toString();
   };
 
   const initService = () => {
@@ -32,8 +34,15 @@ describe('FormDebugStateService', () => {
   };
 
   beforeEach(() => {
+    mockDocumentLocation = { href: window.location.href };
     TestBed.configureTestingModule({
-      providers: [FormDebugStateService]
+      providers: [
+        FormDebugStateService,
+        {
+          provide: DOCUMENT,
+          useValue: { location: mockDocumentLocation } as unknown as Document
+        }
+      ]
     });
     originalBroadcastChannel = (window as any).BroadcastChannel;
     setFormDebugUrl();
@@ -186,7 +195,7 @@ describe('FormDebugStateService', () => {
     initService();
     service.refreshFromUrl();
 
-    const scopeUrl = new URL(window.location.href);
+    const scopeUrl = new URL(mockDocumentLocation.href);
     scopeUrl.searchParams.delete('formDebugPopout');
     const matchingScope = `${scopeUrl.pathname}?${scopeUrl.searchParams.toString()}`;
     const nonMatchingScope = `${matchingScope}&x=1`;
