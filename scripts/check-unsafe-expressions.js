@@ -627,7 +627,9 @@ function collectBindings(sourceFile) {
   function createCarrier(positional = false) {
     const carrier = {
       accessors: new Map(),
+      accessorDefinitionRanks: new Map(),
       definiteAccessorProperties: new Set(),
+      uncertainAccessorProperties: new Set(),
       collectionEntries: new Map(),
       collectionKeys: new Set(),
       collectionUnkeyedKeys: new Set(),
@@ -2454,16 +2456,28 @@ function collectBindings(sourceFile) {
       if (atom.positional) mergeValue(result, positionalMutationValue(propertyNames));
       const inheritedPropertyNames = [];
       if (propertyNames === undefined) {
-        for (const propertyValue of atom.properties.values()) mergeValue(result, propertyValue);
+        for (const [propertyName, propertyValue] of atom.properties) {
+          const accessorShadowsData =
+            atom.accessors.has(propertyName) &&
+            atom.definiteAccessorProperties.has(propertyName) &&
+            !atom.uncertainAccessorProperties.has(propertyName) &&
+            !atom.deletedProperties.has(propertyName);
+          if (!accessorShadowsData) mergeValue(result, propertyValue);
+        }
         for (const accessor of atom.accessors.values()) {
           mergeValue(result, accessorReturnedValues(accessor.get, value));
         }
       } else {
         for (const propertyName of propertyNames) {
           const propertyValue = atom.properties.get(propertyName);
-          if (propertyValue) mergeValue(result, propertyValue);
+          const hasDefiniteAccessor =
+            atom.accessors.has(propertyName) &&
+            atom.definiteAccessorProperties.has(propertyName) &&
+            !atom.uncertainAccessorProperties.has(propertyName) &&
+            !atom.deletedProperties.has(propertyName);
+          if (propertyValue && !hasDefiniteAccessor) mergeValue(result, propertyValue);
           const boundedOverflowValue = boundedOverflowPropertyValue(atom, propertyName);
-          if (boundedOverflowValue) {
+          if (boundedOverflowValue && !hasDefiniteAccessor) {
             mergeValue(result, boundedOverflowValue);
             if (hasUnsafePositionalValue(boundedOverflowValue)) {
               mergeValue(result, unknownReflectiveCallableValue());
@@ -2474,6 +2488,7 @@ function collectBindings(sourceFile) {
           const hasOwnProperty =
             accessor !== undefined ||
             (propertyValue !== undefined &&
+              !hasDefiniteAccessor &&
               (!atom.positional || !/^(0|[1-9]\d*)$/.test(propertyName) || propertyValue.size > 0)) ||
             positionalOverflowPropertyIsDefinitelyPresent(atom, propertyName);
           if (!hasOwnProperty || atom.deletedProperties.has(propertyName) || atom.unknownPropertyDeletion) {
@@ -2964,7 +2979,9 @@ function collectBindings(sourceFile) {
       ]);
       state = {
         accessors: new Map(),
+        accessorDefinitionRanks: new Map(),
         definiteAccessorProperties: new Set(),
+        uncertainAccessorProperties: new Set(),
         deletedProperties: new Set(),
         properties: new Map(),
         prototypes: new Set(
@@ -3014,10 +3031,18 @@ function collectBindings(sourceFile) {
     return result;
   }
 
-  function putAbstractAccessor(target, propertyNames, kind, value, definite = false) {
+  function putAbstractAccessor(
+    target,
+    propertyNames,
+    kind,
+    value,
+    definite = false,
+    present = value.size > 0,
+    replace = false
+  ) {
     const possibleValues = possibleAccessorValues(value);
-    if (possibleValues.size === 0) return;
     if (propertyNames === undefined) {
+      if (possibleValues.size === 0) return;
       mergeCarrierProperty(target, target.unknownAccessors[kind], possibleValues);
       return;
     }
@@ -3028,11 +3053,34 @@ function collectBindings(sourceFile) {
       }
       let accessor = target.accessors.get(propertyName);
       if (!accessor) {
+        if (!present && possibleValues.size === 0) continue;
         rememberOwnPropertyName(target, propertyName);
         accessor = { get: new Set(), set: new Set() };
         target.accessors.set(propertyName, accessor);
       }
-      mergeCarrierProperty(target, accessor[kind], possibleValues);
+      if (replace) {
+        let equivalent = accessor[kind].size === possibleValues.size;
+        const unmatchedValues = [...possibleValues];
+        for (const currentValue of accessor[kind]) {
+          const matchIndex = unmatchedValues.findIndex(
+            possibleValue =>
+              currentValue === possibleValue ||
+              (typeof currentValue !== 'string' &&
+                currentValue.kind === 'function-value' &&
+                typeof possibleValue !== 'string' &&
+                possibleValue.kind === 'function-value' &&
+                currentValue.iteratorNode === possibleValue.iteratorNode)
+          );
+          if (matchIndex < 0) {
+            equivalent = false;
+            break;
+          }
+          unmatchedValues.splice(matchIndex, 1);
+        }
+        if (!equivalent) {
+          replaceTracked(accessor[kind], possibleValues, target);
+        }
+      } else mergeCarrierProperty(target, accessor[kind], possibleValues);
     }
   }
 
@@ -3110,7 +3158,26 @@ function collectBindings(sourceFile) {
     for (const atom of targetValue) {
       if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
       for (const propertyName of propertyNames) {
-        if (atom.definiteAccessorProperties.delete(propertyName)) notifyPropagationSubscribers(atom);
+        const application =
+          atom.positional && propertyName === 'length'
+            ? undefined
+            : descriptorAppliedDataPropertyState(atom, propertyName, descriptorValue);
+        if (strongCarrierWrite) {
+          let accessorStateChanged = false;
+          const accessor = atom.accessors.get(propertyName);
+          if (accessor) {
+            replaceTracked(accessor.get, new Set(), atom);
+            replaceTracked(accessor.set, new Set(), atom);
+            atom.accessors.delete(propertyName);
+            accessorStateChanged = true;
+          }
+          if (atom.definiteAccessorProperties.delete(propertyName)) accessorStateChanged = true;
+          if (atom.uncertainAccessorProperties.delete(propertyName)) accessorStateChanged = true;
+          if (atom.accessorDefinitionRanks.delete(propertyName)) accessorStateChanged = true;
+          if (accessorStateChanged) notifyPropagationSubscribers(atom);
+        } else if (atom.definiteAccessorProperties.delete(propertyName)) {
+          notifyPropagationSubscribers(atom);
+        }
         if (atom.positional && propertyName === 'length') {
           const attributes = arrayLengthDescriptorAttributes(atom, descriptorValue);
           const value = descriptorFieldState(descriptorValue, 'value').values;
@@ -3121,7 +3188,6 @@ function collectBindings(sourceFile) {
           }
           continue;
         }
-        const application = descriptorAppliedDataPropertyState(atom, propertyName, descriptorValue);
         putCarrierProperty(
           atom,
           [propertyName],
@@ -3134,7 +3200,16 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function recordTargetAccessor(targetValue, propertyNames, kind, value, writeNode, strong = false) {
+  function recordTargetAccessor(
+    targetValue,
+    propertyNames,
+    kind,
+    value,
+    writeNode,
+    strong = false,
+    present = value.size > 0,
+    replace = false
+  ) {
     const definiteCarrierAccessor =
       strong &&
       activeAlternativeMutationDepth === 0 &&
@@ -3144,10 +3219,18 @@ function collectBindings(sourceFile) {
       [...targetValue].every(atom => typeof atom !== 'string' && atom.kind === 'carrier');
     for (const atom of targetValue) {
       if (typeof atom !== 'string' && atom.kind === 'carrier') {
-        putAbstractAccessor(atom, propertyNames, kind, value, definiteCarrierAccessor);
+        putAbstractAccessor(
+          atom,
+          propertyNames,
+          kind,
+          value,
+          definiteCarrierAccessor,
+          present,
+          replace && definiteCarrierAccessor
+        );
       } else if (typeof atom === 'string') {
         const state = builtinPrototypeState(atom);
-        if (state) putAbstractAccessor(state, propertyNames, kind, value);
+        if (state) putAbstractAccessor(state, propertyNames, kind, value, false, present, false);
       }
     }
   }
@@ -3173,9 +3256,11 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function descriptorFieldValues(descriptorValue, field) {
+  function descriptorFieldValues(descriptorValue, field, observation) {
     const result = new Set();
-    invalidateAccessorReceiver(descriptorValue, [field], 'get', descriptorValue);
+    const invokesGetter = accessorMayRun(descriptorValue, [field], 'get');
+    if (observation) observation.invokesGetter = invokesGetter;
+    if (invokesGetter) invalidatePositionalTargets(descriptorValue, undefined, unknownValue());
     for (const atom of descriptorValue) {
       if (typeof atom === 'string' || atom.kind === 'unknown-value') {
         result.add(unknownReflectiveCallableAtom);
@@ -3202,7 +3287,8 @@ function collectBindings(sourceFile) {
   }
 
   function descriptorFieldState(descriptorValue, field) {
-    const values = descriptorFieldValues(descriptorValue, field);
+    const observation = { invokesGetter: false };
+    const values = descriptorFieldValues(descriptorValue, field, observation);
     let mayBeAbsent = descriptorValue.size === 0;
     for (const atom of descriptorValue) {
       if (typeof atom === 'string' || atom.kind !== 'carrier') {
@@ -3220,7 +3306,7 @@ function collectBindings(sourceFile) {
         mayBeAbsent = true;
       }
     }
-    return { mayBeAbsent, values };
+    return { invokesGetter: observation.invokesGetter, mayBeAbsent, values };
   }
 
   function descriptorBooleanValues(fieldState) {
@@ -3258,6 +3344,14 @@ function collectBindings(sourceFile) {
   }
 
   function ownDataPropertyValues(carrier, propertyName) {
+    if (
+      carrier.accessors.has(propertyName) &&
+      carrier.definiteAccessorProperties.has(propertyName) &&
+      !carrier.uncertainAccessorProperties.has(propertyName) &&
+      !carrier.deletedProperties.has(propertyName)
+    ) {
+      return new Set();
+    }
     const values = new Set(carrier.properties.get(propertyName) ?? []);
     const overflowValue = boundedOverflowPropertyValue(carrier, propertyName);
     if (overflowValue) mergeValue(values, overflowValue);
@@ -3268,7 +3362,13 @@ function collectBindings(sourceFile) {
     const propertyValue = carrier.properties.get(propertyName);
     const index = Number(propertyName);
     const overflowOwnProperty = Number.isSafeInteger(index) && carrier.overflowPositionalOwnProperties.has(index);
-    const hasModeledDataProperty = (propertyValue !== undefined && propertyValue.size > 0) || overflowOwnProperty;
+    const accessorShadowsData =
+      carrier.accessors.has(propertyName) &&
+      carrier.definiteAccessorProperties.has(propertyName) &&
+      !carrier.uncertainAccessorProperties.has(propertyName) &&
+      !carrier.deletedProperties.has(propertyName);
+    const hasModeledDataProperty =
+      !accessorShadowsData && ((propertyValue !== undefined && propertyValue.size > 0) || overflowOwnProperty);
     const positionalPresenceUncertain =
       carrier.positionalUncertain && !strongPropertyWriteSupersedesPositionalUncertainty(carrier, propertyName);
     const overflowPresenceUncertain =
@@ -3330,12 +3430,9 @@ function collectBindings(sourceFile) {
       const propertyDeleted = target.deletedProperties.has(propertyName);
       const accessor = target.accessors.get(propertyName);
       if (accessor && !propertyDeleted) {
-        const propertyValue = target.properties.get(propertyName);
-        const boundedOverflowValue = boundedOverflowPropertyValue(target, propertyName);
         if (
           !target.definiteAccessorProperties.has(propertyName) ||
-          (propertyValue && propertyValue.size > 0) ||
-          boundedOverflowValue ||
+          target.uncertainAccessorProperties.has(propertyName) ||
           accessor.set.size === 0
         ) {
           return false;
@@ -3482,21 +3579,26 @@ function collectBindings(sourceFile) {
 
   function descriptorAppliedDataPropertyState(carrier, propertyName, descriptorValue) {
     const ownState = indexedOwnDataPropertyState(carrier, propertyName);
+    const hasOwnAccessor =
+      carrier.accessors.has(propertyName) &&
+      carrier.definiteAccessorProperties.has(propertyName) &&
+      !carrier.uncertainAccessorProperties.has(propertyName) &&
+      !carrier.deletedProperties.has(propertyName);
     const valueField = descriptorFieldState(descriptorValue, 'value');
     const value = new Set(valueField.values);
     if (valueField.mayBeAbsent) {
       if (ownState.hasModeledDataProperty) mergeValue(value, ownDataPropertyValues(carrier, propertyName));
-      if (ownState.mayBeMissing) mergeValue(value, literalValue(undefined));
+      if (ownState.mayBeMissing || hasOwnAccessor) mergeValue(value, literalValue(undefined));
     }
     const attributes = {};
     for (const field of ['configurable', 'enumerable', 'writable']) {
       const fieldState = descriptorBooleanValues(descriptorFieldState(descriptorValue, field));
       const values = new Set(fieldState.values);
       if (fieldState.mayBeAbsent) {
-        if (ownState.hasModeledDataProperty) {
+        if (ownState.hasModeledDataProperty || hasOwnAccessor) {
           mergeValue(values, dataPropertyAttributeValues(carrier, propertyName, field));
         }
-        if (ownState.mayBeMissing) values.add(false);
+        if (ownState.mayBeMissing && !hasOwnAccessor) values.add(false);
       }
       attributes[field] = values;
     }
@@ -3552,6 +3654,7 @@ function collectBindings(sourceFile) {
       !target.deletedProperties.has(propertyName) &&
       target.definiteAccessorProperties.has(propertyName)
     ) {
+      if (target.uncertainAccessorProperties.has(propertyName)) return false;
       return target.accessors.get(propertyName).set.size > 0;
     }
     const ownState = indexedOwnDataPropertyState(target, propertyName);
@@ -3559,24 +3662,45 @@ function collectBindings(sourceFile) {
       if (
         target.deletedProperties.has(propertyName) ||
         !target.definiteAccessorProperties.has(propertyName) ||
-        ownState.hasModeledDataProperty ||
-        ['value', 'writable'].some(field => descriptorFieldState(descriptorValue, field).values.size > 0) ||
-        [...descriptorBooleanValues(descriptorFieldState(descriptorValue, 'configurable')).values].some(Boolean) ||
-        descriptorFieldState(descriptorValue, 'enumerable').values.size > 0
+        target.uncertainAccessorProperties.has(propertyName) ||
+        ownState.hasModeledDataProperty
+      ) {
+        return false;
+      }
+      const currentConfigurabilities = dataPropertyAttributeValues(target, propertyName, 'configurable');
+      const currentEnumerabilities = dataPropertyAttributeValues(target, propertyName, 'enumerable');
+      if (currentConfigurabilities.size === 0 || currentEnumerabilities.size === 0) return false;
+      if ([...currentConfigurabilities].every(Boolean)) return true;
+      if ([...currentConfigurabilities].some(Boolean)) return false;
+      if (['value', 'writable'].some(field => descriptorFieldState(descriptorValue, field).values.size > 0)) {
+        return false;
+      }
+      const requestedConfigurabilities = descriptorBooleanValues(
+        descriptorFieldState(descriptorValue, 'configurable')
+      ).values;
+      if ([...requestedConfigurabilities].some(Boolean)) return false;
+      const requestedEnumerabilities = descriptorBooleanValues(
+        descriptorFieldState(descriptorValue, 'enumerable')
+      ).values;
+      if (
+        requestedEnumerabilities.size > 0 &&
+        (currentEnumerabilities.size !== 1 ||
+          [...requestedEnumerabilities].some(value => value !== [...currentEnumerabilities][0]))
       ) {
         return false;
       }
       const accessor = target.accessors.get(propertyName);
+      if (!accessor) return false;
       for (const field of ['get', 'set']) {
         const requestedState = descriptorFieldState(descriptorValue, field);
         if (requestedState.mayBeAbsent && requestedState.values.size === 0) continue;
         if (requestedState.mayBeAbsent || requestedState.values.size !== 1) return false;
         const requested = [...requestedState.values][0];
-        if (typeof requested !== 'string' && requested.kind === 'literal' && requested.value === undefined) {
-          if (accessor[field].size > 0) return false;
-        } else if (!abstractSameValueIsProven(accessor[field], requestedState.values)) {
-          return false;
-        }
+        const matches =
+          typeof requested !== 'string' && requested.kind === 'literal' && requested.value === undefined
+            ? accessor[field].size === 0
+            : abstractSameValueIsProven(accessor[field], requestedState.values);
+        if (!matches) return false;
       }
       return true;
     }
@@ -3633,11 +3757,61 @@ function collectBindings(sourceFile) {
       !defineProperty &&
       target.accessors.has(propertyName) &&
       !target.deletedProperties.has(propertyName) &&
-      target.definiteAccessorProperties.has(propertyName)
+      target.definiteAccessorProperties.has(propertyName) &&
+      !target.uncertainAccessorProperties.has(propertyName)
     ) {
       return target.accessors.get(propertyName).set.size === 0;
     }
-    if (defineProperty && target.accessors.has(propertyName)) return false;
+    if (
+      defineProperty &&
+      target.accessors.has(propertyName) &&
+      !target.deletedProperties.has(propertyName) &&
+      target.definiteAccessorProperties.has(propertyName)
+    ) {
+      const currentConfigurabilities = dataPropertyAttributeValues(target, propertyName, 'configurable');
+      if (currentConfigurabilities.size === 0 || ![...currentConfigurabilities].every(value => !value)) {
+        return false;
+      }
+      if (
+        ['value', 'writable'].some(field => {
+          const fieldState = descriptorFieldState(descriptorValue, field);
+          return !fieldState.mayBeAbsent && fieldState.values.size > 0;
+        })
+      ) {
+        return true;
+      }
+      const configurableState = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'configurable'));
+      if (
+        !configurableState.mayBeAbsent &&
+        configurableState.values.size > 0 &&
+        [...configurableState.values].every(Boolean)
+      ) {
+        return true;
+      }
+      const currentEnumerabilities = dataPropertyAttributeValues(target, propertyName, 'enumerable');
+      const enumerableState = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'enumerable'));
+      if (
+        currentEnumerabilities.size === 1 &&
+        !enumerableState.mayBeAbsent &&
+        enumerableState.values.size > 0 &&
+        [...enumerableState.values].every(value => value !== [...currentEnumerabilities][0])
+      ) {
+        return true;
+      }
+      const accessor = target.accessors.get(propertyName);
+      if (!accessor) return false;
+      return ['get', 'set'].some(field => {
+        const requestedState = descriptorFieldState(descriptorValue, field);
+        if (requestedState.mayBeAbsent) return false;
+        if (requestedState.values.size !== 1) return true;
+        const requested = [...requestedState.values][0];
+        const matches =
+          typeof requested !== 'string' && requested.kind === 'literal' && requested.value === undefined
+            ? accessor[field].size === 0
+            : abstractSameValueIsProven(accessor[field], requestedState.values);
+        return !matches;
+      });
+    }
     const ownState = indexedOwnDataPropertyState(target, propertyName);
     if (!defineProperty && target.accessors.has(propertyName)) return false;
     const presentFailure =
@@ -3727,26 +3901,90 @@ function collectBindings(sourceFile) {
     return outcomes.every(Boolean) ? true : outcomes.every(outcome => outcome === false) ? false : undefined;
   }
 
-  function descriptorAccessorValues(descriptorValue, kind) {
-    return possibleAccessorValues(descriptorFieldValues(descriptorValue, kind));
-  }
-
   function recordDescriptorAccessors(targetValue, propertyNames, descriptorValue, writeNode, strong = false) {
+    const accessorStates = new Map(['get', 'set'].map(kind => [kind, descriptorFieldState(descriptorValue, kind)]));
+    if ([...accessorStates.values()].every(state => state.mayBeAbsent && state.values.size === 0)) return;
+    const accessorDefinitelyPresent = [...accessorStates.values()].some(state => !state.mayBeAbsent);
+    const writeRank = deterministicWriteRank(writeNode);
+    const strongCarrierWrite =
+      strong &&
+      accessorDefinitelyPresent &&
+      activeAlternativeMutationDepth === 0 &&
+      writeRank !== undefined &&
+      propertyNames?.length === 1 &&
+      targetValue.size === 1 &&
+      [...targetValue].every(atom => typeof atom !== 'string' && atom.kind === 'carrier');
+    let replaceAccessorFields = false;
+    if (strongCarrierWrite) {
+      for (const atom of targetValue) {
+        if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
+        for (const propertyName of propertyNames) {
+          const latestPropertyWriteRank = atom.propertyWriteRanks.get(propertyName);
+          if (latestPropertyWriteRank && rankPrecedes(writeRank, latestPropertyWriteRank)) return;
+          const previousDefinitionRank = atom.accessorDefinitionRanks.get(propertyName);
+          if (previousDefinitionRank && rankPrecedes(writeRank, previousDefinitionRank)) return;
+          const sameDefinition = previousDefinitionRank && rankEquals(previousDefinitionRank, writeRank);
+          replaceAccessorFields =
+            !sameDefinition && (atom.accessors.has(propertyName) || atom.properties.get(propertyName)?.size > 0);
+          const ownDataState = indexedOwnDataPropertyState(atom, propertyName);
+          const hasOwnAccessor =
+            atom.accessors.has(propertyName) &&
+            atom.definiteAccessorProperties.has(propertyName) &&
+            !atom.uncertainAccessorProperties.has(propertyName) &&
+            !atom.deletedProperties.has(propertyName);
+          const hasOwnProperty = ownDataState.hasModeledDataProperty || hasOwnAccessor;
+          const attributes = {};
+          for (const field of ['configurable', 'enumerable']) {
+            const fieldState = descriptorBooleanValues(descriptorFieldState(descriptorValue, field));
+            const values = new Set(fieldState.values);
+            if (fieldState.mayBeAbsent) {
+              if (hasOwnProperty) mergeValue(values, dataPropertyAttributeValues(atom, propertyName, field));
+              else values.add(false);
+            }
+            attributes[field] = values;
+          }
+          if (atom.deletedProperties.delete(propertyName)) notifyPropagationSubscribers(atom);
+          if (atom.uncertainAccessorProperties.delete(propertyName)) notifyPropagationSubscribers(atom);
+          recordCarrierPropertyAttributes(atom, propertyName, attributes, true);
+          atom.accessorDefinitionRanks.set(propertyName, writeRank);
+          atom.strongPropertyWriteRanks.set(propertyName, writeRank);
+          atom.propertyWriteRanks.set(propertyName, writeRank);
+        }
+      }
+    } else if (accessorDefinitelyPresent && propertyNames !== undefined) {
+      for (const atom of targetValue) {
+        if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
+        for (const propertyName of propertyNames) {
+          if (!atom.uncertainAccessorProperties.has(propertyName)) {
+            atom.uncertainAccessorProperties.add(propertyName);
+            notifyPropagationSubscribers(atom);
+          }
+          const previousWriteRank = atom.propertyWriteRanks.get(propertyName);
+          if (writeRank && (!previousWriteRank || rankPrecedes(previousWriteRank, writeRank))) {
+            atom.propertyWriteRanks.set(propertyName, writeRank);
+          }
+        }
+      }
+    }
     recordTargetAccessor(
       targetValue,
       propertyNames,
       'get',
-      descriptorAccessorValues(descriptorValue, 'get'),
+      possibleAccessorValues(accessorStates.get('get').values),
       writeNode,
-      strong
+      strong,
+      accessorDefinitelyPresent,
+      replaceAccessorFields && !accessorStates.get('get').mayBeAbsent
     );
     recordTargetAccessor(
       targetValue,
       propertyNames,
       'set',
-      descriptorAccessorValues(descriptorValue, 'set'),
+      possibleAccessorValues(accessorStates.get('set').values),
       writeNode,
-      strong
+      strong,
+      accessorDefinitelyPresent,
+      replaceAccessorFields && !accessorStates.get('set').mayBeAbsent
     );
   }
 
@@ -3947,7 +4185,10 @@ function collectBindings(sourceFile) {
       const ownState = indexedOwnDataPropertyState(carrier, propertyName);
       const accessor = carrier.accessors.get(propertyName);
       const presentAccessor =
-        accessor && (accessor.get.size > 0 || accessor.set.size > 0) && !carrier.deletedProperties.has(propertyName);
+        accessor &&
+        carrier.definiteAccessorProperties.has(propertyName) &&
+        !carrier.uncertainAccessorProperties.has(propertyName) &&
+        !carrier.deletedProperties.has(propertyName);
       if (!ownState.hasModeledDataProperty && !presentAccessor) continue;
       if (ownState.mayBeMissing) uncertain = true;
       const configurabilities = dataPropertyAttributeValues(carrier, propertyName, 'configurable');
@@ -4310,6 +4551,10 @@ function collectBindings(sourceFile) {
         let sourceMayAbort =
           source.unknownSpreadSource || source.unknownProperty.size > 0 || source.unknownAccessors.get.size > 0;
         for (const propertyName of ownPropertyNamesInRuntimeOrder(source)) {
+          const enumerabilities = new Set(source.propertyEnumerabilities.get(propertyName) ?? [true]);
+          if (enumerabilities.size > 0 && [...enumerabilities].every(value => !value)) continue;
+          const conditionallyEnumerable = enumerabilities.size === 0 || enumerabilities.has(false);
+          if (conditionallyEnumerable) activeAlternativeMutationDepth += 1;
           const propertyNames = [propertyName];
           const invokesSourceGetter = accessorMayRun(new Set([source]), propertyNames, 'get');
           const propertyValue = observedPropertyValue(new Set([source]), propertyNames);
@@ -4338,6 +4583,11 @@ function collectBindings(sourceFile) {
             if (propertyName === 'length') {
               invalidatePositionalTargets(targetValue, propertyNames, propertyValue, false, true);
             }
+            if (conditionallyEnumerable) {
+              sourceMayAbort = true;
+              activeAlternativeMutationDepth -= 1;
+              continue;
+            }
             sourceAborted = true;
             break;
           }
@@ -4352,10 +4602,14 @@ function collectBindings(sourceFile) {
           } else {
             recordTargetProperty(targetValue, propertyNames, propertyValue, writeNode, !invokesTargetSetter);
           }
-          if ((conditionalSource || sourceMayAbort || propertyMayAbort) && propertyOwnState?.mayBeMissing) {
+          if (
+            (conditionalSource || sourceMayAbort || propertyMayAbort || conditionallyEnumerable) &&
+            propertyOwnState?.mayBeMissing
+          ) {
             recordTargetDeletion(targetValue, propertyNames);
           }
           if (conditionalProperty) activeAlternativeMutationDepth -= 1;
+          if (conditionallyEnumerable) activeAlternativeMutationDepth -= 1;
           if (propertyMayAbort) sourceMayAbort = true;
         }
         if (source.unknownProperty.size > 0 || source.unknownAccessors.get.size > 0) {
@@ -4378,28 +4632,6 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function descriptorConversionMayAbort(descriptorValue) {
-    if (descriptorValue.size !== 1) return true;
-    for (const atom of descriptorValue) {
-      if (typeof atom === 'string' || atom.kind !== 'carrier') return true;
-      if (
-        atom.unknownSpreadSource ||
-        atom.unknownProperty.size > 0 ||
-        atom.unknownPropertyDeletion ||
-        atom.unknownAccessors.get.size > 0
-      ) {
-        return true;
-      }
-    }
-    const descriptorFields = ['configurable', 'enumerable', 'get', 'set', 'value', 'writable'];
-    if (descriptorFields.some(field => accessorMayRun(descriptorValue, [field], 'get'))) return true;
-    const hasAccessorField = ['get', 'set'].some(field => descriptorFieldState(descriptorValue, field).values.size > 0);
-    const hasDataField = ['value', 'writable'].some(
-      field => descriptorFieldState(descriptorValue, field).values.size > 0
-    );
-    return hasAccessorField && hasDataField;
-  }
-
   function definePropertiesOnTarget(targetValue, descriptorsValue, writeNode) {
     const descriptorAlternatives = [...descriptorsValue];
     const alternativeDescriptors = descriptorAlternatives.length !== 1;
@@ -4418,22 +4650,125 @@ function collectBindings(sourceFile) {
         continue;
       }
       trackPropagationDependency(descriptors);
-      const descriptorsInOrder = ownPropertyNamesInRuntimeOrder(descriptors).map(propertyName => {
-        const propertyNames = [propertyName];
-        const invokesDescriptorMapGetter = accessorMayRun(new Set([descriptors]), propertyNames, 'get');
-        const descriptorValue = observedPropertyValue(new Set([descriptors]), propertyNames);
-        return [propertyName, descriptorValue, invokesDescriptorMapGetter];
-      });
-      let descriptorAborted = false;
+      const descriptorsInOrder = [];
+      let descriptorDefinitelyAborts = false;
       let descriptorMayAbort =
         descriptors.unknownSpreadSource ||
         descriptors.unknownProperty.size > 0 ||
-        descriptors.unknownAccessors.get.size > 0 ||
-        descriptorsInOrder.some(
-          ([, descriptorValue, invokesDescriptorMapGetter]) =>
-            invokesDescriptorMapGetter || descriptorConversionMayAbort(descriptorValue)
-        );
-      for (const [propertyName, descriptorValue] of descriptorsInOrder) {
+        descriptors.unknownAccessors.get.size > 0;
+      for (const propertyName of ownPropertyNamesInRuntimeOrder(descriptors)) {
+        const enumerabilities = new Set(descriptors.propertyEnumerabilities.get(propertyName) ?? [true]);
+        if (enumerabilities.size > 0 && [...enumerabilities].every(value => !value)) continue;
+        const conditionallyEnumerable = enumerabilities.size === 0 || enumerabilities.has(false);
+        if (conditionallyEnumerable) activeAlternativeMutationDepth += 1;
+        const propertyNames = [propertyName];
+        const invokesDescriptorMapGetter = accessorMayRun(new Set([descriptors]), propertyNames, 'get');
+        const descriptorValue = observedPropertyValue(new Set([descriptors]), propertyNames);
+        if (conditionallyEnumerable) activeAlternativeMutationDepth -= 1;
+        let conversion;
+        descriptorPreflight: {
+          if (descriptorValue.size === 0) {
+            conversion = 'abort';
+            break descriptorPreflight;
+          }
+          if (descriptorValue.size !== 1) {
+            conversion = 'maybe';
+            break descriptorPreflight;
+          }
+          for (const descriptor of descriptorValue) {
+            if (typeof descriptor !== 'string' && descriptor.kind === 'literal') {
+              conversion = 'abort';
+              break descriptorPreflight;
+            }
+            if (typeof descriptor === 'string' || descriptor.kind !== 'carrier') {
+              conversion = 'maybe';
+              break descriptorPreflight;
+            }
+            if (
+              descriptor.unknownSpreadSource ||
+              descriptor.unknownProperty.size > 0 ||
+              descriptor.unknownPropertyDeletion ||
+              descriptor.unknownAccessors.get.size > 0
+            ) {
+              conversion = 'maybe';
+              break descriptorPreflight;
+            }
+          }
+          const descriptorFields = ['configurable', 'enumerable', 'get', 'set', 'value', 'writable'];
+          const descriptorStates = new Map(
+            descriptorFields.map(field => [field, descriptorFieldState(descriptorValue, field)])
+          );
+          let conversionMayAbort = [...descriptorStates.values()].some(state => state.invokesGetter);
+          for (const field of ['get', 'set']) {
+            const fieldState = descriptorStates.get(field);
+            let valid = fieldState.mayBeAbsent;
+            let invalid = false;
+            let uncertain = false;
+            for (const fieldValue of fieldState.values) {
+              let validity;
+              if (typeof fieldValue === 'string') {
+                validity =
+                  fieldValue !== origins.arrayPrototype &&
+                  fieldValue !== origins.globalObject &&
+                  fieldValue !== origins.jsonObject &&
+                  fieldValue !== origins.lodashTemplateNamespace &&
+                  fieldValue !== origins.mapPrototype &&
+                  fieldValue !== origins.objectPrototype &&
+                  fieldValue !== origins.reflectObject &&
+                  fieldValue !== origins.setPrototype;
+              } else if (fieldValue.kind === 'literal') validity = fieldValue.value === undefined;
+              else if (
+                fieldValue.kind === 'bound-callable' ||
+                fieldValue.kind === 'function-value' ||
+                fieldValue.kind === 'invocation-method' ||
+                fieldValue.kind === 'iterator-next' ||
+                fieldValue.kind === 'positional-mutator'
+              ) {
+                validity = true;
+              } else if (fieldValue.kind === 'unknown-value' || fieldValue.kind === 'known-data') validity = undefined;
+              else validity = false;
+              if (validity === true) valid = true;
+              else if (validity === false) invalid = true;
+              else uncertain = true;
+            }
+            if (!valid && invalid && !uncertain) {
+              conversion = 'abort';
+              break descriptorPreflight;
+            }
+            if (invalid || uncertain) conversionMayAbort = true;
+          }
+          const accessorStates = ['get', 'set'].map(field => descriptorStates.get(field));
+          const dataStates = ['value', 'writable'].map(field => descriptorStates.get(field));
+          const hasAccessorField = accessorStates.some(state => state.values.size > 0);
+          const hasDataField = dataStates.some(state => state.values.size > 0);
+          if (hasAccessorField && hasDataField) {
+            const accessorIsDefinite = accessorStates.some(state => !state.mayBeAbsent && state.values.size > 0);
+            const dataIsDefinite = dataStates.some(state => !state.mayBeAbsent && state.values.size > 0);
+            if (accessorIsDefinite && dataIsDefinite) {
+              conversion = 'abort';
+              break descriptorPreflight;
+            }
+            conversionMayAbort = true;
+          }
+          conversion = conversionMayAbort ? 'maybe' : 'valid';
+        }
+        descriptorsInOrder.push({
+          conditionallyEnumerable,
+          conversion,
+          descriptorValue,
+          propertyName,
+        });
+        if (conversion === 'abort' && !conditionallyEnumerable) descriptorDefinitelyAborts = true;
+        if (conditionallyEnumerable || invokesDescriptorMapGetter || conversion !== 'valid') descriptorMayAbort = true;
+      }
+      if (descriptorDefinitelyAborts) {
+        if (alternativeDescriptors) activeAlternativeMutationDepth -= 1;
+        continue;
+      }
+      let descriptorAborted = false;
+      for (const descriptorEntry of descriptorsInOrder) {
+        const { conditionallyEnumerable, descriptorValue, propertyName } = descriptorEntry;
+        if (conditionallyEnumerable) activeAlternativeMutationDepth += 1;
         const propertyNames = [propertyName];
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
         const assignedValue = new Set(
@@ -4486,6 +4821,11 @@ function collectBindings(sourceFile) {
             invalidatePositionalTargets(targetValue, propertyNames, dataValue, false, true);
             recordTargetDataDescriptor(targetValue, propertyNames, descriptorValue, writeNode, true);
           }
+          if (conditionallyEnumerable) {
+            descriptorMayAbort = true;
+            activeAlternativeMutationDepth -= 1;
+            continue;
+          }
           descriptorAborted = true;
           break;
         }
@@ -4493,8 +4833,8 @@ function collectBindings(sourceFile) {
         const conditionalProperty = descriptorMayAbort || propertyMayAbort;
         if (conditionalProperty) activeAlternativeMutationDepth += 1;
         if (accessorDescriptor) {
-          invalidatePositionalTargets(targetValue, propertyNames, assignedValue, true, true);
           recordDescriptorAccessors(targetValue, propertyNames, descriptorValue, writeNode, propertySuccess === true);
+          invalidatePositionalTargets(targetValue, propertyNames, assignedValue, true, true);
         } else {
           if (dataValue.size > 0) {
             invalidatePositionalTargets(targetValue, propertyNames, dataValue, false, true);
@@ -4505,6 +4845,7 @@ function collectBindings(sourceFile) {
           recordTargetDeletion(targetValue, propertyNames);
         }
         if (conditionalProperty) activeAlternativeMutationDepth -= 1;
+        if (conditionallyEnumerable) activeAlternativeMutationDepth -= 1;
         if (propertyMayAbort) descriptorMayAbort = true;
       }
       if (
@@ -5168,32 +5509,167 @@ function collectBindings(sourceFile) {
       const targetValue = argumentValues[0] ?? new Set();
       const propertyNames = propertyNamesFromValue(argumentValues[1] ?? new Set());
       const receiverValue = atom === origins.reflectSet && argumentValues.length > 3 ? argumentValues[3] : targetValue;
-      const assignedValue =
-        atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty
-          ? new Set(
-              ['get', 'set', 'value'].flatMap(field => [
-                ...descriptorFieldValues(argumentValues[2] ?? new Set(), field),
-              ])
-            )
-          : (argumentValues[2] ?? new Set());
-      const accessorDescriptor =
-        atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty
-          ? ['get', 'set'].some(field => descriptorFieldValues(argumentValues[2] ?? new Set(), field).size > 0)
-          : false;
+      const definesProperty = atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty;
+      const descriptorValue = argumentValues[2] ?? new Set();
+      let descriptorConversion = 'valid';
+      singularDescriptorPreflight: if (definesProperty) {
+        const syntaxNode = ts.isCallExpression(invocationNode) ? invocationNode.arguments[2] : undefined;
+        if (syntaxNode) {
+          const current = unwrapExpression(syntaxNode);
+          if (ts.isObjectLiteralExpression(current)) {
+            let hasAccessorField = false;
+            let hasDataField = false;
+            let syntaxMayAbort = false;
+            for (const property of current.properties) {
+              if (ts.isSpreadAssignment(property) || ts.isGetAccessorDeclaration(property)) {
+                syntaxMayAbort = true;
+                continue;
+              }
+              const descriptorPropertyNames = declaredPropertyNames(property.name);
+              if (descriptorPropertyNames?.length !== 1) {
+                syntaxMayAbort = true;
+                continue;
+              }
+              const descriptorPropertyName = descriptorPropertyNames[0];
+              if (descriptorPropertyName === 'get' || descriptorPropertyName === 'set') {
+                hasAccessorField = true;
+                if (ts.isMethodDeclaration(property)) continue;
+                if (!ts.isPropertyAssignment(property)) {
+                  syntaxMayAbort = true;
+                  continue;
+                }
+                const initializer = unwrapExpression(property.initializer);
+                if (
+                  ts.isStringLiteralLike(initializer) ||
+                  ts.isNumericLiteral(initializer) ||
+                  ts.isObjectLiteralExpression(initializer) ||
+                  ts.isArrayLiteralExpression(initializer) ||
+                  initializer.kind === ts.SyntaxKind.NullKeyword ||
+                  initializer.kind === ts.SyntaxKind.TrueKeyword ||
+                  initializer.kind === ts.SyntaxKind.FalseKeyword
+                ) {
+                  descriptorConversion = 'abort';
+                  break singularDescriptorPreflight;
+                }
+                if (
+                  !(ts.isIdentifier(initializer) && initializer.text === 'undefined') &&
+                  !ts.isFunctionExpression(initializer) &&
+                  !ts.isArrowFunction(initializer)
+                ) {
+                  syntaxMayAbort = true;
+                }
+              } else if (descriptorPropertyName === 'value' || descriptorPropertyName === 'writable') {
+                hasDataField = true;
+              }
+            }
+            descriptorConversion = hasAccessorField && hasDataField ? 'abort' : syntaxMayAbort ? 'maybe' : 'valid';
+            break singularDescriptorPreflight;
+          }
+        }
+        if (descriptorValue.size === 0) {
+          descriptorConversion = 'abort';
+          break singularDescriptorPreflight;
+        }
+        if (descriptorValue.size !== 1) {
+          descriptorConversion = 'maybe';
+          break singularDescriptorPreflight;
+        }
+        for (const descriptor of descriptorValue) {
+          if (typeof descriptor !== 'string' && descriptor.kind === 'literal') {
+            descriptorConversion = 'abort';
+            break singularDescriptorPreflight;
+          }
+          if (typeof descriptor === 'string' || descriptor.kind !== 'carrier') {
+            descriptorConversion = 'maybe';
+            break singularDescriptorPreflight;
+          }
+          if (
+            descriptor.unknownSpreadSource ||
+            descriptor.unknownProperty.size > 0 ||
+            descriptor.unknownPropertyDeletion ||
+            descriptor.unknownAccessors.get.size > 0
+          ) {
+            descriptorConversion = 'maybe';
+            break singularDescriptorPreflight;
+          }
+        }
+        const descriptorFields = ['configurable', 'enumerable', 'get', 'set', 'value', 'writable'];
+        const descriptorStates = new Map(
+          descriptorFields.map(field => [field, descriptorFieldState(descriptorValue, field)])
+        );
+        let conversionMayAbort = [...descriptorStates.values()].some(state => state.invokesGetter);
+        for (const field of ['get', 'set']) {
+          const fieldState = descriptorStates.get(field);
+          let valid = fieldState.mayBeAbsent;
+          let invalid = false;
+          let uncertain = false;
+          for (const fieldValue of fieldState.values) {
+            let validity;
+            if (typeof fieldValue === 'string') {
+              validity =
+                fieldValue !== origins.arrayPrototype &&
+                fieldValue !== origins.globalObject &&
+                fieldValue !== origins.jsonObject &&
+                fieldValue !== origins.lodashTemplateNamespace &&
+                fieldValue !== origins.mapPrototype &&
+                fieldValue !== origins.objectPrototype &&
+                fieldValue !== origins.reflectObject &&
+                fieldValue !== origins.setPrototype;
+            } else if (fieldValue.kind === 'literal') validity = fieldValue.value === undefined;
+            else if (
+              fieldValue.kind === 'bound-callable' ||
+              fieldValue.kind === 'function-value' ||
+              fieldValue.kind === 'invocation-method' ||
+              fieldValue.kind === 'iterator-next' ||
+              fieldValue.kind === 'positional-mutator'
+            ) {
+              validity = true;
+            } else if (fieldValue.kind === 'unknown-value' || fieldValue.kind === 'known-data') validity = undefined;
+            else validity = false;
+            if (validity === true) valid = true;
+            else if (validity === false) invalid = true;
+            else uncertain = true;
+          }
+          if (!valid && invalid && !uncertain) {
+            descriptorConversion = 'abort';
+            break singularDescriptorPreflight;
+          }
+          if (invalid || uncertain) conversionMayAbort = true;
+        }
+        const accessorStates = ['get', 'set'].map(field => descriptorStates.get(field));
+        const dataStates = ['value', 'writable'].map(field => descriptorStates.get(field));
+        const hasAccessorField = accessorStates.some(state => state.values.size > 0);
+        const hasDataField = dataStates.some(state => state.values.size > 0);
+        if (hasAccessorField && hasDataField) {
+          const accessorIsDefinite = accessorStates.some(state => !state.mayBeAbsent && state.values.size > 0);
+          const dataIsDefinite = dataStates.some(state => !state.mayBeAbsent && state.values.size > 0);
+          if (accessorIsDefinite && dataIsDefinite) {
+            descriptorConversion = 'abort';
+            break singularDescriptorPreflight;
+          }
+          conversionMayAbort = true;
+        }
+        descriptorConversion = conversionMayAbort ? 'maybe' : 'valid';
+      }
+      if (descriptorConversion === 'abort') return true;
+      if (descriptorConversion === 'maybe') activeAlternativeMutationDepth += 1;
+      const assignedValue = definesProperty
+        ? new Set(['get', 'set', 'value'].flatMap(field => [...descriptorFieldValues(descriptorValue, field)]))
+        : (argumentValues[2] ?? new Set());
+      const accessorDescriptor = definesProperty
+        ? ['get', 'set'].some(field => descriptorFieldValues(argumentValues[2] ?? new Set(), field).size > 0)
+        : false;
       let reflectiveIndexedSuccess =
-        atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty || atom === origins.reflectSet
+        definesProperty || atom === origins.reflectSet
           ? reflectivePropertyWriteSuccessIsProven(
               targetValue,
               propertyNames,
               receiverValue ?? new Set(),
-              atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty,
+              definesProperty,
               argumentValues[2] ?? new Set()
             )
           : undefined;
-      if (
-        (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) &&
-        reflectiveIndexedSuccess === undefined
-      ) {
+      if (definesProperty && reflectiveIndexedSuccess === undefined) {
         reflectiveIndexedSuccess = reflectiveArrayLengthWriteOutcome(
           targetValue,
           propertyNames,
@@ -5212,12 +5688,12 @@ function collectBindings(sourceFile) {
         );
       }
       const reflectiveIndexedFailure =
-        atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty || atom === origins.reflectSet
+        definesProperty || atom === origins.reflectSet
           ? reflectivePropertyWriteFailureIsProven(
               targetValue,
               propertyNames,
               receiverValue ?? new Set(),
-              atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty,
+              definesProperty,
               argumentValues[2] ?? new Set()
             ) ||
             (propertyNames?.length === 1 && propertyNames[0] === 'length' && reflectiveIndexedSuccess === false)
@@ -5247,7 +5723,7 @@ function collectBindings(sourceFile) {
       ) {
         if (propertyNames?.length === 1 && propertyNames[0] === 'length') {
           invalidatePositionalTargets(receiverValue ?? new Set(), propertyNames, assignedValue, false, true);
-          if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
+          if (definesProperty) {
             recordTargetDataDescriptor(
               targetValue,
               propertyNames,
@@ -5264,6 +5740,7 @@ function collectBindings(sourceFile) {
             true
           );
         }
+        if (descriptorConversion === 'maybe') activeAlternativeMutationDepth -= 1;
         return true;
       }
       const strongDataWrite =
@@ -5283,15 +5760,15 @@ function collectBindings(sourceFile) {
         }
       }
       const descriptorOnlyArrayLengthUpdate =
-        (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) &&
+        definesProperty &&
         propertyNames?.length === 1 &&
         propertyNames[0] === 'length' &&
         descriptorFieldState(argumentValues[2] ?? new Set(), 'value').mayBeAbsent &&
         descriptorFieldValues(argumentValues[2] ?? new Set(), 'value').size === 0;
-      if (!descriptorOnlyArrayLengthUpdate) {
+      if (!descriptorOnlyArrayLengthUpdate && !accessorDescriptor) {
         invalidatePositionalTargets(targetValue, propertyNames, assignedValue, accessorDescriptor, strongDataWrite);
       }
-      if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
+      if (definesProperty) {
         const descriptorValue = argumentValues[2] ?? new Set();
         recordDescriptorAccessors(
           targetValue,
@@ -5300,6 +5777,9 @@ function collectBindings(sourceFile) {
           invocationNode,
           reflectiveIndexedSuccess === true
         );
+        if (accessorDescriptor) {
+          invalidatePositionalTargets(targetValue, propertyNames, assignedValue, true, true);
+        }
         if (!accessorDescriptor) {
           recordTargetDataDescriptor(targetValue, propertyNames, descriptorValue, invocationNode, strongDataWrite);
         }
@@ -5333,6 +5813,7 @@ function collectBindings(sourceFile) {
           );
         }
       }
+      if (descriptorConversion === 'maybe') activeAlternativeMutationDepth -= 1;
       return true;
     }
     if (atom === origins.objectDefineProperties) {
