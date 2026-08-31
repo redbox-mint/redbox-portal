@@ -277,7 +277,9 @@ describe('contentSecurityPolicy policy', function () {
             const csp = getHeaders()['Content-Security-Policy'];
             const scriptSrc = csp.match(/script-src[^;]*/)?.[0] ?? '';
             const frameSrc = csp.match(/frame-src[^;]*/)?.[0] ?? '';
-            expect(scriptSrc).to.include("'strict-dynamic'");
+            expect(scriptSrc).to.include("'self'");
+            expect(scriptSrc).to.include('https://www.googletagmanager.com');
+            expect(scriptSrc).to.not.include("'strict-dynamic'");
             expect(frameSrc).to.include('https://www.googletagmanager.com');
         });
 
