@@ -152,9 +152,6 @@ describe('Authorization persistence models', function () {
     const id = suffix();
     const scopeKey = `phase2.scope-${id}`;
     const scope = await createScope(scopeKey);
-    expect(scope.key).to.equal(scopeKey);
-    await expectRejected(createScope(scopeKey));
-
     const template = await RoleTemplate.create({
       key: `phase2-${id}`,
       displayName: 'Phase 2 template',
@@ -164,39 +161,57 @@ describe('Authorization persistence models', function () {
       status: 'active',
       version: 1,
     }).fetch();
-    await RoleTemplateRevision.create({
-      template: template.id,
-      revision: 1,
-      scopeKeys: [scopeKey],
-      publishedBy: 'integration-test',
-      publishedAt: new Date(),
-    }).fetch();
-    await expectRejected(
-      RoleTemplateRevision.create({
+    const brand = await defaultBrand();
+    const role = await createBrandRole(`Role Exact ${id}`, brand.id);
+    try {
+      expect(scope.key).to.equal(scopeKey);
+      await expectRejected(createScope(scopeKey));
+
+      await RoleTemplateRevision.create({
         template: template.id,
         revision: 1,
         scopeKeys: [scopeKey],
         publishedBy: 'integration-test',
         publishedAt: new Date(),
-      }).fetch()
-    );
+      }).fetch();
+      await expectRejected(
+        RoleTemplateRevision.create({
+          template: template.id,
+          revision: 1,
+          scopeKeys: [scopeKey],
+          publishedBy: 'integration-test',
+          publishedAt: new Date(),
+        }).fetch()
+      );
 
-    const brand = await defaultBrand();
-    const role = await createBrandRole(`Role Exact ${id}`, brand.id);
-    await RoleScopeOverride.create({
-      role: role.id,
-      scopeKey,
-      effect: 'add',
-      createdBy: 'integration-test',
-    }).fetch();
-    await expectRejected(
-      RoleScopeOverride.create({
+      await RoleScopeOverride.create({
         role: role.id,
         scopeKey,
-        effect: 'remove',
+        effect: 'add',
         createdBy: 'integration-test',
-      }).fetch()
-    );
+      }).fetch();
+      await expectRejected(
+        RoleScopeOverride.create({
+          role: role.id,
+          scopeKey,
+          effect: 'remove',
+          createdBy: 'integration-test',
+        }).fetch()
+      );
+    } finally {
+      await RoleScopeOverride.destroy({ role: role.id });
+      await Role.destroy({ id: role.id });
+      const templateCollection = RoleTemplate.getDatastore().manager.collection(RoleTemplate.tableName);
+      const templateRevisionCollection = RoleTemplateRevision.getDatastore().manager.collection(
+        RoleTemplateRevision.tableName
+      );
+      const storedTemplate = await templateCollection.findOne({ key: template.key });
+      if (storedTemplate !== null) {
+        await templateRevisionCollection.deleteMany({ template: storedTemplate._id });
+        await templateCollection.deleteOne({ _id: storedTemplate._id });
+      }
+      await AuthorizationScope.destroy({ id: scope.id });
+    }
   });
 
   it('allows distinct assignment sources but rejects source-tuple duplicates', async () => {
