@@ -3277,10 +3277,16 @@ function collectBindings(sourceFile) {
   }
 
   function missingIndexedPropertyCreationIsProven(carrier, propertyName) {
+    const index = arrayIndexPropertyValue(propertyName);
+    const doesNotExtendArray =
+      !carrier.positional ||
+      index === undefined ||
+      (!carrier.positionalUncertain &&
+        carrier.exactPositionalLengths.size > 0 &&
+        [...carrier.exactPositionalLengths].every(length => index < length));
     return (
       carrier.extensible === true &&
-      (arrayIndexPropertyValue(propertyName) === undefined ||
-        [...dataPropertyAttributeValues(carrier, 'length', 'writable')].every(Boolean))
+      (doesNotExtendArray || [...dataPropertyAttributeValues(carrier, 'length', 'writable')].every(Boolean))
     );
   }
 
@@ -3360,6 +3366,8 @@ function collectBindings(sourceFile) {
     }
     if (![...currentConfigurabilities].some(configurable => !configurable)) return true;
 
+    if (['get', 'set'].some(field => descriptorFieldState(descriptorValue, field).values.size > 0)) return false;
+
     const requestedConfigurabilities = descriptorBooleanValues(
       descriptorFieldState(descriptorValue, 'configurable')
     ).values;
@@ -3390,6 +3398,15 @@ function collectBindings(sourceFile) {
     const currentConfigurabilities = ownState.configurabilities;
     if (currentConfigurabilities.size === 0 || ![...currentConfigurabilities].every(configurable => !configurable)) {
       return false;
+    }
+
+    if (
+      ['get', 'set'].some(field => {
+        const fieldState = descriptorFieldState(descriptorValue, field);
+        return !fieldState.mayBeAbsent && fieldState.values.size > 0;
+      })
+    ) {
+      return true;
     }
 
     const configurableState = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'configurable'));
@@ -3555,9 +3572,16 @@ function collectBindings(sourceFile) {
         : ownState.writabilities.size > 0 && [...ownState.writabilities].every(writable => !writable));
     if (!ownState.mayBeMissing) return presentFailure;
     const lengthWritabilities = dataPropertyAttributeValues(target, 'length', 'writable');
+    const index = arrayIndexPropertyValue(propertyName);
+    const extendsArray =
+      target.positional &&
+      index !== undefined &&
+      !target.positionalUncertain &&
+      target.exactPositionalLengths.size > 0 &&
+      [...target.exactPositionalLengths].every(length => index >= length);
     const missingFailure =
       target.extensible === false ||
-      (target.positional && lengthWritabilities.size > 0 && [...lengthWritabilities].every(writable => !writable));
+      (extendsArray && lengthWritabilities.size > 0 && [...lengthWritabilities].every(writable => !writable));
     return ownState.hasModeledDataProperty ? presentFailure && missingFailure : missingFailure;
   }
 
@@ -3987,6 +4011,7 @@ function collectBindings(sourceFile) {
               Math.min(...lengths),
               uncertainWriteRank(activePropagationOperation?.node ?? activeAnalysisNode)
             );
+            mergeCarrierExactPositionalLengths(atom, lengths);
             mergeCarrierPositionalState(
               atom,
               new Set([...lengths].map(length => Math.min(length, maximumTrackedInvocationArguments))),
@@ -4170,19 +4195,90 @@ function collectBindings(sourceFile) {
   }
 
   function applyObjectAssign(targetValue, sourceValues, writeNode) {
+    let earlierSourceMayAbort = false;
     for (const sourceValue of sourceValues) {
+      const alternativeSource = sourceValue.size !== 1;
+      let everySourceAborts = sourceValue.size > 0;
       for (const source of sourceValue) {
+        const conditionalSource = earlierSourceMayAbort || alternativeSource;
+        if (conditionalSource) activeAlternativeMutationDepth += 1;
         if (typeof source !== 'string' && source.kind === 'unknown-value') {
           invalidatePositionalTargets(targetValue, undefined, unknownValue());
           setCarrierPrototypes(targetValue, unknownValue(), true);
           recordTargetProperty(targetValue, undefined, unknownReflectiveCallableValue());
+          if (conditionalSource) activeAlternativeMutationDepth -= 1;
+          everySourceAborts = false;
+          earlierSourceMayAbort = true;
           continue;
         }
-        if (typeof source === 'string' || source.kind !== 'carrier') continue;
+        if (typeof source === 'string' || source.kind !== 'carrier') {
+          if (conditionalSource) activeAlternativeMutationDepth -= 1;
+          everySourceAborts = false;
+          continue;
+        }
         trackPropagationDependency(source);
+        let sourceAborted = false;
+        let sourceMayAbort = false;
         for (const propertyName of ownPropertyNamesInRuntimeOrder(source)) {
           const propertyNames = [propertyName];
           const propertyValue = observedPropertyValue(new Set([source]), propertyNames);
+          let indexedFailure = false;
+          let indexedSuccess;
+          let indexedOwnState;
+          const propertyIndex = arrayIndexPropertyValue(propertyName);
+          const indexedCompatibilityTracked =
+            propertyIndex !== undefined ||
+            (propertyName === 'length' &&
+              [...targetValue].some(atom => typeof atom !== 'string' && atom.kind === 'carrier' && atom.positional));
+          if (targetValue.size === 1) {
+            const target = [...targetValue][0];
+            if (typeof target !== 'string' && target.kind === 'carrier') {
+              if (propertyIndex !== undefined) {
+                const ownState = indexedOwnDataPropertyState(target, propertyName);
+                indexedOwnState = ownState;
+                const presentFailure =
+                  ownState.hasModeledDataProperty &&
+                  ownState.writabilities.size > 0 &&
+                  [...ownState.writabilities].every(writable => !writable);
+                const extendsArray =
+                  target.positional &&
+                  !target.positionalUncertain &&
+                  target.exactPositionalLengths.size > 0 &&
+                  [...target.exactPositionalLengths].every(length => propertyIndex >= length);
+                const missingFailure =
+                  target.extensible === false ||
+                  (extendsArray &&
+                    [...dataPropertyAttributeValues(target, 'length', 'writable')].every(writable => !writable));
+                indexedFailure = ownState.mayBeMissing
+                  ? ownState.hasModeledDataProperty
+                    ? presentFailure && missingFailure
+                    : missingFailure
+                  : presentFailure;
+                indexedSuccess = reflectiveIndexedWriteSuccessIsProven(targetValue, propertyNames, targetValue, false);
+              } else if (propertyName === 'length' && target.positional) {
+                const lengths = positionalLengthValues(propertyValue);
+                indexedFailure =
+                  lengths !== undefined &&
+                  [...lengths].every(length => positionalLengthWriteOutcome(target, length).success === false);
+                indexedSuccess = reflectiveArrayLengthWriteOutcome(
+                  targetValue,
+                  propertyNames,
+                  targetValue,
+                  propertyValue
+                );
+              }
+            }
+          }
+          if (indexedFailure) {
+            if (propertyName === 'length') {
+              invalidatePositionalTargets(targetValue, propertyNames, propertyValue, false, true);
+            }
+            sourceAborted = true;
+            break;
+          }
+          const propertyMayAbort = indexedCompatibilityTracked && indexedSuccess !== true;
+          const conditionalProperty = sourceMayAbort || propertyMayAbort;
+          if (conditionalProperty) activeAlternativeMutationDepth += 1;
           const invokesTargetSetter = accessorMayRun(targetValue, propertyNames, 'set');
           if (invokesTargetSetter) invalidatePositionalTargets(targetValue, undefined, unknownValue());
           invalidatePositionalTargets(targetValue, propertyNames, propertyValue, false, !invokesTargetSetter);
@@ -4191,8 +4287,13 @@ function collectBindings(sourceFile) {
           } else {
             recordTargetProperty(targetValue, propertyNames, propertyValue, writeNode, !invokesTargetSetter);
           }
+          if ((conditionalSource || sourceMayAbort || propertyMayAbort) && indexedOwnState?.mayBeMissing) {
+            recordTargetDeletion(targetValue, propertyNames);
+          }
+          if (conditionalProperty) activeAlternativeMutationDepth -= 1;
+          if (propertyMayAbort) sourceMayAbort = true;
         }
-        if (source.unknownProperty.size > 0 || source.unknownAccessors.get.size > 0) {
+        if (!sourceAborted && (source.unknownProperty.size > 0 || source.unknownAccessors.get.size > 0)) {
           const unknownAssignedValue = new Set(source.unknownProperty);
           if (unknownAssignedValue.size === 0) unknownAssignedValue.add(unknownValueAtom);
           invalidateAccessorReceiver(new Set([source]), undefined, 'get', new Set([source]));
@@ -4200,39 +4301,139 @@ function collectBindings(sourceFile) {
           invalidatePositionalTargets(targetValue, undefined, unknownAssignedValue);
           setCarrierPrototypes(targetValue, unknownValue(), true);
           recordTargetProperty(targetValue, undefined, unknownAssignedValue);
+          sourceMayAbort = true;
         }
+        if (conditionalSource) activeAlternativeMutationDepth -= 1;
+        if (!sourceAborted) everySourceAborts = false;
+        if (sourceAborted || sourceMayAbort) earlierSourceMayAbort = true;
       }
+      if (everySourceAborts) return;
     }
   }
 
   function definePropertiesOnTarget(targetValue, descriptorsValue, writeNode) {
-    for (const descriptors of descriptorsValue) {
+    const descriptorAlternatives = [...descriptorsValue];
+    const alternativeDescriptors = descriptorAlternatives.length !== 1;
+    for (const descriptors of descriptorAlternatives) {
+      if (alternativeDescriptors) activeAlternativeMutationDepth += 1;
       if (typeof descriptors === 'string' || descriptors.kind === 'unknown-value') {
         invalidatePositionalTargets(targetValue, undefined, unknownReflectiveCallableValue());
         recordTargetProperty(targetValue, undefined, unknownReflectiveCallableValue());
         recordTargetAccessor(targetValue, undefined, 'get', unknownReflectiveCallableValue());
         recordTargetAccessor(targetValue, undefined, 'set', unknownReflectiveCallableValue());
+        if (alternativeDescriptors) activeAlternativeMutationDepth -= 1;
         continue;
       }
-      if (descriptors.kind !== 'carrier') continue;
+      if (descriptors.kind !== 'carrier') {
+        if (alternativeDescriptors) activeAlternativeMutationDepth -= 1;
+        continue;
+      }
       trackPropagationDependency(descriptors);
-      for (const propertyName of ownPropertyNamesInRuntimeOrder(descriptors)) {
-        const descriptorValue = observedPropertyValue(new Set([descriptors]), [propertyName]);
-        recordDescriptorAccessors(targetValue, [propertyName], descriptorValue);
+      const descriptorsInOrder = ownPropertyNamesInRuntimeOrder(descriptors).map(propertyName => [
+        propertyName,
+        observedPropertyValue(new Set([descriptors]), [propertyName]),
+      ]);
+      let descriptorAborted = false;
+      let descriptorMayAbort = descriptors.unknownSpreadSource;
+      for (const [propertyName, descriptorValue] of descriptorsInOrder) {
+        const propertyNames = [propertyName];
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
-        const accessorDescriptor = ['get', 'set'].some(field => descriptorFieldValues(descriptorValue, field).size > 0);
-        if (!accessorDescriptor) {
-          if (dataValue.size > 0) {
-            invalidatePositionalTargets(targetValue, [propertyName], dataValue, false, true);
+        const assignedValue = new Set(
+          ['get', 'set', 'value'].flatMap(field => [...descriptorFieldValues(descriptorValue, field)])
+        );
+        const accessorDescriptor = ['get', 'set'].some(
+          field => descriptorFieldState(descriptorValue, field).values.size > 0
+        );
+        const accessorDescriptorIsDefinite = ['get', 'set'].some(field => {
+          const state = descriptorFieldState(descriptorValue, field);
+          return !state.mayBeAbsent && state.values.size > 0;
+        });
+        let indexedFailure = false;
+        let indexedSuccess;
+        let indexedOwnState;
+        const propertyIndex = arrayIndexPropertyValue(propertyName);
+        const indexedCompatibilityTracked =
+          propertyIndex !== undefined ||
+          (propertyName === 'length' &&
+            [...targetValue].some(atom => typeof atom !== 'string' && atom.kind === 'carrier' && atom.positional));
+        if (targetValue.size === 1) {
+          const target = [...targetValue][0];
+          if (typeof target !== 'string' && target.kind === 'carrier') {
+            if (propertyIndex !== undefined) {
+              const ownState = indexedOwnDataPropertyState(target, propertyName);
+              indexedOwnState = ownState;
+              const presentFailure =
+                ownState.hasModeledDataProperty &&
+                descriptorIsDefinitelyIncompatibleWithDataProperty(target, propertyName, descriptorValue, ownState);
+              const extendsArray =
+                target.positional &&
+                !target.positionalUncertain &&
+                target.exactPositionalLengths.size > 0 &&
+                [...target.exactPositionalLengths].every(length => propertyIndex >= length);
+              const missingFailure =
+                target.extensible === false ||
+                (extendsArray &&
+                  [...dataPropertyAttributeValues(target, 'length', 'writable')].every(writable => !writable));
+              indexedFailure = ownState.mayBeMissing
+                ? ownState.hasModeledDataProperty
+                  ? presentFailure && missingFailure
+                  : missingFailure
+                : presentFailure;
+              indexedSuccess = reflectiveIndexedWriteSuccessIsProven(
+                targetValue,
+                propertyNames,
+                targetValue,
+                true,
+                descriptorValue
+              );
+            } else if (propertyName === 'length' && target.positional) {
+              const lengths = positionalLengthValues(dataValue);
+              indexedFailure =
+                accessorDescriptorIsDefinite ||
+                (lengths !== undefined &&
+                  [...lengths].every(length => positionalLengthWriteOutcome(target, length).success === false));
+              indexedSuccess = reflectiveArrayLengthWriteOutcome(
+                targetValue,
+                propertyNames,
+                targetValue,
+                dataValue,
+                descriptorValue
+              );
+            }
           }
-          recordTargetDataDescriptor(targetValue, [propertyName], descriptorValue, writeNode, true);
         }
+        if (indexedFailure) {
+          if (propertyName === 'length') {
+            invalidatePositionalTargets(targetValue, propertyNames, dataValue, false, true);
+            recordTargetDataDescriptor(targetValue, propertyNames, descriptorValue, writeNode, true);
+          }
+          descriptorAborted = true;
+          break;
+        }
+        const propertyMayAbort = indexedCompatibilityTracked && indexedSuccess !== true;
+        const conditionalProperty = descriptorMayAbort || propertyMayAbort;
+        if (conditionalProperty) activeAlternativeMutationDepth += 1;
+        if (accessorDescriptor) {
+          invalidatePositionalTargets(targetValue, propertyNames, assignedValue, true, true);
+          recordDescriptorAccessors(targetValue, propertyNames, descriptorValue);
+        } else {
+          if (dataValue.size > 0) {
+            invalidatePositionalTargets(targetValue, propertyNames, dataValue, false, true);
+          }
+          recordTargetDataDescriptor(targetValue, propertyNames, descriptorValue, writeNode, true);
+        }
+        if ((alternativeDescriptors || descriptorMayAbort || propertyMayAbort) && indexedOwnState?.mayBeMissing) {
+          recordTargetDeletion(targetValue, propertyNames);
+        }
+        if (conditionalProperty) activeAlternativeMutationDepth -= 1;
+        if (propertyMayAbort) descriptorMayAbort = true;
       }
       if (
-        descriptors.unknownProperty.size > 0 ||
-        descriptors.unknownAccessors.get.size > 0 ||
-        descriptors.unknownAccessors.set.size > 0 ||
-        descriptors.unknownSpreadSource
+        !descriptorAborted &&
+        (descriptors.unknownProperty.size > 0 ||
+          descriptors.unknownAccessors.get.size > 0 ||
+          descriptors.unknownAccessors.set.size > 0 ||
+          descriptors.unknownSpreadSource)
       ) {
         invalidateAccessorReceiver(new Set([descriptors]), undefined, 'get', new Set([descriptors]));
         invalidatePositionalTargets(targetValue, undefined, unknownReflectiveCallableValue());
@@ -4240,6 +4441,7 @@ function collectBindings(sourceFile) {
         recordTargetAccessor(targetValue, undefined, 'get', unknownReflectiveCallableValue());
         recordTargetAccessor(targetValue, undefined, 'set', unknownReflectiveCallableValue());
       }
+      if (alternativeDescriptors) activeAlternativeMutationDepth -= 1;
     }
   }
 
@@ -4899,8 +5101,7 @@ function collectBindings(sourceFile) {
           ? ['get', 'set'].some(field => descriptorFieldValues(argumentValues[2] ?? new Set(), field).size > 0)
           : false;
       let reflectiveIndexedSuccess =
-        !accessorDescriptor &&
-        (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty || atom === origins.reflectSet)
+        atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty || atom === origins.reflectSet
           ? reflectiveIndexedWriteSuccessIsProven(
               targetValue,
               propertyNames,
@@ -4931,16 +5132,17 @@ function collectBindings(sourceFile) {
         );
       }
       const reflectiveIndexedFailure =
-        atom === origins.reflectDefineProperty || atom === origins.reflectSet
+        atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty || atom === origins.reflectSet
           ? reflectiveIndexedWriteFailureIsProven(
               targetValue,
               propertyNames,
               receiverValue ?? new Set(),
-              atom === origins.reflectDefineProperty,
+              atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty,
               argumentValues[2] ?? new Set()
             ) ||
             (propertyNames?.length === 1 && propertyNames[0] === 'length' && reflectiveIndexedSuccess === false)
           : false;
+      if (reflectiveIndexedSuccess !== true && !reflectiveIndexedFailure) reflectiveIndexedSuccess = undefined;
       if (
         (atom === origins.reflectDefineProperty || atom === origins.reflectSet) &&
         intrinsicResult &&
@@ -4956,9 +5158,24 @@ function collectBindings(sourceFile) {
           mergeValue(intrinsicResult, literalValue(false));
         }
       }
-      if (reflectiveIndexedSuccess === false || (reflectiveIndexedSuccess === true && accessorDescriptor)) {
+      if (
+        reflectiveIndexedFailure ||
+        (accessorDescriptor &&
+          reflectiveIndexedSuccess !== true &&
+          propertyNames?.length === 1 &&
+          arrayIndexPropertyValue(propertyNames[0]) !== undefined)
+      ) {
         if (propertyNames?.length === 1 && propertyNames[0] === 'length') {
           invalidatePositionalTargets(receiverValue ?? new Set(), propertyNames, assignedValue, false, true);
+          if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
+            recordTargetDataDescriptor(
+              targetValue,
+              propertyNames,
+              argumentValues[2] ?? new Set(),
+              invocationNode,
+              true
+            );
+          }
         } else {
           invalidatePositionalTargets(
             receiverValue ?? new Set(),
@@ -4971,7 +5188,29 @@ function collectBindings(sourceFile) {
       }
       const strongDataWrite =
         !accessorDescriptor && (atom === origins.objectDefineProperty || reflectiveIndexedSuccess === true);
-      invalidatePositionalTargets(targetValue, propertyNames, assignedValue, accessorDescriptor, strongDataWrite);
+      if (
+        reflectiveIndexedSuccess === undefined &&
+        propertyNames?.length === 1 &&
+        arrayIndexPropertyValue(propertyNames[0]) !== undefined
+      ) {
+        invalidatePositionalTargets(receiverValue ?? new Set(), propertyNames, unknownReflectiveCallableValue(), true);
+        for (const receiver of receiverValue ?? []) {
+          if (typeof receiver === 'string' || receiver.kind !== 'carrier') continue;
+          const ownState = indexedOwnDataPropertyState(receiver, propertyNames[0]);
+          if (!ownState.mayBeMissing || receiver.deletedProperties.has(propertyNames[0])) continue;
+          receiver.deletedProperties.add(propertyNames[0]);
+          notifyPropagationSubscribers(receiver);
+        }
+      }
+      const descriptorOnlyArrayLengthUpdate =
+        (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) &&
+        propertyNames?.length === 1 &&
+        propertyNames[0] === 'length' &&
+        descriptorFieldState(argumentValues[2] ?? new Set(), 'value').mayBeAbsent &&
+        descriptorFieldValues(argumentValues[2] ?? new Set(), 'value').size === 0;
+      if (!descriptorOnlyArrayLengthUpdate) {
+        invalidatePositionalTargets(targetValue, propertyNames, assignedValue, accessorDescriptor, strongDataWrite);
+      }
       if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
         const descriptorValue = argumentValues[2] ?? new Set();
         recordDescriptorAccessors(targetValue, propertyNames, descriptorValue);

@@ -8422,6 +8422,475 @@ test('reflective result truth tables execute isolated runtime markers', () => {
   );
 });
 
+test('non-writable array lengths allow reflective writes into existing holes', () => {
+  const modes = [
+    ['Reflect.set', (target, index) => `Reflect.set(${target},'${index}',JSON.parse)`],
+    ['Reflect.defineProperty', (target, index) => `Reflect.defineProperty(${target},'${index}',{value:JSON.parse})`],
+  ];
+  const paths = [
+    ['direct', () => '', (mutation, index) => mutation('values', index)],
+    [
+      'helper',
+      (mutation, index) => `function replace(value){return ${mutation('value', index)}}`,
+      () => 'replace(values)',
+    ],
+  ];
+
+  for (const [caseIndex, writeCase] of [1, 64, 65]
+    .flatMap(index =>
+      modes.flatMap(([modeName, mutation]) =>
+        paths.map(([pathName, prefix, invoke]) => ({
+          index,
+          name: `${pathName} ${modeName} at existing hole ${index}`,
+          prefix: prefix(mutation, index),
+          mutation: invoke(mutation, index),
+        }))
+      )
+    )
+    .entries()) {
+    const source = `${writeCase.prefix}const values=Array(${writeCase.index + 1});
+      Object.defineProperty(values,'length',{writable:false});
+      const succeeded=${writeCase.mutation};
+      ({true:eval,false:JSON.parse})[succeeded](configuredSource);`;
+    const relativePath = `packages/example/src/non-writable-existing-hole-${caseIndex}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${writeCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${writeCase.name} should select the successful branch: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${writeCase.name} diagnostics should remain bounded`);
+
+    const extendingSetup = `${writeCase.prefix}const values=Array(${writeCase.index});
+      Object.defineProperty(values,'length',{writable:false});const succeeded=${writeCase.mutation};`;
+    if (writeCase.name.startsWith('direct ')) {
+      assert.deepEqual(
+        scanSource(
+          `${extendingSetup}({true:eval,false:JSON.parse})[succeeded]('{}');`,
+          `packages/example/src/safe-non-writable-extending-hole-${caseIndex}.ts`
+        ),
+        [],
+        `${writeCase.name} should retain no impossible success branch when the write extends length`
+      );
+    }
+    const extendingFindings = scanSource(
+      `${extendingSetup}({true:JSON.parse,false:eval})[succeeded](configuredSource);`,
+      `packages/example/src/failed-non-writable-extending-hole-${caseIndex}.ts`
+    );
+    assert.ok(
+      extendingFindings.some(finding => finding.kind === 'direct-eval'),
+      `${writeCase.name} should preserve the extending-write failure branch`
+    );
+  }
+});
+
+test('existing-hole reflective writes execute the runtime success branch', () => {
+  const markerKey = '__a12_existing_hole_write_marker__';
+  const modes = [
+    ['set', (target, index) => `Reflect.set(${target},'${index}',JSON.parse)`],
+    ['define', (target, index) => `Reflect.defineProperty(${target},'${index}',{value:JSON.parse})`],
+  ];
+  const paths = [
+    ['direct', () => '', (mutation, index) => mutation('values', index)],
+    [
+      'helper',
+      (mutation, index) => `function replace(value){return ${mutation('value', index)}}`,
+      () => 'replace(values)',
+    ],
+  ];
+  const cases = [1, 64, 65].flatMap(index =>
+    modes.flatMap(([modeName, mutation]) =>
+      paths.map(([pathName, prefix, invoke]) => ({
+        index,
+        name: `${modeName}-${pathName}-${index}`,
+        prefix: prefix(mutation, index),
+        mutation: invoke(mutation, index),
+      }))
+    )
+  );
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...cases.map(
+      writeCase => `{${writeCase.prefix}const values=Array(${writeCase.index + 1});
+        Object.defineProperty(values,'length',{writable:false});const succeeded=${writeCase.mutation};
+        globalThis.${markerKey}.push('${writeCase.name}-write-'+succeeded);
+        globalThis.${markerKey}.push('${writeCase.name}-own-'+Object.hasOwn(values,'${writeCase.index}'));
+        ({true:eval,false:JSON.parse})[succeeded](mark('${writeCase.name}-eval'));}`
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(writeCase => [`${writeCase.name}-write-true`, `${writeCase.name}-own-true`, `${writeCase.name}-eval`])
+  );
+});
+
+test('partial truncation retains the requested non-writable length transition', () => {
+  const truncationForms = [
+    ['direct', '', "Reflect.defineProperty(values,'length',{value:0,writable:false});"],
+    [
+      'helper',
+      "function shrink(value){return Reflect.defineProperty(value,'length',{value:0,writable:false})}",
+      'shrink(values);',
+    ],
+    ['Object.defineProperty', '', "try{Object.defineProperty(values,'length',{value:0,writable:false})}catch{}"],
+    [
+      'Object.defineProperty helper',
+      "function shrink(value){try{Object.defineProperty(value,'length',{value:0,writable:false})}catch{}}",
+      'shrink(values);',
+    ],
+    ['Object.defineProperties', '', 'try{Object.defineProperties(values,{length:{value:0,writable:false}})}catch{}'],
+    [
+      'Object.defineProperties helper',
+      'function shrink(value){try{Object.defineProperties(value,{length:{value:0,writable:false}})}catch{}}',
+      'shrink(values);',
+    ],
+    [
+      'conditional descriptor',
+      '',
+      "Reflect.defineProperty(values,'length',flag?{value:0,writable:false}:{value:0,writable:false});",
+    ],
+    ['spread descriptor', '', "Reflect.defineProperty(values,'length',{...{value:0,writable:false}});"],
+  ];
+  const laterWrites = [
+    ['assignment', '', index => `values[${index}]=JSON.parse;`],
+    ['helper assignment', index => `function replace(value){value[${index}]=JSON.parse}`, () => 'replace(values);'],
+    ['Reflect.set', '', index => `Reflect.set(values,'${index}',JSON.parse);`],
+    ['Object.assign', '', index => `try{Object.assign(values,{${index}:JSON.parse})}catch{}`],
+    ['Object.defineProperty', '', index => `try{Object.defineProperty(values,'${index}',{value:JSON.parse})}catch{}`],
+    ['Reflect.defineProperty', '', index => `Reflect.defineProperty(values,'${index}',{value:JSON.parse});`],
+    [
+      'Object.defineProperties',
+      '',
+      index => `try{Object.defineProperties(values,{${index}:{value:JSON.parse}})}catch{}`,
+    ],
+  ];
+
+  for (const [caseIndex, truncationCase] of [1, 64, 65]
+    .flatMap(index =>
+      truncationForms.flatMap(([formName, formPrefix, truncate]) =>
+        laterWrites.map(([writeName, writePrefix, write]) => ({
+          index,
+          name: `${formName}, ${writeName}, index ${index}`,
+          source: `${formPrefix}${typeof writePrefix === 'function' ? writePrefix(index) : writePrefix}
+            const prototype=[];prototype[${index}]=eval;
+            const values=Array(${index + 1}).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+            Object.defineProperty(values,'${index - 1}',{configurable:false});${truncate}
+            ${write(index)}values[${index}](configuredSource);`,
+        }))
+      )
+    )
+    .entries()) {
+    const relativePath = `packages/example/src/partial-non-writable-truncation-${caseIndex}.ts`;
+    const findings = scanSource(truncationCase.source, relativePath);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${truncationCase.name} should preserve inherited eval: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${truncationCase.name} diagnostics should remain bounded`);
+  }
+});
+
+test('partial non-writable truncations execute failed later writes at runtime', () => {
+  const markerKey = '__a12_partial_non_writable_marker__';
+  const truncationModes = [
+    ['object', "Object.defineProperty(values,'length',{value:0,writable:false})", 'throw'],
+    ['reflect', "Reflect.defineProperty(values,'length',{value:0,writable:false})", 'false'],
+    ['plural', 'Object.defineProperties(values,{length:{value:0,writable:false}})', 'throw'],
+  ];
+  const laterWrites = [
+    ['assignment', index => `values[${index}]=JSON.parse;`],
+    ['helper-assignment', index => `function replace(value){value[${index}]=JSON.parse}replace(values);`],
+    ['reflect-set', index => `Reflect.set(values,'${index}',JSON.parse);`],
+    ['assign', index => `try{Object.assign(values,{${index}:JSON.parse})}catch{}`],
+    ['define', index => `try{Object.defineProperty(values,'${index}',{value:JSON.parse})}catch{}`],
+    ['reflect-define', index => `Reflect.defineProperty(values,'${index}',{value:JSON.parse});`],
+    ['defines', index => `try{Object.defineProperties(values,{${index}:{value:JSON.parse}})}catch{}`],
+  ];
+  const cases = [1, 64, 65].flatMap(index =>
+    truncationModes.flatMap(([truncationName, truncate, outcome]) =>
+      laterWrites.map(([name, write]) => ({
+        index,
+        name: `${truncationName}-${name}-${index}`,
+        outcome,
+        truncate,
+        write: write(index),
+      }))
+    )
+  );
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...cases.map(
+      truncationCase => `{const prototype=[];prototype[${truncationCase.index}]=eval;
+        const values=Array(${truncationCase.index + 1}).fill(JSON.parse);Object.setPrototypeOf(values,prototype);
+        Object.defineProperty(values,'${truncationCase.index - 1}',{configurable:false});
+        let truncated='success';try{const result=${truncationCase.truncate};if(result===false)truncated='false'}
+        catch{truncated='throw'}${truncationCase.write}
+        const descriptor=Object.getOwnPropertyDescriptor(values,'length');
+        globalThis.${markerKey}.push('${truncationCase.name}-truncate-'+truncated);
+        globalThis.${markerKey}.push('${truncationCase.name}-length-'+values.length);
+        globalThis.${markerKey}.push('${truncationCase.name}-writable-'+descriptor.writable);
+        globalThis.${markerKey}.push('${truncationCase.name}-own-'+Object.hasOwn(values,'${truncationCase.index}'));
+        values[${truncationCase.index}](mark('${truncationCase.name}-eval'));}`
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(truncationCase => [
+      `${truncationCase.name}-truncate-${truncationCase.outcome}`,
+      `${truncationCase.name}-length-${truncationCase.index}`,
+      `${truncationCase.name}-writable-false`,
+      `${truncationCase.name}-own-false`,
+      `${truncationCase.name}-eval`,
+    ])
+  );
+});
+
+test('definitely failed accessor definitions do not shadow inherited indexed eval', () => {
+  const descriptors = [
+    ['getter', '{get(){return JSON.parse}}'],
+    ['setter', '{set(_) {}}'],
+  ];
+  const modes = [
+    [
+      'Object.defineProperty',
+      (target, index, descriptor) => `Object.defineProperty(${target},'${index}',${descriptor})`,
+      true,
+    ],
+    [
+      'Reflect.defineProperty',
+      (target, index, descriptor) => `Reflect.defineProperty(${target},'${index}',${descriptor})`,
+      false,
+    ],
+    [
+      'Object.defineProperties',
+      (target, index, descriptor) => `Object.defineProperties(${target},{${index}:${descriptor}})`,
+      true,
+    ],
+  ];
+  const paths = [
+    ['direct', () => '', (mutation, catches) => (catches ? `try{${mutation}}catch{}` : `${mutation};`)],
+    [
+      'helper',
+      (mutation, catches) =>
+        catches
+          ? `function install(value){${mutation.replace('values', 'value')}}`
+          : `function install(value){return ${mutation.replace('values', 'value')}}`,
+      (mutation, catches) => (catches ? 'try{install(values)}catch{}' : 'install(values);'),
+    ],
+  ];
+
+  for (const [caseIndex, accessorCase] of [1, 64, 65]
+    .flatMap(index =>
+      descriptors.flatMap(([descriptorName, descriptor]) =>
+        modes.flatMap(([modeName, mutation, catches]) => {
+          const directMutation = mutation('values', index, descriptor);
+          return paths.map(([pathName, prefix, invoke]) => ({
+            index,
+            name: `${pathName} ${modeName} ${descriptorName} at index ${index}`,
+            source: `${prefix(directMutation, catches)}const prototype=[];prototype[${index}]=eval;
+              const values=Array(${index});Object.setPrototypeOf(values,prototype);Object.preventExtensions(values);
+              ${invoke(directMutation, catches)}values[${index}](configuredSource);`,
+          }));
+        })
+      )
+    )
+    .entries()) {
+    const relativePath = `packages/example/src/failed-indexed-accessor-${caseIndex}.ts`;
+    const findings = scanSource(accessorCase.source, relativePath);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${accessorCase.name} should retain inherited eval: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${accessorCase.name} diagnostics should remain bounded`);
+  }
+});
+
+test('failed indexed accessor definitions execute inherited eval at runtime', () => {
+  const markerKey = '__a12_failed_accessor_marker__';
+  const descriptors = [
+    ['getter', '{get(){return JSON.parse}}'],
+    ['setter', '{set(_) {}}'],
+  ];
+  const modes = [
+    ['object', (target, index, descriptor) => `Object.defineProperty(${target},'${index}',${descriptor})`, 'throw'],
+    ['reflect', (target, index, descriptor) => `Reflect.defineProperty(${target},'${index}',${descriptor})`, 'false'],
+    ['plural', (target, index, descriptor) => `Object.defineProperties(${target},{${index}:${descriptor}})`, 'throw'],
+  ];
+  const cases = [1, 64, 65].flatMap(index =>
+    descriptors.flatMap(([descriptorName, descriptor]) =>
+      modes.map(([modeName, mutation, outcome]) => ({
+        index,
+        mutation: mutation('values', index, descriptor),
+        name: `${modeName}-${descriptorName}-${index}`,
+        outcome,
+      }))
+    )
+  );
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...cases.map(
+      accessorCase => `{const prototype=[];prototype[${accessorCase.index}]=eval;
+        const values=Array(${accessorCase.index});Object.setPrototypeOf(values,prototype);
+        Object.preventExtensions(values);let outcome='success';
+        try{const result=${accessorCase.mutation};if(result===false)outcome='false'}catch{outcome='throw'}
+        globalThis.${markerKey}.push('${accessorCase.name}-outcome-'+outcome);
+        globalThis.${markerKey}.push('${accessorCase.name}-own-'+Object.hasOwn(values,'${accessorCase.index}'));
+        values[${accessorCase.index}](mark('${accessorCase.name}-eval'));}`
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(accessorCase => [
+      `${accessorCase.name}-outcome-${accessorCase.outcome}`,
+      `${accessorCase.name}-own-false`,
+      `${accessorCase.name}-eval`,
+    ])
+  );
+});
+
+test('bulk indexed compatibility failures abort before later length keys', () => {
+  const forms = [
+    ['direct', operation => '', operation => operation],
+    [
+      'helper',
+      operation =>
+        operation.startsWith('Object.assign')
+          ? 'function bulk(target,source){return Object.assign(target,source)}'
+          : 'function bulk(target,source){return Object.defineProperties(target,source)}',
+      operation => operation.replace(/^Object\.(?:assign|defineProperties)/, 'bulk'),
+    ],
+    ['conditional', operation => '', operation => operation.replace(/(\{length:[^;]+\})\)$/, 'flag?$1:$1)')],
+    [
+      'spread',
+      operation => `const source=${operation.slice(operation.indexOf(',') + 1, -1)};`,
+      operation => `${operation.slice(0, operation.indexOf(',') + 1)}{...source})`,
+    ],
+  ];
+
+  for (const [caseIndex, abortCase] of [1, 64, 65]
+    .flatMap(index => {
+      const operations = [
+        ['Object.assign', `Object.assign(values,{length:${index},0:JSON.parse})`, false],
+        ['Object.defineProperties', `Object.defineProperties(values,{length:{value:${index}},0:{value:eval}})`, true],
+      ];
+      return operations.flatMap(([operationName, operation, nonConfigurable]) =>
+        forms.map(([formName, prefix, invoke]) => ({
+          index,
+          name: `${formName} ${operationName} abort at index ${index}`,
+          source: `${prefix(operation)}const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+            Object.defineProperty(values,'0',{writable:false${nonConfigurable ? ',configurable:false' : ''}});
+            try{${invoke(operation)}}catch{}values[${index}](configuredSource);`,
+        }))
+      );
+    })
+    .entries()) {
+    const relativePath = `packages/example/src/bulk-indexed-abort-${caseIndex}.ts`;
+    const findings = scanSource(abortCase.source, relativePath);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${abortCase.name} should retain the value above the unapplied length: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${abortCase.name} diagnostics should remain bounded`);
+  }
+
+  for (const [caseIndex, index] of [1, 64, 65].entries()) {
+    const assignSource = `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+      Object.assign(values,{length:${index},0:JSON.parse});values[${index}]('{}');`;
+    assert.deepEqual(
+      scanSource(assignSource, `packages/example/src/safe-bulk-assign-${caseIndex}.ts`),
+      [],
+      `a compatible Object.assign at index ${index} should apply its later length`
+    );
+    const defineSource = `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+      Object.defineProperty(values,'0',{writable:false,configurable:false});
+      Object.defineProperties(values,{length:{value:${index}},0:{value:JSON.parse}});values[${index}]('{}');`;
+    assert.deepEqual(
+      scanSource(defineSource, `packages/example/src/safe-bulk-defines-${caseIndex}.ts`),
+      [],
+      `a SameValue-compatible Object.defineProperties at index ${index} should apply its later length`
+    );
+  }
+});
+
+test('bulk indexed compatibility failures preserve runtime key order and partial state', () => {
+  const markerKey = '__a12_bulk_abort_marker__';
+  const cases = [1, 64, 65].flatMap(index => [
+    {
+      index,
+      mutation: `Object.assign(values,{length:${index},0:JSON.parse})`,
+      name: `assign-${index}`,
+      setup: "Object.defineProperty(values,'0',{writable:false});",
+    },
+    {
+      index,
+      mutation: `Object.defineProperties(values,{length:{value:${index}},0:{value:eval}})`,
+      name: `defines-${index}`,
+      setup: "Object.defineProperty(values,'0',{writable:false,configurable:false});",
+    },
+  ]);
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...cases.map(
+      abortCase => `{const values=Array(${abortCase.index + 1}).fill(JSON.parse);values[${abortCase.index}]=eval;
+        ${abortCase.setup}let threw=false;try{${abortCase.mutation}}catch{threw=true}
+        globalThis.${markerKey}.push('${abortCase.name}-throw-'+threw);
+        globalThis.${markerKey}.push('${abortCase.name}-length-'+values.length);
+        globalThis.${markerKey}.push('${abortCase.name}-own-'+Object.hasOwn(values,'${abortCase.index}'));
+        values[${abortCase.index}](mark('${abortCase.name}-eval'));}`
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(abortCase => [
+      `${abortCase.name}-throw-true`,
+      `${abortCase.name}-length-${abortCase.index + 1}`,
+      `${abortCase.name}-own-true`,
+      `${abortCase.name}-eval`,
+    ])
+  );
+});
+
 test('sparse inherited values materialize as bounded own properties across array mutations', () => {
   const safeCases = [
     `const prototype=[];prototype[64]=eval;prototype[65]=JSON.parse;
