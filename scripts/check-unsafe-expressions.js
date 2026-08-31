@@ -128,6 +128,7 @@ const origins = Object.freeze({
   objectDefineProperties: 'object-define-properties',
   objectDefineProperty: 'object-define-property',
   objectEntries: 'object-entries',
+  objectFreeze: 'object-freeze',
   objectGetOwnPropertyDescriptor: 'object-get-own-property-descriptor',
   objectGetOwnPropertyDescriptors: 'object-get-own-property-descriptors',
   objectGetPrototypeOf: 'object-get-prototype-of',
@@ -137,6 +138,7 @@ const origins = Object.freeze({
   objectPrototypeDefineGetter: 'object-prototype-define-getter',
   objectPrototypeDefineSetter: 'object-prototype-define-setter',
   objectPrototypeSetPrototype: 'object-prototype-set-prototype',
+  objectSeal: 'object-seal',
   objectSetPrototypeOf: 'object-set-prototype-of',
   objectValues: 'object-values',
   reflectApply: 'reflect-apply',
@@ -147,6 +149,7 @@ const origins = Object.freeze({
   reflectGetOwnPropertyDescriptor: 'reflect-get-own-property-descriptor',
   reflectGetPrototypeOf: 'reflect-get-prototype-of',
   reflectObject: 'reflect-object',
+  reflectPreventExtensions: 'reflect-prevent-extensions',
   reflectSet: 'reflect-set',
   reflectSetPrototypeOf: 'reflect-set-prototype-of',
   setAdd: 'set-add',
@@ -171,7 +174,11 @@ function isNonComposingIntrinsic(atom) {
     atom === origins.mapSet ||
     atom === origins.mapValues ||
     atom === origins.objectEntries ||
+    atom === origins.objectFreeze ||
+    atom === origins.objectPreventExtensions ||
+    atom === origins.objectSeal ||
     atom === origins.objectValues ||
+    atom === origins.reflectPreventExtensions ||
     atom === origins.setAdd ||
     atom === origins.setClear ||
     atom === origins.setEntries ||
@@ -517,7 +524,11 @@ function collectBindings(sourceFile) {
   }
 
   function orderedWriteRank(node, allowConditionalExecution = false) {
-    if (!node || (!allowConditionalExecution && hasConditionalExecution(node)) || followsTemporalBoundary(node)) {
+    if (
+      !node ||
+      (!allowConditionalExecution && hasConditionalExecution(node)) ||
+      (followsTemporalBoundary(node) && !isOperationInFirstReturnExpression(node))
+    ) {
       return undefined;
     }
     if (enclosingFunctionNode(node) && activeFunctionInvocationNodes.length === 0) return undefined;
@@ -541,6 +552,19 @@ function collectBindings(sourceFile) {
 
   function uncertainWriteRank(node) {
     return orderedWriteRank(node, true);
+  }
+
+  function isOperationInFirstReturnExpression(node) {
+    const functionNode = enclosingFunctionNode(node);
+    if (!functionNode) return false;
+    let current = node.parent;
+    while (current && current !== functionNode) {
+      if (ts.isReturnStatement(current)) {
+        return earliestTemporalBoundaryPositions.get(functionNode) === current.getStart(sourceFile);
+      }
+      current = current.parent;
+    }
+    return false;
   }
 
   function followsTemporalBoundary(node) {
@@ -600,7 +624,7 @@ function collectBindings(sourceFile) {
   }
 
   function createCarrier(positional = false) {
-    return {
+    const carrier = {
       accessors: new Map(),
       collectionEntries: new Map(),
       collectionKeys: new Set(),
@@ -613,6 +637,8 @@ function collectBindings(sourceFile) {
       deletedProperties: new Set(),
       invocationSensitive: false,
       invocationTargetObserved: false,
+      integrityConfigurability: true,
+      integrityWritability: true,
       kind: 'carrier',
       extensible: true,
       unknownAccessors: { get: new Set(), set: new Set() },
@@ -620,6 +646,8 @@ function collectBindings(sourceFile) {
       unknownSpreadSource: false,
       ownPropertyNames: new Set(),
       properties: new Map(),
+      propertyConfigurabilities: new Map(),
+      propertyEnumerabilities: new Map(),
       propertyWritabilities: new Map(),
       propertyWriteRanks: new Map(),
       strongPropertyWriteRanks: new Map(),
@@ -643,6 +671,12 @@ function collectBindings(sourceFile) {
       uncertainPositionalValues: new Set(),
       collectionEntryWriteRanks: new Map(),
     };
+    if (positional) {
+      carrier.propertyConfigurabilities.set('length', new Set([false]));
+      carrier.propertyEnumerabilities.set('length', new Set([false]));
+      carrier.propertyWritabilities.set('length', new Set([true]));
+    }
+    return carrier;
   }
 
   function carrierFor(node, positional = false) {
@@ -947,31 +981,40 @@ function collectBindings(sourceFile) {
       if (matches('set')) result.add(origins.mapSet);
       if (matches('values')) result.add(origins.mapValues);
     } else if (origin === origins.objectObject) {
-      if (matches('assign')) result.add(origins.objectAssign);
-      if (matches('create')) result.add(origins.objectCreate);
-      if (matches('defineProperties')) result.add(origins.objectDefineProperties);
-      if (matches('defineProperty')) result.add(origins.objectDefineProperty);
-      if (matches('entries')) result.add(origins.objectEntries);
-      if (matches('getOwnPropertyDescriptor')) result.add(origins.objectGetOwnPropertyDescriptor);
-      if (matches('getOwnPropertyDescriptors')) result.add(origins.objectGetOwnPropertyDescriptors);
-      if (matches('getPrototypeOf')) result.add(origins.objectGetPrototypeOf);
-      if (matches('preventExtensions')) result.add(origins.objectPreventExtensions);
-      if (matches('prototype')) result.add(origins.objectPrototype);
-      if (matches('setPrototypeOf')) result.add(origins.objectSetPrototypeOf);
-      if (matches('values')) result.add(origins.objectValues);
+      if (unknown || propertyName === 'assign') result.add(origins.objectAssign);
+      if (unknown || propertyName === 'create') result.add(origins.objectCreate);
+      if (unknown || propertyName === 'defineProperties') result.add(origins.objectDefineProperties);
+      if (unknown || propertyName === 'defineProperty') result.add(origins.objectDefineProperty);
+      if (unknown || propertyName === 'entries') result.add(origins.objectEntries);
+      if (unknown || propertyName === 'freeze') result.add(origins.objectFreeze);
+      if (unknown || propertyName === 'getOwnPropertyDescriptor') {
+        result.add(origins.objectGetOwnPropertyDescriptor);
+      }
+      if (unknown || propertyName === 'getOwnPropertyDescriptors') {
+        result.add(origins.objectGetOwnPropertyDescriptors);
+      }
+      if (unknown || propertyName === 'getPrototypeOf') result.add(origins.objectGetPrototypeOf);
+      if (unknown || propertyName === 'preventExtensions') result.add(origins.objectPreventExtensions);
+      if (unknown || propertyName === 'prototype') result.add(origins.objectPrototype);
+      if (unknown || propertyName === 'seal') result.add(origins.objectSeal);
+      if (unknown || propertyName === 'setPrototypeOf') result.add(origins.objectSetPrototypeOf);
+      if (unknown || propertyName === 'values') result.add(origins.objectValues);
     } else if (origin === origins.objectPrototype) {
       if (matches('__defineGetter__')) result.add(origins.objectPrototypeDefineGetter);
       if (matches('__defineSetter__')) result.add(origins.objectPrototypeDefineSetter);
     } else if (origin === origins.reflectObject) {
-      if (matches('apply')) result.add(origins.reflectApply);
-      if (matches('construct')) result.add(origins.reflectConstruct);
-      if (matches('deleteProperty')) result.add(origins.reflectDeleteProperty);
-      if (matches('defineProperty')) result.add(origins.reflectDefineProperty);
-      if (matches('get')) result.add(origins.reflectGet);
-      if (matches('getOwnPropertyDescriptor')) result.add(origins.reflectGetOwnPropertyDescriptor);
-      if (matches('getPrototypeOf')) result.add(origins.reflectGetPrototypeOf);
-      if (matches('set')) result.add(origins.reflectSet);
-      if (matches('setPrototypeOf')) result.add(origins.reflectSetPrototypeOf);
+      if (unknown || propertyName === 'apply') result.add(origins.reflectApply);
+      if (unknown || propertyName === 'construct') result.add(origins.reflectConstruct);
+      if (unknown || propertyName === 'deleteProperty') result.add(origins.reflectDeleteProperty);
+      if (unknown || propertyName === 'defineProperty') result.add(origins.reflectDefineProperty);
+      if (unknown || propertyName === 'get') result.add(origins.reflectGet);
+      if (unknown || propertyName === 'getOwnPropertyDescriptor') {
+        result.add(origins.reflectGetOwnPropertyDescriptor);
+      }
+      if (unknown || propertyName === 'getPrototypeOf') result.add(origins.reflectGetPrototypeOf);
+      if (unknown || propertyName === 'preventExtensions') result.add(origins.reflectPreventExtensions);
+      if (unknown || propertyName === 'set') result.add(origins.reflectSet);
+      if (unknown || propertyName === 'setPrototypeOf') result.add(origins.reflectSetPrototypeOf);
     } else if (origin === origins.setObject) {
       if (matches('prototype')) result.add(origins.setPrototype);
     } else if (origin === origins.setPrototype) {
@@ -1057,6 +1100,7 @@ function collectBindings(sourceFile) {
       atom === origins.reflectGet ||
       atom === origins.reflectGetOwnPropertyDescriptor ||
       atom === origins.reflectGetPrototypeOf ||
+      atom === origins.reflectPreventExtensions ||
       atom === origins.reflectSet ||
       atom === origins.reflectSetPrototypeOf ||
       atom === origins.setAdd ||
@@ -2481,6 +2525,8 @@ function collectBindings(sourceFile) {
           [...value].filter(
             atom =>
               isTrackedCallable(atom) ||
+              atom === origins.objectFreeze ||
+              atom === origins.objectSeal ||
               (typeof atom !== 'string' &&
                 atom.kind === 'function-value' &&
                 (atom.mutationDependentReturn || atom.hasGetterReads))
@@ -2498,7 +2544,7 @@ function collectBindings(sourceFile) {
     value,
     writeRank,
     strong = false,
-    descriptorWritability = undefined
+    descriptorAttributes = undefined
   ) {
     if (propertyNames === undefined) {
       if (value.size === 0) return;
@@ -2516,10 +2562,6 @@ function collectBindings(sourceFile) {
     for (const propertyName of propertyNames) {
       const previousWriteRank = carrier.propertyWriteRanks.get(propertyName);
       if (writeRank && previousWriteRank && rankPrecedes(writeRank, previousWriteRank)) continue;
-      const previousWritabilities = carrier.propertyWritabilities.get(propertyName);
-      const nextWritabilities =
-        descriptorWritability?.values ??
-        (previousWritabilities ? undefined : new Set([descriptorWritability?.defaultForNew ?? true]));
       if (strong && carrier.deletedProperties.delete(propertyName)) notifyPropagationSubscribers(carrier);
       if (carrier.positional && /^(0|[1-9]\d*)$/.test(propertyName)) {
         const index = Number(propertyName);
@@ -2543,12 +2585,7 @@ function collectBindings(sourceFile) {
             if (newerStrongWrite) recordStrongPropertyWriteRank(carrier, propertyName, writeRank);
             if (newerStrongWrite) replaceTracked(target, boundedValue, carrier);
             else mergeCarrierProperty(carrier, target, boundedValue);
-            recordCarrierPropertyWritabilities(
-              carrier,
-              propertyName,
-              nextWritabilities,
-              newerStrongWrite
-            );
+            recordCarrierPropertyAttributes(carrier, propertyName, descriptorAttributes, newerStrongWrite);
             if (writeRank && (!previousWriteRank || !rankEquals(writeRank, previousWriteRank))) {
               carrier.propertyWriteRanks.set(propertyName, writeRank);
             }
@@ -2573,7 +2610,7 @@ function collectBindings(sourceFile) {
       if (newerStrongWrite) recordStrongPropertyWriteRank(carrier, propertyName, writeRank);
       if (newerStrongWrite) replaceTracked(target, value, carrier);
       else mergeCarrierProperty(carrier, target, value);
-      recordCarrierPropertyWritabilities(carrier, propertyName, nextWritabilities, newerStrongWrite);
+      recordCarrierPropertyAttributes(carrier, propertyName, descriptorAttributes, newerStrongWrite);
       if (writeRank && (!previousWriteRank || !rankEquals(writeRank, previousWriteRank))) {
         carrier.propertyWriteRanks.set(propertyName, writeRank);
       }
@@ -2590,15 +2627,30 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function recordCarrierPropertyWritabilities(carrier, propertyName, writabilities, replace) {
-    if (!writabilities || writabilities.size === 0) return;
-    let stored = carrier.propertyWritabilities.get(propertyName);
-    if (!stored) {
-      stored = new Set();
-      carrier.propertyWritabilities.set(propertyName, stored);
+  function recordCarrierPropertyAttributes(carrier, propertyName, attributes, replace) {
+    let changed = false;
+    for (const [field, map] of [
+      ['configurable', carrier.propertyConfigurabilities],
+      ['enumerable', carrier.propertyEnumerabilities],
+      ['writable', carrier.propertyWritabilities],
+    ]) {
+      const values = attributes?.[field] ?? (map.has(propertyName) ? undefined : new Set([true]));
+      if (!values || values.size === 0) continue;
+      let stored = map.get(propertyName);
+      if (!stored) {
+        stored = new Set();
+        map.set(propertyName, stored);
+      }
+      if (replace) {
+        if (stored.size === values.size && [...stored].every(value => values.has(value))) continue;
+        stored.clear();
+        for (const value of values) stored.add(value);
+        changed = true;
+      } else if (mergeValue(stored, values)) {
+        changed = true;
+      }
     }
-    if (replace) replaceTracked(stored, writabilities, carrier);
-    else mergeCarrierProperty(carrier, stored, writabilities);
+    if (changed) notifyPropagationSubscribers(carrier);
   }
 
   function recordStrongPropertyWriteRank(carrier, propertyName, writeRank) {
@@ -2983,7 +3035,7 @@ function collectBindings(sourceFile) {
     value,
     writeNode,
     strong = false,
-    descriptorWritability = undefined
+    descriptorAttributes = undefined
   ) {
     const writeRank = deterministicWriteRank(writeNode);
     const strongCarrierWrite =
@@ -2995,17 +3047,73 @@ function collectBindings(sourceFile) {
       [...targetValue].every(atom => typeof atom !== 'string' && atom.kind === 'carrier');
     for (const atom of targetValue) {
       if (typeof atom !== 'string' && atom.kind === 'carrier') {
-        putCarrierProperty(
-          atom,
-          propertyNames,
-          value,
-          writeRank,
-          strongCarrierWrite,
-          descriptorWritability
-        );
+        putCarrierProperty(atom, propertyNames, value, writeRank, strongCarrierWrite, descriptorAttributes);
       } else if (typeof atom === 'string') {
         const state = builtinPrototypeState(atom);
         if (state) putAbstractProperty(state, propertyNames, value);
+      }
+    }
+  }
+
+  function arrayLengthDescriptorAttributes(carrier, descriptorValue) {
+    const attributes = {};
+    for (const field of ['configurable', 'enumerable', 'writable']) {
+      const fieldState = descriptorBooleanValues(descriptorFieldState(descriptorValue, field));
+      const values = new Set(fieldState.values);
+      if (fieldState.mayBeAbsent) {
+        mergeValue(values, dataPropertyAttributeValues(carrier, 'length', field));
+      }
+      attributes[field] = values;
+    }
+    return attributes;
+  }
+
+  function recordCarrierDescriptorAttributes(carrier, propertyName, attributes, writeRank, strong) {
+    const previousWriteRank = carrier.propertyWriteRanks.get(propertyName);
+    if (writeRank && previousWriteRank && rankPrecedes(writeRank, previousWriteRank)) return;
+    const replace =
+      strong && writeRank !== undefined && (!previousWriteRank || rankPrecedes(previousWriteRank, writeRank));
+    recordCarrierPropertyAttributes(carrier, propertyName, attributes, replace);
+    if (writeRank && (!previousWriteRank || !rankEquals(writeRank, previousWriteRank))) {
+      carrier.propertyWriteRanks.set(propertyName, writeRank);
+    }
+  }
+
+  function recordTargetDataDescriptor(targetValue, propertyNames, descriptorValue, writeNode, strong) {
+    if (propertyNames === undefined) {
+      recordTargetProperty(targetValue, undefined, unknownReflectiveCallableValue(), writeNode);
+      return;
+    }
+    const writeRank = deterministicWriteRank(writeNode);
+    const strongCarrierWrite =
+      strong &&
+      activeAlternativeMutationDepth === 0 &&
+      writeRank !== undefined &&
+      propertyNames.length === 1 &&
+      targetValue.size === 1 &&
+      [...targetValue].every(atom => typeof atom !== 'string' && atom.kind === 'carrier');
+    for (const atom of targetValue) {
+      if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
+      for (const propertyName of propertyNames) {
+        if (atom.positional && propertyName === 'length') {
+          const attributes = arrayLengthDescriptorAttributes(atom, descriptorValue);
+          const value = descriptorFieldState(descriptorValue, 'value').values;
+          if (value.size > 0) {
+            putCarrierProperty(atom, [propertyName], value, writeRank, strongCarrierWrite, attributes);
+          } else {
+            recordCarrierDescriptorAttributes(atom, propertyName, attributes, writeRank, strongCarrierWrite);
+          }
+          continue;
+        }
+        const application = descriptorAppliedDataPropertyState(atom, propertyName, descriptorValue);
+        putCarrierProperty(
+          atom,
+          [propertyName],
+          application.value,
+          writeRank,
+          strongCarrierWrite,
+          application.attributes
+        );
       }
     }
   }
@@ -3070,31 +3178,76 @@ function collectBindings(sourceFile) {
     return result;
   }
 
-  function descriptorWritability(descriptorValue) {
-    const fieldValues = descriptorFieldValues(descriptorValue, 'writable');
-    if (fieldValues.size === 0) return { defaultForNew: false, values: undefined };
+  function descriptorFieldState(descriptorValue, field) {
+    const values = descriptorFieldValues(descriptorValue, field);
+    let mayBeAbsent = descriptorValue.size === 0;
+    for (const atom of descriptorValue) {
+      if (typeof atom === 'string' || atom.kind !== 'carrier') {
+        mayBeAbsent = true;
+        continue;
+      }
+      const hasOwnField = atom.properties.has(field) || atom.accessors.has(field);
+      if (
+        !hasOwnField ||
+        atom.deletedProperties.has(field) ||
+        atom.unknownPropertyDeletion ||
+        atom.unknownProperty.size > 0 ||
+        atom.unknownAccessors.get.size > 0
+      ) {
+        mayBeAbsent = true;
+      }
+    }
+    return { mayBeAbsent, values };
+  }
+
+  function descriptorBooleanValues(fieldState) {
     const values = new Set();
-    for (const atom of fieldValues) {
-      if (typeof atom !== 'string' && atom.kind === 'literal' && atom.valueType === 'boolean') {
-        values.add(atom.value);
+    for (const atom of fieldState.values) {
+      if (typeof atom !== 'string' && atom.kind === 'literal') {
+        values.add(Boolean(atom.value));
+      } else if (typeof atom === 'string' || (atom.kind !== 'unknown-value' && atom.kind !== 'known-data')) {
+        values.add(true);
       } else {
         values.add(true);
         values.add(false);
       }
     }
-    return { defaultForNew: false, values };
+    return { mayBeAbsent: fieldState.mayBeAbsent, values };
+  }
+
+  function dataPropertyAttributeValues(carrier, propertyName, field) {
+    const map =
+      field === 'configurable'
+        ? carrier.propertyConfigurabilities
+        : field === 'enumerable'
+          ? carrier.propertyEnumerabilities
+          : carrier.propertyWritabilities;
+    const values = new Set(map.get(propertyName) ?? [true]);
+    const integrityState =
+      field === 'configurable'
+        ? carrier.integrityConfigurability
+        : field === 'writable'
+          ? carrier.integrityWritability
+          : true;
+    if (integrityState === false) return new Set([false]);
+    if (integrityState === undefined) values.add(false);
+    return values;
+  }
+
+  function ownDataPropertyValues(carrier, propertyName) {
+    const values = new Set(carrier.properties.get(propertyName) ?? []);
+    const overflowValue = boundedOverflowPropertyValue(carrier, propertyName);
+    if (overflowValue) mergeValue(values, overflowValue);
+    return values;
   }
 
   function indexedOwnDataPropertyState(carrier, propertyName) {
     const propertyValue = carrier.properties.get(propertyName);
     const index = Number(propertyName);
-    const overflowOwnProperty =
-      Number.isSafeInteger(index) && carrier.overflowPositionalOwnProperties.has(index);
-    const hasModeledDataProperty =
-      (propertyValue !== undefined && propertyValue.size > 0) || overflowOwnProperty;
+    const overflowOwnProperty = Number.isSafeInteger(index) && carrier.overflowPositionalOwnProperties.has(index);
+    const hasModeledDataProperty = (propertyValue !== undefined && propertyValue.size > 0) || overflowOwnProperty;
     const positionalPresenceUncertain =
-      carrier.positionalUncertain &&
-      !strongPropertyWriteSupersedesPositionalUncertainty(carrier, propertyName);
+      carrier.positionalUncertain && !strongPropertyWriteSupersedesPositionalUncertainty(carrier, propertyName);
     const overflowPresenceUncertain =
       index >= maximumTrackedInvocationArguments &&
       carrier.overflowPositionalPropertiesUncertain &&
@@ -3108,8 +3261,23 @@ function collectBindings(sourceFile) {
     return {
       hasModeledDataProperty,
       mayBeMissing,
-      writabilities: carrier.propertyWritabilities.get(propertyName) ?? new Set([true]),
+      configurabilities: dataPropertyAttributeValues(carrier, propertyName, 'configurable'),
+      enumerabilities: dataPropertyAttributeValues(carrier, propertyName, 'enumerable'),
+      writabilities: dataPropertyAttributeValues(carrier, propertyName, 'writable'),
     };
+  }
+
+  function arrayLengthIsDefinitelyWritable(carrier) {
+    if (!carrier.positional) return true;
+    const writabilities = dataPropertyAttributeValues(carrier, 'length', 'writable');
+    return writabilities?.size > 0 && [...writabilities].every(Boolean);
+  }
+
+  function missingIndexedPropertyCreationIsProven(carrier, propertyName) {
+    return (
+      carrier.extensible === true &&
+      (arrayIndexPropertyValue(propertyName) === undefined || arrayLengthIsDefinitelyWritable(carrier))
+    );
   }
 
   function inheritedIndexedSetAllowsCreation(prototypeValue, propertyName, seen = new Set()) {
@@ -3145,30 +3313,86 @@ function collectBindings(sourceFile) {
     return true;
   }
 
-  function descriptorIsCompatibleWithNonWritableDataProperty(carrier, propertyName, descriptorValue) {
+  function abstractSameValueIsProven(currentValues, requestedValues) {
+    if (currentValues.size !== 1 || requestedValues.size !== 1) return false;
+    const current = [...currentValues][0];
+    const requested = [...requestedValues][0];
     if (
-      descriptorFieldValues(descriptorValue, 'configurable').size > 0 ||
-      descriptorFieldValues(descriptorValue, 'enumerable').size > 0
+      (typeof current !== 'string' && ['known-data', 'unknown-value'].includes(current.kind)) ||
+      (typeof requested !== 'string' && ['known-data', 'unknown-value'].includes(requested.kind))
     ) {
       return false;
     }
-    const requestedWritabilities = descriptorFieldValues(descriptorValue, 'writable');
+    return current === requested;
+  }
+
+  function descriptorIsCompatibleWithDataProperty(carrier, propertyName, descriptorValue, ownState) {
+    const currentConfigurabilities = ownState.configurabilities;
+    const currentEnumerabilities = ownState.enumerabilities;
+    const currentWritabilities = ownState.writabilities;
+    if (currentConfigurabilities.size === 0 || currentEnumerabilities.size === 0 || currentWritabilities.size === 0) {
+      return false;
+    }
+    if (![...currentConfigurabilities].some(configurable => !configurable)) return true;
+
+    const requestedConfigurabilities = descriptorBooleanValues(
+      descriptorFieldState(descriptorValue, 'configurable')
+    ).values;
+    if ([...requestedConfigurabilities].some(Boolean)) return false;
+
+    const requestedEnumerabilities = descriptorBooleanValues(
+      descriptorFieldState(descriptorValue, 'enumerable')
+    ).values;
     if (
-      [...requestedWritabilities].some(
-        atom => typeof atom === 'string' || atom.kind !== 'literal' || atom.value !== false
-      )
+      requestedEnumerabilities.size > 0 &&
+      (currentEnumerabilities.size !== 1 ||
+        [...requestedEnumerabilities].some(value => value !== [...currentEnumerabilities][0]))
     ) {
       return false;
     }
-    const requestedValue = descriptorFieldValues(descriptorValue, 'value');
-    const currentValue = new Set(carrier.properties.get(propertyName) ?? []);
-    const overflowValue = boundedOverflowPropertyValue(carrier, propertyName);
-    if (overflowValue) mergeValue(currentValue, overflowValue);
+
+    if (![...currentWritabilities].some(writable => !writable)) return true;
+    const requestedWritabilities = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'writable')).values;
+    if ([...requestedWritabilities].some(Boolean)) return false;
+    const requestedValue = descriptorFieldState(descriptorValue, 'value').values;
     return (
-      requestedValue.size > 0 &&
-      currentValue.size === requestedValue.size &&
-      [...currentValue].every(atom => requestedValue.has(atom))
+      requestedValue.size === 0 ||
+      abstractSameValueIsProven(ownDataPropertyValues(carrier, propertyName), requestedValue)
     );
+  }
+
+  function descriptorAppliedDataPropertyState(carrier, propertyName, descriptorValue) {
+    const ownState = indexedOwnDataPropertyState(carrier, propertyName);
+    const valueField = descriptorFieldState(descriptorValue, 'value');
+    const value = new Set(valueField.values);
+    if (valueField.mayBeAbsent) {
+      if (ownState.hasModeledDataProperty) mergeValue(value, ownDataPropertyValues(carrier, propertyName));
+      if (ownState.mayBeMissing) mergeValue(value, literalValue(undefined));
+    }
+    const attributes = {};
+    for (const field of ['configurable', 'enumerable', 'writable']) {
+      const fieldState = descriptorBooleanValues(descriptorFieldState(descriptorValue, field));
+      const values = new Set(fieldState.values);
+      if (fieldState.mayBeAbsent) {
+        if (ownState.hasModeledDataProperty) {
+          mergeValue(values, dataPropertyAttributeValues(carrier, propertyName, field));
+        }
+        if (ownState.mayBeMissing) values.add(false);
+      }
+      attributes[field] = values;
+    }
+    return { attributes, value };
+  }
+
+  function successfulIndexedSetAttributes(carrier, propertyName) {
+    const ownState = indexedOwnDataPropertyState(carrier, propertyName);
+    const configurable = new Set(ownState.hasModeledDataProperty ? ownState.configurabilities : []);
+    const enumerable = new Set(ownState.hasModeledDataProperty ? ownState.enumerabilities : []);
+    if (ownState.mayBeMissing) {
+      configurable.add(true);
+      enumerable.add(true);
+    }
+    return { configurable, enumerable, writable: new Set([true]) };
   }
 
   function reflectiveIndexedWriteSuccessIsProven(
@@ -3178,10 +3402,7 @@ function collectBindings(sourceFile) {
     defineProperty,
     descriptorValue = new Set()
   ) {
-    if (
-      propertyNames?.length !== 1 ||
-      !/^(0|[1-9]\d*)$/.test(propertyNames[0])
-    ) {
+    if (propertyNames?.length !== 1 || !/^(0|[1-9]\d*)$/.test(propertyNames[0])) {
       return undefined;
     }
     if (targetValue.size !== 1 || receiverValue.size !== 1) return false;
@@ -3215,18 +3436,48 @@ function collectBindings(sourceFile) {
     }
     if (defineProperty) {
       if (
-        hasNonWritableOwnAlternative &&
-        !descriptorIsCompatibleWithNonWritableDataProperty(target, propertyName, descriptorValue)
+        ownState.hasModeledDataProperty &&
+        !descriptorIsCompatibleWithDataProperty(target, propertyName, descriptorValue, ownState)
       ) {
         return false;
       }
-      return !ownState.mayBeMissing || target.extensible === true;
+      return !ownState.mayBeMissing || missingIndexedPropertyCreationIsProven(target, propertyName);
     }
     if (!ownState.mayBeMissing) return true;
     return (
-      receiver.extensible === true &&
+      missingIndexedPropertyCreationIsProven(receiver, propertyName) &&
       inheritedIndexedSetAllowsCreation(effectivePrototypes(target), propertyName)
     );
+  }
+
+  function reflectiveArrayLengthDescriptorSuccessIsProven(targetValue, propertyNames, descriptorValue) {
+    if (propertyNames?.length !== 1 || propertyNames[0] !== 'length' || targetValue.size !== 1) {
+      return undefined;
+    }
+    const target = [...targetValue][0];
+    if (typeof target === 'string' || target.kind !== 'carrier' || !target.positional) return false;
+    if (
+      descriptorFieldState(descriptorValue, 'value').values.size > 0 ||
+      descriptorFieldState(descriptorValue, 'get').values.size > 0 ||
+      descriptorFieldState(descriptorValue, 'set').values.size > 0
+    ) {
+      return false;
+    }
+    const requestedConfigurabilities = descriptorBooleanValues(
+      descriptorFieldState(descriptorValue, 'configurable')
+    ).values;
+    const requestedEnumerabilities = descriptorBooleanValues(
+      descriptorFieldState(descriptorValue, 'enumerable')
+    ).values;
+    if ([...requestedConfigurabilities].some(Boolean) || [...requestedEnumerabilities].some(Boolean)) {
+      return false;
+    }
+    const currentWritabilities = dataPropertyAttributeValues(target, 'length', 'writable');
+    const requestedWritabilities = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'writable')).values;
+    if ([...currentWritabilities].some(writable => !writable) && [...requestedWritabilities].some(Boolean)) {
+      return false;
+    }
+    return true;
   }
 
   function descriptorAccessorValues(descriptorValue, kind) {
@@ -3671,6 +3922,45 @@ function collectBindings(sourceFile) {
     }
   }
 
+  function applyCarrierIntegrityLevel(targetValue, invocationNode, frozen) {
+    const deterministic = activeAlternativeMutationDepth === 0 && deterministicWriteRank(invocationNode) !== undefined;
+    for (const atom of targetValue) {
+      if (typeof atom === 'string' || atom.kind !== 'carrier') continue;
+      let changed = false;
+      const extensible = deterministic ? false : undefined;
+      if (atom.extensible !== false && atom.extensible !== extensible) {
+        atom.extensible = extensible;
+        changed = true;
+      }
+      const configurability = deterministic ? false : undefined;
+      if (atom.integrityConfigurability !== false && atom.integrityConfigurability !== configurability) {
+        atom.integrityConfigurability = configurability;
+        changed = true;
+      }
+      if (frozen) {
+        const writability = deterministic ? false : undefined;
+        if (atom.integrityWritability !== false && atom.integrityWritability !== writability) {
+          atom.integrityWritability = writability;
+          changed = true;
+        }
+      }
+      if (
+        changed &&
+        (atom.unknownProperty.size > 0 ||
+          atom.unknownAccessors.get.size > 0 ||
+          atom.unknownAccessors.set.size > 0 ||
+          [...atom.prototypes].some(prototype => typeof prototype !== 'string') ||
+          [...atom.properties].some(
+            ([propertyName, value]) => /^(0|[1-9]\d*)$/.test(propertyName) && hasUnsafePositionalValue(value)
+          ) ||
+          hasUnsafePositionalValue(atom.uncertainPositionalValues) ||
+          hasUnsafePositionalValue(atom.overflowPositionalValues))
+      ) {
+        notifyPropagationSubscribers(atom);
+      }
+    }
+  }
+
   function applyObjectAssign(targetValue, sourceValues, writeNode) {
     for (const sourceValue of sourceValues) {
       for (const source of sourceValue) {
@@ -3723,16 +4013,11 @@ function collectBindings(sourceFile) {
         recordDescriptorAccessors(targetValue, [propertyName], descriptorValue);
         const dataValue = descriptorFieldValues(descriptorValue, 'value');
         const accessorDescriptor = ['get', 'set'].some(field => descriptorFieldValues(descriptorValue, field).size > 0);
-        if (dataValue.size > 0) {
-          invalidatePositionalTargets(targetValue, [propertyName], dataValue, false, !accessorDescriptor);
-          recordTargetProperty(
-            targetValue,
-            [propertyName],
-            dataValue,
-            writeNode,
-            !accessorDescriptor,
-            descriptorWritability(descriptorValue)
-          );
+        if (!accessorDescriptor) {
+          if (dataValue.size > 0) {
+            invalidatePositionalTargets(targetValue, [propertyName], dataValue, false, true);
+          }
+          recordTargetDataDescriptor(targetValue, [propertyName], descriptorValue, writeNode, true);
         }
       }
       if (
@@ -4315,7 +4600,7 @@ function collectBindings(sourceFile) {
     }
   }
 
-  function applyPositionalMutationIntrinsic(atom, argumentValues, thisValue, invocationNode) {
+  function applyPositionalMutationIntrinsic(atom, argumentValues, thisValue, invocationNode, intrinsicResult) {
     if (atom === origins.mapSet) {
       if (
         activeDormantInvocationDepth > 0 ||
@@ -4368,8 +4653,15 @@ function collectBindings(sourceFile) {
       applyObjectAssign(argumentValues[0] ?? new Set(), argumentValues.slice(1), invocationNode);
       return true;
     }
-    if (atom === origins.objectPreventExtensions) {
+    if (atom === origins.objectPreventExtensions || atom === origins.reflectPreventExtensions) {
       preventCarrierExtensions(argumentValues[0] ?? new Set(), invocationNode);
+      if (atom === origins.reflectPreventExtensions && intrinsicResult) {
+        mergeValue(intrinsicResult, literalValue(true));
+      }
+      return true;
+    }
+    if (atom === origins.objectSeal || atom === origins.objectFreeze) {
+      applyCarrierIntegrityLevel(argumentValues[0] ?? new Set(), invocationNode, atom === origins.objectFreeze);
       return true;
     }
     if (atom === origins.reflectDeleteProperty) {
@@ -4398,7 +4690,7 @@ function collectBindings(sourceFile) {
         atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty
           ? ['get', 'set'].some(field => descriptorFieldValues(argumentValues[2] ?? new Set(), field).size > 0)
           : false;
-      const reflectiveIndexedSuccess =
+      let reflectiveIndexedSuccess =
         atom === origins.reflectDefineProperty || atom === origins.reflectSet
           ? reflectiveIndexedWriteSuccessIsProven(
               targetValue,
@@ -4408,38 +4700,31 @@ function collectBindings(sourceFile) {
               argumentValues[2] ?? new Set()
             )
           : undefined;
-      if (reflectiveIndexedSuccess === false || (reflectiveIndexedSuccess === true && accessorDescriptor)) {
-        invalidatePositionalTargets(
-          receiverValue ?? new Set(),
+      if (atom === origins.reflectDefineProperty && reflectiveIndexedSuccess === undefined) {
+        reflectiveIndexedSuccess = reflectiveArrayLengthDescriptorSuccessIsProven(
+          targetValue,
           propertyNames,
-          unknownReflectiveCallableValue(),
-          true
+          argumentValues[2] ?? new Set()
         );
+      }
+      if ((atom === origins.reflectDefineProperty || atom === origins.reflectSet) && intrinsicResult) {
+        mergeValue(intrinsicResult, literalValue(true));
+        if (reflectiveIndexedSuccess !== true || accessorDescriptor) {
+          mergeValue(intrinsicResult, literalValue(false));
+        }
+      }
+      if (reflectiveIndexedSuccess === false || (reflectiveIndexedSuccess === true && accessorDescriptor)) {
+        invalidatePositionalTargets(receiverValue ?? new Set(), propertyNames, unknownReflectiveCallableValue(), true);
         return true;
       }
       const strongDataWrite =
-        !accessorDescriptor &&
-        (atom === origins.objectDefineProperty || reflectiveIndexedSuccess === true);
-      invalidatePositionalTargets(
-        targetValue,
-        propertyNames,
-        assignedValue,
-        accessorDescriptor,
-        strongDataWrite
-      );
+        !accessorDescriptor && (atom === origins.objectDefineProperty || reflectiveIndexedSuccess === true);
+      invalidatePositionalTargets(targetValue, propertyNames, assignedValue, accessorDescriptor, strongDataWrite);
       if (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) {
         const descriptorValue = argumentValues[2] ?? new Set();
         recordDescriptorAccessors(targetValue, propertyNames, descriptorValue);
-        const dataValue = descriptorFieldValues(descriptorValue, 'value');
-        if (dataValue.size > 0) {
-          recordTargetProperty(
-            targetValue,
-            propertyNames,
-            dataValue,
-            invocationNode,
-            strongDataWrite,
-            descriptorWritability(descriptorValue)
-          );
+        if (!accessorDescriptor) {
+          recordTargetDataDescriptor(targetValue, propertyNames, descriptorValue, invocationNode, strongDataWrite);
         }
       } else {
         const invokesSetter = accessorMayRun(targetValue, propertyNames, 'set');
@@ -4454,12 +4739,20 @@ function collectBindings(sourceFile) {
         if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
           setCarrierPrototypes(receiverValue ?? new Set(), argumentValues[2] ?? new Set(), true);
         } else {
+          let descriptorAttributes;
+          if (strongDataWrite && receiverValue?.size === 1) {
+            const receiver = [...receiverValue][0];
+            if (typeof receiver !== 'string' && receiver.kind === 'carrier' && propertyNames?.length === 1) {
+              descriptorAttributes = successfulIndexedSetAttributes(receiver, propertyNames[0]);
+            }
+          }
           recordTargetProperty(
             receiverValue ?? new Set(),
             propertyNames,
             assignedValue,
             invocationNode,
-            strongDataWrite && !invokesSetter
+            strongDataWrite && !invokesSetter,
+            descriptorAttributes
           );
         }
       }
@@ -5562,11 +5855,13 @@ function collectBindings(sourceFile) {
         'defineProperties',
         'defineProperty',
         'entries',
+        'freeze',
         'getOwnPropertyDescriptor',
         'getOwnPropertyDescriptors',
         'getPrototypeOf',
         'preventExtensions',
         'prototype',
+        'seal',
         'setPrototypeOf',
         'values',
       ];
@@ -5581,6 +5876,7 @@ function collectBindings(sourceFile) {
         'get',
         'getOwnPropertyDescriptor',
         'getPrototypeOf',
+        'preventExtensions',
         'set',
         'setPrototypeOf',
       ];
@@ -6305,7 +6601,9 @@ function collectBindings(sourceFile) {
               shiftedPositionalOverflow(argumentExpansion, -1)
             )
           );
-        } else if (applyPositionalMutationIntrinsic(atom, argumentValues, thisValue, invocationNode)) {
+        } else if (
+          applyPositionalMutationIntrinsic(atom, argumentValues, thisValue, invocationNode, invocation.result)
+        ) {
           if (typeof atom !== 'string' && atom.kind === 'positional-mutator') {
             const source = thisValue ?? new Set();
             const expansion = positionalLayouts(source);
@@ -6324,16 +6622,13 @@ function collectBindings(sourceFile) {
             atom === origins.objectAssign ||
             atom === origins.objectDefineProperties ||
             atom === origins.objectDefineProperty ||
+            atom === origins.objectFreeze ||
             atom === origins.objectPreventExtensions ||
+            atom === origins.objectSeal ||
             atom === origins.objectSetPrototypeOf
           ) {
             mergeValue(invocation.result, argumentValues[0] ?? new Set());
-          } else if (
-            atom === origins.reflectDefineProperty ||
-            atom === origins.reflectDeleteProperty ||
-            atom === origins.reflectSet ||
-            atom === origins.reflectSetPrototypeOf
-          ) {
+          } else if (atom === origins.reflectDeleteProperty || atom === origins.reflectSetPrototypeOf) {
             mergeValue(invocation.result, literalValue(true));
           }
         } else if (typeof atom !== 'string' && !seen.has(atom)) {
@@ -7113,13 +7408,32 @@ function collectBindings(sourceFile) {
     if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
       const propertyNames = memberPropertyNames(current);
       const targetValue = evaluateExpression(current.expression);
+      const indexedWrite = propertyNames?.length === 1 && /^(0|[1-9]\d*)$/.test(propertyNames[0]);
+      if (indexedWrite && hasUnsafeCallable(value)) {
+        recordTargetProperty(targetValue, propertyNames, retainReflectiveCallableProvenance(value), current);
+        return;
+      }
+      const indexedWriteSuccess = indexedWrite
+        ? reflectiveIndexedWriteSuccessIsProven(targetValue, propertyNames, targetValue, false)
+        : undefined;
+      if (indexedWrite && indexedWriteSuccess !== true) {
+        invalidatePositionalTargets(targetValue, propertyNames, retainReflectiveCallableProvenance(value), true);
+        return;
+      }
       const invokesSetter = accessorMayRun(targetValue, propertyNames, 'set');
       if (invokesSetter) invalidatePositionalTargets(targetValue, undefined, unknownValue());
       invalidatePositionalTargets(targetValue, propertyNames, value, false, !invokesSetter);
       if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
         setCarrierPrototypes(targetValue, value, propertyNames?.includes('__proto__') === true);
       } else {
-        recordTargetProperty(targetValue, propertyNames, value, current, !invokesSetter);
+        let descriptorAttributes;
+        if (indexedWriteSuccess === true && targetValue.size === 1) {
+          const target = [...targetValue][0];
+          if (typeof target !== 'string' && target.kind === 'carrier') {
+            descriptorAttributes = successfulIndexedSetAttributes(target, propertyNames[0]);
+          }
+        }
+        recordTargetProperty(targetValue, propertyNames, value, current, !invokesSetter, descriptorAttributes);
       }
       return;
     }
