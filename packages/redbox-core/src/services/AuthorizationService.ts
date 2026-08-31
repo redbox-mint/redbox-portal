@@ -175,6 +175,10 @@ function associationId(value: unknown): string | undefined {
   return undefined;
 }
 
+function optionalRoleTemplateRevision(value: unknown): number | undefined {
+  return value === undefined || value === null || value === 0 ? undefined : (value as number);
+}
+
 function optionalAssociationIsValid(value: unknown): boolean {
   return value == null || associationId(value) !== undefined;
 }
@@ -733,7 +737,7 @@ export namespace Services {
       const roleIds = candidates.map(candidate => String(candidate.role.id));
       const revisionReferences = candidates.flatMap(candidate => {
         const templateId = associationId(candidate.role.template);
-        const revision = candidate.role.templateRevision;
+        const revision = optionalRoleTemplateRevision(candidate.role.templateRevision);
         return templateId !== undefined && Number.isInteger(revision) && Number(revision) >= 1
           ? [{ templateId, revision: Number(revision) }]
           : [];
@@ -768,7 +772,7 @@ export namespace Services {
           continue;
         }
         const templateId = associationId(candidate.role.template);
-        const templateRevision = candidate.role.templateRevision;
+        const templateRevision = optionalRoleTemplateRevision(candidate.role.templateRevision);
         const hasTemplateReference = templateId !== undefined || templateRevision !== undefined;
         let baseScopeKeys: ScopeKey[] = [];
         let templateAvailable = true;

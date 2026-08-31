@@ -1,4 +1,5 @@
 describe('The RDMPService', function () {
+    let initialUserCount;
     const userAdminDefault = {
         type: 'local',
         name: 'admin',
@@ -29,7 +30,11 @@ describe('The RDMPService', function () {
     };
     before(function () {
         // add another user
-        return User.create(userAdmin1);
+        return User.create(userAdmin1).then(function () {
+            return User.count().then(function (count) {
+                initialUserCount = count;
+            });
+        });
     });
     after(function () {
         // remove the users added in `before`
@@ -77,7 +82,7 @@ describe('The RDMPService', function () {
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
-                    expect(count).equal(2);
+                    expect(count).equal(initialUserCount);
                     done();
                 });
             });
@@ -124,7 +129,7 @@ describe('The RDMPService', function () {
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
-                    expect(count).equal(2);
+                    expect(count).equal(initialUserCount);
                     done();
                 });
             });
@@ -171,7 +176,7 @@ describe('The RDMPService', function () {
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
-                    expect(count).equal(2);
+                    expect(count).equal(initialUserCount);
                     done();
                 });
             });
@@ -230,7 +235,7 @@ describe('The RDMPService', function () {
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
-                    expect(count).equal(2);
+                    expect(count).equal(initialUserCount);
                     done();
                 });
             });
@@ -274,7 +279,7 @@ describe('The RDMPService', function () {
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
-                    expect(count).equal(2);
+                    expect(count).equal(initialUserCount);
                     done();
                 });
             });
@@ -318,7 +323,7 @@ describe('The RDMPService', function () {
                 expect(record.authorization.editPending).to.be.empty;
                 expect(record.authorization.viewPending).to.be.empty;
                 User.count().then(function (count) {
-                    expect(count).equal(2);
+                    expect(count).equal(initialUserCount);
                     done();
                 });
             });
@@ -380,7 +385,7 @@ describe('The RDMPService', function () {
                 expect(record.authorization.editPending).eql([userNotInDB1.email]);
                 expect(record.authorization.viewPending).eql([userNotInDB1.email, userNotInDB2.email]);
                 User.count().then(function (count) {
-                    expect(count).equal(2);
+                    expect(count).equal(initialUserCount);
                     done();
                 });
             });

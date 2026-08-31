@@ -169,6 +169,10 @@ function associationId(value: unknown): string | undefined {
   return undefined;
 }
 
+function optionalRoleTemplateRevision(value: unknown): number | undefined {
+  return value === undefined || value === null || value === 0 ? undefined : (value as number);
+}
+
 function positiveVersion(value: unknown, field = 'expectedVersion'): number {
   if (!Number.isSafeInteger(value) || Number(value) < 1) {
     throw new AuthorizationAdministrationError(
@@ -744,14 +748,15 @@ export namespace Services {
 
     private async loadRoleState(role: RoleAttributes, connection?: Sails.Connection): Promise<LoadedRoleState> {
       const templateId = associationId(role.template);
+      const templateRevision = optionalRoleTemplateRevision(role.templateRevision);
       let template: RoleTemplateAttributes | undefined;
       let revision: RoleTemplateRevisionAttributes | undefined;
       let baseScopeKeys: readonly ScopeKey[] = [];
-      if (templateId !== undefined && role.templateRevision !== undefined) {
+      if (templateId !== undefined && templateRevision !== undefined) {
         let templateQuery = RoleTemplate.findOne({ id: templateId });
         if (connection !== undefined) templateQuery = templateQuery.usingConnection(connection);
         template = (await templateQuery) as RoleTemplateAttributes | undefined;
-        revision = await this.findRevision(templateId, role.templateRevision, connection);
+        revision = await this.findRevision(templateId, templateRevision, connection);
         baseScopeKeys = normalizedScopeKeys(revision.scopeKeys);
       }
       let overrideQuery = RoleScopeOverride.find({ role: role.id }).sort('scopeKey ASC');
@@ -776,6 +781,7 @@ export namespace Services {
     private snapshot(state: LoadedRoleState): RoleAdministrationSnapshot {
       const role = state.role;
       const brandId = associationId(role.branding);
+      const templateRevision = optionalRoleTemplateRevision(role.templateRevision);
       return Object.freeze({
         id: role.id,
         key: roleIdentity(role) as RoleAdministrationSnapshot['key'],
@@ -788,7 +794,7 @@ export namespace Services {
         ...(state.template === undefined
           ? {}
           : { templateKey: state.template.key as RoleAdministrationSnapshot['templateKey'] }),
-        ...(role.templateRevision === undefined ? {} : { templateRevision: role.templateRevision }),
+        ...(templateRevision === undefined ? {} : { templateRevision }),
         baseScopeKeys: Object.freeze([...state.baseScopeKeys]),
         effectiveScopeKeys: Object.freeze([...state.effectiveScopeKeys]),
         overrides: Object.freeze(state.overrides.map(override => Object.freeze({ ...override }))),
@@ -805,6 +811,7 @@ export namespace Services {
         throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target role was not found.');
       }
       const templateId = associationId(role.template);
+      const templateRevision = optionalRoleTemplateRevision(role.templateRevision);
       const template = templateId === undefined ? undefined : templateById.get(templateId);
       const description = optionalAuthorizationText(role.description, 2_000);
       return Object.freeze({
@@ -817,7 +824,7 @@ export namespace Services {
         protectedKind: role.protectedKind ?? 'none',
         status: role.status ?? 'active',
         ...(template === undefined ? {} : { templateKey: template.key as RoleCatalogItem['templateKey'] }),
-        ...(role.templateRevision === undefined ? {} : { templateRevision: role.templateRevision }),
+        ...(templateRevision === undefined ? {} : { templateRevision }),
         version: positiveVersion(role.version ?? 1, 'role.version'),
       });
     }

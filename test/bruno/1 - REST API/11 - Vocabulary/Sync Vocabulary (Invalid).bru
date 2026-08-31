@@ -19,7 +19,7 @@ body:json {
 }
 
 tests {
-  test("Status code is 400 for invalid vocabulary id", function () {
-    expect(res.getStatus()).to.equal(400);
+  test("Status code is 404 for an unavailable vocabulary", function () {
+    expect(res.getStatus()).to.equal(404);
   });
 }
