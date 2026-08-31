@@ -169,12 +169,12 @@ export class DashboardConfigApiService extends HttpClientService {
   }
 
   async saveWorkflowStateDashboardConfig(recordType: string, workflowStage: string, config: WorkflowStateDashboardConfig): Promise<DashboardTableOverrideConfigData> {
-    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/record-types/${encodeURIComponent(recordType)}/steps/${encodeURIComponent(workflowStage)}`), config, this.getJsonRequestOptions()));
+    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/merged/${encodeURIComponent(recordType)}/${encodeURIComponent(workflowStage)}`), config, this.getJsonRequestOptions()));
     return this.unwrap(response);
   }
 
   async saveDashboardViewStepConfig(viewName: string, stepName: string, config: WorkflowStateDashboardConfig): Promise<DashboardTableOverrideConfigData> {
-    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/views/${encodeURIComponent(viewName)}/steps/${encodeURIComponent(stepName)}`), config, this.getJsonRequestOptions()));
+    const response = await firstValueFrom(this.http.put<ApiResponse<DashboardTableOverrideConfigData>>(this.apiUrl(`/merged-view/${encodeURIComponent(viewName)}/${encodeURIComponent(stepName)}`), config, this.getJsonRequestOptions()));
     return this.unwrap(response);
   }
 
