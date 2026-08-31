@@ -21,13 +21,13 @@ headers {
 }
 
 tests {
-  test("Status code is 403", function () {
-      expect(res.getStatus()).to.equal(403);
+  test("Status code is 401 for unauthenticated request", function () {
+      expect(res.getStatus()).to.equal(401);
   });
   
-  test("Message is access denied", function () {
+  test("Problem identifies authentication as required", function () {
       var jsonData = res.getBody();
       
-      expect(jsonData.message).to.eql("Access Denied");
+      expect(jsonData.code).to.eql("authentication-required");
   });
 }
