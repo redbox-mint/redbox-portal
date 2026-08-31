@@ -9977,6 +9977,134 @@ test('recreated bulk keys reset attributes and install assignment or descriptor 
   );
 });
 
+test('conditional delete and recreation exposes live enumerable keys to bulk operations', () => {
+  const markerKey = '__a12_conditional_recreated_bulk_marker__';
+  const modes = [
+    {
+      bulk: (pathName, target, source) =>
+        pathName === 'helper' ? `bulk(${target},${source})` : `Object.assign(${target},${source})`,
+      descriptor: 'JSON.parse',
+      name: 'assign',
+      replacement: 'eval',
+      helper: 'const bulk=(target,source)=>Object.assign(target,source);',
+    },
+    {
+      bulk: (pathName, target, source) =>
+        pathName === 'helper' ? `bulk(${target},${source})` : `Object.defineProperties(${target},${source})`,
+      descriptor: '{value:JSON.parse}',
+      name: 'define-properties',
+      replacement: '{value:eval}',
+      helper: 'const bulk=(target,source)=>Object.defineProperties(target,source);',
+    },
+  ];
+  const paths = [
+    {
+      name: 'direct',
+      prefix: () => '',
+      recreate: (key, replacement) => `try{source[${key}]=${replacement}}catch{}finally{void 0}`,
+    },
+    {
+      name: 'helper',
+      prefix: (key, replacement, mode) =>
+        `function recreate(value){'use strict';try{value[${key}]=${replacement}}catch{}finally{void 0}}
+         ${mode.helper}`,
+      recreate: () => 'recreate(source)',
+    },
+    {
+      name: 'reflect-helper',
+      prefix: (key, replacement) =>
+        `function recreate(value){try{return Reflect.set(value,${key},${replacement})}finally{void 0}}`,
+      recreate: () => 'recreate(source)',
+    },
+  ];
+  const cases = ['run', 1, 64, 65].flatMap(propertyName =>
+    modes.flatMap(mode =>
+      paths.map(pathCase => ({
+        mode,
+        name: `${mode.name}-${pathCase.name}-${propertyName}`,
+        pathCase,
+        propertyName,
+      }))
+    )
+  );
+  const buildSource = (runtimeCase, flag, payload) => {
+    const { mode, pathCase, propertyName } = runtimeCase;
+    const key = JSON.stringify(propertyName);
+    const target =
+      typeof propertyName === 'number' ? `Array(${propertyName + 1}).fill(JSON.parse)` : '{run:JSON.parse}';
+    return `${pathCase.prefix(key, mode.replacement, mode)}
+      const source={};Object.defineProperty(source,${key},{value:${mode.descriptor},enumerable:false,
+        writable:false,configurable:true});if(${flag})delete source[${key}];
+      ${pathCase.recreate(key, mode.replacement)};const target=${target};
+      ${mode.bulk(pathCase.name, 'target', 'source')};try{target[${key}](${payload})}catch{}`;
+  };
+
+  for (const runtimeCase of cases) {
+    const findings = scanSource(
+      buildSource(runtimeCase, 'globalThis.flag', 'configuredSource'),
+      `packages/example/src/conditional-recreated-bulk-${runtimeCase.name}.ts`
+    );
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should retain the enumerable recreation: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  const safeSources = [
+    `const source={};Object.defineProperty(source,'run',{value:JSON.parse,enumerable:false,writable:false,
+      configurable:true});try{source.run=eval}catch{}const target={run:JSON.parse};
+      Object.assign(target,source);target.run('{}');`,
+    `const source={};Object.defineProperty(source,'run',{value:eval,enumerable:false,writable:false,
+      configurable:true});delete source.run;source.run=JSON.parse;const target={run:JSON.parse};
+      Object.assign(target,source);target.run('{}');`,
+    `const source={};Object.defineProperty(source,'run',{value:{value:JSON.parse},enumerable:false,
+      writable:false,configurable:true});Reflect.set(source,'run',{value:eval});const target={run:JSON.parse};
+      Object.defineProperties(target,source);target.run('{}');`,
+    `const source={};Object.defineProperty(source,'run',{value:{value:eval},enumerable:false,writable:false,
+      configurable:true});delete source.run;Reflect.set(source,'run',{value:JSON.parse});
+      const target={run:JSON.parse};Object.defineProperties(target,source);target.run('{}');`,
+  ];
+  for (const [index, safeSource] of safeSources.entries()) {
+    assert.deepEqual(
+      scanSource(safeSource, `packages/example/src/safe-conditional-recreated-bulk-${index}.ts`),
+      [],
+      `conditional recreation control ${index} should stay clean`
+    );
+  }
+
+  const runtimeBranches = cases.flatMap(runtimeCase =>
+    [false, true].map(flag => {
+      const name = `${runtimeCase.name}-${flag}`;
+      const payload = JSON.stringify(`globalThis.${markerKey}.push('${name}-eval')`);
+      return `{${buildSource(runtimeCase, flag, payload)}
+        globalThis.${markerKey}.push('${name}-enumerable-'+
+          Object.prototype.propertyIsEnumerable.call(source,${JSON.stringify(runtimeCase.propertyName)}));}`;
+    })
+  );
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...runtimeBranches,
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(runtimeCase => [
+      `${runtimeCase.name}-false-enumerable-false`,
+      `${runtimeCase.name}-true-eval`,
+      `${runtimeCase.name}-true-enumerable-true`,
+    ])
+  );
+});
+
 test('recreated string keys move to their live insertion order before bulk aborts', () => {
   const markerKey = '__a12_recreated_key_order_marker__';
   const modes = [
@@ -10136,6 +10264,158 @@ test('ordinary string assignments preserve eval when own, inherited, or receiver
   assert.deepEqual(
     JSON.parse(result.stdout),
     cases.map(runtimeCase => runtimeCase.name)
+  );
+});
+
+test('inherited setters preserve getter provenance without inventing receiver data properties', () => {
+  const markerKey = '__a12_inherited_setter_consumption_marker__';
+  const paths = [
+    {
+      name: 'direct',
+      write: key => `try{target[${key}]=JSON.parse}catch{}finally{void 0}`,
+    },
+    {
+      name: 'helper',
+      prefix: key => `function replace(value){'use strict';try{value[${key}]=JSON.parse}catch{}finally{void 0}}`,
+      write: () => 'replace(target)',
+    },
+    {
+      name: 'reflect',
+      write: key => `try{Reflect.set(target,${key},JSON.parse)}catch{}finally{void 0}`,
+    },
+    {
+      name: 'reflect-helper',
+      prefix: key => `function replace(value){try{return Reflect.set(value,${key},JSON.parse)}finally{void 0}}`,
+      write: () => 'try{replace(target)}catch{}',
+    },
+  ];
+  const setterModes = [
+    { definition: 'set(_){}', name: 'consumed' },
+    { definition: `set(_){throw new Error('blocked')}`, name: 'throwing' },
+  ];
+  const cases = ['run', 1, 64, 65].flatMap(propertyName =>
+    setterModes.flatMap(setterMode =>
+      paths.map(pathCase => ({
+        name: `${setterMode.name}-${pathCase.name}-${propertyName}`,
+        pathCase,
+        propertyName,
+        setterMode,
+      }))
+    )
+  );
+  const buildSource = (runtimeCase, payload) => {
+    const { pathCase, propertyName, setterMode } = runtimeCase;
+    const key = JSON.stringify(propertyName);
+    const prototype = typeof propertyName === 'number' ? '[]' : '{}';
+    const target =
+      typeof propertyName === 'number'
+        ? `const target=Array(${propertyName});Object.setPrototypeOf(target,prototype);`
+        : 'const target=Object.create(prototype);';
+    return `${pathCase.prefix?.(key) ?? ''}const prototype=${prototype};
+      Object.defineProperty(prototype,${key},{get(){return eval},${setterMode.definition}});
+      ${target}${pathCase.write(key)};target[${key}](${payload});`;
+  };
+
+  for (const runtimeCase of cases) {
+    const findings = scanSource(
+      buildSource(runtimeCase, 'configuredSource'),
+      `packages/example/src/inherited-setter-${runtimeCase.name}.ts`
+    );
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should preserve the inherited getter: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  const conditionalCases = ['run', 1, 64, 65].flatMap(propertyName =>
+    ['direct', 'reflect'].map(pathName => ({
+      name: `conditional-${pathName}-${propertyName}`,
+      pathName,
+      propertyName,
+    }))
+  );
+  const buildConditionalSource = (runtimeCase, flag, payload) => {
+    const { pathName, propertyName } = runtimeCase;
+    const key = JSON.stringify(propertyName);
+    const prototype = typeof propertyName === 'number' ? '[]' : '{}';
+    const target =
+      typeof propertyName === 'number'
+        ? `const target=Array(${propertyName});Object.setPrototypeOf(target,prototype);`
+        : 'const target=Object.create(prototype);';
+    const write = pathName === 'reflect' ? `Reflect.set(target,${key},JSON.parse)` : `target[${key}]=JSON.parse`;
+    return `const unsafePrototype=${prototype};Object.defineProperty(unsafePrototype,${key},{
+        get(){return eval},set(_){}});const safePrototype=${prototype};
+      const prototype=${flag}?unsafePrototype:safePrototype;${target}
+      ${write};try{target[${key}](${payload})}catch{}`;
+  };
+  for (const runtimeCase of conditionalCases) {
+    const findings = scanSource(
+      buildConditionalSource(runtimeCase, 'globalThis.flag', 'configuredSource'),
+      `packages/example/src/conditional-inherited-setter-${runtimeCase.name}.ts`
+    );
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should merge the setter-consumed branch: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  const safeSources = [
+    `const prototype={};Object.defineProperty(prototype,'run',{get(){return JSON.parse},set(_){}});
+      const target=Object.create(prototype);target.run=JSON.parse;target.run('{}');`,
+    `const prototype={};Object.defineProperty(prototype,'run',{value:eval,writable:true});
+      const target=Object.create(prototype);target.run=JSON.parse;target.run('{}');`,
+    `const prototype={};Object.defineProperty(prototype,'65',{get(){return JSON.parse},set(_){}});
+      const target=Object.create(prototype);
+      Reflect.set(target,'65',JSON.parse);target[65]('{}');`,
+  ];
+  for (const [index, safeSource] of safeSources.entries()) {
+    assert.deepEqual(
+      scanSource(safeSource, `packages/example/src/safe-inherited-setter-${index}.ts`),
+      [],
+      `inherited setter control ${index} should stay clean`
+    );
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.map(runtimeCase => {
+      const payload = JSON.stringify(`globalThis.${markerKey}.push('${runtimeCase.name}-eval')`);
+      return `{${buildSource(runtimeCase, payload)}
+        globalThis.${markerKey}.push('${runtimeCase.name}-own-'+
+          Object.hasOwn(target,${JSON.stringify(runtimeCase.propertyName)}));}`;
+    }),
+    ...conditionalCases.flatMap(runtimeCase =>
+      [false, true].map(flag => {
+        const name = `${runtimeCase.name}-${flag}`;
+        const payload = JSON.stringify(`globalThis.${markerKey}.push('${name}-eval')`);
+        return `{${buildConditionalSource(runtimeCase, flag, payload)}
+          globalThis.${markerKey}.push('${name}-own-'+
+            Object.hasOwn(target,${JSON.stringify(runtimeCase.propertyName)}));}`;
+      })
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases
+      .flatMap(runtimeCase => [`${runtimeCase.name}-eval`, `${runtimeCase.name}-own-false`])
+      .concat(
+        conditionalCases.flatMap(runtimeCase => [
+          `${runtimeCase.name}-false-own-true`,
+          `${runtimeCase.name}-true-eval`,
+          `${runtimeCase.name}-true-own-false`,
+        ])
+      )
   );
 });
 
