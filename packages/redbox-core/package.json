@@ -89,7 +89,7 @@
     "rxjs": "7.8.2",
     "sails": "1.5.18",
     "sails-mongo": "2.1.2",
-    "sass": "1.102.0",
+    "sass": "1.103.1",
     "sass-loader": "17.0.0",
     "skipper": "0.9.8",
     "skipper-gridfs": "1.0.2",
