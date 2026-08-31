@@ -86,7 +86,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest@sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69
+    image: solr:latest@sha256:c2a983cd9a5759c3b802b7b47f48b5cfae2b34d63a9444d62730fdbdb1b5308b
     pull_policy: 'missing'
     expose:
       - "8983"
