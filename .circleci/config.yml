@@ -177,10 +177,24 @@ jobs:
           command: |
             mkdir -p /tmp/.codecov-cli
             cd /tmp/.codecov-cli
-            curl https://keybase.io/codecovsecops/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            curl -Os https://cli.codecov.io/latest/linux/codecov
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            downloadCodecovFile() {
+              local url="$1"
+              local target="$2"
+              local attempt
+              for attempt in 1 2 3 4 5; do
+                if curl --fail --location --silent --show-error --output "$target" "$url" && test -s "$target"; then
+                  return 0
+                fi
+                echo "Retrying Codecov download ($attempt/5): $url" >&2
+                sleep 3
+              done
+              return 1
+            }
+            downloadCodecovFile https://keybase.io/codecovsecops/pgp_keys.asc pgp_keys.asc
+            gpg --no-default-keyring --keyring trustedkeys.gpg --import pgp_keys.asc
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov codecov
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM codecov.SHA256SUM
+            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig codecov.SHA256SUM.sig
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
