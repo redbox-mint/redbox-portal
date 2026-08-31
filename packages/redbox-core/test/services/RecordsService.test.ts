@@ -3147,6 +3147,46 @@ describe('RecordsService', function () {
       expect(mockStorageService.create.calledOnce).to.equal(true);
     });
 
+    it('normalizes a missing brand id in the starting form fingerprint contract', async function () {
+      mockStorageService.getCapabilities = sinon.stub().returns({
+        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      });
+      const recordType = {
+        name: 'rdmp',
+        hooks: {},
+        searchable: false,
+        concurrentModification: { mode: 'strict' },
+      };
+      const getFingerprint = sinon.stub(RecordsService, 'getRecordFormFingerprint').resolves('issued-fingerprint');
+      const context = createRecordSaveContext({
+        routeFamily: 'browser',
+        operation: 'create',
+        targetStep: 'published',
+        concurrency: { entityTagSupplied: false, formFingerprint: 'issued-fingerprint' },
+      });
+
+      const result = await RecordsService.create(
+        {},
+        {
+          metadata: { title: 'Create without brand id' },
+          authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
+        },
+        recordType,
+        { username: 'user-1' },
+        true,
+        false,
+        'published',
+        context
+      );
+
+      expect(result.wasPersisted()).to.equal(true);
+      expect(getFingerprint.calledOnce).to.equal(true);
+      expect(getFingerprint.firstCall.args[0]).to.deep.include({
+        metaMetadata: { brandId: '', type: 'rdmp', form: 'default-form' },
+        workflow: { stage: 'draft' },
+      });
+    });
+
     it('generates a historical hyphenless OID for a configured create before storage', async function () {
       mockStorageService.create.resolves({
         success: true,

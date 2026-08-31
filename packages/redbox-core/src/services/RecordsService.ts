@@ -3396,7 +3396,7 @@ export namespace Services {
       const createFormFingerprintRecord: AnyRecord = {
         metaMetadata: {
           brandId: String(brandObj?.id ?? ''),
-          type: String(recordTypeObj?.name ?? recordTypeName),
+          type: recordTypeName,
           form: String(_.get(startingWfStep, 'config.form', '')),
         },
         workflow: { stage: this.workflowStepName(startingWfStep) },
