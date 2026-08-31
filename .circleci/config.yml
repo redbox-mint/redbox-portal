@@ -182,7 +182,7 @@ jobs:
               local target="$2"
               local attempt
               for attempt in 1 2 3 4 5; do
-                if curl --fail --location --silent --show-error --output "$target" "$url" && test -s "$target"; then
+                if curl --fail --location --silent --show-error --retry 2 --retry-delay 3 --retry-all-errors --output "$target" "$url" && test -s "$target"; then
                   return 0
                 fi
                 echo "Retrying Codecov download ($attempt/5): $url" >&2
