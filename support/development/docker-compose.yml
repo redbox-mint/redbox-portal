@@ -2,9 +2,9 @@ x-rbportal-env: &rbportal-env
   NODE_ENV: docker
   PORT: 1500
   WEBPACK_SKIP: 'true'
-  sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal
-  sails__datastores__redboxStorage__url: mongodb://mongodb:27017/redbox-storage
-  sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions
+  sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal?replicaSet=rs0
+  sails__datastores__redboxStorage__url: mongodb://mongodb:27017/redbox-storage?replicaSet=rs0
+  sails__redboxSession_mongoUrl: mongodb://mongodb:27017/sessions?replicaSet=rs0
   # For NG apps migrated NG 15 or above, if you are actively developing the front-end, then build your app manually, making sure you disable filename hashing, before you use the app.
   sails_angularDev: 'true'
   # Set APP_URL to the URL used by the browser. For example:
@@ -47,8 +47,10 @@ x-rbportal-service: &rbportal-service
     # Debugging port
     - '9876:9876'
   depends_on:
-    - mongodb
-    - solr
+    mongodb:
+      condition: service_healthy
+    solr:
+      condition: service_started
   networks:
     main:
       aliases:
@@ -82,16 +84,24 @@ services:
   mongodb:
     #image: mvertes/alpine-mongo:latest
     image: mongo:latest@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
     volumes:
       - './devdata:/devdata:delegated'
       - './.dev/mongo/data/db:/data/db:delegated'
       - './.dev/log/mongo:/var/log/mongo:delegated'
+      - '../integration-testing/mongo-replica-set-healthcheck.js:/opt/redbox/mongo-replica-set-healthcheck.js:ro'
     networks:
       main:
         aliases:
           - mongodb
     ports:
       - '27017:27017'
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--file', '/opt/redbox/mongo-replica-set-healthcheck.js']
+      interval: '10s'
+      timeout: '5s'
+      retries: 30
+      start_period: '30s'
   solr:
     image: solr:latest@sha256:8a731ef4d81455d17f3770966999a6bde4da7f294db5d5b40c3dec16d4cbbb69
     expose:
