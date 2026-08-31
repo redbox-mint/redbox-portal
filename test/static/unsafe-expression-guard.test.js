@@ -8891,6 +8891,347 @@ test('bulk indexed compatibility failures preserve runtime key order and partial
   );
 });
 
+test('ordinary-key bulk failures retain later indexed calls in direct and helper paths', () => {
+  const modes = [
+    {
+      descriptors: index => `{x:1,length:${index}}`,
+      helper: 'const bulk=(target,source)=>Object.assign(target,source);',
+      invoke: source => `Object.assign(values,${source})`,
+      name: 'assign',
+      setup: "Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});",
+    },
+    {
+      descriptors: index => `{x:{value:1},length:{value:${index}}}`,
+      helper: 'const bulk=(target,source)=>Object.defineProperties(target,source);',
+      invoke: source => `Object.defineProperties(values,${source})`,
+      name: 'define-properties',
+      setup: "Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});",
+    },
+  ];
+  const paths = [
+    ['direct', mode => '', (mode, source) => mode.invoke(source)],
+    ['helper', mode => mode.helper, (mode, source) => `bulk(values,${source})`],
+  ];
+
+  for (const [caseIndex, failureCase] of [1, 64, 65]
+    .flatMap(index =>
+      modes.flatMap(mode =>
+        paths.map(([pathName, prefix, invoke]) => ({
+          index,
+          name: `${pathName} ${mode.name} at index ${index}`,
+          source: `${prefix(mode)}const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+            ${mode.setup}try{${invoke(mode, mode.descriptors(index))}}catch{}
+            values[${index}](configuredSource);`,
+        }))
+      )
+    )
+    .entries()) {
+    const findings = scanSource(failureCase.source, `packages/example/src/ordinary-key-bulk-abort-${caseIndex}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${failureCase.name} should retain eval above the unapplied length: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${failureCase.name} diagnostics should remain bounded`);
+  }
+
+  for (const [caseIndex, index] of [1, 64, 65].entries()) {
+    const compatibleCases = [
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        Object.defineProperty(values,'x',{value:0,writable:true,configurable:false});
+        Object.assign(values,{x:1,length:${index}});values[${index}]('{}');`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});
+        Object.defineProperties(values,{x:{value:0},length:{value:${index}}});values[${index}]('{}');`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});
+        try{Object.assign(values,{length:${index},x:1})}catch{}values[${index}]('{}');`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});
+        try{Object.defineProperties(values,{length:{value:${index}},x:{value:1}})}catch{}
+        values[${index}]('{}');`,
+    ];
+    for (const [controlIndex, source] of compatibleCases.entries()) {
+      assert.deepEqual(
+        scanSource(source, `packages/example/src/safe-ordinary-bulk-order-${caseIndex}-${controlIndex}.ts`),
+        [],
+        `compatible or earlier length operation ${controlIndex} should remain precise at index ${index}`
+      );
+    }
+
+    const uncertainCases = [
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});
+        const source=flag?{x:1,length:${index}}:{x:0,length:${index}};
+        try{Object.assign(values,source)}catch{}values[${index}](configuredSource);`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});
+        const descriptors=flag?{x:{value:1},length:{value:${index}}}:{x:{value:0},length:{value:${index}}};
+        try{Object.defineProperties(values,descriptors)}catch{}values[${index}](configuredSource);`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        const source={get x(){throw new Error('stop')},length:${index}};
+        try{Object.assign(values,source)}catch{}values[${index}](configuredSource);`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        const descriptors={length:{value:${index}},get x(){throw new Error('stop')}};
+        try{Object.defineProperties(values,descriptors)}catch{}values[${index}](configuredSource);`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        const bad={get value(){throw new Error('stop')}};
+        try{Object.defineProperties(values,{length:{value:${index}},x:bad})}catch{}
+        values[${index}](configuredSource);`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        try{Object.assign(values,{...loadData(),length:${index}})}catch{}
+        values[${index}](configuredSource);`,
+      `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+        try{Object.defineProperties(values,{...loadData(),length:{value:${index}}})}catch{}
+        values[${index}](configuredSource);`,
+    ];
+    for (const [controlIndex, source] of uncertainCases.entries()) {
+      const findings = scanSource(
+        source,
+        `packages/example/src/uncertain-ordinary-bulk-order-${caseIndex}-${controlIndex}.ts`
+      );
+      assert.ok(
+        findings.some(finding => finding.kind === 'direct-eval'),
+        `uncertain bulk operation ${controlIndex} should retain eval at index ${index}: ${JSON.stringify(findings)}`
+      );
+      assert.ok(findings.length <= 3, `uncertain bulk operation ${controlIndex} should remain bounded`);
+    }
+  }
+});
+
+test('ordinary-key bulk aborts and descriptor preflight failures agree with runtime ordering', () => {
+  const markerKey = '__a12_ordinary_bulk_abort_marker__';
+  const modes = [
+    {
+      direct: index => `Object.assign(values,{x:1,length:${index}})`,
+      helper: index => `const bulk=(target,source)=>Object.assign(target,source);bulk(values,{x:1,length:${index}})`,
+      name: 'assign',
+    },
+    {
+      direct: index => `Object.defineProperties(values,{x:{value:1},length:{value:${index}}})`,
+      helper: index =>
+        `const bulk=(target,source)=>Object.defineProperties(target,source);` +
+        `bulk(values,{x:{value:1},length:{value:${index}}})`,
+      name: 'define-properties',
+    },
+  ];
+  const orderedCases = [1, 64, 65].flatMap(index =>
+    modes.flatMap(mode =>
+      ['direct', 'helper'].map(pathName => ({
+        index,
+        mutation: mode[pathName](index),
+        name: `${mode.name}-${pathName}-${index}`,
+      }))
+    )
+  );
+  const preflightCases = [1, 64, 65].flatMap(index => [
+    {
+      index,
+      mutation: `const source={get x(){throw new Error('stop')},length:${index}};Object.assign(values,source)`,
+      name: `assign-source-getter-${index}`,
+    },
+    {
+      index,
+      mutation:
+        `const descriptors={length:{value:${index}},get x(){throw new Error('stop')}};` +
+        'Object.defineProperties(values,descriptors)',
+      name: `descriptor-map-getter-${index}`,
+    },
+    {
+      index,
+      mutation:
+        `const bad={get value(){throw new Error('stop')}};` +
+        `Object.defineProperties(values,{length:{value:${index}},x:bad})`,
+      name: `descriptor-field-getter-${index}`,
+    },
+  ]);
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...orderedCases.map(
+      runtimeCase => `{const values=Array(${runtimeCase.index + 1}).fill(JSON.parse);values[${runtimeCase.index}]=eval;
+        Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});let threw=false;
+        try{${runtimeCase.mutation}}catch{threw=true}globalThis.${markerKey}.push('${runtimeCase.name}-throw-'+threw);
+        globalThis.${markerKey}.push('${runtimeCase.name}-length-'+values.length);
+        values[${runtimeCase.index}](mark('${runtimeCase.name}-eval'));}`
+    ),
+    ...preflightCases.map(
+      runtimeCase => `{const values=Array(${runtimeCase.index + 1}).fill(JSON.parse);values[${runtimeCase.index}]=eval;
+        let threw=false;try{${runtimeCase.mutation}}catch{threw=true}
+        globalThis.${markerKey}.push('${runtimeCase.name}-throw-'+threw);
+        globalThis.${markerKey}.push('${runtimeCase.name}-length-'+values.length);
+        values[${runtimeCase.index}](mark('${runtimeCase.name}-eval'));}`
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    orderedCases
+      .concat(preflightCases)
+      .flatMap(runtimeCase => [
+        `${runtimeCase.name}-throw-true`,
+        `${runtimeCase.name}-length-${runtimeCase.index + 1}`,
+        `${runtimeCase.name}-eval`,
+      ])
+  );
+});
+
+test('successful reflective accessor operations expose only the true result branch', () => {
+  const paths = [
+    ['direct', () => '', mutation => mutation],
+    ['helper', mutation => `const operate=value=>${mutation.replace('values', 'value')};`, () => 'operate(values)'],
+  ];
+
+  for (const [caseIndex, successCase] of [1, 64, 65]
+    .flatMap(index => {
+      const operations = [
+        {
+          mutation: `Reflect.defineProperty(values,'${index}',{get(){return JSON.parse}})`,
+          name: `getter definition at index ${index}`,
+          setup: `const values=Array(${index + 1});`,
+        },
+        {
+          mutation: `Reflect.defineProperty(values,'${index}',{set(_) {}})`,
+          name: `setter definition at index ${index}`,
+          setup: `const values=Array(${index + 1});`,
+        },
+        {
+          mutation: `Reflect.set(values,'${index}',JSON.parse)`,
+          name: `own setter at index ${index}`,
+          setup: `const values=Array(${index + 1});Object.defineProperty(values,'${index}',{set(_) {}});`,
+        },
+        {
+          mutation: `Reflect.set(values,'${index}',JSON.parse)`,
+          name: `inherited setter at index ${index}`,
+          setup: `const prototype={};Object.defineProperty(prototype,'${index}',{set(_) {}});
+            const values=Object.create(prototype);Object.preventExtensions(values);`,
+        },
+      ];
+      return operations.flatMap(operation =>
+        paths.map(([pathName, prefix, invoke]) => ({
+          name: `${pathName} ${operation.name}`,
+          source: `${prefix(operation.mutation)}${operation.setup}const succeeded=${invoke(operation.mutation)};
+            ({true:JSON.parse,false:eval})[succeeded]('{}');`,
+        }))
+      );
+    })
+    .entries()) {
+    const relativePath = `packages/example/src/safe-reflective-accessor-result-${caseIndex}.ts`;
+    const firstFindings = scanSource(successCase.source, relativePath);
+    const secondFindings = scanSource(successCase.source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${successCase.name} should be deterministic`);
+    assert.deepEqual(firstFindings, [], `${successCase.name} should not retain an impossible false branch`);
+  }
+
+  for (const [caseIndex, index] of [1, 64, 65].entries()) {
+    const getterOnlyControl = `const values=Array(${index + 1});
+      Object.defineProperty(values,'${index}',{get(){return JSON.parse}});
+      const succeeded=Reflect.set(values,'${index}',JSON.parse);
+      ({true:eval,false:JSON.parse})[succeeded]('{}');`;
+    assert.deepEqual(
+      scanSource(getterOnlyControl, `packages/example/src/safe-getter-only-reflect-set-${caseIndex}.ts`),
+      [],
+      `a getter-only property should retain only the genuine false result at index ${index}`
+    );
+
+    const uncertainCases = [
+      `const withSetter=Array(${index + 1});Object.defineProperty(withSetter,'${index}',{set(_) {}});
+        const blocked=Array(${index + 1});Object.freeze(blocked);
+        const succeeded=Reflect.set(flag?withSetter:blocked,'${index}',JSON.parse);
+        ({true:JSON.parse,false:eval})[succeeded](configuredSource);`,
+      `const extensible=Array(${index + 1});const blocked=Array(${index + 1});Object.preventExtensions(blocked);
+        const succeeded=Reflect.defineProperty(flag?extensible:blocked,'${index}',{get(){return JSON.parse}});
+        ({true:JSON.parse,false:eval})[succeeded](configuredSource);`,
+      `const operate=value=>Reflect.set(value,'${index}',JSON.parse);
+        const withSetter=Array(${index + 1});Object.defineProperty(withSetter,'${index}',{set(_) {}});
+        const blocked=Array(${index + 1});Object.freeze(blocked);const succeeded=operate(flag?withSetter:blocked);
+        ({true:JSON.parse,false:eval})[succeeded](configuredSource);`,
+      `const values=Array(${index + 1});if(flag)Object.defineProperty(values,'${index}',{set(_) {}});
+        Object.preventExtensions(values);const succeeded=Reflect.set(values,'${index}',JSON.parse);
+        ({true:JSON.parse,false:eval})[succeeded](configuredSource);`,
+    ];
+    for (const [controlIndex, source] of uncertainCases.entries()) {
+      const findings = scanSource(
+        source,
+        `packages/example/src/uncertain-reflective-accessor-result-${caseIndex}-${controlIndex}.ts`
+      );
+      assert.ok(
+        findings.some(finding => finding.kind === 'direct-eval'),
+        `uncertain accessor result ${controlIndex} should fail closed at index ${index}: ${JSON.stringify(findings)}`
+      );
+      assert.ok(findings.length <= 2, `uncertain accessor result ${controlIndex} should remain bounded`);
+    }
+  }
+});
+
+test('reflective accessor success results agree with direct and helper runtime branches', () => {
+  const markerKey = '__a12_reflective_accessor_success_marker__';
+  const cases = [1, 64, 65].flatMap(index => {
+    const operations = [
+      {
+        mutation: `Reflect.defineProperty(values,'${index}',{get(){return JSON.parse}})`,
+        name: `define-getter-${index}`,
+        setup: `const values=Array(${index + 1});`,
+      },
+      {
+        mutation: `Reflect.defineProperty(values,'${index}',{set(_) {}})`,
+        name: `define-setter-${index}`,
+        setup: `const values=Array(${index + 1});`,
+      },
+      {
+        mutation: `Reflect.set(values,'${index}',JSON.parse)`,
+        name: `own-setter-${index}`,
+        setup: `const values=Array(${index + 1});Object.defineProperty(values,'${index}',{set(_) {}});`,
+      },
+      {
+        mutation: `Reflect.set(values,'${index}',JSON.parse)`,
+        name: `inherited-setter-${index}`,
+        setup: `const prototype={};Object.defineProperty(prototype,'${index}',{set(_) {}});
+          const values=Object.create(prototype);Object.preventExtensions(values);`,
+      },
+    ];
+    return operations.flatMap(operation => [
+      { ...operation, name: `${operation.name}-direct`, prefix: '', result: operation.mutation },
+      {
+        ...operation,
+        name: `${operation.name}-helper`,
+        prefix: `const operate=value=>${operation.mutation.replace('values', 'value')};`,
+        result: 'operate(values)',
+      },
+    ]);
+  });
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    `const mark=name=>"globalThis.${markerKey}.push("+JSON.stringify(name)+")";`,
+    ...cases.map(
+      successCase => `{${successCase.prefix}${successCase.setup}const succeeded=${successCase.result};
+        globalThis.${markerKey}.push('${successCase.name}-result-'+succeeded);
+        ({true:JSON.parse,false:eval})[succeeded](succeeded?'{}':mark('${successCase.name}-eval'));
+        globalThis.${markerKey}.push('${successCase.name}-safe');}`
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(successCase => [`${successCase.name}-result-true`, `${successCase.name}-safe`])
+  );
+});
+
 test('sparse inherited values materialize as bounded own properties across array mutations', () => {
   const safeCases = [
     `const prototype=[];prototype[64]=eval;prototype[65]=JSON.parse;
