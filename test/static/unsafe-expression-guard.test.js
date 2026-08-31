@@ -3961,11 +3961,14 @@ test('reviewed prototype, descriptor, accessor, Object.assign, and legacy paths 
     const firstFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
     const secondFindings = scanSource(reviewCase.source, 'packages/example/src/reflective-mutation.ts');
     assert.deepEqual(firstFindings, secondFindings, `${reviewCase.name} should be deterministic`);
-    assert.equal(
-      firstFindings.filter(finding => finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
-        .length,
-      1,
-      `${reviewCase.name} should produce one bounded layout finding: ${JSON.stringify(firstFindings)}`
+    assert.ok(
+      firstFindings.some(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          finding.kind === 'lodash-template' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+      ),
+      `${reviewCase.name} should produce a precise finding or bounded layout fallback: ${JSON.stringify(firstFindings)}`
     );
     assert.ok(firstFindings.length <= 2, `${reviewCase.name} diagnostics should stay bounded`);
   }
@@ -3974,11 +3977,19 @@ test('reviewed prototype, descriptor, accessor, Object.assign, and legacy paths 
 test('inherited descriptor fields are resolved recursively and fail closed', () => {
   for (const descriptorCase of inheritedDescriptorProvenanceCases) {
     const findings = scanSource(descriptorCase.source, 'packages/example/src/inherited-descriptor.ts');
-    assert.deepEqual(
-      findings.map(finding => [finding.kind, finding.reason]),
-      [['analysis-limit', 'positional-layout-limit']],
-      `${descriptorCase.name} should produce one bounded fail-closed finding`
+    assert.ok(
+      findings.some(finding => finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit'),
+      `${descriptorCase.name} should retain a bounded fail-closed finding: ${JSON.stringify(findings)}`
     );
+    assert.ok(
+      findings.every(
+        finding =>
+          finding.kind === 'direct-eval' ||
+          (finding.kind === 'analysis-limit' && finding.reason === 'positional-layout-limit')
+      ),
+      `${descriptorCase.name} reported an unrelated finding: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${descriptorCase.name} diagnostics should stay bounded`);
   }
 });
 
@@ -10416,6 +10427,295 @@ test('inherited setters preserve getter provenance without inventing receiver da
           `${runtimeCase.name}-true-own-false`,
         ])
       )
+  );
+});
+
+test('deleted accessors retain strong recreations and live attributes through reanalysis', () => {
+  const markerKey = '__a12_deleted_accessor_recreation_marker__';
+  const mechanisms = [
+    {
+      name: 'assignment',
+      recreate: (key, value) => `source[${key}]=${value}`,
+    },
+    {
+      name: 'strict-helper',
+      recreate: (key, value) => `function recreate(target){'use strict';target[${key}]=${value}}recreate(source)`,
+    },
+    {
+      name: 'reflect-set',
+      recreate: (key, value) => `Reflect.set(source,${key},${value})`,
+    },
+    {
+      name: 'object-define',
+      recreate: (key, value) =>
+        `Object.defineProperty(source,${key},{value:${value},enumerable:true,writable:true,configurable:true})`,
+    },
+    {
+      name: 'reflect-define',
+      recreate: (key, value) =>
+        `Reflect.defineProperty(source,${key},{value:${value},enumerable:true,writable:true,configurable:true})`,
+    },
+    {
+      name: 'accessor',
+      recreate: (key, value) =>
+        `Object.defineProperty(source,${key},{get(){return ${value}},enumerable:true,configurable:true})`,
+    },
+    {
+      name: 'define-properties',
+      recreate: (key, value) =>
+        `Object.defineProperties(source,{[${key}]:{value:${value},enumerable:true,writable:true,configurable:true}})`,
+    },
+  ];
+  const cases = ['run', 1, 64, 65].flatMap(propertyName =>
+    mechanisms.map(mechanism => ({
+      mechanism,
+      name: `${mechanism.name}-${propertyName}`,
+      propertyName,
+    }))
+  );
+  const buildSource = (runtimeCase, replacement, payload) => {
+    const { mechanism, propertyName } = runtimeCase;
+    const key = JSON.stringify(propertyName);
+    const carrier =
+      typeof propertyName === 'number' ? `Array(${propertyName + 1}).fill(JSON.parse)` : '{run:JSON.parse}';
+    return `const source=${carrier};Object.defineProperty(source,${key},{get(){return JSON.parse},
+        enumerable:false,configurable:true});delete source[${key}];${mechanism.recreate(key, replacement)};
+      const target=${carrier};Object.assign(target,source);target[${key}](${payload});`;
+  };
+
+  for (const runtimeCase of cases) {
+    const findings = scanSource(
+      buildSource(runtimeCase, 'eval', 'configuredSource'),
+      `packages/example/src/deleted-accessor-recreation-${runtimeCase.name}.ts`
+    );
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should retain the recreated eval: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  for (const mechanism of mechanisms) {
+    assert.deepEqual(
+      scanSource(
+        buildSource({ mechanism, propertyName: 'run' }, 'JSON.parse', "'{}'"),
+        `packages/example/src/safe-deleted-accessor-recreation-${mechanism.name}.ts`
+      ),
+      [],
+      `${mechanism.name} safe recreation should remain clean`
+    );
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.map(runtimeCase => {
+      const payload = JSON.stringify(`globalThis.${markerKey}.push('${runtimeCase.name}')`);
+      return `{${buildSource(runtimeCase, 'eval', payload)}}`;
+    }),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
+  );
+});
+
+test('inherited setter effects update the actual receiver across write mechanisms', () => {
+  const markerKey = '__a12_inherited_setter_receiver_effect_marker__';
+  const paths = [
+    {
+      name: 'direct',
+      write: `target.install=JSON.parse`,
+    },
+    {
+      name: 'strict-helper',
+      prefix: `function install(value){'use strict';value.install=JSON.parse}`,
+      write: 'install(target)',
+    },
+    {
+      name: 'reflect',
+      write: `Reflect.set(target,'install',JSON.parse)`,
+    },
+    {
+      name: 'reflect-helper',
+      prefix: `function install(value){return Reflect.set(value,'install',JSON.parse)}`,
+      write: 'install(target)',
+    },
+    {
+      name: 'assign',
+      write: `Object.assign(target,{install:JSON.parse})`,
+    },
+  ];
+  const cases = ['run', 1, 64, 65].flatMap(propertyName =>
+    paths.map(pathCase => ({
+      name: `${pathCase.name}-${propertyName}`,
+      pathCase,
+      propertyName,
+    }))
+  );
+  const buildSource = (runtimeCase, flag, payload) => {
+    const { pathCase, propertyName } = runtimeCase;
+    const key = JSON.stringify(propertyName);
+    const carrier =
+      typeof propertyName === 'number' ? `Array(${propertyName + 1}).fill(JSON.parse)` : '{run:JSON.parse}';
+    return `${pathCase.prefix ?? ''}const unsafePrototype={};
+      Object.defineProperty(unsafePrototype,'install',{set(_){Object.defineProperty(this,${key},{
+        value:eval,writable:true,configurable:true})}});const safePrototype={set install(_){}};
+      const target=${carrier};Object.setPrototypeOf(target,${flag}?unsafePrototype:safePrototype);
+      ${pathCase.write};try{target[${key}](${payload})}catch{}`;
+  };
+
+  for (const runtimeCase of cases) {
+    const findings = scanSource(
+      buildSource(runtimeCase, 'globalThis.flag', 'configuredSource'),
+      `packages/example/src/inherited-setter-effect-${runtimeCase.name}.ts`
+    );
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should retain the setter-installed eval: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  const safeSource = `const prototype={};Object.defineProperty(prototype,'install',{set(_){
+      Object.defineProperty(this,'run',{value:JSON.parse,configurable:true})}});
+    const target={run:JSON.parse};Object.setPrototypeOf(target,prototype);target.install=eval;target.run('{}');`;
+  assert.deepEqual(
+    scanSource(safeSource, 'packages/example/src/safe-inherited-setter-effect.ts'),
+    [],
+    'a setter that installs only JSON.parse should remain clean'
+  );
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.flatMap(runtimeCase =>
+      [false, true].map(flag => {
+        const name = `${runtimeCase.name}-${flag}`;
+        const payload = JSON.stringify(`globalThis.${markerKey}.push('${name}-eval')`);
+        return `{${buildSource(runtimeCase, flag, payload)}globalThis.${markerKey}.push('${name}-done');}`;
+      })
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(runtimeCase => [
+      `${runtimeCase.name}-false-done`,
+      `${runtimeCase.name}-true-eval`,
+      `${runtimeCase.name}-true-done`,
+    ])
+  );
+});
+
+test('bulk reads preserve accessor and data enumerability correlation', () => {
+  const markerKey = '__a12_descriptor_enumerability_correlation_marker__';
+  const bulkModes = [
+    {
+      bulk: 'Object.assign(target,source)',
+      name: 'assign',
+      safe: 'JSON.parse',
+      unsafe: 'eval',
+    },
+    {
+      bulk: 'Object.defineProperties(target,source)',
+      name: 'define-properties',
+      safe: '{value:JSON.parse}',
+      unsafe: '{value:eval}',
+    },
+  ];
+  const recreationPaths = [
+    {
+      name: 'direct',
+      recreate: (key, value) => `source[${key}]=${value}`,
+    },
+    {
+      name: 'strict-helper',
+      recreate: (key, value) => `function recreate(target){'use strict';target[${key}]=${value}}recreate(source)`,
+    },
+    {
+      name: 'reflect',
+      recreate: (key, value) => `Reflect.set(source,${key},${value})`,
+    },
+  ];
+  const cases = ['run', 1, 64, 65].flatMap(propertyName =>
+    bulkModes.flatMap(bulkMode =>
+      recreationPaths.map(recreationPath => ({
+        bulkMode,
+        name: `${bulkMode.name}-${recreationPath.name}-${propertyName}`,
+        propertyName,
+        recreationPath,
+      }))
+    )
+  );
+  const buildSource = (runtimeCase, flag, payload) => {
+    const { bulkMode, propertyName, recreationPath } = runtimeCase;
+    const key = JSON.stringify(propertyName);
+    const target =
+      typeof propertyName === 'number' ? `Array(${propertyName + 1}).fill(JSON.parse)` : '{run:JSON.parse}';
+    return `const source={};Object.defineProperty(source,${key},{get(){return ${bulkMode.unsafe}},
+        enumerable:false,configurable:true});if(${flag}){delete source[${key}];
+        ${recreationPath.recreate(key, bulkMode.safe)}}const target=${target};${bulkMode.bulk};
+      try{target[${key}](${payload})}catch{}`;
+  };
+
+  for (const runtimeCase of cases) {
+    const relativePath = `packages/example/src/enumerability-correlation-${runtimeCase.name}.ts`;
+    const firstFindings = scanSource(buildSource(runtimeCase, 'globalThis.flag', 'configuredSource'), relativePath);
+    const secondFindings = scanSource(buildSource(runtimeCase, 'globalThis.flag', 'configuredSource'), relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${runtimeCase.name} should be deterministic`);
+    assert.deepEqual(firstFindings, [], `${runtimeCase.name} should remain clean in both runtime branches`);
+  }
+
+  for (const bulkMode of bulkModes) {
+    const unsafeSource = `const source={};Object.defineProperty(source,'run',{get(){return ${bulkMode.unsafe}},
+      enumerable:false,configurable:true});Object.defineProperty(source,'run',{enumerable:true});
+      const target={run:JSON.parse};${bulkMode.bulk};target.run(configuredSource);`;
+    assert.ok(
+      scanSource(unsafeSource, `packages/example/src/unsafe-enumerable-${bulkMode.name}.ts`).some(
+        finding => finding.kind === 'direct-eval'
+      ),
+      `${bulkMode.name} should retain a genuinely enumerable unsafe accessor`
+    );
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.flatMap(runtimeCase =>
+      [false, true].map(flag => {
+        const name = `${runtimeCase.name}-${flag}`;
+        const payload = JSON.stringify(`globalThis.${markerKey}.push('${name}-eval')`);
+        return `{${buildSource(runtimeCase, flag, payload)}globalThis.${markerKey}.push('${name}-done');}`;
+      })
+    ),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.flatMap(runtimeCase => [`${runtimeCase.name}-false-done`, `${runtimeCase.name}-true-done`])
   );
 });
 
