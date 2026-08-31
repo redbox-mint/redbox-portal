@@ -178,14 +178,16 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   problems: RecordSaveProblem[] = [];
   completion = emptyRecordSaveCompletion();
   requestId: string;
+  readonly context: RecordSaveContext;
   concurrency?: RecordConcurrencyMetadata;
   /** Legacy API v1 fields populated by the RDMP workspace post-save hook. */
   workspaceOid?: string;
   workspaceData?: unknown;
 
-  constructor(requestId: string = randomUUID()) {
+  constructor(context: RecordSaveContext | string = createRecordSaveContext()) {
     super();
-    this.requestId = requestId;
+    this.context = typeof context === 'string' ? createRecordSaveContext({ requestId: context }) : context;
+    this.requestId = this.context.requestId;
   }
 
   /** True when the primary metadata mutation is known to have been applied. */
@@ -225,6 +227,67 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     this.concurrency = sanitizeRecordConcurrencyMetadata(metadata);
   }
 
+  /** Compatibility view used by save-pipeline code while the response owns its state directly. */
+  public get result(): RecordSaveResponse {
+    return this;
+  }
+
+  public confirmPrimaryPersistence(oid: string, source?: StorageServiceResponse): void {
+    if (this.outcome === 'unknown') return;
+    this.oid = oid ?? '';
+    if (source) {
+      this.message = typeof source.message === 'string' ? source.message : '';
+      this.data = _cloneDeep(source.data);
+      this.metadata = _cloneDeep(source.metadata ?? null);
+      this.totalItems = source.totalItems;
+      this.items = Array.isArray(source.items) ? _cloneDeep(source.items) : [];
+    }
+    this.outcome = this.problems.length > 0 ? 'saved-with-warnings' : 'saved';
+    this.success = true;
+  }
+
+  public recordPrimaryNotApplied(problem?: RecordSaveProblem): void {
+    this.recordPrimaryFailure('not-saved', problem);
+  }
+
+  public recordPrimaryUnknown(problem?: RecordSaveProblem): void {
+    this.recordPrimaryFailure('unknown', problem);
+  }
+
+  public recordPostPersistenceProblem(problem: RecordSaveProblem): void {
+    this.addProblem(problem);
+  }
+
+  public recordWarning(problem: RecordSaveProblem): void {
+    this.addProblem(problem);
+  }
+
+  public mergeLegacyHookFields(source: unknown): void {
+    if (!source || typeof source !== 'object') return;
+    const fields = source as Record<string, unknown>;
+    if (typeof fields.workspaceOid === 'string' && fields.workspaceOid.trim()) this.workspaceOid = fields.workspaceOid;
+    if (Object.hasOwn(fields, 'workspaceData')) this.workspaceData = _cloneDeep(fields.workspaceData);
+  }
+
+  public toResponse(): RecordSaveResponse {
+    const copy = new RecordSaveResponse(this.context);
+    copy.success = this.success;
+    copy.oid = this.oid;
+    copy.message = this.message;
+    copy.data = _cloneDeep(this.data);
+    copy.metadata = _cloneDeep(this.metadata);
+    copy.details = _cloneDeep(this.details);
+    copy.totalItems = this.totalItems;
+    copy.items = _cloneDeep(this.items);
+    copy.outcome = this.outcome;
+    copy.problems = this.problems.map(cloneProblem);
+    copy.completion = _cloneDeep(this.completion);
+    copy.setConcurrencyMetadata(this.concurrency);
+    copy.workspaceOid = this.workspaceOid;
+    copy.workspaceData = _cloneDeep(this.workspaceData);
+    return copy;
+  }
+
   /**
    * A persisted save can only ever move from `saved` to `saved-with-warnings`.
    * Non-persisted outcomes are left untouched so a later warning cannot
@@ -234,6 +297,16 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     if (this.outcome === 'saved') {
       this.outcome = 'saved-with-warnings';
     }
+  }
+
+  private recordPrimaryFailure(
+    outcome: Extract<RecordSaveOutcome, 'not-saved' | 'unknown'>,
+    problem?: RecordSaveProblem
+  ): void {
+    if (this.wasPersisted()) return;
+    this.outcome = outcome;
+    this.success = false;
+    if (problem) this.addProblem(problem);
   }
 }
 

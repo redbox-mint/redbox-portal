@@ -2,6 +2,7 @@ let expect: Chai.ExpectStatic;
 import { AttachmentMetadataWLDef } from '../../src/waterline-models/AttachmentMetadata';
 
 type WaterlineDef = {
+  attributes?: Record<string, { allowNull?: boolean }>;
   beforeCreate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
   beforeUpdate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
 };
@@ -31,6 +32,22 @@ describe('AttachmentMetadata waterline model', function () {
       storageKey: ' oid-1/file-1 ',
     };
   }
+
+  it('allows null for optional attachment coordination metadata', function () {
+    const nullableFields = [
+      'attachmentId',
+      'generation',
+      'mutationFileId',
+      'coordinationToken',
+      'lastAttemptAt',
+      'coordinationLeaseExpiresAt',
+      'lastSafeErrorCode',
+    ];
+
+    for (const field of nullableFields) {
+      expect(AttachmentMetadataWLDef.attributes?.[field]?.allowNull, field).to.equal(true);
+    }
+  });
 
   it('normalizes journal metadata and access counters on create', function () {
     const result = runHook(AttachmentMetadataWLDef, 'beforeCreate', {
