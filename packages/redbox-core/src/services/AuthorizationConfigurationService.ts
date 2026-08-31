@@ -205,6 +205,10 @@ function associationId(value: unknown): string | undefined {
   return undefined;
 }
 
+function optionalRoleTemplateRevision(value: unknown): number | undefined {
+  return value === undefined || value === null || value === 0 ? undefined : (value as number);
+}
+
 function roleKey(role: RoleAttributes): string {
   const key = role.key ?? role.name;
   if (!isRoleKey(key)) throw new Error('Authorization role persistence contains an invalid key.');
@@ -489,15 +493,14 @@ export namespace Services {
         }
         const templateId = associationId(role.template);
         const template = templateId === undefined ? undefined : templateById.get(templateId);
-        if ((template === undefined) !== (role.templateRevision === undefined)) {
+        const templateRevision = optionalRoleTemplateRevision(role.templateRevision);
+        if ((template === undefined) !== (templateRevision === undefined)) {
           throw new Error('A role contains an invalid template pin.');
         }
         const revision =
           template === undefined
             ? undefined
-            : revisionsByTemplate
-                .get(String(template.id))
-                ?.find(candidate => candidate.revision === role.templateRevision);
+            : revisionsByTemplate.get(String(template.id))?.find(candidate => candidate.revision === templateRevision);
         if (template !== undefined && revision === undefined) {
           throw new Error('A role references a missing template revision.');
         }
@@ -513,7 +516,7 @@ export namespace Services {
           ...(description === undefined ? {} : { description }),
           protectedKind: role.protectedKind ?? 'none',
           status: role.status ?? 'active',
-          ...(template === undefined ? {} : { templateKey: template.key, templateRevision: role.templateRevision }),
+          ...(template === undefined ? {} : { templateKey: template.key, templateRevision }),
           effectiveScopeKeys: Object.freeze([...effectiveScopeKeys]),
           version: Number(role.version),
         });
@@ -967,8 +970,10 @@ export namespace Services {
           const overrides = normalizeRoleScopeOverrides({ baseScopeKeys, desiredScopeKeys: desiredScopes });
           let currentEffectiveScopeKeys: readonly ScopeKey[] = [];
           let currentTemplateKey: string | undefined;
+          let currentTemplateRevision: number | undefined;
           if (current !== undefined) {
             const currentTemplateId = associationId(current.template);
+            currentTemplateRevision = optionalRoleTemplateRevision(current.templateRevision);
             const currentTemplate =
               currentTemplateId === undefined
                 ? undefined
@@ -976,17 +981,17 @@ export namespace Services {
                     | RoleTemplateAttributes
                     | undefined);
             if (
-              (currentTemplateId === undefined) !== (current.templateRevision === undefined) ||
+              (currentTemplateId === undefined) !== (currentTemplateRevision === undefined) ||
               (currentTemplateId !== undefined && currentTemplate === undefined)
             ) {
               throw new Error('A role contains an invalid template pin.');
             }
             currentTemplateKey = currentTemplate?.key;
             let currentBaseScopeKeys: readonly ScopeKey[] = [];
-            if (currentTemplate !== undefined && current.templateRevision !== undefined) {
+            if (currentTemplate !== undefined && currentTemplateRevision !== undefined) {
               const revision = (await RoleTemplateRevision.findOne({
                 template: currentTemplate.id,
-                revision: current.templateRevision,
+                revision: currentTemplateRevision,
               }).usingConnection(connection)) as RoleTemplateRevisionAttributes | undefined;
               if (revision === undefined) throw new Error('A role references a missing template revision.');
               currentBaseScopeKeys = normalizedScopeKeys(revision.scopeKeys);
@@ -1043,7 +1048,7 @@ export namespace Services {
             (current.displayName?.trim() || current.name) !== desired.displayName ||
             optionalAuthorizationText(current.description, 2_000) !== desired.description ||
             currentTemplateKey !== desired.templateKey ||
-            current.templateRevision !== desired.templateRevision ||
+            currentTemplateRevision !== desired.templateRevision ||
             !sameStrings(currentEffectiveScopeKeys, desiredScopes);
           const plan = Object.freeze({ document: desired, current, template, baseScopeKeys, overrides, changed });
           rolePlans.push(plan);
@@ -1098,6 +1103,7 @@ export namespace Services {
               throw new Error('An assignment role contains invalid authorization persistence state.');
             }
             const currentTemplateId = associationId(currentRole.template);
+            const currentTemplateRevision = optionalRoleTemplateRevision(currentRole.templateRevision);
             const currentTemplate =
               currentTemplateId === undefined
                 ? undefined
@@ -1105,16 +1111,16 @@ export namespace Services {
                     | RoleTemplateAttributes
                     | undefined);
             if (
-              (currentTemplateId === undefined) !== (currentRole.templateRevision === undefined) ||
+              (currentTemplateId === undefined) !== (currentTemplateRevision === undefined) ||
               (currentTemplateId !== undefined && currentTemplate === undefined)
             ) {
               throw new Error('An assignment role has an invalid template pin.');
             }
             let baseScopeKeys: readonly ScopeKey[] = [];
-            if (currentTemplate !== undefined && currentRole.templateRevision !== undefined) {
+            if (currentTemplate !== undefined && currentTemplateRevision !== undefined) {
               const revision = (await RoleTemplateRevision.findOne({
                 template: currentTemplate.id,
-                revision: currentRole.templateRevision,
+                revision: currentTemplateRevision,
               }).usingConnection(connection)) as RoleTemplateRevisionAttributes | undefined;
               if (revision === undefined) throw new Error('An assignment role has an invalid template pin.');
               baseScopeKeys = normalizedScopeKeys(revision.scopeKeys);

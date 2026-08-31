@@ -109,7 +109,10 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
     expect(await Role.count()).to.equal(before.roles);
     expect(await RoleAssignment.count()).to.equal(before.assignments);
 
-    const guest = await Role.find({ protectedKind: 'guest', status: 'active' });
+    const defaultBrand = await BrandingConfig.findOne({ name: 'default' });
+    expect(defaultBrand).to.exist;
+    if (defaultBrand === undefined) throw new Error('The default brand must exist.');
+    const guest = await Role.find({ branding: defaultBrand.id, protectedKind: 'guest', status: 'active' });
     const system = await Role.find({ protectedKind: 'system-admin', contextType: 'system', status: 'active' });
     expect(guest).to.have.length(1);
     expect(system).to.have.length(1);

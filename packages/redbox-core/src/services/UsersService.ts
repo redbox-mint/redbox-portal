@@ -31,6 +31,7 @@ import { UserAttributes } from '../waterline-models/User';
 import { Services as services } from '../CoreService';
 import { redactObject } from '../utilities/RedactionUtils';
 import { AuthorizationResourceError } from '../authorization/errors';
+import { Services as AuthorizationServiceModule } from './AuthorizationService';
 
 import * as crypto from 'crypto';
 
@@ -197,6 +198,43 @@ export namespace Services {
 
     private getAuthConfig(brandName: string): AuthBrandConfig {
       return (ConfigService.getBrand(brandName, 'auth') as AuthBrandConfig) ?? {};
+    }
+
+    private async assignOnboardingRole(
+      user: unknown,
+      brand: BrandingModel,
+      role: RoleModel | undefined,
+      provider: 'aaf' | 'oidc'
+    ): Promise<void> {
+      const userId = (user as AnyRecord | undefined)?.id;
+      if ((typeof userId !== 'string' && typeof userId !== 'number') || role?.name == null) {
+        throw new Error(`Unable to assign the ${provider} onboarding role.`);
+      }
+
+      const scopeService = sails.services.authorizationscopeservice as unknown as {
+        getRegistry(): { all: readonly { key: string }[] };
+      };
+      const roleAdministrationService = sails.services.roleadministrationservice as unknown as {
+        grantAssignment(command: Record<string, unknown>): Promise<unknown>;
+      };
+      const allowedScopes = scopeService.getRegistry().all.map(scope => scope.key);
+      const operationId = `onboarding:${provider}:${String(brand.id)}:${String(userId)}`;
+      const actor = await new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
+        operationId,
+        String(brand.id),
+        allowedScopes
+      );
+
+      await roleAdministrationService.grantAssignment({
+        actor,
+        brandId: String(brand.id),
+        principalId: String(userId),
+        roleKey: role.name,
+        source: 'onboarding',
+        sourceKey: provider,
+        requestId: operationId,
+        reason: `Default ${provider} onboarding role.`,
+      });
     }
 
     private normalizeAccountLinkState(user: UserAttributes | null | undefined): void {
@@ -1209,10 +1247,6 @@ export namespace Services {
               sails.log.verbose(`AAF default roles: ${JSON.stringify(authConfig.aaf?.defaultRole)}`);
               sails.log.verbose(`Brand roles: ${JSON.stringify(brand.roles)}`);
               const defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
-              let aafDefRoles = [];
-              if (defaultAuthRole != undefined) {
-                aafDefRoles = _.map(RolesService.getNestedRoles(defaultAuthRole.name, brand.roles), 'id');
-              }
               const aafUsernameField = authConfig.aaf?.usernameField ?? DEFAULT_AAF_USERNAME_FIELD;
               const aafUsername = String(jwt_payload[aafUsernameField] ?? '');
               const userName = Buffer.from(aafUsername).toString('base64');
@@ -1387,7 +1421,6 @@ export namespace Services {
                       givenname: normalizedGivenName,
                       surname: normalizedSurname,
                       type: 'aaf',
-                      roles: aafDefRoles,
                       lastLogin: new Date(),
                     };
                     sails.log.verbose(
@@ -1418,20 +1451,25 @@ export namespace Services {
                                 return done(err, false);
                               }
 
-                              if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
-
-                              if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
-
-                              sails.log.verbose('Done, returning new user:');
-                              sails.log.verbose(newUser);
                               that
-                                .resolveLinkedUserCandidate(newUser)
-                                .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                                .catch((resolveErr: unknown) => done(resolveErr, false));
+                                .assignOnboardingRole(newUser, brand, defaultAuthRole, 'aaf')
+                                .then(() => {
+                                  if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
+                                    that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
+                                  }
+
+                                  if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
+                                    that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
+                                  }
+
+                                  sails.log.verbose('Done, returning new user:');
+                                  sails.log.verbose(newUser);
+                                  that
+                                    .resolveLinkedUserCandidate(newUser)
+                                    .then(resolvedUser => done(null, resolvedUser as AnyRecord))
+                                    .catch((resolveErr: unknown) => done(resolveErr, false));
+                                })
+                                .catch((assignmentError: unknown) => done(assignmentError, false));
                               return;
                             });
                           } else {
@@ -1446,20 +1484,25 @@ export namespace Services {
                           return done(err, false);
                         }
 
-                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
-
-                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
-
-                        sails.log.verbose('Done, returning new user:');
-                        sails.log.verbose(newUser);
                         that
-                          .resolveLinkedUserCandidate(newUser)
-                          .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                          .catch((resolveErr: unknown) => done(resolveErr, false));
+                          .assignOnboardingRole(newUser, brand, defaultAuthRole, 'aaf')
+                          .then(() => {
+                            if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
+                              that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
+                            }
+
+                            if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
+                              that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
+                            }
+
+                            sails.log.verbose('Done, returning new user:');
+                            sails.log.verbose(newUser);
+                            that
+                              .resolveLinkedUserCandidate(newUser)
+                              .then(resolvedUser => done(null, resolvedUser as AnyRecord))
+                              .catch((resolveErr: unknown) => done(resolveErr, false));
+                          })
+                          .catch((assignmentError: unknown) => done(assignmentError, false));
                         return;
                       });
                     }
@@ -1664,8 +1707,6 @@ export namespace Services {
         sails.log.verbose(userName);
       }
       const defAuthRole = RolesService.getDefAuthenticatedRole(brand);
-      const defAuthRoleName = defAuthRole?.name ?? 'Researcher';
-      const openIdConnectDefRoles = _.map(RolesService.getNestedRoles(defAuthRoleName, brand.roles), 'id');
 
       // This can occur when the claim mappings are incorrect or a login was cancelled
       if (_.isEmpty(userName)) {
@@ -1819,7 +1860,6 @@ export namespace Services {
                 givenname: _.get(userinfo, (claimsMappings['givenname'] as string) ?? ''),
                 surname: _.get(userinfo, (claimsMappings['surname'] as string) ?? ''),
                 type: 'oidc',
-                roles: openIdConnectDefRoles,
                 additionalAttributes: additionalAttributes,
                 lastLogin: new Date(),
               };
@@ -1849,21 +1889,26 @@ export namespace Services {
                         return done(err, false);
                       }
 
-                      if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      sails.log.verbose(
-                        `Done, returning new user id=${String((newUser as AnyRecord)?.id ?? 'unknown')}`
-                      );
                       that
-                        .resolveLinkedUserCandidate(newUser)
-                        .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                        .catch((resolveErr: unknown) => done(resolveErr, false));
+                        .assignOnboardingRole(newUser, brand, defAuthRole, 'oidc')
+                        .then(() => {
+                          if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
+                            that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
+                          }
+
+                          if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
+                            that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
+                          }
+
+                          sails.log.verbose(
+                            `Done, returning new user id=${String((newUser as AnyRecord)?.id ?? 'unknown')}`
+                          );
+                          that
+                            .resolveLinkedUserCandidate(newUser)
+                            .then(resolvedUser => done(null, resolvedUser as AnyRecord))
+                            .catch((resolveErr: unknown) => done(resolveErr, false));
+                        })
+                        .catch((assignmentError: unknown) => done(assignmentError, false));
                       return;
                     });
                   } else {
@@ -1878,20 +1923,25 @@ export namespace Services {
                   return done(err, false);
                 }
 
-                if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
-
-                if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
-
-                sails.log.verbose('Done, returning new user:');
-                sails.log.verbose(newUser);
                 that
-                  .resolveLinkedUserCandidate(newUser)
-                  .then(resolvedUser => done(null, resolvedUser as AnyRecord))
-                  .catch((resolveErr: unknown) => done(resolveErr, false));
+                  .assignOnboardingRole(newUser, brand, defAuthRole, 'oidc')
+                  .then(() => {
+                    if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
+                      that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
+                    }
+
+                    if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
+                      that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
+                    }
+
+                    sails.log.verbose('Done, returning new user:');
+                    sails.log.verbose(newUser);
+                    that
+                      .resolveLinkedUserCandidate(newUser)
+                      .then(resolvedUser => done(null, resolvedUser as AnyRecord))
+                      .catch((resolveErr: unknown) => done(resolveErr, false));
+                  })
+                  .catch((assignmentError: unknown) => done(assignmentError, false));
                 return;
               });
             }

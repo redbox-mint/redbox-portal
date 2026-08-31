@@ -7,9 +7,9 @@ describe('The BrandingService', function () {
     done();
   });
 
-  it('should have one brand', function (done) {
+  it('should include the default brand', function (done) {
     var brands = BrandingService.getAvailable();
-    brands.should.have.length(1);
+    brands.should.include('default');
     done();
   });
 

@@ -699,8 +699,7 @@ describe('RoleAdministrationService', () => {
 
   it('normalizes datastore write conflicts to a documented audited version conflict', async () => {
     let attempt:
-      | { readonly input: { readonly reasonCode?: string }; readonly outcome: 'denied' | 'failed' }
-      | undefined;
+      { readonly input: { readonly reasonCode?: string }; readonly outcome: 'denied' | 'failed' } | undefined;
     const service = new Services.RoleAdministrationService({
       runTransaction: async () => {
         throw { raw: { code: 112, codeName: 'WriteConflict' } };

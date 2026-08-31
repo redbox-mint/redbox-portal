@@ -279,8 +279,7 @@ export namespace Controllers {
       }
 
       const service = sails.services.authorizationservice as unknown as
-        | Partial<PrivilegedSocketAuthorizationService>
-        | undefined;
+        Partial<PrivilegedSocketAuthorizationService> | undefined;
       if (
         service === undefined ||
         typeof service.resolveUserContext !== 'function' ||
