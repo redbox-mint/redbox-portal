@@ -3618,6 +3618,7 @@ function createEndToEndGuardRepository() {
   const scriptPath = path.join(root, 'scripts/check-unsafe-expressions.js');
   fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
   fs.copyFileSync(path.join(repositoryRoot, 'scripts/check-unsafe-expressions.js'), scriptPath);
+  fs.writeFileSync(path.join(root, '.gitignore'), '/scripts/check-unsafe-expressions.js\n');
   writeJson(path.join(root, allowlistRelativePath), {
     schemaVersion: 1,
     documentation: documentationRelativePath,
@@ -9742,6 +9743,399 @@ test('safe accessor and enumerable bulk controls agree with the scanner and Node
   assert.deepEqual(
     JSON.parse(result.stdout),
     cases.map(runtimeCase => `${runtimeCase.name}-safe`)
+  );
+});
+
+test('generic descriptors preserve accessor callables across singular and plural helpers', () => {
+  const markerKey = '__a12_generic_descriptor_marker__';
+  const mechanisms = [
+    {
+      direct: (target, index) => `Reflect.defineProperty(${target},'${index}',{})`,
+      helper: (target, index) => `define(${target},'${index}',{})`,
+      name: 'reflect',
+      prefix: 'const define=(target,key,descriptor)=>Reflect.defineProperty(target,key,descriptor);',
+    },
+    {
+      direct: (target, index) => `Object.defineProperty(${target},'${index}',{})`,
+      helper: (target, index) => `define(${target},'${index}',{})`,
+      name: 'object',
+      prefix: 'const define=(target,key,descriptor)=>Object.defineProperty(target,key,descriptor);',
+    },
+    {
+      direct: (target, index) => `Object.defineProperties(${target},{${index}:{}})`,
+      helper: (target, index) => `define(${target},{${index}:{}})`,
+      name: 'plural',
+      prefix: 'const define=(target,descriptors)=>Object.defineProperties(target,descriptors);',
+    },
+  ];
+  const cases = [1, 64, 65].flatMap(index =>
+    mechanisms.flatMap(mechanism =>
+      ['direct', 'helper'].map(pathName => {
+        const name = `${mechanism.name}-${pathName}-${index}`;
+        const prefix = pathName === 'helper' ? mechanism.prefix : '';
+        const mutation = mechanism[pathName]('values', index);
+        return {
+          name,
+          source: `${prefix}const values=Array(${index + 1}).fill(JSON.parse);
+            Object.defineProperty(values,'${index}',{get(){return eval},configurable:true});
+            ${mutation};values[${index}](${JSON.stringify(`globalThis.${markerKey}.push('${name}')`)});`,
+        };
+      })
+    )
+  );
+
+  for (const runtimeCase of cases) {
+    const findings = scanSource(runtimeCase.source, `packages/example/src/generic-descriptor-${runtimeCase.name}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should preserve the accessor eval: ${JSON.stringify(findings)}`
+    );
+    assert.ok(findings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  for (const index of [1, 64, 65]) {
+    const safeSource = `const values=Array(${index + 1}).fill(JSON.parse);
+      Object.defineProperty(values,'${index}',{get(){return JSON.parse},configurable:true});
+      Reflect.defineProperty(values,'${index}',{});values[${index}]('{}');`;
+    assert.deepEqual(
+      scanSource(safeSource, `packages/example/src/safe-generic-descriptor-${index}.ts`),
+      [],
+      `safe generic descriptor control ${index} should stay clean`
+    );
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.map(runtimeCase => `{${runtimeCase.source}}`),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
+  );
+});
+
+test('bulk operations omit deleted keys and conditionally retain both enumeration outcomes', () => {
+  const markerKey = '__a12_deleted_bulk_key_marker__';
+  const modes = [
+    {
+      descriptors: index => `{${index}:{value:JSON.parse}}`,
+      invoke: (pathName, target, source) =>
+        pathName === 'helper' ? `bulk(${target},${source})` : `Object.defineProperties(${target},${source})`,
+      name: 'define-properties',
+      prefix: 'const bulk=(target,source)=>Object.defineProperties(target,source);',
+    },
+    {
+      descriptors: index => `{${index}:JSON.parse}`,
+      invoke: (pathName, target, source) =>
+        pathName === 'helper' ? `bulk(${target},${source})` : `Object.assign(${target},${source})`,
+      name: 'assign',
+      prefix: 'const bulk=(target,source)=>Object.assign(target,source);',
+    },
+  ];
+  const cases = [1, 64, 65].flatMap(index =>
+    modes.flatMap(mode =>
+      ['direct', 'helper'].map(pathName => {
+        const name = `${mode.name}-${pathName}-${index}`;
+        return {
+          name,
+          source: `${pathName === 'helper' ? mode.prefix : ''}
+            const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+            const source=${mode.descriptors(index)};delete source[${index}];
+            ${mode.invoke(pathName, 'values', 'source')};
+            values[${index}](${JSON.stringify(`globalThis.${markerKey}.push('${name}')`)});`,
+        };
+      })
+    )
+  );
+  for (const [index, mode] of modes.entries()) {
+    const propertyIndex = index + 1;
+    const name = `conditional-${mode.name}`;
+    cases.push({
+      name,
+      source: `const values=Array(${propertyIndex + 1}).fill(JSON.parse);values[${propertyIndex}]=eval;
+        const source=${mode.descriptors(propertyIndex)};const flag=true;if(flag)delete source[${propertyIndex}];
+        ${mode.invoke('direct', 'values', 'source')};
+        values[${propertyIndex}](${JSON.stringify(`globalThis.${markerKey}.push('${name}')`)});`,
+    });
+  }
+
+  for (const runtimeCase of cases) {
+    const findings = scanSource(runtimeCase.source, `packages/example/src/deleted-bulk-${runtimeCase.name}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should retain the skipped-write eval: ${JSON.stringify(findings)}`
+    );
+  }
+  for (const index of [1, 64, 65]) {
+    const safeSources = [
+      `const values=Array(${index + 1}).fill(JSON.parse);const source={${index}:eval};
+        delete source[${index}];Object.assign(values,source);values[${index}]('{}');`,
+      `const values=Array(${index + 1}).fill(JSON.parse);const source={${index}:{value:eval}};
+        delete source[${index}];Object.defineProperties(values,source);values[${index}]('{}');`,
+    ];
+    for (const [controlIndex, safeSource] of safeSources.entries()) {
+      assert.deepEqual(
+        scanSource(safeSource, `packages/example/src/safe-deleted-bulk-${index}-${controlIndex}.ts`),
+        [],
+        `deleted unsafe bulk control ${index}/${controlIndex} should stay clean`
+      );
+    }
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.map(runtimeCase => `{${runtimeCase.source}}`),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
+  );
+});
+
+test('recreated bulk keys reset attributes and install assignment or descriptor defaults', () => {
+  const markerKey = '__a12_recreated_bulk_key_marker__';
+  const cases = [1, 64, 65].flatMap(index =>
+    ['direct', 'helper'].flatMap(pathName => {
+      const prefix =
+        pathName === 'helper'
+          ? `const assign=(target,source)=>Object.assign(target,source);
+            const defineAll=(target,source)=>Object.defineProperties(target,source);`
+          : '';
+      const assign = pathName === 'helper' ? 'assign(values,source)' : 'Object.assign(values,source)';
+      const defineAll =
+        pathName === 'helper' ? 'defineAll(values,descriptors)' : 'Object.defineProperties(values,descriptors)';
+      return [
+        {
+          name: `assign-${pathName}-${index}`,
+          source: `${prefix}const values=Array(${index + 1}).fill(JSON.parse);const source={};
+            Object.defineProperty(source,'${index}',{value:JSON.parse,enumerable:false,writable:true,configurable:true});
+            delete source[${index}];source[${index}]=eval;${assign};
+            values[${index}](${JSON.stringify(`globalThis.${markerKey}.push('assign-${pathName}-${index}')`)});`,
+        },
+        {
+          name: `define-properties-${pathName}-${index}`,
+          source: `${prefix}const values=Array(${index + 1}).fill(JSON.parse);const descriptors={};
+            Object.defineProperty(descriptors,'${index}',{
+              value:{value:JSON.parse},enumerable:false,writable:true,configurable:true});
+            delete descriptors[${index}];descriptors[${index}]={value:eval};${defineAll};
+            values[${index}](${JSON.stringify(
+              `globalThis.${markerKey}.push('define-properties-${pathName}-${index}')`
+            )});`,
+        },
+      ];
+    })
+  );
+  for (const runtimeCase of cases) {
+    const findings = scanSource(runtimeCase.source, `packages/example/src/recreated-bulk-${runtimeCase.name}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should copy the recreated enumerable key: ${JSON.stringify(findings)}`
+    );
+  }
+  for (const index of [1, 64, 65]) {
+    const safeSource = `const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;const source={};
+      Object.defineProperty(source,'${index}',{value:eval,enumerable:false,writable:true,configurable:true});
+      delete source[${index}];source[${index}]=JSON.parse;Object.assign(values,source);values[${index}]('{}');`;
+    assert.deepEqual(
+      scanSource(safeSource, `packages/example/src/safe-recreated-bulk-${index}.ts`),
+      [],
+      `safe recreated assignment ${index} should overwrite eval`
+    );
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.map(runtimeCase => `{${runtimeCase.source}}`),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
+  );
+});
+
+test('recreated string keys move to their live insertion order before bulk aborts', () => {
+  const markerKey = '__a12_recreated_key_order_marker__';
+  const modes = [
+    {
+      create: index => `const source={length:${index},x:1};delete source.length;source.length=${index};`,
+      direct: 'Object.assign(values,source)',
+      helper: 'bulk(values,source)',
+      name: 'assign',
+      prefix: 'const bulk=(target,source)=>Object.assign(target,source);',
+    },
+    {
+      create: index =>
+        `const source={length:{value:${index}},x:{value:1}};` + `delete source.length;source.length={value:${index}};`,
+      direct: 'Object.defineProperties(values,source)',
+      helper: 'bulk(values,source)',
+      name: 'define-properties',
+      prefix: 'const bulk=(target,source)=>Object.defineProperties(target,source);',
+    },
+  ];
+  const cases = [1, 64, 65].flatMap(index =>
+    modes.flatMap(mode =>
+      ['direct', 'helper'].map(pathName => {
+        const name = `${mode.name}-${pathName}-${index}`;
+        return {
+          name,
+          source: `${pathName === 'helper' ? mode.prefix : ''}
+            const values=Array(${index + 1}).fill(JSON.parse);values[${index}]=eval;
+            Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});${mode.create(index)}
+            try{${mode[pathName]}}catch{}values[${index}](${JSON.stringify(
+              `globalThis.${markerKey}.push('${name}')`
+            )});`,
+        };
+      })
+    )
+  );
+  cases.push(
+    ...modes.map(mode => ({
+      name: `conditional-${mode.name}`,
+      source: `const values=[JSON.parse,eval];
+        Object.defineProperty(values,'x',{value:0,writable:false,configurable:false});
+        ${mode.create(1).replace('delete source.length', 'const flag=true;if(flag)delete source.length')}
+        try{${mode.direct}}catch{}values[1](${JSON.stringify(
+          `globalThis.${markerKey}.push('conditional-${mode.name}')`
+        )});`,
+    }))
+  );
+
+  for (const runtimeCase of cases) {
+    const findings = scanSource(runtimeCase.source, `packages/example/src/recreated-order-${runtimeCase.name}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should abort before truncation: ${JSON.stringify(findings)}`
+    );
+  }
+  for (const [controlIndex, mode] of modes.entries()) {
+    const safeSource = `const values=[JSON.parse,eval];
+      Object.defineProperty(values,'x',{value:0,writable:true,configurable:false});${mode.create(1)}
+      ${mode.direct};if(values.length>1)values[1](configuredSource);`;
+    assert.deepEqual(
+      scanSource(safeSource, `packages/example/src/safe-recreated-order-${controlIndex}.ts`),
+      [],
+      `${mode.name} successful truncation control should stay clean`
+    );
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.map(runtimeCase => `{${runtimeCase.source}}`),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
+  );
+});
+
+test('ordinary string assignments preserve eval when own, inherited, or receiver descriptors block writes', () => {
+  const markerKey = '__a12_string_assignment_marker__';
+  const targets = [
+    {
+      name: 'own-non-writable',
+      setup: `const target={run:eval};Object.defineProperty(target,'run',{writable:false});`,
+    },
+    {
+      name: 'inherited-non-writable',
+      setup: `const prototype={};Object.defineProperty(prototype,'run',{value:eval,writable:false});
+        const target=Object.create(prototype);`,
+    },
+    {
+      name: 'non-extensible-receiver',
+      setup: `const prototype={run:eval};const target=Object.create(prototype);Object.preventExtensions(target);`,
+    },
+  ];
+  const paths = [
+    { invoke: 'target.run=JSON.parse;', name: 'direct', prefix: '' },
+    {
+      invoke: 'replace(target);',
+      name: 'helper',
+      prefix: 'function replace(value){value.run=JSON.parse}',
+    },
+    {
+      invoke: 'try{replace(target)}catch{}finally{void 0}',
+      name: 'helper-try-finally',
+      prefix: 'function replace(value){value.run=JSON.parse}',
+    },
+  ];
+  const cases = targets.flatMap(targetCase =>
+    paths.map(pathCase => {
+      const name = `${targetCase.name}-${pathCase.name}`;
+      return {
+        name,
+        source: `${pathCase.prefix}${targetCase.setup}${pathCase.invoke}
+          target.run(${JSON.stringify(`globalThis.${markerKey}.push('${name}')`)});`,
+      };
+    })
+  );
+  for (const runtimeCase of cases) {
+    const findings = scanSource(runtimeCase.source, `packages/example/src/string-assignment-${runtimeCase.name}.ts`);
+    assert.ok(
+      findings.some(finding => finding.kind === 'direct-eval'),
+      `${runtimeCase.name} should preserve eval after the failed write: ${JSON.stringify(findings)}`
+    );
+  }
+  const safeSources = [
+    `const target={run:eval};target.run=JSON.parse;target.run('{}');`,
+    `function replace(value){value.run=JSON.parse}const target={run:eval};replace(target);target.run('{}');`,
+    `const target={run:JSON.parse};Object.defineProperty(target,'run',{writable:false});
+      target.run=eval;target.run('{}');`,
+  ];
+  for (const [index, safeSource] of safeSources.entries()) {
+    assert.deepEqual(
+      scanSource(safeSource, `packages/example/src/safe-string-assignment-${index}.ts`),
+      [],
+      `ordinary string assignment control ${index} should stay clean`
+    );
+  }
+
+  const source = [
+    `globalThis.${markerKey}=[];`,
+    ...cases.map(runtimeCase => `{${runtimeCase.source}}`),
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', source], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
   );
 });
 
