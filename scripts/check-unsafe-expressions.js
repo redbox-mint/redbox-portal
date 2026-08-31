@@ -614,7 +614,8 @@ function collectBindings(sourceFile) {
   }
 
   function literalValue(value) {
-    const key = `${typeof value}\0${String(value)}`;
+    const serializedValue = typeof value === 'number' && Object.is(value, -0) ? '-0' : String(value);
+    const key = `${typeof value}\0${serializedValue}`;
     let atom = literalAtoms.get(key);
     if (!atom) {
       atom = { kind: 'literal', value, valueType: typeof value };
@@ -3047,7 +3048,15 @@ function collectBindings(sourceFile) {
       [...targetValue].every(atom => typeof atom !== 'string' && atom.kind === 'carrier');
     for (const atom of targetValue) {
       if (typeof atom !== 'string' && atom.kind === 'carrier') {
-        putCarrierProperty(atom, propertyNames, value, writeRank, strongCarrierWrite, descriptorAttributes);
+        const recordedValue =
+          atom.positional &&
+          propertyNames?.length === 1 &&
+          propertyNames[0] === 'length' &&
+          positionalLengthValues(value) &&
+          atom.exactPositionalLengths.size === 1
+            ? literalValue([...atom.exactPositionalLengths][0])
+            : value;
+        putCarrierProperty(atom, propertyNames, recordedValue, writeRank, strongCarrierWrite, descriptorAttributes);
       } else if (typeof atom === 'string') {
         const state = builtinPrototypeState(atom);
         if (state) putAbstractProperty(state, propertyNames, value);
@@ -3267,16 +3276,11 @@ function collectBindings(sourceFile) {
     };
   }
 
-  function arrayLengthIsDefinitelyWritable(carrier) {
-    if (!carrier.positional) return true;
-    const writabilities = dataPropertyAttributeValues(carrier, 'length', 'writable');
-    return writabilities?.size > 0 && [...writabilities].every(Boolean);
-  }
-
   function missingIndexedPropertyCreationIsProven(carrier, propertyName) {
     return (
       carrier.extensible === true &&
-      (arrayIndexPropertyValue(propertyName) === undefined || arrayLengthIsDefinitelyWritable(carrier))
+      (arrayIndexPropertyValue(propertyName) === undefined ||
+        [...dataPropertyAttributeValues(carrier, 'length', 'writable')].every(Boolean))
     );
   }
 
@@ -3302,7 +3306,7 @@ function collectBindings(sourceFile) {
       const boundedOverflowValue = boundedOverflowPropertyValue(target, propertyName);
       if (((propertyValue && propertyValue.size > 0) || boundedOverflowValue) && !propertyDeleted) {
         if (typeof atom === 'string') return false;
-        const writabilities = target.propertyWritabilities.get(propertyName) ?? new Set([true]);
+        const writabilities = dataPropertyAttributeValues(target, propertyName, 'writable');
         if (writabilities.size === 0 || [...writabilities].some(writable => !writable)) return false;
         continue;
       }
@@ -3323,7 +3327,28 @@ function collectBindings(sourceFile) {
     ) {
       return false;
     }
+    if (
+      typeof current !== 'string' &&
+      current.kind === 'literal' &&
+      typeof requested !== 'string' &&
+      requested.kind === 'literal'
+    ) {
+      return current.valueType === requested.valueType && Object.is(current.value, requested.value);
+    }
     return current === requested;
+  }
+
+  function abstractSameValueIsDisproven(currentValues, requestedValues) {
+    if (currentValues.size !== 1 || requestedValues.size !== 1) return false;
+    const current = [...currentValues][0];
+    const requested = [...requestedValues][0];
+    if (
+      (typeof current !== 'string' && ['known-data', 'unknown-value'].includes(current.kind)) ||
+      (typeof requested !== 'string' && ['known-data', 'unknown-value'].includes(requested.kind))
+    ) {
+      return false;
+    }
+    return !abstractSameValueIsProven(currentValues, requestedValues);
   }
 
   function descriptorIsCompatibleWithDataProperty(carrier, propertyName, descriptorValue, ownState) {
@@ -3358,6 +3383,48 @@ function collectBindings(sourceFile) {
     return (
       requestedValue.size === 0 ||
       abstractSameValueIsProven(ownDataPropertyValues(carrier, propertyName), requestedValue)
+    );
+  }
+
+  function descriptorIsDefinitelyIncompatibleWithDataProperty(carrier, propertyName, descriptorValue, ownState) {
+    const currentConfigurabilities = ownState.configurabilities;
+    if (currentConfigurabilities.size === 0 || ![...currentConfigurabilities].every(configurable => !configurable)) {
+      return false;
+    }
+
+    const configurableState = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'configurable'));
+    if (
+      !configurableState.mayBeAbsent &&
+      configurableState.values.size > 0 &&
+      [...configurableState.values].every(Boolean)
+    ) {
+      return true;
+    }
+
+    const currentEnumerabilities = ownState.enumerabilities;
+    const enumerableState = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'enumerable'));
+    if (
+      currentEnumerabilities.size === 1 &&
+      !enumerableState.mayBeAbsent &&
+      enumerableState.values.size > 0 &&
+      [...enumerableState.values].every(value => value !== [...currentEnumerabilities][0])
+    ) {
+      return true;
+    }
+
+    const currentWritabilities = ownState.writabilities;
+    if (currentWritabilities.size === 0 || ![...currentWritabilities].every(writable => !writable)) return false;
+    const writableState = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'writable'));
+    if (!writableState.mayBeAbsent && writableState.values.size > 0 && [...writableState.values].every(Boolean)) {
+      return true;
+    }
+    const requestedValue = descriptorFieldState(descriptorValue, 'value');
+    return (
+      !requestedValue.mayBeAbsent &&
+      requestedValue.values.size > 0 &&
+      [...requestedValue.values].every(value =>
+        abstractSameValueIsDisproven(ownDataPropertyValues(carrier, propertyName), new Set([value]))
+      )
     );
   }
 
@@ -3431,9 +3498,7 @@ function collectBindings(sourceFile) {
     const hasNonWritableOwnAlternative =
       ownState.hasModeledDataProperty &&
       (ownState.writabilities.size === 0 || [...ownState.writabilities].some(writable => !writable));
-    if (!defineProperty && hasNonWritableOwnAlternative) {
-      return false;
-    }
+    if (!defineProperty && hasNonWritableOwnAlternative) return false;
     if (defineProperty) {
       if (
         ownState.hasModeledDataProperty &&
@@ -3450,34 +3515,117 @@ function collectBindings(sourceFile) {
     );
   }
 
-  function reflectiveArrayLengthDescriptorSuccessIsProven(targetValue, propertyNames, descriptorValue) {
-    if (propertyNames?.length !== 1 || propertyNames[0] !== 'length' || targetValue.size !== 1) {
-      return undefined;
-    }
-    const target = [...targetValue][0];
-    if (typeof target === 'string' || target.kind !== 'carrier' || !target.positional) return false;
+  function reflectiveIndexedWriteFailureIsProven(
+    targetValue,
+    propertyNames,
+    receiverValue,
+    defineProperty,
+    descriptorValue = new Set()
+  ) {
     if (
-      descriptorFieldState(descriptorValue, 'value').values.size > 0 ||
-      descriptorFieldState(descriptorValue, 'get').values.size > 0 ||
-      descriptorFieldState(descriptorValue, 'set').values.size > 0
+      propertyNames?.length !== 1 ||
+      !/^(0|[1-9]\d*)$/.test(propertyNames[0]) ||
+      targetValue.size !== 1 ||
+      receiverValue.size !== 1
     ) {
       return false;
     }
-    const requestedConfigurabilities = descriptorBooleanValues(
-      descriptorFieldState(descriptorValue, 'configurable')
-    ).values;
-    const requestedEnumerabilities = descriptorBooleanValues(
-      descriptorFieldState(descriptorValue, 'enumerable')
-    ).values;
-    if ([...requestedConfigurabilities].some(Boolean) || [...requestedEnumerabilities].some(Boolean)) {
+    const target = [...targetValue][0];
+    const receiver = [...receiverValue][0];
+    if (
+      typeof target === 'string' ||
+      target.kind !== 'carrier' ||
+      typeof receiver === 'string' ||
+      receiver.kind !== 'carrier' ||
+      (!defineProperty && target !== receiver) ||
+      target.unknownProperty.size > 0 ||
+      target.unknownPropertyDeletion ||
+      target.unknownAccessors.get.size > 0 ||
+      target.unknownAccessors.set.size > 0 ||
+      target.accessors.has(propertyNames[0])
+    ) {
       return false;
     }
-    const currentWritabilities = dataPropertyAttributeValues(target, 'length', 'writable');
-    const requestedWritabilities = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'writable')).values;
-    if ([...currentWritabilities].some(writable => !writable) && [...requestedWritabilities].some(Boolean)) {
-      return false;
+    const propertyName = propertyNames[0];
+    const ownState = indexedOwnDataPropertyState(target, propertyName);
+    const presentFailure =
+      ownState.hasModeledDataProperty &&
+      (defineProperty
+        ? descriptorIsDefinitelyIncompatibleWithDataProperty(target, propertyName, descriptorValue, ownState)
+        : ownState.writabilities.size > 0 && [...ownState.writabilities].every(writable => !writable));
+    if (!ownState.mayBeMissing) return presentFailure;
+    const lengthWritabilities = dataPropertyAttributeValues(target, 'length', 'writable');
+    const missingFailure =
+      target.extensible === false ||
+      (target.positional && lengthWritabilities.size > 0 && [...lengthWritabilities].every(writable => !writable));
+    return ownState.hasModeledDataProperty ? presentFailure && missingFailure : missingFailure;
+  }
+
+  function reflectiveArrayLengthWriteOutcome(
+    targetValue,
+    propertyNames,
+    receiverValue,
+    assignedValue,
+    descriptorValue
+  ) {
+    if (
+      propertyNames?.length !== 1 ||
+      propertyNames[0] !== 'length' ||
+      targetValue.size !== 1 ||
+      receiverValue.size !== 1
+    ) {
+      return undefined;
     }
-    return true;
+    const target = [...targetValue][0];
+    if (
+      target !== [...receiverValue][0] ||
+      typeof target === 'string' ||
+      target.kind !== 'carrier' ||
+      !target.positional
+    ) {
+      return undefined;
+    }
+    if (descriptorValue) {
+      for (const field of ['get', 'set']) {
+        const state = descriptorFieldState(descriptorValue, field);
+        if (!state.mayBeAbsent && state.values.size > 0) return false;
+        if (state.values.size > 0) return undefined;
+      }
+      for (const field of ['configurable', 'enumerable']) {
+        const state = descriptorBooleanValues(descriptorFieldState(descriptorValue, field));
+        if (!state.mayBeAbsent && state.values.size > 0 && [...state.values].every(Boolean)) return false;
+        if ([...state.values].some(Boolean)) return undefined;
+      }
+      const requestedWritability = descriptorBooleanValues(descriptorFieldState(descriptorValue, 'writable'));
+      const currentWritabilities = dataPropertyAttributeValues(target, 'length', 'writable');
+      if (
+        [...currentWritabilities].every(writable => !writable) &&
+        !requestedWritability.mayBeAbsent &&
+        requestedWritability.values.size > 0 &&
+        [...requestedWritability.values].every(Boolean)
+      ) {
+        return false;
+      }
+
+      const lengths = positionalLengthValues(assignedValue);
+      if (lengths && [...currentWritabilities].every(writable => !writable)) {
+        if (target.exactPositionalLengths.size !== 1) return undefined;
+        const currentLength = [...target.exactPositionalLengths][0];
+        const valueCanSucceed = [...lengths].some(length => Object.is(length, currentLength));
+        const valueCanFail = [...lengths].some(length => !Object.is(length, currentLength));
+        const writabilityCanSucceed =
+          requestedWritability.mayBeAbsent || [...requestedWritability.values].some(writable => !writable);
+        const writabilityCanFail = [...requestedWritability.values].some(Boolean);
+        const canSucceed = valueCanSucceed && writabilityCanSucceed;
+        const canFail = valueCanFail || writabilityCanFail;
+        return canSucceed && !canFail ? true : canFail && !canSucceed ? false : undefined;
+      }
+    }
+    const lengths = positionalLengthValues(assignedValue);
+    if (!lengths && descriptorValue && descriptorFieldState(descriptorValue, 'value').mayBeAbsent) return true;
+    if (!lengths) return undefined;
+    const outcomes = [...lengths].map(length => positionalLengthWriteOutcome(target, length).success);
+    return outcomes.every(Boolean) ? true : outcomes.every(outcome => outcome === false) ? false : undefined;
   }
 
   function descriptorAccessorValues(descriptorValue, kind) {
@@ -3660,7 +3808,49 @@ function collectBindings(sourceFile) {
     return lengths.size > 0 ? lengths : undefined;
   }
 
-  function applyDeterministicPositionalLength(carrier, length, writeRank) {
+  function positionalLengthWriteOutcome(carrier, length) {
+    const writabilities = dataPropertyAttributeValues(carrier, 'length', 'writable');
+    if (writabilities.size === 0) return { success: undefined };
+    if ([...writabilities].every(writable => !writable)) return { success: false };
+    if (![...writabilities].every(Boolean)) return { success: undefined };
+    if (carrier.exactPositionalLengths.size !== 1) return { success: undefined };
+    const currentLength = [...carrier.exactPositionalLengths][0];
+    if (length >= currentLength) return { finalLength: length, success: true };
+    const indexedPropertyNames = new Set([...carrier.properties.keys(), ...carrier.accessors.keys()]);
+    for (const index of carrier.overflowPositionalOwnProperties) indexedPropertyNames.add(String(index));
+    let finalLength = length;
+    let definiteFailure = false;
+    let uncertain =
+      carrier.positionalUncertain ||
+      carrier.unknownPropertyDeletion ||
+      carrier.unknownProperty.size > 0 ||
+      carrier.unknownAccessors.get.size > 0 ||
+      carrier.unknownAccessors.set.size > 0 ||
+      carrier.overflowPositionalPropertiesUncertain ||
+      (currentLength > maximumTrackedInvocationArguments * 2 && carrier.overflowPositionalValues.size > 0);
+    for (const propertyName of indexedPropertyNames) {
+      const index = arrayIndexPropertyValue(propertyName);
+      if (index === undefined || index < length || index >= currentLength) continue;
+      const ownState = indexedOwnDataPropertyState(carrier, propertyName);
+      const accessor = carrier.accessors.get(propertyName);
+      const presentAccessor =
+        accessor && (accessor.get.size > 0 || accessor.set.size > 0) && !carrier.deletedProperties.has(propertyName);
+      if (!ownState.hasModeledDataProperty && !presentAccessor) continue;
+      if (ownState.mayBeMissing) uncertain = true;
+      const configurabilities = dataPropertyAttributeValues(carrier, propertyName, 'configurable');
+      if (![...configurabilities].some(configurable => !configurable)) continue;
+      finalLength = Math.max(finalLength, index + 1);
+      if ([...configurabilities].every(configurable => !configurable) && !ownState.mayBeMissing) {
+        definiteFailure = true;
+      } else {
+        uncertain = true;
+      }
+    }
+    if (uncertain) return { finalLength: definiteFailure ? undefined : finalLength, success: undefined };
+    return { finalLength, success: definiteFailure ? false : true };
+  }
+
+  function commitDeterministicPositionalLength(carrier, length, writeRank) {
     const previousLengthWriteRank = carrier.propertyWriteRanks.get('length');
     if (writeRank && previousLengthWriteRank && rankPrecedes(writeRank, previousLengthWriteRank)) return;
     if (writeRank) carrier.positionalLengthWriteRank = writeRank;
@@ -3706,6 +3896,24 @@ function collectBindings(sourceFile) {
       mergeCarrierPositionalOverflow(carrier, maximumTrackedInvocationArguments, new Set());
     }
     if (changed) notifyPropagationSubscribers(carrier);
+  }
+
+  function applyDeterministicPositionalLength(carrier, length, writeRank) {
+    const outcome = positionalLengthWriteOutcome(carrier, length);
+    if (outcome.success === true) {
+      commitDeterministicPositionalLength(carrier, length, writeRank);
+    } else if (outcome.success === false && outcome.finalLength !== undefined) {
+      commitDeterministicPositionalLength(carrier, outcome.finalLength, writeRank);
+    } else if (outcome.success === undefined) {
+      recordPossiblePositionalLengthTruncation(carrier, length, writeRank);
+      mergeCarrierPositionalState(
+        carrier,
+        new Set([Math.min(length, maximumTrackedInvocationArguments)]),
+        length > maximumTrackedInvocationArguments,
+        new Set()
+      );
+    }
+    return outcome.success;
   }
 
   function deterministicPositionalLengthAlreadyApplied(carrier, length) {
@@ -4691,30 +4899,74 @@ function collectBindings(sourceFile) {
           ? ['get', 'set'].some(field => descriptorFieldValues(argumentValues[2] ?? new Set(), field).size > 0)
           : false;
       let reflectiveIndexedSuccess =
-        atom === origins.reflectDefineProperty || atom === origins.reflectSet
+        !accessorDescriptor &&
+        (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty || atom === origins.reflectSet)
           ? reflectiveIndexedWriteSuccessIsProven(
+              targetValue,
+              propertyNames,
+              receiverValue ?? new Set(),
+              atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty,
+              argumentValues[2] ?? new Set()
+            )
+          : undefined;
+      if (
+        (atom === origins.objectDefineProperty || atom === origins.reflectDefineProperty) &&
+        reflectiveIndexedSuccess === undefined
+      ) {
+        reflectiveIndexedSuccess = reflectiveArrayLengthWriteOutcome(
+          targetValue,
+          propertyNames,
+          targetValue,
+          descriptorFieldValues(argumentValues[2] ?? new Set(), 'value'),
+          argumentValues[2] ?? new Set()
+        );
+      }
+      if (atom === origins.reflectSet && reflectiveIndexedSuccess === undefined) {
+        reflectiveIndexedSuccess = reflectiveArrayLengthWriteOutcome(
+          targetValue,
+          propertyNames,
+          receiverValue ?? new Set(),
+          argumentValues[2] ?? new Set(),
+          undefined
+        );
+      }
+      const reflectiveIndexedFailure =
+        atom === origins.reflectDefineProperty || atom === origins.reflectSet
+          ? reflectiveIndexedWriteFailureIsProven(
               targetValue,
               propertyNames,
               receiverValue ?? new Set(),
               atom === origins.reflectDefineProperty,
               argumentValues[2] ?? new Set()
-            )
-          : undefined;
-      if (atom === origins.reflectDefineProperty && reflectiveIndexedSuccess === undefined) {
-        reflectiveIndexedSuccess = reflectiveArrayLengthDescriptorSuccessIsProven(
-          targetValue,
-          propertyNames,
-          argumentValues[2] ?? new Set()
-        );
-      }
-      if ((atom === origins.reflectDefineProperty || atom === origins.reflectSet) && intrinsicResult) {
-        mergeValue(intrinsicResult, literalValue(true));
-        if (reflectiveIndexedSuccess !== true || accessorDescriptor) {
+            ) ||
+            (propertyNames?.length === 1 && propertyNames[0] === 'length' && reflectiveIndexedSuccess === false)
+          : false;
+      if (
+        (atom === origins.reflectDefineProperty || atom === origins.reflectSet) &&
+        intrinsicResult &&
+        activeDormantInvocationDepth === 0 &&
+        activeDormantPropagationDepth === 0
+      ) {
+        if (reflectiveIndexedSuccess === true && !accessorDescriptor) {
+          mergeValue(intrinsicResult, literalValue(true));
+        } else if (reflectiveIndexedFailure) {
+          mergeValue(intrinsicResult, literalValue(false));
+        } else {
+          mergeValue(intrinsicResult, literalValue(true));
           mergeValue(intrinsicResult, literalValue(false));
         }
       }
       if (reflectiveIndexedSuccess === false || (reflectiveIndexedSuccess === true && accessorDescriptor)) {
-        invalidatePositionalTargets(receiverValue ?? new Set(), propertyNames, unknownReflectiveCallableValue(), true);
+        if (propertyNames?.length === 1 && propertyNames[0] === 'length') {
+          invalidatePositionalTargets(receiverValue ?? new Set(), propertyNames, assignedValue, false, true);
+        } else {
+          invalidatePositionalTargets(
+            receiverValue ?? new Set(),
+            propertyNames,
+            unknownReflectiveCallableValue(),
+            true
+          );
+        }
         return true;
       }
       const strongDataWrite =
