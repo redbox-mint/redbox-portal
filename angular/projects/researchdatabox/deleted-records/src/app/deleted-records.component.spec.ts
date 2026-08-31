@@ -159,6 +159,43 @@ describe('DeletedRecordsComponent', () => {
     expect(app.deletedRecordsResult.total).toEqual(1);
   });
 
+  it('should sort each column using its deleted-record storage path', async function () {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const app = fixture.componentInstance;
+
+    fixture.autoDetectChanges(true);
+    await app.waitForInit();
+    await fixture.whenStable();
+
+    const requestedSorts: string[] = [];
+    recordService.getDeletedRecords = async function(
+      recordType: string,
+      state: string,
+      pageNumber: number,
+      packageType: string = '',
+      sort: string = ''
+    ) {
+      requestedSorts.push(sort);
+      return mockData.deletedRecords;
+    };
+
+    for (const header of app.tableHeaders) {
+      await app.headerSortChanged({ sort: 'asc' }, header);
+      await app.headerSortChanged({ sort: 'desc' }, header);
+    }
+
+    expect(requestedSorts).toEqual([
+      'deletedRecordMetadata.metadata.title:1',
+      'deletedRecordMetadata.metadata.title:-1',
+      'deletedRecordMetadata.dateCreated:1',
+      'deletedRecordMetadata.dateCreated:-1',
+      'deletedRecordMetadata.lastSaveDate:1',
+      'deletedRecordMetadata.lastSaveDate:-1',
+      'dateDeleted:1',
+      'dateDeleted:-1',
+    ]);
+  });
+
   it('should restore a deleted record', async function () {
     // create app
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
