@@ -64,6 +64,9 @@
       "**/src/handlebars-helpers.*",
       "**/src/config/names/**/*.*",
       "**/src/validation/**/*.*",
+      "**/src/internal/plain-record.*",
+      "**/src/record-concurrency.model.*",
+      "**/src/record-diff.*",
       "**/src/record-save.model.*"
     ],
     "reporter": [
