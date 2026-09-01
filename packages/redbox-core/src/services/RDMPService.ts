@@ -25,44 +25,18 @@ import { RBValidationError } from '../model/RBValidationError';
 import { StorageServiceResponse } from '../StorageServiceResponse';
 import { momentShim as moment } from '../shims/momentShim';
 import numeral from 'numeral';
-import {
-  actionRegistrationSource,
-  buildActionRegistry,
-  createActionSecretProvider,
-  registerRedboxActions,
-  type ActionSecretSlotIdentity,
-  type ActionSecretStorage,
-} from '../action-registry';
+import { actionRegistrationSource, buildActionRegistry, registerRedboxActions } from '../action-registry';
 import { consumeRegisteredRecordActionQueueJob } from '../action-execution/registered-queue-consumer';
 import type { ActionExecutionResult } from '../action-execution/types';
 import type { ActionExecutionMode } from '../action-registry/identifiers';
 import { readRuntimeProperty, runtimeFunction, type RuntimeValue } from '../runtimeValues';
 import { boundedDiagnosticValue } from '../utilities/BoundedDiagnostics';
-
-class ClosedRegisteredActionQueueSecretStorage implements ActionSecretStorage {
-  async replace(_slot: ActionSecretSlotIdentity, _value: string): Promise<void> {
-    throw new Error('Queued registered actions cannot resolve persisted secrets.');
-  }
-
-  async clear(_slot: ActionSecretSlotIdentity): Promise<void> {
-    throw new Error('Queued registered actions cannot resolve persisted secrets.');
-  }
-
-  async resolve(_slot: ActionSecretSlotIdentity): Promise<string | undefined> {
-    throw new Error('Queued registered actions cannot resolve persisted secrets.');
-  }
-
-  async isConfigured(_slot: ActionSecretSlotIdentity): Promise<boolean> {
-    return false;
-  }
-}
+import { closedRecordActionSecretProvider } from './record-actions/coordinator';
 
 const REGISTERED_ACTION_QUEUE_REGISTRY = buildActionRegistry([
   actionRegistrationSource('@researchdatabox/redbox-core', 'actions/index', registerRedboxActions),
 ]);
-const REGISTERED_ACTION_QUEUE_SECRET_PROVIDER = createActionSecretProvider(
-  new ClosedRegisteredActionQueueSecretStorage()
-);
+const REGISTERED_ACTION_QUEUE_SECRET_PROVIDER = closedRecordActionSecretProvider(REGISTERED_ACTION_QUEUE_REGISTRY);
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;

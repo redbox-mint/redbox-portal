@@ -61,8 +61,6 @@ function requiredRuntimeFunction(value: RuntimeValue, label: string): RuntimeFun
 }
 
 const runtimeModuleLoader = requiredRuntimeFunction(require, 'The CommonJS module loader');
-const jsonTextParser = requiredRuntimeFunction(readRuntimeProperty(JSON, 'parse'), 'JSON.parse');
-
 export function loadRuntimeModule(modulePath: string): RuntimeValue {
   return runtimeModuleLoader.invoke(modulePath);
 }
@@ -106,37 +104,5 @@ export function isRuntimeArray(value: RuntimeValue): value is RuntimeValue[] {
 }
 
 export function parseJsonText(text: string): JsonValue {
-  const value = jsonTextParser.invoke(text);
-  if (!isJsonValue(value)) {
-    throw new SyntaxError('Parsed JSON did not produce a JSON value.');
-  }
-  return value;
-}
-
-function isJsonValue(value: RuntimeValue): value is JsonValue {
-  const pending: RuntimeValue[] = [value];
-  while (pending.length > 0) {
-    const current = pending.pop();
-    if (current === undefined) {
-      return false;
-    }
-    if (
-      current === null ||
-      typeof current === 'string' ||
-      typeof current === 'boolean' ||
-      (typeof current === 'number' && Number.isFinite(current))
-    ) {
-      continue;
-    }
-    if (isRuntimeArray(current)) {
-      pending.push(...current);
-      continue;
-    }
-    if (isRuntimeRecord(current)) {
-      pending.push(...Object.values(current));
-      continue;
-    }
-    return false;
-  }
-  return true;
+  return JSON.parse(text) as JsonValue;
 }

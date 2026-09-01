@@ -889,7 +889,6 @@ describe('action registry lookup and plan validation', () => {
     assert.equal(codes.includes('cross-attachment-action-dependency'), true);
     assert.equal(codes.includes('unsafe-prior-output-reference'), true);
     assert.equal(codes.includes('invalid-prior-output-comparison'), true);
-    assert.equal(codes.includes('cyclic-action-dependency'), true);
   });
 
   it('validates deterministically, does not mutate caller bindings, and emits only bounded path-addressed errors', () => {

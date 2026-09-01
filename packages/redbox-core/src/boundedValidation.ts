@@ -89,42 +89,7 @@ function addBytes(state: ValidationState, bytes: number, maximum: number): boole
 }
 
 export function serializedStringByteLength(value: string): number {
-  let bytes = 2;
-  for (let index = 0; index < value.length; index += 1) {
-    const codeUnit = value.charCodeAt(index);
-    if (
-      codeUnit === 0x22 ||
-      codeUnit === 0x5c ||
-      codeUnit === 0x08 ||
-      codeUnit === 0x09 ||
-      codeUnit === 0x0a ||
-      codeUnit === 0x0c ||
-      codeUnit === 0x0d
-    ) {
-      bytes += 2;
-      continue;
-    }
-    if (codeUnit < 0x20) {
-      bytes += 6;
-      continue;
-    }
-    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
-      const nextCodeUnit = value.charCodeAt(index + 1);
-      if (nextCodeUnit >= 0xdc00 && nextCodeUnit <= 0xdfff) {
-        bytes += 4;
-        index += 1;
-      } else {
-        bytes += 6;
-      }
-      continue;
-    }
-    if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
-      bytes += 6;
-      continue;
-    }
-    bytes += codeUnit <= 0x7f ? 1 : codeUnit <= 0x7ff ? 2 : 3;
-  }
-  return bytes;
+  return Buffer.byteLength(JSON.stringify(value), 'utf8');
 }
 
 function childObjectPath(path: string, key: string): string {

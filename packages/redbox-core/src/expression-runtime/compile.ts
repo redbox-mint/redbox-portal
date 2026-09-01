@@ -1,5 +1,6 @@
 import Handlebars from 'handlebars';
 import jsonata from 'jsonata';
+import { handlebarsHelperDefinitions } from '@researchdatabox/sails-ng-common/dist/src/handlebars-helpers';
 import { normaliseVisual } from '@researchdatabox/sails-ng-common/dist/src/config/names/naming-helpers';
 import {
   isRuntimeArray,
@@ -39,38 +40,55 @@ export const MANAGED_JSONATA_CUSTOM_FUNCTION_NAMES: readonly string[] = Object.f
   'luxonFormatDate',
 ]);
 
-export const MANAGED_HANDLEBARS_HELPER_NAMES: readonly string[] = Object.freeze([
-  'and',
-  'concat',
-  'default',
-  'emailList',
-  'eq',
-  'formatDate',
-  'gt',
-  'gte',
-  'isArray',
-  'isDefined',
-  'isEmpty',
-  'isNull',
-  'isObject',
-  'isUndefined',
-  'join',
-  'lt',
-  'lte',
-  'ne',
-  'not',
-  'or',
-  'parseDateString',
-  'split',
-  'substring',
-  'toLower',
-  'toUpper',
-  'trim',
-  'urlEncode',
-]);
+function emailList(...argumentsList: RuntimeValue[]): string {
+  const creators = argumentsList[0];
+  if (!isRuntimeArray(creators)) return '';
+  return creators
+    .flatMap(creator => {
+      const email = isRuntimeRecord(creator) ? readRuntimeProperty(creator, 'email') : undefined;
+      return typeof email === 'string' ? [email] : [];
+    })
+    .join(',');
+}
 
-const MANAGED_HANDLEBARS_HELPERS = new Set(MANAGED_HANDLEBARS_HELPER_NAMES);
-const MANAGED_HANDLEBARS_BLOCK_HELPERS = new Set(['each', 'if', 'unless', 'with']);
+export const MANAGED_HANDLEBARS_HELPERS = Object.freeze({
+  and: handlebarsHelperDefinitions.and,
+  concat: handlebarsHelperDefinitions.concat,
+  default: handlebarsHelperDefinitions.default,
+  emailList,
+  eq: handlebarsHelperDefinitions.eq,
+  formatDate: handlebarsHelperDefinitions.formatDate,
+  gt: handlebarsHelperDefinitions.gt,
+  gte: handlebarsHelperDefinitions.gte,
+  isArray: handlebarsHelperDefinitions.isArray,
+  isDefined: handlebarsHelperDefinitions.isDefined,
+  isEmpty: handlebarsHelperDefinitions.isEmpty,
+  isNull: handlebarsHelperDefinitions.isNull,
+  isObject: handlebarsHelperDefinitions.isObject,
+  isUndefined: handlebarsHelperDefinitions.isUndefined,
+  join: handlebarsHelperDefinitions.join,
+  lt: handlebarsHelperDefinitions.lt,
+  lte: handlebarsHelperDefinitions.lte,
+  ne: handlebarsHelperDefinitions.ne,
+  not: handlebarsHelperDefinitions.not,
+  or: handlebarsHelperDefinitions.or,
+  parseDateString: handlebarsHelperDefinitions.parseDateString,
+  split: handlebarsHelperDefinitions.split,
+  substring: handlebarsHelperDefinitions.substring,
+  toLower: handlebarsHelperDefinitions.toLower,
+  toUpper: handlebarsHelperDefinitions.toUpper,
+  trim: handlebarsHelperDefinitions.trim,
+  urlEncode: handlebarsHelperDefinitions.urlEncode,
+});
+
+export const MANAGED_HANDLEBARS_HELPER_NAMES: readonly string[] = Object.freeze(
+  Object.keys(MANAGED_HANDLEBARS_HELPERS)
+);
+
+export const MANAGED_HANDLEBARS_BLOCK_HELPER_NAMES: readonly string[] = Object.freeze(['each', 'if', 'unless', 'with']);
+
+const MANAGED_HANDLEBARS_HELPER_SET = new Set(MANAGED_HANDLEBARS_HELPER_NAMES);
+const MANAGED_HANDLEBARS_BLOCK_HELPERS = new Set(MANAGED_HANDLEBARS_BLOCK_HELPER_NAMES);
 const FORBIDDEN_HANDLEBARS_HELPERS = new Set([
   'attachmentDownloadUrl',
   'blockHelperMissing',
@@ -215,8 +233,8 @@ function validateHandlebarsNode(node: RuntimeRecord): boolean {
     }
     return path === 'each';
   }
-  if (type === 'SubExpression' || hasHelperArguments(node) || MANAGED_HANDLEBARS_HELPERS.has(path)) {
-    if (!MANAGED_HANDLEBARS_HELPERS.has(path)) {
+  if (type === 'SubExpression' || hasHelperArguments(node) || MANAGED_HANDLEBARS_HELPER_SET.has(path)) {
+    if (!MANAGED_HANDLEBARS_HELPER_SET.has(path)) {
       throw new ManagedExpressionError('handlebars', 'validation', 'handlebars-helper-forbidden');
     }
   }

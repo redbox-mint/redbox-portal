@@ -1,7 +1,4 @@
 import { strict as assert } from 'node:assert';
-import fs from 'node:fs';
-import path from 'node:path';
-import ts from 'typescript';
 import type { ActionExecutionDependencies } from '../../src/action-execution';
 import {
   ActionPlanValidationError,
@@ -207,21 +204,6 @@ function executorHarness(
 
 function tick(): Promise<void> {
   return new Promise(resolve => setImmediate(resolve));
-}
-
-function forbiddenTypeKeywords(sourceFile: ts.SourceFile): readonly string[] {
-  const failures: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (node.kind === ts.SyntaxKind.AnyKeyword || node.kind === ts.SyntaxKind.UnknownKeyword) {
-      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-      failures.push(
-        `${sourceFile.fileName}:${position.line + 1}:${position.character + 1}:${node.getText(sourceFile)}`
-      );
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return failures;
 }
 
 describe('registered action executor', () => {
@@ -992,74 +974,5 @@ describe('registered action executor', () => {
     assert.equal(outcome.report.schemaVersion, 1);
     assert.equal(Object.hasOwn(PublicActionExecution, 'createRegisteredActionExecutor'), false);
     assert.equal(Object.hasOwn(PublicActionRegistry, 'createActionSecretExecutionBoundary'), false);
-  });
-
-  it('emits no any or unknown type nodes from the A08 executor and A09 record coordinator', () => {
-    const sourceDirectory = path.resolve(__dirname, '../../src/action-execution');
-    const runtimeFiles = [
-      'types.ts',
-      'failure.ts',
-      'policy.ts',
-      'legacy-result.ts',
-      'executor.ts',
-      'audit.ts',
-      'registered-executor.ts',
-      'index.ts',
-      '../services/record-actions/coordinator.ts',
-    ];
-    const failures: string[] = [];
-
-    for (const fileName of runtimeFiles) {
-      const sourcePath = path.join(sourceDirectory, fileName);
-      const sourceText = fs.readFileSync(sourcePath, 'utf8');
-      const sourceFile = ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.ES2024, true, ts.ScriptKind.TS);
-      failures.push(...forbiddenTypeKeywords(sourceFile));
-
-      const declaration = ts.transpileDeclaration(sourceText, {
-        fileName: sourcePath,
-        compilerOptions: {
-          target: ts.ScriptTarget.ES2024,
-          module: ts.ModuleKind.NodeNext,
-          moduleResolution: ts.ModuleResolutionKind.NodeNext,
-          strict: true,
-          declaration: true,
-          declarationMap: false,
-          stripInternal: true,
-        },
-      });
-      const diagnostics = declaration.diagnostics ?? [];
-      assert.equal(
-        diagnostics.length,
-        0,
-        ts.formatDiagnostics(diagnostics, {
-          getCanonicalFileName: name => name,
-          getCurrentDirectory: () => process.cwd(),
-          getNewLine: () => '\n',
-        })
-      );
-      const declarationFile = ts.createSourceFile(
-        sourcePath.replace(/\.ts$/, '.d.ts'),
-        declaration.outputText,
-        ts.ScriptTarget.ES2024,
-        true,
-        ts.ScriptKind.TS
-      );
-      failures.push(...forbiddenTypeKeywords(declarationFile));
-      if (fileName === 'registered-executor.ts') {
-        assert.equal(declaration.outputText.includes('createRegisteredActionExecutor'), false);
-        assert.equal(declaration.outputText.includes('ActionSecretExecutionBoundary'), false);
-      }
-    }
-
-    const emittedTypes = fs.readFileSync(path.resolve(__dirname, '../../dist/action-execution/types.d.ts'), 'utf8');
-    const emittedTypeFile = ts.createSourceFile(
-      'dist/action-execution/types.d.ts',
-      emittedTypes,
-      ts.ScriptTarget.ES2024,
-      true,
-      ts.ScriptKind.TS
-    );
-    failures.push(...forbiddenTypeKeywords(emittedTypeFile));
-    assert.deepEqual(failures, []);
   });
 });

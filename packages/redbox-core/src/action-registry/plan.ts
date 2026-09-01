@@ -1,10 +1,10 @@
+import { z } from 'zod';
 import {
   literalMatchesActionParameter,
   parseActionBinding,
   type ActionBinding,
   type ActionDependency,
   type ActionHandler,
-  type ActionJsonObject,
   type ActionJsonValue,
   type ActionParameterValue,
   type ActionParameterValues,
@@ -29,13 +29,7 @@ import {
   type AvailableActionRegistryLookup,
   type DeepReadonly,
 } from './registration';
-import {
-  createRuntimeValidator,
-  isRuntimeArray,
-  isRuntimeRecord,
-  readRuntimeProperty,
-  type RuntimeValue,
-} from '../runtimeValues';
+import { createRuntimeValidator, type RuntimeValue } from '../runtimeValues';
 import { compileManagedHandlebarsTemplate, compileManagedJsonataExpression } from '../expression-runtime/compile';
 import { ManagedExpressionError } from '../expression-runtime/errors';
 import type { PreparedActionParameter } from '../expression-runtime/types';
@@ -134,17 +128,6 @@ export function isActionPlanValidationError(value: RuntimeValue): value is Actio
 }
 
 type RegisteredActionParameter = ActionDescriptorMetadata['parameterSchema']['parameters'][number];
-type ImmutableActionJsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | readonly ImmutableActionJsonValue[]
-  | ImmutableActionJsonObject;
-interface ImmutableActionJsonObject {
-  readonly [key: string]: ImmutableActionJsonValue;
-}
-
 interface IndexedActionBinding {
   readonly binding: ActionBinding;
   readonly index: number;
@@ -290,72 +273,59 @@ function invalidShapeIssue(path: string): ActionPlanValidationIssue {
   });
 }
 
-function bindingIssuePath(index: number, path: string): string {
-  return path === '$' ? `$.bindings[${index}]` : `$.bindings[${index}]${path.slice(1)}`;
+function issuePath(segments: readonly PropertyKey[]): string {
+  return segments.reduce<string>(
+    (path, segment) => (typeof segment === 'number' ? `${path}[${segment}]` : `${path}.${String(segment)}`),
+    '$'
+  );
 }
+
+function contractPath(path: string): Array<string | number> {
+  const segments: Array<string | number> = [];
+  for (const match of path.matchAll(/\.([^.[\]]+)|\[(\d+)\]/g)) {
+    segments.push(match[2] === undefined ? match[1] : Number(match[2]));
+  }
+  return segments;
+}
+
+const planBindingSchema = z.unknown().transform((value, context) => {
+  try {
+    return parseActionBinding(value as RuntimeValue);
+  } catch (error) {
+    if (error instanceof ActionContractValidationError) {
+      for (const issue of error.issues) {
+        context.addIssue({ code: 'custom', path: contractPath(issue.path), message: issue.message });
+      }
+    } else {
+      context.addIssue({ code: 'custom', message: 'Action binding input does not match the public contract.' });
+    }
+    return z.NEVER;
+  }
+});
+
+const actionPlanSchemaImplementation = z
+  .object({
+    schemaVersion: z.literal(ACTION_PLAN_SCHEMA_VERSION),
+    recordTypeKey: z.string().refine(value => safeActionIdentifierSchema.safeParse(value).success),
+    bindings: z.array(planBindingSchema).max(ACTION_CONTRACT_LIMITS.maxPlanBindings),
+  })
+  .strict();
 
 function parseActionPlanShape(value: RuntimeValue): ActionPlanShapeResult {
   const preflight = preflightActionPlanStructure(value);
-  if (preflight !== undefined) {
-    return preflight;
-  }
-  if (!isRuntimeRecord(value)) {
-    return preflightFailure('$', 'Action plan input does not match the public contract.');
-  }
-
-  const issues: ActionPlanValidationIssue[] = [];
-  const allowedKeys = new Set(['schemaVersion', 'recordTypeKey', 'bindings']);
-  if (Object.keys(value).some(key => !allowedKeys.has(key))) {
-    issues.push(invalidShapeIssue('$'));
-  }
-  const schemaVersion = readRuntimeProperty(value, 'schemaVersion');
-  if (schemaVersion !== ACTION_PLAN_SCHEMA_VERSION) {
-    issues.push(invalidShapeIssue('$.schemaVersion'));
-  }
-  const recordTypeResult = safeActionIdentifierSchema.safeParse(readRuntimeProperty(value, 'recordTypeKey'));
-  if (!recordTypeResult.success) {
-    issues.push(invalidShapeIssue('$.recordTypeKey'));
-  }
-  const bindingsValue = readRuntimeProperty(value, 'bindings');
-  if (!isRuntimeArray(bindingsValue)) {
-    issues.push(invalidShapeIssue('$.bindings'));
-  }
-  if (!recordTypeResult.success || !isRuntimeArray(bindingsValue) || issues.length > 0) {
-    return Object.freeze({
-      ok: false,
-      issues: Object.freeze(issues.slice(0, ACTION_CONTRACT_LIMITS.maxPlanValidationIssues)),
-    });
-  }
-
-  const bindings: ActionBinding[] = [];
-  for (let index = 0; index < bindingsValue.length; index += 1) {
-    try {
-      bindings.push(parseActionBinding(bindingsValue[index]));
-    } catch (error) {
-      if (error instanceof ActionContractValidationError) {
-        for (const issue of error.issues) {
-          if (issues.length >= ACTION_CONTRACT_LIMITS.maxPlanValidationIssues) {
-            break;
-          }
-          issues.push(invalidShapeIssue(bindingIssuePath(index, issue.path)));
-        }
-      } else {
-        issues.push(invalidShapeIssue(`$.bindings[${index}]`));
-      }
-    }
-    if (issues.length >= ACTION_CONTRACT_LIMITS.maxPlanValidationIssues) {
-      break;
-    }
-  }
-  if (issues.length > 0) {
+  if (preflight !== undefined) return preflight;
+  const result = actionPlanSchemaImplementation.safeParse(value);
+  if (!result.success) {
+    const issues = result.error.issues
+      .slice(0, ACTION_CONTRACT_LIMITS.maxPlanValidationIssues)
+      .map(issue => invalidShapeIssue(issuePath(issue.path)));
     return Object.freeze({ ok: false, issues: Object.freeze(issues) });
   }
   return Object.freeze({
     ok: true,
     plan: Object.freeze({
-      schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
-      recordTypeKey: recordTypeResult.data,
-      bindings: Object.freeze(bindings),
+      ...result.data,
+      bindings: Object.freeze(result.data.bindings),
     }),
   });
 }
@@ -384,22 +354,8 @@ function invalidSemantics(issues: ActionPlanValidationIssue[]): InvalidActionPla
   return Object.freeze({ ok: false, issues: Object.freeze(ordered) });
 }
 
-function isImmutableActionJsonArray(value: ImmutableActionJsonValue): value is readonly ImmutableActionJsonValue[] {
-  return Array.isArray(value);
-}
-
-function cloneActionJsonValue(value: ImmutableActionJsonValue): ActionJsonValue {
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
-  if (isImmutableActionJsonArray(value)) {
-    return value.map(cloneActionJsonValue);
-  }
-  const cloned: ActionJsonObject = {};
-  for (const [key, child] of Object.entries(value)) {
-    cloned[key] = cloneActionJsonValue(child);
-  }
-  return cloned;
+function cloneActionJsonValue(value: DeepReadonly<ActionJsonValue>): ActionJsonValue {
+  return structuredClone(value) as ActionJsonValue;
 }
 
 function freezeActionJsonValue(value: ActionJsonValue): void {
@@ -414,52 +370,12 @@ function freezeActionJsonValue(value: ActionJsonValue): void {
 }
 
 function cloneParameterValue(value: ActionParameterValue): ActionParameterValue {
-  if (value.kind === 'literal') {
-    const cloned: ActionParameterValue = { kind: 'literal', value: cloneActionJsonValue(value.value) };
-    return cloned;
-  }
-  if (value.kind === 'jsonata') {
-    const cloned: ActionParameterValue = { kind: 'jsonata', expression: value.expression };
-    return cloned;
-  }
-  if (value.kind === 'handlebars') {
-    const cloned: ActionParameterValue = { kind: 'handlebars', template: value.template };
-    return cloned;
-  }
-  const cloned: ActionParameterValue = { kind: 'secret', configured: value.configured };
-  return cloned;
+  return structuredClone(value);
 }
 
 function defaultParameterValue(parameter: RegisteredActionParameter): ActionParameterValue | undefined {
-  if (parameter.kind === 'string' && parameter.defaultValue !== undefined) {
-    const value: ActionParameterValue = { kind: 'literal', value: parameter.defaultValue };
-    return value;
-  }
-  if (parameter.kind === 'number' && parameter.defaultValue !== undefined) {
-    const value: ActionParameterValue = { kind: 'literal', value: parameter.defaultValue };
-    return value;
-  }
-  if (parameter.kind === 'boolean' && parameter.defaultValue !== undefined) {
-    const value: ActionParameterValue = { kind: 'literal', value: parameter.defaultValue };
-    return value;
-  }
-  if (parameter.kind === 'enum' && parameter.defaultValue !== undefined) {
-    const value: ActionParameterValue = { kind: 'literal', value: parameter.defaultValue };
-    return value;
-  }
-  if (parameter.kind === 'object' && parameter.defaultValue !== undefined) {
-    const value: ActionParameterValue = {
-      kind: 'literal',
-      value: cloneActionJsonValue(parameter.defaultValue),
-    };
-    return value;
-  }
-  if (parameter.kind === 'array' && parameter.defaultValue !== undefined) {
-    const value: ActionParameterValue = {
-      kind: 'literal',
-      value: cloneActionJsonValue(parameter.defaultValue),
-    };
-    return value;
+  if ('defaultValue' in parameter && parameter.defaultValue !== undefined) {
+    return { kind: 'literal', value: cloneActionJsonValue(parameter.defaultValue) };
   }
   if (parameter.kind === 'jsonata' && parameter.defaultExpression !== undefined) {
     const value: ActionParameterValue = { kind: 'jsonata', expression: parameter.defaultExpression };
@@ -772,59 +688,6 @@ function validateScope(
   }
 }
 
-function detectDependencyCycles(
-  bindingsById: ReadonlyMap<ActionBindingId, IndexedActionBinding>,
-  lookups: readonly ActionRegistryLookup[],
-  issues: ActionPlanValidationIssue[]
-): void {
-  const states = new Map<ActionBindingId, 'visiting' | 'visited'>();
-
-  const visit = (indexed: IndexedActionBinding): void => {
-    if (issues.length >= ACTION_CONTRACT_LIMITS.maxPlanValidationIssues) {
-      return;
-    }
-    states.set(indexed.binding.id, 'visiting');
-    const dependencies = indexed.binding.dependencies ?? [];
-    for (let dependencyIndex = 0; dependencyIndex < dependencies.length; dependencyIndex += 1) {
-      if (issues.length >= ACTION_CONTRACT_LIMITS.maxPlanValidationIssues) {
-        return;
-      }
-      const dependency = dependencies[dependencyIndex];
-      const target = bindingsById.get(dependency.bindingId);
-      if (target === undefined) {
-        continue;
-      }
-      const state = states.get(target.binding.id);
-      if (state === 'visiting') {
-        const lookup = lookups[indexed.index];
-        if (lookup !== undefined) {
-          addBindingIssue(
-            issues,
-            indexed.binding,
-            lookup,
-            indexed.index,
-            'cyclic-action-dependency',
-            `.dependencies[${dependencyIndex}].bindingId`,
-            'Action dependencies must form an acyclic graph.'
-          );
-        }
-      } else if (state !== 'visited') {
-        visit(target);
-      }
-    }
-    states.set(indexed.binding.id, 'visited');
-  };
-
-  for (const indexed of bindingsById.values()) {
-    if (issues.length >= ACTION_CONTRACT_LIMITS.maxPlanValidationIssues) {
-      break;
-    }
-    if (states.get(indexed.binding.id) === undefined) {
-      visit(indexed);
-    }
-  }
-}
-
 function validateDependencies(
   plan: ActionPlan,
   bindingsById: ReadonlyMap<ActionBindingId, IndexedActionBinding>,
@@ -929,9 +792,6 @@ function validateDependencies(
     priorOutputsByIndex.set(index, Object.freeze(priorOutputs));
   }
 
-  if (issues.length < ACTION_CONTRACT_LIMITS.maxPlanValidationIssues) {
-    detectDependencyCycles(bindingsById, lookups, issues);
-  }
   return priorOutputsByIndex;
 }
 

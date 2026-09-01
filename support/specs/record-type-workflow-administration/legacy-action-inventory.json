@@ -114,16 +114,7 @@
           "nesting": "record-hook",
           "parameterVariant": "one scalar template; parseObject=false",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "parseObject": false,
-              "templates": [
-                {
-                  "field": "metadata.server_sync_test_value",
-                  "template": "test-<%= _.random(100000, 999999) %>"
-                }
-              ]
-            }
+            "presence": "present"
           }
         },
         {
@@ -138,16 +129,7 @@
           "nesting": "record-hook",
           "parameterVariant": "one scalar template; parseObject=false",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "parseObject": false,
-              "templates": [
-                {
-                  "field": "metadata.server_sync_test_value",
-                  "template": "test-<%= _.random(100000, 999999) %>"
-                }
-              ]
-            }
+            "presence": "present"
           }
         },
         {
@@ -162,20 +144,7 @@
           "nesting": "record-hook",
           "parameterVariant": "two scalar templates; parseObject=false",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "parseObject": false,
-              "templates": [
-                {
-                  "field": "metadata.fullName",
-                  "template": "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
-                },
-                {
-                  "field": "metadata.l_fullName",
-                  "template": "<%= _.toLower(_.get(record, 'metadata.fullName', '')) %>"
-                }
-              ]
-            }
+            "presence": "present"
           }
         },
         {
@@ -190,20 +159,7 @@
           "nesting": "record-hook",
           "parameterVariant": "two scalar templates; parseObject=false",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "parseObject": false,
-              "templates": [
-                {
-                  "field": "metadata.fullName",
-                  "template": "<%= _.get(record, 'metadata.givenName', '') + ' ' + _.get(record, 'metadata.surname', '') %>"
-                },
-                {
-                  "field": "metadata.l_fullName",
-                  "template": "<%= _.toLower(_.get(record, 'metadata.fullName', '')) %>"
-                }
-              ]
-            }
+            "presence": "present"
           }
         }
       ]
@@ -241,22 +197,7 @@
           "nesting": "record-hook",
           "parameterVariant": "RDMP contributor fields",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "emailProperty": "email",
-              "editContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.dataowner_email"
-              ],
-              "viewContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.contributor_supervisor",
-                "metadata.contributors"
-              ],
-              "recordCreatorPermissions": "view&edit"
-            }
+            "presence": "present"
           }
         },
         {
@@ -271,22 +212,7 @@
           "nesting": "record-hook",
           "parameterVariant": "RDMP contributor fields",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "emailProperty": "email",
-              "editContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.dataowner_email"
-              ],
-              "viewContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.contributor_supervisor",
-                "metadata.contributors"
-              ],
-              "recordCreatorPermissions": "view&edit"
-            }
+            "presence": "present"
           }
         },
         {
@@ -301,22 +227,7 @@
           "nesting": "record-hook",
           "parameterVariant": "data-record contributor fields",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "emailProperty": "email",
-              "editContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.dataowner_email"
-              ],
-              "viewContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.contributor_supervisor",
-                "metadata.contributors"
-              ],
-              "recordCreatorPermissions": "view&edit"
-            }
+            "presence": "present"
           }
         },
         {
@@ -331,22 +242,7 @@
           "nesting": "record-hook",
           "parameterVariant": "data-record contributor fields",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "emailProperty": "email",
-              "editContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.dataowner_email"
-              ],
-              "viewContributorProperties": [
-                "metadata.contributor_ci",
-                "metadata.contributor_data_manager",
-                "metadata.contributor_supervisor",
-                "metadata.contributors"
-              ],
-              "recordCreatorPermissions": "view&edit"
-            }
+            "presence": "present"
           }
         },
         {
@@ -361,13 +257,7 @@
           "nesting": "record-hook",
           "parameterVariant": "creator fields",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "emailProperty": "email",
-              "editContributorProperties": ["metadata.creators"],
-              "viewContributorProperties": ["metadata.creators"],
-              "recordCreatorPermissions": "view&edit"
-            }
+            "presence": "present"
           }
         },
         {
@@ -382,13 +272,7 @@
           "nesting": "record-hook",
           "parameterVariant": "creator fields",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "emailProperty": "email",
-              "editContributorProperties": ["metadata.creators"],
-              "viewContributorProperties": ["metadata.creators"],
-              "recordCreatorPermissions": "view&edit"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -421,12 +305,7 @@
           "nesting": "record-hook",
           "parameterVariant": "draft/queued/published condition with appended translated message",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= _.isEqual(record.workflow.stage, \"draft\") || _.isEqual(record.workflow.stage, \"queued\") || _.isEqual(record.workflow.stage, \"published\") %>",
-              "maxUploadSizeMessageCode": "max-total-files-upload-size-alternative-validation-error",
-              "replaceOrAppend": "append"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -459,13 +338,7 @@
           "nesting": "record-hook",
           "parameterVariant": "queued+embargo flag to embargoed",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= _.isEqual(workflow.stage, 'queued') && metadata.embargoByDate?.toString() === 'true' %>",
-              "targetWorkflowStageName": "embargoed",
-              "targetWorkflowStageLabel": "Embargoed",
-              "targetForm": "dataPublication-1.0-embargoed"
-            }
+            "presence": "present"
           }
         },
         {
@@ -480,13 +353,7 @@
           "nesting": "record-hook",
           "parameterVariant": "published+embargo flag to embargoed",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= _.isEqual(workflow.stage, 'published') && metadata.embargoByDate?.toString() === 'true' %>",
-              "targetWorkflowStageName": "embargoed",
-              "targetWorkflowStageLabel": "Embargoed",
-              "targetForm": "dataPublication-1.0-embargoed"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -519,14 +386,7 @@
           "nesting": "record-hook",
           "parameterVariant": "initialize notification.state=draft; saveRecord=false",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "name": "Set Notification to Draft",
-              "triggerCondition": "<%= typeof record.notification == 'undefined'%>",
-              "flagName": "notification.state",
-              "flagVal": "draft",
-              "saveRecord": false
-            }
+            "presence": "present"
           }
         },
         {
@@ -541,14 +401,7 @@
           "nesting": "record-hook",
           "parameterVariant": "initialize notification.state=draft; saveRecord=false",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "name": "Set Notification to Draft",
-              "triggerCondition": "<%= typeof record.notification == 'undefined'%>",
-              "flagName": "notification.state",
-              "flagVal": "draft",
-              "saveRecord": false
-            }
+            "presence": "present"
           }
         },
         {
@@ -564,15 +417,7 @@
           "parentOrder": 0,
           "parameterVariant": "state=emailed-reviewing plus reviewing log; saveRecord=true",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "name": "Set Notification to Emailed-Reviewing",
-              "forceRun": true,
-              "flagName": "notification.state",
-              "flagVal": "emailed-reviewing",
-              "logName": "notification.log.reviewing",
-              "saveRecord": true
-            }
+            "presence": "present"
           }
         },
         {
@@ -588,15 +433,7 @@
           "parentOrder": 1,
           "parameterVariant": "state=emailed-published plus published log; saveRecord=true",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "name": "Set Notification to Emailed-Published",
-              "forceRun": true,
-              "flagName": "notification.state",
-              "flagVal": "emailed-published",
-              "logName": "notification.log.published",
-              "saveRecord": true
-            }
+            "presence": "present"
           }
         },
         {
@@ -612,15 +449,7 @@
           "parentOrder": 0,
           "parameterVariant": "state=emailed-reviewing plus reviewing log; saveRecord=true",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "name": "Set Notification to Emailed-Reviewing",
-              "forceRun": true,
-              "flagName": "notification.state",
-              "flagVal": "emailed-reviewing",
-              "logName": "notification.log.reviewing",
-              "saveRecord": true
-            }
+            "presence": "present"
           }
         },
         {
@@ -636,15 +465,7 @@
           "parentOrder": 1,
           "parameterVariant": "state=emailed-published plus published log; saveRecord=true",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "name": "Set Notification to Emailed-Published",
-              "forceRun": true,
-              "flagName": "notification.state",
-              "flagVal": "emailed-published",
-              "logName": "notification.log.published",
-              "saveRecord": true
-            }
+            "presence": "present"
           }
         }
       ]
@@ -677,10 +498,7 @@
           "nesting": "record-hook",
           "parameterVariant": "default edit permission type",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
-            }
+            "presence": "present"
           }
         },
         {
@@ -695,10 +513,7 @@
           "nesting": "record-hook",
           "parameterVariant": "default edit permission type",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.workflow.stage=='published' ||  record.workflow.stage=='queued' || record.workflow.stage=='embargoed' %>"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -731,10 +546,7 @@
           "nesting": "record-hook",
           "parameterVariant": "draft-stage condition",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.workflow.stage=='draft' %>"
-            }
+            "presence": "present"
           }
         },
         {
@@ -749,10 +561,7 @@
           "nesting": "record-hook",
           "parameterVariant": "draft-stage condition",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.workflow.stage=='draft' %>"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -797,35 +606,7 @@
           "nesting": "record-hook",
           "parameterVariant": "publication staged email with two success callbacks",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
-              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}}",
-              "subject": "A publication has been staged for publishing.",
-              "template": "publicationStaged",
-              "onNotifySuccess": [
-                {
-                  "function": "sails.services.emailservice.sendRecordNotification",
-                  "options": {
-                    "forceRun": true,
-                    "to": "notifications-reviewer@dev.local",
-                    "subject": "Data publication ready for review",
-                    "template": "publicationReview"
-                  }
-                },
-                {
-                  "function": "sails.services.recordsservice.updateNotificationLog",
-                  "options": {
-                    "name": "Set Notification to Emailed-Reviewing",
-                    "forceRun": true,
-                    "flagName": "notification.state",
-                    "flagVal": "emailed-reviewing",
-                    "logName": "notification.log.reviewing",
-                    "saveRecord": true
-                  }
-                }
-              ]
-            }
+            "presence": "present"
           }
         },
         {
@@ -840,26 +621,7 @@
           "nesting": "record-hook",
           "parameterVariant": "publication published email with one success callback",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
-              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}},notifications-reviewer@dev.local,{{join (pluck record.metadata.creators \"email\") \",\"}}",
-              "subject": "A publication has been successfully published",
-              "template": "publicationPublished",
-              "onNotifySuccess": [
-                {
-                  "function": "sails.services.recordsservice.updateNotificationLog",
-                  "options": {
-                    "name": "Set Notification to Emailed-Published",
-                    "forceRun": true,
-                    "flagName": "notification.state",
-                    "flagVal": "emailed-published",
-                    "logName": "notification.log.published",
-                    "saveRecord": true
-                  }
-                }
-              ]
-            }
+            "presence": "present"
           }
         },
         {
@@ -874,35 +636,7 @@
           "nesting": "record-hook",
           "parameterVariant": "publication staged email with two success callbacks",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.notification != null && record.notification.state == 'draft' && record.workflow.stage == 'queued' %>",
-              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}}",
-              "subject": "A publication has been staged for review.",
-              "template": "publicationStaged",
-              "onNotifySuccess": [
-                {
-                  "function": "sails.services.emailservice.sendRecordNotification",
-                  "options": {
-                    "forceRun": true,
-                    "to": "notifications-reviewer@dev.local",
-                    "subject": "Data publication ready for review",
-                    "template": "publicationReview"
-                  }
-                },
-                {
-                  "function": "sails.services.recordsservice.updateNotificationLog",
-                  "options": {
-                    "name": "Set Notification to Emailed-Reviewing",
-                    "forceRun": true,
-                    "flagName": "notification.state",
-                    "flagVal": "emailed-reviewing",
-                    "logName": "notification.log.reviewing",
-                    "saveRecord": true
-                  }
-                }
-              ]
-            }
+            "presence": "present"
           }
         },
         {
@@ -917,26 +651,7 @@
           "nesting": "record-hook",
           "parameterVariant": "publication published email with one success callback",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "triggerCondition": "<%= record.notification != null && record.notification.state == 'emailed-reviewing' && record.workflow.stage == 'published' %>",
-              "to": "{{record.metadata.contributor_ci.email}},{{record.metadata.contributor_data_manager.email}},{{record.metadata.contributor_supervisor.email}},notifications-reviewer@dev.local,{{join (pluck record.metadata.creators \"email\") \",\"}}",
-              "subject": "A publication has been successfully published",
-              "template": "publicationPublished",
-              "onNotifySuccess": [
-                {
-                  "function": "sails.services.recordsservice.updateNotificationLog",
-                  "options": {
-                    "name": "Set Notification to Emailed-Published",
-                    "forceRun": true,
-                    "flagName": "notification.state",
-                    "flagVal": "emailed-published",
-                    "logName": "notification.log.published",
-                    "saveRecord": true
-                  }
-                }
-              ]
-            }
+            "presence": "present"
           }
         },
         {
@@ -952,13 +667,7 @@
           "parentOrder": 0,
           "parameterVariant": "forced reviewer email",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "forceRun": true,
-              "to": "notifications-reviewer@dev.local",
-              "subject": "Data publication ready for review",
-              "template": "publicationReview"
-            }
+            "presence": "present"
           }
         },
         {
@@ -974,13 +683,7 @@
           "parentOrder": 0,
           "parameterVariant": "forced reviewer email",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "forceRun": true,
-              "to": "notifications-reviewer@dev.local",
-              "subject": "Data publication ready for review",
-              "template": "publicationReview"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -1013,12 +716,7 @@
           "nesting": "record-hook",
           "parameterVariant": "forced draft DOI event gated to draft stage",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "forceRun": true,
-              "triggerCondition": "<%= record.workflow.stage=='draft' %>",
-              "event": "draft"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -1051,12 +749,7 @@
           "nesting": "record-hook",
           "parameterVariant": "forced draft DOI event gated to draft stage",
           "sourceOptions": {
-            "presence": "present",
-            "value": {
-              "forceRun": true,
-              "triggerCondition": "<%= record.workflow.stage=='draft' %>",
-              "event": "draft"
-            }
+            "presence": "present"
           }
         }
       ]
@@ -1089,8 +782,7 @@
           "nesting": "record-hook",
           "parameterVariant": "default rdmpOid field and default record return type",
           "sourceOptions": {
-            "presence": "present",
-            "value": {}
+            "presence": "present"
           }
         }
       ]

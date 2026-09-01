@@ -3,9 +3,6 @@ import { boundedValidationPreflight } from '../boundedValidation';
 import { isRuntimeArray, isRuntimeRecord, readRuntimeProperty, type RuntimeValue } from '../runtimeValues';
 import {
   parseActionBinding,
-  parseActionDefinition,
-  validateActionBindingCollection,
-  type ActionDefinition,
   type ActionBinding,
   type ActionDependency,
   type ActionJsonObject,
@@ -21,9 +18,11 @@ import {
   type ActionBindingScope,
   type ActionDefinitionId,
 } from './identifiers';
-import { ACTION_CONTRACT_LIMITS, ACTION_CONTRACT_SCHEMA_VERSION } from './limits';
+import { ACTION_CONTRACT_LIMITS, ACTION_CONTRACT_SCHEMA_VERSION, ACTION_PLAN_SCHEMA_VERSION } from './limits';
 import { BUILT_IN_ACTION_IDS, builtInActionRegistrations } from './builtInActions';
 import { isManagedNotificationFlagPath, isManagedNotificationLogPath } from './managedNotificationPaths';
+import { resolveActionPlan } from './plan';
+import { actionRegistrationSource, buildActionRegistry } from './registration';
 
 export type LegacyActionMigrationTargetKind =
   | 'action-binding'
@@ -262,14 +261,9 @@ interface BindingSegment {
 const ORDER_STRIDE = 1_000;
 const SAFE_SOURCE_PATH = /^[A-Za-z0-9_.$:/[\]-]+$/;
 const SAFE_ERROR_PATH_KEY = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
-const BUILT_IN_DEFINITIONS: readonly ActionDefinition[] = Object.freeze(
-  builtInActionRegistrations().map(descriptor =>
-    parseActionDefinition({
-      ...descriptor,
-      provenance: { packageName: '@researchdatabox/redbox-core', moduleName: 'actions/index' },
-    })
-  )
-);
+const BUILT_IN_REGISTRY = buildActionRegistry([
+  actionRegistrationSource('@researchdatabox/redbox-core', 'actions/index', builtInActionRegistrations),
+]);
 
 function fail(
   code: LegacyRecordActionMigrationErrorCode,
@@ -701,7 +695,11 @@ function validateMigratedBindings(
   guidance: string
 ): void {
   try {
-    validateActionBindingCollection(state.request.recordTypeKey, BUILT_IN_DEFINITIONS, state.bindings);
+    resolveActionPlan(BUILT_IN_REGISTRY, {
+      schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
+      recordTypeKey: state.request.recordTypeKey,
+      bindings: state.bindings,
+    });
   } catch {
     fail(code, path, guidance);
   }

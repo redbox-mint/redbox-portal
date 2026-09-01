@@ -1,26 +1,23 @@
 import { parentPort, type MessagePort } from 'node:worker_threads';
 import Handlebars from 'handlebars';
 import jsonata from 'jsonata';
-import { handlebarsHelperDefinitions } from '@researchdatabox/sails-ng-common/dist/src/handlebars-helpers';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common/dist/src/html-helpers';
 import { luxonFormatDate } from '@researchdatabox/sails-ng-common/dist/src/jsonata-helpers';
 import { guessNameParts } from '@researchdatabox/sails-ng-common/dist/src/translation-helpers';
 import { boundedValidationPreflight } from '../boundedValidation';
+import { type JsonObject, type JsonValue, type RuntimeValue } from '../runtimeValues';
 import {
-  isRuntimeArray,
-  isRuntimeRecord,
-  readRuntimeProperty,
-  type JsonObject,
-  type JsonValue,
-  type RuntimeValue,
-} from '../runtimeValues';
-import { compileManagedHandlebarsTemplate, compileManagedJsonataExpression } from './compile';
+  MANAGED_HANDLEBARS_BLOCK_HELPER_NAMES,
+  MANAGED_HANDLEBARS_HELPERS,
+  MANAGED_HANDLEBARS_HELPER_NAMES,
+  compileManagedHandlebarsTemplate,
+  compileManagedJsonataExpression,
+} from './compile';
 import { ManagedExpressionError } from './errors';
 import { EXPRESSION_RUNTIME_LIMITS } from './limits';
 import {
   decodeWorkerRequest,
-  encodeWorkerMessage,
-  runtimeValueIsBoundedJson,
+  runtimeValueIsJson,
   type ExpressionWorkerRequest,
   type ExpressionWorkerResponse,
 } from './worker-protocol';
@@ -35,87 +32,11 @@ function requiredParentPort(value: MessagePort | null): MessagePort {
 
 const port = requiredParentPort(parentPort);
 
-function emailList(...argumentsList: RuntimeValue[]): string {
-  const creators = argumentsList[0];
-  if (!isRuntimeArray(creators)) {
-    return '';
-  }
-  const emails: string[] = [];
-  for (const creator of creators) {
-    if (!isRuntimeRecord(creator)) {
-      continue;
-    }
-    const email = readRuntimeProperty(creator, 'email');
-    if (typeof email === 'string') {
-      emails.push(email);
-    }
-  }
-  return emails.join(',');
-}
-
-const handlebarsHelpers = Object.freeze({
-  and: handlebarsHelperDefinitions.and,
-  concat: handlebarsHelperDefinitions.concat,
-  default: handlebarsHelperDefinitions.default,
-  emailList,
-  eq: handlebarsHelperDefinitions.eq,
-  formatDate: handlebarsHelperDefinitions.formatDate,
-  gt: handlebarsHelperDefinitions.gt,
-  gte: handlebarsHelperDefinitions.gte,
-  isArray: handlebarsHelperDefinitions.isArray,
-  isDefined: handlebarsHelperDefinitions.isDefined,
-  isEmpty: handlebarsHelperDefinitions.isEmpty,
-  isNull: handlebarsHelperDefinitions.isNull,
-  isObject: handlebarsHelperDefinitions.isObject,
-  isUndefined: handlebarsHelperDefinitions.isUndefined,
-  join: handlebarsHelperDefinitions.join,
-  lt: handlebarsHelperDefinitions.lt,
-  lte: handlebarsHelperDefinitions.lte,
-  ne: handlebarsHelperDefinitions.ne,
-  not: handlebarsHelperDefinitions.not,
-  or: handlebarsHelperDefinitions.or,
-  parseDateString: handlebarsHelperDefinitions.parseDateString,
-  split: handlebarsHelperDefinitions.split,
-  substring: handlebarsHelperDefinitions.substring,
-  toLower: handlebarsHelperDefinitions.toLower,
-  toUpper: handlebarsHelperDefinitions.toUpper,
-  trim: handlebarsHelperDefinitions.trim,
-  urlEncode: handlebarsHelperDefinitions.urlEncode,
-});
-
-const knownHandlebarsHelpers: Readonly<Record<string, boolean>> = Object.freeze({
-  and: true,
-  concat: true,
-  default: true,
-  each: true,
-  emailList: true,
-  eq: true,
-  formatDate: true,
-  gt: true,
-  gte: true,
-  if: true,
-  isArray: true,
-  isDefined: true,
-  isEmpty: true,
-  isNull: true,
-  isObject: true,
-  isUndefined: true,
-  join: true,
-  lt: true,
-  lte: true,
-  ne: true,
-  not: true,
-  or: true,
-  parseDateString: true,
-  split: true,
-  substring: true,
-  toLower: true,
-  toUpper: true,
-  trim: true,
-  unless: true,
-  urlEncode: true,
-  with: true,
-});
+const knownHandlebarsHelpers: Readonly<Record<string, boolean>> = Object.freeze(
+  Object.fromEntries(
+    [...MANAGED_HANDLEBARS_HELPER_NAMES, ...MANAGED_HANDLEBARS_BLOCK_HELPER_NAMES].map(name => [name, true])
+  )
+);
 
 function resultPreflight(value: RuntimeValue): boolean {
   return boundedValidationPreflight(value, {
@@ -178,7 +99,7 @@ function createManagedHandlebars(): typeof Handlebars {
   instance.unregisterHelper('pluck');
   instance.unregisterHelper('renderMetadataValue');
   instance.unregisterHelper('t');
-  for (const [name, helper] of Object.entries(handlebarsHelpers)) {
+  for (const [name, helper] of Object.entries(MANAGED_HANDLEBARS_HELPERS)) {
     instance.registerHelper(name, helper);
   }
   return instance;
@@ -201,6 +122,9 @@ async function evaluateJsonata(
   request: ExpressionWorkerRequest & { readonly engine: 'jsonata' }
 ): Promise<JsonValue | undefined> {
   const prepared = compileManagedJsonataExpression(request.source);
+  if (prepared.astNodes !== request.astNodes) {
+    throw new ManagedExpressionError('jsonata', 'validation', 'jsonata-artifact-invalid');
+  }
   const expression = jsonata(prepared.source);
   expression.registerFunction('luxonFormatDate', luxonFormatDate, '<(snlo)(sl)(sl)?:s>');
   expression.registerFunction('guessNameParts', guessNameParts, '<(sl):o>');
@@ -208,7 +132,7 @@ async function evaluateJsonata(
   if (result === undefined) {
     return undefined;
   }
-  if (!resultPreflight(result) || !runtimeValueIsBoundedJson(result)) {
+  if (!resultPreflight(result) || !runtimeValueIsJson(result)) {
     throw new ManagedExpressionError('jsonata', 'limit', 'jsonata-result-invalid');
   }
   return result;
@@ -216,6 +140,9 @@ async function evaluateJsonata(
 
 function renderHandlebars(request: ExpressionWorkerRequest & { readonly engine: 'handlebars' }): string {
   const prepared = compileManagedHandlebarsTemplate(request.source, request.destination);
+  if (prepared.astNodes !== request.astNodes) {
+    throw new ManagedExpressionError('handlebars', 'validation', 'handlebars-artifact-invalid');
+  }
   const instance = createManagedHandlebars();
   const template = instance.compile<Record<string, JsonValue>>(prepared.source, {
     data: false,
@@ -250,28 +177,24 @@ function failure(error: ManagedExpressionError): ExpressionWorkerResponse {
 }
 
 async function execute(message: RuntimeValue): Promise<void> {
-  const request = typeof message === 'string' ? decodeWorkerRequest(message) : undefined;
+  const request = decodeWorkerRequest(message);
   if (request === undefined) {
-    port.postMessage(
-      encodeWorkerMessage({
-        type: 'failure',
-        engine: 'jsonata',
-        kind: 'validation',
-        code: 'expression-worker-request-invalid',
-      })
-    );
+    port.postMessage({
+      type: 'failure',
+      engine: 'jsonata',
+      kind: 'validation',
+      code: 'expression-worker-request-invalid',
+    } satisfies ExpressionWorkerResponse);
     port.close();
     return;
   }
   if (!inputPreflight(request)) {
-    port.postMessage(
-      encodeWorkerMessage({
-        type: 'failure',
-        engine: request.engine,
-        kind: 'limit',
-        code: 'expression-input-limit-exceeded',
-      })
-    );
+    port.postMessage({
+      type: 'failure',
+      engine: request.engine,
+      kind: 'limit',
+      code: 'expression-input-limit-exceeded',
+    } satisfies ExpressionWorkerResponse);
     port.close();
     return;
   }
@@ -280,19 +203,17 @@ async function execute(message: RuntimeValue): Promise<void> {
     if (request.engine === 'jsonata') {
       const value = await evaluateJsonata(request);
       port.postMessage(
-        encodeWorkerMessage(
-          value === undefined ? { type: 'json-result', present: false } : { type: 'json-result', present: true, value }
-        )
+        value === undefined ? { type: 'json-result', present: false } : { type: 'json-result', present: true, value }
       );
     } else {
-      port.postMessage(encodeWorkerMessage({ type: 'text-result', value: renderHandlebars(request) }));
+      port.postMessage({ type: 'text-result', value: renderHandlebars(request) } satisfies ExpressionWorkerResponse);
     }
   } catch (error) {
     const normalized =
       error instanceof ManagedExpressionError
         ? error
         : new ManagedExpressionError(request.engine, 'evaluation', `${request.engine}-evaluation-failed`);
-    port.postMessage(encodeWorkerMessage(failure(normalized)));
+    port.postMessage(failure(normalized));
   }
   port.close();
 }
@@ -300,4 +221,4 @@ async function execute(message: RuntimeValue): Promise<void> {
 port.once('message', (message: RuntimeValue) => {
   void execute(message);
 });
-port.postMessage(encodeWorkerMessage({ type: 'ready' }));
+port.postMessage({ type: 'ready' } satisfies ExpressionWorkerResponse);

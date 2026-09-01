@@ -1,8 +1,10 @@
+import { z } from 'zod';
 import { boundedValidationPreflight } from '../boundedValidation';
 import { REGISTERED_RECORD_ACTION_JOB_NAME } from '../config/agendaQueue.config';
-import { isRuntimeRecord, type RuntimeRecord, type RuntimeValue } from '../runtimeValues';
+import { isRuntimeRecord, type RuntimeRecord, type RuntimeValidator, type RuntimeValue } from '../runtimeValues';
 import { ActionValidationFailure } from '../action-execution/failure';
 import {
+  actionContextSchema,
   actionParameterValuesSchema,
   parseActionContext,
   type ActionContext,
@@ -15,15 +17,6 @@ import { ACTION_CONTRACT_LIMITS, ACTION_CONTEXT_SCHEMA_VERSION } from './limits'
 export const REGISTERED_RECORD_ACTION_PAYLOAD_SCHEMA_VERSION = 1 as const;
 export const QUEUE_DISPATCH_ACTION_ID = 'redbox.core.queue.dispatch-record-action' as const;
 
-export interface RegisteredRecordActionQueuePayload {
-  readonly schemaVersion: typeof REGISTERED_RECORD_ACTION_PAYLOAD_SCHEMA_VERSION;
-  readonly kind: 'registered-record-action';
-  readonly actionId: ActionDefinitionId;
-  readonly contractVersion: number;
-  readonly parameters: Readonly<ActionParameterValues>;
-  readonly context: Readonly<ActionContext>;
-}
-
 interface RegisteredRecordActionQueuePayloadInput {
   readonly actionId: ActionDefinitionId;
   readonly contractVersion: number;
@@ -31,14 +24,6 @@ interface RegisteredRecordActionQueuePayloadInput {
   readonly context: Readonly<ActionContext>;
 }
 
-const PAYLOAD_KEYS = Object.freeze([
-  'schemaVersion',
-  'kind',
-  'actionId',
-  'contractVersion',
-  'parameters',
-  'context',
-] as const);
 const RECORD_KEYS = Object.freeze(['oid', 'candidate'] as const);
 const IDENTITY_KEYS = Object.freeze(['redboxOid', 'revision'] as const);
 
@@ -131,28 +116,48 @@ export function createRegisteredRecordActionQueuePayload(
   });
 }
 
-function validatePersistedContext(context: ActionContext): void {
-  if (
-    context.scope.context !== 'queued-record-action' ||
-    context.scope.phase !== 'post' ||
-    context.actor !== null ||
-    context.priorOutputs.length !== 0 ||
-    context.transition !== undefined ||
-    context.record.current !== undefined ||
-    !hasExactKeys(context.record, RECORD_KEYS)
-  ) {
-    invalidQueuePayload();
-  }
-  const candidate = context.record.candidate;
-  if (
-    candidate === undefined ||
-    !hasExactKeys(candidate, IDENTITY_KEYS) ||
-    candidate.redboxOid !== context.record.oid
-  ) {
-    invalidQueuePayload();
-  }
-  queueRevision(candidate);
+function runtimeSchema<Value>(schema: RuntimeValidator<Value>) {
+  return z.unknown().transform((value, context) => {
+    const result = schema.safeParse(value as RuntimeValue);
+    if (result.success) return result.data;
+    context.addIssue({ code: 'custom', message: 'Value does not match the public action contract.' });
+    return z.NEVER;
+  });
 }
+
+const registeredRecordActionQueuePayloadSchema = z
+  .object({
+    schemaVersion: z.literal(REGISTERED_RECORD_ACTION_PAYLOAD_SCHEMA_VERSION),
+    kind: z.literal('registered-record-action'),
+    actionId: runtimeSchema(actionDefinitionIdSchema),
+    contractVersion: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    parameters: runtimeSchema(actionParameterValuesSchema),
+    context: runtimeSchema(actionContextSchema),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const persistedContext = payload.context;
+    const candidate = persistedContext.record.candidate;
+    const invalid =
+      payload.actionId === QUEUE_DISPATCH_ACTION_ID ||
+      Object.values(payload.parameters).some(parameter => parameter.kind === 'secret') ||
+      persistedContext.scope.context !== 'queued-record-action' ||
+      persistedContext.scope.phase !== 'post' ||
+      persistedContext.actor !== null ||
+      persistedContext.priorOutputs.length !== 0 ||
+      persistedContext.transition !== undefined ||
+      persistedContext.record.current !== undefined ||
+      !hasExactKeys(persistedContext.record, RECORD_KEYS) ||
+      candidate === undefined ||
+      !hasExactKeys(candidate, IDENTITY_KEYS) ||
+      candidate.redboxOid !== persistedContext.record.oid ||
+      typeof candidate.revision !== 'number' ||
+      !Number.isSafeInteger(candidate.revision) ||
+      candidate.revision < 0;
+    if (invalid) context.addIssue({ code: 'custom', message: 'Queue payload invariants are not satisfied.' });
+  });
+
+export type RegisteredRecordActionQueuePayload = Readonly<z.infer<typeof registeredRecordActionQueuePayloadSchema>>;
 
 export function parseRegisteredRecordActionQueuePayload(value: RuntimeValue): RegisteredRecordActionQueuePayload {
   const preflight = boundedValidationPreflight(value, {
@@ -164,44 +169,10 @@ export function parseRegisteredRecordActionQueuePayload(value: RuntimeValue): Re
     arrayCardinalityLimit: () => ACTION_CONTRACT_LIMITS.maxArrayItems,
     objectCardinalityLimit: () => ACTION_CONTRACT_LIMITS.maxObjectProperties,
   });
-  if (!preflight.ok || !isRuntimeRecord(value) || !hasExactKeys(value, PAYLOAD_KEYS)) {
-    return invalidQueuePayload();
-  }
-  if (
-    ownDataValue(value, 'schemaVersion') !== REGISTERED_RECORD_ACTION_PAYLOAD_SCHEMA_VERSION ||
-    ownDataValue(value, 'kind') !== 'registered-record-action'
-  ) {
-    return invalidQueuePayload();
-  }
-  const actionIdResult = actionDefinitionIdSchema.safeParse(ownDataValue(value, 'actionId'));
-  const contractVersion = ownDataValue(value, 'contractVersion');
-  const parametersResult = actionParameterValuesSchema.safeParse(ownDataValue(value, 'parameters'));
-  if (
-    !actionIdResult.success ||
-    actionIdResult.data === QUEUE_DISPATCH_ACTION_ID ||
-    typeof contractVersion !== 'number' ||
-    !Number.isSafeInteger(contractVersion) ||
-    contractVersion < 1 ||
-    !parametersResult.success ||
-    Object.values(parametersResult.data).some(parameter => parameter.kind === 'secret')
-  ) {
-    return invalidQueuePayload();
-  }
-  let context: ActionContext;
-  try {
-    context = parseActionContext(ownDataValue(value, 'context'));
-  } catch {
-    return invalidQueuePayload();
-  }
-  validatePersistedContext(context);
-  return Object.freeze({
-    schemaVersion: REGISTERED_RECORD_ACTION_PAYLOAD_SCHEMA_VERSION,
-    kind: 'registered-record-action',
-    actionId: actionIdResult.data,
-    contractVersion,
-    parameters: freezeRuntimeTree(parametersResult.data),
-    context,
-  });
+  if (!preflight.ok) return invalidQueuePayload();
+  const result = registeredRecordActionQueuePayloadSchema.safeParse(value);
+  if (!result.success) return invalidQueuePayload();
+  return freezeRuntimeTree(result.data);
 }
 
 export function parseRegisteredRecordActionQueueJob(value: RuntimeValue): RegisteredRecordActionQueuePayload {

@@ -55,69 +55,64 @@ export type ActionBindingScope =
 /** @deprecated Use ActionBindingScope. */
 export type ActionBindingAttachment = ActionBindingScope;
 
-const actionDefinitionIdSchemaImplementation = z
+/** @internal */
+export const actionDefinitionIdZodSchema = z
   .string()
   .min(1)
   .max(ACTION_CONTRACT_LIMITS.maxActionIdLength)
   .regex(ACTION_ID_PATTERN);
-const actionBindingIdSchemaImplementation = z
+/** @internal */
+export const actionBindingIdZodSchema = z
   .string()
   .min(1)
   .max(ACTION_CONTRACT_LIMITS.maxBindingIdLength)
   .regex(BINDING_ID_PATTERN);
-const safeActionIdentifierSchemaImplementation = z
+/** @internal */
+export const safeActionIdentifierZodSchema = z
   .string()
   .min(1)
   .max(ACTION_CONTRACT_LIMITS.maxIdentifierLength)
   .regex(SAFE_IDENTITY_PATTERN);
-const actionParameterNameSchemaImplementation = z
+/** @internal */
+export const actionParameterNameZodSchema = z
   .string()
   .min(1)
   .max(ACTION_CONTRACT_LIMITS.maxParameterNameLength)
   .regex(/^[A-Za-z][A-Za-z0-9_-]*$/);
-const actionExecutionModeSchemaImplementation: z.ZodType<ActionExecutionMode, RuntimeValue> = z.enum([
-  'onCreate',
-  'onUpdate',
-  'onDelete',
-  'onTransitionWorkflow',
-]);
-const actionExecutionPhaseSchemaImplementation: z.ZodType<ActionExecutionPhase, RuntimeValue> = z.enum([
-  'pre',
-  'postSync',
-  'post',
-]);
+/** @internal */
+export const actionExecutionModeZodSchema = z.enum(['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow']);
+/** @internal */
+export const actionExecutionPhaseZodSchema = z.enum(['pre', 'postSync', 'post']);
 
 const lifecycleActionBindingScopeSchemaImplementation = z
   .object({
     context: z.literal('record-lifecycle'),
     mode: z.enum(['onCreate', 'onUpdate', 'onDelete']),
-    phase: actionExecutionPhaseSchemaImplementation,
+    phase: actionExecutionPhaseZodSchema,
   })
   .strict();
 const transitionActionBindingScopeSchemaImplementation = z
   .object({
     context: z.literal('workflow-transition'),
     mode: z.literal('onTransitionWorkflow'),
-    phase: actionExecutionPhaseSchemaImplementation,
-    scopeId: safeActionIdentifierSchemaImplementation,
+    phase: actionExecutionPhaseZodSchema,
+    scopeId: safeActionIdentifierZodSchema,
   })
   .strict();
 const queuedActionBindingScopeSchemaImplementation = z
   .object({
     context: z.literal('queued-record-action'),
-    mode: actionExecutionModeSchemaImplementation,
-    phase: actionExecutionPhaseSchemaImplementation,
-    scopeId: safeActionIdentifierSchemaImplementation.optional(),
+    mode: actionExecutionModeZodSchema,
+    phase: actionExecutionPhaseZodSchema,
+    scopeId: safeActionIdentifierZodSchema.optional(),
   })
   .strict();
-const actionBindingScopeSchemaImplementation: z.ZodType<ActionBindingScope, RuntimeValue> = z.discriminatedUnion(
-  'context',
-  [
-    lifecycleActionBindingScopeSchemaImplementation,
-    transitionActionBindingScopeSchemaImplementation,
-    queuedActionBindingScopeSchemaImplementation,
-  ]
-);
+/** @internal */
+export const actionBindingScopeZodSchema = z.discriminatedUnion('context', [
+  lifecycleActionBindingScopeSchemaImplementation,
+  transitionActionBindingScopeSchemaImplementation,
+  queuedActionBindingScopeSchemaImplementation,
+]);
 
 function hasSafeActionContractShape(value: RuntimeValue): boolean {
   return boundedValidationPreflight(value, {
@@ -152,15 +147,13 @@ function isActionDefinitionId(value: RuntimeValue): value is ActionDefinitionId 
   return (
     hasSafeActionContractShape(value) &&
     typeof value === 'string' &&
-    actionDefinitionIdSchemaImplementation.safeParse(value).success
+    actionDefinitionIdZodSchema.safeParse(value).success
   );
 }
 
 function isActionBindingId(value: RuntimeValue): value is ActionBindingId {
   return (
-    hasSafeActionContractShape(value) &&
-    typeof value === 'string' &&
-    actionBindingIdSchemaImplementation.safeParse(value).success
+    hasSafeActionContractShape(value) && typeof value === 'string' && actionBindingIdZodSchema.safeParse(value).success
   );
 }
 
@@ -172,36 +165,29 @@ export const actionBindingIdSchema: RuntimeValidator<ActionBindingId> = createRu
   (value: RuntimeValue): RuntimeValidationResult<ActionBindingId> =>
     isActionBindingId(value) ? Object.freeze({ success: true, data: value }) : Object.freeze({ success: false })
 );
-export const safeActionIdentifierSchema: RuntimeValidator<string> = runtimeValidator(
-  safeActionIdentifierSchemaImplementation
-);
-export const actionParameterNameSchema: RuntimeValidator<string> = runtimeValidator(
-  actionParameterNameSchemaImplementation
-);
+export const safeActionIdentifierSchema: RuntimeValidator<string> = runtimeValidator(safeActionIdentifierZodSchema);
+export const actionParameterNameSchema: RuntimeValidator<string> = runtimeValidator(actionParameterNameZodSchema);
 
 export const ACTION_INVOCATION_CONTEXTS: readonly ['record-lifecycle', 'workflow-transition', 'queued-record-action'] =
   ['record-lifecycle', 'workflow-transition', 'queued-record-action'];
 export type ActionInvocationContextKind = (typeof ACTION_INVOCATION_CONTEXTS)[number];
 
-export const actionExecutionModeSchema: RuntimeValidator<ActionExecutionMode> = runtimeValidator(
-  actionExecutionModeSchemaImplementation
-);
-export const actionExecutionPhaseSchema: RuntimeValidator<ActionExecutionPhase> = runtimeValidator(
-  actionExecutionPhaseSchemaImplementation
-);
-export const actionBindingScopeSchema: RuntimeValidator<ActionBindingScope> = runtimeValidator(
-  actionBindingScopeSchemaImplementation
-);
+export const actionExecutionModeSchema: RuntimeValidator<ActionExecutionMode> =
+  runtimeValidator(actionExecutionModeZodSchema);
+export const actionExecutionPhaseSchema: RuntimeValidator<ActionExecutionPhase> =
+  runtimeValidator(actionExecutionPhaseZodSchema);
+export const actionBindingScopeSchema: RuntimeValidator<ActionBindingScope> =
+  runtimeValidator(actionBindingScopeZodSchema);
 /** @deprecated Use actionBindingScopeSchema. */
 export const actionBindingAttachmentSchema: RuntimeValidator<ActionBindingScope> = actionBindingScopeSchema;
 
 const stableActionBindingIdentitySchema = z
   .object({
-    recordTypeKey: safeActionIdentifierSchemaImplementation,
-    scope: actionBindingScopeSchemaImplementation,
-    actionId: actionDefinitionIdSchemaImplementation,
+    recordTypeKey: safeActionIdentifierZodSchema,
+    scope: actionBindingScopeZodSchema,
+    actionId: actionDefinitionIdZodSchema,
     contractVersion: z.number().int().positive().max(ACTION_CONTRACT_LIMITS.maxContractVersion),
-    stableKey: safeActionIdentifierSchemaImplementation,
+    stableKey: safeActionIdentifierZodSchema,
   })
   .strict();
 
@@ -243,7 +229,7 @@ function validationError(
 }
 
 export function parseActionDefinitionId(value: string): ActionDefinitionId {
-  const result = actionDefinitionIdSchemaImplementation.safeParse(value);
+  const result = actionDefinitionIdZodSchema.safeParse(value);
   if (!result.success || !isActionDefinitionId(value)) {
     throw validationError(
       'invalid-action-definition-id',
@@ -255,7 +241,7 @@ export function parseActionDefinitionId(value: string): ActionDefinitionId {
 }
 
 export function parseActionBindingId(value: string): ActionBindingId {
-  const result = actionBindingIdSchemaImplementation.safeParse(value);
+  const result = actionBindingIdZodSchema.safeParse(value);
   if (!result.success || !isActionBindingId(value)) {
     throw validationError(
       'invalid-action-binding-id',
