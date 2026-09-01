@@ -2,9 +2,7 @@ import type { FormConfigFrame, FormConfigOutline, ValidationMode } from '@resear
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type {
   RecordValidationCandidate,
-  RecordValidationMetricsHooks,
   RecordValidationRequest,
-  RecordValidationResolutionMetric,
   RecordValidationServiceDependencies,
 } from '../../src/services/RecordValidationService';
 
@@ -20,8 +18,6 @@ export interface RecordValidationFixtureOptions {
 export interface RecordValidationFixture {
   request: RecordValidationRequest;
   dependencies: RecordValidationServiceDependencies;
-  metrics: RecordValidationMetricsHooks;
-  metricEvents: RecordValidationResolutionMetric[];
   calls: {
     recordTypes: Array<{ brand: string; recordType: string }>;
     startingSteps: number;
@@ -79,7 +75,6 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
     constructions: 0,
     validatorGroups: [] as string[][],
   };
-  const metricEvents: RecordValidationResolutionMetric[] = [];
   const recordType =
     options.recordType === undefined
       ? { id: 'record-type-1', name: 'dataset', recordValidation: { mode: options.mode } }
@@ -145,12 +140,6 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
       requestId: 'request-1',
     },
     dependencies,
-    metrics: {
-      resolutionCompleted: metric => {
-        metricEvents.push(metric);
-      },
-    },
-    metricEvents,
     calls,
   };
 }

@@ -78,9 +78,7 @@ import {
   type RecordSaveProblemKind,
   type StorageMutationApplicationState,
   type ValidationMode,
-  compareRecordValidationIdentifiers,
   RECORD_VALIDATION_REFERENCE_PATTERN,
-  VALIDATION_OPERATION_NAME_PATTERN,
 } from '@researchdatabox/sails-ng-common';
 import type { Services as AttachmentMetadataServices } from './AttachmentMetadataService';
 import { createActionExecutionOperation, createActionExecutionSupervisor } from '../action-execution/executor';
@@ -111,8 +109,6 @@ import {
  * persistence gets this bounded opportunity to collect terminal outcomes.
  */
 const DETACHED_AUDIT_GRACE_MS = 1000;
-const RECORD_VALIDATION_ROLLOUT_AUDIT_OID = 'record-validation-rollout';
-const RECORD_VALIDATION_ROLLOUT_AUDIT_SCHEMA_VERSION = 1;
 const RECORD_VALIDATION_STRICT_ALL_OPERATION = 'strict-all';
 
 function safeValidationLogReference(value: unknown): string {
@@ -126,26 +122,6 @@ function safeExceptionType(error: unknown): string {
   return typeof error;
 }
 
-type AuditedValidationMode = ValidationMode | 'malformed';
-
-interface RecordValidationRolloutLayerSnapshot {
-  readonly mode?: AuditedValidationMode;
-  readonly operations: readonly {
-    readonly operation: string;
-    readonly mode: AuditedValidationMode;
-  }[];
-  readonly malformedOperationCount: number;
-}
-
-interface RecordValidationRolloutSnapshot {
-  readonly schemaVersion: typeof RECORD_VALIDATION_ROLLOUT_AUDIT_SCHEMA_VERSION;
-  readonly global: RecordValidationRolloutLayerSnapshot & { readonly mode: AuditedValidationMode };
-  readonly recordTypes: readonly {
-    readonly recordType: string;
-    readonly rollout: RecordValidationRolloutLayerSnapshot;
-  }[];
-  readonly malformedRecordTypeCount: number;
-}
 
 // Save codes are an internal RecordsService-to-RecordSaveResponse mapping, not
 // a supported package export. Public clients consume the resulting issue code.
@@ -973,162 +949,6 @@ export namespace Services {
       }
     }
 
-    private auditedValidationMode(value: unknown, fallback?: ValidationMode): AuditedValidationMode | undefined {
-      if (value === undefined) return fallback;
-      return value === 'shadow' || value === 'enforce' ? value : 'malformed';
-    }
-
-    private rolloutLayerSnapshot(value: unknown): RecordValidationRolloutLayerSnapshot;
-    private rolloutLayerSnapshot(
-      value: unknown,
-      fallbackMode: ValidationMode
-    ): RecordValidationRolloutLayerSnapshot & { readonly mode: AuditedValidationMode };
-    private rolloutLayerSnapshot(
-      value: unknown,
-      fallbackMode?: ValidationMode
-    ): RecordValidationRolloutLayerSnapshot {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        const mode = fallbackMode ? (value === undefined ? fallbackMode : 'malformed') : undefined;
-        return {
-          ...(mode ? { mode } : {}),
-          operations: [],
-          malformedOperationCount: value === undefined ? 0 : 1,
-        };
-      }
-      const layer = value as AnyRecord;
-      const mode = this.auditedValidationMode(layer.mode, fallbackMode);
-      const operations: Array<{ operation: string; mode: AuditedValidationMode }> = [];
-      let malformedOperationCount = 0;
-      if (layer.operations !== undefined) {
-        if (!layer.operations || typeof layer.operations !== 'object' || Array.isArray(layer.operations)) {
-          malformedOperationCount += 1;
-        } else {
-          const configuredOperations = layer.operations as AnyRecord;
-          for (const operation of Object.keys(configuredOperations).sort(compareRecordValidationIdentifiers)) {
-            if (!VALIDATION_OPERATION_NAME_PATTERN.test(operation)) {
-              malformedOperationCount += 1;
-              continue;
-            }
-            const override = configuredOperations[operation];
-            if (!override || typeof override !== 'object' || Array.isArray(override)) {
-              operations.push({ operation, mode: 'malformed' });
-              continue;
-            }
-            const operationMode = this.auditedValidationMode((override as AnyRecord).mode);
-            if (operationMode) operations.push({ operation, mode: operationMode });
-          }
-        }
-      }
-      return {
-        ...(mode ? { mode } : {}),
-        operations,
-        malformedOperationCount,
-      };
-    }
-
-    private rolloutSnapshot(recordTypes: readonly unknown[]): RecordValidationRolloutSnapshot {
-      const snapshots: Array<{ recordType: string; rollout: RecordValidationRolloutLayerSnapshot }> = [];
-      let malformedRecordTypeCount = 0;
-      for (const value of recordTypes) {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) {
-          malformedRecordTypeCount += 1;
-          continue;
-        }
-        const recordType = value as AnyRecord;
-        const name = typeof recordType.name === 'string' ? recordType.name.trim() : '';
-        if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(name)) {
-          malformedRecordTypeCount += 1;
-          continue;
-        }
-        snapshots.push({ recordType: name, rollout: this.rolloutLayerSnapshot(recordType.recordValidation) });
-      }
-      snapshots.sort((left, right) => compareRecordValidationIdentifiers(left.recordType, right.recordType));
-      return {
-        schemaVersion: RECORD_VALIDATION_ROLLOUT_AUDIT_SCHEMA_VERSION,
-        global: this.rolloutLayerSnapshot(sails.config.recordValidation, 'shadow'),
-        recordTypes: snapshots,
-        malformedRecordTypeCount,
-      };
-    }
-
-    private rolloutFingerprint(snapshot: RecordValidationRolloutSnapshot): string {
-      return createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
-    }
-
-    private previousRolloutFingerprint(audits: unknown): string | undefined {
-      if (!Array.isArray(audits)) return undefined;
-      for (let index = audits.length - 1; index >= 0; index -= 1) {
-        const audit = audits[index];
-        if (!audit || typeof audit !== 'object' || Array.isArray(audit)) continue;
-        const record = (audit as AnyRecord).record;
-        if (!record || typeof record !== 'object' || Array.isArray(record)) continue;
-        const rollout = (record as AnyRecord).recordValidationRollout;
-        if (!rollout || typeof rollout !== 'object' || Array.isArray(rollout)) continue;
-        const fingerprint = (rollout as AnyRecord).fingerprint;
-        if (typeof fingerprint === 'string' && /^[a-f0-9]{64}$/.test(fingerprint)) return fingerprint;
-      }
-      return undefined;
-    }
-
-    /**
-     * Persist a payload-free startup audit whenever rollout mode configuration
-     * changes. Failure is fatal so enforcement cannot start without its audit.
-     *
-     * @param recordTypes Bootstrapped record-type configuration to normalize.
-     * @returns Whether the fingerprint was unchanged or durably audited.
-     */
-    public async auditRecordValidationRollout(recordTypes: readonly unknown[]): Promise<{
-      status: 'unchanged' | 'audited';
-      fingerprint: string;
-    }> {
-      // Core bootstrap runs before Sails emits `ready`, so the lifecycle hooks
-      // registered by init() have not necessarily populated storageService yet.
-      // Resolve it synchronously here because rollout auditing is itself a
-      // bootstrap operation and must fail closed only when durable storage is
-      // genuinely unavailable.
-      if (!this.storageService) {
-        this.getStorageService(this);
-      }
-      const snapshot = this.rolloutSnapshot(Array.isArray(recordTypes) ? recordTypes : []);
-      const fingerprint = this.rolloutFingerprint(snapshot);
-      const createAudit = this.storageService?.createRecordAudit;
-      if (typeof createAudit !== 'function') {
-        throw new Error('Durable record-validation rollout audit storage is unavailable.');
-      }
-      const params = new RecordAuditParams();
-      params.oid = RECORD_VALIDATION_ROLLOUT_AUDIT_OID;
-      const previousFingerprint = this.previousRolloutFingerprint(await this.storageService.getRecordAudit(params));
-      if (previousFingerprint === fingerprint) return { status: 'unchanged', fingerprint };
-
-      const audit = new RecordAuditModel(
-        RECORD_VALIDATION_ROLLOUT_AUDIT_OID,
-        {
-          recordValidationRollout: {
-            schemaVersion: RECORD_VALIDATION_ROLLOUT_AUDIT_SCHEMA_VERSION,
-            fingerprint,
-            ...(previousFingerprint ? { previousFingerprint } : {}),
-            changeType: previousFingerprint ? 'mode-change' : 'baseline',
-            snapshot,
-          },
-        },
-        { service: 'RecordsService.auditRecordValidationRollout' },
-        RecordAuditActionType.validationModeChanged
-      );
-      const response = await createAudit.call(this.storageService, audit);
-      if (!this.auditPersistenceSucceeded(response)) {
-        throw new Error('Durable record-validation rollout audit was not confirmed.');
-      }
-      sails.log.warn(`${this.logHeader} record_validation_rollout_changed`, {
-        event: 'record_validation_rollout_changed',
-        change_type: previousFingerprint ? 'mode-change' : 'baseline',
-        fingerprint,
-        previous_fingerprint: previousFingerprint ?? 'none',
-        record_type_count: snapshot.recordTypes.length,
-        malformed_record_type_count: snapshot.malformedRecordTypeCount,
-      });
-      return { status: 'audited', fingerprint };
-    }
-
     private async validateCandidate(options: ValidateCandidateOptions): Promise<ValidationBoundaryResult> {
       const {
         candidate,
@@ -1232,20 +1052,7 @@ export namespace Services {
           throw new Error('RecordValidationService is unavailable.');
         }
         const request: RecordValidationRequest = {
-          candidate: {
-            ..._.cloneDeep(candidateToValidate),
-            ...(typeof candidateToValidate.redboxOid === 'string'
-              ? { redboxOid: candidateToValidate.redboxOid }
-              : {}),
-            metadata: (candidateToValidate.metadata ?? {}) as AnyRecord,
-            metaMetadata: (candidateToValidate.metaMetadata ?? {}) as AnyRecord,
-            ...(candidateToValidate.workflow !== undefined
-              ? { workflow: candidateToValidate.workflow as AnyRecord }
-              : {}),
-            ...(candidateToValidate.previousWorkflow !== undefined
-              ? { previousWorkflow: candidateToValidate.previousWorkflow as AnyRecord }
-              : {}),
-          },
+          candidate: candidateToValidate as RecordValidationCandidate,
           writeKind,
           validationOperation: context.validationOperation,
           evaluateFormValidators,
@@ -2217,7 +2024,6 @@ export namespace Services {
       'triggerPostSaveSyncTriggers',
       'checkRedboxRunning',
       'bootstrapData',
-      'auditRecordValidationRollout',
       'getAttachments',
       'appendToRecord',
       'removeFromRecord',

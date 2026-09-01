@@ -1004,7 +1004,6 @@
   "@record-audit-action-updated": "Updated",
   "@record-audit-action-validation-bypassed": "Validation bypassed",
   "@record-audit-action-batch-validation-bypassed": "Batch validation bypassed",
-  "@record-audit-action-validation-mode-changed": "Validation rollout mode changed",
   "@record-audit-action-deleted": "Deleted",
   "@record-audit-action-destroyed": "Destroyed",
   "@record-audit-action-restored": "Restored",

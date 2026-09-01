@@ -13,8 +13,7 @@ The core default is:
 ```javascript
 recordValidation: {
   mode: 'shadow',
-  timeoutMs: 5000,
-  shadowReportMaxSeries: 1000
+  timeoutMs: 5000
 }
 ```
 
@@ -28,8 +27,6 @@ is still classified as a timeout once control returns. The service cannot
 cancel work that has already started. Late completion is ignored and late
 rejection is absorbed, so validators and expressions must remain deterministic
 and side-effect free.
-`shadowReportMaxSeries` bounds the number of process-local report rows to
-10,000 or fewer. Invalid values fall back to the core defaults.
 
 Mode precedence, from least to most specific, is:
 
@@ -44,7 +41,6 @@ For example:
 module.exports.recordValidation = {
   mode: 'shadow',
   timeoutMs: 5000,
-  shadowReportMaxSeries: 1000,
   operations: {
     publish: { mode: 'shadow' }
   }
@@ -134,16 +130,7 @@ cannot override operation or browser transition intent. Raw request, response,
 session, user, header, token, credential, and attachment objects are never
 available to expressions.
 
-At startup, ReDBox normalizes the global and record-type mode layers, hashes
-them, and reads audits under the synthetic OID `record-validation-rollout`.
-The first baseline and each changed fingerprint are saved with action
-`validation-mode-changed`. Startup requires audit read/write capability and
-fails if the storage hook does not expose `createRecordAudit`, if the audit
-store is unavailable, or if a changed snapshot cannot be durably confirmed.
-This deliberately trades startup availability for a durable rollout history;
-unchanged restarts read the history but do not create duplicate audit rows.
-
-## Logs, telemetry, and the shadow report
+## Logs and telemetry
 
 Each resolution writes the structured `record_validation_completed` event with
 safe identifiers and counts:
@@ -178,17 +165,9 @@ Request IDs, expressions, submitted values, and request parameters are also
 excluded. Configure the deployment's OpenTelemetry SDK/exporter to retain these
 bounded instruments.
 
-`RecordValidationService.getShadowReport()` returns a bounded process-local
-aggregate by record type, operation, form, write kind, phase, code, and safe
-expression or validator identity. Each row reports run and would-reject counts,
-blocking/advisory errors, timeouts, configuration diagnostics, and latency. A
-run with multiple codes contributes once to each code row. `overflowRuns` must
-remain zero; increase the cap only after checking that unexpected
-form/operation identifiers are not causing cardinality growth.
-Detailed safe expression and validator identities are available only in this
-bounded report and the capped diagnostic/log payloads, not in metric labels.
-Use exported telemetry, rather than this process-local view, for multi-instance
-or long-term reports.
+Detailed safe expression and validator identities remain available in capped
+diagnostic/log payloads, not in metric labels. Use exported telemetry for
+multi-instance or long-term reports.
 
 ## Historical-record repair
 
@@ -196,7 +175,7 @@ Enforcement validates the complete candidate. It does not grandfather invalid
 fields that were written before server authority existed.
 
 1. Collect representative shadow traffic for create, update, and transition.
-2. Group the report by record type, operation, form, and diagnostic code.
+2. Group exported telemetry by record type, operation, form, and diagnostic code.
 3. Resolve configuration failures first: missing forms/groups, unsupported
    event-driven expressions, policy errors, and timeouts are not record repair.
 4. Export and back up affected records through the installation's normal
@@ -206,7 +185,7 @@ fields that were written before server authority existed.
 6. If current validators make an incremental repair impossible, use the narrow
    audited `historical-record-repair` bypass once, then perform an ordinary
    validated read/update check.
-7. Re-run the shadow report and retain evidence of the repaired population.
+7. Re-run the shadow traffic sample and retain evidence of the repaired population.
 
 Do not change the form to weaken a rule solely to hide historical failures, and
 do not use direct storage updates as a repair mechanism.
@@ -252,29 +231,12 @@ write as validated.
 
 `StorageService.createRecordAudit` remains optional in the TypeScript interface
 so existing out-of-tree storage hooks continue to compile. It is a runtime
-requirement for rollout startup, explicit validation bypasses, bootstrap-data
-bypasses, and `createBatch`; each of those paths fails closed before its record
+requirement for explicit validation bypasses, bootstrap-data bypasses, and
+`createBatch`; each of those paths fails closed before its record
 write when the method is absent or durable success is not confirmed. A custom
 storage hook that supports these paths must implement idempotent audit lookup
 and durable `createRecordAudit` semantics matching its normal persistence
 guarantees.
-
-## Cache invalidation
-
-Resolved form definitions, constructed candidate-independent forms, validator
-mappings, and compiled expressions use bounded process-local caches. Each form
-lookup computes a bounded effective-configuration fingerprint. The identity
-also incorporates reusable definitions; validator mappings use their own
-bounded definition fingerprint.
-Consequently a changed same-name form or reusable validator definition replaces
-the cached effective entry without waiting for process restart. Configurations
-that exceed fingerprint bounds are treated as uncacheable, not as stable.
-Candidate-sensitive question-tree forms are reconstructed per candidate and are
-never reused as candidate-independent constructed forms. Explicit
-`RecordValidationService.clearCaches()` remains available for hook-specific
-external resources whose change is not represented in the loaded effective
-configuration. Normal restart/bootstrap begins with empty caches, and validation
-results are never cached.
 
 ## Workflow and hook authority
 
@@ -323,7 +285,7 @@ For every `(record type, operation)` unit, retain a signoff record containing:
 - the configuration change and rollback operator.
 
 Enable one unit at a time. After deployment, confirm the
-`validation-mode-changed` audit and monitor invalid, configuration-error,
+deployment configuration and monitor invalid, configuration-error,
 timed-out, request-rejected, and post-save warning rates before expanding.
 
 ## Rollback
@@ -333,11 +295,9 @@ does not remove validator definitions, operation names, or client intent.
 
 1. Change the smallest affected mode override to `shadow`.
 2. Restart/redeploy through the normal configuration process.
-3. Confirm a new `validation-mode-changed` audit referencing the previous
-   fingerprint.
-4. Confirm saves are response-neutral while telemetry still records
+3. Confirm saves are response-neutral while telemetry still records
    `would_block` candidates.
-5. Investigate and repair the failure class before requesting new signoff.
+4. Investigate and repair the failure class before requesting new signoff.
 
 Test this procedure before the first enforcement change. Never roll back by
 adding an HTTP bypass or trusting client-supplied validation groups.

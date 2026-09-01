@@ -199,13 +199,12 @@ describe('RecordAuditController', () => {
     assert.equal(payload?.data?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
   });
 
-  it('maps validation rollout and bypass audit actions to registered language-default keys', () => {
+  it('maps validation bypass audit actions to registered language-default keys', () => {
     const metadata = require('../../../../language-defaults/meta.json');
     const english = require('../../../../language-defaults/en/translation.json');
     const actions = [
       RecordAuditActionType.validationBypassed,
       RecordAuditActionType.batchValidationBypassed,
-      RecordAuditActionType.validationModeChanged,
     ];
 
     for (const action of actions) {

@@ -49,6 +49,36 @@ function codes(result: { diagnostics: readonly { code: string }[] }): string[] {
   return result.diagnostics.map(item => item.code);
 }
 
+function resolutionEvents(): Record<string, unknown>[] {
+  return (global as any).sails.log.info.args
+    .map((args: unknown[]) => args[1])
+    .filter((event: Record<string, unknown> | undefined) => event?.event === 'record_validation_completed')
+    .map((event: Record<string, unknown>) => ({
+      requestId: event.request_id,
+      recordType: event.record_type,
+      formName: event.form,
+      operation: event.validation_operation,
+      writeKind: event.write_kind,
+      phase: event.phase,
+      mode: event.mode,
+      status: event.status,
+      outcome: event.outcome,
+      shouldBlock: event.should_block,
+      wouldBlock: event.would_block,
+      blockingErrorCount: event.blocking_error_count,
+      advisoryErrorCount: event.advisory_error_count,
+      timeoutKind: event.timeout_kind,
+      configurationDiagnosticCount: event.configuration_diagnostic_count,
+      diagnosticCodes: event.diagnostic_codes,
+      diagnosticIdentities: event.diagnostic_identities,
+      durationMs: event.duration_ms,
+    }));
+}
+
+function latestResolutionEvent(): Record<string, unknown> {
+  return resolutionEvents().at(-1) ?? {};
+}
+
 function suggestedSummary(groups: unknown): Record<string, unknown> {
   return {
     name: 'suggestions',
@@ -145,7 +175,6 @@ describe('RecordValidationService', function () {
     expect(ServiceExports).to.have.property('RecordValidationService');
     expect(ServiceExports.RecordValidationService).to.have.property('resolve').that.is.a('function');
     expect(ServiceExports.RecordValidationService).to.have.property('discoverOperations').that.is.a('function');
-    expect(ServiceExports.RecordValidationService).to.have.property('registerMetricsHooks').that.is.a('function');
   });
 
   it('uses an isolated Sails fixture without mutating a suite-global config stub', function () {
@@ -202,7 +231,7 @@ describe('RecordValidationService', function () {
 
   it('resolves the exact starting workflow form for create', async function () {
     const fixture = createRecordValidationFixture();
-    const service = new Services.RecordValidation(fixture.dependencies, fixture.metrics);
+    const service = new Services.RecordValidation(fixture.dependencies);
     const result = await service.resolve({ ...fixture.request, writeKind: 'create' });
 
     expect(result.status).to.equal('resolved');
@@ -498,12 +527,12 @@ describe('RecordValidationService', function () {
     shadow.dependencies.loadForm = async () => {
       throw new Error('mongo timeout: connection refused to 10.0.0.5');
     };
-    const shadowResult = await new Services.RecordValidation(shadow.dependencies, shadow.metrics).resolve(
+    const shadowResult = await new Services.RecordValidation(shadow.dependencies).resolve(
       shadow.request
     );
     expect(shadowResult).to.deep.include({ status: 'unresolved', shouldBlock: false });
     expect(codes(shadowResult)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.resolutionFailed);
-    expect(shadow.metricEvents).to.have.length(1);
+    expect(resolutionEvents()).to.have.length(1);
     expect(JSON.stringify(shadowResult)).not.to.match(/mongo|10\.0\.0\.5|connection refused/);
     const resolutionLog = (global as any).sails.log.warn.args
       .map((args: unknown[]) => String(args[0] ?? ''))
@@ -514,20 +543,20 @@ describe('RecordValidationService', function () {
     configure('enforce');
     const enforce = createRecordValidationFixture();
     enforce.dependencies.loadForm = shadow.dependencies.loadForm;
-    const enforceResult = await new Services.RecordValidation(enforce.dependencies, enforce.metrics).resolve(
+    const enforceResult = await new Services.RecordValidation(enforce.dependencies).resolve(
       enforce.request
     );
     expect(enforceResult).to.deep.include({ status: 'unresolved', shouldBlock: true });
-    expect(enforce.metricEvents).to.have.length(1);
+    expect(resolutionEvents()).to.have.length(2);
   });
 
-  it('projects non-cloneable metadata to a JSON-like expression context', async function () {
+  it('projects metadata through native JSON serialization', async function () {
     const metadata = { title: 'Final title', hookValue: () => 'not-cloneable' };
     const fixture = createRecordValidationFixture({ candidate: { metadata } });
     const result = requireResolved(await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request));
     expect(result.shouldBlock).to.equal(false);
     expect(result.resolved.expressionContext?.formData).to.deep.equal({ title: 'Final title' });
-    expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported);
+    expect(codes(result)).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported);
   });
 
   it('passes configured reusable form definitions to the production form constructor', async function () {
@@ -1303,7 +1332,7 @@ describe('RecordValidationService', function () {
     );
   });
 
-  it('treats projection cycles as failures without invoking getters', async function () {
+  it('treats projection cycles as failures', async function () {
     let getterRuns = 0;
     const metadata: Record<string, unknown> = { title: 'safe' };
     Object.defineProperty(metadata, 'getterSecret', {
@@ -1330,7 +1359,7 @@ describe('RecordValidationService', function () {
     expect(getterRuns).to.equal(0);
   });
 
-  it('projects undefined, dates, and class instances with JSON-compatible warning semantics', async function () {
+  it('projects undefined, dates, and class instances with native JSON semantics', async function () {
     configure('enforce');
     class MetadataDetails {
       public constructor(
@@ -1356,11 +1385,7 @@ describe('RecordValidationService', function () {
       created: '2026-08-23T01:02:03.000Z',
       details: { label: 'class value' },
     });
-    const contextDiagnostics = result.diagnostics.filter(diagnostic =>
-      diagnostic.code === RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported
-    );
-    expect(contextDiagnostics).to.have.length(1);
-    expect(contextDiagnostics[0].severity).to.equal('warning');
+    expect(codes(result)).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported);
   });
 
   it('uses the server allowlist when caller-side request-parameter narrowing is omitted', async function () {
@@ -1489,16 +1514,12 @@ describe('RecordValidationService', function () {
     expect(requireResolved(result).resolved.conditionalGroups).to.deep.equal(['base']);
     expect(
       codes(result).filter(code => code === RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported)
-    ).to.have.length(5);
+    ).to.have.length(4);
     const historyDiagnostic = result.diagnostics.find(item => item.message.includes('browser event history'));
     expect(historyDiagnostic).not.to.equal(undefined);
-    expect(result.diagnostics.find(item => item.expressionName === 'event-context')).to.deep.include({
-      field: 'field',
-      pointer: '/componentDefinitions/0',
-    });
   });
 
-  it('detects browser-only roots inside JSONata path-property siblings and computed steps', async function () {
+  it('lets JSONata evaluate absent browser-only roots in the server context', async function () {
     configure('enforce');
     for (const condition of [
       '$count(formData.items{event: value}) > 0',
@@ -1526,9 +1547,7 @@ describe('RecordValidationService', function () {
         await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request)
       );
 
-      expect(result.shouldBlock, condition).to.equal(true);
-      expect(codes(result), condition).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported);
-      expect(codes(result), condition).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionEvaluationFailed);
+      expect(codes(result), condition).not.to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported);
     }
   });
 
@@ -1722,14 +1741,14 @@ describe('RecordValidationService', function () {
 
   it('emits duration, mode/outcome, error, timeout, and configuration telemetry per resolution', async function () {
     const fixture = createRecordValidationFixture();
-    const result = await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve({
+    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
       ...fixture.request,
       validationOperation: 'submit',
       requestParameters: { secret: 'never-observed' },
     });
     expect(result.status).to.equal('resolved');
-    expect(fixture.metricEvents).to.have.length(1);
-    expect(fixture.metricEvents[0]).to.deep.include({
+    expect(resolutionEvents()).to.have.length(1);
+    expect(latestResolutionEvent()).to.deep.include({
       requestId: 'request-1',
       recordType: 'dataset',
       formName: 'dataset-2.4-draft',
@@ -1746,8 +1765,8 @@ describe('RecordValidationService', function () {
       timeoutKind: 'none',
       configurationDiagnosticCount: 0,
     });
-    expect(fixture.metricEvents[0].durationMs).to.be.a('number').and.at.least(0);
-    expect(JSON.stringify(fixture.metricEvents)).not.to.contain('never-observed');
+    expect(latestResolutionEvent().durationMs).to.be.a('number').and.at.least(0);
+    expect(JSON.stringify(resolutionEvents())).not.to.contain('never-observed');
 
     const log = (global as any).sails.log.info.lastCall.args[1];
     expect(log).to.deep.include({
@@ -1765,15 +1784,15 @@ describe('RecordValidationService', function () {
 
     const failing = createRecordValidationFixture();
     failing.dependencies.loadForm = async () => null;
-    await new Services.RecordValidation(failing.dependencies, failing.metrics).resolve(failing.request);
-    expect(failing.metricEvents[0]).to.deep.include({
+    await new Services.RecordValidation(failing.dependencies).resolve(failing.request);
+    expect(latestResolutionEvent()).to.deep.include({
       recordType: 'dataset',
       formName: 'dataset-2.4-draft',
       status: 'unresolved',
       outcome: 'configuration-error',
       wouldBlock: true,
     });
-    expect(failing.metricEvents[0].configurationDiagnosticCount).to.equal(1);
+    expect(latestResolutionEvent().configurationDiagnosticCount).to.equal(1);
   });
 
   it('bounds actual OpenTelemetry attributes across hostile unresolved references and diagnostic identities', async function () {
@@ -1856,11 +1875,11 @@ describe('RecordValidationService', function () {
     for (const hostileValue of hostileValues) expect(serializedMeasurements).not.to.include(hostileValue);
   });
 
-  it('keeps diagnostics, logs, metrics, and shadow reports free of raw values and request parameters', async function () {
+  it('keeps diagnostics and logs free of raw values and request parameters', async function () {
     const fixture = createRecordValidationFixture({
       candidate: { metadata: { title: 'raw-secret-title', nested: { token: 'raw-secret-token' } } },
     });
-    const service = new Services.RecordValidation(fixture.dependencies, fixture.metrics);
+    const service = new Services.RecordValidation(fixture.dependencies);
     await service.resolve({
       ...fixture.request,
       requestParameters: { secret: 'raw-secret-parameter' },
@@ -1869,26 +1888,14 @@ describe('RecordValidationService', function () {
     });
 
     const observable = JSON.stringify({
-      metric: fixture.metricEvents,
       logs: (global as any).sails.log.info.args,
-      report: service.getShadowReport(),
     });
     expect(observable).not.to.match(/raw-secret-title|raw-secret-token|raw-secret-parameter|raw-secret-runtime|raw-secret-role/);
-    expect(service.getShadowReport()).to.deep.include({ totalRuns: 1, overflowRuns: 0, maxSeries: 1_000 });
-    expect(service.getShadowReport().rows[0]).to.deep.include({
-      recordType: 'dataset',
-      operation: 'strict-all',
-      writeKind: 'update',
-      phase: 'pre-save',
-      formName: 'dataset-2.4-draft',
-      code: RECORD_VALIDATION_DIAGNOSTIC_CODES.requestParameterDropped,
-      runs: 1,
-    });
   });
 
-  it('buckets unknown client operation names before metrics, logs, or shadow aggregation', async function () {
+  it('buckets unknown client operation names before logs and telemetry', async function () {
     const fixture = createRecordValidationFixture();
-    const service = new Services.RecordValidation(fixture.dependencies, fixture.metrics);
+    const service = new Services.RecordValidation(fixture.dependencies);
 
     const result = await service.resolve({
       ...fixture.request,
@@ -1896,121 +1903,8 @@ describe('RecordValidationService', function () {
     });
 
     expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationUnknown);
-    expect(fixture.metricEvents[0].operation).to.equal('unknown');
-    const observable = JSON.stringify({
-      metric: fixture.metricEvents,
-      logs: (global as any).sails.log.info.args,
-      report: service.getShadowReport(),
-    });
+    const observable = JSON.stringify((global as any).sails.log.info.args);
     expect(observable).not.to.include('UnknownExternalOperation');
-  });
-
-  it('builds a bounded shadow report by record type, operation, form, and diagnostic code', async function () {
-    (global as any).sails.config.recordValidation.shadowReportMaxSeries = 1;
-    const fixture = createRecordValidationFixture();
-    const loadForm = fixture.dependencies.loadForm;
-    let formUnavailable = false;
-    fixture.dependencies.loadForm = async (formName, brand) =>
-      formUnavailable ? null : await loadForm(formName, brand);
-    const service = new Services.RecordValidation(fixture.dependencies);
-    await service.resolve({ ...fixture.request, validationOperation: 'submit' });
-    formUnavailable = true;
-    service.clearCaches();
-    await service.resolve({ ...fixture.request, validationOperation: 'submit' });
-
-    const report = service.getShadowReport();
-    expect(report).to.deep.include({ totalRuns: 2, overflowRuns: 1, maxSeries: 1 });
-    expect(report.rows).to.have.length(1);
-    expect(report.rows[0]).to.deep.include({
-      recordType: 'dataset',
-      operation: 'submit',
-      writeKind: 'update',
-      phase: 'pre-save',
-      formName: 'dataset-2.4-draft',
-      code: 'none',
-      runs: 1,
-      wouldReject: 0,
-    });
-    expect(report.rows[0].averageDurationMs).to.be.a('number').and.at.least(0);
-  });
-
-  it('delivers metrics registered through the exported service surface', async function () {
-    const fixture = createRecordValidationFixture();
-    const exported = new Services.RecordValidation(fixture.dependencies).exports() as {
-      resolve(request: RecordValidationRequest): Promise<RecordValidationResult>;
-      registerMetricsHooks(hooks: typeof fixture.metrics): () => void;
-    };
-    const unregister = exported.registerMetricsHooks(fixture.metrics);
-    await exported.resolve(fixture.request);
-    expect(fixture.metricEvents).to.have.length(1);
-    expect(fixture.metricEvents[0].status).to.equal('resolved');
-    unregister();
-    await exported.resolve(fixture.request);
-    expect(fixture.metricEvents).to.have.length(1);
-  });
-
-  it('keeps independently registered metrics hooks additive', async function () {
-    const fixture = createRecordValidationFixture();
-    const secondaryEvents: unknown[] = [];
-    const service = new Services.RecordValidation(fixture.dependencies, fixture.metrics);
-    const unregister = service.registerMetricsHooks({
-      resolutionCompleted: metric => {
-        secondaryEvents.push(metric);
-      },
-    });
-    await service.resolve(fixture.request);
-    expect(fixture.metricEvents).to.have.length(1);
-    expect(secondaryEvents).to.have.length(1);
-    unregister();
-  });
-
-  it('does not let an optional metrics hook change resolver behavior', async function () {
-    const fixture = createRecordValidationFixture();
-    const result = await new Services.RecordValidation(fixture.dependencies, {
-      resolutionCompleted: () => {
-        throw new Error('metrics unavailable');
-      },
-    }).resolve(fixture.request);
-    expect(result.status).to.equal('resolved');
-    expect(result.shouldBlock).to.equal(false);
-  });
-
-  it('isolates rejected async metrics hooks and freezes their safe payload', async function () {
-    const fixture = createRecordValidationFixture();
-    let observedFrozen = false;
-    const result = await new Services.RecordValidation(fixture.dependencies, {
-      resolutionCompleted: async metric => {
-        observedFrozen = Object.isFrozen(metric) && Object.isFrozen(metric.diagnosticCodes);
-        (metric as unknown as { mode: string }).mode = 'enforce';
-      },
-    }).resolve(fixture.request);
-    await Promise.resolve();
-    expect(result.shouldBlock).to.equal(false);
-    expect(observedFrozen).to.equal(true);
-    expect((global as any).sails.log.warn.calledWith('Record validation metrics hook failed.')).to.equal(true);
-  });
-
-  it('fully isolates an async metrics rejection when the warning logger also throws', async function () {
-    const fixture = createRecordValidationFixture();
-    (global as any).sails.log.warn.throws(new Error('logger unavailable'));
-    const unhandled: unknown[] = [];
-    const listener = (reason: unknown) => unhandled.push(reason);
-    process.on('unhandledRejection', listener);
-    try {
-      const result = await new Services.RecordValidation(fixture.dependencies, {
-        resolutionCompleted: async () => {
-          throw new Error('observer unavailable');
-        },
-      }).resolve(fixture.request);
-      await new Promise(resolveImmediate => setImmediate(resolveImmediate));
-      await new Promise(resolveImmediate => setImmediate(resolveImmediate));
-
-      expect(result).to.deep.include({ status: 'resolved', shouldBlock: false });
-      expect(unhandled).to.deep.equal([]);
-      expect((global as any).sails.log.warn.calledWith('Record validation metrics hook failed.')).to.equal(true);
-    } finally {
-      process.off('unhandledRejection', listener);
-    }
   });
 
   it('does not let observability failures change resolver behavior', async function () {
@@ -2039,7 +1933,7 @@ describe('RecordValidationService', function () {
       return validatorExecution(groups.includes('advisory') ? [validatorSummary()] : []);
     };
     const result = requireResolved(
-      await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve({
+      await new Services.RecordValidation(fixture.dependencies).resolve({
         ...fixture.request,
         validationOperation: 'submit',
       })
@@ -2051,7 +1945,7 @@ describe('RecordValidationService', function () {
     expect(result.advisoryErrors).to.have.length(1);
     expect(result.shouldBlock).to.equal(false);
     expect(result).not.to.have.any.keys('problems', 'outcome');
-    expect(fixture.metricEvents[0]).to.deep.include({
+    expect(latestResolutionEvent()).to.deep.include({
       outcome: 'valid',
       blockingErrorCount: 0,
       advisoryErrorCount: 1,
@@ -2126,7 +2020,7 @@ describe('RecordValidationService', function () {
         fixture.dependencies;
 
       const result = requireResolved(
-        await new Services.RecordValidation(productionDependencies, fixture.metrics).resolve(fixture.request)
+        await new Services.RecordValidation(productionDependencies).resolve(fixture.request)
       );
 
       expect(result.shouldBlock, mode).to.equal(false);
@@ -2135,7 +2029,7 @@ describe('RecordValidationService', function () {
       expect(result.transformedCandidate.metadata.description, mode).to.equal('<p>Safe</p><img src="x">');
       expect(result.transformedCandidate.metadata.untouched, mode).to.deep.equal({ retained: true });
       expect(fixture.request.candidate.metadata, mode).to.deep.equal(metadata);
-      expect(fixture.metricEvents[0], mode).to.deep.include({
+      expect(latestResolutionEvent(), mode).to.deep.include({
         blockingErrorCount: 0,
         advisoryErrorCount: 1,
         shouldBlock: false,
@@ -2392,7 +2286,7 @@ describe('RecordValidationService', function () {
     const { constructForm: _construct, executeValidators: _execute, ...productionDependencies } = fixture.dependencies;
 
     const result = requireResolved(
-      await new Services.RecordValidation(productionDependencies, fixture.metrics).resolve(fixture.request)
+      await new Services.RecordValidation(productionDependencies).resolve(fixture.request)
     );
 
     expect(result.shouldBlock).to.equal(true);
@@ -2520,11 +2414,11 @@ describe('RecordValidationService', function () {
       candidate: { metadata: { contributors: [{ name: 'private submitted value' }] } },
     });
     fixture.dependencies.executeValidators = async () => validatorExecution([validatorSummary()]);
-    const service = new Services.RecordValidation(fixture.dependencies, fixture.metrics);
+    const service = new Services.RecordValidation(fixture.dependencies);
 
     await service.resolve(fixture.request);
 
-    expect(fixture.metricEvents[0].diagnosticIdentities).to.deep.include({
+    expect(latestResolutionEvent().diagnosticIdentities).to.deep.include({
       code: 'record-validation-validator-failure',
       scope: 'blocking-validator',
       validatorClass: 'required',
@@ -2533,31 +2427,7 @@ describe('RecordValidationService', function () {
       pointer: '/contributors/*/name',
       lineage: 'formConfig=/componentDefinitions/*/component/config/elementTemplate|dataModel=/contributors/*/name|angularComponents=/contributors/*/name|layout=/contributors-layout/*/name-layout',
     });
-    const validatorRow = service.getShadowReport().rows.find(row =>
-      row.code === 'record-validation-validator-failure' && row.scope === 'blocking-validator'
-    );
-    expect(validatorRow).to.deep.include({
-      recordType: 'dataset',
-      operation: 'strict-all',
-      writeKind: 'update',
-      phase: 'pre-save',
-      formName: 'dataset-2.4-draft',
-      code: 'record-validation-validator-failure',
-      scope: 'blocking-validator',
-      validatorClass: 'required',
-      validatorCode: 'validator-error-required',
-      field: 'contributors',
-      pointer: '/contributors/*/name',
-      lineage: 'formConfig=/componentDefinitions/*/component/config/elementTemplate|dataModel=/contributors/*/name|angularComponents=/contributors/*/name|layout=/contributors-layout/*/name-layout',
-      runs: 1,
-      wouldReject: 1,
-      blockingErrors: 1,
-      advisoryErrors: 0,
-      timeouts: 0,
-      configurationDiagnostics: 0,
-    });
-    expect(JSON.stringify({ metric: fixture.metricEvents, report: service.getShadowReport() }))
-      .not.to.include('private submitted value');
+    expect(JSON.stringify(latestResolutionEvent())).not.to.include('private submitted value');
   });
 
   it('diagnoses overlap safely and fails closed only in enforce mode', async function () {
@@ -2681,7 +2551,7 @@ describe('RecordValidationService', function () {
       fixture.dependencies;
 
     const result = requireResolved(
-      await new Services.RecordValidation(productionDependencies, fixture.metrics).resolve({
+      await new Services.RecordValidation(productionDependencies).resolve({
         ...fixture.request,
         validationOperation: 'submit',
       })
@@ -2695,7 +2565,7 @@ describe('RecordValidationService', function () {
     expect(result.diagnostics.find(diagnostic =>
       diagnostic.code === RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryExecutionFailed
     )?.severity).to.equal('warning');
-    expect(fixture.metricEvents[0]).to.deep.include({
+    expect(latestResolutionEvent()).to.deep.include({
       outcome: 'valid',
       timeoutKind: 'none',
       wouldBlock: false,
@@ -2710,10 +2580,10 @@ describe('RecordValidationService', function () {
     ).sails.config.recordValidation.timeoutMs = 10;
     const fixture = createRecordValidationFixture();
     fixture.dependencies.executeValidators = async () => await new Promise(() => undefined);
-    const enforce = await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve(fixture.request);
+    const enforce = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
     expect(enforce).to.deep.include({ status: 'unresolved', shouldBlock: true });
     expect(codes(enforce)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
-    expect(fixture.metricEvents[0]).to.deep.include({
+    expect(latestResolutionEvent()).to.deep.include({
       outcome: 'timed-out',
       timeoutKind: 'blocking',
       wouldBlock: true,
@@ -2726,11 +2596,11 @@ describe('RecordValidationService', function () {
     ).sails.config.recordValidation.timeoutMs = 10;
     const shadowFixture = createRecordValidationFixture();
     shadowFixture.dependencies.executeValidators = fixture.dependencies.executeValidators;
-    const shadow = await new Services.RecordValidation(shadowFixture.dependencies, shadowFixture.metrics).resolve(
+    const shadow = await new Services.RecordValidation(shadowFixture.dependencies).resolve(
       shadowFixture.request
     );
     expect(shadow).to.deep.include({ status: 'unresolved', shouldBlock: false });
-    expect(shadowFixture.metricEvents[0]).to.deep.include({
+    expect(latestResolutionEvent()).to.deep.include({
       outcome: 'timed-out',
       timeoutKind: 'blocking',
       wouldBlock: true,
@@ -2749,11 +2619,11 @@ describe('RecordValidationService', function () {
       return validatorExecution();
     };
 
-    const result = await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve(fixture.request);
+    const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
 
     expect(result).to.deep.include({ status: 'unresolved', shouldBlock: true });
     expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.blockingTimeout);
-    expect(fixture.metricEvents[0]).to.deep.include({ outcome: 'timed-out', timeoutKind: 'blocking' });
+    expect(latestResolutionEvent()).to.deep.include({ outcome: 'timed-out', timeoutKind: 'blocking' });
   });
 
   it('keeps advisory timeout diagnostic-only and absorbs a late rejection', async function () {
@@ -2781,7 +2651,7 @@ describe('RecordValidationService', function () {
     process.on('unhandledRejection', listener);
     try {
       const result = requireResolved(
-        await new Services.RecordValidation(fixture.dependencies, fixture.metrics).resolve({
+        await new Services.RecordValidation(fixture.dependencies).resolve({
           ...fixture.request,
           validationOperation: 'submit',
         })
@@ -2791,7 +2661,7 @@ describe('RecordValidationService', function () {
       expect(result.diagnostics.find(diagnostic =>
         diagnostic.code === RECORD_VALIDATION_DIAGNOSTIC_CODES.advisoryTimeout
       )?.severity).to.equal('warning');
-      expect(fixture.metricEvents[0]).to.deep.include({
+      expect(latestResolutionEvent()).to.deep.include({
         outcome: 'valid',
         timeoutKind: 'advisory',
         wouldBlock: false,
@@ -2803,7 +2673,7 @@ describe('RecordValidationService', function () {
     }
   });
 
-  it('caches effective construction while invalidating changed same-name form configuration', async function () {
+  it('loads and constructs the current form for every resolution', async function () {
     const expression = {
       name: 'conditional',
       config: {
@@ -2825,17 +2695,14 @@ describe('RecordValidationService', function () {
     );
     expect(first.resolved.conditionalGroups).to.deep.equal(['base']);
     expect(second.resolved.conditionalGroups).to.deep.equal(['base']);
-    expect(service.getCacheStats()).to.deep.equal({ formDefinitions: 1, compiledExpressions: 2, validatorMappings: 1 });
     expect(fixture.calls.forms).to.have.length(2);
-    expect(fixture.calls.constructions).to.equal(1);
+    expect(fixture.calls.constructions).to.equal(2);
 
     expression.config.template = '{"groups":{"include":["conditional"]}}';
     const changed = requireResolved(await service.resolve(fixture.request));
     expect(changed.resolved.conditionalGroups).to.deep.equal(['base', 'conditional']);
     expect(fixture.calls.forms).to.have.length(3);
-    expect(fixture.calls.constructions).to.equal(2);
-    service.clearCaches();
-    expect(service.getCacheStats()).to.deep.equal({ formDefinitions: 0, compiledExpressions: 0, validatorMappings: 0 });
+    expect(fixture.calls.constructions).to.equal(3);
   });
 
   it('does not let an older concurrent form load replace a newer exact form snapshot', async function () {
@@ -2869,20 +2736,20 @@ describe('RecordValidationService', function () {
     expect(requireResolved(newer).resolved.constructedForm.componentDefinitions?.[0].name).to.equal('new-version');
     expect(oldResult.resolved.constructedForm.componentDefinitions?.[0].name).to.equal('old-version');
     expect(newest.resolved.constructedForm.componentDefinitions?.[0].name).to.equal('new-version');
-    expect(fixture.calls.constructions).to.equal(2);
+    expect(fixture.calls.constructions).to.equal(3);
   });
 
-  it('invalidates constructed forms when reusable definitions change and reconstructs candidate-sensitive forms', async function () {
+  it('uses current reusable definitions and candidate data for each construction', async function () {
     (global as any).sails.config.reusableFormDefinitions = { shared: { name: 'first' } };
     const reusableFixture = createRecordValidationFixture();
     const reusableService = new Services.RecordValidation(reusableFixture.dependencies);
     await reusableService.resolve(reusableFixture.request);
     await reusableService.resolve(reusableFixture.request);
-    expect(reusableFixture.calls.constructions).to.equal(1);
+    expect(reusableFixture.calls.constructions).to.equal(2);
 
     (global as any).sails.config.reusableFormDefinitions = { shared: { name: 'second' } };
     await reusableService.resolve(reusableFixture.request);
-    expect(reusableFixture.calls.constructions).to.equal(2);
+    expect(reusableFixture.calls.constructions).to.equal(3);
 
     const questionTreeFixture = createRecordValidationFixture({
       form: validationForm({
@@ -2903,7 +2770,7 @@ describe('RecordValidationService', function () {
     expect(questionTreeFixture.calls.constructions).to.equal(2);
   });
 
-  it('detects candidate-sensitive QuestionTree components after reusable expansion', async function () {
+  it('passes candidate data through reusable expansion on every resolution', async function () {
     const rawForm = validationForm({
       componentDefinitions: [{ name: 'shared-questions', component: { class: 'ReusableComponent' } } as never],
     });
@@ -2930,13 +2797,12 @@ describe('RecordValidationService', function () {
       },
     });
 
-    expect(fixture.calls.constructions).to.equal(3);
-    expect(constructionCandidates[0]).to.deep.equal({});
-    expect(constructionCandidates[1]).to.deep.equal(fixture.request.candidate.metadata);
-    expect(constructionCandidates[2]).to.deep.equal({ question: 'second candidate' });
+    expect(fixture.calls.constructions).to.equal(2);
+    expect(constructionCandidates[0]).to.deep.equal(fixture.request.candidate.metadata);
+    expect(constructionCandidates[1]).to.deep.equal({ question: 'second candidate' });
   });
 
-  it('invalidates validator mappings when definitions change and keeps every cache bounded', async function () {
+  it('reads current validator definitions for every resolution', async function () {
     (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
       definitions: formValidatorsSharedDefinitions,
     };
@@ -2968,14 +2834,7 @@ describe('RecordValidationService', function () {
     (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.validators = {
       definitions: formValidatorsSharedDefinitions,
     };
-    for (let index = 0; index < 140; index += 1) {
-      expression.config.template = `{"initial":"current","groups":{"include":${index % 2 ? '["conditional"]' : '[]'}},"nonce":${index}}`;
-      await service.resolve(fixture.request);
-    }
-    const stats = service.getCacheStats();
-    expect(stats.formDefinitions).to.be.at.most(128);
-    expect(stats.compiledExpressions).to.be.at.most(128);
-    expect(stats.validatorMappings).to.be.at.most(128);
+    expect((await service.resolve(fixture.request)).status).to.equal('resolved');
   });
 
   it('never caches validation results or request/user data', async function () {
@@ -2997,6 +2856,5 @@ describe('RecordValidationService', function () {
     expect(runs).to.equal(2);
     expect(first.blockingErrors).to.have.length(1);
     expect(second.blockingErrors).to.deep.equal([]);
-    expect(JSON.stringify(service.getCacheStats())).not.to.match(/private|DifferentRole/);
   });
 });

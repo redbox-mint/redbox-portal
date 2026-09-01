@@ -66,7 +66,6 @@ import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../
 import {
   legacyRecordSaveBody,
   normalizeRecordValidationRequestFacts,
-  parsePublicValidationOperation,
   recordSaveContextFromHeaders,
   recordSaveFailureStatusForVersion,
 } from '../../RecordSaveResponse';
@@ -632,14 +631,7 @@ export namespace Controllers {
       const body = validated.body as globalThis.Record<string, unknown>;
       const shouldMerge = validated.query.merge === true;
       const shouldProcessDatastreams = validated.query.datastreams === true;
-      const parsedOperation = parsePublicValidationOperation(validated.query.operation);
-      if (!parsedOperation.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ code: 'record-validation-operation-invalid' }],
-        });
-      }
-      const validationOperation = parsedOperation.value;
+      const validationOperation = validated.query.operation as string | undefined;
 
       let record;
       let updatedMetadata: globalThis.Record<string, unknown>;
@@ -785,15 +777,7 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const validated = getValidatedApiRequest(req);
       const recordType = validated.params.recordType as string;
-      const parsedOperation = parsePublicValidationOperation(validated.query.operation);
-      if (!parsedOperation.valid) {
-        this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ code: 'record-validation-operation-invalid' }],
-        });
-        return;
-      }
-      const validationOperation = parsedOperation.value;
+      const validationOperation = validated.query.operation as string | undefined;
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       const body = validated.body as globalThis.Record<string, unknown>;
       const that = this;
@@ -1423,14 +1407,7 @@ export namespace Controllers {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const targetStepName = validated.params.targetStep as string;
-      const parsedOperation = parsePublicValidationOperation(validated.query.operation);
-      if (!parsedOperation.valid) {
-        return this.sendResp(req, res, {
-          status: 400,
-          displayErrors: [{ code: 'record-validation-operation-invalid' }],
-        });
-      }
-      const validationOperation = parsedOperation.value;
+      const validationOperation = validated.query.operation as string | undefined;
       try {
         if (_.isEmpty(oid)) {
           return this.sendResp(req, res, {

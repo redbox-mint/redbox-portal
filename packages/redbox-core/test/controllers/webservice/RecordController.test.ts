@@ -443,7 +443,7 @@ describe('Webservice RecordController body source', () => {
             recordsService.updateMeta.resolves(successResult());
             const req = makeThrowingRequest({
                 params: { oid: 'record-1' },
-                query: { merge: true, datastreams: true, operation: ' submit ' },
+                query: { merge: true, datastreams: true, operation: 'submit' },
                 body,
                 files: {},
             });

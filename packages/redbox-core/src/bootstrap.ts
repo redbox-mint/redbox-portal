@@ -81,8 +81,7 @@ export async function coreBootstrap(): Promise<void> {
     }
 
     sails.log.verbose("Forms service, bootstrapped.");
-    await sails.services.recordsservice.auditRecordValidationRollout(recordsTypes);
-    sails.log.verbose("Record validation rollout configuration audited.");
+    sails.log.verbose("Record validation rollout configuration loaded.");
     await sails.services.vocabularyservice.bootstrapData();
     sails.log.verbose("Vocabulary bootstrap data, loaded.");
     await sails.services.recordsservice.bootstrapData();

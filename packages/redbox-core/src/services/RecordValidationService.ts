@@ -1,6 +1,5 @@
 import { firstValueFrom } from 'rxjs';
 import { performance } from 'node:perf_hooks';
-import { createHash } from 'node:crypto';
 import _ from 'lodash';
 import { metrics, type Attributes } from '@opentelemetry/api';
 import {
@@ -31,15 +30,11 @@ import {
   sanitizeValidationOperationDiscovery,
   VALIDATION_OPERATION_NAME_PATTERN,
   sanitizeRecordSaveIssue,
-  QuestionTreeComponentName,
   SuggestedValidationSummaryComponentName,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
-import {
-  DEFAULT_RECORD_VALIDATION_SHADOW_REPORT_MAX_SERIES,
-  type RecordValidationConfig,
-} from '../config/recordValidation.config';
+import type { RecordValidationConfig } from '../config/recordValidation.config';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { WorkflowStageConfig } from '../config/workflow.config';
 import type { BrandingModel } from '../model/storage/BrandingModel';
@@ -51,7 +46,6 @@ import {
   type FormValueTransformation,
   type ValidatorFormConfigResult,
 } from '../visitor/validator.visitor';
-import type jsonata from 'jsonata';
 
 export const RECORD_VALIDATION_DIAGNOSTIC_CODES = {
   formReferenceMissing: 'record-validation-form-reference-missing',
@@ -269,10 +263,6 @@ export interface RecordValidationResolutionMetric {
   readonly diagnosticIdentities: readonly RecordValidationDiagnosticIdentity[];
 }
 
-export interface RecordValidationMetricsHooks {
-  resolutionCompleted(metric: RecordValidationResolutionMetric): void | Promise<void>;
-}
-
 export interface RecordValidationDiagnosticIdentity {
   readonly code: string;
   readonly scope: 'diagnostic' | 'blocking-validator' | 'advisory-validator';
@@ -282,49 +272,6 @@ export interface RecordValidationDiagnosticIdentity {
   readonly validatorClass?: string;
   readonly validatorCode?: string;
   readonly lineage?: string;
-}
-
-export interface RecordValidationShadowReportRow {
-  readonly recordType: string;
-  readonly operation: string;
-  readonly writeKind: RecordValidationWriteKind;
-  readonly phase: 'pre-save' | 'post-save';
-  readonly formName: string;
-  readonly code: string;
-  readonly scope: RecordValidationDiagnosticIdentity['scope'];
-  readonly expressionName?: string;
-  readonly field?: string;
-  readonly pointer?: string;
-  readonly validatorClass?: string;
-  readonly validatorCode?: string;
-  readonly lineage?: string;
-  readonly runs: number;
-  readonly wouldReject: number;
-  readonly blockingErrors: number;
-  readonly advisoryErrors: number;
-  readonly timeouts: number;
-  readonly configurationDiagnostics: number;
-  readonly totalDurationMs: number;
-  readonly maximumDurationMs: number;
-  readonly averageDurationMs: number;
-}
-
-/**
- * Bounded process-local view of shadow observations. Durable dashboards should
- * consume the emitted OpenTelemetry instruments instead of polling this view.
- */
-export interface RecordValidationShadowReport {
-  readonly generatedAt: string;
-  readonly totalRuns: number;
-  readonly overflowRuns: number;
-  readonly maxSeries: number;
-  readonly rows: readonly RecordValidationShadowReportRow[];
-}
-
-export interface RecordValidationCacheStats {
-  readonly formDefinitions: number;
-  readonly compiledExpressions: number;
-  readonly validatorMappings: number;
 }
 
 export interface RecordValidationModeResolution {
@@ -470,11 +417,6 @@ const SAFE_FIELD_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const SAFE_VALIDATOR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_.#-]{0,127}$/;
 const SAFE_TRANSLATION_KEY_PATTERN = /^@[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}$/;
 const SAFE_DIAGNOSTIC_CODE_PATTERN = /^[A-Za-z][A-Za-z0-9._-]{0,127}$/;
-const CACHE_LIMIT = 128;
-const FINGERPRINT_MAX_NODES = 50_000;
-const FINGERPRINT_MAX_BYTES = 1_048_576;
-const SHADOW_REPORT_MAX_SERIES_LIMIT = 10_000;
-const SHADOW_REPORT_NONE_CODE = 'none';
 const STRICT_ALL_OPERATION = 'strict-all';
 const UNRESOLVED_DIMENSION = 'unresolved';
 const UNKNOWN_OPERATION_DIMENSION = 'unknown';
@@ -543,58 +485,19 @@ const recordValidationDiagnostics = recordValidationMeter.createCounter('redbox.
   unit: '{diagnostic}',
 });
 
-interface MutableShadowReportRow {
-  recordType: string;
-  operation: string;
-  writeKind: RecordValidationWriteKind;
-  phase: 'pre-save' | 'post-save';
-  formName: string;
-  code: string;
-  scope: RecordValidationDiagnosticIdentity['scope'];
-  expressionName?: string;
-  field?: string;
-  pointer?: string;
-  validatorClass?: string;
-  validatorCode?: string;
-  lineage?: string;
-  runs: number;
-  wouldReject: number;
-  blockingErrors: number;
-  advisoryErrors: number;
-  timeouts: number;
-  configurationDiagnostics: number;
-  totalDurationMs: number;
-  maximumDurationMs: number;
-}
-
-interface CachedFormDefinition {
-  readonly fingerprint: string;
+interface LoadedFormDefinition {
   readonly form: FormAttributes;
   readonly reusableFormDefinitions: ReusableFormDefinitions;
-  constructed?: FormConfigOutline;
-  construction?: Promise<FormConfigOutline>;
-  candidateSensitive: boolean;
-  candidateSensitivityChecked: boolean;
 }
 
 interface ValidationDeadline {
   readonly expiresAt: number;
 }
 
-type CandidateTransformationOutcome =
-  | {
-      readonly status: 'applied';
-      readonly transformation: FormValueTransformation;
-    }
-  | {
-      readonly status: 'inapplicable';
-      readonly kind: string;
-      readonly reason: 'malformed' | 'path-missing-or-mismatched' | 'replacement-mismatched';
-    };
-
 interface CandidateTransformationApplication {
   readonly candidate: RecordValidationCandidate;
-  readonly outcomes: readonly CandidateTransformationOutcome[];
+  readonly applied: readonly FormValueTransformation[];
+  readonly inapplicable: boolean;
 }
 
 class ValidationDeadlineExceeded extends Error {
@@ -618,100 +521,6 @@ interface TimedOut {
 }
 
 type TimeoutResult<T> = TimedResult<T> | TimedFailure | TimedOut;
-
-interface BoundedFingerprint {
-  readonly value: string;
-  readonly cacheable: boolean;
-}
-
-/** Hash configuration without invoking accessors or retaining the serialized value. */
-function boundedFingerprint(value: unknown): BoundedFingerprint {
-  const hash = createHash('sha256');
-  const seen = new WeakSet<object>();
-  let nodes = 0;
-  let bytes = 0;
-  let cacheable = true;
-  const append = (part: string): void => {
-    if (!cacheable) return;
-    const size = Buffer.byteLength(part);
-    if (bytes + size > FINGERPRINT_MAX_BYTES) {
-      cacheable = false;
-      return;
-    }
-    bytes += size;
-    hash.update(part);
-  };
-  const walk = (item: unknown): void => {
-    nodes += 1;
-    if (nodes > FINGERPRINT_MAX_NODES) {
-      cacheable = false;
-      return;
-    }
-    if (item === null || typeof item === 'boolean' || typeof item === 'string') {
-      append(JSON.stringify(item));
-      return;
-    }
-    if (typeof item === 'number') {
-      append(Number.isFinite(item) ? JSON.stringify(item) : JSON.stringify(String(item)));
-      return;
-    }
-    if (typeof item === 'undefined') {
-      append('"[undefined]"');
-      return;
-    }
-    if (typeof item === 'function') {
-      append(JSON.stringify(`[function:${Function.prototype.toString.call(item)}]`));
-      return;
-    }
-    if (typeof item !== 'object') {
-      append(JSON.stringify(String(item)));
-      return;
-    }
-    if (seen.has(item)) {
-      append('"[circular]"');
-      return;
-    }
-    seen.add(item);
-    try {
-      const descriptors = Object.getOwnPropertyDescriptors(item);
-      if (Array.isArray(item)) {
-        append('[');
-        for (let index = 0; index < item.length && cacheable; index += 1) {
-          if (index > 0) append(',');
-          const descriptor = descriptors[String(index)];
-          if (descriptor && 'value' in descriptor) walk(descriptor.value);
-          else append('"[accessor-or-hole]"');
-        }
-        append(']');
-        return;
-      }
-      append('{');
-      let first = true;
-      for (const key of Object.keys(descriptors).sort(compareRecordValidationIdentifiers)) {
-        const descriptor = descriptors[key];
-        if (!descriptor.enumerable) continue;
-        if (!first) append(',');
-        first = false;
-        append(JSON.stringify(key));
-        append(':');
-        if ('value' in descriptor) walk(descriptor.value);
-        else append('"[accessor]"');
-        if (!cacheable) break;
-      }
-      append('}');
-    } finally {
-      seen.delete(item);
-    }
-  };
-  walk(value);
-  return { value: cacheable ? hash.digest('hex') : 'uncacheable', cacheable };
-}
-
-function setBounded<K, V>(cache: Map<K, V>, key: K, value: V): void {
-  cache.delete(key);
-  cache.set(key, value);
-  while (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value as K);
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -921,16 +730,6 @@ function schemaOwnedFormNodes(form: FormConfigOutline): SchemaOwnedFormNode[] {
   return nodes;
 }
 
-/**
- * Keep this guard in sync with components whose construction reads candidate
- * data. Reusable definitions must be expanded before the answer is final.
- */
-function hasCandidateSensitiveComponent(form: FormConfigOutline): boolean {
-  return schemaOwnedFormNodes(form).some(node =>
-    isRecord(node.value.component) && node.value.component.class === QuestionTreeComponentName
-  );
-}
-
 function discoverValidationGroupExpressions(form: FormConfigOutline): DiscoveredValidationGroupExpression[] {
   const expressions: DiscoveredValidationGroupExpression[] = [];
   for (const node of schemaOwnedFormNodes(form)) {
@@ -953,166 +752,20 @@ function isValidationGroupExpression(value: unknown): value is FormExpressionsCo
   );
 }
 
-const BROWSER_ONLY_JSONATA_ROOTS = new Set(['event', 'value', 'querySource']);
-
-/** Inspect JSONata syntax so predicate fields and bound lambda variables are not false positives. */
-function referencesBrowserOnlyJSONataContext(source: string): boolean {
-  const ast = jsonataCompile(source).ast() as unknown;
-  const walk = (node: unknown, bound: ReadonlySet<string>, rootScope: boolean): boolean => {
-    if (Array.isArray(node)) return node.some(item => walk(item, bound, rootScope));
-    if (!isRecord(node)) return false;
-    const type = node.type;
-    if (type === 'variable') {
-      return typeof node.value === 'string' && BROWSER_ONLY_JSONATA_ROOTS.has(node.value) && !bound.has(node.value);
-    }
-    if (type === 'lambda') {
-      const nextBound = new Set(bound);
-      if (Array.isArray(node.arguments)) {
-        for (const argument of node.arguments) {
-          if (isRecord(argument) && typeof argument.value === 'string') nextBound.add(argument.value);
-        }
-      }
-      return walk(node.body, nextBound, true);
-    }
-    if (type === 'path') {
-      const steps = Array.isArray(node.steps) ? node.steps : [];
-      const first = steps[0];
-      if (
-        rootScope &&
-        isRecord(first) &&
-        first.type === 'name' &&
-        typeof first.value === 'string' &&
-        BROWSER_ONLY_JSONATA_ROOTS.has(first.value)
-      ) return true;
-      for (const step of steps) {
-        if (!isRecord(step)) continue;
-        if (Array.isArray(step.stages)) {
-          for (const stage of step.stages) {
-            if (isRecord(stage) && walk(stage.expr, bound, false)) return true;
-          }
-        }
-        // Sort, block, and other computed path steps contain independent
-        // expression roots that the path fast-path must not skip.
-        if (step.type !== 'name' && walk(step, bound, true)) return true;
-      }
-      // JSONata attaches object-group expressions beside `steps`.
-      if (walk(node.group, bound, true)) return true;
-      // Do not assume `group` is the only expression-bearing sibling a
-      // JSONata version can attach to a path node. Traverse any additional
-      // semantic property while excluding path bookkeeping already handled.
-      for (const [key, child] of Object.entries(node)) {
-        if (
-          ['type', 'value', 'position', 'steps', 'group', 'keepSingletonArray', 'tuple', 'seekingParent', 'ancestor']
-            .includes(key)
-        ) continue;
-        if (walk(child, bound, true)) return true;
-      }
-      return false;
-    }
-    for (const [key, child] of Object.entries(node)) {
-      if (key === 'value' || key === 'position' || key === 'type' || key === 'arguments' && type === 'lambda') continue;
-      if (Array.isArray(child)) {
-        if (child.some(item => walk(item, bound, rootScope))) return true;
-      } else if (walk(child, bound, rootScope)) return true;
-    }
-    return false;
-  };
-  return walk(ast, new Set(), true);
-}
-
 export namespace Services {
   /**
    * Resolves and executes authoritative record validation while exposing only
    * bounded, value-free observability data.
    *
-   * @extensionPoint Hooks may replace the service implementation or register a metrics hook; replacements must preserve authoritative form, operation, group, privacy, timeout, and shadow/enforce semantics.
-   * @remarks Metrics hooks are observational only. They cannot alter a validation result, and hook failures are isolated from the save boundary.
+   * @extensionPoint Hooks may replace the service implementation; replacements must preserve authoritative form, operation, group, privacy, timeout, and shadow/enforce semantics.
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Server-Side-Form-Validation-Operations
    */
   export class RecordValidation extends services.Core.Service {
-    protected override _exportedMethods = [
-      'resolve',
-      'discoverOperations',
-      'registerMetricsHooks',
-      'getShadowReport',
-      'clearCaches',
-      'getCacheStats',
-    ];
-    private readonly metricsHooks = new Set<RecordValidationMetricsHooks>();
-    private readonly shadowReportRows = new Map<string, MutableShadowReportRow>();
-    private shadowReportTotalRuns = 0;
-    private shadowReportOverflowRuns = 0;
-    private readonly formDefinitionCache = new Map<string, CachedFormDefinition>();
-    private readonly formLoadGenerations = new Map<string, number>();
-    private nextFormLoadGeneration = 0;
-    private readonly expressionCache = new Map<string, jsonata.Expression>();
-    private readonly validatorMappingCache = new Map<string, ReadonlyMap<string, FormValidatorDefinition>>();
+    protected override _exportedMethods = ['resolve', 'discoverOperations'];
     private resolvedDependencies?: RecordValidationServiceDependencies;
 
-    public constructor(
-      private readonly dependencyOverrides?: Partial<RecordValidationServiceDependencies>,
-      metricsHooks?: RecordValidationMetricsHooks
-    ) {
+    public constructor(private readonly dependencyOverrides?: Partial<RecordValidationServiceDependencies>) {
       super();
-      if (metricsHooks) this.metricsHooks.add(metricsHooks);
-    }
-
-    /**
-     * Add an observability hook without changing validation decisions.
-     *
-     * @param hooks Observer invoked once after each resolution.
-     * @returns A handle that unregisters only this observer.
-     */
-    public registerMetricsHooks(hooks: RecordValidationMetricsHooks): () => void {
-      this.metricsHooks.add(hooks);
-      return () => this.metricsHooks.delete(hooks);
-    }
-
-    /**
-     * Read the process-local shadow aggregate used during rollout review.
-     *
-     * @returns A safe snapshot bounded by `shadowReportMaxSeries`.
-     */
-    public getShadowReport(): RecordValidationShadowReport {
-      const rows = [...this.shadowReportRows.values()]
-        .sort((left, right) =>
-          compareRecordValidationIdentifiers(
-            `${left.recordType}\u0000${left.writeKind}\u0000${left.phase}\u0000${left.operation}\u0000${left.formName}\u0000${left.code}\u0000${left.scope}\u0000${left.validatorClass ?? ''}\u0000${left.validatorCode ?? ''}\u0000${left.expressionName ?? ''}\u0000${left.pointer ?? ''}\u0000${left.lineage ?? ''}`,
-            `${right.recordType}\u0000${right.writeKind}\u0000${right.phase}\u0000${right.operation}\u0000${right.formName}\u0000${right.code}\u0000${right.scope}\u0000${right.validatorClass ?? ''}\u0000${right.validatorCode ?? ''}\u0000${right.expressionName ?? ''}\u0000${right.pointer ?? ''}\u0000${right.lineage ?? ''}`
-          )
-        )
-        .map(row => ({
-          ...row,
-          averageDurationMs: row.runs === 0 ? 0 : row.totalDurationMs / row.runs,
-        }));
-      return {
-        generatedAt: new Date().toISOString(),
-        totalRuns: this.shadowReportTotalRuns,
-        overflowRuns: this.shadowReportOverflowRuns,
-        maxSeries: this.shadowReportMaxSeries(),
-        rows,
-      };
-    }
-
-    /** Explicit invalidation surface for form/config reloads and isolated tests. */
-    public clearCaches(): void {
-      this.formDefinitionCache.clear();
-      this.formLoadGenerations.clear();
-      this.expressionCache.clear();
-      this.validatorMappingCache.clear();
-    }
-
-    /**
-     * Read aggregate cache diagnostics without exposing cache keys.
-     *
-     * @returns Counts for each bounded service cache.
-     */
-    public getCacheStats(): RecordValidationCacheStats {
-      return {
-        formDefinitions: this.formDefinitionCache.size,
-        compiledExpressions: this.expressionCache.size,
-        validatorMappings: this.validatorMappingCache.size,
-      };
     }
 
     /**
@@ -1299,9 +952,9 @@ export namespace Services {
         if (constructedForms.has(formName)) return constructedForms.get(formName) ?? null;
         let constructed: FormConfigOutline | null = null;
         try {
-          const form = await this.loadCachedForm(formName, brand);
+          const form = await this.loadFormDefinition(formName, brand);
           if (form?.form.configuration) {
-            constructed = await this.constructCachedForm(form, request.candidate.metadata);
+            constructed = await this.constructForm(form, request.candidate.metadata);
           }
         } catch (error: unknown) {
           const errorType = safeLogReference(error instanceof Error ? error.name : typeof error);
@@ -1472,7 +1125,7 @@ export namespace Services {
         }
       }
 
-      const form = await this.loadCachedForm(selection.formName, brand);
+      const form = await this.loadFormDefinition(selection.formName, brand);
       if (!form) {
         diagnostics.push(
           createDiagnostic(
@@ -1506,7 +1159,7 @@ export namespace Services {
 
       let constructedForm: FormConfigOutline;
       try {
-        constructedForm = await this.constructCachedForm(form, request.candidate.metadata);
+        constructedForm = await this.constructForm(form, request.candidate.metadata);
       } catch {
         diagnostics.push(
           createDiagnostic(
@@ -1589,9 +1242,9 @@ export namespace Services {
             diagnostics
           );
           let transformedCandidate = transformationApplication.candidate;
-          const transformationOutcomes = [...transformationApplication.outcomes];
+          const appliedTransformations = [...transformationApplication.applied];
           persistenceCandidate = transformedCandidate;
-          if (transformationApplication.outcomes.some(outcome => outcome.status === 'inapplicable')) {
+          if (transformationApplication.inapplicable) {
             return undefined;
           }
           transformationContractFailed = false;
@@ -1609,8 +1262,8 @@ export namespace Services {
             diagnostics
           );
           if (!context) return undefined;
-          const validationForm = transformationApplication.outcomes.some(outcome => outcome.status === 'applied')
-            ? await this.constructCachedForm(form, transformedCandidate.metadata)
+          const validationForm = transformationApplication.applied.length > 0
+            ? await this.constructForm(form, transformedCandidate.metadata)
             : constructedForm;
           const groupResolution = await this.resolveValidationGroups(
             validationForm,
@@ -1641,14 +1294,14 @@ export namespace Services {
           );
           transformedCandidate = validatorTransformationApplication.candidate;
           persistenceCandidate = transformedCandidate;
-          transformationOutcomes.push(...validatorTransformationApplication.outcomes);
-          if (validatorTransformationApplication.outcomes.some(outcome => outcome.status === 'inapplicable')) {
+          appliedTransformations.push(...validatorTransformationApplication.applied);
+          if (validatorTransformationApplication.inapplicable) {
             transformationContractFailed = true;
             return undefined;
           }
           this.checkDeadline(deadline);
           const mappedIssues = this.mapValidatorSummaries(validation.summaries);
-          const transformationAdvisories = this.mapTransformationAdvisories(transformationOutcomes);
+          const transformationAdvisories = this.mapTransformationAdvisories(appliedTransformations);
           this.checkDeadline(deadline);
           return {
             context,
@@ -1731,13 +1384,13 @@ export namespace Services {
           );
           transformedCandidate = advisoryTransformationApplication.candidate;
           persistenceCandidate = transformedCandidate;
-          if (advisoryTransformationApplication.outcomes.some(outcome => outcome.status === 'inapplicable')) {
+          if (advisoryTransformationApplication.inapplicable) {
             transformationContractFailed = true;
             return undefined;
           }
           advisoryErrors = [
             ...advisoryErrors,
-            ...this.mapTransformationAdvisories(advisoryTransformationApplication.outcomes),
+            ...this.mapTransformationAdvisories(advisoryTransformationApplication.applied),
           ];
           this.checkDeadline(deadline);
           const issues = this.mapValidatorSummaries(validation.summaries);
@@ -2254,100 +1907,20 @@ export namespace Services {
       label: 'formData' | 'requestParams' | 'runtimeContext',
       diagnostics: RecordValidationDiagnostic[]
     ): Record<string, RecordValidationJSONValue> | undefined {
-      const seen = new WeakSet<object>();
-      let nodes = 0;
-      let omitted = false;
-      let failed = false;
-      const project = (candidate: unknown, depth: number): RecordValidationJSONValue | undefined => {
-        nodes += 1;
-        if (nodes > 20_000 || depth > 64) {
-          failed = true;
-          return undefined;
+      try {
+        const serialized = JSON.stringify(value);
+        const projected = serialized === undefined ? undefined : JSON.parse(serialized) as unknown;
+        if (isRecord(projected)) {
+          return projected as Record<string, RecordValidationJSONValue>;
         }
-        if (candidate === null || typeof candidate === 'boolean' || typeof candidate === 'string') return candidate;
-        if (typeof candidate === 'number') {
-          return Number.isFinite(candidate) ? candidate : null;
-        }
-        if (typeof candidate !== 'object') {
-          omitted = true;
-          return undefined;
-        }
-        if (candidate instanceof Date) {
-          if (!Number.isFinite(candidate.getTime())) {
-            omitted = true;
-            return undefined;
-          }
-          return candidate.toISOString();
-        }
-        if (seen.has(candidate)) {
-          failed = true;
-          return undefined;
-        }
-        seen.add(candidate);
-        try {
-          let descriptors: PropertyDescriptorMap;
-          try {
-            descriptors = Object.getOwnPropertyDescriptors(candidate);
-          } catch {
-            failed = true;
-            return undefined;
-          }
-          if (Array.isArray(candidate)) {
-            const result: RecordValidationJSONValue[] = [];
-            for (let index = 0; index < Math.min(candidate.length, 10_000); index += 1) {
-              const descriptor = descriptors[index.toString()];
-              if (!descriptor || !('value' in descriptor)) {
-                result.push(null);
-                continue;
-              }
-              result.push(project(descriptor.value, depth + 1) ?? null);
-            }
-            if (candidate.length > 10_000) failed = true;
-            return result;
-          }
-          const result: Record<string, RecordValidationJSONValue> = Object.create(null) as Record<
-            string,
-            RecordValidationJSONValue
-          >;
-          let accepted = 0;
-          for (const [key, descriptor] of Object.entries(descriptors)) {
-            if (!descriptor.enumerable) continue;
-            if (accepted >= 2_000 || key === '__proto__' || key === 'prototype' || key === 'constructor') {
-              if (accepted >= 2_000) failed = true;
-              else omitted = true;
-              continue;
-            }
-            if (!('value' in descriptor)) {
-              omitted = true;
-              continue;
-            }
-            const projected = project(descriptor.value, depth + 1);
-            if (projected !== undefined) {
-              result[key] = projected;
-              accepted += 1;
-            }
-          }
-          return result;
-        } finally {
-          seen.delete(candidate);
-        }
-      };
-      const projected = project(value, 0);
-      if (omitted) {
-        diagnostics.push(createDiagnostic(
-          RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported,
-          `The ${label} validation-expression context omitted values that have no JSON representation.`,
-          { severity: 'warning' }
-        ));
+      } catch {
+        // Report the same bounded configuration diagnostic below.
       }
-      if (failed || !isRecord(projected)) {
-        diagnostics.push(createDiagnostic(
-          RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported,
-          `The ${label} validation-expression context could not be projected safely.`
-        ));
-        return undefined;
-      }
-      return projected as Record<string, RecordValidationJSONValue>;
+      diagnostics.push(createDiagnostic(
+        RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionContextUnsupported,
+        `The ${label} validation-expression context could not be projected safely.`
+      ));
+      return undefined;
     }
 
     private async resolveValidationGroups(
@@ -2457,19 +2030,6 @@ export namespace Services {
             );
             return undefined;
           }
-          this.checkDeadline(deadline);
-          const browserOnlyCondition = referencesBrowserOnlyJSONataContext(config.condition);
-          this.checkDeadline(deadline);
-          if (browserOnlyCondition) {
-            diagnostics.push(
-              createDiagnostic(
-                RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported,
-                'A blocking validation-group expression requires browser-only context.',
-                identity
-              )
-            );
-            return undefined;
-          }
           const matches = Boolean(await this.evaluateJSONata(config.condition, context, deadline));
           if (!matches) return undefined;
         }
@@ -2478,19 +2038,6 @@ export namespace Services {
             createDiagnostic(
               RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported,
               'An operation-only validation-group expression has no registered server implementation.',
-              identity
-            )
-          );
-          return undefined;
-        }
-        this.checkDeadline(deadline);
-        const browserOnlyTemplate = referencesBrowserOnlyJSONataContext(config.template);
-        this.checkDeadline(deadline);
-        if (browserOnlyTemplate) {
-          diagnostics.push(
-            createDiagnostic(
-              RECORD_VALIDATION_DIAGNOSTIC_CODES.expressionUnsupported,
-              'A blocking validation-group expression requires browser-only context.',
               identity
             )
           );
@@ -2521,122 +2068,26 @@ export namespace Services {
       }
     }
 
-    private async loadCachedForm(formName: string, brand: string): Promise<CachedFormDefinition | null> {
-      const key = `${brand}\u0000${formName}`;
-      const generation = ++this.nextFormLoadGeneration;
-      setBounded(this.formLoadGenerations, key, generation);
+    private async loadFormDefinition(formName: string, brand: string): Promise<LoadedFormDefinition | null> {
       const form = await this.dependencies().loadForm(formName, brand);
-      if (!form) {
-        if (this.formLoadGenerations.get(key) === generation) this.formDefinitionCache.delete(key);
-        return null;
-      }
-      const formSnapshot = _.cloneDeep(form);
-      const reusableFormDefinitions = _.cloneDeep(sails.config.reusableFormDefinitions ?? {}) as ReusableFormDefinitions;
-      const candidateSensitive = formSnapshot.configuration
-        ? hasCandidateSensitiveComponent(formSnapshot.configuration as unknown as FormConfigOutline)
-        : false;
-      const reusableFingerprint = boundedFingerprint(reusableFormDefinitions);
-      const formFingerprint = boundedFingerprint({
-        id: formSnapshot.id,
-        name: formSnapshot.name,
-        branding: formSnapshot.branding,
-        reusableDefinitions: reusableFingerprint.value,
-        configuration: formSnapshot.configuration,
-      });
-      const cacheable = reusableFingerprint.cacheable && formFingerprint.cacheable;
-      const cached = cacheable ? this.formDefinitionCache.get(key) : undefined;
-      if (cached?.fingerprint === formFingerprint.value) {
-        this.formDefinitionCache.delete(key);
-        this.formDefinitionCache.set(key, cached);
-        return cached;
-      }
-      const entry: CachedFormDefinition = {
-        fingerprint: formFingerprint.value,
-        form: formSnapshot,
-        reusableFormDefinitions,
-        candidateSensitive,
-        candidateSensitivityChecked: candidateSensitive,
-      };
-      // An older in-flight load may still serve its own exact snapshot, but
-      // it cannot replace a newer version installed for this brand/form key.
-      if (cacheable && this.formLoadGenerations.get(key) === generation) {
-        this.formDefinitionCache.delete(key);
-        setBounded(this.formDefinitionCache, key, entry);
-      }
-      return entry;
+      return form ? {
+        form: _.cloneDeep(form),
+        reusableFormDefinitions: _.cloneDeep(
+          sails.config.reusableFormDefinitions ?? {}
+        ) as ReusableFormDefinitions,
+      } : null;
     }
 
-    private async constructCachedForm(
-      entry: CachedFormDefinition,
+    private async constructForm(
+      entry: LoadedFormDefinition,
       metadata: Readonly<Record<string, unknown>>
     ): Promise<FormConfigOutline> {
       if (!entry.form.configuration) throw new Error('Form configuration is unavailable.');
-      const construct = async (candidate: Readonly<Record<string, unknown>>): Promise<FormConfigOutline> =>
-        await this.dependencies().constructForm(
-          _.cloneDeep(entry.form.configuration as FormConfigFrame),
-          candidate,
-          _.cloneDeep(entry.reusableFormDefinitions)
-        );
-      if (entry.candidateSensitive) {
-        return await construct(metadata);
-      }
-      if (!entry.candidateSensitivityChecked) {
-        entry.construction ??= construct({});
-        let expanded: FormConfigOutline;
-        try {
-          expanded = await entry.construction;
-        } catch (error) {
-          entry.construction = undefined;
-          throw error;
-        }
-        if (hasCandidateSensitiveComponent(expanded)) {
-          entry.candidateSensitive = true;
-          entry.candidateSensitivityChecked = true;
-          entry.constructed = undefined;
-          entry.construction = undefined;
-          return await construct(metadata);
-        }
-        entry.constructed = expanded;
-        entry.candidateSensitivityChecked = true;
-        entry.construction = undefined;
-      }
-      if (!entry.constructed) {
-        entry.constructed = await construct({});
-      }
-      const constructed = _.cloneDeep(entry.constructed);
-      this.hydrateConstructedForm(constructed, metadata);
-      return constructed;
-    }
-
-    /** Apply candidate values to a cached constructed schema without traversing arbitrary data branches. */
-    private hydrateConstructedForm(
-      form: FormConfigOutline,
-      metadata: Readonly<Record<string, unknown>>
-    ): void {
-      const hydrate = (definition: unknown, parentValue: unknown): void => {
-        if (!isRecord(definition)) return;
-        const component = isRecord(definition.component) ? definition.component : undefined;
-        const className = component?.class;
-        const model = isRecord(definition.model) ? definition.model : undefined;
-        const name = typeof definition.name === 'string' ? definition.name : '';
-        const consumesNamedValue = Boolean(name) && (model !== undefined || className === 'GroupComponent');
-        const value = consumesNamedValue && isRecord(parentValue) ? parentValue[name] : parentValue;
-        if (model) {
-          const modelConfig = isRecord(model.config) ? model.config : {};
-          model.config = modelConfig;
-          modelConfig.value = value;
-        }
-        const config = component && isRecord(component.config) ? component.config : undefined;
-        if (!config) return;
-        // Row values are applied by ValidatorFormConfigVisitor when it expands
-        // each repeatable elementTemplate with an indexed lineage.
-        if (className === 'RepeatableComponent') return;
-        for (const key of ['componentDefinitions', 'tabs', 'panels'] as const) {
-          const children = config[key];
-          if (Array.isArray(children)) children.forEach(child => hydrate(child, value));
-        }
-      };
-      (form.componentDefinitions ?? []).forEach(definition => hydrate(definition, metadata));
+      return await this.dependencies().constructForm(
+        _.cloneDeep(entry.form.configuration as FormConfigFrame),
+        metadata,
+        _.cloneDeep(entry.reusableFormDefinitions)
+      );
     }
 
     private discoverAdvisoryGroups(
@@ -2709,21 +2160,8 @@ export namespace Services {
       diagnostics: RecordValidationDiagnostic[]
     ): ReadonlyMap<string, FormValidatorDefinition> | undefined {
       const definitions = sails.config.validators?.definitions;
-      const definitionsFingerprint = boundedFingerprint(definitions ?? []);
-      const cached = definitionsFingerprint.cacheable
-        ? this.validatorMappingCache.get(definitionsFingerprint.value)
-        : undefined;
-      if (cached && definitionsFingerprint.cacheable) {
-        this.validatorMappingCache.delete(definitionsFingerprint.value);
-        this.validatorMappingCache.set(definitionsFingerprint.value, cached);
-        return cached;
-      }
       try {
-        const mapping = new ValidatorsSupport().createValidatorDefinitionMapping(definitions ?? []);
-        if (definitionsFingerprint.cacheable) {
-          setBounded(this.validatorMappingCache, definitionsFingerprint.value, mapping);
-        }
-        return mapping;
+        return new ValidatorsSupport().createValidatorDefinitionMapping(definitions ?? []);
       } catch {
         diagnostics.push(
           createDiagnostic(
@@ -2782,58 +2220,41 @@ export namespace Services {
         ...detachedCandidate,
         metadata,
       };
-      const outcomes: CandidateTransformationOutcome[] = [];
+      const applied: FormValueTransformation[] = [];
+      let inapplicable = false;
       for (const candidateTransformation of transformations) {
         if (!isFormValueTransformation(candidateTransformation)) {
-          outcomes.push({
-            status: 'inapplicable',
-            kind: isRecord(candidateTransformation) && typeof candidateTransformation.kind === 'string'
-              ? candidateTransformation.kind
-              : 'malformed',
-            reason: 'malformed',
-          });
+          inapplicable = true;
           diagnostics.push(createDiagnostic(
             RECORD_VALIDATION_DIAGNOSTIC_CODES.transformationInapplicable,
             'A malformed schema-owned candidate transformation could not be safely applied.'
           ));
           continue;
         }
-        switch (candidateTransformation.kind) {
-          case 'rich-html-sanitized':
-            if (!this.isCanonicalRichHtmlTransformation(candidateTransformation)) {
-              outcomes.push({
-                status: 'inapplicable',
-                kind: candidateTransformation.kind,
-                reason: 'replacement-mismatched',
-              });
-              diagnostics.push(createDiagnostic(
-                RECORD_VALIDATION_DIAGNOSTIC_CODES.transformationInapplicable,
-                'A schema-owned candidate transformation did not contain the canonical sanitized value.'
-              ));
-              break;
-            }
-            if (this.replaceCandidateMetadataValue(
-              metadata,
-              candidateTransformation.dataModelPath,
-              candidateTransformation.sourceValue,
-              candidateTransformation.value
-            )) {
-              outcomes.push({ status: 'applied', transformation: candidateTransformation });
-            } else {
-              outcomes.push({
-                status: 'inapplicable',
-                kind: candidateTransformation.kind,
-                reason: 'path-missing-or-mismatched',
-              });
-              diagnostics.push(createDiagnostic(
-                RECORD_VALIDATION_DIAGNOSTIC_CODES.transformationInapplicable,
-                'A schema-owned candidate transformation no longer matched the submitted form data.'
-              ));
-            }
-            break;
+        if (!this.isCanonicalRichHtmlTransformation(candidateTransformation)) {
+          inapplicable = true;
+          diagnostics.push(createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.transformationInapplicable,
+            'A schema-owned candidate transformation did not contain the canonical sanitized value.'
+          ));
+          continue;
+        }
+        if (this.replaceCandidateMetadataValue(
+          metadata,
+          candidateTransformation.dataModelPath,
+          candidateTransformation.sourceValue,
+          candidateTransformation.value
+        )) {
+          applied.push(candidateTransformation);
+        } else {
+          inapplicable = true;
+          diagnostics.push(createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.transformationInapplicable,
+            'A schema-owned candidate transformation no longer matched the submitted form data.'
+          ));
         }
       }
-      return { candidate: transformedCandidate, outcomes };
+      return { candidate: transformedCandidate, applied, inapplicable };
     }
 
     private isCanonicalRichHtmlTransformation(transformation: FormValueTransformation): boolean {
@@ -2850,45 +2271,9 @@ export namespace Services {
       sourceValue: string,
       value: string
     ): boolean {
-      if (path.length === 0) return false;
-      let current: unknown = metadata;
-      for (let index = 0; index < path.length - 1; index += 1) {
-        const segment = path[index];
-        if (typeof segment === 'string' && ['__proto__', 'prototype', 'constructor'].includes(segment)) return false;
-        if (Array.isArray(current)) {
-          if (typeof segment !== 'number' || !Number.isInteger(segment) || segment < 0 || segment >= current.length) {
-            return false;
-          }
-          current = current[segment];
-        } else if (isRecord(current) && typeof segment === 'string' && Object.hasOwn(current, segment)) {
-          current = current[segment];
-        } else {
-          return false;
-        }
-      }
-      const finalSegment = path[path.length - 1];
-      if (typeof finalSegment === 'string' && ['__proto__', 'prototype', 'constructor'].includes(finalSegment)) {
-        return false;
-      }
-      if (Array.isArray(current)) {
-        if (
-          typeof finalSegment !== 'number' ||
-          !Number.isInteger(finalSegment) ||
-          finalSegment < 0 ||
-          finalSegment >= current.length
-        ) {
-          return false;
-        }
-        if (typeof current[finalSegment] !== 'string' || current[finalSegment] !== sourceValue) return false;
-        current[finalSegment] = value;
-        return true;
-      }
-      if (isRecord(current) && typeof finalSegment === 'string' && Object.hasOwn(current, finalSegment)) {
-        if (typeof current[finalSegment] !== 'string' || current[finalSegment] !== sourceValue) return false;
-        current[finalSegment] = value;
-        return true;
-      }
-      return false;
+      if (path.length === 0 || !_.has(metadata, path) || _.get(metadata, path) !== sourceValue) return false;
+      _.set(metadata, path, value);
+      return true;
     }
 
     private jsonataEvaluator(expression: string, deadline: ValidationDeadline): JSONataEvaluate {
@@ -2903,16 +2288,8 @@ export namespace Services {
       };
     }
 
-    private compiledExpression(expression: string): jsonata.Expression {
-      const cached = this.expressionCache.get(expression);
-      if (cached) {
-        this.expressionCache.delete(expression);
-        this.expressionCache.set(expression, cached);
-        return cached;
-      }
-      const compiled = jsonataCompile(expression);
-      setBounded(this.expressionCache, expression, compiled);
-      return compiled;
+    private compiledExpression(expression: string) {
+      return jsonataCompile(expression);
     }
 
     private async evaluateJSONata(
@@ -2962,18 +2339,11 @@ export namespace Services {
     }
 
     private mapTransformationAdvisories(
-      outcomes: readonly CandidateTransformationOutcome[]
+      transformations: readonly FormValueTransformation[]
     ): RecordSaveIssue[] {
       const advisories: RecordSaveIssue[] = [];
-      for (const outcome of outcomes) {
-        if (outcome.status !== 'applied') continue;
-        switch (outcome.transformation.kind) {
-          case 'rich-html-sanitized':
-            advisories.push(
-              ...this.mapValidatorSummaries([outcome.transformation.advisorySummary]).blocking
-            );
-            break;
-        }
+      for (const transformation of transformations) {
+        advisories.push(...this.mapValidatorSummaries([transformation.advisorySummary]).blocking);
       }
       return advisories;
     }
@@ -3214,17 +2584,6 @@ export namespace Services {
         diagnosticIdentities: Object.freeze(diagnosticIdentities.map(identity => Object.freeze(identity))),
       });
       this.emitOpenTelemetry(metric);
-      this.recordShadowReport(metric);
-      for (const hooks of this.metricsHooks) {
-        try {
-          const observation = hooks.resolutionCompleted(metric);
-          if (observation && typeof observation.then === 'function') {
-            void observation.catch(() => this.warnObservabilityFailure('Record validation metrics hook failed.'));
-          }
-        } catch {
-          this.warnObservabilityFailure('Record validation metrics hook failed.');
-        }
-      }
       this.logger.info('record_validation_completed', {
         event: 'record_validation_completed',
         request_id: metric.requestId ?? 'unavailable',
@@ -3290,74 +2649,6 @@ export namespace Services {
       }
     }
 
-    private recordShadowReport(metric: RecordValidationResolutionMetric): void {
-      if (metric.mode !== 'shadow') return;
-      this.shadowReportTotalRuns += 1;
-      const recordType = metric.recordType ?? UNRESOLVED_DIMENSION;
-      const operation = metric.operation ?? STRICT_ALL_OPERATION;
-      const formName = metric.formName ?? UNRESOLVED_DIMENSION;
-      const identities = metric.diagnosticIdentities.length > 0
-        ? metric.diagnosticIdentities
-        : [{ code: SHADOW_REPORT_NONE_CODE, scope: 'diagnostic' as const }];
-      const uniqueIdentities = [...new Map(identities.map(identity => [
-        `${identity.code}\u0000${identity.scope}\u0000${identity.validatorClass ?? ''}\u0000${identity.validatorCode ?? ''}\u0000${identity.expressionName ?? ''}\u0000${identity.field ?? ''}\u0000${identity.pointer ?? ''}\u0000${identity.lineage ?? ''}`,
-        identity,
-      ])).values()];
-      const keys = uniqueIdentities.map(identity =>
-        `${recordType}\u0000${metric.writeKind}\u0000${metric.phase}\u0000${operation}\u0000${formName}\u0000${identity.code}\u0000${identity.scope}\u0000${identity.validatorClass ?? ''}\u0000${identity.validatorCode ?? ''}\u0000${identity.expressionName ?? ''}\u0000${identity.field ?? ''}\u0000${identity.pointer ?? ''}\u0000${identity.lineage ?? ''}`
-      );
-      const missingSeries = keys.filter(key => !this.shadowReportRows.has(key)).length;
-      if (this.shadowReportRows.size + missingSeries > this.shadowReportMaxSeries()) {
-        this.shadowReportOverflowRuns += 1;
-        return;
-      }
-      for (let index = 0; index < keys.length; index += 1) {
-        const key = keys[index];
-        const identity = uniqueIdentities[index];
-        const row = this.shadowReportRows.get(key) ?? {
-          recordType,
-          operation,
-          writeKind: metric.writeKind,
-          phase: metric.phase,
-          formName,
-          code: identity.code,
-          scope: identity.scope,
-          ...(identity.expressionName ? { expressionName: identity.expressionName } : {}),
-          ...(identity.field ? { field: identity.field } : {}),
-          ...(identity.pointer ? { pointer: identity.pointer } : {}),
-          ...(identity.validatorClass ? { validatorClass: identity.validatorClass } : {}),
-          ...(identity.validatorCode ? { validatorCode: identity.validatorCode } : {}),
-          ...(identity.lineage ? { lineage: identity.lineage } : {}),
-          runs: 0,
-          wouldReject: 0,
-          blockingErrors: 0,
-          advisoryErrors: 0,
-          timeouts: 0,
-          configurationDiagnostics: 0,
-          totalDurationMs: 0,
-          maximumDurationMs: 0,
-        };
-        row.runs += 1;
-        row.wouldReject += metric.wouldBlock ? 1 : 0;
-        row.blockingErrors += metric.blockingErrorCount;
-        row.advisoryErrors += metric.advisoryErrorCount;
-        row.timeouts += metric.timeoutKind === 'none' ? 0 : 1;
-        row.configurationDiagnostics += metric.configurationDiagnosticCount;
-        row.totalDurationMs += metric.durationMs;
-        row.maximumDurationMs = Math.max(row.maximumDurationMs, metric.durationMs);
-        this.shadowReportRows.set(key, row);
-      }
-    }
-
-    private shadowReportMaxSeries(): number {
-      const configured = sails.config.recordValidation?.shadowReportMaxSeries;
-      return typeof configured === 'number' &&
-        Number.isSafeInteger(configured) &&
-        configured > 0 &&
-        configured <= SHADOW_REPORT_MAX_SERIES_LIMIT
-        ? configured
-        : DEFAULT_RECORD_VALIDATION_SHADOW_REPORT_MAX_SERIES;
-    }
   }
 }
 
