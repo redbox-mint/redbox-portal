@@ -10814,6 +10814,75 @@ test('implicit setter calls preserve builtin, bound, invocation, and receiver ef
   );
 });
 
+test('super property writes invoke inherited setters with the constructed receiver', () => {
+  const markerKey = '__a12_super_setter_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const directSource = `class Base{};Object.defineProperty(Base.prototype,'x',{set:eval});
+    class Sub extends Base{run(v){super.x=v}}
+    new Sub().run('globalThis.${markerKey}.push("direct")');`;
+  const receiverSource = `class Base{};Object.defineProperty(Base.prototype,'x',{
+    set(v){this.run=v}});class Sub extends Base{install(){super.x=eval}}
+    const target=new Sub();target.install();
+    target.run('globalThis.${markerKey}.push("receiver")');`;
+
+  for (const [name, source] of [
+    ['direct', directSource],
+    ['receiver', receiverSource],
+  ]) {
+    const relativePath = `packages/example/src/super-setter-${name}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${name} super setter analysis should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${name} super setter should retain eval provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${name} super setter diagnostics should remain bounded`);
+  }
+
+  const unresolvedSource = `class Sub extends loadBase(){run(v){super.x=v}}
+    new Sub().run(configuredSource);`;
+  assert.deepEqual(
+    scanSource(unresolvedSource, 'packages/example/src/unresolved-super-setter.ts').map(finding => [
+      finding.kind,
+      finding.reason,
+    ]),
+    [['analysis-limit', 'unknown-reflective-callable']],
+    'an unresolved super setter target should fail closed once at its assignment'
+  );
+
+  const safeSources = [
+    `class Base{};Object.defineProperty(Base.prototype,'x',{set:JSON.parse});
+      class Sub extends Base{run(v){super.x=v}}new Sub().run('{}');`,
+    `class Base{};Object.defineProperty(Base.prototype,'x',{set(v){this.run=v}});
+      class Sub extends Base{install(){super.x=JSON.parse}}const target=new Sub();
+      target.install();target.run('{}');`,
+  ];
+  for (const [index, source] of safeSources.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-super-setter-${index}.ts`),
+      [],
+      `safe super setter control ${index} should remain clean`
+    );
+  }
+
+  const runtimeSource = [
+    `globalThis[${serializedMarkerKey}]=[];`,
+    `{${directSource}}`,
+    `{${receiverSource}}`,
+    `process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));`,
+    `delete globalThis[${serializedMarkerKey}];`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', runtimeSource], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['direct', 'receiver']);
+});
+
 test('bulk reads preserve accessor and data enumerability correlation', () => {
   const markerKey = '__a12_descriptor_enumerability_correlation_marker__';
   const bulkModes = [
@@ -11090,6 +11159,54 @@ test('bulk projections preserve runtime own-key order and bounded overflow prove
     JSON.parse(result.stdout),
     cases.map(runtimeCase => runtimeCase.name)
   );
+});
+
+test('the CommonJS Lodash values subpath preserves own-key order and overflow provenance', () => {
+  const markerKey = '__a12_lodash_values_subpath_marker__';
+  const payload = `globalThis.${markerKey}.push('integer-order')`;
+  const unsafeSource = `const values=require('lodash/values');const source={};
+    source[1]=eval;source[0]=JSON.parse;values(source)[1](${JSON.stringify(payload)});`;
+  const overflowSource = `const values=require('lodash/values');
+    const source=Array(65).fill(JSON.parse);source[64]=eval;
+    values(source)[64](configuredSource);`;
+
+  for (const [name, source] of [
+    ['integer-order', unsafeSource],
+    ['overflow', overflowSource],
+  ]) {
+    const relativePath = `packages/example/src/lodash-values-subpath-${name}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${name} subpath analysis should be deterministic`);
+    assert.ok(
+      firstFindings.some(finding => finding.kind === 'direct-eval'),
+      `${name} subpath projection should retain eval provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${name} subpath diagnostics should remain bounded`);
+  }
+
+  const safeSource = `const values=require('lodash/values');const source={};
+    source[1]=JSON.parse;source[0]=eval;values(source)[1]('{}');`;
+  assert.deepEqual(
+    scanSource(safeSource, 'packages/example/src/safe-lodash-values-subpath.ts'),
+    [],
+    'the safe JSON.parse own-key-order control should remain clean'
+  );
+
+  const runtimeSource = [
+    `globalThis.${markerKey}=[];`,
+    unsafeSource,
+    `process.stdout.write(JSON.stringify(globalThis.${markerKey}));`,
+    `delete globalThis.${markerKey};`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', runtimeSource], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), ['integer-order']);
 });
 
 test('sparse inherited values materialize as bounded own properties across array mutations', () => {
