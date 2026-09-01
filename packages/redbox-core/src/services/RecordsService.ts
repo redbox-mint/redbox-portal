@@ -1161,7 +1161,6 @@ export namespace Services {
     public async getRecordFormFingerprint(
       record: AnyRecord,
       recordType: RecordTypeLike,
-      _targetStep?: WorkflowStepLike,
       sourceForm?: FormAttributes
     ): Promise<string | undefined> {
       const metaMetadata = this.recordObject(record.metaMetadata);
@@ -3389,16 +3388,9 @@ export namespace Services {
         }
       }
 
-      // A create form is delivered from the starting workflow step. The
-      // target step is selected by the save button and is not part of the
-      // form contract the browser received, so retain a server-owned copy of
-      // that starting contract for the concurrency check below.
+      // Preserve the starting-form contract before applying target-step metadata.
       const createFormFingerprintRecord: AnyRecord = {
-        metaMetadata: {
-          brandId: String(brandObj?.id ?? ''),
-          type: recordTypeName,
-          form: String(_.get(startingWfStep, 'config.form', '')),
-        },
+        metaMetadata: { brandId: String(brandObj.id ?? ''), form: String(_.get(startingWfStep, 'config.form', '')) },
         workflow: { stage: this.workflowStepName(startingWfStep) },
       };
       this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
@@ -3446,10 +3438,7 @@ export namespace Services {
       const formFingerprintRequired = tracker.context.routeFamily === 'browser' && concurrencyMode === 'strict';
       if (suppliedFormFingerprint || formFingerprintRequired) {
         try {
-          currentFormFingerprint = await this.getRecordFormFingerprint(
-            createFormFingerprintRecord,
-            recordTypeObj,
-          );
+          currentFormFingerprint = await this.getRecordFormFingerprint(createFormFingerprintRecord, recordTypeObj);
         } catch (error) {
           tracker.recordPrimaryNotApplied(
             this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
@@ -4427,8 +4416,7 @@ export namespace Services {
         try {
           currentFormFingerprint = await this.getRecordFormFingerprint(
             originalRecord as AnyRecord,
-            recordType as RecordTypeLike,
-            transitionRequested && requestedTargetName && !targetDiagnostic ? nextStepObj : undefined
+            recordType as RecordTypeLike
           );
         } catch (error) {
           tracker.recordPrimaryNotApplied(

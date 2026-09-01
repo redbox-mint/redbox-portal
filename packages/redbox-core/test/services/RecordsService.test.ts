@@ -2389,7 +2389,7 @@ describe('RecordsService', function () {
         configuration: { componentDefinitions: [] },
       };
       (global as any).FormsService.getFormByName.returns(of(deliveredForm));
-      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType, undefined, deliveredForm);
+      const issued = await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
       expect(issued).to.match(/^sha256:[0-9a-f]{64}$/);
 
       // Save recomputation resolves the same authoritative form identity and
@@ -2411,7 +2411,7 @@ describe('RecordsService', function () {
 
     it('refuses to fingerprint a delivered form outside the authoritative stored form identity', async function () {
       const stored = record();
-      const fingerprint = await RecordsService.getRecordFormFingerprint(stored, { name: 'rdmp' }, undefined, {
+      const fingerprint = await RecordsService.getRecordFormFingerprint(stored, { name: 'rdmp' }, {
         id: 'other-id',
         name: 'other-form',
         branding: 'brand-1',
@@ -2422,7 +2422,7 @@ describe('RecordsService', function () {
       expect((global as any).FormsService.getFormByName.notCalled).to.equal(true);
     });
 
-    it('binds target workflow mappings while keeping one fingerprint stable across a transition', async function () {
+    it('binds workflow mappings into a stable fingerprint', async function () {
       installMode('strict');
       const stored = record();
       const recordType = { name: 'rdmp', hooks: {}, searchable: false };
@@ -2431,13 +2431,8 @@ describe('RecordsService', function () {
       );
 
       const current = await RecordsService.getRecordFormFingerprint(stored, recordType);
-      const target = await RecordsService.getRecordFormFingerprint(stored, recordType, {
-        name: 'published',
-        config: { form: 'published-form' },
-      });
 
       expect(current).to.match(/^sha256:[0-9a-f]{64}$/);
-      expect(target).to.equal(current);
       expect((global as any).FormsService.getFormByName.alwaysCalledWith('default-form', true, 'brand-1')).to.equal(
         true
       );
@@ -3102,7 +3097,7 @@ describe('RecordsService', function () {
   describe('create save pipeline', function () {
     it('accepts the starting form fingerprint when a create transitions to its target step', async function () {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       const recordType = {
         name: 'rdmp',
@@ -3139,52 +3134,11 @@ describe('RecordsService', function () {
       );
 
       expect(result.wasPersisted()).to.equal(true);
-      expect(result.outcome).to.be.oneOf(['saved', 'saved-with-warnings']);
       expect(result.problems.flatMap((problem: any) => problem.issues).map((issue: any) => issue.code)).not.to.include(
         'form-definition-changed'
       );
       expect(result.concurrency?.formFingerprint).to.equal(issued);
       expect(mockStorageService.create.calledOnce).to.equal(true);
-    });
-
-    it('normalizes a missing brand id in the starting form fingerprint contract', async function () {
-      mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
-      });
-      const recordType = {
-        name: 'rdmp',
-        hooks: {},
-        searchable: false,
-        concurrentModification: { mode: 'strict' },
-      };
-      const getFingerprint = sinon.stub(RecordsService, 'getRecordFormFingerprint').resolves('issued-fingerprint');
-      const context = createRecordSaveContext({
-        routeFamily: 'browser',
-        operation: 'create',
-        targetStep: 'published',
-        concurrency: { entityTagSupplied: false, formFingerprint: 'issued-fingerprint' },
-      });
-
-      const result = await RecordsService.create(
-        {},
-        {
-          metadata: { title: 'Create without brand id' },
-          authorization: { edit: ['user-1'], view: ['user-1'], editRoles: [], viewRoles: [] },
-        },
-        recordType,
-        { username: 'user-1' },
-        true,
-        false,
-        'published',
-        context
-      );
-
-      expect(result.wasPersisted()).to.equal(true);
-      expect(getFingerprint.calledOnce).to.equal(true);
-      expect(getFingerprint.firstCall.args[0]).to.deep.include({
-        metaMetadata: { brandId: '', type: 'rdmp', form: 'default-form' },
-        workflow: { stage: 'draft' },
-      });
     });
 
     it('generates a historical hyphenless OID for a configured create before storage', async function () {

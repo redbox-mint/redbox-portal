@@ -238,7 +238,6 @@ export namespace Controllers {
      * was delivered to the browser.
      */
     private async generatedFormFingerprint(
-      req: Sails.Req,
       brand: BrandingModel,
       currentRec: RecordModel | null,
       requestedRecordType: string | undefined,
@@ -252,10 +251,6 @@ export namespace Controllers {
         currentRec?.metaMetadata?.type ?? requestedRecordType ?? formConfig.type ?? ''
       ).trim();
       const recordType = (await firstValueFrom(RecordTypesService.get(brand, recordTypeName))) as unknown as AnyRecord;
-      const targetStepName = this.requestString(req.query, 'targetStep');
-      const targetStep = targetStepName
-        ? ((await firstValueFrom(WorkflowStepsService.get(recordType, targetStepName))) as unknown as AnyRecord | null)
-        : null;
 
       let fingerprintRecord: AnyRecord;
       if (currentRec) {
@@ -272,12 +267,7 @@ export namespace Controllers {
         };
       }
 
-      const fingerprint = await this.recordsService.getRecordFormFingerprint(
-        fingerprintRecord,
-        recordType,
-        currentRec ? targetStep ?? undefined : undefined,
-        sourceForm
-      );
+      const fingerprint = await this.recordsService.getRecordFormFingerprint(fingerprintRecord, recordType, sourceForm);
       if (!fingerprint) {
         throw new Error('The current form concurrency fingerprint could not be generated.');
       }
@@ -1118,7 +1108,7 @@ export namespace Controllers {
           formConfig: mergedForm,
         });
 
-        const formFingerprint = await this.generatedFormFingerprint(req, brand, currentRec, recordType, form);
+        const formFingerprint = await this.generatedFormFingerprint(brand, currentRec, recordType, form);
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
 
         // return the form config

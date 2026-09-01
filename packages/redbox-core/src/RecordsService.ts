@@ -245,7 +245,6 @@ export interface RecordsService {
   getRecordFormFingerprint(
     record: RecordInput,
     recordType: Record<string, unknown>,
-    targetStep?: unknown,
     sourceForm?: FormAttributes
   ): Promise<string | undefined>;
   getResolvedPermissionsSummary(oid: string): Promise<ResolvedRecordPermissions>;

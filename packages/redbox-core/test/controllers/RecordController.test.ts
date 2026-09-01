@@ -707,11 +707,10 @@ describe('RecordController getWorkflowSteps', () => {
       workflow: { stage: 'draft' },
     });
     expect(createArgs[1]).to.deep.equal({ name: 'dataset' });
-    expect(createArgs[2]).to.equal(undefined);
-    expect(createArgs[3]).to.equal(form);
+    expect(createArgs[2]).to.equal(form);
   });
 
-  it('fingerprints the authoritative delivered form and preserves target intent', async function () {
+  it('fingerprints the authoritative delivered form independently of target intent', async function () {
     const currentRec = {
       redboxOid: 'oid-1',
       revision: 3,
@@ -720,7 +719,6 @@ describe('RecordController getWorkflowSteps', () => {
       workflow: { stage: 'draft' },
     };
     const recordType = { name: 'dataset' };
-    const targetStep = { name: 'published', config: { form: 'dataset-published' } };
     (global as any).sails.config = { reusableFormDefinitions: {}, validators: { definitions: [] } };
     (global as any).sails.services = {
       formpayloadprehydrateservice: { build: sinon.stub().resolves({}) },
@@ -733,7 +731,6 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormsService.buildClientFormConfig.resolves({ type: 'dataset' });
     (global as any).FormsService.discoverValidationOperations.resolves([]);
     (global as any).RecordTypesService.get.returns(of(recordType));
-    (global as any).WorkflowStepsService.get = sinon.stub().returns(of(targetStep));
     (controller.recordsService as any).getRecordFormFingerprint = sinon.stub().resolves('form-fingerprint-2');
     const req = {
       param: sinon
@@ -752,8 +749,7 @@ describe('RecordController getWorkflowSteps', () => {
     const args = (controller.recordsService as any).getRecordFormFingerprint.firstCall.args;
     expect(args[0]).to.equal(currentRec);
     expect(args[1]).to.deep.equal(recordType);
-    expect(args[2]).to.deep.equal(targetStep);
-    expect(args[3]).to.deep.include({ id: 'form-1', name: 'dataset-draft', branding: 'brand-1' });
+    expect(args[2]).to.deep.include({ id: 'form-1', name: 'dataset-draft', branding: 'brand-1' });
     expect(sendResp.firstCall.args[2].meta).to.deep.include({
       formFingerprint: 'form-fingerprint-2',
       revision: 3,
