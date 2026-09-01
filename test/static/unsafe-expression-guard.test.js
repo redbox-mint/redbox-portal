@@ -10623,6 +10623,197 @@ test('inherited setter effects update the actual receiver across write mechanism
   );
 });
 
+test('implicit setter calls preserve builtin, bound, invocation, and receiver effects', () => {
+  const markerKey = '__a12_implicit_setter_callable_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const cases = [
+    {
+      anchor: 'target.install=',
+      build: payload => `const prototype={};Object.defineProperty(prototype,'install',{set:eval});
+        const target=Object.create(prototype);target.install=${JSON.stringify(payload)};`,
+      kind: 'direct-eval',
+      name: 'builtin-eval',
+    },
+    {
+      anchor: 'target.install=',
+      build: payload => `const prototype={};Object.defineProperty(prototype,'install',{
+        set:eval.bind(globalThis)});const target=Object.create(prototype);
+        target.install=${JSON.stringify(payload)};`,
+      kind: 'direct-eval',
+      name: 'bound-eval',
+    },
+    {
+      anchor: 'target.install=',
+      build: payload => `const prototype={};Object.defineProperty(prototype,'install',{
+        set:eval.call.bind(eval,globalThis)});const target=Object.create(prototype);
+        target.install=${JSON.stringify(payload)};`,
+      kind: 'direct-eval',
+      name: 'invocation-eval',
+    },
+    {
+      anchor: 'target.install=',
+      build: () => `const lodash=require('lodash');const prototype={};
+        Object.defineProperty(prototype,'install',{set:lodash.template});
+        const target=Object.create(prototype);try{target.install='<% if ( %>'}catch{
+          globalThis[${serializedMarkerKey}].push('lodash-template')}`,
+      kind: 'lodash-template',
+      name: 'lodash-template',
+    },
+    {
+      anchor: 'target.install=',
+      build: () => `const lodash=require('lodash');const prototype={};Object.defineProperty(prototype,'install',{
+        set:lodash.template.bind(lodash)});const target=Object.create(prototype);
+        try{target.install='<% if ( %>'}catch{
+          globalThis[${serializedMarkerKey}].push('bound-lodash-template')}`,
+      kind: 'lodash-template',
+      name: 'bound-lodash-template',
+    },
+    {
+      anchor: 'target.install=',
+      build: () => `const lodash=require('lodash');const prototype={};Object.defineProperty(prototype,'install',{
+        set:lodash.template.call.bind(lodash.template,lodash)});const target=Object.create(prototype);
+        try{target.install='<% if ( %>'}catch{
+          globalThis[${serializedMarkerKey}].push('invocation-lodash-template')}`,
+      kind: 'lodash-template',
+      name: 'invocation-lodash-template',
+    },
+    {
+      build: payload => `function install(_){this.run=eval}const prototype={};const target=Object.create(prototype);
+        Object.defineProperty(prototype,'install',{set:install.bind(target)});target.install='ignored';
+        target.run(${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'bound-local-effect',
+    },
+    {
+      build: payload => `const prototype={};Object.defineProperty(prototype,'0',{
+        set(value){this.run=value}});const target=Object.create(prototype);target.run=JSON.parse;
+        target[0]=eval;target.run(${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'indexed-assigned-value-effect',
+    },
+    {
+      build: payload => `const prototype={};Object.defineProperty(prototype,'install',{
+        set(_){this.run=eval}});const base=Object.create(prototype);const receiver={};
+        Reflect.set(base,'install',0,receiver);receiver.run(${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'reflect-distinct-receiver',
+    },
+    {
+      build: payload => `function install(_){this.run=eval;throw new Error('stop')}const prototype={};
+        Object.defineProperty(prototype,'install',{set:install});const target=Object.create(prototype);
+        try{target.install=0}catch{}target.run(${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'throw-after-effect',
+    },
+    {
+      anchor: 'target.install=',
+      build: payload => `const unsafePrototype={};Object.defineProperty(unsafePrototype,'install',{set:eval});
+        const target=Object.create(globalThis.flag?unsafePrototype:{});
+        target.install=${JSON.stringify(payload)};`,
+      kind: 'direct-eval',
+      name: 'conditional-prototype',
+    },
+    {
+      anchor: 'target.install=',
+      build: payload => `const prototype={};Object.defineProperty(prototype,'install',{
+        set:globalThis.unresolvedFlag?JSON.parse:JSON.parse.constructor('return eval')()});
+        const target=Object.create(prototype);target.install=${JSON.stringify(payload)};`,
+      kind: 'analysis-limit',
+      name: 'conditional-unresolved-setter',
+      reason: 'unknown-reflective-callable',
+    },
+    {
+      anchor: 'target.install=value',
+      build: payload => `function write(target,value){target.install=value}const prototype={};
+        Object.defineProperty(prototype,'install',{set:eval});const target=Object.create(prototype);
+        write(target,${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'assignment-helper',
+    },
+    {
+      anchor: 'Object.assign(',
+      build: payload => `const prototype={};Object.defineProperty(prototype,'install',{set:eval});
+        const target=Object.create(prototype);Object.assign(target,{install:${JSON.stringify(payload)}});`,
+      kind: 'direct-eval',
+      name: 'object-assign',
+    },
+  ];
+
+  for (const runtimeCase of cases) {
+    const source = runtimeCase.build('configuredSource');
+    const relativePath = `packages/example/src/implicit-setter-${runtimeCase.name}.ts`;
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${runtimeCase.name} should be deterministic`);
+    const finding = firstFindings.find(
+      candidate =>
+        candidate.kind === runtimeCase.kind && (!runtimeCase.reason || candidate.reason === runtimeCase.reason)
+    );
+    assert.ok(finding, `${runtimeCase.name} should retain its setter call: ${JSON.stringify(firstFindings)}`);
+    if (runtimeCase.anchor) {
+      const prefix = source.slice(0, source.indexOf(runtimeCase.anchor));
+      const expectedLine = prefix.split('\n').length;
+      const expectedColumn = prefix.split('\n').at(-1).length + 1;
+      assert.deepEqual(
+        [finding.line, finding.column],
+        [expectedLine, expectedColumn],
+        `${runtimeCase.name} should anchor its finding on the implicit assignment or helper call`
+      );
+    }
+    assert.ok(firstFindings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  const unknownSetter = `const prototype={};Object.defineProperty(prototype,'install',{set:loadSetter()});
+    const target=Object.create(prototype);target.install=configuredSource;`;
+  assert.deepEqual(
+    scanSource(unknownSetter, 'packages/example/src/unresolved-setter.ts').map(finding => [
+      finding.kind,
+      finding.reason,
+    ]),
+    [['analysis-limit', 'unknown-reflective-callable']],
+    'an unresolved modeled setter should fail closed once at its assignment'
+  );
+
+  const safeSources = [
+    `const prototype={};Object.defineProperty(prototype,'install',{set:JSON.parse});
+      const target=Object.create(prototype);target.install='{}';`,
+    `function install(_){this.run=JSON.parse}const prototype={};const target=Object.create(prototype);
+      Object.defineProperty(prototype,'install',{set:install.bind(target)});target.install='ignored';
+      target.run('{}');`,
+    `function dormant(target){target.install=configuredSource}
+      consume(dormant);`,
+  ];
+  for (const [index, source] of safeSources.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-implicit-setter-${index}.ts`),
+      [],
+      `safe implicit setter control ${index} should remain clean`
+    );
+  }
+
+  const runtimeSource = [
+    `globalThis[${serializedMarkerKey}]=[];globalThis.flag=true;globalThis.unresolvedFlag=false;`,
+    ...cases.map(runtimeCase => {
+      const payload = `globalThis[${serializedMarkerKey}].push(${JSON.stringify(runtimeCase.name)})`;
+      return `{${runtimeCase.build(payload)}}`;
+    }),
+    `delete globalThis.flag;delete globalThis.unresolvedFlag;
+      process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));`,
+    `delete globalThis[${serializedMarkerKey}];`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', runtimeSource], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
+  );
+});
+
 test('bulk reads preserve accessor and data enumerability correlation', () => {
   const markerKey = '__a12_descriptor_enumerability_correlation_marker__';
   const bulkModes = [
@@ -10716,6 +10907,188 @@ test('bulk reads preserve accessor and data enumerability correlation', () => {
   assert.deepEqual(
     JSON.parse(result.stdout),
     cases.flatMap(runtimeCase => [`${runtimeCase.name}-false-done`, `${runtimeCase.name}-true-done`])
+  );
+});
+
+test('bulk projections preserve runtime own-key order and bounded overflow provenance', () => {
+  const markerKey = '__a12_bulk_projection_marker__';
+  const serializedMarkerKey = JSON.stringify(markerKey);
+  const cases = [
+    {
+      build: payload => `const source=Array(65).fill(JSON.parse);source[64]=eval;
+        Object.values(source)[64](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'values-overflow',
+    },
+    {
+      build: payload => `const source=Array(65).fill(JSON.parse);source[64]=eval;
+        Object.entries(source)[64][1](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'entries-overflow',
+    },
+    {
+      build: payload => `const source=Array(130);source[129]=eval;
+        Object.values(source)[0](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'values-sparse-overflow',
+    },
+    {
+      build: payload => `const source=Array(130);source[129]=eval;
+        Object.entries(source)[0][1](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'entries-sparse-overflow',
+    },
+    {
+      build: payload => `const source=Array(130);source[129]=JSON.parse;source.run=eval;
+        Object.values(source)[1](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'values-overflow-before-string',
+    },
+    {
+      build: payload => `const source=Array(130);source[129]=JSON.parse;source.run=eval;
+        Object.entries(source)[1][1](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'entries-overflow-before-string',
+    },
+    {
+      build: payload => `const source=Array(65).fill(JSON.parse);source[64]=eval;
+        const target=Array(65).fill(JSON.parse);Object.defineProperties(
+          target,Object.getOwnPropertyDescriptors(source));target[64](${JSON.stringify(payload)});`,
+      kind: 'analysis-limit',
+      name: 'descriptors-overflow',
+      reason: 'unknown-reflective-callable',
+    },
+    {
+      build: payload => `const source=Array(130);source[129]=eval;
+        const target=Array(130).fill(JSON.parse);Object.defineProperties(
+          target,Object.getOwnPropertyDescriptors(source));target[129](${JSON.stringify(payload)});`,
+      kind: 'analysis-limit',
+      name: 'descriptors-sparse-overflow',
+      reason: 'unknown-reflective-callable',
+    },
+    {
+      build: payload => `const source={};source[1]=eval;source[0]=JSON.parse;
+        Object.values(source)[1](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'values-integer-order',
+    },
+    {
+      build: payload => `const source={};source[1]=eval;source[0]=JSON.parse;
+        Object.entries(source)[1][1](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'entries-integer-order',
+    },
+    {
+      build: payload => `function project(source){return Object.values(source)}
+        const source=Array(65).fill(JSON.parse);source[64]=eval;
+        project(source)[64](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'values-helper-overflow',
+    },
+    {
+      build: payload => `function project(source){return Object.getOwnPropertyDescriptors(source)}
+        const source=Array(65).fill(JSON.parse);source[64]=eval;
+        const target=Array(65).fill(JSON.parse);Object.defineProperties(target,project(source));
+        target[64](${JSON.stringify(payload)});`,
+      kind: 'analysis-limit',
+      name: 'descriptors-helper-overflow',
+      reason: 'unknown-reflective-callable',
+    },
+    {
+      build: payload => `const source={first:eval,second:JSON.parse};if(globalThis.flag){
+        delete source.first;source.first=eval}Object.values(source)[globalThis.flag?1:0](
+          ${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'values-recreated-order',
+    },
+    {
+      build: payload => `const source={run:eval,x:1};if(globalThis.descriptorFlag){
+        delete source.run;source.run=eval}const target={run:JSON.parse};
+        Object.defineProperty(target,'x',{value:0,writable:false,configurable:false});
+        try{Object.defineProperties(target,Object.getOwnPropertyDescriptors(source))}catch{}
+        try{target.run(${JSON.stringify(payload)})}catch{}`,
+      kind: 'direct-eval',
+      name: 'descriptors-recreated-order',
+    },
+    {
+      build: () => `const lodash=require('lodash');const source=Array(65).fill(JSON.parse);
+        source[64]=lodash.template;try{Object.values(source)[64]('<% if ( %>')}catch{
+          globalThis[${serializedMarkerKey}].push('values-lodash-overflow')}`,
+      kind: 'lodash-template',
+      name: 'values-lodash-overflow',
+    },
+    {
+      build: payload => `const lodash=require('lodash');const source=Array(65).fill(JSON.parse);
+        source[64]=eval;lodash.values(source)[64](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'lodash-values-overflow',
+    },
+    {
+      build: payload => `const {values:project}=require('lodash');const source=Array(65).fill(JSON.parse);
+        source[64]=eval;project(source)[64](${JSON.stringify(payload)});`,
+      kind: 'direct-eval',
+      name: 'lodash-values-helper-overflow',
+    },
+  ];
+
+  for (const runtimeCase of cases) {
+    const relativePath = `packages/example/src/bulk-projection-${runtimeCase.name}.ts`;
+    const source = runtimeCase.build('configuredSource');
+    const firstFindings = scanSource(source, relativePath);
+    const secondFindings = scanSource(source, relativePath);
+    assert.deepEqual(firstFindings, secondFindings, `${runtimeCase.name} should be deterministic`);
+    assert.ok(
+      firstFindings.some(
+        finding => finding.kind === runtimeCase.kind && (!runtimeCase.reason || finding.reason === runtimeCase.reason)
+      ),
+      `${runtimeCase.name} should retain or fail closed on projected provenance: ${JSON.stringify(firstFindings)}`
+    );
+    assert.ok(firstFindings.length <= 2, `${runtimeCase.name} diagnostics should remain bounded`);
+  }
+
+  const safeSources = [
+    `const source={};source[1]=JSON.parse;source[0]=eval;Object.values(source)[1]('{}');`,
+    `const source={};source[1]=JSON.parse;source[0]=eval;Object.entries(source)[1][1]('{}');`,
+    `const source=Array(65).fill(JSON.parse);source[64]=eval;Object.values(source)[0]('{}');`,
+    `const source=Array(130);source[129]=JSON.parse;Object.values(source)[0]('{}');`,
+    `const source=Array(130);source[129]=JSON.parse;source.run=JSON.parse;Object.values(source)[1]('{}');`,
+    `const lodash=require('lodash');const source={};source[1]=JSON.parse;source[0]=eval;
+      lodash.values(source)[1]('{}');`,
+    `const source={};Object.defineProperty(source,'run',{get(){return eval},enumerable:false,
+      configurable:true});if(flag){delete source.run;source.run=JSON.parse}
+      const values=Object.values(source);if(values[0])values[0]('{}');`,
+    `const source={run:eval,x:1};delete source.run;source.run=eval;const target={run:JSON.parse};
+      Object.defineProperty(target,'x',{value:0,writable:false,configurable:false});
+      try{Object.defineProperties(target,Object.getOwnPropertyDescriptors(source))}catch{}target.run('{}');`,
+  ];
+  for (const [index, source] of safeSources.entries()) {
+    assert.deepEqual(
+      scanSource(source, `packages/example/src/safe-bulk-projection-${index}.ts`),
+      [],
+      `safe bulk projection control ${index} should remain clean`
+    );
+  }
+
+  const runtimeSource = [
+    `globalThis[${serializedMarkerKey}]=[];globalThis.flag=true;globalThis.descriptorFlag=false;`,
+    ...cases.map(runtimeCase => {
+      const payload = `globalThis[${serializedMarkerKey}].push(${JSON.stringify(runtimeCase.name)})`;
+      return `{${runtimeCase.build(payload)}}`;
+    }),
+    `delete globalThis.flag;delete globalThis.descriptorFlag;`,
+    `process.stdout.write(JSON.stringify(globalThis[${serializedMarkerKey}]));`,
+    `delete globalThis[${serializedMarkerKey}];`,
+  ].join('\n');
+  const result = spawnSync(process.execPath, ['--eval', runtimeSource], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    JSON.parse(result.stdout),
+    cases.map(runtimeCase => runtimeCase.name)
   );
 });
 
