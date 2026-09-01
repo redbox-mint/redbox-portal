@@ -289,7 +289,6 @@ const recordSaveIssueSchema = withOpenApi(
         message: z.string(),
         field: z.string().optional(),
         pointer: z.string().optional(),
-        attachmentId: z.string().optional(),
     }),
     { description: 'Safe, field-addressable save issue' },
 );

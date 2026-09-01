@@ -776,7 +776,6 @@ describe('RecordsService', function () {
           { attachmentId: 'old', fileId: 'replacement-file' },
         ] } },
         ['attachments'],
-        'record-1',
         'generation-1',
         [{ attachmentId: 'retry', mutationFileId: 'retry-file', operation: 'finalize', mutationState: 'unknown', generation: 'retry-generation', attachmentField: 'attachments' }]
       );
@@ -1116,8 +1115,8 @@ describe('RecordsService', function () {
       expect(preparedRows.map(row => row.fileId)).to.deep.equal(['new-file', 'old-file']);
       expect(preparedRows[0].storageKey).to.not.equal(preparedRows[1].storageKey);
       expect(journal.markMutation.callCount).to.equal(4);
-      expect(journal.markMutation.getCall(0).args[5]).to.equal('new-file');
-      expect(journal.markMutation.getCall(2).args[5]).to.equal('old-file');
+      expect(journal.markMutation.getCall(0).args[4]).to.equal('new-file');
+      expect(journal.markMutation.getCall(2).args[4]).to.equal('old-file');
       expect(mockDatastreamService.addDatastream.calledOnce).to.equal(true);
       expect(mockDatastreamService.removeDatastream.calledOnce).to.equal(true);
     });
@@ -1324,8 +1323,8 @@ describe('RecordsService', function () {
 
   describe('finishSave operational handoff', function () {
     function persistedTracker() {
-      const { RecordSaveTracker, createRecordSaveContext } = require('../../src/RecordSaveResponse');
-      const tracker = new RecordSaveTracker(createRecordSaveContext());
+      const { RecordSaveResponse, createRecordSaveContext } = require('../../src/RecordSaveResponse');
+      const tracker = new RecordSaveResponse(createRecordSaveContext());
       tracker.confirmPrimaryPersistence('tracker-oid', { message: '@record-save-post-save-failed' });
       return tracker;
     }

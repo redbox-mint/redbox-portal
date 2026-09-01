@@ -1583,7 +1583,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             oid,
             response,
             formScopeId: this.eventScopeId,
-            requestId: typeof response?.requestId === 'string' ? response.requestId : undefined,
             closeOnDelete: options?.closeOnDelete,
             redirectLocation: this.resolveRedirectLocation(options?.redirectLocation ?? '', oid),
             redirectDelaySeconds: options?.redirectDelaySeconds,

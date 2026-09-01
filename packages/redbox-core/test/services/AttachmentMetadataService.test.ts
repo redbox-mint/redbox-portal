@@ -64,16 +64,16 @@ describe('AttachmentMetadataService mutation journal', function () {
     expect(result.map((row: any) => row.fileId)).to.deep.equal(['applied', 'legacy', 'waterline-legacy']);
   });
 
-  it('increments attempts when pending and preserves the count when applied', async function () {
-    model.findOne.resolves({ id: 'journal-1', attemptCount: 2 });
+  it('updates the mutation state', async function () {
+    model.findOne.resolves({ id: 'journal-1' });
     const set = sinon.stub().resolves();
     model.updateOne.returns({ set });
 
     await service.markMutation('oid-1', 'a', 'generation-1', 'pending');
-    expect(set.firstCall.args[0]).to.include({ mutationState: 'pending', attemptCount: 3 });
+    expect(set.firstCall.args[0]).to.deep.equal({ mutationState: 'pending' });
 
     await service.markMutation('oid-1', 'a', 'generation-1', 'applied');
-    expect(set.secondCall.args[0]).to.include({ mutationState: 'applied', attemptCount: 2, lastSafeErrorCode: undefined });
+    expect(set.secondCall.args[0]).to.deep.equal({ mutationState: 'applied' });
   });
 
   it('creates a separate journal row instead of overwriting physical attachment metadata', async function () {
@@ -141,11 +141,11 @@ describe('AttachmentMetadataService mutation journal', function () {
   });
 
   it('marks the matching mutation when an attachment has replacement work', async function () {
-    model.findOne.resolves({ id: 'journal-new', attemptCount: 0 });
+    model.findOne.resolves({ id: 'journal-new' });
     const set = sinon.stub().resolves();
     model.updateOne.returns({ set });
 
-    const result = await service.markMutation('oid-1', 'a', 'generation-1', 'unknown', 'upload-failed', 'new-file');
+    const result = await service.markMutation('oid-1', 'a', 'generation-1', 'unknown', 'new-file');
 
     expect(result).to.equal(true);
     expect(model.findOne.calledOnceWithExactly({
@@ -155,7 +155,7 @@ describe('AttachmentMetadataService mutation journal', function () {
       isJournal: true,
       mutationFileId: 'new-file',
     })).to.equal(true);
-    expect(set.firstCall.args[0]).to.include({ mutationState: 'unknown', lastSafeErrorCode: 'upload-failed' });
+    expect(set.firstCall.args[0]).to.deep.equal({ mutationState: 'unknown' });
   });
 
   it('writes an applied delete tombstone through the normal upsert path', async function () {
@@ -206,35 +206,6 @@ describe('AttachmentMetadataService mutation journal', function () {
       contentType: 'text/plain',
       accessCount: 3,
     });
-    expect(model.create.notCalled).to.equal(true);
-  });
-
-  it('upgrades a matching legacy journal row without creating a duplicate', async function () {
-    model.findOne.onFirstCall().resolves(null);
-    model.findOne.onSecondCall().resolves({ id: 'legacy-journal' });
-    const set = sinon.stub().resolves();
-    model.updateOne.returns({ set });
-
-    await service.upsert({
-      oid: 'oid-1',
-      fileId: 'journal-a-g-legacy',
-      storageKey: 'journal/oid-1/a/g/new',
-      attachmentId: 'a',
-      generation: 'g',
-      mutationFileId: 'file-1',
-      operation: 'add',
-      mutationState: 'prepared',
-      isJournal: true,
-    });
-
-    expect(model.findOne.secondCall.args[0]).to.deep.equal({
-      oid: 'oid-1',
-      attachmentId: 'a',
-      generation: 'g',
-      mutationFileId: 'file-1',
-      isJournal: true,
-    });
-    expect(set.calledOnce).to.equal(true);
     expect(model.create.notCalled).to.equal(true);
   });
 

@@ -42,9 +42,6 @@ describe('AttachmentMetadata waterline model', function () {
       mutationState: ' pending ',
       generation: ` ${'g'.repeat(140)} `,
       mutationFileId: ' file-new ',
-      attemptCount: '2.8',
-      lastAttemptAt: '2026-08-22T00:00:00Z',
-      lastSafeErrorCode: ` ${'x'.repeat(140)} `,
     });
 
     expect(result.error).to.be.undefined;
@@ -57,11 +54,8 @@ describe('AttachmentMetadata waterline model', function () {
       operation: 'add',
       mutationState: 'pending',
       mutationFileId: 'file-new',
-      attemptCount: 2,
     });
     expect(String(result.record.generation)).to.have.length(128);
-    expect(String(result.record.lastSafeErrorCode)).to.have.length(128);
-    expect(result.record.lastAttemptAt).to.equal('2026-08-22T00:00:00.000Z');
   });
 
   it('normalizes valid partial updates and clears invalid optional values', function () {
@@ -73,9 +67,6 @@ describe('AttachmentMetadata waterline model', function () {
       mutationState: '',
       generation: '   ',
       mutationFileId: '   ',
-      attemptCount: -2,
-      lastAttemptAt: 'not-a-date',
-      lastSafeErrorCode: '   ',
     });
 
     expect(result.error).to.be.undefined;
@@ -87,9 +78,6 @@ describe('AttachmentMetadata waterline model', function () {
       mutationState: undefined,
       generation: undefined,
       mutationFileId: undefined,
-      attemptCount: 0,
-      lastAttemptAt: undefined,
-      lastSafeErrorCode: undefined,
     });
   });
 

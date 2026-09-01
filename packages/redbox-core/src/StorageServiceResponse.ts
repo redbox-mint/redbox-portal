@@ -23,8 +23,8 @@ import { ActionResult, StorageMutationApplicationState } from '@researchdatabox/
  * Response class for StorageService methods.
  *
  * This remains the generic response used by all storage operations.  Save
- * specific fields live on StorageMutationResponse/RecordSaveResponse so
- * existing storage services do not need to manufacture attachment state.
+ * Save-specific fields live on RecordSaveResponse. Storage adapters may
+ * additionally report whether a mutation was applied.
  */
 export class StorageServiceResponse implements ActionResult {
   success: boolean = false;
@@ -35,6 +35,7 @@ export class StorageServiceResponse implements ActionResult {
   details?: Record<string, unknown> | string;
   totalItems: number = 0;
   items: Record<string, unknown>[] = [];
+  applicationState?: StorageMutationApplicationState;
   constructor() {
 
   }
@@ -42,14 +43,6 @@ export class StorageServiceResponse implements ActionResult {
   public isSuccessful(): boolean {
     return this.success === true;
   }
-}
-
-/**
- * Storage facts for a primary metadata mutation.  `unknown` is intentional:
- * a rejected or timed-out call is not proof that the provider did not write.
- */
-export class StorageMutationResponse extends StorageServiceResponse {
-  applicationState?: StorageMutationApplicationState;
 }
 
 export default StorageServiceResponse

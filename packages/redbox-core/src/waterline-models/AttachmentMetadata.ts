@@ -80,17 +80,6 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
   if (Object.hasOwn(record, 'mutationFileId') && record.mutationFileId != null) {
     record.mutationFileId = String(record.mutationFileId).trim() || undefined;
   }
-  if (Object.hasOwn(record, 'attemptCount')) {
-    const attemptCount = Number(record.attemptCount ?? 0);
-    record.attemptCount = Number.isFinite(attemptCount) && attemptCount >= 0 ? Math.floor(attemptCount) : 0;
-  }
-  if (Object.hasOwn(record, 'lastAttemptAt') && record.lastAttemptAt != null) {
-    const timestamp = new Date(record.lastAttemptAt as string | number | Date);
-    record.lastAttemptAt = Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
-  }
-  if (Object.hasOwn(record, 'lastSafeErrorCode') && record.lastSafeErrorCode != null) {
-    record.lastSafeErrorCode = String(record.lastSafeErrorCode).trim().slice(0, 128) || undefined;
-  }
 };
 
 const beforeCreate = (record: Record<string, unknown>, cb: (err?: Error) => void): void => {
@@ -148,15 +137,6 @@ export class AttachmentMetadataClass {
   @Attr({ type: 'string' })
   public mutationFileId?: string;
 
-  @Attr({ type: 'number', defaultsTo: 0 })
-  public attemptCount?: number;
-
-  @Attr({ type: 'string', columnType: 'datetime' })
-  public lastAttemptAt?: string;
-
-  @Attr({ type: 'string' })
-  public lastSafeErrorCode?: string;
-
   @Attr({ type: 'string' })
   public contentType?: string;
 
@@ -201,9 +181,6 @@ export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes 
   generation?: string;
   isJournal?: boolean;
   mutationFileId?: string;
-  attemptCount?: number;
-  lastAttemptAt?: string | Date;
-  lastSafeErrorCode?: string;
   attachmentField?: string;
   contentLength?: number;
   contentType?: string;

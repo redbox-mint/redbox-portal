@@ -15,26 +15,6 @@ export namespace Services {
     accessedBy?: string;
     itemCount?: number;
   };
-  export type AttachmentMetadataServiceContract = {
-    upsert: (row: AttachmentMetadataInput) => Promise<void>;
-    findByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
-    findUnresolvedByOid: (oid: string) => Promise<AttachmentMetadataAttributes[]>;
-    findOneByStorageKey: (storageKey: string) => Promise<AttachmentMetadataAttributes | undefined>;
-    prepareMutations: (rows: readonly AttachmentMetadataInput[]) => Promise<void>;
-    markMutation: (
-      oid: string,
-      attachmentId: string,
-      generation: string,
-      state: AttachmentMutationState,
-      code?: string,
-      mutationFileId?: string,
-    ) => Promise<boolean>;
-    rebindOid: (fromOid: string, toOid: string) => Promise<void>;
-    markDeleted: (row: AttachmentMetadataInput) => Promise<void>;
-    deleteByStorageKey: (storageKey: string) => Promise<void>;
-    recordAccess: (event: AttachmentAccessEvent) => Promise<void>;
-  };
-
   export class AttachmentMetadataService extends services.Core.Service {
     protected override _exportedMethods: string[] = [
       'upsert',
@@ -61,19 +41,6 @@ export namespace Services {
       const oid = String(payload.oid ?? '').trim();
       const fileId = String(payload.fileId ?? '').trim();
       let existing = await AttachmentMetadata.findOne({ storageKey }) as AttachmentMetadataAttributes | null;
-      // A journal key may be upgraded from the original attachment-only form
-      // to the mutation-specific form. Reuse that row when its mutation
-      // identity is otherwise unchanged instead of leaving an unresolved
-      // legacy row behind on the next retry.
-      if (!existing && payload.isJournal === true && payload.attachmentId && payload.generation && payload.mutationFileId) {
-        existing = await AttachmentMetadata.findOne({
-          oid,
-          attachmentId: payload.attachmentId,
-          generation: payload.generation,
-          mutationFileId: payload.mutationFileId,
-          isJournal: true,
-        }) as AttachmentMetadataAttributes | null;
-      }
       // A physical row may retain its identity if a storage prefix changes,
       // but journal rows must never claim the physical {oid,fileId} row.
       if (!existing && payload.isJournal !== true && oid && fileId) {
@@ -136,7 +103,6 @@ export namespace Services {
       attachmentId: string,
       generation: string,
       mutationState: AttachmentMutationState,
-      lastSafeErrorCode?: string,
       mutationFileId?: string,
     ): Promise<boolean> {
       const criteria = {
@@ -157,13 +123,6 @@ export namespace Services {
       }
       await AttachmentMetadata.updateOne({ id: existing.id }).set({
         mutationState,
-        attemptCount: mutationState === 'pending'
-          ? Number(existing.attemptCount ?? 0) + 1
-          : Number(existing.attemptCount ?? 0),
-        lastAttemptAt: new Date().toISOString(),
-        ...(lastSafeErrorCode
-          ? { lastSafeErrorCode }
-          : mutationState === 'applied' ? { lastSafeErrorCode: undefined } : {}),
       });
       return true;
     }
@@ -189,7 +148,6 @@ export namespace Services {
         isJournal: false,
         operation: 'delete',
         mutationState: 'applied',
-        lastAttemptAt: new Date().toISOString(),
       });
     }
 
@@ -284,18 +242,6 @@ export namespace Services {
       const mutationFileId = this.optionalString(row.mutationFileId);
       if (mutationFileId) {
         journal.mutationFileId = mutationFileId;
-      }
-      const attemptCount = this.optionalNumber(row.attemptCount);
-      if (attemptCount !== undefined) {
-        journal.attemptCount = attemptCount;
-      }
-      const lastAttemptAt = this.optionalDateString(row.lastAttemptAt);
-      if (lastAttemptAt) {
-        journal.lastAttemptAt = lastAttemptAt;
-      }
-      const lastSafeErrorCode = this.optionalIdentifier(row.lastSafeErrorCode);
-      if (lastSafeErrorCode) {
-        journal.lastSafeErrorCode = lastSafeErrorCode;
       }
       return journal;
     }

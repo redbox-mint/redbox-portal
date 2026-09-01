@@ -49,13 +49,11 @@ import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../Rec
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
 import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
 import {
-  createRecordSaveContext,
-  readSaveRequestId,
-  recordSaveFailureStatus,
+  legacyRecordSaveBody,
+  recordSaveContextFromHeaders,
+  recordSaveFailureStatusForVersion,
   recordSaveProblem,
-  RecordSaveResponse,
 } from '../RecordSaveResponse';
-import type { RecordSaveContext, RecordSaveOperation } from '../RecordSaveResponse';
 
 type AnyRecord = Record<string, unknown>;
 type ControllerRecord = AnyRecord & {
@@ -180,33 +178,6 @@ export namespace Controllers {
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
-    }
-
-    private saveContext(req: Sails.Req, operation: RecordSaveOperation): RecordSaveContext {
-      return createRecordSaveContext({
-        requestId: readSaveRequestId(req.headers),
-        routeFamily: 'browser',
-        operation,
-      });
-    }
-
-    private saveFailureStatus(req: Sails.Req, response: RecordSaveResponse | null | undefined): number {
-      return this.getApiVersion(req) === '2.0' ? recordSaveFailureStatus(response) : 500;
-    }
-
-    private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {
-      return {
-        success: result.success,
-        oid: result.oid,
-        message: result.message,
-        data: result.data,
-        metadata: result.metadata,
-        details: result.details,
-        totalItems: result.totalItems,
-        items: result.items,
-        ...(result.workspaceOid ? { workspaceOid: result.workspaceOid } : {}),
-        ...(result.workspaceData !== undefined ? { workspaceData: result.workspaceData } : {}),
-      };
     }
 
     private getReqBrand(req: Sails.Req): BrandingModel {
@@ -800,7 +771,7 @@ export namespace Controllers {
         const user = req.user;
 
         sails.log.verbose(`RecordController - createRecord - enter`);
-        const createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep, this.saveContext(req, targetStep ? 'transition' : 'create'));
+        const createResponse = await this.recordsService.create(brand, record, recordType, user, true, true, targetStep, recordSaveContextFromHeaders(req.headers, 'browser', targetStep ? 'transition' : 'create'));
 
         if (createResponse.wasPersisted()) {
           let savedRecord: RecordModel | null = null;
@@ -818,11 +789,11 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             data: savedRecord,
             meta: { ...createResponse },
-            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(createResponse) } : {}),
+            ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(createResponse) } : {}),
           });
         } else {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, createResponse),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), createResponse),
             displayErrors: [{ detail: createResponse.message }],
             meta: { ...createResponse },
           });
@@ -991,7 +962,7 @@ export namespace Controllers {
         if (shouldMerge) {
           metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
         }
-        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata, this.saveContext(req, nextStepResp ? 'transition' : 'update'));
+        response = await this.recordsService.updateMeta(brand, oid, currentRec, user, true, true, nextStepResp, metadata, recordSaveContextFromHeaders(req.headers, 'browser', nextStepResp ? 'transition' : 'update'));
         sails.log.verbose(JSON.stringify(response));
         // Both persisted outcomes are HTTP 200; warnings stay inside the
         // typed `meta` result rather than becoming an error response.
@@ -1012,11 +983,11 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             data: savedRecord,
             meta: { ...response },
-            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
+            ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(response) } : {}),
           });
         } else {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, response),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), response),
             displayErrors: [{ detail: "Failed to get record data" }],
             meta: { ...response },
           });

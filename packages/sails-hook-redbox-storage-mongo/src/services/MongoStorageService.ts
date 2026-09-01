@@ -16,7 +16,6 @@ import {
   DatastreamService,
   StorageService,
   StorageServiceResponse,
-  StorageMutationResponse,
   DatastreamServiceResponse,
   Datastream,
   Attachment,
@@ -241,7 +240,7 @@ export namespace Services {
       _user?: unknown
     ): Promise<StorageServiceResponse> {
       sails.log.verbose(`${this.logHeader} create() -> Begin`);
-      const response = new StorageMutationResponse();
+      const response = new StorageServiceResponse();
       // RecordsService may pre-assign the OID so attachment journal rows can
       // be prepared before the primary metadata commit. Preserve it when
       // supplied, while retaining the historical generated-OID behavior.
@@ -268,7 +267,7 @@ export namespace Services {
     }
 
     public async updateMeta(brand: BrandingModel, oid: string, record: JsonMap, user?: UserModel): Promise<StorageServiceResponse> {
-      const response = new StorageMutationResponse();
+      const response = new StorageServiceResponse();
       response.oid = oid;
       try {
         _.unset(record, 'dateCreated');

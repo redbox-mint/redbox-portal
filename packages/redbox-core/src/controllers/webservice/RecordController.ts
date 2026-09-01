@@ -63,8 +63,7 @@ import {
   legacyHarvestRoute,
 } from '../../index';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
-import { createRecordSaveContext, readSaveRequestId, recordSaveFailureStatus, RecordSaveResponse } from '../../RecordSaveResponse';
-import type { RecordSaveContext, RecordSaveOperation } from '../../RecordSaveResponse';
+import { legacyRecordSaveBody, recordSaveContextFromHeaders, recordSaveFailureStatusForVersion } from '../../RecordSaveResponse';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
@@ -142,33 +141,6 @@ export namespace Controllers {
 
     private asError(error: unknown): Error {
       return error instanceof Error ? error : new Error(String(error));
-    }
-
-    private saveContext(req: Sails.Req, operation: RecordSaveOperation): RecordSaveContext {
-      return createRecordSaveContext({
-        requestId: readSaveRequestId(req.headers),
-        routeFamily: 'api',
-        operation,
-      });
-    }
-
-    private saveFailureStatus(req: Sails.Req, response: RecordSaveResponse | null | undefined): number {
-      return this.getApiVersion(req) === '2.0' ? recordSaveFailureStatus(response) : 500;
-    }
-
-    private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {
-      return {
-        success: result.success,
-        oid: result.oid,
-        message: result.message,
-        data: result.data,
-        metadata: result.metadata,
-        details: result.details,
-        totalItems: result.totalItems,
-        items: result.items,
-        ...(result.workspaceOid ? { workspaceOid: result.workspaceOid } : {}),
-        ...(result.workspaceData !== undefined ? { workspaceData: result.workspaceData } : {}),
-      };
     }
 
     private shouldIncludeRelationships(req: Sails.Req): boolean {
@@ -328,10 +300,10 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });
@@ -371,10 +343,10 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });
@@ -414,10 +386,10 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });
@@ -460,7 +432,7 @@ export namespace Controllers {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });
@@ -564,7 +536,6 @@ export namespace Controllers {
       const oid = validated.params.oid as string;
       const body = validated.body as globalThis.Record<string, unknown>;
       const shouldMerge = validated.query.merge === true;
-      const shouldProcessDatastreams = validated.query.datastreams === true;
 
       let record;
       let updatedMetadata: globalThis.Record<string, unknown>;
@@ -596,27 +567,21 @@ export namespace Controllers {
         });
       }
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, updatedMetadata, this.saveContext(req, 'update'));
-        // Attachment work is part of RecordsService's ordered save pipeline.
-        // Keep accepting the legacy query parameter for route compatibility,
-        // but do not run a second, unjournaled datastream pass here.
-        if (shouldProcessDatastreams) {
-          sails.log.verbose(`Datastream processing was requested for ${oid}; handled by RecordsService save pipeline.`);
-        }
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, updatedMetadata, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
         // A persisted warning is still a persisted record, so it keeps the
         // success body; the warnings travel in the typed `meta` result.
         if (result.wasPersisted()) {
           return this.sendResp(req, res, {
             data: result,
             meta: { ...result },
-            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
+            ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
           });
         }
         return this.sendResp(req, res, {
-          status: this.saveFailureStatus(req, result),
+          status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
           displayErrors: [{ detail: 'Update Metadata failed' }],
           meta: { ...result },
-          ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
+          ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
         });
       } catch (err) {
         return this.sendResp(req, res, {
@@ -644,19 +609,19 @@ export namespace Controllers {
       }
 
       try {
-        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, this.saveContext(req, 'update'));
+        const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {}, true, true, {}, undefined, recordSaveContextFromHeaders(req.headers, 'api', 'update'));
         if (result.wasPersisted()) {
           return this.sendResp(req, res, {
             data: result,
             meta: { ...result },
-            ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
+            ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
           });
         }
         return this.sendResp(req, res, {
-          status: this.saveFailureStatus(req, result),
+          status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
           displayErrors: [{ detail: 'Update Object Metadata failed' }],
           meta: { ...result },
-          ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
+          ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(result) } : {}),
         });
       } catch (err) {
         return this.sendResp(req, res, { errors: [this.asError(err)], displayErrors: [{ detail: 'Updated' }] });
@@ -709,7 +674,7 @@ export namespace Controllers {
             }
             request['authorization'] = authorization;
 
-            const createPromise = this.RecordsService.create(brand, request, recordTypeModel, user, true, true, workflowStage, that.saveContext(req, workflowStage ? 'transition' : 'create'));
+            const createPromise = this.RecordsService.create(brand, request, recordTypeModel, user, true, true, workflowStage, recordSaveContextFromHeaders(req.headers, 'api', workflowStage ? 'transition' : 'create'));
 
             const obs = from(createPromise);
             obs.subscribe(
@@ -729,7 +694,7 @@ export namespace Controllers {
                     status: 201,
                     data: response,
                     meta: { ...response },
-                    ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
+                    ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(response) } : {}),
                     headers: {
                       Location:
                         sails.config.appUrl +
@@ -740,10 +705,10 @@ export namespace Controllers {
                   });
                 } else {
                   return this.sendResp(req, res, {
-                    status: that.saveFailureStatus(req, response),
+                    status: recordSaveFailureStatusForVersion(that.getApiVersion(req), response),
                     displayErrors: [{ detail: 'Create Record failed' }],
                     meta: { ...response },
-                    ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(response) } : {}),
+                    ...(this.getApiVersion(req) === '1.0' ? { v1: legacyRecordSaveBody(response) } : {}),
                   });
                 }
               },
@@ -1358,7 +1323,7 @@ export namespace Controllers {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });
@@ -1397,7 +1362,7 @@ export namespace Controllers {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });
@@ -1436,7 +1401,7 @@ export namespace Controllers {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });
@@ -1475,7 +1440,7 @@ export namespace Controllers {
         const result = await this.RecordsService.updateMeta(brand, oid, record, req.user ?? {});
         if (!result.wasPersisted()) {
           return this.sendResp(req, res, {
-            status: this.saveFailureStatus(req, result),
+            status: recordSaveFailureStatusForVersion(this.getApiVersion(req), result),
             displayErrors: [{ detail: `Failed to update record with oid ${oid}.` }],
             meta: { ...result },
           });

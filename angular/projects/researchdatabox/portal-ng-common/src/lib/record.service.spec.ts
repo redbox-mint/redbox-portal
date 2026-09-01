@@ -162,7 +162,6 @@ describe("RecordService", () => {
     expect(result.outcome).toBe("saved-with-warnings");
     expect(result.wasPersisted()).toBeTrue();
     expect(result.isComplete()).toBeFalse();
-    expect(result.isSuccessful()).toBeTrue();
     expect(result.completion.attachments.status).toBe("unknown");
     expect(result.requestId).toBe("request-warning");
   });
@@ -178,7 +177,6 @@ describe("RecordService", () => {
     }, 500, "request-malformed");
 
     expect(result.outcome).toBe("unknown");
-    expect(result.isSuccessful()).toBeFalse();
     expect(result.problems[0].kind).toBe("system");
     expect(result.problems[0].issues).toEqual([
       { message: "Title is invalid", field: "title" },

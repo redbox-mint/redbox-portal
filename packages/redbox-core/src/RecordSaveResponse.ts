@@ -11,7 +11,7 @@ import {
   RecordSaveOutcome,
   StorageMutationApplicationState,
 } from '@researchdatabox/sails-ng-common';
-import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
+import { StorageServiceResponse } from './StorageServiceResponse';
 
 export type RecordSaveRouteFamily = 'browser' | 'api' | 'internal';
 export type RecordSaveOperation = 'create' | 'update' | 'transition';
@@ -28,23 +28,20 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   problems: RecordSaveProblem[] = [];
   completion = emptyRecordSaveCompletion();
   requestId: string;
+  readonly context: RecordSaveContext;
   /** Legacy API v1 fields populated by the RDMP workspace post-save hook. */
   workspaceOid?: string;
   workspaceData?: unknown;
 
-  constructor(requestId: string = randomUUID()) {
+  constructor(context: RecordSaveContext = createRecordSaveContext()) {
     super();
-    this.requestId = requestId;
+    this.context = context;
+    this.requestId = context.requestId;
   }
 
   /** True when the primary metadata mutation is known to have been applied. */
   public wasPersisted(): boolean {
     return this.outcome === 'saved' || this.outcome === 'saved-with-warnings';
-  }
-
-  /** True only when all required awaited save phases completed. */
-  public isComplete(): boolean {
-    return this.outcome === 'saved';
   }
 
   public addProblem(problem: RecordSaveProblem): void {
@@ -69,49 +66,18 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     this.metadata = metadata;
   }
 
-  /**
-   * A persisted save can only ever move from `saved` to `saved-with-warnings`.
-   * Non-persisted outcomes are left untouched so a later warning cannot
-   * manufacture a commit that never happened.
-   */
-  private downgradeCompleteSave(): void {
-    if (this.outcome === 'saved') {
-      this.outcome = 'saved-with-warnings';
-    }
-  }
-}
-
-/**
- * Small state owner used by RecordsService.  Callers cannot accidentally
- * downgrade a confirmed commit while handling a later warning.
- */
-export class RecordSaveTracker {
-  private readonly response: RecordSaveResponse;
-
-  constructor(public readonly context: RecordSaveContext) {
-    this.response = new RecordSaveResponse(context.requestId);
-  }
-
-  public get result(): RecordSaveResponse {
-    return this.response;
-  }
-
   public confirmPrimaryPersistence(oid: string, source?: StorageServiceResponse): void {
-    if (this.response.outcome === 'unknown') {
-      return;
-    }
-    this.response.oid = oid ?? '';
+    if (this.outcome === 'unknown') return;
+    this.oid = oid ?? '';
     if (source) {
-      // Preserve only compatibility-safe action fields.  Adapter diagnostics
-      // stay in logs rather than crossing the save-result boundary.
-      this.response.message = typeof source.message === 'string' ? source.message : '';
-      this.response.data = source.data;
-      this.response.metadata = source.metadata ?? null;
-      this.response.totalItems = source.totalItems;
-      this.response.items = Array.isArray(source.items) ? source.items.map((item) => ({ ...item })) : [];
+      this.message = typeof source.message === 'string' ? source.message : '';
+      this.data = source.data;
+      this.metadata = source.metadata ?? null;
+      this.totalItems = source.totalItems;
+      this.items = Array.isArray(source.items) ? source.items.map((item) => ({ ...item })) : [];
     }
-    this.response.outcome = 'saved';
-    this.response.success = true;
+    this.outcome = 'saved';
+    this.success = true;
   }
 
   public recordPrimaryNotApplied(problem?: RecordSaveProblem): void {
@@ -123,63 +89,35 @@ export class RecordSaveTracker {
   }
 
   public recordPostPersistenceProblem(problem: RecordSaveProblem): void {
-    this.response.addProblem(problem);
+    this.addProblem(problem);
   }
 
-  public setAttachmentItems(items: readonly RecordAttachmentCompletionItem[]): void {
-    this.response.setAttachmentItems(items);
-  }
-
-  public setProjectedMetadata(metadata: Record<string, unknown> | null): void {
-    this.response.setProjectedMetadata(metadata);
-  }
-
-  /** Preserve the narrowly scoped legacy fields without exposing tracked save state to hooks. */
   public mergeLegacyHookFields(source: unknown): void {
-    if (!source || typeof source !== 'object') {
-      return;
-    }
-    const hookFields = source as Record<string, unknown>;
-    if (typeof hookFields.workspaceOid === 'string' && hookFields.workspaceOid.trim()) {
-      this.response.workspaceOid = hookFields.workspaceOid;
-    }
-    if (Object.hasOwn(hookFields, 'workspaceData')) {
-      this.response.workspaceData = hookFields.workspaceData;
-    }
+    if (!source || typeof source !== 'object') return;
+    const fields = source as Record<string, unknown>;
+    if (typeof fields.workspaceOid === 'string' && fields.workspaceOid.trim()) this.workspaceOid = fields.workspaceOid;
+    if (Object.hasOwn(fields, 'workspaceData')) this.workspaceData = fields.workspaceData;
   }
 
-  /** A detached copy, so callers cannot mutate tracked state after the fact. */
-  public toResponse(): RecordSaveResponse {
-    const copy = new RecordSaveResponse(this.response.requestId);
-    copy.success = this.response.success;
-    copy.oid = this.response.oid;
-    copy.message = this.response.message;
-    copy.data = this.response.data;
-    copy.metadata = this.response.metadata;
-    copy.details = this.response.details;
-    copy.totalItems = this.response.totalItems;
-    copy.items = this.response.items.map((item) => ({ ...item }));
-    copy.outcome = this.response.outcome;
-    copy.problems = this.response.problems.map(cloneProblem);
-    copy.completion = {
-      attachments: {
-        status: this.response.completion.attachments.status,
-        items: this.response.completion.attachments.items.map((item) => ({ ...item })),
-      },
-    };
-    copy.workspaceOid = this.response.workspaceOid;
-    copy.workspaceData = this.response.workspaceData;
-    return copy;
+  /**
+   * A persisted save can only ever move from `saved` to `saved-with-warnings`.
+   * Non-persisted outcomes are left untouched so a later warning cannot
+   * manufacture a commit that never happened.
+   */
+  private downgradeCompleteSave(): void {
+    if (this.outcome === 'saved') {
+      this.outcome = 'saved-with-warnings';
+    }
   }
 
   private recordPrimaryFailure(outcome: Extract<RecordSaveOutcome, 'not-saved' | 'unknown'>, problem?: RecordSaveProblem): void {
-    if (this.response.wasPersisted()) {
+    if (this.wasPersisted()) {
       return;
     }
-    this.response.outcome = outcome;
-    this.response.success = false;
+    this.outcome = outcome;
+    this.success = false;
     if (problem) {
-      this.response.addProblem(problem);
+      this.addProblem(problem);
     }
   }
 }
@@ -211,6 +149,29 @@ export function readSaveRequestId(headers: Record<string, unknown> | undefined):
   return isCanonicalSaveRequestId(header) ? header : undefined;
 }
 
+export function recordSaveContextFromHeaders(
+  headers: Record<string, unknown> | undefined,
+  routeFamily: RecordSaveRouteFamily,
+  operation: RecordSaveOperation,
+): RecordSaveContext {
+  return createRecordSaveContext({ requestId: readSaveRequestId(headers), routeFamily, operation });
+}
+
+export function legacyRecordSaveBody(result: RecordSaveResponse): Record<string, unknown> {
+  return {
+    success: result.success,
+    oid: result.oid,
+    message: result.message,
+    data: result.data,
+    metadata: result.metadata,
+    details: result.details,
+    totalItems: result.totalItems,
+    items: result.items,
+    ...(result.workspaceOid ? { workspaceOid: result.workspaceOid } : {}),
+    ...(result.workspaceData !== undefined ? { workspaceData: result.workspaceData } : {}),
+  };
+}
+
 /**
  * HTTP status for a save that did not persist.  Persisted outcomes never
  * reach here: once primary metadata is applied the route family decides the
@@ -231,6 +192,13 @@ export function recordSaveFailureStatus(result: Pick<RecordSaveResult, 'outcome'
   }
 }
 
+export function recordSaveFailureStatusForVersion(
+  apiVersion: string,
+  result: Pick<RecordSaveResult, 'outcome' | 'problems'> | null | undefined,
+): number {
+  return apiVersion === '2.0' ? recordSaveFailureStatus(result) : 500;
+}
+
 export type StorageMutationLogger = (message: string, details?: Record<string, unknown>) => void;
 
 /**
@@ -239,10 +207,10 @@ export type StorageMutationLogger = (message: string, details?: Record<string, u
  * because a failed call is not proof that nothing was written.
  */
 export function resolveStorageMutationState(
-  response: StorageServiceResponse | StorageMutationResponse | null | undefined,
+  response: StorageServiceResponse | null | undefined,
   logDeprecation?: StorageMutationLogger,
 ): StorageMutationApplicationState {
-  const explicit = (response as StorageMutationResponse | null | undefined)?.applicationState;
+  const explicit = response?.applicationState;
   if (explicit === 'applied' || explicit === 'not-applied' || explicit === 'unknown') {
     return explicit;
   }

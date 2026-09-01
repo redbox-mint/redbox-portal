@@ -45,8 +45,6 @@ export interface RecordSaveIssue {
   field?: string;
   /** JSON pointer into Angular or record metadata, when available. */
   pointer?: string;
-  /** Logical attachment identity, never a storage key or path. */
-  attachmentId?: string;
 }
 
 export interface RecordSaveProblem {

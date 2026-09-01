@@ -230,13 +230,11 @@ export interface FormDeleteSuccessEvent extends FormComponentEventBase, DeleteEv
   readonly type: 'form.delete.success';
   readonly oid?: string;
   readonly response?: any;
-  readonly requestId?: string;
 }
 
 export interface FormDeleteFailureEvent extends FormComponentEventBase {
   readonly type: 'form.delete.failure';
   readonly error?: string;
-  readonly requestId?: string;
 }
 
 /**

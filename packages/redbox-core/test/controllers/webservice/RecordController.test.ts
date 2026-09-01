@@ -5,7 +5,7 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
-import { RecordSaveResponse } from '../../../src/RecordSaveResponse';
+import { createRecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 
 type PermissionCase = {
     name: string;
@@ -46,7 +46,7 @@ function makeThrowingRequest(
 }
 
 function successResult(oid = 'record-1') {
-    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000000');
+    const result = new RecordSaveResponse(createRecordSaveContext({ requestId: '00000000-0000-4000-8000-000000000000' }));
     result.oid = oid;
     result.success = true;
     result.outcome = 'saved';
@@ -414,7 +414,7 @@ describe('Webservice RecordController body source', () => {
 
         for (const apiVersion of ['1.0', '2.0']) {
             it(`returns the ${apiVersion} failure status and envelope for a confirmed non-save`, async () => {
-                const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000001');
+                const result = new RecordSaveResponse(createRecordSaveContext({ requestId: '00000000-0000-4000-8000-000000000001' }));
                 result.outcome = 'not-saved';
                 result.success = false;
                 result.message = '@dmpt-form-save-error';

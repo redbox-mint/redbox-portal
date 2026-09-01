@@ -20,7 +20,7 @@
 import { map, firstValueFrom } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClient, HttpContext, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
@@ -36,39 +36,8 @@ import {
   RecordSaveResult,
 } from '@researchdatabox/sails-ng-common';
 
-/** Per-request options for a record save. */
-interface SaveRequestOptions {
-  headers: HttpHeaders;
-  context?: HttpContext;
-  responseType: 'json';
-  observe: 'body';
-}
-
-const saveRequestIdByteLength = 16;
-
 function createSaveRequestId(): string {
-  const cryptoApi = globalThis.crypto;
-  if (typeof cryptoApi?.randomUUID === 'function') {
-    return cryptoApi.randomUUID();
-  }
-
-  if (typeof cryptoApi?.getRandomValues !== 'function') {
-    throw new Error('Web Crypto API is unavailable; cannot create a save request ID.');
-  }
-
-  const bytes = cryptoApi.getRandomValues(new Uint8Array(saveRequestIdByteLength));
-  // RFC 4122 version 4 UUID: set the version and variant bits explicitly.
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-
-  return [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20),
-  ].join('-');
+  return globalThis.crypto.randomUUID();
 }
 
 export interface RecordTypeConf {
@@ -741,12 +710,12 @@ export class RecordService extends HttpClientService {
    * Build immutable per-request options.  `HttpHeaders.set` returns a new
    * instance, so the shared request options are never mutated between saves.
    */
-  private getSaveHttpOptions(requestId: string): SaveRequestOptions {
-    const base = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+  private getSaveHttpOptions(requestId: string) {
+    const base = this.getHttpOptions();
     const headers = (base.headers instanceof HttpHeaders ? base.headers : new HttpHeaders(base.headers ?? {}))
       .set('X-ReDBox-Api-Version', '2.0')
       .set('X-ReDBox-Save-Request-Id', requestId);
-    return { headers, context: base.context, responseType: 'json', observe: 'body' };
+    return { headers, context: base.context, responseType: 'json' as const, observe: 'body' as const };
   }
 }
 
@@ -769,17 +738,8 @@ export class RecordActionResult implements RecordSaveResult {
     return this.outcome === 'saved';
   }
 
-  public isSuccessful(): boolean {
-    return this.success === true;
-  }
-
   public static fromResponse(payload: unknown, status = 200, requestId = ''): RecordActionResult {
-    type SaveMeta = Partial<RecordSaveResult> & {
-      success?: boolean;
-      oid?: string;
-      message?: string;
-      metadata?: Record<string, unknown> | null;
-    };
+    type SaveMeta = Partial<RecordSaveResult>;
     type SaveEnvelope = { meta?: SaveMeta; data?: unknown; errors?: unknown[] } & SaveMeta;
     const body = (payload && typeof payload === 'object' ? payload : {}) as SaveEnvelope;
     const meta: SaveMeta = body.meta && typeof body.meta === 'object' ? body.meta : body;
