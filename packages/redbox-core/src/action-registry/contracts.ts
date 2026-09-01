@@ -13,15 +13,21 @@ import {
 } from './errors';
 import {
   ACTION_INVOCATION_CONTEXTS,
+  actionBindingIdZodSchema,
   actionBindingIdSchema as actionBindingIdValidator,
+  actionBindingScopeZodSchema,
+  actionDefinitionIdZodSchema,
   actionDefinitionIdSchema as actionDefinitionIdValidator,
+  actionExecutionModeZodSchema,
+  actionExecutionPhaseZodSchema,
+  actionParameterNameZodSchema,
+  safeActionIdentifierZodSchema,
   deriveStableActionBindingId,
   parseActionBindingId,
   parseActionDefinitionId,
   sortActionBindings,
   type ActionBindingId,
   type ActionBindingScope,
-  type ActionDefinitionId,
   type ActionExecutionMode,
   type ActionExecutionPhase,
 } from './identifiers';
@@ -31,7 +37,6 @@ import {
   ACTION_CONTRACT_SCHEMA_VERSION,
   ACTION_RESULT_SCHEMA_VERSION,
 } from './limits';
-import type { ManagedTemplateDestination } from '../expression-runtime/types';
 
 export type {
   RuntimeValidationFailure,
@@ -48,60 +53,30 @@ export type ActionJsonValue = string | number | boolean | null | ActionJsonValue
 
 export type DeepReadonly<T> = T extends string | number | boolean | null | undefined
   ? T
-  : T extends readonly (infer Item)[]
-    ? readonly DeepReadonly<Item>[]
-    : T extends object
-      ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
-      : T;
+  : T extends (...argumentsList: infer Arguments) => infer Result
+    ? (...argumentsList: Arguments) => Result
+    : T extends readonly (infer Item)[]
+      ? readonly DeepReadonly<Item>[]
+      : T extends object
+        ? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
+        : T;
+
+type ReadonlyWith<Inferred, Overrides> = Readonly<Omit<Inferred, keyof Overrides> & Overrides>;
 
 type BaseActionJsonObject = ActionJsonObject;
 type BaseActionJsonValue = ActionJsonValue;
 
-const safeActionIdentifierSchema = z
-  .string()
-  .min(1)
-  .max(ACTION_CONTRACT_LIMITS.maxIdentifierLength)
-  .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/);
-const actionParameterNameSchema = z
-  .string()
-  .min(1)
-  .max(ACTION_CONTRACT_LIMITS.maxParameterNameLength)
-  .regex(/^[A-Za-z][A-Za-z0-9_-]*$/);
-const actionExecutionModeSchema = z.enum(['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow']);
-const actionExecutionPhaseSchema = z.enum(['pre', 'postSync', 'post']);
-const actionDefinitionIdSchema = z
-  .string()
+const safeActionIdentifierSchema = safeActionIdentifierZodSchema;
+const actionParameterNameSchema = actionParameterNameZodSchema;
+const actionExecutionModeSchema = actionExecutionModeZodSchema;
+const actionExecutionPhaseSchema = actionExecutionPhaseZodSchema;
+const actionDefinitionIdSchema = actionDefinitionIdZodSchema
   .refine(value => actionDefinitionIdValidator.safeParse(value).success)
   .transform(value => parseActionDefinitionId(value));
-const actionBindingIdSchema = z
-  .string()
+const actionBindingIdSchema = actionBindingIdZodSchema
   .refine(value => actionBindingIdValidator.safeParse(value).success)
   .transform(value => parseActionBindingId(value));
-const actionBindingScopeSchema: z.ZodType<ActionBindingScope, RuntimeValue> = z.discriminatedUnion('context', [
-  z
-    .object({
-      context: z.literal('record-lifecycle'),
-      mode: z.enum(['onCreate', 'onUpdate', 'onDelete']),
-      phase: actionExecutionPhaseSchema,
-    })
-    .strict(),
-  z
-    .object({
-      context: z.literal('workflow-transition'),
-      mode: z.literal('onTransitionWorkflow'),
-      phase: actionExecutionPhaseSchema,
-      scopeId: safeActionIdentifierSchema,
-    })
-    .strict(),
-  z
-    .object({
-      context: z.literal('queued-record-action'),
-      mode: actionExecutionModeSchema,
-      phase: actionExecutionPhaseSchema,
-      scopeId: safeActionIdentifierSchema.optional(),
-    })
-    .strict(),
-]);
+const actionBindingScopeSchema = actionBindingScopeZodSchema;
 
 const actionJsonPrimitiveSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 let baseActionJsonValueSchema: z.ZodType<BaseActionJsonValue, RuntimeValue> = actionJsonPrimitiveSchema;
@@ -323,28 +298,7 @@ const actionArrayItemSchemaImplementation = z
     }
   });
 
-export type ActionArrayItem =
-  | {
-      readonly kind: 'string';
-      readonly minLength?: number;
-      readonly maxLength?: number;
-    }
-  | {
-      readonly kind: 'number';
-      readonly minimum?: number;
-      readonly maximum?: number;
-      readonly integer: boolean;
-    }
-  | {
-      readonly kind: 'boolean';
-    }
-  | {
-      readonly kind: 'enum';
-      readonly options: readonly ActionEnumOption[];
-    }
-  | {
-      readonly kind: 'object';
-    };
+export type ActionArrayItem = DeepReadonly<z.infer<typeof actionArrayItemSchemaImplementation>>;
 
 function literalMatchesActionArrayItemConstraints(
   item: DeepReadonly<ActionArrayItem>,
@@ -514,80 +468,39 @@ const actionParameterSchemaImplementation = z
     }
   });
 
-export interface ActionParameterUiHints {
-  readonly placeholder?: string;
-  readonly helpText?: string;
-  readonly rows?: number;
-}
-
-export interface ActionEnumOption {
-  readonly value: string;
-  readonly label: string;
-}
-
-interface ActionParameterCommon {
-  readonly name: string;
-  readonly title: string;
-  readonly description?: string;
-  readonly required: boolean;
-  readonly ui?: ActionParameterUiHints;
-}
-
-export interface ActionStringParameter extends ActionParameterCommon {
-  readonly kind: 'string';
-  readonly defaultValue?: string;
-  readonly minLength?: number;
-  readonly maxLength?: number;
-}
-
-export interface ActionNumberParameter extends ActionParameterCommon {
-  readonly kind: 'number';
-  readonly defaultValue?: number;
-  readonly minimum?: number;
-  readonly maximum?: number;
-  readonly integer: boolean;
-}
-
-export interface ActionBooleanParameter extends ActionParameterCommon {
-  readonly kind: 'boolean';
-  readonly defaultValue?: boolean;
-}
-
-export interface ActionEnumParameter extends ActionParameterCommon {
-  readonly kind: 'enum';
-  readonly options: readonly ActionEnumOption[];
-  readonly defaultValue?: string;
-}
-
-export interface ActionObjectParameter extends ActionParameterCommon {
-  readonly kind: 'object';
-  readonly defaultValue?: ActionJsonObject;
-}
-
-export interface ActionArrayParameter extends ActionParameterCommon {
-  readonly kind: 'array';
-  readonly items: ActionArrayItem;
-  readonly defaultValue?: ActionJsonValue[];
-  readonly minItems?: number;
-  readonly maxItems?: number;
-}
-
-export interface ActionSecretParameter extends ActionParameterCommon {
-  readonly kind: 'secret';
-  readonly writeOnly: true;
-}
-
-export interface ActionJsonataParameter extends ActionParameterCommon {
-  readonly kind: 'jsonata';
-  readonly defaultExpression?: string;
-}
-
-export interface ActionHandlebarsParameter extends ActionParameterCommon {
-  readonly kind: 'handlebars';
-  readonly defaultTemplate?: string;
-  readonly destination: ManagedTemplateDestination;
-}
-
+export type ActionParameterUiHints = DeepReadonly<z.infer<typeof actionParameterUiHintsSchemaImplementation>>;
+export type ActionEnumOption = DeepReadonly<z.infer<typeof actionEnumOptionSchemaImplementation>>;
+type ActionParameterWithReadonlyUi<Parameter> = ReadonlyWith<Parameter, { readonly ui?: ActionParameterUiHints }>;
+export type ActionStringParameter = ActionParameterWithReadonlyUi<
+  z.infer<typeof actionStringParameterSchemaImplementation>
+>;
+export type ActionNumberParameter = ActionParameterWithReadonlyUi<
+  z.infer<typeof actionNumberParameterSchemaImplementation>
+>;
+export type ActionBooleanParameter = ActionParameterWithReadonlyUi<
+  z.infer<typeof actionBooleanParameterSchemaImplementation>
+>;
+export type ActionEnumParameter = ActionParameterWithReadonlyUi<
+  ReadonlyWith<
+    z.infer<typeof actionEnumParameterSchemaImplementation>,
+    { readonly options: readonly ActionEnumOption[] }
+  >
+>;
+export type ActionObjectParameter = ActionParameterWithReadonlyUi<
+  z.infer<typeof actionObjectParameterSchemaImplementation>
+>;
+export type ActionArrayParameter = ActionParameterWithReadonlyUi<
+  ReadonlyWith<z.infer<typeof actionArrayParameterSchemaImplementation>, { readonly items: ActionArrayItem }>
+>;
+export type ActionSecretParameter = ActionParameterWithReadonlyUi<
+  z.infer<typeof actionSecretParameterSchemaImplementation>
+>;
+export type ActionJsonataParameter = ActionParameterWithReadonlyUi<
+  z.infer<typeof actionJsonataParameterSchemaImplementation>
+>;
+export type ActionHandlebarsParameter = ActionParameterWithReadonlyUi<
+  z.infer<typeof actionHandlebarsParameterSchemaImplementation>
+>;
 export type ActionParameterDefinition =
   | ActionStringParameter
   | ActionNumberParameter
@@ -598,11 +511,11 @@ export type ActionParameterDefinition =
   | ActionJsonataParameter
   | ActionHandlebarsParameter
   | ActionSecretParameter;
-
-export interface ActionParameterSchema {
-  readonly schemaVersion: typeof ACTION_CONTRACT_SCHEMA_VERSION;
-  readonly parameters: readonly ActionParameterDefinition[];
-}
+export type ActionParameterSchema = Readonly<
+  Omit<z.infer<typeof actionParameterSchemaImplementation>, 'parameters'> & {
+    parameters: readonly ActionParameterDefinition[];
+  }
+>;
 
 /** Canonical A02/A04 validator for descriptor-constrained literal values. */
 export function literalMatchesActionParameter(
@@ -688,15 +601,8 @@ const actionParameterValuesSchemaImplementation = z
     }
   });
 
-export type ActionParameterValue =
-  | { readonly kind: 'literal'; readonly value: ActionJsonValue }
-  | { readonly kind: 'jsonata'; readonly expression: string }
-  | { readonly kind: 'handlebars'; readonly template: string }
-  | { readonly kind: 'secret'; readonly configured: boolean };
-
-export interface ActionParameterValues {
-  [key: string]: ActionParameterValue;
-}
+export type ActionParameterValue = Readonly<z.infer<typeof actionParameterValueSchemaImplementation>>;
+export type ActionParameterValues = z.infer<typeof actionParameterValuesSchemaImplementation>;
 
 /**
  * Handler-only view of one resolved secret. The raw value is available only
@@ -757,24 +663,9 @@ const actionOutputSchemaVersionedValueSchemaImplementation = z
   })
   .strict();
 
-export interface ActionOutputField {
-  readonly name: string;
-  readonly title: string;
-  readonly description?: string;
-  readonly kind: 'string' | 'number' | 'boolean' | 'json';
-  readonly required: boolean;
-}
-
-export interface ActionOutputSchema {
-  readonly schemaVersion: typeof ACTION_CONTRACT_SCHEMA_VERSION;
-  readonly fields: readonly ActionOutputField[];
-  readonly safeFields: readonly string[];
-}
-
-export interface ActionOutput {
-  readonly schemaVersion: typeof ACTION_RESULT_SCHEMA_VERSION;
-  readonly fields: ActionJsonObject;
-}
+export type ActionOutputField = DeepReadonly<z.infer<typeof actionOutputFieldSchemaImplementation>>;
+export type ActionOutputSchema = DeepReadonly<z.infer<typeof actionOutputSchemaImplementation>>;
+export type ActionOutput = Readonly<z.infer<typeof actionOutputSchemaVersionedValueSchemaImplementation>>;
 
 const actionPatchPathSchemaImplementation = z
   .string()
@@ -811,11 +702,8 @@ const actionPatchSchemaImplementation = z
   .min(1)
   .max(ACTION_CONTRACT_LIMITS.maxPatchOperations);
 
-export type ActionPatchOperation =
-  | { readonly op: 'add'; readonly path: string; readonly value: ActionJsonValue }
-  | { readonly op: 'replace'; readonly path: string; readonly value: ActionJsonValue }
-  | { readonly op: 'remove'; readonly path: string };
-export type ActionPatch = readonly ActionPatchOperation[];
+export type ActionPatchOperation = Readonly<z.infer<typeof actionPatchOperationSchemaImplementation>>;
+export type ActionPatch = Readonly<z.infer<typeof actionPatchSchemaImplementation>>;
 
 const actionSuccessResultCommonShape = {
   schemaVersion: z.literal(ACTION_RESULT_SCHEMA_VERSION),
@@ -859,32 +747,15 @@ const actionResultSchemaImplementation = z.discriminatedUnion('kind', [
   rejectActionResultSchemaImplementation,
 ]);
 
-interface ActionSuccessResultCommon {
-  readonly schemaVersion: typeof ACTION_RESULT_SCHEMA_VERSION;
-  readonly output?: ActionOutput;
-}
-
-export interface NoChangeActionResult extends ActionSuccessResultCommon {
-  readonly kind: 'no-change';
-}
-
-export interface PatchActionResult extends ActionSuccessResultCommon {
-  readonly kind: 'patch';
-  readonly patch: ActionPatch;
-}
-
-export interface ReplaceActionResult extends ActionSuccessResultCommon {
-  readonly kind: 'replace';
-  readonly candidate: ActionJsonObject;
-}
-
-export interface RejectActionResult {
-  readonly schemaVersion: typeof ACTION_RESULT_SCHEMA_VERSION;
-  readonly kind: 'reject';
-  readonly code: string;
-  readonly message: string;
-}
-
+type ActionResultWithOutput<Result> = ReadonlyWith<Result, { readonly output?: ActionOutput }>;
+export type NoChangeActionResult = ActionResultWithOutput<z.infer<typeof noChangeActionResultSchemaImplementation>>;
+export type PatchActionResult = ActionResultWithOutput<
+  ReadonlyWith<z.infer<typeof patchActionResultSchemaImplementation>, { readonly patch: ActionPatch }>
+>;
+export type ReplaceActionResult = ActionResultWithOutput<
+  ReadonlyWith<z.infer<typeof replaceActionResultSchemaImplementation>, { readonly candidate: ActionJsonObject }>
+>;
+export type RejectActionResult = Readonly<z.infer<typeof rejectActionResultSchemaImplementation>>;
 export type ActionSuccessResult = NoChangeActionResult | PatchActionResult | ReplaceActionResult;
 export type ActionFailureResult = RejectActionResult;
 export type ActionResult = ActionSuccessResult | ActionFailureResult;
@@ -920,13 +791,7 @@ const actionResultContractSchemaImplementation = z
     }
   });
 
-export interface ActionResultContract {
-  readonly allowedKinds: readonly ActionResult['kind'][];
-  readonly patch?: {
-    readonly allowedPathPrefixes: readonly string[];
-    readonly maxOperations: number;
-  };
-}
+export type ActionResultContract = DeepReadonly<z.infer<typeof actionResultContractSchemaImplementation>>;
 
 const actionRetryScheduleSchemaImplementation = z.discriminatedUnion('type', [
   z
@@ -1015,46 +880,12 @@ const actionExecutionPolicyBoundsSchemaImplementation = z
   })
   .strict();
 
-export type ActionRetrySchedule =
-  | { readonly type: 'fixed'; readonly delayMs: number; readonly jitter?: boolean }
-  | {
-      readonly type: 'exponential';
-      readonly delayMs: number;
-      readonly maxDelayMs: number;
-      readonly jitter?: boolean;
-    };
-export type ActionFailureKind =
-  | 'configuration'
-  | 'validation'
-  | 'domain'
-  | 'transient'
-  | 'timeout'
-  | 'interrupted'
-  | 'unexpected';
-export interface ActionExecutionPolicyOverride {
-  readonly timeoutMs?: number;
-  readonly retry?: {
-    readonly maxAttempts: number;
-    readonly retryOn?: readonly ActionFailureKind[];
-    readonly schedule?: ActionRetrySchedule;
-    readonly idempotent: true;
-  };
-}
-export interface ActionExecutionPolicyBounds {
-  readonly timeout: {
-    readonly defaultMs: number;
-    readonly minMs: number;
-    readonly maxMs: number;
-  };
-  readonly retry:
-    | { readonly allowed: false }
-    | {
-        readonly allowed: true;
-        readonly defaultMaxAttempts: number;
-        readonly maxAttempts: number;
-        readonly maxDelayMs: number;
-      };
-}
+export type ActionRetrySchedule = DeepReadonly<z.infer<typeof actionRetryScheduleSchemaImplementation>>;
+export type ActionFailureKind = z.infer<typeof actionFailureKindSchemaImplementation>;
+export type ActionExecutionPolicyOverride = DeepReadonly<
+  z.infer<typeof actionExecutionPolicyOverrideSchemaImplementation>
+>;
+export type ActionExecutionPolicyBounds = DeepReadonly<z.infer<typeof actionExecutionPolicyBoundsSchemaImplementation>>;
 
 const actionProvenanceSchemaImplementation = z
   .object({
@@ -1075,11 +906,7 @@ const actionProvenanceSchemaImplementation = z
   })
   .strict();
 
-export interface ActionProvenance {
-  readonly packageName: string;
-  readonly moduleName: string;
-  readonly registrationName?: string;
-}
+export type ActionProvenance = DeepReadonly<z.infer<typeof actionProvenanceSchemaImplementation>>;
 
 /**
  * Retired definitions remain code-owned registry entries so persisted plans
@@ -1088,7 +915,7 @@ export interface ActionProvenance {
  * returned by runtime lookup.
  */
 const actionAvailabilitySchemaImplementation = z.enum(['active', 'retired']).default('active');
-export type ActionAvailability = 'active' | 'retired';
+export type ActionAvailability = z.infer<typeof actionAvailabilitySchemaImplementation>;
 
 function actionScopeAllowsPatch(mode: ActionExecutionMode, phase: ActionExecutionPhase): boolean {
   return mode !== 'onDelete' && phase !== 'post';
@@ -1228,39 +1055,28 @@ const actionContextSchemaImplementation = z
   })
   .readonly();
 
-export interface ActionActor {
-  readonly id: string;
-  readonly username?: string;
-  readonly roles: string[];
-}
-
-export interface PriorActionOutput {
-  readonly bindingId: ActionBindingId;
-  readonly output: ActionOutput;
-}
-
-export interface ActionContext {
-  readonly schemaVersion: typeof ACTION_CONTEXT_SCHEMA_VERSION;
-  readonly executionId: string;
-  readonly correlationId: string;
-  readonly requestId?: string;
-  readonly timestamp: string;
-  readonly brandId: string;
-  readonly recordTypeKey: string;
-  readonly scope: ActionBindingScope;
-  readonly actor: ActionActor | null;
-  readonly record: {
-    readonly oid?: string;
-    readonly current?: ActionJsonObject;
-    readonly candidate?: ActionJsonObject;
-  };
-  readonly transition?: {
-    readonly scopeId: string;
-    readonly sourceStage: string;
-    readonly targetStage: string;
-  };
-  readonly priorOutputs: readonly PriorActionOutput[];
-}
+export type ActionActor = Readonly<z.infer<typeof actionActorSchema>>;
+export type PriorActionOutput = ReadonlyWith<
+  z.infer<typeof priorActionOutputSchema>,
+  { readonly output: ActionOutput }
+>;
+export type ActionContext = ReadonlyWith<
+  z.infer<typeof actionContextSchemaImplementation>,
+  {
+    readonly actor: ActionActor | null;
+    readonly record: Readonly<{
+      oid?: string;
+      current?: ActionJsonObject;
+      candidate?: ActionJsonObject;
+    }>;
+    readonly transition?: Readonly<{
+      scopeId: string;
+      sourceStage: string;
+      targetStage: string;
+    }>;
+    readonly priorOutputs: readonly PriorActionOutput[];
+  }
+>;
 export type ActionHandler = (
   context: Readonly<ActionContext>,
   parameters: Readonly<ActionParameterValues>,
@@ -1319,25 +1135,20 @@ const actionDefinitionSchemaImplementation = z
     }
   });
 
-export interface ActionDefinition {
-  readonly schemaVersion: typeof ACTION_CONTRACT_SCHEMA_VERSION;
-  readonly id: ActionDefinitionId;
-  readonly contractVersion: number;
-  readonly title: string;
-  readonly description: string;
-  readonly category: string;
-  readonly provenance: ActionProvenance;
-  readonly handler: ActionHandler;
-  readonly contexts: readonly (typeof ACTION_INVOCATION_CONTEXTS)[number][];
-  readonly modes: readonly ActionExecutionMode[];
-  readonly phases: readonly ActionExecutionPhase[];
-  readonly allowRepeatedBindings: boolean;
-  readonly availability: ActionAvailability;
-  readonly parameterSchema: ActionParameterSchema;
-  readonly outputSchema: ActionOutputSchema;
-  readonly resultContract: ActionResultContract;
-  readonly executionPolicy: ActionExecutionPolicyBounds;
-}
+export type ActionDefinition = ReadonlyWith<
+  z.infer<typeof actionDefinitionSchemaImplementation>,
+  {
+    readonly provenance: ActionProvenance;
+    readonly handler: ActionHandler;
+    readonly contexts: readonly (typeof ACTION_INVOCATION_CONTEXTS)[number][];
+    readonly modes: readonly ActionExecutionMode[];
+    readonly phases: readonly ActionExecutionPhase[];
+    readonly parameterSchema: ActionParameterSchema;
+    readonly outputSchema: ActionOutputSchema;
+    readonly resultContract: ActionResultContract;
+    readonly executionPolicy: ActionExecutionPolicyBounds;
+  }
+>;
 
 const actionDependencySchema = z.discriminatedUnion('condition', [
   z
@@ -1380,27 +1191,16 @@ const actionBindingSchemaImplementation = z
     }
   });
 
-export type ActionDependency =
-  | { readonly bindingId: ActionBindingId; readonly condition: 'success' }
-  | {
-      readonly bindingId: ActionBindingId;
-      readonly condition: 'output-equals';
-      readonly field: string;
-      readonly value: ActionJsonValue;
-    };
-
-export interface ActionBinding {
-  readonly schemaVersion: typeof ACTION_CONTRACT_SCHEMA_VERSION;
-  readonly id: ActionBindingId;
-  readonly stableKey: string;
-  readonly actionId: ActionDefinitionId;
-  readonly contractVersion: number;
-  readonly scope: ActionBindingScope;
-  readonly parameters: ActionParameterValues;
-  readonly order: number;
-  readonly dependencies?: readonly ActionDependency[];
-  readonly policyOverrides?: ActionExecutionPolicyOverride;
-}
+export type ActionDependency = Readonly<z.infer<typeof actionDependencySchema>>;
+export type ActionBinding = ReadonlyWith<
+  z.infer<typeof actionBindingSchemaImplementation>,
+  {
+    readonly scope: ActionBindingScope;
+    readonly parameters: ActionParameterValues;
+    readonly dependencies?: readonly ActionDependency[];
+    readonly policyOverrides?: ActionExecutionPolicyOverride;
+  }
+>;
 
 function actionArrayCardinalityLimit(path: string): number {
   if (path.endsWith('.parameters')) {

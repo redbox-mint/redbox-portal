@@ -125,10 +125,6 @@ interface ImmutableJsonObject {
   readonly [key: string]: ImmutableJsonValue;
 }
 
-function isImmutableJsonArray(value: ImmutableJsonValue): value is readonly ImmutableJsonValue[] {
-  return Array.isArray(value);
-}
-
 /** @internal */
 export interface RegisteredActionExecutionOutcome {
   readonly report: ActionExecutionReport;
@@ -139,6 +135,7 @@ export interface RegisteredActionExecutionOutcome {
 
 /** @internal */
 export interface RegisteredActionExecutor {
+  preparePlan(plan: RuntimeValue): ResolvedActionPlan;
   runSequential(
     plan: RuntimeValue,
     context: RuntimeValue,
@@ -152,21 +149,11 @@ export interface RegisteredActionExecutor {
 }
 
 function cloneJsonValue(value: ImmutableJsonValue): ActionJsonValue {
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
-  if (isImmutableJsonArray(value)) {
-    return value.map(cloneJsonValue);
-  }
-  return cloneJsonObject(value);
+  return structuredClone(value) as ActionJsonValue;
 }
 
 function cloneJsonObject(value: ImmutableJsonObject): ActionJsonObject {
-  const cloned: ActionJsonObject = {};
-  for (const [key, child] of Object.entries(value)) {
-    cloned[key] = cloneJsonValue(child);
-  }
-  return cloned;
+  return structuredClone(value) as ActionJsonObject;
 }
 
 function freezeJsonValue(value: ActionJsonValue): void {
@@ -428,35 +415,7 @@ function actionPolicy(resolvedBinding: ResolvedActionPlanBinding): ActionExecuti
 function interruptiblePromiseEffect<Value extends RuntimeValue>(
   invoke: (signal: AbortSignal) => Promise<Value>
 ): Effect.Effect<Value, RuntimeValue, never> {
-  return Effect.async((resume, signal) => {
-    let active = true;
-    const interrupted = (): void => {
-      active = false;
-    };
-    signal.addEventListener('abort', interrupted, { once: true });
-    let operation: Promise<Value>;
-    try {
-      operation = invoke(signal);
-    } catch (error) {
-      signal.removeEventListener('abort', interrupted);
-      resume(Effect.fail(error as RuntimeValue));
-      return;
-    }
-    operation.then(
-      value => {
-        if (active) {
-          signal.removeEventListener('abort', interrupted);
-          resume(Effect.succeed(value));
-        }
-      },
-      error => {
-        if (active) {
-          signal.removeEventListener('abort', interrupted);
-          resume(Effect.fail(error as RuntimeValue));
-        }
-      }
-    );
-  });
+  return Effect.tryPromise({ try: invoke, catch: error => error as RuntimeValue });
 }
 
 function expressionFailure(cause: RuntimeValue): RuntimeValue {
@@ -767,6 +726,7 @@ function notifyDetachedOperationObserver(
 
 class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
   readonly #secretBoundary: ActionSecretExecutionBoundary;
+  readonly #preparedPlans = new WeakSet<object>();
   readonly #dependencies: ActionExecutionDependencies;
   readonly #candidateBoundary?: RegisteredActionCandidateBoundary;
 
@@ -781,12 +741,24 @@ class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
     this.#candidateBoundary = candidateBoundary;
   }
 
+  preparePlan(value: RuntimeValue): ResolvedActionPlan {
+    const plan = this.#secretBoundary.resolvePlan(value);
+    this.#preparedPlans.add(plan);
+    return plan;
+  }
+
+  private resolvedPlan(value: RuntimeValue): ResolvedActionPlan {
+    return value !== null && typeof value === 'object' && this.#preparedPlans.has(value)
+      ? (value as ResolvedActionPlan)
+      : this.preparePlan(value);
+  }
+
   async runSequential(
     planValue: RuntimeValue,
     contextValue: RuntimeValue,
     operation: ActionExecutionOperation
   ): Promise<RegisteredActionExecutionOutcome> {
-    const plan = this.#secretBoundary.resolvePlan(planValue);
+    const plan = this.resolvedPlan(planValue);
     const context = validateExecutionRequest(plan, contextValue, operation, false);
     const bindings = bindingsForContext(plan, context);
     const states = runtimeStates(bindings);
@@ -818,7 +790,7 @@ class InternalRegisteredActionExecutor implements RegisteredActionExecutor {
     contextValue: RuntimeValue,
     operation: ActionExecutionOperation
   ): RegisteredActionExecutionOutcome {
-    const plan = this.#secretBoundary.resolvePlan(planValue);
+    const plan = this.resolvedPlan(planValue);
     const context = validateExecutionRequest(plan, contextValue, operation, true);
     const bindings = bindingsForContext(plan, context);
     const states = runtimeStates(bindings);

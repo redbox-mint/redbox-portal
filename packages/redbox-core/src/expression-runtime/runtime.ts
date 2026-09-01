@@ -2,15 +2,9 @@ import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { boundedValidationPreflight } from '../boundedValidation';
 import { parseJsonText, type JsonObject, type JsonValue, type RuntimeValue } from '../runtimeValues';
-import { compileManagedHandlebarsTemplate, compileManagedJsonataExpression } from './compile';
 import { ManagedExpressionError } from './errors';
 import { EXPRESSION_ARTIFACT_SCHEMA_VERSION, EXPRESSION_RUNTIME_LIMITS } from './limits';
-import {
-  decodeWorkerResponse,
-  encodeWorkerMessage,
-  type ExpressionWorkerRequest,
-  type ExpressionWorkerResponse,
-} from './worker-protocol';
+import { decodeWorkerResponse, type ExpressionWorkerRequest, type ExpressionWorkerResponse } from './worker-protocol';
 import type {
   ManagedEvaluationOptions,
   ManagedExpressionContext,
@@ -161,7 +155,7 @@ function runWorker(
           rejectAfterTermination(new ManagedExpressionError(engine, 'timeout', `${engine}-timeout`, true));
         }, evaluationTimeoutMs);
         try {
-          worker.postMessage(encodeWorkerMessage(request));
+          worker.postMessage(request);
         } catch {
           rejectAfterTermination(new ManagedExpressionError(engine, 'worker', 'expression-worker-send-failed', true));
         }
@@ -202,12 +196,13 @@ async function evaluatePreparedJsonata(
   if (prepared.engine !== 'jsonata' || prepared.schemaVersion !== EXPRESSION_ARTIFACT_SCHEMA_VERSION) {
     throw new ManagedExpressionError('jsonata', 'validation', 'jsonata-artifact-invalid');
   }
-  const validated = compileManagedJsonataExpression(prepared.source);
-  if (validated.astNodes !== prepared.astNodes) {
-    throw new ManagedExpressionError('jsonata', 'validation', 'jsonata-artifact-invalid');
-  }
   const response = await runWorker(
-    { engine: 'jsonata', source: validated.source, context: contextAsJsonObject(context, 'jsonata') },
+    {
+      engine: 'jsonata',
+      source: prepared.source,
+      astNodes: prepared.astNodes,
+      context: contextAsJsonObject(context, 'jsonata'),
+    },
     options
   );
   if (response.type !== 'json-result') {
@@ -244,15 +239,12 @@ export async function renderManagedHandlebars(
   if (prepared.engine !== 'handlebars' || prepared.schemaVersion !== EXPRESSION_ARTIFACT_SCHEMA_VERSION) {
     throw new ManagedExpressionError('handlebars', 'validation', 'handlebars-artifact-invalid');
   }
-  const validated = compileManagedHandlebarsTemplate(prepared.source, prepared.destination);
-  if (validated.astNodes !== prepared.astNodes) {
-    throw new ManagedExpressionError('handlebars', 'validation', 'handlebars-artifact-invalid');
-  }
   const response = await runWorker(
     {
       engine: 'handlebars',
-      source: validated.source,
-      destination: validated.destination,
+      source: prepared.source,
+      astNodes: prepared.astNodes,
+      destination: prepared.destination,
       context: contextAsJsonObject(context, 'handlebars'),
     },
     options

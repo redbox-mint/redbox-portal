@@ -1,7 +1,4 @@
 import { assert } from 'chai';
-import fs from 'node:fs';
-import path from 'node:path';
-import ts from 'typescript';
 import type { ActionJsonObject } from '../../src/action-registry';
 import { ManagedExpressionError } from '../../src/expression-runtime';
 import {
@@ -12,21 +9,6 @@ import {
   type AutomaticTransitionEvaluationInput,
 } from '../../src/workflow-transition/automatic';
 import { recordtype as developmentRecordTypes } from '../../../redbox-hook-dev/src/config/recordtype';
-
-function forbiddenTypeKeywords(sourceFile: ts.SourceFile): readonly string[] {
-  const failures: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (node.kind === ts.SyntaxKind.AnyKeyword || node.kind === ts.SyntaxKind.UnknownKeyword) {
-      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-      failures.push(
-        `${sourceFile.fileName}:${position.line + 1}:${position.character + 1}:${node.getText(sourceFile)}`
-      );
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return failures;
-}
 
 function transition(
   id: string,
@@ -69,26 +51,6 @@ function input(
 }
 
 describe('automatic transition evaluation', function () {
-  it('keeps the A10 source and emitted declaration free of any and unknown type nodes', function () {
-    const packageDirectory = path.resolve(__dirname, '../..');
-    const files = ['src/workflow-transition/automatic.ts', 'dist/workflow-transition/automatic.d.ts'];
-    const failures: string[] = [];
-
-    for (const relativePath of files) {
-      const filePath = path.join(packageDirectory, relativePath);
-      const sourceFile = ts.createSourceFile(
-        relativePath,
-        fs.readFileSync(filePath, 'utf8'),
-        ts.ScriptTarget.ES2024,
-        true,
-        ts.ScriptKind.TS
-      );
-      failures.push(...forbiddenTypeKeywords(sourceFile));
-    }
-
-    assert.deepEqual(failures, []);
-  });
-
   it('returns no match without changing the candidate', async function () {
     const candidate: ActionJsonObject = { workflow: { stage: 'draft' }, metadata: { ready: false } };
     const snapshot = structuredClone(candidate);

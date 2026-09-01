@@ -70,26 +70,11 @@ export const BUILT_IN_ACTION_IDS = Object.freeze({
 type Candidate = ActionJsonObject;
 
 function cloneJsonValue(value: ActionJsonValue): ActionJsonValue {
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return value.map(cloneJsonValue);
-  }
-  return cloneJsonObject(value);
+  return structuredClone(value);
 }
 
 function cloneJsonObject(value: Readonly<ActionJsonObject>): ActionJsonObject {
-  const cloned: ActionJsonObject = {};
-  for (const [key, child] of Object.entries(value)) {
-    Object.defineProperty(cloned, key, {
-      value: cloneJsonValue(child),
-      configurable: true,
-      enumerable: true,
-      writable: true,
-    });
-  }
-  return cloned;
+  return structuredClone(value) as ActionJsonObject;
 }
 
 function freezeJsonValue(value: ActionJsonValue): void {

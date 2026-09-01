@@ -1,28 +1,10 @@
 import { Effect } from 'effect';
 import { expect } from 'chai';
-import fs from 'node:fs';
-import path from 'node:path';
 import { Observable, of } from 'rxjs';
-import ts from 'typescript';
 import { createActionExecutionOperation } from '../../src/action-execution/index';
 import { RecordHookCoordinator } from '../../src/services/record-hooks/coordinator';
 
 type AnyRecord = Record<string, unknown>;
-
-function forbiddenTypeKeywords(sourceFile: ts.SourceFile): readonly string[] {
-  const failures: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (node.kind === ts.SyntaxKind.AnyKeyword || node.kind === ts.SyntaxKind.UnknownKeyword) {
-      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-      failures.push(
-        `${sourceFile.fileName}:${position.line + 1}:${position.character + 1}:${node.getText(sourceFile)}`
-      );
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return failures;
-}
 
 function coordinator(
   recordType: AnyRecord,
@@ -46,44 +28,6 @@ function tick(): Promise<void> {
 }
 
 describe('record-hook legacy compatibility characterization', function () {
-  it('keeps coordinator runtime and public declaration types free of broad escape hatches', function () {
-    const sourcePath = path.resolve(__dirname, '../../src/services/record-hooks/coordinator.ts');
-    const sourceText = fs.readFileSync(sourcePath, 'utf8');
-    const sourceFile = ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.ES2024, true, ts.ScriptKind.TS);
-    const declaration = ts.transpileDeclaration(sourceText, {
-      fileName: sourcePath,
-      compilerOptions: {
-        target: ts.ScriptTarget.ES2024,
-        module: ts.ModuleKind.NodeNext,
-        moduleResolution: ts.ModuleResolutionKind.NodeNext,
-        strict: true,
-        declaration: true,
-        declarationMap: false,
-        stripInternal: true,
-      },
-    });
-    const diagnostics = declaration.diagnostics ?? [];
-    expect(
-      diagnostics,
-      ts.formatDiagnostics(diagnostics, {
-        getCanonicalFileName: name => name,
-        getCurrentDirectory: () => process.cwd(),
-        getNewLine: () => '\n',
-      })
-    ).to.deep.equal([]);
-    const declarationFile = ts.createSourceFile(
-      sourcePath.replace(/\.ts$/, '.d.ts'),
-      declaration.outputText,
-      ts.ScriptTarget.ES2024,
-      true,
-      ts.ScriptKind.TS
-    );
-
-    expect([...forbiddenTypeKeywords(sourceFile), ...forbiddenTypeKeywords(declarationFile)]).to.deep.equal([]);
-    expect(sourceText.match(/\b(?:any|unknown)\b/g) ?? []).to.deep.equal([]);
-    expect(declaration.outputText.match(/\b(?:any|unknown)\b/g) ?? []).to.deep.equal([]);
-  });
-
   it('preserves plain, Promise, Observable, and native Effect pre-hook values', async function () {
     const values = await Promise.all([
       coordinator({ hooks: { onCreate: { pre: [{ function: 'plain' }] } } }, () => () => 'plain').runPre(

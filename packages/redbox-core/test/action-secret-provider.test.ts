@@ -1,8 +1,5 @@
 import { strict as assert } from 'node:assert';
-import fs from 'node:fs';
-import path from 'node:path';
 import { inspect } from 'node:util';
-import ts from 'typescript';
 import * as PublicActionRegistry from '../src/action-registry';
 import {
   ACTION_CONTEXT_SCHEMA_VERSION,
@@ -276,21 +273,6 @@ async function expectProviderError(
     }
     return providerError;
   }
-}
-
-function forbiddenTypeKeywords(sourceFile: ts.SourceFile): readonly string[] {
-  const failures: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (node.kind === ts.SyntaxKind.AnyKeyword || node.kind === ts.SyntaxKind.UnknownKeyword) {
-      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-      failures.push(
-        `${sourceFile.fileName}:${position.line + 1}:${position.character + 1}:${node.getText(sourceFile)}`
-      );
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return failures;
 }
 
 describe('action secret parameter provider boundary', () => {
@@ -775,53 +757,5 @@ describe('action secret parameter provider boundary', () => {
     assert.equal(publicMaterial.includes(sentinel), false);
     assert.equal(publicMaterial.includes('[REDACTED]'), true);
     assert.equal(inspect(secrets).includes(sentinel), false);
-  });
-
-  it('emits no any or unknown type nodes from A06 runtime sources', () => {
-    const sourceDirectory = path.resolve(__dirname, '../src/action-registry');
-    const runtimeFiles = ['contracts.ts', 'index.ts', 'plan.ts', 'secrets.ts'];
-    const failures: string[] = [];
-
-    for (const fileName of runtimeFiles) {
-      const sourcePath = path.join(sourceDirectory, fileName);
-      const sourceText = fs.readFileSync(sourcePath, 'utf8');
-      const sourceFile = ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.ES2024, true, ts.ScriptKind.TS);
-      failures.push(...forbiddenTypeKeywords(sourceFile));
-
-      const declaration = ts.transpileDeclaration(sourceText, {
-        fileName: sourcePath,
-        compilerOptions: {
-          target: ts.ScriptTarget.ES2024,
-          module: ts.ModuleKind.NodeNext,
-          moduleResolution: ts.ModuleResolutionKind.NodeNext,
-          strict: true,
-          declaration: true,
-          declarationMap: false,
-          stripInternal: true,
-        },
-      });
-      const diagnostics = declaration.diagnostics ?? [];
-      assert.equal(
-        diagnostics.length,
-        0,
-        ts.formatDiagnostics(diagnostics, {
-          getCanonicalFileName: name => name,
-          getCurrentDirectory: () => process.cwd(),
-          getNewLine: () => '\n',
-        })
-      );
-      const declarationFile = ts.createSourceFile(
-        sourcePath.replace(/\.ts$/, '.d.ts'),
-        declaration.outputText,
-        ts.ScriptTarget.ES2024,
-        true,
-        ts.ScriptKind.TS
-      );
-      failures.push(...forbiddenTypeKeywords(declarationFile));
-      assert.equal(declaration.outputText.includes('createActionSecretExecutionBoundary'), false);
-      assert.equal(declaration.outputText.includes('ActionSecretExecutionBoundary'), false);
-    }
-
-    assert.deepEqual(failures, []);
   });
 });

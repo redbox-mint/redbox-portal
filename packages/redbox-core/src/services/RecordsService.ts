@@ -146,7 +146,7 @@ import {
   resolveRecordActionPlan,
   type RecordActionTransitionContext,
 } from './record-actions/coordinator';
-import { RedboxActionRegistry, resolveActionPlan } from '../action-registry';
+import { RedboxActionRegistry } from '../action-registry';
 import type { RuntimeValue } from '../runtimeValues';
 import {
   AutomaticTransitionConfigurationError,
@@ -5679,7 +5679,7 @@ export namespace Services {
         recordType as RuntimeValue,
         recordTypeKey
       );
-      return resolveActionPlan(this.configuredRecordActionRegistry(), plan).bindings.some(
+      return plan.bindings.some(
         binding => binding.binding.scope.mode === actionMode && binding.binding.scope.phase === 'postSync'
       );
     }

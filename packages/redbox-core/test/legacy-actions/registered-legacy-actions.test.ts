@@ -17,7 +17,13 @@ import {
   loadLegacyActionMappings,
   loadRepresentativeConfiguration,
   type HookDefinitionFixture,
+  type HooksFixture,
+  type JsonValue,
 } from '../fixtures/legacy-record-actions/fixtures';
+
+const { recordtype: shippedRecordTypes } = require('../../../redbox-hook-dev/src/config/recordtype') as {
+  recordtype: Record<string, { hooks?: HooksFixture }>;
+};
 
 function scope(mode: string, phase: string): ActionBindingScope {
   if (mode === 'onTransitionWorkflow') {
@@ -61,6 +67,43 @@ function bindingMigration(result: LegacyRecordActionMigration) {
     throw new Error('Expected action bindings.');
   }
   return result;
+}
+
+interface ShippedDefinition {
+  definition: HookDefinitionFixture;
+  bindingScope: ActionBindingScope;
+  order: number;
+}
+
+function collectDefinitions(
+  value: JsonValue,
+  bindingScope: ActionBindingScope,
+  definitions: ShippedDefinition[]
+): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, order) => {
+      if (item !== null && typeof item === 'object' && !Array.isArray(item) && typeof item.function === 'string') {
+        definitions.push({ definition: item as unknown as HookDefinitionFixture, bindingScope, order });
+      }
+      collectDefinitions(item, bindingScope, definitions);
+    });
+    return;
+  }
+  if (value !== null && typeof value === 'object') {
+    Object.values(value).forEach(child => collectDefinitions(child, bindingScope, definitions));
+  }
+}
+
+function shippedDefinitions(): ShippedDefinition[] {
+  const definitions: ShippedDefinition[] = [];
+  for (const recordType of Object.values(shippedRecordTypes)) {
+    for (const [mode, phases] of Object.entries(recordType.hooks ?? {})) {
+      for (const [phase, configured] of Object.entries(phases ?? {})) {
+        collectDefinitions(configured as JsonValue, scope(mode, phase), definitions);
+      }
+    }
+  }
+  return definitions;
 }
 
 describe('registered legacy record action migration', function () {
@@ -109,47 +152,38 @@ describe('registered legacy record action migration', function () {
       assert.equal(governed.shippedOccurrenceCount, counts.get(governed.legacyExpression) ?? 0);
     }
 
+    const definitions = shippedDefinitions();
     let migrated = 0;
     let rejectedRandom = 0;
-    inventory.actions.forEach((action, actionIndex) => {
-      action.occurrences.forEach((occurrence, occurrenceIndex) => {
-        const options = occurrence.sourceOptions.presence === 'present' ? occurrence.sourceOptions.value : undefined;
-        const definition = { function: action.legacyExpression, ...(options === undefined ? {} : { options }) };
-        try {
-          const result = migrate(
-            definition,
-            scope(occurrence.lifecycleMode, occurrence.phase),
-            `inventory-${actionIndex}-${occurrenceIndex}`,
-            occurrence.order
+    definitions.forEach(({ definition, bindingScope, order }, index) => {
+      try {
+        const result = migrate(definition, bindingScope, `source-${index}`, order);
+        assert.equal(Object.isFrozen(result), true);
+        if (result.kind === 'action-bindings') {
+          const validation = validateActionPlan(registry, {
+            schemaVersion: 1,
+            recordTypeKey: 'legacy-action-fixture',
+            bindings: result.bindings,
+          });
+          assert.equal(
+            validation.ok,
+            true,
+            validation.ok ? undefined : `${definition.function}[${index}]: ${JSON.stringify(validation.issues)}`
           );
-          assert.equal(Object.isFrozen(result), true);
-          if (result.kind === 'action-bindings') {
-            const validation = validateActionPlan(registry, {
-              schemaVersion: 1,
-              recordTypeKey: 'legacy-action-fixture',
-              bindings: result.bindings,
-            });
-            assert.equal(
-              validation.ok,
-              true,
-              validation.ok
-                ? undefined
-                : `${action.legacyExpression}[${occurrenceIndex}]: ${JSON.stringify(validation.issues)}`
-            );
-          }
-          migrated += 1;
-        } catch (error) {
-          if (!(error instanceof LegacyRecordActionMigrationError)) {
-            throw error;
-          }
-          assert.equal(error.code, 'unsupported-legacy-expression');
-          assert.equal(action.legacyExpression, 'sails.services.rdmpservice.runTemplates');
-          assert.match(error.migrationGuidance, /random generation is intentionally rejected/);
-          rejectedRandom += 1;
         }
-      });
+        migrated += 1;
+      } catch (error) {
+        if (!(error instanceof LegacyRecordActionMigrationError)) {
+          throw error;
+        }
+        assert.equal(error.code, 'unsupported-legacy-expression');
+        assert.equal(definition.function, 'sails.services.rdmpservice.runTemplates');
+        assert.match(error.migrationGuidance, /random generation is intentionally rejected/);
+        rejectedRandom += 1;
+      }
     });
-    assert.equal(migrated, 30);
+    assert.equal(definitions.length, 30);
+    assert.equal(migrated, 28);
     assert.equal(rejectedRandom, 2);
   });
 

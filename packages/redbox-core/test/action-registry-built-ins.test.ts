@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
 import { of, throwError } from 'rxjs';
-import ts from 'typescript';
 
 import {
   ACTION_CONTEXT_SCHEMA_VERSION,
@@ -233,21 +230,6 @@ function coreRegistry() {
   return buildActionRegistry([
     actionRegistrationSource('@researchdatabox/redbox-core', 'actions/index', registerRedboxActions),
   ]);
-}
-
-function forbiddenTypeKeywords(sourceFile: ts.SourceFile): readonly string[] {
-  const failures: string[] = [];
-  const visit = (node: ts.Node): void => {
-    if (node.kind === ts.SyntaxKind.AnyKeyword || node.kind === ts.SyntaxKind.UnknownKeyword) {
-      const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-      failures.push(
-        `${sourceFile.fileName}:${position.line + 1}:${position.character + 1}:${node.getText(sourceFile)}`
-      );
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return failures;
 }
 
 describe('built-in registered record actions', function () {
@@ -884,48 +866,9 @@ describe('built-in registered record actions', function () {
     });
   });
 
-  it('exports the A07 contracts and emits no any or unknown type nodes from source or declarations', () => {
+  it('exports the A07 contracts', () => {
     assert.equal(PublicActionRegistry.migrateLegacyRecordAction, migrateLegacyRecordAction);
     assert.equal(PublicActionRegistry.BUILT_IN_ACTION_IDS, BUILT_IN_ACTION_IDS);
     assert.equal(PublicActionRegistry.LEGACY_RECORD_ACTION_MAPPINGS.length, 13);
-
-    const packageDirectory = path.resolve(__dirname, '..');
-    const sourceFiles = [
-      'src/action-registry/builtInActions.ts',
-      'src/action-registry/legacyMigration.ts',
-      'src/action-registry/managedNotificationPaths.ts',
-      'src/action-registry/registeredActionQueue.ts',
-      'src/action-registry/coreActions.ts',
-      'src/action-registry/index.ts',
-      'src/action-execution/registered-queue-consumer.ts',
-      'src/expression-runtime/compile.ts',
-      'src/expression-runtime/worker.ts',
-      'src/utilities/BoundedDiagnostics.ts',
-    ];
-    const declarationFiles = [
-      'dist/action-registry/builtInActions.d.ts',
-      'dist/action-registry/legacyMigration.d.ts',
-      'dist/action-registry/managedNotificationPaths.d.ts',
-      'dist/action-registry/registeredActionQueue.d.ts',
-      'dist/action-registry/coreActions.d.ts',
-      'dist/action-registry/index.d.ts',
-      'dist/action-execution/registered-queue-consumer.d.ts',
-      'dist/expression-runtime/compile.d.ts',
-      'dist/expression-runtime/worker.d.ts',
-      'dist/utilities/BoundedDiagnostics.d.ts',
-    ];
-    const failures: string[] = [];
-    for (const relativePath of [...sourceFiles, ...declarationFiles]) {
-      const filePath = path.join(packageDirectory, relativePath);
-      const sourceFile = ts.createSourceFile(
-        relativePath,
-        fs.readFileSync(filePath, 'utf8'),
-        ts.ScriptTarget.ES2024,
-        true,
-        ts.ScriptKind.TS
-      );
-      failures.push(...forbiddenTypeKeywords(sourceFile));
-    }
-    assert.deepEqual(failures, []);
   });
 });

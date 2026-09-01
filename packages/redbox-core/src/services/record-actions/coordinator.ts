@@ -9,7 +9,6 @@ import {
   actionRegistrationSource,
   buildActionRegistry,
   migrateLegacyRecordAction,
-  parseActionBinding,
   registerRedboxActions,
   resolveActionPlan,
   safeActionIdentifierSchema,
@@ -20,7 +19,6 @@ import {
   type ActionExecutionPhase,
   type ActionJsonObject,
   type ActionJsonValue,
-  type ActionPlan,
   type ActionSecretProvider,
   type ActionSecretSlotIdentity,
   type ActionSecretStorage,
@@ -203,22 +201,14 @@ function legacyBindings(
   return Object.freeze(bindings);
 }
 
-function canonicalPlan(resolved: ResolvedActionPlan): ActionPlan {
-  const bindings = resolved.bindings.map(binding => Object.freeze(parseActionBinding(binding.binding)));
-  return Object.freeze({
-    schemaVersion: ACTION_PLAN_SCHEMA_VERSION,
-    recordTypeKey: resolved.recordTypeKey,
-    bindings: Object.freeze(bindings),
-  });
-}
-
 /** @internal */
 export function resolveRecordActionPlan(
   registry: RedboxActionRegistry,
   recordType: RuntimeValue,
   recordTypeKey: string,
-  transitionScopeId = LEGACY_TRANSITION_SCOPE_ID
-): ActionPlan {
+  transitionScopeId = LEGACY_TRANSITION_SCOPE_ID,
+  resolve: (value: RuntimeValue) => ResolvedActionPlan = value => resolveActionPlan(registry, value)
+): ResolvedActionPlan {
   const explicitPlan = ownDataValue(recordType, 'actionPlan', '$.actionPlan');
   const planValue: RuntimeValue =
     explicitPlan === undefined
@@ -228,7 +218,7 @@ export function resolveRecordActionPlan(
           bindings: legacyBindings(recordType, recordTypeKey, transitionScopeId),
         }
       : projectPlanJson(explicitPlan, '$.actionPlan');
-  return canonicalPlan(resolveActionPlan(registry, planValue));
+  return resolve(planValue);
 }
 
 function safeIdentifier(value: RuntimeValue): string | undefined {
@@ -475,8 +465,7 @@ function sameScope(left: ActionBindingScope, right: ActionBindingScope): boolean
 
 /** @internal */
 export class RegisteredRecordActionCoordinator {
-  readonly #plan: ActionPlan;
-  readonly #resolvedPlan: ResolvedActionPlan;
+  readonly #plan: ResolvedActionPlan;
   readonly #executor: RegisteredActionExecutor;
   readonly #options: RegisteredRecordActionCoordinatorOptions;
   readonly #current?: ActionJsonObject;
@@ -484,23 +473,23 @@ export class RegisteredRecordActionCoordinator {
   constructor(options: RegisteredRecordActionCoordinatorOptions) {
     const transitionScopeId = options.transition?.scopeId ?? LEGACY_TRANSITION_SCOPE_ID;
     const inferredRecordTypeKey = safeIdentifier(options.recordTypeKey) ?? 'record';
+    this.#executor = createRegisteredActionExecutor(options.registry, options.secretProvider, options.dependencies, {
+      normalize: candidate => normalizeActionCandidateIdentity(candidate, options.operation.recordOid),
+    });
     this.#plan = resolveRecordActionPlan(
       options.registry,
       options.recordType,
       inferredRecordTypeKey,
-      transitionScopeId
+      transitionScopeId,
+      value => this.#executor.preparePlan(value)
     );
-    this.#resolvedPlan = resolveActionPlan(options.registry, this.#plan);
-    this.#executor = createRegisteredActionExecutor(options.registry, options.secretProvider, options.dependencies, {
-      normalize: candidate => normalizeActionCandidateIdentity(candidate, options.operation.recordOid),
-    });
     this.#options = options;
     this.#current = options.current === undefined ? undefined : actionRecord(options.current);
   }
 
   hasBindings(mode: ActionExecutionMode, phase: ActionExecutionPhase): boolean {
     const selectedScope = scopeFor(mode, phase, this.#options.transition);
-    return this.#resolvedPlan.bindings.some(binding => sameScope(binding.binding.scope, selectedScope));
+    return this.#plan.bindings.some(binding => sameScope(binding.binding.scope, selectedScope));
   }
 
   private context(candidate: RuntimeValue, mode: ActionExecutionMode, phase: ActionExecutionPhase): RuntimeRecord {
