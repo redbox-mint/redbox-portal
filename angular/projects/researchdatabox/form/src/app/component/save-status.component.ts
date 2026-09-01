@@ -1,11 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormFieldBaseComponent } from '@researchdatabox/portal-ng-common';
-import {
-  isRecordSaveOutcome,
-  RecordSaveOutcome,
-  SaveStatusComponentName,
-  SaveStatusFieldComponentConfigOutline
-} from '@researchdatabox/sails-ng-common';
+import { isRecordSaveOutcome, RecordSaveOutcome, SaveStatusComponentName } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus, FormComponentEventType, FormStateFacade } from '../form-state';
 
 type SaveStatusMessageType = 'saving' | 'deleting' | 'error' | 'warning' | 'unknown' | 'success' | null;
@@ -196,7 +191,7 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   }
 
   private configuredMessage(property: SaveStatusMessageConfigProperty, fallback: string): string {
-    const configured = (this.componentDefinition?.config as SaveStatusFieldComponentConfigOutline | undefined)?.[property];
+    const configured = this.getStringProperty(property);
     return typeof configured === 'string' && configured.trim() ? configured.trim() : fallback;
   }
 
