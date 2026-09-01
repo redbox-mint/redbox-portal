@@ -282,11 +282,18 @@ function isLodashTemplateModule(moduleName) {
   return /^(lodash|lodash-es)\/template(?:\.js)?$/.test(moduleName ?? '');
 }
 
+function isLodashValuesModule(moduleName) {
+  return moduleName === 'lodash/values';
+}
+
 function collectBindings(sourceFile) {
   const nodeScopes = new WeakMap();
   const declarationBindings = new WeakMap();
   const boundCallableAtoms = new WeakMap();
   const carrierAtoms = new WeakMap();
+  const classConstructorPrototypes = new WeakMap();
+  const classDeclarationsByName = new Map();
+  const relevantClassNodes = new Set();
   const functionAtoms = new WeakMap();
   const functionInvocationStates = new WeakMap();
   const dormantInvocationResults = new WeakMap();
@@ -298,6 +305,45 @@ function collectBindings(sourceFile) {
   const positionalMutationAtoms = new Map();
   const positionalLengthApplications = new WeakMap();
   const positionalMutationApplications = new WeakMap();
+
+  function collectRelevantClasses(node, enclosingClass) {
+    const currentClass = ts.isClassDeclaration(node) || ts.isClassExpression(node) ? node : enclosingClass;
+    if (ts.isClassDeclaration(node) && node.name) {
+      let declarations = classDeclarationsByName.get(node.name.text);
+      if (!declarations) {
+        declarations = [];
+        classDeclarationsByName.set(node.name.text, declarations);
+      }
+      declarations.push(node);
+    }
+    if (ts.isBinaryExpression(node) && ts.isAssignmentOperator(node.operatorToken.kind)) {
+      const target = unwrapExpression(node.left);
+      if (
+        currentClass &&
+        (ts.isPropertyAccessExpression(target) || ts.isElementAccessExpression(target)) &&
+        unwrapExpression(target.expression).kind === ts.SyntaxKind.SuperKeyword
+      ) {
+        relevantClassNodes.add(currentClass);
+      }
+    }
+    ts.forEachChild(node, child => collectRelevantClasses(child, currentClass));
+  }
+
+  collectRelevantClasses(sourceFile, undefined);
+  const pendingRelevantClasses = [...relevantClassNodes];
+  for (let index = 0; index < pendingRelevantClasses.length; index += 1) {
+    const classNode = pendingRelevantClasses[index];
+    const extendsClause = classNode.heritageClauses?.find(clause => clause.token === ts.SyntaxKind.ExtendsKeyword);
+    for (const type of extendsClause?.types ?? []) {
+      const expression = unwrapExpression(type.expression);
+      if (!ts.isIdentifier(expression)) continue;
+      for (const declaration of classDeclarationsByName.get(expression.text) ?? []) {
+        if (relevantClassNodes.has(declaration)) continue;
+        relevantClassNodes.add(declaration);
+        pendingRelevantClasses.push(declaration);
+      }
+    }
+  }
   const syntheticCarrierAtoms = new WeakMap();
   const invocationEvidence = new WeakMap();
   const propagationSubscribers = new WeakMap();
@@ -771,6 +817,7 @@ function collectBindings(sourceFile) {
     if (isLodashTemplateModule(moduleName)) {
       return originValue(namespaceImport ? origins.lodashTemplateNamespace : origins.lodashTemplate);
     }
+    if (isLodashValuesModule(moduleName)) return originValue(origins.lodashValues);
     return new Set();
   }
 
@@ -1347,6 +1394,7 @@ function collectBindings(sourceFile) {
     const referencedOuterBindings = new Set();
     const referencedEffectParameters = new Set();
     let receiverInvocationEffect = false;
+    let superPropertyWrite = false;
     let remainingInvocationEffectWork = maximumInvocationEffectWork;
 
     function callRootBinding(expression) {
@@ -1457,7 +1505,19 @@ function collectBindings(sourceFile) {
         }
         return;
       }
-      if (current.kind === ts.SyntaxKind.ThisKeyword) receiverInvocationEffect = true;
+      if (current.kind === ts.SyntaxKind.ThisKeyword || current.kind === ts.SyntaxKind.SuperKeyword) {
+        receiverInvocationEffect = true;
+        if (
+          current.kind === ts.SyntaxKind.SuperKeyword &&
+          (ts.isPropertyAccessExpression(current.parent) || ts.isElementAccessExpression(current.parent)) &&
+          current.parent.expression === current &&
+          ts.isBinaryExpression(current.parent.parent) &&
+          current.parent.parent.left === current.parent &&
+          ts.isAssignmentOperator(current.parent.parent.operatorToken.kind)
+        ) {
+          superPropertyWrite = true;
+        }
+      }
       if (ts.isIdentifier(current)) {
         const binding = lookupBinding(current);
         if (!binding && (current.text === 'eval' || current.text === '_')) {
@@ -1663,7 +1723,7 @@ function collectBindings(sourceFile) {
       receiverInvocationEffect,
       outerEffectBindings,
       effectProvenanceUncertain,
-      effectMayInstallTrackedCallable,
+      effectMayInstallTrackedCallable: effectMayInstallTrackedCallable || superPropertyWrite,
       mutationDependentReturn,
       parameterDependentReturn,
       receiverDependentReturn,
@@ -1720,6 +1780,100 @@ function collectBindings(sourceFile) {
       }
     }
     return new Set([atom]);
+  }
+
+  function classElementIsStatic(node) {
+    return Boolean(node.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.StaticKeyword));
+  }
+
+  function classValue(node) {
+    const constructor = syntheticCarrierFor(node, 'class-constructor');
+    const prototype = syntheticCarrierFor(node, 'class-prototype');
+    classConstructorPrototypes.set(constructor, prototype);
+    putCarrierProperty(constructor, ['prototype'], new Set([prototype]), deterministicWriteRank(node), true, {
+      configurable: new Set([false]),
+      enumerable: new Set([false]),
+      writable: new Set([false]),
+    });
+
+    const extendsClause = node.heritageClauses?.find(clause => clause.token === ts.SyntaxKind.ExtendsKeyword);
+    for (const type of extendsClause?.types ?? []) {
+      const baseValue = evaluateExpression(type.expression);
+      setCarrierPrototypes(new Set([constructor]), baseValue, true);
+      setCarrierPrototypes(new Set([prototype]), getProperty(baseValue, ['prototype'], type.expression), true);
+    }
+
+    for (const member of node.members) {
+      const target = classElementIsStatic(member) ? constructor : prototype;
+      if (ts.isMethodDeclaration(member)) {
+        putCarrierProperty(
+          target,
+          declaredPropertyNames(member.name),
+          functionValue(member),
+          deterministicWriteRank(member),
+          true,
+          {
+            configurable: new Set([true]),
+            enumerable: new Set([false]),
+            writable: new Set([true]),
+          }
+        );
+      } else if (ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)) {
+        recordTargetAccessor(
+          new Set([target]),
+          declaredPropertyNames(member.name),
+          ts.isGetAccessorDeclaration(member) ? 'get' : 'set',
+          functionValue(member),
+          member,
+          true
+        );
+      }
+    }
+    return new Set([constructor]);
+  }
+
+  function bindClassDeclaration(node) {
+    if (!node.name) return;
+    const value = classValue(node);
+    const classScope = nodeScopes.get(node);
+    const bindings = new Set([declarationBindings.get(node.name), classScope?.parent?.bindings.get(node.name.text)]);
+    for (const binding of bindings) {
+      if (binding) mergeTracked(binding.value, value);
+    }
+  }
+
+  function constructedClassValue(calleeValue, invocationNode) {
+    const prototypes = new Set();
+    for (const atom of calleeValue) {
+      if (typeof atom === 'string') continue;
+      const prototype = classConstructorPrototypes.get(atom);
+      if (prototype) prototypes.add(prototype);
+    }
+    if (prototypes.size === 0) return undefined;
+    const instance = syntheticCarrierFor(invocationNode, 'class-instance');
+    setCarrierPrototypes(new Set([instance]), prototypes, true);
+    return new Set([instance]);
+  }
+
+  function superPropertyTarget(node) {
+    let classElement = node;
+    while (
+      classElement.parent &&
+      !ts.isClassDeclaration(classElement.parent) &&
+      !ts.isClassExpression(classElement.parent)
+    ) {
+      classElement = classElement.parent;
+    }
+    const classNode = classElement.parent;
+    if (!classNode || (!ts.isClassDeclaration(classNode) && !ts.isClassExpression(classNode))) {
+      return unknownReflectiveCallableValue();
+    }
+    const constructorValue = classValue(classNode);
+    const constructor = [...constructorValue][0];
+    const homeObject = classElementIsStatic(classElement) ? constructor : classConstructorPrototypes.get(constructor);
+    if (!homeObject) return unknownReflectiveCallableValue();
+    const prototypes = effectivePrototypes(homeObject);
+    return prototypes.size > 0 ? new Set(prototypes) : unknownReflectiveCallableValue();
   }
 
   function iteratorInstanceFor(node) {
@@ -9362,11 +9516,15 @@ function collectBindings(sourceFile) {
     }
 
     if (ts.isNewExpression(current)) {
+      const constructed = constructedClassValue(evaluateExpression(current.expression), current);
+      if (constructed) return constructed;
       const result = evaluateInvocation(current.expression, [...(current.arguments ?? [])], current).result;
       return result.size > 0 ? result : unknownValue();
     }
 
     if (ts.isFunctionExpression(current) || ts.isArrowFunction(current)) return functionValue(current);
+
+    if (ts.isClassExpression(current) && relevantClassNodes.has(current)) return classValue(current);
 
     if (ts.isConditionalExpression(current)) {
       const result = evaluateExpression(current.whenTrue);
@@ -9479,7 +9637,9 @@ function collectBindings(sourceFile) {
     }
     if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
       const propertyNames = memberPropertyNames(current);
-      const targetValue = evaluateExpression(current.expression);
+      const superWrite = unwrapExpression(current.expression).kind === ts.SyntaxKind.SuperKeyword;
+      const targetValue = superWrite ? superPropertyTarget(current) : evaluateExpression(current.expression);
+      let receiverValue = superWrite ? (activeFunctionReceiver ?? unknownValue()) : targetValue;
       let writeTargetValue = targetValue;
       const carrierTargets = [...targetValue].filter(target => typeof target !== 'string' && target.kind === 'carrier');
       if (
@@ -9492,6 +9652,10 @@ function collectBindings(sourceFile) {
       ) {
         writeTargetValue = new Set(carrierTargets);
       }
+      if (!superWrite) receiverValue = writeTargetValue;
+      if (superWrite && activeFunctionInvocationState() && hasUnknownValue(writeTargetValue)) {
+        recordInvocationEvidence(effectNode, new Set([`${analysisLimitKind}:unknown-reflective-callable`]), true);
+      }
       const indexedWrite = propertyNames?.length === 1 && arrayIndexPropertyValue(propertyNames[0]) !== undefined;
       const recreatesDeletedProperty =
         indexedWrite &&
@@ -9501,14 +9665,14 @@ function collectBindings(sourceFile) {
         );
       const invokesSetter = accessorMayRun(writeTargetValue, propertyNames, 'set');
       if (indexedWrite && hasUnsafeCallable(value) && !recreatesDeletedProperty && !invokesSetter) {
-        recordTargetProperty(writeTargetValue, propertyNames, retainReflectiveCallableProvenance(value), current);
+        recordTargetProperty(receiverValue, propertyNames, retainReflectiveCallableProvenance(value), current);
         return;
       }
       const writeEffect = { receiverOwnProperty: false, setterConsumesWrite: false };
       let writeSuccess = reflectivePropertyWriteSuccessIsProven(
         writeTargetValue,
         propertyNames,
-        writeTargetValue,
+        receiverValue,
         false,
         undefined,
         writeEffect
@@ -9518,7 +9682,7 @@ function collectBindings(sourceFile) {
         arrayLengthWriteOutcome = reflectiveArrayLengthWriteOutcome(
           writeTargetValue,
           propertyNames,
-          writeTargetValue,
+          receiverValue,
           value,
           undefined
         );
@@ -9526,10 +9690,10 @@ function collectBindings(sourceFile) {
       }
       const writeFailure =
         arrayLengthWriteOutcome === false ||
-        reflectivePropertyWriteFailureIsProven(writeTargetValue, propertyNames, writeTargetValue, false);
+        reflectivePropertyWriteFailureIsProven(writeTargetValue, propertyNames, receiverValue, false);
       if (writeFailure) {
         if (propertyNames?.length === 1 && propertyNames[0] === 'length') {
-          invalidatePositionalTargets(writeTargetValue, propertyNames, value, false, true);
+          invalidatePositionalTargets(receiverValue, propertyNames, value, false, true);
         }
         return;
       }
@@ -9541,7 +9705,7 @@ function collectBindings(sourceFile) {
       const conditionalReceiverWrite = uncertainWrite || setterMayConsumeInsteadOfWritingReceiver;
       const possiblyAbsentTargets = [];
       if (conditionalReceiverWrite && propertyNames?.length === 1) {
-        for (const target of writeTargetValue) {
+        for (const target of receiverValue) {
           if (
             typeof target !== 'string' &&
             target.kind === 'carrier' &&
@@ -9553,18 +9717,18 @@ function collectBindings(sourceFile) {
       }
       if (conditionalReceiverWrite) activeAlternativeMutationDepth += 1;
       if (invokesSetter) {
-        applyAccessorSetterEffects(writeTargetValue, propertyNames, writeTargetValue, value, effectNode);
+        applyAccessorSetterEffects(writeTargetValue, propertyNames, receiverValue, value, effectNode);
       }
-      if (invokesSetter) invalidatePositionalTargets(writeTargetValue, undefined, unknownValue());
+      if (invokesSetter) invalidatePositionalTargets(receiverValue, undefined, unknownValue());
       invalidatePositionalTargets(
-        writeTargetValue,
+        receiverValue,
         propertyNames,
         value,
         false,
         writeSuccess === true && writeTargetValue.size === 1 && !invokesSetter
       );
       if ((propertyNames === undefined || propertyNames.includes('__proto__')) && invokesSetter) {
-        setCarrierPrototypes(writeTargetValue, value, propertyNames?.includes('__proto__') === true);
+        setCarrierPrototypes(receiverValue, value, propertyNames?.includes('__proto__') === true);
       } else if (!setterDefinitelyConsumesWrite) {
         let descriptorAttributes;
         if (writeSuccess === true && writeTargetValue.size === 1 && propertyNames?.length === 1) {
@@ -9574,7 +9738,7 @@ function collectBindings(sourceFile) {
           }
         }
         recordTargetProperty(
-          writeTargetValue,
+          receiverValue,
           propertyNames,
           value,
           current,
@@ -9688,6 +9852,8 @@ function collectBindings(sourceFile) {
       };
     } else if (ts.isFunctionDeclaration(node) && node.name) {
       run = () => bindPattern(node.name, functionValue(node));
+    } else if (ts.isClassDeclaration(node) && node.name && relevantClassNodes.has(node)) {
+      run = () => bindClassDeclaration(node);
     } else if (ts.isParameter(node)) {
       run = () => {
         const value = node.initializer ? evaluateExpression(node.initializer) : new Set();
