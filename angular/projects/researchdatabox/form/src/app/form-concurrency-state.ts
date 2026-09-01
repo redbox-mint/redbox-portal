@@ -4,8 +4,8 @@ import {
   isRecordFormFingerprint,
   isRecordRevision,
   isRecordSaveRequestId,
+  recordEntityTagRevision,
   rebaseRecordValues,
-  RECORD_ENTITY_TAG_PATTERN,
 } from '@researchdatabox/sails-ng-common';
 import type { ThreeWayRecordRebase } from '@researchdatabox/sails-ng-common';
 
@@ -105,13 +105,6 @@ export function parseFormLoadConcurrency(
     ...(revision !== undefined ? { revision } : {}),
     ...(formFingerprint ? { formFingerprint } : {}),
   };
-}
-
-function recordEntityTagRevision(value: unknown): number | undefined {
-  if (!isRecordEntityTag(value)) return undefined;
-  const match = RECORD_ENTITY_TAG_PATTERN.exec(value);
-  const revision = match ? Number(match[1]) : undefined;
-  return isRecordRevision(revision) ? revision : undefined;
 }
 
 export function isTrustedFormRecordVersion(entityTag: unknown, revision: unknown): boolean {

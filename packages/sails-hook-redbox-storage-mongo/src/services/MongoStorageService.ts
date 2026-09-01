@@ -31,8 +31,8 @@ import {
   RoleModel,
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,
-  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
   INITIAL_RECORD_REVISION,
+  RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   isCanonicalSaveRequestId,
   isDeletedRecordLifecycleOperation,
   isDeletedRecordLifecycleOperationForState,
@@ -252,7 +252,7 @@ export namespace Services {
         typeof this.getNativeRecordCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.insertOne === 'function' &&
         typeof this.getNativeTombstoneCollection()?.find === 'function';
-      return supported ? { recordConcurrency: { ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } } : {};
+      return supported ? { recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } : {};
     }
 
     private createMutationResponse(oid: string, options?: RecordStorageMutationOptions): StorageMutationResponse {

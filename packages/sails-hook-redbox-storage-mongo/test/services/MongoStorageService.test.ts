@@ -494,14 +494,7 @@ describe('MongoStorageService', function () {
   it('declares full concurrency capability only after required indices and native atomic collections are ready', function () {
     expect(service.getCapabilities()).to.deep.equal({});
     service._requiredIndicesReady = true;
-    expect(service.getCapabilities().recordConcurrency).to.deep.include({
-      version: 1,
-      conditionalActiveUpdate: true,
-      conditionalActiveRemove: true,
-      conditionalTombstoneUpdate: true,
-      conditionalTombstoneRemove: true,
-      revisionLineage: true,
-    });
+    expect(service.getCapabilities().recordConcurrency).to.equal(1);
 
     service.recordCol = { findOneAndUpdate: sandbox.stub() };
     expect(service.getCapabilities()).to.deep.equal({});

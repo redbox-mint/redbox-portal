@@ -41,10 +41,10 @@ has no distributed migration lock. Back up the database first; do not use
 ## Storage concurrency capability
 
 Strict record types require a storage adapter to expose `getCapabilities()` and
-return the complete versioned `recordConcurrency` declaration from
-`@researchdatabox/redbox-core`. An absent method, absent field, partial field
-set, unknown capability version, or a non-Mongo dialect without native atomic
-operations is unsupported and fails closed.
+return the supported `recordConcurrency` version token from
+`@researchdatabox/redbox-core`. An absent method, absent field, unknown version,
+or a non-Mongo dialect without native atomic operations is unsupported and
+fails closed.
 
 The capability covers these adapter methods:
 
@@ -61,9 +61,6 @@ certified no-match returns `not-applied` with a bounded
 `unknown`. Adapters must never fall back to an OID-only Waterline success path
 after advertising strict capability.
 
-Hook-provided adapters should run the reusable
-`STORAGE_CONCURRENCY_CONFORMANCE_CHECKS` exported by
-`@researchdatabox/redbox-core` against their real datastore/dialect before
-declaring capability. The fixture
-covers update, active removal, tombstone restore claim, purge removal, stale/
-deleted classification, revision advancement, and ambiguous dispatch errors.
+Hook-provided adapters must verify these guarantees against their real
+datastore/dialect before declaring capability. The bundled Mongo adapter does
+so in `test/integration/MongoStorageConcurrency.integration.test.ts`.

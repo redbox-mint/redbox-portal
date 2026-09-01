@@ -53,7 +53,7 @@ import {
   isRecordSaveOutcome,
   isRecordSaveProblemKind,
   isRecordSaveRequestId,
-  RECORD_ENTITY_TAG_PATTERN,
+  recordEntityTagRevision,
   RecordAttachment,
   RecordConcurrentModificationConfig,
   RecordConcurrencyMetadata,
@@ -110,32 +110,8 @@ const recordSavePhases: ReadonlySet<RecordSavePhase> = new Set([
   'transport',
 ]);
 
-const saveRequestIdByteLength = 16;
-
-function recordEntityTagRevision(value: unknown): number | undefined {
-  if (!isRecordEntityTag(value)) return undefined;
-  const match = RECORD_ENTITY_TAG_PATTERN.exec(value);
-  const revision = match ? Number(match[1]) : undefined;
-  return isRecordRevision(revision) ? revision : undefined;
-}
-
 function createSaveRequestId(): string {
-  const cryptoApi = globalThis.crypto;
-  if (typeof cryptoApi?.randomUUID === 'function') {
-    return cryptoApi.randomUUID();
-  }
-
-  if (typeof cryptoApi?.getRandomValues !== 'function') {
-    throw new Error('Web Crypto API is unavailable; cannot create a save request ID.');
-  }
-
-  const bytes = cryptoApi.getRandomValues(new Uint8Array(saveRequestIdByteLength));
-  // RFC 4122 version 4 UUID: set the version and variant bits explicitly.
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-
-  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+  return globalThis.crypto.randomUUID();
 }
 
 export interface RecordTypeConf {

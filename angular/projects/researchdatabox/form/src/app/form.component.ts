@@ -1343,33 +1343,22 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
-            response =
-              Object.keys(concurrency).length > 0
-                ? await this.recordService.create(
-                    currentFormValue,
-                    this.trimmedParams.recordType(),
-                    targetStep,
-                    operation,
-                    concurrency
-                  )
-                : await this.recordService.create(
-                    currentFormValue,
-                    this.trimmedParams.recordType(),
-                    targetStep,
-                    operation
-                  );
+            response = await this.recordService.create(
+              currentFormValue,
+              this.trimmedParams.recordType(),
+              targetStep,
+              operation,
+              concurrency
+            );
           } else {
             // Actual record update via RecordService call
-            response =
-              Object.keys(concurrency).length > 0
-                ? await this.recordService.update(
-                    this.trimmedParams.oid(),
-                    currentFormValue,
-                    targetStep,
-                    operation,
-                    concurrency
-                  )
-                : await this.recordService.update(this.trimmedParams.oid(), currentFormValue, targetStep, operation);
+            response = await this.recordService.update(
+              this.trimmedParams.oid(),
+              currentFormValue,
+              targetStep,
+              operation,
+              concurrency
+            );
           }
           if (this.recordBaselineState() !== requestBaseline) {
             this.loggerService.warn(`${this.logName}: ignored a save response after the form scope changed.`);
@@ -2182,24 +2171,6 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   private conflictNavigationWarning(): string {
     const translated = this.translationService.t('@form-conflict-navigation-warning');
     return typeof translated === 'string' ? translated : '@form-conflict-navigation-warning';
-  }
-
-  /**
-   * Decision entry point for SPA hosts that register
-   * `formConflictCanDeactivateGuard` on their form route. The shipped
-   * bootstrap-only host has no Angular Router and uses `beforeunload` below.
-   */
-  public canDeactivate(): boolean {
-    if (this.allowConflictNavigationOnce) {
-      this.allowConflictNavigationOnce = false;
-      return true;
-    }
-    if (!this.formConflictState()) {
-      return true;
-    }
-    // Keep unresolved state intact when navigation is cancelled. If a later
-    // guard cancels after confirmation, the next attempt must ask again.
-    return this.window?.confirm(this.conflictNavigationWarning()) === true;
   }
 
   /** Native navigation warning for unresolved memory-only conflict work. */

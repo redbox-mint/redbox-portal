@@ -12,7 +12,7 @@ import {
   type RecordSaveIssue,
 } from '@researchdatabox/sails-ng-common';
 import type { StorageService } from '../../src/StorageService';
-import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
+import { RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } from '../../src/RecordStorageConcurrency';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { createRecordSaveContext } from '../../src/RecordSaveResponse';
 import type { FormAttributes } from '../../src/waterline-models/Form';
@@ -276,7 +276,7 @@ describe('RecordsService', function () {
 
   function enableLifecycleStorage() {
     mockStorageService.getCapabilities = sinon.stub().returns({
-      recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+      recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
     });
     mockStorageService.getTombstone = sinon.stub().resolves(null);
     mockStorageService.getLifecycleTombstones = sinon.stub().resolves([]);
@@ -1186,7 +1186,7 @@ describe('RecordsService', function () {
 
     const setMode = (mode: 'strict' | 'observe' | 'last-write-wins') => {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: false, concurrentModification: { mode } })
@@ -1519,10 +1519,7 @@ describe('RecordsService', function () {
       setMode('last-write-wins');
       mockStorageService.getMeta.resolves(lifecycleRecord());
       mockStorageService.getCapabilities.returns({
-        recordConcurrency: {
-          ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
-          conditionalTombstoneCreate: false,
-        },
+        recordConcurrency: 2,
       });
 
       const result = await RecordsService.delete(
@@ -2236,7 +2233,7 @@ describe('RecordsService', function () {
     });
     const installMode = (mode: 'strict' | 'observe' | 'last-write-wins', hooks: Record<string, unknown> = {}) => {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({
@@ -3710,7 +3707,7 @@ describe('RecordsService', function () {
         concurrency: { entityTagSupplied: false },
       });
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
 
       for (const mode of ['last-write-wins', 'observe'] as const) {
@@ -7091,7 +7088,7 @@ describe('RecordsService', function () {
     it('resolves authoritative brand and fails closed for append/remove when validation is unavailable', async function () {
       mockSails.config.recordValidation = { mode: 'shadow' };
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: false, recordValidation: { mode: 'enforce' } })
@@ -7948,7 +7945,7 @@ describe('RecordsService', function () {
 
     const enableConcurrency = (mode: 'last-write-wins' | 'observe' | 'strict') => {
       mockStorageService.getCapabilities = sinon.stub().returns({
-        recordConcurrency: FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       (global as any).RecordTypesService.get.returns(
         of({ name: 'rdmp', hooks: {}, searchable: true, concurrentModification: { mode } })

@@ -61,6 +61,7 @@ import {
 import type { RecordConcurrencyContext, RecordSaveContext, RecordSaveOperation } from '../RecordSaveResponse';
 import {
   parsePublicRecordConcurrencyRequest,
+  recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
   recordRepresentationRevision,
   recordSaveResultHeaderOption,
@@ -330,16 +331,7 @@ export namespace Controllers {
       res: Sails.Res,
       failure: { readonly code: string; readonly header: string }
     ) {
-      if (this.getApiVersion(req) === '1.0') {
-        return this.sendResp(req, res, {
-          status: 400,
-          v1: { message: 'Invalid record concurrency request.' },
-        });
-      }
-      return this.sendResp(req, res, {
-        status: 400,
-        displayErrors: [{ code: failure.code, source: { header: failure.header } }],
-      });
+      return this.sendResp(req, res, recordConcurrencyRequestFailureResponse(this.getApiVersion(req), failure));
     }
 
     private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {

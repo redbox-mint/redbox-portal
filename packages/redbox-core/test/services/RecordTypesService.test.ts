@@ -5,7 +5,7 @@ import { Services } from '../../src/services/RecordTypesService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { firstValueFrom, of } from 'rxjs';
 import { RecordTypeResponseModel } from '../../src/model/RecordTypeResponseModel';
-import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
+import { RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } from '../../src/RecordStorageConcurrency';
 
 describe('RecordTypesService', function () {
   let service: Services.RecordTypes;
@@ -36,7 +36,7 @@ describe('RecordTypesService', function () {
     mockSails.config.storage = { serviceName: 'teststorage' };
     mockSails.services.teststorage = {
       getCapabilities: () => ({
-        recordConcurrency: { ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES },
+        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       }),
     };
 

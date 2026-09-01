@@ -42,6 +42,7 @@ export type {
 export {
   RECORD_HTTP_HEADERS,
   parsePublicRecordConcurrencyRequest,
+  recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
   recordRepresentationRevision,
   recordSaveResultHeaderOption,
@@ -55,7 +56,6 @@ export type {
 } from './RecordHttpConcurrency';
 export { normalizeAttachmentStagingFileId } from './AttachmentStagingIdentity';
 export {
-  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
   INITIAL_RECORD_REVISION,
   RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   RecordConcurrencyCapabilityError,
@@ -67,20 +67,11 @@ export {
 } from './RecordStorageConcurrency';
 export type {
   RecordMutationPrecondition,
-  RecordStorageConcurrencyCapabilities,
   RecordStorageMutationOptions,
   StorageCapabilityProvider,
   StorageMutationNonApplicationReason,
   StorageServiceCapabilities,
 } from './RecordStorageConcurrency';
-// Behavioural conformance checks hook-provided storage adapters run against
-// their own dialect before declaring the record-concurrency capability.
-export { STORAGE_CONCURRENCY_CONFORMANCE_CHECKS } from './testing/storageConcurrencyConformance';
-export type {
-  RecordConcurrencyAdapter,
-  StorageConcurrencyConformanceCheck,
-  StorageConcurrencyConformanceHarness,
-} from './testing/storageConcurrencyConformance';
 // Shared concurrency policy/result contracts are re-exported here so server
 // code has one import site for record-save contracts.
 export {

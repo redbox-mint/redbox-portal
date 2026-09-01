@@ -1313,21 +1313,6 @@ describe('FormComponent', () => {
     expect(sessionStorageSpy).not.toHaveBeenCalled();
   });
 
-  it('exposes the decision required by a host-registered Angular route guard', async () => {
-    const { formComponent } = await createConcurrencyTestForm();
-    formComponent.form?.get('title')?.setValue('Unsaved title');
-    (formComponent as any).captureConflictResponse(conflictSaveResponse('form-changed'));
-    const confirmSpy = spyOn(window, 'confirm').and.returnValue(false);
-
-    expect(formComponent.canDeactivate()).toBeFalse();
-    expect(confirmSpy).toHaveBeenCalledOnceWith('Leaving will discard unresolved changes.');
-    expect(formComponent.conflictState()).not.toBeNull();
-
-    confirmSpy.and.returnValue(true);
-    expect(formComponent.canDeactivate()).toBeTrue();
-    expect(formComponent.conflictState()).not.toBeNull();
-  });
-
   it('cleans one-shot navigation state on destroy', async () => {
     const { fixture, formComponent } = await createConcurrencyTestForm();
 

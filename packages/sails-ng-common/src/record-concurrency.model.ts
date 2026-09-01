@@ -186,17 +186,20 @@ export function isRecordRevision(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= RECORD_REVISION_MAX;
 }
 
+export function recordEntityTagRevision(value: unknown): number | undefined {
+  if (typeof value !== 'string' || value.length > RECORD_ENTITY_TAG_MAX_LENGTH) return undefined;
+  const match = RECORD_ENTITY_TAG_PATTERN.exec(value);
+  const revision = match ? Number(match[1]) : undefined;
+  return isRecordRevision(revision) ? revision : undefined;
+}
+
 /**
  * Structural entity-tag guard. Record identity is certified by the backend
  * parser, which recomputes the digest for a known OID; this guard only proves
  * the value has the bounded opaque shape worth carrying in client state.
  */
 export function isRecordEntityTag(value: unknown): value is RecordEntityTag {
-  if (typeof value !== 'string' || value.length > RECORD_ENTITY_TAG_MAX_LENGTH) {
-    return false;
-  }
-  const match = RECORD_ENTITY_TAG_PATTERN.exec(value);
-  return match !== null && isRecordRevision(Number(match[1]));
+  return recordEntityTagRevision(value) !== undefined;
 }
 
 export function isRecordFormFingerprint(value: unknown): value is RecordFormFingerprint {

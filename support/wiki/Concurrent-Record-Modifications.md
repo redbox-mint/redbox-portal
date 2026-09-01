@@ -83,34 +83,15 @@ semantics. API v2 includes the typed result and safe current projection:
 
 The form project in this repository is an Angular application, not a routed
 feature module. `FormModule` bootstraps `FormComponent` directly into the
-`<redbox-form>` element emitted by the server-rendered edit/view templates, and
-it deliberately has no Angular Router configuration. The component's native
-`beforeunload` listener is therefore the active protection when a user leaves a
-shipped form page with unresolved in-memory conflict work.
-
-`formConflictCanDeactivateGuard` is an exported integration contract for a
-downstream host that renders the form through an Angular route. Exporting the
-guard does not register or activate it. Such a host must attach it explicitly:
-
-```ts
-const routes: Routes = [
-  {
-    path: 'records/:oid/edit',
-    component: FormComponent,
-    canDeactivate: [formConflictCanDeactivateGuard],
-  },
-];
-```
-
-An SPA form route that omits that registration has no Angular route-change
-protection from this package. The native `beforeunload` listener remains in
-place for document-level navigation.
+`<redbox-form>` element emitted by the server-rendered edit/view templates. The
+component's native `beforeunload` listener protects unresolved in-memory
+conflict work when a user leaves a shipped form page.
 
 ## Storage adapters and hooks
 
-Custom storage adapters must advertise the versioned full record-concurrency
-capability only after passing the exported storage conformance checks. They
-must provide atomic active CAS, permanent OID ownership/incarnation claims,
+Custom storage adapters must advertise the supported record-concurrency version
+token only after verifying their real datastore behavior. They must provide
+atomic active CAS, permanent OID ownership/incarnation claims,
 conditional tombstone create/update/remove, conditional active removal, and
 conditional restore creation. A returned mutation state is mandatory:
 `applied`, certified `not-applied`, or `unknown`.

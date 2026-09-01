@@ -180,7 +180,3 @@ import { FormConflictPresenterComponent } from './component/form-conflict-presen
   bootstrap: [FormComponent],
 })
 export class FormModule {}
-
-// Integration contract only: an SPA host must register this on its form route.
-export { formConflictCanDeactivateGuard } from './form-conflict-navigation.guard';
-export type { ConflictNavigationAwareForm } from './form-conflict-navigation.guard';

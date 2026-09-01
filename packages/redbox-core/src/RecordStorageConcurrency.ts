@@ -44,54 +44,14 @@ export type StorageMutationNonApplicationReason =
   | 'lifecycle-conflict'
   | 'capability-unavailable';
 
-/**
- * Atomic primitives an adapter must provide before strict record mutation can
- * be enabled. Tombstone update/removal are the storage building blocks used by
- * the staged restore and purge orchestration introduced by W07.
- */
-export interface RecordStorageConcurrencyCapabilities {
-  version: typeof RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION;
-  conditionalActiveCreate: true;
-  conditionalActiveUpdate: true;
-  conditionalActiveRemove: true;
-  conditionalTombstoneCreate: true;
-  conditionalTombstoneUpdate: true;
-  conditionalTombstoneRemove: true;
-  certifiedNonApplicationReasons: true;
-  revisionLineage: true;
-}
-
 export interface StorageServiceCapabilities {
-  recordConcurrency?: RecordStorageConcurrencyCapabilities;
+  /** Versioned token for the complete strict record-concurrency contract. */
+  recordConcurrency?: typeof RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION;
 }
 
 export interface StorageCapabilityProvider {
   getCapabilities?: () => StorageServiceCapabilities;
 }
-
-export const FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES: Readonly<RecordStorageConcurrencyCapabilities> =
-  Object.freeze({
-    version: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
-    conditionalActiveCreate: true,
-    conditionalActiveUpdate: true,
-    conditionalActiveRemove: true,
-    conditionalTombstoneCreate: true,
-    conditionalTombstoneUpdate: true,
-    conditionalTombstoneRemove: true,
-    certifiedNonApplicationReasons: true,
-    revisionLineage: true,
-  });
-
-const REQUIRED_CAPABILITIES: ReadonlyArray<keyof Omit<RecordStorageConcurrencyCapabilities, 'version'>> = [
-  'conditionalActiveCreate',
-  'conditionalActiveUpdate',
-  'conditionalActiveRemove',
-  'conditionalTombstoneCreate',
-  'conditionalTombstoneUpdate',
-  'conditionalTombstoneRemove',
-  'certifiedNonApplicationReasons',
-  'revisionLineage',
-];
 
 export function hasFullRecordStorageConcurrencyCapability(
   service: StorageCapabilityProvider | null | undefined
@@ -100,17 +60,11 @@ export function hasFullRecordStorageConcurrencyCapability(
     return false;
   }
 
-  let capability: RecordStorageConcurrencyCapabilities | undefined;
   try {
-    capability = service.getCapabilities()?.recordConcurrency;
+    return service.getCapabilities()?.recordConcurrency === RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION;
   } catch {
     return false;
   }
-
-  return (
-    capability?.version === RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION &&
-    REQUIRED_CAPABILITIES.every(name => capability?.[name] === true)
-  );
 }
 
 /** Safe fail-closed error used at startup and at every strict runtime lookup. */
