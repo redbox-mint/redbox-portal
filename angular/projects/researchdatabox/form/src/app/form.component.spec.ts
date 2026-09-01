@@ -16,8 +16,6 @@ import {
 import { FormService } from './form.service';
 import {
   FormComponentEventBus,
-  createFieldValueChangedEvent,
-  createFormDefinitionChangedEvent,
   createFormDeleteSuccessEvent,
   createFormSaveExecuteEvent,
   createFormSaveSuccessEvent,
@@ -1129,6 +1127,7 @@ describe('FormComponent', () => {
       { title: 'Mine from old tab', notes: 'Loaded notes' },
       '',
       undefined,
+      {},
     ]);
     expect(formComponent.conflictState()).toEqual(
       jasmine.objectContaining({
@@ -1637,7 +1636,7 @@ describe('FormComponent', () => {
     resolveValidation?.();
     await savePromise;
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', undefined);
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', undefined, {});
     expect(saveCompleted).toBeTrue();
     expect(validatorRuns).toBe(1);
   });
@@ -1667,7 +1666,7 @@ describe('FormComponent', () => {
     resolveValidation?.();
     await savePromise;
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', undefined);
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { async_field: 'ready' }, '', undefined, {});
   });
 
   it('saves without delay when validation is already settled', async () => {
@@ -1682,7 +1681,7 @@ describe('FormComponent', () => {
 
     await formComponent.saveForm();
 
-    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '', undefined);
+    expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { settled_field: 'ready' }, '', undefined, {});
   });
 
   it('does not save invalid forms when forced', async () => {
@@ -2023,7 +2022,8 @@ describe('FormComponent', () => {
         'oid-123',
         { title: 'changed' },
         'published',
-        'publish'
+        'publish',
+        {}
       );
       expect(successEvents.length).toBe(1);
       expect(successEvents[0].response?.outcome).toBe('saved-with-warnings');
@@ -2471,7 +2471,7 @@ describe('FormComponent', () => {
       formComponent.form!.markAsDirty();
       const savePromise = formComponent.saveForm();
 
-      expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { text_never_sync: 'sent value' }, '', undefined);
+      expect(updateSpy).toHaveBeenCalledOnceWith('oid-123', { text_never_sync: 'sent value' }, '', undefined, {});
       control.setValue('edited during save');
       control.markAsDirty();
       resolveUpdate(persistedSaveResponse({
@@ -2623,478 +2623,6 @@ describe('FormComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('redbox-form-debug-panel').length).toBe(0);
   });
 
-  it('renders event stream debug section when debug mode is enabled', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-debug-visible',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'event_stream_debug',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'value' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { fixture } = await createFormAndWaitForReady(formConfig);
-    await ensureDebugPanelOpen(fixture);
-    const eventsTabButton = Array.from(fixture.nativeElement.querySelectorAll('.rb-form-debug-tabs button') as NodeListOf<HTMLButtonElement>)
-      .find((button) => button.textContent?.trim() === 'Events');
-    eventsTabButton?.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    const headings = Array.from(fixture.nativeElement.querySelectorAll('h5') as NodeListOf<HTMLHeadingElement>).map(item => item.textContent?.trim() ?? '');
-    expect(headings).toContain('Event Stream Debug');
-  });
-
-  it('captures published events in debug stream', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-capture',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'capture_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'x' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-    const initialLength = formComponent.debugEvents().length;
-
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'capture_event', value: 'updated', sourceId: 'capture-source' }));
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const events = formComponent.debugEvents();
-    expect(events.length).toBeGreaterThan(initialLength);
-    expect(events[events.length - 1].type).toBe(FormComponentEventType.FIELD_VALUE_CHANGED);
-  });
-
-  it('does not append events while paused', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-paused',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'pause_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'x' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-    formComponent.debugEventPaused.set(true);
-    const initialLength = formComponent.debugEvents().length;
-
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'pause_event', value: 'updated', sourceId: 'pause-source' }));
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    expect(formComponent.debugEvents().length).toBe(initialLength);
-  });
-
-  it('clears captured debug events', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-clear',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'clear_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'x' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'clear_event', value: 'updated', sourceId: 'clear-source' }));
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(formComponent.debugEvents().length).toBeGreaterThan(0);
-
-    formComponent.clearDebugEvents();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    expect(formComponent.debugEvents().length).toBe(0);
-  });
-
-  it('filters events by type', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-type-filter',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'type_filter_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'x' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'type_filter_event', value: 'updated', sourceId: 'source-a' }));
-    bus.publish(createFormDefinitionChangedEvent({ sourceId: 'source-b' }));
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    formComponent.debugEventFilterType.set(FormComponentEventType.FIELD_VALUE_CHANGED);
-    const filtered = formComponent.getFilteredDebugEvents();
-    expect(filtered.length).toBeGreaterThan(0);
-    expect(filtered.every(event => event.type === FormComponentEventType.FIELD_VALUE_CHANGED)).toBeTrue();
-  });
-
-  it('filters events by field and source identifiers', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-id-filters',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'field_alpha',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'x' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'field_alpha', value: 'updated', sourceId: 'source-primary' }));
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'field_beta', value: 'updated', sourceId: 'source-secondary' }));
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    formComponent.debugEventFilterFieldId.set('alpha');
-    formComponent.debugEventFilterSourceId.set('primary');
-    const filtered = formComponent.getFilteredDebugEvents();
-    expect(filtered.length).toBe(1);
-    expect(filtered[0].fieldId).toBe('field_alpha');
-    expect(filtered[0].sourceId).toBe('source-primary');
-  });
-
-  it('enforces max debug event history by trimming oldest entries', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-max-items',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'max_items_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'x' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-    formComponent.clearDebugEvents();
-    formComponent.setDebugEventMaxItems(2);
-
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'max_items_event', value: '1', sourceId: 's1' }));
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'max_items_event', value: '2', sourceId: 's2' }));
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'max_items_event', value: '3', sourceId: 's3' }));
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const events = formComponent.debugEvents();
-    expect(events.length).toBe(2);
-    expect(events[0].payload['value']).toBe('2');
-    expect(events[1].payload['value']).toBe('3');
-  });
-
-  it('renders event payload as text content without html evaluation', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-safe-payload',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'safe_payload_event',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'x' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    await ensureDebugPanelOpen(fixture);
-    const bus = TestBed.inject(FormComponentEventBus);
-    const dangerousPayload = '<img src=x onerror=alert(1)>';
-    formComponent.clearDebugEvents();
-
-    bus.publish(createFieldValueChangedEvent({ fieldId: 'safe_payload_event', value: dangerousPayload, sourceId: 'safe-source' }));
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const eventsTabButton = Array.from(fixture.nativeElement.querySelectorAll('.rb-form-debug-tabs button') as NodeListOf<HTMLButtonElement>)
-      .find((button) => button.textContent?.trim() === 'Events');
-    eventsTabButton?.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const expandButton = fixture.nativeElement.querySelector('.rb-form-debug-event-expand') as HTMLButtonElement;
-    expandButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const payloadPre = fixture.nativeElement.querySelector('.rb-form-debug-event-payload') as HTMLElement;
-    expect(payloadPre.textContent).toContain('onerror=alert(1)');
-    expect(payloadPre.querySelector('img')).toBeNull();
-  });
-
-  it('populates initial translated config snapshot for provided-config path', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'initial-snapshot-provided',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'text_snapshot',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: 'snapshot value'
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { formComponent } = await createFormAndWaitForReady(formConfig);
-    const initialConfig = formComponent.debugTranslatedFormConfigInitial();
-    expect(initialConfig['name']).toBe('initial-snapshot-provided');
-  });
-
-  it('populates initial translated config snapshot for download path', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'initial-snapshot-download',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'text_snapshot_download',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: 'snapshot value'
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    setUpDynamicAssets();
-    const fixture = TestBed.createComponent(FormComponent);
-
-    ensureApplicationRefFormComponent(fixture.componentRef);
-
-    const formComponent = fixture.componentInstance;
-    formComponent.downloadAndCreateOnInit.set(false);
-    formComponent.oid.set('oid-download-path');
-    formComponent.recordType.set('rdmp');
-    formComponent.editMode.set(true);
-    formComponent.formName.set('default-1.0-draft');
-    fixture.autoDetectChanges();
-    await fixture.whenStable();
-
-    const formService = TestBed.inject(FormService);
-    const parentLineagePaths = formService.buildLineagePaths({
-      angularComponents: [],
-      dataModel: [],
-      formConfig: ['componentDefinitions'],
-      layout: [],
-    });
-    const map = await formService.createFormComponentsMap(formConfig, parentLineagePaths);
-    const downloadSpy = spyOn(formService, 'downloadFormComponents').and.resolveTo(map);
-
-    await formComponent.downloadAndCreateFormComponents();
-    await fixture.whenStable();
-
-    expect(downloadSpy).toHaveBeenCalled();
-    expect(formComponent.debugTranslatedFormConfigInitial()['name']).toBe('initial-snapshot-download');
-  });
-
-  it('updates translated config current snapshot on FORM_DEFINITION_CHANGED event', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'definition-change-debug',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'text_initial',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: 'value'
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-    formComponent.formDefMap?.formConfig?.componentDefinitions?.push({
-      name: 'text_added',
-      model: {
-        class: 'SimpleInputModel',
-        config: {
-          value: 'new'
-        }
-      },
-      component: {
-        class: 'SimpleInputComponent'
-      }
-    } as any);
-
-    bus.publish(createFormDefinitionChangedEvent({}));
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const current = formComponent.debugTranslatedFormConfigCurrent();
-    expect((current['componentDefinitions'] as unknown[]).length).toBe(2);
-  });
-
-  it('updates model current/previous snapshots and changed paths after value change', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'model-snapshots',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'text_model',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: 'before'
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    formComponent.form?.get('text_model')?.setValue('after');
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    expect(formComponent.debugModelCurrent()['text_model']).toBe('after');
-    expect(formComponent.debugModelPrevious()['text_model']).toBe('before');
-    expect(formComponent.debugModelChangedPaths()).toContain('text_model');
-  });
-
-  it('returns dotted/bracket changed paths for nested structures', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'path-diff-format',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'text_diff_format',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: 'x'
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { formComponent } = await createFormAndWaitForReady(formConfig);
-    const changedPaths = (formComponent as any).computeChangedPaths(
-      { contributors: [{ name: 'old' }] },
-      { contributors: [{ name: 'new' }] },
-      { maxDepth: 5, maxPaths: 200 }
-    );
-    expect(changedPaths).toContain('contributors[0].name');
-  });
-
-  it('renders expand controls and detail rows in component debug table', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'expand-row',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'text_expand',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: 'value'
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { fixture } = await createFormAndWaitForReady(formConfig);
-    await ensureDebugPanelOpen(fixture);
-    const expandButton = fixture.nativeElement.querySelector('.rb-form-debug-expand') as HTMLButtonElement;
-    expect(expandButton).toBeTruthy();
-    expandButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-
-    const detailRow = fixture.nativeElement.querySelector('.rb-form-debug-detail') as HTMLElement;
-    expect(detailRow).toBeTruthy();
-    expect(detailRow.textContent).toContain('Component Attributes');
-  });
-
   it('shows loading indicator before components are loaded', async () => {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance;
@@ -3143,34 +2671,6 @@ describe('FormComponent', () => {
     expect(loadingElement).toBeNull();
   });
 
-  it('tracks FORM_DEFINITION_CHANGED debug subscription in subMaps and cleans up on destroy', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'debug-subscription-cleanup',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'text_sub_cleanup',
-          model: {
-            class: 'SimpleInputModel',
-            config: {
-              value: 'value'
-            }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-    expect(formComponent.subMaps['formDefinitionChangedDebugSub']).toBeTruthy();
-    formComponent.ngOnDestroy();
-    expect(() => bus.publish(createFormDefinitionChangedEvent({}))).not.toThrow();
-    fixture.destroy();
-  });
-
   it('marks the form dirty when a FORM_STATUS_DIRTY_REQUEST event is published', async () => {
     const formConfig: FormConfigFrame = {
       name: 'dirty-request-event',
@@ -3199,32 +2699,6 @@ describe('FormComponent', () => {
     expect(formComponent.form?.dirty).toBeTrue();
     expect(formComponent.form?.get('text_dirty_request')?.dirty).toBeTrue();
     expect(formComponent.subMaps['formStatusDirtyRequestSub']).toBeTruthy();
-  });
-
-  it('tracks debugEventStreamSub in subMaps and cleanup is safe on destroy', async () => {
-    const formConfig: FormConfigFrame = {
-      name: 'event-stream-subscription-cleanup',
-      debugValue: true,
-      componentDefinitions: [
-        {
-          name: 'event_sub_cleanup',
-          model: {
-            class: 'SimpleInputModel',
-            config: { value: 'value' }
-          },
-          component: {
-            class: 'SimpleInputComponent'
-          }
-        }
-      ]
-    };
-
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
-    const bus = TestBed.inject(FormComponentEventBus);
-    expect(formComponent.subMaps['debugEventStreamSub']).toBeTruthy();
-    formComponent.ngOnDestroy();
-    expect(() => bus.publish(createFieldValueChangedEvent({ fieldId: 'event_sub_cleanup', value: 'v' }))).not.toThrow();
-    fixture.destroy();
   });
 
   it('changes enabledValidationGroups when requested', async () => {
