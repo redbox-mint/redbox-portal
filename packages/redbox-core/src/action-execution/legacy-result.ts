@@ -54,28 +54,7 @@ function observableEffect(observable: Observable<unknown>): Effect.Effect<unknow
  * which is why Promise-backed hooks report non-cooperative cancellation.
  */
 function promiseEffect(promise: PromiseLike<unknown>): Effect.Effect<unknown, unknown, never> {
-  return Effect.async((resume, signal) => {
-    let interrupted = false;
-    signal.addEventListener(
-      'abort',
-      () => {
-        interrupted = true;
-      },
-      { once: true }
-    );
-    Promise.resolve(promise).then(
-      value => {
-        if (!interrupted) {
-          resume(Effect.succeed(value));
-        }
-      },
-      (error: unknown) => {
-        if (!interrupted) {
-          resume(Effect.fail(error));
-        }
-      }
-    );
-  });
+  return Effect.tryPromise({ try: () => promise, catch: error => error });
 }
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {

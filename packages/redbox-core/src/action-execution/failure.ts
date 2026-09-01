@@ -1,11 +1,10 @@
 import { RBValidationError } from '../model/RBValidationError';
-import type { ActionFailureKind, SafeActionFailure } from './types';
+import { ACTION_FAILURE_KINDS, type ActionFailureKind, type SafeActionFailure } from './types';
 
 interface TaggedActionFailure {
   _tag?: string;
   code?: unknown;
   message?: unknown;
-  safeSummary?: unknown;
   cancellationCooperative?: unknown;
 }
 
@@ -32,26 +31,22 @@ export class ActionValidationFailure extends Error {
 export class ActionDomainFailure extends Error {
   readonly _tag = 'ActionDomainFailure';
   readonly code: string;
-  readonly safeSummary?: string;
 
-  constructor(message: string, code = 'action-domain-failed', safeSummary?: string, options?: { cause?: unknown }) {
+  constructor(message: string, code = 'action-domain-failed', options?: { cause?: unknown }) {
     super(message, options);
     this.name = this._tag;
     this.code = code;
-    this.safeSummary = safeSummary;
   }
 }
 
 export class ActionTransientFailure extends Error {
   readonly _tag = 'ActionTransientFailure';
   readonly code: string;
-  readonly safeSummary?: string;
 
-  constructor(message: string, code = 'action-transient-failed', safeSummary?: string, options?: { cause?: unknown }) {
+  constructor(message: string, code = 'action-transient-failed', options?: { cause?: unknown }) {
     super(message, options);
     this.name = this._tag;
     this.code = code;
-    this.safeSummary = safeSummary;
   }
 }
 
@@ -79,35 +74,8 @@ export class ActionInterruptedFailure extends Error {
   }
 }
 
-const ACTION_FAILURE_KINDS: readonly ActionFailureKind[] = [
-  'configuration',
-  'validation',
-  'domain',
-  'transient',
-  'timeout',
-  'interrupted',
-  'unexpected',
-];
-
 export function isActionFailureKind(value: unknown): value is ActionFailureKind {
   return ACTION_FAILURE_KINDS.includes(value as ActionFailureKind);
-}
-
-const MAX_SUMMARY_LENGTH = 160;
-
-/**
- * A summary is only carried through when a failure deliberately provided one.
- * Arbitrary thrown text never reaches a serialized result.
- */
-function boundedSafeSummary(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const summary = value.trim();
-  if (!summary || summary.length > MAX_SUMMARY_LENGTH || /[\r\n]/.test(summary)) {
-    return undefined;
-  }
-  return summary;
 }
 
 function fields(value: unknown): TaggedActionFailure {
@@ -148,14 +116,12 @@ export function normalizeActionFailure(cause: unknown, fallbackCancellationCoope
     return {
       kind: 'domain',
       code: safeCode(cause, 'action-domain-failed'),
-      summary: boundedSafeSummary(fields(cause).safeSummary),
     };
   }
   if (hasTag(cause, 'ActionTransientFailure')) {
     return {
       kind: 'transient',
       code: safeCode(cause, 'action-transient-failed'),
-      summary: boundedSafeSummary(fields(cause).safeSummary),
     };
   }
   if (hasTag(cause, 'ActionTimeoutFailure')) {

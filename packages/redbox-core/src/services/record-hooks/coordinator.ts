@@ -23,8 +23,6 @@ type AnyRecord = Record<string, unknown>;
 /** Resolves a configured hook definition to the callable it names. */
 export type RecordHookResolver = (hook: unknown, mode: string, phase: string) => (...args: unknown[]) => unknown;
 
-const HOOK_PHASES: readonly ActionExecutionPhase[] = ['pre', 'postSync', 'post'];
-
 export interface RecordHookCoordinatorOptions {
   operation: ActionExecutionOperation;
   dependencies?: ActionExecutionDependencies;
@@ -78,6 +76,31 @@ function configuredDefinitions(recordType: unknown, mode: string, phase: string)
   return configured as RecordHookDefinition[];
 }
 
+function parseHookDefinition(
+  hook: RecordHookDefinition,
+  mode: string,
+  phase: ActionExecutionPhase,
+  index: number,
+  seenIds: Set<string>,
+  resolveHook: RecordHookResolver
+): { hook: RecordHookDefinition; actionId: string; index: number } {
+  if (!hook || typeof hook !== 'object' || Array.isArray(hook)) {
+    invalidConfiguration(mode, phase);
+  }
+  const expression = String(get(hook, 'function') ?? '').trim();
+  if (!expression) {
+    invalidConfiguration(mode, phase);
+  }
+  const actionId = resolveActionId(get(hook, 'id'), mode, phase, index, expression);
+  if (seenIds.has(actionId)) {
+    throw new RecordHookConfigurationError(`Duplicate ${phase} hook id '${actionId}' for ${mode}.`);
+  }
+  validateActionExecutionPolicy(hook.execution);
+  resolveHook(hook, mode, phase);
+  seenIds.add(actionId);
+  return { hook, actionId, index };
+}
+
 /**
  * Resolve one configured phase into ordered action identities, rejecting
  * malformed definitions, unknown policies, and duplicate identifiers. The
@@ -91,23 +114,7 @@ function planPhase(
 ): Array<{ hook: RecordHookDefinition; actionId: string; index: number }> {
   const hooks = configuredDefinitions(recordType, mode, phase);
   const seenIds = new Set<string>();
-  return hooks.map((hook, index) => {
-    if (!hook || typeof hook !== 'object' || Array.isArray(hook)) {
-      invalidConfiguration(mode, phase);
-    }
-    const expression = String(get(hook, 'function') ?? '').trim();
-    if (!expression) {
-      invalidConfiguration(mode, phase);
-    }
-    const actionId = resolveActionId(get(hook, 'id'), mode, phase, index, expression);
-    if (seenIds.has(actionId)) {
-      throw new RecordHookConfigurationError(`Duplicate ${phase} hook id '${actionId}' for ${mode}.`);
-    }
-    seenIds.add(actionId);
-    validateActionExecutionPolicy(hook.execution);
-    resolveHook(hook, mode, phase);
-    return { hook, actionId, index };
-  });
+  return hooks.map((hook, index) => parseHookDefinition(hook, mode, phase, index, seenIds, resolveHook));
 }
 
 /**
@@ -117,13 +124,10 @@ function planPhase(
 export function validateRecordHookConfiguration(
   recordType: unknown,
   modes: readonly string[],
-  resolveHook: RecordHookResolver,
-  phases: readonly ActionExecutionPhase[] = HOOK_PHASES
+  resolveHook: RecordHookResolver
 ): void {
   for (const mode of modes) {
-    for (const phase of phases) {
-      planPhase(recordType, mode, phase, resolveHook);
-    }
+    planPhase(recordType, mode, 'pre', resolveHook);
   }
 }
 
@@ -208,21 +212,15 @@ export class RecordHookCoordinator {
     const actions: ActionExecutionAction[] = [];
     configured.forEach((hook, index) => {
       try {
-        if (!hook || typeof hook !== 'object' || Array.isArray(hook)) {
-          throw new RecordHookConfigurationError('Invalid post hook configuration.');
-        }
-        const expression = String(get(hook, 'function') ?? '').trim();
-        if (!expression) {
-          throw new RecordHookConfigurationError('Invalid post hook configuration.');
-        }
-        const actionId = resolveActionId(get(hook, 'id'), mode, 'post', index, expression);
-        if (seenIds.has(actionId)) {
-          throw new RecordHookConfigurationError('Duplicate post hook id.');
-        }
-        validateActionExecutionPolicy(get(hook, 'execution'));
-        this.options.resolveHook(hook, mode, 'post');
-        seenIds.add(actionId);
-        actions.push(this.action(hook as RecordHookDefinition, actionId, mode, 'post', index, invoke));
+        const parsed = parseHookDefinition(
+          hook as RecordHookDefinition,
+          mode,
+          'post',
+          index,
+          seenIds,
+          this.options.resolveHook
+        );
+        actions.push(this.action(parsed.hook, parsed.actionId, mode, 'post', parsed.index, invoke));
       } catch (_error) {
         const fields: Record<string, unknown> = {
           execution_id: this.options.operation.executionId,

@@ -29,6 +29,9 @@ import {
   RoleModel,
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,
+  ACTION_EXECUTION_STATUSES,
+  ACTION_FAILURE_KINDS,
+  ACTION_SKIPPED_REASONS,
 } from '@researchdatabox/redbox-core';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
@@ -1285,22 +1288,9 @@ export namespace Services {
       if (source.schemaVersion !== 1 || source.trigger !== 'record-hook') {
         return undefined;
       }
-      const safeStatuses = new Set(['succeeded', 'failed', 'timed_out', 'interrupted', 'skipped', 'dispatched']);
-      const safeKinds = new Set([
-        'configuration',
-        'validation',
-        'domain',
-        'transient',
-        'timeout',
-        'interrupted',
-        'unexpected',
-      ]);
-      const safeReasons = new Set([
-        'prior_action_failed',
-        'phase_not_reached',
-        'save_not_persisted',
-        'trigger_disabled',
-      ]);
+      const safeStatuses = new Set<string>(ACTION_EXECUTION_STATUSES);
+      const safeKinds = new Set<string>(ACTION_FAILURE_KINDS);
+      const safeReasons = new Set<string>(ACTION_SKIPPED_REASONS);
       const actions = Array.isArray(source.actions)
         ? source.actions.slice(0, 100).flatMap(item => {
             if (!item || typeof item !== 'object' || Array.isArray(item)) return [];

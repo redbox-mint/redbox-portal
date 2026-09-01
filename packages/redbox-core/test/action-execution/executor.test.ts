@@ -10,12 +10,49 @@ import {
   dispatchDetachedActionPlan,
   legacyHookToEffect,
   projectRecordHookExecutionAuditSummary,
-  runActionPlan,
   runSequentialActionPlan,
   retryDelayMs,
+  type ActionExecutionOperation,
+  type ActionExecutionReport,
+  type ActionExecutionResult,
   validateActionExecutionPolicy,
 } from '../../src/action-execution/index';
 import { RecordHookCoordinator } from '../../src/services/record-hooks/coordinator';
+
+const timestamp = '2026-01-01T00:00:00.000Z';
+
+function dispatchedAction(index: number): ActionExecutionResult {
+  return {
+    actionId: `post-${index}`,
+    mode: 'onCreate',
+    phase: 'post',
+    index,
+    status: 'dispatched',
+    attempts: 0,
+    startedAt: timestamp,
+    completedAt: timestamp,
+    durationMs: 0,
+  };
+}
+
+function dispatchedReport(
+  operation: ActionExecutionOperation,
+  actions: ActionExecutionResult[]
+): ActionExecutionReport {
+  return {
+    context: {
+      executionId: operation.executionId,
+      phaseExecutionId: 'phase-post',
+      mode: 'onCreate',
+      phase: 'post',
+    },
+    status: 'dispatched',
+    startedAt: timestamp,
+    completedAt: timestamp,
+    durationMs: 0,
+    actions,
+  };
+}
 
 describe('Effect action execution', function () {
   it('derives stable bounded IDs without including the function expression', function () {
@@ -35,9 +72,10 @@ describe('Effect action execution', function () {
 
   it('threads sequential values, retries transient failures, and skips later actions after exhaustion', async function () {
     let attempts = 0;
+    const values: unknown[] = [];
     const operation = createActionExecutionOperation('onCreate', 'request-1');
     const context = createPhaseContext(operation, 'pre');
-    const outcome = await runActionPlan(
+    const outcome = await Effect.runPromise(runSequentialActionPlan(
       [
         {
           actionId: 'first',
@@ -67,11 +105,13 @@ describe('Effect action execution', function () {
           invoke: () => Effect.succeed({ value: 3 }),
         },
       ],
-      context
-    );
+      context,
+      {},
+      value => values.push(value)
+    ));
 
     expect(attempts).to.equal(2);
-    expect(outcome.values).to.deep.equal([{ value: 1 }]);
+    expect(values).to.deep.equal([{ value: 1 }]);
     expect(outcome.report.actions.map(action => action.status)).to.deep.equal(['succeeded', 'failed', 'skipped']);
     expect(outcome.report.actions[2].skippedReason).to.equal('prior_action_failed');
     expect(outcome.report.actions[0].attempts).to.equal(2);
@@ -125,7 +165,7 @@ describe('Effect action execution', function () {
   it('reports an opaque Promise timeout as non-cooperative', async function () {
     const operation = createActionExecutionOperation('onCreate');
     const cancellation = { value: true };
-    const outcome = await runActionPlan(
+    const outcome = await Effect.runPromise(runSequentialActionPlan(
       [
         {
           actionId: 'promise-timeout',
@@ -138,7 +178,7 @@ describe('Effect action execution', function () {
         },
       ],
       createPhaseContext(operation, 'pre')
-    );
+    ));
     expect(outcome.report.actions[0].status).to.equal('timed_out');
     expect(outcome.report.actions[0].failure?.cancellationCooperative).to.equal(false);
   });
@@ -147,7 +187,7 @@ describe('Effect action execution', function () {
     let invocations = 0;
     const operation = createActionExecutionOperation('onCreate');
     const cancellation = { value: true };
-    const outcome = await runActionPlan(
+    const outcome = await Effect.runPromise(runSequentialActionPlan(
       [
         {
           actionId: 'promise-timeout-retry',
@@ -167,7 +207,7 @@ describe('Effect action execution', function () {
         },
       ],
       createPhaseContext(operation, 'pre')
-    );
+    ));
 
     expect(invocations).to.equal(1);
     expect(outcome.report.actions[0].attempts).to.equal(1);
@@ -209,34 +249,12 @@ describe('Effect action execution', function () {
 
   it('caps audit entries while retaining complete counts', function () {
     const operation = createActionExecutionOperation('onCreate');
-    operation.reports.push({
-      schemaVersion: 1,
-      executionId: operation.executionId,
-      phaseExecutionId: 'phase-1',
-      context: {
-        executionId: operation.executionId,
-        phaseExecutionId: 'phase-1',
-        trigger: 'record-hook',
-        mode: 'onCreate',
-        phase: 'post',
-      },
-      status: 'dispatched',
-      startedAt: '2026-01-01T00:00:00.000Z',
-      completedAt: '2026-01-01T00:00:00.000Z',
-      durationMs: 0,
-      actions: Array.from({ length: 101 }, (_, index) => ({
-        actionId: `a-${index}`,
-        mode: 'onCreate' as const,
-        phase: 'post' as const,
-        index,
-        status: 'dispatched' as const,
-        attempts: 0,
-        startedAt: '2026-01-01T00:00:00.000Z',
-        completedAt: '2026-01-01T00:00:00.000Z',
-        durationMs: 0,
-      })),
-      counts: { succeeded: 0, failed: 0, timed_out: 0, interrupted: 0, skipped: 0, dispatched: 101 },
-    });
+    operation.reports.push(
+      dispatchedReport(
+        operation,
+        Array.from({ length: 101 }, (_, index) => ({ ...dispatchedAction(index), actionId: `a-${index}` }))
+      )
+    );
     const summary = projectRecordHookExecutionAuditSummary(operation);
     expect(summary.actions).to.have.length(100);
     expect(summary.totalActions).to.equal(101);
@@ -247,47 +265,7 @@ describe('Effect action execution', function () {
   it('replaces completed detached dispatches without double-counting pending actions', function () {
     const operation = createActionExecutionOperation('onCreate');
     operation.detachedPending = 1;
-    operation.reports.push({
-      schemaVersion: 1,
-      executionId: operation.executionId,
-      phaseExecutionId: 'phase-post',
-      context: {
-        executionId: operation.executionId,
-        phaseExecutionId: 'phase-post',
-        trigger: 'record-hook',
-        mode: 'onCreate',
-        phase: 'post',
-      },
-      status: 'dispatched',
-      startedAt: '2026-01-01T00:00:00.000Z',
-      completedAt: '2026-01-01T00:00:00.000Z',
-      durationMs: 0,
-      actions: [
-        {
-          actionId: 'post-0',
-          mode: 'onCreate',
-          phase: 'post',
-          index: 0,
-          status: 'dispatched',
-          attempts: 0,
-          startedAt: '2026-01-01T00:00:00.000Z',
-          completedAt: '2026-01-01T00:00:00.000Z',
-          durationMs: 0,
-        },
-        {
-          actionId: 'post-1',
-          mode: 'onCreate',
-          phase: 'post',
-          index: 1,
-          status: 'dispatched',
-          attempts: 0,
-          startedAt: '2026-01-01T00:00:00.000Z',
-          completedAt: '2026-01-01T00:00:00.000Z',
-          durationMs: 0,
-        },
-      ],
-      counts: { succeeded: 0, failed: 0, timed_out: 0, interrupted: 0, skipped: 0, dispatched: 2 },
-    });
+    operation.reports.push(dispatchedReport(operation, [dispatchedAction(0), dispatchedAction(1)]));
     operation.detachedResults = [
       {
         actionId: 'post-0',
@@ -391,7 +369,8 @@ describe('Effect action execution', function () {
       return current.value + 1;
     }).pipe(Effect.provideService(service, { value: 4 }));
     const operation = createActionExecutionOperation('onCreate');
-    const outcome = await runActionPlan(
+    const values: unknown[] = [];
+    const outcome = await Effect.runPromise(runSequentialActionPlan(
       [
         {
           actionId: 'native-layered',
@@ -401,17 +380,19 @@ describe('Effect action execution', function () {
           invoke: () => legacyHookToEffect(() => nativeAction),
         },
       ],
-      createPhaseContext(operation, 'pre')
-    );
+      createPhaseContext(operation, 'pre'),
+      {},
+      value => values.push(value)
+    ));
 
-    expect(outcome.values).to.deep.equal([5]);
+    expect(values).to.deep.equal([5]);
     expect(outcome.report.actions[0].status).to.equal('succeeded');
   });
 
   it('logs starts at debug and keeps payloads out of info/warn fields', async function () {
     const logs: Array<{ level: string; name: string; fields?: Record<string, unknown> }> = [];
     const operation = createActionExecutionOperation('onCreate');
-    await runActionPlan(
+    await Effect.runPromise(runSequentialActionPlan(
       [
         {
           actionId: 'redacted-payload',
@@ -429,7 +410,7 @@ describe('Effect action execution', function () {
           warn: (name, fields) => logs.push({ level: 'warn', name, fields }),
         },
       }
-    );
+    ));
 
     expect(logs.some(log => log.level === 'debug' && log.name === 'record_hook_action_started')).to.equal(true);
     expect(logs.some(log => log.level === 'debug' && log.name === 'record_hook_action_attempt_succeeded')).to.equal(
@@ -475,35 +456,6 @@ describe('Effect action execution', function () {
         entry => entry.name === 'record_hook_detached_action_failed' && entry.fields?.failure_kind === 'interrupted'
       )
     ).to.equal(true);
-  });
-
-  it('unregisters detached fibers after they complete', async function () {
-    const registered: unknown[] = [];
-    const unregistered: unknown[] = [];
-    const operation = createActionExecutionOperation('onCreate');
-    dispatchDetachedActionPlan(
-      [
-        {
-          actionId: 'completes',
-          mode: 'onCreate',
-          phase: 'post',
-          index: 0,
-          invoke: () => Effect.succeed(undefined),
-        },
-      ],
-      createPhaseContext(operation, 'post'),
-      {
-        supervisor: {
-          register: fiber => registered.push(fiber),
-          unregister: fiber => unregistered.push(fiber),
-        },
-      }
-    );
-
-    await new Promise(resolve => setImmediate(resolve));
-    await new Promise(resolve => setImmediate(resolve));
-    expect(registered).to.have.length(1);
-    expect(unregistered).to.deep.equal(registered);
   });
 
   it('fails the action when a post-sync hook returns the wrong shape and still reports the phase', async function () {

@@ -145,8 +145,6 @@ export namespace Services {
           error: (message, fields) => sails.log.error(`${this.logHeader}${message}`, fields),
         },
         supervisor: this.hookExecutionSupervisor,
-        schedule: (durationMs, task) => setTimeout(task, durationMs),
-        cancelSchedule: handle => clearTimeout(handle as ReturnType<typeof setTimeout>),
       };
     }
 
@@ -383,6 +381,7 @@ export namespace Services {
             sails.log.error(`${this.logHeader} index submission failed`, error);
           });
       }
+      let auditTimer: ReturnType<typeof setTimeout> | undefined;
       const submitAudit = (detachedFinalization: DetachedAuditFinalization = 'complete'): void => {
         if (operation?.detachedAuditFinalized) {
           return;
@@ -390,10 +389,9 @@ export namespace Services {
         if (operation) {
           operation.detachedAuditFinalized = true;
           operation.onDetachedComplete = undefined;
-          if (operation.detachedAuditTimer !== undefined) {
-            operation.cancelDetachedAuditTimer?.(operation.detachedAuditTimer);
-            operation.detachedAuditTimer = undefined;
-            operation.cancelDetachedAuditTimer = undefined;
+          if (auditTimer !== undefined) {
+            clearTimeout(auditTimer);
+            auditTimer = undefined;
           }
           this.completeHookOperation(operation, detachedFinalization === 'grace-expired', detachedFinalization);
         }
@@ -418,16 +416,10 @@ export namespace Services {
       };
       if (operation && (operation.detachedPending ?? 0) > 0) {
         operation.onDetachedComplete = () => submitAudit('complete');
-        const dependencies = this.hookExecutionDependencies();
-        const schedule =
-          dependencies.schedule ?? ((durationMs: number, task: () => void) => setTimeout(task, durationMs));
-        operation.cancelDetachedAuditTimer =
-          dependencies.cancelSchedule ?? (handle => clearTimeout(handle as ReturnType<typeof setTimeout>));
-        const timer = schedule(DETACHED_AUDIT_GRACE_MS, () => submitAudit('grace-expired'));
+        auditTimer = setTimeout(() => submitAudit('grace-expired'), DETACHED_AUDIT_GRACE_MS);
         if (operation.detachedAuditFinalized) {
-          operation.cancelDetachedAuditTimer(timer);
-        } else {
-          operation.detachedAuditTimer = timer;
+          clearTimeout(auditTimer);
+          auditTimer = undefined;
         }
         // A detached action may have completed during the awaited snapshot
         // reload. Do not leave a zero-pending operation waiting on a callback.
@@ -872,8 +864,7 @@ export namespace Services {
         validateRecordHookConfiguration(
           recordType,
           modes,
-          (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase),
-          ['pre']
+          (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase)
         );
       } catch (error) {
         if (RBValidationError.isRBValidationError(error)) {
