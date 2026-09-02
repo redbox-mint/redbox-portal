@@ -552,6 +552,54 @@ describe('VocabularyService', () => {
       expect(importStub.firstCall.args[0]).to.equal('316');
     });
 
+    it('retries a transient RVA bootstrap failure without logging an error when it succeeds', async () => {
+      const { readdirStub, readFileStub } = stubBootstrapFileOps();
+      readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
+      readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
+      g.Vocabulary.findOne = sinon.stub().resolves(null) as unknown as VocabularyModelStub['findOne'];
+      const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+      importStub.onFirstCall().rejects(new Error('RVA import timed out'));
+      importStub.onSecondCall().resolves({ id: 'rva-316' });
+
+      await service.bootstrapData();
+
+      expect(importStub.callCount).to.equal(2);
+      expect((g.sails.log.error as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('accepts an RVA import that appears after the timeout', async () => {
+      const clock = sinon.useFakeTimers();
+      try {
+        const { readdirStub, readFileStub } = stubBootstrapFileOps();
+        readdirStub.resolves([{ isFile: () => true, name: 'rva-imports.json' }] as unknown as ReaddirResult);
+        readFileStub.resolves(JSON.stringify({ imports: [{ rvaId: '316' }] }));
+        const findOneStub = sinon.stub();
+        findOneStub.onFirstCall().resolves(null);
+        // The original import finishes after reconciliation sees no row.
+        let resolveImport!: (value: { id: string }) => void;
+        const originalImport = new Promise<{ id: string }>(resolve => {
+          resolveImport = resolve;
+        });
+        findOneStub.onSecondCall().callsFake(async () => {
+          resolveImport({ id: 'rva-316' });
+          return null;
+        });
+        g.Vocabulary.findOne = findOneStub as unknown as VocabularyModelStub['findOne'];
+        const importStub = (g.sails.services.rvaimportservice as { importRvaVocabulary: sinon.SinonStub }).importRvaVocabulary;
+        importStub.returns(originalImport);
+
+        const bootstrap = service.bootstrapData();
+        await clock.tickAsync(30_001);
+        await clock.tickAsync(1_000);
+        await bootstrap;
+
+        expect(importStub.calledOnce).to.equal(true);
+        expect((g.sails.log.error as sinon.SinonStub).called).to.equal(false);
+      } finally {
+        clock.restore();
+      }
+    });
+
     it('does not import rva vocabularies when disabled in config', async () => {
       g.sails.config.vocab = { bootstrapRvaImports: false };
       const { readdirStub, readFileStub } = stubBootstrapFileOps();
