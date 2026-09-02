@@ -1,14 +1,14 @@
 # ReDBox extension contracts and form contracts
 
 Schema version: 1.0.0  
-Source commit: 596083f77f2f15b8ec53aada7716368f13a32b6a  
-Build time: 2026-09-01T07:55:31.409Z
+Source commit: da904e0751d7a27f57acd7b63f552fcc6fb44780  
+Build time: 2026-09-02T04:54:00.571Z
 
 ## RecordController
 
 - Kind: ajax-controller
 - Lifecycle: supported
-- Source: [packages/redbox-core/src/controllers/RecordController.ts:75](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/redbox-core/src/controllers/RecordController.ts#L75)
+- Source: [packages/redbox-core/src/controllers/RecordController.ts:75](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/redbox-core/src/controllers/RecordController.ts#L75)
 
 Responsible for all things related to a Record, includings Forms, etc.
 
@@ -55,7 +55,7 @@ the object schema and information that is allowed to be sent back in this endpoi
 
 - Kind: base-controller
 - Lifecycle: supported
-- Source: [packages/redbox-core/src/CoreController.ts:44](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/redbox-core/src/CoreController.ts#L44)
+- Source: [packages/redbox-core/src/CoreController.ts:44](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/redbox-core/src/CoreController.ts#L44)
 
 Core controller which defines common logic between controllers.
 
@@ -100,7 +100,7 @@ Defaults / Conventions:
 
 - Kind: base-service
 - Lifecycle: supported
-- Source: [packages/redbox-core/src/CoreService.ts:20](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/redbox-core/src/CoreService.ts#L20)
+- Source: [packages/redbox-core/src/CoreService.ts:20](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/redbox-core/src/CoreService.ts#L20)
 
 Base contract for services exposed through ReDBox loader-generated Sails shims.
 
@@ -125,7 +125,7 @@ TODO: source and dest can be made more type safe |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/accordion.outline.ts:151](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/accordion.outline.ts#L151)
+- Source: [packages/sails-ng-common/src/config/component/accordion.outline.ts:151](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/accordion.outline.ts#L151)
 
 Groups child components into an accordion container.
 
@@ -160,7 +160,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/accordion.outline.ts:171](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/accordion.outline.ts#L171)
+- Source: [packages/sails-ng-common/src/config/component/accordion.outline.ts:171](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/accordion.outline.ts#L171)
 
 Defines one collapsible panel within an accordion.
 
@@ -194,7 +194,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/cancel-button.outline.ts:86](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/cancel-button.outline.ts#L86)
+- Source: [packages/sails-ng-common/src/config/component/cancel-button.outline.ts:86](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/cancel-button.outline.ts#L86)
 
 Configures a button that cancels form editing.
 
@@ -238,7 +238,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/checkbox-input.outline.ts:92](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/checkbox-input.outline.ts#L92)
+- Source: [packages/sails-ng-common/src/config/component/checkbox-input.outline.ts:92](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/checkbox-input.outline.ts#L92)
 
 Configures one or more checkbox choices from inline options or a vocabulary.
 
@@ -277,7 +277,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/checkbox-tree.outline.ts:103](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/checkbox-tree.outline.ts#L103)
+- Source: [packages/sails-ng-common/src/config/component/checkbox-tree.outline.ts:103](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/checkbox-tree.outline.ts#L103)
 
 Configures hierarchical checkbox selection from tree-shaped option data.
 
@@ -317,7 +317,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/content.outline.ts:72](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/content.outline.ts#L72)
+- Source: [packages/sails-ng-common/src/config/component/content.outline.ts:72](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/content.outline.ts#L72)
 
 Renders configured informational content without contributing a model value.
 
@@ -356,7 +356,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/data-location.outline.ts:136](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/data-location.outline.ts#L136)
+- Source: [packages/sails-ng-common/src/config/component/data-location.outline.ts:136](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/data-location.outline.ts#L136)
 
 Captures and displays a configured research-data location.
 
@@ -424,7 +424,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/date-input.outline.ts:87](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/date-input.outline.ts#L87)
+- Source: [packages/sails-ng-common/src/config/component/date-input.outline.ts:87](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/date-input.outline.ts#L87)
 
 Configures date entry and its serialised model value.
 
@@ -464,7 +464,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/delete-button.outline.ts:86](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/delete-button.outline.ts#L86)
+- Source: [packages/sails-ng-common/src/config/component/delete-button.outline.ts:86](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/delete-button.outline.ts#L86)
 
 Configures a form action that deletes the current record.
 
@@ -509,7 +509,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/dropdown-input.outline.ts:92](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/dropdown-input.outline.ts#L92)
+- Source: [packages/sails-ng-common/src/config/component/dropdown-input.outline.ts:92](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/dropdown-input.outline.ts#L92)
 
 Configures a dropdown backed by inline options or a ReDBox vocabulary.
 
@@ -547,7 +547,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/file-upload.outline.ts:103](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/file-upload.outline.ts#L103)
+- Source: [packages/sails-ng-common/src/config/component/file-upload.outline.ts:103](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/file-upload.outline.ts#L103)
 
 Configures attachment upload and the associated persisted file metadata.
 
@@ -586,7 +586,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/group.outline.ts:87](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/group.outline.ts#L87)
+- Source: [packages/sails-ng-common/src/config/component/group.outline.ts:87](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/group.outline.ts#L87)
 
 Groups child form definitions and their values into a structured object.
 
@@ -620,7 +620,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/integration-status.outline.ts:60](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/integration-status.outline.ts#L60)
+- Source: [packages/sails-ng-common/src/config/component/integration-status.outline.ts:60](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/integration-status.outline.ts#L60)
 
 Displays status information for configured external integrations.
 
@@ -661,7 +661,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/map.outline.ts:110](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/map.outline.ts#L110)
+- Source: [packages/sails-ng-common/src/config/component/map.outline.ts:110](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/map.outline.ts#L110)
 
 Configures interactive geographic feature capture and display.
 
@@ -702,7 +702,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/pdf-list.outline.ts:97](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/pdf-list.outline.ts#L97)
+- Source: [packages/sails-ng-common/src/config/component/pdf-list.outline.ts:97](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/pdf-list.outline.ts#L97)
 
 Displays and models a configured list of PDF resources.
 
@@ -746,7 +746,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/publish-data-location-refresh.outline.ts:65](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/publish-data-location-refresh.outline.ts#L65)
+- Source: [packages/sails-ng-common/src/config/component/publish-data-location-refresh.outline.ts:65](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/publish-data-location-refresh.outline.ts#L65)
 
 Configures the action that refreshes publishable data-location state.
 
@@ -781,7 +781,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/publish-data-location-selector.outline.ts:135](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/publish-data-location-selector.outline.ts#L135)
+- Source: [packages/sails-ng-common/src/config/component/publish-data-location-selector.outline.ts:135](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/publish-data-location-selector.outline.ts#L135)
 
 Selects a configured data location for publication workflows.
 
@@ -846,7 +846,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/question-tree.outline.ts:341](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/question-tree.outline.ts#L341)
+- Source: [packages/sails-ng-common/src/config/component/question-tree.outline.ts:341](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/question-tree.outline.ts#L341)
 
 Configures a branching question tree and its selected answers.
 
@@ -891,7 +891,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/radio-input.outline.ts:90](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/radio-input.outline.ts#L90)
+- Source: [packages/sails-ng-common/src/config/component/radio-input.outline.ts:90](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/radio-input.outline.ts#L90)
 
 Configures a single-choice radio group from inline or vocabulary options.
 
@@ -928,7 +928,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/record-metadata-retriever.outline.ts:54](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/record-metadata-retriever.outline.ts#L54)
+- Source: [packages/sails-ng-common/src/config/component/record-metadata-retriever.outline.ts:54](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/record-metadata-retriever.outline.ts#L54)
 
 Configures retrieval of metadata from a related ReDBox record.
 
@@ -961,7 +961,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/record-selector.outline.ts:96](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/record-selector.outline.ts#L96)
+- Source: [packages/sails-ng-common/src/config/component/record-selector.outline.ts:96](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/record-selector.outline.ts#L96)
 
 Configures lookup and selection of another ReDBox record.
 
@@ -1000,7 +1000,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/repeatable.outline.ts:133](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/repeatable.outline.ts#L133)
+- Source: [packages/sails-ng-common/src/config/component/repeatable.outline.ts:133](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/repeatable.outline.ts#L133)
 
 Repeats a configured element template and models the resulting array of values.
 
@@ -1038,7 +1038,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/reusable.outline.ts:50](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/reusable.outline.ts#L50)
+- Source: [packages/sails-ng-common/src/config/component/reusable.outline.ts:50](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/reusable.outline.ts#L50)
 
 References a reusable form definition that the construction visitor expands.
 
@@ -1072,7 +1072,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/rich-text-editor.outline.ts:91](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/rich-text-editor.outline.ts#L91)
+- Source: [packages/sails-ng-common/src/config/component/rich-text-editor.outline.ts:91](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/rich-text-editor.outline.ts#L91)
 
 Configures rich-text editing and its serialised text value.
 
@@ -1110,7 +1110,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/save-button.outline.ts:87](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/save-button.outline.ts#L87)
+- Source: [packages/sails-ng-common/src/config/component/save-button.outline.ts:87](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/save-button.outline.ts#L87)
 
 Configures the primary form save action.
 
@@ -1156,7 +1156,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/save-status.outline.ts:54](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/save-status.outline.ts#L54)
+- Source: [packages/sails-ng-common/src/config/component/save-status.outline.ts:54](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/save-status.outline.ts#L54)
 
 Displays current form save progress and result state.
 
@@ -1191,7 +1191,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/simple-input.outline.ts:86](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/simple-input.outline.ts#L86)
+- Source: [packages/sails-ng-common/src/config/component/simple-input.outline.ts:86](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/simple-input.outline.ts#L86)
 
 Configures a single-line textual, numeric, password, URL, telephone, or hidden input.
 
@@ -1226,7 +1226,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/suggested-validation-summary.outline.ts:55](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/suggested-validation-summary.outline.ts#L55)
+- Source: [packages/sails-ng-common/src/config/component/suggested-validation-summary.outline.ts:55](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/suggested-validation-summary.outline.ts#L55)
 
 Displays advisory validation suggestions separately from blocking errors.
 
@@ -1263,7 +1263,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/tab.outline.ts:110](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/tab.outline.ts#L110)
+- Source: [packages/sails-ng-common/src/config/component/tab.outline.ts:110](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/tab.outline.ts#L110)
 
 Groups child form definitions into a tabbed container.
 
@@ -1297,7 +1297,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/tab-content.outline.ts:96](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/tab-content.outline.ts#L96)
+- Source: [packages/sails-ng-common/src/config/component/tab-content.outline.ts:96](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/tab-content.outline.ts#L96)
 
 Defines the child content displayed by a tab container.
 
@@ -1332,7 +1332,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/tab-nav-button.outline.ts:71](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/tab-nav-button.outline.ts#L71)
+- Source: [packages/sails-ng-common/src/config/component/tab-nav-button.outline.ts:71](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/tab-nav-button.outline.ts#L71)
 
 Configures a button that moves between tabs in a form.
 
@@ -1370,7 +1370,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/text-area.outline.ts:89](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/text-area.outline.ts#L89)
+- Source: [packages/sails-ng-common/src/config/component/text-area.outline.ts:89](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/text-area.outline.ts#L89)
 
 Configures multiline plain-text entry and its model value.
 
@@ -1406,7 +1406,7 @@ Defaults to false. |
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/typeahead-input.outline.ts:218](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/typeahead-input.outline.ts#L218)
+- Source: [packages/sails-ng-common/src/config/component/typeahead-input.outline.ts:218](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/typeahead-input.outline.ts#L218)
 
 Configures searchable typeahead selection from local or remote choices.
 
@@ -1418,7 +1418,7 @@ _This contract has no published members._
 
 - Kind: form-component
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/component/validation-summary.outline.ts:60](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/component/validation-summary.outline.ts#L60)
+- Source: [packages/sails-ng-common/src/config/component/validation-summary.outline.ts:60](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/component/validation-summary.outline.ts#L60)
 
 Displays the form's current blocking validation errors.
 
@@ -1455,7 +1455,7 @@ Defaults to false. |
 
 - Kind: form-config
 - Lifecycle: supported
-- Source: [packages/sails-ng-common/src/config/form-config.outline.ts:15](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/sails-ng-common/src/config/form-config.outline.ts#L15)
+- Source: [packages/sails-ng-common/src/config/form-config.outline.ts:15](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/sails-ng-common/src/config/form-config.outline.ts#L15)
 
 The top-level form config interface that provides typing for the object literal and schema.
 
@@ -1516,7 +1516,7 @@ This is automatically populated by the form config visitor. |
 
 - Kind: hook-protocol
 - Lifecycle: supported
-- Source: [packages/redbox-core/src/hooks/defineRedboxHook.ts:31](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/redbox-core/src/hooks/defineRedboxHook.ts#L31)
+- Source: [packages/redbox-core/src/hooks/defineRedboxHook.ts:31](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/redbox-core/src/hooks/defineRedboxHook.ts#L31)
 
 Declares the capabilities contributed by an installable ReDBox hook.
 
@@ -1540,7 +1540,7 @@ How to change this contract: Pass registration functions to `defineRedboxHook`; 
 
 - Kind: service
 - Lifecycle: supported
-- Source: [packages/redbox-core/src/services/RecordsService.ts:82](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/redbox-core/src/services/RecordsService.ts#L82)
+- Source: [packages/redbox-core/src/services/RecordsService.ts:82](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/redbox-core/src/services/RecordsService.ts#L82)
 
 Provides the core record lifecycle, persistence, authorization, and relationship operations.
 
@@ -1591,7 +1591,7 @@ How to change this contract: Register a subclass as `RecordsService` from a hook
 
 - Kind: webservice-controller
 - Lifecycle: supported
-- Source: [packages/redbox-core/src/controllers/webservice/RecordController.ts:80](https://github.com/redbox-mint/redbox-portal/blob/596083f77f2f15b8ec53aada7716368f13a32b6a/packages/redbox-core/src/controllers/webservice/RecordController.ts#L80)
+- Source: [packages/redbox-core/src/controllers/webservice/RecordController.ts:80](https://github.com/redbox-mint/redbox-portal/blob/da904e0751d7a27f57acd7b63f552fcc6fb44780/packages/redbox-core/src/controllers/webservice/RecordController.ts#L80)
 
 Implements the legacy webservice record operations exposed by the core route registry.
 
