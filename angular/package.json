@@ -40,7 +40,7 @@
     "@uppy/core": "5.2.0",
     "@uppy/dashboard": "5.1.1",
     "@uppy/dropbox": "5.1.0",
-    "@uppy/google-drive": "5.1.0",
+    "@uppy/google-drive": "6.0.0",
     "@uppy/onedrive": "5.1.0",
     "@uppy/tus": "5.1.1",
     "esbuild": "0.28.2",
