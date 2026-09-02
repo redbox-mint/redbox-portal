@@ -16,6 +16,26 @@ export interface ResolvedFigsharePublishingConfigData extends FigsharePublishing
   };
 }
 
+type AppConfigResolver = {
+  getAppConfigurationForBrand?: (name: string) => unknown;
+};
+
+/**
+ * Prefer the canonical service lifted by Sails. Hooks can resolve their peer copy of
+ * redbox-core through a development-only module path, where that peer has a separate,
+ * unbootstrapped ServiceExports registry. Unit and pre-lift callers still fall back to
+ * the local export.
+ */
+function getAppConfigResolver(): AppConfigResolver | undefined {
+  const liftedService = typeof AppConfigService === 'undefined'
+    ? undefined
+    : AppConfigService as AppConfigResolver;
+  if (typeof liftedService?.getAppConfigurationForBrand === 'function') {
+    return liftedService;
+  }
+  return ServiceExports.AppConfigService as AppConfigResolver | undefined;
+}
+
 export function getBrandName(record?: RecordModel): string {
   if (record == null) return 'default';
   const rm = record as RecordModel;
@@ -62,7 +82,7 @@ function shouldUseFixtureRuntime(figshareDev: FigshareDevConfig): boolean {
 
 export function resolveFigsharePublishingConfig(record?: RecordModel): ResolvedFigsharePublishingConfigData | null {
   const brandName = getBrandName(record);
-  const appConfigService = ServiceExports.AppConfigService as { getAppConfigurationForBrand?: (name: string) => unknown } | undefined;
+  const appConfigService = getAppConfigResolver();
   const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName) ?? appConfigService?.getAppConfigurationForBrand?.('default');
   const brandConfigRecord = brandConfig != null && typeof brandConfig === 'object' ? brandConfig as Record<string, unknown> : undefined;
   const figsharePublishing = brandConfigRecord?.figsharePublishing;
@@ -106,7 +126,7 @@ export function resolveFigsharePublishingConfig(record?: RecordModel): ResolvedF
  * catalogue must check for a token themselves.
  */
 export function resolveFigshareVocabularyConfig(brandName: string): ResolvedFigsharePublishingConfigData | null {
-  const appConfigService = ServiceExports.AppConfigService as { getAppConfigurationForBrand?: (name: string) => unknown } | undefined;
+  const appConfigService = getAppConfigResolver();
   const brandConfig = appConfigService?.getAppConfigurationForBrand?.(brandName)
     ?? appConfigService?.getAppConfigurationForBrand?.('default');
   const brandConfigRecord = brandConfig != null && typeof brandConfig === 'object' ? brandConfig as Record<string, unknown> : undefined;
