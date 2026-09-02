@@ -41,6 +41,7 @@ describe('FormDebugStateService', () => {
 
   afterEach(() => {
     service?.ngOnDestroy();
+    TestBed.resetTestingModule();
     (window as any).BroadcastChannel = originalBroadcastChannel;
     (globalThis as any).BroadcastChannel = originalBroadcastChannel;
     setFormDebugUrl();
