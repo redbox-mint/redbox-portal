@@ -1,12 +1,22 @@
 import assert from 'node:assert/strict';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
+import type { Response } from 'express';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
-import { RecordSaveResponse } from '../../../src/RecordSaveResponse';
+import type { RecordSchemaService } from '../../../src';
+import type { BuildResponseType } from '../../../src/model';
+import { isRecordSaveContext, type RecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
+import {
+  createRecordRoute,
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
+  transitionWorkflowRoute,
+  updateMetaRoute,
+  validateApiRouteRequest,
+} from '../../../src/api-routes';
 
 type PermissionCase = {
   name: string;
@@ -23,6 +33,32 @@ type PermissionCase = {
   initialAuthorization: Record<string, string[]>;
   expectedFields: Array<[string, string[]]>;
 };
+
+interface RecordControllerTestSeam {
+  sendResp(req: Sails.Req, res: Sails.Res, buildResponse?: BuildResponseType): Response;
+}
+
+interface RecordControllerResponseFixture {
+  readonly response: Sails.Res;
+  readonly set: sinon.SinonStub<[field: string | Record<string, string>, value?: string], Sails.Res>;
+  readonly status: sinon.SinonStub<[statusCode: number], Sails.Res>;
+  readonly json: sinon.SinonStub<[body: unknown], Sails.Res>;
+}
+
+function exposeRecordControllerTestSeam(controller: Controllers.Record): RecordControllerTestSeam {
+  return controller as unknown as RecordControllerTestSeam;
+}
+
+function recordControllerResponseFixture(): RecordControllerResponseFixture {
+  const response: Sails.Res = Object.create(null);
+  const set = sinon.stub<[field: string | Record<string, string>, value?: string], Sails.Res>().returns(response);
+  const status = sinon.stub<[statusCode: number], Sails.Res>().returns(response);
+  const json = sinon.stub<[body: unknown], Sails.Res>().returns(response);
+  Reflect.set(response, 'set', set);
+  Reflect.set(response, 'status', status);
+  Reflect.set(response, 'json', json);
+  return { response, set, status, json };
+}
 
 function makeThrowingRequest(apiRequest: Sails.Req['apiRequest'], extra: Partial<Sails.Req> = {}): Sails.Req {
   const request = {
@@ -43,6 +79,26 @@ function makeThrowingRequest(apiRequest: Sails.Req['apiRequest'], extra: Partial
   return request as Sails.Req;
 }
 
+function makeValidatedRequest(
+  route: Parameters<typeof validateApiRouteRequest>[1],
+  raw: Pick<Sails.Req, 'params' | 'query' | 'headers' | 'body'>,
+  extra: Partial<Sails.Req> = {}
+): Sails.Req {
+  const validated = validateApiRouteRequest(raw as Sails.Req, route);
+  assert.equal(validated.valid, true, validated.valid ? undefined : JSON.stringify(validated.issues));
+  if (!validated.valid) throw new Error('Expected request contract validation to succeed.');
+  return makeThrowingRequest(
+    {
+      params: validated.params,
+      query: validated.query,
+      headers: validated.headers,
+      body: validated.body,
+      files: validated.files,
+    },
+    { params: raw.params, query: raw.query, headers: raw.headers, ...extra }
+  );
+}
+
 function successResult(oid = 'record-1') {
   const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000000');
   result.oid = oid;
@@ -57,6 +113,104 @@ function notSavedResult() {
   result.outcome = 'not-saved';
   result.message = '@record-save-failed';
   return result;
+}
+
+function schemaAwareSuccessResult(
+  oid: string,
+  digest: string,
+  immutableUrl = `/default/default/api/records/schemas/${digest}`
+): RecordSaveResponse {
+  const result = successResult(oid);
+  result.message = 'Record saved';
+  result.metadata = { title: 'Saved metadata' };
+  result.setSchemaOutcome({
+    digest,
+    immutableUrl,
+    completeness: 'complete',
+    enforcement: 'shadow',
+  });
+  return result;
+}
+
+function resolvedUpdateSchema(
+  digest: string
+): Awaited<ReturnType<RecordSchemaService.Services.RecordSchema['resolveUpdate']>> {
+  const context = {
+    brand: 'brand-1',
+    portal: 'tenant portal',
+    kind: 'update' as const,
+    recordType: 'dataset',
+    workflowStep: 'draft',
+    form: 'dataset-draft',
+    operation: 'strict-all',
+    unknownProperties: 'allow' as const,
+    enforcement: 'shadow' as const,
+  };
+  return {
+    kind: 'resolved',
+    digest,
+    document: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $id: `/brand-1/tenant%20portal/api/records/schemas/${digest}`,
+      type: 'object',
+      'x-redbox-contract-format': 'redbox-record-contract/1',
+      'x-redbox-context': context,
+      'x-redbox-completeness': 'complete',
+      'x-redbox-validation': [],
+      'x-redbox-diagnostics': [],
+    },
+    metadata: {
+      schemaKind: 'update',
+      contractFormat: 'redbox-record-contract/1',
+      completeness: 'complete',
+      byteLength: 1,
+      etag: `"sha256:${digest}"`,
+      context,
+    },
+    grant: {
+      referenceKey: 'grant-update-read-discovery',
+      digest,
+      brand: 'brand-1',
+      portal: 'tenant portal',
+      recordType: 'dataset',
+      operation: 'strict-all',
+      kind: 'grant',
+      schemaKind: 'update',
+      oid: 'oid-1',
+    },
+  };
+}
+
+function expectedLegacySaveBody(result: RecordSaveResponse): Record<string, unknown> {
+  return {
+    success: result.success,
+    oid: result.oid,
+    message: result.message,
+    data: result.data,
+    metadata: result.metadata,
+    details: result.details,
+    totalItems: result.totalItems,
+    items: result.items,
+  };
+}
+
+function schemaPreconditionFailure(code: 'record-schema.precondition-failed' | 'record-schema.invalid-request') {
+  const result = notSavedResult();
+  result.problems = [
+    {
+      kind: 'validation',
+      source: 'schema',
+      phase: 'schema',
+      issues: [{ code, message: `@${code}` }],
+    },
+  ];
+  return result;
+}
+
+function requireRecordSaveContext(value: unknown): RecordSaveContext {
+  assert.equal(isRecordSaveContext(value), true, 'Expected a trusted record save context.');
+  if (!isRecordSaveContext(value)) throw new Error('Expected a trusted record save context.');
+  return value;
 }
 
 function cloneAuthorization(authorization: Record<string, string[]>): Record<string, string[]> {
@@ -133,6 +287,13 @@ describe('Webservice RecordController body source', () => {
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandAndPortalPath: sinon.stub().returns('/default/default'),
+      getBrandNameFromReq: sinon
+        .stub()
+        .callsFake((request: { params?: Record<string, unknown> }) => request.params?.branding ?? 'default'),
+      getPortalFromReq: sinon
+        .stub()
+        .callsFake((request: { params?: Record<string, unknown> }) => request.params?.portal ?? 'default'),
+      getRootContext: sinon.stub().returns(''),
     };
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ id: 'record-type-1', name: 'dataset' })),
@@ -170,6 +331,193 @@ describe('Webservice RecordController body source', () => {
     controller.DatastreamService = {
       addDatastreams: sinon.stub(),
     } as never;
+  });
+
+  describe('save response schema discovery', function () {
+    it('builds successful create/update discovery from route context under a deployment root', async function () {
+      const updateDigest = 'a'.repeat(64);
+      const createDigest = 'b'.repeat(64);
+      const schemaIfMatch = `"sha256:${updateDigest}"`;
+      const updateArtifactId = `/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
+      const createArtifactId = `/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
+      const updatePublicUrl = `/redbox/public-brand/tenant-portal/api/records/schemas/${updateDigest}`;
+      const createPublicUrl = `/redbox/public-brand/tenant-portal/api/records/schemas/${createDigest}`;
+      (global as any).BrandingService.getRootContext.returns('/redbox');
+      recordsService.getMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 2,
+        metadata: { title: 'Before update' },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+        const context = requireRecordSaveContext(args[8]);
+        expect(context).to.include({ portal: 'tenant-portal', ifMatch: schemaIfMatch });
+        return schemaAwareSuccessResult('record-1', updateDigest, updateArtifactId);
+      });
+      recordsService.create.callsFake(async (...args: unknown[]) => {
+        expect(requireRecordSaveContext(args[7]).portal).to.equal('tenant-portal');
+        return schemaAwareSuccessResult('created-record', createDigest, createArtifactId);
+      });
+
+      const updateRequest = makeValidatedRequest(updateMetaRoute, {
+        params: { branding: 'public-brand', portal: 'tenant-portal', oid: 'record-1' },
+        query: { merge: 'true' },
+        headers: {
+          [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch,
+          'x-redbox-api-version': '2.0',
+        },
+        body: { title: 'Updated with matching schema precondition' },
+      });
+      const updateResponse = recordControllerResponseFixture();
+
+      await controller.updateMeta(updateRequest, updateResponse.response);
+
+      expect(
+        updateResponse.set.calledOnceWithExactly({
+          Link: `<${updatePublicUrl}>; rel="describedby"; type="application/schema+json"`,
+        })
+      ).to.equal(true);
+      expect(updateResponse.json.firstCall.args[0]).to.have.nested.property('data.outcome', 'saved');
+
+      const createRequest = makeValidatedRequest(createRecordRoute, {
+        params: { branding: 'public-brand', portal: 'tenant-portal', recordType: 'dataset' },
+        query: {},
+        headers: { 'x-redbox-api-version': '2.0' },
+        body: { title: 'Created with schema discovery' },
+      });
+      const createResponse = recordControllerResponseFixture();
+      (global as any).BrandingService.getBrandAndPortalPath.returns('/public-brand/tenant-portal');
+
+      controller.create(createRequest, createResponse.response);
+      await flushPromises();
+
+      expect(
+        createResponse.set.calledOnceWithExactly({
+          Location: 'https://portal.example/public-brand/tenant-portal/api/records/metadata/created-record',
+          Link: `<${createPublicUrl}>; rel="describedby"; type="application/schema+json"`,
+        })
+      ).to.equal(true);
+      expect(createResponse.status.calledOnceWithExactly(201)).to.equal(true);
+      expect(createResponse.json.firstCall.args[0]).to.have.nested.property('data.outcome', 'saved');
+    });
+
+    for (const apiVersion of ['1.0', '2.0'] as const) {
+      it(`adds exact create/update described-by links without changing ${apiVersion} bodies`, async function () {
+        const updateDigest = 'a'.repeat(64);
+        const createDigest = 'b'.repeat(64);
+        const updateResult = schemaAwareSuccessResult('record-1', updateDigest);
+        const createResult = schemaAwareSuccessResult('created-record', createDigest);
+        updateResult.setConcurrencyMetadata({
+          revision: 3,
+          entityTag: formatRecordEntityTag('record-1', 3),
+        });
+        createResult.setConcurrencyMetadata({
+          revision: 0,
+          entityTag: formatRecordEntityTag('created-record', 0),
+        });
+        recordsService.getMeta.resolves({
+          redboxOid: 'record-1',
+          revision: 2,
+          metadata: { title: 'Before update' },
+          metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+        });
+        recordsService.updateMeta.resolves(updateResult);
+        recordsService.create.resolves(createResult);
+
+        const updateRequest = makeThrowingRequest(
+          {
+            params: { oid: 'record-1' },
+            query: { merge: false, datastreams: false },
+            body: { title: 'Saved metadata' },
+            files: {},
+          },
+          { headers: { 'x-redbox-api-version': apiVersion } }
+        );
+        const updateResponse = recordControllerResponseFixture();
+
+        await controller.updateMeta(updateRequest, updateResponse.response);
+
+        expect(
+          updateResponse.set.calledOnceWithExactly({
+            ETag: formatRecordEntityTag('record-1', 3),
+            Link: `</default/default/api/records/schemas/${updateDigest}>; rel="describedby"; type="application/schema+json"`,
+          })
+        ).to.equal(true);
+        expect(updateResponse.json.calledOnce).to.equal(true);
+        const updateBody = updateResponse.json.firstCall.args[0];
+        if (apiVersion === '1.0') {
+          expect(updateBody).to.deep.equal(expectedLegacySaveBody(updateResult));
+          expect(JSON.stringify(updateBody)).not.to.include(updateDigest);
+        } else {
+          expect(updateBody).to.deep.equal({ data: updateResult, meta: { ...updateResult } });
+          expect(Object.keys((updateBody as { meta: Record<string, unknown> }).meta)).to.deep.equal(
+            Object.keys(updateResult)
+          );
+        }
+
+        const createRequest = makeThrowingRequest(
+          {
+            params: { recordType: 'dataset' },
+            query: {},
+            body: { metadata: { title: 'Saved metadata' } },
+            files: {},
+          },
+          { headers: { 'x-redbox-api-version': apiVersion } }
+        );
+        const createResponse = recordControllerResponseFixture();
+
+        controller.create(createRequest, createResponse.response);
+        await flushPromises();
+
+        expect(
+          createResponse.set.calledOnceWithExactly({
+            Location: 'https://portal.example/default/default/api/records/metadata/created-record',
+            ETag: formatRecordEntityTag('created-record', 0),
+            Link: `</default/default/api/records/schemas/${createDigest}>; rel="describedby"; type="application/schema+json"`,
+          })
+        ).to.equal(true);
+        expect(createResponse.json.calledOnce).to.equal(true);
+        const createBody = createResponse.json.firstCall.args[0];
+        if (apiVersion === '1.0') {
+          expect(createBody).to.deep.equal(expectedLegacySaveBody(createResult));
+          expect(JSON.stringify(createBody)).not.to.include(createDigest);
+        } else {
+          expect(createBody).to.deep.equal({ data: createResult, meta: { ...createResult } });
+          expect(Object.keys((createBody as { meta: Record<string, unknown> }).meta)).to.deep.equal(
+            Object.keys(createResult)
+          );
+        }
+      });
+    }
+
+    it('keeps successful create/update headers unchanged when no schema outcome was resolved', async function () {
+      const updateResult = successResult('record-1');
+      const createResult = successResult('created-record');
+      recordsService.getMeta.resolves({
+        redboxOid: 'record-1',
+        revision: 0,
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.resolves(updateResult);
+      recordsService.create.resolves(createResult);
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.updateMeta(
+        makeThrowingRequest({ params: { oid: 'record-1' }, query: {}, body: {}, files: {} }),
+        {} as Sails.Res
+      );
+      controller.create(
+        makeThrowingRequest({ params: { recordType: 'dataset' }, query: {}, body: { metadata: {} }, files: {} }),
+        {} as Sails.Res
+      );
+      await flushPromises();
+
+      expect(sendResp.firstCall.args[2]?.headers).to.deep.equal({});
+      expect(sendResp.secondCall.args[2]?.headers).to.deep.equal({
+        Location: 'https://portal.example/default/default/api/records/metadata/created-record',
+      });
+    });
   });
 
   it('restores and permanently destroys deleted records in the active brand', async () => {
@@ -481,6 +829,89 @@ describe('Webservice RecordController body source', () => {
   });
 
   describe('metadata handlers', () => {
+    it('characterizes merge=false as complete metadata replacement', async () => {
+      const body = {
+        title: 'Replacement',
+        nested: { incoming: true },
+        values: [{ id: 'incoming' }],
+      };
+      const record = {
+        metadata: {
+          title: 'Stored',
+          retained: 'not retained',
+          nested: { stored: true },
+          values: [{ id: 'stored' }],
+        },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      };
+      recordsService.getMeta.resolves(record);
+      recordsService.updateMeta.resolves(successResult());
+      const req = makeThrowingRequest({
+        params: { oid: 'record-1' },
+        query: { merge: false },
+        body,
+        files: {},
+      });
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      const submission = recordsService.updateMeta.firstCall.args[7];
+      expect(submission).to.deep.include({ mode: 'replace' });
+      expect(submission.metadata).to.equal(body);
+      expect(submission.metadata).not.to.have.property('retained');
+      expect(record.metadata).to.deep.equal({
+        title: 'Stored',
+        retained: 'not retained',
+        nested: { stored: true },
+        values: [{ id: 'stored' }],
+      });
+    });
+
+    it('characterizes merge=true as recursive object merge with array concatenation', async () => {
+      const body = {
+        title: 'Merged',
+        merge: 'ordinary metadata field',
+        nested: {
+          overwritten: 'incoming',
+          incomingOnly: true,
+          values: [{ id: 'nested-incoming' }],
+        },
+        values: [{ id: 'incoming' }],
+      };
+      const record = {
+        metadata: {
+          title: 'Stored',
+          retained: 'keep',
+          nested: {
+            overwritten: 'stored',
+            retained: true,
+            values: [{ id: 'nested-stored' }],
+          },
+          values: [{ id: 'stored' }],
+        },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      };
+      recordsService.getMeta.resolves(record);
+      recordsService.updateMeta.resolves(successResult());
+      const req = makeThrowingRequest({
+        params: { oid: 'record-1' },
+        query: { merge: true },
+        body,
+        files: {},
+      });
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      const submission = recordsService.updateMeta.firstCall.args[7];
+      expect(submission).to.deep.include({ mode: 'merge' });
+      expect(submission.metadata).to.equal(body);
+      expect(submission.metadata).to.deep.equal(body);
+      expect(record.metadata.values).to.deep.equal([{ id: 'stored' }]);
+      expect(body.values).to.deep.equal([{ id: 'incoming' }]);
+    });
+
     it('passes req.apiRequest metadata separately so attachment diffs use the persisted baseline', async () => {
       const body = {
         title: 'Validated title',
@@ -517,10 +948,13 @@ describe('Webservice RecordController body source', () => {
 
       expect(recordsService.updateMeta.calledOnce).to.be.true;
       const updatedRecord = recordsService.updateMeta.firstCall.args[2] as any;
-      const updatedMetadata = recordsService.updateMeta.firstCall.args[7] as any;
+      const submission = recordsService.updateMeta.firstCall.args[7] as any;
+      const updatedMetadata = submission.metadata;
       expect(updatedRecord.metadata.tags).to.deep.equal(['existing']);
-      expect(updatedMetadata.tags).to.deep.equal(['existing', 'incoming']);
+      expect(updatedMetadata).to.equal(body);
+      expect(updatedMetadata.tags).to.deep.equal(['incoming']);
       expect(updatedMetadata.nested.value).to.equal(2);
+      expect(submission.mode).to.equal('merge');
       const context = recordsService.updateMeta.firstCall.args[8] as any;
       expect(context.operation).to.equal('update');
       expect(context.validationOperation).to.equal('submit');
@@ -949,6 +1383,10 @@ describe('Webservice RecordController body source', () => {
 
     it('uses req.apiRequest body in create', async () => {
       const body = {
+        validationBypass: { mode: 'bypass' },
+        schemaOperation: 'forged-operation',
+        ifMatch: `"sha256:${'b'.repeat(64)}"`,
+        schemaOutcome: { digest: 'b'.repeat(64) },
         authorization: {
           edit: ['creator'],
           view: ['reader'],
@@ -961,12 +1399,15 @@ describe('Webservice RecordController body source', () => {
         },
       };
       recordsService.create.resolves(successResult('created-record'));
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: { operation: 'publish' },
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        {
+          params: { recordType: 'dataset' },
+          query: { operation: 'publish' },
+          body,
+          files: {},
+        },
+        { options: { locals: { portal: '  tenant-portal  ' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.create(req, {} as Sails.Res);
@@ -976,9 +1417,16 @@ describe('Webservice RecordController body source', () => {
       const createRequest = recordsService.create.firstCall.args[1] as any;
       expect(createRequest.metadata).to.deep.equal(body.metadata);
       expect(createRequest.authorization).to.deep.equal(body.authorization);
+      expect(createRequest).not.to.have.property('validationBypass');
+      expect(createRequest).not.to.have.property('schemaOutcome');
       const context = recordsService.create.firstCall.args[7] as any;
       expect(context.operation).to.equal('create');
       expect(context.validationOperation).to.equal('publish');
+      expect(context.schemaOperation).to.equal('publish');
+      expect(context.portal).to.equal('tenant-portal');
+      expect(context.ifMatch).to.equal(undefined);
+      expect(context).not.to.have.property('schemaOutcome');
+      expect(context.validationBypass).to.equal(undefined);
       expect(context).not.to.have.property('enabledValidationGroups');
       expect(sendRespStub.calledOnce).to.be.true;
       expect(sendRespStub.firstCall.args[2]?.status).to.equal(201);
@@ -1010,6 +1458,70 @@ describe('Webservice RecordController body source', () => {
         operation: 'transition',
         targetStep: 'missing-step',
       });
+    });
+
+    it('snapshots unwrapped metadata before server authorization shaping without mutating the body', async () => {
+      const body = { title: 'Raw unwrapped submission' };
+      const bodySnapshot = structuredClone(body);
+      (global as any).sails.config.recordSchema = { enabled: 'true' };
+      recordsService.create.resolves(successResult('created-record'));
+      const req = makeThrowingRequest(
+        {
+          params: { recordType: 'dataset' },
+          query: {},
+          body,
+          files: {},
+        },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.create(req, {} as Sails.Res);
+      await flushPromises();
+
+      expect(recordsService.create.calledOnce).to.equal(true);
+      const createRequest = recordsService.create.firstCall.args[1] as any;
+      expect(createRequest.metadata).to.deep.equal(bodySnapshot);
+      expect(createRequest.metadata).not.to.have.property('authorization');
+      expect(createRequest.authorization).to.deep.equal({
+        edit: ['tester'],
+        view: ['tester'],
+        editPending: undefined,
+        viewPending: undefined,
+      });
+      expect(body).to.deep.equal(bodySnapshot);
+    });
+
+    it('persists legacy authorization metadata from a detached copy for schema-disabled unwrapped creates', async () => {
+      const body = { title: 'Legacy unwrapped submission' };
+      const bodySnapshot = structuredClone(body);
+      (global as any).sails.config.recordSchema = { enabled: false };
+      recordsService.create.resolves(successResult('created-record'));
+      const req = makeThrowingRequest({
+        params: { recordType: 'dataset' },
+        query: {},
+        body,
+        files: {},
+      });
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.create(req, {} as Sails.Res);
+      await flushPromises();
+
+      expect(recordsService.create.calledOnce).to.equal(true);
+      const createRequest = recordsService.create.firstCall.args[1] as any;
+      expect(createRequest.metadata).to.deep.equal({
+        ...bodySnapshot,
+        authorization: [],
+      });
+      expect(createRequest.metadata).not.to.equal(body);
+      expect(createRequest.authorization).to.deep.equal({
+        edit: ['tester'],
+        view: ['tester'],
+        editPending: undefined,
+        viewPending: undefined,
+      });
+      expect(body).to.deep.equal(bodySnapshot);
     });
 
     it('keeps omitted operations optional on create and update', async () => {
@@ -1716,7 +2228,7 @@ describe('Webservice RecordController body source', () => {
       expect(args[2]).to.equal(await recordsService.getMeta.secondCall.returnValue);
       expect(args[4]).to.equal(false);
       expect(args[5]).to.equal(false);
-      expect(args[7]).to.deep.equal({ title: 'Existing title' });
+      expect(args[7]).to.deep.equal({ metadata: {}, mode: 'merge' });
       expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: true, expectedRevision: 5 });
       expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
       expect(removeStagedDatastream.calledOnceWithExactly('staged-file-1')).to.equal(true);
@@ -1758,7 +2270,7 @@ describe('Webservice RecordController body source', () => {
       expect(args[2]).to.equal(afterConcurrentSave);
       expect(args[4]).to.equal(false);
       expect(args[5]).to.equal(false);
-      expect(args[7]).to.equal(afterConcurrentSave.metadata);
+      expect(args[7]).to.deep.equal({ metadata: {}, mode: 'merge' });
       expect(args[8].concurrency).to.deep.equal({ entityTagSupplied: false });
       expect(addDatastreams.calledAfter(recordsService.updateMeta)).to.equal(true);
     });
@@ -1883,19 +2395,76 @@ describe('Webservice RecordController body source', () => {
           },
         ],
       };
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: {},
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        { params: { recordType: 'dataset' }, query: {}, body, files: {} },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.harvest(req, {} as Sails.Res);
 
       expect((global as any).HarvestRunService.submitCompatibilityRecords.calledOnce).to.be.true;
       expect((global as any).HarvestRunService.submitCompatibilityRecords.firstCall.args[2]).to.deep.equal(body);
+      const context = (global as any).HarvestRunService.submitCompatibilityRecords.firstCall.args[5];
+      expect(isRecordSaveContext(context)).to.equal(true);
+      expect(context).to.include({ operation: 'create', portal: 'tenant-portal' });
       expect(sendRespStub.calledOnce).to.be.true;
+    });
+
+    it('returns a stale schema precondition as HTTP 412 with typed failure metadata intact', async () => {
+      const schemaIfMatch = `"sha256:${'a'.repeat(64)}"`;
+      const result = schemaPreconditionFailure('record-schema.precondition-failed');
+      recordsService.getMeta.resolves({
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+        expect(requireRecordSaveContext(args[8])).to.include({ portal: 'rdmp', ifMatch: schemaIfMatch });
+        return result;
+      });
+      const req = makeValidatedRequest(updateMetaRoute, {
+        params: { branding: 'default', portal: 'rdmp', oid: 'record-1' },
+        query: { merge: 'false', datastreams: 'false' },
+        headers: {
+          [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch,
+          'x-redbox-api-version': '2.0',
+        },
+        body: { title: 'Stale update' },
+      });
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      const envelope = sendRespStub.firstCall.args[2];
+      expect(envelope.status).to.equal(412);
+      expect(envelope.meta.problems).to.deep.equal(result.problems);
+      expect(envelope.displayErrors).to.deep.equal([
+        { code: 'record-schema.precondition-failed', title: '@record-schema.precondition-failed' },
+      ]);
+    });
+
+    it('preserves update behavior when the schema precondition header is omitted', async () => {
+      recordsService.getMeta.resolves({
+        revision: 0,
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+        expect(requireRecordSaveContext(args[8]).ifMatch).to.equal(undefined);
+        return successResult();
+      });
+      const req = makeValidatedRequest(updateMetaRoute, {
+        params: { oid: 'record-1' },
+        query: {},
+        headers: { 'x-redbox-api-version': '2.0' },
+        body: { title: 'Compatible update' },
+      });
+      const sendRespStub = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      expect(recordsService.updateMeta.calledOnce).to.equal(true);
+      expect(sendRespStub.firstCall.args[2]).not.to.have.property('status');
     });
 
     it('keeps API create precondition-free', async () => {
@@ -1925,6 +2494,139 @@ describe('Webservice RecordController body source', () => {
       });
     });
 
+    it('keeps record revision and schema digest preconditions separate in update and transition contexts', async () => {
+      const revisionTag = formatRecordEntityTag('record-1', 7);
+      const schemaTag = `"sha256:${'a'.repeat(64)}"`;
+      const record = {
+        redboxOid: 'record-1',
+        revision: 7,
+        metadata: { title: 'Stored' },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+        workflow: { stage: 'draft' },
+      };
+      recordsService.getMeta.resolves(record);
+      recordsService.updateMeta.resolves(successResult());
+      (global as any).WorkflowStepsService.get.returns(
+        of({
+          name: 'published',
+          config: { form: 'dataset-published' },
+        })
+      );
+      sinon.stub(controller as any, 'sendResp');
+
+      const headers = {
+        'if-match': revisionTag,
+        'x-redbox-record-schema-if-match': schemaTag,
+        'x-redbox-api-version': '1.0',
+      };
+      const updateReq = makeValidatedRequest(updateMetaRoute, {
+        params: { oid: 'record-1' },
+        query: {},
+        headers,
+        body: { title: 'Updated' },
+      });
+      await controller.updateMeta(updateReq, {} as Sails.Res);
+
+      const transitionReq = makeValidatedRequest(
+        transitionWorkflowRoute,
+        {
+          params: { oid: 'record-1', targetStep: 'published' },
+          query: {},
+          headers,
+          body: {},
+        },
+        { user: { username: 'tester', roles: [{ name: 'Publisher' }] } }
+      );
+      await controller.transitionWorkflow(transitionReq, {} as Sails.Res);
+
+      for (const call of [recordsService.updateMeta.firstCall, recordsService.updateMeta.secondCall]) {
+        const context = requireRecordSaveContext(call.args[8]);
+        expect(context.ifMatch).to.equal(schemaTag);
+        expect(context.concurrency?.expectedRevision).to.equal(7);
+      }
+    });
+
+    it('does not trust a schema digest precondition absent from the validated request context', async () => {
+      recordsService.getMeta.resolves({
+        revision: 0,
+        metadata: {},
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1' },
+      });
+      recordsService.updateMeta.resolves(successResult());
+      const req = makeThrowingRequest(
+        { params: { oid: 'record-1' }, query: {}, body: { title: 'Updated' }, files: {} },
+        { headers: { 'x-redbox-record-schema-if-match': `"sha256:${'c'.repeat(64)}"` } }
+      );
+      sinon.stub(controller as any, 'sendResp');
+
+      await controller.updateMeta(req, {} as Sails.Res);
+
+      expect(requireRecordSaveContext(recordsService.updateMeta.firstCall.args[8]).ifMatch).to.equal(undefined);
+    });
+
+    it('keeps stale, malformed, and multi-value schema digest failures typed for v1 update and transition', async () => {
+      const record = {
+        redboxOid: 'record-1',
+        revision: 0,
+        metadata: { title: 'Stored' },
+        metaMetadata: { attachmentFields: [], brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+        workflow: { stage: 'draft' },
+      };
+      recordsService.getMeta.resolves(record);
+      (global as any).WorkflowStepsService.get.returns(
+        of({
+          name: 'published',
+          config: { form: 'dataset-published' },
+        })
+      );
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      for (const testCase of [
+        { header: `"sha256:${'b'.repeat(64)}"`, code: 'record-schema.precondition-failed' as const, status: 412 },
+        { header: 'malformed-etag', code: 'record-schema.invalid-request' as const, status: 400 },
+        {
+          header: `"sha256:${'a'.repeat(64)}", "sha256:${'b'.repeat(64)}"`,
+          code: 'record-schema.invalid-request' as const,
+          status: 400,
+        },
+      ]) {
+        for (const action of ['update', 'transition'] as const) {
+          recordsService.updateMeta.resetHistory();
+          sendRespStub.resetHistory();
+          recordsService.updateMeta.callsFake(async (...args: unknown[]) => {
+            expect(requireRecordSaveContext(args[8]).ifMatch).to.equal(testCase.header);
+            return schemaPreconditionFailure(testCase.code);
+          });
+          const route = action === 'update' ? updateMetaRoute : transitionWorkflowRoute;
+          const params: Record<string, string> =
+            action === 'update' ? { oid: 'record-1' } : { oid: 'record-1', targetStep: 'published' };
+          const req = makeValidatedRequest(
+            route,
+            {
+              params,
+              query: {},
+              headers: {
+                'x-redbox-record-schema-if-match': testCase.header,
+                'x-redbox-api-version': '1.0',
+              },
+              body: action === 'update' ? { title: 'Changed' } : {},
+            },
+            { user: { username: 'tester', roles: [{ name: 'Publisher' }] } }
+          );
+
+          if (action === 'update') await controller.updateMeta(req, {} as Sails.Res);
+          else await controller.transitionWorkflow(req, {} as Sails.Res);
+
+          expect(sendRespStub.firstCall.args[2].status).to.equal(testCase.status);
+          if (action === 'update') {
+            expect(sendRespStub.firstCall.args[2].v1).to.deep.equal({ message: 'Update Metadata failed' });
+          } else {
+            expect(sendRespStub.firstCall.args[2].v1.message).to.equal('@record-save-failed');
+          }
+        }
+      }
+    });
+
     it('delegates tracked harvest bodies to HarvestRunService.submitChunk', async () => {
       const body = {
         sourceRunId: 'source-run-1',
@@ -1942,18 +2644,19 @@ describe('Webservice RecordController body source', () => {
           },
         ],
       };
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: {},
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        { params: { recordType: 'dataset' }, query: {}, body, files: {} },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.harvest(req, {} as Sails.Res);
 
       expect((global as any).HarvestRunService.submitChunk.calledOnce).to.be.true;
       expect((global as any).HarvestRunService.submitChunk.firstCall.args[2]).to.deep.equal(body);
+      const context = (global as any).HarvestRunService.submitChunk.firstCall.args[4];
+      expect(isRecordSaveContext(context)).to.equal(true);
+      expect(context).to.include({ operation: 'create', portal: 'tenant-portal' });
       expect(sendRespStub.calledOnce).to.be.true;
     });
 
@@ -1990,70 +2693,20 @@ describe('Webservice RecordController body source', () => {
           },
         ],
       };
-      const req = makeThrowingRequest({
-        params: { recordType: 'dataset' },
-        query: {},
-        body,
-        files: {},
-      });
+      const req = makeThrowingRequest(
+        { params: { recordType: 'dataset' }, query: {}, body, files: {} },
+        { options: { locals: { portal: 'tenant-portal' } } }
+      );
       const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.legacyHarvest(req, {} as Sails.Res);
 
       expect((global as any).HarvestRunService.submitLegacyRecords.calledOnce).to.be.true;
       expect((global as any).HarvestRunService.submitLegacyRecords.firstCall.args[2]).to.deep.equal(body);
+      const context = (global as any).HarvestRunService.submitLegacyRecords.firstCall.args[5];
+      expect(isRecordSaveContext(context)).to.equal(true);
+      expect(context).to.include({ operation: 'create', portal: 'tenant-portal' });
       expect(sendRespStub.calledOnce).to.be.true;
-    });
-
-    it('uses the authoritative harvest snapshot revision and surfaces a non-persisted conflict per record', async () => {
-      const record = {
-        redboxOid: 'record-1',
-        revision: 7,
-        metadata: { title: 'Before harvest' },
-        metaMetadata: { brandId: 'brand-1', type: 'dataset' },
-      };
-      recordsService.getMeta.resolves(record);
-      const stale = notSavedResult();
-      stale.problems = [
-        {
-          kind: 'conflict',
-          phase: 'persistence',
-          issues: [{ code: 'record-revision-stale', message: '@record-revision-stale' }],
-        },
-      ];
-      recordsService.updateMetaInternal.resolves(stale);
-
-      const result = await (controller as any).updateHarvestRecord(
-        { id: 'brand-1' },
-        { id: 'record-type-1', name: 'dataset' },
-        'override',
-        { title: 'Harvested title' },
-        'record-1',
-        'harvest-1',
-        { username: 'harvester' }
-      );
-
-      expect(recordsService.updateMeta.notCalled).to.equal(true);
-      expect(recordsService.updateMetaInternal.calledOnce).to.equal(true);
-      const saveOptions = recordsService.updateMetaInternal.firstCall.args[0];
-      expect(saveOptions).to.deep.include({
-        actor: { kind: 'service', id: 'RecordController.updateHarvestRecord' },
-        authorization: { kind: 'service' },
-        mutationClass: 'full-record',
-        oid: 'record-1',
-      });
-      expect(saveOptions.record).to.deep.include({
-        redboxOid: 'record-1',
-        revision: 7,
-        metadata: { title: 'Harvested title' },
-      });
-      expect(result).to.deep.include({
-        harvestId: 'harvest-1',
-        oid: 'record-1',
-        status: false,
-        message: 'Record update was not persisted: not-saved',
-        details: 'record-revision-stale',
-      });
     });
   });
 });
@@ -2089,6 +2742,9 @@ describe('Webservice RecordController getMeta', () => {
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandNameFromReq: sinon.stub().returns('public brand'),
+      getPortalFromReq: sinon.stub().returns('tenant portal'),
+      getRootContext: sinon.stub().returns(''),
     };
     (global as any)._ = require('lodash');
 
@@ -2138,6 +2794,99 @@ describe('Webservice RecordController getMeta', () => {
       meta: { oid: 'oid-1', revision: 2, entityTag: formatRecordEntityTag('oid-1', 2) },
       headers: { ETag: formatRecordEntityTag('oid-1', 2) },
     });
+  });
+
+  it('adds caller-effective schema discovery to authorized metadata reads without changing the body', async () => {
+    const digest = 'c'.repeat(64);
+    const resolveUpdate = sinon.stub().resolves(resolvedUpdateSchema(digest));
+    sails.services.recordschemaservice = { resolveUpdate };
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    const user = {
+      id: 'user-1',
+      username: 'tester',
+      type: 'local',
+      name: 'Test User',
+      email: 'tester@example.test',
+      roles: [{ id: 'role-1', name: 'Researcher' }],
+    };
+    const req = {
+      param,
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      query: {},
+      session: { branding: 'public brand', portal: 'tenant portal' },
+      user,
+    } as unknown as Sails.Req;
+    const record = {
+      redboxOid: 'oid-1',
+      revision: 2,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Visible metadata' },
+    };
+    const getMeta = sinon.stub().resolves(record);
+    sails.services.recordsservice.getMeta = getMeta;
+    const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+    await controller.getMeta(req, {} as Sails.Res);
+
+    assert.deepEqual(resolveUpdate.firstCall.args[0], {
+      brand: 'brand-1',
+      branding: 'public brand',
+      portal: 'tenant portal',
+      oid: 'oid-1',
+      caller: { brand: { id: 'brand-1', name: 'default' }, user },
+    });
+    assert.deepEqual(sendResp.firstCall.args[2], {
+      data: record.metadata,
+      meta: { oid: 'oid-1', revision: 2, entityTag: formatRecordEntityTag('oid-1', 2) },
+      headers: {
+        ETag: formatRecordEntityTag('oid-1', 2),
+        Link: `</public%20brand/tenant%20portal/api/records/schemas/${digest}>; rel="describedby"; type="application/schema+json"`,
+      },
+    });
+    assert.equal(JSON.stringify(sendResp.firstCall.args[2]?.data).includes(digest), false);
+  });
+
+  it('omits schema discovery and private diagnostics when update context authorization does not succeed', async () => {
+    const resolveUpdate = sinon.stub().resolves({
+      kind: 'context-failed',
+      failureKind: 'forbidden',
+      diagnosticCodes: ['private-field-name'],
+    });
+    sails.services.recordschemaservice = { resolveUpdate };
+    const param = sinon.stub();
+    param.withArgs('oid').returns('oid-1');
+    const req = {
+      param,
+      apiRequest: { params: { oid: 'oid-1' }, query: {}, body: {}, files: {} },
+      query: {},
+      session: { branding: 'public brand', portal: 'tenant portal' },
+      user: {
+        id: 'user-1',
+        username: 'viewer',
+        type: 'local',
+        name: 'View Only',
+        email: 'viewer@example.test',
+        roles: [{ id: 'role-1', name: 'Viewer' }],
+      },
+    } as unknown as Sails.Req;
+    const record = {
+      redboxOid: 'oid-1',
+      revision: 2,
+      metaMetadata: { brandId: 'brand-1' },
+      metadata: { title: 'Visible metadata' },
+    };
+    sails.services.recordsservice.getMeta = sinon.stub().resolves(record);
+    const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+    await controller.getMeta(req, {} as Sails.Res);
+
+    assert.deepEqual(sendResp.firstCall.args[2], {
+      data: record.metadata,
+      meta: { oid: 'oid-1', revision: 2, entityTag: formatRecordEntityTag('oid-1', 2) },
+      headers: { ETag: formatRecordEntityTag('oid-1', 2) },
+    });
+    assert.equal(JSON.stringify(sendResp.firstCall.args[2]).includes('private-field-name'), false);
   });
 
   it('returns record permissions when view access is allowed', async () => {

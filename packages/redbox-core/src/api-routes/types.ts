@@ -55,6 +55,7 @@ export interface ApiOpenApiMetadata {
   operationId?: string;
   request?: ApiRequestDefinition;
   responses?: Record<number, ApiResponseDefinition>;
+  includeDefaultResponses?: boolean;
   security?: readonly Record<string, readonly string[]>[];
   extensions?: Record<string, unknown>;
 }

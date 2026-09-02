@@ -1,0 +1,41 @@
+meta {
+  name: Resolve Enforce Update Schema
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/schemas/update/{{recordSchemaEnforceOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Resolves the enforce-mode update schema for the existing fixture", function () {
+    expect(bru.getEnvVar("recordSchemaEnforceOid"), "enforce record OID").to.be.a("string").and.not.equal("");
+    expect(res.getStatus()).to.equal(200);
+
+    const document = res.getBody();
+    expect(document["x-redbox-context"]).to.deep.include({
+      kind: "update",
+      recordType: "dataPublication",
+      enforcement: "enforce"
+    });
+    expect(document.properties.title.type).to.equal("string");
+  });
+
+  test("Captures matching and derived stale schema preconditions dynamically", function () {
+    const etag = res.getHeader("etag");
+    const match = /^"sha256:([0-9a-f]{64})"$/.exec(etag || "");
+    expect(match, "strong update schema ETag").not.to.equal(null);
+
+    const digest = match[1];
+    const staleDigest = `${digest[0] === "0" ? "1" : "0"}${digest.slice(1)}`;
+    bru.setEnvVar("recordSchemaEnforceUpdateEtag", etag);
+    bru.setEnvVar("recordSchemaEnforceStaleEtag", `"sha256:${staleDigest}"`);
+  });
+}

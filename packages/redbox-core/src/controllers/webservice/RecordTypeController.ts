@@ -10,6 +10,12 @@ import {
   listRecordTypesRoute,
 } from '../../index';
 import { firstValueFrom } from 'rxjs';
+import { recordSchemaCreateResolverUrl } from '../../api-routes/record-schema-response';
+import { isRecordSchemaEnabled } from '../../config/recordSchema.config';
+
+export type DiscoverableRecordType = RecordTypeModel & {
+  readonly recordSchemaCreateResolver?: string;
+};
 
 export namespace Controllers {
   /**
@@ -33,7 +39,34 @@ export namespace Controllers {
      **************************************************************************************************
      */
 
-    public bootstrap() { }
+    public bootstrap() {}
+
+    private publicRecordTypeName(recordType: RecordTypeModel, fallback?: string): string {
+      const name = Reflect.get(recordType, 'name');
+      return typeof name === 'string' && name.trim() ? name.trim() : (fallback?.trim() ?? '');
+    }
+
+    private discoverableRecordType(
+      req: Sails.Req,
+      recordType: RecordTypeModel,
+      fallbackName?: string
+    ): DiscoverableRecordType {
+      if (!isRecordSchemaEnabled(sails.config.recordSchema)) {
+        return recordType;
+      }
+      const branding = BrandingService.getBrandNameFromReq(req).trim();
+      const portal = BrandingService.getPortalFromReq(req).trim();
+      const name = this.publicRecordTypeName(recordType, fallbackName);
+      return {
+        ...recordType,
+        recordSchemaCreateResolver: recordSchemaCreateResolverUrl(
+          branding,
+          portal,
+          name,
+          BrandingService.getRootContext()
+        ),
+      };
+    }
 
     public async getRecordType(req: Sails.Req, res: Sails.Res) {
       try {
@@ -43,7 +76,7 @@ export namespace Controllers {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const recordType = await firstValueFrom(RecordTypesService.get(brand, name));
 
-        return this.apiRespond(req, res, recordType, 200);
+        return this.apiRespond(req, res, this.discoverableRecordType(req, recordType, name), 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
@@ -59,11 +92,11 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const recordTypes: RecordTypeModel[] = await firstValueFrom(RecordTypesService.getAll(brand));
-        const response: ListAPIResponse<RecordTypeModel> = new ListAPIResponse();
+        const response: ListAPIResponse<DiscoverableRecordType> = new ListAPIResponse();
         const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = recordTypes.length;
         response.summary = summary;
-        response.records = recordTypes;
+        response.records = recordTypes.map(recordType => this.discoverableRecordType(req, recordType));
         return this.apiRespond(req, res, response);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));

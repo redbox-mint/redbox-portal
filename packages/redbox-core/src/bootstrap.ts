@@ -18,13 +18,21 @@ import { getMergedApiRoutes, resetResolvedApiRouteCache } from './api-routes';
 declare const sails: Sails.Application;
 declare const _: LoDashStatic;
 
-
 /**
  * Interface for hook-provided bootstrap functions
  */
 export interface BootstrapProvider {
-    name: string;
-    bootstrap: () => Promise<void>;
+  name: string;
+  bootstrap: () => Promise<void>;
+}
+
+/** Await candidate compilation and storage-dependent record-schema startup before Sails can become ready. */
+export async function bootstrapRecordSchema(): Promise<void> {
+  const service = sails.services.recordschemaservice as { bootstrap?: () => Promise<void> } | undefined;
+  if (!service || typeof service.bootstrap !== 'function') {
+    throw new Error('Record schema bootstrap is unavailable.');
+  }
+  await service.bootstrap();
 }
 
 /**
@@ -34,132 +42,148 @@ export interface BootstrapProvider {
  * in the correct order. Hook bootstraps run after this completes.
  */
 export async function coreBootstrap(): Promise<void> {
-    const schedule = require('node-schedule');
+  const schedule = require('node-schedule');
 
-    const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
-    sails.log.verbose("Branding service, bootstrapped.");
+  const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
+  sails.log.verbose('Branding service, bootstrapped.');
 
-    const _rolesBootstrapResult = await lastValueFrom(sails.services.rolesservice.bootstrap(defaultBrand) as Observable<unknown>);
-    sails.log.verbose("Roles service, bootstrapped.");
+  const _rolesBootstrapResult = await lastValueFrom(
+    sails.services.rolesservice.bootstrap(defaultBrand) as Observable<unknown>
+  );
+  sails.log.verbose('Roles service, bootstrapped.');
 
-    await sails.services.reportsservice.bootstrapData(sails.services.brandingservice.getDefault());
-    sails.log.verbose("Reports service, bootstrapped.");
+  await sails.services.reportsservice.bootstrapData(sails.services.brandingservice.getDefault());
+  sails.log.verbose('Reports service, bootstrapped.');
 
-    await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());
-    sails.log.verbose("Named Query service, bootstrapped.");
+  await sails.services.namedqueryservice.bootstrapData(sails.services.brandingservice.getDefault());
+  sails.log.verbose('Named Query service, bootstrapped.');
 
-    // sails doesn't support 'populating' of nested associations
-    // intentionally queried again because of nested 'users' population
-    const defRoles = await lastValueFrom(sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()) as Observable<unknown>);
-    sails.log.verbose("Roles service, bootstrapped.");
-    sails.log.verbose(defRoles);
+  // sails doesn't support 'populating' of nested associations
+  // intentionally queried again because of nested 'users' population
+  const defRoles = await lastValueFrom(
+    sails.services.rolesservice.getRolesWithBrand(sails.services.brandingservice.getDefault()) as Observable<unknown>
+  );
+  sails.log.verbose('Roles service, bootstrapped.');
+  sails.log.verbose(defRoles);
 
-    const defUserAndDefRoles: { defUser: unknown; defRoles: unknown } = await lastValueFrom(sails.services.usersservice.bootstrap(defRoles) as Observable<{ defUser: unknown; defRoles: unknown }>);
-    sails.log.verbose("Users service, bootstrapped.");
+  const defUserAndDefRoles: { defUser: unknown; defRoles: unknown } = await lastValueFrom(
+    sails.services.usersservice.bootstrap(defRoles) as Observable<{ defUser: unknown; defRoles: unknown }>
+  );
+  sails.log.verbose('Users service, bootstrapped.');
 
-    const _pathRulesBootstrapResult = await lastValueFrom(sails.services.pathrulesservice.bootstrap(defUserAndDefRoles.defUser, defUserAndDefRoles.defRoles) as Observable<unknown>);
-    sails.log.verbose("Pathrules service, bootstrapped.");
+  const _pathRulesBootstrapResult = await lastValueFrom(
+    sails.services.pathrulesservice.bootstrap(
+      defUserAndDefRoles.defUser,
+      defUserAndDefRoles.defRoles
+    ) as Observable<unknown>
+  );
+  sails.log.verbose('Pathrules service, bootstrapped.');
 
-    const recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
-    sails.log.verbose("Record types service, bootstrapped.");
+  const recordsTypes = await sails.services.recordtypesservice.bootstrap(sails.services.brandingservice.getDefault());
+  sails.log.verbose('Record types service, bootstrapped.');
 
-    const _dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(sails.services.brandingservice.getDefault());
-    sails.log.verbose("DashboardTypes service, bootstrapped.");
+  const _dashboardTypes = await sails.services.dashboardtypesservice.bootstrap(
+    sails.services.brandingservice.getDefault()
+  );
+  sails.log.verbose('DashboardTypes service, bootstrapped.');
 
-    const workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes);
-    sails.log.verbose("Workflowsteps service, bootstrapped.");
+  const workflowSteps = await sails.services.workflowstepsservice.bootstrap(recordsTypes);
+  sails.log.verbose('Workflowsteps service, bootstrapped.');
 
-    const defaultBranding = sails.services.brandingservice.getDefault() as BrandingModel;
-    const defaultBrandingId = String(defaultBranding?.id ?? '');
+  const defaultBranding = sails.services.brandingservice.getDefault() as BrandingModel;
+  const defaultBrandingId = String(defaultBranding?.id ?? '');
 
-    if (_.isArray(workflowSteps)) {
-        for (const workflowStep of workflowSteps) {
-            await sails.services.formsservice.bootstrap(workflowStep, defaultBrandingId);
-        }
-    } else {
-        await sails.services.formsservice.bootstrap(workflowSteps, defaultBrandingId);
+  if (_.isArray(workflowSteps)) {
+    for (const workflowStep of workflowSteps) {
+      await sails.services.formsservice.bootstrap(workflowStep, defaultBrandingId);
     }
+  } else {
+    await sails.services.formsservice.bootstrap(workflowSteps, defaultBrandingId);
+  }
 
-    sails.log.verbose("Forms service, bootstrapped.");
-    sails.log.verbose("Record validation rollout configuration loaded.");
-    await sails.services.vocabularyservice.bootstrapData();
-    sails.log.verbose("Vocabulary bootstrap data, loaded.");
-    await sails.services.recordsservice.bootstrapData();
-    sails.log.verbose("Records bootstrap data, loaded.");
+  sails.log.verbose('Forms service, bootstrapped.');
+  sails.log.verbose('Record validation rollout configuration loaded.');
+  await sails.services.vocabularyservice.bootstrapData();
+  sails.log.verbose('Vocabulary bootstrap data, loaded.');
+  await sails.services.recordsservice.bootstrapData();
+  sails.log.verbose('Records bootstrap data, loaded.');
 
-    // Schedule cronjobs
-    if (sails.config.crontab.enabled) {
-        sails.config.crontab.crons().forEach((item: { interval: string; service: string; method: string }) => {
-            schedule.scheduleJob(item.interval, () => {
-                sails.services[item.service][item.method]();
-            });
-        });
-        sails.log.debug('cronjobs scheduled...');
-    }
+  // Schedule cronjobs
+  if (sails.config.crontab.enabled) {
+    sails.config.crontab.crons().forEach((item: { interval: string; service: string; method: string }) => {
+      schedule.scheduleJob(item.interval, () => {
+        sails.services[item.service][item.method]();
+      });
+    });
+    sails.log.debug('cronjobs scheduled...');
+  }
 
-    // Seed default i18n data into DB if missing
-    await sails.services.i18nentriesservice.bootstrap();
-    sails.log.verbose("I18n entries service, seeded defaults.");
-    await sails.services.translationservice.bootstrap();
-    sails.log.verbose("Translation service, bootstrapped.");
+  // Seed default i18n data into DB if missing
+  await sails.services.i18nentriesservice.bootstrap();
+  sails.log.verbose('I18n entries service, seeded defaults.');
+  await sails.services.translationservice.bootstrap();
+  sails.log.verbose('Translation service, bootstrapped.');
 
-    // Initialise the applicationConfig for all the brands
-    await sails.services.appconfigservice.bootstrap();
-    // bind convenience function to sails.config so that configuration access syntax is consistent
-    sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand as BrandingAwareFunction;
+  // Initialise the applicationConfig for all the brands
+  await sails.services.appconfigservice.bootstrap();
+  // bind convenience function to sails.config so that configuration access syntax is consistent
+  sails.config.brandingAware = AppConfigService.getAppConfigurationForBrand as BrandingAwareFunction;
 
-    // Must run after appconfigservice: the Figshare connection settings it needs live in
-    // the per-brand application configuration, not in sails.config.
-    await sails.services.figsharevocabularyservice.bootstrapData();
-    sails.log.verbose("Figshare vocabulary bootstrap data, loaded.");
+  // Must run after appconfigservice: the Figshare connection settings it needs live in
+  // the per-brand application configuration, not in sails.config.
+  await sails.services.figsharevocabularyservice.bootstrapData();
+  sails.log.verbose('Figshare vocabulary bootstrap data, loaded.');
 
-    sails.log.verbose("Cron service, bootstrapped.");
+  sails.log.verbose('Cron service, bootstrapped.');
 
-    await sails.services.agendaqueueservice.init();
-    sails.log.verbose("Agenda Queue service, bootstrapped.");
+  await sails.services.agendaqueueservice.init();
+  sails.log.verbose('Agenda Queue service, bootstrapped.');
 
-    // After last, because it was being triggered twice
-    await lastValueFrom(sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()) as Observable<unknown>);
-    sails.log.verbose("WorkspaceTypes service, bootstrapped.");
+  // After last, because it was being triggered twice
+  await lastValueFrom(
+    sails.services.workspacetypesservice.bootstrap(sails.services.brandingservice.getDefault()) as Observable<unknown>
+  );
+  sails.log.verbose('WorkspaceTypes service, bootstrapped.');
 
-    await sails.services.cacheservice.bootstrap();
-    sails.log.verbose("Cache service, bootstrapped.");
+  await sails.services.cacheservice.bootstrap();
+  sails.log.verbose('Cache service, bootstrapped.');
 
-    // ReDBox ASCII art banner
-    const logWithShip = sails.log as typeof sails.log & { ship?: () => void };
-    logWithShip.ship = function () {
-        sails.log.info(".----------------. .----------------. .----------------. ");
-        sails.log.info("| .--------------. | .--------------. | .--------------. |");
-        sails.log.info("| |  _______     | | |  _________   | | |  ________    | |");
-        sails.log.info("| | |_   __ \\    | | | |_   ___  |  | | | |_   ___ `.  | |");
-        sails.log.info("| |   | |__) |   | | |   | |_  \\_|  | | |   | |   `. \\ | |");
-        sails.log.info("| |   |  __ /    | | |   |  _|  _   | | |   | |    | | | |");
-        sails.log.info("| |  _| |  \\ \\_  | | |  _| |___/ |  | | |  _| |___.' / | |");
-        sails.log.info("| | |____| |___| | | | |_________|  | | | |________.'  | |");
-        sails.log.info("| |              | | |              | | |              | |");
-        sails.log.info("| '--------------' | '--------------' | '--------------' |");
-        sails.log.info("'----------------' '----------------' '----------------' ");
-        sails.log.info(".----------------. .----------------. .----------------. ");
-        sails.log.info("| .--------------. | .--------------. | .--------------. |");
-        sails.log.info("| |   ______     | | |     ____     | | |  ____  ____  | |");
-        sails.log.info("| |  |_   _ \\    | | |   .'    `.   | | | |_  _||_  _| | |");
-        sails.log.info("| |    | |_) |   | | |  /  .--.  \\  | | |   \\ \\  / /   | |");
-        sails.log.info("| |    |  __'.   | | |  | |    | |  | | |    > `' <    | |");
-        sails.log.info("| |   _| |__) |  | | |  \\  `--'  /  | | |  _/ /'`\\ \\_  | |");
-        sails.log.info("| |  |_______/   | | |   `.____.'   | | | |____||____| | |");
-        sails.log.info("| |              | | |              | | |              | |");
-        sails.log.info("| '--------------' | '--------------' | '--------------' |");
-        sails.log.info("'----------------' '----------------' '----------------' ");
-    };
+  // ReDBox ASCII art banner
+  const logWithShip = sails.log as typeof sails.log & { ship?: () => void };
+  logWithShip.ship = function () {
+    sails.log.info('.----------------. .----------------. .----------------. ');
+    sails.log.info('| .--------------. | .--------------. | .--------------. |');
+    sails.log.info('| |  _______     | | |  _________   | | |  ________    | |');
+    sails.log.info('| | |_   __ \\    | | | |_   ___  |  | | | |_   ___ `.  | |');
+    sails.log.info('| |   | |__) |   | | |   | |_  \\_|  | | |   | |   `. \\ | |');
+    sails.log.info('| |   |  __ /    | | |   |  _|  _   | | |   | |    | | | |');
+    sails.log.info("| |  _| |  \\ \\_  | | |  _| |___/ |  | | |  _| |___.' / | |");
+    sails.log.info("| | |____| |___| | | | |_________|  | | | |________.'  | |");
+    sails.log.info('| |              | | |              | | |              | |');
+    sails.log.info("| '--------------' | '--------------' | '--------------' |");
+    sails.log.info("'----------------' '----------------' '----------------' ");
+    sails.log.info('.----------------. .----------------. .----------------. ');
+    sails.log.info('| .--------------. | .--------------. | .--------------. |');
+    sails.log.info('| |   ______     | | |     ____     | | |  ____  ____  | |');
+    sails.log.info("| |  |_   _ \\    | | |   .'    `.   | | | |_  _||_  _| | |");
+    sails.log.info('| |    | |_) |   | | |  /  .--.  \\  | | |   \\ \\  / /   | |');
+    sails.log.info("| |    |  __'.   | | |  | |    | |  | | |    > `' <    | |");
+    sails.log.info("| |   _| |__) |  | | |  \\  `--'  /  | | |  _/ /'`\\ \\_  | |");
+    sails.log.info("| |  |_______/   | | |   `.____.'   | | | |____||____| | |");
+    sails.log.info('| |              | | |              | | |              | |');
+    sails.log.info("| '--------------' | '--------------' | '--------------' |");
+    sails.log.info("'----------------' '----------------' '----------------' ");
+  };
 
-    sails.log.verbose("Waiting for ReDBox Storage to start...");
+  sails.log.verbose('Waiting for ReDBox Storage to start...');
 
-    const response = await sails.services.recordsservice.checkRedboxRunning();
-    if (response === true) {
-        sails.log.verbose("Bootstrap complete!");
-    } else {
-        throw new Error('ReDBox Storage failed to start');
-    }
+  const response = await sails.services.recordsservice.checkRedboxRunning();
+  if (response === true) {
+    await bootstrapRecordSchema();
+    sails.log.verbose('Bootstrap complete!');
+  } else {
+    throw new Error('ReDBox Storage failed to start');
+  }
 }
 
 /**
@@ -168,53 +192,59 @@ export async function coreBootstrap(): Promise<void> {
  * Called before coreBootstrap to configure Sails settings
  * that need to be in place before services bootstrap.
  */
-export function preLiftSetup(): void {
-    const csrfSetting = sails.config.security.csrf as boolean | string;
-    if (csrfSetting === "false") {
-        sails.config.security.csrf = false;
+export async function preLiftSetup(): Promise<void> {
+  const csrfSetting = sails.config.security.csrf as boolean | string;
+  if (csrfSetting === 'false') {
+    sails.config.security.csrf = false;
+  }
+
+  sails.config.startupMinute = Math.floor(Date.now() / 60000);
+
+  const configuredBootstrapDataPath = _.get(sails.config, 'bootstrap.bootstrapDataPath');
+  if (typeof configuredBootstrapDataPath !== 'string' || !configuredBootstrapDataPath.trim()) {
+    _.set(sails.config, 'bootstrap.bootstrapDataPath', 'bootstrap-data');
+  }
+
+  if (sails.config.environment === 'production' || sails.config.ng2.force_bundle) {
+    sails.config.ng2.use_bundled = true;
+    sails.log.debug('Using NG2 Bundled files.......');
+  }
+
+  // Update the pino log level to the sails.log.level
+  sails.config.log.customLogger.level = sails.config.log.level;
+
+  sails.log.debug('Starting bootstrap process with bootstrapAlways set to: ' + sails.config.appmode.bootstrapAlways);
+  void getMergedApiRoutes();
+
+  // Initialize all services that have an init() method
+  // This allows services registered via redbox-loader shims to perform
+  // setup after Sails is fully available (e.g., registering hooks)
+  for (const serviceName of Object.keys(sails.services)) {
+    // Record-schema startup is the post-storage readiness gate at the end of
+    // coreBootstrap. Running its validation here would make service key order
+    // decide whether the configured storage hook has initialized first.
+    if (serviceName.toLowerCase() === 'recordschemaservice') {
+      continue;
     }
-
-    sails.config.startupMinute = Math.floor(Date.now() / 60000);
-
-    const configuredBootstrapDataPath = _.get(sails.config, 'bootstrap.bootstrapDataPath');
-    if (typeof configuredBootstrapDataPath !== 'string' || !configuredBootstrapDataPath.trim()) {
-        _.set(sails.config, 'bootstrap.bootstrapDataPath', 'bootstrap-data');
+    const service = sails.services[serviceName];
+    if (service && typeof service.init === 'function') {
+      await service.init();
+      sails.log.verbose(`${serviceName} service, initialized.`);
     }
+  }
 
-    if (sails.config.environment === "production" || sails.config.ng2.force_bundle) {
-        sails.config.ng2.use_bundled = true;
-        sails.log.debug("Using NG2 Bundled files.......");
+  // Initialize all controllers that have an init action
+  // Controllers register their init as sails actions (e.g., 'webservice/search/init')
+  const sailsWithActions = sails as Sails.Application & { _actions?: Record<string, () => void> };
+  const actions = sailsWithActions._actions;
+  if (actions) {
+    for (const actionKey of Object.keys(actions)) {
+      if (actionKey.endsWith('/init')) {
+        actions[actionKey]();
+        sails.log.verbose(`${actionKey} controller action, initialized.`);
+      }
     }
+  }
 
-    // Update the pino log level to the sails.log.level
-    sails.config.log.customLogger.level = sails.config.log.level;
-
-    sails.log.debug("Starting bootstrap process with bootstrapAlways set to: " + sails.config.appmode.bootstrapAlways);
-    void getMergedApiRoutes();
-
-    // Initialize all services that have an init() method
-    // This allows services registered via redbox-loader shims to perform
-    // setup after Sails is fully available (e.g., registering hooks)
-    for (const serviceName of Object.keys(sails.services)) {
-        const service = sails.services[serviceName];
-        if (service && typeof service.init === 'function') {
-            service.init();
-            sails.log.verbose(`${serviceName} service, initialized.`);
-        }
-    }
-
-    // Initialize all controllers that have an init action
-    // Controllers register their init as sails actions (e.g., 'webservice/search/init')
-    const sailsWithActions = sails as Sails.Application & { _actions?: Record<string, () => void> };
-    const actions = sailsWithActions._actions;
-    if (actions) {
-        for (const actionKey of Object.keys(actions)) {
-            if (actionKey.endsWith('/init')) {
-                actions[actionKey]();
-                sails.log.verbose(`${actionKey} controller action, initialized.`);
-            }
-        }
-    }
-
-    resetResolvedApiRouteCache();
+  resetResolvedApiRouteCache();
 }

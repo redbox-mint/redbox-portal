@@ -10,7 +10,9 @@ export {
   RecordSaveTracker,
   RECORD_VALIDATION_BYPASS_REASONS,
   createRecordSaveContext,
+  createRecordSaveSchemaOutcomeMetadata,
   isInternalRecordValidationBypass,
+  isRecordSaveContext,
   isCanonicalSaveRequestId,
   isRecordValidationBypassReason,
   normalizeRecordConcurrencyContext,
@@ -24,8 +26,12 @@ export {
 export type {
   RecordConcurrencyContext,
   RecordSaveContext,
+  RecordSaveContextOptions,
   RecordSaveOperation,
   RecordSaveRouteFamily,
+  RecordSaveSchemaOutcomeInput,
+  RecordSaveSchemaOutcomeMetadata,
+  NormalizedRecordSchemaOperation,
   InternalRecordValidationBypass,
   RecordValidationBypassReason,
   StorageMutationLogger,
@@ -111,7 +117,7 @@ export { DatastreamServiceResponse } from './DatastreamServiceResponse';
 
 export { DatastreamService } from './DatastreamService';
 export { QueueService } from './QueueService';
-export { RecordsService } from './RecordsService';
+export { RecordsService, createRecordMetadataDelta } from './RecordsService';
 export { HarvestRunService } from './HarvestRunService';
 export type {
   RecordRelationshipExpandOptions,
@@ -119,12 +125,18 @@ export type {
   RecordRelationshipEdge,
   RecordMetaWithRelationships,
   LegacyRelatedRecordsResponse,
+  RecordMetadataSubmission,
   RecordTypeLookupSummary,
 } from './RecordsService';
 export { classifyRecordWrite, recordWriteRequiresFormValidation } from './RecordWriteClassification';
 export type { RecordWriteClassification } from './RecordWriteClassification';
 export { SearchService } from './SearchService';
-export { StorageService } from './StorageService';
+export {
+  StorageService,
+  RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
+  getMissingRecordSchemaStorageCapabilities,
+} from './StorageService';
+export type { RecordSchemaStorageCapabilityMethod } from './StorageService';
 export { RecordAuditParams } from './RecordAuditParams';
 export { IntegrationAuditParams } from './IntegrationAuditParams';
 export type {
@@ -138,6 +150,7 @@ export * from './model/storage/HarvestRunModel';
 export { ILogger } from './Logger';
 
 export * from './model';
+export * from './record-contract';
 export * from './decorator';
 export * from './decorators';
 
@@ -223,7 +236,7 @@ export { Config, SailsConfig } from './config';
 
 // Bootstrap functions
 export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
-export { generateAllShims, mergeRedboxConfig } from './loader/index';
+export { discoverRecordContractContributorRegistry, generateAllShims, mergeRedboxConfig } from './loader/index';
 export type { LoaderOptions, GenerateAllShimsResult, RedboxMigration } from './loader/index';
 export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
 export type { GeneratedHookBootstrap } from './loader/bootstrapShimRuntime';

@@ -40,6 +40,7 @@ import { RBValidationError } from '../model/RBValidationError';
 import { RecordModel } from '../model/storage/RecordModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { BrandingModel } from '../model/storage/BrandingModel';
+import type { UserModel } from '../model/storage/UserModel';
 import {
   isDeletedRecordLifecycleOperation,
   isDeletedRecordLifecycleOperationForState,
@@ -65,29 +66,34 @@ import { Readable } from 'node:stream';
 import { createHash, randomUUID } from 'node:crypto';
 import type { FormAttributes } from '../waterline-models';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import { isRecordSchemaEnabled } from '../config/recordSchema.config';
 import { RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME } from '../config/agendaQueue.config';
 import {
   emitRecordConcurrencyEvent,
   type RecordConcurrencyPreconditionResult,
 } from '../RecordConcurrencyObservability';
-import type {
-  InternalRecomputableMutationOptions,
-  InternalRecordMutationAuthorization,
-  InternalRecordSnapshotSaveOptions,
-  InternalRecordWriterIdentity,
-  RecordRelationshipExpandOptions,
-  RecordRelationshipGraph,
-  RecordMetaWithRelationships,
-  RecordTypeLookupSummary,
+import {
+  createRecordMetadataDelta,
+  type InternalRecomputableMutationOptions,
+  type InternalRecordMutationAuthorization,
+  type InternalRecordSnapshotSaveOptions,
+  type InternalRecordWriterIdentity,
+  type RecordMetadataSubmission,
+  type RecordRelationshipExpandOptions,
+  type RecordRelationshipGraph,
+  type RecordMetaWithRelationships,
+  type RecordTypeLookupSummary,
 } from '../RecordsService';
 import {
   createRecordSaveContext,
   isInternalRecordValidationBypass,
+  isRecordSaveContext,
   recordValidationRuntimeFacts,
   recordSaveProblem,
   type InternalRecordValidationBypass,
   type RecordSaveContext,
   type RecordSaveResponse,
+  type RecordSaveSchemaOutcomeInput,
   RecordSaveTracker,
   resolveStorageMutationState,
 } from '../RecordSaveResponse';
@@ -99,6 +105,7 @@ import {
   type RecordAttachmentCompletionItem,
   type RecordAttachmentOperation,
   type RecordSaveIssue,
+  type RecordSaveLifecyclePhase,
   type RecordSavePhase,
   type RecordSaveProblem,
   type RecordSaveProblemKind,
@@ -144,6 +151,24 @@ import {
   type RecordValidationResult,
   type RecordValidationWriteKind,
 } from './RecordValidationService';
+import {
+  RECORD_SCHEMA_PROBLEM_CODES,
+  recordContractPointer,
+  serializeRedboxCanonicalJsonV1,
+  type PublishedRecordJsonSchemaDocument,
+  type RecordJsonSchemaValidationIssue,
+  type RecordSchemaProblemCode,
+} from '../record-contract';
+import type {
+  ResolveCreateRecordSchemaRequest,
+  ResolveCreateRecordSchemaResult,
+  ResolveUpdateRecordSchemaRequest,
+  ResolveUpdateRecordSchemaResult,
+  PersistRecordSchemaSaveUsageRequest,
+  PersistRecordSchemaSaveUsageResult,
+  ValidateResolvedRecordSchemaResult,
+} from './RecordSchemaService';
+import { issueInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
 
 /**
  * Detached post hooks remain fire-and-forget to the save caller, but audit
@@ -180,6 +205,104 @@ interface DeferredSavePostHookDispatch {
   readonly user: unknown;
 }
 
+function isUnknownRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isRecordSchemaReferenceIdentity(
+  value: unknown,
+  expected: Readonly<{ digest: string; referenceKey: string }>
+): value is Readonly<{ digest: string; referenceKey: string }> {
+  return isUnknownRecord(value) && value.digest === expected.digest && value.referenceKey === expected.referenceKey;
+}
+
+function expectedRecordSchemaSaveReferenceIdentity(
+  request: PersistRecordSchemaSaveUsageRequest
+): Readonly<{ digest: string; referenceKey: string }> {
+  const identity = {
+    digest: request.digest,
+    brand: request.brand,
+    portal: request.portal,
+    schemaKind: request.schemaKind,
+    recordType: request.recordType,
+    operation: request.operation,
+    oid: request.oid,
+    kind: 'save',
+    saveIdentity: request.saveIdentity,
+  } as const;
+  return {
+    digest: request.digest,
+    referenceKey: `save:${createHash('sha256').update(serializeRedboxCanonicalJsonV1(identity), 'utf8').digest('hex')}`,
+  };
+}
+
+type PersistRecordSchemaSaveUsageWriteFailure = Extract<
+  PersistRecordSchemaSaveUsageResult,
+  { readonly kind: 'write-failed' }
+>;
+
+function isRecordSchemaSaveUsageFailureKind(
+  value: unknown
+): value is PersistRecordSchemaSaveUsageWriteFailure['failureKind'] {
+  switch (value) {
+    case 'storage-unavailable':
+    case 'artifact-not-found':
+    case 'invalid-reference':
+    case 'reference-key-collision':
+    case 'digest-collision':
+    case 'invalid-state':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function isRecordSchemaSaveUsageFailureCode(value: unknown): value is PersistRecordSchemaSaveUsageWriteFailure['code'] {
+  switch (value) {
+    case RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE:
+    case RECORD_SCHEMA_PROBLEM_CODES.ARTIFACT_NOT_FOUND:
+    case RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_INVALID:
+    case RECORD_SCHEMA_PROBLEM_CODES.REFERENCE_KEY_COLLISION:
+    case RECORD_SCHEMA_PROBLEM_CODES.DIGEST_COLLISION:
+    case RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT:
+    case RECORD_SCHEMA_PROBLEM_CODES.GRANT_WRITE_FAILED:
+      return true;
+    default:
+      return false;
+  }
+}
+
+function isPersistRecordSchemaSaveUsageResult(
+  value: unknown,
+  expectedReference: Readonly<{ digest: string; referenceKey: string }>
+): value is PersistRecordSchemaSaveUsageResult {
+  if (!isUnknownRecord(value)) return false;
+
+  switch (value.kind) {
+    case 'recorded':
+      return isRecordSchemaReferenceIdentity(value.reference, expectedReference);
+    case 'invalid-input':
+      return value.code === RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
+    case 'disabled':
+      return value.code === RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+    case 'unavailable':
+      return (
+        (value.stage === 'configuration' && value.code === RECORD_SCHEMA_PROBLEM_CODES.CONFIG_INVALID) ||
+        (value.stage === 'storage' && value.code === RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE)
+      );
+    case 'write-failed':
+      return (
+        value.stage === 'save-reference' &&
+        isRecordSchemaReferenceIdentity(value.reference, expectedReference) &&
+        typeof value.retryable === 'boolean' &&
+        isRecordSchemaSaveUsageFailureKind(value.failureKind) &&
+        isRecordSchemaSaveUsageFailureCode(value.code)
+      );
+    default:
+      return false;
+  }
+}
+
 function safeValidationLogReference(value: unknown): string {
   if (typeof value !== 'string') return 'unavailable';
   const normalized = value.trim();
@@ -189,6 +312,14 @@ function safeValidationLogReference(value: unknown): string {
 function safeExceptionType(error: unknown): string {
   if (error instanceof Error && RECORD_VALIDATION_REFERENCE_PATTERN.test(error.name)) return error.name;
   return typeof error;
+}
+
+function requireRecordSaveContext(context: RecordSaveContext | undefined): RecordSaveContext | undefined {
+  if (context === undefined) return undefined;
+  if (!isRecordSaveContext(context)) {
+    throw new TypeError('Record save contexts must be omitted or created by createRecordSaveContext().');
+  }
+  return context;
 }
 
 // Save codes are an internal RecordsService-to-RecordSaveResponse mapping, not
@@ -227,6 +358,33 @@ export namespace Services {
     | { readonly ok: true; readonly name?: string }
     | { readonly ok: false; readonly diagnosticCode: WorkflowTargetDiagnosticCode };
   type RecordValidationResolver = Pick<RecordValidationServices.RecordValidation, 'resolve'>;
+  type RecordSchemaArtifactValidator = {
+    validateResolvedArtifact(
+      request: Readonly<{
+        digest: string;
+        schemaKind: 'create' | 'update';
+        document: PublishedRecordJsonSchemaDocument;
+        input: unknown;
+      }>
+    ): ValidateResolvedRecordSchemaResult;
+  };
+  type CreateRecordSchemaResolver = RecordSchemaArtifactValidator & {
+    resolveCreate(request: ResolveCreateRecordSchemaRequest): Promise<ResolveCreateRecordSchemaResult>;
+  };
+  type UpdateRecordSchemaResolver = RecordSchemaArtifactValidator & {
+    resolveUpdate(request: ResolveUpdateRecordSchemaRequest): Promise<ResolveUpdateRecordSchemaResult>;
+  };
+  type SuccessfulRecordSchemaResolution =
+    | Extract<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+    | Extract<ResolveUpdateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>;
+  type RecordSchemaSaveUsageWriter = {
+    persistSaveUsageReference(request: PersistRecordSchemaSaveUsageRequest): Promise<unknown>;
+  };
+  type RecordSchemaSaveIssue = {
+    readonly code: RecordSchemaProblemCode;
+    readonly pointer: RecordJsonSchemaValidationIssue['pointer'];
+    readonly expected?: RecordJsonSchemaValidationIssue['expected'];
+  };
   type BootstrapRecordMetadata = Record<string, unknown>;
   type RecordWithMeta = AnyRecord & {
     metaMetadata?: AnyRecord;
@@ -250,6 +408,21 @@ export namespace Services {
         readonly warnings: readonly RecordSaveProblem[];
       }
     | { readonly allowed: false; readonly problem: RecordSaveProblem };
+  type StructuralMetadataValidationResult =
+    | { readonly valid: true }
+    | { readonly valid: false; readonly problem: RecordSaveProblem };
+  type ResolvedRecordSchemaSaveUsage = {
+    readonly request: Omit<PersistRecordSchemaSaveUsageRequest, 'oid' | 'saveIdentity'>;
+    readonly outcome: RecordSaveSchemaOutcomeInput;
+  };
+  type CreateStructuralPhaseResult =
+    | {
+        readonly allowed: true;
+        readonly warnings: readonly RecordSaveProblem[];
+        readonly usage?: ResolvedRecordSchemaSaveUsage;
+      }
+    | { readonly allowed: false; readonly problem: RecordSaveProblem };
+  type UpdateStructuralPhaseResult = CreateStructuralPhaseResult;
   type ValidateCandidateOptions = {
     readonly candidate: AnyRecord;
     readonly original?: AnyRecord;
@@ -633,6 +806,428 @@ export namespace Services {
         candidate[key] = _.cloneDeep(value);
       }
       return this.normalizeRecord(candidate);
+    }
+
+    /**
+     * Structural validation seam at the update boundary. Schema resolution and
+     * rollout policy remain separate from the merge relocation.
+     */
+    protected validateUpdateMetadataStructure(
+      _metadata: Readonly<AnyRecord>
+    ): Promise<StructuralMetadataValidationResult> {
+      return Promise.resolve({ valid: true });
+    }
+
+    private recordSchemaEnabled(): boolean {
+      try {
+        return isRecordSchemaEnabled(sails.config.recordSchema);
+      } catch {
+        // An unreadable enabled configuration must not silently disable an
+        // enforce rollout if the lifecycle check has not stopped the app.
+        return true;
+      }
+    }
+
+    /** Resolve on every structural boundary so late service registration is observed. */
+    private resolveRecordSchemaService(): CreateRecordSchemaResolver | undefined {
+      try {
+        const registered = sails.services?.recordschemaservice as Partial<CreateRecordSchemaResolver> | undefined;
+        return typeof registered?.resolveCreate === 'function' &&
+          typeof registered.validateResolvedArtifact === 'function'
+          ? (registered as CreateRecordSchemaResolver)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+
+    /** Keep update resolution optional until the schema service is registered during lift. */
+    private resolveUpdateRecordSchemaService(): UpdateRecordSchemaResolver | undefined {
+      try {
+        const registered = sails.services?.recordschemaservice as Partial<UpdateRecordSchemaResolver> | undefined;
+        return typeof registered?.resolveUpdate === 'function' &&
+          typeof registered.validateResolvedArtifact === 'function'
+          ? (registered as UpdateRecordSchemaResolver)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+
+    /** Resolve separately from validation so a late usage-writer failure is reported after the commit. */
+    private resolveRecordSchemaSaveUsageWriter(): RecordSchemaSaveUsageWriter | undefined {
+      try {
+        const registered = sails.services?.recordschemaservice as Partial<RecordSchemaSaveUsageWriter> | undefined;
+        return typeof registered?.persistSaveUsageReference === 'function'
+          ? (registered as RecordSchemaSaveUsageWriter)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+
+    /** Retain only durable reference fields and safe response metadata from a resolved artifact. */
+    private resolvedRecordSchemaSaveUsage(resolution: SuccessfulRecordSchemaResolution): ResolvedRecordSchemaSaveUsage {
+      const context = resolution.metadata.context;
+      return {
+        request: {
+          digest: resolution.digest,
+          brand: context.brand,
+          portal: context.portal,
+          schemaKind: resolution.metadata.schemaKind,
+          recordType: context.recordType,
+          operation: context.operation,
+        },
+        outcome: {
+          digest: resolution.digest,
+          immutableUrl: resolution.document.$id,
+          completeness: resolution.metadata.completeness,
+          enforcement: context.enforcement,
+        },
+      };
+    }
+
+    /**
+     * Schema usage is a post-commit durability aid. Failure cannot roll back a
+     * confirmed record mutation, so it becomes a safe lifecycle warning while
+     * the resolved schema outcome remains available to response adapters.
+     */
+    private async persistResolvedRecordSchemaSaveUsage(
+      tracker: RecordSaveTracker,
+      usage: ResolvedRecordSchemaSaveUsage | undefined,
+      oid: string
+    ): Promise<void> {
+      if (!usage) return;
+
+      tracker.setSchemaOutcome(usage.outcome);
+      const writer = this.resolveRecordSchemaSaveUsageWriter();
+      let result: PersistRecordSchemaSaveUsageResult;
+      if (!writer) {
+        result = {
+          kind: 'unavailable',
+          stage: 'storage',
+          code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        };
+      } else {
+        try {
+          const request = {
+            ...usage.request,
+            oid,
+            saveIdentity: tracker.context.requestId,
+          };
+          const fulfilled = await writer.persistSaveUsageReference(request);
+          result = isPersistRecordSchemaSaveUsageResult(fulfilled, expectedRecordSchemaSaveReferenceIdentity(request))
+            ? fulfilled
+            : {
+                kind: 'unavailable',
+                stage: 'storage',
+                code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+              };
+        } catch {
+          result = {
+            kind: 'unavailable',
+            stage: 'storage',
+            code: RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+          };
+        }
+      }
+      if (result.kind === 'recorded') return;
+
+      tracker.recordPostPersistenceProblem(
+        recordSaveProblem('system', 'post-save', '@record-schema-save-usage-failed', 'record-schema-save-usage-failed')
+      );
+      try {
+        sails.log.error(`${this.logHeader} record schema save usage persistence failed`, {
+          event: 'record_schema_save_usage_persistence_failed',
+          schema_kind: usage.request.schemaKind,
+          result: result.kind,
+          code: 'code' in result ? result.code : RECORD_SCHEMA_PROBLEM_CODES.STORAGE_UNAVAILABLE,
+        });
+      } catch {
+        // A diagnostic sink failure cannot change the already-confirmed save.
+      }
+    }
+
+    private recordSchemaProblem(
+      kind: RecordSaveProblemKind,
+      code: RecordSchemaProblemCode,
+      issues: readonly RecordSchemaSaveIssue[] = []
+    ): RecordSaveProblem {
+      const safeIssues =
+        issues.length > 0
+          ? issues.map(issue =>
+              sanitizeRecordSaveIssue({
+                code: issue.code,
+                message: `@${issue.code}`,
+                pointer: issue.pointer,
+                expected: issue.expected,
+              })
+            )
+          : [
+              sanitizeRecordSaveIssue({
+                code,
+                message: `@${code}`,
+              }),
+            ];
+      return { kind, source: 'schema', phase: 'schema', issues: safeIssues };
+    }
+
+    private recordSchemaFailureCode(
+      result: Exclude<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+    ): RecordSchemaProblemCode {
+      if (result.kind !== 'context-failed') return result.code;
+      switch (result.failureKind) {
+        case 'invalid-request':
+          return RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST;
+        case 'not-found':
+          return RECORD_SCHEMA_PROBLEM_CODES.NOT_FOUND;
+        case 'forbidden':
+          return RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN;
+        case 'not-resolvable':
+          return RECORD_SCHEMA_PROBLEM_CODES.NOT_RESOLVABLE;
+        case 'unavailable':
+          return RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE;
+      }
+    }
+
+    /** Operation policy failures remain authorization/request failures in every rollout mode. */
+    private recordSchemaOperationFailure(
+      result: Exclude<ResolveCreateRecordSchemaResult, { readonly kind: 'resolved' | 'partial' }>
+    ): RecordSaveProblem | undefined {
+      if (result.kind !== 'context-failed') return undefined;
+      const diagnosticCodes = new Set(result.diagnosticCodes);
+      if (
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized) ||
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationTargetUnauthorized)
+      ) {
+        return this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.operationUnauthorized);
+      }
+      if (
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationMalformed) ||
+        diagnosticCodes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationUnknown)
+      ) {
+        return this.validationProblem('validation', 'pre-save', RECORD_VALIDATION_SAVE_CODES.operationInvalid);
+      }
+      if (result.failureKind === 'forbidden') {
+        return this.recordSchemaProblem('authorization', RECORD_SCHEMA_PROBLEM_CODES.FORBIDDEN);
+      }
+      if (result.failureKind === 'invalid-request') {
+        return this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.INVALID_REQUEST);
+      }
+      return undefined;
+    }
+
+    private applySchemaPolicy(
+      mode: ValidationMode,
+      problem: RecordSaveProblem,
+      usage?: ResolvedRecordSchemaSaveUsage
+    ): CreateStructuralPhaseResult {
+      return mode === 'shadow' ? { allowed: true, warnings: [problem], usage } : { allowed: false, problem };
+    }
+
+    private validateResolvedRecordSchema(
+      service: RecordSchemaArtifactValidator,
+      resolution: SuccessfulRecordSchemaResolution,
+      schemaKind: 'create' | 'update',
+      input: unknown
+    ): CreateStructuralPhaseResult {
+      const usage = this.resolvedRecordSchemaSaveUsage(resolution);
+      let validation: ValidateResolvedRecordSchemaResult;
+      try {
+        validation = service.validateResolvedArtifact({
+          digest: resolution.digest,
+          schemaKind,
+          document: resolution.document,
+          input,
+        });
+      } catch {
+        validation = { kind: 'unavailable', code: RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE };
+      }
+      if (validation.kind !== 'validated') {
+        return this.applySchemaPolicy(
+          resolution.metadata.context.enforcement,
+          this.recordSchemaProblem('system', validation.code),
+          usage
+        );
+      }
+      if (validation.valid) return { allowed: true, warnings: [], usage };
+      let issues: readonly RecordSchemaSaveIssue[] =
+        validation.issues.length > 0
+          ? validation.issues
+          : [{ code: RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, pointer: recordContractPointer('') }];
+      if (validation.truncated) {
+        const truncationIssue: RecordSchemaSaveIssue = {
+          code: RECORD_SCHEMA_PROBLEM_CODES.LIMIT_DIAGNOSTICS,
+          pointer: recordContractPointer(''),
+        };
+        issues = issues.length > 1 ? [...issues.slice(0, issues.length - 1), truncationIssue] : [truncationIssue];
+      }
+      return this.applySchemaPolicy(
+        resolution.metadata.context.enforcement,
+        this.recordSchemaProblem('validation', RECORD_SCHEMA_PROBLEM_CODES.VALIDATION_GENERIC, issues),
+        usage
+      );
+    }
+
+    /**
+     * Resolve and validate the exact create artifact before metadata defaults,
+     * transformations, hooks, business validation, or storage can observe the
+     * submission.
+     */
+    private async validateCreateMetadataStructure(
+      options: Readonly<{
+        metadata: unknown;
+        brand: BrandingModel;
+        portal?: string;
+        recordType: RecordTypeLike;
+        recordTypeName: string;
+        user: AnyRecord;
+        context: RecordSaveContext;
+        targetStep?: string;
+      }>
+    ): Promise<CreateStructuralPhaseResult> {
+      const fallbackMode = this.fallbackValidationMode(
+        options.recordType,
+        options.context.schemaOperation,
+        options.recordTypeName
+      );
+      const unavailable = (code: RecordSchemaProblemCode): CreateStructuralPhaseResult =>
+        this.applySchemaPolicy(fallbackMode, this.recordSchemaProblem('system', code));
+      const service = this.resolveRecordSchemaService();
+      if (!service) return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      const brand = String(options.brand.id ?? '').trim();
+      const branding = String(options.brand.name ?? '').trim() || brand;
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !options.portal) {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      let resolution: ResolveCreateRecordSchemaResult;
+      try {
+        resolution = await service.resolveCreate({
+          brand,
+          branding,
+          portal: options.portal,
+          recordType: options.recordTypeName,
+          operation: options.context.schemaOperation,
+          targetStep: options.targetStep,
+          caller: { brand: options.brand, user: options.user } as ResolveCreateRecordSchemaRequest['caller'],
+          internalAuthorizationCapability: issueInternalRecordSchemaAuthorizationCapability(),
+        });
+      } catch {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      if (resolution.kind !== 'resolved' && resolution.kind !== 'partial') {
+        const operationFailure = this.recordSchemaOperationFailure(resolution);
+        if (operationFailure) return { allowed: false, problem: operationFailure };
+        return this.applySchemaPolicy(
+          fallbackMode,
+          this.recordSchemaProblem('system', this.recordSchemaFailureCode(resolution))
+        );
+      }
+      return this.validateResolvedRecordSchema(service, resolution, 'create', options.metadata);
+    }
+
+    /**
+     * Resolve the caller-effective update contract, evaluate its optional
+     * precondition, and validate the untouched partial metadata submission.
+     */
+    private async validateUpdateRecordSchema(
+      options: Readonly<{
+        metadata: unknown;
+        brand: BrandingModel;
+        portal?: string;
+        oid: string;
+        recordType: RecordTypeLike | null;
+        recordTypeName: string;
+        user: AnyRecord;
+        context: RecordSaveContext;
+        internalAuthorizationCapability?: unknown;
+      }>
+    ): Promise<UpdateStructuralPhaseResult> {
+      const fallbackMode = this.fallbackValidationMode(
+        options.recordType,
+        options.context.schemaOperation,
+        options.recordTypeName
+      );
+      const unavailable = (code: RecordSchemaProblemCode): UpdateStructuralPhaseResult =>
+        this.applySchemaPolicy(fallbackMode, this.recordSchemaProblem('system', code));
+      const service = this.resolveUpdateRecordSchemaService();
+      if (!service) return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      const brand = String(options.brand.id ?? '').trim();
+      const branding = String(options.brand.name ?? '').trim() || brand;
+      const portal = String(options.portal ?? sails.config.auth?.defaultPortal ?? '').trim();
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(brand) || !RECORD_VALIDATION_REFERENCE_PATTERN.test(portal)) {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      let resolution: ResolveUpdateRecordSchemaResult;
+      try {
+        resolution = await service.resolveUpdate({
+          brand,
+          branding,
+          portal,
+          oid: options.oid,
+          operation: options.context.schemaOperation,
+          ifMatch: options.context.ifMatch,
+          caller: {
+            brand: options.brand,
+            user: options.user as UserModel,
+          },
+          internalAuthorizationCapability: options.internalAuthorizationCapability,
+        });
+      } catch {
+        return unavailable(RECORD_SCHEMA_PROBLEM_CODES.UNAVAILABLE);
+      }
+
+      if (resolution.kind === 'precondition-failed' || resolution.kind === 'invalid-precondition') {
+        return {
+          allowed: false,
+          problem: this.recordSchemaProblem('validation', resolution.code),
+        };
+      }
+      if (resolution.kind === 'denied') {
+        return {
+          allowed: false,
+          problem: this.recordSchemaProblem('authorization', resolution.code),
+        };
+      }
+      if (resolution.kind === 'missing-oid') {
+        return {
+          allowed: false,
+          problem: this.recordSchemaProblem('system', resolution.code),
+        };
+      }
+      if (resolution.kind !== 'resolved' && resolution.kind !== 'partial') {
+        const operationFailure = this.recordSchemaOperationFailure(resolution);
+        if (operationFailure) return { allowed: false, problem: operationFailure };
+        return this.applySchemaPolicy(
+          fallbackMode,
+          this.recordSchemaProblem('system', this.recordSchemaFailureCode(resolution))
+        );
+      }
+      return this.validateResolvedRecordSchema(service, resolution, 'update', options.metadata);
+    }
+
+    /** Apply a validated submission at the single update metadata mutation boundary. */
+    private applySubmittedMetadata(candidate: RecordWithMeta, submission: RecordMetadataSubmission): void {
+      if (submission.mode === 'pre-applied') return;
+      const detachedMetadata = _.cloneDeep(submission.metadata) as AnyRecord;
+      if (submission.mode === 'replace') {
+        candidate.metadata = detachedMetadata;
+        return;
+      }
+
+      candidate.metadata = _.mergeWith(
+        _.cloneDeep(candidate.metadata ?? {}),
+        detachedMetadata,
+        (existingValue: unknown, submittedValue: unknown) => {
+          if (Array.isArray(existingValue)) {
+            return submission.arrayMergeMode === 'replace' ? submittedValue : existingValue.concat(submittedValue);
+          }
+          return undefined;
+        }
+      ) as AnyRecord;
     }
 
     private cloneValidationCandidate(candidate: RecordValidationCandidate | AnyRecord): RecordWithMeta {
@@ -1346,7 +1941,7 @@ export namespace Services {
     }
 
     private saveProblem(
-      phase: RecordSavePhase,
+      phase: RecordSaveLifecyclePhase,
       _message: string,
       kind: RecordSaveProblemKind = 'system',
       code?: string
@@ -1356,7 +1951,7 @@ export namespace Services {
 
     private saveProblemFromError(
       error: unknown,
-      phase: RecordSavePhase,
+      phase: RecordSaveLifecyclePhase,
       _fallbackMessage: string,
       fallbackKind: RecordSaveProblemKind = 'processing',
       fallbackCode = 'save-precondition'
@@ -1396,7 +1991,7 @@ export namespace Services {
 
     private validationProblem(
       kind: RecordSaveProblemKind,
-      phase: RecordSavePhase,
+      phase: RecordSaveLifecyclePhase,
       code: string,
       issues: readonly RecordSaveIssue[] = []
     ): RecordSaveProblem {
@@ -1533,6 +2128,90 @@ export namespace Services {
       if (context.routeFamily !== 'api' && context.routeFamily !== 'browser') return true;
       const roles = Array.isArray(user.roles) ? (user.roles as AnyRecord[]) : [];
       return Boolean(record && this.hasEditAccess(brand, user, roles, record));
+    }
+
+    private hasConfiguredRecordCreatorEditPermission(recordType: RecordTypeLike): boolean {
+      const declarations = _.get(recordType, 'hooks.onCreate.pre');
+      if (!Array.isArray(declarations)) return false;
+
+      return declarations.some(declaration => {
+        const hook = this.recordObject(declaration);
+        const hookFunction = String(hook.function ?? '').trim();
+        if (
+          hookFunction !== 'sails.services.rdmpservice.assignPermissions' &&
+          hookFunction !== 'sails.services.rdmpservice.complexAssignPermissions'
+        ) {
+          return false;
+        }
+
+        const options = this.recordObject(hook.options);
+        // A conditional hook cannot be treated as an unconditional create
+        // capability before the candidate exists and the hook has run.
+        if (String(options.triggerCondition ?? '').trim()) return false;
+        const creatorPermissions = String(options.recordCreatorPermissions ?? '').trim();
+        return creatorPermissions === 'edit' || creatorPermissions === 'view&edit';
+      });
+    }
+
+    /**
+     * Project create authorization only from authoritative workflow ACLs and
+     * explicit built-in creator permissions. Submitted record authorization is
+     * persistence data and must never grant the capability that permits schema
+     * compilation or grant persistence.
+     */
+    private createAuthorizationProjection(
+      workflowSteps: readonly WorkflowStepLike[],
+      recordType?: RecordTypeLike,
+      user?: AnyRecord
+    ): AnyRecord {
+      const projection = { authorization: {} } as AnyRecord;
+      const authorization = projection.authorization as AnyRecord;
+      for (const workflowStep of workflowSteps) {
+        const configured = this.recordObject(_.get(workflowStep, 'config.authorization'));
+        authorization.viewRoles = authorization.viewRoles ?? _.cloneDeep(configured.viewRoles);
+        authorization.editRoles = authorization.editRoles ?? _.cloneDeep(configured.editRoles);
+      }
+      if (recordType && user && this.hasConfiguredRecordCreatorEditPermission(recordType)) {
+        const username = String(user.username ?? '').trim();
+        if (username) authorization.edit = [username];
+      }
+      return projection;
+    }
+
+    /** Authorize schema-only create discovery against the same workflow ACL projection as a normal create. */
+    public async hasCreateAccess(
+      brand: unknown,
+      user: AnyRecord,
+      roles: AnyRecord[],
+      recordTypeName: string,
+      workflowStepName: string
+    ): Promise<boolean> {
+      const brandObj = brand as BrandingModel;
+      const normalizedRecordType = String(recordTypeName ?? '').trim();
+      const normalizedWorkflowStep = String(workflowStepName ?? '').trim();
+      if (!String(brandObj?.id ?? '').trim() || !normalizedRecordType || !normalizedWorkflowStep) return false;
+
+      const recordType = (await firstValueFrom(
+        RecordTypesService.get(brandObj, normalizedRecordType)
+      )) as RecordTypeLike | null;
+      if (!recordType) return false;
+      const startingStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as WorkflowStepLike | null;
+      if (!startingStep) return false;
+      const workflowSteps: WorkflowStepLike[] = [startingStep];
+      if (normalizedWorkflowStep !== String(startingStep.name ?? '').trim()) {
+        const targetStep = (await firstValueFrom(
+          WorkflowStepsService.get(recordType, normalizedWorkflowStep)
+        )) as WorkflowStepLike | null;
+        if (this.resolvedWorkflowTargetDiagnostic(targetStep, normalizedWorkflowStep)) return false;
+        if (!this.hasTransitionRoleAuthorization(targetStep, user)) return false;
+        workflowSteps.push(targetStep as WorkflowStepLike);
+      }
+      return this.hasEditAccess(
+        brandObj,
+        user,
+        roles,
+        this.createAuthorizationProjection(workflowSteps, recordType, user)
+      );
     }
 
     public hasTransitionRoleAuthorization(step: unknown, user: AnyRecord | null | undefined): boolean {
@@ -1978,8 +2657,7 @@ export namespace Services {
         searchable,
         action,
         actor: this.postCommitAuditActor(user),
-        resolution:
-          tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
+        resolution: tracker.result.concurrency?.resolution ?? this.effectiveConcurrencyResolution(tracker.context),
         ...(isRecordRevision(revision) ? { committedRevision: revision } : {}),
       };
     }
@@ -2003,9 +2681,10 @@ export namespace Services {
       ) {
         return undefined;
       }
-      const actor = data.actor && typeof data.actor === 'object' && !Array.isArray(data.actor)
-        ? this.postCommitAuditActor(data.actor as AnyRecord)
-        : {};
+      const actor =
+        data.actor && typeof data.actor === 'object' && !Array.isArray(data.actor)
+          ? this.postCommitAuditActor(data.actor as AnyRecord)
+          : {};
       return {
         schemaVersion: RECORD_POST_COMMIT_RECONCILIATION_SCHEMA_VERSION,
         oid,
@@ -2296,7 +2975,12 @@ export namespace Services {
       return service;
     }
 
-    private attachmentJournalStorageKey(oid: string, attachmentId: string, generation: string, mutationFileId: string): string {
+    private attachmentJournalStorageKey(
+      oid: string,
+      attachmentId: string,
+      generation: string,
+      mutationFileId: string
+    ): string {
       const mutationKey = createHash('sha256').update(mutationFileId).digest('hex').slice(0, 32);
       return `journal/${oid}/${attachmentId}/${generation}/${mutationKey}`;
     }
@@ -2551,13 +3235,8 @@ export namespace Services {
           if (journal) {
             try {
               journalStateKnown =
-                (await journal.markMutation(
-                  oid,
-                  item.attachmentId,
-                  item.generation,
-                  'applied',
-                  item.fileId
-                )) && journalStateKnown;
+                (await journal.markMutation(oid, item.attachmentId, item.generation, 'applied', item.fileId)) &&
+                journalStateKnown;
             } catch (error) {
               journalStateKnown = false;
               sails.log.error(
@@ -2801,10 +3480,8 @@ export namespace Services {
 
     private validateHookConfiguration(recordType: unknown, modes: readonly string[]): void {
       try {
-        validateRecordHookConfiguration(
-          recordType,
-          modes,
-          (hook, mode, phase) => this.configuredHookFunction(hook, mode, phase)
+        validateRecordHookConfiguration(recordType, modes, (hook, mode, phase) =>
+          this.configuredHookFunction(hook, mode, phase)
         );
       } catch (error) {
         if (RBValidationError.isRBValidationError(error)) {
@@ -3053,6 +3730,7 @@ export namespace Services {
       'getRecordFormFingerprint',
       'getRecordAudit',
       'getResolvedPermissionsSummary',
+      'hasCreateAccess',
       'hasEditAccess',
       'hasTransitionRoleAuthorization',
       'hasViewAccess',
@@ -3174,15 +3852,20 @@ export namespace Services {
       targetStep = null,
       context?: RecordSaveContext
     ): Promise<RecordSaveResponse> {
+      const suppliedContext = requireRecordSaveContext(context);
       const tracker = new RecordSaveTracker(
         createRecordSaveContext({
-          ...(context ?? {}),
-          operation: context?.operation ?? 'create',
+          ...(suppliedContext ?? {}),
+          operation: suppliedContext?.operation ?? 'create',
+          recordSchemaIfMatch: suppliedContext?.ifMatch,
         })
       );
       const brandObj = brand as BrandingModel;
       const recordTypeObj = recordType as RecordTypeLike;
-      let recordObj = this.normalizeRecord(_.cloneDeep(record) as AnyRecord);
+      const requestedRecord = _.cloneDeep(record) as AnyRecord;
+      const rawSubmittedMetadata = _.cloneDeep(requestedRecord.metadata);
+      let resolvedSchemaUsage: ResolvedRecordSchemaSaveUsage | undefined;
+      let recordObj = this.normalizeRecord(requestedRecord);
       const userObj = this.recordObject(user);
       const configuredRecordTypeName = typeof recordTypeObj?.name === 'string' ? recordTypeObj.name.trim() : '';
       const isPublicRoute = tracker.context.routeFamily === 'api' || tracker.context.routeFamily === 'browser';
@@ -3387,14 +4070,91 @@ export namespace Services {
           return tracker.toResponse();
         }
       }
-
       // Preserve the starting-form contract before applying target-step metadata.
       const createFormFingerprintRecord: AnyRecord = {
         metaMetadata: { brandId: String(brandObj.id ?? ''), form: String(_.get(startingWfStep, 'config.form', '')) },
         workflow: { stage: this.workflowStepName(startingWfStep) },
       };
-      this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
-      if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
+
+      const schemaEnabled = this.recordSchemaEnabled();
+      if (schemaEnabled) {
+        const authorizationProjection = this.createAuthorizationProjection(
+          targetStepName ? [startingWfStep, wfStep] : [startingWfStep],
+          recordTypeObj,
+          userObj
+        );
+        const structuralBypass = tracker.context.validationBypass;
+        if (structuralBypass !== undefined) {
+          const bypassError = this.bypassErrorCode(tracker.context, structuralBypass);
+          if (bypassError) {
+            tracker.recordPrimaryNotApplied(this.validationProblem('system', 'pre-save', bypassError));
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
+        }
+        if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, authorizationProjection)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        if (targetStepName && !this.hasTransitionRoleAuthorization(wfStep, userObj)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+
+        // A valid internal capability bypasses both structural and form
+        // validation, then validateCandidate durably audits that decision
+        // before any persistence can occur.
+        if (structuralBypass === undefined) {
+          const structuralValidation = await this.validateCreateMetadataStructure({
+            metadata: rawSubmittedMetadata,
+            brand: brandObj,
+            portal: tracker.context.portal,
+            recordType: recordTypeObj,
+            recordTypeName,
+            user: userObj,
+            context: tracker.context,
+            targetStep: targetStepName,
+          });
+          if (!structuralValidation.allowed) {
+            tracker.recordPrimaryNotApplied(structuralValidation.problem);
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
+          resolvedSchemaUsage = structuralValidation.usage;
+          for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
+        }
+      }
+
+      if (!schemaEnabled) {
+        this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
+        if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
+        if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+        if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+      }
+
+      if (schemaEnabled) {
+        this.transitionWorkflowStepMetadata(recordObj, startingWfStep);
+        if (targetStepName) this.transitionWorkflowStepMetadata(recordObj, wfStep);
+      }
+
       const formName = String(_.get(wfStep, 'config.form', ''));
 
       const form = await FormsService.getForm(brandObj, formName, true, recordTypeObj.name as string, recordObj);
@@ -3410,28 +4170,6 @@ export namespace Services {
         String(DateTime.local().toISO())
       );
       _.set(recordObj, 'metaMetadata', metaMetadata);
-
-      if (tracker.context.validationBypass !== undefined && tracker.context.routeFamily !== 'internal') {
-        tracker.recordPrimaryNotApplied(
-          this.validationProblem('system', 'pre-save', RECORD_VALIDATION_SAVE_CODES.bypassForbidden)
-        );
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
-      }
-      if (!this.hasPublicEditAuthorization(tracker.context, brandObj, userObj, recordObj)) {
-        tracker.recordPrimaryNotApplied(
-          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.editUnauthorized)
-        );
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
-      }
-      if (targetStepName && !this.hasTransitionRoleAuthorization(wfStep, userObj)) {
-        tracker.recordPrimaryNotApplied(
-          this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
-        );
-        this.logSaveOutcome(tracker, 'pre-save');
-        return tracker.toResponse();
-      }
 
       let currentFormFingerprint: string | undefined;
       const suppliedFormFingerprint = tracker.context.concurrency?.formFingerprint;
@@ -3476,6 +4214,13 @@ export namespace Services {
       }
 
       if (targetStepName) {
+        if (!schemaEnabled && !this.hasTransitionRoleAuthorization(wfStep, userObj)) {
+          tracker.recordPrimaryNotApplied(
+            this.validationProblem('authorization', 'pre-save', RECORD_VALIDATION_SAVE_CODES.transitionUnauthorized)
+          );
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
         try {
           recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
             createOid,
@@ -3599,6 +4344,7 @@ export namespace Services {
       if (primaryMutationState === 'applied') {
         tracker.confirmPrimaryPersistence(createOid, createResponse);
         hookOperation.completedThrough = 'persistence';
+        await this.persistResolvedRecordSchemaSaveUsage(tracker, resolvedSchemaUsage, createOid);
         const oid = createOid;
         let currentRevision = this.committedRevision(createResponse);
         if (currentRevision === undefined && hasFullRecordStorageConcurrencyCapability(this.storageService)) {
@@ -4046,6 +4792,7 @@ export namespace Services {
         );
       }
 
+      const suppliedContext = isRecordSaveContext(options.context) ? options.context : undefined;
       return await this.updateMeta(
         brand,
         oid,
@@ -4054,25 +4801,34 @@ export namespace Services {
         options.triggerPreSaveTriggers ?? true,
         options.triggerPostSaveTriggers ?? true,
         options.targetStep ?? {},
-        options.metadata,
+        options.metadata === undefined
+          ? undefined
+          : { metadata: options.metadata, mode: options.metadataMode ?? 'replace' },
         createRecordSaveContext({
           routeFamily: 'internal',
           operation: options.operation ?? 'update',
+          portal: suppliedContext?.portal,
           targetStep:
             options.operation === 'transition'
               ? this.workflowStepName(options.targetStep as WorkflowStepLike)
               : undefined,
+          validationOperation: suppliedContext?.validationOperation,
+          validationRequestParameters: suppliedContext?.validationRequestParameters,
           validationRuntimeContext: {
+            ...suppliedContext?.validationRuntimeContext,
             internalWriterId: writerId,
             internalMutationClass: mutationClass,
           },
+          validationBypass: suppliedContext?.validationBypass,
+          recordSchemaIfMatch: suppliedContext?.ifMatch,
           concurrency: {
             expectedRevision,
             entityTagSupplied: false,
             resolution: 'internal',
             ...(options.causedByRequestId ? { resolutionOfRequestId: options.causedByRequestId } : {}),
           },
-        })
+        }),
+        authorization === 'service' ? issueInternalRecordSchemaAuthorizationCapability() : undefined
       );
     }
 
@@ -4218,15 +4974,19 @@ export namespace Services {
       triggerPreSaveTriggers: boolean = true,
       triggerPostSaveTriggers: boolean = true,
       nextStep: unknown = {},
-      metadata?: AnyRecord,
-      context?: RecordSaveContext
+      submission?: RecordMetadataSubmission,
+      context?: RecordSaveContext,
+      internalAuthorizationCapability?: unknown
     ): Promise<RecordSaveResponse> {
+      const suppliedContext = requireRecordSaveContext(context);
       const transitionRequested =
-        context?.operation === 'transition' || (context?.operation === undefined && !_.isEmpty(nextStep));
+        suppliedContext?.operation === 'transition' ||
+        (suppliedContext?.operation === undefined && !_.isEmpty(nextStep));
       const tracker = new RecordSaveTracker(
         createRecordSaveContext({
-          ...(context ?? {}),
-          operation: context?.operation ?? (transitionRequested ? 'transition' : 'update'),
+          ...(suppliedContext ?? {}),
+          operation: suppliedContext?.operation ?? (transitionRequested ? 'transition' : 'update'),
+          recordSchemaIfMatch: suppliedContext?.ifMatch,
         })
       );
       const hookOperation = this.registerSaveHookOperation(
@@ -4250,6 +5010,7 @@ export namespace Services {
       } catch (error) {
         sails.log.warn(`${this.logHeader} unable to load pre-update snapshot; validation will be required`, error);
       }
+      const storedMetadataSnapshot = _.cloneDeep(originalRecord?.metadata);
       const storedBrandId = String(this.recordObject(originalRecord?.metaMetadata).brandId ?? '').trim();
       if (!String(brandObj?.id ?? '').trim() && storedBrandId) {
         brandObj = BrandingService.getBrandById(storedBrandId);
@@ -4302,10 +5063,6 @@ export namespace Services {
       }
       const origRecordObj = this.normalizeRecord(_.cloneDeep(requestedRecord) as AnyRecord);
       sails.log.verbose(`RecordService - updateMeta - origRecord - cloneDeep`);
-      //This is done after cloning record to preserve origRecord during processing
-      if (metadata !== undefined) {
-        recordObj.metadata = _.cloneDeep(metadata);
-      }
 
       const requestedMeta = this.recordObject(recordObj.metaMetadata);
       const originalMeta = this.recordObject(originalRecord?.metaMetadata);
@@ -4498,6 +5255,77 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save', error);
         return tracker.toResponse();
       }
+
+      const schemaEnabled = this.recordSchemaEnabled();
+      let resolvedSchemaUsage: ResolvedRecordSchemaSaveUsage | undefined;
+      const structuralBypass = tracker.context.validationBypass;
+      if (schemaEnabled && structuralBypass !== undefined) {
+        const bypassError = this.bypassErrorCode(tracker.context, structuralBypass);
+        if (bypassError) {
+          tracker.recordPrimaryNotApplied(this.validationProblem('system', 'pre-save', bypassError));
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
+      }
+
+      // Keep the submitted metadata raw through authoritative context and
+      // authorization. A schema-enabled body-less transition still has an
+      // empty structural delta. Legacy callers that omit the typed submission
+      // seam cannot bypass structural enforcement when their metadata differs
+      // from the stored snapshot: derive only the changed resulting values and
+      // validate them without reapplying the already-present mutation. A
+      // structural rejection must stop before merge, transition mutation,
+      // hooks, business validation, attachment work, or storage.
+      const legacyMetadataChanged =
+        submission === undefined &&
+        (originalRecord === undefined || !_.isEqual(storedMetadataSnapshot, recordObj.metadata));
+      let structuralMetadata: Record<string, unknown> | undefined;
+      if (submission?.mode === 'pre-applied') {
+        structuralMetadata = createRecordMetadataDelta(storedMetadataSnapshot, recordObj.metadata);
+        if (!_.isEqual(structuralMetadata, submission.metadata)) {
+          sails.log.warn(
+            `${this.logHeader} pre-applied metadata delta did not match the persisted candidate; validating the derived delta`
+          );
+        }
+      } else {
+        structuralMetadata =
+          submission?.metadata ??
+          (schemaEnabled && legacyMetadataChanged
+            ? createRecordMetadataDelta(storedMetadataSnapshot, recordObj.metadata)
+            : schemaEnabled && transitionRequested
+              ? {}
+              : undefined);
+      }
+      if (structuralMetadata !== undefined && (!schemaEnabled || structuralBypass === undefined)) {
+        if (schemaEnabled) {
+          const structuralValidation = await this.validateUpdateRecordSchema({
+            metadata: structuralMetadata,
+            brand: brandObj,
+            portal: tracker.context.portal,
+            oid,
+            recordType,
+            recordTypeName,
+            user: userObj,
+            context: tracker.context,
+            internalAuthorizationCapability,
+          });
+          if (!structuralValidation.allowed) {
+            tracker.recordPrimaryNotApplied(structuralValidation.problem);
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
+          resolvedSchemaUsage = structuralValidation.usage;
+          for (const warning of structuralValidation.warnings) tracker.recordWarning(warning);
+        } else {
+          const structuralValidation = await this.validateUpdateMetadataStructure(structuralMetadata);
+          if (!structuralValidation.valid) {
+            tracker.recordPrimaryNotApplied(structuralValidation.problem);
+            this.logSaveOutcome(tracker, 'pre-save');
+            return tracker.toResponse();
+          }
+        }
+      }
+      if (submission !== undefined) this.applySubmittedMetadata(recordObj, submission);
 
       if (transitionRequested) {
         if (!_.isEmpty(recordType)) {
@@ -4752,6 +5580,7 @@ export namespace Services {
       }
       tracker.confirmPrimaryPersistence(oid, updateResponse);
       hookOperation.completedThrough = 'persistence';
+      await this.persistResolvedRecordSchemaSaveUsage(tracker, resolvedSchemaUsage, oid);
       const primaryCommittedRevision = this.committedRevision(updateResponse);
       if (primaryCommittedRevision !== undefined) {
         currentRevision = primaryCommittedRevision;
@@ -6233,13 +7062,15 @@ export namespace Services {
       linkData: unknown,
       fieldName: string,
       fieldType: string | undefined = undefined,
-      _targetRecord: unknown = undefined
+      _targetRecord: unknown = undefined,
+      initiatingUser: unknown = {}
     ) {
       sails.log.verbose(`RecordsService::Appending to record:${targetRecordOid}`);
       return await this.mutateMetaInternal({
         actor: { kind: 'service', id: 'RecordsService.appendToRecord' },
         authorization: { kind: 'service' },
         oid: targetRecordOid,
+        user: this.recordObject(initiatingUser),
         mutate: snapshot => {
           const targetRecordObj = snapshot as unknown as AnyRecord;
           let nextData = _.cloneDeep(linkData);
@@ -6277,13 +7108,15 @@ export namespace Services {
       targetRecordOid: string,
       dataToRemove: unknown,
       fieldName: string,
-      _targetRecord: unknown = undefined
+      _targetRecord: unknown = undefined,
+      initiatingUser: unknown = {}
     ) {
       sails.log.verbose(`RecordsService::Removing field from record:${targetRecordOid}`);
       return await this.mutateMetaInternal({
         actor: { kind: 'service', id: 'RecordsService.removeFromRecord' },
         authorization: { kind: 'service' },
         oid: targetRecordOid,
+        user: this.recordObject(initiatingUser),
         mutate: snapshot => {
           const targetRecordObj = snapshot as unknown as AnyRecord;
           const existingData = _.get(targetRecordObj, fieldName);
@@ -6954,8 +7787,7 @@ export namespace Services {
       const presentIdentities = identities.filter((identity): identity is string => identity !== undefined);
       if (new Set(presentIdentities).size > 1) return false;
       return (
-        !active ||
-        tombstoneIdentities.some(identity => typeof identity === 'string') === (activeIdentity !== undefined)
+        !active || tombstoneIdentities.some(identity => typeof identity === 'string') === (activeIdentity !== undefined)
       );
     }
 

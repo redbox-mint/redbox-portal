@@ -14,7 +14,7 @@ import {
   RecordConcurrencyProblemCode,
   RecordConcurrencyResolution,
   RecordSaveIssue,
-  RecordSavePhase,
+  RecordSaveLifecyclePhase,
   RecordSaveProblem,
   RecordSaveProblemKind,
   RecordSaveResult,
@@ -23,10 +23,14 @@ import {
   RECORD_VALIDATION_REFERENCE_PATTERN,
   VALIDATION_OPERATION_NAME_PATTERN,
 } from '@researchdatabox/sails-ng-common';
+import type { RecordContractCompleteness, RecordContractEnforcement } from './record-contract/types';
+import { RECORD_SCHEMA_PROBLEM_CODES } from './record-contract/codes';
+import { normalizeRedboxCanonicalJsonV1 } from './record-contract/canonical-json';
 import { StorageMutationResponse, StorageServiceResponse } from './StorageServiceResponse';
 
 export type RecordSaveRouteFamily = 'browser' | 'api' | 'internal';
 export type RecordSaveOperation = 'create' | 'update' | 'transition' | 'delete' | 'restore' | 'purge';
+export type NormalizedRecordSchemaOperation = string;
 export type RecordValidationContextJSONValue =
   | string
   | number
@@ -80,22 +84,186 @@ export function isInternalRecordValidationBypass(value: unknown): value is Inter
   );
 }
 
+const trustedRecordSaveContexts = new WeakSet<object>();
+const RECORD_SCHEMA_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
+const RECORD_SCHEMA_IMMUTABLE_URL_PATTERN = /^\/([^/?#]+)\/([^/?#]+)\/api\/records\/schemas\/([0-9a-f]{64})$/;
+
+export interface RecordSaveSchemaOutcomeInput {
+  readonly digest: string;
+  readonly immutableUrl: string;
+  readonly completeness: RecordContractCompleteness;
+  readonly enforcement: RecordContractEnforcement;
+}
+
+export type RecordSaveSchemaOutcomeMetadata = Readonly<RecordSaveSchemaOutcomeInput>;
+
 export interface RecordSaveContext {
-  requestId: string;
-  routeFamily?: RecordSaveRouteFamily;
-  operation?: RecordSaveOperation;
+  readonly requestId: string;
+  readonly routeFamily?: RecordSaveRouteFamily;
+  readonly operation?: RecordSaveOperation;
+  /** Factory-normalized portal copied from the server-owned matched request context. */
+  readonly portal?: string;
   /** Server-owned workflow target copied from the matched route, not inferred from a resolved step object. */
-  targetStep?: string;
+  readonly targetStep?: string;
   /** Server-owned business intent; never conflated with the CRUD operation. */
-  validationOperation?: string;
+  readonly validationOperation?: string;
+  /** Factory-normalized operation shared by schema resolution and the existing validator phase. */
+  readonly schemaOperation?: NormalizedRecordSchemaOperation;
+  /** Raw schema ETag precondition copied only from a trusted transport header. */
+  readonly ifMatch?: string;
   /** Explicit, JSON-only request facts; the validation config allowlist narrows these again. */
-  validationRequestParameters?: Readonly<Record<string, RecordValidationContextJSONValue>>;
+  readonly validationRequestParameters?: Readonly<Record<string, RecordValidationContextJSONValue>>;
   /** Server-owned, JSON-only execution facts. Never place sessions, headers, or tokens here. */
-  validationRuntimeContext?: Readonly<Record<string, RecordValidationContextJSONValue>>;
+  readonly validationRuntimeContext?: Readonly<Record<string, RecordValidationContextJSONValue>>;
   /** Accepted only when routeFamily is explicitly `internal`. */
-  validationBypass?: InternalRecordValidationBypass;
+  readonly validationBypass?: InternalRecordValidationBypass;
   /** Trusted transport-neutral optimistic-concurrency facts. */
-  concurrency?: RecordConcurrencyContext;
+  readonly concurrency?: RecordConcurrencyContext;
+}
+
+/** Trusted values accepted by the save-context factory. */
+export interface RecordSaveContextOptions {
+  readonly requestId?: string;
+  readonly routeFamily?: RecordSaveRouteFamily;
+  readonly operation?: RecordSaveOperation;
+  /** Server-owned portal selected by the trusted transport adapter. */
+  readonly portal?: string;
+  readonly targetStep?: string;
+  readonly validationOperation?: string;
+  readonly validationRequestParameters?: Readonly<Record<string, RecordValidationContextJSONValue>>;
+  readonly validationRuntimeContext?: Readonly<Record<string, RecordValidationContextJSONValue>>;
+  readonly validationBypass?: InternalRecordValidationBypass;
+  /** Trusted transport-neutral optimistic-concurrency facts. */
+  readonly concurrency?: unknown;
+  /** Trusted transport adaptation for the raw If-Match header. */
+  readonly recordSchemaIfMatch?: string;
+}
+
+type RecordSaveNestedContextName = 'validationRequestParameters' | 'validationRuntimeContext' | 'validationBypass';
+
+function invalidNestedRecordSaveContext(name: RecordSaveNestedContextName): TypeError {
+  return new TypeError(`${name} must contain only acyclic JSON values.`);
+}
+
+/** Materialize caller-controlled accessors and proxies exactly once at the trust boundary. */
+function materializeRecordSaveContextJSONValue(
+  value: unknown,
+  name: RecordSaveNestedContextName,
+  ancestors: WeakSet<object>
+): unknown {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (Number.isFinite(value)) return value;
+    throw invalidNestedRecordSaveContext(name);
+  }
+  if (typeof value !== 'object' || ancestors.has(value)) {
+    throw invalidNestedRecordSaveContext(name);
+  }
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      const snapshot: unknown[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        snapshot.push(materializeRecordSaveContextJSONValue(value[index], name, ancestors));
+      }
+      return snapshot;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw invalidNestedRecordSaveContext(name);
+    }
+    const source = value as Readonly<Record<string, unknown>>;
+    const snapshot: Record<string, unknown> = {};
+    for (const key of Object.keys(source)) {
+      snapshot[key] = materializeRecordSaveContextJSONValue(source[key], name, ancestors);
+    }
+    return snapshot;
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+function snapshotRecordSaveContextJSONValue(
+  value: unknown,
+  name: RecordSaveNestedContextName
+): RecordValidationContextJSONValue {
+  try {
+    const materialized = materializeRecordSaveContextJSONValue(value, name, new WeakSet<object>());
+    return normalizeRedboxCanonicalJsonV1(materialized) as RecordValidationContextJSONValue;
+  } catch {
+    throw invalidNestedRecordSaveContext(name);
+  }
+}
+
+function snapshotRecordSaveContextObject(
+  value: Readonly<Record<string, RecordValidationContextJSONValue>> | undefined,
+  name: 'validationRequestParameters' | 'validationRuntimeContext'
+): Readonly<Record<string, RecordValidationContextJSONValue>> | undefined {
+  if (value === undefined) return undefined;
+  const snapshot = snapshotRecordSaveContextJSONValue(value, name);
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    throw invalidNestedRecordSaveContext(name);
+  }
+  return snapshot as Readonly<Record<string, RecordValidationContextJSONValue>>;
+}
+
+function snapshotRecordValidationBypass(
+  value: InternalRecordValidationBypass | undefined
+): InternalRecordValidationBypass | undefined {
+  if (value === undefined) return undefined;
+  return snapshotRecordSaveContextJSONValue(value, 'validationBypass') as unknown as InternalRecordValidationBypass;
+}
+
+/** Runtime counterpart to the nominal context type for JavaScript/service boundaries. */
+export function isRecordSaveContext(value: unknown): value is RecordSaveContext {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return trustedRecordSaveContexts.has(value);
+}
+
+function isCanonicalEncodedRouteSegment(value: string): boolean {
+  try {
+    const decoded = decodeURIComponent(value);
+    return decoded.length > 0 && decoded !== '.' && decoded !== '..' && encodeURIComponent(decoded) === value;
+  } catch {
+    return false;
+  }
+}
+
+/** Validate and brand the schema identity exposed by a completed save. */
+export function createRecordSaveSchemaOutcomeMetadata(metadata: unknown): RecordSaveSchemaOutcomeMetadata {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw new TypeError('Record save schema outcome metadata must be an object.');
+  }
+  const candidate = metadata as Record<string, unknown>;
+  const digest = candidate.digest;
+  const immutableUrl = candidate.immutableUrl;
+  const completeness = candidate.completeness;
+  const enforcement = candidate.enforcement;
+  if (typeof digest !== 'string' || !RECORD_SCHEMA_DIGEST_PATTERN.test(digest)) {
+    throw new TypeError('Record save schema outcome digest must be a lowercase SHA-256 hexadecimal value.');
+  }
+  const matchedUrl = typeof immutableUrl === 'string' ? RECORD_SCHEMA_IMMUTABLE_URL_PATTERN.exec(immutableUrl) : null;
+  if (!matchedUrl || !isCanonicalEncodedRouteSegment(matchedUrl[1]) || !isCanonicalEncodedRouteSegment(matchedUrl[2])) {
+    throw new TypeError('Record save schema outcome immutable URL must be a canonical origin-relative schema URL.');
+  }
+  if (matchedUrl[3] !== digest) {
+    throw new TypeError('Record save schema outcome immutable URL must identify its digest.');
+  }
+  if (completeness !== 'complete' && completeness !== 'partial') {
+    throw new TypeError('Record save schema outcome completeness is invalid.');
+  }
+  if (enforcement !== 'shadow' && enforcement !== 'enforce') {
+    throw new TypeError('Record save schema outcome enforcement is invalid.');
+  }
+  return Object.freeze({
+    digest,
+    immutableUrl,
+    completeness,
+    enforcement,
+  }) as RecordSaveSchemaOutcomeMetadata;
 }
 
 /**
@@ -180,6 +348,9 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
   requestId: string;
   readonly context: RecordSaveContext;
   concurrency?: RecordConcurrencyMetadata;
+  #schemaOutcome?: RecordSaveSchemaOutcomeMetadata;
+  /** Safe schema identity/result facts; never part of the stored record payload. */
+  declare public readonly schemaOutcome?: RecordSaveSchemaOutcomeMetadata;
   /** Legacy API v1 fields populated by the RDMP workspace post-save hook. */
   workspaceOid?: string;
   workspaceData?: unknown;
@@ -188,6 +359,11 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     super();
     this.context = typeof context === 'string' ? createRecordSaveContext({ requestId: context }) : context;
     this.requestId = this.context.requestId;
+    Object.defineProperty(this, 'schemaOutcome', {
+      configurable: false,
+      enumerable: true,
+      get: () => this.#schemaOutcome,
+    });
   }
 
   /** True when the primary metadata mutation is known to have been applied. */
@@ -285,7 +461,12 @@ export class RecordSaveResponse extends StorageServiceResponse implements Record
     copy.setConcurrencyMetadata(this.concurrency);
     copy.workspaceOid = this.workspaceOid;
     copy.workspaceData = _cloneDeep(this.workspaceData);
+    if (this.schemaOutcome) copy.setSchemaOutcome(this.schemaOutcome);
     return copy;
+  }
+
+  public setSchemaOutcome(metadata: RecordSaveSchemaOutcomeInput): void {
+    this.#schemaOutcome = createRecordSaveSchemaOutcomeMetadata(metadata);
   }
 
   /**
@@ -318,6 +499,9 @@ export class RecordSaveTracker {
   private readonly response: RecordSaveResponse;
 
   constructor(public readonly context: RecordSaveContext) {
+    if (!isRecordSaveContext(context)) {
+      throw new TypeError('Record save contexts must be created by createRecordSaveContext().');
+    }
     this.response = new RecordSaveResponse(context.requestId);
   }
 
@@ -372,6 +556,10 @@ export class RecordSaveTracker {
     this.response.setConcurrencyMetadata(metadata);
   }
 
+  public setSchemaOutcome(metadata: RecordSaveSchemaOutcomeInput): void {
+    this.response.setSchemaOutcome(metadata);
+  }
+
   /** Preserve the narrowly scoped legacy fields without exposing tracked save state to hooks. */
   public mergeLegacyHookFields(source: unknown): void {
     if (!source || typeof source !== 'object') {
@@ -408,6 +596,9 @@ export class RecordSaveTracker {
     copy.setConcurrencyMetadata(this.response.concurrency);
     copy.workspaceOid = this.response.workspaceOid;
     copy.workspaceData = _cloneDeep(this.response.workspaceData);
+    if (this.response.schemaOutcome) {
+      copy.setSchemaOutcome(this.response.schemaOutcome);
+    }
     return copy;
   }
 
@@ -436,21 +627,6 @@ function cloneProblem(problem: RecordSaveProblem): RecordSaveProblem {
  */
 export const isCanonicalSaveRequestId = isRecordSaveRequestId;
 
-export function createRecordSaveContext(context: Partial<RecordSaveContext> = {}): RecordSaveContext {
-  const concurrency = normalizeRecordConcurrencyContext(context.concurrency);
-  return {
-    requestId: isCanonicalSaveRequestId(context.requestId) ? context.requestId : randomUUID(),
-    routeFamily: context.routeFamily,
-    operation: context.operation,
-    targetStep: context.targetStep,
-    validationOperation: context.validationOperation,
-    validationRequestParameters: context.validationRequestParameters,
-    validationRuntimeContext: context.validationRuntimeContext,
-    validationBypass: context.validationBypass,
-    ...(concurrency ? { concurrency } : {}),
-  };
-}
-
 /** Drop every field outside the bounded server-owned concurrency allowlist. */
 export function normalizeRecordConcurrencyContext(value: unknown): RecordConcurrencyContext | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
@@ -476,6 +652,46 @@ export function normalizeRecordConcurrencyContext(value: unknown): RecordConcurr
     ...(resolution ? { resolution } : {}),
     ...(resolutionOfRequestId ? { resolutionOfRequestId } : {}),
   };
+}
+
+export function createRecordSaveContext(context: RecordSaveContextOptions = {}): RecordSaveContext {
+  const {
+    requestId,
+    routeFamily,
+    operation,
+    portal,
+    targetStep,
+    validationOperation,
+    validationRequestParameters,
+    validationRuntimeContext,
+    validationBypass,
+    concurrency: concurrencyInput,
+    recordSchemaIfMatch,
+  } = context;
+  const parsedSchemaOperation = parsePublicValidationOperation(validationOperation);
+  const concurrency = normalizeRecordConcurrencyContext(concurrencyInput);
+  const trustedContext = Object.freeze({
+    requestId: isCanonicalSaveRequestId(requestId) ? requestId : randomUUID(),
+    routeFamily,
+    operation,
+    portal:
+      typeof portal === 'string' && RECORD_VALIDATION_REFERENCE_PATTERN.test(portal.trim()) ? portal.trim() : undefined,
+    targetStep,
+    validationOperation,
+    schemaOperation: parsedSchemaOperation.valid
+      ? (parsedSchemaOperation.value as NormalizedRecordSchemaOperation | undefined)
+      : undefined,
+    ifMatch: typeof recordSchemaIfMatch === 'string' ? recordSchemaIfMatch : undefined,
+    validationRequestParameters: snapshotRecordSaveContextObject(
+      validationRequestParameters,
+      'validationRequestParameters'
+    ),
+    validationRuntimeContext: snapshotRecordSaveContextObject(validationRuntimeContext, 'validationRuntimeContext'),
+    validationBypass: snapshotRecordValidationBypass(validationBypass),
+    ...(concurrency ? { concurrency: Object.freeze(concurrency) } : {}),
+  }) as RecordSaveContext;
+  trustedRecordSaveContexts.add(trustedContext);
+  return trustedContext;
 }
 
 /**
@@ -553,6 +769,14 @@ export function recordSaveFailureStatus(
   if (result.problems.some(problem => problem.kind === 'authorization')) return 403;
   const conflictStatus = conflictFailureStatus(result.problems);
   if (conflictStatus !== undefined) return conflictStatus;
+  if (
+    result.problems.some(
+      problem =>
+        problem.kind === 'validation' &&
+        problem.issues.some(issue => issue.code === RECORD_SCHEMA_PROBLEM_CODES.PRECONDITION_FAILED)
+    )
+  )
+    return 412;
   if (result.problems.some(problem => problem.kind === 'validation')) return 400;
   return 500;
 }
@@ -607,7 +831,7 @@ export function resolveStorageMutationState(
 
 export function recordSaveProblem(
   kind: RecordSaveProblemKind,
-  phase: RecordSavePhase,
+  phase: RecordSaveLifecyclePhase,
   message: string,
   code?: string,
   issue: Partial<RecordSaveIssue> = {}

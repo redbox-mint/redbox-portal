@@ -26,6 +26,7 @@ import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { momentShim as moment } from '../shims/momentShim';
 import numeral from 'numeral';
+import { createRecordMetadataDelta } from '../RecordsService';
 
 export namespace Services {
   type RecordLike = RecordModel | Record<string, unknown>;
@@ -565,6 +566,7 @@ export namespace Services {
               record = await RecordsService.getMeta(oid);
               if (_.isObject(record)) {
                 sails.log.verbose(`runTemplatesOnRelatedRecord related record found and will run templates...`);
+                const previousMetadata = _.cloneDeep(_.get(record, 'metadata', {}));
                 _.each(templates, (templateConfig: Record<string, unknown>) => {
                   tmplConfig = templateConfig;
                   const imports = _.extend(
@@ -621,6 +623,8 @@ export namespace Services {
                   user,
                   triggerPreSaveTriggers: runPreSaveTriggers,
                   triggerPostSaveTriggers: runPostSaveTriggers,
+                  metadata: createRecordMetadataDelta(previousMetadata, _.get(record, 'metadata', {})),
+                  metadataMode: 'pre-applied',
                 });
                 if (!response.wasPersisted()) {
                   throw new Error(String(response.message ?? response.outcome));

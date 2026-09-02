@@ -174,6 +174,7 @@ describe('RecordValidationService', function () {
   it('is registered through the core service export convention', function () {
     expect(ServiceExports).to.have.property('RecordValidationService');
     expect(ServiceExports.RecordValidationService).to.have.property('resolve').that.is.a('function');
+    expect(ServiceExports.RecordValidationService).to.have.property('resolveContractContext').that.is.a('function');
     expect(ServiceExports.RecordValidationService).to.have.property('discoverOperations').that.is.a('function');
   });
 
@@ -240,6 +241,25 @@ describe('RecordValidationService', function () {
     expect(result.formName).to.equal('dataset-2.4-draft');
     expect(fixture.calls.startingSteps).to.equal(1);
     expect(fixture.calls.forms).to.deep.equal([{ formName: 'dataset-2.4-draft', brand: 'brand-1' }]);
+  });
+
+  it('treats a null record-type schema attribute as an unset override', async function () {
+    (global as unknown as { sails: { config: Record<string, unknown> } }).sails.config.recordSchema = {
+      unknownProperties: 'allow',
+    };
+    const fixture = createRecordValidationFixture({
+      recordType: { id: 'record-type-1', name: 'dataset', recordSchema: null },
+    });
+    const context = await new Services.RecordValidation(fixture.dependencies).resolveContractContext({
+      kind: 'create',
+      brand: 'brand-1',
+      portal: 'portal',
+      recordType: 'dataset',
+      targetStep: 'draft',
+      actor: { authenticated: true, roles: ['Researcher'] },
+    });
+
+    expect(context.publicContext.unknownProperties).to.equal('allow');
   });
 
   it('resolves a requested create target independently of the operation', async function () {

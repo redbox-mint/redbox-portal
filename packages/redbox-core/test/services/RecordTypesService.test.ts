@@ -1,7 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
-import { Services } from '../../src/services/RecordTypesService';
+import { RecordTypeRecordSchemaConfigurationError, Services } from '../../src/services/RecordTypesService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { firstValueFrom, of } from 'rxjs';
 import { RecordTypeResponseModel } from '../../src/model/RecordTypeResponseModel';
@@ -30,6 +30,7 @@ describe('RecordTypesService', function () {
           },
         },
         concurrentModification: { mode: 'observe' },
+        recordSchema: { unknownProperties: 'declared' },
       },
     };
     mockSails.config.appmode = { bootstrapAlways: false };
@@ -110,6 +111,9 @@ describe('RecordTypesService', function () {
       expect((global as any).RecordType.create.firstCall.args[0].concurrentModification).to.deep.equal({
         mode: 'observe',
       });
+      expect((global as any).RecordType.create.firstCall.args[0].recordSchema).to.deep.equal({
+        unknownProperties: 'declared',
+      });
     });
 
     it('should destroy and recreate if bootstrapAlways is true', async function () {
@@ -130,6 +134,60 @@ describe('RecordTypesService', function () {
       expect((global as any).RecordType.destroy.called).to.be.true;
       expect((global as any).RecordType.create.called).to.be.true;
       expect(result).to.have.length(1);
+    });
+
+    it('rejects an unsupported configured record-schema override before persistence when enabled', async function () {
+      mockSails.config.recordSchema = { enabled: true };
+      mockSails.config.recordtype = {
+        valid: {
+          ...mockSails.config.recordtype.dataset,
+          recordSchema: { unknownProperties: 'declared' },
+        },
+        dataset: {
+          ...mockSails.config.recordtype.dataset,
+          recordSchema: { unknownProperties: 'strip' },
+        },
+      };
+      (global as any).RecordType.find.resolves([]);
+
+      let failure: unknown;
+      try {
+        await service.bootstrap({ id: 'brand1' } as any);
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).to.be.instanceOf(RecordTypeRecordSchemaConfigurationError);
+      expect((failure as RecordTypeRecordSchemaConfigurationError).problems).to.deep.equal([
+        {
+          code: 'record-schema.config-invalid',
+          path: 'recordtype.dataset.recordSchema.unknownProperties',
+          reason: 'unsupported-value',
+        },
+      ]);
+      expect((global as any).RecordType.create.notCalled).to.equal(true);
+    });
+
+    it('rejects an unsupported persisted record-schema override during enabled startup', async function () {
+      mockSails.config.recordSchema = { enabled: 'true' };
+      (global as any).RecordType.find.resolves([
+        { name: 'dataset', branding: 'brand1', recordSchema: { unknownProperties: 'strip' } },
+      ]);
+
+      let failure: unknown;
+      try {
+        await service.bootstrap({ id: 'brand1' } as any);
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).to.be.instanceOf(RecordTypeRecordSchemaConfigurationError);
+      expect((failure as RecordTypeRecordSchemaConfigurationError).problems[0]).to.deep.equal({
+        code: 'record-schema.config-invalid',
+        path: 'recordtype.dataset.recordSchema.unknownProperties',
+        reason: 'unsupported-value',
+      });
+      expect(service.getAllCache()).to.equal(undefined);
     });
   });
 

@@ -20,6 +20,7 @@ There are several configuration items that are specific to the ReDBox Portal:
 6. [Figshare publishing AppConfig](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing) manages how records are mapped and published to Figshare
 7. [RAiD publishing AppConfig](Configuring-RAiD-Publishing) manages brand-specific credentials, mapping, retry, and audit behaviour for RAiD minting
 8. [`recordValidation`](Server-Side-Form-Validation-Operations) controls authoritative form-validation timeout, bounded shadow reporting, and global/operation rollout modes
+9. [`recordSchema`](Record-Schema-Contract-Operations) controls the default-disabled record-schema contract feature, unknown-property policy, compiler/cache limits, retention, and integration pins
 
 ## Configuration Defaults (redbox-core)
 
@@ -144,3 +145,4 @@ Compare these files to identify where a setting is being overwritten.
 - [Redbox Loader](Redbox-Loader) - How config shims are generated
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks
 - [Configuring Solr](Configuring-Solr) - Solr connection, schema, and pre-index mapping options
+- [Record Schema Contract Operations](Record-Schema-Contract-Operations) - Record-schema configuration, rollout, storage, retention, diagnostics, telemetry, and troubleshooting

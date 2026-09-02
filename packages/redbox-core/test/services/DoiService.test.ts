@@ -549,6 +549,44 @@ describe('DoiService', function () {
   });
 
   describe('trigger audit nesting', function () {
+    it('threads the initiating hook actor into the detached DOI metadata writeback', async function () {
+      const record = withBrand({
+        metadata: {
+          creators: [{ given_name: 'First', family_name: 'Last' }],
+          citation_title: 'My Title',
+          citation_publisher: 'My Publisher',
+          citation_publication_date: '2023-04-01',
+        },
+      });
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
+
+      await service.publishDoiTrigger('oid1', record, { forceRun: true }, user);
+
+      expect((global as any).RecordsService.updateMetaInternal.calledOnce).to.equal(true);
+      expect((global as any).RecordsService.updateMetaInternal.firstCall.args[0]).to.deep.include({
+        user,
+        metadataMode: 'pre-applied',
+      });
+    });
+
+    it('preserves a non-default record brand on the authoritative internal DOI writeback', async function () {
+      const record = {
+        metaMetadata: { brandId: 'brand-2' },
+        metadata: {
+          creators: [{ given_name: 'First', family_name: 'Last' }],
+          citation_title: 'My Title',
+          citation_publisher: 'My Publisher',
+          citation_publication_date: '2023-04-01',
+        },
+      };
+
+      await service.publishDoiTrigger('oid1', record, { forceRun: true }, { username: 'owner' });
+
+      const writeback = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+      expect(writeback.record.metaMetadata.brandId).to.equal('brand-2');
+      expect(writeback.authorization).to.deep.equal({ kind: 'service' });
+    });
+
     it('should keep trigger and publish spans inside the same trace', async function () {
       (global as any).RecordsService.updateMetaInternal.resolves({
         outcome: 'saved-with-warnings',

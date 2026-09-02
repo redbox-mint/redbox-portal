@@ -60,9 +60,12 @@ import {
   removeRoleEditRoute,
   addRoleViewRoute,
   removeRoleViewRoute,
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   harvestRoute,
   legacyHarvestRoute,
+  isRecordSchemaEnabled,
 } from '../../index';
+import type { RecordSchemaService } from '../../index';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../../RecordsService';
 import {
   createRecordSaveContext,
@@ -84,10 +87,22 @@ import {
   recordSaveResultHeaderOption,
   recordSaveResultHeaders,
 } from '../../RecordHttpConcurrency';
+import { recordSchemaDescribedByLink, recordSchemaImmutableUrl } from '../../api-routes/record-schema-response';
+import { isFormRecordAccessUser } from '../../services/form-record-access-user';
 
 import { v4 as UUIDGenerator } from 'uuid';
 
 declare const HarvestRunService: HarvestRunServiceContract;
+
+type RecordSchemaUpdateResolver = Pick<RecordSchemaService.Services.RecordSchema, 'resolveUpdate'>;
+
+function isObjectRecord(value: unknown): value is globalThis.Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isRecordSchemaUpdateResolver(value: unknown): value is RecordSchemaUpdateResolver {
+  return isObjectRecord(value) && typeof value.resolveUpdate === 'function';
+}
 
 export namespace Controllers {
   /**
@@ -169,14 +184,19 @@ export namespace Controllers {
       operation: RecordSaveOperation,
       validationOperation?: string,
       targetStep?: string,
-      concurrency?: RecordConcurrencyContext
+      concurrency?: RecordConcurrencyContext,
+      recordSchemaIfMatch?: string
     ): RecordSaveContext {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      const portal = typeof locals?.portal === 'string' ? locals.portal : BrandingService.getPortalFromReq(req);
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'api',
         operation,
+        portal,
         targetStep: typeof targetStep === 'string' ? targetStep.trim() : undefined,
         validationOperation,
+        recordSchemaIfMatch,
         validationRequestParameters: normalizeRecordValidationRequestFacts(
           req.apiRequest?.params,
           req.apiRequest?.query,
@@ -198,7 +218,14 @@ export namespace Controllers {
       if (!parsed.valid) return parsed;
       return {
         valid: true as const,
-        context: this.saveContext(req, operation, validationOperation, targetStep, parsed.context),
+        context: this.saveContext(
+          req,
+          operation,
+          validationOperation,
+          targetStep,
+          parsed.context,
+          this.validatedRecordSchemaIfMatch(req.apiRequest?.headers as globalThis.Record<string, unknown> | undefined)
+        ),
       };
     }
 
@@ -225,12 +252,87 @@ export namespace Controllers {
       };
     }
 
+    private validatedRecordSchemaIfMatch(headers: globalThis.Record<string, unknown> | undefined): string | undefined {
+      const value = headers?.[RECORD_SCHEMA_WRITE_PRECONDITION_HEADER];
+      return typeof value === 'string' ? value : undefined;
+    }
+
+    private recordSchemaPreconditionFailureStatus(result: RecordSaveResponse): 400 | 412 | undefined {
+      const status = recordSaveFailureStatus(result);
+      if (status === 412) return status;
+      const malformed = result.problems.some(
+        problem =>
+          problem.kind === 'validation' && problem.issues.some(issue => issue.code === 'record-schema.invalid-request')
+      );
+      return malformed ? 400 : undefined;
+    }
+
+    private recordSaveDiscoveryHeaders(
+      req: Sails.Req,
+      result: RecordSaveResponse
+    ): Readonly<globalThis.Record<string, string>> {
+      const headers = { ...recordSaveResultHeaders(result) };
+      if (result.schemaOutcome) {
+        const immutableUrl = recordSchemaImmutableUrl(
+          BrandingService.getBrandNameFromReq(req).trim(),
+          BrandingService.getPortalFromReq(req).trim(),
+          result.schemaOutcome.digest,
+          BrandingService.getRootContext()
+        );
+        headers.Link = recordSchemaDescribedByLink(immutableUrl);
+      }
+      return headers;
+    }
+
+    private async recordReadDiscoveryHeaders(
+      req: Sails.Req,
+      brand: BrandingModel,
+      oid: string,
+      headers: Readonly<globalThis.Record<string, string>>
+    ): Promise<Readonly<globalThis.Record<string, string>>> {
+      const resolver = sails.services?.recordschemaservice;
+      const user = req.user;
+      if (!isRecordSchemaUpdateResolver(resolver) || !isFormRecordAccessUser(user)) {
+        return headers;
+      }
+
+      try {
+        const branding = BrandingService.getBrandNameFromReq(req).trim();
+        const portal = BrandingService.getPortalFromReq(req).trim();
+        if (!branding || !portal) {
+          return headers;
+        }
+        const result = await resolver.resolveUpdate({
+          brand: brand.id.trim(),
+          branding,
+          portal,
+          oid,
+          caller: { brand, user },
+        });
+        if (result.kind !== 'resolved' && result.kind !== 'partial') {
+          return headers;
+        }
+
+        const immutableUrl = recordSchemaImmutableUrl(
+          branding,
+          portal,
+          result.digest,
+          BrandingService.getRootContext()
+        );
+        return { ...headers, Link: recordSchemaDescribedByLink(immutableUrl) };
+      } catch {
+        sails.log.warn('Record schema metadata-read discovery could not be resolved.');
+        return headers;
+      }
+    }
+
     private sendSaveFailure(req: Sails.Req, res: Sails.Res, result: RecordSaveResponse, detail: string) {
       const status = recordSaveFailureStatus(result);
+      const schemaStatus = this.recordSchemaPreconditionFailureStatus(result);
       const headerOption = recordSaveResultHeaderOption(result);
       if (this.getApiVersion(req) === '1.0') {
         return this.sendResp(req, res, {
-          status: isRecordConflictStatus(status) ? status : 500,
+          status: schemaStatus ?? (isRecordConflictStatus(status) ? status : 500),
           v1: { message: detail },
           ...headerOption,
         });
@@ -723,11 +825,12 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 403 });
         }
         const representation = recordRepresentationConcurrency(record);
+        const headers = await this.recordReadDiscoveryHeaders(req, brand, oid, representation.headers);
         if (!this.shouldIncludeRelationships(req)) {
           return this.sendResp(req, res, {
             data: record.metadata,
             meta: { oid: record.redboxOid, ...representation.metadata },
-            headers: representation.headers,
+            headers,
           });
         }
 
@@ -743,7 +846,7 @@ export namespace Controllers {
             relationships: filteredRelationships,
           },
           meta: { oid: record.redboxOid, ...representation.metadata },
-          headers: representation.headers,
+          headers,
         });
       } catch (err) {
         return this.sendResp(req, res, {
@@ -832,7 +935,6 @@ export namespace Controllers {
       }
 
       let record;
-      let updatedMetadata: globalThis.Record<string, unknown>;
       try {
         record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
@@ -842,17 +944,6 @@ export namespace Controllers {
               { detail: `Failed to update meta, cannot find existing record with oid: ${oid}.`, meta: { oid } },
             ],
           });
-        }
-        if (shouldMerge) {
-          // behavior modified from replacing arrays to appending to arrays:
-          updatedMetadata = _.mergeWith(_.cloneDeep(record.metadata), body, (objValue: unknown, srcValue: unknown) => {
-            if (_.isArray(objValue)) {
-              return (objValue as unknown[]).concat(srcValue as unknown[]);
-            }
-            return undefined;
-          });
-        } else {
-          updatedMetadata = body;
         }
       } catch (err) {
         return this.sendResp(req, res, {
@@ -869,7 +960,7 @@ export namespace Controllers {
           true,
           true,
           {},
-          updatedMetadata,
+          { metadata: body, mode: shouldMerge ? 'merge' : 'replace' },
           saveRequest.context
         );
         // Attachment work is part of RecordsService's ordered save pipeline.
@@ -885,7 +976,7 @@ export namespace Controllers {
             data: result,
             meta: { ...result },
             ...(this.getApiVersion(req) === '1.0' ? { v1: this.legacySaveBody(result) } : {}),
-            headers: recordSaveResultHeaders(result),
+            headers: this.recordSaveDiscoveryHeaders(req, result),
           });
         }
         if (!(await this.projectSafeSaveFailure(brand, req.user ?? {}, oid, result))) {
@@ -979,7 +1070,19 @@ export namespace Controllers {
       const user = req.user ?? ({} as globalThis.Record<string, unknown>);
       const that = this;
       if (body != null) {
+        const isUnwrappedMetadata = body['metadata'] == null;
+        const rawSubmittedMetadata = _.cloneDeep(isUnwrappedMetadata ? body : body['metadata']) as globalThis.Record<
+          string,
+          unknown
+        >;
+        const persistenceMetadata = _.cloneDeep(rawSubmittedMetadata);
+        if (isUnwrappedMetadata && !isRecordSchemaEnabled(sails.config.recordSchema)) {
+          persistenceMetadata['authorization'] = [];
+        }
         let authorizationEdit, authorizationView, authorizationEditPending, authorizationViewPending;
+        // This ACL is submitted persistence data. RecordsService authorizes
+        // schema-enabled creates from workflow ACLs before it may observe this
+        // value as an editable candidate.
         const authorizationBody = body['authorization'] as globalThis.Record<string, unknown> | undefined;
         if (authorizationBody != null) {
           authorizationEdit = authorizationBody['edit'];
@@ -988,7 +1091,6 @@ export namespace Controllers {
           authorizationViewPending = authorizationBody['viewPending'];
         } else {
           // If no authorization block set to user
-          body['authorization'] = [];
           authorizationEdit = [];
           authorizationView = [];
           authorizationEdit.push((req.user ?? ({} as globalThis.Record<string, unknown>)).username);
@@ -1005,15 +1107,9 @@ export namespace Controllers {
 
         recordTypeObservable.subscribe((recordTypeModel: unknown) => {
           if (recordTypeModel) {
-            const metadata = body['metadata'];
+            const workflowStage = body['workflowStage'] as string | undefined;
             const request: globalThis.Record<string, unknown> = {};
-
-            //if no metadata field, no authorization
-            if (metadata == null) {
-              request['metadata'] = body;
-            } else {
-              request['metadata'] = metadata;
-            }
+            request['metadata'] = persistenceMetadata;
             request['authorization'] = authorization;
 
             const createPromise = this.RecordsService.create(
@@ -1052,7 +1148,7 @@ export namespace Controllers {
                         BrandingService.getBrandAndPortalPath(req) +
                         '/api/records/metadata/' +
                         response.oid,
-                      ...recordSaveResultHeaders(response),
+                      ...this.recordSaveDiscoveryHeaders(req, response),
                     },
                   });
                 } else {
@@ -1288,7 +1384,7 @@ export namespace Controllers {
                 false,
                 false,
                 {},
-                authoritativeRecord.metadata,
+                { metadata: {}, mode: 'merge' },
                 saveRequest.context
               );
               if (!saveResult.wasPersisted()) {
@@ -1774,7 +1870,8 @@ export namespace Controllers {
         // ordinary v1 200 body. A certified concurrency refusal is the single
         // deliberate exception, and only for a record type that opted in.
         const failureStatus = recordSaveFailureStatus(response);
-        if (isLegacyApi && !isRecordConflictStatus(failureStatus)) {
+        const schemaFailureStatus = this.recordSchemaPreconditionFailureStatus(response);
+        if (isLegacyApi && !isRecordConflictStatus(failureStatus) && schemaFailureStatus === undefined) {
           return this.sendResp(req, res, {
             data: response,
             v1: this.legacySaveBody(response),
@@ -1786,7 +1883,7 @@ export namespace Controllers {
         }
         if (isLegacyApi) {
           return this.sendResp(req, res, {
-            status: failureStatus,
+            status: schemaFailureStatus ?? failureStatus,
             v1: this.legacySaveBody(response),
             ...recordSaveResultHeaderOption(response),
           });
@@ -2045,7 +2142,13 @@ export namespace Controllers {
                 displayErrors: [{ detail: 'updateMode is not supported for tracked harvest requests.' }],
               });
             }
-            const trackedResponse = await HarvestRunService.submitChunk(brand, recordTypeModel, body, user);
+            const trackedResponse = await HarvestRunService.submitChunk(
+              brand,
+              recordTypeModel,
+              body,
+              user,
+              this.saveContext(req, 'create')
+            );
             return this.sendResp(req, res, { data: trackedResponse });
           }
 
@@ -2054,7 +2157,8 @@ export namespace Controllers {
             recordTypeModel,
             body,
             updateMode,
-            user
+            user,
+            this.saveContext(req, 'create')
           );
           return this.sendResp(req, res, { data: recordResponses });
         } catch (error) {
@@ -2091,7 +2195,8 @@ export namespace Controllers {
             recordTypeModel,
             body,
             validated.query.merge === true,
-            user
+            user,
+            this.saveContext(req, 'create')
           );
           return this.sendResp(req, res, { data: recordResponses });
         } catch (error) {
@@ -2104,93 +2209,6 @@ export namespace Controllers {
         }
       }
       return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid request' }] });
-    }
-
-    private async updateHarvestRecord(
-      brand: BrandingModel,
-      recordTypeModel: RecordTypeModel,
-      updateMode: string,
-      body: globalThis.Record<string, unknown>,
-      oid: string,
-      harvestId: string,
-      user: UserModel
-    ) {
-      const shouldMerge = updateMode == 'merge' ? true : false;
-      try {
-        const record: RecordModel = await this.RecordsService.getMeta(oid);
-        if (_.isEmpty(record)) {
-          return new APIHarvestResponse(
-            harvestId,
-            oid,
-            false,
-            `Failed to update meta, cannot find existing record with oid: ${oid}`
-          );
-        }
-        try {
-          if (shouldMerge) {
-            // behavior modified from replacing arrays to appending to arrays:
-            record['metadata'] = _.mergeWith(record.metadata, body, (objValue: unknown, srcValue: unknown) => {
-              if (_.isArray(objValue)) {
-                return (objValue as unknown[]).concat(srcValue as unknown[]);
-              }
-              return undefined;
-            });
-          } else {
-            record['metadata'] = body;
-          }
-          const sourceMetadata = body['sourceMetadata'];
-          if (!_.isEmpty(sourceMetadata)) {
-            //Force this to be stored as a string
-            (record['metaMetadata'] as unknown as globalThis.Record<string, unknown>)['sourceMetadata'] =
-              '' + sourceMetadata;
-          }
-          const response = await this.RecordsService.updateMetaInternal({
-            actor: { kind: 'service', id: 'RecordController.updateHarvestRecord' },
-            authorization: { kind: 'service' },
-            mutationClass: 'full-record',
-            brand,
-            oid,
-            record,
-            user,
-          });
-
-          if (!response.wasPersisted()) {
-            const problemCodes = _.uniq(
-              response.problems.flatMap(problem =>
-                problem.issues
-                  .map(issue => issue.code)
-                  .filter((code): code is string => typeof code === 'string' && code.length > 0)
-              )
-            );
-            return new APIHarvestResponse(
-              harvestId,
-              oid,
-              false,
-              `Record update was not persisted: ${response.outcome}`,
-              problemCodes.join(',')
-            );
-          }
-
-          let updateMessage = 'Record updated successfully';
-          if (shouldMerge) {
-            updateMessage = 'Record merged successfully';
-          }
-          return new APIHarvestResponse(harvestId, oid, true, updateMessage);
-        } catch (error) {
-          const result = new APIHarvestResponse(harvestId, oid, false, 'Failed to update meta');
-          sails.log.error(error, result);
-          return result;
-        }
-      } catch (error) {
-        const result = new APIHarvestResponse(
-          harvestId,
-          oid,
-          false,
-          'Failed to retrieve record metadata before update'
-        );
-        sails.log.error(error, result);
-        return result;
-      }
     }
 
     private async findExistingHarvestRecord(harvestId: string, recordType: string) {

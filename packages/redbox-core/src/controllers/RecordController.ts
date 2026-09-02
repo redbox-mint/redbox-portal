@@ -203,10 +203,12 @@ export namespace Controllers {
       targetStep?: string,
       concurrency?: RecordConcurrencyContext
     ): RecordSaveContext {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'browser',
         operation,
+        portal: typeof locals?.portal === 'string' ? locals.portal : undefined,
         targetStep: typeof targetStep === 'string' ? targetStep.trim() : undefined,
         validationOperation,
         validationRequestParameters: normalizeRecordValidationRequestFacts(req.params, req.query),
@@ -1431,7 +1433,7 @@ export namespace Controllers {
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
       const user = _.cloneDeep(req.user);
-      let metadata = req.body;
+      const metadata = req.body;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
       let currentRec: RecordModel;
@@ -1456,9 +1458,6 @@ export namespace Controllers {
       let response;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
-        if (shouldMerge) {
-          metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
-        }
         response = await this.recordsService.updateMeta(
           brand,
           oid,
@@ -1467,7 +1466,7 @@ export namespace Controllers {
           true,
           true,
           nextStepResp,
-          metadata,
+          shouldMerge ? { metadata, mode: 'merge', arrayMergeMode: 'replace' } : { metadata, mode: 'replace' },
           saveRequest.context
         );
         sails.log.verbose(JSON.stringify(response));
@@ -1579,7 +1578,18 @@ export namespace Controllers {
       metaMetadata['lastSaveDate'] = DateTime.local().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
-      return from(this.recordsService.updateMeta(brand, oid, currentRec, user ?? {}));
+      return from(
+        this.recordsService.updateMeta(
+          brand,
+          oid,
+          currentRec,
+          user ?? {},
+          true,
+          true,
+          {},
+          { metadata: currentRec.metadata as AnyRecord, mode: 'pre-applied' }
+        )
+      );
     }
 
     protected updateAuthorization(
@@ -1637,7 +1647,7 @@ export namespace Controllers {
           true,
           true,
           nextStep,
-          metadata,
+          { metadata, mode: 'replace' },
           saveRequest.context
         );
         if (response.wasPersisted()) {
@@ -2775,22 +2785,6 @@ export namespace Controllers {
 
       response['items'] = items;
       return response;
-    }
-
-    private mergeRecordMetadata(
-      currentMetadata: { [key: string]: unknown },
-      newMetadata: { [key: string]: unknown }
-    ): { [key: string]: unknown } {
-      // Merge the current and new metadata into a new object, replacing the current metadata property values with the new property values.
-      return _.mergeWith({}, currentMetadata, newMetadata, (objValue: unknown, srcValue: unknown) => {
-        if (Array.isArray(objValue)) {
-          // Merge behavior for arrays is to replace the existing array with the new array.
-          // This has the implicit assumption that arrays are complete, not partial.
-          // This makes more sense than concatenating because usually an array will contain all items, not a subset of the items.
-          return srcValue;
-        }
-        return undefined;
-      });
     }
   }
 }

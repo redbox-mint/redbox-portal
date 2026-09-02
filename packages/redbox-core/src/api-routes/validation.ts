@@ -106,19 +106,18 @@ function validateFiles(
   }
 }
 
-function getHeaderValue(req: Sails.Req, name: string): string | undefined {
+function getHeaderValue(req: Sails.Req, name: string): string | string[] | undefined {
   const headers = req.headers as Record<string, string | string[] | undefined> | undefined;
-  const value = headers == null
+  return headers == null
     ? undefined
     : Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-  return value;
 }
 
 function getBodyContentType(req: Sails.Req, contentTypes: string[]): string | undefined {
-  const requestContentType = getHeaderValue(req, 'content-type')?.split(';')[0]?.trim().toLowerCase();
+  const contentTypeHeader = getHeaderValue(req, 'content-type');
+  const requestContentType = typeof contentTypeHeader === 'string'
+    ? contentTypeHeader.split(';')[0]?.trim().toLowerCase()
+    : undefined;
   if (!requestContentType) {
     return contentTypes[0];
   }
@@ -164,6 +163,8 @@ export interface ValidatedApiRequest {
   valid: true;
   params: Record<string, unknown>;
   query: Record<string, unknown>;
+  /** Present for contract-validated HTTP requests; optional for legacy in-process adapters. */
+  headers?: Record<string, unknown>;
   body: unknown;
   files: Record<string, unknown[]>;
 }
@@ -191,6 +192,7 @@ export function validateApiRouteRequest(
     valid: true,
     params: extracted.params,
     query: extracted.query,
+    headers: extracted.headers,
     body: extracted.body,
     files: options.files ?? extracted.files,
   };

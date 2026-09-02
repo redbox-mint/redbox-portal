@@ -19,6 +19,7 @@ export type {
   RecordConcurrentModificationConfig,
   RecordConcurrentModificationMode,
 } from '@researchdatabox/sails-ng-common';
+import type { RecordTypeRecordSchemaConfig } from './recordSchema.config';
 
 export interface RecordHookOptions {
   [key: string]: unknown;
@@ -221,6 +222,7 @@ export interface RecordTypeDefinition {
   dashboard?: Record<string, unknown>;
   recordValidation?: RecordTypeValidationConfig;
   concurrentModification?: RecordConcurrentModificationConfig;
+  recordSchema?: RecordTypeRecordSchemaConfig;
 }
 
 export interface RecordTypeConfig {

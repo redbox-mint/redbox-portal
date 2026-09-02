@@ -35,10 +35,28 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import type { RecordValidationConfig } from '../config/recordValidation.config';
+import {
+  isRecordSchemaUnknownProperties,
+  resolveRecordSchemaUnknownProperties,
+  type RecordTypeRecordSchemaConfig,
+  validateRecordTypeRecordSchemaConfig,
+} from '../config/recordSchema.config';
 import type { RecordTypeValidationConfig } from '../config/recordtype.config';
 import type { WorkflowStageConfig } from '../config/workflow.config';
 import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { RecordMetaMetadata, RecordWorkflow } from '../model/storage/RecordModel';
+import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
+import { RecordContractContextResolutionError } from '../record-contract/record-contract-context';
+import type {
+  RecordContractContext,
+  RecordContractContextActor,
+  RecordContractContextFailureKind,
+  RecordContractContextRequest,
+  RecordContractCreateContext,
+  RecordContractReusableFormDefinitions,
+  RecordContractSourceForm,
+  RecordContractUpdateContext,
+} from '../record-contract/record-contract-context';
 import type { FormAttributes } from '../waterline-models/Form';
 import { ConstructFormConfigVisitor } from '../visitor/construct.visitor';
 import {
@@ -329,6 +347,7 @@ interface RecordTypeLike {
   readonly id?: string;
   readonly name?: string;
   readonly recordValidation?: RecordTypeValidationConfig;
+  readonly recordSchema?: RecordTypeRecordSchemaConfig;
 }
 
 interface WorkflowStepLike {
@@ -338,6 +357,7 @@ interface WorkflowStepLike {
 }
 
 export interface RecordValidationServiceDependencies {
+  loadRecord(oid: string): Promise<Readonly<Record<string, unknown>> | null>;
   loadRecordType(brand: string, recordType: string): Promise<RecordTypeLike | null>;
   loadStartingWorkflowStep(recordType: RecordTypeLike): Promise<WorkflowStepLike | null>;
   loadWorkflowStep(recordType: RecordTypeLike, step: string): Promise<WorkflowStepLike | null>;
@@ -379,6 +399,31 @@ interface ResolvedFormSelection {
   readonly workflowStep?: string;
   readonly workflowConfig?: Readonly<Partial<WorkflowStageConfig> & Record<string, unknown>>;
 }
+
+interface ResolvedAuthoritativeValidationContext {
+  readonly status: 'resolved';
+  readonly mode: ValidationMode;
+  readonly operation?: string;
+  readonly normalized: NormalizedRecordValidationRequest;
+  readonly brand: string;
+  readonly recordTypeName: string;
+  readonly recordType: RecordTypeLike;
+  readonly selection: ResolvedFormSelection;
+  readonly form: LoadedFormDefinition;
+  readonly constructedForm: FormConfigOutline;
+  readonly operationPolicy?: EffectiveValidationOperationPolicy;
+}
+
+interface UnresolvedAuthoritativeValidationContext {
+  readonly status: 'unresolved';
+  readonly mode: ValidationMode;
+  readonly contractFailure?: boolean;
+}
+
+type AuthoritativeValidationContextResolution =
+  ResolvedAuthoritativeValidationContext | UnresolvedAuthoritativeValidationContext;
+
+type RecordContractPrivateResolutionBase = Omit<RecordContractCreateContext['resolution'], 'oid' | 'existingRecord'>;
 
 interface ValidationGroupChange {
   readonly initial?: FormValidationGroupsChangeInitial;
@@ -761,7 +806,7 @@ export namespace Services {
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Server-Side-Form-Validation-Operations
    */
   export class RecordValidation extends services.Core.Service {
-    protected override _exportedMethods = ['resolve', 'discoverOperations'];
+    protected override _exportedMethods = ['resolve', 'resolveContractContext', 'discoverOperations'];
     private resolvedDependencies?: RecordValidationServiceDependencies;
 
     public constructor(private readonly dependencyOverrides?: Partial<RecordValidationServiceDependencies>) {
@@ -812,6 +857,123 @@ export namespace Services {
         }
       }
       return result;
+    }
+
+    /**
+     * Resolve the authoritative validation context without executing validators.
+     *
+     * This is the shared selection boundary for form-facing and schema-facing
+     * consumers. Private record, actor, and source-form data remains separated
+     * from the allowlisted public schema context by the Phase5A1 result types.
+     *
+     * @param request Authoritative create or update context request.
+     * @returns The selected public context and private construction inputs.
+     */
+    public async resolveContractContext(request: RecordContractContextRequest): Promise<RecordContractContext> {
+      try {
+        return await this.resolveContractContextOrThrow(request);
+      } catch (error) {
+        if (error instanceof RecordContractContextResolutionError) {
+          throw error;
+        }
+        throw this.contractContextError('unavailable');
+      }
+    }
+
+    private async resolveContractContextOrThrow(request: RecordContractContextRequest): Promise<RecordContractContext> {
+      const brand = this.contractReference(request.brand, 'brand');
+      const portal = this.contractReference(request.portal, 'portal');
+      if (typeof request.actor.authenticated !== 'boolean') {
+        throw this.contractContextError('invalid-request');
+      }
+      const actor: RecordContractContextActor = Object.freeze({
+        authenticated: request.actor.authenticated,
+        roles: Object.freeze(normalizeRoles(request.actor.roles)),
+      });
+
+      let candidate: RecordValidationCandidate;
+      let resolvedOid: string | undefined;
+      let existingRecord: Readonly<Record<string, unknown>> | undefined;
+      if (request.kind === 'create') {
+        candidate = {
+          metadata: {},
+          metaMetadata: { brandId: brand, type: request.recordType },
+        };
+      } else {
+        resolvedOid = this.contractReference(request.oid, 'oid');
+        const loadedRecord = await this.dependencies().loadRecord(resolvedOid);
+        if (!loadedRecord) throw this.contractContextError('not-found');
+        existingRecord = _.cloneDeep(loadedRecord);
+        candidate = this.recordContractCandidate(resolvedOid, existingRecord);
+      }
+
+      const validationRequest: RecordValidationRequest = {
+        candidate,
+        writeKind: request.kind,
+        validationOperation: request.operation,
+        evaluateFormValidators: false,
+        ...(request.kind === 'create' && request.targetStep !== undefined ? { targetStep: request.targetStep } : {}),
+        actor,
+      };
+      const diagnostics: RecordValidationDiagnostic[] = [];
+      const progress: ResolutionProgress = { mode: 'shadow' };
+      const authoritative = await this.resolveAuthoritativeContext(validationRequest, diagnostics, progress, false);
+      if (authoritative.status !== 'resolved') {
+        throw this.contractContextError(this.contractContextFailureKind(diagnostics), diagnostics);
+      }
+      if (authoritative.brand !== brand) {
+        throw this.contractContextError('not-resolvable');
+      }
+      const workflowStep = authoritative.selection.workflowStep;
+      if (!workflowStep) throw this.contractContextError('not-resolvable');
+
+      const configuredUnknownProperties = sails.config.recordSchema?.unknownProperties;
+      if (!isRecordSchemaUnknownProperties(configuredUnknownProperties)) {
+        throw this.contractContextError('unavailable');
+      }
+      if (
+        authoritative.recordType.recordSchema !== undefined &&
+        authoritative.recordType.recordSchema !== null &&
+        validateRecordTypeRecordSchemaConfig(authoritative.recordType.recordSchema, 'recordType.recordSchema').length >
+          0
+      ) {
+        throw this.contractContextError('unavailable');
+      }
+      const unknownProperties = resolveRecordSchemaUnknownProperties(
+        configuredUnknownProperties,
+        authoritative.recordType.recordSchema
+      );
+      const privateResolution = this.recordContractPrivateResolution(authoritative, actor);
+      const publicFields = {
+        brand,
+        portal,
+        recordType: authoritative.recordTypeName,
+        workflowStep,
+        form: authoritative.selection.formName,
+        operation: authoritative.operation ?? STRICT_ALL_OPERATION,
+        unknownProperties,
+        enforcement: authoritative.mode,
+      } as const;
+
+      if (request.kind === 'create') {
+        const context: RecordContractCreateContext = Object.freeze({
+          publicContext: Object.freeze({ ...publicFields, kind: 'create' }),
+          resolution: Object.freeze(privateResolution),
+        });
+        return context;
+      }
+      if (!existingRecord || !resolvedOid) {
+        throw new Error('The authoritative record-contract update record is unavailable.');
+      }
+      const context: RecordContractUpdateContext = Object.freeze({
+        publicContext: Object.freeze({ ...publicFields, kind: 'update' }),
+        resolution: Object.freeze({
+          ...privateResolution,
+          oid: resolvedOid,
+          existingRecord,
+        }),
+      });
+      return context;
     }
 
     /**
@@ -1038,40 +1200,35 @@ export namespace Services {
       );
     }
 
-    private async resolveRequest(
+    private async resolveAuthoritativeContext(
       request: RecordValidationRequest,
       diagnostics: RecordValidationDiagnostic[],
-      progress: ResolutionProgress
-    ): Promise<RecordValidationResult> {
+      progress: ResolutionProgress,
+      validateCandidateFormReference: boolean
+    ): Promise<AuthoritativeValidationContextResolution> {
       const globalConfig = sails.config.recordValidation;
       const normalized = this.normalizeRequest(request, diagnostics);
       const initialModeResolution = resolveValidationMode(globalConfig, undefined, normalized?.operation);
       this.addMalformedModeDiagnostics(initialModeResolution.malformedModeCount, diagnostics);
       let mode = initialModeResolution.mode;
       progress.mode = mode;
-      if (!normalized) {
-        return this.buildResult(mode, diagnostics, { outcome: 'unresolved', contractFailure: true });
-      }
+      if (!normalized) return { status: 'unresolved', mode, contractFailure: true };
+
       const operation = normalized.operation;
       progress.operation = operation;
-
       const brand = this.requiredReference(request.candidate.metaMetadata.brandId, 'brand', diagnostics);
       const recordTypeName = this.requiredReference(request.candidate.metaMetadata.type, 'recordType', diagnostics);
       progress.recordType = recordTypeName;
-      if (!brand || !recordTypeName) {
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
-          operation,
-          recordType: recordTypeName,
-        });
-      }
+      if (!brand || !recordTypeName) return { status: 'unresolved', mode };
 
-      // Resolve the configured record-type rollout layer before depending on
-      // the runtime model lookup. Otherwise an enforce-only type could fail
-      // open precisely when its model is unavailable or malformed.
+      // Resolve configured rollout before the model lookup so an enforce-only
+      // record type cannot fail open when its runtime model is unavailable.
       const configuredRecordType = sails.config.recordtype?.[recordTypeName];
-      const configuredRecordTypeValidation = configuredRecordType?.recordValidation;
-      const configuredModeResolution = resolveValidationMode(globalConfig, configuredRecordTypeValidation, operation);
+      const configuredModeResolution = resolveValidationMode(
+        globalConfig,
+        configuredRecordType?.recordValidation,
+        operation
+      );
       this.addMalformedModeDiagnostics(
         Math.max(0, configuredModeResolution.malformedModeCount - initialModeResolution.malformedModeCount),
         diagnostics
@@ -1088,40 +1245,35 @@ export namespace Services {
             'The candidate record type could not be resolved.'
           )
         );
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
-          operation,
-          recordType: recordTypeName,
-        });
+        return { status: 'unresolved', mode };
       }
 
       const effectiveModeResolution = resolveValidationMode(globalConfig, recordType.recordValidation, operation);
-      this.addMalformedModeDiagnostics(Math.max(
-        0,
-        effectiveModeResolution.malformedModeCount - configuredModeResolution.malformedModeCount
-      ), diagnostics);
+      this.addMalformedModeDiagnostics(
+        Math.max(0, effectiveModeResolution.malformedModeCount - configuredModeResolution.malformedModeCount),
+        diagnostics
+      );
       mode = effectiveModeResolution.mode;
       progress.mode = mode;
 
       const selection = await this.resolveFormSelection(normalized, recordType, diagnostics, dependencies);
-      if (!selection)
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
-          operation,
-          recordType: recordTypeName,
-        });
+      if (!selection) return { status: 'unresolved', mode };
       progress.formName = selection.formName;
 
-      if (request.writeKind === 'create' || request.writeKind === 'transition') {
+      if (validateCandidateFormReference && (request.writeKind === 'create' || request.writeKind === 'transition')) {
         const candidateForm = request.candidate.metaMetadata.form;
         const normalizedCandidateForm = typeof candidateForm === 'string' ? candidateForm.trim() : '';
-        if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(normalizedCandidateForm) ||
-          normalizedCandidateForm !== selection.formName) {
-          diagnostics.push(createDiagnostic(
+        if (
+          !RECORD_VALIDATION_REFERENCE_PATTERN.test(normalizedCandidateForm) ||
+          normalizedCandidateForm !== selection.formName
+        ) {
+          diagnostics.push(
+            createDiagnostic(
             RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceDivergence,
             'The final candidate form diverges from the authoritative workflow form.',
             { formName: selection.formName }
-          ));
+            )
+          );
         }
       }
 
@@ -1134,12 +1286,7 @@ export namespace Services {
             { formName: selection.formName }
           )
         );
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
-          operation,
-          recordType: recordTypeName,
-          formName: selection.formName,
-        });
+        return { status: 'unresolved', mode };
       }
       if (!form.form.configuration) {
         diagnostics.push(
@@ -1149,12 +1296,7 @@ export namespace Services {
             { formName: selection.formName }
           )
         );
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
-          operation,
-          recordType: recordTypeName,
-          formName: selection.formName,
-        });
+        return { status: 'unresolved', mode };
       }
 
       let constructedForm: FormConfigOutline;
@@ -1168,39 +1310,63 @@ export namespace Services {
             { formName: selection.formName }
           )
         );
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
-          operation,
-          recordType: recordTypeName,
-          formName: selection.formName,
-        });
+        return { status: 'unresolved', mode };
       }
 
-      const policy = this.resolveOperationPolicy(
+      const operationPolicy = this.resolveOperationPolicy(
         operation,
         constructedForm.validationOperations,
         recordType.recordValidation?.operations,
         this.workflowOperationOverrides(selection.workflowConfig),
         diagnostics
       );
-      if (operation && !policy) {
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
+      if (operation && !operationPolicy) return { status: 'unresolved', mode, contractFailure: true };
+      if (operationPolicy && !this.authorizeOperation(operationPolicy, normalized, diagnostics)) {
+        return { status: 'unresolved', mode, contractFailure: true };
+      }
+
+      return {
+        status: 'resolved',
+        mode,
           operation,
-          recordType: recordTypeName,
-          formName: selection.formName,
-          contractFailure: true,
+        normalized,
+        brand,
+        recordTypeName,
+        recordType,
+        selection,
+        form,
+        constructedForm,
+        operationPolicy,
+      };
+      }
+
+    private async resolveRequest(
+      request: RecordValidationRequest,
+      diagnostics: RecordValidationDiagnostic[],
+      progress: ResolutionProgress
+    ): Promise<RecordValidationResult> {
+      const authoritative = await this.resolveAuthoritativeContext(request, diagnostics, progress, true);
+      if (authoritative.status !== 'resolved') {
+        return this.buildResult(authoritative.mode, diagnostics, {
+          outcome: 'unresolved',
+          operation: progress.operation,
+          recordType: progress.recordType,
+          formName: progress.formName,
+          contractFailure: authoritative.contractFailure,
         });
       }
-      if (policy && !this.authorizeOperation(policy, normalized, diagnostics)) {
-        return this.buildResult(mode, diagnostics, {
-          outcome: 'unresolved',
-          operation,
-          recordType: recordTypeName,
-          formName: selection.formName,
-          contractFailure: true,
-        });
-      }
+      const {
+        mode,
+        operation,
+        normalized,
+        brand,
+        recordTypeName,
+        selection,
+        form,
+        constructedForm,
+        operationPolicy: policy,
+      } = authoritative;
+      const globalConfig = sails.config.recordValidation;
 
       if (request.evaluateFormValidators === false) {
         const resolved: RecordValidationResolvedState = {
@@ -1451,9 +1617,123 @@ export namespace Services {
       });
     }
 
+    private contractReference(value: string, _kind: 'brand' | 'portal' | 'oid'): string {
+      const normalized = typeof value === 'string' ? value.trim() : '';
+      if (!RECORD_VALIDATION_REFERENCE_PATTERN.test(normalized)) {
+        throw this.contractContextError('invalid-request');
+      }
+      return normalized;
+    }
+
+    private contractContextFailureKind(
+      diagnostics: readonly RecordValidationDiagnostic[]
+    ): RecordContractContextFailureKind {
+      const codes = new Set(diagnostics.map(diagnostic => diagnostic.code));
+      if (
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationTargetUnauthorized)
+      ) {
+        return 'forbidden';
+      }
+      if (codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeNotFound)) {
+        return 'not-found';
+      }
+      if (
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMissing) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.brandReferenceMalformed) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMissing) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.recordTypeReferenceMalformed) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationMalformed) ||
+        codes.has(RECORD_VALIDATION_DIAGNOSTIC_CODES.workflowStepReferenceMalformed)
+      ) {
+        return 'invalid-request';
+      }
+      return 'not-resolvable';
+    }
+
+    private contractContextError(
+      failureKind: RecordContractContextFailureKind,
+      diagnostics: readonly RecordValidationDiagnostic[] = []
+    ): RecordContractContextResolutionError {
+      return new RecordContractContextResolutionError(
+        failureKind,
+        diagnostics.map(diagnostic => diagnostic.code)
+      );
+    }
+
+    private recordContractCandidate(
+      oid: string,
+      existingRecord: Readonly<Record<string, unknown>>
+    ): RecordValidationCandidate {
+      const storedOid = stringProperty(existingRecord, 'redboxOid');
+      if (storedOid && storedOid !== oid) {
+        throw new Error('The loaded record OID does not match the record-contract request.');
+      }
+      const metadata = existingRecord.metadata;
+      const rawMetaMetadata = existingRecord.metaMetadata;
+      if (!isRecord(metadata) || !isRecord(rawMetaMetadata)) {
+        throw new Error('The record-contract update record is malformed.');
+      }
+      const metaMetadata: Partial<RecordMetaMetadata> & Record<string, unknown> = {};
+      for (const field of ['brandId', 'type', 'form'] as const) {
+        const value = stringProperty(rawMetaMetadata, field);
+        if (value) metaMetadata[field] = value;
+      }
+
+      const rawWorkflow = existingRecord.workflow;
+      const workflow: Partial<RecordWorkflow> = {};
+      if (isRecord(rawWorkflow)) {
+        const stage = stringProperty(rawWorkflow, 'stage');
+        const stageLabel = stringProperty(rawWorkflow, 'stageLabel');
+        if (stage) workflow.stage = stage;
+        if (stageLabel) workflow.stageLabel = stageLabel;
+      }
+      return {
+        redboxOid: storedOid ?? oid,
+        metadata: _.cloneDeep(metadata),
+        metaMetadata,
+        ...(Object.keys(workflow).length > 0 ? { workflow } : {}),
+      };
+    }
+
+    private recordContractPrivateResolution(
+      authoritative: ResolvedAuthoritativeValidationContext,
+      actor: RecordContractContextActor
+    ): RecordContractPrivateResolutionBase {
+      const configuration = authoritative.form.form.configuration;
+      if (!configuration) throw this.contractContextError('not-resolvable');
+      const sourceFormSnapshot = _.cloneDeep(configuration);
+      const sourceForm: RecordContractSourceForm = Object.freeze({
+        ...sourceFormSnapshot,
+        componentDefinitions: Object.freeze([...(sourceFormSnapshot.componentDefinitions ?? [])]),
+      });
+      const reusableFormDefinitions: RecordContractReusableFormDefinitions = Object.freeze(
+        _.cloneDeep(authoritative.form.reusableFormDefinitions)
+      );
+      const reusableFingerprint = formatRecordFormFingerprint(reusableFormDefinitions);
+      if (!reusableFingerprint) throw new Error('The reusable record-contract form definitions are too large.');
+      const fingerprint = formatRecordFormFingerprint({
+        id: authoritative.form.form.id,
+        name: authoritative.form.form.name,
+        branding: authoritative.form.form.branding,
+        reusableDefinitions: reusableFingerprint.slice('sha256:'.length),
+        configuration: authoritative.form.form.configuration,
+      });
+      if (!fingerprint) throw new Error('The authoritative record-contract source form is too large.');
+      return {
+        sourceFormFingerprint: fingerprint.slice('sha256:'.length),
+        sourceForm,
+        reusableFormDefinitions,
+        actor,
+        formMode: 'edit',
+        contextVariables: Object.freeze({}),
+      };
+    }
+
     private dependencies(): RecordValidationServiceDependencies {
       if (this.resolvedDependencies) return this.resolvedDependencies;
       const defaults: RecordValidationServiceDependencies = {
+        loadRecord: oid => RecordsService.getMeta(oid),
         loadRecordType: async (brand, recordType) =>
           (await firstValueFrom(
             RecordTypesService.get({ id: brand } as BrandingModel, recordType)

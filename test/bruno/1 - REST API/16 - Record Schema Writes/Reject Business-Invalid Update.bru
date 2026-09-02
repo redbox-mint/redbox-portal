@@ -1,0 +1,40 @@
+meta {
+  name: Reject Business-Invalid Update
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaEnforceOid}}?merge=true
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "title": ""
+  }
+}
+
+tests {
+  test("Lets schema-valid input reach the existing business validator", function () {
+    expect(res.getStatus()).to.equal(400);
+
+    const body = res.getBody();
+    expect(body.errors.some(error => error.code === "record-validation-failed")).to.equal(true);
+    expect(body.errors.some(error => String(error.code || "").startsWith("record-schema."))).to.equal(false);
+    expect(body.meta.outcome).to.equal("not-saved");
+
+    const businessProblem = body.meta.problems.find(problem => problem.phase === "pre-save");
+    expect(businessProblem, "business validation problem").to.be.an("object");
+    expect(businessProblem).not.to.have.property("source");
+    expect(businessProblem.issues.some(issue => issue.code === "record-validation-failed")).to.equal(true);
+    expect(body.meta.problems.some(problem => problem.source === "schema")).to.equal(false);
+  });
+}

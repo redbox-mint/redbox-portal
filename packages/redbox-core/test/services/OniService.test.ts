@@ -672,6 +672,8 @@ describe('OniService', function () {
     expect(updateOptions.record.metadata.publication_error).to.equal(undefined);
     expect(updateOptions.triggerPreSaveTriggers).to.equal(true);
     expect(updateOptions.triggerPostSaveTriggers).to.equal(false);
+    expect(updateOptions.metadataMode).to.equal('pre-applied');
+    expect(updateOptions.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
     expect(ingestStub.calledOnce).to.equal(true);
     const completeAudit = (global as unknown as { IntegrationAuditService: { completeAudit: sinon.SinonStub } })
       .IntegrationAuditService.completeAudit;

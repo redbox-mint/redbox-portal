@@ -1,15 +1,64 @@
-import type { FormConfigFrame, FormConfigOutline, ValidationMode } from '@researchdatabox/sails-ng-common';
+import {
+  FormConfig,
+  type FormConfigFrame,
+  type FormConfigOutline,
+  type ValidationMode,
+} from '@researchdatabox/sails-ng-common';
 import type { FormAttributes } from '../../src/waterline-models/Form';
 import type {
   RecordValidationCandidate,
   RecordValidationRequest,
+  RecordValidationResult,
   RecordValidationServiceDependencies,
 } from '../../src/services/RecordValidationService';
+
+type ResolvedRecordValidationResult = Extract<RecordValidationResult, { status: 'resolved' }>;
+
+export function buildResolvedRecordValidationResult(
+  request: RecordValidationRequest,
+  overrides: Partial<Omit<ResolvedRecordValidationResult, 'status'>> = {}
+): ResolvedRecordValidationResult {
+  const formName =
+    typeof request.candidate.metaMetadata.form === 'string' ? request.candidate.metaMetadata.form : 'default-form';
+  const recordType =
+    typeof request.candidate.metaMetadata.type === 'string' ? request.candidate.metaMetadata.type : 'dataset';
+  const brand =
+    typeof request.candidate.metaMetadata.brandId === 'string' ? request.candidate.metaMetadata.brandId : 'brand-1';
+  const candidateWorkflowStep = request.candidate.workflow?.stage;
+  const workflowStep =
+    request.currentStep ?? (typeof candidateWorkflowStep === 'string' ? candidateWorkflowStep : 'draft');
+  const constructedForm = new FormConfig();
+  constructedForm.name = formName;
+  constructedForm.componentDefinitions = [];
+
+  return {
+    status: 'resolved',
+    shouldBlock: false,
+    mode: 'shadow',
+    formName,
+    effectiveGroups: [],
+    resolved: {
+      constructedForm,
+      formName,
+      recordType,
+      brand,
+      workflowStep,
+      conditionalGroups: [],
+    },
+    blockingErrors: [],
+    advisoryErrors: [],
+    advisoryGroups: [],
+    diagnostics: [],
+    transformedCandidate: request.candidate,
+    ...overrides,
+  };
+}
 
 export interface RecordValidationFixtureOptions {
   mode?: ValidationMode;
   candidate?: Partial<RecordValidationCandidate>;
   form?: FormConfigFrame;
+  existingRecord?: Readonly<Record<string, unknown>> | null;
   recordType?: Record<string, unknown> | null;
   startingStep?: Record<string, unknown> | null;
   workflowSteps?: Readonly<Record<string, Record<string, unknown> | null>>;
@@ -19,6 +68,7 @@ export interface RecordValidationFixture {
   request: RecordValidationRequest;
   dependencies: RecordValidationServiceDependencies;
   calls: {
+    records: string[];
     recordTypes: Array<{ brand: string; recordType: string }>;
     startingSteps: number;
     workflowSteps: string[];
@@ -67,6 +117,7 @@ export function validationCandidate(overrides: Partial<RecordValidationCandidate
 export function createRecordValidationFixture(options: RecordValidationFixtureOptions = {}): RecordValidationFixture {
   const form = options.form ?? validationForm();
   const calls = {
+    records: [] as string[],
     recordTypes: [] as Array<{ brand: string; recordType: string }>,
     startingSteps: 0,
     workflowSteps: [] as string[],
@@ -89,7 +140,21 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
     published: { name: 'published', config: { form: 'dataset-2.4-published', workflow: { stage: 'published' } } },
     ...(options.workflowSteps ?? {}),
   };
+  const candidate = validationCandidate(options.candidate);
+  const existingRecord =
+    options.existingRecord === undefined
+      ? {
+          redboxOid: candidate.redboxOid,
+          metadata: candidate.metadata,
+          metaMetadata: candidate.metaMetadata,
+          ...(candidate.workflow ? { workflow: candidate.workflow } : {}),
+        }
+      : options.existingRecord;
   const dependencies: RecordValidationServiceDependencies = {
+    loadRecord: async oid => {
+      calls.records.push(oid);
+      return existingRecord;
+    },
     loadRecordType: async (brand, recordTypeName) => {
       calls.recordTypes.push({ brand, recordType: recordTypeName });
       return recordType as never;
@@ -134,7 +199,7 @@ export function createRecordValidationFixture(options: RecordValidationFixtureOp
   };
   return {
     request: {
-      candidate: validationCandidate(options.candidate),
+      candidate,
       writeKind: 'update',
       actor: { authenticated: true, roles: ['Researcher'] },
       requestId: 'request-1',

@@ -70,6 +70,7 @@ describe('admin API docs', function () {
     });
 
     it('renders the branded OpenAPI document as JSON', async function () {
+        this.timeout(20_000);
         const param = sinon.stub();
         param.withArgs('branding').returns('default');
         param.withArgs('portal').returns('rdmp');

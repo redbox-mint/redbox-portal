@@ -1,0 +1,313 @@
+{
+  "version": 1,
+  "defaults": {
+    "recordSchemaEnabled": false,
+    "recordValidationMode": "shadow",
+    "unknownProperties": "allow"
+  },
+  "representativeCompilation": {
+    "enforcement": "shadow",
+    "unknownProperties": "allow"
+  },
+  "bounds": {
+    "maxForms": 20,
+    "maxSchemas": 40,
+    "maxFindings": 200,
+    "maxReportBytes": 65536
+  },
+  "summary": {
+    "formsChecked": 8,
+    "schemasChecked": 16,
+    "completeSchemas": 12,
+    "partialSchemas": 4,
+    "unsupportedComponents": 0,
+    "schemaWarnings": 16,
+    "unknownPropertyProbesAccepted": 16
+  },
+  "limitHeadroom": {
+    "cacheEntries": {
+      "limit": 128,
+      "observedMaximum": 16,
+      "remaining": 112
+    },
+    "maxDepth": {
+      "limit": 64,
+      "observedMaximum": 5,
+      "remaining": 59
+    },
+    "maxProperties": {
+      "limit": 10000,
+      "observedMaximum": 54,
+      "remaining": 9946
+    },
+    "maxDocumentBytes": {
+      "limit": 1048576,
+      "observedMaximum": 6262,
+      "remaining": 1042314
+    },
+    "maxDiagnostics": {
+      "limit": 1000,
+      "observedMaximum": 4,
+      "remaining": 996
+    },
+    "contributorTimeoutMs": {
+      "limit": 1000,
+      "breaches": 0
+    }
+  },
+  "unsupportedComponents": [],
+  "schemaDiagnostics": [
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/date_1",
+      "componentType": "DateInputComponent"
+    },
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/text_2",
+      "componentType": "SimpleInputComponent"
+    },
+    {
+      "form": "dev-hook/default-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/date_1",
+      "componentType": "DateInputComponent"
+    },
+    {
+      "form": "dev-hook/default-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/date_2",
+      "componentType": "DateInputComponent"
+    },
+    {
+      "form": "dev-hook/default-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/text_2",
+      "componentType": "SimpleInputComponent"
+    },
+    {
+      "form": "dev-hook/default-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/text_7",
+      "componentType": "SimpleInputComponent"
+    }
+  ],
+  "schemas": [
+    {
+      "form": "dev-hook/dataPublication-1.0-draft",
+      "kind": "create",
+      "digest": "bb5d8eb051ce8a32d4c8cf63db71a4aa87e7c46a11697d854549521167e5dba2",
+      "completeness": "complete",
+      "byteLength": 742,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-draft",
+      "kind": "update",
+      "digest": "e0385b95a2e12cd3537e04d9f4df2cb400577b8cdc355e263111ada93642c565",
+      "completeness": "complete",
+      "byteLength": 742,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-embargoed",
+      "kind": "create",
+      "digest": "3552c7ce9d1d80fb1dcf3abb91bb95a683087b6331da3a4d5b6d4e9161affc75",
+      "completeness": "complete",
+      "byteLength": 746,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-embargoed",
+      "kind": "update",
+      "digest": "a711a5f52b5c19766be90cd690d3266e3742702069d624e39163a0d71a0e3ccc",
+      "completeness": "complete",
+      "byteLength": 746,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-published",
+      "kind": "create",
+      "digest": "c473b5acb30e800442c40bd1c88f3cdec76582e8e34e4a2118e4c675a4e48a29",
+      "completeness": "complete",
+      "byteLength": 746,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-published",
+      "kind": "update",
+      "digest": "fbc7ed8a7c2eb8657345b80a59dfb034d98c84330fb2803dd4d10b3b6758ee62",
+      "completeness": "complete",
+      "byteLength": 746,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-queued",
+      "kind": "create",
+      "digest": "550202fb8dac252104ed544d51449b41b709181c1f3ef7ad8c04ea0d5984d502",
+      "completeness": "complete",
+      "byteLength": 743,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-queued",
+      "kind": "update",
+      "digest": "839de73714835d381d9f8b6c4701f9d4a038913375bbab99f93e9aa73962799c",
+      "completeness": "complete",
+      "byteLength": 743,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-retired",
+      "kind": "create",
+      "digest": "67372ccfe232040b6f99b745af3517e53f6cc7e879e39c4705e4b2ae2283efe5",
+      "completeness": "complete",
+      "byteLength": 744,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataPublication-1.0-retired",
+      "kind": "update",
+      "digest": "f6cf2c8b03c836d6349791529a4c92150491de51b56341eecf5ae31f9270a0df",
+      "completeness": "complete",
+      "byteLength": 744,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "kind": "create",
+      "digest": "b12228c00e4eedba42f8293869d855c239c989b837e0f7b61f1e2907a59a0943",
+      "completeness": "partial",
+      "byteLength": 4403,
+      "observedNodeDepth": 5,
+      "observedProperties": 45,
+      "diagnosticCount": 2,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "kind": "update",
+      "digest": "e36bd4c13714917396dd0391cd10a50d2cfb30311f0987608a9ff03554cbac25",
+      "completeness": "partial",
+      "byteLength": 4403,
+      "observedNodeDepth": 5,
+      "observedProperties": 45,
+      "diagnosticCount": 2,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/default-1.0-draft",
+      "kind": "create",
+      "digest": "8dc9ca5d226ef73598fc1c3a7d402bbb501847ccd2c7207473ea164c222182dc",
+      "completeness": "partial",
+      "byteLength": 6262,
+      "observedNodeDepth": 5,
+      "observedProperties": 54,
+      "diagnosticCount": 4,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/default-1.0-draft",
+      "kind": "update",
+      "digest": "2f042ecf2c2c480060923fc598a7e7303c14c8f02fbfb0f255f8107fcee2bcd9",
+      "completeness": "partial",
+      "byteLength": 6262,
+      "observedNodeDepth": 5,
+      "observedProperties": 54,
+      "diagnosticCount": 4,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/existing-locations-1.0-draft",
+      "kind": "create",
+      "digest": "071f51d6f5807aaad6e24d9ef57da3a511c7bb8d86eed2daeca0eda283e180d8",
+      "completeness": "complete",
+      "byteLength": 748,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/existing-locations-1.0-draft",
+      "kind": "update",
+      "digest": "7acf73538741e67a49c4a97aa1a1340132e36e3eea7af30ecc7227ef1c090853",
+      "completeness": "complete",
+      "byteLength": 748,
+      "observedNodeDepth": 1,
+      "observedProperties": 1,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    }
+  ]
+}

@@ -106,7 +106,13 @@ export const mintRaidProgram = (input: RaidRuntimeInput) => Effect.gen(function*
         setPath(input.record as AnyRecord, 'metaMetadata.raid.attemptCount', nextAttempt);
         setPath(input.record as AnyRecord, 'metaMetadata.raid.options', serializableOptions(input.options));
         setPath(input.record as AnyRecord, 'metaMetadata.raid.attemptResponse', { statusCode: (error as AnyRecord).statusCode, message: (error as AnyRecord).message });
-        yield* stage('scheduleRaidRetry', { attemptCount: nextAttempt }, queue.schedule({ oid: context.oid, options: serializableOptions(input.options), attemptCount: nextAttempt, traceId: parent?.traceId }).pipe(
+        yield* stage('scheduleRaidRetry', { attemptCount: nextAttempt }, queue.schedule({
+          oid: context.oid,
+          options: serializableOptions(input.options),
+          attemptCount: nextAttempt,
+          traceId: parent?.traceId,
+          ...(context.initiatingActor ? { initiatingActor: context.initiatingActor } : {}),
+        }).pipe(
           Effect.mapError(cause => new RaidQueueError({ message: 'Failed to schedule durable RAiD retry', cause }))
         ), parent);
         return input.record;

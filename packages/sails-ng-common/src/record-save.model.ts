@@ -38,7 +38,16 @@ export const RECORD_SAVE_PROBLEM_KINDS = [
 
 export type RecordSaveProblemKind = (typeof RECORD_SAVE_PROBLEM_KINDS)[number];
 
-export type RecordSavePhase = 'pre-save' | 'persistence' | 'attachments' | 'post-save' | 'response' | 'transport';
+export type RecordSaveProblemSource = 'schema';
+
+export type RecordSaveLifecyclePhase =
+  | 'pre-save'
+  | 'persistence'
+  | 'attachments'
+  | 'post-save'
+  | 'response'
+  | 'transport';
+export type RecordSavePhase = 'schema' | RecordSaveLifecyclePhase;
 
 export type RecordSaveValidatorParameterPrimitive = string | number | boolean | null;
 export type RecordSaveValidatorParameterValue =
@@ -65,6 +74,22 @@ export const RECORD_SAVE_PUBLIC_FIELD_LIMITS = {
 } as const;
 export const RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
+export const RECORD_SAVE_EXPECTED_JSON_TYPES = [
+  'array',
+  'boolean',
+  'integer',
+  'null',
+  'number',
+  'object',
+  'string',
+] as const;
+
+export type RecordSaveExpectedJsonType = (typeof RECORD_SAVE_EXPECTED_JSON_TYPES)[number];
+
+export interface RecordSaveIssueExpectedShape {
+  type: RecordSaveExpectedJsonType;
+}
+
 export const RECORD_SAVE_LINEAGE_LIMITS = {
   maxSegments: 64,
   maxSegmentLength: 128,
@@ -80,6 +105,8 @@ export interface RecordSaveIssue {
   field?: string;
   /** JSON pointer into Angular or record metadata, when available. */
   pointer?: string;
+  /** Narrow structural expectation safe to expose for schema type failures. */
+  expected?: RecordSaveIssueExpectedShape;
   /** Logical attachment identity, never a storage key or path. */
   attachmentId?: string;
   /** Validator implementation class, when this is a validator failure. */
@@ -92,6 +119,27 @@ export interface RecordSaveIssue {
   lineagePaths?: LineagePathsOptional;
 }
 
+/** True only for root or syntactically valid RFC 6901 JSON pointers. */
+export function isRecordSaveJsonPointer(value: unknown): value is string {
+  if (typeof value !== 'string' || (value !== '' && !value.startsWith('/'))) {
+    return false;
+  }
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] !== '~') continue;
+    const escaped = value[index + 1];
+    if (escaped !== '0' && escaped !== '1') return false;
+    index += 1;
+  }
+  return true;
+}
+
+function sanitizeRecordSaveIssueExpected(value: unknown): RecordSaveIssueExpectedShape | undefined {
+  if (!isPlainRecord(value)) return undefined;
+  const type = value.type;
+  return typeof type === 'string' && (RECORD_SAVE_EXPECTED_JSON_TYPES as readonly string[]).includes(type)
+    ? { type: type as RecordSaveExpectedJsonType }
+    : undefined;
+}
 type PublicValidatorParameterRule = 'boolean' | 'number' | 'source-type';
 
 /**
@@ -233,12 +281,12 @@ export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
   )
     issue.field = field;
   const pointer = item.pointer;
-  if (
-    typeof pointer === 'string' &&
-    pointer.startsWith('/') &&
-    pointer.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength
-  )
+  if (isRecordSaveJsonPointer(pointer) && pointer.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength)
     issue.pointer = pointer;
+  const expected = sanitizeRecordSaveIssueExpected(item.expected);
+  if (expected !== undefined) {
+    issue.expected = expected;
+  }
   const attachmentId = item.attachmentId;
   if (
     typeof attachmentId === 'string' &&
@@ -268,11 +316,22 @@ export function sanitizeRecordSaveIssue(value: unknown): RecordSaveIssue {
   return issue;
 }
 
-export interface RecordSaveProblem {
+export interface RecordSaveSchemaProblem {
   kind: RecordSaveProblemKind;
-  phase: RecordSavePhase;
+  source: RecordSaveProblemSource;
+  phase: 'schema';
   issues: RecordSaveIssue[];
 }
+
+export interface RecordSaveLifecycleProblem {
+  kind: RecordSaveProblemKind;
+  source?: never;
+  phase: RecordSaveLifecyclePhase;
+  issues: RecordSaveIssue[];
+}
+
+/** Provenance and phase form one discriminated contract. */
+export type RecordSaveProblem = RecordSaveSchemaProblem | RecordSaveLifecycleProblem;
 
 export type RecordAttachmentOperation = 'add' | 'finalize' | 'delete';
 export type RecordAttachmentItemStatus = 'completed' | 'incomplete' | 'unknown';

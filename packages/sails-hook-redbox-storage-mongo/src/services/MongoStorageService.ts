@@ -1,12 +1,23 @@
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 import { randomUUID } from 'crypto';
+import { isDeepStrictEqual } from 'node:util';
 
 import type { Model } from 'sails';
 import { DateTime } from 'luxon';
 
 import mongodb = require('mongodb');
-import type { Collection, Db, Document, Filter, FindCursor, FindOptions, GridFSFile } from 'mongodb';
+import type {
+  Collection,
+  Db,
+  Document,
+  Filter,
+  FindCursor,
+  FindOptions,
+  GridFSFile,
+  IndexDescriptionInfo,
+  IndexDirection,
+} from 'mongodb';
 import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
@@ -45,8 +56,32 @@ import {
   type StorageMutationNonApplicationReason,
   type StorageServiceCapabilities,
 } from '@researchdatabox/redbox-core';
+import type {
+  RecordSchemaArtifactInput,
+  RecordSchemaArtifactModel,
+  RecordSchemaArtifactQuery,
+  RecordSchemaArtifactSummary,
+  RecordSchemaAuthorizationGrantQuery,
+  RecordSchemaReferenceInput,
+  RecordSchemaReferenceModel,
+  RecordSchemaReferenceQuery,
+} from '@researchdatabox/redbox-core';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
+import { RECORD_SCHEMA_REFERENCE_KEY_PATTERN } from '../models/RecordSchemaReference';
+import {
+  RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX,
+  RECORD_SCHEMA_STORAGE_CODES,
+  RecordSchemaPersistenceError,
+  artifactContentIdentity,
+  artifactModelFromDocument,
+  isDuplicateKeyError,
+  referenceContentIdentity,
+  referenceModelFromDocument,
+  validateRecordSchemaArtifactInput,
+  validateRecordSchemaDigest,
+  validateRecordSchemaReferenceInput,
+} from './recordSchemaPersistence';
 
 const { flatten } = transforms;
 const UTF8_BOM = '\uFEFF';
@@ -85,12 +120,145 @@ type MongoRecordDocument = Document;
 type WaterlineModel = Model;
 type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
 type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
+type StorageInitializationErrorClassification =
+  | 'record-schema-persistence-error'
+  | 'mongo-network-error'
+  | 'mongo-driver-error'
+  | 'unexpected-error'
+  | 'non-error';
 const RECORD_IDENTITY_COLLECTION = 'recordidentity';
 
 declare const Record: WaterlineModel;
 declare const DeletedRecord: WaterlineModel;
 declare const RecordAudit: WaterlineModel;
 declare const IntegrationAudit: WaterlineModel;
+declare const RecordSchemaArtifact: WaterlineModel;
+declare const RecordSchemaReference: WaterlineModel;
+
+export const RECORD_SCHEMA_ARTIFACT_INDEXES: mongodb.IndexDescription[] = [
+  {
+    key: { digest: 1 },
+    // Match the index Sails Mongo creates for `@Attr({ unique: true })` so
+    // native readiness initialization is idempotent after Waterline setup.
+    name: 'digest_1',
+    unique: true,
+  },
+];
+
+export const RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_NAME = 'record_schema_reference_authorization_cursor_lookup';
+export const RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY = {
+  digest: 1,
+  kind: 1,
+  brand: 1,
+  portal: 1,
+  schemaKind: 1,
+  recordType: 1,
+  operation: 1,
+  referenceKey: 1,
+} as const;
+
+export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
+  {
+    key: { referenceKey: 1 },
+    name: 'referenceKey_1',
+    unique: true,
+  },
+  {
+    key: { digest: 1, kind: 1 },
+    name: 'record_schema_reference_digest_kind',
+  },
+  {
+    key: { digest: 1, kind: 1, brand: 1, portal: 1, referenceKey: 1 },
+    name: 'record_schema_reference_grant_lookup',
+  },
+  {
+    key: { digest: 1, kind: 1, brand: 1, portal: 1, schemaKind: 1, recordType: 1, operation: 1, oid: 1 },
+    name: 'record_schema_reference_authorization_lookup',
+  },
+  {
+    key: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
+    name: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_NAME,
+  },
+  {
+    key: { oid: 1, kind: 1 },
+    name: 'record_schema_reference_oid_kind',
+    sparse: true,
+  },
+  {
+    key: { kind: 1, expiresAt: 1 },
+    name: 'record_schema_reference_pin_expiry',
+    partialFilterExpression: { kind: 'pin' },
+  },
+];
+
+/**
+ * Authorization lookups fail as unavailable instead of consuming an
+ * unbounded database work budget. This is a time/availability boundary, not
+ * a result cap: a query that cannot complete is never reported as a denial.
+ */
+export const RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS = 1_000;
+
+type PersistentIndexBooleanOption = 'unique' | 'sparse' | 'hidden';
+type PersistentIndexValueOption =
+  | 'partialFilterExpression'
+  | 'expireAfterSeconds'
+  | 'storageEngine'
+  | 'weights'
+  | 'default_language'
+  | 'language_override'
+  | 'textIndexVersion'
+  | '2dsphereIndexVersion'
+  | 'bits'
+  | 'min'
+  | 'max'
+  | 'bucketSize'
+  | 'wildcardProjection'
+  | 'collation';
+
+const PERSISTENT_INDEX_BOOLEAN_OPTIONS: readonly PersistentIndexBooleanOption[] = ['unique', 'sparse', 'hidden'];
+const PERSISTENT_INDEX_VALUE_OPTIONS: readonly PersistentIndexValueOption[] = [
+  'partialFilterExpression',
+  'expireAfterSeconds',
+  'storageEngine',
+  'weights',
+  'default_language',
+  'language_override',
+  'textIndexVersion',
+  '2dsphereIndexVersion',
+  'bits',
+  'min',
+  'max',
+  'bucketSize',
+  'wildcardProjection',
+  'collation',
+];
+
+function indexKeyEntries(
+  key: mongodb.IndexDescription['key'] | IndexDescriptionInfo['key']
+): readonly (readonly [string, IndexDirection])[] {
+  if (key instanceof Map) return [...key.entries()];
+  return Object.keys(key).map(name => [name, key[name]] as const);
+}
+
+function indexKeysEqual(existing: IndexDescriptionInfo, required: mongodb.IndexDescription): boolean {
+  return isDeepStrictEqual(indexKeyEntries(existing.key), indexKeyEntries(required.key));
+}
+
+function indexOptionsEqual(existing: IndexDescriptionInfo, required: mongodb.IndexDescription): boolean {
+  for (const option of PERSISTENT_INDEX_BOOLEAN_OPTIONS) {
+    if (Boolean(existing[option]) !== Boolean(required[option])) return false;
+  }
+  return PERSISTENT_INDEX_VALUE_OPTIONS.every(option => isDeepStrictEqual(existing[option], required[option]));
+}
+
+function indexDisplayName(index: mongodb.IndexDescription | IndexDescriptionInfo): string {
+  return typeof index.name === 'string' && index.name.trim() !== '' ? index.name : '<unnamed>';
+}
+
+function isMongoNamespaceNotFoundError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return ('code' in error && error.code === 26) || ('codeName' in error && error.codeName === 'NamespaceNotFound');
+}
 
 type RelatedRecordsContext = {
   rootOid: string;
@@ -116,8 +284,11 @@ export namespace Services {
     recordCol!: Collection<MongoRecordDocument>;
     deletedRecordCol!: Collection<MongoRecordDocument>;
     recordIdentityCol!: Collection<MongoRecordDocument>;
+    recordSchemaArtifactCol!: Collection<MongoRecordDocument>;
+    recordSchemaReferenceCol!: Collection<MongoRecordDocument>;
     private _readyHookRegistered = false;
     private _requiredIndicesReady = false;
+    private _initializationPromise?: Promise<void>;
 
     protected _exportedMethods: string[] = [
       'init',
@@ -156,6 +327,13 @@ export namespace Services {
       'getRecordAudit',
       'getIntegrationAudit',
       'countIntegrationAudit',
+      'putRecordSchemaArtifact',
+      'getRecordSchemaArtifact',
+      'listRecordSchemaArtifacts',
+      'touchRecordSchemaArtifact',
+      'putRecordSchemaReference',
+      'findRecordSchemaGrantForAuthorization',
+      'listRecordSchemaReferences',
       'exists',
     ];
 
@@ -180,6 +358,13 @@ export namespace Services {
         return messageParts.join('\n');
       }
       return String(err);
+    }
+
+    private classifyStorageInitializationError(err: unknown): StorageInitializationErrorClassification {
+      if (err instanceof RecordSchemaPersistenceError) return 'record-schema-persistence-error';
+      if (err instanceof mongodb.MongoNetworkError) return 'mongo-network-error';
+      if (err instanceof mongodb.MongoError) return 'mongo-driver-error';
+      return err instanceof Error ? 'unexpected-error' : 'non-error';
     }
 
     /**
@@ -636,14 +821,23 @@ export namespace Services {
       return 'not-found';
     }
 
-    public init(): void {
+    public async init(): Promise<void> {
       this.registerReadyHook();
-      void this.performInit().catch(() => {
-        sails.log.error(`${this.logHeader} storage_initialization_failed`, {
-          event: 'storage_initialization_failed',
-          outcome: 'not-ready',
-        });
-      });
+      const initialization = this._initializationPromise ?? this.performInit();
+      this._initializationPromise = initialization;
+      try {
+        await initialization;
+      } catch (error) {
+        if (this._initializationPromise === initialization) {
+          this._initializationPromise = undefined;
+          sails.log.error(`${this.logHeader} storage_initialization_failed`, {
+            event: 'storage_initialization_failed',
+            outcome: 'not-ready',
+            error_classification: this.classifyStorageInitializationError(error),
+          });
+        }
+        throw error;
+      }
     }
 
     private registerReadyHook(): void {
@@ -652,13 +846,8 @@ export namespace Services {
       }
       this._readyHookRegistered = true;
       const that = this;
-      this.registerSailsHook('on', 'ready', function () {
-        void that.performInit().catch(() => {
-          sails.log.error(`${that.logHeader} storage_initialization_failed`, {
-            event: 'storage_initialization_failed',
-            outcome: 'not-ready',
-          });
-        });
+      this.registerSailsHook('on', 'ready', async function () {
+        await that.init();
       });
     }
 
@@ -689,6 +878,10 @@ export namespace Services {
         this.recordCol &&
         this.deletedRecordCol &&
         this.recordIdentityCol &&
+        this.recordCol &&
+        this.deletedRecordCol &&
+        this.recordSchemaArtifactCol &&
+        this.recordSchemaReferenceCol &&
         this.gridFsBucket
       ) {
         return;
@@ -705,7 +898,10 @@ export namespace Services {
       this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
+      this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
+      this.recordSchemaReferenceCol = this.db.collection<MongoRecordDocument>(RecordSchemaReference.tableName);
       await this.createIndices(this.db);
+      await this.createRecordSchemaIndices();
       this._requiredIndicesReady = true;
       sails.emit('hook:redbox:storage:ready');
       sails.emit('hook:redbox:datastream:ready');
@@ -735,6 +931,546 @@ export namespace Services {
         { key: { redboxOid: 1 }, unique: true },
       ];
       await db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION).createIndexes(recordIdentityIndices);
+    }
+
+    private async createRecordSchemaIndices(): Promise<void> {
+      await this.createRequiredIndexes(this.recordSchemaArtifactCol, RECORD_SCHEMA_ARTIFACT_INDEXES);
+      await this.createRequiredIndexes(this.recordSchemaReferenceCol, RECORD_SCHEMA_REFERENCE_INDEXES);
+    }
+
+    private async createRequiredIndexes(
+      collection: Collection<MongoRecordDocument>,
+      requiredIndexes: readonly mongodb.IndexDescription[]
+    ): Promise<void> {
+      let existingIndexes: IndexDescriptionInfo[];
+      try {
+        existingIndexes = await collection.indexes();
+      } catch (error) {
+        if (!isMongoNamespaceNotFoundError(error)) {
+          throw error;
+        }
+        existingIndexes = [];
+      }
+      const missingIndexes: mongodb.IndexDescription[] = [];
+
+      for (const required of requiredIndexes) {
+        const matchingKeys = existingIndexes.filter(existing => indexKeysEqual(existing, required));
+        if (matchingKeys.some(existing => indexOptionsEqual(existing, required))) continue;
+
+        if (matchingKeys.length > 0) {
+          throw new Error(
+            `Existing index ${indexDisplayName(matchingKeys[0])} has options that do not match required index ${indexDisplayName(required)}.`
+          );
+        }
+
+        const matchingName = existingIndexes.find(existing => existing.name === required.name);
+        if (matchingName) {
+          throw new Error(
+            `Existing index ${indexDisplayName(matchingName)} has keys that do not match the required definition.`
+          );
+        }
+        missingIndexes.push(required);
+      }
+
+      if (missingIndexes.length > 0) {
+        await collection.createIndexes(missingIndexes);
+      }
+    }
+
+    private recordSchemaSuccess<TData>(data: TData): StorageServiceResponse<TData> {
+      const response = new StorageServiceResponse<TData>();
+      response.success = true;
+      response.data = data;
+      return response;
+    }
+
+    private recordSchemaFailure<TData>(
+      code: string,
+      message: string,
+      action: string,
+      error?: unknown
+    ): StorageServiceResponse<TData> {
+      const response = new StorageServiceResponse<TData>();
+      response.success = false;
+      response.message = message;
+      response.details = { code };
+      const errorType = error instanceof Error ? error.name : typeof error;
+      sails.log.error(`${this.logHeader} ${action} failed (${code}; ${errorType})`);
+      return response;
+    }
+
+    private recordSchemaFailureFromError<TData>(action: string, error: unknown): StorageServiceResponse<TData> {
+      if (error instanceof RecordSchemaPersistenceError) {
+        return this.recordSchemaFailure(error.code, error.message, action, error);
+      }
+      return this.recordSchemaFailure(
+        RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+        'Record schema storage operation failed.',
+        action,
+        error
+      );
+    }
+
+    private throwRecordSchemaReadFailure(action: string, error: unknown): never {
+      if (error instanceof RecordSchemaPersistenceError) {
+        throw error;
+      }
+      const errorType = error instanceof Error ? error.name : typeof error;
+      sails.log.error(`${this.logHeader} ${action} failed (${errorType})`);
+      throw new RecordSchemaPersistenceError(
+        RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+        'Record schema storage read failed.'
+      );
+    }
+
+    private artifactCollection(): Collection<MongoRecordDocument> {
+      if (!this.recordSchemaArtifactCol) {
+        this.db = this.db ?? (RecordSchemaArtifact.getDatastore().manager as Db);
+        this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
+      }
+      return this.recordSchemaArtifactCol;
+    }
+
+    private referenceCollection(): Collection<MongoRecordDocument> {
+      if (!this.recordSchemaReferenceCol) {
+        this.db = this.db ?? (RecordSchemaReference.getDatastore().manager as Db);
+        this.recordSchemaReferenceCol = this.db.collection<MongoRecordDocument>(RecordSchemaReference.tableName);
+      }
+      return this.recordSchemaReferenceCol;
+    }
+
+    private recordSchemaReferenceDocument(reference: RecordSchemaReferenceInput, now: Date): Document {
+      const document: Document = {
+        referenceKey: reference.referenceKey,
+        digest: reference.digest,
+        kind: reference.kind,
+        brand: reference.brand,
+        portal: reference.portal,
+        schemaKind: reference.schemaKind,
+        recordType: reference.recordType,
+        operation: reference.operation,
+        createdAt: now,
+        updatedAt: now,
+      };
+      if (reference.kind === 'save' || (reference.kind === 'grant' && reference.schemaKind === 'update')) {
+        document.oid = reference.oid;
+      }
+      if (reference.kind === 'pin') {
+        document.owner = reference.owner;
+        document.purpose = reference.purpose;
+        if (reference.expiresAt !== undefined) {
+          document.expiresAt = reference.expiresAt;
+        }
+      }
+      return document;
+    }
+
+    private async existingArtifactMatches(existing: Document, artifact: RecordSchemaArtifactInput): Promise<boolean> {
+      return artifactContentIdentity(artifactModelFromDocument(existing)) === artifactContentIdentity(artifact);
+    }
+
+    public async putRecordSchemaArtifact(artifact: RecordSchemaArtifactInput): Promise<StorageServiceResponse> {
+      try {
+        const validated = validateRecordSchemaArtifactInput(artifact);
+        const collection = this.artifactCollection();
+        const existing = await collection.findOne({ digest: validated.digest });
+        if (existing) {
+          if (await this.existingArtifactMatches(existing, validated)) {
+            return this.recordSchemaSuccess({ digest: validated.digest });
+          }
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.DIGEST_COLLISION,
+            'Record schema artifact integrity check failed.',
+            'putRecordSchemaArtifact'
+          );
+        }
+
+        const now = new Date();
+        try {
+          await collection.insertOne({
+            digest: validated.digest,
+            document: validated.document,
+            contractFormat: validated.contractFormat,
+            completeness: validated.completeness,
+            byteLength: validated.byteLength,
+            createdAt: now,
+            updatedAt: now,
+          });
+        } catch (error) {
+          if (!isDuplicateKeyError(error)) {
+            throw error;
+          }
+          const racedArtifact = await collection.findOne({ digest: validated.digest });
+          if (!racedArtifact || !(await this.existingArtifactMatches(racedArtifact, validated))) {
+            return this.recordSchemaFailure(
+              RECORD_SCHEMA_STORAGE_CODES.DIGEST_COLLISION,
+              'Record schema artifact integrity check failed.',
+              'putRecordSchemaArtifact',
+              error
+            );
+          }
+        }
+        return this.recordSchemaSuccess({ digest: validated.digest });
+      } catch (error) {
+        return this.recordSchemaFailureFromError('putRecordSchemaArtifact', error);
+      }
+    }
+
+    public async getRecordSchemaArtifact(digest: string): Promise<RecordSchemaArtifactModel | null> {
+      const validatedDigest = validateRecordSchemaDigest(digest);
+      try {
+        const document = await this.artifactCollection().findOne({ digest: validatedDigest });
+        return document ? artifactModelFromDocument(document) : null;
+      } catch (error) {
+        const errorType = error instanceof Error ? error.name : typeof error;
+        sails.log.error(`${this.logHeader} getRecordSchemaArtifact failed (${errorType})`);
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+          'Record schema artifact read failed.'
+        );
+      }
+    }
+
+    public async listRecordSchemaArtifacts(query: RecordSchemaArtifactQuery): Promise<RecordSchemaArtifactSummary[]> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_ARTIFACT,
+            'Record schema artifact query is required.'
+          );
+        }
+        const limit = this.recordSchemaQueryLimit(query.limit);
+        const criteria: Document = {};
+        if (query.afterDigest !== undefined) {
+          criteria.digest = { $gt: validateRecordSchemaDigest(query.afterDigest) };
+        }
+        const documents = await this.artifactCollection()
+          .find(criteria, { projection: { _id: 0, digest: 1, createdAt: 1 } })
+          .sort({ digest: 1 })
+          .limit(limit)
+          .toArray();
+        return documents.map(document => ({
+          digest: validateRecordSchemaDigest(document.digest),
+          createdAt: this.storedRecordSchemaDate(document.createdAt, 'artifact createdAt'),
+        }));
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('listRecordSchemaArtifacts', error);
+      }
+    }
+
+    public async touchRecordSchemaArtifact(digest: string): Promise<StorageServiceResponse> {
+      try {
+        const validatedDigest = validateRecordSchemaDigest(digest);
+        const result = await this.artifactCollection().updateOne(
+          { digest: validatedDigest },
+          { $set: { lastAccessedAt: new Date() } }
+        );
+        if (result.matchedCount !== 1) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.ARTIFACT_NOT_FOUND,
+            'Record schema artifact was not found.',
+            'touchRecordSchemaArtifact'
+          );
+        }
+        return this.recordSchemaSuccess({ digest: validatedDigest });
+      } catch (error) {
+        return this.recordSchemaFailureFromError('touchRecordSchemaArtifact', error);
+      }
+    }
+
+    private async storeRecordSchemaReference(
+      reference: RecordSchemaReferenceInput,
+      now: Date
+    ): Promise<StorageServiceResponse> {
+      const collection = this.referenceCollection();
+      const existing = await collection.findOne({ referenceKey: reference.referenceKey });
+      if (existing) {
+        if (referenceContentIdentity(referenceModelFromDocument(existing)) !== referenceContentIdentity(reference)) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.REFERENCE_KEY_COLLISION,
+            'Record schema reference integrity check failed.',
+            'putRecordSchemaReference'
+          );
+        }
+        await collection.updateOne({ referenceKey: reference.referenceKey }, { $set: { updatedAt: now } });
+        return this.recordSchemaSuccess({ referenceKey: reference.referenceKey });
+      }
+
+      try {
+        await collection.insertOne(this.recordSchemaReferenceDocument(reference, now));
+      } catch (error) {
+        if (!isDuplicateKeyError(error)) {
+          throw error;
+        }
+        const racedReference = await collection.findOne({ referenceKey: reference.referenceKey });
+        if (
+          !racedReference ||
+          referenceContentIdentity(referenceModelFromDocument(racedReference)) !== referenceContentIdentity(reference)
+        ) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.REFERENCE_KEY_COLLISION,
+            'Record schema reference integrity check failed.',
+            'putRecordSchemaReference',
+            error
+          );
+        }
+        await collection.updateOne({ referenceKey: reference.referenceKey }, { $set: { updatedAt: now } });
+      }
+      return this.recordSchemaSuccess({ referenceKey: reference.referenceKey });
+    }
+
+    public async putRecordSchemaReference(reference: RecordSchemaReferenceInput): Promise<StorageServiceResponse> {
+      try {
+        const validated = validateRecordSchemaReferenceInput(reference);
+        const now = new Date();
+        const artifactCriteria = { digest: validated.digest };
+        const artifact = await this.artifactCollection().findOne(artifactCriteria, {
+          projection: { _id: 1 },
+        });
+        if (!artifact) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.ARTIFACT_NOT_FOUND,
+            'Record schema reference target was not found.',
+            'putRecordSchemaReference'
+          );
+        }
+
+        const response = await this.storeRecordSchemaReference(validated, now);
+        if (!response.success) {
+          return response;
+        }
+
+        // Reference writes and retention deletion share this lock protocol.
+        // A writer that raced with deletion removes its own temporary row and
+        // fails, so no successful reference can become orphaned.
+        const artifactAfterWrite = await this.artifactCollection().findOne(
+          { digest: validated.digest },
+          { projection: { _id: 1 } }
+        );
+        if (!artifactAfterWrite) {
+          await this.referenceCollection().deleteOne({
+            referenceKey: validated.referenceKey,
+            digest: validated.digest,
+          });
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.ARTIFACT_NOT_FOUND,
+            'Record schema reference target was not found.',
+            'putRecordSchemaReference'
+          );
+        }
+        return response;
+      } catch (error) {
+        return this.recordSchemaFailureFromError('putRecordSchemaReference', error);
+      }
+    }
+
+    private recordSchemaQueryString(value: unknown, field: string, maximumLength = 512): string {
+      if (typeof value !== 'string' || value.length === 0 || value !== value.trim() || value.length > maximumLength) {
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+          `Record schema reference query ${field} is invalid.`
+        );
+      }
+      return value;
+    }
+
+    private recordSchemaQueryLimit(value: unknown): number {
+      if (
+        typeof value !== 'number' ||
+        !Number.isSafeInteger(value) ||
+        value <= 0 ||
+        value > RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX
+      ) {
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+          `Record schema reference query limit must be between 1 and ${RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX}.`
+        );
+      }
+      return value;
+    }
+
+    public async findRecordSchemaGrantForAuthorization(
+      query: RecordSchemaAuthorizationGrantQuery
+    ): Promise<RecordSchemaReferenceModel | null> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query is required.'
+          );
+        }
+        const schemaKind = query.schemaKind;
+        if (schemaKind !== 'create' && schemaKind !== 'update') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query schemaKind is invalid.'
+          );
+        }
+        if (!Array.isArray(query.roleNames)) {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query roleNames is invalid.'
+          );
+        }
+        const roleNames = [
+          ...new Set(query.roleNames.map(role => this.recordSchemaQueryString(role, 'roleNames'))),
+        ].sort();
+        const criteria: Document = {
+          digest: validateRecordSchemaDigest(query.digest),
+          kind: 'grant',
+          brand: this.recordSchemaQueryString(query.brand, 'brand'),
+          portal: this.recordSchemaQueryString(query.portal, 'portal'),
+          schemaKind,
+          recordType: this.recordSchemaQueryString(query.recordType, 'recordType'),
+          operation: this.recordSchemaQueryString(query.operation, 'operation', 64),
+        };
+        if (query.afterReferenceKey !== undefined) {
+          const afterReferenceKey = this.recordSchemaQueryString(query.afterReferenceKey, 'afterReferenceKey');
+          if (!RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(afterReferenceKey)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema authorization query afterReferenceKey is invalid.'
+            );
+          }
+          criteria.referenceKey = { $gt: afterReferenceKey };
+        }
+
+        if (schemaKind === 'create') {
+          const grant = await this.referenceCollection().findOne(criteria, {
+            sort: { referenceKey: 1 },
+            hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
+            maxTimeMS: RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
+          });
+          return grant ? referenceModelFromDocument(grant) : null;
+        }
+
+        const username = this.recordSchemaQueryString(query.username, 'username');
+        const recordBrandId = this.recordSchemaQueryString(query.recordBrandId, 'recordBrandId');
+        const editConditions: Document[] = [{ 'authorization.edit': username }];
+        if (roleNames.length > 0) {
+          editConditions.push({ 'authorization.editRoles': { $in: roleNames } });
+        }
+        const grants = await this.referenceCollection()
+          .aggregate(
+            [
+              { $match: criteria },
+              {
+                $lookup: {
+                  from: Record.tableName,
+                  localField: 'oid',
+                  foreignField: 'redboxOid',
+                  pipeline: [
+                    {
+                      $match: {
+                        'metaMetadata.brandId': recordBrandId,
+                        $or: editConditions,
+                      },
+                    },
+                  ],
+                  as: 'authorizedRecords',
+                },
+              },
+              { $match: { 'authorizedRecords.0': { $exists: true } } },
+              { $sort: { referenceKey: 1 } },
+              { $limit: 1 },
+            ],
+            { hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY }
+          )
+          .maxTimeMS(RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS)
+          .toArray();
+        return grants[0] ? referenceModelFromDocument(grants[0]) : null;
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('findRecordSchemaGrantForAuthorization', error);
+      }
+    }
+
+    public async listRecordSchemaReferences(query: RecordSchemaReferenceQuery): Promise<RecordSchemaReferenceModel[]> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema reference query is required.'
+          );
+        }
+        const limit = this.recordSchemaQueryLimit(query.limit);
+        const criteria: Document = {};
+        if (query.digest !== undefined) {
+          criteria.digest = validateRecordSchemaDigest(query.digest);
+        }
+        if (query.kind !== undefined) {
+          if (!['grant', 'save', 'pin'].includes(query.kind)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema reference query kind is invalid.'
+            );
+          }
+          criteria.kind = query.kind;
+        }
+        if (query.schemaKind !== undefined) {
+          if (query.schemaKind !== 'create' && query.schemaKind !== 'update') {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema reference query schemaKind is invalid.'
+            );
+          }
+          criteria.schemaKind = query.schemaKind;
+        }
+        for (const [field, value] of [
+          ['brand', query.brand],
+          ['portal', query.portal],
+          ['recordType', query.recordType],
+          ['oid', query.oid],
+          ['operation', query.operation],
+          ['owner', query.owner],
+        ] as const) {
+          if (value !== undefined) {
+            criteria[field] = this.recordSchemaQueryString(value, field);
+          }
+        }
+        if (query.includeExpiredPins !== undefined && typeof query.includeExpiredPins !== 'boolean') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema reference query includeExpiredPins must be boolean.'
+          );
+        }
+        if (query.includeExpiredPins !== true) {
+          criteria.$and = [
+            {
+              $or: [{ kind: { $ne: 'pin' } }, { expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+            },
+          ];
+        }
+        if (query.afterReferenceKey !== undefined) {
+          const afterReferenceKey = this.recordSchemaQueryString(query.afterReferenceKey, 'afterReferenceKey');
+          if (!RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(afterReferenceKey)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema reference query afterReferenceKey is invalid.'
+            );
+          }
+          criteria.referenceKey = { $gt: afterReferenceKey };
+        }
+
+        const documents = await this.referenceCollection()
+          .find(criteria)
+          .sort({ referenceKey: 1 })
+          .limit(limit)
+          .toArray();
+        return documents.map(referenceModelFromDocument);
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('listRecordSchemaReferences', error);
+      }
+    }
+
+    private storedRecordSchemaDate(value: unknown, field: string): Date {
+      const date = value instanceof Date ? value : new Date(String(value ?? ''));
+      if (Number.isNaN(date.getTime())) {
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+          `Stored record schema ${field} is invalid.`
+        );
+      }
+      return date;
     }
 
     public async create(

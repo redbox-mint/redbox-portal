@@ -1917,6 +1917,49 @@ describe('FigshareService', function () {
     expect((global as any).RecordsService.updateMetaInternal.firstCall.args[0].brand).to.equal(namedBrand);
   });
 
+  it('omits metadata submission when the Figshare job only transitions workflow', async function () {
+    getConfigStub.callsFake(
+      () =>
+        buildFigsharePublishingConfig({
+          workflow: {
+            transitionJob: {
+              enabled: true,
+              namedQuery: 'figshare-transition',
+              targetStep: 'published',
+              paramMap: {},
+              figshareTargetFieldKey: 'status',
+              figshareTargetFieldValue: 'public',
+              username: 'figshare-job-user',
+              userType: 'admin',
+            },
+          },
+        }) as any
+    );
+    const currentRecord = {
+      redboxOid: 'oid-1',
+      oid: 'oid-1',
+      metadata: {
+        title: 'Dataset title',
+        figshare_article_id: 'article-1',
+        persistedUndeclaredField: 'must not be resubmitted',
+      },
+      metaMetadata: { brandId: 'default-id', type: 'dataset' },
+    };
+    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
+    (global as any).RecordsService.getMeta.resolves(currentRecord);
+    sinon.stub(service, 'makeClient').returns({
+      getArticle: sinon.stub().resolves({ id: 'article-1', status: 'public' }),
+      listArticleFiles: sinon.stub().resolves([]),
+    });
+
+    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+
+    expect((global as any).RecordsService.updateMetaInternal.calledOnce).to.equal(true);
+    const options = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+    expect(options.record).to.equal(currentRecord);
+    expect(options).not.to.have.property('metadata');
+  });
+
   it('treats a persisted warning as a successful Figshare state writeback', async function () {
     (global as any).RecordsService.updateMetaInternal.resolves({
       outcome: 'saved-with-warnings',
@@ -1926,11 +1969,30 @@ describe('FigshareService', function () {
 
     const persisted = await service.persistSyncRecord(
       'oid-1',
-      { metaMetadata: { brandId: 'default' }, metadata: {} } as any,
-      { username: 'figshare-job-user' } as any
+      {
+        metaMetadata: { brandId: 'default' },
+        metadata: {
+          figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
+          untouched: 'keep',
+        },
+      } as any,
+      { username: 'figshare-job-user' } as any,
+      {
+        figshare: { status: 'pending', retained: true, files: [{ id: 'old' }] },
+        untouched: 'keep',
+      }
     );
 
     expect(persisted).to.equal(true);
+    const updateOptions = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+    expect(updateOptions.metadataMode).to.equal('pre-applied');
+    expect(updateOptions.metadata).to.deep.equal({
+      figshare: { status: 'complete', files: [{ id: 'new' }] },
+    });
+    expect(updateOptions.record.metadata).to.deep.equal({
+      figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
+      untouched: 'keep',
+    });
   });
 
   it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {

@@ -1,4 +1,8 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
+import { promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
+import { z } from 'zod';
 import {
   ApiRouteDefinition,
   buildApiBlueprint,
@@ -11,6 +15,11 @@ import {
   buildSailsRouteConfig,
   extractApiRequest,
   getMergedApiRoutes,
+  registerCoreApiRoutes,
+  RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
+  RECORD_SCHEMA_RESOLVER_OPENAPI_EXTENSION,
+  RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+  RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
   resetResolvedApiRouteCache,
   resolveApiRouteForRequest,
   searchRecordsRoute,
@@ -39,6 +48,7 @@ import {
   recordSaveFailureResponseSchema,
   recordSaveIssueSchema,
   recordSaveSuccessResponseSchema,
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   storageServiceResponseSchema,
   userApiTokenApiResponseSchema,
   validationOperationDiscoverySchema,
@@ -70,6 +80,12 @@ import {
   updateMetaRoute,
   updateObjectMetaRoute,
 } from '../../src/api-routes/groups/records';
+import {
+  getImmutableRecordSchemaRoute,
+  recordSchemaApiRoutes,
+  resolveCreateRecordSchemaRoute,
+  resolveUpdateRecordSchemaRoute,
+} from '../../src/api-routes/groups/record-schemas';
 import { objectField, stringField } from '../../src/api-routes/schemas/common';
 import {
   buildContractApiPolicies,
@@ -103,12 +119,17 @@ type OpenApiOperation = {
   >;
   requestBody?: { content?: Record<string, { schema?: OpenApiSchema }> };
   parameters?: Array<OpenApiParameter>;
+  operationId?: string;
+  security?: Array<Record<string, string[]>>;
   summary?: string;
   description?: string;
+  'x-redbox-record-schema-resolver'?: unknown;
 };
 
 type OpenApiParameter = {
   name?: string;
+  in?: string;
+  required?: boolean;
   style?: string;
   explode?: boolean;
   schema?: OpenApiSchema;
@@ -213,6 +234,8 @@ describe('API routes contract layer', function () {
   });
 
   it('should include hook-contributed routes in merged docs', function () {
+    // This assertion intentionally generates three complete API artifacts; slower CI hosts need a scoped budget.
+    this.timeout(30_000);
     const hookRoute: ApiRouteDefinition = {
       method: 'get',
       path: '/:branding/:portal/api/hooks/example',
@@ -379,11 +402,219 @@ describe('API routes contract layer', function () {
       });
   });
 
-  it('should map contract-first API actions to request validation policy after default webservice policies', function () {
-    const recordPolicies = policies['webservice/RecordController'] as Record<string, unknown>;
-    const createPolicies = recordPolicies.create as string[];
+  it('should register the three record-schema GET routes with unique method/path keys', function () {
+    const registeredRoutes = registerCoreApiRoutes();
+    const registeredKeys = registeredRoutes.map(route => `${route.method} ${route.path}`);
+    const registeredRecordSchemaRoutes = registeredRoutes.filter(
+      route => route.controller === 'webservice/RecordSchemaController'
+    );
 
-    expect(createPolicies).to.deep.equal([
+    expect(new Set(registeredKeys).size).to.equal(registeredKeys.length);
+    expect(registeredRecordSchemaRoutes).to.have.length(3);
+    expect(registeredRecordSchemaRoutes).to.have.deep.members([...recordSchemaApiRoutes]);
+    expect(registeredRecordSchemaRoutes.map(route => `${route.method} ${route.path}`)).to.have.members([
+      'get /:branding/:portal/api/records/schemas/create/:recordType',
+      'get /:branding/:portal/api/records/schemas/update/:oid',
+      'get /:branding/:portal/api/records/schemas/:digest',
+    ]);
+
+    const routeConfig = buildCoreApiRouteConfig();
+    for (const route of recordSchemaApiRoutes) {
+      expect(routeConfig[`${route.method} ${route.path}`]).to.deep.equal({
+        controller: 'webservice/RecordSchemaController',
+        action: route.action,
+        csrf: false,
+      });
+    }
+  });
+
+  it('should publish all three typed record-schema operations in generated OpenAPI', function () {
+    const schemaEtag = `"sha256:${'a'.repeat(64)}"`;
+    for (const route of recordSchemaApiRoutes) {
+      expect(route.request?.headers?.safeParse({}).success).to.equal(true);
+      expect(route.request?.headers?.safeParse({ 'If-None-Match': schemaEtag }).success).to.equal(true);
+      expect(route.request?.headers?.safeParse({ 'If-None-Match': [schemaEtag, schemaEtag] }).success).to.equal(false);
+    }
+    for (const [route, params] of [
+      [resolveCreateRecordSchemaRoute, { branding: 'default', portal: 'rdmp', recordType: 'dataset' }],
+      [resolveUpdateRecordSchemaRoute, { branding: 'default', portal: 'rdmp', oid: 'record-1' }],
+      [getImmutableRecordSchemaRoute, { branding: 'default', portal: 'rdmp', digest: 'a'.repeat(64) }],
+    ] as const) {
+      expect(route.request?.params?.safeParse(params).success).to.equal(true);
+      expect(route.request?.params?.safeParse({ ...params, branding: undefined }).success).to.equal(false);
+      expect(route.request?.params?.safeParse({ ...params, portal: undefined }).success).to.equal(false);
+    }
+    for (const route of [resolveCreateRecordSchemaRoute, resolveUpdateRecordSchemaRoute]) {
+      expect(route.request?.query?.safeParse({}).success).to.equal(true);
+      expect(route.request?.query?.safeParse({ operation: 'submit' }).success).to.equal(true);
+      expect(route.request?.query?.safeParse({ operation: 'bad operation' }).success).to.equal(false);
+    }
+    expect(getImmutableRecordSchemaRoute.request?.query).to.equal(undefined);
+    expect(
+      getImmutableRecordSchemaRoute.request?.params?.safeParse({
+        branding: 'default',
+        portal: 'rdmp',
+        digest: 'A'.repeat(64),
+      }).success
+    ).to.equal(false);
+
+    const document = buildCoreApiOpenApiDocument();
+    const openApiOperationSchema = z
+      .object({
+        operationId: z.string(),
+        security: z.array(z.record(z.string(), z.array(z.string()))),
+        parameters: z.array(
+          z
+            .object({
+              name: z.string(),
+              in: z.string(),
+              required: z.boolean(),
+              schema: z.object({ pattern: z.string().optional() }).passthrough().optional(),
+            })
+            .passthrough()
+        ),
+        responses: z.record(
+          z.string(),
+          z
+            .object({
+              content: z
+                .record(
+                  z.string(),
+                  z
+                    .object({
+                      schema: z
+                        .object({ required: z.array(z.string()).optional() })
+                        .passthrough()
+                        .optional(),
+                    })
+                    .passthrough()
+                )
+                .optional(),
+              headers: z.record(z.string(), z.unknown()).optional(),
+            })
+            .passthrough()
+        ),
+      })
+      .passthrough();
+    const operations = [
+      {
+        path: '/{branding}/{portal}/api/records/schemas/create/{recordType}',
+        operationId: 'resolveCreateRecordSchema',
+        pathParameterNames: ['branding', 'portal', 'recordType'],
+        acceptsOperation: true,
+        hasCanonicalLink: true,
+      },
+      {
+        path: '/{branding}/{portal}/api/records/schemas/update/{oid}',
+        operationId: 'resolveUpdateRecordSchema',
+        pathParameterNames: ['branding', 'portal', 'oid'],
+        acceptsOperation: true,
+        hasCanonicalLink: true,
+      },
+      {
+        path: '/{branding}/{portal}/api/records/schemas/{digest}',
+        operationId: 'getImmutableRecordSchema',
+        pathParameterNames: ['branding', 'portal', 'digest'],
+        acceptsOperation: false,
+        hasCanonicalLink: false,
+      },
+    ] as const;
+
+    expect(Object.keys(document.paths).filter(path => path.includes('/api/records/schemas/'))).to.have.members(
+      operations.map(operation => operation.path)
+    );
+
+    for (const expectedOperation of operations) {
+      const pathItem = document.paths[expectedOperation.path];
+      expect(Object.keys(pathItem ?? {})).to.deep.equal(['get']);
+
+      const operation = openApiOperationSchema.parse(pathItem?.get);
+      expect(operation.operationId).to.equal(expectedOperation.operationId);
+      expect(operation.security).to.deep.equal([{ bearerAuth: [] }]);
+
+      for (const parameterName of expectedOperation.pathParameterNames) {
+        const pathParameter = operation.parameters.find(parameter => parameter.name === parameterName);
+        expect(pathParameter, `${expectedOperation.operationId} ${parameterName}`).to.deep.include({
+          in: 'path',
+          required: true,
+        });
+      }
+
+      const ifNoneMatch = operation.parameters?.find(parameter => parameter.name === 'If-None-Match');
+      expect(ifNoneMatch).to.deep.include({ in: 'header', required: false });
+      expect(ifNoneMatch?.schema?.pattern).to.equal('^"sha256:[0-9a-f]{64}"$');
+
+      const operationParameter = operation.parameters?.find(parameter => parameter.name === 'operation');
+      if (expectedOperation.acceptsOperation) {
+        expect(operationParameter).to.deep.include({ in: 'query', required: false });
+      } else {
+        expect(operationParameter).to.equal(undefined);
+      }
+
+      const success = operation.responses?.['200'];
+      expect(success?.content).to.have.all.keys('application/schema+json');
+      expect(success?.content?.['application/schema+json']?.schema).to.exist;
+      expect(success?.headers).to.include.all.keys('ETag', 'Cache-Control', 'Vary');
+      if (expectedOperation.hasCanonicalLink) {
+        expect(success?.headers).to.have.property('Link');
+      } else {
+        expect(success?.headers).not.to.have.property('Link');
+      }
+
+      expect(operation.responses?.['304']?.content).to.equal(undefined);
+      const problemStatuses = ['400', '401', '403', '404', '409', '413', '422', '503'];
+      expect(Object.keys(operation.responses ?? {}).sort()).to.deep.equal(['200', '304', ...problemStatuses].sort());
+      for (const status of problemStatuses) {
+        const problem = operation.responses?.[status];
+        expect(problem?.content).to.have.all.keys('application/problem+json');
+        expect(problem?.content?.['application/problem+json']?.schema?.required).to.include.members([
+          'type',
+          'title',
+          'status',
+          'detail',
+          'instance',
+          'code',
+        ]);
+      }
+    }
+  });
+
+  it('should omit no-store caching only from the exact record-schema action policy chains', function () {
+    const schemaPolicies = policies['webservice/RecordSchemaController'] as Record<string, unknown>;
+    const schemaActionPolicies = [
+      'brandingAndPortal',
+      'checkBrandingValid',
+      'setLang',
+      'prepWs',
+      'i18nLanguages',
+      'menuResolver',
+      'isWebServiceAuthenticated',
+      'checkRecordSchemaAuth',
+      'contentSecurityPolicy',
+      'validateApiContractRequest',
+    ];
+
+    expect(schemaPolicies).to.deep.equal({
+      '*': [
+        'noCache',
+        'brandingAndPortal',
+        'checkBrandingValid',
+        'setLang',
+        'prepWs',
+        'i18nLanguages',
+        'menuResolver',
+        'isWebServiceAuthenticated',
+        'checkAuth',
+        'contentSecurityPolicy',
+      ],
+      create: schemaActionPolicies,
+      update: schemaActionPolicies,
+      immutable: schemaActionPolicies,
+    });
+  });
+
+  it('should keep every non-schema contract API action on the exact no-store validation policy chain', function () {
+    const expectedPolicies = [
       'noCache',
       'brandingAndPortal',
       'checkBrandingValid',
@@ -395,7 +626,14 @@ describe('API routes contract layer', function () {
       'checkAuth',
       'contentSecurityPolicy',
       'validateApiContractRequest',
-    ]);
+    ];
+
+    for (const route of registerCoreApiRoutes()) {
+      if (route.controller === 'webservice/RecordSchemaController') continue;
+
+      const controllerPolicies = policies[route.controller] as Record<string, unknown>;
+      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
+    }
   });
 
   it('should build and merge contract validation policies for hook API routes', function () {
@@ -502,9 +740,23 @@ describe('API routes contract layer', function () {
   });
 
   it('should validate generated OpenAPI documents with swagger-parser', async function () {
-    const document = buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
+    this.timeout(60_000);
 
-    await SwaggerParser.validate(document as unknown as Parameters<typeof SwaggerParser.validate>[0]);
+    const tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'redbox-openapi-validation-'));
+
+    try {
+      const documents = {
+        generic: buildCoreApiOpenApiDocument(),
+        specialized: buildMergedApiOpenApiDocument({ branding: 'default', portal: 'rdmp' }),
+      };
+      for (const [name, document] of Object.entries(documents)) {
+        const documentPath = path.join(tempDirectory, `${name}.json`);
+        await fs.writeFile(documentPath, JSON.stringify(document));
+        await SwaggerParser.validate(documentPath);
+      }
+    } finally {
+      await fs.rm(tempDirectory, { recursive: true, force: true });
+    }
   });
 
   it('should not emit empty required arrays in OpenAPI schemas', function () {
@@ -550,6 +802,7 @@ describe('API routes contract layer', function () {
     expect(v2Schema?.properties).to.have.property('data');
     expect(v2Schema?.properties).to.have.property('meta');
     expect(created.headers).to.have.property('Location');
+    expect(created.headers).to.have.property('Link');
   });
 
   it('validates and documents the optional operation query on every record save route', function () {
@@ -676,8 +929,25 @@ describe('API routes contract layer', function () {
     const ifMatch = updateOperation.parameters?.find(parameter => parameter.name === 'If-Match');
     expect(ifMatch).to.exist;
     expect(ifMatch?.schema?.pattern).to.be.a('string').and.not.equal('');
+    const schemaIfMatch = updateOperation.parameters?.find(
+      parameter => parameter.name === 'X-ReDBox-Record-Schema-If-Match'
+    );
+    expect(schemaIfMatch).to.exist;
     expect(updateOperation.responses?.['412']?.headers).to.have.property('ETag');
     expect(updateOperation.responses?.['428']?.content?.['application/json']?.schema).to.exist;
+    expect(updateOperation.responses?.['412']?.description).to.equal('Record revision or schema precondition failed');
+    expect(updateOperation.responses?.['412']?.content?.['application/json']?.schema).to.deep.equal(
+      updateOperation.responses?.['400']?.content?.['application/json']?.schema
+    );
+
+    const transitionOperation = document.paths['/{branding}/{portal}/api/records/workflow/step/{targetStep}/{oid}']
+      ?.post as OpenApiOperation;
+    expect(transitionOperation.responses?.['412']?.description).to.equal(
+      'Record revision or schema precondition failed'
+    );
+    expect(transitionOperation.responses?.['412']?.content?.['application/json']?.schema).to.deep.equal(
+      transitionOperation.responses?.['400']?.content?.['application/json']?.schema
+    );
 
     const deleteOperation = document.paths['/{branding}/{portal}/api/records/metadata/{oid}']
       ?.delete as OpenApiOperation;
@@ -690,6 +960,157 @@ describe('API routes contract layer', function () {
     for (const operation of [deletedPath?.put, deletedPath?.delete] as OpenApiOperation[]) {
       expect(operation.parameters?.find(parameter => parameter.name === 'If-Match')).to.exist;
       expect(operation.responses).to.include.all.keys('200', '409', '412', '428');
+    }
+  });
+
+  it('validates, extracts, and documents schema digest headers separately from revision If-Match', function () {
+    const schemaIfMatch = `"sha256:${'a'.repeat(64)}"`;
+    for (const route of [updateMetaRoute, transitionWorkflowRoute]) {
+      const request = {
+        params: route === updateMetaRoute ? { oid: 'record-1' } : { targetStep: 'review', oid: 'record-1' },
+        query: {},
+        headers: { [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: schemaIfMatch },
+        body: {},
+      } as unknown as Sails.Req;
+      const result = validateApiRouteRequest(request, route);
+
+      expect(result.valid).to.equal(true);
+      if (!result.valid) throw new Error('Expected schema If-Match request validation to pass.');
+      expect(result.headers).to.deep.include({ [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]: schemaIfMatch });
+    }
+
+    const document = buildCoreApiOpenApiDocument();
+    const operations = [
+      asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put),
+      asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/workflow/step/{targetStep}/{oid}']?.post),
+    ];
+    for (const operation of operations) {
+      const parameter = operation.parameters?.find(item => item.name === RECORD_SCHEMA_WRITE_PRECONDITION_HEADER);
+      expect(parameter).to.deep.include({ in: 'header', required: false });
+      expect(parameter?.schema?.description).to.equal('Strong record-schema ETag for conditional updates');
+      expect(parameter?.schema?.pattern).to.equal('^"sha256:[0-9a-f]{64}"$');
+    }
+  });
+
+  it('keeps the schema precondition optional on update metadata requests', function () {
+    const request = {
+      params: { oid: 'record-1' },
+      query: {},
+      headers: {},
+      body: { title: 'Compatible update' },
+    } as unknown as Sails.Req;
+    const result = validateApiRouteRequest(request, updateMetaRoute);
+
+    expect(result.valid).to.equal(true);
+    if (!result.valid) throw new Error('Expected an update without a schema precondition to remain valid.');
+    expect(result.headers?.[RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]).to.equal(undefined);
+    expect(updateMetaRoute.request?.headers?.safeParse({}).success).to.equal(true);
+  });
+
+  it('rejects repeated schema If-Match header values without selecting the first value', function () {
+    const ifMatch = `"sha256:${'a'.repeat(64)}"`;
+    for (const route of [updateMetaRoute, transitionWorkflowRoute]) {
+      const result = validateApiRouteRequest(
+        {
+          params: route === updateMetaRoute ? { oid: 'record-1' } : { targetStep: 'review', oid: 'record-1' },
+          query: {},
+          headers: { [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER.toLowerCase()]: [ifMatch, ifMatch] },
+          body: {},
+        } as unknown as Sails.Req,
+        route
+      );
+
+      expect(result.valid).to.equal(false);
+      if (result.valid) throw new Error('Expected repeated schema If-Match request validation to fail.');
+      expect(result.issues.some(issue => issue.path === `headers.${RECORD_SCHEMA_WRITE_PRECONDITION_HEADER}`)).to.equal(
+        true
+      );
+    }
+  });
+
+  it('publishes bounded dynamic record-schema resolver metadata for create and update writes', function () {
+    const document = buildCoreApiOpenApiDocument();
+    const createOperation = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post
+    );
+    const updateOperation = asOpenApiOperation(document.paths['/{branding}/{portal}/api/records/metadata/{oid}']?.put);
+    const createExtension = createOperation['x-redbox-record-schema-resolver'];
+    const updateExtension = updateOperation['x-redbox-record-schema-resolver'];
+
+    expect(createExtension).to.deep.equal({
+      routeTemplate: RECORD_SCHEMA_CREATE_RESOLVER_ROUTE_TEMPLATE,
+      schemaKind: 'create',
+      operationParameter: { name: 'operation', in: 'query', required: false },
+      mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+      etag: {
+        format: '"sha256:<64-lowercase-hex>"',
+        responseHeader: 'ETag',
+        revalidationRequestHeader: 'If-None-Match',
+        notModifiedStatus: 304,
+        authorizationRequiredForRevalidation: true,
+      },
+    });
+    expect(updateExtension).to.deep.equal({
+      routeTemplate: RECORD_SCHEMA_UPDATE_RESOLVER_ROUTE_TEMPLATE,
+      schemaKind: 'update',
+      operationParameter: { name: 'operation', in: 'query', required: false },
+      mediaType: RECORD_SCHEMA_RESPONSE_MEDIA_TYPE,
+      etag: {
+        format: '"sha256:<64-lowercase-hex>"',
+        responseHeader: 'ETag',
+        revalidationRequestHeader: 'If-None-Match',
+        notModifiedStatus: 304,
+        authorizationRequiredForRevalidation: true,
+        recordWritePreconditionRequestHeader: 'X-ReDBox-Record-Schema-If-Match',
+        recordWritePreconditionRequired: false,
+        preconditionFailedStatus: 412,
+        comparison: 'current-resolved-full-document',
+      },
+    });
+    expect(JSON.stringify([createExtension, updateExtension]).length).to.be.lessThan(2_000);
+  });
+
+  it('keeps OpenAPI 3.0.3 bounded and form-independent without embedding generated schemas', function () {
+    this.timeout(20_000);
+    const globalWithSails = globalThis as typeof globalThis & {
+      sails?: { config?: Record<string, unknown> };
+    };
+    const previousSails = globalWithSails.sails;
+    const sailsConfig = { ...(previousSails?.config ?? {}) };
+    globalWithSails.sails = { ...(previousSails ?? {}), config: sailsConfig };
+    const privateFormMarker = 'must-not-appear-in-static-openapi';
+    const configuredForms = Object.fromEntries(
+      Array.from({ length: 2_000 }, (_, index) => [
+        `configured-form-${index}`,
+        {
+          name: `Configured form ${index}`,
+          components: [{ type: 'text', property: `${privateFormMarker}-${index}` }],
+        },
+      ])
+    );
+
+    try {
+      Reflect.set(sailsConfig, 'form', { defaultForm: 'default', forms: {} });
+      const withoutConfiguredForms = buildCoreApiOpenApiDocument();
+      const withoutConfiguredFormsJson = JSON.stringify(withoutConfiguredForms);
+
+      Reflect.set(sailsConfig, 'form', { defaultForm: 'default', forms: configuredForms });
+      const withConfiguredForms = buildCoreApiOpenApiDocument();
+      const withConfiguredFormsJson = JSON.stringify(withConfiguredForms);
+
+      expect(withConfiguredForms.openapi).to.equal('3.0.3');
+      expect(withConfiguredForms).to.deep.equal(withoutConfiguredForms);
+      expect(withConfiguredFormsJson.length).to.equal(withoutConfiguredFormsJson.length);
+      expect(withConfiguredFormsJson).not.to.include(privateFormMarker);
+      expect(
+        withConfiguredFormsJson.match(new RegExp(RECORD_SCHEMA_RESOLVER_OPENAPI_EXTENSION, 'g')) ?? []
+      ).to.have.length(2);
+    } finally {
+      if (previousSails === undefined) {
+        delete globalWithSails.sails;
+      } else {
+        globalWithSails.sails = previousSails;
+      }
     }
   });
 
@@ -1045,6 +1466,29 @@ describe('API routes contract layer', function () {
     );
     expect(asOpenApiSchema(harvestRunEventsSchema.properties?.records).items?.properties).to.have.property('operation');
     expect(harvestRunEventsRoute.responses).to.have.property('404');
+
+    const recordCreateRoute = asOpenApiOperation(
+      document.paths['/{branding}/{portal}/api/records/metadata/{recordType}']?.post
+    );
+    const recordCreateSchema = asOpenApiSchema(
+      recordCreateRoute.responses?.['201']?.content?.['application/json']?.schema
+    );
+    const storageResponseVariant = ((recordCreateSchema.anyOf ?? []) as OpenApiSchema[]).find(
+      variant => variant.properties?.problems != null
+    );
+    const problemSchema = asOpenApiSchema(asOpenApiSchema(storageResponseVariant?.properties?.problems).items);
+    const problemVariants = (problemSchema.anyOf ?? problemSchema.oneOf ?? []) as OpenApiSchema[];
+    const schemaProblemVariant = problemVariants.find(variant => variant.properties?.source != null);
+    const lifecycleProblemVariant = problemVariants.find(variant => variant.properties?.source == null);
+
+    expect(problemVariants).to.have.length(2);
+    expect(schemaProblemVariant?.required).to.include.members(['source', 'phase']);
+    expect(asOpenApiSchema(schemaProblemVariant?.properties?.source).enum).to.deep.equal(['schema']);
+    expect(asOpenApiSchema(schemaProblemVariant?.properties?.phase).enum).to.deep.equal(['schema']);
+    expect(schemaProblemVariant?.additionalProperties).to.equal(false);
+    expect(lifecycleProblemVariant?.required).to.include('phase');
+    expect(lifecycleProblemVariant?.properties).not.to.have.property('source');
+    expect(lifecycleProblemVariant?.additionalProperties).to.equal(false);
   });
 
   it('should include shared 400 and 500 error envelopes in OpenAPI', function () {
@@ -1165,8 +1609,7 @@ describe('API routes contract layer', function () {
     for (const { path, method } of routeSpecs) {
       const operation = document.paths[path]?.[method] as globalThis.Record<string, unknown> | undefined;
       const responses = operation?.responses as
-        | globalThis.Record<string, globalThis.Record<string, unknown>>
-        | undefined;
+        globalThis.Record<string, globalThis.Record<string, unknown>> | undefined;
 
       expect(responses, `${method.toUpperCase()} ${path}`).to.exist;
       expect(responses, `${method.toUpperCase()} ${path}`).to.not.deep.equal({ 200: { description: 'Success' } });
@@ -1369,6 +1812,10 @@ describe('API routes contract layer', function () {
     expect(legacyUpdateSchema?.properties).to.have.property('metadata');
     expect(v2UpdateSchema?.properties).to.have.property('data');
     expect(v2UpdateSchema?.properties).to.have.property('meta');
+    expect(
+      (updateMetaRoute.responses as globalThis.Record<string, globalThis.Record<string, unknown>>)['200']
+        .headers as globalThis.Record<string, unknown>
+    ).to.have.property('Link');
 
     const userAuditRoute = document.paths['/{branding}/{portal}/api/users/{id}/audit']?.get as globalThis.Record<
       string,
@@ -1520,11 +1967,15 @@ describe('API routes contract layer', function () {
       body: {},
     } as unknown as Sails.Req;
 
-    const result = validateApiRouteRequest(request, brandingApiRoutes.find(route => route.action === 'logo')!, {
-      files: {
-        logo: [{ size: 1024 * 1024, type: 'image/gif' }],
-      },
-    });
+    const result = validateApiRouteRequest(
+      request,
+      brandingApiRoutes.find(route => route.action === 'logo')!,
+      {
+        files: {
+          logo: [{ size: 1024 * 1024, type: 'image/gif' }],
+        },
+      }
+    );
 
     expect(result.valid).to.equal(false);
     if (result.valid) {

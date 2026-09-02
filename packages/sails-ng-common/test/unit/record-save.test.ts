@@ -9,8 +9,38 @@ import {
   sanitizeRecordSaveIssue,
   sanitizeRecordSaveValidatorParameters,
 } from '../../src';
+import type { RecordSaveProblem } from '../../src';
+
+function assertRecordSaveProblemProvenanceTypes(): void {
+  const schemaProblem: RecordSaveProblem = {
+    kind: 'validation',
+    source: 'schema',
+    phase: 'schema',
+    issues: [{ message: '@record-schema.type' }],
+  };
+  const lifecycleProblem: RecordSaveProblem = {
+    kind: 'processing',
+    phase: 'pre-save',
+    issues: [{ message: '@record-save-failed' }],
+  };
+  // @ts-expect-error Schema provenance is valid only in the schema phase.
+  const schemaSourceWithLifecyclePhase: RecordSaveProblem = {
+    kind: 'validation',
+    source: 'schema',
+    phase: 'pre-save',
+    issues: [{ message: '@record-schema.type' }],
+  };
+  // @ts-expect-error The schema phase requires schema provenance.
+  const schemaPhaseWithoutSource: RecordSaveProblem = {
+    kind: 'validation',
+    phase: 'schema',
+    issues: [{ message: '@record-schema.type' }],
+  };
+  void [schemaProblem, lifecycleProblem, schemaSourceWithLifecyclePhase, schemaPhaseWithoutSource];
+}
 
 describe('record-save contracts', function () {
+  void assertRecordSaveProblemProvenanceTypes;
   before(async function () {
     expect = (await import('chai')).expect;
   });
@@ -84,6 +114,42 @@ describe('record-save contracts', function () {
         angularComponentsJsonPointer: '/title',
       },
     });
+  });
+
+  it('preserves root and nested RFC 6901 pointers', function () {
+    for (const pointer of ['', '/metadata/title', '/a~0b/~1']) {
+      expect(
+        sanitizeRecordSaveIssue({
+          code: 'record-schema.type',
+          message: '@record-schema.type',
+          pointer,
+        })
+      ).to.deep.equal({
+        code: 'record-schema.type',
+        message: '@record-schema.type',
+        pointer,
+      });
+    }
+  });
+
+  it('drops malformed RFC 6901 pointer escapes', function () {
+    for (const pointer of ['/a~2b', '/a~']) {
+      expect(sanitizeRecordSaveIssue({ message: 'safe', pointer })).to.deep.equal({ message: 'safe' });
+    }
+  });
+
+  it('preserves only allowlisted schema expected types', function () {
+    expect(sanitizeRecordSaveIssue({
+      message: '@record-schema.type',
+      expected: { type: 'string', submitted: 'secret' },
+    })).to.deep.equal({
+      message: '@record-schema.type',
+      expected: { type: 'string' },
+    });
+    expect(sanitizeRecordSaveIssue({
+      message: '@record-schema.type',
+      expected: { type: 'custom', submitted: 'secret' },
+    })).to.deep.equal({ message: '@record-schema.type' });
   });
 
   it('drops raw exception/request data and nested validator values', function () {
