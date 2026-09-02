@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { map, firstValueFrom } from 'rxjs';
-import { Injectable, Inject } from '@angular/core';
+import { Injectable, Inject, isDevMode } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import {
   HttpClient,
@@ -111,7 +111,18 @@ const recordSaveLifecyclePhases: ReadonlySet<RecordSaveLifecyclePhase> = new Set
 ]);
 
 function createSaveRequestId(): string {
-  return globalThis.crypto.randomUUID();
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  if (!isDevMode() || !globalThis.crypto?.getRandomValues) {
+    throw new Error('Unable to generate save request id: crypto.randomUUID() is unavailable');
+  }
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, character =>
+    (
+      Number(character) ^
+      (globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(character) / 4)))
+    ).toString(16)
+  );
 }
 
 export interface RecordTypeConf {

@@ -57,6 +57,29 @@ describe('RecordService', () => {
     );
   });
 
+  it('creates a UUID save request header in development when crypto.randomUUID is unavailable', async () => {
+    const nativeRandomUUID = globalThis.crypto.randomUUID;
+    Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: undefined });
+
+    try {
+      const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
+      const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
+      const requestId = request.request.headers.get('X-ReDBox-Save-Request-Id');
+
+      expect(requestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+
+      request.flush({ meta: { outcome: 'saved', success: true, oid: 'oid-123' } });
+      await expectAsync(createPromise).toBeResolvedTo(
+        jasmine.objectContaining({
+          outcome: 'saved',
+          oid: 'oid-123',
+        })
+      );
+    } finally {
+      Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: nativeRandomUUID });
+    }
+  });
+
   it('requests API v2 and keeps the CSRF context on saves', async () => {
     const updatePromise = recordService.update('oid-123', { title: 'Test record' }, '', undefined, {
       entityTag: entityTag(4),
