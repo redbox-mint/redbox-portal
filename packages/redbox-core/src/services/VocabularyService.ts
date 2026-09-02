@@ -20,6 +20,7 @@ export namespace Services {
   const FIGSHARE_IMPORTS_FILE = 'figshare-imports.json';
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   const RVA_IMPORT_TIMEOUT_MS = 30_000;
+  const RVA_IMPORT_SETTLEMENT_TIMEOUT_MS = 30_000;
   const RVA_IMPORT_MAX_ATTEMPTS = 3;
   const RVA_IMPORT_RETRY_DELAY_MS = 1_000;
 
@@ -1200,9 +1201,21 @@ export namespace Services {
             return imported;
           }
 
-          const settled = await importPromise.then(
+          // Retrying while the original import is still pending could create a
+          // duplicate vocabulary. Fail this bootstrap item instead of overlapping it
+          // if it does not settle within the bounded reconciliation window.
+          const settled = await promiseWithTimeout(
+            importPromise,
+            RVA_IMPORT_SETTLEMENT_TIMEOUT_MS,
+            `RVA import ${sourceKey} settlement`
+          ).then(
             value => ({ status: 'fulfilled' as const, value }),
-            reason => ({ status: 'rejected' as const, reason })
+            reason => {
+              if (reason instanceof Error && reason.message.includes('settlement timed out')) {
+                throw reason;
+              }
+              return { status: 'rejected' as const, reason };
+            }
           );
           if (settled.status === 'fulfilled') {
             return settled.value;
