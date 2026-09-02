@@ -1895,6 +1895,26 @@ describe("Client Visitor", async () => {
           }
         },
         {
+          name: 'deny_only_field',
+          layout: {
+            class: 'DefaultLayout',
+            config: { label: 'Denied for Admin' }
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: { defaultValue: 'deny-only' }
+          },
+          component: {
+            class: 'SimpleInputComponent',
+            config: { readonly: false }
+          },
+          constraints: {
+            authorization: {
+              denyRoles: ['Admin']
+            }
+          }
+        },
+        {
           name: 'admin_edit_field',
           layout: {
             class: 'DefaultLayout',
@@ -1917,13 +1937,13 @@ describe("Client Visitor", async () => {
       ]
     };
 
-    // 1. User with only Researcher role: should see researcher_only_field, but not admin_edit_field
+    // 1. User with only Researcher role: should see both non-Admin fields, but not admin_edit_field
     const constructor1 = new ConstructFormConfigVisitor(logger);
     const constructed1 = await constructor1.start({ data: structuredClone(formConfig), formMode: 'edit' });
     const visitor1 = new ClientFormConfigVisitor(logger);
     const actual1 = await visitor1.start({ form: constructed1, formMode: 'edit', userRoles: ['Researcher'] });
     const fieldNames1 = actual1.componentDefinitions?.map((c: any) => c.name) ?? [];
-    expect(fieldNames1).to.deep.equal(['researcher_only_field']);
+    expect(fieldNames1).to.deep.equal(['researcher_only_field', 'deny_only_field']);
 
     // 2. User with Admin (has all roles including Researcher): should see admin_edit_field, but NOT researcher_only_field
     const constructor2 = new ConstructFormConfigVisitor(logger);
@@ -1933,13 +1953,73 @@ describe("Client Visitor", async () => {
     const fieldNames2 = actual2.componentDefinitions?.map((c: any) => c.name) ?? [];
     expect(fieldNames2).to.deep.equal(['admin_edit_field']);
 
-    // 3. User with Librarians + Researcher: should see admin_edit_field, but NOT researcher_only_field
+    // 3. User with Librarians + Researcher: should see the deny-only and admin fields, but NOT researcher_only_field
     const constructor3 = new ConstructFormConfigVisitor(logger);
     const constructed3 = await constructor3.start({ data: structuredClone(formConfig), formMode: 'edit' });
     const visitor3 = new ClientFormConfigVisitor(logger);
     const actual3 = await visitor3.start({ form: constructed3, formMode: 'edit', userRoles: ['Librarians', 'Researcher'] });
     const fieldNames3 = actual3.componentDefinitions?.map((c: any) => c.name) ?? [];
-    expect(fieldNames3).to.deep.equal(['admin_edit_field']);
+    expect(fieldNames3).to.deep.equal(['deny_only_field', 'admin_edit_field']);
+  });
+
+  it('should inherit denyRoles from nested group components', async function () {
+    const formConfig = {
+      name: 'nested-role-test-form',
+      componentDefinitions: [
+        {
+          name: 'restricted_group',
+          layout: {
+            class: 'DefaultLayout',
+            config: { label: 'Restricted group' }
+          },
+          model: {
+            class: 'GroupModel',
+            config: {}
+          },
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: 'nested_field',
+                  layout: {
+                    class: 'DefaultLayout',
+                    config: { label: 'Nested field' }
+                  },
+                  model: {
+                    class: 'SimpleInputModel',
+                    config: { defaultValue: 'nested' }
+                  },
+                  component: {
+                    class: 'SimpleInputComponent',
+                    config: {}
+                  }
+                }
+              ]
+            }
+          },
+          constraints: {
+            authorization: {
+              denyRoles: ['Admin']
+            }
+          }
+        }
+      ]
+    };
+
+    const constructor1 = new ConstructFormConfigVisitor(logger);
+    const constructed1 = await constructor1.start({ data: structuredClone(formConfig), formMode: 'edit' });
+    const visitor1 = new ClientFormConfigVisitor(logger);
+    const actual1 = await visitor1.start({ form: constructed1, formMode: 'edit', userRoles: ['Researcher'] });
+    const group = actual1.componentDefinitions?.[0] as any;
+    expect(group?.name).to.equal('restricted_group');
+    expect(group?.component?.config?.componentDefinitions?.map((c: any) => c.name)).to.deep.equal(['nested_field']);
+
+    const constructor2 = new ConstructFormConfigVisitor(logger);
+    const constructed2 = await constructor2.start({ data: structuredClone(formConfig), formMode: 'edit' });
+    const visitor2 = new ClientFormConfigVisitor(logger);
+    const actual2 = await visitor2.start({ form: constructed2, formMode: 'edit', userRoles: ['Admin'] });
+    expect(actual2).to.eql({});
   });
 
   it(`should keep transformed accordion in view mode`, async function () {
