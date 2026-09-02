@@ -712,6 +712,95 @@ describe('RecordController TUS URL generation', () => {
 
     expect(checkDiskSpaceStub.firstCall.args[0]).to.not.equal('/legacy/mongodb-disk');
   });
+
+  it('renders the browser 404 page when an attachment is not in the record', async () => {
+    (controller as any).tusServer = { handle: sinon.stub() };
+    sinon.stub(controller as any, 'getRecord').returns(of({
+      metaMetadata: { attachmentFields: [] },
+      metadata: {},
+    }));
+    sinon.stub(controller as any, 'hasViewAccess').returns(of(true));
+
+    const req = {
+      method: 'GET',
+      session: { branding: 'default' },
+      user: { username: 'user' },
+      url: '/default/rdmp/record/oid-1/attach/file-missing',
+      path: '/default/rdmp/record/oid-1/attach/file-missing',
+      headers: { host: 'localhost:1500' },
+      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' }[name])),
+    } as unknown as Sails.Req;
+    const res = { notFound: sinon.stub() } as unknown as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.doAttachment(req, res);
+
+    expect((res.notFound as any).calledOnce).to.equal(true);
+    expect(sendRespStub.called).to.equal(false);
+  });
+
+  it('keeps the JSON 404 response for attachment API requests', async () => {
+    (controller as any).tusServer = { handle: sinon.stub() };
+    sinon.stub(controller as any, 'getRecord').returns(of({
+      metaMetadata: { attachmentFields: [] },
+      metadata: {},
+    }));
+    sinon.stub(controller as any, 'hasViewAccess').returns(of(true));
+
+    const req = {
+      method: 'GET',
+      session: { branding: 'default' },
+      user: { username: 'user' },
+      url: '/default/rdmp/record/oid-1/attach/file-missing',
+      path: '/default/rdmp/record/oid-1/attach/file-missing',
+      headers: { host: 'localhost:1500', 'x-source': 'jsclient' },
+      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' }[name])),
+    } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.doAttachment(req, res);
+
+    expect(sendRespStub.calledOnce).to.equal(true);
+    expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 404 });
+  });
+
+  it('renders the browser 404 page when the attachment stream is missing', async () => {
+    (controller as any).tusServer = { handle: sinon.stub() };
+    sinon.stub(controller as any, 'getRecord').returns(of({
+      metaMetadata: { attachmentFields: ['attachments'] },
+      metadata: {
+        attachments: [{ fileId: 'file-missing', name: 'missing.txt', mimeType: 'text/plain', size: '1' }],
+      },
+    }));
+    sinon.stub(controller as any, 'hasViewAccess').returns(of(true));
+    controller.datastreamService = {
+      getDatastream: sinon.stub().rejects(new Error('attachment-not-found')),
+    } as any;
+
+    const req = {
+      method: 'GET',
+      session: { branding: 'default' },
+      user: { username: 'user' },
+      url: '/default/rdmp/record/oid-1/attach/file-missing',
+      path: '/default/rdmp/record/oid-1/attach/file-missing',
+      headers: { host: 'localhost:1500' },
+      param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' }[name])),
+    } as unknown as Sails.Req;
+    const res = {
+      set: sinon.stub(),
+      attachment: sinon.stub(),
+      notFound: sinon.stub(),
+    } as unknown as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.doAttachment(req, res);
+
+    expect((res.notFound as any).calledOnce).to.equal(true);
+    expect((res.set as any).called).to.equal(false);
+    expect((res.attachment as any).called).to.equal(false);
+    expect(sendRespStub.called).to.equal(false);
+  });
 });
 
 describe('AsynchController authorization', () => {

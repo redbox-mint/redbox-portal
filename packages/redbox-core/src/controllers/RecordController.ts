@@ -1401,6 +1401,9 @@ export namespace Controllers {
         });
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
+          if (!this.isAjax(req)) {
+            return res.notFound();
+          }
           return this.sendResp(req, res, {
             status: 404,
             errors: [this.asError(new Error(TranslationService.t('attachment-not-found')))],
@@ -1412,18 +1415,16 @@ export namespace Controllers {
           // Set octet stream as a default
           mimeType = 'application/octet-stream'
         }
-        res.set('Content-Type', mimeType);
-
         const size = found['size'] as string;
-        if (!_.isEmpty(size)) {
-          res.set('Content-Length', size);
-        }
-
         sails.log.verbose("found.name " + found['name']);
-        res.attachment(found['name'] as string);
         sails.log.verbose(`Returning datastream observable of ${oid}: ${found['name']}, attachId: ${attachId}`);
         try {
           const response = await that.datastreamService.getDatastream(oid, attachId, { username: String(req.user?.username ?? '') || undefined });
+          res.set('Content-Type', mimeType);
+          if (!_.isEmpty(size)) {
+            res.set('Content-Length', size);
+          }
+          res.attachment(found['name'] as string);
           if (response.readstream) {
             response.readstream.pipe(res);
           } else {
@@ -1439,6 +1440,9 @@ export namespace Controllers {
           } else if (errorMessage == TranslationService.t('edit-error-no-permissions')) {
             return this.sendResp(req, res, { status: 403, errors: [this.asError(error)], displayErrors: [{ code: 'edit-error-no-permissions' }] });
           } else if (errorMessage == TranslationService.t('attachment-not-found')) {
+            if (!this.isAjax(req)) {
+              return res.notFound();
+            }
             return this.sendResp(req, res, { status: 404, errors: [this.asError(error)], displayErrors: [{ code: 'attachment-not-found' }] });
           } else {
             return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
