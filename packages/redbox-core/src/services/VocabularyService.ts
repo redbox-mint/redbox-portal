@@ -22,7 +22,6 @@ export namespace Services {
   const RVA_IMPORT_TIMEOUT_MS = 30_000;
   const RVA_IMPORT_MAX_ATTEMPTS = 3;
   const RVA_IMPORT_RETRY_DELAY_MS = 1_000;
-  const RVA_IMPORT_SETTLE_TIMEOUT_MS = 30_000;
 
   export type VocabularyEntryInput =
     Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'> & {
@@ -1192,7 +1191,7 @@ export namespace Services {
           }
 
           // A timeout does not cancel the import. Wait for the in-flight operation to
-          // finish before retrying, so it cannot complete during a second import.
+          // settle before retrying, so it cannot overlap a second import.
           await new Promise<void>((resolve) => setTimeout(resolve, RVA_IMPORT_RETRY_DELAY_MS));
 
           const imported = await Vocabulary.findOne({ rvaSourceKey: sourceKey }) as VocabularyAttributes | null;
@@ -1201,12 +1200,12 @@ export namespace Services {
             return imported;
           }
 
-          const settled = await this.waitForRvaImportSettlement(importPromise);
+          const settled = await importPromise.then(
+            value => ({ status: 'fulfilled' as const, value }),
+            reason => ({ status: 'rejected' as const, reason })
+          );
           if (settled.status === 'fulfilled') {
             return settled.value;
-          }
-          if (settled.status === 'pending') {
-            throw error;
           }
           lastError = settled.reason;
 
@@ -1227,24 +1226,6 @@ export namespace Services {
       }
 
       throw lastError;
-    }
-
-    private async waitForRvaImportSettlement<T>(importPromise: Promise<T>): Promise<
-      { status: 'fulfilled'; value: T } | { status: 'rejected'; reason: unknown } | { status: 'pending' }
-    > {
-      return await new Promise(resolve => {
-        const timeout = setTimeout(() => resolve({ status: 'pending' }), RVA_IMPORT_SETTLE_TIMEOUT_MS);
-        importPromise.then(
-          value => {
-            clearTimeout(timeout);
-            resolve({ status: 'fulfilled', value });
-          },
-          reason => {
-            clearTimeout(timeout);
-            resolve({ status: 'rejected', reason });
-          }
-        );
-      });
     }
 
     private isRetryableRvaImportError(error: unknown): boolean {
