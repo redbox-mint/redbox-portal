@@ -797,6 +797,8 @@ describe('RecordController TUS URL generation', () => {
     await controller.doAttachment(req, res);
 
     expect((res.notFound as any).calledOnce).to.equal(true);
+    expect((res.set as any).called).to.equal(false);
+    expect((res.attachment as any).called).to.equal(false);
     expect(sendRespStub.called).to.equal(false);
   });
 });
