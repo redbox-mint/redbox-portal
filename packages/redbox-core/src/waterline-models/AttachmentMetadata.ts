@@ -1,10 +1,18 @@
 /// <reference path="../sails.ts" />
-import { Attr, BeforeCreate, BeforeUpdate, Entity, buildInvalidNewRecordError, buildInvalidUpdateRecordError, toWaterlineModelDef } from '../decorators';
+import {
+  Attr,
+  BeforeCreate,
+  BeforeUpdate,
+  Entity,
+  buildInvalidNewRecordError,
+  buildInvalidUpdateRecordError,
+  toWaterlineModelDef,
+} from '../decorators';
 
 const normalizeRequiredString = (
   record: Record<string, unknown>,
   field: 'oid' | 'fileId' | 'storageKey',
-  isCreate: boolean,
+  isCreate: boolean
 ): void => {
   const value = String(record[field] ?? '').trim();
   const hasFieldProp = Object.hasOwn(record, field);
@@ -23,13 +31,15 @@ const normalizeRequiredString = (
   }
 };
 
-const requiredTrimmedStringValidation = (field: 'oid' | 'fileId' | 'storageKey') => (value: unknown): boolean => {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`AttachmentMetadata.${field} is required`);
-  }
+const requiredTrimmedStringValidation =
+  (field: 'oid' | 'fileId' | 'storageKey') =>
+  (value: unknown): boolean => {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`AttachmentMetadata.${field} is required`);
+    }
 
-  return true;
-};
+    return true;
+  };
 
 const normalize = (record: Record<string, unknown>, isCreate: boolean): void => {
   normalizeRequiredString(record, 'oid', isCreate);
@@ -39,6 +49,87 @@ const normalize = (record: Record<string, unknown>, isCreate: boolean): void => 
   if (Object.hasOwn(record, 'accessCount')) {
     const accessCount = Number(record.accessCount ?? 0);
     record.accessCount = Number.isFinite(accessCount) ? accessCount : 0;
+  }
+  if (Object.hasOwn(record, 'isJournal')) {
+    record.isJournal = record.isJournal === true;
+  }
+
+  if (Object.hasOwn(record, 'attachmentId') && record.attachmentId != null) {
+    const attachmentId = String(record.attachmentId).trim();
+    if (attachmentId && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(attachmentId)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.attachmentId must be a bounded identifier'
+      );
+    }
+    record.attachmentId = attachmentId || undefined;
+  }
+
+  if (Object.hasOwn(record, 'operation')) {
+    const operation = String(record.operation ?? '').trim();
+    if (operation && !['add', 'finalize', 'delete'].includes(operation)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.operation is invalid'
+      );
+    }
+    record.operation = operation || undefined;
+  }
+
+  if (Object.hasOwn(record, 'mutationState')) {
+    const mutationState = String(record.mutationState ?? '').trim();
+    if (
+      mutationState &&
+      ![
+        'prepared',
+        'pending',
+        'applied',
+        'incomplete',
+        'unknown',
+        'cancelled',
+        'cleanup-pending',
+        'cleanup-checking',
+        'cleanup-removing',
+        'cleaned',
+        'staging-available',
+        'staging-preparing',
+        'staging-cleanup',
+      ].includes(mutationState)
+    ) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.mutationState is invalid'
+      );
+    }
+    record.mutationState = mutationState || undefined;
+  }
+
+  if (Object.hasOwn(record, 'generation') && record.generation != null) {
+    record.generation = String(record.generation).trim().slice(0, 128) || undefined;
+  }
+  if (Object.hasOwn(record, 'mutationFileId') && record.mutationFileId != null) {
+    record.mutationFileId = String(record.mutationFileId).trim() || undefined;
+  }
+  if (Object.hasOwn(record, 'coordinationToken') && record.coordinationToken != null) {
+    const coordinationToken = String(record.coordinationToken).trim();
+    if (coordinationToken && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(coordinationToken)) {
+      throw (isCreate ? buildInvalidNewRecordError : buildInvalidUpdateRecordError)(
+        'AttachmentMetadata.coordinationToken must be a bounded identifier'
+      );
+    }
+    record.coordinationToken = coordinationToken || undefined;
+  }
+  if (Object.hasOwn(record, 'attemptCount')) {
+    const attemptCount = Number(record.attemptCount ?? 0);
+    record.attemptCount = Number.isFinite(attemptCount) && attemptCount >= 0 ? Math.floor(attemptCount) : 0;
+  }
+  if (Object.hasOwn(record, 'lastAttemptAt') && record.lastAttemptAt != null) {
+    const timestamp = new Date(record.lastAttemptAt as string | number | Date);
+    record.lastAttemptAt = Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+  }
+  if (Object.hasOwn(record, 'coordinationLeaseExpiresAt') && record.coordinationLeaseExpiresAt != null) {
+    const timestamp = new Date(record.coordinationLeaseExpiresAt as string | number | Date);
+    record.coordinationLeaseExpiresAt = Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+  }
+  if (Object.hasOwn(record, 'lastSafeErrorCode') && record.lastSafeErrorCode != null) {
+    record.lastSafeErrorCode = String(record.lastSafeErrorCode).trim().slice(0, 128) || undefined;
   }
 };
 
@@ -67,7 +158,7 @@ const beforeUpdate = (record: Record<string, unknown>, cb: (err?: Error) => void
     { attributes: { storageKey: 1 }, unique: true },
     { attributes: { oid: 1, fileId: 1 }, unique: true },
     { attributes: { oid: 1 } },
-  ]
+  ],
 })
 export class AttachmentMetadataClass {
   @Attr({ type: 'string', required: true, validations: { custom: requiredTrimmedStringValidation('oid') } })
@@ -76,8 +167,76 @@ export class AttachmentMetadataClass {
   @Attr({ type: 'string', required: true, validations: { custom: requiredTrimmedStringValidation('fileId') } })
   public fileId!: string;
 
-  @Attr({ type: 'string', required: true, unique: true, validations: { custom: requiredTrimmedStringValidation('storageKey') } })
+  @Attr({
+    type: 'string',
+    required: true,
+    unique: true,
+    validations: { custom: requiredTrimmedStringValidation('storageKey') },
+  })
   public storageKey!: string;
+
+  @Attr({ type: 'boolean', defaultsTo: false })
+  public isJournal?: boolean;
+
+  @Attr({ type: 'string', allowNull: true })
+  public attachmentId?: string | null;
+
+  @Attr({ type: 'string', isIn: ['add', 'finalize', 'delete'] })
+  public operation?: 'add' | 'finalize' | 'delete';
+
+  @Attr({
+    type: 'string',
+    isIn: [
+      'prepared',
+      'pending',
+      'applied',
+      'incomplete',
+      'unknown',
+      'cancelled',
+      'cleanup-pending',
+      'cleanup-checking',
+      'cleanup-removing',
+      'cleaned',
+      'staging-available',
+      'staging-preparing',
+      'staging-cleanup',
+    ],
+  })
+  public mutationState?:
+    | 'prepared'
+    | 'pending'
+    | 'applied'
+    | 'incomplete'
+    | 'unknown'
+    | 'cancelled'
+    | 'cleanup-pending'
+    | 'cleanup-checking'
+    | 'cleanup-removing'
+    | 'cleaned'
+    | 'staging-available'
+    | 'staging-preparing'
+    | 'staging-cleanup';
+
+  @Attr({ type: 'string', allowNull: true })
+  public generation?: string | null;
+
+  @Attr({ type: 'string', allowNull: true })
+  public mutationFileId?: string | null;
+
+  @Attr({ type: 'string', allowNull: true })
+  public coordinationToken?: string | null;
+
+  @Attr({ type: 'number', defaultsTo: 0 })
+  public attemptCount?: number;
+
+  @Attr({ type: 'string', columnType: 'datetime', allowNull: true })
+  public lastAttemptAt?: string | null;
+
+  @Attr({ type: 'string', columnType: 'datetime', allowNull: true })
+  public coordinationLeaseExpiresAt?: string | null;
+
+  @Attr({ type: 'string', allowNull: true })
+  public lastSafeErrorCode?: string | null;
 
   @Attr({ type: 'string' })
   public contentType?: string;
@@ -117,6 +276,30 @@ export const AttachmentMetadataWLDef = toWaterlineModelDef(AttachmentMetadataCla
 
 export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes {
   accessCount?: number;
+  attachmentId?: string | null;
+  operation?: 'add' | 'finalize' | 'delete';
+  mutationState?:
+    | 'prepared'
+    | 'pending'
+    | 'applied'
+    | 'incomplete'
+    | 'unknown'
+    | 'cancelled'
+    | 'cleanup-pending'
+    | 'cleanup-checking'
+    | 'cleanup-removing'
+    | 'cleaned'
+    | 'staging-available'
+    | 'staging-preparing'
+    | 'staging-cleanup';
+  generation?: string | null;
+  isJournal?: boolean;
+  mutationFileId?: string | null;
+  coordinationToken?: string | null;
+  attemptCount?: number;
+  lastAttemptAt?: string | Date | null;
+  coordinationLeaseExpiresAt?: string | Date | null;
+  lastSafeErrorCode?: string | null;
   attachmentField?: string;
   contentLength?: number;
   contentType?: string;

@@ -1,11 +1,11 @@
 meta {
   name: Delete Record Again
   type: http
-  seq: 24
+  seq: 25
 }
 
 delete {
-  url: {{host}}/default/rdmp/api/records/metadata/{{dmpOidToDelete}}
+  url: {{host}}/default/rdmp/api/records/metadata/{{strictLifecycleOid}}
   body: none
   auth: bearer
 }
@@ -14,9 +14,16 @@ auth:bearer {
   token: {{token}}
 }
 
+headers {
+  If-Match: {{strictLifecycleRestoredEtag}}
+}
+
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
+      const etag = res.getHeader("etag");
+      expect(etag).to.match(/^".+"$/);
+      bru.setEnvVar("strictLifecycleFinalTombstoneEtag", etag);
   });
   
   test("Success is set and is true", function () {

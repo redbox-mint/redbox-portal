@@ -3084,6 +3084,211 @@
     "description": "Success message shown after saving an RDMP form",
     "contentFormat": "plain"
   },
+  "@dmpt-form-save-warning-create": {
+    "category": "rdmp",
+    "description": "Warning shown after record creation when follow-up processing is incomplete. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-warning-update": {
+    "category": "rdmp",
+    "description": "Warning shown after an update when follow-up processing is incomplete. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-unknown-create": {
+    "category": "rdmp",
+    "description": "Guidance shown when record creation cannot be confirmed. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-save-unknown-update": {
+    "category": "rdmp",
+    "description": "Guidance shown when an update cannot be confirmed. Includes the save request reference.",
+    "contentFormat": "plain"
+  },
+  "@record-save-failed": {
+    "category": "rdmp",
+    "description": "Generic record save failure message",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-failed": {
+    "category": "validator",
+    "description": "Record save error when blocking server-side validation fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-form-resolution-failed": {
+    "category": "validator",
+    "description": "Record save error when the authoritative form cannot be resolved",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-configuration-failed": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation configuration is invalid",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-timeout": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation exceeds its time budget",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-operation-invalid": {
+    "category": "validator",
+    "description": "Record save error for a malformed or unknown validation operation",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-operation-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot use the requested validation operation",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-transition-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot perform the requested transition",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-edit-unauthorized": {
+    "category": "validator",
+    "description": "Record save error when the caller cannot edit the target record",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-snapshot-unavailable": {
+    "category": "validator",
+    "description": "Record save error when the current record snapshot cannot be loaded safely",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-authority-context-divergence": {
+    "category": "validator",
+    "description": "Record save error when hook output conflicts with authoritative record context",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-post-sync-failed": {
+    "category": "validator",
+    "description": "Record save warning when persisted validation state cannot be synchronized",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-invalid": {
+    "category": "validator",
+    "description": "Record save error for malformed authoritative validation bypass metadata",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-forbidden": {
+    "category": "validator",
+    "description": "Record save error when authoritative validation bypass is not permitted",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-bypass-audit-failed": {
+    "category": "validator",
+    "description": "Record save error when a validation bypass audit cannot be persisted",
+    "contentFormat": "plain"
+  },
+  "@record-save-record-validation-batch-bypass-audit-failed": {
+    "category": "validator",
+    "description": "Batch save error when a validation bypass audit cannot be persisted",
+    "contentFormat": "plain"
+  },
+  "@record-save-invalid-attachment-id": {
+    "category": "rdmp",
+    "description": "Record save error for invalid attachment identity data",
+    "contentFormat": "plain"
+  },
+  "@record-save-duplicate-attachment-id": {
+    "category": "rdmp",
+    "description": "Record save error for duplicate attachment identity data",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-unknown": {
+    "category": "rdmp",
+    "description": "Record save outcome when persistence cannot be confirmed",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-not-applied": {
+    "category": "rdmp",
+    "description": "Record save outcome when persistence was not applied",
+    "contentFormat": "plain"
+  },
+  "@record-save-save-precondition": {
+    "category": "rdmp",
+    "description": "Record save error when a save precondition fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-invalid-hook-configuration": {
+    "category": "rdmp",
+    "description": "Record save error for invalid hook configuration",
+    "contentFormat": "plain"
+  },
+  "@record-save-pre-save-processing-failed": {
+    "category": "rdmp",
+    "description": "Record save error when pre-save validation or processing fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-journal-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment journal failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-finalization-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment finalization failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-attachment-reference-finalization-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for attachment reference finalization failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-save-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for follow-up processing failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-save-metadata-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for follow-up metadata failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-transition-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for workflow transition processing failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-transition-metadata-failed": {
+    "category": "rdmp",
+    "description": "Record save warning for workflow transition metadata failure",
+    "contentFormat": "plain"
+  },
+  "@record-save-response-projection-failed": {
+    "category": "rdmp",
+    "description": "Record save warning when the saved response projection fails",
+    "contentFormat": "plain"
+  },
+  "@record-save-post-commit-reconciliation-deferred": {
+    "category": "rdmp",
+    "description": "Record save warning when final projection, indexing, and audit reconciliation is deferred",
+    "contentFormat": "plain"
+  },
+  "@record-save-not-dispatched": {
+    "category": "rdmp",
+    "description": "Record save error when the request could not be dispatched",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-invalid": {
+    "category": "rdmp",
+    "description": "Error shown when an invalid form cannot be saved",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-not-defined": {
+    "category": "rdmp",
+    "description": "Error shown when no form is available to save",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-not-modified": {
+    "category": "rdmp",
+    "description": "Message shown when a save is requested without changes",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-validation-timeout": {
+    "category": "rdmp",
+    "description": "Error shown when form validation does not settle before saving",
+    "contentFormat": "plain"
+  },
   "@dmpt-form-save-error": {
     "category": "rdmp",
     "description": "Error message shown when saving an RDMP form fails",
@@ -3097,6 +3302,16 @@
   "@dmpt-form-delete-error": {
     "category": "rdmp",
     "description": "Error message shown when deleting an RDMP form fails",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-delete-missing-oid": {
+    "category": "rdmp",
+    "description": "Delete error shown when the record identifier is missing",
+    "contentFormat": "plain"
+  },
+  "@dmpt-form-delete-failed": {
+    "category": "rdmp",
+    "description": "Generic record deletion error",
     "contentFormat": "plain"
   },
   "auth-update-error": {
@@ -4709,6 +4924,16 @@
     "description": "Audit action label for record update events",
     "contentFormat": "plain"
   },
+  "@record-audit-action-validation-bypassed": {
+    "category": "view",
+    "description": "Audit action label for an explicitly authorized record-validation bypass",
+    "contentFormat": "plain"
+  },
+  "@record-audit-action-batch-validation-bypassed": {
+    "category": "view",
+    "description": "Audit action label for the unvalidated direct-storage batch path",
+    "contentFormat": "plain"
+  },
   "@record-audit-action-deleted": {
     "category": "view",
     "description": "Audit action label for soft delete events",
@@ -6084,6 +6309,66 @@
     "description": "Error message for a failed any-of validator",
     "contentFormat": "plain"
   },
+  "@validator-error-record-validation": {
+    "category": "validator",
+    "description": "Safe fallback error message for an authoritative field validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-jsonata-expression": {
+    "category": "validator",
+    "description": "Error message for a failed JSONata expression validator",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-source-type": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an unsupported source type",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-static-options": {
+    "category": "validator",
+    "description": "Typeahead configuration error for missing static options",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-vocab-ref": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid vocabulary reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-query-id": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid query reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-service-id": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid service reference",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-provider": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an invalid provider",
+    "contentFormat": "plain"
+  },
+  "@validator-error-typeahead-multi-select-unsupported": {
+    "category": "validator",
+    "description": "Typeahead configuration error for an unsupported multiple-selection mode",
+    "contentFormat": "plain"
+  },
+  "@validator-error-map-enabled-modes": {
+    "category": "validator",
+    "description": "Map field configuration error when no supported input mode is enabled",
+    "contentFormat": "plain"
+  },
+  "@validator-error-html-unsafe": {
+    "category": "validator",
+    "description": "HTML field validation error for unsafe markup",
+    "contentFormat": "plain"
+  },
+  "@validator-warning-html-sanitized": {
+    "category": "validator",
+    "description": "HTML field validation warning when unsafe markup is removed",
+    "contentFormat": "plain"
+  },
   "@lookup-placeholder-party": {
     "category": "lookup",
     "description": "Placeholder text in lookup field for party records",
@@ -6282,6 +6567,206 @@
   "@form-typeahead-unable-to-fetch": {
     "category": "form",
     "description": "Error text shown when typeahead matches cannot be fetched",
+    "contentFormat": "plain"
+  },
+  "@form-server-sync-review-message": {
+    "category": "form",
+    "description": "Warning shown when authoritative server values cannot be safely synchronized into the current form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-stale-title": {
+    "category": "form",
+    "description": "Heading shown after a record revision conflict",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-stale-message": {
+    "category": "form",
+    "description": "Message shown while stale record edits remain unresolved",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reviewing-title": {
+    "category": "form",
+    "description": "Heading shown while reviewing concurrent record changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reviewing-message": {
+    "category": "form",
+    "description": "Message shown while reviewing concurrent record changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-merging-title": {
+    "category": "form",
+    "description": "Heading shown while a non-overlapping conflict retry is in progress",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-merging-message": {
+    "category": "form",
+    "description": "Message shown while a non-overlapping conflict retry is in progress",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-already-current-title": {
+    "category": "form",
+    "description": "Heading shown when the latest record already contains the local changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-already-current-message": {
+    "category": "form",
+    "description": "Message shown when no conflict retry write was needed",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-repeated-race-title": {
+    "category": "form",
+    "description": "Heading shown when a conflict resolution loses a second race",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-repeated-race-message": {
+    "category": "form",
+    "description": "Message shown when a conflict resolution loses a second race",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-form-changed-title": {
+    "category": "form",
+    "description": "Heading shown when the generated form contract changed",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-form-changed-message": {
+    "category": "form",
+    "description": "Message explaining that form drift disables same-form merging",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-old-tab-title": {
+    "category": "form",
+    "description": "Heading shown when an unversioned tab receives a precondition-required response",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-old-tab-message": {
+    "category": "form",
+    "description": "Message explaining that an unversioned tab is review-only",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-deleted-title": {
+    "category": "form",
+    "description": "Non-disclosing heading shown when the edited record was deleted",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-deleted-message": {
+    "category": "form",
+    "description": "Non-disclosing message shown when the edited record was deleted",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-permission-lost-title": {
+    "category": "form",
+    "description": "Heading shown when current edit permission is unavailable",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-permission-lost-message": {
+    "category": "form",
+    "description": "Non-disclosing message shown when current edit permission is unavailable",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-action": {
+    "category": "form",
+    "description": "Action label to open concurrent change review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-action": {
+    "category": "form",
+    "description": "Action label to discard local edits and adopt the latest record",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-export-action": {
+    "category": "form",
+    "description": "Action label to download unsaved form values",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-load-current-form-action": {
+    "category": "form",
+    "description": "Action label to reload the page with the current generated form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-heading": {
+    "category": "form",
+    "description": "Heading for the concurrent change review region",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-instructions": {
+    "category": "form",
+    "description": "Instructions for choosing concurrent field values",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-no-overlaps": {
+    "category": "form",
+    "description": "Status shown when conflict review has no divergent overlap",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-review-only": {
+    "category": "form",
+    "description": "Status explaining that old-tab values are available only for comparison",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-whole-repeatable": {
+    "category": "form",
+    "description": "Badge for an atomic repeatable conflict",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-whole-repeatable-help": {
+    "category": "form",
+    "description": "Explanation that a repeatable conflict is resolved as one value",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-mine": {
+    "category": "form",
+    "description": "Label for the local value in conflict review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-latest": {
+    "category": "form",
+    "description": "Label for the latest record value in conflict review",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-save-resolution": {
+    "category": "form",
+    "description": "Action label to submit manually resolved changes",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-saving-resolution": {
+    "category": "form",
+    "description": "Busy label while manually resolved changes are saving",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-choices-required": {
+    "category": "form",
+    "description": "Status prompting for every manual conflict choice",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-title": {
+    "category": "form",
+    "description": "Heading for the unresolved-edits discard confirmation",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-message": {
+    "category": "form",
+    "description": "Warning before discarding unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-reload-warning-message": {
+    "category": "form",
+    "description": "Warning before exporting edits and loading the current form",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-confirm": {
+    "category": "form",
+    "description": "Confirmation label for discarding unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-discard-warning-cancel": {
+    "category": "form",
+    "description": "Cancellation label for keeping unresolved edits",
+    "contentFormat": "plain"
+  },
+  "@form-conflict-navigation-warning": {
+    "category": "form",
+    "description": "Browser navigation warning for unresolved memory-only conflict edits",
     "contentFormat": "plain"
   },
   "@form-confirm-dialog-title": {

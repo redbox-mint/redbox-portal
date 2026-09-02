@@ -124,3 +124,9 @@ updates:
           - 'major'
     cooldown:
       default-days: 7
+    # Jasmine 7 freezes its Env methods, which prevents Zone.js from applying
+    # the monkey patches required by the Angular Karma test runner.
+    ignore:
+      - dependency-name: 'jasmine-core'
+        update-types:
+          - 'version-update:semver-major'

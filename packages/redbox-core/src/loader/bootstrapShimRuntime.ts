@@ -4,99 +4,96 @@ import { runPendingMigrations } from './MigrationRunner';
 import type { RedboxMigration } from './MigrationRunner';
 
 export interface GeneratedHookBootstrap {
-    name: string;
-    bootstrap: () => Promise<void>;
+  name: string;
+  bootstrap: () => Promise<void>;
 }
 
 type BootstrapCallback = (error?: unknown) => void;
 
 function serializeConfig(value: unknown, seen = new WeakSet<object>()): unknown {
-    if (value === null || value === undefined) {
-        return value;
-    }
-    if (typeof value === 'function') {
-        return `[Function: ${value.name || 'anonymous'}]`;
-    }
-    if (typeof value !== 'object') {
-        return value;
-    }
-    if (seen.has(value as object)) {
-        return '[Circular]';
-    }
-    seen.add(value as object);
-    if (Array.isArray(value)) {
-        return value.map(item => serializeConfig(item, seen));
-    }
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (typeof value === 'function') {
+    return `[Function: ${value.name || 'anonymous'}]`;
+  }
+  if (typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value as object)) {
+    return '[Circular]';
+  }
+  seen.add(value as object);
+  if (Array.isArray(value)) {
+    return value.map(item => serializeConfig(item, seen));
+  }
 
-    const result: Record<string, unknown> = {};
-    for (const [key, item] of Object.entries(value)) {
-        result[key] = serializeConfig(item, seen);
-    }
-    return result;
+  const result: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value)) {
+    result[key] = serializeConfig(item, seen);
+  }
+  return result;
 }
 
 async function exportPostBootstrapSnapshot(): Promise<void> {
-    if (process.env.EXPORT_BOOTSTRAP_CONFIG_JSON !== 'true') {
-        return;
-    }
+  if (process.env.EXPORT_BOOTSTRAP_CONFIG_JSON !== 'true') {
+    return;
+  }
 
-    const configSnapshot = {
-        _meta: {
-            exportedAt: new Date().toISOString(),
-            stage: 'post-bootstrap',
-            description: 'Final merged sails.config AFTER Sails loads environment config and runs bootstrap',
-            environment: process.env.NODE_ENV || 'development'
-        },
-        ...(serializeConfig(sails.config) as Record<string, unknown>)
-    };
-    const debugDir = path.join(process.cwd(), 'support', 'debug-config');
-    const snapshotPath = path.join(debugDir, 'post-bootstrap-config.json');
+  const configSnapshot = {
+    _meta: {
+      exportedAt: new Date().toISOString(),
+      stage: 'post-bootstrap',
+      description: 'Final merged sails.config AFTER Sails loads environment config and runs bootstrap',
+      environment: process.env.NODE_ENV || 'development',
+    },
+    ...(serializeConfig(sails.config) as Record<string, unknown>),
+  };
+  const debugDir = path.join(process.cwd(), 'support', 'debug-config');
+  const snapshotPath = path.join(debugDir, 'post-bootstrap-config.json');
 
-    try {
-        await fs.mkdir(debugDir, { recursive: true });
-        await fs.writeFile(snapshotPath, JSON.stringify(configSnapshot, null, 2));
-        sails.log.info('Exported config snapshot to ' + snapshotPath);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        sails.log.warn(`Failed to export config snapshot to ${snapshotPath}: ${message}`);
-    }
+  try {
+    await fs.mkdir(debugDir, { recursive: true });
+    await fs.writeFile(snapshotPath, JSON.stringify(configSnapshot, null, 2));
+    sails.log.info('Exported config snapshot to ' + snapshotPath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    sails.log.warn(`Failed to export config snapshot to ${snapshotPath}: ${message}`);
+  }
 }
 
 export function createGeneratedBootstrap(
-    preLiftSetup: () => void,
-    coreBootstrap: () => Promise<void>,
-    hookBootstraps: GeneratedHookBootstrap[],
-    migrations: RedboxMigration[] = []
+  preLiftSetup: () => void | Promise<void>,
+  coreBootstrap: () => Promise<void>,
+  hookBootstraps: GeneratedHookBootstrap[],
+  migrations: RedboxMigration[] = []
 ): (cb: BootstrapCallback) => void {
-    return function bootstrap(cb: BootstrapCallback): void {
-        try {
-            preLiftSetup();
-        } catch (error) {
-            cb(error as Error);
-            return;
-        }
+  return function bootstrap(cb: BootstrapCallback): void {
+    (async () => {
+      await preLiftSetup();
 
-        (async () => {
-            if (migrations.length > 0) {
-                await runPendingMigrations(migrations);
-                sails.log.verbose('Data migrations complete.');
-            }
+      if (migrations.length > 0) {
+        await runPendingMigrations(migrations);
+        sails.log.verbose('Data migrations complete.');
+      }
 
-            await coreBootstrap();
-            sails.log.verbose('Core bootstrap complete.');
+      await coreBootstrap();
+      sails.log.verbose('Core bootstrap complete.');
 
-            for (const hookBootstrap of hookBootstraps) {
-                await hookBootstrap.bootstrap();
-                sails.log.verbose(`Hook bootstrap complete: ${hookBootstrap.name}`);
-            }
+      for (const hookBootstrap of hookBootstraps) {
+        await hookBootstrap.bootstrap();
+        sails.log.verbose(`Hook bootstrap complete: ${hookBootstrap.name}`);
+      }
 
-            await exportPostBootstrapSnapshot();
-        })().then(() => {
-            cb();
-        }).catch(error => {
-            sails.log.verbose('Bootstrap failed!!!');
-            sails.log.error(error);
-            cb(error);
-        });
-    };
+      await exportPostBootstrapSnapshot();
+    })()
+      .then(() => {
+        cb();
+      })
+      .catch(error => {
+        sails.log.verbose('Bootstrap failed!!!');
+        sails.log.error(error);
+        cb(error);
+      });
+  };
 }

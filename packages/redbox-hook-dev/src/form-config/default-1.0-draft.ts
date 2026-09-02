@@ -1179,6 +1179,10 @@ const formConfig: FormConfigFrame = {
       },
     },
     {
+      name: 'save_status',
+      component: { class: 'SaveStatusComponent' },
+    },
+    {
       name: 'tab_nav_buttons',
       component: {
         class: 'TabNavButtonComponent',

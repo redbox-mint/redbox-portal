@@ -12,11 +12,15 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import type {
   VocabServiceLookupOption,
   VocabServiceLookupRequest,
-  VocabServiceLookupResponse
+  VocabServiceLookupResponse,
 } from '../config/vocab.config';
 import { evaluateBinding, asTrimmedString } from './doi-v2/bindings';
 import { completeDoiAudit, failDoiAudit, startDoiAudit } from './doi-v2/audit';
-import { resolveDoiPublishingConfig, resolveDoiPublishingConfigAsync, resolveDoiPublishingConfigForBrand } from './doi-v2/config';
+import {
+  resolveDoiPublishingConfig,
+  resolveDoiPublishingConfigAsync,
+  resolveDoiPublishingConfigForBrand,
+} from './doi-v2/config';
 import { createBindingContext, createRunContext } from './doi-v2/context';
 import { buildDoiPayload } from './doi-v2/payload';
 import { resolveProfile } from './doi-v2/profiles';
@@ -24,12 +28,13 @@ import {
   runChangeDoiStateProgram,
   runCreateDoiProgram,
   runDeleteDoiProgram,
-  runUpdateDoiProgram
+  runUpdateDoiProgram,
 } from './doi-v2/runtime';
 import type { DoiRecordModel } from './doi-v2/types';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import { DoiPublishing } from '../configmodels/DoiPublishing';
 import type { IntegrationAuditContext } from './IntegrationAuditService';
+import { createRecordMetadataDelta } from '../RecordsService';
 
 type DoiAction = 'create' | 'update';
 type DoiAuditOptions = Record<string, unknown> & {
@@ -96,7 +101,7 @@ export namespace Services {
       'changeDoiState',
       'lookupDataciteDois',
       'getAuthenticationString',
-      'addDoiDataToRecord'
+      'addDoiDataToRecord',
     ];
 
     private _msgPrefix!: string;
@@ -112,13 +117,17 @@ export namespace Services {
       return resolveDoiPublishingConfigAsync(record);
     }
 
-    private summarizeError(error: unknown): { statusCode?: number; requestSummary?: Record<string, unknown>; responseSummary?: Record<string, unknown> } {
+    private summarizeError(error: unknown): {
+      statusCode?: number;
+      requestSummary?: Record<string, unknown>;
+      responseSummary?: Record<string, unknown>;
+    } {
       if (error instanceof RBValidationError) {
         return {
           requestSummary: _.get(error, 'requestSummary') as Record<string, unknown> | undefined,
           responseSummary: {
-            displayErrors: error.displayErrors
-          }
+            displayErrors: error.displayErrors,
+          },
         };
       }
       const statusCode = _.get(error, 'statusCode') as number | undefined;
@@ -128,15 +137,16 @@ export namespace Services {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         statusCode,
-        responseSummary: responseBody != null && typeof responseBody === 'object'
-          ? responseBody
-          : {
-            errorType: error instanceof Error ? error.name : typeof error,
-            message: errorMessage,
-            ...(statusCode != null ? { statusCode } : {}),
-            ...(causeCode != null ? { causeCode } : {}),
-            ...(causeMessage != null ? { causeMessage } : {})
-          }
+        responseSummary:
+          responseBody != null && typeof responseBody === 'object'
+            ? responseBody
+            : {
+                errorType: error instanceof Error ? error.name : typeof error,
+                message: errorMessage,
+                ...(statusCode != null ? { statusCode } : {}),
+                ...(causeCode != null ? { causeCode } : {}),
+                ...(causeMessage != null ? { causeMessage } : {}),
+              },
       };
     }
 
@@ -148,7 +158,7 @@ export namespace Services {
       throw new RBValidationError({
         message: `${this.msgPrefix()} ${message}`,
         options: { cause: error },
-        displayErrors: this.doiResponseToRBValidationError(statusCode ?? 500).displayErrors
+        displayErrors: this.doiResponseToRBValidationError(statusCode ?? 500).displayErrors,
       });
     }
 
@@ -174,7 +184,7 @@ export namespace Services {
       const translated = TranslationService.t(message);
       return new RBValidationError({
         message: `${this.msgPrefix()} ${messagePrefix ?? translated}`,
-        displayErrors: [{ code: message, title: this.msgPrefix(), detail: translated }]
+        displayErrors: [{ code: message, title: this.msgPrefix(), detail: translated }],
       });
     }
 
@@ -197,13 +207,15 @@ export namespace Services {
             total: 0,
             start,
             rows: 0,
-            source: 'datacite'
-          }
+            source: 'datacite',
+          },
         };
       }
 
       const rows = Math.min(requestedRows, options.maxRows);
-      const search = String(request.search ?? '').trim().slice(0, 300);
+      const search = String(request.search ?? '')
+        .trim()
+        .slice(0, 300);
       if (search === '' && !options.allowEmptySearch) {
         return {
           data: [],
@@ -211,8 +223,8 @@ export namespace Services {
             total: 0,
             start,
             rows,
-            source: 'datacite'
-          }
+            source: 'datacite',
+          },
         };
       }
 
@@ -231,9 +243,9 @@ export namespace Services {
         const response = await axios.get<DataciteDoiLookupApiResponse>(`${options.baseUrl}/dois`, {
           timeout: options.timeoutMs,
           headers: {
-            Accept: 'application/vnd.api+json'
+            Accept: 'application/vnd.api+json',
           },
-          params
+          params,
         });
         return this.mapDataciteLookupResponse(response.data, request, rows, options);
       } catch (error) {
@@ -262,27 +274,47 @@ export namespace Services {
       options: DoiAuditOptions
     ): Promise<string | null> {
       const resolvedProfile = resolveProfile(config, options);
-      const runContext = createRunContext(record, resolvedProfile.name, undefined, String(options.triggerSource ?? 'publishDoi'));
+      const runContext = createRunContext(
+        record,
+        resolvedProfile.name,
+        undefined,
+        String(options.triggerSource ?? 'publishDoi')
+      );
       const auditAction = action === 'update' ? IntegrationAuditAction.updateDoi : IntegrationAuditAction.publishDoi;
-      const auditCtx = startDoiAudit(oid, auditAction, runContext, {
-        event,
-        action,
-        profile: resolvedProfile.name
-      }, options.auditContext);
+      const auditCtx = startDoiAudit(
+        oid,
+        auditAction,
+        runContext,
+        {
+          event,
+          action,
+          profile: resolvedProfile.name,
+        },
+        options.auditContext
+      );
       let requestSummary: Record<string, unknown> | undefined;
 
       try {
-        const prefix = asTrimmedString(await evaluateBinding(resolvedProfile.profile.metadata.prefix, createBindingContext(record, oid, resolvedProfile.profile)));
+        const prefix = asTrimmedString(
+          await evaluateBinding(
+            resolvedProfile.profile.metadata.prefix,
+            createBindingContext(record, oid, resolvedProfile.profile)
+          )
+        );
         const citationDoi = asTrimmedString(_.get(record, resolvedProfile.profile.writeBack.citationDoiPath));
         if (action === 'update' && citationDoi == null) {
           throw new RBValidationError({
             message: `Could not update DOI for oid ${oid}: doi-required`,
-            displayErrors: [{ code: 'doi-required', title: 'datacite-validation-error', meta: { oid, action, event } }]
+            displayErrors: [{ code: 'doi-required', title: 'datacite-validation-error', meta: { oid, action, event } }],
           });
         }
         if (action === 'update' && citationDoi != null && prefix != null && !citationDoi.startsWith(prefix)) {
-          sails.log.warn(`The citation DOI ${citationDoi} does not begin with the correct prefix ${prefix}. Will not attempt to update`);
-          completeDoiAudit(auditCtx, { message: 'Skipped DOI update because the stored DOI prefix does not match the configured profile prefix.' });
+          sails.log.warn(
+            `The citation DOI ${citationDoi} does not begin with the correct prefix ${prefix}. Will not attempt to update`
+          );
+          completeDoiAudit(auditCtx, {
+            message: 'Skipped DOI update because the stored DOI prefix does not match the configured profile prefix.',
+          });
           return null;
         }
 
@@ -294,21 +326,22 @@ export namespace Services {
           ...(citationDoi != null ? { doi: citationDoi } : {}),
           requestBody: payload,
         };
-        const result = action === 'update'
-          ? await runUpdateDoiProgram(config, runContext, String(citationDoi), payload, {
-            auditContext: auditCtx,
-            requestSummary,
-          })
-          : await runCreateDoiProgram(config, runContext, payload, {
-            auditContext: auditCtx,
-            requestSummary,
-          });
+        const result =
+          action === 'update'
+            ? await runUpdateDoiProgram(config, runContext, String(citationDoi), payload, {
+                auditContext: auditCtx,
+                requestSummary,
+              })
+            : await runCreateDoiProgram(config, runContext, payload, {
+                auditContext: auditCtx,
+                requestSummary,
+              });
 
         completeDoiAudit(auditCtx, {
           message: action === 'update' ? 'DOI updated successfully.' : 'DOI published successfully.',
           httpStatusCode: result.statusCode,
           requestSummary,
-          responseSummary: result.responseSummary
+          responseSummary: result.responseSummary,
         });
         return result.doi ?? null;
       } catch (error) {
@@ -317,9 +350,12 @@ export namespace Services {
           message: action === 'update' ? 'DOI update failed.' : 'DOI publish failed.',
           httpStatusCode: errorSummary.statusCode,
           requestSummary: requestSummary ?? errorSummary.requestSummary,
-          responseSummary: errorSummary.responseSummary
+          responseSummary: errorSummary.responseSummary,
         });
-        this.wrapHttpError(error, action === 'update' ? TranslationService.t('doi-error-updating') : TranslationService.t('doi-error-creating'));
+        this.wrapHttpError(
+          error,
+          action === 'update' ? TranslationService.t('doi-error-updating') : TranslationService.t('doi-error-creating')
+        );
       }
     }
 
@@ -334,7 +370,8 @@ export namespace Services {
       if (config == null) {
         return null;
       }
-      const effectiveEvent = event || (action === 'update' ? config.operations.updateEvent : config.operations.createEvent);
+      const effectiveEvent =
+        event || (action === 'update' ? config.operations.updateEvent : config.operations.createEvent);
       return this.publishV2Doi(oid, record, config, effectiveEvent, action, options);
     }
 
@@ -344,7 +381,12 @@ export namespace Services {
         return false;
       }
 
-      const runContext = createRunContext({ metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } }, undefined, undefined, 'deleteDoi');
+      const runContext = createRunContext(
+        { metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } },
+        undefined,
+        undefined,
+        'deleteDoi'
+      );
       const auditCtx = startDoiAudit(doi, IntegrationAuditAction.deleteDoi, runContext, { doi });
       try {
         const result = await runDeleteDoiProgram(config, runContext, doi, {
@@ -354,7 +396,7 @@ export namespace Services {
         completeDoiAudit(auditCtx, {
           message: 'DOI deleted successfully.',
           httpStatusCode: result.statusCode,
-          responseSummary: result.responseSummary
+          responseSummary: result.responseSummary,
         });
         return result.statusCode === 204;
       } catch (error) {
@@ -362,7 +404,7 @@ export namespace Services {
         failDoiAudit(auditCtx, error, {
           message: 'DOI delete failed.',
           httpStatusCode: errorSummary.statusCode,
-          responseSummary: errorSummary.responseSummary
+          responseSummary: errorSummary.responseSummary,
         });
         this.wrapHttpError(error, TranslationService.t('doi-error-deleting'));
       }
@@ -374,7 +416,12 @@ export namespace Services {
         return false;
       }
 
-      const runContext = createRunContext({ metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } }, undefined, undefined, 'changeDoiState');
+      const runContext = createRunContext(
+        { metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } },
+        undefined,
+        undefined,
+        'changeDoiState'
+      );
       const auditCtx = startDoiAudit(doi, IntegrationAuditAction.changeDoiState, runContext, { doi, event });
       try {
         const result = await runChangeDoiStateProgram(config, runContext, doi, event, {
@@ -384,7 +431,7 @@ export namespace Services {
         completeDoiAudit(auditCtx, {
           message: 'DOI state changed successfully.',
           httpStatusCode: result.statusCode,
-          responseSummary: result.responseSummary
+          responseSummary: result.responseSummary,
         });
         return result.statusCode === 200;
       } catch (error) {
@@ -392,27 +439,49 @@ export namespace Services {
         failDoiAudit(auditCtx, error, {
           message: 'DOI state change failed.',
           httpStatusCode: errorSummary.statusCode,
-          responseSummary: errorSummary.responseSummary
+          responseSummary: errorSummary.responseSummary,
         });
         this.wrapHttpError(error, TranslationService.t('doi-error-changing-state'));
       }
     }
 
-    public async publishDoiTrigger(oid: string, record: DoiRecordModel, options: Record<string, unknown>): Promise<unknown> {
+    public async publishDoiTrigger(
+      oid: string,
+      record: DoiRecordModel,
+      options: Record<string, unknown>,
+      user: Record<string, unknown> = {}
+    ): Promise<unknown> {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'publishDoiTrigger');
         const auditCtx = startDoiAudit(oid, IntegrationAuditAction.publishDoiTrigger, runContext, options);
         try {
-          const brand: BrandingModel = BrandingService.getBrand('default');
           const doi = await this.publishDoi(oid, record, String(options.event ?? 'publish'), 'create', {
             ...options,
             triggerSource: 'publishDoiTrigger',
             auditContext: auditCtx,
           });
           if (doi != null) {
+            const previousMetadata = _.cloneDeep(record.metadata);
             record = await this.addDoiDataToRecord(oid, record, doi, options);
             try {
-              await RecordsService.updateMeta(brand, oid, record);
+              const response = await RecordsService.updateMetaInternal({
+                actor: { kind: 'service', id: 'DoiService.publishDoiTrigger' },
+                authorization: { kind: 'service' },
+                mutationClass: 'external-side-effect',
+                oid,
+                record,
+                user,
+                metadata: createRecordMetadataDelta(previousMetadata, record.metadata),
+                metadataMode: 'pre-applied',
+              });
+              if (!response.wasPersisted()) {
+                throw new Error(String(response.message ?? response.outcome));
+              }
+              if (response.outcome === 'saved-with-warnings') {
+                sails.log.warn(`DOI metadata writeback persisted with warnings for ${oid}`, {
+                  requestId: response.requestId,
+                });
+              }
             } catch (error) {
               sails.log.error(`Failed to persist DOI metadata for record '${oid}'.`);
               sails.log.error(error);
@@ -428,7 +497,11 @@ export namespace Services {
       return of(null);
     }
 
-    public async publishDoiTriggerSync(oid: string, record: DoiRecordModel, options: Record<string, unknown>): Promise<DoiRecordModel> {
+    public async publishDoiTriggerSync(
+      oid: string,
+      record: DoiRecordModel,
+      options: Record<string, unknown>
+    ): Promise<DoiRecordModel> {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'publishDoiTriggerSync');
         const auditCtx = startDoiAudit(oid, IntegrationAuditAction.publishDoiTriggerSync, runContext, options);
@@ -450,7 +523,11 @@ export namespace Services {
       return record;
     }
 
-    public async updateDoiTriggerSync(oid: string, record: DoiRecordModel, options: Record<string, unknown>): Promise<DoiRecordModel> {
+    public async updateDoiTriggerSync(
+      oid: string,
+      record: DoiRecordModel,
+      options: Record<string, unknown>
+    ): Promise<DoiRecordModel> {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'updateDoiTriggerSync');
         const auditCtx = startDoiAudit(oid, IntegrationAuditAction.updateDoiTriggerSync, runContext, options);
@@ -481,7 +558,12 @@ export namespace Services {
       }
 
       const resolvedProfile = resolveProfile(config, options);
-      const url = asTrimmedString(await evaluateBinding(resolvedProfile.profile.metadata.url, createBindingContext(record, oid, resolvedProfile.profile)));
+      const url = asTrimmedString(
+        await evaluateBinding(
+          resolvedProfile.profile.metadata.url,
+          createBindingContext(record, oid, resolvedProfile.profile)
+        )
+      );
       _.set(record, resolvedProfile.profile.writeBack.citationDoiPath, doi);
       if (url != null) {
         _.set(record, resolvedProfile.profile.writeBack.citationUrlPath, url);
@@ -509,20 +591,21 @@ export namespace Services {
     }
 
     private normalizeDataciteLookupOptions(options: Record<string, unknown>): NormalizedDataciteDoiLookupOptions {
-      const rawOptions = _.isPlainObject(options) ? options as DataciteDoiLookupOptions : {};
-      const baseUrl = String(rawOptions.baseUrl ?? 'https://api.datacite.org').trim().replace(/\/+$/, '');
-      const timeoutMs = Number.isInteger(rawOptions.timeoutMs) && Number(rawOptions.timeoutMs) > 0
-        ? Number(rawOptions.timeoutMs)
-        : 10000;
-      const maxRows = Number.isInteger(rawOptions.maxRows) && Number(rawOptions.maxRows) > 0
-        ? Number(rawOptions.maxRows)
-        : 25;
+      const rawOptions = _.isPlainObject(options) ? (options as DataciteDoiLookupOptions) : {};
+      const baseUrl = String(rawOptions.baseUrl ?? 'https://api.datacite.org')
+        .trim()
+        .replace(/\/+$/, '');
+      const timeoutMs =
+        Number.isInteger(rawOptions.timeoutMs) && Number(rawOptions.timeoutMs) > 0
+          ? Number(rawOptions.timeoutMs)
+          : 10000;
+      const maxRows =
+        Number.isInteger(rawOptions.maxRows) && Number(rawOptions.maxRows) > 0 ? Number(rawOptions.maxRows) : 25;
       const fields = Array.isArray(rawOptions.fields)
         ? rawOptions.fields.map(field => String(field ?? '').trim()).filter(field => field !== '')
         : ['doi', 'titles', 'publisher', 'publicationYear', 'types', 'url'];
-      const valueField = rawOptions.valueField === 'id' || rawOptions.valueField === 'url'
-        ? rawOptions.valueField
-        : 'doi';
+      const valueField =
+        rawOptions.valueField === 'id' || rawOptions.valueField === 'url' ? rawOptions.valueField : 'doi';
 
       return {
         baseUrl: baseUrl || 'https://api.datacite.org',
@@ -533,7 +616,7 @@ export namespace Services {
         labelTemplate: typeof rawOptions.labelTemplate === 'string' ? rawOptions.labelTemplate : undefined,
         valueField,
         includeRaw: rawOptions.includeRaw !== false,
-        allowEmptySearch: rawOptions.allowEmptySearch === true
+        allowEmptySearch: rawOptions.allowEmptySearch === true,
       };
     }
 
@@ -541,7 +624,7 @@ export namespace Services {
       const defaults: Record<string, DataciteLookupParamValue> = {
         'disable-facets': true,
         state: 'findable',
-        sort: 'relevance'
+        sort: 'relevance',
       };
       if (!_.isPlainObject(value)) {
         return defaults;
@@ -555,8 +638,9 @@ export namespace Services {
           continue;
         }
         if (Array.isArray(rawValue)) {
-          defaults[normalizedKey] = rawValue
-            .filter(item => ['string', 'number', 'boolean'].includes(typeof item)) as Array<string | number | boolean>;
+          defaults[normalizedKey] = rawValue.filter(item =>
+            ['string', 'number', 'boolean'].includes(typeof item)
+          ) as Array<string | number | boolean>;
           continue;
         }
         if (typeof rawValue === 'string' || typeof rawValue === 'number' || typeof rawValue === 'boolean') {
@@ -604,8 +688,8 @@ export namespace Services {
           start: request.start,
           rows,
           source: 'datacite',
-          links: _.isPlainObject(validResponse.links) ? validResponse.links : undefined
-        }
+          links: _.isPlainObject(validResponse.links) ? validResponse.links : undefined,
+        },
       };
     }
 
@@ -627,20 +711,19 @@ export namespace Services {
       const title = Array.isArray(item.attributes?.titles)
         ? item.attributes?.titles.map(entry => this.asNonEmptyString(entry?.title)).find(Boolean)
         : undefined;
-      const publisher = typeof item.attributes?.publisher === 'string'
-        ? this.asNonEmptyString(item.attributes.publisher)
-        : this.asNonEmptyString(item.attributes?.publisher?.name);
+      const publisher =
+        typeof item.attributes?.publisher === 'string'
+          ? this.asNonEmptyString(item.attributes.publisher)
+          : this.asNonEmptyString(item.attributes?.publisher?.name);
       const year = item.attributes?.publicationYear != null ? String(item.attributes.publicationYear) : undefined;
       const details = [publisher, year].filter((part): part is string => Boolean(part));
-      const label = title
-        ? `${title} (${doi})${details.length > 0 ? ` - ${details.join(', ')}` : ''}`
-        : doi;
+      const label = title ? `${title} (${doi})${details.length > 0 ? ` - ${details.join(', ')}` : ''}` : doi;
 
       return {
         label,
         value,
         sourceType: 'service',
-        ...(options.includeRaw ? { raw: item } : {})
+        ...(options.includeRaw ? { raw: item } : {}),
       };
     }
 
@@ -665,7 +748,11 @@ export namespace Services {
       return normalized !== '' ? normalized : undefined;
     }
 
-    private createDataciteLookupError(message: string, statusCode?: number, cause?: unknown): Error & {
+    private createDataciteLookupError(
+      message: string,
+      statusCode?: number,
+      cause?: unknown
+    ): Error & {
       code: 'datacite-lookup-failed';
       statusCode?: number;
       cause?: unknown;

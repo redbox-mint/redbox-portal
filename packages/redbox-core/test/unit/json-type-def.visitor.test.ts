@@ -385,6 +385,27 @@ describe("JSON Type Def Schema Visitor", async () => {
                     }
                 }
             }
+        },
+        {
+            title: "ignore related object data components",
+            args: {
+                name: "related-object-data-form",
+                componentDefinitions: [
+                    {
+                        name: "workspaces",
+                        component: {
+                            class: "RelatedObjectDataComponent",
+                            config: {
+                                dataPath: "metadata.workspaces",
+                                oidProperty: "id",
+                                relatedFields: ["title"]
+                            }
+                        },
+                        layout: {class: "DefaultLayout", config: {}}
+                    }
+                ]
+            },
+            expected: {}
         }
     ];
     cases.forEach(({title, args, expected}) => {

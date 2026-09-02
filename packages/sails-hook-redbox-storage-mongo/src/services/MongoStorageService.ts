@@ -1,12 +1,23 @@
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 import { randomUUID } from 'crypto';
+import { isDeepStrictEqual } from 'node:util';
 
 import type { Model } from 'sails';
 import { DateTime } from 'luxon';
 
 import mongodb = require('mongodb');
-import type { Collection, Db, Document, FindCursor, FindOptions, GridFSFile } from 'mongodb';
+import type {
+  Collection,
+  Db,
+  Document,
+  Filter,
+  FindCursor,
+  FindOptions,
+  GridFSFile,
+  IndexDescriptionInfo,
+  IndexDirection,
+} from 'mongodb';
 import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
@@ -16,6 +27,7 @@ import {
   DatastreamService,
   StorageService,
   StorageServiceResponse,
+  StorageMutationResponse,
   DatastreamServiceResponse,
   Datastream,
   Attachment,
@@ -24,14 +36,52 @@ import {
   IntegrationAuditModel,
   IntegrationAuditParams,
   RecordModel,
+  type DeletedRecordModel,
   BrandingModel,
   UserModel,
   RoleModel,
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,
+  INITIAL_RECORD_REVISION,
+  RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
+  isCanonicalSaveRequestId,
+  isDeletedRecordLifecycleOperation,
+  isDeletedRecordLifecycleOperationForState,
+  isDeletedRecordLifecycleState,
+  isRecordConcurrencyResolution,
+  isRecordRevision,
+  nextRecordRevision,
+  normalizeAttachmentStagingFileId,
+  type RecordStorageMutationOptions,
+  type StorageMutationNonApplicationReason,
+  type StorageServiceCapabilities,
+} from '@researchdatabox/redbox-core';
+import type {
+  RecordSchemaArtifactInput,
+  RecordSchemaArtifactModel,
+  RecordSchemaArtifactQuery,
+  RecordSchemaArtifactSummary,
+  RecordSchemaAuthorizationGrantQuery,
+  RecordSchemaReferenceInput,
+  RecordSchemaReferenceModel,
+  RecordSchemaReferenceQuery,
 } from '@researchdatabox/redbox-core';
 import { ExportJSONTransformer } from '@researchdatabox/redbox-core';
 import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdatabox/redbox-core';
+import { RECORD_SCHEMA_REFERENCE_KEY_PATTERN } from '../models/RecordSchemaReference';
+import {
+  RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX,
+  RECORD_SCHEMA_STORAGE_CODES,
+  RecordSchemaPersistenceError,
+  artifactContentIdentity,
+  artifactModelFromDocument,
+  isDuplicateKeyError,
+  referenceContentIdentity,
+  referenceModelFromDocument,
+  validateRecordSchemaArtifactInput,
+  validateRecordSchemaDigest,
+  validateRecordSchemaReferenceInput,
+} from './recordSchemaPersistence';
 
 const { flatten } = transforms;
 const UTF8_BOM = '\uFEFF';
@@ -70,11 +120,145 @@ type MongoRecordDocument = Document;
 type WaterlineModel = Model;
 type AttachmentDescriptor = JsonMap & { type?: string; fileId?: string };
 type DatastreamContent = { readstream?: NodeJS.ReadableStream; body?: Buffer | string } & Record<string, unknown>;
+type StorageInitializationErrorClassification =
+  | 'record-schema-persistence-error'
+  | 'mongo-network-error'
+  | 'mongo-driver-error'
+  | 'unexpected-error'
+  | 'non-error';
+const RECORD_IDENTITY_COLLECTION = 'recordidentity';
 
 declare const Record: WaterlineModel;
 declare const DeletedRecord: WaterlineModel;
 declare const RecordAudit: WaterlineModel;
 declare const IntegrationAudit: WaterlineModel;
+declare const RecordSchemaArtifact: WaterlineModel;
+declare const RecordSchemaReference: WaterlineModel;
+
+export const RECORD_SCHEMA_ARTIFACT_INDEXES: mongodb.IndexDescription[] = [
+  {
+    key: { digest: 1 },
+    // Match the index Sails Mongo creates for `@Attr({ unique: true })` so
+    // native readiness initialization is idempotent after Waterline setup.
+    name: 'digest_1',
+    unique: true,
+  },
+];
+
+export const RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_NAME = 'record_schema_reference_authorization_cursor_lookup';
+export const RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY = {
+  digest: 1,
+  kind: 1,
+  brand: 1,
+  portal: 1,
+  schemaKind: 1,
+  recordType: 1,
+  operation: 1,
+  referenceKey: 1,
+} as const;
+
+export const RECORD_SCHEMA_REFERENCE_INDEXES: mongodb.IndexDescription[] = [
+  {
+    key: { referenceKey: 1 },
+    name: 'referenceKey_1',
+    unique: true,
+  },
+  {
+    key: { digest: 1, kind: 1 },
+    name: 'record_schema_reference_digest_kind',
+  },
+  {
+    key: { digest: 1, kind: 1, brand: 1, portal: 1, referenceKey: 1 },
+    name: 'record_schema_reference_grant_lookup',
+  },
+  {
+    key: { digest: 1, kind: 1, brand: 1, portal: 1, schemaKind: 1, recordType: 1, operation: 1, oid: 1 },
+    name: 'record_schema_reference_authorization_lookup',
+  },
+  {
+    key: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
+    name: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_NAME,
+  },
+  {
+    key: { oid: 1, kind: 1 },
+    name: 'record_schema_reference_oid_kind',
+    sparse: true,
+  },
+  {
+    key: { kind: 1, expiresAt: 1 },
+    name: 'record_schema_reference_pin_expiry',
+    partialFilterExpression: { kind: 'pin' },
+  },
+];
+
+/**
+ * Authorization lookups fail as unavailable instead of consuming an
+ * unbounded database work budget. This is a time/availability boundary, not
+ * a result cap: a query that cannot complete is never reported as a denial.
+ */
+export const RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS = 1_000;
+
+type PersistentIndexBooleanOption = 'unique' | 'sparse' | 'hidden';
+type PersistentIndexValueOption =
+  | 'partialFilterExpression'
+  | 'expireAfterSeconds'
+  | 'storageEngine'
+  | 'weights'
+  | 'default_language'
+  | 'language_override'
+  | 'textIndexVersion'
+  | '2dsphereIndexVersion'
+  | 'bits'
+  | 'min'
+  | 'max'
+  | 'bucketSize'
+  | 'wildcardProjection'
+  | 'collation';
+
+const PERSISTENT_INDEX_BOOLEAN_OPTIONS: readonly PersistentIndexBooleanOption[] = ['unique', 'sparse', 'hidden'];
+const PERSISTENT_INDEX_VALUE_OPTIONS: readonly PersistentIndexValueOption[] = [
+  'partialFilterExpression',
+  'expireAfterSeconds',
+  'storageEngine',
+  'weights',
+  'default_language',
+  'language_override',
+  'textIndexVersion',
+  '2dsphereIndexVersion',
+  'bits',
+  'min',
+  'max',
+  'bucketSize',
+  'wildcardProjection',
+  'collation',
+];
+
+function indexKeyEntries(
+  key: mongodb.IndexDescription['key'] | IndexDescriptionInfo['key']
+): readonly (readonly [string, IndexDirection])[] {
+  if (key instanceof Map) return [...key.entries()];
+  return Object.keys(key).map(name => [name, key[name]] as const);
+}
+
+function indexKeysEqual(existing: IndexDescriptionInfo, required: mongodb.IndexDescription): boolean {
+  return isDeepStrictEqual(indexKeyEntries(existing.key), indexKeyEntries(required.key));
+}
+
+function indexOptionsEqual(existing: IndexDescriptionInfo, required: mongodb.IndexDescription): boolean {
+  for (const option of PERSISTENT_INDEX_BOOLEAN_OPTIONS) {
+    if (Boolean(existing[option]) !== Boolean(required[option])) return false;
+  }
+  return PERSISTENT_INDEX_VALUE_OPTIONS.every(option => isDeepStrictEqual(existing[option], required[option]));
+}
+
+function indexDisplayName(index: mongodb.IndexDescription | IndexDescriptionInfo): string {
+  return typeof index.name === 'string' && index.name.trim() !== '' ? index.name : '<unnamed>';
+}
+
+function isMongoNamespaceNotFoundError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return ('code' in error && error.code === 26) || ('codeName' in error && error.codeName === 'NamespaceNotFound');
+}
 
 type RelatedRecordsContext = {
   rootOid: string;
@@ -99,12 +283,25 @@ export namespace Services {
     db!: Db;
     recordCol!: Collection<MongoRecordDocument>;
     deletedRecordCol!: Collection<MongoRecordDocument>;
+    recordIdentityCol!: Collection<MongoRecordDocument>;
+    recordSchemaArtifactCol!: Collection<MongoRecordDocument>;
+    recordSchemaReferenceCol!: Collection<MongoRecordDocument>;
     private _readyHookRegistered = false;
+    private _requiredIndicesReady = false;
+    private _initializationPromise?: Promise<void>;
 
     protected _exportedMethods: string[] = [
       'init',
       'create',
       'updateMeta',
+      'getCapabilities',
+      'removeActiveRecord',
+      'createTombstone',
+      'updateTombstone',
+      'removeTombstone',
+      'createActiveRecordFromTombstone',
+      'getTombstone',
+      'getLifecycleTombstones',
       'getMeta',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
@@ -120,6 +317,7 @@ export namespace Services {
       'addDatastreams',
       'updateDatastream',
       'removeDatastream',
+      'removeStagedDatastream',
       'addDatastream',
       'addAndRemoveDatastreams',
       'getDatastream',
@@ -129,6 +327,13 @@ export namespace Services {
       'getRecordAudit',
       'getIntegrationAudit',
       'countIntegrationAudit',
+      'putRecordSchemaArtifact',
+      'getRecordSchemaArtifact',
+      'listRecordSchemaArtifacts',
+      'touchRecordSchemaArtifact',
+      'putRecordSchemaReference',
+      'findRecordSchemaGrantForAuthorization',
+      'listRecordSchemaReferences',
       'exists',
     ];
 
@@ -145,9 +350,8 @@ export namespace Services {
     private getErrorMessage(err: unknown): string {
       if (err instanceof Error) {
         const messageParts = [err.message];
-        const causeMessage = err.cause instanceof Error
-          ? err.cause.message
-          : (typeof err.cause === 'string' ? err.cause : undefined);
+        const causeMessage =
+          err.cause instanceof Error ? err.cause.message : typeof err.cause === 'string' ? err.cause : undefined;
         if (causeMessage != null && causeMessage !== '' && causeMessage !== err.message) {
           messageParts.push(`Cause: ${causeMessage}`);
         }
@@ -156,9 +360,484 @@ export namespace Services {
       return String(err);
     }
 
-    public init(): void {
+    private classifyStorageInitializationError(err: unknown): StorageInitializationErrorClassification {
+      if (err instanceof RecordSchemaPersistenceError) return 'record-schema-persistence-error';
+      if (err instanceof mongodb.MongoNetworkError) return 'mongo-network-error';
+      if (err instanceof mongodb.MongoError) return 'mongo-driver-error';
+      return err instanceof Error ? 'unexpected-error' : 'non-error';
+    }
+
+    /**
+     * Resolve the native driver collection behind a Waterline model. Strict
+     * concurrency needs `findOneAndUpdate`/`findOneAndDelete` facts that
+     * Waterline cannot certify, so the compare-and-set paths talk to the
+     * driver directly. Discovery never throws: an adapter that cannot supply a
+     * native collection is simply unsupported.
+     */
+    private getNativeCollection(
+      model: WaterlineModel,
+      cacheKey: 'recordCol' | 'deletedRecordCol'
+    ): Collection<MongoRecordDocument> | undefined {
+      const cached = this[cacheKey];
+      if (cached) return cached;
+      try {
+        const manager = model.getDatastore()?.manager as Db | undefined;
+        if (manager && typeof manager.collection === 'function') {
+          this.db = manager;
+          this[cacheKey] = manager.collection<MongoRecordDocument>(model.tableName);
+          return this[cacheKey];
+        }
+      } catch {
+        // Capability discovery is deliberately non-throwing and fail-closed.
+      }
+      return undefined;
+    }
+
+    private getNativeRecordCollection(): Collection<MongoRecordDocument> | undefined {
+      return this.getNativeCollection(Record, 'recordCol');
+    }
+
+    private getNativeTombstoneCollection(): Collection<MongoRecordDocument> | undefined {
+      return this.getNativeCollection(DeletedRecord, 'deletedRecordCol');
+    }
+
+    private getNativeRecordIdentityCollection(): Collection<MongoRecordDocument> | undefined {
+      if (this.recordIdentityCol) return this.recordIdentityCol;
+      try {
+        const manager = (this.db ?? (Record.getDatastore()?.manager as Db | undefined)) as Db | undefined;
+        if (manager && typeof manager.collection === 'function') {
+          this.db = manager;
+          this.recordIdentityCol = manager.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
+          return this.recordIdentityCol;
+        }
+      } catch {
+        // Capability discovery is deliberately non-throwing and fail-closed.
+      }
+      return undefined;
+    }
+
+    private supportsAtomicMutation(
+      collection: Collection<MongoRecordDocument> | undefined
+    ): collection is Collection<MongoRecordDocument> {
+      return (
+        typeof collection?.findOneAndUpdate === 'function' &&
+        typeof collection?.findOneAndDelete === 'function' &&
+        typeof collection?.findOne === 'function'
+      );
+    }
+
+    public getCapabilities(): StorageServiceCapabilities {
+      const supported =
+        this._requiredIndicesReady &&
+        this.supportsAtomicMutation(this.getNativeRecordCollection()) &&
+        this.supportsAtomicMutation(this.getNativeTombstoneCollection()) &&
+        typeof this.getNativeRecordIdentityCollection()?.findOne === 'function' &&
+        typeof this.getNativeRecordIdentityCollection()?.insertOne === 'function' &&
+        typeof this.getNativeRecordIdentityCollection()?.deleteOne === 'function' &&
+        typeof this.getNativeRecordCollection()?.insertOne === 'function' &&
+        typeof this.getNativeTombstoneCollection()?.insertOne === 'function' &&
+        typeof this.getNativeTombstoneCollection()?.find === 'function';
+      return supported ? { recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } : {};
+    }
+
+    private createMutationResponse(oid: string, options?: RecordStorageMutationOptions): StorageMutationResponse {
+      const response = new StorageMutationResponse();
+      response.oid = oid;
+      if (isCanonicalSaveRequestId(options?.requestId)) response.requestId = options.requestId;
+      if (isRecordConcurrencyResolution(options?.resolution)) response.resolution = options.resolution;
+      return response;
+    }
+
+    private notApplied(
+      response: StorageMutationResponse,
+      reason: StorageMutationNonApplicationReason,
+      message = 'Record mutation was not applied'
+    ): StorageMutationResponse {
+      response.success = false;
+      response.applicationState = 'not-applied';
+      response.nonApplicationReason = reason;
+      response.message = message;
+      return response;
+    }
+
+    private unknownMutation(response: StorageMutationResponse, message: string): StorageMutationResponse {
+      response.success = false;
+      response.applicationState = 'unknown';
+      response.message = message;
+      return response;
+    }
+
+    /**
+     * Normalize the caller's precondition. Returning `null` means the response
+     * already carries a certified non-application: a malformed precondition is
+     * a caller defect, and answering it with a definite no-write is safer than
+     * guessing which revision was meant.
+     */
+    private expectedRevision(
+      options: RecordStorageMutationOptions | undefined,
+      response: StorageMutationResponse
+    ): number | undefined | null {
+      const precondition = options?.precondition;
+      if (!precondition) return undefined;
+      const { expectedRevision, requireRevision } = precondition;
+      if (
+        typeof requireRevision !== 'boolean' ||
+        (expectedRevision === undefined ? requireRevision : !isRecordRevision(expectedRevision))
+      ) {
+        sails.log.error(
+          `${this.logHeader} refusing a mutation for oid ${response.oid}: the supplied revision precondition is invalid`
+        );
+        this.notApplied(response, 'capability-unavailable', 'A valid record revision is required');
+        return null;
+      }
+      return expectedRevision;
+    }
+
+    /**
+     * The lazy compatibility clause matches only a genuinely absent revision.
+     * An explicit null is corrupt state: `$inc` cannot advance it and must not
+     * be made to look like a safe first revision.
+     */
+    private revisionSelector(expectedRevision: number | undefined): JsonMap {
+      if (expectedRevision === INITIAL_RECORD_REVISION) {
+        // Atomic lazy compatibility for a legacy record that escaped the
+        // single-lift migration. The winning $inc makes a second match fail.
+        return { $or: [{ revision: INITIAL_RECORD_REVISION }, { revision: { $exists: false } }] };
+      }
+      if (expectedRevision !== undefined) return { revision: expectedRevision };
+      // Tokenless compatibility: match anything that can still be advanced.
+      return { $or: [{ revision: { $lt: Number.MAX_SAFE_INTEGER } }, { revision: { $exists: false } }] };
+    }
+
+    private mutationSelector(identity: JsonMap, expectedRevision: number | undefined): Filter<MongoRecordDocument> {
+      return { $and: [identity, this.revisionSelector(expectedRevision)] } as Filter<MongoRecordDocument>;
+    }
+
+    private lifecycleMutationSelector(
+      identity: JsonMap,
+      expectedRevision: number | undefined,
+      options?: RecordStorageMutationOptions
+    ): Filter<MongoRecordDocument> {
+      const selector = this.mutationSelector(identity, expectedRevision) as JsonMap;
+      const predicates = selector.$and as JsonMap[];
+      if (options?.lifecycle?.expectedState) {
+        predicates.push({ lifecycleState: options.lifecycle.expectedState });
+      }
+      if (options?.lifecycle?.operationId) {
+        predicates.push({ 'lifecycleOperation.operationId': options.lifecycle.operationId });
+      }
+      return selector as Filter<MongoRecordDocument>;
+    }
+
+    private isDuplicateKeyError(error: unknown): boolean {
+      return Boolean(error && typeof error === 'object' && Number((error as JsonMap).code) === 11000);
+    }
+
+    /**
+     * Whether the driver fact proves that `insertOne` did not commit. Local
+     * argument rejection and a server command error without retry/write-
+     * concern ambiguity are definitive. Network, selection, timeout, and
+     * write-concern failures retain the reservation for later reconciliation.
+     */
+    private isCertifiedCreateNonApplication(error: unknown): boolean {
+      if (error instanceof mongodb.MongoInvalidArgumentError) return true;
+      if (!(error instanceof mongodb.MongoServerError) || error instanceof mongodb.MongoWriteConcernError) {
+        return false;
+      }
+      const serverError = error as mongodb.MongoServerError & {
+        writeConcernError?: unknown;
+        hasErrorLabel?: (label: string) => boolean;
+      };
+      if (serverError.writeConcernError) return false;
+      if (serverError.hasErrorLabel?.('RetryableWriteError')) return false;
+      if (serverError.hasErrorLabel?.('UnknownTransactionCommitResult')) return false;
+      return true;
+    }
+
+    private storedIncarnationId(record: JsonMap | null | undefined): string | undefined {
+      const value = String(record?.incarnationId ?? '').trim();
+      return isCanonicalSaveRequestId(value) ? value : undefined;
+    }
+
+    /**
+     * Establish the permanent OID owner for a state that already exists. The
+     * ledger outlives active records and tombstones, so purge cannot reopen a
+     * revision-zero alias. Duplicate insertion is an ordinary concurrent
+     * winner; its durable identity is re-read and adopted.
+     */
+    private async ensureRecordIdentity(oid: string, source?: JsonMap | null): Promise<string | undefined> {
+      const identities = this.getNativeRecordIdentityCollection();
+      if (typeof identities?.findOne !== 'function' || typeof identities?.insertOne !== 'function') return undefined;
+      const existing = this.mutationDocument(await identities.findOne({ redboxOid: oid }));
+      if (existing === undefined) return undefined;
+      const existingId = this.storedIncarnationId(existing);
+      if (existing !== null) return existingId;
+
+      const incarnationId = this.storedIncarnationId(source) ?? randomUUID();
+      try {
+        await identities.insertOne({ redboxOid: oid, incarnationId, createdAt: new Date().toISOString() });
+        return incarnationId;
+      } catch (error) {
+        if (!this.isDuplicateKeyError(error)) return undefined;
+        const winner = this.mutationDocument(await identities.findOne({ redboxOid: oid }));
+        return winner === undefined ? undefined : this.storedIncarnationId(winner);
+      }
+    }
+
+    /** Claim a never-before-used OID. Any durable owner or active/tombstone state is a collision. */
+    private async claimNewRecordIdentity(
+      oid: string
+    ): Promise<{ incarnationId: string } | { collision: true } | undefined> {
+      const identities = this.getNativeRecordIdentityCollection();
+      if (
+        typeof identities?.findOne !== 'function' ||
+        typeof identities?.insertOne !== 'function' ||
+        typeof identities?.deleteOne !== 'function'
+      )
+        return undefined;
+      const existingOwner = this.mutationDocument(await identities.findOne({ redboxOid: oid }));
+      if (existingOwner === undefined) return undefined;
+      if (existingOwner !== null) return { collision: true };
+
+      // Legacy state may predate the ledger. Seed its owner before returning a
+      // collision so a concurrent purge cannot make the OID reusable.
+      const current = await this.readCurrentState(oid);
+      if (!current) return undefined;
+      const existingState = current.active ?? current.tombstone;
+      if (existingState) {
+        return (await this.ensureRecordIdentity(oid, existingState)) ? { collision: true } : undefined;
+      }
+
+      const incarnationId = randomUUID();
+      try {
+        await identities.insertOne({ redboxOid: oid, incarnationId, createdAt: new Date().toISOString() });
+        return { incarnationId };
+      } catch (error) {
+        return this.isDuplicateKeyError(error) ? { collision: true } : undefined;
+      }
+    }
+
+    /**
+     * Compensate an ownership claim this call made but never used.
+     *
+     * The ledger is otherwise permanent, and deliberately so: a purge must not
+     * let an old revision-zero tag alias a recreated incarnation. Releasing is
+     * only safe — and only necessary — for a row that still carries the
+     * incarnation this call minted and that no active record or tombstone
+     * refers to. That is exactly the state a create leaves behind when its
+     * insert never reached the collection, and without this the caller-selected
+     * OID would be permanently unusable with no operator recovery path. While
+     * this row exists its unique index prevents another ordinary create from
+     * becoming owner; the exact incarnation selector also cannot remove a row
+     * replaced during an operator recovery race.
+     */
+    private async releaseUnusedRecordIdentity(oid: string, incarnationId: string): Promise<void> {
+      const identities = this.getNativeRecordIdentityCollection();
+      if (typeof identities?.deleteOne !== 'function') return;
+      try {
+        const current = await this.readCurrentState(oid);
+        // Unobservable or still-owned state keeps the claim: a permanent row is
+        // always safer than one released while something still refers to it.
+        if (!current || current.active || current.tombstone) return;
+        await identities.deleteOne({ redboxOid: oid, incarnationId });
+      } catch {
+        sails.log.error(`${this.logHeader} record_identity_reservation_release_failed`, {
+          event: 'record_identity_reservation_release_failed',
+          outcome: 'unknown',
+        });
+      }
+    }
+
+    /**
+     * Interpret a `findOneAndUpdate`/`findOneAndDelete` result issued with
+     * `includeResultMetadata: false`: `null` is a certified no-match and a
+     * document is the committed state. Anything else is an unrecognized driver
+     * fact that must stay `unknown` rather than being certified either way.
+     */
+    private mutationDocument(result: unknown): JsonMap | null | undefined {
+      if (result === null) return null;
+      if (result === undefined) return undefined;
+      if (typeof result !== 'object' || Array.isArray(result)) return undefined;
+      return result as JsonMap;
+    }
+
+    private committed(
+      response: StorageMutationResponse,
+      document: JsonMap,
+      kind: 'updated' | 'removed',
+      expectedRevision?: number
+    ): StorageMutationResponse {
+      // A removal returns the pre-removal document, which may predate the
+      // revision backfill; an update always returns the incremented value.
+      const normalizedRevision = isRecordRevision(document.revision)
+        ? document.revision
+        : document.revision == null && kind === 'removed'
+          ? INITIAL_RECORD_REVISION
+          : undefined;
+      if (normalizedRevision === undefined) {
+        return this.unknownMutation(response, 'Storage returned an invalid committed revision');
+      }
+      const expectedCommittedRevision =
+        expectedRevision === undefined
+          ? undefined
+          : kind === 'updated'
+            ? nextRecordRevision(expectedRevision)
+            : expectedRevision;
+      if (expectedCommittedRevision !== undefined && normalizedRevision !== expectedCommittedRevision) {
+        return this.unknownMutation(response, 'Storage returned an inconsistent committed revision');
+      }
+      const normalized = { ...document, revision: normalizedRevision };
+      response.success = true;
+      response.applicationState = 'applied';
+      response.committedRevision = normalizedRevision;
+      if (kind === 'removed') response.removedRecord = normalized;
+      else response.committedRecord = normalized;
+      return response;
+    }
+
+    private brandIdOf(brand: BrandingModel | null | undefined): string {
+      return String(brand?.id ?? '').trim();
+    }
+
+    private activeIdentity(brand: BrandingModel | null | undefined, oid: string): JsonMap {
+      const brandId = this.brandIdOf(brand);
+      return brandId ? { redboxOid: oid, 'metaMetadata.brandId': brandId } : { redboxOid: oid };
+    }
+
+    private tombstoneIdentity(brand: BrandingModel | null | undefined, oid: string): JsonMap {
+      const brandId = this.brandIdOf(brand);
+      // Tombstones written before the lifecycle wrapper existed only carry the
+      // brand inside the embedded snapshot. A present wrapper brand remains
+      // authoritative: an inconsistent snapshot must never widen brand scope.
+      return brandId
+        ? {
+            redboxOid: oid,
+            $or: [
+              { brandId },
+              {
+                $and: [{ brandId: { $exists: false } }, { 'deletedRecordMetadata.metaMetadata.brandId': brandId }],
+              },
+            ],
+          }
+        : { redboxOid: oid };
+    }
+
+    private static readonly BRAND_ID_PATHS = [
+      'brandId',
+      'metaMetadata.brandId',
+      'deletedRecordMetadata.metaMetadata.brandId',
+    ];
+
+    private storedBrandId(record: JsonMap | null | undefined): string {
+      for (const path of MongoStorageService.BRAND_ID_PATHS) {
+        const brandId = String(_.get(record, path, '') ?? '').trim();
+        if (brandId) return brandId;
+      }
+      return '';
+    }
+
+    /**
+     * Reject candidate keys the driver would read as update operators or
+     * dotted paths. Waterline rejected them before the compare-and-set paths
+     * started building `$set` documents directly, and honouring them would let
+     * a candidate reach fields — such as the stored brand — that the explicit
+     * checks above deliberately guard.
+     */
+    private unsafeCandidateField(candidate: JsonMap): string | undefined {
+      return Object.keys(candidate).find(key => key.startsWith('$') || key.includes('.'));
+    }
+
+    /**
+     * Read the current state behind a certified no-match so the caller can be
+     * told why nothing was written. Cross-brand state is never returned: the
+     * reason alone is bounded, and callers outside the brand map it onto the
+     * same not-found answer an absent record produces.
+     */
+    private async readCurrentState(
+      oid: string
+    ): Promise<{ active: JsonMap | null; tombstone: JsonMap | null } | undefined> {
+      const records = this.getNativeRecordCollection();
+      const tombstones = this.getNativeTombstoneCollection();
+      if (typeof records?.findOne !== 'function' || typeof tombstones?.findOne !== 'function') {
+        return undefined;
+      }
+      const [activeResult, tombstoneResult] = await Promise.all([
+        records.findOne({ redboxOid: oid }),
+        tombstones.findOne({ redboxOid: oid }),
+      ]);
+      const active = this.mutationDocument(activeResult);
+      const tombstone = this.mutationDocument(tombstoneResult);
+      if (active === undefined || tombstone === undefined) return undefined;
+      return { active, tombstone };
+    }
+
+    private isRequestedBrand(record: JsonMap | null, requestedBrandId: string): boolean {
+      return record !== null && (!requestedBrandId || this.storedBrandId(record) === requestedBrandId);
+    }
+
+    private async classifyActiveNoMatch(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      expectedRevision: number | undefined
+    ): Promise<StorageMutationNonApplicationReason> {
+      const current = await this.readCurrentState(oid);
+      if (!current) return 'capability-unavailable';
+      const requestedBrandId = this.brandIdOf(brand);
+      if (current.active) {
+        if (!this.isRequestedBrand(current.active, requestedBrandId)) return 'brand-mismatch';
+        // A tokenless selector matches every advanceable revision, so a
+        // present in-brand record that still did not match cannot be advanced.
+        return expectedRevision !== undefined ? 'stale-revision' : 'capability-unavailable';
+      }
+      if (this.isRequestedBrand(current.tombstone, requestedBrandId)) return 'deleted';
+      return 'not-found';
+    }
+
+    private async classifyLifecycleTombstoneNoMatch(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      expectedRevision: number | undefined,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationNonApplicationReason> {
+      const current = await this.readCurrentState(oid);
+      if (!current) return 'capability-unavailable';
+      const requestedBrandId = this.brandIdOf(brand);
+      if (current.tombstone) {
+        if (!this.isRequestedBrand(current.tombstone, requestedBrandId)) return 'brand-mismatch';
+        const currentRevision = isRecordRevision(current.tombstone.revision)
+          ? current.tombstone.revision
+          : INITIAL_RECORD_REVISION;
+        if (expectedRevision !== undefined && currentRevision !== expectedRevision) return 'stale-revision';
+        if (
+          (options?.lifecycle?.expectedState && current.tombstone.lifecycleState !== options.lifecycle.expectedState) ||
+          (options?.lifecycle?.operationId &&
+            _.get(current.tombstone, 'lifecycleOperation.operationId') !== options.lifecycle.operationId)
+        ) {
+          return 'lifecycle-conflict';
+        }
+        return 'capability-unavailable';
+      }
+      if (this.isRequestedBrand(current.active, requestedBrandId)) return 'lifecycle-conflict';
+      return 'not-found';
+    }
+
+    public async init(): Promise<void> {
       this.registerReadyHook();
-      void this.performInit();
+      const initialization = this._initializationPromise ?? this.performInit();
+      this._initializationPromise = initialization;
+      try {
+        await initialization;
+      } catch (error) {
+        if (this._initializationPromise === initialization) {
+          this._initializationPromise = undefined;
+          sails.log.error(`${this.logHeader} storage_initialization_failed`, {
+            event: 'storage_initialization_failed',
+            outcome: 'not-ready',
+            error_classification: this.classifyStorageInitializationError(error),
+          });
+        }
+        throw error;
+      }
     }
 
     private registerReadyHook(): void {
@@ -167,8 +846,8 @@ export namespace Services {
       }
       this._readyHookRegistered = true;
       const that = this;
-      this.registerSailsHook('on', 'ready', function () {
-        void that.performInit();
+      this.registerSailsHook('on', 'ready', async function () {
+        await that.init();
       });
     }
 
@@ -184,10 +863,7 @@ export namespace Services {
       }
 
       try {
-        const collectionInfo = this.db.collection(
-          collectionName,
-          { strict: true } as mongodb.CollectionOptions
-        );
+        const collectionInfo = this.db.collection(collectionName, { strict: true } as mongodb.CollectionOptions);
         sails.log.verbose(`${this.logHeader} Collection '${collectionName}' info:`);
         sails.log.verbose(JSON.stringify(collectionInfo));
         return true;
@@ -197,7 +873,17 @@ export namespace Services {
     }
 
     private async performInit(): Promise<void> {
-      if (this.recordCol && this.deletedRecordCol && this.gridFsBucket) {
+      if (
+        this._requiredIndicesReady &&
+        this.recordCol &&
+        this.deletedRecordCol &&
+        this.recordIdentityCol &&
+        this.recordCol &&
+        this.deletedRecordCol &&
+        this.recordSchemaArtifactCol &&
+        this.recordSchemaReferenceCol &&
+        this.gridFsBucket
+      ) {
         return;
       }
       this.db = Record.getDatastore().manager as Db;
@@ -211,84 +897,1242 @@ export namespace Services {
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
       this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
+      this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
+      this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
+      this.recordSchemaReferenceCol = this.db.collection<MongoRecordDocument>(RecordSchemaReference.tableName);
       await this.createIndices(this.db);
+      await this.createRecordSchemaIndices();
+      this._requiredIndicesReady = true;
       sails.emit('hook:redbox:storage:ready');
       sails.emit('hook:redbox:datastream:ready');
       sails.log.verbose(`${this.logHeader} Ready!`);
     }
 
-    private async createIndices(db: Db) {
+    private async createIndices(db: Db): Promise<void> {
       sails.log.verbose(`${this.logHeader} Existing indices:`);
       const currentIndices = await db.collection<MongoRecordDocument>(Record.tableName).indexes();
       sails.log.verbose(JSON.stringify(currentIndices));
-      try {
-        const storageConfig = sails.config.storage as { mongodb?: { indices?: mongodb.IndexDescription[] } };
-        const indices = storageConfig.mongodb?.indices ?? [];
-        if (_.size(indices) > 0) {
-          await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
-        }
-      } catch (err) {
-        sails.log.error(`Failed to create indices:`);
-        sails.log.error(JSON.stringify(err));
+      const storageConfig = sails.config.storage as {
+        mongodb?: {
+          indices?: mongodb.IndexDescription[];
+          deletedRecordIndices?: mongodb.IndexDescription[];
+          recordIdentityIndices?: mongodb.IndexDescription[];
+        };
+      };
+      const indices = storageConfig.mongodb?.indices ?? [];
+      if (_.size(indices) > 0) {
+        await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
       }
+      const deletedRecordIndices = storageConfig.mongodb?.deletedRecordIndices ?? [];
+      if (_.size(deletedRecordIndices) > 0) {
+        await db.collection<MongoRecordDocument>(DeletedRecord.tableName).createIndexes(deletedRecordIndices);
+      }
+      const recordIdentityIndices = storageConfig.mongodb?.recordIdentityIndices ?? [
+        { key: { redboxOid: 1 }, unique: true },
+      ];
+      await db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION).createIndexes(recordIdentityIndices);
+    }
+
+    private async createRecordSchemaIndices(): Promise<void> {
+      await this.createRequiredIndexes(this.recordSchemaArtifactCol, RECORD_SCHEMA_ARTIFACT_INDEXES);
+      await this.createRequiredIndexes(this.recordSchemaReferenceCol, RECORD_SCHEMA_REFERENCE_INDEXES);
+    }
+
+    private async createRequiredIndexes(
+      collection: Collection<MongoRecordDocument>,
+      requiredIndexes: readonly mongodb.IndexDescription[]
+    ): Promise<void> {
+      let existingIndexes: IndexDescriptionInfo[];
+      try {
+        existingIndexes = await collection.indexes();
+      } catch (error) {
+        if (!isMongoNamespaceNotFoundError(error)) {
+          throw error;
+        }
+        existingIndexes = [];
+      }
+      const missingIndexes: mongodb.IndexDescription[] = [];
+
+      for (const required of requiredIndexes) {
+        const matchingKeys = existingIndexes.filter(existing => indexKeysEqual(existing, required));
+        if (matchingKeys.some(existing => indexOptionsEqual(existing, required))) continue;
+
+        if (matchingKeys.length > 0) {
+          throw new Error(
+            `Existing index ${indexDisplayName(matchingKeys[0])} has options that do not match required index ${indexDisplayName(required)}.`
+          );
+        }
+
+        const matchingName = existingIndexes.find(existing => existing.name === required.name);
+        if (matchingName) {
+          throw new Error(
+            `Existing index ${indexDisplayName(matchingName)} has keys that do not match the required definition.`
+          );
+        }
+        missingIndexes.push(required);
+      }
+
+      if (missingIndexes.length > 0) {
+        await collection.createIndexes(missingIndexes);
+      }
+    }
+
+    private recordSchemaSuccess<TData>(data: TData): StorageServiceResponse<TData> {
+      const response = new StorageServiceResponse<TData>();
+      response.success = true;
+      response.data = data;
+      return response;
+    }
+
+    private recordSchemaFailure<TData>(
+      code: string,
+      message: string,
+      action: string,
+      error?: unknown
+    ): StorageServiceResponse<TData> {
+      const response = new StorageServiceResponse<TData>();
+      response.success = false;
+      response.message = message;
+      response.details = { code };
+      const errorType = error instanceof Error ? error.name : typeof error;
+      sails.log.error(`${this.logHeader} ${action} failed (${code}; ${errorType})`);
+      return response;
+    }
+
+    private recordSchemaFailureFromError<TData>(action: string, error: unknown): StorageServiceResponse<TData> {
+      if (error instanceof RecordSchemaPersistenceError) {
+        return this.recordSchemaFailure(error.code, error.message, action, error);
+      }
+      return this.recordSchemaFailure(
+        RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+        'Record schema storage operation failed.',
+        action,
+        error
+      );
+    }
+
+    private throwRecordSchemaReadFailure(action: string, error: unknown): never {
+      if (error instanceof RecordSchemaPersistenceError) {
+        throw error;
+      }
+      const errorType = error instanceof Error ? error.name : typeof error;
+      sails.log.error(`${this.logHeader} ${action} failed (${errorType})`);
+      throw new RecordSchemaPersistenceError(
+        RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+        'Record schema storage read failed.'
+      );
+    }
+
+    private artifactCollection(): Collection<MongoRecordDocument> {
+      if (!this.recordSchemaArtifactCol) {
+        this.db = this.db ?? (RecordSchemaArtifact.getDatastore().manager as Db);
+        this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
+      }
+      return this.recordSchemaArtifactCol;
+    }
+
+    private referenceCollection(): Collection<MongoRecordDocument> {
+      if (!this.recordSchemaReferenceCol) {
+        this.db = this.db ?? (RecordSchemaReference.getDatastore().manager as Db);
+        this.recordSchemaReferenceCol = this.db.collection<MongoRecordDocument>(RecordSchemaReference.tableName);
+      }
+      return this.recordSchemaReferenceCol;
+    }
+
+    private recordSchemaReferenceDocument(reference: RecordSchemaReferenceInput, now: Date): Document {
+      const document: Document = {
+        referenceKey: reference.referenceKey,
+        digest: reference.digest,
+        kind: reference.kind,
+        brand: reference.brand,
+        portal: reference.portal,
+        schemaKind: reference.schemaKind,
+        recordType: reference.recordType,
+        operation: reference.operation,
+        createdAt: now,
+        updatedAt: now,
+      };
+      if (reference.kind === 'save' || (reference.kind === 'grant' && reference.schemaKind === 'update')) {
+        document.oid = reference.oid;
+      }
+      if (reference.kind === 'pin') {
+        document.owner = reference.owner;
+        document.purpose = reference.purpose;
+        if (reference.expiresAt !== undefined) {
+          document.expiresAt = reference.expiresAt;
+        }
+      }
+      return document;
+    }
+
+    private async existingArtifactMatches(existing: Document, artifact: RecordSchemaArtifactInput): Promise<boolean> {
+      return artifactContentIdentity(artifactModelFromDocument(existing)) === artifactContentIdentity(artifact);
+    }
+
+    public async putRecordSchemaArtifact(artifact: RecordSchemaArtifactInput): Promise<StorageServiceResponse> {
+      try {
+        const validated = validateRecordSchemaArtifactInput(artifact);
+        const collection = this.artifactCollection();
+        const existing = await collection.findOne({ digest: validated.digest });
+        if (existing) {
+          if (await this.existingArtifactMatches(existing, validated)) {
+            return this.recordSchemaSuccess({ digest: validated.digest });
+          }
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.DIGEST_COLLISION,
+            'Record schema artifact integrity check failed.',
+            'putRecordSchemaArtifact'
+          );
+        }
+
+        const now = new Date();
+        try {
+          await collection.insertOne({
+            digest: validated.digest,
+            document: validated.document,
+            contractFormat: validated.contractFormat,
+            completeness: validated.completeness,
+            byteLength: validated.byteLength,
+            createdAt: now,
+            updatedAt: now,
+          });
+        } catch (error) {
+          if (!isDuplicateKeyError(error)) {
+            throw error;
+          }
+          const racedArtifact = await collection.findOne({ digest: validated.digest });
+          if (!racedArtifact || !(await this.existingArtifactMatches(racedArtifact, validated))) {
+            return this.recordSchemaFailure(
+              RECORD_SCHEMA_STORAGE_CODES.DIGEST_COLLISION,
+              'Record schema artifact integrity check failed.',
+              'putRecordSchemaArtifact',
+              error
+            );
+          }
+        }
+        return this.recordSchemaSuccess({ digest: validated.digest });
+      } catch (error) {
+        return this.recordSchemaFailureFromError('putRecordSchemaArtifact', error);
+      }
+    }
+
+    public async getRecordSchemaArtifact(digest: string): Promise<RecordSchemaArtifactModel | null> {
+      const validatedDigest = validateRecordSchemaDigest(digest);
+      try {
+        const document = await this.artifactCollection().findOne({ digest: validatedDigest });
+        return document ? artifactModelFromDocument(document) : null;
+      } catch (error) {
+        const errorType = error instanceof Error ? error.name : typeof error;
+        sails.log.error(`${this.logHeader} getRecordSchemaArtifact failed (${errorType})`);
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+          'Record schema artifact read failed.'
+        );
+      }
+    }
+
+    public async listRecordSchemaArtifacts(query: RecordSchemaArtifactQuery): Promise<RecordSchemaArtifactSummary[]> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_ARTIFACT,
+            'Record schema artifact query is required.'
+          );
+        }
+        const limit = this.recordSchemaQueryLimit(query.limit);
+        const criteria: Document = {};
+        if (query.afterDigest !== undefined) {
+          criteria.digest = { $gt: validateRecordSchemaDigest(query.afterDigest) };
+        }
+        const documents = await this.artifactCollection()
+          .find(criteria, { projection: { _id: 0, digest: 1, createdAt: 1 } })
+          .sort({ digest: 1 })
+          .limit(limit)
+          .toArray();
+        return documents.map(document => ({
+          digest: validateRecordSchemaDigest(document.digest),
+          createdAt: this.storedRecordSchemaDate(document.createdAt, 'artifact createdAt'),
+        }));
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('listRecordSchemaArtifacts', error);
+      }
+    }
+
+    public async touchRecordSchemaArtifact(digest: string): Promise<StorageServiceResponse> {
+      try {
+        const validatedDigest = validateRecordSchemaDigest(digest);
+        const result = await this.artifactCollection().updateOne(
+          { digest: validatedDigest },
+          { $set: { lastAccessedAt: new Date() } }
+        );
+        if (result.matchedCount !== 1) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.ARTIFACT_NOT_FOUND,
+            'Record schema artifact was not found.',
+            'touchRecordSchemaArtifact'
+          );
+        }
+        return this.recordSchemaSuccess({ digest: validatedDigest });
+      } catch (error) {
+        return this.recordSchemaFailureFromError('touchRecordSchemaArtifact', error);
+      }
+    }
+
+    private async storeRecordSchemaReference(
+      reference: RecordSchemaReferenceInput,
+      now: Date
+    ): Promise<StorageServiceResponse> {
+      const collection = this.referenceCollection();
+      const existing = await collection.findOne({ referenceKey: reference.referenceKey });
+      if (existing) {
+        if (referenceContentIdentity(referenceModelFromDocument(existing)) !== referenceContentIdentity(reference)) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.REFERENCE_KEY_COLLISION,
+            'Record schema reference integrity check failed.',
+            'putRecordSchemaReference'
+          );
+        }
+        await collection.updateOne({ referenceKey: reference.referenceKey }, { $set: { updatedAt: now } });
+        return this.recordSchemaSuccess({ referenceKey: reference.referenceKey });
+      }
+
+      try {
+        await collection.insertOne(this.recordSchemaReferenceDocument(reference, now));
+      } catch (error) {
+        if (!isDuplicateKeyError(error)) {
+          throw error;
+        }
+        const racedReference = await collection.findOne({ referenceKey: reference.referenceKey });
+        if (
+          !racedReference ||
+          referenceContentIdentity(referenceModelFromDocument(racedReference)) !== referenceContentIdentity(reference)
+        ) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.REFERENCE_KEY_COLLISION,
+            'Record schema reference integrity check failed.',
+            'putRecordSchemaReference',
+            error
+          );
+        }
+        await collection.updateOne({ referenceKey: reference.referenceKey }, { $set: { updatedAt: now } });
+      }
+      return this.recordSchemaSuccess({ referenceKey: reference.referenceKey });
+    }
+
+    public async putRecordSchemaReference(reference: RecordSchemaReferenceInput): Promise<StorageServiceResponse> {
+      try {
+        const validated = validateRecordSchemaReferenceInput(reference);
+        const now = new Date();
+        const artifactCriteria = { digest: validated.digest };
+        const artifact = await this.artifactCollection().findOne(artifactCriteria, {
+          projection: { _id: 1 },
+        });
+        if (!artifact) {
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.ARTIFACT_NOT_FOUND,
+            'Record schema reference target was not found.',
+            'putRecordSchemaReference'
+          );
+        }
+
+        const response = await this.storeRecordSchemaReference(validated, now);
+        if (!response.success) {
+          return response;
+        }
+
+        // Reference writes and retention deletion share this lock protocol.
+        // A writer that raced with deletion removes its own temporary row and
+        // fails, so no successful reference can become orphaned.
+        const artifactAfterWrite = await this.artifactCollection().findOne(
+          { digest: validated.digest },
+          { projection: { _id: 1 } }
+        );
+        if (!artifactAfterWrite) {
+          await this.referenceCollection().deleteOne({
+            referenceKey: validated.referenceKey,
+            digest: validated.digest,
+          });
+          return this.recordSchemaFailure(
+            RECORD_SCHEMA_STORAGE_CODES.ARTIFACT_NOT_FOUND,
+            'Record schema reference target was not found.',
+            'putRecordSchemaReference'
+          );
+        }
+        return response;
+      } catch (error) {
+        return this.recordSchemaFailureFromError('putRecordSchemaReference', error);
+      }
+    }
+
+    private recordSchemaQueryString(value: unknown, field: string, maximumLength = 512): string {
+      if (typeof value !== 'string' || value.length === 0 || value !== value.trim() || value.length > maximumLength) {
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+          `Record schema reference query ${field} is invalid.`
+        );
+      }
+      return value;
+    }
+
+    private recordSchemaQueryLimit(value: unknown): number {
+      if (
+        typeof value !== 'number' ||
+        !Number.isSafeInteger(value) ||
+        value <= 0 ||
+        value > RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX
+      ) {
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+          `Record schema reference query limit must be between 1 and ${RECORD_SCHEMA_REFERENCE_QUERY_LIMIT_MAX}.`
+        );
+      }
+      return value;
+    }
+
+    public async findRecordSchemaGrantForAuthorization(
+      query: RecordSchemaAuthorizationGrantQuery
+    ): Promise<RecordSchemaReferenceModel | null> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query is required.'
+          );
+        }
+        const schemaKind = query.schemaKind;
+        if (schemaKind !== 'create' && schemaKind !== 'update') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query schemaKind is invalid.'
+          );
+        }
+        if (!Array.isArray(query.roleNames)) {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema authorization query roleNames is invalid.'
+          );
+        }
+        const roleNames = [
+          ...new Set(query.roleNames.map(role => this.recordSchemaQueryString(role, 'roleNames'))),
+        ].sort();
+        const criteria: Document = {
+          digest: validateRecordSchemaDigest(query.digest),
+          kind: 'grant',
+          brand: this.recordSchemaQueryString(query.brand, 'brand'),
+          portal: this.recordSchemaQueryString(query.portal, 'portal'),
+          schemaKind,
+          recordType: this.recordSchemaQueryString(query.recordType, 'recordType'),
+          operation: this.recordSchemaQueryString(query.operation, 'operation', 64),
+        };
+        if (query.afterReferenceKey !== undefined) {
+          const afterReferenceKey = this.recordSchemaQueryString(query.afterReferenceKey, 'afterReferenceKey');
+          if (!RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(afterReferenceKey)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema authorization query afterReferenceKey is invalid.'
+            );
+          }
+          criteria.referenceKey = { $gt: afterReferenceKey };
+        }
+
+        if (schemaKind === 'create') {
+          const grant = await this.referenceCollection().findOne(criteria, {
+            sort: { referenceKey: 1 },
+            hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY,
+            maxTimeMS: RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS,
+          });
+          return grant ? referenceModelFromDocument(grant) : null;
+        }
+
+        const username = this.recordSchemaQueryString(query.username, 'username');
+        const recordBrandId = this.recordSchemaQueryString(query.recordBrandId, 'recordBrandId');
+        const editConditions: Document[] = [{ 'authorization.edit': username }];
+        if (roleNames.length > 0) {
+          editConditions.push({ 'authorization.editRoles': { $in: roleNames } });
+        }
+        const grants = await this.referenceCollection()
+          .aggregate(
+            [
+              { $match: criteria },
+              {
+                $lookup: {
+                  from: Record.tableName,
+                  localField: 'oid',
+                  foreignField: 'redboxOid',
+                  pipeline: [
+                    {
+                      $match: {
+                        'metaMetadata.brandId': recordBrandId,
+                        $or: editConditions,
+                      },
+                    },
+                  ],
+                  as: 'authorizedRecords',
+                },
+              },
+              { $match: { 'authorizedRecords.0': { $exists: true } } },
+              { $sort: { referenceKey: 1 } },
+              { $limit: 1 },
+            ],
+            { hint: RECORD_SCHEMA_AUTHORIZATION_CURSOR_INDEX_KEY }
+          )
+          .maxTimeMS(RECORD_SCHEMA_AUTHORIZATION_LOOKUP_MAX_TIME_MS)
+          .toArray();
+        return grants[0] ? referenceModelFromDocument(grants[0]) : null;
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('findRecordSchemaGrantForAuthorization', error);
+      }
+    }
+
+    public async listRecordSchemaReferences(query: RecordSchemaReferenceQuery): Promise<RecordSchemaReferenceModel[]> {
+      try {
+        if (!query || typeof query !== 'object') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema reference query is required.'
+          );
+        }
+        const limit = this.recordSchemaQueryLimit(query.limit);
+        const criteria: Document = {};
+        if (query.digest !== undefined) {
+          criteria.digest = validateRecordSchemaDigest(query.digest);
+        }
+        if (query.kind !== undefined) {
+          if (!['grant', 'save', 'pin'].includes(query.kind)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema reference query kind is invalid.'
+            );
+          }
+          criteria.kind = query.kind;
+        }
+        if (query.schemaKind !== undefined) {
+          if (query.schemaKind !== 'create' && query.schemaKind !== 'update') {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema reference query schemaKind is invalid.'
+            );
+          }
+          criteria.schemaKind = query.schemaKind;
+        }
+        for (const [field, value] of [
+          ['brand', query.brand],
+          ['portal', query.portal],
+          ['recordType', query.recordType],
+          ['oid', query.oid],
+          ['operation', query.operation],
+          ['owner', query.owner],
+        ] as const) {
+          if (value !== undefined) {
+            criteria[field] = this.recordSchemaQueryString(value, field);
+          }
+        }
+        if (query.includeExpiredPins !== undefined && typeof query.includeExpiredPins !== 'boolean') {
+          throw new RecordSchemaPersistenceError(
+            RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+            'Record schema reference query includeExpiredPins must be boolean.'
+          );
+        }
+        if (query.includeExpiredPins !== true) {
+          criteria.$and = [
+            {
+              $or: [{ kind: { $ne: 'pin' } }, { expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+            },
+          ];
+        }
+        if (query.afterReferenceKey !== undefined) {
+          const afterReferenceKey = this.recordSchemaQueryString(query.afterReferenceKey, 'afterReferenceKey');
+          if (!RECORD_SCHEMA_REFERENCE_KEY_PATTERN.test(afterReferenceKey)) {
+            throw new RecordSchemaPersistenceError(
+              RECORD_SCHEMA_STORAGE_CODES.INVALID_REFERENCE,
+              'Record schema reference query afterReferenceKey is invalid.'
+            );
+          }
+          criteria.referenceKey = { $gt: afterReferenceKey };
+        }
+
+        const documents = await this.referenceCollection()
+          .find(criteria)
+          .sort({ referenceKey: 1 })
+          .limit(limit)
+          .toArray();
+        return documents.map(referenceModelFromDocument);
+      } catch (error) {
+        return this.throwRecordSchemaReadFailure('listRecordSchemaReferences', error);
+      }
+    }
+
+    private storedRecordSchemaDate(value: unknown, field: string): Date {
+      const date = value instanceof Date ? value : new Date(String(value ?? ''));
+      if (Number.isNaN(date.getTime())) {
+        throw new RecordSchemaPersistenceError(
+          RECORD_SCHEMA_STORAGE_CODES.STORAGE_FAILED,
+          `Stored record schema ${field} is invalid.`
+        );
+      }
+      return date;
     }
 
     public async create(
       _brand: BrandingModel,
       record: JsonMap,
       _recordType: unknown,
-      _user?: unknown
-    ): Promise<StorageServiceResponse> {
+      _user?: unknown,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
       sails.log.verbose(`${this.logHeader} create() -> Begin`);
-      const response = new StorageServiceResponse();
-      record.redboxOid = this.getUuid();
-      response.oid = String(record.redboxOid);
+      // RecordsService may pre-assign the OID so attachment journal rows can
+      // be prepared before the primary metadata commit. Preserve it when
+      // supplied, while retaining the historical generated-OID behavior.
+      record.redboxOid = record.redboxOid ?? this.getUuid();
+      const response = this.createMutationResponse(String(record.redboxOid), options);
+      const precondition = options?.precondition;
+      // A create has no prior revision to compare, so a caller asserting one is
+      // addressing a record that this call cannot be. An empty precondition is
+      // accepted so callers can pass one normalized options object everywhere.
+      if (precondition && (precondition.requireRevision || precondition.expectedRevision !== undefined)) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Record creation does not accept an existing revision');
+      }
+      const serverRecord = _.cloneDeep(record);
+      // The storage boundary owns creation revision regardless of anything a
+      // request candidate supplied.
+      serverRecord.revision = INITIAL_RECORD_REVISION;
+      _.unset(serverRecord, '_id');
+      _.unset(serverRecord, 'id');
+      _.unset(serverRecord, 'incarnationId');
+      _.unset(serverRecord, 'lifecycleOperationId');
+
+      const records = this.getNativeRecordCollection();
+      if (typeof records?.insertOne !== 'function') {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic active record creation is unavailable');
+      }
+
+      let identity: { incarnationId: string } | { collision: true } | undefined;
+      try {
+        identity = await this.claimNewRecordIdentity(String(record.redboxOid));
+      } catch {
+        return this.unknownMutation(response, 'Durable record identity ownership could not be confirmed');
+      }
+      if (!identity) {
+        return this.notApplied(response, 'capability-unavailable', 'Durable record identity ownership is unavailable');
+      }
+      if ('collision' in identity) {
+        return this.notApplied(response, 'lifecycle-conflict', 'The record OID already has a durable incarnation');
+      }
+      const now = new Date().toISOString();
+      const claimedIncarnationId = identity.incarnationId;
+      serverRecord.incarnationId = claimedIncarnationId;
+      serverRecord.dateCreated = serverRecord.dateCreated ?? now;
+      serverRecord.lastSaveDate = now;
 
       try {
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
-        await Record.create(record);
-        response.success = true;
+        await records.insertOne(serverRecord);
+        this.committed(response, serverRecord, 'updated');
         sails.log.verbose(`${this.logHeader} Record created...`);
       } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to create Record:`);
-        sails.log.error(JSON.stringify(err));
-        response.success = false;
-        response.message = this.getErrorMessage(err);
+        if (this.isDuplicateKeyError(err)) {
+          // Another writer owns this OID's state, so its ledger row is correct.
+          return this.notApplied(response, 'lifecycle-conflict', 'The record OID already exists');
+        }
+        sails.log.error(`${this.logHeader} record_create_outcome_unknown`, {
+          event: 'record_create_outcome_unknown',
+          error_type: err instanceof Error ? err.name : 'unknown',
+        });
+        let observed: { active: JsonMap | null; tombstone: JsonMap | null } | undefined;
+        try {
+          observed = await this.readCurrentState(String(record.redboxOid));
+        } catch {
+          observed = undefined;
+        }
+        if (observed?.active && this.storedIncarnationId(observed.active) === claimedIncarnationId) {
+          return this.committed(response, observed.active, 'updated');
+        }
+        // A dispatched/ambiguous failure may still materialize later, so only
+        // a definitive driver rejection is eligible for compensating release.
+        if (this.isCertifiedCreateNonApplication(err)) {
+          await this.releaseUnusedRecordIdentity(String(record.redboxOid), claimedIncarnationId);
+        }
+        this.unknownMutation(response, 'Record creation could not be confirmed');
         return response;
       }
-      sails.log.verbose(JSON.stringify(response));
       sails.log.verbose(`${this.logHeader} create() -> End`);
       return response;
     }
 
-    public async updateMeta(brand: BrandingModel, oid: string, record: JsonMap, user?: UserModel): Promise<StorageServiceResponse> {
-      const response = new StorageServiceResponse();
-      response.oid = oid;
-      try {
-        _.unset(record, 'dateCreated');
-        _.unset(record, 'lastSaveDate');
-        _.unset(record, '_id');
-        _.unset(record, 'id');
-
-        await Record.updateOne({ redboxOid: oid }).set(record);
-        response.success = true;
-      } catch (err) {
-        const errorMessage = this.getErrorMessage(err);
-        sails.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}: ${errorMessage}`);
-        sails.log.error(
-          `${this.logHeader} Failed to save update to MongoDB: ${JSON.stringify({
-            error: err,
-            response,
-            brand,
-            oid,
-            record,
-            user,
-          })}`
-        );
-        response.success = false;
-        response.message = errorMessage;
+    public async updateMeta(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      record: JsonMap,
+      user?: UserModel,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      if (expectedRevision === null) return response;
+      if (expectedRevision === Number.MAX_SAFE_INTEGER) {
+        return this.notApplied(response, 'capability-unavailable', 'The record revision cannot be advanced safely');
       }
-      return response;
+
+      const collection = this.getNativeRecordCollection();
+      if (!this.supportsAtomicMutation(collection)) {
+        return this.notApplied(
+          response,
+          'capability-unavailable',
+          'The storage adapter cannot perform an atomic record revision update'
+        );
+      }
+
+      const candidate = _.cloneDeep(record);
+      // Identity, creation, and revision are owned by storage, never by the
+      // candidate; lastSaveDate is reissued with the committing write.
+      for (const field of [
+        '_id',
+        'id',
+        'redboxOid',
+        'revision',
+        'incarnationId',
+        'lifecycleOperationId',
+        'dateCreated',
+        'lastSaveDate',
+      ]) {
+        _.unset(candidate, field);
+      }
+
+      if (this.unsafeCandidateField(candidate) !== undefined) {
+        sails.log.error(`${this.logHeader} refusing an update for oid ${oid}: unsupported candidate field name`);
+        return this.notApplied(response, 'capability-unavailable', 'Record candidate contains an unsupported field');
+      }
+
+      const activeBrandId = this.brandIdOf(brand);
+      const candidateSuppliesMetaMetadata = Object.prototype.hasOwnProperty.call(candidate, 'metaMetadata');
+      const candidateBrandId = String(_.get(candidate, 'metaMetadata.brandId', '') ?? '').trim();
+      if (activeBrandId && candidateSuppliesMetaMetadata && candidateBrandId !== activeBrandId) {
+        return this.notApplied(response, 'brand-mismatch', 'Record was not found');
+      }
+
+      return this.commitConditionalMutation({
+        response,
+        kind: 'updated',
+        dispatch: () =>
+          collection.findOneAndUpdate(
+            this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision),
+            {
+              $set: { ...candidate, lastSaveDate: new Date().toISOString() },
+              $inc: { revision: 1 },
+            },
+            { returnDocument: 'after', includeResultMetadata: false }
+          ),
+        classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
+        expectedRevision,
+        onDispatchError: err => {
+          sails.log.error(`${this.logHeader} updateMeta() failed for oid ${oid}: ${this.getErrorMessage(err)}`);
+          sails.log.error(
+            `${this.logHeader} Failed to save update to MongoDB: ${JSON.stringify({
+              error: err,
+              response,
+              brand,
+              oid,
+              user,
+            })}`
+          );
+        },
+      });
+    }
+
+    /**
+     * Dispatch one atomic conditional mutation and turn its single driver fact
+     * into a mutation response.
+     *
+     * The three outcomes are deliberately distinct: a returned document is an
+     * applied commit, `null` certifies that the selector matched nothing and
+     * therefore that no write happened, and anything else — including a throw
+     * after dispatch — stays `unknown`. A failed follow-up classification only
+     * costs the precise reason; it never turns a certified no-match into a
+     * write, and it never issues one.
+     */
+    private async commitConditionalMutation(operation: {
+      response: StorageMutationResponse;
+      kind: 'updated' | 'removed';
+      dispatch: () => Promise<unknown>;
+      classify: () => Promise<StorageMutationNonApplicationReason>;
+      expectedRevision?: number;
+      onDispatchError?: (err: unknown) => void;
+    }): Promise<StorageMutationResponse> {
+      const { response, kind, dispatch, classify, expectedRevision, onDispatchError } = operation;
+      let document: JsonMap | null | undefined;
+      try {
+        document = this.mutationDocument(await dispatch());
+      } catch (err) {
+        onDispatchError?.(err);
+        return this.unknownMutation(response, this.getErrorMessage(err));
+      }
+      if (document === undefined) {
+        return this.unknownMutation(response, 'Storage returned an unrecognized mutation result');
+      }
+      if (document !== null) {
+        return this.committed(response, document, kind, expectedRevision);
+      }
+      try {
+        return this.notApplied(response, await classify());
+      } catch (err) {
+        sails.log.error(
+          `${this.logHeader} could not classify a certified no-match for oid ${response.oid}: ` +
+            this.getErrorMessage(err)
+        );
+        return this.notApplied(response, 'capability-unavailable');
+      }
+    }
+
+    public async removeActiveRecord(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      if (expectedRevision === null) return response;
+      const collection = this.getNativeRecordCollection();
+      if (!this.supportsAtomicMutation(collection)) {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic active record removal is unavailable');
+      }
+
+      let current: JsonMap | null | undefined;
+      try {
+        current = this.mutationDocument(
+          await collection.findOne(this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision))
+        );
+        if (current && !(await this.ensureRecordIdentity(oid, current))) {
+          return this.notApplied(
+            response,
+            'capability-unavailable',
+            'Durable record identity ownership is unavailable'
+          );
+        }
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+
+      return this.commitConditionalMutation({
+        response,
+        kind: 'removed',
+        dispatch: () =>
+          collection.findOneAndDelete(this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision), {
+            includeResultMetadata: false,
+          }),
+        classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
+        expectedRevision,
+      });
+    }
+
+    public async createTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      record: JsonMap,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      if (expectedRevision === null) return response;
+      if (expectedRevision === undefined || !isCanonicalSaveRequestId(options?.lifecycle?.operationId)) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact lifecycle intent ownership is required');
+      }
+      const collection = this.getNativeTombstoneCollection();
+      if (!this.supportsAtomicMutation(collection) || typeof collection.insertOne !== 'function') {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic tombstone creation is unavailable');
+      }
+
+      const candidate = _.cloneDeep(record);
+      for (const field of ['_id', 'id']) _.unset(candidate, field);
+      const operation = candidate.lifecycleOperation;
+      const targetRevision = nextRecordRevision(expectedRevision);
+      const expectedState = options.lifecycle.expectedState;
+      if (
+        candidate.redboxOid !== oid ||
+        candidate.revision !== targetRevision ||
+        !isDeletedRecordLifecycleState(candidate.lifecycleState) ||
+        !isDeletedRecordLifecycleOperation(operation) ||
+        (expectedState !== 'delete-pending' && expectedState !== 'purge-pending') ||
+        candidate.lifecycleState !== expectedState ||
+        !isDeletedRecordLifecycleOperationForState(candidate.lifecycleState, operation.kind) ||
+        operation.operationId !== options.lifecycle.operationId ||
+        operation.sourceRevision !== expectedRevision ||
+        operation.targetRevision !== targetRevision
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle intent is invalid');
+      }
+      const requestedBrandId = this.brandIdOf(brand);
+      const candidateBrandId = String(candidate.brandId ?? '').trim();
+      const snapshotBrandId = String(_.get(candidate, 'deletedRecordMetadata.metaMetadata.brandId', '') ?? '').trim();
+      if (requestedBrandId && (candidateBrandId !== requestedBrandId || snapshotBrandId !== requestedBrandId)) {
+        return this.notApplied(response, 'brand-mismatch', 'Tombstone was not found');
+      }
+      if (
+        !candidate.deletedRecordMetadata ||
+        typeof candidate.deletedRecordMetadata !== 'object' ||
+        Array.isArray(candidate.deletedRecordMetadata) ||
+        _.get(candidate, 'deletedRecordMetadata.redboxOid') !== oid
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone record snapshot is invalid');
+      }
+      _.unset(candidate, 'deletedRecordMetadata.revision');
+      let incarnationId: string | undefined;
+      try {
+        incarnationId = await this.ensureRecordIdentity(oid, candidate.deletedRecordMetadata as JsonMap);
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+      if (!incarnationId) {
+        return this.notApplied(response, 'capability-unavailable', 'Durable record identity ownership is unavailable');
+      }
+      const suppliedIncarnationId =
+        this.storedIncarnationId(candidate) ?? this.storedIncarnationId(candidate.deletedRecordMetadata as JsonMap);
+      if (suppliedIncarnationId && suppliedIncarnationId !== incarnationId) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone incarnation identity diverged');
+      }
+      candidate.incarnationId = incarnationId;
+      (candidate.deletedRecordMetadata as JsonMap).incarnationId = incarnationId;
+
+      try {
+        await collection.insertOne(candidate);
+        return this.committed(response, candidate, 'updated', expectedRevision);
+      } catch (error) {
+        if (!this.isDuplicateKeyError(error)) {
+          return this.unknownMutation(response, this.getErrorMessage(error));
+        }
+        try {
+          const existing = this.mutationDocument(await collection.findOne({ redboxOid: oid }));
+          if (existing === undefined)
+            return this.unknownMutation(response, 'Tombstone ownership could not be observed');
+          if (existing === null) return this.notApplied(response, 'lifecycle-conflict');
+          if (!this.isRequestedBrand(existing, requestedBrandId)) return this.notApplied(response, 'brand-mismatch');
+          const existingOperation = existing.lifecycleOperation;
+          if (
+            !isRecordRevision(existing.revision) ||
+            existing.revision < targetRevision ||
+            !isDeletedRecordLifecycleState(existing.lifecycleState) ||
+            !isDeletedRecordLifecycleOperation(existingOperation) ||
+            !isDeletedRecordLifecycleOperationForState(existing.lifecycleState, existingOperation.kind) ||
+            existingOperation.operationId !== options.lifecycle.operationId ||
+            existingOperation.kind !== operation.kind
+          ) {
+            return this.notApplied(response, 'lifecycle-conflict');
+          }
+          return this.committed(response, existing, 'updated');
+        } catch (readError) {
+          return this.unknownMutation(response, this.getErrorMessage(readError));
+        }
+      }
+    }
+
+    public async updateTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      record: JsonMap,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      if (expectedRevision === null) return response;
+      if (expectedRevision === Number.MAX_SAFE_INTEGER) {
+        return this.notApplied(response, 'capability-unavailable', 'The tombstone revision cannot be advanced safely');
+      }
+      const collection = this.getNativeTombstoneCollection();
+      if (!this.supportsAtomicMutation(collection)) {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic tombstone update is unavailable');
+      }
+      if (expectedRevision === undefined || !options?.lifecycle?.expectedState) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact lifecycle state and revision are required');
+      }
+
+      const candidate = _.cloneDeep(record);
+      for (const field of ['_id', 'id', 'redboxOid', 'revision', 'incarnationId', 'dateDeleted'])
+        _.unset(candidate, field);
+      if (this.unsafeCandidateField(candidate) !== undefined) {
+        sails.log.error(`${this.logHeader} refusing a tombstone update for oid ${oid}: unsupported candidate field`);
+        return this.notApplied(response, 'capability-unavailable', 'Tombstone candidate contains an unsupported field');
+      }
+      if (!isDeletedRecordLifecycleState(candidate.lifecycleState)) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle state is invalid');
+      }
+      const operation = candidate.lifecycleOperation;
+      if (
+        !isDeletedRecordLifecycleOperation(operation) ||
+        !isDeletedRecordLifecycleOperationForState(candidate.lifecycleState, operation.kind) ||
+        operation.sourceRevision > expectedRevision ||
+        operation.targetRevision !== nextRecordRevision(expectedRevision) ||
+        (options.lifecycle.operationId !== undefined && operation.operationId !== options.lifecycle.operationId)
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone lifecycle operation is invalid');
+      }
+      if (
+        candidate.deletedRecordMetadata !== undefined &&
+        (candidate.deletedRecordMetadata === null ||
+          typeof candidate.deletedRecordMetadata !== 'object' ||
+          Array.isArray(candidate.deletedRecordMetadata))
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Tombstone record snapshot is invalid');
+      }
+      if (candidate.deletedRecordMetadata && typeof candidate.deletedRecordMetadata === 'object') {
+        // The wrapper is the sole current lifecycle revision authority. Source
+        // lineage lives in lifecycleOperation.sourceRevision.
+        _.unset(candidate, 'deletedRecordMetadata.revision');
+      }
+
+      try {
+        const current = this.mutationDocument(
+          await collection.findOne(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options)
+          )
+        );
+        if (current) {
+          const incarnationId = await this.ensureRecordIdentity(oid, current);
+          if (!incarnationId) {
+            return this.notApplied(
+              response,
+              'capability-unavailable',
+              'Durable record identity ownership is unavailable'
+            );
+          }
+          if (candidate.deletedRecordMetadata && typeof candidate.deletedRecordMetadata === 'object') {
+            (candidate.deletedRecordMetadata as JsonMap).incarnationId = incarnationId;
+          }
+        }
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+
+      const activeBrandId = this.brandIdOf(brand);
+      const candidateBrandId = String(candidate.brandId ?? '').trim();
+      const candidateSuppliesBrandId = Object.prototype.hasOwnProperty.call(candidate, 'brandId');
+      const candidateSuppliesSnapshot = Object.prototype.hasOwnProperty.call(candidate, 'deletedRecordMetadata');
+      const candidateSnapshotBrandId = String(
+        _.get(candidate, 'deletedRecordMetadata.metaMetadata.brandId', '') ?? ''
+      ).trim();
+      if (
+        activeBrandId &&
+        ((candidateSuppliesBrandId && candidateBrandId !== activeBrandId) ||
+          (candidateSuppliesSnapshot && candidateSnapshotBrandId !== activeBrandId))
+      ) {
+        return this.notApplied(response, 'brand-mismatch', 'Tombstone was not found');
+      }
+
+      return this.commitConditionalMutation({
+        response,
+        kind: 'updated',
+        dispatch: () =>
+          collection.findOneAndUpdate(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options),
+            { $set: candidate, $inc: { revision: 1 } },
+            { returnDocument: 'after', includeResultMetadata: false }
+          ),
+        classify: () => this.classifyLifecycleTombstoneNoMatch(brand, oid, expectedRevision, options),
+        expectedRevision,
+      });
+    }
+
+    public async removeTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      if (expectedRevision === null) return response;
+      if (
+        expectedRevision === undefined ||
+        !options?.lifecycle?.expectedState ||
+        !isCanonicalSaveRequestId(options.lifecycle.operationId)
+      ) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact lifecycle removal ownership is required');
+      }
+      const collection = this.getNativeTombstoneCollection();
+      if (!this.supportsAtomicMutation(collection)) {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic tombstone removal is unavailable');
+      }
+
+      try {
+        const current = this.mutationDocument(
+          await collection.findOne(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options)
+          )
+        );
+        if (current && !(await this.ensureRecordIdentity(oid, current))) {
+          return this.notApplied(
+            response,
+            'capability-unavailable',
+            'Durable record identity ownership is unavailable'
+          );
+        }
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+
+      return this.commitConditionalMutation({
+        response,
+        kind: 'removed',
+        dispatch: () =>
+          collection.findOneAndDelete(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options),
+            { includeResultMetadata: false }
+          ),
+        classify: () => this.classifyLifecycleTombstoneNoMatch(brand, oid, expectedRevision, options),
+        expectedRevision,
+      });
+    }
+
+    public async createActiveRecordFromTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string,
+      record: JsonMap,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageMutationResponse> {
+      const response = this.createMutationResponse(oid, options);
+      const expectedRevision = this.expectedRevision(options, response);
+      const operationId = options?.lifecycle?.operationId;
+      if (
+        expectedRevision === null ||
+        expectedRevision === undefined ||
+        !isCanonicalSaveRequestId(operationId) ||
+        (options?.lifecycle?.expectedState !== 'restore-pending' &&
+          options?.lifecycle?.expectedState !== 'recovery-required')
+      ) {
+        return this.notApplied(response, 'capability-unavailable', 'Exact restore ownership is required');
+      }
+      const records = this.getNativeRecordCollection();
+      const tombstones = this.getNativeTombstoneCollection();
+      if (
+        !this.supportsAtomicMutation(records) ||
+        !this.supportsAtomicMutation(tombstones) ||
+        typeof records.insertOne !== 'function'
+      ) {
+        return this.notApplied(response, 'capability-unavailable', 'Atomic restore creation is unavailable');
+      }
+
+      let claimed: JsonMap | null | undefined;
+      try {
+        claimed = this.mutationDocument(
+          await tombstones.findOne(
+            this.lifecycleMutationSelector(this.tombstoneIdentity(brand, oid), expectedRevision, options)
+          )
+        );
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+      if (claimed === undefined) return this.unknownMutation(response, 'Restore ownership could not be observed');
+      if (claimed === null) {
+        const reason = await this.classifyLifecycleTombstoneNoMatch(brand, oid, expectedRevision, options).catch(
+          () => 'capability-unavailable' as const
+        );
+        return this.notApplied(response, reason);
+      }
+
+      const targetRevision = nextRecordRevision(expectedRevision);
+      const claimedOperation = claimed.lifecycleOperation;
+      const claimedSnapshot = claimed.deletedRecordMetadata;
+      if (
+        !isDeletedRecordLifecycleState(claimed.lifecycleState) ||
+        !isDeletedRecordLifecycleOperation(claimedOperation) ||
+        !isDeletedRecordLifecycleOperationForState(claimed.lifecycleState, claimedOperation.kind) ||
+        claimedOperation.kind !== 'restore' ||
+        claimedOperation.operationId !== operationId ||
+        claimedOperation.targetRevision !== expectedRevision ||
+        !claimedSnapshot ||
+        typeof claimedSnapshot !== 'object' ||
+        Array.isArray(claimedSnapshot)
+      ) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Claimed restore state is invalid');
+      }
+      let incarnationId: string | undefined;
+      try {
+        incarnationId = await this.ensureRecordIdentity(oid, claimed);
+      } catch (error) {
+        return this.unknownMutation(response, this.getErrorMessage(error));
+      }
+      if (!incarnationId) {
+        return this.notApplied(response, 'capability-unavailable', 'Durable record identity ownership is unavailable');
+      }
+      const claimedIncarnationId =
+        this.storedIncarnationId(claimed) ?? this.storedIncarnationId(claimedSnapshot as JsonMap);
+      if (claimedIncarnationId && claimedIncarnationId !== incarnationId) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Restore incarnation identity diverged');
+      }
+
+      const restoredInput = _.cloneDeep(record);
+      const restored = _.cloneDeep(claimedSnapshot as JsonMap);
+      for (const field of ['_id', 'id', 'revision', 'incarnationId', 'lifecycleOperationId', 'lastSaveDate']) {
+        _.unset(restored, field);
+      }
+      const requestedBrandId = this.brandIdOf(brand);
+      if (
+        restoredInput.redboxOid !== oid ||
+        restored.redboxOid !== oid ||
+        (requestedBrandId &&
+          (String(_.get(restoredInput, 'metaMetadata.brandId', '') ?? '').trim() !== requestedBrandId ||
+            String(_.get(restored, 'metaMetadata.brandId', '') ?? '').trim() !== requestedBrandId))
+      ) {
+        return this.notApplied(response, 'brand-mismatch', 'Record was not found');
+      }
+      if (this.unsafeCandidateField(restored) !== undefined) {
+        return this.notApplied(response, 'lifecycle-conflict', 'Restored record contains an unsupported field');
+      }
+      const candidate = {
+        ...restored,
+        redboxOid: oid,
+        revision: targetRevision,
+        incarnationId,
+        lifecycleOperationId: operationId,
+        lastSaveDate: new Date().toISOString(),
+      };
+      try {
+        await records.insertOne(candidate);
+        return this.committed(response, candidate, 'updated', expectedRevision);
+      } catch (error) {
+        if (!this.isDuplicateKeyError(error)) {
+          return this.unknownMutation(response, this.getErrorMessage(error));
+        }
+        try {
+          const existing = this.mutationDocument(await records.findOne({ redboxOid: oid }));
+          if (existing === undefined)
+            return this.unknownMutation(response, 'Restored active state could not be observed');
+          if (existing === null) return this.notApplied(response, 'lifecycle-conflict');
+          if (!this.isRequestedBrand(existing, requestedBrandId)) return this.notApplied(response, 'brand-mismatch');
+          if (
+            existing.lifecycleOperationId !== operationId ||
+            !isRecordRevision(existing.revision) ||
+            existing.revision < targetRevision
+          ) {
+            return this.notApplied(response, 'lifecycle-conflict');
+          }
+          return this.committed(response, existing, 'updated');
+        } catch (readError) {
+          return this.unknownMutation(response, this.getErrorMessage(readError));
+        }
+      }
+    }
+
+    public async getTombstone(
+      brand: BrandingModel | null | undefined,
+      oid: string
+    ): Promise<DeletedRecordModel | null> {
+      if (!oid.trim()) throw new Error(`${this.logHeader} getTombstone() -> refusing to search using an empty OID`);
+      const collection = this.getNativeTombstoneCollection();
+      if (typeof collection?.findOne !== 'function') throw new Error('Tombstone reads are unavailable');
+      const result = this.mutationDocument(await collection.findOne(this.tombstoneIdentity(brand, oid)));
+      if (result === undefined) throw new Error('Storage returned an unrecognized tombstone result');
+      return result as unknown as DeletedRecordModel | null;
+    }
+
+    public async getLifecycleTombstones(states: readonly string[], limit = 100): Promise<DeletedRecordModel[]> {
+      const normalizedStates = states.filter(isDeletedRecordLifecycleState);
+      if (normalizedStates.length === 0) return [];
+      const collection = this.getNativeTombstoneCollection();
+      if (typeof collection?.find !== 'function') throw new Error('Lifecycle recovery scans are unavailable');
+      const boundedLimit = Math.max(1, Math.min(Number.isSafeInteger(limit) ? limit : 100, 1000));
+      return (await collection
+        .find({ lifecycleState: { $in: normalizedStates } })
+        .limit(boundedLimit)
+        .toArray()) as unknown as DeletedRecordModel[];
     }
 
     public async getMeta(oid: string): Promise<RecordModel> {
@@ -313,71 +2157,75 @@ export namespace Services {
       sails.log.verbose(`${this.logHeader} finding deleted record: `);
       sails.log.verbose(JSON.stringify(criteria));
       const deletedRecord = await DeletedRecord.findOne(criteria);
-      return (deletedRecord?.deletedRecordMetadata ?? null) as RecordModel | null;
+      if (!deletedRecord?.deletedRecordMetadata) return null;
+      const revision = isRecordRevision(deletedRecord.revision) ? deletedRecord.revision : INITIAL_RECORD_REVISION;
+      // Tombstone wrapper revision is authoritative even when a legacy
+      // embedded snapshot still contains a historical active revision.
+      return { ...deletedRecord.deletedRecordMetadata, revision } as RecordModel;
     }
 
-    public async createBatch(type: string, data: JsonMap[], harvestIdFldName: string): Promise<unknown> {
-      const response = new StorageServiceResponse();
-      response.message = '';
-      let failFlag = false;
-      _.each(data, async (dataItem: JsonMap) => {
+    public async createBatch(
+      type: string,
+      data: JsonMap[],
+      harvestIdFldName: string
+    ): Promise<StorageMutationResponse> {
+      const response = new StorageMutationResponse();
+      let notAppliedCount = 0;
+      let unknownCount = 0;
+      for (const [rowIndex, dataItem] of data.entries()) {
         dataItem.harvestId = _.get(dataItem, harvestIdFldName, '');
         _.set(dataItem, 'metaMetadata.type', type);
         try {
-          await this.create(null, dataItem, null, null);
-        } catch (err) {
-          failFlag = true;
-          sails.log.error(`${this.logHeader} Failed createBatch entry: `);
-          sails.log.error(JSON.stringify(dataItem));
-          sails.log.error(`${this.logHeader} Failed createBatch error: `);
-          sails.log.error(JSON.stringify(err));
-          response.message = `${response.message}, ${err.message}`;
+          const rowResponse = await this.create(null, dataItem, null, null);
+          if (rowResponse.applicationState === 'applied' && rowResponse.success === true) {
+            continue;
+          }
+          if (rowResponse.applicationState === 'not-applied') {
+            notAppliedCount += 1;
+            sails.log.error(`${this.logHeader} createBatch row was not applied`, {
+              event: 'record_batch_create_row_not_applied',
+              row_index: rowIndex,
+            });
+            continue;
+          }
+          unknownCount += 1;
+          sails.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
+            event: 'record_batch_create_row_unknown',
+            row_index: rowIndex,
+          });
+        } catch {
+          unknownCount += 1;
+          sails.log.error(`${this.logHeader} createBatch row outcome is unknown`, {
+            event: 'record_batch_create_row_unknown',
+            row_index: rowIndex,
+          });
         }
-      });
-      response.success = failFlag === false;
+      }
+      response.success = notAppliedCount === 0 && unknownCount === 0;
+      response.applicationState = unknownCount > 0 ? 'unknown' : notAppliedCount > 0 ? 'not-applied' : 'applied';
+      response.message = response.success
+        ? ''
+        : `Batch create incomplete (${notAppliedCount} not applied, ${unknownCount} unknown).`;
       return response;
     }
 
-    public provideUserAccessAndRemovePendingAccess(oid, userid, pendingValue): void {
-      const batchFn = async () => {
-        const metadata = (await this.getMeta(oid)) as StorageRecord;
-
-        const pendingEditArray = _.get(metadata, 'authorization.editPending', []) as string[];
-        const editArray = _.get(metadata, 'authorization.edit', []) as string[];
-        const pendingEditArrayFiltered = pendingEditArray.filter(value => value !== pendingValue);
-        const pendingEditFound = pendingEditArray.length > pendingEditArrayFiltered.length;
-
-        if (pendingEditFound && !editArray.includes(userid)) {
-          editArray.push(userid);
-        }
-
-        _.set(metadata, 'authorization.editPending', pendingEditArrayFiltered);
-        _.set(metadata, 'authorization.edit', editArray);
-
-        const pendingViewArray = _.get(metadata, 'authorization.viewPending', []) as string[];
-        const viewArray = _.get(metadata, 'authorization.view', []) as string[];
-        const pendingViewArrayFiltered = pendingViewArray.filter(value => value !== pendingValue);
-        const pendingViewFound = pendingViewArray.length > pendingViewArrayFiltered.length;
-
-        if (pendingViewFound && !viewArray.includes(userid)) {
-          viewArray.push(userid);
-        }
-
-        _.set(metadata, 'authorization.viewPending', pendingViewArrayFiltered);
-        _.set(metadata, 'authorization.view', viewArray);
-
-        try {
-          await this.updateMeta(null, oid, metadata);
-        } catch (err) {
-          sails.log.error(`${this.logHeader} Failed to update on 'provideUserAccessAndRemovePendingAccess': `);
-          sails.log.error(JSON.stringify(err));
-        }
-      };
-
-      batchFn();
+    public async provideUserAccessAndRemovePendingAccess(
+      oid: string,
+      _userid: unknown,
+      _pendingValue: unknown
+    ): Promise<StorageMutationResponse> {
+      return this.notApplied(
+        this.createMutationResponse(oid),
+        'capability-unavailable',
+        'Permission rewrites require the authoritative RecordsService mutation pipeline'
+      );
     }
 
-    public async getRelatedRecords(oid: string, brand: BrandingModel, options: RecordRelationshipExpandOptions = {}): Promise<RecordRelationshipGraph> {
+    public async getRelatedRecords(
+      oid: string,
+      brand: BrandingModel,
+      options: RecordRelationshipExpandOptions = {}
+    ): Promise<RecordRelationshipGraph> {
       const mappingContext = await this.walkRelatedRecords(String(oid ?? ''), brand, options);
       return {
         rootOid: mappingContext.rootOid,
@@ -402,9 +2250,14 @@ export namespace Services {
 
       const record = (await this.getMeta(normalizedOid)) as JsonMap;
       const currentRecordTypeName = String(recordTypeName ?? _.get(record, 'metaMetadata.type', '')).trim();
-      const maxDepth = typeof options.depth === 'number' && options.depth >= 0 ? options.depth : Number.POSITIVE_INFINITY;
-      const includeRecordTypes = new Set((options.includeRecordTypes ?? []).map((value) => String(value ?? '').trim()).filter(Boolean));
-      const includeRelationIds = new Set((options.includeRelationIds ?? []).map((value) => String(value ?? '').trim()).filter(Boolean));
+      const maxDepth =
+        typeof options.depth === 'number' && options.depth >= 0 ? options.depth : Number.POSITIVE_INFINITY;
+      const includeRecordTypes = new Set(
+        (options.includeRecordTypes ?? []).map(value => String(value ?? '').trim()).filter(Boolean)
+      );
+      const includeRelationIds = new Set(
+        (options.includeRelationIds ?? []).map(value => String(value ?? '').trim()).filter(Boolean)
+      );
 
       if (_.isEmpty(mappingContext)) {
         mappingContext = {
@@ -503,7 +2356,11 @@ export namespace Services {
       return mappingContext;
     }
 
-    private addRelatedObject(mappingContext: RelatedRecordsContext, recordTypeName: string, record: MongoRecordDocument) {
+    private addRelatedObject(
+      mappingContext: RelatedRecordsContext,
+      recordTypeName: string,
+      record: MongoRecordDocument
+    ) {
       const normalizedRecordTypeName = String(recordTypeName ?? '').trim();
       const recordOid = String((record as JsonMap).redboxOid ?? '').trim();
       if (!normalizedRecordTypeName || !recordOid) {
@@ -523,11 +2380,13 @@ export namespace Services {
     }
 
     private extractRelationshipLocalValues(record: JsonMap, relationship: NormalizedRecordRelation): string[] {
-      const rawValue = _.get(record, relationship.localField, relationship.localField === 'redboxOid' ? record.redboxOid : undefined);
+      const rawValue = _.get(
+        record,
+        relationship.localField,
+        relationship.localField === 'redboxOid' ? record.redboxOid : undefined
+      );
       const values = Array.isArray(rawValue) ? rawValue : [rawValue];
-      return values
-        .map((value) => String(value ?? '').trim())
-        .filter((value) => value !== '');
+      return values.map(value => String(value ?? '').trim()).filter(value => value !== '');
     }
 
     private buildRelationshipCriteria(relationship: NormalizedRecordRelation, localValues: string[]): JsonMap {
@@ -535,9 +2394,7 @@ export namespace Services {
         'metaMetadata.type': relationship.recordType,
       };
 
-      criteria[relationship.foreignField] = localValues.length === 1
-        ? localValues[0]
-        : { in: localValues };
+      criteria[relationship.foreignField] = localValues.length === 1 ? localValues[0] : { in: localValues };
 
       return criteria;
     }
@@ -555,8 +2412,9 @@ export namespace Services {
           meta: (value: JsonMap) => Promise<JsonMap[]>;
         };
         if (typeof chainedQuery.limit === 'function') {
-          return await (chainedQuery.limit(1) as { meta: (value: JsonMap) => Promise<JsonMap[]> })
-            .meta({ enableExperimentalDeepTargets: true });
+          return await (chainedQuery.limit(1) as { meta: (value: JsonMap) => Promise<JsonMap[]> }).meta({
+            enableExperimentalDeepTargets: true,
+          });
         }
       }
 
@@ -566,7 +2424,9 @@ export namespace Services {
       }
 
       return [...relatedRecords]
-        .sort((left, right) => String(_.get(left, 'redboxOid', '')).localeCompare(String(_.get(right, 'redboxOid', ''))))
+        .sort((left, right) =>
+          String(_.get(left, 'redboxOid', '')).localeCompare(String(_.get(right, 'redboxOid', '')))
+        )
         .slice(0, 1);
     }
 
@@ -597,46 +2457,27 @@ export namespace Services {
         targetRecordType: relationship.recordType,
       };
     }
-    public async delete(oid: string, permanentlyDelete: boolean = false): Promise<StorageServiceResponse> {
-      const response = new StorageServiceResponse();
-
-      try {
-        if (permanentlyDelete) {
-          const datastreams = await this.listDatastreams(oid, null);
-          if (_.size(datastreams) > 0) {
-            _.each(datastreams, async file => {
-              sails.log.verbose(`Deleting:`);
-              sails.log.verbose(JSON.stringify(file));
-              try {
-                await this.gridFsBucket.delete(file['_id'] as mongodb.ObjectId);
-              } catch (err) {
-                sails.log.error(`Error deleting: ${file['_id']}`);
-                sails.log.error(JSON.stringify(err));
-              }
-            });
-          }
-        } else {
-          const record = (await this.getMeta(oid)) as JsonMap;
-          const deletedRecord = {
-            redboxOid: record.redboxOid,
-            deletedRecordMetadata: record,
-          };
-          await DeletedRecord.create(deletedRecord);
-        }
-        await Record.destroyOne({ redboxOid: oid });
-        response.success = true;
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to delete record: ${oid}`);
-        sails.log.error(JSON.stringify(err));
-        response.success = false;
-        response.message = err.message;
-      }
-
-      return response;
+    public async delete(
+      oid: string,
+      _permanentlyDelete: boolean = false,
+      options?: RecordStorageMutationOptions
+    ): Promise<StorageServiceResponse> {
+      return this.notApplied(
+        this.createMutationResponse(oid, options),
+        'capability-unavailable',
+        'Record deletion requires staged lifecycle orchestration'
+      );
     }
 
     public async updateNotificationLog(oid: string, record: JsonMap, options: JsonMap): Promise<unknown> {
       if (super.metTriggerCondition(oid, record, options) == 'true') {
+        if (_.get(options, 'saveRecord', false)) {
+          return this.notApplied(
+            this.createMutationResponse(oid),
+            'capability-unavailable',
+            'Notification writes require the authoritative RecordsService mutation pipeline'
+          );
+        }
         sails.log.verbose(`${this.logHeader} Updating notification log for oid: ${oid}`);
         const logName = _.get(options, 'logName', null);
         if (logName) {
@@ -656,15 +2497,6 @@ export namespace Services {
         sails.log.verbose(`======== Notification log updates =========`);
         sails.log.verbose(JSON.stringify(record));
         sails.log.verbose(`======== End update =========`);
-        if (_.get(options, 'saveRecord', false)) {
-          try {
-            await this.updateMeta(null, oid, record, null);
-          } catch (err) {
-            sails.log.error(`${this.logHeader} Failed to update notification log of ${oid}:`);
-            sails.log.error(JSON.stringify(err));
-            throw err;
-          }
-        }
       } else {
         sails.log.verbose(
           `Notification log name: '${options.name}', for oid: ${oid}, not running, condition not met: ${options.triggerCondition}`
@@ -1001,10 +2833,15 @@ export namespace Services {
               objectMode: true,
               transform(record: Record<string, unknown>, _encoding, callback) {
                 callback(null, sanitizeCsvRecord(record));
-              }
+              },
             });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
-            await pipeline(stream.Readable.from(this.fetchAllRecords(query, { ...options })), sanitize, json2csv, passThrough);
+            await pipeline(
+              stream.Readable.from(this.fetchAllRecords(query, { ...options })),
+              sanitize,
+              json2csv,
+              passThrough
+            );
           } catch (err) {
             sails.log.error(`${this.logHeader} Failed to export records as CSV:`);
             sails.log.error(err);
@@ -1148,6 +2985,15 @@ export namespace Services {
       }
     }
 
+    public async removeStagedDatastream(fileId: string): Promise<void> {
+      const normalizedFileId = normalizeAttachmentStagingFileId(fileId);
+      if (!normalizedFileId) throw new Error('Invalid staged attachment identity.');
+      const stagingDisk = StorageManagerService.stagingDisk();
+      if (await stagingDisk.exists(normalizedFileId)) {
+        await stagingDisk.delete(normalizedFileId);
+      }
+    }
+
     public async addDatastream(oid, datastream: Datastream, stagingDisk?: StorageManagerServiceTypes.Services.IDisk) {
       const fileId = datastream.fileId;
       sails.log.verbose(`${this.logHeader} addDatastream() -> Meta: ${fileId}`);
@@ -1245,12 +3091,106 @@ export namespace Services {
       }
     }
 
+    private sanitizeRecordHookExecutionSummary(value: unknown): Record<string, unknown> | undefined {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+      }
+      const source = value as Record<string, unknown>;
+      if (source.schemaVersion !== 1 || source.trigger !== 'record-hook') {
+        return undefined;
+      }
+      const safeStatuses = new Set(['succeeded', 'failed', 'timed_out', 'interrupted', 'skipped', 'dispatched']);
+      const safeKinds = new Set([
+        'configuration',
+        'validation',
+        'domain',
+        'transient',
+        'timeout',
+        'interrupted',
+        'unexpected',
+      ]);
+      const safeReasons = new Set([
+        'prior_action_failed',
+        'phase_not_reached',
+        'save_not_persisted',
+        'trigger_disabled',
+      ]);
+      const actions = Array.isArray(source.actions)
+        ? source.actions.slice(0, 100).flatMap(item => {
+            if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+            const action = item as Record<string, unknown>;
+            if (
+              typeof action.actionId !== 'string' ||
+              typeof action.mode !== 'string' ||
+              typeof action.phase !== 'string' ||
+              typeof action.status !== 'string' ||
+              !safeStatuses.has(action.status)
+            )
+              return [];
+            const result: Record<string, unknown> = {
+              actionId: action.actionId.slice(0, 128),
+              mode: action.mode,
+              phase: action.phase,
+              status: action.status,
+              attempts: Number.isInteger(action.attempts) && Number(action.attempts) >= 0 ? Number(action.attempts) : 0,
+              durationMs:
+                Number.isInteger(action.durationMs) && Number(action.durationMs) >= 0 ? Number(action.durationMs) : 0,
+            };
+            if (typeof action.failureKind === 'string' && safeKinds.has(action.failureKind))
+              result.failureKind = action.failureKind;
+            if (typeof action.failureCode === 'string' && action.failureCode.length <= 128)
+              result.failureCode = action.failureCode;
+            if (typeof action.skippedReason === 'string' && safeReasons.has(action.skippedReason))
+              result.skippedReason = action.skippedReason;
+            return [result];
+          })
+        : [];
+      const counts: Record<string, number> = {};
+      if (source.counts && typeof source.counts === 'object' && !Array.isArray(source.counts)) {
+        for (const [key, count] of Object.entries(source.counts as Record<string, unknown>)) {
+          if (safeStatuses.has(key) && Number.isInteger(count) && Number(count) >= 0) counts[key] = Number(count);
+        }
+      }
+      const summary: Record<string, unknown> = {
+        schemaVersion: 1,
+        executionId: typeof source.executionId === 'string' ? source.executionId.slice(0, 128) : '',
+        trigger: 'record-hook',
+        operation: ['create', 'update', 'delete', 'transition'].includes(String(source.operation))
+          ? source.operation
+          : 'update',
+        partial: source.partial === true,
+        durationMs:
+          Number.isInteger(source.durationMs) && Number(source.durationMs) >= 0 ? Number(source.durationMs) : 0,
+        totalActions:
+          Number.isInteger(source.totalActions) && Number(source.totalActions) >= 0
+            ? Number(source.totalActions)
+            : actions.length,
+        counts,
+        actions,
+        truncated: source.truncated === true,
+      };
+      if (typeof source.requestId === 'string' && source.requestId.length <= 128) summary.requestId = source.requestId;
+      if (['pre', 'persistence', 'postSync', 'post-dispatch'].includes(String(source.completedThrough))) {
+        summary.completedThrough = source.completedThrough;
+      }
+      if (['complete', 'grace-expired'].includes(String(source.detachedFinalization))) {
+        summary.detachedFinalization = source.detachedFinalization;
+      }
+      if (Number.isInteger(source.detachedPending) && Number(source.detachedPending) > 0) {
+        summary.detachedPending = Number(source.detachedPending);
+      }
+      return summary;
+    }
+
     private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel {
       const payload: RecordAuditModel = {
         redboxOid: recordAudit.redboxOid,
         action: recordAudit.action,
         user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
         record: this.toJsonSafe(recordAudit.record) as Record<string, unknown> | undefined,
+        executionSummary: this.sanitizeRecordHookExecutionSummary(
+          recordAudit.executionSummary
+        ) as unknown as RecordAuditModel['executionSummary'],
       };
 
       if (_.isUndefined(payload.user)) {
@@ -1259,6 +3199,10 @@ export namespace Services {
 
       if (_.isUndefined(payload.record)) {
         delete payload.record;
+      }
+
+      if (_.isUndefined(payload.executionSummary)) {
+        delete payload.executionSummary;
       }
 
       return payload;
@@ -1391,7 +3335,9 @@ export namespace Services {
       return response;
     }
 
-    private buildIntegrationAuditStartedAtCriteria(params: IntegrationAuditParams): Record<string, unknown> | undefined {
+    private buildIntegrationAuditStartedAtCriteria(
+      params: IntegrationAuditParams
+    ): Record<string, unknown> | undefined {
       const criteria: Record<string, unknown> = {};
       if (_.isDate(params.dateFrom)) {
         criteria['>='] = params.dateFrom.toISOString();
@@ -1456,58 +3402,20 @@ export namespace Services {
       return await IntegrationAudit.count(criteria);
     }
 
-    async restoreRecord(oid: string): Promise<StorageServiceResponse> {
-      const response = new StorageServiceResponse();
-
-      if (_.isEmpty(oid)) {
-        const msg = `${this.logHeader} restoreRecord() -> refusing to search using an empty OID`;
-        sails.log.error(msg);
-        throw new Error(msg);
-      }
-
-      try {
-        sails.log.verbose(`${this.logHeader} Restoring record ${oid} to DB...`);
-        const deletedRecord = await DeletedRecord.findOne({ redboxOid: oid });
-        delete deletedRecord.deletedRecordMetadata._id;
-
-        const record = await Record.create(deletedRecord.deletedRecordMetadata);
-        response.metadata = record;
-
-        await DeletedRecord.destroyOne({ redboxOid: oid });
-        response.success = true;
-        sails.log.verbose(`${this.logHeader} Record restored...`);
-        return response;
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to create Record:`);
-        sails.log.error(JSON.stringify(err));
-        response.success = false;
-        response.message = this.getErrorMessage(err);
-        return response;
-      }
+    async restoreRecord(oid: string, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse> {
+      return this.notApplied(
+        this.createMutationResponse(oid, options),
+        'capability-unavailable',
+        'Record restoration requires staged lifecycle orchestration'
+      );
     }
 
-    async destroyDeletedRecord(oid: string): Promise<StorageServiceResponse> {
-      const response = new StorageServiceResponse();
-
-      if (_.isEmpty(oid)) {
-        const msg = `${this.logHeader} destroyRecord() -> refusing to search using an empty OID`;
-        sails.log.error(msg);
-        throw new Error(msg);
-      }
-
-      try {
-        sails.log.verbose(`${this.logHeader} destroying deleted record ${oid} to DB...`);
-        await DeletedRecord.destroyOne({ redboxOid: oid });
-        response.success = true;
-        sails.log.verbose(`${this.logHeader} deleted record destroyed...`);
-        return response;
-      } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to create Record:`);
-        sails.log.error(JSON.stringify(err));
-        response.success = false;
-        response.message = this.getErrorMessage(err);
-        return response;
-      }
+    async destroyDeletedRecord(oid: string, options?: RecordStorageMutationOptions): Promise<StorageServiceResponse> {
+      return this.notApplied(
+        this.createMutationResponse(oid, options),
+        'capability-unavailable',
+        'Tombstone destruction requires staged lifecycle orchestration'
+      );
     }
 
     protected getFileWithName(fileName: string, options: FindOptions = { limit: 1 }): FindCursor<GridFSFile> {

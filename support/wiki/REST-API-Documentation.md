@@ -5,3 +5,7 @@ The REST API reference is generated independently from the extension and form-co
 https://redbox-mint.github.io/redbox-portal/api/
 
 See [Generated Reference Documentation](https://github.com/redbox-mint/redbox-portal/wiki/Generated-Reference-Documentation) for local generation and publication details.
+
+For client guidance on the dynamic record JSON Schema routes, raw media types,
+caching, discovery links, and conditional update semantics, see the
+[Record Schema Contract API](Record-Schema-Contract-API).

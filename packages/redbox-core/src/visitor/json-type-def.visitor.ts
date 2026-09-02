@@ -11,6 +11,10 @@ import {
   ContentFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import {
+  RelatedObjectDataFieldComponentDefinitionOutline,
+  RelatedObjectDataFormComponentDefinitionOutline,
+} from '@researchdatabox/sails-ng-common';
+import {
   RepeatableElementFieldLayoutDefinitionOutline,
   RepeatableFieldComponentDefinitionOutline,
   RepeatableFieldModelDefinitionOutline,
@@ -238,6 +242,18 @@ export class JsonTypeDefSchemaFormConfigVisitor extends FormConfigVisitor {
   async visitContentFieldComponentDefinition(_item: ContentFieldComponentDefinitionOutline): Promise<void> {}
 
   async visitContentFormComponentDefinition(item: ContentFormComponentDefinitionOutline): Promise<void> {
+    await this.acceptFormComponentDefinition(item);
+  }
+
+  /* Related object data */
+
+  async visitRelatedObjectDataFieldComponentDefinition(
+    _item: RelatedObjectDataFieldComponentDefinitionOutline
+  ): Promise<void> {}
+
+  async visitRelatedObjectDataFormComponentDefinition(
+    item: RelatedObjectDataFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.acceptFormComponentDefinition(item);
   }
 

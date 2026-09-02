@@ -1,17 +1,17 @@
 meta {
-  name: List Deleted RDMPs
+  name: List Deleted Strict Lifecycle Records
   type: http
-  seq: 22
+  seq: 23
 }
 
 get {
-  url: {{host}}/default/rdmp/api/deletedrecords/list?recordType=rdmp
+  url: {{host}}/default/rdmp/api/deletedrecords/list?recordType=concurrencyTest
   body: none
   auth: none
 }
 
 query {
-  recordType: rdmp
+  recordType: concurrencyTest
 }
 
 headers {
@@ -24,14 +24,15 @@ tests {
       expect(res.getStatus()).to.equal(200);
   });
   
-  test("There is more than 1 RDMP record in the records", function () {
+  test("The isolated strict record is present", function () {
       var jsonData = res.getBody();
-      expect(jsonData.records.length).to.be.greaterThan(0);
+      expect(jsonData.records.some(record => record.oid === bru.getEnvVar("strictLifecycleOid"))).to.eql(true);
   });
   
   test("Check record has oid and metadata properties", function () {
       var jsonData = res.getBody();
-      expect(jsonData.records[0]).to.have.property("oid")
-      expect(jsonData.records[0]).to.have.property("deletedRecord")
+      const record = jsonData.records.find(record => record.oid === bru.getEnvVar("strictLifecycleOid"));
+      expect(record).to.have.property("oid")
+      expect(record).to.have.property("deletedRecord")
   });
 }

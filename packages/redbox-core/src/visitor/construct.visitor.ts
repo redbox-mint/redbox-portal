@@ -491,6 +491,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('enabledValidationGroups', item, currentData);
     this.sharedProps.setPropOverride('validators', item, currentData);
     this.sharedProps.setPropOverride('validationGroups', item, currentData);
+    this.sharedProps.setPropOverride('validationOperations', item, currentData);
     this.sharedProps.setPropOverride('defaultLayoutComponent', item, currentData);
     this.sharedProps.setPropOverride('debugValue', item, currentData);
     this.sharedProps.setPropOverride('expressions', item, currentData);
@@ -832,6 +833,11 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     item.config = new SaveStatusFieldComponentConfig();
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
+    this.sharedProps.setPropOverride('successDisplayDurationMs', item.config, config);
+    this.sharedProps.setPropOverride('warningMessageCreate', item.config, config);
+    this.sharedProps.setPropOverride('warningMessageUpdate', item.config, config);
+    this.sharedProps.setPropOverride('unknownMessageCreate', item.config, config);
+    this.sharedProps.setPropOverride('unknownMessageUpdate', item.config, config);
   }
 
   async visitSaveStatusFormComponentDefinition(item: SaveStatusFormComponentDefinitionOutline): Promise<void> {
@@ -1258,6 +1264,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
 
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
 
+    this.sharedProps.setPropOverride('operation', item.config, config);
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);

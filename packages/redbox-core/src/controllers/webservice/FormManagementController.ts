@@ -10,6 +10,7 @@ import {
 import { FormAttributes } from '../../waterline-models/Form';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 import { firstValueFrom } from 'rxjs';
+import type { RecordsService } from '../../RecordsService';
 
 export namespace Controllers {
   /**
@@ -41,6 +42,9 @@ export namespace Controllers {
         const { query } = validated;
         const name = query.name as string;
         const editable: boolean = query.editable !== 'false';
+        const oid = typeof query.oid === 'string' ? query.oid.trim() : '';
+        const requestedRecordType = typeof query.recordType === 'string' ? query.recordType.trim() : '';
+        const targetStep = typeof query.targetStep === 'string' ? query.targetStep.trim() : undefined;
         const brand: BrandingModel =
           BrandingService.getBrandFromReq(req as Sails.ReqParamProvider) ?? BrandingService.getDefault();
         const form = await firstValueFrom(FormsService.getFormByName(name, editable, String(brand.id)));
@@ -51,7 +55,39 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        return this.apiRespond(req, res, form, 200);
+        let record = null;
+        let recordContextResolved = !oid;
+        if (oid) {
+          try {
+            const recordsService = sails.services.recordsservice as unknown as RecordsService;
+            const loaded = await recordsService.getMeta(oid);
+            const recordBrandId = String(loaded?.metaMetadata?.brandId ?? '').trim();
+            if (recordBrandId === String(brand.id)) {
+              record = loaded;
+              recordContextResolved = true;
+            }
+          } catch (error: unknown) {
+            const errorType = error instanceof Error ? error.name : typeof error;
+            sails.log.warn(
+              `Validation operation discovery record context could not be resolved (errorType=${errorType}).`
+            );
+            record = null;
+          }
+        }
+        const validationOperations = recordContextResolved
+          ? await FormsService.discoverValidationOperations({
+              brand,
+              form,
+              recordType: record
+                ? String(record.metaMetadata?.type ?? '')
+                : requestedRecordType || String(form.configuration?.type ?? ''),
+              record,
+              user: req.user,
+              editable,
+              targetStep,
+            })
+          : [];
+        return this.apiRespond(req, res, FormsService.toPublicForm(form, validationOperations), 200);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));
         return this.sendResp(req, res, {
@@ -72,7 +108,7 @@ export namespace Controllers {
         const summary: ListAPISummary = new ListAPISummary();
         summary.numFound = forms.length;
         response.summary = summary;
-        response.records = forms;
+        response.records = forms.map(form => FormsService.toPublicForm(form));
         return this.apiRespond(req, res, response);
       } catch (error: unknown) {
         const errorResponse = new APIErrorResponse(this.getErrorMessage(error));

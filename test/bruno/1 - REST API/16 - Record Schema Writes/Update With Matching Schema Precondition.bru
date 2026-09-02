@@ -1,0 +1,46 @@
+meta {
+  name: Update With Matching Schema Precondition
+  type: http
+  seq: 11
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaEnforceOid}}?merge=true
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+  X-ReDBox-Record-Schema-If-Match: {{recordSchemaEnforceUpdateEtag}}
+}
+
+body:json {
+  {
+    "title": "Updated with matching schema precondition"
+  }
+}
+
+tests {
+  test("Accepts an update with the dynamically resolved matching schema ETag", function () {
+    expect(bru.getEnvVar("recordSchemaEnforceUpdateEtag"), "matching schema ETag").to.match(
+      /^"sha256:[0-9a-f]{64}"$/
+    );
+    expect(res.getStatus()).to.equal(200);
+
+    const body = res.getBody();
+    expect(body.data.outcome).to.equal("saved");
+    expect(body.data.oid).to.equal(bru.getEnvVar("recordSchemaEnforceOid"));
+    expect(body.meta.problems).to.deep.equal([]);
+  });
+
+  test("Returns the exact matched schema as the successful update discovery link", function () {
+    const etagMatch = /^"sha256:([0-9a-f]{64})"$/.exec(bru.getEnvVar("recordSchemaEnforceUpdateEtag"));
+    expect(etagMatch).not.to.equal(null);
+    expect(res.getHeader("link")).to.equal(
+      `</default/rdmp/api/records/schemas/${etagMatch[1]}>; rel="describedby"; type="application/schema+json"`
+    );
+  });
+}

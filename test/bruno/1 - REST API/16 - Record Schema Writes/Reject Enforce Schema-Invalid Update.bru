@@ -1,0 +1,49 @@
+meta {
+  name: Reject Enforce Schema-Invalid Update
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaEnforceOid}}?merge=true
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "title": 42
+  }
+}
+
+tests {
+  test("Blocks schema-invalid input in enforce mode", function () {
+    expect(res.getStatus()).to.equal(400);
+
+    const body = res.getBody();
+    expect(body.errors).to.deep.include({
+      code: "record-schema.type",
+      title: "@record-schema.type",
+      source: { pointer: "/title" }
+    });
+    expect(body.meta.outcome).to.equal("not-saved");
+
+    const schemaProblem = body.meta.problems.find(
+      problem => problem.source === "schema" && problem.phase === "schema"
+    );
+    expect(schemaProblem, "blocking schema problem").to.be.an("object");
+    expect(schemaProblem.issues).to.deep.include({
+      code: "record-schema.type",
+      message: "@record-schema.type",
+      pointer: "/title",
+      expected: { type: "string" }
+    });
+    expect(res.getHeader("link")).to.equal(undefined);
+  });
+}

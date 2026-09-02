@@ -1,0 +1,26 @@
+meta {
+  name: Refresh RDMP Metadata ETag
+  type: http
+  seq: 33
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/metadata/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+tests {
+  test("Capture the authoritative tag immediately before the stale write", function () {
+    expect(res.getStatus()).to.equal(200);
+    const etag = res.getHeader("etag");
+    expect(etag).to.match(/^".+"$/);
+    expect(etag).not.to.equal(bru.getEnvVar("dmpInitialEtag"));
+    bru.setEnvVar("dmpAuthoritativeEtag", etag);
+  });
+}

@@ -36,6 +36,8 @@ import {
   getRecordField,
   setRecordField,
 } from './figshare-v2/types';
+import { cloneDeep } from 'lodash';
+import { createRecordMetadataDelta } from '../RecordsService';
 
 declare const AgendaQueueService: QueueService;
 
@@ -73,7 +75,12 @@ export namespace Services {
       return typeof options?.triggerCondition === 'string' && options.triggerCondition.length > 0;
     }
 
-    private shouldRunFigshareLifecycleSync(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown): boolean {
+    private shouldRunFigshareLifecycleSync(
+      oid: string | null,
+      record: RecordModel,
+      options: Record<string, unknown>,
+      user: unknown
+    ): boolean {
       if (!this.hasConfiguredTriggerCondition(options) && !Boolean(options?.forceRun)) {
         return true;
       }
@@ -84,8 +91,8 @@ export namespace Services {
       if (error instanceof RBValidationError) {
         return {
           responseSummary: {
-            displayErrors: error.displayErrors
-          }
+            displayErrors: error.displayErrors,
+          },
         };
       }
       const httpError = error as { statusCode?: number; responseBody?: unknown };
@@ -94,16 +101,17 @@ export namespace Services {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         statusCode,
-        responseSummary: responseBody != null && typeof responseBody === 'object'
-          ? responseBody as Record<string, unknown>
-          : {
-            errorType: error instanceof Error ? error.name : typeof error,
-            message: errorMessage,
-            ...(statusCode != null ? { statusCode } : {}),
-            // Plain-text API responses (e.g. "Unauthorized") still carry diagnostic value;
-            // keep them in the audit summary (same field name as doi-v2's toResponseSummary).
-            ...(responseBody != null ? { rawResponseBody: String(responseBody) } : {})
-          }
+        responseSummary:
+          responseBody != null && typeof responseBody === 'object'
+            ? (responseBody as Record<string, unknown>)
+            : {
+                errorType: error instanceof Error ? error.name : typeof error,
+                message: errorMessage,
+                ...(statusCode != null ? { statusCode } : {}),
+                // Plain-text API responses (e.g. "Unauthorized") still carry diagnostic value;
+                // keep them in the audit summary (same field name as doi-v2's toResponseSummary).
+                ...(responseBody != null ? { rawResponseBody: String(responseBody) } : {}),
+              },
       };
     }
 
@@ -116,7 +124,8 @@ export namespace Services {
       throw new RBValidationError({
         message: `${this.msgPrefix()} ${message}`,
         options: { cause: error },
-        displayErrors: this.figshareResponseToRBValidationError(statusCode ?? 500, undefined, figshareMessage).displayErrors
+        displayErrors: this.figshareResponseToRBValidationError(statusCode ?? 500, undefined, figshareMessage)
+          .displayErrors,
       });
     }
 
@@ -129,7 +138,11 @@ export namespace Services {
       return typeof message === 'string' && message.trim() !== '' ? message.trim() : undefined;
     }
 
-    private figshareResponseToRBValidationError(statusCode: number, messagePrefix?: string, figshareMessage?: string): RBValidationError {
+    private figshareResponseToRBValidationError(
+      statusCode: number,
+      messagePrefix?: string,
+      figshareMessage?: string
+    ): RBValidationError {
       let message: string;
       switch (statusCode) {
         case 403:
@@ -148,16 +161,20 @@ export namespace Services {
           message = 'unknown-error';
           break;
       }
-      const translated = figshareMessage != null && statusCode >= 400 && statusCode < 500
-        ? figshareMessage
-        : TranslationService.t(message);
+      const translated =
+        figshareMessage != null && statusCode >= 400 && statusCode < 500
+          ? figshareMessage
+          : TranslationService.t(message);
       return new RBValidationError({
         message: `${this.msgPrefix()} ${messagePrefix ?? translated}`,
-        displayErrors: [{ code: message, title: this.msgPrefix(), detail: translated }]
+        displayErrors: [{ code: message, title: this.msgPrefix(), detail: translated }],
       });
     }
 
-    private assertConfig(record: RecordModel, operation: string): NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>> {
+    private assertConfig(
+      record: RecordModel,
+      operation: string
+    ): NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>> {
       const config = this.getConfig(record);
       if (config == null) {
         throw new Error(`Figshare config is not enabled for operation '${operation}'`);
@@ -169,11 +186,18 @@ export namespace Services {
       return resolveFigsharePublishingConfig(record);
     }
 
-    public getSyncState(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel): FigshareSyncState {
+    public getSyncState(
+      config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>,
+      record: RecordModel
+    ): FigshareSyncState {
       return getSyncState(config, record);
     }
 
-    public setSyncState(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, syncState: FigshareSyncState): void {
+    public setSyncState(
+      config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>,
+      record: RecordModel,
+      syncState: FigshareSyncState
+    ): void {
       setSyncState(config, record, syncState);
     }
 
@@ -181,11 +205,19 @@ export namespace Services {
       validateHandlebarsTemplate(template);
     }
 
-    public async buildMetadataPayload(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel): Promise<Record<string, unknown>> {
+    public async buildMetadataPayload(
+      config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>,
+      record: RecordModel
+    ): Promise<Record<string, unknown>> {
       return runBuildMetadataPayload(config, record);
     }
 
-    public makeClient(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, jobId?: string, triggerSource: string = 'manual') {
+    public makeClient(
+      config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>,
+      record: RecordModel,
+      jobId?: string,
+      triggerSource: string = 'manual'
+    ) {
       const runContext = createRunContext(record, config, jobId, triggerSource);
       return config.runtime.mode === 'fixture' ? makeFixtureClient(config) : makeLiveClient(config, runContext);
     }
@@ -212,7 +244,10 @@ export namespace Services {
       return runSyncMetadataProgram(config, runContext, rm, publicationPlan);
     }
 
-    public async syncAssets(record: RecordModel, article: FigshareArticle): Promise<AssetSyncResult & Record<string, unknown>> {
+    public async syncAssets(
+      record: RecordModel,
+      article: FigshareArticle
+    ): Promise<AssetSyncResult & Record<string, unknown>> {
       const config = this.assertConfig(record, 'syncAssets');
       const rm = record as RecordModel;
 
@@ -237,7 +272,12 @@ export namespace Services {
       return publishIfNeededPhase(client, config, rm, articleId, this.getSyncState(config, rm));
     }
 
-    public writeBack(record: RecordModel, article: FigshareArticle, publishResult?: FigsharePublishResult, assetSyncResult?: Record<string, unknown>): RecordModel {
+    public writeBack(
+      record: RecordModel,
+      article: FigshareArticle,
+      publishResult?: FigsharePublishResult,
+      assetSyncResult?: Record<string, unknown>
+    ): RecordModel {
       const config = this.getConfig(record);
       if (config == null) {
         return record;
@@ -260,7 +300,11 @@ export namespace Services {
       return isArticleCurationLocked(config, article);
     }
 
-    private async ensureNoFileUploadInProgress(config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>, record: RecordModel, articleId: string): Promise<void> {
+    private async ensureNoFileUploadInProgress(
+      config: NonNullable<ReturnType<typeof resolveFigsharePublishingConfig>>,
+      record: RecordModel,
+      articleId: string
+    ): Promise<void> {
       const client = this.makeClient(config, record, undefined, 'ensureNoFileUploadInProgress');
       await ensureNoUploadsInProgress(client, articleId);
     }
@@ -276,27 +320,34 @@ export namespace Services {
       const dataLocations = (getRecordField(record, config.record.dataLocationsPath) ?? []) as DataLocationEntry[];
       const recordConfig = (sails.config as Record<string, unknown>).record as Record<string, unknown> | undefined;
       const datastreamServiceName = String(recordConfig?.datastreamService ?? '');
-      const datastreamService = datastreamServiceName ? (sails.services as Record<string, unknown>)?.[datastreamServiceName] as Record<string, unknown> | undefined : undefined;
+      const datastreamService = datastreamServiceName
+        ? ((sails.services as Record<string, unknown>)?.[datastreamServiceName] as Record<string, unknown> | undefined)
+        : undefined;
 
       for (const entry of [...dataLocations]) {
         if (entry.type !== 'attachment' || entry.fileId == null) {
           continue;
         }
 
-        const uploaded = articleFiles.find((file) => file.name === (entry.name ?? ''));
+        const uploaded = articleFiles.find(file => file.name === (entry.name ?? ''));
         if (uploaded == null) {
           continue;
         }
 
-        const removeDatastream = datastreamService?.removeDatastream as ((oid: string, entry: DataLocationEntry) => Promise<unknown>) | undefined;
+        const removeDatastream = datastreamService?.removeDatastream as
+          | ((oid: string, entry: DataLocationEntry) => Promise<unknown>)
+          | undefined;
         if (removeDatastream != null) {
           try {
             await removeDatastream(record.redboxOid ?? record.id ?? '', entry);
           } catch (error) {
-            sails.log.warn(`FigService - failed to remove datastream for record '${record.redboxOid ?? record.id ?? ''}'`, {
-              entry,
-              error: error instanceof Error ? error.message : String(error)
-            });
+            sails.log.warn(
+              `FigService - failed to remove datastream for record '${record.redboxOid ?? record.id ?? ''}'`,
+              {
+                entry,
+                error: error instanceof Error ? error.message : String(error),
+              }
+            );
           }
         }
 
@@ -306,7 +357,9 @@ export namespace Services {
         }
         const downloadUrl = typeof uploaded.download_url === 'string' ? uploaded.download_url.trim() : '';
         if (downloadUrl === '') {
-          sails.log.warn(`FigService - uploaded file '${uploaded.name}' for entry '${String(entry.selected ?? '')}' has no download URL; skipping write-back URL replacement`);
+          sails.log.warn(
+            `FigService - uploaded file '${uploaded.name}' for entry '${String(entry.selected ?? '')}' has no download URL; skipping write-back URL replacement`
+          );
           continue;
         }
         dataLocations.push({
@@ -315,7 +368,7 @@ export namespace Services {
           notes: `File name: ${uploaded.name}`,
           originalFileName: uploaded.name,
           ignore: true,
-          selected: entry.selected ?? false
+          selected: entry.selected ?? false,
         });
       }
 
@@ -339,16 +392,23 @@ export namespace Services {
         return false;
       }
 
-      const client = this.makeClient(config, record, `${articleId}:workflow-transition`, 'transitionRecordWorkflowFromFigshareArticlePropertiesJob');
+      const client = this.makeClient(
+        config,
+        record,
+        `${articleId}:workflow-transition`,
+        'transitionRecordWorkflowFromFigshareArticlePropertiesJob'
+      );
       const article = await client.getArticle(articleId);
       const figshareFieldValue = (article as Record<string, unknown>)[figshareTargetFieldKey] ?? null;
       if (figshareFieldValue == null || figshareFieldValue !== figshareTargetFieldValue) {
-        sails.log.warn(`FigService - the article id '${articleId}' item property '${figshareTargetFieldKey}' value '${JSON.stringify(figshareFieldValue)}' is not '${JSON.stringify(figshareTargetFieldValue)}'`);
+        sails.log.warn(
+          `FigService - the article id '${articleId}' item property '${figshareTargetFieldKey}' value '${JSON.stringify(figshareFieldValue)}' is not '${JSON.stringify(figshareTargetFieldValue)}'`
+        );
         return false;
       }
 
       const files = await this.getArticleFiles(client, articleId);
-      const uploadInProgress = files.some((entry) => String(entry.status ?? '').toLowerCase() === 'created');
+      const uploadInProgress = files.some(entry => String(entry.status ?? '').toLowerCase() === 'created');
       if (uploadInProgress) {
         sails.log.warn(`FigService - the article id '${articleId}' has an upload in progress`);
         return false;
@@ -372,17 +432,34 @@ export namespace Services {
       }
 
       const msgPartial = `record oid '${oid}' with figshare article id '${articleId}' to step '${targetStep}'`;
-      if (!(await this.isArticleReadyForWorkflowTransition(config, record, articleId, figshareTargetFieldKey, figshareTargetFieldValue))) {
+      if (
+        !(await this.isArticleReadyForWorkflowTransition(
+          config,
+          record,
+          articleId,
+          figshareTargetFieldKey,
+          figshareTargetFieldValue
+        ))
+      ) {
         throw new Error(`Cannot transition ${msgPartial} because the linked article is not in the required state`);
       }
 
-      const currentRec = await RecordsService.getMeta(oid) as RecordModel;
+      const currentRec = (await RecordsService.getMeta(oid)) as RecordModel;
       const brandId = currentRec.metaMetadata?.brandId;
-      const brand = (brandId ? (BrandingService.getBrandById(brandId) ?? BrandingService.getBrand(brandId)) : null) ?? BrandingService.getDefault();
+      const brand =
+        (brandId ? (BrandingService.getBrandById(brandId) ?? BrandingService.getBrand(brandId)) : null) ??
+        BrandingService.getDefault();
       const userRoles = user.roles ?? [];
-      const hasEditAccess = await RecordsService.hasEditAccess(brand, user, userRoles as unknown as Record<string, unknown>[], currentRec as unknown as Record<string, unknown>);
+      const hasEditAccess = await RecordsService.hasEditAccess(
+        brand,
+        user,
+        userRoles as unknown as Record<string, unknown>[],
+        currentRec as unknown as Record<string, unknown>
+      );
       if (!hasEditAccess) {
-        throw new Error(`Cannot transition ${msgPartial} because user '${user.username}' does not have edit permission`);
+        throw new Error(
+          `Cannot transition ${msgPartial} because user '${user.username}' does not have edit permission`
+        );
       }
 
       const recordTypeName = currentRec.metaMetadata?.type ?? '';
@@ -392,17 +469,35 @@ export namespace Services {
       }
 
       const nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
-      const metadata = currentRec.metadata;
-      const recordUpdateResult = await RecordsService.updateMeta(brand, oid, currentRec as Record<string, unknown>, user, true, true, nextStepResp, metadata as Record<string, unknown>);
-      const isSuccessful = recordUpdateResult.isSuccessful();
-      if (isSuccessful) {
-        sails.log.info(`FigService - updated ${msgPartial}`);
+      const recordUpdateResult = await RecordsService.updateMetaInternal({
+        actor: { kind: 'service', id: 'FigshareService.transitionWorkflowForRecord' },
+        authorization: { kind: 'record-edit' },
+        mutationClass: 'transition',
+        operation: 'transition',
+        brand,
+        oid,
+        record: currentRec as Record<string, unknown>,
+        user,
+        targetStep: nextStepResp,
+      });
+      if (recordUpdateResult.wasPersisted()) {
+        if (recordUpdateResult.outcome === 'saved-with-warnings') {
+          sails.log.warn(`FigService - updated ${msgPartial} with warnings`, {
+            requestId: recordUpdateResult.requestId,
+          });
+        } else {
+          sails.log.info(`FigService - updated ${msgPartial}`);
+        }
       } else {
         throw new Error(`Failed to update ${msgPartial}: ${JSON.stringify(recordUpdateResult)}`);
       }
     }
 
-    public async syncRecordWithFigshare(record: RecordModel, jobId?: string, triggerSource: string = 'manual'): Promise<RecordModel> {
+    public async syncRecordWithFigshare(
+      record: RecordModel,
+      jobId?: string,
+      triggerSource: string = 'manual'
+    ): Promise<RecordModel> {
       const config = this.getConfig(record);
       const rm = record as RecordModel;
       if (config == null) {
@@ -415,13 +510,18 @@ export namespace Services {
       }
 
       const runContext = createRunContext(rm, config, jobId, triggerSource);
-      const auditCtx = startFigshareAudit(runContext.recordOid, IntegrationAuditAction.syncRecordWithFigshare, runContext, {
-        triggerSource,
-        jobId,
-        correlationId: plan.syncState.correlationId,
-        articleId: plan.articleId,
-        phase: 'sync-start',
-      });
+      const auditCtx = startFigshareAudit(
+        runContext.recordOid,
+        IntegrationAuditAction.syncRecordWithFigshare,
+        runContext,
+        {
+          triggerSource,
+          jobId,
+          correlationId: plan.syncState.correlationId,
+          articleId: plan.articleId,
+          phase: 'sync-start',
+        }
+      );
 
       try {
         let article = await this.syncMetadata(rm, plan);
@@ -429,7 +529,9 @@ export namespace Services {
         await this.syncEmbargo(rm, String(article?.id ?? plan.articleId ?? ''));
         const publishResult = await this.publishIfNeeded(rm, String(article?.id ?? plan.articleId ?? ''));
         if (Object.keys(publishResult).length > 0) {
-          article = await this.makeClient(config, rm, plan.syncState.correlationId, triggerSource).getArticle(String(article?.id ?? plan.articleId ?? ''));
+          article = await this.makeClient(config, rm, plan.syncState.correlationId, triggerSource).getArticle(
+            String(article?.id ?? plan.articleId ?? '')
+          );
         }
         const updatedRecord = this.writeBack(rm, article, publishResult, assetSyncResult);
         completeFigshareAudit(auditCtx, {
@@ -469,14 +571,36 @@ export namespace Services {
       }
     }
 
-    public async persistSyncRecord(oid: string, record: RecordModel, user: UserModel): Promise<boolean> {
+    public async persistSyncRecord(
+      oid: string,
+      record: RecordModel,
+      user: UserModel,
+      previousMetadata: unknown = {}
+    ): Promise<boolean> {
       try {
         const brandName = getBrandName(record);
         const brand = BrandingService.getBrand(brandName);
-        const response = await RecordsService.updateMeta(brand, oid, record as Record<string, unknown>, user, false, false);
-        if (response != null && typeof response.isSuccessful === 'function' && !response.isSuccessful()) {
+        const response = await RecordsService.updateMetaInternal({
+          actor: { kind: 'service', id: 'FigshareService.persistSyncRecord' },
+          authorization: { kind: 'record-edit' },
+          mutationClass: 'external-side-effect',
+          brand,
+          oid,
+          record: record as Record<string, unknown>,
+          user,
+          triggerPreSaveTriggers: false,
+          triggerPostSaveTriggers: false,
+          metadata: createRecordMetadataDelta(previousMetadata, record.metadata),
+          metadataMode: 'pre-applied',
+        });
+        if (response != null && typeof response.wasPersisted === 'function' && !response.wasPersisted()) {
           sails.log.error(`FigService - failed to persist Figshare sync state for ${oid}: ${JSON.stringify(response)}`);
           return false;
+        }
+        if (response?.outcome === 'saved-with-warnings') {
+          sails.log.warn(`FigService - persisted Figshare sync state with warnings for ${oid}`, {
+            requestId: response.requestId,
+          });
         }
         return true;
       } catch (error) {
@@ -485,7 +609,12 @@ export namespace Services {
       }
     }
 
-    public createUpdateFigshareArticle(oid: string | null, record: RecordModel, options: Record<string, unknown>, user: unknown) {
+    public createUpdateFigshareArticle(
+      oid: string | null,
+      record: RecordModel,
+      options: Record<string, unknown>,
+      user: unknown
+    ) {
       if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
         sails.log.debug(`FigService - createUpdateFigshareArticle trigger condition not met for ${oid}`);
         return record;
@@ -496,7 +625,12 @@ export namespace Services {
       return this.syncRecordWithFigshare(record, `${oid}:pre`, 'pre-save');
     }
 
-    public uploadFilesToFigshareArticle(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
+    public uploadFilesToFigshareArticle(
+      oid: string,
+      record: RecordModel,
+      options: Record<string, unknown>,
+      user: UserModel
+    ) {
       if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
         sails.log.debug(`FigService - uploadFilesToFigshareArticle trigger condition not met for ${oid}`);
         return record;
@@ -504,9 +638,10 @@ export namespace Services {
       if (this.getConfig(record) == null) {
         return record;
       }
+      const previousMetadata = cloneDeep(record.metadata);
       void this.syncRecordWithFigshare(record, `${oid}:post`, 'post-save')
         .then(async (updatedRecord: RecordModel) => {
-          const persisted = await this.persistSyncRecord(oid, updatedRecord, user);
+          const persisted = await this.persistSyncRecord(oid, updatedRecord, user, previousMetadata);
           if (persisted === false) {
             const config = this.getConfig(updatedRecord);
             if (config != null) {
@@ -542,12 +677,17 @@ export namespace Services {
           }
         })
         .catch(async (error: unknown) => {
-          await this.persistSyncRecord(oid, record, user);
+          await this.persistSyncRecord(oid, record, user, previousMetadata);
           sails.log.error(`FigService - uploadFilesToFigshareArticle sync failed for ${oid}`, error);
         });
     }
 
-    public async deleteFilesFromRedboxTrigger(oid: string, record: RecordModel, options: Record<string, unknown>, user: UserModel) {
+    public async deleteFilesFromRedboxTrigger(
+      oid: string,
+      record: RecordModel,
+      options: Record<string, unknown>,
+      user: UserModel
+    ) {
       const config = this.getConfig(record);
       const rm = record as RecordModel;
       if (config == null) {
@@ -596,10 +736,13 @@ export namespace Services {
       const brandId = data.brandId ?? '';
       const user = data.user as UserModel;
       if (!oid.trim()) {
-        sails.log.error(`FigService - cannot publish uploaded files because the record oid is empty before calling RecordsService.getMeta`);
+        sails.log.error(
+          `FigService - cannot publish uploaded files because the record oid is empty before calling RecordsService.getMeta`
+        );
         return;
       }
-      const record = await RecordsService.getMeta(oid) as RecordModel;
+      const record = (await RecordsService.getMeta(oid)) as RecordModel;
+      const previousMetadata = cloneDeep(record.metadata);
       const config = this.getConfig(record);
       if (config == null) {
         return;
@@ -613,7 +756,9 @@ export namespace Services {
         phase: 'publish',
       });
       if (!articleId.trim()) {
-        const error = new Error(`Cannot publish uploaded files for record '${oid}' because the Figshare article id is empty`);
+        const error = new Error(
+          `Cannot publish uploaded files for record '${oid}' because the Figshare article id is empty`
+        );
         sails.log.error(`FigService - ${error.message}`);
         failFigshareAudit(auditCtx, error, {
           message: 'Figshare publish-after-uploads job failed.',
@@ -647,13 +792,17 @@ export namespace Services {
           this.wrapHttpError(error, TranslationService.t('figshare-error-verifying-upload'));
         }
 
-        sails.log.warn(`FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`, error);
+        sails.log.warn(
+          `FigService - article '${articleId}' still has uploads in progress, rescheduling deferred publish`,
+          error
+        );
         try {
           this.queuePublishAfterUploadFiles(oid, articleId, user, brandId);
           return;
         } catch (queueError) {
           failFigshareAudit(auditCtx, queueError, {
-            message: 'Figshare publish-after-uploads job could not be rescheduled while uploads were still in progress.',
+            message:
+              'Figshare publish-after-uploads job could not be rescheduled while uploads were still in progress.',
             errorDetail: queueError instanceof Error ? queueError.message : String(queueError),
             responseSummary: {
               articleId,
@@ -670,7 +819,7 @@ export namespace Services {
         const publishResult = await client.publishArticle(articleId, {});
         const article = await client.getArticle(articleId);
         const updatedRecord = this.writeBack(record, article, publishResult);
-        const persisted = await this.persistSyncRecord(oid, updatedRecord, user);
+        const persisted = await this.persistSyncRecord(oid, updatedRecord, user, previousMetadata);
         if (persisted === false) {
           throw new Error(`Failed to persist Figshare publish state for record '${oid}'.`);
         }
@@ -715,7 +864,8 @@ export namespace Services {
       if (!oid.trim()) {
         return;
       }
-      let record = await RecordsService.getMeta(oid) as RecordModel;
+      let record = (await RecordsService.getMeta(oid)) as RecordModel;
+      const previousMetadata = cloneDeep(record.metadata);
       const config = this.getConfig(record);
       if (config == null) {
         return;
@@ -729,8 +879,8 @@ export namespace Services {
         phase: 'cleanup-uploaded-files',
       });
       try {
-        record = await this.cleanupUploadedFiles(record, articleId) as RecordModel;
-        const persisted = await this.persistSyncRecord(oid, record, user);
+        record = (await this.cleanupUploadedFiles(record, articleId)) as RecordModel;
+        const persisted = await this.persistSyncRecord(oid, record, user, previousMetadata);
         if (persisted === false) {
           throw new Error(`Failed to persist Figshare cleanup state for record '${oid}'.`);
         }
@@ -752,7 +902,7 @@ export namespace Services {
       const queueMessage = buildPublishAfterUploadsMessage(oid, articleId, user, brandId);
       const jobName = 'Figshare-PublishAfterUpload-Service';
       const record = {
-        metaMetadata: { brandId }
+        metaMetadata: { brandId },
       } as RecordModel;
       const config = this.getConfig(record);
       const scheduleIn = String(config?.queue.publishAfterUploadDelay ?? 'in 2 minutes');
@@ -767,7 +917,7 @@ export namespace Services {
       const queueMessage = buildDeleteFilesMessage(oid, user, brandId, articleId);
       const jobName = 'Figshare-UploadedFilesCleanup-Service';
       const record = {
-        metaMetadata: { brandId }
+        metaMetadata: { brandId },
       } as RecordModel;
       const config = this.getConfig(record);
       const scheduleIn = String(config?.queue.uploadedFilesCleanupDelay ?? 'in 5 minutes');
@@ -778,7 +928,9 @@ export namespace Services {
       }
     }
 
-    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(_job: Record<string, unknown>): Promise<void> {
+    public async transitionRecordWorkflowFromFigshareArticlePropertiesJob(
+      _job: Record<string, unknown>
+    ): Promise<void> {
       const defaultConfig = this.getConfig({ metaMetadata: { brandId: 'default' } } as RecordModel);
       const jobConfig = (defaultConfig?.workflow.transitionJob ?? {}) as WorkflowTransitionJobConfig;
       if (!shouldRunWorkflowTransitionJob(jobConfig)) {
@@ -801,7 +953,10 @@ export namespace Services {
         const user = await UsersService.getUserWithUsername(username).toPromise();
 
         if (!user || !user?.username || user?.type !== userType) {
-          sails.log.error(`FigService - cannot run job because could not find user with username '${username}' and type '${userType}'`, { type: user?.type });
+          sails.log.error(
+            `FigService - cannot run job because could not find user with username '${username}' and type '${userType}'`,
+            { type: user?.type }
+          );
           return;
         }
 
@@ -810,7 +965,16 @@ export namespace Services {
           sails.log.error(`FigService - named query '${namedQuery}' was not found for workflow transition job`);
           return;
         }
-        const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(namedQueryConfig, paramMap, brand, namedQuery, start, rows, maxRecords, user);
+        const queryResults = await NamedQueryService.performNamedQueryFromConfigResults(
+          namedQueryConfig,
+          paramMap,
+          brand,
+          namedQuery,
+          start,
+          rows,
+          maxRecords,
+          user
+        );
 
         for (const queryResult of queryResults) {
           const oid = String(queryResult.oid ?? '');
@@ -819,28 +983,49 @@ export namespace Services {
           }
           let auditCtx: ReturnType<typeof startFigshareAudit> = null;
           try {
-            const record = await RecordsService.getMeta(oid) as RecordModel;
+            const record = (await RecordsService.getMeta(oid)) as RecordModel;
             const config = this.getConfig(record);
             if (config == null) {
               continue;
             }
             const articleId = String(getRecordField(record, config.record.articleIdPath) ?? '');
-            const runContext = createRunContext(record, config, `${oid}:workflow-transition`, 'transitionRecordWorkflowFromFigshareArticlePropertiesJob');
-            auditCtx = startFigshareAudit(oid, IntegrationAuditAction.transitionRecordWorkflowFromFigshareArticlePropertiesJob, runContext, {
-              triggerSource: 'transitionRecordWorkflowFromFigshareArticlePropertiesJob',
-              jobId: `${oid}:workflow-transition`,
-              correlationId: `${oid}:workflow-transition`,
+            const runContext = createRunContext(
+              record,
+              config,
+              `${oid}:workflow-transition`,
+              'transitionRecordWorkflowFromFigshareArticlePropertiesJob'
+            );
+            auditCtx = startFigshareAudit(
+              oid,
+              IntegrationAuditAction.transitionRecordWorkflowFromFigshareArticlePropertiesJob,
+              runContext,
+              {
+                triggerSource: 'transitionRecordWorkflowFromFigshareArticlePropertiesJob',
+                jobId: `${oid}:workflow-transition`,
+                correlationId: `${oid}:workflow-transition`,
+                articleId,
+                targetStep,
+                phase: 'workflow-transition',
+              }
+            );
+            await this.transitionWorkflowForRecord(
+              record,
+              user,
+              oid,
               articleId,
               targetStep,
-              phase: 'workflow-transition',
-            });
-            await this.transitionWorkflowForRecord(record, user, oid, articleId, targetStep, figshareTargetFieldKey, figshareTargetFieldValue);
+              figshareTargetFieldKey,
+              figshareTargetFieldValue
+            );
             completeFigshareAudit(auditCtx, {
               message: 'Figshare workflow transition job completed successfully for record.',
               responseSummary: { articleId, targetStep, phase: 'workflow-transition' },
             });
           } catch (error) {
-            sails.log.warn(`FigService - transitionRecordWorkflowFromFigshareArticlePropertiesJob unable to process oid ${oid}`, error);
+            sails.log.warn(
+              `FigService - transitionRecordWorkflowFromFigshareArticlePropertiesJob unable to process oid ${oid}`,
+              error
+            );
             failFigshareAudit(auditCtx, error, {
               message: 'Figshare workflow transition job failed for record.',
               errorDetail: error instanceof Error ? error.message : String(error),

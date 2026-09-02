@@ -1,4 +1,5 @@
 import { apiRoute } from '../route-factory';
+import { recordSchemaResolverOpenApiExtension } from '../record-schema-openapi';
 import {
   arrayField,
   apiErrorResponseSchema,
@@ -11,25 +12,81 @@ import {
   deletedRecordListItemSchema,
   oidParams,
   objectField,
-  objectMetadataSchema,
+  objectMetadataReadResponseSchema,
   recordAuditEntrySchema,
   recordAuditQuery,
   recordDownloadQuery,
   recordHarvestQuery,
   harvestRouteResponseSchema,
+  legacyRecordUpdateQuery,
   recordListQuery,
   recordListItemSchema,
-  recordMetadataSchema,
+  recordDeleteQuery,
+  recordMetadataReadResponseSchema,
+  recordMutationHeaderFields,
+  recordMutationHeaders,
+  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
+  recordOperationQuery,
+  recordSchemaWritePreconditionHeaderField,
+  recordSaveFailureResponseSchema,
+  recordSaveSuccessResponseSchema,
   recordUpdateQuery,
   recordTypeParams,
-  recordAuthorizationSchema,
+  recordEntityTagSchema,
+  recordPermissionSaveResponseSchema,
+  recordPermissionsReadResponseSchema,
   listApiResponseSchema,
   responseField,
-  storageServiceResponseSchema,
   stringField,
 } from '../schemas/common';
 
 const bodyFallback = ['body'] as const;
+
+const recordEntityTagResponseHeaders = {
+  ETag: recordEntityTagSchema,
+};
+
+const recordSchemaDiscoveryResponseHeaders = {
+  Link: stringField('Immutable caller-effective record schema: rel="describedby"; type="application/schema+json"'),
+};
+
+const recordResponseWithTag = (schema: Parameters<typeof responseField>[0], description: string) => ({
+  ...responseField(schema, description),
+  headers: recordEntityTagResponseHeaders,
+});
+
+const recordResponseWithTagAndSchemaDiscovery = (schema: Parameters<typeof responseField>[0], description: string) => ({
+  ...responseField(schema, description),
+  headers: { ...recordEntityTagResponseHeaders, ...recordSchemaDiscoveryResponseHeaders },
+});
+
+const recordConcurrencyFailureResponses = {
+  409: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record or form-definition conflict'),
+  412: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record revision or schema precondition failed'),
+  428: recordResponseWithTag(recordSaveFailureResponseSchema, 'Strict record precondition is required'),
+};
+
+const recordPermissionMutationResponses = {
+  200: recordResponseWithTag(recordPermissionSaveResponseSchema, 'Record permissions updated'),
+  400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+  403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record authorization failure'),
+  ...recordConcurrencyFailureResponses,
+  500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+};
+
+const recordLifecycleMutationResponses = {
+  200: recordResponseWithTag(recordSaveSuccessResponseSchema, 'Record lifecycle transition complete'),
+  400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid lifecycle concurrency request'),
+  403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record lifecycle authorization failure'),
+  404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+  ...recordConcurrencyFailureResponses,
+  500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Lifecycle persistence outcome is unknown'),
+};
+
+const recordMutationWithSchemaHeaders = objectField({
+  ...recordMutationHeaderFields,
+  [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]: recordSchemaWritePreconditionHeaderField,
+});
 
 const recordListLegacyFallbacks = {
   editOnly: bodyFallback,
@@ -63,6 +120,7 @@ export const createRecordRoute = apiRoute(
       'portal',
       'recordType',
     ]),
+    query: recordOperationQuery,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Record metadata payload', true) } },
@@ -71,14 +129,20 @@ export const createRecordRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Create record metadata',
+    extensions: recordSchemaResolverOpenApiExtension('create'),
     responses: {
       201: {
         description: 'Record created',
-        content: { 'application/json': { schema: storageServiceResponseSchema } },
+        content: { 'application/json': { schema: recordSaveSuccessResponseSchema } },
         headers: {
           Location: stringField('Location of the created record'),
+          ...recordEntityTagResponseHeaders,
+          ...recordSchemaDiscoveryResponseHeaders,
         },
       },
+      400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: responseField(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
+      500: responseField(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
     },
   }
 );
@@ -91,6 +155,7 @@ export const updateMetaRoute = apiRoute(
   {
     params: oidParams,
     query: recordUpdateQuery,
+    headers: recordMutationWithSchemaHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Record metadata payload', true) } },
@@ -103,7 +168,14 @@ export const updateMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update record metadata',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Record metadata updated') },
+    extensions: recordSchemaResolverOpenApiExtension('update'),
+    responses: {
+      200: recordResponseWithTagAndSchemaDiscovery(recordSaveSuccessResponseSchema, 'Record metadata updated'),
+      400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
+      ...recordConcurrencyFailureResponses,
+      500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+    },
   }
 );
 
@@ -138,7 +210,7 @@ export const legacyHarvestRoute = apiRoute(
   'legacyHarvest',
   {
     params: recordTypeParams,
-    query: recordUpdateQuery,
+    query: legacyRecordUpdateQuery,
     body: { content: { 'application/json': { schema: objectField({}, [], 'Legacy harvest payload', true) } } },
     legacyParamFallbacks: {
       merge: bodyFallback,
@@ -158,6 +230,7 @@ export const updateObjectMetaRoute = apiRoute(
   'updateObjectMeta',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Object metadata payload', true) } },
@@ -166,7 +239,13 @@ export const updateObjectMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update object metadata',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Object metadata updated') },
+    responses: {
+      200: recordResponseWithTag(recordSaveSuccessResponseSchema, 'Object metadata updated'),
+      400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record authorization failure'),
+      ...recordConcurrencyFailureResponses,
+      500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+    },
   }
 );
 
@@ -179,7 +258,12 @@ export const getMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Get record metadata',
-    responses: { 200: responseField(recordMetadataSchema, 'Record metadata') },
+    responses: {
+      200: recordResponseWithTagAndSchemaDiscovery(recordMetadataReadResponseSchema, 'Record metadata'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
   }
 );
 
@@ -232,16 +316,34 @@ export const listDeletedRecordsRoute = apiRoute(
   }
 );
 
+export const getDeletedRecordRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/deletedrecords/:oid',
+  'webservice/RecordController',
+  'getDeletedRecord',
+  { params: oidParams },
+  {
+    tags: ['Records'],
+    summary: 'Get deleted record metadata and lifecycle state',
+    responses: {
+      200: recordResponseWithTag(recordMetadataReadResponseSchema, 'Deleted record metadata'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Deleted record not found in the active brand'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
+  }
+);
+
 export const restoreRecordRoute = apiRoute(
   'put',
   '/:branding/:portal/api/deletedrecords/:oid',
   'webservice/RecordController',
   'restoreRecord',
-  { params: oidParams },
+  { params: oidParams, headers: recordMutationHeaders },
   {
     tags: ['Records'],
     summary: 'Restore deleted record',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Record restored') },
+    responses: recordLifecycleMutationResponses,
   }
 );
 
@@ -250,11 +352,11 @@ export const destroyDeletedRecordRoute = apiRoute(
   '/:branding/:portal/api/deletedrecords/:oid',
   'webservice/RecordController',
   'destroyDeletedRecord',
-  { params: oidParams },
+  { params: oidParams, headers: recordMutationHeaders },
   {
     tags: ['Records'],
     summary: 'Destroy deleted record',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Deleted record destroyed') },
+    responses: recordLifecycleMutationResponses,
   }
 );
 
@@ -267,7 +369,12 @@ export const getObjectMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Get object metadata',
-    responses: { 200: responseField(objectMetadataSchema, 'Object metadata') },
+    responses: {
+      200: recordResponseWithTag(objectMetadataReadResponseSchema, 'Object metadata'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
   }
 );
 
@@ -276,11 +383,11 @@ export const deleteRecordRoute = apiRoute(
   '/:branding/:portal/api/records/metadata/:oid',
   'webservice/RecordController',
   'deleteRecord',
-  { params: oidParams },
+  { params: oidParams, query: recordDeleteQuery, headers: recordMutationHeaders },
   {
     tags: ['Records'],
     summary: 'Delete record metadata',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Record deleted') },
+    responses: recordLifecycleMutationResponses,
   }
 );
 
@@ -291,6 +398,7 @@ export const addUserEditRoute = apiRoute(
   'addUserEdit',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -307,7 +415,7 @@ export const addUserEditRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Add edit permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated edit permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -318,6 +426,7 @@ export const removeUserEditRoute = apiRoute(
   'removeUserEdit',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -334,7 +443,7 @@ export const removeUserEditRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Remove edit permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated edit permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -345,6 +454,7 @@ export const addUserViewRoute = apiRoute(
   'addUserView',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -361,7 +471,7 @@ export const addUserViewRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Add view permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated view permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -372,6 +482,7 @@ export const removeUserViewRoute = apiRoute(
   'removeUserView',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -388,7 +499,7 @@ export const removeUserViewRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Remove view permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated view permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -399,6 +510,7 @@ export const addRoleEditRoute = apiRoute(
   'addRoleEdit',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -410,7 +522,7 @@ export const addRoleEditRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Add edit role permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated role permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -421,6 +533,7 @@ export const removeRoleEditRoute = apiRoute(
   'removeRoleEdit',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -432,7 +545,7 @@ export const removeRoleEditRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Remove edit role permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated role permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -443,6 +556,7 @@ export const addRoleViewRoute = apiRoute(
   'addRoleView',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -454,7 +568,7 @@ export const addRoleViewRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Add view role permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated role permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -465,6 +579,7 @@ export const removeRoleViewRoute = apiRoute(
   'removeRoleView',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: {
       content: {
         'application/json': {
@@ -476,7 +591,7 @@ export const removeRoleViewRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Remove view role permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Updated role permissions') },
+    responses: recordPermissionMutationResponses,
   }
 );
 
@@ -489,7 +604,12 @@ export const getPermissionsRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Get record permissions',
-    responses: { 200: responseField(recordAuthorizationSchema, 'Record permissions') },
+    responses: {
+      200: recordResponseWithTag(recordPermissionsReadResponseSchema, 'Record permissions'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+      500: responseField(apiErrorResponseSchema, 'Internal server error'),
+    },
   }
 );
 
@@ -500,6 +620,7 @@ export const addDataStreamsRoute = apiRoute(
   'addDataStreams',
   {
     params: oidParams,
+    headers: recordMutationHeaders,
     body: { content: { 'multipart/form-data': { schema: datastreamUploadBody } } },
     files: {
       attachmentFields: {
@@ -514,7 +635,12 @@ export const addDataStreamsRoute = apiRoute(
     tags: ['Records'],
     summary: 'Upload record datastreams',
     responses: {
-      200: responseField(datastreamUploadResponseSchema, 'Datastreams uploaded'),
+      200: recordResponseWithTag(datastreamUploadResponseSchema, 'Datastreams uploaded'),
+      400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid upload or concurrency request'),
+      403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record edit authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+      ...recordConcurrencyFailureResponses,
+      500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Upload or persistence failure'),
     },
   }
 );
@@ -544,6 +670,8 @@ export const getDataStreamRoute = apiRoute(
           },
         },
       },
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record or datastream not found in the active brand'),
     },
   }
 );
@@ -557,7 +685,11 @@ export const listDatastreamsRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'List datastreams',
-    responses: { 200: responseField(listApiResponseSchema(datastreamSummarySchema), 'Datastream list') },
+    responses: {
+      200: responseField(listApiResponseSchema(datastreamSummarySchema), 'Datastream list'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+    },
   }
 );
 
@@ -568,6 +700,8 @@ export const transitionWorkflowRoute = apiRoute(
   'transitionWorkflow',
   {
     params: objectField({ targetStep: stringField(), oid: stringField() }, ['targetStep', 'oid']),
+    query: recordOperationQuery,
+    headers: recordMutationWithSchemaHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Workflow transition payload', true) } },
@@ -576,7 +710,13 @@ export const transitionWorkflowRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Transition workflow step',
-    responses: { 200: responseField(storageServiceResponseSchema, 'Workflow transition complete') },
+    responses: {
+      200: recordResponseWithTag(recordSaveSuccessResponseSchema, 'Workflow transition complete'),
+      400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
+      403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
+      ...recordConcurrencyFailureResponses,
+      500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Legacy or system save failure'),
+    },
   }
 );
 
@@ -590,6 +730,7 @@ export const recordApiRoutes = [
   getRecordAuditRoute,
   listRecordsRoute,
   listDeletedRecordsRoute,
+  getDeletedRecordRoute,
   restoreRecordRoute,
   destroyDeletedRecordRoute,
   getObjectMetaRoute,

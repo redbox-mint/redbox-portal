@@ -176,10 +176,160 @@ The settings in this section control the behaviour of the entire form.
 | name                    | The label name of the form. This should match the < form-name > value.                                                                                                                                                           | Yes                      | rdmp-1.0-draft                       |
 | type                    | The type of form (e.g. `rdmp`, `project`, `survey`).                                                                                                                                                                              | Yes                      | rdmp                                 |
 | enabledValidationGroups | The validation groups to enable. This property is particularly useful in early stages of a workflow where you want the user to be able to save and come back to the record later without having to fill in all mandatory fields. | No (defaults to ["all"]) | ["minimumCreate"]                    |
-| skipValidationOnSave    | Determines whether validation is skipped on save. Set to `false` to enforce validation.                                                                                                                                          | No                       | false                                |
+| skipValidationOnSave    | Legacy browser behavior migrated to validation groups. It does not bypass authoritative server validation.                                                                                                                       | No                       | false                                |
 | editCssClasses          | The CSS classes to apply to each element for styling. These are used in edit mode                                                                                                                                                | Yes                      | row col-md-12                        |
 | viewCssClasses          | The CSS classes to apply to each element for styling. These are used in view mode                                                                                                                                                | Yes                      | row col-md-12                        |
 | < message-code >        | A set of key value pairs containing messages to show to the user                                                                                                                                                                 | Yes                      | "saveSuccess": "Saved successfully." |
+
+## Authoritative server validation operations
+
+Every metadata-changing save is validated by the server against the complete
+candidate and the exact resolved form. `enabledValidationGroups` still drives
+interactive Angular feedback, but a client cannot make it authoritative by
+sending a different group array.
+
+Forms declare server-owned business intents in `validationOperations`:
+
+```javascript
+validationOperations: {
+  submit: {
+    enabledValidationGroups: ['submit'],
+    label: 'Submit for review',
+    description: 'Validate submission requirements.',
+    roles: ['Researcher'],
+    allowedTargetSteps: ['review']
+  },
+  publish: {
+    enabledValidationGroups: ['publish'],
+    roles: ['Librarian'],
+    allowedTargetSteps: ['published']
+  }
+}
+```
+
+| Property | Meaning |
+|---|---|
+| operation key | Case-sensitive safe name, up to 64 characters |
+| `enabledValidationGroups` | Exact blocking group set applied last for this operation |
+| `label` / `description` | Optional safe discovery text shown to authorized clients |
+| `roles` | Optional restriction intersected with record edit authorization |
+| `allowedTargetSteps` | Optional restriction intersected with authorized transitions |
+
+An omitted operation always runs every blocking validator. It does not preserve
+the final form's conditional/default group subset. For a named operation, an
+empty enabled-group array retains the established ReDBox meaning of all
+validators; use the server-owned declared `none` group to intentionally run
+none. In either strict-all case, validators belonging only to advisory groups
+from `SuggestedValidationSummaryComponent` are excluded from the blocking pass
+and executed separately. Strict-all does not overlap every advisory group;
+overlap diagnostics require a named group selected for both passes. Advisory
+validator findings, execution failures, and timeouts do not block primary
+persistence. Advisory-group discovery is still enforcement configuration:
+groups must exist and must use `initialMembership: 'none'`. Configuring an
+advisory group—including the built-in `all` group—with
+`initialMembership: 'all'` is an enforcement configuration error and does not
+prove that any validator is advisory-only or remove ordinary validators from
+the strict-all pass. A malformed advisory summary or an unknown/invalid
+advisory group remains diagnostic-only in shadow mode and blocks saves in
+enforce mode.
+
+Rich-text fields are also inspected during the authoritative pass. With the
+default `record.form.htmlSanitizationMode: 'sanitize'`, unsafe HTML is replaced
+on a cloned authoritative candidate and reported as the nonblocking
+`htmlSanitized` advisory issue. The returned candidate—not the caller object or
+the pre-sanitization copy—is used for create, update, transition, postSync, and
+persistence. Sanitation precedes field/form validators (including repeatable
+rows), and a successful save that sanitizes content returns
+`saved-with-warnings` with the advisory issue. Setting the mode to `reject`
+leaves the submitted value unchanged
+and reports the blocking `htmlUnsafe` issue; the record-validation rollout mode
+still determines whether blocking findings are enforced or observed in shadow.
+Sanitation transformations include the exact source string and schema-owned
+path. Application verifies both before replacement and also applies any
+transformations discovered by the blocking or advisory validator pass.
+If sanitation succeeds but a later blocking expression or validator fails,
+times out, or cannot resolve its groups, the sanitized candidate remains the
+only candidate eligible for shadow persistence. A malformed or stale
+transformation source, type, or path is not skipped: the save fails closed in both rollout modes
+so raw unsafe HTML cannot be written accidentally.
+
+Record-type configuration may replace groups, restrict policy, and select
+rollout mode:
+
+```javascript
+recordValidation: {
+  mode: 'shadow',
+  operations: {
+    submit: { mode: 'enforce' }
+  }
+}
+```
+
+A workflow stage may refine `recordValidation.operations` groups, roles, and
+allowed target steps, but cannot change mode. Mode precedence is global,
+global operation, record type, then record-type operation.
+
+Save buttons add `operation` while retaining temporary client groups:
+
+```javascript
+config: {
+  label: 'Submit',
+  operation: 'submit',
+  targetStep: 'review',
+  enabledValidationGroups: ['submit']
+}
+```
+
+Server conditional-group expressions run only with deterministic form-ready
+state. Browser event routes such as JSONPointer `::field.value.changed`,
+browser-only JSONata bindings, and expressions with `runOnFormReady: false`
+are not authoritative. During migration they produce safe shadow diagnostics
+without changing persistence. In enforce mode they are configuration failures
+and the save is rejected; replace them with a form-ready expression over the
+documented JSON-like server context or move the rule into a validator before
+enabling enforcement.
+
+The server expression context has this fixed shape: candidate `formData`, the
+validation `operation`, `recordType`, `formName`, `brand`, current/target
+`workflow` steps, allowlisted `requestParams`, normalized `runtimeContext`, and
+`actor: { authenticated, roles }`. Browser and API routes offer the same four
+normalized request facts: bounded `recordType`/`targetStep` references and
+boolean `merge`/`datastreams`. The deployment
+`recordValidation.allowedRequestParameters` list narrows those facts again.
+Runtime facts contain `routeFamily`, `writeKind`, and `saveOperation`; only
+trusted internal callers may add JSON-only values. Raw requests, sessions,
+headers, users, IDs, tokens, credentials, and arbitrary query parameters are
+not expression inputs.
+
+Candidate record metadata and values are data only. Nested objects that happen
+to resemble component definitions, groups, summaries, or expressions are not
+traversed as form configuration and cannot select `none` or suppress blocking
+validation. Validators inside a repeatable component's schema-owned
+`elementTemplate` run once per submitted row with indexed data-model and pointer
+lineage, matching Angular's row behavior.
+
+For a targeted create, the target workflow step supplies the exact form and
+authorization written to the new record. The caller must have ordinary edit
+access to that constructed candidate and, when the target is not the starting
+step, must satisfy the target step's transition-role policy. An operation's
+`roles` and `allowedTargetSteps` may narrow those checks; they never replace
+object edit or workflow-transition authorization.
+
+An explicitly requested create or transition target must be a well-formed,
+configured workflow step and is resolved before hooks run. Transition and
+create hooks cannot silently switch that target, brand, record type, or
+workflow stage. Missing or conflicting hook-produced `metaMetadata.form` is
+normalized to the exact authoritative target-step form before validation and
+persistence; brand, type, or workflow authority divergence is rejected.
+Ordinary target-step and transition-role checks are repeated after hook output;
+operation policy remains an additional restriction. Same-name form and
+reusable-validator changes invalidate bounded effective caches through their
+version/fingerprint. Candidate-sensitive question-tree configurations are
+reconstructed for each candidate, including when the question tree appears
+only after a reusable definition is expanded.
+
+See [Migrating Save Buttons to Validation Operations](Migrating-Save-Buttons-to-Validation-Operations)
+and [Operating Authoritative Server-Side Form Validation](Server-Side-Form-Validation-Operations).
 
 ### Messages
 

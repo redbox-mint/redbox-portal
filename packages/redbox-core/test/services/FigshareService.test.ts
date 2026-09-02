@@ -5,7 +5,7 @@ import type { RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
-const testRequire = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 const { agendaQueue } = testRequire('../../src/config/agendaQueue.config');
 const { FigsharePublishing, FIGSHARE_PUBLISHING_SCHEMA } = testRequire('../../src/configmodels/FigsharePublishing');
 const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
@@ -366,7 +366,7 @@ describe('FigshareService', function () {
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().resolves(true),
-      updateMeta: sinon.stub().resolves({ success: true }),
+      updateMetaInternal: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
     (global as any).UsersService = {
       getUserWithUsername: sinon.stub().returns({
@@ -551,7 +551,13 @@ describe('FigshareService', function () {
 
   it('keeps record oid field precedence over the job id fallback', function () {
     const context = createRunContext(
-      { redboxOid: 'record-oid', id: 'id-oid', oid: 'legacy-oid', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
+      {
+        redboxOid: 'record-oid',
+        id: 'id-oid',
+        oid: 'legacy-oid',
+        metaMetadata: { brandId: 'default' },
+        metadata: {},
+      } as RecordModel,
       buildFigsharePublishingConfig() as FigsharePublishingConfigData,
       'job-id:publish-job'
     );
@@ -1827,7 +1833,7 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.figshare_article_id',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
@@ -1887,7 +1893,11 @@ describe('FigshareService', function () {
       metadata: { title: 'Dataset title' },
       metaMetadata: { brandId: 'named-brand', type: 'dataset' },
     });
-    (global as any).RecordsService.updateMeta.resolves({ isSuccessful: () => true });
+    (global as any).RecordsService.updateMetaInternal.resolves({
+      isSuccessful: () => true,
+      wasPersisted: () => true,
+      isComplete: () => true,
+    });
     sinon.stub(service as any, 'isArticleReadyForWorkflowTransition').resolves(true);
 
     await (service as any).transitionWorkflowForRecord(
@@ -1904,7 +1914,85 @@ describe('FigshareService', function () {
     expect((global as any).BrandingService.getBrand.calledWith('named-brand')).to.equal(true);
     expect((global as any).RecordsService.hasEditAccess.firstCall.args[0]).to.equal(namedBrand);
     expect((global as any).RecordTypesService.get.firstCall.args[0]).to.equal(namedBrand);
-    expect((global as any).RecordsService.updateMeta.firstCall.args[0]).to.equal(namedBrand);
+    expect((global as any).RecordsService.updateMetaInternal.firstCall.args[0].brand).to.equal(namedBrand);
+  });
+
+  it('omits metadata submission when the Figshare job only transitions workflow', async function () {
+    getConfigStub.callsFake(
+      () =>
+        buildFigsharePublishingConfig({
+          workflow: {
+            transitionJob: {
+              enabled: true,
+              namedQuery: 'figshare-transition',
+              targetStep: 'published',
+              paramMap: {},
+              figshareTargetFieldKey: 'status',
+              figshareTargetFieldValue: 'public',
+              username: 'figshare-job-user',
+              userType: 'admin',
+            },
+          },
+        }) as any
+    );
+    const currentRecord = {
+      redboxOid: 'oid-1',
+      oid: 'oid-1',
+      metadata: {
+        title: 'Dataset title',
+        figshare_article_id: 'article-1',
+        persistedUndeclaredField: 'must not be resubmitted',
+      },
+      metaMetadata: { brandId: 'default-id', type: 'dataset' },
+    };
+    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
+    (global as any).RecordsService.getMeta.resolves(currentRecord);
+    sinon.stub(service, 'makeClient').returns({
+      getArticle: sinon.stub().resolves({ id: 'article-1', status: 'public' }),
+      listArticleFiles: sinon.stub().resolves([]),
+    });
+
+    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
+
+    expect((global as any).RecordsService.updateMetaInternal.calledOnce).to.equal(true);
+    const options = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+    expect(options.record).to.equal(currentRecord);
+    expect(options).not.to.have.property('metadata');
+  });
+
+  it('treats a persisted warning as a successful Figshare state writeback', async function () {
+    (global as any).RecordsService.updateMetaInternal.resolves({
+      outcome: 'saved-with-warnings',
+      wasPersisted: () => true,
+      isComplete: () => false,
+    });
+
+    const persisted = await service.persistSyncRecord(
+      'oid-1',
+      {
+        metaMetadata: { brandId: 'default' },
+        metadata: {
+          figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
+          untouched: 'keep',
+        },
+      } as any,
+      { username: 'figshare-job-user' } as any,
+      {
+        figshare: { status: 'pending', retained: true, files: [{ id: 'old' }] },
+        untouched: 'keep',
+      }
+    );
+
+    expect(persisted).to.equal(true);
+    const updateOptions = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+    expect(updateOptions.metadataMode).to.equal('pre-applied');
+    expect(updateOptions.metadata).to.deep.equal({
+      figshare: { status: 'complete', files: [{ id: 'new' }] },
+    });
+    expect(updateOptions.record.metadata).to.deep.equal({
+      figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
+      untouched: 'keep',
+    });
   });
 
   it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {
@@ -1913,14 +2001,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-                  transitionJob: {
+            transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1954,14 +2042,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-                  transitionJob: {
+            transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -1997,14 +2085,14 @@ describe('FigshareService', function () {
         buildFigsharePublishingConfig({
           record: {
             articleIdPath: 'metadata.v2.articleId',
-                  dataLocationsPath: 'metadata.dataLocations',
+            dataLocationsPath: 'metadata.dataLocations',
             statusPath: 'metadata.figshareStatus',
             errorPath: 'metadata.figshareError',
             syncStatePath: 'metadata.figshareSyncState',
             allFilesUploadedPath: '',
           },
           workflow: {
-                  transitionJob: {
+            transitionJob: {
               enabled: true,
               namedQuery: 'v2-transition',
               targetStep: 'published',
@@ -2144,7 +2232,12 @@ describe('FigshareService', function () {
         disk: sinon.stub().returns(fakeDisk.disk),
         stagingDisk: sinon.stub().returns(fakeDisk.disk),
       };
-      const readstream = new Readable({ read() { /* intentionally empty */ }, emitClose: false });
+      const readstream = new Readable({
+        read() {
+          /* intentionally empty */
+        },
+        emitClose: false,
+      });
       (global as any).sails.config.record = { datastreamService: 'datastreamservice' };
       (global as any).sails.services.datastreamservice = {
         getDatastream: sinon.stub().resolves({ readstream, size: 8 }),

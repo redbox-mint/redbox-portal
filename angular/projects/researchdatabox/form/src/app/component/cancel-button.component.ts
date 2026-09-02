@@ -65,6 +65,7 @@ export class CancelButtonComponent extends ButtonBaseComponent {
         redirectLocation: redirectLocation || undefined,
         redirectDelaySeconds: this.componentDefinition?.config?.redirectDelaySeconds,
         sourceId: this.name ?? undefined,
+        formScopeId: this.getFormComponent.eventScopeId,
       })
     );
   }

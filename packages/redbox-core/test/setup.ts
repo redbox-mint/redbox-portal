@@ -1,5 +1,14 @@
 import '../src/sails';
 import * as lodash from 'lodash';
+import {
+  createNoopMeter,
+  metrics,
+  type Attributes,
+  type Counter,
+  type Histogram,
+  type Meter,
+  type MeterProvider,
+} from '@opentelemetry/api';
 
 // Ensure TypeScript includes Sails global service declarations during tests.
 // These are type-only imports and do not execute the modules at runtime.
@@ -25,6 +34,53 @@ import type { Services as _FormsServiceTypes } from '../src/services/FormsServic
 import type { Services as _FormRecordConsistencyServiceTypes } from '../src/services/FormRecordConsistencyService';
 import type { Services as _TranslationServiceTypes } from '../src/services/TranslationService';
 import type { Services as _NavigationServiceTypes } from '../src/services/NavigationService';
+import type { Services as _SolrSearchServiceTypes } from '../src/services/SolrSearchService';
+import type {} from '../src/waterline-models/types';
+
+export interface CapturedOpenTelemetryMeasurement {
+  readonly name: string;
+  readonly value: number;
+  readonly attributes: Attributes;
+}
+
+const capturedOpenTelemetryMeasurements: CapturedOpenTelemetryMeasurement[] = [];
+const noopMeter = createNoopMeter();
+const capturingMeter: Meter = new Proxy(noopMeter, {
+  get(target, property, receiver) {
+    if (property === 'createCounter') {
+      return (name: string): Counter => ({
+        add: (value, attributes = {}) => {
+          capturedOpenTelemetryMeasurements.push({ name, value, attributes: { ...attributes } });
+        },
+      });
+    }
+    if (property === 'createHistogram') {
+      return (name: string): Histogram => ({
+        record: (value, attributes = {}) => {
+          capturedOpenTelemetryMeasurements.push({ name, value, attributes: { ...attributes } });
+        },
+      });
+    }
+    return Reflect.get(target, property, receiver);
+  },
+});
+const capturingMeterProvider: MeterProvider = {
+  getMeter: name => name === 'redbox.record-validation' || name === 'redbox.record-schema' ? capturingMeter : noopMeter,
+};
+if (!metrics.setGlobalMeterProvider(capturingMeterProvider)) {
+  throw new Error('The core test suite could not install its OpenTelemetry meter provider.');
+}
+
+export function clearCapturedOpenTelemetryMeasurements(): void {
+  capturedOpenTelemetryMeasurements.length = 0;
+}
+
+export function getCapturedOpenTelemetryMeasurements(): readonly CapturedOpenTelemetryMeasurement[] {
+  return capturedOpenTelemetryMeasurements.map(measurement => ({
+    ...measurement,
+    attributes: { ...measurement.attributes },
+  }));
+}
 
 /**
  * Test setup file that runs before all tests.

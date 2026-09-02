@@ -13,6 +13,7 @@ put {
 headers {
   Content-Type: application/json
   Authorization: Bearer {{token}}
+  If-Match: {{dmpInitialEtag}}
 }
 
 body:json {
@@ -65,6 +66,10 @@ body:json {
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
+      const etag = res.getHeader("etag");
+      expect(etag).to.match(/^".+"$/);
+      expect(etag).not.to.equal(bru.getEnvVar("dmpInitialEtag"));
+      bru.setEnvVar("dmpCurrentEtag", etag);
   });
   
   test("Test oid is equal to the requested oid value", function () {

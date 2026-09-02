@@ -188,7 +188,7 @@ dev
 api/models/
 packages/raido/dist
 packages/raido/*.tgz
-angular/.angular/cache/
+angular/.angular
 
 api/configmodels/*
 api/additional/*

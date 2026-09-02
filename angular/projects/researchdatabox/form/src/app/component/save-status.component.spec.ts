@@ -3,7 +3,12 @@ import { Store } from '@ngrx/store';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import * as FormActions from '../form-state/state/form.actions';
-import { createFormDeleteSuccessEvent, FormComponentEventBus } from '../form-state';
+import {
+  createFormDeleteSuccessEvent,
+  createFormSaveFailureEvent,
+  createFormSaveSuccessEvent,
+  FormComponentEventBus,
+} from '../form-state';
 import { SaveStatusComponent } from './save-status.component';
 import { SimpleInputComponent } from './simple-input.component';
 
@@ -11,11 +16,18 @@ let formConfig: FormConfigFrame;
 
 describe('SaveStatusComponent', () => {
   beforeEach(async () => {
-    await createTestbedModule({
+    const { translationService } = await createTestbedModule({
       declarations: {
         "SimpleInputComponent": SimpleInputComponent,
         "SaveStatusComponent": SaveStatusComponent,
       }
+    });
+    Object.assign(translationService.translationMap, {
+      '@dmpt-form-save-error': 'Error while saving: ',
+      '@dmpt-form-save-warning-create': 'The record was saved, but some follow-up processing could not be completed.',
+      '@dmpt-form-save-unknown-update': 'We couldn’t confirm whether your changes were saved. Reference: {{requestId}}.',
+      '@storage-workspace-save-warning': 'The storage request could not be completed. Request ID: {{requestId}}. Please contact support for help.',
+      '@record-save-save-not-applied': 'The changes were not saved.',
     });
     formConfig = {
       name: 'testing',
@@ -68,7 +80,11 @@ describe('SaveStatusComponent', () => {
 
     spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
     const store = TestBed.inject(Store);
-    store.dispatch(FormActions.submitForm({ force: true }));
+    store.dispatch(FormActions.submitForm({
+      force: true,
+      operation: 'publish',
+      enabledValidationGroups: ['all', 'publish'],
+    }));
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
@@ -89,6 +105,96 @@ describe('SaveStatusComponent', () => {
 
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-success');
     expect(el).toBeTruthy();
+  });
+
+  it('should keep a persisted warning visible through SaveStatusComponent', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({
+      force: true,
+      operation: 'publish',
+      enabledValidationGroups: ['all', 'publish'],
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      operation: 'create',
+      requestId: '88888888-8888-4888-8888-888888888888',
+      response: { outcome: 'saved-with-warnings' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
+    expect(el?.textContent).toContain('follow-up processing');
+    expect(el?.textContent).toContain('The record was saved');
+    expect(el?.textContent).not.toContain('88888888-8888-4888-8888-888888888888');
+  });
+
+  it('should keep an unknown save outcome visible through SaveStatusComponent', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveFailureEvent({
+      error: 'The save could not be confirmed.',
+      operation: 'update',
+      requestId: '99999999-9999-4999-8999-999999999999',
+      response: { outcome: 'unknown' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
+    expect(el?.textContent).toContain('couldn’t confirm');
+    expect(el?.textContent).toContain('99999999-9999-4999-8999-999999999999');
+  });
+
+  it('should use a configured warning translation code', async () => {
+    const saveStatus = formConfig.componentDefinitions.find(component => component.name === 'save_status');
+    (saveStatus?.component?.config as Record<string, unknown>)['warningMessageCreate'] = '@storage-workspace-save-warning';
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const store = TestBed.inject(Store);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+    spyOn(formComponent, 'saveForm').and.returnValue(new Promise(() => {}));
+    store.dispatch(FormActions.submitForm({ force: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      operation: 'create',
+      requestId: '77777777-7777-4777-8777-777777777777',
+      response: { outcome: 'saved-with-warnings' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-warning');
+    expect(el?.textContent).toContain('The storage request could not be completed');
+    expect(el?.textContent).toContain('77777777-7777-4777-8777-777777777777');
+    expect(el?.textContent).not.toContain('follow-up processing');
+  });
+
+  it('should ignore a scoped save event when no save operation is pending', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const eventBus = TestBed.inject(FormComponentEventBus);
+
+    eventBus.publish(createFormSaveSuccessEvent({
+      formScopeId: formComponent.eventScopeId,
+      operation: 'update',
+      response: { outcome: 'saved' },
+    }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(fixture.nativeElement.querySelector('.rb-form-save-status.alert-success')).toBeFalsy();
   });
 
   it('should keep save success visible for the configured duration before hiding it', fakeAsync(() => {
@@ -125,13 +231,13 @@ describe('SaveStatusComponent', () => {
     const store = TestBed.inject(Store);
     store.dispatch(FormActions.submitForm({ force: true }));
     tick();
-    store.dispatch(FormActions.submitFormFailure({ error: 'Boom' }));
+    store.dispatch(FormActions.submitFormFailure({ error: '@record-save-save-not-applied' }));
     fixture.detectChanges();
     tick();
     fixture.detectChanges();
 
     const el = fixture.nativeElement.querySelector('.rb-form-save-status.alert-danger');
-    expect(el?.textContent).toContain('Boom');
+    expect(el?.textContent).toContain('The changes were not saved');
   }));
 
   it('should keep save failure visible until another save starts', fakeAsync(() => {

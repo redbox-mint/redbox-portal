@@ -7,9 +7,12 @@ export * from './route-resolution';
 export * from './route-registry';
 export * from './openapi';
 export * from './apib';
+export * from './record-schema-openapi';
+export * from './record-schema-response';
 export * from './schemas/common';
 
 export * from './groups/records';
+export * from './groups/record-schemas';
 export * from './groups/users';
 export * from './groups/search';
 export * from './groups/forms';

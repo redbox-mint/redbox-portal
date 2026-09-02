@@ -1,5 +1,5 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Readable } from 'node:stream';
@@ -275,7 +275,9 @@ describe('StandardDatastreamService', function () {
 
       mockStagingDisk.exists.resolves(false);
       mockPrimaryDisk.exists.resolves(false);
-      const circularError = Object.assign(new Error('wrapped storage failure'), { name: 'StorageError' }) as Error & { cause?: unknown };
+      const circularError = Object.assign(new Error('wrapped storage failure'), { name: 'StorageError' }) as Error & {
+        cause?: unknown;
+      };
       circularError.cause = circularError;
       mockPrimaryDisk.getMetaData.rejects(circularError);
 
@@ -457,6 +459,30 @@ describe('StandardDatastreamService', function () {
   });
 
   describe('removeDatastream', function () {
+    it('reaps an applied physical delete tombstone once object absence is confirmed', async function () {
+      const metadataService = {
+        markDeleted: sinon.stub().resolves(),
+        deleteByStorageKey: sinon.stub().resolves(),
+        recordAccess: sinon.stub().resolves(),
+      };
+      mockSails.services.attachmentmetadataservice = metadataService;
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const ds = new Datastream({
+        fileId: 'file-to-delete',
+        attachmentId: 'attachment-1',
+        generation: 'generation-1',
+      });
+
+      await service.removeDatastream('oid-123', ds);
+
+      expect(metadataService.markDeleted.calledOnce).to.equal(true);
+      expect(metadataService.deleteByStorageKey.calledOnceWithExactly('attachments/oid-123/file-to-delete')).to.equal(
+        true
+      );
+      expect(metadataService.markDeleted.calledBefore(metadataService.deleteByStorageKey)).to.equal(true);
+    });
+
     it('should delete the file from primary disk', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();
@@ -478,6 +504,40 @@ describe('StandardDatastreamService', function () {
       // Should not throw
       const result = await service.removeDatastream('oid-123', ds);
       expect(result).to.deep.equal({ success: true });
+    });
+  });
+
+  describe('removeStagedDatastream', function () {
+    it('removes only the bounded staging object and its TUS sidecars', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      await service.removeStagedDatastream('staged-file-1');
+
+      expect(mockStagingDisk.delete.firstCall.args[0]).to.equal('staged-file-1');
+      expect(mockStagingDisk.deleteAll.getCalls().map((call: sinon.SinonSpyCall) => call.args[0])).to.deep.equal([
+        '.tus/staged-file-1/parts/',
+        'tus/staged-file-1/parts/',
+      ]);
+      expect(mockPrimaryDisk.delete.notCalled).to.equal(true);
+    });
+
+    it('rejects a path-shaped staging identity before accessing storage', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+
+      let failure: unknown;
+      try {
+        await service.removeStagedDatastream('../../outside-staging');
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).to.be.instanceOf(Error);
+      expect((failure as Error).message).to.equal('Invalid staged attachment identity.');
+      expect(mockStorageManager.stagingDisk.notCalled).to.equal(true);
+      expect(mockStagingDisk.delete.notCalled).to.equal(true);
+      expect(mockPrimaryDisk.delete.notCalled).to.equal(true);
     });
   });
 
@@ -590,9 +650,12 @@ describe('StandardDatastreamService', function () {
       mockPrimaryDisk.exists.onCall(2).resolves(false);
       mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
       mockStagingDisk.exists.resolves(true);
-      mockPrimaryDisk.putStream.callsFake(() => new Promise<void>((resolve) => {
-        resolvePromotion = resolve;
-      }));
+      mockPrimaryDisk.putStream.callsFake(
+        () =>
+          new Promise<void>(resolve => {
+            resolvePromotion = resolve;
+          })
+      );
 
       const firstRead = service.getDatastream('oid-123', 'file-123');
       const secondRead = service.getDatastream('oid-123', 'file-123');
@@ -707,9 +770,7 @@ describe('StandardDatastreamService', function () {
       const service = new Services.StandardDatastream();
 
       mockPrimaryDisk.listAll.resolves({
-        objects: [
-          { key: 'attachments/oid-123/file-a', name: 'file-a' },
-        ],
+        objects: [{ key: 'attachments/oid-123/file-a', name: 'file-a' }],
       });
       mockPrimaryDisk.getMetaData.rejects(new Error('no metadata'));
 
@@ -732,9 +793,12 @@ describe('StandardDatastreamService', function () {
           name: `file-${index}`,
         })),
       });
-      mockPrimaryDisk.getMetaData.callsFake((_key: string) => new Promise((resolve: (value: unknown) => void) => {
-        pendingMetadataResolvers.push(resolve);
-      }));
+      mockPrimaryDisk.getMetaData.callsFake(
+        (_key: string) =>
+          new Promise((resolve: (value: unknown) => void) => {
+            pendingMetadataResolvers.push(resolve);
+          })
+      );
 
       const resultPromise = service.listDatastreams('oid-123', '');
 
@@ -873,9 +937,7 @@ describe('StandardDatastreamService', function () {
       };
 
       const newMetadata = {
-        dataLocations: [
-          { fileId: 'new-file', type: 'attachment' },
-        ],
+        dataLocations: [{ fileId: 'new-file', type: 'attachment' }],
       };
 
       const fileIdsAdded: any[] = [];

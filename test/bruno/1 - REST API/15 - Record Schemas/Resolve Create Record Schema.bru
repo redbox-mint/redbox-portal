@@ -1,0 +1,72 @@
+meta {
+  name: Resolve Create Record Schema
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/schemas/create/rdmp
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Returns the authenticated draft 2020-12 create schema", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/schema+json");
+
+    const document = res.getBody();
+    expect(document).to.be.an("object");
+    expect(document["$schema"]).to.equal("https://json-schema.org/draft/2020-12/schema");
+    expect(document).to.have.property("$id").that.is.a("string");
+    expect(document["x-redbox-context"]).to.deep.include({
+      brand: "default",
+      portal: "rdmp",
+      kind: "create",
+      recordType: "rdmp",
+      workflowStep: "draft"
+    });
+    expect(["complete", "partial"]).to.include(document["x-redbox-completeness"]);
+    expect(document["x-redbox-diagnostics"]).to.be.an("array");
+  });
+
+  test("Returns dynamic identity and private revalidation headers", function () {
+    const document = res.getBody();
+    const etag = res.getHeader("etag");
+    const etagMatch = /^"sha256:([0-9a-f]{64})"$/.exec(etag || "");
+
+    expect(etagMatch, "strong schema ETag").not.to.equal(null);
+    const digest = etagMatch[1];
+    expect(document["$id"]).to.equal(`/default/rdmp/api/records/schemas/${digest}`);
+    expect(res.getHeader("cache-control")).to.equal("private, no-cache");
+    expect(res.getHeader("vary")).to.equal("Authorization");
+    expect(res.getHeader("link")).to.equal(
+      `<${document["$id"]}>; rel="canonical"; type="application/schema+json"`
+    );
+
+    bru.setEnvVar("recordSchemaCreateDigest", digest);
+    bru.setEnvVar("recordSchemaCreateEtag", etag);
+  });
+
+  test("Checks the custom-component partial marker when the fixture exposes one", function () {
+    const document = res.getBody();
+    const diagnostics = document["x-redbox-diagnostics"];
+    const unsupported = diagnostics.find(item => item.code === "x-redbox-unsupported-component");
+
+    if (unsupported) {
+      expect(document["x-redbox-completeness"]).to.equal("partial");
+      expect(unsupported.componentType).to.be.a("string").and.not.equal("");
+
+      const containsUnsupportedMarker = value => {
+        if (!value || typeof value !== "object") return false;
+        if (value["x-redbox-unsupported-component"] === unsupported.componentType) return true;
+        return Object.values(value).some(containsUnsupportedMarker);
+      };
+      expect(containsUnsupportedMarker(document)).to.equal(true);
+    }
+  });
+}

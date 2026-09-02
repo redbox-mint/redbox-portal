@@ -46,9 +46,10 @@ const WEB_ANALYTICS_CSP_SOURCES: Record<string, Record<string, string[]>> = {
         'connect-src': ['https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com'],
     },
     googleTagManager: {
-        // Trust scripts injected by the nonce-authorized GTM bootstrap while
-        // retaining the GTM origin for browsers without strict-dynamic support.
-        'script-src': ["'strict-dynamic'", 'https://www.googletagmanager.com'],
+        // Keep the explicit GTM origin without strict-dynamic. The latter
+        // disables host allow-listing in supported browsers and would also
+        // block ReDBox's same-origin bundles when they do not carry a nonce.
+        'script-src': ['https://www.googletagmanager.com'],
         'img-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com'],
         'connect-src': ['https://www.googletagmanager.com', 'https://*.google-analytics.com', 'https://*.analytics.google.com'],
         'frame-src': ['https://www.googletagmanager.com'],

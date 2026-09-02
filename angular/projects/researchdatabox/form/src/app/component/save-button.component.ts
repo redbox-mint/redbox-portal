@@ -76,6 +76,7 @@ export class SaveButtonComponent extends ButtonBaseComponent {
       this.eventBus.publish(
         createFormSaveRequestedEvent({
           force: this.componentDefinition?.config?.forceSave || this.hasTargetStep(),
+          operation: this.componentDefinition?.config?.operation,
           targetStep: this.componentDefinition?.config?.targetStep,
           closeOnSave: this.componentDefinition?.config?.closeOnSave,
           redirectLocation: await this.resolveRedirectLocation(redirectLocation),

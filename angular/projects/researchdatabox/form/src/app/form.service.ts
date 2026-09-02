@@ -48,6 +48,7 @@ import {
 import { PortalNgFormCustomService } from '@researchdatabox/portal-ng-form-custom';
 import {
   buildLineagePaths as buildLineagePathsHelper,
+  calculateValidationGroups as calculateSharedValidationGroups,
   DynamicScriptResponse,
   FieldModelDefinitionKind,
   FormComponentDefinitionFrame,
@@ -58,6 +59,7 @@ import {
   FormModesConfig,
   FormStatus,
   FormValidationGroups,
+  FormValidationGroupsChangeInitial,
   FormValidatorComponentErrors,
   FormValidatorConfig,
   FormValidatorDefinition,
@@ -79,11 +81,11 @@ import {
   isMatchingLineagePaths,
   jsonataDecodeCompile,
 } from '@researchdatabox/sails-ng-common';
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpContext, HttpHeaders } from "@angular/common/http";
 import { APP_BASE_HREF } from "@angular/common";
 import { firstValueFrom } from "rxjs";
-import { FormValidationGroupsChangeInitial } from "./form-state";
 import { VocabTreeService } from './service/vocab-tree.service';
+import { FormLoadConcurrencyState, parseFormLoadConcurrency } from './form-concurrency-state';
 
 // Lazy validator-definition contract provided by index.bundle.js / client-script.ts.
 // `formValidatorDefinitions` is the historical synchronous accessor and is preserved
@@ -223,6 +225,7 @@ export class FormService extends HttpClientService {
     const formConfigResp = await this.getFormConfig(oid, recordType, editMode, formName);
     const formConfig = formConfigResp?.data;
     const formConfigMeta = formConfigResp?.meta ?? {};
+    const concurrency = parseFormLoadConcurrency(formConfigMeta, formConfigResp?.responseEntityTag);
     if (!formConfig) {
       throw new Error("Form config from server was empty.");
     }
@@ -239,7 +242,7 @@ export class FormService extends HttpClientService {
 
     // Resolve the field and component pairs
     const formMode: FormModesConfig = editMode ? 'edit' : 'view';
-    return this.createFormComponentsMap(formConfig, parentLineagePaths, formConfigMeta, formMode);
+    return this.createFormComponentsMap(formConfig, parentLineagePaths, formConfigMeta, formMode, concurrency);
   }
 
   /**
@@ -255,7 +258,8 @@ export class FormService extends HttpClientService {
     formConfig: FormConfigFrame,
     parentLineagePaths: LineagePaths,
     meta?: Record<string, unknown>,
-    formMode?: FormModesConfig
+    formMode?: FormModesConfig,
+    concurrency: FormLoadConcurrencyState = {}
   ): Promise<FormComponentsMap> {
     this.currentFormMode = formMode ?? this.currentFormMode ?? 'edit';
     if (this.loadedValidatorDefinitions === null || this.loadedValidatorDefinitions === undefined) {
@@ -286,7 +290,7 @@ export class FormService extends HttpClientService {
 
     // Instantiate the field classes, note these are optional, i.e. components may not have a form bound value
     this.createFormFieldModelInstances(components, formConfig?.enabledValidationGroups, formConfig?.validationGroups);
-    return new FormComponentsMap(components, formConfig, meta);
+    return new FormComponentsMap(components, formConfig, meta, concurrency);
   }
 
   /**
@@ -859,11 +863,27 @@ export class FormService extends HttpClientService {
       url.searchParams.set('formName', formName?.toString());
     }
 
-    type rawRespType = { data: FormConfigFrame, meta: Record<string, unknown>, prehydrate?: FormPrehydratePayload };
-    const rawResp = this.http.get<rawRespType>(url.href, this.requestOptions);
-    const result = await firstValueFrom(rawResp);
+    type rawRespType = { data: FormConfigFrame; meta: Record<string, unknown>; prehydrate?: FormPrehydratePayload };
+    const baseHeaders = this.requestOptions['headers'];
+    const headers = (
+      baseHeaders instanceof HttpHeaders
+        ? baseHeaders
+        : new HttpHeaders((baseHeaders ?? {}) as Record<string, string | string[]>)
+    ).set('X-ReDBox-Api-Version', '2.0');
+    const context = this.requestOptions['context'];
+    const result = await firstValueFrom(
+      this.http.get<rawRespType>(url.href, {
+        headers,
+        ...(context instanceof HttpContext ? { context } : {}),
+        observe: 'response',
+        responseType: 'json',
+      })
+    );
     this.loggerService.info(`Get form fields from url: ${url}`, result);
-    return result;
+    if (!result.body) {
+      throw new Error('Form config response body was empty.');
+    }
+    return { ...result.body, responseEntityTag: result.headers.get('ETag') };
   }
 
   /**
@@ -1143,43 +1163,26 @@ export class FormService extends HttpClientService {
     initial?: FormValidationGroupsChangeInitial,
     groups?: FormFieldValidationGroup
   ): string[] {
-    let enabledNames = [...currentValidationGroups];
-    // Initial is 'current' by default.
-    initial = initial ?? "current";
-    switch (initial) {
-      case "all":
-        enabledNames = Object.keys(validationGroups);
-        break;
-      case "none":
-        enabledNames = [];
-        break;
-      case "current":
-        // No change to the enabled validation groups.
-        break;
-      default:
-        // For an unknown initial state, default to 'current'.
-        this.loggerService.error(`${this.logName}: Unknown set enabled validation group initial state '${initial}'.`);
-    }
+    const result = calculateSharedValidationGroups(
+      currentValidationGroups,
+      validationGroups,
+      initial,
+      groups,
+    );
 
-    // Add enabled group names.
-    for (const name of groups?.include ?? []) {
-      if (!enabledNames.includes(name)) {
-        enabledNames.push(name);
-      }
-    }
-
-    // Remove disabled group names.
-    for (const name of groups?.exclude ?? []) {
-      const index = enabledNames.indexOf(name);
-      if (index > -1) {
-        enabledNames.splice(index, 1);
+    for (const diagnostic of result.diagnostics) {
+      const message = `${this.logName}: ${diagnostic.message} (${diagnostic.code})`;
+      if (diagnostic.severity === 'error') {
+        this.loggerService.error(message);
+      } else {
+        this.loggerService.warn(message);
       }
     }
 
     // For debugging:
     // this.loggerService.debug(`${this.logName}: Calculated validation groups ${JSON.stringify(enabledNames)} from currentValidationGroups ${JSON.stringify(currentValidationGroups)} validationGroups ${JSON.stringify(validationGroups)} initial ${initial} groups ${JSON.stringify(groups)}`);
 
-    return enabledNames;
+    return result.enabledValidationGroups;
   }
 
   /**
@@ -1319,13 +1322,28 @@ export class FormComponentsMap {
    * Metadata returned with the form config API call.
    */
   formConfigMeta?: Record<string, unknown>;
+  recordEntityTag?: string;
+  recordRevision?: number;
+  formFingerprint?: string;
 
-  constructor(components: FormFieldCompMapEntry[], formConfig: FormConfigFrame, meta?: Record<string, unknown>) {
+  constructor(
+    components: FormFieldCompMapEntry[],
+    formConfig: FormConfigFrame,
+    meta?: Record<string, unknown>,
+    concurrency: FormLoadConcurrencyState = {}
+  ) {
     this.components = components;
     this.formConfig = formConfig;
     this.formConfigMeta = meta;
+    this.updateConcurrency(concurrency);
     this.completeGroupMap = undefined;
     this.withFormControl = undefined;
+  }
+
+  public updateConcurrency(concurrency: FormLoadConcurrencyState): void {
+    this.recordEntityTag = concurrency.entityTag;
+    this.recordRevision = concurrency.revision;
+    this.formFingerprint = concurrency.formFingerprint;
   }
 }
 

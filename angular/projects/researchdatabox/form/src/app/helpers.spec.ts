@@ -48,6 +48,7 @@ import { ConfirmationDialogComponent } from "./component/confirmation-dialog.com
 import { ConfirmationDialogService } from "./confirmation-dialog.service";
 import { RecordAuditModule } from '@researchdatabox/portal-ng-common';
 import { RecordAuditLauncherComponent } from "./record-audit/record-audit-launcher.component";
+import { FormConflictPresenterComponent } from './component/form-conflict-presenter.component';
 import { ApplicationRef, ComponentRef } from "@angular/core";
 import isSpy = jasmine.isSpy;
 
@@ -126,6 +127,10 @@ export async function createFormAndWaitForReady(
   // Set up the basic angular testing requirements.
   const fixture = TestBed.createComponent(FormComponent);
   const formComponent = fixture.componentInstance;
+
+  if (formDebugUrlOptions) {
+    formComponent.debugState.refreshFromUrl();
+  }
 
   ensureApplicationRefFormComponent(fixture.componentRef);
 
@@ -218,6 +223,7 @@ export async function createTestbedModule(testConfig: CreateTestbedModuleArgs) {
       "FormDebugConfigTabComponent": FormDebugConfigTabComponent,
       "FormDebugEventsTabComponent": FormDebugEventsTabComponent,
       "ConfirmationDialogComponent": ConfirmationDialogComponent,
+      FormConflictPresenterComponent: FormConflictPresenterComponent,
       "RecordAuditLauncherComponent": RecordAuditLauncherComponent,
     }, testConfig.declarations ?? {}),
     imports: await createTestBedModuleConfig({

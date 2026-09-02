@@ -207,6 +207,7 @@ export class FormEventBusAdapterEffects {
         const action = FormActions.submitForm({
           force: event.force,
           enabledValidationGroups: event.enabledValidationGroups,
+          operation: event.operation,
           targetStep: event.targetStep,
           closeOnSave: event.closeOnSave,
           redirectLocation: event.redirectLocation,

@@ -221,6 +221,7 @@ describe('redbox-loader', function () {
 
             const result = await redboxLoader.generateAllShims(sandboxDir);
             expect(result.skipped).to.be.true;
+            expect(result.recordContractContributorState.registrations).not.to.have.length(0);
         });
 
         it('should generate shims when forced', async function () {
@@ -234,6 +235,7 @@ describe('redbox-loader', function () {
                 throw new Error('Expected shim generation to run');
             }
             expect(result.stats).to.exist;
+            expect(result.recordContractContributorState.registrationIssues).to.deep.equal([]);
         });
 
         it('should delete marker file after regeneration', async function () {

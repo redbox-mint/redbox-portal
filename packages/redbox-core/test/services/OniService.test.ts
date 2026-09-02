@@ -59,7 +59,7 @@ describe('OniService', function () {
       getUserWithUsername: sinon.stub().returns(of({ email: 'creator@example.edu', text_full_name: 'Creator User' })),
     };
     (global as unknown as { RecordsService: unknown }).RecordsService = {
-      updateMeta: sinon.stub().resolves({ success: true }),
+      updateMetaInternal: sinon.stub().resolves({ success: true, wasPersisted: () => true, isComplete: () => true }),
     };
     (global as unknown as { IntegrationAuditService: unknown }).IntegrationAuditService = {
       startAudit: sinon.stub().returns({
@@ -204,18 +204,24 @@ describe('OniService', function () {
   it('rejects missing, unknown, and disabled Oni publishing sites', function () {
     const config = resolveOniPublishingConfig(publicationRecord())!;
 
-    expect(() => resolveOniSite({ ...config, defaultSite: '' }))
-      .to.throw('options.site and oniPublishing.defaultSite are both empty');
-    expect(() => resolveOniSite(config, { site: 'missing-site' }))
-      .to.throw("Unknown Oni publishing site 'missing-site'");
-    expect(() => resolveOniSite({
-      ...config,
-      sites: {
-        ...config.sites,
-        disabled: { ...config.sites['test-site'], enabled: false },
-      },
-    }, { site: 'disabled' }))
-      .to.throw("Oni publishing site 'disabled' is disabled");
+    expect(() => resolveOniSite({ ...config, defaultSite: '' })).to.throw(
+      'options.site and oniPublishing.defaultSite are both empty'
+    );
+    expect(() => resolveOniSite(config, { site: 'missing-site' })).to.throw(
+      "Unknown Oni publishing site 'missing-site'"
+    );
+    expect(() =>
+      resolveOniSite(
+        {
+          ...config,
+          sites: {
+            ...config.sites,
+            disabled: { ...config.sites['test-site'], enabled: false },
+          },
+        },
+        { site: 'disabled' }
+      )
+    ).to.throw("Oni publishing site 'disabled' is disabled");
   });
 
   it('builds RO-Crate JSON-LD and selected attachment plan from oniPublishing', async function () {
@@ -610,6 +616,13 @@ describe('OniService', function () {
   });
 
   it('runs publish workflow, audits it, and persists with the record brand', async function () {
+    (
+      global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }
+    ).RecordsService.updateMetaInternal.resolves({
+      outcome: 'saved-with-warnings',
+      wasPersisted: () => true,
+      isComplete: () => false,
+    });
     const record = publicationRecord();
     record.metadata.publication_error = 'Data publication failed with error: Error previous failure';
     const repository = {
@@ -650,14 +663,17 @@ describe('OniService', function () {
         sinon.match({ integrationName: IntegrationAuditName.oni })
       )
     ).to.equal(true);
-    const updateMeta = (global as unknown as { RecordsService: { updateMeta: sinon.SinonStub } }).RecordsService
-      .updateMeta;
+    const updateMeta = (global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }).RecordsService
+      .updateMetaInternal;
     expect(updateMeta.calledOnce).to.equal(true);
-    expect(updateMeta.firstCall.args[0]).to.deep.equal({ id: 'brand-1', name: 'default' });
-    expect(updateMeta.firstCall.args[2].metadata.citation_url).to.equal('https://data.example.edu/pub-1');
-    expect(updateMeta.firstCall.args[2].metadata.publication_error).to.equal(undefined);
-    expect(updateMeta.firstCall.args[4]).to.equal(true);
-    expect(updateMeta.firstCall.args[5]).to.equal(false);
+    const updateOptions = updateMeta.firstCall.args[0];
+    expect(updateOptions.brand).to.deep.equal({ id: 'brand-1', name: 'default' });
+    expect(updateOptions.record.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
+    expect(updateOptions.record.metadata.publication_error).to.equal(undefined);
+    expect(updateOptions.triggerPreSaveTriggers).to.equal(true);
+    expect(updateOptions.triggerPostSaveTriggers).to.equal(false);
+    expect(updateOptions.metadataMode).to.equal('pre-applied');
+    expect(updateOptions.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
     expect(ingestStub.calledOnce).to.equal(true);
     const completeAudit = (global as unknown as { IntegrationAuditService: { completeAudit: sinon.SinonStub } })
       .IntegrationAuditService.completeAudit;
@@ -726,13 +742,13 @@ describe('OniService', function () {
       );
     }
 
-    const updateMeta = (global as unknown as { RecordsService: { updateMeta: sinon.SinonStub } }).RecordsService
-      .updateMeta;
-    expect(updateMeta.firstCall.args[2].metadata.citation_url).to.equal('https://data.example.edu/pub-1');
-    expect(updateMeta.firstCall.args[2].metadata.citation_doi).to.equal(
+    const updateMeta = (global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }).RecordsService
+      .updateMetaInternal;
+    expect(updateMeta.firstCall.args[0].record.metadata.citation_url).to.equal('https://data.example.edu/pub-1');
+    expect(updateMeta.firstCall.args[0].record.metadata.citation_doi).to.equal(
       'https://doi.org/10.1234/https://data.example.edu/pub-1'
     );
-    expect(updateMeta.firstCall.args[2].metadata.publication_error).to.include('Oni indexing failed');
+    expect(updateMeta.firstCall.args[0].record.metadata.publication_error).to.include('Oni indexing failed');
 
     const failAudit = (global as unknown as { IntegrationAuditService: { failAudit: sinon.SinonStub } })
       .IntegrationAuditService.failAudit;
@@ -979,13 +995,13 @@ describe('OniService', function () {
     const auditService = (
       global as unknown as { IntegrationAuditService: { startAudit: sinon.SinonStub; failAudit: sinon.SinonStub } }
     ).IntegrationAuditService;
-    const updateMeta = (global as unknown as { RecordsService: { updateMeta: sinon.SinonStub } }).RecordsService
-      .updateMeta;
+    const updateMeta = (global as unknown as { RecordsService: { updateMetaInternal: sinon.SinonStub } }).RecordsService
+      .updateMetaInternal;
     expect(auditService.startAudit.calledOnce).to.equal(true);
     expect(auditService.failAudit.calledOnce).to.equal(true);
     expect(auditService.failAudit.firstCall.args[2].responseSummary.displayErrors[0].code).to.equal('oni-site-unknown');
     expect(updateMeta.calledOnce).to.equal(true);
-    expect(updateMeta.firstCall.args[2].metadata.publication_error).to.contain(
+    expect(updateMeta.firstCall.args[0].record.metadata.publication_error).to.contain(
       "Unknown Oni publishing site 'missing-site'"
     );
   });

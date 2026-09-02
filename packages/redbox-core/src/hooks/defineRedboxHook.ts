@@ -1,5 +1,6 @@
 import '../sails';
 import type { ApiRouteDefinition } from '../api-routes';
+import type { RecordContractContributor } from '../record-contract';
 
 type HookFactoryResult = {
   defaults?: Record<string, unknown>;
@@ -39,6 +40,7 @@ export type DefineRedboxHookOptions = {
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
   registerRedboxFormConfigs?: () => HookRegistrationMap;
+  registerRecordContractContributors?: () => readonly RecordContractContributor[];
   additionalExports?: Record<string, unknown>;
 };
 
@@ -49,6 +51,7 @@ type DefinedRedboxHook = ((sails: Sails.Application) => HookFactoryResult) & {
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
   registerRedboxFormConfigs?: () => HookRegistrationMap;
+  registerRecordContractContributors?: () => readonly RecordContractContributor[];
   registerFormConfig?: () => HookRegistrationMap;
 } & Record<string, unknown>;
 
@@ -127,6 +130,10 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
   if (options.registerRedboxFormConfigs) {
     hookFactory.registerRedboxFormConfigs = options.registerRedboxFormConfigs;
     hookFactory.registerFormConfig = options.registerRedboxFormConfigs;
+  }
+
+  if (options.registerRecordContractContributors) {
+    hookFactory.registerRecordContractContributors = options.registerRecordContractContributors;
   }
 
   Object.assign(hookFactory, options.additionalExports);

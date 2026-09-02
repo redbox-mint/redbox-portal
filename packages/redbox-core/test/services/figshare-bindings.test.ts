@@ -1,7 +1,7 @@
 import * as sinon from 'sinon';
 import { createRequire } from 'node:module';
 
-const testRequire = createRequire(import.meta.url);
+const testRequire = createRequire(__filename);
 const { cleanupServiceTestGlobals, createMockSails, setupServiceTestGlobals } = testRequire('./testHelper');
 const { evaluateBinding, resolveCrosswalkBinding } = testRequire('../../src/services/figshare-v2/bindings');
 const { createBindingContext } = testRequire('../../src/services/figshare-v2/context');

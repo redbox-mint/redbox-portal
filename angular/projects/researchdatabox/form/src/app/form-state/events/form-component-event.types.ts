@@ -6,7 +6,12 @@
  */
 
 import { FormGroupStatus } from '../../form.component';
-import { FormFieldValidationGroup, formValidationGroupMembership } from "@researchdatabox/sails-ng-common";
+import {
+  FormFieldValidationGroup,
+  formValidationGroupsChangeInitial as sharedFormValidationGroupsChangeInitial,
+  FormValidationGroupsChangeInitial as SharedFormValidationGroupsChangeInitial,
+  RecordSaveResult,
+} from "@researchdatabox/sails-ng-common";
 
 /**
  * Base event interface with common properties
@@ -15,6 +20,8 @@ export interface FormComponentEventBase {
   readonly type: string;
   readonly timestamp: number;
   readonly sourceId?: string;
+  /** Identifies the form instance that owns the event. */
+  readonly formScopeId?: string;
   readonly fieldId?: string;
 }
 
@@ -120,12 +127,13 @@ export interface FormValidationBroadcastEvent extends FormComponentEventBase {
  * - 'all': Every known / available validation group.
  * - 'none': An empty array / no validation groups.
  * - 'current': The existing state, allows for changes relative to the existing situation.
+ * - 'empty': Deprecated alias for 'none'.
  */
-export const formValidationGroupsChangeInitial = [...formValidationGroupMembership, "current"] as const;
+export const formValidationGroupsChangeInitial = sharedFormValidationGroupsChangeInitial;
 /**
  * The type for the available approaches for changing the enabled form validation groups.
  */
-export type FormValidationGroupsChangeInitial = typeof formValidationGroupsChangeInitial[number];
+export type FormValidationGroupsChangeInitial = SharedFormValidationGroupsChangeInitial;
 
 /**
  * Form validation groups change requested event.
@@ -164,6 +172,8 @@ export interface SaveRedirectEventConfig extends RedirectLocationEventBase {
 export interface SaveOperationEventConfig {
   readonly force?: boolean;
   readonly enabledValidationGroups?: string[];
+  /** Server-owned validation intent; client validation groups remain UX-only. */
+  readonly operation?: string;
   readonly targetStep?: string;
 }
 
@@ -189,9 +199,12 @@ export interface FormSaveExecuteEvent extends FormComponentEventBase, SaveOperat
  */
 export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedirectEventConfig {
   readonly type: 'form.save.success';
+  /** Whether the completed save created a new record or updated an existing one. */
+  readonly operation?: 'create' | 'update';
   readonly savedData?: any;
   readonly oid?: string;
-  readonly response?: any;
+  readonly response?: Partial<RecordSaveResult> | null;
+  readonly requestId?: string;
   /** Snapshot of the actual form state after eligible server synchronization. */
   readonly modelSnapshot?: Record<string, unknown>;
 }
@@ -202,7 +215,11 @@ export interface FormSaveSuccessEvent extends FormComponentEventBase, SaveRedire
  */
 export interface FormSaveFailureEvent extends FormComponentEventBase {
   readonly type: 'form.save.failure';
+  /** Whether the failed/uncertain save targeted a new or existing record. */
+  readonly operation?: 'create' | 'update';
   readonly error?: string;
+  readonly response?: Partial<RecordSaveResult> | null;
+  readonly requestId?: string;
 }
 
 export interface DeleteEventConfig extends RedirectLocationEventBase {
@@ -226,6 +243,7 @@ export interface FormDeleteSuccessEvent extends FormComponentEventBase, DeleteEv
 export interface FormDeleteFailureEvent extends FormComponentEventBase {
   readonly type: 'form.delete.failure';
   readonly error?: string;
+  readonly requestId?: string;
 }
 
 /**

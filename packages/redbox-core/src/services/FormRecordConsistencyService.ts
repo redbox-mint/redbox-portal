@@ -22,7 +22,8 @@ import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.de
 import {
     guessType, FormValidatorSummaryErrors,
     FormConfigFrame, TemplateCompileInput, FormModesConfig,
-    ReusableFormDefinitions, arrayStartsWithArray
+    ReusableFormDefinitions, arrayStartsWithArray, diffRecordValues,
+    RecordValueChange, RecordValuePath
 } from "@researchdatabox/sails-ng-common";
 import {firstValueFrom} from "rxjs";
 import { ValidatorFormConfigVisitor } from "../visitor/validator.visitor";
@@ -49,35 +50,12 @@ export namespace Services {
      * The path from the root of the item to the key in the original, which has a change.
      * Object property keys are strings, array indicies are integers.
      */
-    export type FormRecordConsistencyChangePath = (string | number)[];
+    export type FormRecordConsistencyChangePath = RecordValuePath;
 
     /**
      * The properties of one change.
      */
-    export interface FormRecordConsistencyChange {
-        /**
-         * The kind of change:
-         * - "add": an object property or array index that was not previously present
-         * - "delete": an object property or array index that was previously present has been removed
-         * - "change": an object property or array index that already existed has a value that has changed
-         */
-        kind: "add" | "delete" | "change";
-
-        /**
-         * The path from the root of the item to the key in the original.
-         */
-        path: FormRecordConsistencyChangePath;
-
-        /**
-         * The original value of the property or array index before the change.
-         */
-        original: unknown;
-
-        /**
-         * The new value of the property or array index after the change.
-         */
-        changed: unknown;
-    }
+    export type FormRecordConsistencyChange = RecordValueChange;
 
     /**
      * A service for verifying that form config and one or two associated Records are consistent.
@@ -398,64 +376,7 @@ export namespace Services {
             changed: unknown,
             path?: FormRecordConsistencyChangePath
         ): FormRecordConsistencyChange[] {
-            path = path ?? [];
-            const result: FormRecordConsistencyChange[] = [];
-            const isOriginalArray = Array.isArray(original);
-            const isChangedArray = Array.isArray(changed);
-            const isOriginalObject = _.isPlainObject(original);
-            const isChangedObject = _.isPlainObject(changed);
-            if ((isOriginalArray && isChangedArray) || (isOriginalObject && isChangedObject)) {
-                const {entries: originalEntries, keys: originalKeys} = this.toKeysEntries(original);
-                const {entries: changedEntries, keys: changedKeys} = this.toKeysEntries(changed);
-                const originalRecord = original as Record<string | number, unknown>;
-                const changedRecord = changed as Record<string | number, unknown>;
-
-                // delete
-                for (const [key, value] of originalEntries) {
-                    const newPath = [...path, key];
-                    const isKeyInChanged = changedKeys.includes(key);
-                    const changedValue = isKeyInChanged ? changedRecord[key] : undefined;
-
-                    if (!isKeyInChanged) {
-                        // delete key & value
-                        result.push({
-                            kind: "delete",
-                            path: newPath,
-                            original: value,
-                            changed: changedValue
-                        });
-                    } else if (isKeyInChanged && changedValue !== value) {
-                        // change value in original
-                        this.compareRecords(value, changedValue, newPath)
-                            .forEach(i => result.push(i));
-                    }
-                }
-
-                // add
-                for (const [key, value] of changedEntries) {
-                    const newPath = [...path, key];
-                    const isKeyInOriginal = originalKeys.includes(key);
-                    const originalValue = isKeyInOriginal ? originalRecord[key] : undefined;
-                    if (!isKeyInOriginal) {
-                        // add key & value
-                        result.push({
-                            kind: "add",
-                            path: newPath,
-                            original: originalValue,
-                            changed: value
-                        });
-                    }
-                }
-            } else if (original !== changed) {
-                result.push({
-                    kind: "change",
-                    path: path,
-                    original: original,
-                    changed: changed
-                });
-            }
-
-            return result;
+            return diffRecordValues(original, changed, path);
         }
 
         // TODO: implement this

@@ -40,6 +40,21 @@ The site contains searchable HTML plus:
 - `schemas/form-config.schema.json`: downloadable FormConfig JSON Schema.
 - `api/`: independent REST API reference.
 
+The generated form contract includes `FormConfig.validationOperations` and the
+`SaveButtonComponent.operation` property. Its tested save-button example shows
+how operation intent coexists with the legacy interactive group array. The
+generated extension catalogue also publishes `RecordValidationService`,
+including its metrics-hook and bounded shadow-report surfaces. The REST
+reference documents `?operation=` on create, metadata update, and workflow
+transition routes plus the additive safe validation issue fields.
+
+The catalogue also publishes the `RecordsService` concurrency extension
+contract and the exported value-free concurrency observability contract. The
+REST reference is expected to include `If-Match`, successful `ETag` headers,
+form fingerprints, and the typed 409/412/428 response variants. Run both
+`npm run validate:api-routes` and `npm run docs:audit` after changing these
+contracts.
+
 The TypeDoc reflection model is an internal intermediate under `.tmp/documentation-intermediate` and is not published.
 
 ## CI and publication

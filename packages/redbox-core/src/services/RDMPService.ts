@@ -830,13 +830,19 @@ export namespace Services {
       const workspaceObj = workspaceData as AnyRecord;
       const workspaceMetadata = (workspaceObj.metadata ?? {}) as AnyRecord;
       const rdmpOidField = _.get(optionsObj, 'rdmpOidField', 'rdmpOid') as string;
-      const rdmpOid = _.get(workspaceMetadata, rdmpOidField, null) as string | null;
+      const rdmpOid = String(_.get(workspaceMetadata, rdmpOidField, '') ?? '').trim();
       sails.log.verbose(`Generic adding workspace ${oid} to record: ${rdmpOid}`);
       if (_.isEmpty(rdmpOid)) {
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      await WorkspaceService.addWorkspaceToRecord(workspaceMetadata.rdmpOid as string, oid);
+      await WorkspaceService.addWorkspaceToRecord(
+        rdmpOid,
+        oid,
+        {},
+        undefined,
+        user
+      );
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;
@@ -847,13 +853,19 @@ export namespace Services {
       const workspaceObj = workspaceData as AnyRecord;
       const workspaceMetadata = (workspaceObj.metadata ?? {}) as AnyRecord;
       const rdmpOidField = _.get(optionsObj, 'rdmpOidField', 'rdmpOid') as string;
-      const rdmpOid = _.get(workspaceMetadata, rdmpOidField, null) as string | null;
+      const rdmpOid = String(_.get(workspaceMetadata, rdmpOidField, '') ?? '').trim();
       sails.log.verbose(`Generic removing workspace ${oid} from record: ${rdmpOid}`);
       if (_.isEmpty(rdmpOid)) {
         sails.log.error(`No RDMP OID found in workspace data: ${JSON.stringify(workspaceData)}`);
         return workspaceData;
       }
-      await WorkspaceService.removeWorkspaceFromRecord(rdmpOid as string, oid);
+      await WorkspaceService.removeWorkspaceFromRecord(
+        rdmpOid,
+        oid,
+        {},
+        undefined,
+        user
+      );
       _.set(response as AnyRecord, 'workspaceOid', oid);
       _.set(response as AnyRecord, 'workspaceData', workspaceData);
       return workspaceData;

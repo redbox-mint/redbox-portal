@@ -1,9 +1,13 @@
 {
   "extends": "../../../packages/redbox-core/tsconfig.json",
   "compilerOptions": {
+    "baseUrl": "../../..",
     "noEmit": true,
+    "paths": {
+      "@researchdatabox/redbox-core": ["packages/redbox-core/src/index.ts"]
+    },
     "rootDir": "../../..",
     "types": ["node"]
   },
-  "include": ["hook-override.ts"]
+  "include": ["hook-override.ts", "record-contract-contributor.ts"]
 }

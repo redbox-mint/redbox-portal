@@ -37,6 +37,8 @@ import * as RaidServiceModule from './RaidService';
 import * as RDMPServiceModule from './RDMPService';
 import * as RecordsServiceModule from './RecordsService';
 import * as RecordTypesServiceModule from './RecordTypesService';
+import * as RecordSchemaServiceModule from './RecordSchemaService';
+import * as RecordValidationServiceModule from './RecordValidationService';
 import * as ReportsServiceModule from './ReportsService';
 import * as RolesServiceModule from './RolesService';
 import * as SassCompilerServiceModule from './SassCompilerService';
@@ -55,6 +57,7 @@ import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
 import * as RvaImportServiceModule from './RvaImportService';
 import * as StorageManagerServiceModule from './StorageManagerService';
 import * as StandardDatastreamServiceModule from './StandardDatastreamService';
+import { RecordContractContributorRegistry, type RecordContractContributorDiscoveryState } from '../record-contract';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
@@ -90,6 +93,8 @@ export { RaidServiceModule as RaidService };
 export { RDMPServiceModule as RDMPService };
 export { RecordsServiceModule as RecordsService };
 export { RecordTypesServiceModule as RecordTypesService };
+export { RecordSchemaServiceModule as RecordSchemaService };
+export { RecordValidationServiceModule as RecordValidationService };
 export { ReportsServiceModule as ReportsService };
 export { RolesServiceModule as RolesService };
 export { SassCompilerServiceModule as SassCompilerService };
@@ -120,6 +125,39 @@ export { StandardDatastreamServiceModule as StandardDatastreamService };
  * sails globals are available.
  */
 const serviceCache: Record<string, unknown> = {};
+
+const UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE: RecordContractContributorDiscoveryState = Object.freeze({
+  registrations: Object.freeze([]),
+  registrationIssues: Object.freeze([]),
+  componentTypes: Object.freeze([]),
+});
+let resolvedRecordSchemaContributorState: RecordContractContributorDiscoveryState | undefined;
+let resolvedRecordSchemaContributorRegistry: RecordContractContributorRegistry | undefined;
+
+function configuredRecordSchemaContributorState(): RecordContractContributorDiscoveryState {
+  return sails.config.recordContractContributorState ?? UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE;
+}
+
+function configuredRecordSchemaContributorRegistry(): RecordContractContributorRegistry | undefined {
+  const state = configuredRecordSchemaContributorState();
+  if (state !== resolvedRecordSchemaContributorState) {
+    resolvedRecordSchemaContributorState = state;
+    resolvedRecordSchemaContributorRegistry =
+      state.registrationIssues.length === 0 && state.registrations.length > 0
+        ? new RecordContractContributorRegistry(state.registrations)
+        : undefined;
+  }
+  return resolvedRecordSchemaContributorRegistry;
+}
+
+const recordSchemaContributorDependencies: Pick<
+  RecordSchemaServiceModule.RecordSchemaServiceDependencies,
+  'getContributorRegistry' | 'getContributorRegistrationIssues' | 'getContributorComponentTypes'
+> = {
+  getContributorRegistry: configuredRecordSchemaContributorRegistry,
+  getContributorRegistrationIssues: () => configuredRecordSchemaContributorState().registrationIssues,
+  getContributorComponentTypes: () => configuredRecordSchemaContributorState().componentTypes,
+};
 
 function getOrCreateService(name: string, factory: () => unknown): unknown {
   if (!serviceCache[name]) {
@@ -197,10 +235,14 @@ export const ServiceExports = {
     );
   },
   get IntegrationAuditService() {
-    return getOrCreateService('IntegrationAuditService', () => new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports());
+    return getOrCreateService('IntegrationAuditService', () =>
+      new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports()
+    );
   },
   get IntegrationNotificationService() {
-    return getOrCreateService('IntegrationNotificationService', () => new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports());
+    return getOrCreateService('IntegrationNotificationService', () =>
+      new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports()
+    );
   },
   get FormRecordConsistencyService() {
     return getOrCreateService('FormRecordConsistencyService', () =>
@@ -254,6 +296,16 @@ export const ServiceExports = {
   get RecordTypesService() {
     return getOrCreateService('RecordTypesService', () =>
       new RecordTypesServiceModule.Services.RecordTypes().exports()
+    );
+  },
+  get RecordSchemaService() {
+    return getOrCreateService('RecordSchemaService', () =>
+      new RecordSchemaServiceModule.Services.RecordSchema(recordSchemaContributorDependencies).exports()
+    );
+  },
+  get RecordValidationService() {
+    return getOrCreateService('RecordValidationService', () =>
+      new RecordValidationServiceModule.Services.RecordValidation().exports()
     );
   },
   get ReportsService() {

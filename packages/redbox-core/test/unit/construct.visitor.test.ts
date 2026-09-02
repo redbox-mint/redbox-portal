@@ -245,6 +245,38 @@ describe("Construct Visitor", async () => {
             });
         });
 
+        it('should preserve validation operations through construction', async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const validationOperations = {
+                publish: {
+                    enabledValidationGroups: ['publish'],
+                    label: '@publish',
+                    roles: ['Librarians'],
+                    allowedTargetSteps: ['published'],
+                },
+            };
+            const actual = await visitor.start({
+                data: {
+                    name: 'operation-round-trip',
+                    componentDefinitions: [],
+                    validationOperations,
+                },
+                formMode: 'edit',
+            });
+
+            expect(actual.validationOperations).to.deep.equal(validationOperations);
+        });
+
+        it('should preserve absence of validation operations through construction', async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const actual = await visitor.start({
+                data: { name: 'no-operation-policy', componentDefinitions: [] },
+                formMode: 'edit',
+            });
+
+            expect(actual).not.to.have.property('validationOperations');
+        });
+
         it("should retain checkbox tree labelTemplate config", async function () {
             const visitor = new ConstructFormConfigVisitor(logger);
             const actual = await visitor.start({
@@ -561,6 +593,9 @@ describe("Construct Visitor", async () => {
                             closeOnSave: true,
                             redirectDelaySeconds: 5,
                             redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+                            operation: 'submit',
+                            targetStep: 'review',
+                            enabledValidationGroups: ['all', 'submission'],
                           }
                         }
                       },
@@ -589,6 +624,9 @@ describe("Construct Visitor", async () => {
               closeOnSave: true,
               redirectDelaySeconds: 5,
               redirectLocation: '/@branding/@portal/dashboard/dataRecord',
+              operation: 'submit',
+              targetStep: 'review',
+              enabledValidationGroups: ['all', 'submission'],
             });
             expect(actual.componentDefinitions?.[2]?.component?.class).to.equal("CancelButtonComponent");
             expect(actual.componentDefinitions?.[2]?.component?.config).to.containSubset({
@@ -627,6 +665,35 @@ describe("Construct Visitor", async () => {
               maxPollAttempts: 60,
               hideWhenInactive: true,
             });
+        });
+
+        it("should include save status message properties", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const expectedConfig = {
+              successDisplayDurationMs: 5000,
+              warningMessageCreate: "@storage-workspace-save-warning",
+              warningMessageUpdate: "@storage-workspace-save-warning",
+              unknownMessageCreate: "@storage-workspace-save-unknown",
+              unknownMessageUpdate: "@storage-workspace-save-unknown",
+            };
+            const actual = await visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                      {
+                        name: "save_status",
+                        component: {
+                          class: "SaveStatusComponent",
+                          config: { ...expectedConfig }
+                        }
+                      }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("SaveStatusComponent");
+            expect(actual.componentDefinitions?.[0]?.component?.config).to.containSubset(expectedConfig);
         });
     });
 

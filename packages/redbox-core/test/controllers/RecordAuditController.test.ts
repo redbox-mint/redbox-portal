@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../src/controllers/RecordAuditController';
+import { RecordAuditActionType } from '../../src/model/storage/RecordAuditModel';
 
 describe('RecordAuditController', () => {
   let controller: Controllers.RecordAudit;
@@ -196,6 +197,23 @@ describe('RecordAuditController', () => {
     assert.equal(payload?.data?.records?.[0]?.changeSummary?.changes?.[0]?.displayName, 'Contributor Name');
     assert.equal(payload?.data?.records?.[0]?.actor?.displayName, 'Editor');
     assert.equal(payload?.data?.records?.[1]?.changeSummary?.note, '@record-audit-note-update-only');
+  });
+
+  it('maps validation bypass audit actions to registered language-default keys', () => {
+    const metadata = require('../../../../language-defaults/meta.json');
+    const english = require('../../../../language-defaults/en/translation.json');
+    const actions = [
+      RecordAuditActionType.validationBypassed,
+      RecordAuditActionType.batchValidationBypassed,
+    ];
+
+    for (const action of actions) {
+      const key = (controller as any).getActionLabelKey(action);
+      assert.equal(key, `@record-audit-action-${action}`);
+      assert.equal(metadata[key]?.contentFormat, 'plain');
+      assert.equal(typeof english[key], 'string');
+      assert.notEqual(english[key].trim(), '');
+    }
   });
 
   it('passes audit filters through to the records service', async () => {

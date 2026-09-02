@@ -1,8 +1,25 @@
 <div class="rb-form-shell">
+  <redbox-form-conflict-presenter
+    [conflict]="conflictState()"
+    [review]="conflictReview()"
+    [resolving]="manualConflictResolutionPending()"
+    [mergeAllowed]="manualConflictMergeAllowed"
+    [resolution]="saveResponse()?.concurrency?.resolution === 'already-current' ? 'already-current' : undefined"
+    (reviewRequested)="reviewConflictChanges()"
+    (discardRequested)="discardConflictChanges()"
+    (exportRequested)="exportConflictLocalValues()"
+    (reloadRequested)="reloadCurrentFormAfterConflict()"
+    (resolutionRequested)="submitManualConflictResolution($event)"
+  ></redbox-form-conflict-presenter>
+
   <div class="rb-form-shell__main" [class.rb-form-shell__main--loading]="!componentsLoaded()">
     @if (!componentsLoaded()) {
       <div class="rb-form-loading">
-        <img class="center-block rb-form-loading__spinner" src="/images/loading.svg" [attr.alt]="'loading-alt-text' | i18next" />
+        <img
+          class="center-block rb-form-loading__spinner"
+          src="/images/loading.svg"
+          [attr.alt]="'loading-alt-text' | i18next"
+        />
       </div>
     }
     <div class="rb-form-components" [attr.aria-hidden]="!componentsLoaded() ? 'true' : null">

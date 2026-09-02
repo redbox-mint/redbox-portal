@@ -1,22 +1,27 @@
 meta {
   name: Restore Deleted Record
   type: http
-  seq: 23
+  seq: 24
 }
 
 put {
-  url: {{host}}/default/rdmp/api/deletedrecords/{{dmpOidToDelete}}
+  url: {{host}}/default/rdmp/api/deletedrecords/{{strictLifecycleOid}}
   body: none
   auth: none
 }
 
 headers {
   Authorization: Bearer {{token}}
+  If-Match: {{strictLifecycleTombstoneEtag}}
   ~: 
 }
 
 tests {
   test("Status code is 200", function () {
       expect(res.getStatus()).to.equal(200);
+      const etag = res.getHeader("etag");
+      expect(etag).to.match(/^".+"$/);
+      expect(etag).not.to.equal(bru.getEnvVar("strictLifecycleEtag"));
+      bru.setEnvVar("strictLifecycleRestoredEtag", etag);
   });
 }

@@ -4,6 +4,7 @@ import { CanVisit } from './visitor/base.outline';
 import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
 import { FormExpressionsConfigOutline } from './form-component.outline';
 import { FormBehaviourConfigFrame } from './form-behaviour.outline';
+import { ValidationOperationDefinition } from '../validation/record-validation.model';
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.
@@ -82,6 +83,11 @@ export interface FormConfigFrame {
    * These are the only validation group names that can be used in the validator config.
    */
   validationGroups?: FormValidationGroups;
+  /**
+   * Server-owned validation intents supported by this form, keyed by the
+   * case-sensitive operation name sent by save actions.
+   */
+  validationOperations?: Record<string, ValidationOperationDefinition>;
   /**
    * Controls how server-side metadata returned after save is applied to the form.
    */

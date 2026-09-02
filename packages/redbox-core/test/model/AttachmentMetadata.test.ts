@@ -1,0 +1,134 @@
+let expect: Chai.ExpectStatic;
+import { AttachmentMetadataWLDef } from '../../src/waterline-models/AttachmentMetadata';
+
+type WaterlineDef = {
+  attributes?: Record<string, { allowNull?: boolean }>;
+  beforeCreate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
+  beforeUpdate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
+};
+
+function runHook(
+  def: WaterlineDef,
+  hook: 'beforeCreate' | 'beforeUpdate',
+  record: Record<string, unknown>
+): { record: Record<string, unknown>; error?: Error } {
+  let error: Error | undefined;
+  def[hook]!(record, caught => {
+    error = caught;
+  });
+  return { record, error };
+}
+
+describe('AttachmentMetadata waterline model', function () {
+  before(async function () {
+    const chai = await import('chai');
+    expect = chai.expect;
+  });
+
+  function valid() {
+    return {
+      oid: ' oid-1 ',
+      fileId: ' file-1 ',
+      storageKey: ' oid-1/file-1 ',
+    };
+  }
+
+  it('allows null for optional attachment coordination metadata', function () {
+    const nullableFields = [
+      'attachmentId',
+      'generation',
+      'mutationFileId',
+      'coordinationToken',
+      'lastAttemptAt',
+      'coordinationLeaseExpiresAt',
+      'lastSafeErrorCode',
+    ];
+
+    for (const field of nullableFields) {
+      expect(AttachmentMetadataWLDef.attributes?.[field]?.allowNull, field).to.equal(true);
+    }
+  });
+
+  it('normalizes journal metadata and access counters on create', function () {
+    const result = runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+      ...valid(),
+      accessCount: 'not-a-number',
+      isJournal: 1,
+      attachmentId: ' attachment-1 ',
+      operation: ' add ',
+      mutationState: ' pending ',
+      generation: ` ${'g'.repeat(140)} `,
+      mutationFileId: ' file-new ',
+    });
+
+    expect(result.error).to.be.undefined;
+    expect(result.record).to.include({
+      oid: 'oid-1',
+      fileId: 'file-1',
+      storageKey: 'oid-1/file-1',
+      isJournal: false,
+      attachmentId: 'attachment-1',
+      operation: 'add',
+      mutationState: 'pending',
+      mutationFileId: 'file-new',
+    });
+    expect(String(result.record.generation)).to.have.length(128);
+  });
+
+  it('normalizes valid partial updates and clears invalid optional values', function () {
+    const result = runHook(AttachmentMetadataWLDef, 'beforeUpdate', {
+      accessCount: Infinity,
+      isJournal: true,
+      attachmentId: '   ',
+      operation: '',
+      mutationState: '',
+      generation: '   ',
+      mutationFileId: '   ',
+    });
+
+    expect(result.error).to.be.undefined;
+    expect(result.record).to.include({
+      accessCount: 0,
+      isJournal: true,
+      attachmentId: undefined,
+      operation: undefined,
+      mutationState: undefined,
+      generation: undefined,
+      mutationFileId: undefined,
+    });
+  });
+
+  it('rejects invalid journal identifiers and states', function () {
+    expect(
+      runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+        ...valid(),
+        attachmentId: 'bad id',
+      }).error?.message
+    ).to.match(/attachmentId must be a bounded identifier/);
+    expect(
+      runHook(AttachmentMetadataWLDef, 'beforeUpdate', {
+        operation: 'replace',
+      }).error?.message
+    ).to.match(/operation is invalid/);
+    expect(
+      runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+        ...valid(),
+        mutationState: 'running',
+      }).error?.message
+    ).to.match(/mutationState is invalid/);
+  });
+
+  it('enforces required physical identity on create and update', function () {
+    expect(
+      runHook(AttachmentMetadataWLDef, 'beforeCreate', {
+        fileId: 'file-1',
+        storageKey: 'key-1',
+      }).error?.message
+    ).to.match(/oid is required/);
+    expect(
+      runHook(AttachmentMetadataWLDef, 'beforeUpdate', {
+        storageKey: '   ',
+      }).error?.message
+    ).to.match(/storageKey is required/);
+  });
+});
