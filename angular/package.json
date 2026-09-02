@@ -42,7 +42,7 @@
     "@uppy/dropbox": "5.1.0",
     "@uppy/google-drive": "5.1.0",
     "@uppy/onedrive": "5.1.0",
-    "@uppy/tus": "5.1.1",
+    "@uppy/tus": "6.0.0",
     "esbuild": "0.28.2",
     "handlebars": "4.7.9",
     "i18next": "26.4.0",
