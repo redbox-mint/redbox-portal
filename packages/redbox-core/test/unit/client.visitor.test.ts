@@ -1869,6 +1869,79 @@ describe("Client Visitor", async () => {
     expect(actual).to.eql({});
   });
 
+  it('should support denyRoles to hide fields from users with denied roles', async function () {
+    const formConfig = {
+      name: 'role-test-form',
+      componentDefinitions: [
+        {
+          name: 'researcher_only_field',
+          layout: {
+            class: 'DefaultLayout',
+            config: { label: 'Researcher Only' }
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: { defaultValue: 'res' }
+          },
+          component: {
+            class: 'SimpleInputComponent',
+            config: { readonly: true }
+          },
+          constraints: {
+            authorization: {
+              allowRoles: ['Researcher'],
+              denyRoles: ['Admin', 'Librarians']
+            }
+          }
+        },
+        {
+          name: 'admin_edit_field',
+          layout: {
+            class: 'DefaultLayout',
+            config: { label: 'Admin Edit' }
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: { defaultValue: 'admin' }
+          },
+          component: {
+            class: 'SimpleInputComponent',
+            config: { readonly: false }
+          },
+          constraints: {
+            authorization: {
+              allowRoles: ['Admin', 'Librarians']
+            }
+          }
+        }
+      ]
+    };
+
+    // 1. User with only Researcher role: should see researcher_only_field, but not admin_edit_field
+    const constructor1 = new ConstructFormConfigVisitor(logger);
+    const constructed1 = await constructor1.start({ data: structuredClone(formConfig), formMode: 'edit' });
+    const visitor1 = new ClientFormConfigVisitor(logger);
+    const actual1 = await visitor1.start({ form: constructed1, formMode: 'edit', userRoles: ['Researcher'] });
+    const fieldNames1 = actual1.componentDefinitions?.map((c: any) => c.name) ?? [];
+    expect(fieldNames1).to.deep.equal(['researcher_only_field']);
+
+    // 2. User with Admin (has all roles including Researcher): should see admin_edit_field, but NOT researcher_only_field
+    const constructor2 = new ConstructFormConfigVisitor(logger);
+    const constructed2 = await constructor2.start({ data: structuredClone(formConfig), formMode: 'edit' });
+    const visitor2 = new ClientFormConfigVisitor(logger);
+    const actual2 = await visitor2.start({ form: constructed2, formMode: 'edit', userRoles: ['Admin', 'Librarians', 'Researcher'] });
+    const fieldNames2 = actual2.componentDefinitions?.map((c: any) => c.name) ?? [];
+    expect(fieldNames2).to.deep.equal(['admin_edit_field']);
+
+    // 3. User with Librarians + Researcher: should see admin_edit_field, but NOT researcher_only_field
+    const constructor3 = new ConstructFormConfigVisitor(logger);
+    const constructed3 = await constructor3.start({ data: structuredClone(formConfig), formMode: 'edit' });
+    const visitor3 = new ClientFormConfigVisitor(logger);
+    const actual3 = await visitor3.start({ form: constructed3, formMode: 'edit', userRoles: ['Librarians', 'Researcher'] });
+    const fieldNames3 = actual3.componentDefinitions?.map((c: any) => c.name) ?? [];
+    expect(fieldNames3).to.deep.equal(['admin_edit_field']);
+  });
+
   it(`should keep transformed accordion in view mode`, async function () {
     const constructor = new ConstructFormConfigVisitor(logger);
     const constructed = await constructor.start({
