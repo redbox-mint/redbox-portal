@@ -2,7 +2,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import { dompurify as dompurifyConfig, safeHtmlUriRegexp } from '../../src/config/dompurify.config';
+import { dompurify as dompurifyConfig, safeHtmlUriRegexp, safeSvgUriRegexp } from '../../src/config/dompurify.config';
 
 describe('DomSanitizerService', function() {
   let mockSails: any;
@@ -92,12 +92,13 @@ describe('DomSanitizerService', function() {
 
     it('should preserve fragment and relative SVG references', function() {
       mockSails.config.dompurify = dompurifyConfig;
-      const svg = '<svg><image href="#mark"/><image href="./images/logo.svg"/><image href="../logo.svg"/><image href="/logo.svg"/></svg>';
+      const svg = '<svg><image href="#mark"/><image href="images/logo.svg"/><image href="./images/logo.svg"/><image href="../logo.svg"/><image href="/logo.svg"/></svg>';
 
       const result = DomSanitizerService.sanitize(svg);
 
       expect(result.safe).to.be.true;
       expect(result.sanitized).to.include('href="#mark"');
+      expect(result.sanitized).to.include('href="images/logo.svg"');
       expect(result.sanitized).to.include('href="./images/logo.svg"');
       expect(result.sanitized).to.include('href="../logo.svg"');
       expect(result.sanitized).to.include('href="/logo.svg"');
@@ -301,6 +302,23 @@ describe('DomSanitizerService', function() {
     it('should block scriptable or embedded-data protocols', function() {
       expect(safeHtmlUriRegexp.test('javascript:alert(1)')).to.equal(false);
       expect(safeHtmlUriRegexp.test('data:text/html,<script>alert(1)</script>')).to.equal(false);
+    });
+  });
+
+  describe('safeSvgUriRegexp', function() {
+    it('should allow complete fragment and relative references', function() {
+      expect(safeSvgUriRegexp.test('#mark')).to.equal(true);
+      expect(safeSvgUriRegexp.test('images/logo.svg')).to.equal(true);
+      expect(safeSvgUriRegexp.test('images/logo.svg?version=1#mark')).to.equal(true);
+      expect(safeSvgUriRegexp.test('./images/logo.svg')).to.equal(true);
+      expect(safeSvgUriRegexp.test('../images/logo.svg')).to.equal(true);
+      expect(safeSvgUriRegexp.test('/images/logo.svg')).to.equal(true);
+    });
+
+    it('should reject absolute schemes and protocol-relative references without partial matches', function() {
+      ['mailto:user@example.org', 'https://example.org/logo.svg', '//example.org/logo.svg'].forEach((reference) => {
+        expect(safeSvgUriRegexp.test(reference)).to.equal(false);
+      });
     });
   });
 });
