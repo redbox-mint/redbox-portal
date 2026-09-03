@@ -198,4 +198,24 @@ describe('CoreController hook view resolution', function () {
     expect(res.view.firstCall.args[0]).to.equal('404');
     expect(path.resolve(path.dirname(coreErrorView), res.view.firstCall.args[1]._layoutFile)).to.equal(hookLayout);
   });
+
+  it('recovers branding and portal from an unmatched branded URL', function () {
+    const hookRoot = createHook();
+    const coreErrorView = path.join(appPath, 'views', '404.ejs');
+    const hookLayout = path.join(hookRoot, 'views', 'brand', 'portal', 'layout', 'layout.ejs');
+    writeFile(coreErrorView, 'not found');
+    writeFile(hookLayout, '<%- body %>');
+
+    const req = {
+      originalUrl: '/brand/portal/page-that-does-not-exist',
+      options: { locals: {} },
+    };
+    const res = createRes();
+    controller.sendView(req as unknown as Sails.Req, res as unknown as Sails.Res, '404');
+
+    const locals = res.view.firstCall.args[1];
+    expect(locals.branding).to.equal('brand');
+    expect(locals.portal).to.equal('portal');
+    expect(path.resolve(path.dirname(coreErrorView), locals._layoutFile)).to.equal(hookLayout);
+  });
 });

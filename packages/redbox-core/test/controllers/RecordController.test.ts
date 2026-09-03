@@ -713,7 +713,7 @@ describe('RecordController TUS URL generation', () => {
     expect(checkDiskSpaceStub.firstCall.args[0]).to.not.equal('/legacy/mongodb-disk');
   });
 
-  it('renders the browser 404 page when an attachment is not in the record', async () => {
+  it('uses the shared browser 404 response when an attachment is not in the record', async () => {
     (controller as any).tusServer = { handle: sinon.stub() };
     sinon.stub(controller as any, 'getRecord').returns(of({
       metaMetadata: { attachmentFields: [] },
@@ -730,14 +730,12 @@ describe('RecordController TUS URL generation', () => {
       headers: { host: 'localhost:1500' },
       param: sinon.stub().callsFake((name: string) => ({ oid: 'oid-1', attachId: 'file-missing' }[name])),
     } as unknown as Sails.Req;
-    const res = { status: sinon.stub() } as unknown as Sails.Res;
+    const res = { notFound: sinon.stub() } as unknown as Sails.Res;
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
-    const sendViewStub = sinon.stub(controller, 'sendView');
 
     await controller.doAttachment(req, res);
 
-    expect((res.status as any).calledOnceWithExactly(404)).to.equal(true);
-    expect(sendViewStub.calledOnceWithExactly(req, res, '404')).to.equal(true);
+    expect((res.notFound as any).calledOnce).to.equal(true);
     expect(sendRespStub.called).to.equal(false);
   });
 
@@ -767,7 +765,7 @@ describe('RecordController TUS URL generation', () => {
     expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 404 });
   });
 
-  it('renders the browser 404 page when the attachment stream is missing', async () => {
+  it('uses the shared browser 404 response when the attachment stream is missing', async () => {
     (controller as any).tusServer = { handle: sinon.stub() };
     sinon.stub(controller as any, 'getRecord').returns(of({
       metaMetadata: { attachmentFields: ['attachments'] },
@@ -792,15 +790,13 @@ describe('RecordController TUS URL generation', () => {
     const res = {
       set: sinon.stub(),
       attachment: sinon.stub(),
-      status: sinon.stub(),
+      notFound: sinon.stub(),
     } as unknown as Sails.Res;
     const sendRespStub = sinon.stub(controller as any, 'sendResp');
-    const sendViewStub = sinon.stub(controller, 'sendView');
 
     await controller.doAttachment(req, res);
 
-    expect((res.status as any).calledOnceWithExactly(404)).to.equal(true);
-    expect(sendViewStub.calledOnceWithExactly(req, res, '404')).to.equal(true);
+    expect((res.notFound as any).calledOnce).to.equal(true);
     expect((res.set as any).called).to.equal(false);
     expect((res.attachment as any).called).to.equal(false);
     expect(sendRespStub.called).to.equal(false);
