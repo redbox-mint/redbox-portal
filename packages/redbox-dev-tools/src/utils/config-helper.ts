@@ -53,7 +53,7 @@ export async function updateModelIndex(params: {
         }
     }
 
-    // 2. Add named import for the WLDef if not exists  
+    // 2. Add named import for the WLDef if not exists
     const existingImport = sourceFile.getImportDeclaration(d => d.getModuleSpecifierValue() === importPath);
     if (!existingImport) {
         // Find where the WLDef imports are and add there
@@ -606,7 +606,7 @@ export async function updateLanguageDefaults(params: {
             }
 
             const updated = { ...json, [entry.key]: entry.value };
-            const indentMatch = raw.match(/\n(\s+)"[^\"]+"\s*:/);
+            const indentMatch = raw.match(/\n(\s+)"[^"]+"\s*:/);
             const indent = indentMatch ? indentMatch[1] : '  ';
             const output = JSON.stringify(updated, null, indent) + '\n';
 
