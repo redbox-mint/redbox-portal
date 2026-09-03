@@ -90,6 +90,34 @@ describe('DomSanitizerService', function() {
       expect(result.sanitized).to.include('d="m 0,0 100,0 0,100 z"');
     });
 
+    it('should preserve fragment and relative SVG references', function() {
+      mockSails.config.dompurify = dompurifyConfig;
+      const svg = '<svg><image href="#mark"/><image href="./images/logo.svg"/><image href="../logo.svg"/><image href="/logo.svg"/></svg>';
+
+      const result = DomSanitizerService.sanitize(svg);
+
+      expect(result.safe).to.be.true;
+      expect(result.sanitized).to.include('href="#mark"');
+      expect(result.sanitized).to.include('href="./images/logo.svg"');
+      expect(result.sanitized).to.include('href="../logo.svg"');
+      expect(result.sanitized).to.include('href="/logo.svg"');
+    });
+
+    ['mailto:', 'tel:', 'callto:', 'sms:', 'cid:', 'xmpp:', 'matrix:'].forEach((scheme, index) => {
+      it(`should reject ${scheme} SVG references`, function() {
+        mockSails.config.dompurify = dompurifyConfig;
+        const attribute = index % 2 === 0 ? 'href' : 'xlink:href';
+        const svg = `<svg><a ${attribute}="${scheme}attacker"><path d="m 0,0 1,1"/></a></svg>`;
+
+        const result = DomSanitizerService.sanitize(svg);
+
+        expect(result.safe).to.be.false;
+        expect(result.errors).to.include('unsafe-uri-reference');
+        expect(result.sanitized).not.to.include(`${scheme}attacker`);
+        expect(result.sanitized).to.include('d="m 0,0 1,1"');
+      });
+    });
+
     it('should reject non-string input', function() {
       const result = DomSanitizerService.sanitize(null as any);
       

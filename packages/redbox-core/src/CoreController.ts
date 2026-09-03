@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 import path from 'path';
 import { ILogger } from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
+import { sendTerminalErrorFallback } from './responses/terminalErrorFallback';
 import { resolveHookViewFile } from './hooks/hookResources';
 import type { ResolvedHookFile } from './hooks/hookResources';
 import {
@@ -392,9 +393,10 @@ export namespace Controllers.Core {
       const resolvedView = this.resolveViewFile(branding, portal, view);
       const resolvedLayout = this.resolveLayoutFile(branding, portal);
 
-      // View still doesn't exist so return a 404
+      // Do not re-enter res.notFound here: the missing view may itself be the
+      // 404 template. Preserve an existing error status and terminate safely.
       if (resolvedView === null) {
-        res.notFound(mergedLocal, "404");
+        sendTerminalErrorFallback(res);
         return;
       }
 

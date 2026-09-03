@@ -49,6 +49,13 @@ describe('CoreController hook view resolution', function () {
     return {
       locals: {},
       notFound: sinon.stub(),
+      statusCode: 200,
+      status: sinon.stub().callsFake(function (this: { statusCode: number }, status: number) {
+        this.statusCode = status;
+        return this;
+      }),
+      type: sinon.stub().returnsThis(),
+      send: sinon.stub(),
       view: sinon.stub(),
     };
   }
@@ -217,5 +224,27 @@ describe('CoreController hook view resolution', function () {
     expect(locals.branding).to.equal('brand');
     expect(locals.portal).to.equal('portal');
     expect(path.resolve(path.dirname(coreErrorView), locals._layoutFile)).to.equal(hookLayout);
+  });
+
+  it('terminates with a 404 when the requested view and 404 template are unavailable', function () {
+    const res = createRes();
+
+    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, 'missing-view');
+
+    expect(res.notFound.called).to.equal(false);
+    expect(res.status.calledOnceWithExactly(404)).to.equal(true);
+    expect(res.type.calledOnceWithExactly('text/plain')).to.equal(true);
+    expect(res.send.calledOnceWithExactly('404 Not Found')).to.equal(true);
+  });
+
+  it('preserves an assigned error status when the error view is unavailable', function () {
+    const res = createRes();
+    res.statusCode = 500;
+
+    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, '500');
+
+    expect(res.notFound.called).to.equal(false);
+    expect(res.status.calledOnceWithExactly(500)).to.equal(true);
+    expect(res.send.calledOnceWithExactly('500 Internal Server Error')).to.equal(true);
   });
 });
