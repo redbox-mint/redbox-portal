@@ -1,0 +1,38 @@
+meta {
+  name: Check RDMP PDF exists
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/datastreams/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+script:pre-request {
+  await new Promise((resolve) => setTimeout(() => resolve(), 45000));
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Has attachments", function () {
+      var jsonData = res.getBody();
+
+      // should be one attachment, with pdf ext
+      expect(Array.isArray(jsonData.records)).to.equal(true);
+      expect(jsonData.records.length).to.equal(1);
+      expect(String(jsonData.records[0].fileId).indexOf(bru.getEnvVar("dmpOid")) >= 0).to.equal(true);
+      bru.setEnvVar("recordStreamId",jsonData.records[0].fileId);
+
+      expect(String(jsonData.records[0].fileId).endsWith('.pdf')).to.equal(true);
+  });
+}

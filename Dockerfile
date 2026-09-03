@@ -40,11 +40,16 @@ RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core && npx tsc -p tsconfig.json
+RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
 # Build its dist so the optional `test` image (below) can load it. It is pruned
 # from node_modules for the pristine runtime image.
 RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts && npm run build
+# Build the optional PDF hook from this checkout. The pdfgen runtime target
+# installs this local package, so it does not depend on a separately released
+# portal-core-compatible npm version.
+RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps && npm run compile
 
 RUN npx tsc --project tsconfig.json
 
@@ -65,7 +70,8 @@ RUN cp -a node_modules /tmp/test-node_modules \
       packages/sails-ng-common \
       packages/redbox-core \
       packages/sails-hook-redbox-storage-mongo \
-      packages/redbox-hook-dev; do \
+      packages/redbox-hook-dev \
+      packages/sails-hook-redbox-pdfgen; do \
       if [ -d "$package_path/node_modules" ]; then \
         mkdir -p "/tmp/test-package-node-modules/$package_path"; \
         cp -a "$package_path/node_modules" "/tmp/test-package-node-modules/$package_path/node_modules"; \
@@ -81,6 +87,7 @@ RUN npm prune --omit=dev \
     packages/raido/node_modules \
     packages/rva-registry/node_modules \
     packages/redbox-hook-dev/node_modules \
+    packages/sails-hook-redbox-pdfgen/node_modules \
     angular/node_modules \
     angular-legacy/node_modules \
     support/build/api-descriptors/node_modules
@@ -110,7 +117,7 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
-RUN rm -rf packages/redbox-hook-dev
+RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
 COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
@@ -175,8 +182,9 @@ ENV PUPPETEER_SKIP_DOWNLOAD=1
 USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
-RUN npm install --omit=dev --save --package-lock=true \
-    @researchdatabox/sails-hook-redbox-pdfgen@5.0.0
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
+RUN npm install --omit=dev --ignore-scripts --save --package-lock=true \
+    ./packages/sails-hook-redbox-pdfgen
 USER root
 RUN apt-get purge -y --auto-remove git \
  && rm -rf /var/lib/apt/lists/*

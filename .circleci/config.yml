@@ -106,6 +106,7 @@ jobs:
               packages/agenda-sqs-backend \
               packages/redbox-core \
               packages/redbox-dev-tools \
+              packages/sails-hook-redbox-pdfgen \
               packages/sails-ng-common \
               packages/sails-hook-redbox-storage-mongo
       - run:
