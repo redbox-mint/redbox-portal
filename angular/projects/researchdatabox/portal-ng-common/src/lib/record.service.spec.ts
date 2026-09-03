@@ -57,12 +57,17 @@ describe('RecordService', () => {
     );
   });
 
-  it('creates a UUID save request header in development when crypto.randomUUID is unavailable', async () => {
+  it('creates a UUID save request header in production mode when crypto.randomUUID is unavailable', async () => {
+    const runtimeGlobals = globalThis as typeof globalThis & { ngDevMode?: unknown };
+    const hadNgDevMode = Object.prototype.hasOwnProperty.call(runtimeGlobals, 'ngDevMode');
+    const nativeNgDevMode = runtimeGlobals.ngDevMode;
     const nativeRandomUUID = globalThis.crypto.randomUUID;
+    runtimeGlobals.ngDevMode = false;
     Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: undefined });
 
     try {
       const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
+      runtimeGlobals.ngDevMode = nativeNgDevMode;
       const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
       const requestId = request.request.headers.get('X-ReDBox-Save-Request-Id');
 
@@ -76,6 +81,11 @@ describe('RecordService', () => {
         })
       );
     } finally {
+      if (hadNgDevMode) {
+        runtimeGlobals.ngDevMode = nativeNgDevMode;
+      } else {
+        delete runtimeGlobals.ngDevMode;
+      }
       Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: nativeRandomUUID });
     }
   });

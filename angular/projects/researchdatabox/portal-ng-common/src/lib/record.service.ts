@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { map, firstValueFrom } from 'rxjs';
-import { Injectable, Inject, isDevMode } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import {
   HttpClient,
@@ -114,11 +114,10 @@ function createSaveRequestId(): string {
   if (globalThis.crypto?.randomUUID) {
     return globalThis.crypto.randomUUID();
   }
-  // crypto.randomUUID() may be unavailable when running the portal over HTTP in
-  // development because it requires a secure context. Fall back to
-  // crypto.getRandomValues() for local development, while keeping production
-  // behaviour strict so unexpected crypto API availability issues are surfaced.
-  if (!isDevMode() || !globalThis.crypto?.getRandomValues) {
+  // crypto.randomUUID() may be unavailable when the portal is served over HTTP
+  // because it requires a secure context. getRandomValues() is still suitable
+  // for generating a cryptographically random UUID in that environment.
+  if (!globalThis.crypto?.getRandomValues) {
     throw new Error('Unable to generate save request id: crypto.randomUUID() is unavailable');
   }
   return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, character =>
