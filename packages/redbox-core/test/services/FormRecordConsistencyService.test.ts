@@ -166,6 +166,101 @@ describe('FormRecordConsistencyService', function () {
     });
   });
 
+  describe('mergeRecordMetadataPermitted', function () {
+    it('preserves every property of array elements permitted as unconstrained objects', function () {
+      const changed = {
+        dataLocations: [
+          {
+            type: 'url',
+            location: 'https://example.com/dataset',
+            notes: 'test notes',
+            selected: true,
+          },
+        ],
+      };
+      const permittedChanges = {
+        properties: {
+          dataLocations: {
+            elements: {
+              type: 'object',
+            },
+          },
+        },
+      };
+
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        changed,
+        permittedChanges,
+        []
+      );
+
+      expect(result).to.deep.equal(changed);
+    });
+
+    it('preserves array elements permitted by an empty schema', function () {
+      const changed = {
+        attachments: [
+          {
+            attachmentId: 'attachment-1',
+            name: 'dataset.pdf',
+          },
+        ],
+      };
+      const permittedChanges = {
+        properties: {
+          attachments: {
+            elements: {},
+          },
+        },
+      };
+
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        changed,
+        permittedChanges,
+        []
+      );
+
+      expect(result).to.deep.equal(changed);
+    });
+
+    it('continues to filter metadata when a form has no permitted fields', function () {
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        { serverOnly: 'hidden' },
+        {},
+        []
+      );
+
+      expect(result).to.deep.equal({});
+    });
+
+    it('reports malformed primitive property schemas as validation errors', function () {
+      const merge = () => FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        { title: 'Dataset' },
+        { properties: { title: 'string' } },
+        []
+      );
+
+      expect(merge).to.throw(Error, 'Invalid permittedChanges object');
+    });
+
+    it('reports malformed primitive array element schemas as validation errors', function () {
+      for (const elementSchema of [123, false, 'string']) {
+        const merge = () => FormRecordConsistencyService.mergeRecordMetadataPermitted(
+          {},
+          { dataLocations: [{ type: 'url', location: 'https://example.com/dataset' }] },
+          { properties: { dataLocations: { elements: elementSchema } } },
+          []
+        );
+
+        expect(merge).to.throw(Error, 'Invalid permittedChanges object');
+      }
+    });
+  });
+
   describe('compareRecords', function () {
     it('should detect changes in simple objects', function () {
       const original = { a: 1 };

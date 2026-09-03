@@ -35,6 +35,16 @@ import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
 
+const isPermittedChangesSchemaObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const requirePermittedChangesSchemaObject = (value: unknown): Record<string, unknown> => {
+    if (!isPermittedChangesSchemaObject(value)) {
+        throw new Error(`Invalid permittedChanges object, schema definitions must be objects: ${JSON.stringify(value)}`);
+    }
+    return value;
+};
+
 
 
 
@@ -206,6 +216,9 @@ export namespace Services {
             const originalRecord = original as Record<string | number, unknown>;
             const changedRecord = changed as Record<string | number, unknown>;
             const permittedChangesObj = permittedChanges as Record<string | number, unknown>;
+            if (permittedChangesObj?.type === 'object') {
+                return changedRecord;
+            }
             // if (!('properties' in permittedChangesObj)) {
             //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
             // }
@@ -233,11 +246,14 @@ export namespace Services {
 
                 // pre-calculate aspects of the permitted changes
                 const isKeyInPermittedChange = key in permittedChangesProps;
-                const permittedChangesValue = permittedChangesProps?.[key] as Record<string, unknown> | undefined;
-                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValue && 'properties' in permittedChangesValue;
-                const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValue && 'elements' in permittedChangesValue;
-                const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValue && 'type' in permittedChangesValue;
-                const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValue && Object.keys(permittedChangesValue).length === 0;
+                const permittedChangesValue = permittedChangesProps?.[key];
+                const permittedChangesValueObj = isKeyInPermittedChange
+                  ? requirePermittedChangesSchemaObject(permittedChangesValue)
+                  : undefined;
+                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValueObj && 'properties' in permittedChangesValueObj;
+                const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValueObj && 'elements' in permittedChangesValueObj;
+                const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValueObj && 'type' in permittedChangesValueObj;
+                const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValueObj && Object.keys(permittedChangesValueObj).length === 0;
                 const originalValueForMerge = isKeyInOriginal
                   ? originalValue
                   : isPermittedChangeArray
@@ -270,8 +286,11 @@ export namespace Services {
                     // The whole array is replaced because there is no current way to distinguish what from the original should be kept.
                     // TODO: Consider how to replace each element in the array instead of the whole array.
                     //       Replacing the whole array prevents use of constraints in components in the array elements.
-                    const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
+                    const newPermittedChanges = requirePermittedChangesSchemaObject(permittedChangesValueObj?.['elements']);
                     result[key] = (changedValue as unknown[]).map((changedElement: unknown, index: number) => {
+                        if (newPermittedChanges.type === 'object' || Object.keys(newPermittedChanges).length === 0) {
+                            return changedElement;
+                        }
                         // Evaluate the element in the array.
                         const guessedType = guessType(changedElement);
                         if (guessedType === "object") {
