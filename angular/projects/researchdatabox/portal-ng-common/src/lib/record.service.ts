@@ -114,6 +114,10 @@ function createSaveRequestId(): string {
   if (globalThis.crypto?.randomUUID) {
     return globalThis.crypto.randomUUID();
   }
+  // crypto.randomUUID() may be unavailable when running the portal over HTTP in
+  // development because it requires a secure context. Fall back to
+  // crypto.getRandomValues() for local development, while keeping production
+  // behaviour strict so unexpected crypto API availability issues are surfaced.
   if (!isDevMode() || !globalThis.crypto?.getRandomValues) {
     throw new Error('Unable to generate save request id: crypto.randomUUID() is unavailable');
   }
