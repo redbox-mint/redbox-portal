@@ -57,6 +57,15 @@ describe('DomSanitizerService', function() {
     sinon.restore();
   });
 
+  describe('service exports', function() {
+    it('should expose public sanitizer methods through the Sails service shim', function() {
+      const exportedMethods = DomSanitizerService.exports();
+
+      expect(exportedMethods.sanitize).to.be.a('function');
+      expect(exportedMethods.sanitizeWithProfile).to.be.a('function');
+    });
+  });
+
   describe('sanitize', function() {
     it('should sanitize a valid simple SVG', function() {
       const svg = '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="red"/></svg>';
