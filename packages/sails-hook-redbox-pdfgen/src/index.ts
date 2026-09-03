@@ -1,14 +1,30 @@
 import '@researchdatabox/redbox-core';
 import { defineRedboxHook, type HookRegistrationMap } from '@researchdatabox/redbox-core';
 import * as path from 'path';
+import { PDFGEN_CONFIG_MODEL } from './api/configmodels/PDFGenConfig';
+import { ServiceExports } from './api/services';
 import { agendaQueue, mergeAgendaQueueJobs } from './config/agendaQueue.js';
 import { pdfgen } from './config/pdfgen.js';
 
-export { };
+type ConfigService = {
+  mergeHookConfig?: (hookName: string, config: Sails.ConfigObject) => unknown;
+};
+
+type AppConfigService = {
+  registerConfigModel?: (info: {
+    key: string;
+    modelName: string;
+    class: new (...args: never[]) => object;
+    schema?: unknown;
+    tsGlob?: string | string[];
+    secretFields?: string[];
+  }) => void;
+};
 
 const hook = defineRedboxHook({
   initialize(sails, cb) {
-    const configService = (sails.services as Record<string, any>)?.configservice;
+    const services = sails.services as Record<string, unknown>;
+    const configService = services.configservice as ConfigService | undefined;
     const existingAgendaQueueConfig = sails.config.agendaQueue;
     if (configService?.mergeHookConfig) {
       configService.mergeHookConfig('@researchdatabox/sails-hook-redbox-pdfgen', sails.config);
@@ -18,20 +34,21 @@ const hook = defineRedboxHook({
 
     sails.config.agendaQueue = {
       ...sails.config.agendaQueue,
-      jobs: mergeAgendaQueueJobs(existingAgendaQueueConfig?.jobs, agendaQueue.jobs)
+      jobs: mergeAgendaQueueJobs(existingAgendaQueueConfig?.jobs, agendaQueue.jobs),
     };
 
     sails.after('hook:moduleloader:loaded', () => {
       try {
-        const { PDFGEN_CONFIG_MODEL } = require('./api/configmodels/PDFGenConfig');
-        const appConfigService = (sails.services as Record<string, any>)?.appconfigservice;
+        const appConfigService = services.appconfigservice as AppConfigService | undefined;
         if (appConfigService?.registerConfigModel) {
           appConfigService.registerConfigModel({
             ...PDFGEN_CONFIG_MODEL,
-            tsGlob: path.join(__dirname, '../src/api/configmodels/*.ts')
+            tsGlob: path.join(__dirname, '../src/api/configmodels/*.ts'),
           });
         } else {
-          sails.log.warn('sails-hook-redbox-pdfgen: AppConfigService not available, skipping config model registration');
+          sails.log.warn(
+            'sails-hook-redbox-pdfgen: AppConfigService not available, skipping config model registration'
+          );
         }
       } catch (e) {
         sails.log.error('sails-hook-redbox-pdfgen: Failed to register config model:', e);
@@ -42,24 +59,24 @@ const hook = defineRedboxHook({
   },
   routes: {
     before: {},
-    after: {}
+    after: {},
   },
   defaults: {
     __configKey__: {
-      _hookTimeout: 120000
-    }
+      _hookTimeout: 120000,
+    },
   },
   registerRedboxConfig(): HookRegistrationMap {
     return {
-      pdfgen
+      pdfgen,
     };
   },
   registerRedboxServices(): HookRegistrationMap {
-    return require('./api/services').ServiceExports as HookRegistrationMap;
+    return ServiceExports;
   },
   additionalExports: {
-    ServiceExports: require('./api/services').ServiceExports
-  }
+    ServiceExports,
+  },
 });
 
 module.exports = hook;

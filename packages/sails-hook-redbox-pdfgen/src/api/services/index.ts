@@ -1,5 +1,5 @@
 import { Services } from './PDFService';
 
 export const ServiceExports = {
-  pdfservice: (new Services.PDF() as any).exports()
+  pdfservice: new Services.PDF().exports(),
 };

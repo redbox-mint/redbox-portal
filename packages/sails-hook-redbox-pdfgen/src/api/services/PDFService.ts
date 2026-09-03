@@ -1,6 +1,6 @@
 import { from } from 'rxjs';
 
-import { launch } from 'puppeteer';
+import { launch, type Page, type PDFOptions as PuppeteerPDFOptions } from 'puppeteer';
 import { DateTime } from 'luxon';
 import * as fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -11,8 +11,9 @@ import {
   Datastream,
   DatastreamService
 } from '@researchdatabox/redbox-core';
+import type { BrandingModel } from '@researchdatabox/redbox-core';
 import { Cause, Duration, Effect, Fiber } from 'effect';
-import type { PdfgenConfig } from '../../config/pdfgen';
+import type { PdfgenConfig, PdfgenPDFOptions } from '../../config/pdfgen';
 import {
   BrowserError,
   DatastreamSaveError,
@@ -41,6 +42,26 @@ type PDFGenerationResult =
       outcome: 'duplicateSuppressed';
     };
 
+type PdfRecord = Record<string, unknown> & {
+  oid?: string;
+  metaMetadata?: {
+    brandId?: string;
+  };
+};
+
+type PdfOptions = Record<string, unknown> & {
+  triggerSource?: string;
+};
+
+type PdfgenRuntimePDFOptions = PdfgenPDFOptions & {
+  path?: string;
+};
+
+function getAuditBrandId(record: PdfRecord): string | undefined {
+  const brandId = record.metaMetadata?.brandId;
+  return brandId == null ? undefined : String(brandId);
+}
+
 
 export namespace Services {
   /**
@@ -58,7 +79,7 @@ export namespace Services {
       interruptReason?: 'shutdown' | 'superseded';
     }> = new Map();
     private DatastreamService!: DatastreamService;
-    protected _exportedMethods: any = [
+    protected override _exportedMethods: string[] = [
       'createPDF',
       'init'
     ];
@@ -126,7 +147,7 @@ export namespace Services {
       return launch(options);
     }
 
-    private async waitForPageReady(page: any, brand: any, options: any, readinessStrategy: string): Promise<void> {
+    private async waitForPageReady(page: Page, brand: BrandingModel, options: PdfOptions, readinessStrategy: string): Promise<void> {
       const timeout = this.getOption(brand, options, 'readinessTimeout', 60000);
 
       switch (readinessStrategy) {
@@ -138,12 +159,12 @@ export namespace Services {
           break;
         case 'selector':
           await page.waitForSelector(
-            this.getOption(brand, options, 'waitForSelector'), { timeout }
+            this.getOption<string>(brand, options, 'waitForSelector') ?? '', { timeout }
           );
           break;
         case 'jsFlag':
           await page.waitForFunction(
-            this.getOption(brand, options, 'waitForFunction'),
+            this.getOption<string>(brand, options, 'waitForFunction') ?? '',
             { timeout, polling: 500 }
           );
           break;
@@ -153,7 +174,7 @@ export namespace Services {
             timeout
           });
           await page.waitForSelector(
-            this.getOption(brand, options, 'waitForSelector'), { timeout }
+            this.getOption<string>(brand, options, 'waitForSelector') ?? '', { timeout }
           );
           break;
         default:
@@ -168,9 +189,9 @@ export namespace Services {
 
     private attemptPDFGeneration(
       oid: string,
-      record: any,
-      options: any,
-      brand: any,
+      record: PdfRecord,
+      options: PdfOptions,
+      brand: BrandingModel,
       attempt: number,
       parentAuditCtx?: IntegrationAuditContext | null
     ): Effect.Effect<PDFGenerationResult, PDFError> {
@@ -181,7 +202,7 @@ export namespace Services {
       const pdfgenAppUrlOverride = this.getOption(brand, options, 'appUrlOverride');
       const baseUrl = pdfgenAppUrlOverride || sails.config.appUrl;
       const currentURL = `${baseUrl}${sourceUrlBase}/${oid}`;
-      const readinessStrategy = this.getOption(brand, options, 'readinessStrategy', 'networkIdle');
+      const readinessStrategy = this.getOption<string>(brand, options, 'readinessStrategy', 'networkIdle');
       const pdfPrefix = this.getOption(brand, options, 'pdfPrefix', 'pdf');
 
       const work = Effect.scoped(Effect.gen(this, function* () {
@@ -280,16 +301,16 @@ export namespace Services {
         const enableLogging = this.getOption(brand, options, 'enableChromeLogging');
         if (enableLogging === true || enableLogging === 'true') {
           yield* Effect.sync(() => {
-            page.on('console', (msg: any) => {
+            page.on('console', (msg) => {
               sails.log.verbose(`PDFService::Chrome Console:${msg.text()}`);
             });
-            page.on('pageerror', (error: any) => {
-              sails.log.error(`PDFService::Chrome Page Error: ${error.message}`);
+            page.on('pageerror', (error) => {
+              sails.log.error(`PDFService::Chrome Page Error: ${error instanceof Error ? error.message : String(error)}`);
             });
-            page.on('response', (response: any) => {
+            page.on('response', (response) => {
               sails.log.verbose(`PDFService::Chrome Response: ${response.status()}, URL:${response.url()}`);
             });
-            page.on('requestfailed', (request: any) => {
+            page.on('requestfailed', (request) => {
               sails.log.error(`PDFService::Chrome Error: ${request.failure()?.errorText}, URL: ${request.url()}`);
             });
           });
@@ -323,10 +344,10 @@ export namespace Services {
         const date = DateTime.now().toMillis();
         const fileId = `${pdfPrefix ? `${pdfPrefix}-` : ''}${oid}-${date}.pdf`;
 
-        const rawPdfOptions = this.getOption(brand, options, 'PDFOptions') || {};
+        const rawPdfOptions = this.getOption<PdfgenRuntimePDFOptions>(brand, options, 'PDFOptions') || {};
         const { path: _ignoredPath, ...pdfOptions } = rawPdfOptions;
 
-        const defaultPDFOptions: any = {
+        const defaultPDFOptions: PuppeteerPDFOptions = {
           format: 'A4',
           printBackground: true,
           ...pdfOptions
@@ -385,7 +406,7 @@ export namespace Services {
           PdfIntegrationAuditAction.generatePdf,
           {
             integrationName: PdfIntegrationAuditName,
-            brandId: record?.metaMetadata?.brandId,
+            brandId: getAuditBrandId(record),
             triggeredBy: childTriggeredBy,
             requestSummary: {
               attempt,
@@ -439,36 +460,53 @@ export namespace Services {
       });
     }
 
-    private getBrandingEffect(record: any): Effect.Effect<any, MissingBrandError> {
+    private getBrandingEffect(record: PdfRecord): Effect.Effect<BrandingModel, MissingBrandError> {
       return Effect.gen(this, function* () {
         if (typeof BrandingService === 'undefined') {
           return yield* Effect.die(new Error('BrandingService global is not available'));
         }
-        const brandId = record?.metaMetadata?.brandId;
-        const brand = BrandingService.getBrandById(brandId);
+        const brandId = record.metaMetadata?.brandId;
+        const brand = brandId == null ? undefined : BrandingService.getBrandById(String(brandId));
         if (brand == null) {
-          return yield* Effect.fail(new MissingBrandError(record?.oid, brandId));
+          return yield* Effect.fail(new MissingBrandError(record.oid ?? '', brandId));
         }
         return brand;
       });
     }
 
-    private getOption(branding: any, option: any, key: keyof PdfgenConfig | string, defaultValue: any = undefined) {
+    private getOption<T>(
+      branding: BrandingModel,
+      option: PdfOptions | undefined,
+      key: keyof PdfgenConfig | string,
+      defaultValue: T
+    ): T;
+    private getOption<T = unknown>(
+      branding: BrandingModel,
+      option: PdfOptions | undefined,
+      key: keyof PdfgenConfig | string,
+      defaultValue?: T
+    ): T | undefined;
+    private getOption<T>(
+      branding: BrandingModel,
+      option: PdfOptions | undefined,
+      key: keyof PdfgenConfig | string,
+      defaultValue?: T
+    ): T | undefined {
       const brandingConfig = sails.config.brandingAware(branding.name) as unknown as Record<string, unknown> & {
         pdfgen?: Record<string, unknown>;
       };
-      let value = brandingConfig.pdfgen?.[key];
+      let value: unknown = brandingConfig.pdfgen?.[key];
       if (option && option[key] !== undefined) {
         value = option[key];
       }
       if (value === undefined) {
         return defaultValue;
       }
-      return value;
+      return value as T;
     }
 
 
-    public createPDF(oid: string, record: any, options: any, user: any) {
+    public createPDF(oid: string, record: PdfRecord, options: PdfOptions, _user: unknown) {
       const effect = Effect.gen(this, function* () {
         const brand = yield* this.getBrandingEffect({ ...record, oid });
         const maxRetries = this.getOption(brand, options, 'maxRetries', 2);
@@ -491,7 +529,7 @@ export namespace Services {
           PdfIntegrationAuditAction.generatePdfTrigger,
           {
             integrationName: PdfIntegrationAuditName,
-            brandId: record?.metaMetadata?.brandId,
+            brandId: getAuditBrandId(record),
             triggeredBy: triggerSource,
             requestSummary: {
               maxRetries,
