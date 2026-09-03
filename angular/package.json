@@ -27,7 +27,7 @@
     "@ngx-formly/bootstrap": "7.1.0",
     "@ngx-formly/core": "7.1.0",
     "@researchdatabox/sails-ng-common": "file:../packages/sails-ng-common",
-    "@tiptap/core": "3.29.2",
+    "@tiptap/core": "3.30.4",
     "@tiptap/extension-link": "3.29.2",
     "@tiptap/extension-table": "3.29.2",
     "@tiptap/extension-table-cell": "3.29.2",
@@ -83,7 +83,7 @@
     "typescript": "5.9.3"
   },
   "overrides": {
-    "@tiptap/core": "3.29.2",
+    "@tiptap/core": "3.30.4",
     "@tiptap/extension-blockquote": "3.29.2",
     "@tiptap/extension-bold": "3.29.2",
     "@tiptap/extension-bullet-list": "3.29.2",
