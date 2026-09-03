@@ -20,6 +20,9 @@ export namespace Services {
   const FIGSHARE_IMPORTS_FILE = 'figshare-imports.json';
   const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
   const RVA_IMPORT_TIMEOUT_MS = 30_000;
+  const RVA_IMPORT_SETTLEMENT_TIMEOUT_MS = 30_000;
+  const RVA_IMPORT_MAX_ATTEMPTS = 3;
+  const RVA_IMPORT_RETRY_DELAY_MS = 1_000;
 
   export type VocabularyEntryInput =
     Pick<VocabularyEntryAttributes, 'id' | 'label' | 'value' | 'identifier' | 'order' | 'historical'> & {
@@ -1153,16 +1156,94 @@ export namespace Services {
         const versionId = typeof item?.versionId === 'string' ? item.versionId.trim() : undefined;
 
         try {
-          await promiseWithTimeout(
-            rvaImportService.importRvaVocabulary(rvaId, versionId, defaultBranding),
-            RVA_IMPORT_TIMEOUT_MS,
-            `RVA import ${sourceKey}`
-          );
+          await this.importRvaBootstrapVocabulary(rvaImportService, rvaId, versionId, defaultBranding, sourceKey);
           sails.log.verbose(`Imported RVA bootstrap vocabulary: ${sourceKey}`);
         } catch (error) {
           sails.log.error(`Failed RVA bootstrap import: ${sourceKey}`, error);
         }
       }
+    }
+
+    private async importRvaBootstrapVocabulary(
+      rvaImportService: { importRvaVocabulary: (rvaId: string, versionId?: string, branding?: string) => Promise<VocabularyAttributes> },
+      rvaId: string,
+      versionId: string | undefined,
+      branding: string,
+      sourceKey: string
+    ): Promise<VocabularyAttributes> {
+      let lastError: unknown;
+
+      for (let attempt = 1; attempt <= RVA_IMPORT_MAX_ATTEMPTS; attempt++) {
+        let importPromise: Promise<VocabularyAttributes> | undefined;
+        try {
+          importPromise = rvaImportService.importRvaVocabulary(rvaId, versionId, branding);
+          return await promiseWithTimeout(
+            importPromise,
+            RVA_IMPORT_TIMEOUT_MS,
+            `RVA import ${sourceKey}`
+          );
+        } catch (error) {
+          lastError = error;
+          if (!this.isRetryableRvaImportError(error)) {
+            throw error;
+          }
+          if (!importPromise) {
+            throw error;
+          }
+
+          // A timeout does not cancel the import. Wait for the in-flight operation to
+          // settle before retrying, so it cannot overlap a second import.
+          await new Promise<void>((resolve) => setTimeout(resolve, RVA_IMPORT_RETRY_DELAY_MS));
+
+          const imported = await Vocabulary.findOne({ rvaSourceKey: sourceKey }) as VocabularyAttributes | null;
+          if (imported) {
+            sails.log.verbose(`RVA bootstrap import completed after timeout: ${sourceKey}`);
+            return imported;
+          }
+
+          // Retrying while the original import is still pending could create a
+          // duplicate vocabulary. Fail this bootstrap item instead of overlapping it
+          // if it does not settle within the bounded reconciliation window.
+          const settled = await promiseWithTimeout(
+            importPromise,
+            RVA_IMPORT_SETTLEMENT_TIMEOUT_MS,
+            `RVA import ${sourceKey} settlement`
+          ).then(
+            value => ({ status: 'fulfilled' as const, value }),
+            reason => {
+              if (reason instanceof Error && reason.message.includes('settlement timed out')) {
+                throw reason;
+              }
+              return { status: 'rejected' as const, reason };
+            }
+          );
+          if (settled.status === 'fulfilled') {
+            return settled.value;
+          }
+          lastError = settled.reason;
+
+          // The original operation has settled, so this reconciliation cannot race with
+          // its database write before a retry is launched.
+          const settledImport = await Vocabulary.findOne({ rvaSourceKey: sourceKey }) as VocabularyAttributes | null;
+          if (settledImport) {
+            sails.log.verbose(`RVA bootstrap import completed after timeout: ${sourceKey}`);
+            return settledImport;
+          }
+
+          if (attempt === RVA_IMPORT_MAX_ATTEMPTS) {
+            throw lastError;
+          }
+
+          sails.log.verbose(`Retrying RVA bootstrap import ${sourceKey} (attempt ${attempt + 1}/${RVA_IMPORT_MAX_ATTEMPTS})`);
+        }
+      }
+
+      throw lastError;
+    }
+
+    private isRetryableRvaImportError(error: unknown): boolean {
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      return /timed out|timeout|ETIMEDOUT|ECONNABORTED|ECONNRESET|ECONNREFUSED|EAI_AGAIN/i.test(message);
     }
 
     private async readJsonFile<T>(filePath: string): Promise<T | null> {
