@@ -206,6 +206,9 @@ export namespace Services {
             const originalRecord = original as Record<string | number, unknown>;
             const changedRecord = changed as Record<string | number, unknown>;
             const permittedChangesObj = permittedChanges as Record<string | number, unknown>;
+            if (permittedChangesObj?.type === 'object') {
+                return changedRecord;
+            }
             // if (!('properties' in permittedChangesObj)) {
             //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
             // }
@@ -234,10 +237,11 @@ export namespace Services {
                 // pre-calculate aspects of the permitted changes
                 const isKeyInPermittedChange = key in permittedChangesProps;
                 const permittedChangesValue = permittedChangesProps?.[key] as Record<string, unknown> | undefined;
-                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValue && 'properties' in permittedChangesValue;
-                const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValue && 'elements' in permittedChangesValue;
-                const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValue && 'type' in permittedChangesValue;
-                const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValue && Object.keys(permittedChangesValue).length === 0;
+                const isPermittedChangesValueObject = typeof permittedChangesValue === 'object' && permittedChangesValue !== null;
+                const isPermittedChangeObject = isKeyInPermittedChange && isPermittedChangesValueObject && 'properties' in permittedChangesValue;
+                const isPermittedChangeArray = isKeyInPermittedChange && isPermittedChangesValueObject && 'elements' in permittedChangesValue;
+                const isPermittedChangeType = isKeyInPermittedChange && isPermittedChangesValueObject && 'type' in permittedChangesValue;
+                const isPermittedChangeEmpty = isKeyInPermittedChange && isPermittedChangesValueObject && Object.keys(permittedChangesValue).length === 0;
                 const originalValueForMerge = isKeyInOriginal
                   ? originalValue
                   : isPermittedChangeArray
@@ -272,6 +276,9 @@ export namespace Services {
                     //       Replacing the whole array prevents use of constraints in components in the array elements.
                     const newPermittedChanges = permittedChangesValue['elements'] as Record<string, unknown>;
                     result[key] = (changedValue as unknown[]).map((changedElement: unknown, index: number) => {
+                        if (newPermittedChanges?.type === 'object' || Object.keys(newPermittedChanges ?? {}).length === 0) {
+                            return changedElement;
+                        }
                         // Evaluate the element in the array.
                         const guessedType = guessType(changedElement);
                         if (guessedType === "object") {
