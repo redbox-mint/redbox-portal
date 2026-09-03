@@ -49,7 +49,7 @@
     "@types/node": "24.12.4",
     "agenda": "6.2.6",
     "async": "3.2.6",
-    "axios": "1.19.0",
+    "axios": "1.20.0",
     "bcryptjs": "3.0.3",
     "check-disk-space": "3.4.0",
     "clean-css": "5.3.3",
@@ -114,7 +114,7 @@
     "@asteasolutions/zod-to-openapi": "9.1.0"
   },
   "overrides": {
-    "axios": "1.19.0",
+    "axios": "1.20.0",
     "fast-xml-parser": "5.10.1",
     "immutable": "5.1.8",
     "sails-mongo": {
