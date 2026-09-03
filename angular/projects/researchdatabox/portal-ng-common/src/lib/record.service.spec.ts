@@ -57,17 +57,12 @@ describe('RecordService', () => {
     );
   });
 
-  it('creates a UUID save request header in production mode when crypto.randomUUID is unavailable', async () => {
-    const runtimeGlobals = globalThis as typeof globalThis & { ngDevMode?: unknown };
-    const hadNgDevMode = Object.prototype.hasOwnProperty.call(runtimeGlobals, 'ngDevMode');
-    const nativeNgDevMode = runtimeGlobals.ngDevMode;
-    const nativeRandomUUID = globalThis.crypto.randomUUID;
-    runtimeGlobals.ngDevMode = false;
+  it('creates a UUID save request header when crypto.randomUUID is unavailable', async () => {
+    const nativeRandomUUIDDescriptor = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID');
     Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: undefined });
 
     try {
       const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
-      runtimeGlobals.ngDevMode = nativeNgDevMode;
       const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
       const requestId = request.request.headers.get('X-ReDBox-Save-Request-Id');
 
@@ -81,12 +76,11 @@ describe('RecordService', () => {
         })
       );
     } finally {
-      if (hadNgDevMode) {
-        runtimeGlobals.ngDevMode = nativeNgDevMode;
+      if (nativeRandomUUIDDescriptor) {
+        Object.defineProperty(globalThis.crypto, 'randomUUID', nativeRandomUUIDDescriptor);
       } else {
-        delete runtimeGlobals.ngDevMode;
+        Reflect.deleteProperty(globalThis.crypto, 'randomUUID');
       }
-      Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: nativeRandomUUID });
     }
   });
 
