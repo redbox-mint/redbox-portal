@@ -37,7 +37,7 @@
     "puppeteer": "25.0.4"
   },
   "peerDependencies": {
-    "@researchdatabox/redbox-core-types": "0.0.1-beta.10760"
+    "@researchdatabox/redbox-core-types": "file:../redbox-core"
   },
   "devDependencies": {
     "@researchdatabox/redbox-core": "file:../redbox-core",
