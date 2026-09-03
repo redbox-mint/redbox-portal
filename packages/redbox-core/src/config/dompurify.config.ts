@@ -151,7 +151,8 @@ export const dompurify: DomPurifyConfig = {
             ],
             ALLOW_DATA_ATTR: false,
             ALLOW_UNKNOWN_PROTOCOLS: false,
-            ALLOWED_URI_REGEXP: /^(?:#|(?:\.{1,2}\/|\/(?!\/)))/i,
+            // href values are restricted by DomSanitizerService. DOMPurify also applies
+            // ALLOWED_URI_REGEXP to path geometry (`d`), which would erase SVG drawings.
             SANITIZE_DOM: true,
             KEEP_CONTENT: false,
             IN_PLACE: false

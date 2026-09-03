@@ -276,6 +276,7 @@ export namespace Controllers.Core {
         `${branding}/${portal}/${view}`,
         `default/${portal}/${view}`,
         `default/default/${view}`,
+        view,
       ];
 
       for (const candidate of candidates) {
