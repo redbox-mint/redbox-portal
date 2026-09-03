@@ -1402,7 +1402,8 @@ export namespace Controllers {
         if (!found) {
           sails.log.verbose("Error: Attachment not found in do attachment.");
           if (!this.isAjax(req)) {
-            return res.notFound();
+            res.status(404);
+            return this.sendView(req, res, '404');
           }
           return this.sendResp(req, res, {
             status: 404,
@@ -1441,7 +1442,8 @@ export namespace Controllers {
             return this.sendResp(req, res, { status: 403, errors: [this.asError(error)], displayErrors: [{ code: 'edit-error-no-permissions' }] });
           } else if (errorMessage == TranslationService.t('attachment-not-found')) {
             if (!this.isAjax(req)) {
-              return res.notFound();
+              res.status(404);
+              return this.sendView(req, res, '404');
             }
             return this.sendResp(req, res, { status: 404, errors: [this.asError(error)], displayErrors: [{ code: 'attachment-not-found' }] });
           } else {

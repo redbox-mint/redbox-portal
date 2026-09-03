@@ -2,7 +2,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import { safeHtmlUriRegexp } from '../../src/config/dompurify.config';
+import { dompurify as dompurifyConfig, safeHtmlUriRegexp } from '../../src/config/dompurify.config';
 
 describe('DomSanitizerService', function() {
   let mockSails: any;
@@ -77,6 +77,17 @@ describe('DomSanitizerService', function() {
       expect(result.sanitized).to.include('svg');
       expect(result.sanitized).to.include('circle');
       expect(result.errors).to.be.an('array').that.is.empty;
+    });
+
+    it('should preserve SVG path geometry and viewBox attributes', function() {
+      mockSails.config.dompurify = dompurifyConfig;
+      const svg = '<svg viewBox="0 0 100 100"><path d="m 0,0 100,0 0,100 z" fill="#fff"/></svg>';
+
+      const result = DomSanitizerService.sanitize(svg);
+
+      expect(result.safe).to.be.true;
+      expect(result.sanitized).to.include('viewBox="0 0 100 100"');
+      expect(result.sanitized).to.include('d="m 0,0 100,0 0,100 z"');
     });
 
     it('should reject non-string input', function() {

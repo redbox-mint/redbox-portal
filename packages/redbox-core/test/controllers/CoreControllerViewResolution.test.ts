@@ -183,4 +183,19 @@ describe('CoreController hook view resolution', function () {
 
     expect(res.view.firstCall.args[1].layoutDirectoryLocation).to.equal(`${path.dirname(coreLayout)}${path.sep}`);
   });
+
+  it('renders a root error view with the hook layout', function () {
+    const hookRoot = createHook();
+    const coreErrorView = path.join(appPath, 'views', '404.ejs');
+    const hookLayout = path.join(hookRoot, 'views', 'default', 'default', 'layout.ejs');
+    writeFile(coreErrorView, 'not found');
+    writeFile(hookLayout, '<%- body %>');
+
+    const res = createRes();
+    controller.sendView(createReq() as unknown as Sails.Req, res as unknown as Sails.Res, '404');
+
+    expect(res.notFound.called).to.equal(false);
+    expect(res.view.firstCall.args[0]).to.equal('404');
+    expect(path.resolve(path.dirname(coreErrorView), res.view.firstCall.args[1]._layoutFile)).to.equal(hookLayout);
+  });
 });
