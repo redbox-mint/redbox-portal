@@ -246,6 +246,19 @@ describe('FormRecordConsistencyService', function () {
 
       expect(merge).to.throw(Error, 'Invalid permittedChanges object');
     });
+
+    it('reports malformed primitive array element schemas as validation errors', function () {
+      for (const elementSchema of [123, false, 'string']) {
+        const merge = () => FormRecordConsistencyService.mergeRecordMetadataPermitted(
+          {},
+          { dataLocations: [{ type: 'url', location: 'https://example.com/dataset' }] },
+          { properties: { dataLocations: { elements: elementSchema } } },
+          []
+        );
+
+        expect(merge).to.throw(Error, 'Invalid permittedChanges object');
+      }
+    });
   });
 
   describe('compareRecords', function () {
