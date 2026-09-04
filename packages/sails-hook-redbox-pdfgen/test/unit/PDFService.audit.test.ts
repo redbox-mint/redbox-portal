@@ -1,4 +1,4 @@
-const { Effect } = require('effect');
+const { Cause, Effect } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
 const { clearPdfgenTestGlobals, installPdfgenTestGlobals } = require('../support/globals');
@@ -11,7 +11,7 @@ type StubAuditService = {
   failAudit: sinon.SinonStub;
 };
 
-async function waitForAssertion(assertion: () => void, timeoutMs = 250): Promise<void> {
+async function waitForAssertion(assertion: () => void, timeoutMs = 1000): Promise<void> {
   const startedAt = Date.now();
   let lastError: unknown;
 
@@ -99,7 +99,8 @@ describe('PDFService Integration Audit', () => {
     sinon.stub(pdfService, 'launchBrowser').resolves(mockBrowser);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await pdfService?.shutdownPDFRetries();
     sinon.restore();
     clearAuditServiceStub();
     clearPdfgenTestGlobals();
@@ -118,7 +119,7 @@ describe('PDFService Integration Audit', () => {
     expect(action).to.equal('generatePdf');
     expect(opts.integrationName).to.equal('pdf');
     expect(opts.triggeredBy).to.equal('createPDF');
-    expect(opts.brandId).to.equal(1);
+    expect(opts.brandId).to.equal('1');
     expect(opts.requestSummary).to.deep.include({
       attempt: 1,
       url: 'http://localhost:1500/default/rdmp/record/view/oid-success',
@@ -400,6 +401,10 @@ describe('PDFService Integration Audit', () => {
       observable.subscribe({ next: resolve, error: reject });
     });
 
+    await waitForAssertion(() => {
+      expect(pdfService.retryTasks.size).to.equal(1);
+    });
+
     await pdfService.shutdownPDFRetries();
 
     const parentFailure = auditStub.failAudit
@@ -440,8 +445,10 @@ describe('PDFService Integration Audit', () => {
       observable.subscribe({ next: resolve, error: reject });
     });
 
-    expect(mockPage.goto.calledOnce).to.be.true;
-    expect(auditStub.startAudit.called).to.be.true;
+    await waitForAssertion(() => {
+      expect(mockPage.goto.calledOnce).to.be.true;
+      expect(auditStub.startAudit.called).to.be.true;
+    });
   });
 
   it('still completes PDF generation when child audit completion throws', async () => {
@@ -473,7 +480,7 @@ describe('PDFService Integration Audit', () => {
 
     expect(exit._tag).to.equal('Failure');
     if (exit._tag === 'Failure') {
-      expect(String(exit.cause)).to.contain('BrowserError');
+      expect(Cause.squash(exit.cause)._tag).to.equal('BrowserError');
     }
     expect(auditStub.failAudit.calledOnce).to.be.true;
   });

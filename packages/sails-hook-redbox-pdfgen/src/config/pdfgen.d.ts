@@ -5,9 +5,3 @@ declare module '@researchdatabox/redbox-core' {
     pdfgen: PdfgenConfig;
   }
 }
-
-declare module '@researchdatabox/redbox-core-types' {
-  interface SailsConfig {
-    pdfgen: PdfgenConfig;
-  }
-}

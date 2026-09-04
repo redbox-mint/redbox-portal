@@ -28,7 +28,7 @@ It is typically wired into a record type's `onCreate`/`onUpdate` post-save trigg
 | Requirement | Version / notes |
 | --- | --- |
 | Node.js | `24.14.1` (see `.nvmrc`) |
-| ReDBox portal | v5 architecture; `@researchdatabox/redbox-core-types` `0.0.1-beta.10760` is a peer dependency |
+| ReDBox portal | v5 architecture; `@researchdatabox/redbox-core` is a peer dependency and runtime compatibility anchor |
 | Chromium | Provided by the runtime image, or bundled by Puppeteer `25.0.4` |
 | Docker | Only needed for the dev stack and Bruno API tests |
 
@@ -75,7 +75,7 @@ The same settings are editable in the portal admin UI under **PDF Generation Con
 | --- | --- | --- | --- |
 | `token` | string | `''` | API bearer token used to authenticate Chromium against the portal. **Required** — generation is skipped with a warning if unset. |
 | `appUrlOverride` | string | `''` | Base URL to render from. Falls back to `sails.config.appUrl`. Useful when the portal's public URL is not reachable from inside the container. |
-| `sourceUrlBase` | string | `/default/rdmp/record/view` | Path prefix for the page to render. The final URL is `` `${baseUrl}${sourceUrlBase}/${oid}` ``. Defaults to `/${brand.name}/rdmp/record/view` when unset. |
+| `sourceUrlBase` | string | `/${brand.name}/rdmp/record/view` | Optional path prefix for the page to render. The final URL is `` `${baseUrl}${sourceUrlBase}/${oid}` ``. The default follows the current brand. |
 | `pdfPrefix` | string | `pdf` | Prefix for the generated filename. |
 | `readinessStrategy` | enum | `networkIdle` | How to decide the page has finished rendering. See below. |
 | `readinessTimeout` | number (ms) | `60000` | Timeout applied to the readiness wait. |
@@ -117,7 +117,6 @@ Angular-rendered record views generally need `selector` or `networkIdle+selector
 // config/pdfgen.js
 module.exports.pdfgen = {
   token: process.env.PDFGEN_API_TOKEN,
-  sourceUrlBase: '/default/rdmp/record/view',
   pdfPrefix: 'rdmp-pdf',
   readinessStrategy: 'networkIdle+selector',
   waitForSelector: 'div#loading.hidden',
@@ -193,7 +192,7 @@ For each `createPDF(oid, record, options, user)` call:
 8. Write it to the staging disk as `<pdfPrefix>-<oid>-<epochMillis>.pdf` and attach it via `DatastreamService.addDatastream`. If attaching fails, the staged file is deleted.
 9. Tear down the page, browser and temp directory — including on failure.
 
-`createPDF` returns an RxJS `Observable` that emits the **unchanged record**. Generation is best-effort: the record save proceeds regardless of the PDF outcome.
+`createPDF` immediately returns an RxJS `Observable` that emits the **unchanged record**. The initial render and any retries continue in the background; generation is best-effort, so the record save proceeds regardless of the PDF outcome.
 
 Effect tracing spans are emitted for `createPDF`, `generatePDF`, `navigatePage`, `waitForPageReady`, `renderPDFBuffer` and `saveToDatastream`.
 
@@ -212,7 +211,7 @@ Errors are tagged, and only transient ones are retried:
 
 Retry behaviour:
 
-- Retries run in a background Effect daemon fiber, so the initial call returns straight away.
+- The initial attempt runs on a background Effect fiber, and retries run on a background daemon fiber, so the initial call returns straight away.
 - Delay for retry *n* (0-indexed) is `retryDelayMs * retryBackoffMultiplier ^ n` — with defaults, 5s then 10s.
 - A pending retry is cancelled if a newer request for the same URL succeeds first.
 - On Sails `lower`, in-flight retry fibers are interrupted and the audit trail is closed out.
@@ -307,7 +306,7 @@ This hook keeps its dependency declarations intentionally small:
 
 - `@researchdatabox/redbox-core` is the ReDBox runtime compatibility anchor.
 - `@researchdatabox/redbox-dev-tools` provides the shared compile and unit-test toolchain.
-- Direct `dependencies` are reserved for hook-owned runtime libraries only (currently just `puppeteer`).
+- Direct `dependencies` are reserved for hook-owned runtime libraries only (currently `effect` and `puppeteer`).
 - Shared runtime/toolchain packages (`axios`, `rxjs`, `lodash`, `typescript`, `ts-node`, `mocha`, `chai`, `@researchdatabox/sails-ng-common`) come from the portal and must not be added here.
 - Versions assume `redbox-core` and `redbox-dev-tools` are installed from npm, not from a sibling `redbox-portal` checkout.
 

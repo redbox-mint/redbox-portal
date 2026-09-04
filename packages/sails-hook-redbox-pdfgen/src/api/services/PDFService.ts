@@ -1,4 +1,4 @@
-import { from } from 'rxjs';
+import { of } from 'rxjs';
 
 import { launch, type Page, type PDFOptions as PuppeteerPDFOptions } from 'puppeteer';
 import { DateTime } from 'luxon';
@@ -78,6 +78,7 @@ export namespace Services {
       fiber?: Fiber.RuntimeFiber<void, never>;
       interruptReason?: 'shutdown' | 'superseded';
     }> = new Map();
+    private generationTasks: Set<Fiber.RuntimeFiber<void, never>> = new Set();
     private DatastreamService!: DatastreamService;
     protected override _exportedMethods: string[] = [
       'createPDF',
@@ -98,6 +99,15 @@ export namespace Services {
     }
 
     public async shutdownPDFRetries(): Promise<void> {
+      const generationTasks = Array.from(this.generationTasks);
+      await Promise.all(generationTasks.map(async (fiber) => {
+        try {
+          await Effect.runPromise(Fiber.interrupt(fiber));
+        } catch (error) {
+          sails.log.warn('PDFService::Failed to interrupt background PDF generation during shutdown.', error);
+        }
+      }));
+
       const tasks = Array.from(this.retryTasks.values());
       await Promise.all(tasks.map(async (task) => {
         task.interruptReason = 'shutdown';
@@ -198,7 +208,7 @@ export namespace Services {
       // Resolve URL / option metadata up-front so that the audit `requestSummary`
       // describes what we're about to attempt regardless of whether the browser
       // launch ever succeeds.
-      const sourceUrlBase = this.getOption(brand, options, 'sourceUrlBase', `/${brand.name}/rdmp/record/view`);
+      const sourceUrlBase = this.getSourceUrlBase(brand, options);
       const pdfgenAppUrlOverride = this.getOption(brand, options, 'appUrlOverride');
       const baseUrl = pdfgenAppUrlOverride || sails.config.appUrl;
       const currentURL = `${baseUrl}${sourceUrlBase}/${oid}`;
@@ -505,6 +515,12 @@ export namespace Services {
       return value as T;
     }
 
+    private getSourceUrlBase(brand: BrandingModel, options: PdfOptions): string {
+      const configuredSourceUrlBase = this.getOption<string>(brand, options, 'sourceUrlBase');
+      return typeof configuredSourceUrlBase === 'string' && configuredSourceUrlBase.trim() !== ''
+        ? configuredSourceUrlBase
+        : `/${brand.name}/rdmp/record/view`;
+    }
 
     public createPDF(oid: string, record: PdfRecord, options: PdfOptions, _user: unknown) {
       const effect = Effect.gen(this, function* () {
@@ -512,7 +528,7 @@ export namespace Services {
         const maxRetries = this.getOption(brand, options, 'maxRetries', 2);
         const baseDelayMs = this.getOption(brand, options, 'retryDelayMs', 5000);
         const multiplier = this.getOption(brand, options, 'retryBackoffMultiplier', 2);
-        const sourceUrlBase = this.getOption(brand, options, 'sourceUrlBase', `/${brand.name}/rdmp/record/view`);
+        const sourceUrlBase = this.getSourceUrlBase(brand, options);
         const pdfgenAppUrlOverride = this.getOption(brand, options, 'appUrlOverride');
         const baseUrl = pdfgenAppUrlOverride || sails.config.appUrl;
         const currentURL = `${baseUrl}${sourceUrlBase}/${oid}`;
@@ -662,14 +678,18 @@ export namespace Services {
         );
       });
 
-      const pdfPromise = Effect.runPromiseExit(effect).then((exit) => {
-        if (exit._tag === 'Success') {
-          return exit.value;
-        }
-        throw Cause.squash(exit.cause);
+      const generationFiber = Effect.runFork(effect.pipe(
+        Effect.catchAllCause((cause) =>
+          this.logError(`PDFService::Background PDF generation failed for ${oid}.`, Cause.squash(cause))
+        ),
+        Effect.asVoid
+      ));
+      this.generationTasks.add(generationFiber);
+      void Effect.runPromise(Fiber.await(generationFiber)).then(() => {
+        this.generationTasks.delete(generationFiber);
       });
 
-      return from(pdfPromise);
+      return of(record);
     }
   }
 }

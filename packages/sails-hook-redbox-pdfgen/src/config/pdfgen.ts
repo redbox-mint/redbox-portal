@@ -36,7 +36,7 @@ export interface PdfgenPDFOptions {
 export interface PdfgenConfig {
   token: string;
   appUrlOverride: string;
-  sourceUrlBase: string;
+  sourceUrlBase?: string;
   pdfPrefix: string;
   readinessStrategy: PdfgenReadinessStrategy;
   readinessTimeout: number;
@@ -53,7 +53,6 @@ export interface PdfgenConfig {
 export const pdfgen: PdfgenConfig = {
   token: '',
   appUrlOverride: '',
-  sourceUrlBase: '/default/rdmp/record/view',
   pdfPrefix: 'pdf',
   readinessStrategy: 'networkIdle',
   readinessTimeout: 60000,

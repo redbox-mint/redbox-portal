@@ -36,12 +36,11 @@ export class PDFGenConfig {
 
     /**
      * Base path for the source URL used to generate the PDF.
+     * When unset, the current brand name is used.
      *
      * @title Source URL Base
-     * 
-     * @default "/default/rdmp/record/view"
      */
-    sourceUrlBase: string = "/default/rdmp/record/view";
+    sourceUrlBase?: string;
 
     /**
      * CSS selector to wait for before generating the PDF (page readiness).
@@ -165,8 +164,7 @@ export const PDFGEN_CONFIG_SCHEMA = {
         sourceUrlBase: {
             type: 'string',
             title: 'Source URL Base',
-            description: 'Base path for the source URL used to generate the PDF.',
-            default: '/default/rdmp/record/view'
+            description: 'Base path for the source URL used to generate the PDF. Defaults to the current brand record view when unset.'
         },
         readinessStrategy: {
             type: 'string',

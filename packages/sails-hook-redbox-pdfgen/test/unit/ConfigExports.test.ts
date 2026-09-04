@@ -1,8 +1,9 @@
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
-const { PDFGEN_CONFIG_MODEL, PDFGEN_CONFIG_SCHEMA } = require('../../src/api/configmodels/PDFGenConfig');
-const { agendaQueue, mergeAgendaQueueJobs } = require('../../src/config/agendaQueue');
+const { PDFGenConfig, PDFGEN_CONFIG_MODEL, PDFGEN_CONFIG_SCHEMA } = require('../../dist/api/configmodels/PDFGenConfig');
+const { agendaQueue, mergeAgendaQueueJobs } = require('../../dist/config/agendaQueue');
 const hookFactory = require('../../dist/index.js');
-const { pdfgen } = require('../../src/config/pdfgen');
+const { pdfgen } = require('../../dist/config/pdfgen');
+const packageJson = require('../../package.json');
 
 describe('Config exports', () => {
   it('registers the PDF creation queue job', () => {
@@ -33,13 +34,27 @@ describe('Config exports', () => {
     expect(PDFGEN_CONFIG_MODEL.secretFields).to.deep.equal(['token']);
   });
 
+  it('declares redbox-core as its runtime compatibility peer', () => {
+    expect(packageJson.peerDependencies).to.deep.equal({
+      '@researchdatabox/redbox-core': 'file:../redbox-core',
+    });
+    expect(packageJson.devDependencies['@researchdatabox/redbox-core']).to.equal('file:../redbox-core');
+    expect(packageJson.peerDependencies).to.not.have.property('@researchdatabox/redbox-core-types');
+  });
+
+  it('leaves sourceUrlBase unset so the service can derive it from the current brand', () => {
+    expect(pdfgen).to.not.have.property('sourceUrlBase');
+    expect(new PDFGenConfig().sourceUrlBase).to.equal(undefined);
+    expect(PDFGEN_CONFIG_SCHEMA.properties.sourceUrlBase).to.not.have.property('default');
+  });
+
   it('registerRedboxConfig only exports non-array config', () => {
     expect(hookFactory.registerRedboxConfig()).to.deep.equal({
       pdfgen,
     });
   });
 
-  it('adds the PDF queue job during runtime initialization without replacing existing jobs', done => {
+  it('adds the PDF queue job during runtime initialization without replacing existing jobs', async () => {
     const existingJobs = {
       'SolrSearchService-CreateOrUpdateIndex': {
         fnName: 'solrsearchservice.createOrUpdateIndex',
@@ -66,13 +81,12 @@ describe('Config exports', () => {
       },
     };
 
-    hookFactory(sails).initialize(() => {
-      expect(Object.keys(sails.config.agendaQueue.jobs)).to.deep.equal([
-        'SolrSearchService-CreateOrUpdateIndex',
-        'PDFService-CreatePDF',
-      ]);
-      done();
-    });
+    await hookFactory(sails).initialize();
+
+    expect(Object.keys(sails.config.agendaQueue.jobs)).to.deep.equal([
+      'SolrSearchService-CreateOrUpdateIndex',
+      'PDFService-CreatePDF',
+    ]);
   });
 
   it('defines renderable nested controls for Puppeteer PDF options', () => {

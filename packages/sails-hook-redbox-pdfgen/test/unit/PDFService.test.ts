@@ -5,7 +5,7 @@ const { clearPdfgenTestGlobals, installPdfgenTestGlobals } = require('../support
 
 const globalAny = global as any;
 
-async function waitForAssertion(assertion: () => void, timeoutMs = 250): Promise<void> {
+async function waitForAssertion(assertion: () => void, timeoutMs = 1000): Promise<void> {
   const startedAt = Date.now();
   let lastError: unknown;
 
@@ -70,7 +70,8 @@ describe('PDFService Unit Tests', () => {
     sinon.stub(pdfService, 'launchBrowser').resolves(mockBrowser);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await pdfService?.shutdownPDFRetries();
     sinon.restore();
     clearPdfgenTestGlobals();
   });
@@ -88,24 +89,36 @@ describe('PDFService Unit Tests', () => {
     expect((exit as any).cause).to.exist;
   });
 
-  it('should return an error Observable when the record brand cannot be resolved', async () => {
+  it('should return the record and log in the background when its brand cannot be resolved', async () => {
     globalAny.BrandingService.getBrandById.returns(null);
+    const record = { metaMetadata: { brandId: 404 } };
 
     let observable: any;
     expect(() => {
-      observable = pdfService.createPDF('oid-missing-brand', { metaMetadata: { brandId: 404 } }, {}, {});
+      observable = pdfService.createPDF('oid-missing-brand', record, {}, {});
     }).to.not.throw();
 
-    const error = await new Promise((resolve, reject) => {
-      observable.subscribe({
-        next: () => reject(new Error('Expected createPDF to emit an error')),
-        error: resolve,
-        complete: () => reject(new Error('Expected createPDF to emit an error')),
-      });
+    const result = await new Promise((resolve, reject) => {
+      observable.subscribe({ next: resolve, error: reject });
     });
 
-    expect((error as any)._tag).to.equal('MissingBrandError');
-    expect((error as any).brandId).to.equal(404);
+    expect(result).to.equal(record);
+    await waitForAssertion(() => {
+      expect(globalAny.sails.log.error.calledWithMatch(/Background PDF generation failed/)).to.be.true;
+    });
+    expect(mockPage.goto.called).to.be.false;
+  });
+
+  it('should derive sourceUrlBase from a non-default brand when it is unset', async () => {
+    const record = { metaMetadata: { brandId: 2 } };
+    const service: any = pdfService;
+
+    await Effect.runPromise(service.attemptPDFGeneration('oid-branded', record, {}, { name: 'research' }, 1));
+
+    expect(mockPage.goto.calledWith(
+      'http://localhost:1500/research/rdmp/record/view/oid-branded',
+      { waitUntil: 'domcontentloaded' }
+    )).to.be.true;
   });
 
   it('should fall back to networkIdle strategy if unknown strategy provided', async () => {
@@ -192,7 +205,6 @@ describe('PDFService Unit Tests', () => {
     });
 
     expect(result).to.equal(record);
-    expect(mockPage.goto.callCount).to.equal(1);
 
     await waitForAssertion(() => {
       expect(mockPage.goto.calledTwice).to.be.true;
@@ -214,7 +226,6 @@ describe('PDFService Unit Tests', () => {
     });
 
     expect(result).to.equal(record);
-    expect(storageDiskPutStub.callCount).to.equal(1);
 
     await waitForAssertion(() => {
       expect(storageDiskPutStub.calledTwice).to.be.true;
@@ -360,28 +371,32 @@ describe('PDFService Unit Tests', () => {
     expect(configuredPDFOptions).to.have.property('path', '/tmp/should-not-be-used.pdf');
   });
 
-  it('should return the record immediately from createPDF and schedule background retries', async () => {
+  it('should return the record before the initial browser render completes', async () => {
     const record = { metaMetadata: { brandId: 1 } };
-    const options = {
-      maxRetries: 1,
-      retryDelayMs: 10,
-    };
+    let releaseNavigation: (() => void) | undefined;
+    let markNavigationStarted: (() => void) | undefined;
+    const navigationStarted = new Promise<void>(resolve => {
+      markNavigationStarted = resolve;
+    });
 
-    mockPage.goto.onFirstCall().rejects(new Error('Navigation timeout'));
-    mockPage.goto.onSecondCall().resolves();
+    mockPage.goto.callsFake(() => new Promise<void>(resolve => {
+      markNavigationStarted?.();
+      releaseNavigation = resolve;
+    }));
 
-    const observable = pdfService.createPDF('oid-1', record, options, {});
+    const observable = pdfService.createPDF('oid-1', record, {}, {});
     const result = await new Promise((resolve, reject) => {
       observable.subscribe({ next: resolve, error: reject });
     });
 
     expect(result).to.equal(record);
-    expect(mockPage.goto.callCount).to.equal(1);
+    await navigationStarted;
+    expect(mockPage.pdf.called).to.be.false;
 
+    releaseNavigation?.();
     await waitForAssertion(() => {
-      expect(mockPage.goto.callCount).to.equal(2);
+      expect(addDatastreamStub.calledOnce).to.be.true;
     });
-    expect(globalAny.sails.log.warn.calledWithMatch(/Retry scheduled: true/)).to.be.true;
   });
 
   it('should cancel a pending retry when a fresh request succeeds during the retry delay', async () => {
@@ -397,6 +412,10 @@ describe('PDFService Unit Tests', () => {
     const firstObservable = pdfService.createPDF('oid-1', record, options, {});
     await new Promise((resolve, reject) => {
       firstObservable.subscribe({ next: resolve, error: reject });
+    });
+
+    await waitForAssertion(() => {
+      expect(globalAny.sails.log.warn.calledWithMatch(/Retry scheduled: true/)).to.be.true;
     });
 
     const secondObservable = pdfService.createPDF('oid-1', record, options, {});
