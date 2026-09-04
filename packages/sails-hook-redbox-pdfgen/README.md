@@ -214,7 +214,7 @@ Retry behaviour:
 - The initial attempt runs on a background Effect fiber, and retries run on a background daemon fiber, so the initial call returns straight away.
 - Delay for retry *n* (0-indexed) is `retryDelayMs * retryBackoffMultiplier ^ n` — with defaults, 5s then 10s.
 - A pending retry is cancelled if a newer request for the same URL succeeds first.
-- On Sails `lower`, in-flight retry fibers are interrupted and the audit trail is closed out.
+- On Sails `lower`, in-flight initial and retry fibers are interrupted and their audit spans are closed as failed.
 
 ## Integration audit
 

@@ -62,6 +62,12 @@ function getAuditBrandId(record: PdfRecord): string | undefined {
   return brandId == null ? undefined : String(brandId);
 }
 
+function createShutdownInterruptionError(oid: string): Error {
+  const error = new Error(`PDF generation interrupted during service shutdown for ${oid}`);
+  error.name = 'PDFGenerationInterruptedError';
+  return error;
+}
+
 
 export namespace Services {
   /**
@@ -428,45 +434,73 @@ export namespace Services {
           },
           parentAuditCtx
         );
+        let auditClosed = false;
+        const closeAudit = (close: () => void): void => {
+          if (auditClosed) {
+            return;
+          }
+          auditClosed = true;
+          close();
+        };
 
         return Effect.matchEffect(work, {
           onSuccess: (result) =>
             Effect.sync(() => {
               if (result?.outcome === 'duplicateSuppressed') {
-                completePdfAudit(auditCtx, {
-                  message: 'PDF generation skipped because a duplicate request was already in progress.',
-                  responseSummary: {
-                    outcome: result.outcome,
-                    attempt
-                  }
+                closeAudit(() => {
+                  completePdfAudit(auditCtx, {
+                    message: 'PDF generation skipped because a duplicate request was already in progress.',
+                    responseSummary: {
+                      outcome: result.outcome,
+                      attempt
+                    }
+                  });
                 });
                 return;
               }
-              completePdfAudit(auditCtx, {
-                message: 'PDF generated successfully.',
-                responseSummary: {
-                  outcome: result?.outcome,
-                  fileId: result?.fileId,
-                  pdfBufferSize: result?.pdfBufferSize,
-                  attempt
-                }
+              closeAudit(() => {
+                completePdfAudit(auditCtx, {
+                  message: 'PDF generated successfully.',
+                  responseSummary: {
+                    outcome: result?.outcome,
+                    fileId: result?.fileId,
+                    pdfBufferSize: result?.pdfBufferSize,
+                    attempt
+                  }
+                });
               });
             }).pipe(Effect.as(result)),
           onFailure: (error: PDFError) =>
             Effect.sync(() => {
+              closeAudit(() => {
+                failPdfAudit(auditCtx, error, {
+                  message: 'PDF generation failed.',
+                  responseSummary: {
+                    errorTag: error._tag,
+                    url: currentURL,
+                    cause: (error as { cause?: unknown }).cause instanceof Error
+                      ? ((error as { cause?: Error }).cause as Error).message
+                      : undefined,
+                    attempt
+                  }
+                });
+              });
+            }).pipe(Effect.zipRight(Effect.fail(error)))
+        }).pipe(
+          Effect.onInterrupt(() => Effect.sync(() => {
+            const error = createShutdownInterruptionError(oid);
+            closeAudit(() => {
               failPdfAudit(auditCtx, error, {
-                message: 'PDF generation failed.',
+                message: 'PDF generation interrupted during service shutdown.',
                 responseSummary: {
-                  errorTag: error._tag,
+                  errorTag: error.name,
                   url: currentURL,
-                  cause: (error as { cause?: unknown }).cause instanceof Error
-                    ? ((error as { cause?: Error }).cause as Error).message
-                    : undefined,
                   attempt
                 }
               });
-            }).pipe(Effect.zipRight(Effect.fail(error)))
-        });
+            });
+          }))
+        );
       });
     }
 
@@ -674,7 +708,10 @@ export namespace Services {
             }
           }),
           Effect.as(record),
-          Effect.withSpan('createPDF', { attributes: { oid, brand: brand.name } })
+          Effect.withSpan('createPDF', { attributes: { oid, brand: brand.name } }),
+          Effect.onInterrupt(() => Effect.sync(() => {
+            closeParent('failed', createShutdownInterruptionError(oid));
+          }))
         );
       });
 

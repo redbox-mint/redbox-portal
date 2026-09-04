@@ -418,6 +418,59 @@ describe('PDFService Integration Audit', () => {
     expect(mockPage.goto.calledOnce).to.be.true;
   });
 
+  it('fails the child and parent audits when initial generation is interrupted on shutdown', async () => {
+    const record = { metaMetadata: { brandId: 1 } };
+    const options = {};
+    let markNavigationStarted!: () => void;
+    const navigationStarted = new Promise<void>((resolve) => {
+      markNavigationStarted = resolve;
+    });
+
+    mockPage.goto.callsFake(() => {
+      markNavigationStarted();
+      return new Promise<never>(() => undefined);
+    });
+
+    const observable = pdfService.createPDF('oid-shutdown-initial', record, options, {});
+    await new Promise((resolve, reject) => {
+      observable.subscribe({ next: resolve, error: reject });
+    });
+    await navigationStarted;
+
+    await pdfService.shutdownPDFRetries();
+
+    expect(auditStub.startAudit.callCount).to.equal(2);
+    expect(auditStub.completeAudit.called).to.be.false;
+    expect(auditStub.failAudit.callCount).to.equal(2);
+
+    const childFailure = auditStub.failAudit
+      .getCalls()
+      .find((call: any) => call.args[0]?.integrationAction === 'generatePdf');
+    expect(childFailure).to.exist;
+    expect(childFailure!.args[1].name).to.equal('PDFGenerationInterruptedError');
+    expect(childFailure!.args[2]).to.deep.equal({
+      message: 'PDF generation interrupted during service shutdown.',
+      responseSummary: {
+        errorTag: 'PDFGenerationInterruptedError',
+        url: 'http://localhost:1500/default/rdmp/record/view/oid-shutdown-initial',
+        attempt: 1,
+      },
+    });
+
+    const parentFailure = auditStub.failAudit
+      .getCalls()
+      .find((call: any) => call.args[0]?.integrationAction === 'generatePdfTrigger');
+    expect(parentFailure).to.exist;
+    expect(parentFailure!.args[1].name).to.equal('PDFGenerationInterruptedError');
+    expect(parentFailure!.args[2]).to.deep.equal({
+      message: 'PDF generation pipeline failed.',
+      responseSummary: {
+        attemptsRun: 1,
+        finalStatus: 'failed',
+      },
+    });
+  });
+
   it('still generates a PDF when IntegrationAuditService global is missing', async () => {
     clearAuditServiceStub();
 
