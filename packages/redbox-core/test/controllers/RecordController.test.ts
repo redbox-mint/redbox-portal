@@ -713,7 +713,7 @@ describe('RecordController TUS URL generation', () => {
     expect(checkDiskSpaceStub.firstCall.args[0]).to.not.equal('/legacy/mongodb-disk');
   });
 
-  it('renders the browser 404 page when an attachment is not in the record', async () => {
+  it('uses the shared browser 404 response when an attachment is not in the record', async () => {
     (controller as any).tusServer = { handle: sinon.stub() };
     sinon.stub(controller as any, 'getRecord').returns(of({
       metaMetadata: { attachmentFields: [] },
@@ -765,7 +765,7 @@ describe('RecordController TUS URL generation', () => {
     expect(sendRespStub.firstCall.args[2]).to.deep.include({ status: 404 });
   });
 
-  it('renders the browser 404 page when the attachment stream is missing', async () => {
+  it('uses the shared browser 404 response when the attachment stream is missing', async () => {
     (controller as any).tusServer = { handle: sinon.stub() };
     sinon.stub(controller as any, 'getRecord').returns(of({
       metaMetadata: { attachmentFields: ['attachments'] },

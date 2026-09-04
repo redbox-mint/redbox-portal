@@ -2,7 +2,7 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
-import { safeHtmlUriRegexp } from '../../src/config/dompurify.config';
+import { dompurify as dompurifyConfig, safeHtmlUriRegexp, safeSvgUriRegexp } from '../../src/config/dompurify.config';
 
 describe('DomSanitizerService', function() {
   let mockSails: any;
@@ -77,6 +77,46 @@ describe('DomSanitizerService', function() {
       expect(result.sanitized).to.include('svg');
       expect(result.sanitized).to.include('circle');
       expect(result.errors).to.be.an('array').that.is.empty;
+    });
+
+    it('should preserve SVG path geometry and viewBox attributes', function() {
+      mockSails.config.dompurify = dompurifyConfig;
+      const svg = '<svg viewBox="0 0 100 100"><path d="m 0,0 100,0 0,100 z" fill="#fff"/></svg>';
+
+      const result = DomSanitizerService.sanitize(svg);
+
+      expect(result.safe).to.be.true;
+      expect(result.sanitized).to.include('viewBox="0 0 100 100"');
+      expect(result.sanitized).to.include('d="m 0,0 100,0 0,100 z"');
+    });
+
+    it('should preserve fragment and relative SVG references', function() {
+      mockSails.config.dompurify = dompurifyConfig;
+      const svg = '<svg><image href="#mark"/><image href="images/logo.svg"/><image href="./images/logo.svg"/><image href="../logo.svg"/><image href="/logo.svg"/></svg>';
+
+      const result = DomSanitizerService.sanitize(svg);
+
+      expect(result.safe).to.be.true;
+      expect(result.sanitized).to.include('href="#mark"');
+      expect(result.sanitized).to.include('href="images/logo.svg"');
+      expect(result.sanitized).to.include('href="./images/logo.svg"');
+      expect(result.sanitized).to.include('href="../logo.svg"');
+      expect(result.sanitized).to.include('href="/logo.svg"');
+    });
+
+    ['mailto:', 'tel:', 'callto:', 'sms:', 'cid:', 'xmpp:', 'matrix:'].forEach((scheme, index) => {
+      it(`should reject ${scheme} SVG references`, function() {
+        mockSails.config.dompurify = dompurifyConfig;
+        const attribute = index % 2 === 0 ? 'href' : 'xlink:href';
+        const svg = `<svg><a ${attribute}="${scheme}attacker"><path d="m 0,0 1,1"/></a></svg>`;
+
+        const result = DomSanitizerService.sanitize(svg);
+
+        expect(result.safe).to.be.false;
+        expect(result.errors).to.include('unsafe-uri-reference');
+        expect(result.sanitized).not.to.include(`${scheme}attacker`);
+        expect(result.sanitized).to.include('d="m 0,0 1,1"');
+      });
     });
 
     it('should reject non-string input', function() {
@@ -262,6 +302,23 @@ describe('DomSanitizerService', function() {
     it('should block scriptable or embedded-data protocols', function() {
       expect(safeHtmlUriRegexp.test('javascript:alert(1)')).to.equal(false);
       expect(safeHtmlUriRegexp.test('data:text/html,<script>alert(1)</script>')).to.equal(false);
+    });
+  });
+
+  describe('safeSvgUriRegexp', function() {
+    it('should allow complete fragment and relative references', function() {
+      expect(safeSvgUriRegexp.test('#mark')).to.equal(true);
+      expect(safeSvgUriRegexp.test('images/logo.svg')).to.equal(true);
+      expect(safeSvgUriRegexp.test('images/logo.svg?version=1#mark')).to.equal(true);
+      expect(safeSvgUriRegexp.test('./images/logo.svg')).to.equal(true);
+      expect(safeSvgUriRegexp.test('../images/logo.svg')).to.equal(true);
+      expect(safeSvgUriRegexp.test('/images/logo.svg')).to.equal(true);
+    });
+
+    it('should reject absolute schemes and protocol-relative references without partial matches', function() {
+      ['mailto:user@example.org', 'https://example.org/logo.svg', '//example.org/logo.svg'].forEach((reference) => {
+        expect(safeSvgUriRegexp.test(reference)).to.equal(false);
+      });
     });
   });
 });

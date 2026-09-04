@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 import path from 'path';
 import { ILogger } from './Logger';
 import { resolveSiteTitle, resolveTranslation } from './responses/siteTitle';
+import { sendTerminalErrorFallback } from './responses/terminalErrorFallback';
 import { resolveHookViewFile } from './hooks/hookResources';
 import type { ResolvedHookFile } from './hooks/hookResources';
 import {
@@ -276,6 +277,7 @@ export namespace Controllers.Core {
         `${branding}/${portal}/${view}`,
         `default/${portal}/${view}`,
         `default/default/${view}`,
+        view,
       ];
 
       for (const candidate of candidates) {
@@ -328,6 +330,42 @@ export namespace Controllers.Core {
       return path.resolve(this.getCoreViewRoot(), path.dirname(resolvedFile.relativePath));
     }
 
+    private addRequestBrandingAndPortal(req: Sails.Req, locals: Record<string, unknown>): void {
+      const stringValue = (value: unknown): string | undefined => {
+        return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+      };
+      const requestParam = (name: string): string | undefined => {
+        if (typeof req.param === 'function') {
+          return stringValue(req.param(name));
+        }
+        return stringValue(req.params?.[name]);
+      };
+
+      let branding = stringValue(locals.branding) ?? requestParam('branding');
+      let portal = stringValue(locals.portal) ?? requestParam('portal');
+
+      // A route-level 404 has already run brandingAndPortal, but an unmatched
+      // branded URL has no route parameters or policies. Recover its context
+      // from the first two path segments so it receives the same theme.
+      if (!branding || !portal) {
+        const requestPath = stringValue(req.originalUrl) ?? stringValue(req.url);
+        const segments = requestPath?.split('?')[0].split('/').filter(Boolean) ?? [];
+        const rootContext = stringValue(sails.config.http?.rootContext);
+        if (rootContext && segments[0] === rootContext) {
+          segments.shift();
+        }
+        if (segments.length >= 2) {
+          branding ??= segments[0];
+          portal ??= segments[1];
+        }
+      }
+
+      branding ??= stringValue(req.session?.branding) ?? stringValue(sails.config.auth?.defaultBrand) ?? 'default';
+      portal ??= stringValue(req.session?.portal) ?? stringValue(sails.config.auth?.defaultPortal) ?? 'default';
+      locals.branding = branding;
+      locals.portal = portal;
+    }
+
     public _getResolvedView(branding: string, portal: string, view: string): string | null {
       const resolvedView = this.resolveViewFile(branding, portal, view);
       return resolvedView ? this.getSailsViewPath(resolvedView) : null;
@@ -347,6 +385,7 @@ export namespace Controllers.Core {
         req.options.locals = {};
       }
       const mergedLocal: Record<string, unknown> = Object.assign({}, req.options.locals as Record<string, unknown>, locals);
+      this.addRequestBrandingAndPortal(req, mergedLocal);
 
       const branding = mergedLocal['branding'] as string;
       const portal = mergedLocal['portal'] as string;
@@ -354,9 +393,10 @@ export namespace Controllers.Core {
       const resolvedView = this.resolveViewFile(branding, portal, view);
       const resolvedLayout = this.resolveLayoutFile(branding, portal);
 
-      // View still doesn't exist so return a 404
+      // Do not re-enter res.notFound here: the missing view may itself be the
+      // 404 template. Preserve an existing error status and terminate safely.
       if (resolvedView === null) {
-        res.notFound(mergedLocal, "404");
+        sendTerminalErrorFallback(res);
         return;
       }
 
