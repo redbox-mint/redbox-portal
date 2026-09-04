@@ -6,11 +6,11 @@ const os = require('os');
 const path = require('path');
 const { Controllers: RestControllers } = require('../../src/controllers/webservice/BrandingController');
 const { Controllers: AjaxControllers } = require('../../src/controllers/BrandingAppController');
-const { brandingApiRoutes } = require('../../src/api-routes/groups/branding');
+import { brandingApiRoutes } from '../../src/api-routes/groups/branding';
 const { validateApiRouteFiles } = require('../../src/api-routes/validation');
 const { brandingFaceUploadRoute } = require('../../src/api-routes/groups/branding');
 const { routes } = require('../../src/config/routes.config');
-const { auth } = require('../../src/config/auth.config');
+import { auth } from '../../src/config/auth.config';
 
 function encodeBase128(value: number): number[] {
   if (value === 0) return [0];
@@ -129,9 +129,13 @@ function conflictError(): Error & { code?: string; current?: { version: number; 
 describe('Branding management controllers and contracts', function () {
   let sandbox: sinon.SinonSandbox;
   let stubs: Record<string, sinon.SinonStub>;
+  let prevSails: unknown;
+  let prevBrandingService: unknown;
 
   beforeEach(function () {
     sandbox = sinon.createSandbox();
+    prevSails = (global as unknown as Record<string, unknown>).sails;
+    prevBrandingService = (global as unknown as Record<string, unknown>).BrandingService;
     (global as unknown as Record<string, unknown>).sails = {
       config: { branding: {} },
       log: {
@@ -147,8 +151,17 @@ describe('Branding management controllers and contracts', function () {
 
   afterEach(function () {
     sandbox.restore();
-    delete (global as unknown as Record<string, unknown>).sails;
-    delete (global as unknown as Record<string, unknown>).BrandingService;
+    const g = global as unknown as Record<string, unknown>;
+    if (prevSails === undefined) {
+      delete g.sails;
+    } else {
+      g.sails = prevSails;
+    }
+    if (prevBrandingService === undefined) {
+      delete g.BrandingService;
+    } else {
+      g.BrandingService = prevBrandingService;
+    }
   });
 
   it('exposes every lifecycle action on both surfaces', function () {
@@ -317,6 +330,46 @@ describe('Branding management controllers and contracts', function () {
     expect(sent).to.have.lengthOf(1);
     expect(sent[0].data).to.have.property('branding');
   });
+
+  for (const surface of ['REST', 'AJAX']) {
+    for (const failure of ['upload-size', 'upload-unexpected', 'service-conflict']) {
+      it(`cleans up temporary files after ${surface} ${failure} errors`, async function () {
+        const controller = surface === 'REST' ? new RestControllers.Branding() : new AjaxControllers.BrandingApp();
+        const sent = captureSendResp(sandbox, controller);
+        const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'face-error-'));
+        const tempFile = path.join(directory, 'face.woff2');
+        fs.writeFileSync(tempFile, buildWoff2());
+        try {
+          const params = { branding: 'default', portal: 'rdmp', slot: 'regular' };
+          const req = surface === 'REST' ? restReq({ params }) : { params, headers: {}, method: 'PUT' };
+          Object.assign(req, {
+            _fileparser: true,
+            body: { expectedDraftRevision: '2' },
+            file: () => ({
+              upload: (_options: unknown, cb: (error: unknown, files: unknown[]) => void) => {
+                const error =
+                  failure === 'upload-size'
+                    ? new Error('maxBytes exceeded')
+                    : failure === 'upload-unexpected'
+                      ? new Error('upload failed')
+                      : null;
+                cb(error, [{ fd: tempFile, filename: 'face.woff2', size: 128 }]);
+              },
+            }),
+          });
+          stubs.uploadTypefaceFace.rejects(
+            Object.assign(new Error('branding-conflict'), { code: 'branding-conflict' })
+          );
+          await controller.uploadFace(req as unknown as Sails.Req, {} as Sails.Res);
+          expect(fs.existsSync(tempFile)).to.equal(false);
+          expect(sent[0].status).to.equal(failure === 'upload-size' ? 413 : failure === 'service-conflict' ? 409 : 500);
+          expect(stubs.uploadTypefaceFace.called).to.equal(failure === 'service-conflict');
+        } finally {
+          fs.rmSync(directory, { recursive: true, force: true });
+        }
+      });
+    }
+  }
 
   it('rejects restore across brands and aliases rollback with deprecation metadata', async function () {
     const rest = new RestControllers.Branding();

@@ -9,18 +9,17 @@ import * as BrandingLogoServiceModule from '../services/BrandingLogoService';
 import { getBrandingPositiveInt } from '../config/branding.config';
 import { BRANDING_TYPEFACE_FACE_MAX_BYTES } from '../model/BrandingTypeface';
 import { getRouteParam } from '../utilities/RequestParamUtils';
-import { mapBrandingError } from './webservice/BrandingController';
+import {
+  mapBrandingError,
+  receiveSingleFile,
+  isUploadSizeError,
+  SkipperUploadedFile,
+} from './BrandingControllerSupport';
+import { promises as fs } from 'fs';
 
 // sails is available globally via sails.ts
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLogo;
-
-interface SkipperUploadedFile {
-  fd: string;
-  filename?: string;
-  type?: string;
-  size?: number;
-}
 
 export namespace Controllers {
   export class BrandingApp extends controllers.Core.Controller {
@@ -103,30 +102,9 @@ export namespace Controllers {
       const slot = getRouteParam(req, 'slot');
       const actor = req.user;
       const maxBytes = getBrandingPositiveInt('typefaceFaceMaxBytes', BRANDING_TYPEFACE_FACE_MAX_BYTES);
-      let files: SkipperUploadedFile[] = [];
-      const receive = async (): Promise<SkipperUploadedFile[]> => {
-        const reqObj = req as unknown as globalThis.Record<string, unknown>;
-        if (!(reqObj._fileparser && typeof reqObj.file === 'function')) {
-          return [];
-        }
-        const fileFn = reqObj.file as (name: string) => {
-          upload: (
-            options: Record<string, unknown>,
-            cb: (err: unknown, uploaded: SkipperUploadedFile[]) => void
-          ) => void;
-        };
-        return new Promise<SkipperUploadedFile[]>((resolve, reject) => {
-          try {
-            fileFn('face').upload({ maxBytes }, (err: unknown, uploaded) =>
-              err ? reject(err) : resolve(uploaded ?? [])
-            );
-          } catch (error) {
-            reject(error);
-          }
-        });
-      };
+      const files: SkipperUploadedFile[] = [];
       try {
-        files = await receive();
+        await receiveSingleFile(req, 'face', maxBytes, files);
         if (files.length === 0) {
           return this.sendResp(req, res, {
             status: 400,
@@ -134,26 +112,20 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        const fs = require('fs').promises;
-        try {
-          const body = (req.body ?? {}) as Record<string, unknown>;
-          const expectedDraftRevision = Number(body.expectedDraftRevision);
-          const buf = await fs.readFile(files[0].fd);
-          const state = await BrandingService.uploadTypefaceFace({
-            branding,
-            slot,
-            bytes: buf,
-            originalFilename: files[0].filename,
-            expectedDraftRevision: Number.isFinite(expectedDraftRevision) ? expectedDraftRevision : undefined,
-            actor,
-          });
-          return this.sendState(req, res, state);
-        } finally {
-          await Promise.all(files.map(file => fs.unlink(file.fd).catch(() => undefined)));
-        }
+        const body = (req.body ?? {}) as Record<string, unknown>;
+        const expectedDraftRevision = Number(body.expectedDraftRevision);
+        const buf = await fs.readFile(files[0].fd);
+        const state = await BrandingService.uploadTypefaceFace({
+          branding,
+          slot,
+          bytes: buf,
+          originalFilename: files[0].filename,
+          expectedDraftRevision: Number.isFinite(expectedDraftRevision) ? expectedDraftRevision : undefined,
+          actor,
+        });
+        return this.sendState(req, res, state);
       } catch (e: unknown) {
-        const message = String((e as { message?: unknown })?.message ?? e).toLowerCase();
-        if (message.includes('maxbytes') || message.includes('exceed') || message.includes('too large')) {
+        if (isUploadSizeError(e)) {
           return this.sendResp(req, res, {
             status: 413,
             displayErrors: [
@@ -163,6 +135,8 @@ export namespace Controllers {
           });
         }
         return this.sendError(req, res, e);
+      } finally {
+        await Promise.all(files.map(file => fs.unlink(file.fd).catch(() => undefined)));
       }
     }
 

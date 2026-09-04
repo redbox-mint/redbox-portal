@@ -5,6 +5,7 @@ import * as BrandingThemeCssServiceModule from '../services/BrandingThemeCssServ
 import * as crypto from 'crypto';
 const CleanCSS = require('clean-css');
 import { buildMergedApiBlueprint, buildMergedApiOpenApiDocument } from '../api-routes';
+import { mapBrandingError } from './BrandingControllerSupport';
 
 const yaml: { dump: (value: unknown, options?: { lineWidth?: number }) => string } = require('js-yaml');
 
@@ -17,6 +18,9 @@ export namespace Controllers {
   export class Branding extends controllers.Core.Controller {
     private static readonly CSS_CACHE_MAX_SIZE = 100;
     private static readonly CSS_CACHE_TTL_MS = 5 * 60 * 1000;
+    /** Verified face bytes are immutable and content-addressed, so no TTL is needed. */
+    private static readonly FONT_CACHE_MAX_SIZE = 32;
+    private static readonly FONT_CACHE_MAX_BYTES = 16 * 1024 * 1024;
     private readonly cssMinifier = new CleanCSS({
       level: {
         1: { all: true },
@@ -24,6 +28,8 @@ export namespace Controllers {
       },
     });
     private readonly cssResponseCache = new Map<string, { css: string; etag: string; createdAt: number }>();
+    private readonly fontResponseCache = new Map<string, Buffer>();
+    private fontResponseCacheBytes = 0;
 
     /**
      * Generate a weak ETag for the given content hash or string.
@@ -105,6 +111,35 @@ export namespace Controllers {
           break;
         }
         this.cssResponseCache.delete(lruKey);
+      }
+    }
+
+    private getCachedFontResponse(cacheKey: string): Buffer | undefined {
+      const entry = this.fontResponseCache.get(cacheKey);
+      if (!entry) {
+        return undefined;
+      }
+      // Mark as most-recently-used.
+      this.fontResponseCache.delete(cacheKey);
+      this.fontResponseCache.set(cacheKey, entry);
+      return entry;
+    }
+
+    private setCachedFontResponse(cacheKey: string, buf: Buffer): void {
+      if (buf.length > Branding.FONT_CACHE_MAX_BYTES) return;
+      const previous = this.fontResponseCache.get(cacheKey);
+      this.fontResponseCacheBytes -= previous?.length ?? 0;
+      this.fontResponseCache.delete(cacheKey);
+      this.fontResponseCache.set(cacheKey, buf);
+      this.fontResponseCacheBytes += buf.length;
+      while (
+        this.fontResponseCache.size > Branding.FONT_CACHE_MAX_SIZE ||
+        this.fontResponseCacheBytes > Branding.FONT_CACHE_MAX_BYTES
+      ) {
+        const oldest = this.fontResponseCache.entries().next().value;
+        if (!oldest) break;
+        this.fontResponseCacheBytes -= oldest[1].length;
+        this.fontResponseCache.delete(oldest[0]);
       }
     }
 
@@ -226,25 +261,36 @@ export namespace Controllers {
       }
     }
 
-    /** Create a preview token (JSON) for the current draft revision (legacy public surface) */
+    /** Create a preview token (JSON) for a caller-supplied draft revision (legacy public surface) */
     public async createPreview(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = req.param('branding');
         const portal = req.param('portal');
         const brand = await BrandingConfig.findOne({ name: branding });
         if (!brand) {
-          return res.status(404).json({ error: 'preview-error', message: 'branding-not-found' });
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ code: 'branding-not-found', detail: 'branding-not-found' }],
+            headers: this.getNoCacheHeaders(),
+          });
         }
-        // Bind to the current draft revision; a concurrent draft change fails
-        // loudly instead of previewing a torn state.
+        // The caller binds the preview to its own draft revision; a concurrent
+        // draft change surfaces as 409 instead of previewing a torn state.
+        const body = (req.body ?? {}) as Record<string, unknown>;
         const result = await BrandingService.preview(
           branding,
           portal,
-          typeof brand.draftRevision === 'number' ? brand.draftRevision : 0
+          body.expectedDraftRevision as number | undefined
         );
-        return res.json(result);
+        return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (e: unknown) {
-        return res.status(500).json({ error: 'preview-error', message: (e as Error).message });
+        const mapped = mapBrandingError(e);
+        return this.sendResp(req, res, {
+          status: mapped.status,
+          displayErrors: [{ code: mapped.code, detail: mapped.detail }],
+          ...(mapped.current ? { data: { current: mapped.current } } : {}),
+          headers: this.getNoCacheHeaders(),
+        });
       }
     }
 
@@ -257,6 +303,13 @@ export namespace Controllers {
      * substituting another font; corruption is logged server-side.
      */
     public async renderFont(req: Sails.Req, res: Sails.Res) {
+      const notFound = () => {
+        res.set('Cache-Control', 'no-store');
+        res.removeHeader('ETag');
+        res.removeHeader('Content-Length');
+        res.set('Content-Type', 'text/plain');
+        return res.status(404).send('/* font not found */');
+      };
       try {
         const branding = req.param('branding');
         // Sails may expose the suffixed route param under a mangled name
@@ -270,36 +323,46 @@ export namespace Controllers {
           Object.entries(routeParams).find(([key]) => key.toLowerCase().startsWith('sha256'))?.[1];
         const sha256 = String(rawParam ?? '').replace(/\.woff2$/i, '');
         if (!branding || !/^[0-9a-f]{64}$/.test(sha256)) {
-          return res.status(404).send('/* font not found */');
+          return notFound();
+        }
+        // The ETag is the content hash itself, so conditional requests short-
+        // circuit before any brand lookup or storage read.
+        const etag = `"${sha256}"`;
+        res.set('ETag', etag);
+        if (req.headers['if-none-match'] === etag) {
+          return res.status(304).end();
         }
         const brand = await BrandingConfig.findOne({ name: branding });
         if (!brand) {
-          return res.status(404).send('/* font not found */');
+          return notFound();
         }
-        let buf: Buffer;
-        try {
-          buf = await BrandingTypefaceService.readFace(String(brand.id), sha256);
-        } catch (readError) {
-          if ((readError as { code?: string })?.code === 'typeface-corrupt') {
-            sails.log.error(`BrandingController corrupt font object for brand ${branding} face ${sha256}`);
+        // Faces are immutable and keyed by their own hash: serve verified
+        // bytes from a small bounded cache instead of re-reading and
+        // re-hashing the whole face on every request.
+        const cacheKey = `font:${String(brand.id)}:${sha256}`;
+        let buf = this.getCachedFontResponse(cacheKey);
+        if (!buf) {
+          try {
+            buf = await BrandingTypefaceService.readFace(String(brand.id), sha256);
+          } catch (readError) {
+            if ((readError as { code?: string })?.code === 'typeface-corrupt') {
+              sails.log.error(`BrandingController corrupt font object for brand ${branding} face ${sha256}`);
+            }
+            return notFound();
           }
-          return res.status(404).send('/* font not found */');
+          this.setCachedFontResponse(cacheKey, buf);
         }
         res.set('Content-Type', 'font/woff2');
-        res.set('ETag', `"${sha256}"`);
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
         res.set('X-Content-Type-Options', 'nosniff');
         res.set('Content-Length', String(buf.length));
-        if (req.headers['if-none-match'] === `"${sha256}"`) {
-          return res.status(304).end();
-        }
         if (req.method === 'HEAD') {
           return res.status(200).end();
         }
         return res.send(buf);
       } catch (e) {
         sails.log.error('Error serving font:', e);
-        return res.status(404).send('/* font not found */');
+        return notFound();
       }
     }
 

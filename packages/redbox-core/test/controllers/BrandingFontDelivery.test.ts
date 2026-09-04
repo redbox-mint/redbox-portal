@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
-const fs = require('fs');
+import * as fs from 'fs';
+import { createHash } from 'crypto';
 const path = require('path');
 import { setupServiceTestGlobals, cleanupServiceTestGlobals } from '../services/testHelper';
 import { Controllers } from '../../src/controllers/BrandingController';
@@ -70,12 +71,15 @@ class FakeDisk {
 function fakeReq(
   params: Record<string, string>,
   headers: Record<string, string> = {},
-  method = 'GET'
+  method = 'GET',
+  body?: Record<string, unknown>
 ): Record<string, unknown> {
   return {
     param: (name: string) => params[name],
     headers,
     method,
+    body,
+    query: {},
   };
 }
 
@@ -97,7 +101,9 @@ function fakeRes(): {
     set: (key: string, value: string) => {
       captured.headers[key] = value;
     },
-    removeHeader: () => undefined,
+    removeHeader: (key: string) => {
+      delete captured.headers[key];
+    },
     status: (code: number) => {
       captured.statusCode = code;
       return captured.res;
@@ -239,6 +245,45 @@ describe('Branding public font delivery and layouts', function () {
       corrupt.res as unknown as Sails.Res
     );
     expect(corrupt.statusCode).to.equal(404);
+    for (const response of [badHash, unknownBrand, absent, corrupt]) {
+      expect(response.headers['Cache-Control']).to.equal('no-store');
+      expect(response.headers['Content-Type']).to.not.equal('font/woff2');
+      expect(response.headers['ETag']).to.equal(undefined);
+    }
+  });
+
+  it('evicts least recently used font bytes when the cache exceeds 16 MiB', async function () {
+    const hashes: string[] = [];
+    for (let i = 0; i < 9; i += 1) {
+      const bytes = buildWoff2(2 * 1024 * 1024 - 58);
+      bytes[bytes.length - 1] = i;
+      const hash = createHash('sha256').update(bytes).digest('hex');
+      disk.objects.set(`branding-fonts/brand-1/${hash}.woff2`, bytes);
+      hashes.push(hash);
+    }
+    const reads: string[] = [];
+    const getBytes = disk.getBytes.bind(disk);
+    disk.getBytes = async (key: string) => {
+      reads.push(key);
+      return getBytes(key);
+    };
+    const serve = async (index: number) => {
+      const response = fakeRes();
+      await controller.renderFont(
+        fakeReq({ branding: 'default', sha256: hashes[index] }) as unknown as Sails.Req,
+        response.res as unknown as Sails.Res
+      );
+      expect(response.statusCode).to.equal(200);
+    };
+    for (let i = 0; i < 8; i += 1) await serve(i);
+    expect(reads).to.have.lengthOf(8);
+    await serve(0);
+    expect(reads).to.have.lengthOf(8);
+    await serve(8);
+    await serve(0);
+    expect(reads).to.have.lengthOf(9);
+    await serve(1);
+    expect(reads).to.have.lengthOf(10);
   });
 
   it('derives the theme ETag without rewriting publication state', async function () {
@@ -280,7 +325,7 @@ describe('Branding public font delivery and layouts', function () {
         return values;
       },
     };
-    const req = fakeReq({ branding: 'default', portal: 'rdmp' });
+    const req = fakeReq({ branding: 'default', portal: 'rdmp' }, {}, 'GET', { expectedDraftRevision: 0 });
     const captured = fakeRes();
     const jsonBody: Array<unknown> = [];
     (captured.res as Record<string, unknown>).json = (body: unknown) => {
@@ -292,6 +337,27 @@ describe('Branding public font delivery and layouts', function () {
     expect((jsonBody[0] as { token?: string }).token).to.match(/^[0-9a-f]{32}$/);
     expect(cacheEntries).to.have.lengthOf(1);
     expect((cacheEntries[0].data as { revision?: number }).revision).to.equal(0);
+  });
+
+  it('rejects preview token creation on a stale draft revision with 409', async function () {
+    const branding = require('../../src/services/BrandingService');
+    (global as unknown as Record<string, unknown>).BrandingService = new branding.Services.Branding();
+    (global as unknown as Record<string, unknown>).BrandingThemeCssService =
+      new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
+    (global as unknown as Record<string, unknown>).CacheEntry = {
+      create: async (values: Record<string, unknown>) => values,
+    };
+    const req = fakeReq({ branding: 'default', portal: 'rdmp' }, {}, 'GET', { expectedDraftRevision: 99 });
+    const captured = fakeRes();
+    const jsonBody: Array<unknown> = [];
+    (captured.res as Record<string, unknown>).json = (body: unknown) => {
+      jsonBody.push(body);
+      return captured.res;
+    };
+    await controller.createPreview(req as unknown as Sails.Req, captured.res as unknown as Sails.Res);
+    expect(captured.statusCode).to.equal(409);
+    expect(jsonBody).to.have.lengthOf(1);
+    expect(JSON.stringify(jsonBody[0])).to.contain('branding-conflict');
   });
 
   it('exposes active custom state and Regular preload URLs from the brand cache', function () {

@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@angular/core';
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientService, ConfigService, UtilityService, RB_HTTP_INTERCEPTOR_AUTH_CSRF, RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE } from '@researchdatabox/portal-ng-common';
-import { firstValueFrom, Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import {
   BrandingAdminState,
   BrandingMutationError,
@@ -49,6 +49,11 @@ export class BrandingAdminService extends HttpClientService {
     return `${this.brandingAndPortalUrl}/app/branding`;
   }
 
+  /** JSON body-observation options with a static type (the base presets are `any`). */
+  private jsonOpts(): { responseType: 'json'; observe: 'body'; context: HttpContext } {
+    return { ...this.reqOptsJsonBodyOnly, context: this.httpContext };
+  }
+
   private normaliseError(error: unknown): never {
     if (error instanceof HttpErrorResponse) {
       const body = error.error as { message?: string } | undefined;
@@ -65,7 +70,7 @@ export class BrandingAdminService extends HttpClientService {
 
   private async postState<T>(url: string, body: unknown): Promise<T> {
     try {
-      const result$ = this.http.post(url, body, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }) as unknown as Observable<T>;
+      const result$ = this.http.post<T>(url, body, this.jsonOpts());
       return await firstValueFrom(result$);
     } catch (error) {
       this.normaliseError(error);
@@ -74,7 +79,7 @@ export class BrandingAdminService extends HttpClientService {
 
   /** Load the canonical Admin state. */
   public async loadConfig(): Promise<BrandingAdminState> {
-    const result$ = this.http.get(`${this.base}/config`, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }) as unknown as Observable<BrandingAdminState>;
+    const result$ = this.http.get<BrandingAdminState>(`${this.base}/config`, this.jsonOpts());
     return await firstValueFrom(result$);
   }
 
@@ -87,9 +92,29 @@ export class BrandingAdminService extends HttpClientService {
    * Save draft branding configuration (legacy shape kept for compatibility).
    * Prefer {@link saveColourDraft} with an explicit revision for new code.
    */
-  public async saveDraft(config: any, expectedDraftRevision?: number): Promise<BrandingAdminState> {
-    const variables = config?.variables ?? config ?? {};
-    return this.postState<BrandingAdminState>(`${this.base}/draft`, { variables, expectedDraftRevision });
+  public async saveDraft(config: unknown, expectedDraftRevision?: number): Promise<BrandingAdminState> {
+    return this.postState<BrandingAdminState>(`${this.base}/draft`, {
+      variables: this.toVariablesRecord(
+        config && typeof config === 'object' && 'variables' in config
+          ? (config as { variables?: unknown }).variables
+          : config
+      ),
+      expectedDraftRevision,
+    });
+  }
+
+  /** Copy only string-valued entries so the colour draft keeps its record type. */
+  private toVariablesRecord(value: unknown): Record<string, string> {
+    if (!value || typeof value !== 'object') {
+      return {};
+    }
+    const variables: Record<string, string> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      if (typeof entry === 'string') {
+        variables[key] = entry;
+      }
+    }
+    return variables;
   }
 
   /** Upload or replace one draft face (multipart `face` plus revision field). */
@@ -101,7 +126,9 @@ export class BrandingAdminService extends HttpClientService {
     fileUploadContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
     fileUploadContext.set(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE, true);
     try {
-      const result$ = this.http.put(`${this.base}/draft/typeface/faces/${slot}`, formData, { context: fileUploadContext }) as unknown as Observable<BrandingAdminState>;
+      const result$ = this.http.put<BrandingAdminState>(`${this.base}/draft/typeface/faces/${slot}`, formData, {
+        context: fileUploadContext,
+      });
       return await firstValueFrom(result$);
     } catch (error) {
       this.normaliseError(error);
@@ -111,11 +138,10 @@ export class BrandingAdminService extends HttpClientService {
   /** Remove one draft face. */
   public async removeFace(slot: BrandingTypefaceSlot, expectedDraftRevision: number): Promise<BrandingAdminState> {
     try {
-      const result$ = this.http.delete(`${this.base}/draft/typeface/faces/${slot}`, {
-        ...this.reqOptsJsonBodyOnly,
-        context: this.httpContext,
+      const result$ = this.http.delete<BrandingAdminState>(`${this.base}/draft/typeface/faces/${slot}`, {
+        ...this.jsonOpts(),
         body: { expectedDraftRevision },
-      }) as unknown as Observable<BrandingAdminState>;
+      });
       return await firstValueFrom(result$);
     } catch (error) {
       this.normaliseError(error);
@@ -139,7 +165,7 @@ export class BrandingAdminService extends HttpClientService {
 
   /** List newest retained versions. */
   public async listVersions(): Promise<BrandingVersionEntry[]> {
-    const result$ = this.http.get(`${this.base}/versions`, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }) as unknown as Observable<BrandingVersionEntry[]>;
+    const result$ = this.http.get<BrandingVersionEntry[]>(`${this.base}/versions`, this.jsonOpts());
     return await firstValueFrom(result$);
   }
 
@@ -161,7 +187,7 @@ export class BrandingAdminService extends HttpClientService {
   /**
    * Upload logo file
    */
-  public async uploadLogo(formData: FormData): Promise<any> {
+  public async uploadLogo(formData: FormData): Promise<unknown> {
     const url = `${this.base}/logo`;
 
     // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type
@@ -180,7 +206,7 @@ export class BrandingAdminService extends HttpClientService {
   /**
    * Upload favicon file
    */
-  public async uploadFavicon(formData: FormData): Promise<any> {
+  public async uploadFavicon(formData: FormData): Promise<unknown> {
     const url = `${this.base}/favicon`;
 
     // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type

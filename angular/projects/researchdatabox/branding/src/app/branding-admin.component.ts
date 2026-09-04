@@ -82,10 +82,10 @@ export class BrandingAdminComponent extends BaseComponent {
   colourGroups: ColourGroup[] = [];
 
   readonly typefaceSlots: TypefaceSlotCard[] = [
-    { slot: 'regular', label: 'Regular', required: true, hint: 'Required to publish a custom typeface' },
-    { slot: 'bold', label: 'Bold', required: false, hint: 'Optional; browsers may synthesise it' },
-    { slot: 'italic', label: 'Italic', required: false, hint: 'Optional; browsers may synthesise it' },
-    { slot: 'boldItalic', label: 'Bold Italic', required: false, hint: 'Optional; browsers may synthesise it' },
+    { slot: 'regular', label: 'branding-face-regular-label', required: true, hint: 'branding-face-required-hint' },
+    { slot: 'bold', label: 'branding-face-bold-label', required: false, hint: 'branding-face-optional-hint' },
+    { slot: 'italic', label: 'branding-face-italic-label', required: false, hint: 'branding-face-optional-hint' },
+    { slot: 'boldItalic', label: 'branding-face-boldItalic-label', required: false, hint: 'branding-face-optional-hint' },
   ];
 
   constructor(
@@ -115,9 +115,10 @@ export class BrandingAdminComponent extends BaseComponent {
         return;
       }
       const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      tooltipTriggerList.forEach((el: any) => {
-        if (!el._tooltipInstance) {
-          el._tooltipInstance = new globalBootstrap.Tooltip!(el, { html: true });
+      tooltipTriggerList.forEach((el: Element) => {
+        const tagged = el as Element & { _tooltipInstance?: unknown };
+        if (!tagged._tooltipInstance) {
+          tagged._tooltipInstance = new globalBootstrap.Tooltip!(el, { html: true });
         }
       });
     }, 0);
@@ -175,19 +176,36 @@ export class BrandingAdminComponent extends BaseComponent {
     this.pendingRestoreId = null;
   }
 
-  private handleMutationError(error: any, action: string): void {
-    const mutation = error as Partial<BrandingMutationError>;
+  private handleMutationError(error: unknown, action: string): void {
+    const mutation = error as Partial<BrandingMutationError> | null | undefined;
     if (mutation?.kind === 'conflict') {
       this.conflict = true;
       this.message = undefined;
-      this.error = 'Another administrator changed the shared draft. Reload to get the latest state; your sample text is kept.';
+      this.error = this.i18n.t('branding-conflict-detail');
     } else if (mutation?.kind === 'limit') {
-      this.error = `Upload too large: ${mutation.message || 'the configured typeface size limit was exceeded'}`;
+      this.error = this.i18n.t('branding-upload-too-large', { detail: mutation.message || this.i18n.t('branding-upload-limit-detail') });
     } else {
-      const serverMessage = error?.error?.message || error?.message || error;
-      this.error = `Failed to ${action}: ${serverMessage}`;
+      const serverMessage = this.errorDetail(error);
+      this.error = this.i18n.t(action, { detail: serverMessage });
     }
     this.logger.error(this.error);
+  }
+
+  /** Best-effort detail from HTTP/server error shapes without widening to `any`. */
+  private errorDetail(error: unknown): string {
+    if (typeof error === 'string') {
+      return error;
+    }
+    if (error && typeof error === 'object') {
+      const record = error as { error?: { message?: unknown }; message?: unknown };
+      if (typeof record.error?.message === 'string' && record.error.message) {
+        return record.error.message;
+      }
+      if (typeof record.message === 'string' && record.message) {
+        return record.message;
+      }
+    }
+    return this.i18n.t('branding-unknown-error');
   }
 
   private async runMutation<T>(key: string, action: string, work: () => Promise<T>): Promise<T | undefined> {
@@ -198,7 +216,7 @@ export class BrandingAdminComponent extends BaseComponent {
     this.message = this.error = undefined;
     try {
       return await work();
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.handleMutationError(error, action);
       return undefined;
     } finally {
@@ -210,8 +228,8 @@ export class BrandingAdminComponent extends BaseComponent {
     try {
       const state = await this.brandingService.loadConfig();
       this.replaceState(state);
-    } catch (e: any) {
-      this.error = `Failed to load config: ${e?.message || e}`;
+    } catch (e: unknown) {
+      this.error = this.i18n.t('branding-load-failed', { detail: this.errorDetail(e) });
       this.logger.error(this.error);
     }
   }
@@ -318,18 +336,18 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   async saveDraft() {
-    const state = await this.runMutation('save-draft', 'save draft', () =>
+    const state = await this.runMutation('save-draft', 'branding-failed-save-draft', () =>
       this.brandingService.saveColourDraft(this.draftConfig, this.draftRevision)
     );
     if (state) {
       this.replaceState(state);
       this.clearPreview();
-      this.message = 'Draft saved';
+      this.message = this.i18n.t('branding-draft-saved');
     }
   }
 
   async createPreview() {
-    const preview = await this.runMutation('preview', 'generate preview', () =>
+    const preview = await this.runMutation('preview', 'branding-failed-generate-preview', () =>
       this.brandingService.createPreview(this.draftRevision)
     );
     if (preview) {
@@ -337,12 +355,12 @@ export class BrandingAdminComponent extends BaseComponent {
       const base = this.brandingService.getBrandingAndPortalUrl();
       this.previewBaseCssUrl = `${base}/styles/style.min.css`;
       this.previewCssUrl = `${base}/preview/${preview.token}.css`;
-      this.message = 'Preview generated';
+      this.message = this.i18n.t('branding-preview-generated');
     }
   }
 
   async previewVersionEntry(version: BrandingVersionEntry) {
-    const preview = await this.runMutation(`preview-${version.id}`, 'preview version', () =>
+    const preview = await this.runMutation(`preview-${version.id}`, 'branding-failed-preview-version', () =>
       this.brandingService.previewVersion(version.id)
     );
     if (preview) {
@@ -350,70 +368,71 @@ export class BrandingAdminComponent extends BaseComponent {
       const base = this.brandingService.getBrandingAndPortalUrl();
       this.previewBaseCssUrl = `${base}/styles/style.min.css`;
       this.previewCssUrl = `${base}/preview/${preview.token}.css`;
-      this.message = `Previewing version ${version.version}`;
+      this.message = this.i18n.t('branding-previewing-version', { version: version.version });
     }
   }
 
   async publish() {
-    const state = await this.runMutation('publish', 'publish', () =>
+    const state = await this.runMutation('publish', 'branding-failed-publish', () =>
       this.brandingService.publish(this.activeVersion, this.draftRevision)
     );
     if (state) {
       this.replaceState(state);
       this.clearPreview();
-      this.message = state.idempotent ? 'Already published: no changes' : 'Branding published';
+      this.message = state.idempotent ? this.i18n.t('branding-publish-unchanged') : this.i18n.t('branding-published');
     }
   }
 
-  async uploadFace(slot: BrandingTypefaceSlot, event: any) {
-    const file: File | undefined = event?.target?.files?.[0];
+  async uploadFace(slot: BrandingTypefaceSlot, event: Event) {
+    const file = this.selectedFile(event);
     if (!file) {
       return;
     }
     // Reset the input so the same file can be chosen again.
-    if (event?.target) {
-      event.target.value = '';
+    const target = event?.target as HTMLInputElement | null;
+    if (target) {
+      target.value = '';
     }
-    const state = await this.runMutation(`face-${slot}`, 'upload typeface face', () =>
+    const state = await this.runMutation(`face-${slot}`, 'branding-failed-upload-typeface-face', () =>
       this.brandingService.uploadFace(slot, file, file.name, this.draftRevision)
     );
     if (state) {
       this.replaceState(state);
       this.clearPreview();
-      this.message = `${slot} face uploaded`;
+      this.message = this.i18n.t('branding-face-uploaded', { slot: this.i18n.t(`branding-face-${slot}-label`) });
     }
   }
 
   async removeFace(slot: BrandingTypefaceSlot) {
-    const state = await this.runMutation(`face-${slot}`, 'remove typeface face', () =>
+    const state = await this.runMutation(`face-${slot}`, 'branding-failed-remove-typeface-face', () =>
       this.brandingService.removeFace(slot, this.draftRevision)
     );
     if (state) {
       this.replaceState(state);
       this.clearPreview();
-      this.message = `${slot} face removed`;
+      this.message = this.i18n.t('branding-face-removed', { slot: this.i18n.t(`branding-face-${slot}-label`) });
     }
   }
 
   async useDefaultTypography() {
-    const state = await this.runMutation('use-default', 'switch to Default Typography', () =>
+    const state = await this.runMutation('use-default', 'branding-failed-switch-to-default-typography', () =>
       this.brandingService.useDefaultTypography(this.draftRevision)
     );
     if (state) {
       this.replaceState(state);
       this.clearPreview();
-      this.message = 'Draft set to Default Typography (publish to apply)';
+      this.message = this.i18n.t('branding-default-draft-set');
     }
   }
 
   async revertTypefaceDraft() {
-    const state = await this.runMutation('revert-typeface', 'revert typeface draft', () =>
+    const state = await this.runMutation('revert-typeface', 'branding-failed-revert-typeface-draft', () =>
       this.brandingService.revertTypefaceDraft(this.draftRevision)
     );
     if (state) {
       this.replaceState(state);
       this.clearPreview();
-      this.message = 'Typeface draft reverted to the active typeface';
+      this.message = this.i18n.t('branding-typeface-draft-reverted');
     }
   }
 
@@ -433,44 +452,50 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   async restoreVersion(version: BrandingVersionEntry) {
-    const restored = await this.runMutation(`restore-${version.id}`, 'restore version', () =>
+    const restored = await this.runMutation(`restore-${version.id}`, 'branding-failed-restore-version', () =>
       this.brandingService.restore(version.id, this.activeVersion, this.draftRevision)
     );
     if (restored) {
       this.replaceState(restored);
       this.clearPreview();
-      this.message = `Version ${version.version} restored as the new active version`;
+      this.message = this.i18n.t('branding-version-restored', { version: version.version });
     }
   }
 
-  async uploadLogo(event: any) {
-    const file: File | undefined = event?.target?.files?.[0];
+  /** Shared file-input extraction for logo/favicon/face uploads. */
+  private selectedFile(event: Event): File | undefined {
+    const target = event?.target as HTMLInputElement | null;
+    return target?.files?.[0];
+  }
+
+  async uploadLogo(event: Event) {
+    const file = this.selectedFile(event);
     if (!file) {
       return;
     }
-    await this.runMutation('logo', 'upload logo', async () => {
+    await this.runMutation('logo', 'branding-failed-upload-logo', async () => {
       const formData = new FormData();
       formData.append('logo', file);
       await this.brandingService.uploadLogo(formData);
-      this.message = 'Logo uploaded';
+      this.message = this.i18n.t('branding-logo-uploaded');
     });
   }
 
-  async uploadFavicon(event: any) {
-    const file: File | undefined = event?.target?.files?.[0];
+  async uploadFavicon(event: Event) {
+    const file = this.selectedFile(event);
     if (!file) {
       return;
     }
-    await this.runMutation('favicon', 'upload favicon', async () => {
+    await this.runMutation('favicon', 'branding-failed-upload-favicon', async () => {
       const formData = new FormData();
       formData.append('favicon', file);
       await this.brandingService.uploadFavicon(formData);
-      this.message = 'Favicon uploaded';
+      this.message = this.i18n.t('branding-favicon-uploaded');
     });
   }
 
-  updateVariable(key: string, event: any) {
-    const value = event.target.value;
+  updateVariable(key: string, event: Event) {
+    const value = (event.target as HTMLInputElement | null)?.value;
     if (value) {
       this.draftConfig[key] = value;
     } else {
@@ -483,15 +508,17 @@ export class BrandingAdminComponent extends BaseComponent {
       return;
     }
     this.draftConfig = this.filterDraftVariables(this.state.draft.variables);
-    this.message = 'Draft reset to saved values';
+    this.message = this.i18n.t('branding-draft-reset');
   }
 
   typefaceSummary(typeface: BrandingAdminState['draft']['typeface']): string {
     if (typeface.mode !== 'custom') {
-      return 'Default Typography';
+      return this.i18n.t('branding-summary-default');
     }
     const present = BRANDING_TYPEFACE_SLOTS.filter(slot => typeface.faces?.[slot]);
-    return present.length > 0 ? `Custom (${present.join(', ')})` : 'Custom (incomplete)';
+    return present.length > 0
+      ? this.i18n.t('branding-summary-custom', { faces: present.map(slot => this.i18n.t(`branding-face-${slot}-label`)).join(', ') })
+      : this.i18n.t('branding-summary-incomplete');
   }
 
   // Expose readiness to template

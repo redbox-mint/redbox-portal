@@ -431,6 +431,48 @@ describe('BrandingService lifecycle', function () {
     disk.objects.delete(key);
     const missing = adminStateOf(await service.getAdminState('default'));
     expect(missing.healthWarnings[0].code).to.equal('face-unavailable');
+    const changedDraft = adminStateOf(
+      await service.useDefaultTypography({
+        branding: 'default',
+        expectedDraftRevision: missing.draft.revision,
+      })
+    );
+    expect(changedDraft.healthWarnings).to.deep.equal(missing.healthWarnings);
+  });
+
+  it('includes health warnings when storage becomes unavailable after publish or restore validation', async function () {
+    await service.uploadTypefaceFace({
+      branding: 'default',
+      slot: 'regular',
+      bytes: buildWoff2(),
+      expectedDraftRevision: 0,
+    });
+    const stored = new Map(disk.objects);
+    const getBytes = disk.getBytes.bind(disk);
+    disk.getBytes = async (key: string) => {
+      const bytes = await getBytes(key);
+      disk.objects.delete(key);
+      return bytes;
+    };
+    const published = await service.publish(
+      'default',
+      'portal',
+      { id: 'u1' },
+      {
+        expectedVersion: 0,
+        expectedDraftRevision: 1,
+      }
+    );
+    const state = adminStateOf(published.state as Record<string, unknown>);
+    expect(state.healthWarnings[0].code).to.equal('face-unavailable');
+    disk.objects = stored;
+    const restored = await service.restore({
+      branding: 'default',
+      versionId: state.versions[0].id,
+      expectedVersion: state.active.version,
+      expectedDraftRevision: state.draft.revision,
+    });
+    expect(adminStateOf(restored.state as Record<string, unknown>).healthWarnings[0].code).to.equal('face-unavailable');
   });
 
   it('fails publish on integrity errors without mutating active state', async function () {

@@ -15,29 +15,8 @@ import {
   type BrandingTypefaceState,
 } from '../model/BrandingTypeface';
 import { inspectWoff2Buffer, Woff2InspectError } from './BrandingWoff2Inspector';
-
-declare const StorageManagerService: {
-  primaryDisk(): {
-    exists(key: string): Promise<boolean>;
-    getBytes(key: string): Promise<Uint8Array>;
-    getMetaData(
-      key: string
-    ): Promise<{ contentType?: string; contentLength: number; etag: string; lastModified: Date }>;
-    put(key: string, contents: Uint8Array, options?: Record<string, unknown>): Promise<void>;
-    delete(key: string): Promise<void>;
-    listAll(
-      prefix?: string,
-      options?: { recursive?: boolean; paginationToken?: string }
-    ): Promise<{ paginationToken?: string; objects: Iterable<unknown> }>;
-  };
-};
-declare const BrandingConfig: {
-  find(criteria: unknown): Promise<Array<Record<string, unknown>>>;
-  findOne(criteria: unknown): Promise<Record<string, unknown> | null>;
-};
-declare const BrandingConfigHistory: {
-  find(criteria: unknown): Promise<Array<Record<string, unknown>>>;
-};
+import type { BrandingConfigAttributes } from '../waterline-models/BrandingConfig';
+import type { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
 
 export type BrandingTypefaceErrorCode =
   | 'typeface-invalid-slot'
@@ -269,6 +248,18 @@ export namespace Services {
       };
     }
 
+    /** Lightweight existence probe for advisory health checks (no byte reads, no hashing). */
+    async faceExists(brandingId: string, sha256: string): Promise<boolean> {
+      if (!SHA256_RE.test(sha256)) {
+        return false;
+      }
+      try {
+        return await StorageManagerService.primaryDisk().exists(this.storageKey(brandingId, sha256));
+      } catch {
+        return false;
+      }
+    }
+
     /** Read and hash-verify one stored face. Never substitutes another font. */
     async readFace(brandingId: string, sha256: string): Promise<Buffer> {
       if (!SHA256_RE.test(sha256)) {
@@ -311,13 +302,13 @@ export namespace Services {
           referenced.set(key, { brandingId, sha256: face.sha256 });
         }
       };
-      const brands = (await BrandingConfig.find({})) as Array<Record<string, unknown>>;
+      const brands = (await BrandingConfig.find({})) as BrandingConfigAttributes[];
       for (const brand of brands) {
         const brandingId = String(brand.id);
         addState(brandingId, brand.typeface);
         addState(brandingId, brand.draftTypeface);
       }
-      const histories = (await BrandingConfigHistory.find({})) as Array<Record<string, unknown>>;
+      const histories = (await BrandingConfigHistory.find({})) as BrandingConfigHistoryAttributes[];
       for (const history of histories) {
         const branding = history.branding;
         const brandingId = String(
@@ -332,7 +323,7 @@ export namespace Services {
 
     /** Fresh per-key reference check used immediately before each deletion (scan/delete race). */
     async isKeyReferenced(brandingId: string, sha256: string): Promise<boolean> {
-      const brand = (await BrandingConfig.findOne({ id: brandingId })) as Record<string, unknown> | null;
+      const brand = await BrandingConfig.findOne({ id: brandingId });
       if (brand) {
         for (const source of [brand.typeface, brand.draftTypeface]) {
           if (orderedTypefaceFaces(normalizeTypefaceState(source)).some(face => face.sha256 === sha256)) {
@@ -340,7 +331,9 @@ export namespace Services {
           }
         }
       }
-      const histories = (await BrandingConfigHistory.find({ branding: brandingId })) as Array<Record<string, unknown>>;
+      const histories = (await BrandingConfigHistory.find({
+        branding: brandingId,
+      })) as BrandingConfigHistoryAttributes[];
       for (const history of histories) {
         if (orderedTypefaceFaces(normalizeTypefaceState(history.typeface)).some(face => face.sha256 === sha256)) {
           return true;

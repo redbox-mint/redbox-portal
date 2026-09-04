@@ -17,7 +17,7 @@
  * and never touches glyph outlines, so the fontkit composite-glyph crash
  * class cannot trigger. Best-effort family metadata comes only from the
  * optional Extended Metadata XML block (decompressed with Node's built-in
- * zlib, capped at 1 MiB by metaOrigLength), otherwise fields stay undefined.
+ * zlib, capped at 1 MiB of actual decompressed output via maxOutputLength), otherwise fields stay undefined.
  *
  * See docs/adr/0002-woff2-internal-inspector.md for the full decision.
  */
@@ -79,6 +79,21 @@ const KNOWN_TABLE_TAGS: readonly string[] = [
   'feat',
   'fmtx',
   'fvar',
+  'gvar',
+  'hsty',
+  'just',
+  'lcar',
+  'mort',
+  'morx',
+  'opbd',
+  'prop',
+  'trak',
+  'Zapf',
+  'Silf',
+  'Glat',
+  'Gloc',
+  'Feat',
+  'Sill',
 ];
 
 export type Woff2InspectErrorCode =
@@ -176,17 +191,21 @@ function tagToString(tagValue: number): string {
 function extractMetadataFamily(metaBytes: Buffer): BrandingTypefaceInspection {
   const inspection: BrandingTypefaceInspection = {};
   try {
-    const xml = metaBytes.toString('utf8');
+    // Metadata is advisory: bound both total scanning and individual tags so
+    // malformed repeated tag prefixes cannot cause quadratic backtracking.
+    const xml = metaBytes.subarray(0, 8 * 1024).toString('utf8');
     // WOFF2 metadata uses <metadata><description>/<vendor> and <name> entries;
     // accept common shapes without a full XML parser (no new dependency).
     const familyMatch =
-      /<name[^>]*\b(id|nameID)\s*=\s*["']1["'][^>]*>([^<]{1,256})<\/name>/i.exec(xml) ??
-      /<family[^>]*>([^<]{1,256})<\/family>/i.exec(xml);
+      /<name[^<>]{0,512}\b(id|nameID)\s*=\s*["']1["'][^<>]{0,512}>([^<]{1,256})<\/name>/i.exec(xml) ??
+      /<family[^<>]{0,512}>([^<]{1,256})<\/family>/i.exec(xml);
     const family = (familyMatch?.[familyMatch.length - 1] ?? '').trim();
     if (family) {
       inspection.family = family.slice(0, 256);
     }
-    const subfamilyMatch = /<name[^>]*\b(id|nameID)\s*=\s*["']2["'][^>]*>([^<]{1,256})<\/name>/i.exec(xml);
+    const subfamilyMatch = /<name[^<>]{0,512}\b(id|nameID)\s*=\s*["']2["'][^<>]{0,512}>([^<]{1,256})<\/name>/i.exec(
+      xml
+    );
     const subfamily = (subfamilyMatch?.[subfamilyMatch.length - 1] ?? '').trim();
     if (subfamily) {
       inspection.subfamily = subfamily.slice(0, 256);
@@ -260,26 +279,24 @@ export function inspectWoff2Buffer(input: Buffer): Woff2InspectResult {
     }
     // origLength always present.
     readUIntBase128(buf, cursor);
-    // transformLength present iff non-null transform:
-    // null = v0 generally, v3 for glyf/loca (spec 4.1).
+    // Transform versions per spec 4.1: glyf/loca use 0 (transformed) or 3
+    // (null); hmtx uses 0 (null) or 1 (transformed); every other table must
+    // use the null transform (0). transformLength follows iff transformed.
     const isGlyfOrLoca = tag === 'glyf' || tag === 'loca';
     const isTransformed = isGlyfOrLoca ? transformVersion !== 3 : transformVersion !== 0;
-    if (isTransformed) {
-      // Unknown transform versions fail closed: only v0 is defined for
-      // glyf/loca/hmtx-style transforms in practice; anything else cannot
-      // be decoded by this inspector's callers.
-      if (isGlyfOrLoca ? transformVersion !== 0 : transformVersion > 0) {
-        if (!isGlyfOrLoca || transformVersion !== 0) {
-          // Non-glyf/loca tables must use null transform; glyf/loca must
-          // use v0 (transformed) or v3 (null).
-          if (!(isGlyfOrLoca && (transformVersion === 0 || transformVersion === 3))) {
-            throw new Woff2InspectError('BAD_DIRECTORY', `Unsupported transform for table ${tag}`);
-          }
-        }
+    if (isGlyfOrLoca) {
+      if (transformVersion !== 0 && transformVersion !== 3) {
+        throw new Woff2InspectError('BAD_DIRECTORY', `Unsupported transform for table ${tag}`);
       }
-      readUIntBase128(buf, cursor);
-    } else if (isGlyfOrLoca && transformVersion !== 3 && transformVersion !== 0) {
+    } else if (tag === 'hmtx') {
+      if (transformVersion !== 0 && transformVersion !== 1) {
+        throw new Woff2InspectError('BAD_DIRECTORY', `Unsupported transform for table ${tag}`);
+      }
+    } else if (transformVersion !== 0) {
       throw new Woff2InspectError('BAD_DIRECTORY', `Unsupported transform for table ${tag}`);
+    }
+    if (isTransformed) {
+      readUIntBase128(buf, cursor);
     }
     tableTags.push(tag);
   }
@@ -318,7 +335,7 @@ export function inspectWoff2Buffer(input: Buffer): Woff2InspectResult {
     if (metaOrigLength > 0 && metaOrigLength <= MAX_METADATA_ORIG_BYTES) {
       try {
         const compressed = buf.subarray(metaOffset, metaOffset + metaLength);
-        const decompressed = zlib.brotliDecompressSync(compressed);
+        const decompressed = zlib.brotliDecompressSync(compressed, { maxOutputLength: MAX_METADATA_ORIG_BYTES });
         inspection = extractMetadataFamily(decompressed.subarray(0, MAX_METADATA_ORIG_BYTES));
       } catch {
         // Metadata is advisory; a corrupt metadata block does not invalidate

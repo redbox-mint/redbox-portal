@@ -70,14 +70,14 @@
             </div>
             <div class="row g-3">
               <div class="col-lg-3 col-md-6" *ngFor="let card of typefaceSlots">
-                <div class="card h-100" [attr.aria-label]="card.label">
+                <div class="card h-100" [attr.aria-label]="card.label | i18next">
                   <div class="card-body">
                     <h6 class="card-title">
-                      {{ card.label }}
+                      {{ card.label | i18next }}
                       <span class="badge bg-danger ms-1" *ngIf="card.required">{{ 'branding-required' | i18next }}</span>
                       <span class="badge bg-secondary ms-1" *ngIf="!card.required">{{ 'branding-optional' | i18next }}</span>
                     </h6>
-                    <p class="card-text small text-muted">{{ card.hint }}</p>
+                    <p class="card-text small text-muted">{{ card.hint | i18next }}</p>
                     <ng-container *ngIf="faceFor(card.slot) as face; else emptySlot">
                       <dl class="small mb-2">
                         <dt>{{ 'branding-face-file' | i18next }}</dt>
@@ -95,7 +95,7 @@
                       <div class="d-flex flex-wrap gap-2">
                         <label class="btn btn-sm btn-outline-primary mb-0" [class.disabled]="isBusy('face-' + card.slot)">
                           {{ 'branding-face-replace' | i18next }}
-                          <input type="file" class="d-none" accept=".woff2,font/woff2" (change)="uploadFace(card.slot, $event)" [disabled]="isBusy('face-' + card.slot)" [attr.aria-label]="card.label" />
+                          <input type="file" class="d-none" accept=".woff2,font/woff2" (change)="uploadFace(card.slot, $event)" [disabled]="isBusy('face-' + card.slot)" [attr.aria-label]="card.label | i18next" />
                         </label>
                         <button class="btn btn-sm btn-outline-danger" (click)="removeFace(card.slot)" [disabled]="isBusy('face-' + card.slot)">
                           <span *ngIf="isBusy('face-' + card.slot)" class="spinner-border spinner-border-sm me-1" role="status"></span>
@@ -107,7 +107,7 @@
                       <p class="text-muted small">{{ 'branding-face-empty' | i18next }}</p>
                       <label class="btn btn-sm btn-outline-primary mb-0" [class.disabled]="isBusy('face-' + card.slot)">
                         {{ 'branding-face-upload' | i18next }}
-                        <input type="file" class="d-none" accept=".woff2,font/woff2" (change)="uploadFace(card.slot, $event)" [disabled]="isBusy('face-' + card.slot)" [attr.aria-label]="card.label" />
+                        <input type="file" class="d-none" accept=".woff2,font/woff2" (change)="uploadFace(card.slot, $event)" [disabled]="isBusy('face-' + card.slot)" [attr.aria-label]="card.label | i18next" />
                       </label>
                       <span *ngIf="isBusy('face-' + card.slot)" class="spinner-border spinner-border-sm ms-2" role="status"></span>
                     </ng-template>

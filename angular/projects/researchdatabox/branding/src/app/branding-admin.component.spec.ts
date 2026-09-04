@@ -157,7 +157,7 @@ describe('BrandingAdminComponent typography experience', () => {
     const file = new File(['font'], 'regular.woff2', { type: 'font/woff2' });
     let resolveUpload!: (state: BrandingAdminState) => void;
     serviceStub.uploadFace = () => new Promise<BrandingAdminState>(resolve => { resolveUpload = resolve; });
-    const pending = component.uploadFace('regular', { target: { files: [file], value: 'x' } });
+    const pending = component.uploadFace('regular', { target: { files: [file], value: 'x' } } as unknown as Event);
     expect(component.isBusy('face-regular')).toBe(true);
     resolveUpload(adminState());
     await pending;
@@ -269,14 +269,14 @@ describe('BrandingAdminComponent typography experience', () => {
     await initWith(adminState());
     component.draftConfig['primary'] = '#ffffff';
     await component.saveDraft();
-    expect(component.message).toBe('Draft saved');
+    expect(component.message).toBe('branding-draft-saved');
     const file = new File(['img'], 'logo.png', { type: 'image/png' });
-    await component.uploadLogo({ target: { files: [file] } });
-    expect(component.message).toBe('Logo uploaded');
-    await component.uploadFavicon({ target: { files: [file] } });
-    expect(component.message).toBe('Favicon uploaded');
+    await component.uploadLogo({ target: { files: [file] } } as unknown as Event);
+    expect(component.message).toBe('branding-logo-uploaded');
+    await component.uploadFavicon({ target: { files: [file] } } as unknown as Event);
+    expect(component.message).toBe('branding-favicon-uploaded');
     await component.publish();
-    expect(component.message).toBe('Branding published');
+    expect(component.message).toBe('branding-published');
   });
 
   it('clears a displayed preview on every draft mutation', async () => {
@@ -284,7 +284,7 @@ describe('BrandingAdminComponent typography experience', () => {
     await component.createPreview();
     expect(component.previewCssUrl).toContain('/preview/tok.css');
     const font = new File(['font'], 'regular.woff2', { type: 'font/woff2' });
-    await component.uploadFace('regular', { target: { files: [font], value: 'x' } });
+    await component.uploadFace('regular', { target: { files: [font], value: 'x' } } as unknown as Event);
     expect(component.previewCssUrl).toBeUndefined();
     await component.createPreview();
     expect(component.previewCssUrl).toContain('/preview/tok.css');

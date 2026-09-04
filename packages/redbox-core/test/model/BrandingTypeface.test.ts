@@ -93,6 +93,7 @@ describe('BrandingTypeface contracts', function () {
 
   it('falls back to defaults for invalid operator config with a logged warning', function () {
     const warnings: string[] = [];
+    const prevSails = (globalThis as { sails?: unknown }).sails;
     (globalThis as { sails?: any }).sails = {
       config: { branding: { typefaceFaceMaxBytes: -5 } },
       log: { warn: (msg: string) => warnings.push(msg) },
@@ -103,7 +104,11 @@ describe('BrandingTypeface contracts', function () {
       (globalThis as { sails?: any }).sails.config.branding.typefaceFaceMaxBytes = 123;
       expect(getBrandingPositiveInt('typefaceFaceMaxBytes', 10)).to.equal(123);
     } finally {
-      delete (globalThis as { sails?: any }).sails;
+      if (prevSails === undefined) {
+        delete (globalThis as { sails?: unknown }).sails;
+      } else {
+        (globalThis as { sails?: unknown }).sails = prevSails;
+      }
     }
   });
 
