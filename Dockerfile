@@ -27,29 +27,29 @@ FROM base AS builder
 
 COPY . .
 
-RUN npm ci \
- && (cd packages/agenda-sqs-backend && npm ci) \
- && (cd packages/sails-ng-common && npm ci) \
- && (cd packages/raido && npm ci) \
- && (cd packages/rva-registry && npm ci) \
- && (cd packages/redbox-core && npm install --no-save) \
- && (cd packages/sails-hook-redbox-storage-mongo && npm ci)
+RUN npm ci --no-audit \
+ && (cd packages/agenda-sqs-backend && npm ci --no-audit) \
+ && (cd packages/sails-ng-common && npm ci --no-audit) \
+ && (cd packages/raido && npm ci --no-audit) \
+ && (cd packages/rva-registry && npm ci --no-audit) \
+ && (cd packages/redbox-core && npm install --no-save --no-audit) \
+ && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)
 
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core && npx tsc -p tsconfig.json
-RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps && npm run build
+RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
 # Build its dist so the optional `test` image (below) can load it. It is pruned
 # from node_modules for the pristine runtime image.
-RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts && npm run build
+RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit && npm run build
 # Build the optional PDF hook from this checkout. The pdfgen runtime target
 # installs this local package, so it does not depend on a separately released
 # portal-core-compatible npm version.
-RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps && npm run compile
+RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit && npm run compile
 
 RUN npx tsc --project tsconfig.json
 
@@ -78,8 +78,7 @@ RUN cp -a node_modules /tmp/test-node_modules \
       fi; \
     done
 
-RUN npm prune --omit=dev \
- && npm cache clean --force \
+RUN npm prune --omit=dev --no-audit \
  && rm -rf \
     node_modules/redbox-hook-dev \
     packages/redbox-core/node_modules \
@@ -183,7 +182,7 @@ USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
-RUN npm install --omit=dev --ignore-scripts --save --package-lock=true \
+RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --no-audit \
     ./packages/sails-hook-redbox-pdfgen
 USER root
 RUN apt-get purge -y --auto-remove git \

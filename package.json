@@ -231,7 +231,6 @@
     "oxlint-tsgolint": "7.0.2001",
     "pino-test": "2.0.0",
     "prettier": "3.8.3",
-    "@researchdatabox/sails-hook-redbox-pdfgen": "file:packages/sails-hook-redbox-pdfgen",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
     "redoc": "2.5.3",
     "sass": "1.98.0",
