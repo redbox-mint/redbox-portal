@@ -144,8 +144,10 @@ export const ServiceExports = {
 |---|---|
 | `ConfigService` | Runtime configuration access |
 | `AppConfigService` | Application-level configuration |
-| `BrandingService` | Multi-tenant branding management |
+| `BrandingService` | Multi-tenant branding lifecycle coordinator (colour/typeface draft, preview, atomic publish/restore, version retention, Admin-state responses) |
 | `BrandingLogoService` | Brand logo handling |
+| `BrandingTypefaceService` | Brand typeface validation and storage boundary (WOFF2 structural inspection, variable rejection, SHA-256 content addressing, integrity checks, orphan reconciliation) |
+| `BrandingThemeCssService` | Branding colour validation plus generated theme CSS, including fixed `@font-face` declarations and the internal brand font-family variable |
 
 ### Template & I18n Services
 
@@ -294,6 +296,12 @@ The loader generates a shim pointing to your hook:
 // api/services/RecordsService.js (generated)
 module.exports = require('redbox-hook-myproject').ServiceExports['RecordsService'];
 ```
+
+### Branding extension seams
+
+- `BrandingTypefaceService` is the font validation and storage boundary. Hook developers must not reimplement WOFF2 parsing or storage-key construction; call `inspectAndStoreFace`, `readFace`, `assertTypefaceAvailable`, or `reconcileAssets`.
+- `BrandingService` owns the colour/typeface draft, preview, publication, restoration, version retention, and cache refresh. Controllers stay thin transport adapters: resolve the authenticated brand/actor, parse the request, call the service, and map typed errors.
+- `BrandingThemeCssService.generate` never accepts a user-provided CSS family string; hook CSS still loads after the generated theme stylesheet and keeps override precedence.
 
 ## Service Patterns
 

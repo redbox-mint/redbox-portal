@@ -21,6 +21,8 @@ export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDes
   @Input() baseCssHref?: string | null;
   @Input() cssHref?: string | null;
   @Input() logoSrc?: string | null;
+  /** Unsaved local sample text from the admin component; never sent to the server. */
+  @Input() sampleText?: string | null;
 
   private baseLinkEl?: HTMLLinkElement;
   private previewLinkEl?: HTMLLinkElement;

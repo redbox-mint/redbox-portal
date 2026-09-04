@@ -5549,6 +5549,41 @@
     "description": "Label for the header text colour setting in the branding configuration admin UI",
     "contentFormat": "plain"
   },
+  "branding-health-warning-face": {
+    "category": "branding",
+    "description": "Active typeface health warning for one unavailable font face",
+    "contentFormat": "plain"
+  },
+  "branding-health-warnings-title": {
+    "category": "branding",
+    "description": "Active typeface health warnings section heading",
+    "contentFormat": "plain"
+  },
+  "branding-history-active": {
+    "category": "branding",
+    "description": "Active version marker",
+    "contentFormat": "plain"
+  },
+  "branding-history-empty": {
+    "category": "branding",
+    "description": "Empty version history notice",
+    "contentFormat": "plain"
+  },
+  "branding-history-preview": {
+    "category": "branding",
+    "description": "Preview retained version action",
+    "contentFormat": "plain"
+  },
+  "branding-history-restore": {
+    "category": "branding",
+    "description": "Restore retained version action",
+    "contentFormat": "plain"
+  },
+  "branding-history-title": {
+    "category": "branding",
+    "description": "Version history section heading",
+    "contentFormat": "plain"
+  },
   "branding-header-text-color-help": {
     "category": "branding",
     "description": "Help text for header text color in the branding configuration admin UI",
@@ -5607,6 +5642,11 @@
   "branding-menu-name": {
     "category": "branding",
     "description": "Section heading for menu styling in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-optional": {
+    "category": "branding",
+    "description": "Optional slot marker",
     "contentFormat": "plain"
   },
   "branding-menu-help": {
@@ -5779,6 +5819,16 @@
     "description": "Section heading for content styling in the branding configuration admin UI",
     "contentFormat": "plain"
   },
+  "branding-conflict-message": {
+    "category": "branding",
+    "description": "Shared draft conflict notice",
+    "contentFormat": "plain"
+  },
+  "branding-conflict-reload": {
+    "category": "branding",
+    "description": "Reload action after a shared draft conflict",
+    "contentFormat": "plain"
+  },
   "branding-content-help": {
     "category": "branding",
     "description": "Help text for content in the branding configuration admin UI",
@@ -5847,6 +5897,21 @@
   "branding-panels-name": {
     "category": "branding",
     "description": "Section heading for panel styling in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-preview-sample-help": {
+    "category": "branding",
+    "description": "Preview sample text help",
+    "contentFormat": "plain"
+  },
+  "branding-preview-sample-label": {
+    "category": "branding",
+    "description": "Preview sample text label",
+    "contentFormat": "plain"
+  },
+  "branding-preview-version": {
+    "category": "branding",
+    "description": "Historical preview marker",
     "contentFormat": "plain"
   },
   "branding-panels-help": {
@@ -5949,6 +6014,36 @@
     "description": "Label for the success state colour setting in the branding configuration admin UI",
     "contentFormat": "plain"
   },
+  "branding-typography-help": {
+    "category": "branding",
+    "description": "Typography section help",
+    "contentFormat": "plain"
+  },
+  "branding-typography-incomplete": {
+    "category": "branding",
+    "description": "Incomplete custom typeface notice",
+    "contentFormat": "plain"
+  },
+  "branding-typography-state-custom": {
+    "category": "branding",
+    "description": "Custom typeface state notice",
+    "contentFormat": "plain"
+  },
+  "branding-typography-state-default": {
+    "category": "branding",
+    "description": "Default typography state notice",
+    "contentFormat": "plain"
+  },
+  "branding-typography-title": {
+    "category": "branding",
+    "description": "Typography section heading",
+    "contentFormat": "plain"
+  },
+  "branding-use-default-typography": {
+    "category": "branding",
+    "description": "Use Default Typography action",
+    "contentFormat": "plain"
+  },
   "branding-success-help": {
     "category": "branding",
     "description": "Help text for success in the branding configuration admin UI",
@@ -5997,6 +6092,41 @@
   "branding-dark-label": {
     "category": "branding",
     "description": "Label for the dark theme colour setting in the branding configuration admin UI",
+    "contentFormat": "plain"
+  },
+  "branding-face-empty": {
+    "category": "branding",
+    "description": "Empty typeface slot notice",
+    "contentFormat": "plain"
+  },
+  "branding-face-file": {
+    "category": "branding",
+    "description": "Typeface face filename label",
+    "contentFormat": "plain"
+  },
+  "branding-face-metadata": {
+    "category": "branding",
+    "description": "Typeface embedded metadata label",
+    "contentFormat": "plain"
+  },
+  "branding-face-remove": {
+    "category": "branding",
+    "description": "Remove typeface face action",
+    "contentFormat": "plain"
+  },
+  "branding-face-replace": {
+    "category": "branding",
+    "description": "Replace typeface face action",
+    "contentFormat": "plain"
+  },
+  "branding-face-size": {
+    "category": "branding",
+    "description": "Typeface face size label",
+    "contentFormat": "plain"
+  },
+  "branding-face-upload": {
+    "category": "branding",
+    "description": "Upload typeface face action",
     "contentFormat": "plain"
   },
   "branding-dark-help": {
@@ -6049,9 +6179,34 @@
     "description": "Progress text shown while branding changes are being published",
     "contentFormat": "plain"
   },
+  "branding-required": {
+    "category": "branding",
+    "description": "Required slot marker",
+    "contentFormat": "plain"
+  },
   "branding-reset-draft-button": {
     "category": "branding",
     "description": "Button label to reset branding draft changes",
+    "contentFormat": "plain"
+  },
+  "branding-restore-confirm": {
+    "category": "branding",
+    "description": "Restore confirmation prompt",
+    "contentFormat": "plain"
+  },
+  "branding-restore-confirm-no": {
+    "category": "branding",
+    "description": "Cancel restore action",
+    "contentFormat": "plain"
+  },
+  "branding-restore-confirm-yes": {
+    "category": "branding",
+    "description": "Confirm restore action",
+    "contentFormat": "plain"
+  },
+  "branding-revert-typeface": {
+    "category": "branding",
+    "description": "Revert typeface draft action",
     "contentFormat": "plain"
   },
   "@rich-text-editor-source-toggle-rich-text": {

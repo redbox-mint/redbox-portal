@@ -1,14 +1,24 @@
 import { Injectable, Inject } from '@angular/core';
-import { HttpClient, HttpContext } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientService, ConfigService, UtilityService, RB_HTTP_INTERCEPTOR_AUTH_CSRF, RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE } from '@researchdatabox/portal-ng-common';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Observable } from 'rxjs';
+import {
+  BrandingAdminState,
+  BrandingMutationError,
+  BrandingPreview,
+  BrandingTypefaceSlot,
+  BrandingVersionEntry,
+} from './branding-admin.model';
 
 /**
  * Branding Admin Service
- * 
- * Handles all AJAX calls for branding configuration management.
- * Extends HttpClientService to get proper initialization and CSRF handling.
+ *
+ * Thin transport over the AJAX branding lifecycle (design.md section 10).
+ * Every method sends optimistic-concurrency counters taken from the caller's
+ * canonical {@link BrandingAdminState} and returns the complete server state
+ * for wholesale replacement. Draft preview sample text stays in the component
+ * and never enters this service. The deprecated rollback route is never called.
  */
 @Injectable()
 export class BrandingAdminService extends HttpClientService {
@@ -30,66 +40,139 @@ export class BrandingAdminService extends HttpClientService {
   }
 
   public override async waitForInit(): Promise<any> {
-    await super.waitForInit(); 
+    await super.waitForInit();
     this.enableCsrfHeader();
     return this;
   }
 
-  /**
-   * Load current branding configuration
-   */
-  public async loadConfig(): Promise<any> {
-    const url = `${this.brandingAndPortalUrl}/app/branding/config`;
-    const result$ = this.http.get(url, { ...this.reqOptsJsonBodyOnly, context: this.httpContext });
-    return await firstValueFrom(result$);
+  private get base(): string {
+    return `${this.brandingAndPortalUrl}/app/branding`;
   }
 
-  /**
-   * Save draft branding configuration
-   */
-  public async saveDraft(config: any): Promise<any> {
-    const url = `${this.brandingAndPortalUrl}/app/branding/draft`;
-    const result$ = this.http.post(url, { variables: config }, { ...this.reqOptsJsonBodyOnly, context: this.httpContext });
-    return await firstValueFrom(result$);
-  }
-
-  /**
-   * Create preview of branding configuration
-   */
-  public async createPreview(): Promise<any> {
-    const url = `${this.brandingAndPortalUrl}/app/branding/preview`;
-    const result$ = this.http.post(url, {}, { ...this.reqOptsJsonBodyOnly, context: this.httpContext });
-    return await firstValueFrom(result$);
-  }
-
-  /**
-   * Publish branding configuration using the expected version only.
-   */
-  public async publish(expectedVersion?: number): Promise<any> {
-    const url = `${this.brandingAndPortalUrl}/app/branding/publish`;
-    const body: any = {};
-    if (typeof expectedVersion === 'number') {
-      body.expectedVersion = expectedVersion;
+  private normaliseError(error: unknown): never {
+    if (error instanceof HttpErrorResponse) {
+      const body = error.error as { message?: string } | undefined;
+      const message = typeof body?.message === 'string' && body.message ? body.message : error.message;
+      if (error.status === 409) {
+        throw { kind: 'conflict', status: 409, message } satisfies BrandingMutationError;
+      }
+      if (error.status === 413) {
+        throw { kind: 'limit', status: 413, message } satisfies BrandingMutationError;
+      }
     }
-    const result$ = this.http.post(url, body, { ...this.reqOptsJsonBodyOnly, context: this.httpContext });
+    throw error;
+  }
+
+  private async postState<T>(url: string, body: unknown): Promise<T> {
+    try {
+      const result$ = this.http.post(url, body, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }) as unknown as Observable<T>;
+      return await firstValueFrom(result$);
+    } catch (error) {
+      this.normaliseError(error);
+    }
+  }
+
+  /** Load the canonical Admin state. */
+  public async loadConfig(): Promise<BrandingAdminState> {
+    const result$ = this.http.get(`${this.base}/config`, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }) as unknown as Observable<BrandingAdminState>;
     return await firstValueFrom(result$);
+  }
+
+  /** Replace the validated colour draft; counters come from canonical state. */
+  public async saveColourDraft(variables: Record<string, string>, expectedDraftRevision: number): Promise<BrandingAdminState> {
+    return this.postState<BrandingAdminState>(`${this.base}/draft`, { variables, expectedDraftRevision });
+  }
+
+  /**
+   * Save draft branding configuration (legacy shape kept for compatibility).
+   * Prefer {@link saveColourDraft} with an explicit revision for new code.
+   */
+  public async saveDraft(config: any, expectedDraftRevision?: number): Promise<BrandingAdminState> {
+    const variables = config?.variables ?? config ?? {};
+    return this.postState<BrandingAdminState>(`${this.base}/draft`, { variables, expectedDraftRevision });
+  }
+
+  /** Upload or replace one draft face (multipart `face` plus revision field). */
+  public async uploadFace(slot: BrandingTypefaceSlot, file: File | Blob, filename: string, expectedDraftRevision: number): Promise<BrandingAdminState> {
+    const formData = new FormData();
+    formData.append('face', file, filename);
+    formData.append('expectedDraftRevision', String(expectedDraftRevision));
+    const fileUploadContext = new HttpContext();
+    fileUploadContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
+    fileUploadContext.set(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE, true);
+    try {
+      const result$ = this.http.put(`${this.base}/draft/typeface/faces/${slot}`, formData, { context: fileUploadContext }) as unknown as Observable<BrandingAdminState>;
+      return await firstValueFrom(result$);
+    } catch (error) {
+      this.normaliseError(error);
+    }
+  }
+
+  /** Remove one draft face. */
+  public async removeFace(slot: BrandingTypefaceSlot, expectedDraftRevision: number): Promise<BrandingAdminState> {
+    try {
+      const result$ = this.http.delete(`${this.base}/draft/typeface/faces/${slot}`, {
+        ...this.reqOptsJsonBodyOnly,
+        context: this.httpContext,
+        body: { expectedDraftRevision },
+      }) as unknown as Observable<BrandingAdminState>;
+      return await firstValueFrom(result$);
+    } catch (error) {
+      this.normaliseError(error);
+    }
+  }
+
+  /** Set the draft typeface to Default Typography. */
+  public async useDefaultTypography(expectedDraftRevision: number): Promise<BrandingAdminState> {
+    return this.postState<BrandingAdminState>(`${this.base}/draft/typeface/use-default`, { expectedDraftRevision });
+  }
+
+  /** Copy the active typeface into the draft only. */
+  public async revertTypefaceDraft(expectedDraftRevision: number): Promise<BrandingAdminState> {
+    return this.postState<BrandingAdminState>(`${this.base}/draft/typeface/revert`, { expectedDraftRevision });
+  }
+
+  /** Create a single-use CSS preview for the exact draft revision. */
+  public async createPreview(expectedDraftRevision?: number): Promise<BrandingPreview> {
+    return this.postState<BrandingPreview>(`${this.base}/preview`, { expectedDraftRevision });
+  }
+
+  /** List newest retained versions. */
+  public async listVersions(): Promise<BrandingVersionEntry[]> {
+    const result$ = this.http.get(`${this.base}/versions`, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }) as unknown as Observable<BrandingVersionEntry[]>;
+    return await firstValueFrom(result$);
+  }
+
+  /** Preview a retained version without mutating the draft. */
+  public async previewVersion(versionId: string): Promise<BrandingPreview> {
+    return this.postState<BrandingPreview>(`${this.base}/versions/${versionId}/preview`, {});
+  }
+
+  /** Publish the draft using both expected counters. */
+  public async publish(expectedVersion: number, expectedDraftRevision: number): Promise<BrandingAdminState> {
+    return this.postState<BrandingAdminState>(`${this.base}/publish`, { expectedVersion, expectedDraftRevision });
+  }
+
+  /** Immediately restore a retained version as a new version. */
+  public async restore(versionId: string, expectedVersion: number, expectedDraftRevision: number): Promise<BrandingAdminState> {
+    return this.postState<BrandingAdminState>(`${this.base}/restore/${versionId}`, { expectedVersion, expectedDraftRevision });
   }
 
   /**
    * Upload logo file
    */
   public async uploadLogo(formData: FormData): Promise<any> {
-    const url = `${this.brandingAndPortalUrl}/app/branding/logo`;
-    
+    const url = `${this.base}/logo`;
+
     // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type
     const fileUploadContext = new HttpContext();
     fileUploadContext.set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, this.config.csrfToken);
     fileUploadContext.set(RB_HTTP_INTERCEPTOR_SKIP_JSON_CONTENT_TYPE, true);
-    
-    const uploadOptions = { 
+
+    const uploadOptions = {
       context: fileUploadContext
     };
-    
+
     const result$ = this.http.post(url, formData, uploadOptions);
     return await firstValueFrom(result$);
   }
@@ -98,7 +181,7 @@ export class BrandingAdminService extends HttpClientService {
    * Upload favicon file
    */
   public async uploadFavicon(formData: FormData): Promise<any> {
-    const url = `${this.brandingAndPortalUrl}/app/branding/favicon`;
+    const url = `${this.base}/favicon`;
 
     // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type
     const fileUploadContext = new HttpContext();

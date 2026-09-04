@@ -1,0 +1,23 @@
+meta {
+  name: Public font GET
+  type: http
+  seq: 38
+}
+
+get {
+  url: {{host}}/fonts/branding/default/{{rb_face_sha}}.woff2
+  auth: none
+}
+
+tests {
+  test("Status code is 200", function(){
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("Immutable font headers", function(){
+    var headers = res.getHeaders();
+    expect(headers['content-type']).to.contain('font/woff2');
+    expect(headers['cache-control']).to.contain('immutable');
+    expect(headers['x-content-type-options']).to.contain('nosniff');
+    expect(headers['etag']).to.equal('"' + bru.getVar('rb_face_sha') + '"');
+  });
+}

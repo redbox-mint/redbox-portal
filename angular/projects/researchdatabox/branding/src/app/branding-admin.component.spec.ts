@@ -1,184 +1,300 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
+import { By } from '@angular/platform-browser';
+import { Pipe, PipeTransform } from '@angular/core';
 import { BrandingAdminComponent } from './branding-admin.component';
 import { BrandingAdminService } from './branding-admin.service';
-// portal-ng-common public tokens (importing types only for reference if available at runtime)
-import { LoggerService, TranslationService, ConfigService, UtilityService } from '@researchdatabox/portal-ng-common';
-import { getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { BrandingAdminState, BrandingTypefaceFace, BrandingTypefaceSlot } from './branding-admin.model';
+import { LoggerService, TranslationService, ConfigService, UtilityService, I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { getStubConfigService } from '@researchdatabox/portal-ng-common';
 
-// Stubs mirroring those used in other specs (e.g., deleted-records)
-class LoggerStub { debug() {/*noop*/ } error() {/*noop*/ } }
-// Use existing helper stub factories for consistency
-const configStubInstance: any = getStubConfigService();
-const translationStubInstance: any = getStubTranslationService({});
-// Ensure config stub returns required fields for HttpClientService
-const testConfig = { baseUrl: 'http://test', branding: 'default', portal: 'rdmp', csrfToken: 'test-csrf' };
-configStubInstance.getConfig = async () => testConfig;
-configStubInstance.config = testConfig;
+@Pipe({ name: 'i18next', standalone: true })
+class I18NextPipeStub implements PipeTransform {
+  transform(key: string) { return key; }
+}
+
+class LoggerStub { debug() { /*noop*/ } error() { /*noop*/ } }
+class TranslationStub {
+  t(key: string) { return key; }
+  isInitializing() { return false; }
+  async waitForInit() { return this; }
+}
 class UtilityStub {
-  wait(ms: number) { return Promise.resolve(); }
   async waitForDependencies(deps: any[]) {
     for (const d of deps) { if (d && typeof d.waitForInit === 'function') { await d.waitForInit(); } }
   }
 }
+const configStubInstance: any = getStubConfigService();
+const testConfig = { baseUrl: 'http://test', branding: 'default', portal: 'rdmp', csrfToken: 'test-csrf' };
+configStubInstance.getConfig = async () => testConfig;
+configStubInstance.config = testConfig;
 
-describe('BrandingAdminComponent', () => {
-  let fixture: any;
+function face(slot: BrandingTypefaceSlot, sha: string, filename?: string): BrandingTypefaceFace {
+  return { slot, sha256: sha, originalFilename: filename ?? `${slot}.woff2`, sizeBytes: 100, uploadedAt: '2026-01-01T00:00:00.000Z', inspection: {}, warnings: [] };
+}
+
+function adminState(overrides: Partial<BrandingAdminState> = {}): BrandingAdminState {
+  return {
+    branding: { id: 'brand-1', name: 'default' },
+    active: { version: 1, hash: 'h', variables: { primary: '#112233' }, typeface: { mode: 'default', faces: {} } },
+    draft: { revision: 2, variables: { primary: '#112233' }, typeface: { mode: 'default', faces: {} }, dirty: { colours: false, typeface: false } },
+    versions: [
+      { id: 'h1', version: 1, hash: 'h', dateCreated: '2026-01-01', actorId: 'u1', actorDisplayName: 'Admin', variables: {}, typeface: { mode: 'default', faces: {} } },
+    ],
+    limits: { faceMaxBytes: 1, familyMaxBytes: 2, historyMaxVersions: 3 },
+    healthWarnings: [],
+    ...overrides,
+  };
+}
+
+describe('BrandingAdminComponent typography experience', () => {
+  let fixture: ComponentFixture<BrandingAdminComponent>;
   let component: BrandingAdminComponent;
-  let httpMock: HttpTestingController;
-  let brandingService: BrandingAdminService;
+  let serviceStub: any;
 
   beforeEach(async () => {
+    serviceStub = {
+      getBrandingAndPortalUrl: () => 'http://test/default/rdmp',
+      waitForInit: async () => serviceStub,
+      loadConfig: () => Promise.resolve(adminState()),
+      saveColourDraft: (variables: any, revision: number) => Promise.resolve(adminState()),
+      uploadFace: (slot: string, file: any, name: string, revision: number) => Promise.resolve(adminState()),
+      removeFace: (slot: string, revision: number) => Promise.resolve(adminState()),
+      useDefaultTypography: (revision: number) => Promise.resolve(adminState()),
+      revertTypefaceDraft: (revision: number) => Promise.resolve(adminState()),
+      createPreview: (revision: number) => Promise.resolve({ token: 'tok', url: 'u', hash: 'h', revision, previewToken: 'tok', previewUrl: 'u' }),
+      previewVersion: (id: string) => Promise.resolve({ token: 'tok', url: 'u', hash: 'h', previewToken: 'tok', previewUrl: 'u' }),
+      publish: (version: number, revision: number) => Promise.resolve(adminState()),
+      restore: (id: string, version: number, revision: number) => Promise.resolve(adminState()),
+      uploadLogo: () => Promise.resolve({}),
+      uploadFavicon: () => Promise.resolve({}),
+    };
     await TestBed.configureTestingModule({
-      imports: [BrandingAdminComponent, HttpClientTestingModule, FormsModule],
+      imports: [BrandingAdminComponent, FormsModule, HttpClientTestingModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '' },
         { provide: LoggerService, useClass: LoggerStub },
-        { provide: TranslationService, useValue: translationStubInstance },
+        { provide: TranslationService, useClass: TranslationStub },
         { provide: ConfigService, useValue: configStubInstance },
         { provide: UtilityService, useClass: UtilityStub },
-        BrandingAdminService
-      ]
-    }).compileComponents();
-
-    httpMock = TestBed.inject(HttpTestingController);
-    brandingService = TestBed.inject(BrandingAdminService);
+        { provide: BrandingAdminService, useValue: serviceStub },
+      ],
+    })
+      .overrideComponent(BrandingAdminComponent, {
+        remove: { providers: [BrandingAdminService], imports: [I18NextPipe] },
+        add: { providers: [{ provide: BrandingAdminService, useValue: serviceStub }], imports: [I18NextPipeStub] },
+      })
+      .compileComponents();
     fixture = TestBed.createComponent(BrandingAdminComponent);
     component = fixture.componentInstance;
-    // Explicitly wait for the service init (avoids race with BaseComponent async init)
-    await brandingService.waitForInit();
-    // NOTE: We intentionally do NOT call fixture.detectChanges() here so the component's
-    // BaseComponent-driven init (which would auto-call loadConfig) is skipped. Each test
-    // takes explicit control of when loadConfig is invoked, preventing stray unflushed
-    // HTTP GET /app/branding/config requests that were causing verify() failures.
   });
 
-  // We'll manually verify inside each test after flushing expected requests to avoid timing races.
+  async function initWith(state: BrandingAdminState) {
+    serviceStub.loadConfig = () => Promise.resolve(state);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
 
+  async function settled() {
+    fixture.detectChanges();
+    await fixture.whenStable();
+  }
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('loads config and sets publishedConfig', async () => {
-    const loadPromise = component.loadConfig();
-    const cfgReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-    cfgReq.flush({ branding: { variables: { primary: '#123456' }, version: 1 } });
-    await loadPromise;
-    expect(component.publishedConfig?.variables?.['primary']).toBe('#123456');
-    httpMock.verify();
+  it('loads canonical state and filters colour keys', async () => {
+    await initWith(adminState());
+    expect(component.state?.draft.revision).toBe(2);
+    expect(component.draftConfig).toEqual({ primary: '#112233' });
   });
 
-  it('filters legacy variables from draftConfig on load', async () => {
-    const loadPromise = component.loadConfig();
-    const cfgReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/config'));
-    cfgReq.flush({
-      branding: {
-        variables: {
-          primary: '#123456',
-          'branding-font-family': 'Arial, sans-serif',
-        },
-        version: 1
-      }
+  it('renders default, complete custom, incomplete, and warning states', async () => {
+    await initWith(adminState());
+    let text = fixture.nativeElement.textContent;
+    expect(text).toContain('branding-typography-state-default');
+
+    const complete = adminState({
+      draft: { revision: 3, variables: {}, typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64)) } }, dirty: { colours: false, typeface: true } },
     });
-    await loadPromise;
+    serviceStub.loadConfig = () => Promise.resolve(complete);
+    await component.loadConfig();
+    await settled();
+    text = fixture.nativeElement.textContent;
+    expect(text).toContain('branding-typography-state-custom');
 
-    expect(component.draftConfig['primary']).toBe('#123456');
-    expect(component.draftConfig['branding-font-family']).toBeUndefined();
-    httpMock.verify();
-  });
+    const incomplete = adminState({
+      draft: { revision: 4, variables: {}, typeface: { mode: 'custom', faces: { bold: face('bold', 'b'.repeat(64)) } }, dirty: { colours: false, typeface: true } },
+    });
+    serviceStub.loadConfig = () => Promise.resolve(incomplete);
+    await component.loadConfig();
+    await settled();
+    text = fixture.nativeElement.textContent;
+    expect(text).toContain('branding-typography-incomplete');
+    const publishButton = fixture.debugElement.query(By.css('button.btn-success'));
+    expect(publishButton.nativeElement.disabled).toBe(true);
 
-  it('filters legacy variables when resetting the draft', () => {
-    component.publishedConfig = {
-      variables: {
-        primary: '#123456',
-        'branding-font-family': 'Arial, sans-serif',
+    const warned = adminState({
+      draft: {
+        revision: 5, variables: {},
+        typeface: { mode: 'custom', faces: { regular: { ...face('regular', 'a'.repeat(64)), warnings: ['embedded subfamily differs'] } } },
+        dirty: { colours: false, typeface: true },
       },
-      version: '1'
-    };
-    component.draftConfig = { primary: '#abcdef' };
-
-    component.resetDraft();
-
-    expect(component.draftConfig['primary']).toBe('#123456');
-    expect(component.draftConfig['branding-font-family']).toBeUndefined();
-    expect(component.message).toBe('Draft reset to published config');
+    });
+    serviceStub.loadConfig = () => Promise.resolve(warned);
+    await component.loadConfig();
+    await settled();
+    expect(fixture.nativeElement.textContent).toContain('embedded subfamily differs');
   });
 
-  it('saveDraft sets message on success', async () => {
-    const loadPromise = component.loadConfig();
-    httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
-    await loadPromise;
-    component.draftConfig['primary'] = '#abcdef';
-    const savePromise = component.saveDraft();
-    const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
-    // Assert the POST body format is { variables: {...} }
-    expect(saveReq.request.method).toBe('POST');
-    expect(saveReq.request.body).toEqual({ variables: component.draftConfig });
-    saveReq.flush({ branding: { variables: { primary: '#abcdef' }, version: 1 } });
-    await savePromise;
-    expect(component.message).toBe('Draft saved');
-    expect(component.publishedConfig?.variables?.['primary']).toBe('#abcdef');
-    httpMock.verify();
+  it('uploads, replaces, removes, defaults, and reverts with canonical counters', async () => {
+    await initWith(adminState());
+    const file = new File(['font'], 'regular.woff2', { type: 'font/woff2' });
+    let resolveUpload!: (state: BrandingAdminState) => void;
+    serviceStub.uploadFace = () => new Promise<BrandingAdminState>(resolve => { resolveUpload = resolve; });
+    const pending = component.uploadFace('regular', { target: { files: [file], value: 'x' } });
+    expect(component.isBusy('face-regular')).toBe(true);
+    resolveUpload(adminState());
+    await pending;
+    expect(component.isBusy('face-regular')).toBe(false);
+
+    await component.removeFace('regular');
+    await component.useDefaultTypography();
+    await component.revertTypefaceDraft();
+    expect(component.state?.draft.revision).toBe(2);
   });
 
-  it('saveDraft shows error message on invalid variables', async () => {
-    const loadPromise = component.loadConfig();
-    httpMock.expectOne(r => r.url.endsWith('/app/branding/config')).flush({ branding: { variables: {}, version: 1 } });
-    await loadPromise;
-    component.draftConfig['branding-font-family'] = 'Arial, sans-serif';
-    const savePromise = component.saveDraft();
-    const saveReq = httpMock.expectOne(r => r.url.endsWith('/app/branding/draft'));
-    saveReq.flush({ error: 'invalid-variable', message: 'Invalid variable key: branding-font-family' }, { status: 400, statusText: 'Bad Request' });
-    await savePromise.catch(() => { });
-    expect(component.error).toContain('Invalid variable key: branding-font-family');
-    httpMock.verify();
+  it('escapes filenames through interpolation', async () => {
+    const evil = adminState({
+      draft: {
+        revision: 2, variables: {},
+        typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64), '<img src=x onerror=alert(1)>') } },
+        dirty: { colours: false, typeface: true },
+      },
+    });
+    await initWith(evil);
+    const html = fixture.nativeElement.innerHTML;
+    expect(html).not.toContain('<img src=x');
+    expect(fixture.nativeElement.querySelectorAll('img').length).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 
-  it('createPreview stores previewToken', async () => {
-    component.draftConfig['primary'] = '#123456';
-    const componentBrandingService = (component as any).brandingService as BrandingAdminService;
-    const saveSpy = spyOn(componentBrandingService, 'saveDraft').and.resolveTo({ branding: { variables: { primary: '#123456' }, version: 1 } });
-    const previewSpy = spyOn(componentBrandingService, 'createPreview').and.resolveTo({ token: 'preview-token-123', url: '/branding/rdmp/preview/preview-token-123.css' });
+  it('shows conflict reload without losing sample text', async () => {
+    await initWith(adminState());
+    component.sampleText = 'keep me';
+    serviceStub.saveColourDraft = () => Promise.reject({ kind: 'conflict', status: 409, message: 'stale' });
+    await component.saveDraft();
+    expect(component.conflict).toBe(true);
+    await settled();
+    expect(fixture.nativeElement.textContent).toContain('branding-conflict-reload');
+    serviceStub.loadConfig = () => Promise.resolve(adminState());
+    await component.reloadState();
+    expect(component.conflict).toBe(false);
+    expect(component.sampleText).toBe('keep me');
+  });
+
+  it('renders preview roles and binds local sample text', async () => {
+    await initWith(adminState());
+    component.sampleText = 'Hello Masa';
     await component.createPreview();
-    expect(saveSpy).toHaveBeenCalledWith(component.draftConfig);
-    expect(previewSpy).toHaveBeenCalled();
-    expect(component.previewToken).toBe('preview-token-123');
-    expect(component.publishedConfig?.variables?.['primary']).toBe('#123456');
-    // Base/preview CSS URLs set after preview
-    expect(component.previewBaseCssUrl).toContain('/styles/style.min.css');
-    expect(component.previewCssUrl).toContain('/preview/preview-token-123.css');
-    httpMock.verify();
+    await settled();
+    // Preview content renders inside the preview component's shadow DOM.
+    const previewEl = fixture.nativeElement.querySelector('branding-preview') as HTMLElement;
+    expect(previewEl).toBeTruthy();
+    const shadow = previewEl.shadowRoot as ShadowRoot;
+    expect(shadow.querySelector('.preview-sample-regular')?.textContent).toContain('Hello Masa');
+    expect(shadow.querySelector('.preview-sample-bold')).toBeTruthy();
+    expect(shadow.querySelector('.preview-sample-italic')).toBeTruthy();
+    expect(shadow.querySelector('.preview-sample-bold-italic')).toBeTruthy();
+    expect(shadow.querySelector('input.form-control')).toBeTruthy();
+    expect(shadow.querySelector('button.btn-primary')).toBeTruthy();
+    expect(shadow.querySelector('a[href="#"]')).toBeTruthy();
+    // The admin-side sample input keeps the unsaved local text.
+    const sampleInput = fixture.nativeElement.querySelector('#previewSampleText') as HTMLInputElement;
+    expect(sampleInput.value).toBe('Hello Masa');
   });
 
-  it('exposes new variable keys in groups (e.g., Bootstrap contextual, menu, footer)', () => {
-    // Create component to access colourGroups definition
-    expect(component).toBeTruthy();
-    // Initialize colourGroups since detectChanges() is skipped in test setup
-    (component as any).initializeColourGroups();
-    const allKeys = (component as any).colourGroups.flatMap((g: any) => g.variables.map((v: any) => v.key));
-    // Spot-check a few critical keys we added
-    expect(allKeys).toContain('primary');
-    expect(allKeys).toContain('secondary');
-    expect(allKeys).toContain('light');
-    expect(allKeys).toContain('dark');
-    expect(allKeys).toContain('main-menu-active-dropdown-item-background-color');
-    expect(allKeys).toContain('footer-bottom-area-branding-background-color');
-    expect(allKeys).toContain('logo-heading-text-color');
+  it('renders active health warnings without failing config load', async () => {
+    const degraded = adminState({
+      active: { version: 1, hash: 'h', variables: {}, typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64)) } } },
+      healthWarnings: [{ code: 'face-unavailable', slot: 'regular', sha256: 'a'.repeat(64) }],
+    });
+    await initWith(degraded);
+    expect(component.state?.healthWarnings?.length).toBe(1);
+    await settled();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('branding-health-warnings-title');
+    expect(text).toContain('face-unavailable');
   });
 
-  it('publish saves draft before publishing and reloads config', async () => {
-    component.publishedConfig = { variables: {}, version: '1' };
-    component.draftConfig['primary'] = '#fff000';
-    const componentBrandingService = (component as any).brandingService as BrandingAdminService;
-    const saveSpy = spyOn(componentBrandingService, 'saveDraft').and.resolveTo({ branding: { variables: { primary: '#fff000' }, version: 1 } });
-    const publishSpy = spyOn(componentBrandingService, 'publish').and.resolveTo({ version: 2, hash: 'abcd' });
-    const loadSpy = spyOn(component, 'loadConfig').and.resolveTo();
+  it('lists history with actor and active marker, previews, and restores with confirmation', async () => {
+    const state = adminState({
+      versions: [
+        { id: 'h2', version: 2, hash: 'h2', dateCreated: '2026-02-01', actorId: 'u2', actorDisplayName: 'Second Admin', variables: {}, typeface: { mode: 'custom', faces: {} } },
+        { id: 'h1', version: 1, hash: 'h1', dateCreated: '2026-01-01', actorId: 'u1', actorDisplayName: 'Admin', variables: {}, typeface: { mode: 'default', faces: {} } },
+      ],
+    });
+    await initWith(state);
+    // Active marker follows the active version (set active to version 2).
+    component.state = adminState({
+      active: { version: 2, hash: 'h2', variables: {}, typeface: { mode: 'custom', faces: {} } },
+      draft: { revision: 5, variables: {}, typeface: { mode: 'custom', faces: {} }, dirty: { colours: false, typeface: false } },
+      versions: state.versions,
+    });
+    await settled();
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Second Admin');
+    expect(text).toContain('branding-history-active');
+    expect(text.indexOf('v2')).toBeLessThan(text.indexOf('v1'));
+
+    const version = component.versions[0];
+    await component.previewVersionEntry(version);
+    expect(component.previewCssUrl).toContain('/preview/tok.css');
+
+    expect(component.pendingRestoreId).toBeNull();
+    component.confirmRestore('h1');
+    expect(component.pendingRestoreId).toBe('h1');
+    await settled();
+    expect(fixture.nativeElement.textContent).toContain('branding-restore-confirm');
+    await component.restoreVersion({ ...version, id: 'h1', version: 1 });
+    expect(component.pendingRestoreId).toBeNull();
+  });
+
+  it('keeps colour, logo, and favicon flows working', async () => {
+    await initWith(adminState());
+    component.draftConfig['primary'] = '#ffffff';
+    await component.saveDraft();
+    expect(component.message).toBe('Draft saved');
+    const file = new File(['img'], 'logo.png', { type: 'image/png' });
+    await component.uploadLogo({ target: { files: [file] } });
+    expect(component.message).toBe('Logo uploaded');
+    await component.uploadFavicon({ target: { files: [file] } });
+    expect(component.message).toBe('Favicon uploaded');
     await component.publish();
-    expect(saveSpy).toHaveBeenCalledWith(component.draftConfig);
-    expect(publishSpy).toHaveBeenCalledWith(1);
-    expect(loadSpy).toHaveBeenCalled();
+    expect(component.message).toBe('Branding published');
+  });
+
+  it('clears a displayed preview on every draft mutation', async () => {
+    await initWith(adminState());
+    await component.createPreview();
+    expect(component.previewCssUrl).toContain('/preview/tok.css');
+    const font = new File(['font'], 'regular.woff2', { type: 'font/woff2' });
+    await component.uploadFace('regular', { target: { files: [font], value: 'x' } });
+    expect(component.previewCssUrl).toBeUndefined();
+    await component.createPreview();
+    expect(component.previewCssUrl).toContain('/preview/tok.css');
+    await component.removeFace('regular');
+    expect(component.previewCssUrl).toBeUndefined();
+    await component.createPreview();
+    await component.useDefaultTypography();
+    expect(component.previewCssUrl).toBeUndefined();
+    await component.createPreview();
+    await component.revertTypefaceDraft();
+    expect(component.previewCssUrl).toBeUndefined();
   });
 });

@@ -14,15 +14,14 @@ declare const BrandingLogoService: BrandingLogoServiceModule.Services.BrandingLo
 declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
 
 export namespace Controllers {
-
   export class Branding extends controllers.Core.Controller {
     private static readonly CSS_CACHE_MAX_SIZE = 100;
     private static readonly CSS_CACHE_TTL_MS = 5 * 60 * 1000;
     private readonly cssMinifier = new CleanCSS({
       level: {
         1: { all: true },
-        2: { all: false }
-      }
+        2: { all: false },
+      },
     });
     private readonly cssResponseCache = new Map<string, { css: string; etag: string; createdAt: number }>();
 
@@ -57,13 +56,36 @@ export namespace Controllers {
       return 'public, max-age=300, must-revalidate';
     }
 
+    private getVersionedCssCacheControlHeader(): string {
+      // Used only when the request carries the current publication hash (?v=):
+      // the URL changes on every publish, so the response is immutable.
+      return 'public, max-age=31536000, immutable';
+    }
+
+    /**
+     * True when the request pins the current publication hash (?v=<hash>).
+     * Layouts emit this form so a republish (new hash, new URL) applies
+     * immediately instead of waiting out the unversioned browser cache.
+     */
+    private requestMatchesPublicationHash(req: Sails.Req, brand: { hash?: unknown } | null): boolean {
+      const version = req.param('v');
+      return (
+        typeof version === 'string' &&
+        version.length > 0 &&
+        brand != null &&
+        typeof brand.hash === 'string' &&
+        brand.hash.length > 0 &&
+        version === brand.hash
+      );
+    }
+
     private getCachedCssResponse(cacheKey: string): { css: string; etag: string } | undefined {
       const entry = this.cssResponseCache.get(cacheKey);
       if (!entry) {
         return undefined;
       }
 
-      if ((Date.now() - entry.createdAt) > Branding.CSS_CACHE_TTL_MS) {
+      if (Date.now() - entry.createdAt > Branding.CSS_CACHE_TTL_MS) {
         this.cssResponseCache.delete(cacheKey);
         return undefined;
       }
@@ -92,13 +114,14 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = [
       'init',
       'renderCss',
+      'renderFont',
       'renderImage',
       'renderFavicon',
       'renderApiB',
       'renderSwaggerJSON',
       'renderSwaggerYAML',
       'renderPreviewCss',
-      'createPreview'
+      'createPreview',
     ];
 
     public init() {
@@ -143,19 +166,9 @@ export namespace Controllers {
         let cachedBrandCss = this.getCachedCssResponse(brandCssCacheKey);
         if (!cachedBrandCss) {
           const minifiedCss = this.minifyCss(brand.css);
-          const minifiedHash = crypto.createHash('sha256').update(minifiedCss).digest('hex').substring(0, 32);
-          const hasValidStoredHash = Boolean(brand.hash && /^[a-f0-9]+$/.test(brand.hash) && brand.hash === minifiedHash);
-          const safeHash = hasValidStoredHash ? brand.hash! : minifiedHash;
-
-          if (!hasValidStoredHash && brand.id) {
-            try {
-              await BrandingConfig.update({ id: brand.id }, { hash: safeHash });
-            } catch (updateError) {
-              sails.log.warn('Failed to persist corrected branding hash:', updateError);
-            }
-          }
-
-          const etag = this.generateETag(safeHash);
+          // The publication hash is authoritative state: a GET must never rewrite
+          // it. The response ETag is derived from the exact served bytes instead.
+          const etag = this.generateETag(crypto.createHash('sha256').update(minifiedCss).digest('hex'));
           this.setCachedCssResponse(brandCssCacheKey, minifiedCss, etag);
           cachedBrandCss = { css: minifiedCss, etag };
         }
@@ -166,9 +179,13 @@ export namespace Controllers {
         if (req.headers['if-none-match'] === etag) {
           return res.status(304).end();
         }
-        res.set('Cache-Control', this.getCssCacheControlHeader());
+        const immutable = this.requestMatchesPublicationHash(req, brand);
+        res.set(
+          'Cache-Control',
+          immutable ? this.getVersionedCssCacheControlHeader() : this.getCssCacheControlHeader()
+        );
         res.removeHeader('Pragma');
-        res.set('Expires', new Date(Date.now() + 300 * 1000).toUTCString());
+        res.set('Expires', new Date(Date.now() + (immutable ? 31536000 : 300) * 1000).toUTCString());
         return res.send(minifiedCss);
       } catch (e) {
         sails.log.error('Error serving CSS:', e);
@@ -209,15 +226,80 @@ export namespace Controllers {
       }
     }
 
-    /** Create a preview token (JSON) */
+    /** Create a preview token (JSON) for the current draft revision (legacy public surface) */
     public async createPreview(req: Sails.Req, res: Sails.Res) {
       try {
         const branding = req.param('branding');
         const portal = req.param('portal');
-        const result = await BrandingService.preview(branding, portal);
+        const brand = await BrandingConfig.findOne({ name: branding });
+        if (!brand) {
+          return res.status(404).json({ error: 'preview-error', message: 'branding-not-found' });
+        }
+        // Bind to the current draft revision; a concurrent draft change fails
+        // loudly instead of previewing a torn state.
+        const result = await BrandingService.preview(
+          branding,
+          portal,
+          typeof brand.draftRevision === 'number' ? brand.draftRevision : 0
+        );
         return res.json(result);
       } catch (e: unknown) {
         return res.status(500).json({ error: 'preview-error', message: (e as Error).message });
+      }
+    }
+
+    /**
+     * Serves one immutable Brand Typeface face by exact brand name and content hash
+     * (GET|HEAD /fonts/branding/:branding/:sha256.woff2).
+     *
+     * Portal-independent and sessionless so every portal under a brand shares the
+     * browser cache. Missing brands/objects and hash mismatches are 404 without
+     * substituting another font; corruption is logged server-side.
+     */
+    public async renderFont(req: Sails.Req, res: Sails.Res) {
+      try {
+        const branding = req.param('branding');
+        // Sails may expose the suffixed route param under a mangled name
+        // (e.g. `sha256Woff2` for `:sha256.woff2`); accept any `sha256*` param.
+        const routeParams = ((req as unknown as { params?: Record<string, unknown> }).params ?? {}) as Record<
+          string,
+          unknown
+        >;
+        const rawParam =
+          req.param('sha256') ??
+          Object.entries(routeParams).find(([key]) => key.toLowerCase().startsWith('sha256'))?.[1];
+        const sha256 = String(rawParam ?? '').replace(/\.woff2$/i, '');
+        if (!branding || !/^[0-9a-f]{64}$/.test(sha256)) {
+          return res.status(404).send('/* font not found */');
+        }
+        const brand = await BrandingConfig.findOne({ name: branding });
+        if (!brand) {
+          return res.status(404).send('/* font not found */');
+        }
+        let buf: Buffer;
+        try {
+          buf = await BrandingTypefaceService.readFace(String(brand.id), sha256);
+        } catch (readError) {
+          if ((readError as { code?: string })?.code === 'typeface-corrupt') {
+            sails.log.error(`BrandingController corrupt font object for brand ${branding} face ${sha256}`);
+          }
+          return res.status(404).send('/* font not found */');
+        }
+        res.set('Content-Type', 'font/woff2');
+        res.set('ETag', `"${sha256}"`);
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.set('X-Content-Type-Options', 'nosniff');
+        res.set('Content-Length', String(buf.length));
+        if (req.headers['if-none-match'] === `"${sha256}"`) {
+          return res.status(304).end();
+        }
+        if (req.method === 'HEAD') {
+          return res.status(200).end();
+        }
+        return res.send(buf);
+      } catch (e) {
+        sails.log.error('Error serving font:', e);
+        return res.status(404).send('/* font not found */');
       }
     }
 
@@ -237,7 +319,6 @@ export namespace Controllers {
         })
       );
     }
-
 
     /**
      *
@@ -292,11 +373,12 @@ export namespace Controllers {
         const branding = req.param('branding');
         const brand = await BrandingConfig.findOne({ name: branding });
         const logo = brand?.logo as Record<string, unknown> | undefined;
-        const storageId = typeof logo?.storageKey === 'string'
-          ? logo.storageKey
-          : typeof logo?.gridFsId === 'string'
-            ? logo.gridFsId
-            : null;
+        const storageId =
+          typeof logo?.storageKey === 'string'
+            ? logo.storageKey
+            : typeof logo?.gridFsId === 'string'
+              ? logo.gridFsId
+              : null;
         if (!brand || !logo || !storageId) {
           // fallback to static
           res.contentType(sails.config.static_assets.imageType);
@@ -310,9 +392,7 @@ export namespace Controllers {
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
         res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
-        const etagSeed = expectedSha256
-          ? expectedSha256
-          : crypto.createHash('sha256').update(buf).digest('hex');
+        const etagSeed = expectedSha256 ? expectedSha256 : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'logo-');
         res.set('ETag', etag);
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
@@ -346,9 +426,7 @@ export namespace Controllers {
         const { buffer: buf, favicon } = resolved;
         const expectedSha256 = typeof favicon.sha256 === 'string' ? favicon.sha256 : undefined;
         res.contentType((favicon.contentType as string) || 'image/png');
-        const etagSeed = expectedSha256
-          ? expectedSha256
-          : crypto.createHash('sha256').update(buf).digest('hex');
+        const etagSeed = expectedSha256 ? expectedSha256 : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'favicon-');
         res.set('ETag', etag);
         res.set('Cache-Control', 'public, no-cache');

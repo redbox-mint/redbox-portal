@@ -86,6 +86,15 @@ export const routes: RoutesConfig = {
     action: 'renderFavicon',
   },
 
+  // Public Brand Typeface delivery (portal-independent, sessionless, immutable).
+  // skipAssets must be false: Sails skips asset-extension URLs by default and
+  // .woff2 would otherwise never reach the action (cf. the preview .css routes).
+  'get /fonts/branding/:branding/:sha256.woff2': {
+    controller: 'BrandingController',
+    action: 'renderFont',
+    skipAssets: false,
+  },
+
   // Admin routes
   '/:branding/:portal/admin': {
     controller: 'RenderViewController',
@@ -203,8 +212,34 @@ export const routes: RoutesConfig = {
   // App Branding routes
   'get /:branding/:portal/app/branding/config': { controller: 'BrandingAppController', action: 'config' },
   'post /:branding/:portal/app/branding/draft': { controller: 'BrandingAppController', action: 'draft' },
+  'put /:branding/:portal/app/branding/draft/typeface/faces/:slot': {
+    controller: 'BrandingAppController',
+    action: 'uploadFace',
+  },
+  'delete /:branding/:portal/app/branding/draft/typeface/faces/:slot': {
+    controller: 'BrandingAppController',
+    action: 'deleteFace',
+  },
+  'post /:branding/:portal/app/branding/draft/typeface/use-default': {
+    controller: 'BrandingAppController',
+    action: 'useDefault',
+  },
+  'post /:branding/:portal/app/branding/draft/typeface/revert': {
+    controller: 'BrandingAppController',
+    action: 'revert',
+  },
   'post /:branding/:portal/app/branding/preview': { controller: 'BrandingAppController', action: 'preview' },
+  'get /:branding/:portal/app/branding/versions': { controller: 'BrandingAppController', action: 'versions' },
+  'post /:branding/:portal/app/branding/versions/:versionId/preview': {
+    controller: 'BrandingAppController',
+    action: 'versionPreview',
+  },
   'post /:branding/:portal/app/branding/publish': { controller: 'BrandingAppController', action: 'publish' },
+  'post /:branding/:portal/app/branding/restore/:versionId': { controller: 'BrandingAppController', action: 'restore' },
+  'post /:branding/:portal/app/branding/rollback/:versionId': {
+    controller: 'BrandingAppController',
+    action: 'rollback',
+  },
   'post /:branding/:portal/app/branding/logo': { controller: 'BrandingAppController', action: 'logo' },
   'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 

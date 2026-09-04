@@ -6,6 +6,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
+import {
+  BRANDING_TYPEFACE_SLOTS,
+  BrandingAdminState,
+  BrandingMutationError,
+  BrandingTypefaceSlot,
+  BrandingVersionEntry,
+} from './branding-admin.model';
 import { BrandingPreviewComponent } from './branding-preview.component';
 
 /**
@@ -27,13 +34,11 @@ interface ColourGroup {
   variables: ColourVariable[];
 }
 
-/**
- * Represents the branding configuration structure
- */
-interface BrandingConfig {
-  variables?: Record<string, string>;
-  version?: string; // Version for optimistic concurrency control
-  [key: string]: any; // Allow additional properties from server response
+interface TypefaceSlotCard {
+  slot: BrandingTypefaceSlot;
+  label: string;
+  required: boolean;
+  hint: string;
 }
 
 @Component({
@@ -48,31 +53,40 @@ export class BrandingAdminComponent extends BaseComponent {
   previewUrl?: SafeResourceUrl;
   previewCssUrl?: string;
   previewBaseCssUrl?: string;
+  previewKind?: 'draft' | 'version';
   logoUrl?: string;
   faviconUrl?: string;
 
   // Track component initialization state without casting
   private componentReady: boolean = false;
 
-
-
-
   appName = 'branding';
 
-  // current config state
+  /** Canonical server state; every mutation response replaces it wholesale. */
+  state: BrandingAdminState | null = null;
+  // Editable colour copy of the draft (filtered to known keys).
   draftConfig: Record<string, string> = {};
-  publishedConfig: BrandingConfig = {};
-  previewToken?: string;
-  savingDraft = false;
-  publishing = false;
-  generatingPreview = false;
-  logoUploading = false;
-  faviconUploading = false;
+  /** Unsaved local sample text for the preview; never sent to the server. */
+  sampleText = '';
+  /** Stale-write conflict flag with reload UX (local sample text is preserved). */
+  conflict = false;
+  /** Two-step restore confirmation target (retained version row ID). */
+  pendingRestoreId: string | null = null;
+  /** In-flight mutation keys (slot or action) to disable only affected controls. */
+  inFlight = new Set<string>();
+
   message?: string;
   error?: string;
   // Variables sourced exclusively from assets/styles/custom-variables.scss
   // Keys align exactly with SCSS variable names (without the leading $)
   colourGroups: ColourGroup[] = [];
+
+  readonly typefaceSlots: TypefaceSlotCard[] = [
+    { slot: 'regular', label: 'Regular', required: true, hint: 'Required to publish a custom typeface' },
+    { slot: 'bold', label: 'Bold', required: false, hint: 'Optional; browsers may synthesise it' },
+    { slot: 'italic', label: 'Italic', required: false, hint: 'Optional; browsers may synthesise it' },
+    { slot: 'boldItalic', label: 'Bold Italic', required: false, hint: 'Optional; browsers may synthesise it' },
+  ];
 
   constructor(
     @Inject(LoggerService) private logger: LoggerService,
@@ -92,11 +106,18 @@ export class BrandingAdminComponent extends BaseComponent {
     this.logoUrl = `${base}/images/logo`;
     this.faviconUrl = `${base}/images/favicon`;
     // Initialize Bootstrap tooltips for all elements with data-bs-toggle="tooltip"
+    // (guarded: bootstrap JS is present in the portal layout, not in unit tests)
     setTimeout(() => {
+      const globalBootstrap = (typeof bootstrap !== 'undefined' ? bootstrap : undefined) as
+        | { Tooltip?: new (el: Element, opts?: Record<string, unknown>) => unknown }
+        | undefined;
+      if (!globalBootstrap?.Tooltip) {
+        return;
+      }
       const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.forEach((el: any) => {
         if (!el._tooltipInstance) {
-          el._tooltipInstance = new bootstrap.Tooltip(el, { html: true });
+          el._tooltipInstance = new globalBootstrap.Tooltip!(el, { html: true });
         }
       });
     }, 0);
@@ -118,16 +139,88 @@ export class BrandingAdminComponent extends BaseComponent {
     );
   }
 
+  get draftRevision(): number {
+    return this.state?.draft.revision ?? 0;
+  }
+
+  get activeVersion(): number {
+    return this.state?.active.version ?? 0;
+  }
+
+  get draftTypefaceMode(): 'default' | 'custom' {
+    return this.state?.draft.typeface.mode ?? 'default';
+  }
+
+  get customIncomplete(): boolean {
+    const faces = this.state?.draft.typeface.faces;
+    return this.draftTypefaceMode === 'custom' && !faces?.regular;
+  }
+
+  get versions(): BrandingVersionEntry[] {
+    return this.state?.versions ?? [];
+  }
+
+  isBusy(key: string): boolean {
+    return this.inFlight.has(key);
+  }
+
+  faceFor(slot: BrandingTypefaceSlot) {
+    return this.state?.draft.typeface.faces?.[slot];
+  }
+
+  private replaceState(state: BrandingAdminState): void {
+    this.state = state;
+    this.draftConfig = this.filterDraftVariables(state.draft.variables);
+    this.conflict = false;
+    this.pendingRestoreId = null;
+  }
+
+  private handleMutationError(error: any, action: string): void {
+    const mutation = error as Partial<BrandingMutationError>;
+    if (mutation?.kind === 'conflict') {
+      this.conflict = true;
+      this.message = undefined;
+      this.error = 'Another administrator changed the shared draft. Reload to get the latest state; your sample text is kept.';
+    } else if (mutation?.kind === 'limit') {
+      this.error = `Upload too large: ${mutation.message || 'the configured typeface size limit was exceeded'}`;
+    } else {
+      const serverMessage = error?.error?.message || error?.message || error;
+      this.error = `Failed to ${action}: ${serverMessage}`;
+    }
+    this.logger.error(this.error);
+  }
+
+  private async runMutation<T>(key: string, action: string, work: () => Promise<T>): Promise<T | undefined> {
+    if (this.inFlight.has(key)) {
+      return undefined;
+    }
+    this.inFlight.add(key);
+    this.message = this.error = undefined;
+    try {
+      return await work();
+    } catch (error: any) {
+      this.handleMutationError(error, action);
+      return undefined;
+    } finally {
+      this.inFlight.delete(key);
+    }
+  }
+
   async loadConfig() {
     try {
-      const response = await this.brandingService.loadConfig();
-      this.publishedConfig = response?.branding || {};
-      // Initialize draft with current variables or empty object
-      this.draftConfig = this.filterDraftVariables(this.publishedConfig.variables);
+      const state = await this.brandingService.loadConfig();
+      this.replaceState(state);
     } catch (e: any) {
       this.error = `Failed to load config: ${e?.message || e}`;
       this.logger.error(this.error);
     }
+  }
+
+  /** Reload canonical state after a conflict without losing local sample text. */
+  async reloadState() {
+    this.conflict = false;
+    this.message = this.error = undefined;
+    await this.loadConfig();
   }
 
   private initializeColourGroups() {
@@ -225,113 +318,156 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   async saveDraft() {
-    this.savingDraft = true; this.message = this.error = undefined;
-    try {
-      const res: any = await this.brandingService.saveDraft(this.draftConfig);
-      this.previewCssUrl = undefined;
-      this.previewBaseCssUrl = undefined;
-      // Update published config if response contains branding data
-      if (res?.branding) {
-        this.publishedConfig = res.branding;
-      }
+    const state = await this.runMutation('save-draft', 'save draft', () =>
+      this.brandingService.saveColourDraft(this.draftConfig, this.draftRevision)
+    );
+    if (state) {
+      this.replaceState(state);
+      this.clearPreview();
       this.message = 'Draft saved';
-    } catch (e: any) {
-      // Prefer server-provided message (e.error.message) when available to surface
-      // validation details like 'contrast-violation'. Fallback to generic error.
-      const serverMsg = e?.error?.message || e?.error?.error;
-      const msg = serverMsg || e?.message || e;
-      this.error = `Failed to save draft: ${msg}`;
-      this.logger.error(this.error);
-    } finally { this.savingDraft = false; }
+    }
   }
 
   async createPreview() {
-    this.generatingPreview = true; this.message = this.error = undefined;
-    try {
-      const draftRes: any = await this.brandingService.saveDraft(this.draftConfig);
-      if (draftRes?.branding) {
-        this.publishedConfig = draftRes.branding;
-      }
-      const res: any = await this.brandingService.createPreview();
-      this.previewToken = res?.token || res?.previewToken;
-      if (this.previewToken) {
-        // Existing full-page preview URL (no longer used in iframe)
-        this.previewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(`/default/rdmp/researcher/home?previewToken=${this.previewToken}`);
-        // New CSS preview URL for Shadow DOM preview component
-        const base = this.brandingService.getBrandingAndPortalUrl();
-        this.previewBaseCssUrl = `${base}/styles/style.min.css`;
-        this.previewCssUrl = `${base}/preview/${this.previewToken}.css`;
-      } else {
-        this.previewUrl = undefined;
-        this.previewCssUrl = undefined;
-        this.previewBaseCssUrl = undefined;
-      }
+    const preview = await this.runMutation('preview', 'generate preview', () =>
+      this.brandingService.createPreview(this.draftRevision)
+    );
+    if (preview) {
+      this.previewKind = 'draft';
+      const base = this.brandingService.getBrandingAndPortalUrl();
+      this.previewBaseCssUrl = `${base}/styles/style.min.css`;
+      this.previewCssUrl = `${base}/preview/${preview.token}.css`;
       this.message = 'Preview generated';
-    } catch (e: any) {
-      this.error = `Failed to generate preview: ${e?.message || e}`;
-      this.logger.error(this.error);
-    } finally { this.generatingPreview = false; }
+    }
+  }
+
+  async previewVersionEntry(version: BrandingVersionEntry) {
+    const preview = await this.runMutation(`preview-${version.id}`, 'preview version', () =>
+      this.brandingService.previewVersion(version.id)
+    );
+    if (preview) {
+      this.previewKind = 'version';
+      const base = this.brandingService.getBrandingAndPortalUrl();
+      this.previewBaseCssUrl = `${base}/styles/style.min.css`;
+      this.previewCssUrl = `${base}/preview/${preview.token}.css`;
+      this.message = `Previewing version ${version.version}`;
+    }
   }
 
   async publish() {
-    this.publishing = true; this.message = this.error = undefined;
-    try {
-      await this.brandingService.saveDraft(this.draftConfig);
-      this.previewCssUrl = undefined;
-      this.previewBaseCssUrl = undefined;
-      const res: any = await this.brandingService.publish(Number(this.publishedConfig.version || 0));
-      this.message = 'Branding published';
-      // Reload the full configuration after publish
-      await this.loadConfig();
-    } catch (e: any) {
-      this.error = `Failed to publish: ${e?.message || e}`;
-      this.logger.error(this.error);
-    } finally { this.publishing = false; }
+    const state = await this.runMutation('publish', 'publish', () =>
+      this.brandingService.publish(this.activeVersion, this.draftRevision)
+    );
+    if (state) {
+      this.replaceState(state);
+      this.clearPreview();
+      this.message = state.idempotent ? 'Already published: no changes' : 'Branding published';
+    }
+  }
+
+  async uploadFace(slot: BrandingTypefaceSlot, event: any) {
+    const file: File | undefined = event?.target?.files?.[0];
+    if (!file) {
+      return;
+    }
+    // Reset the input so the same file can be chosen again.
+    if (event?.target) {
+      event.target.value = '';
+    }
+    const state = await this.runMutation(`face-${slot}`, 'upload typeface face', () =>
+      this.brandingService.uploadFace(slot, file, file.name, this.draftRevision)
+    );
+    if (state) {
+      this.replaceState(state);
+      this.clearPreview();
+      this.message = `${slot} face uploaded`;
+    }
+  }
+
+  async removeFace(slot: BrandingTypefaceSlot) {
+    const state = await this.runMutation(`face-${slot}`, 'remove typeface face', () =>
+      this.brandingService.removeFace(slot, this.draftRevision)
+    );
+    if (state) {
+      this.replaceState(state);
+      this.clearPreview();
+      this.message = `${slot} face removed`;
+    }
+  }
+
+  async useDefaultTypography() {
+    const state = await this.runMutation('use-default', 'switch to Default Typography', () =>
+      this.brandingService.useDefaultTypography(this.draftRevision)
+    );
+    if (state) {
+      this.replaceState(state);
+      this.clearPreview();
+      this.message = 'Draft set to Default Typography (publish to apply)';
+    }
+  }
+
+  async revertTypefaceDraft() {
+    const state = await this.runMutation('revert-typeface', 'revert typeface draft', () =>
+      this.brandingService.revertTypefaceDraft(this.draftRevision)
+    );
+    if (state) {
+      this.replaceState(state);
+      this.clearPreview();
+      this.message = 'Typeface draft reverted to the active typeface';
+    }
+  }
+
+  confirmRestore(versionId: string) {
+    this.pendingRestoreId = versionId;
+  }
+
+  cancelRestore() {
+    this.pendingRestoreId = null;
+  }
+
+  /** A draft mutation invalidates any displayed preview: its CSS is bound to an older draft revision. */
+  private clearPreview(): void {
+    this.previewCssUrl = undefined;
+    this.previewBaseCssUrl = undefined;
+    this.previewKind = undefined;
+  }
+
+  async restoreVersion(version: BrandingVersionEntry) {
+    const restored = await this.runMutation(`restore-${version.id}`, 'restore version', () =>
+      this.brandingService.restore(version.id, this.activeVersion, this.draftRevision)
+    );
+    if (restored) {
+      this.replaceState(restored);
+      this.clearPreview();
+      this.message = `Version ${version.version} restored as the new active version`;
+    }
   }
 
   async uploadLogo(event: any) {
     const file: File | undefined = event?.target?.files?.[0];
-    if (!file) { return; }
-    this.logoUploading = true; this.message = this.error = undefined;
-    try {
+    if (!file) {
+      return;
+    }
+    await this.runMutation('logo', 'upload logo', async () => {
       const formData = new FormData();
       formData.append('logo', file);
       await this.brandingService.uploadLogo(formData);
       this.message = 'Logo uploaded';
-    } catch (e: any) {
-      this.error = `Failed to upload logo: ${e?.message || e}`;
-      this.logger.error(this.error);
-    } finally { this.logoUploading = false; }
+    });
   }
 
   async uploadFavicon(event: any) {
     const file: File | undefined = event?.target?.files?.[0];
-    if (!file) { return; }
-    this.faviconUploading = true; this.message = this.error = undefined;
-    try {
+    if (!file) {
+      return;
+    }
+    await this.runMutation('favicon', 'upload favicon', async () => {
       const formData = new FormData();
       formData.append('favicon', file);
       await this.brandingService.uploadFavicon(formData);
       this.message = 'Favicon uploaded';
-    } catch (e: any) {
-      this.error = `Failed to upload favicon: ${e?.message || e}`;
-      this.logger.error(this.error);
-    } finally { this.faviconUploading = false; }
-  }
-
-  copyToClipboard(text: string) {
-    if (!navigator.clipboard) {
-      this.error = 'Clipboard not available';
-      return;
-    }
-    navigator.clipboard.writeText(text).then(() => {
-      this.message = 'Preview token copied to clipboard';
-    }).catch(() => {
-      this.error = 'Failed to copy to clipboard';
     });
   }
-
-
 
   updateVariable(key: string, event: any) {
     const value = event.target.value;
@@ -343,8 +479,19 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   resetDraft() {
-    this.draftConfig = this.filterDraftVariables(this.publishedConfig.variables);
-    this.message = 'Draft reset to published config';
+    if (!this.state) {
+      return;
+    }
+    this.draftConfig = this.filterDraftVariables(this.state.draft.variables);
+    this.message = 'Draft reset to saved values';
+  }
+
+  typefaceSummary(typeface: BrandingAdminState['draft']['typeface']): string {
+    if (typeface.mode !== 'custom') {
+      return 'Default Typography';
+    }
+    const present = BRANDING_TYPEFACE_SLOTS.filter(slot => typeface.faces?.[slot]);
+    return present.length > 0 ? `Custom (${present.join(', ')})` : 'Custom (incomplete)';
   }
 
   // Expose readiness to template

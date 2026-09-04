@@ -32,6 +32,18 @@ export class BrandingConfigHistoryClass {
   @Attr({ type: 'json' })
   public variables?: Record<string, unknown>;
 
+  @Attr({ type: 'json' })
+  public typeface?: Record<string, unknown> | null;
+
+  @Attr({ type: 'string' })
+  public actorId?: string;
+
+  @Attr({ type: 'string' })
+  public actorDisplayName?: string;
+
+  @Attr({ type: 'number' })
+  public restoredFromVersion?: number;
+
   @Attr({ type: 'string', autoCreatedAt: true })
   public dateCreated!: string;
 }
@@ -47,6 +59,10 @@ export interface BrandingConfigHistoryAttributes extends Sails.WaterlineAttribut
   hash: string;
   variables?: Record<string, unknown>;
   version: number;
+  typeface?: Record<string, unknown> | null;
+  actorId?: string;
+  actorDisplayName?: string;
+  restoredFromVersion?: number;
 }
 
 export interface BrandingConfigHistoryWaterlineModel extends Sails.Model<BrandingConfigHistoryAttributes> {

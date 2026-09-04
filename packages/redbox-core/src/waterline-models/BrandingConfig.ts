@@ -98,6 +98,15 @@ export class BrandingConfigClass {
   @Attr({ type: 'json' })
   public favicon?: Record<string, unknown>;
 
+  @Attr({ type: 'json' })
+  public typeface?: Record<string, unknown> | null;
+
+  @Attr({ type: 'json' })
+  public draftTypeface?: Record<string, unknown> | null;
+
+  @Attr({ type: 'number', defaultsTo: 0 })
+  public draftRevision?: number;
+
   @HasMany('role', 'branding')
   public roles?: unknown[];
 }
@@ -115,6 +124,9 @@ export interface BrandingConfigAttributes extends Sails.WaterlineAttributes {
   roles?: unknown[];
   variables?: Record<string, string>;
   version?: number;
+  typeface?: Record<string, unknown> | null;
+  draftTypeface?: Record<string, unknown> | null;
+  draftRevision?: number;
 }
 
 export interface BrandingConfigWaterlineModel extends Sails.Model<BrandingConfigAttributes> {

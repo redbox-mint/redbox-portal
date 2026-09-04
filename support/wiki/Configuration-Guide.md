@@ -57,6 +57,19 @@ const { Config } = require('@researchdatabox/redbox-core');
 module.exports.appmode = Config.appmode;
 ```
 
+### Branding typeface limits (`sails.config.branding`)
+
+`packages/redbox-core/src/config/branding.config.ts` adds four operator-configurable positive integers (invalid values fall back to the defaults with a logged warning):
+
+| Key | Default | Behaviour |
+|---|---|---|
+| `typefaceFaceMaxBytes` | `2 * 1024 * 1024` | Maximum compressed bytes for a newly uploaded face |
+| `typefaceFamilyMaxBytes` | `8 * 1024 * 1024` | Maximum distinct compressed bytes referenced by a resulting custom draft |
+| `historyMaxVersions` | `3` | Newest complete branding versions retained per brand |
+| `typefaceOrphanGraceMs` | `24 * 60 * 60 * 1000` | Minimum unreferenced object age before daily reconciliation deletes it |
+
+Lowering limits later affects only new uploads: already active or retained faces are grandfathered and remain publishable and restorable as long as their stored bytes verify. There is no feature flag and no decompressed-size setting. Font objects live on the Flydrive primary disk under `branding-fonts/<brand-id>/<sha256>.woff2` and must persist alongside the database backup (history pruning on upgrade is irreversible).
+
 ## Hook-Provided Configuration
 
 Hooks can provide additional configuration by declaring `hasConfig: true` in their `package.json` and exporting a `registerRedboxConfig()` function:

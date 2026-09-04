@@ -108,6 +108,9 @@ export interface AgendaQueueConfig {
 
 export const RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME = 'RecordsService-ReconcilePostCommitSave';
 
+/** Daily orphan reconciliation for content-addressed brand typeface assets (design.md section 12). */
+export const BRANDING_TYPEFACE_RECONCILE_JOB_NAME = 'BrandingTypefaceService-ReconcileAssets';
+
 export const agendaQueue: AgendaQueueConfig = {
     options: {
         backend: parseAgendaQueueBackend(process.env['sails__agendaQueue_options_backend'], 'sails__agendaQueue_options_backend') ?? 'mongodb',
@@ -186,6 +189,22 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLifetime: 120 * 1000,
                 lockLimit: 1,
                 concurrency: 1
+            }
+        },
+        [BRANDING_TYPEFACE_RECONCILE_JOB_NAME]: {
+            fnName: 'brandingtypefaceservice.reconcileAssets',
+            backend: 'mongodb',
+            options: {
+                lockLifetime: 10 * 60 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            },
+            schedule: {
+                method: 'every',
+                intervalOrSchedule: '1 day',
+                opts: {
+                    skipImmediate: true
+                }
             }
         }
     }

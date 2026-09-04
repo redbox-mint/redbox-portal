@@ -24,8 +24,63 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import { BrandingConfigHistoryAttributes } from '../waterline-models/BrandingConfigHistory';
 import * as crypto from 'crypto';
 import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
+import * as BrandingTypefaceServiceModule from './BrandingTypefaceService';
+import { getBrandingPositiveInt } from '../config/branding.config';
+import {
+  BRANDING_HISTORY_MAX_VERSIONS,
+  BRANDING_TYPEFACE_FACE_MAX_BYTES,
+  BRANDING_TYPEFACE_FAMILY_MAX_BYTES,
+  isBrandingTypefaceSlot,
+  isPublishableTypefaceState,
+  normalizeTypefaceState,
+  orderedTypefaceFaces,
+  type BrandingTypefaceSlot,
+  type BrandingTypefaceState,
+} from '../model/BrandingTypeface';
+import { runWithOptionalTransaction } from '../utilities/TransactionUtils';
 
 declare const BrandingThemeCssService: BrandingThemeCssServiceModule.Services.BrandingThemeCss;
+declare const BrandingTypefaceService: BrandingTypefaceServiceModule.Services.BrandingTypeface;
+
+/** Canonical Admin configuration response (design.md section 5.3). */
+export interface BrandingVersionEntry {
+  id: string;
+  /** Owning brand ID (compatibility projection for history consumers). */
+  branding?: string;
+  version: number;
+  hash: string;
+  dateCreated: string;
+  actorId?: string;
+  actorDisplayName?: string;
+  restoredFromVersion?: number;
+  variables: Record<string, string>;
+  typeface: BrandingTypefaceState;
+}
+
+export interface BrandingHealthWarning {
+  code: string;
+  slot?: BrandingTypefaceSlot;
+  sha256?: string;
+}
+
+export interface BrandingAdminState {
+  branding: { id: string; name: string };
+  active: {
+    version: number;
+    hash: string;
+    variables: Record<string, string>;
+    typeface: BrandingTypefaceState;
+  };
+  draft: {
+    revision: number;
+    variables: Record<string, string>;
+    typeface: BrandingTypefaceState;
+    dirty: { colours: boolean; typeface: boolean };
+  };
+  versions: BrandingVersionEntry[];
+  limits: { faceMaxBytes: number; familyMaxBytes: number; historyMaxVersions: number };
+  healthWarnings: BrandingHealthWarning[];
+}
 
 export namespace Services {
   /**
@@ -34,7 +89,6 @@ export namespace Services {
    * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
    */
   export class Branding extends services.Core.Service {
-
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'loadAvailableBrands',
@@ -50,60 +104,78 @@ export namespace Services {
       'getRootContext',
       'getBrandById',
       'getBrandingFromDB',
+      'getActiveTypefaceFontInfo',
+      'hasActiveCustomTypeface',
+      'getAdminState',
+      'listVersions',
       'saveDraft',
+      'uploadTypefaceFace',
+      'removeTypefaceFace',
+      'useDefaultTypography',
+      'revertTypefaceDraft',
       'preview',
+      'previewVersion',
       'fetchPreview',
       'publish',
+      'restore',
       'rollback',
-      'refreshBrandingCache'
+      'refreshBrandingCache',
     ];
 
-    protected availableBrandings: string[] = []
-    protected brandings: BrandingModel[] = []
+    protected availableBrandings: string[] = [];
+    protected brandings: BrandingModel[] = [];
     protected dBrand = { name: 'default' };
 
     public bootstrap = (): Observable<BrandingModel> => {
-      return super.getObservable(BrandingConfig.findOne(this.dBrand))
-        .pipe(flatMap(defaultBrand => {
+      return super.getObservable(BrandingConfig.findOne(this.dBrand)).pipe(
+        flatMap(defaultBrand => {
           if (_.isEmpty(defaultBrand)) {
             // create default brand
             sails.log.verbose("Default brand doesn't exist, creating...");
-            return super.getObservable(BrandingConfig.create(this.dBrand))
+            return super.getObservable(BrandingConfig.create(this.dBrand));
           }
-          sails.log.verbose("Default brand already exists...");
+          sails.log.verbose('Default brand already exists...');
           return of(defaultBrand);
-        })
-          , flatMap(this.loadAvailableBrands));
-    }
+        }),
+        flatMap(this.loadAvailableBrands)
+      );
+    };
 
     public loadAvailableBrands = (_defBrand: unknown): Observable<BrandingModel> => {
-      sails.log.verbose("Loading available brands......");
+      sails.log.verbose('Loading available brands......');
       // Find all the BrandingConfig we have and add them to the availableBrandings array.
       // A policy is configured to reject any branding values not present in this array.
-      return super.getObservable(BrandingConfig.find({}).populate('roles'))
-        .pipe(flatMap(brands => {
+      return super.getObservable(BrandingConfig.find({}).populate('roles')).pipe(
+        flatMap(brands => {
           this.brandings = brands as BrandingModel[];
           this.availableBrandings = _.map(this.brandings, 'name');
           const defBrandEntry: BrandingModel = this.getDefault();
           if (defBrandEntry == null) {
-            sails.log.error("Failed to load default brand!");
-            return throwError(new Error("Failed to load default brand!"));
+            sails.log.error('Failed to load default brand!');
+            return throwError(new Error('Failed to load default brand!'));
           }
           return of(defBrandEntry);
-        }));
-    }
+        })
+      );
+    };
 
     public getDefault = (): BrandingModel => {
-      return _.find(this.brandings, (o: BrandingModel) => { return o.name == this.dBrand.name }) as BrandingModel;
-    }
+      return _.find(this.brandings, (o: BrandingModel) => {
+        return o.name == this.dBrand.name;
+      }) as BrandingModel;
+    };
 
     public getBrand = (name: string): BrandingModel => {
-      return _.find(this.brandings, (o: BrandingModel) => { return o.name == name }) as BrandingModel;
-    }
+      return _.find(this.brandings, (o: BrandingModel) => {
+        return o.name == name;
+      }) as BrandingModel;
+    };
 
     public getBrandById = (id: string): BrandingModel => {
-      return _.find(this.brandings, (o: BrandingModel) => { return o.id == id }) as BrandingModel;
-    }
+      return _.find(this.brandings, (o: BrandingModel) => {
+        return o.id == id;
+      }) as BrandingModel;
+    };
 
     public async getBrandingFromDB(name: string): Promise<BrandingModel> {
       return BrandingConfig.findOne({ name: name }) as unknown as BrandingModel;
@@ -111,7 +183,7 @@ export namespace Services {
 
     public getAvailable = (): string[] => {
       return this.availableBrandings;
-    }
+    };
 
     public getBrandAndPortalPath(req: Sails.ReqParamProvider): string {
       const branding = this.getBrandNameFromReq(req);
@@ -129,7 +201,6 @@ export namespace Services {
     }
 
     public getRootContext(): string {
-
       const rootContext = sails.config.http.rootContext;
       if (_.isEmpty(rootContext)) {
         return ``;
@@ -137,7 +208,6 @@ export namespace Services {
         return `/${rootContext}`;
       }
     }
-
 
     public getFullPath(req: Sails.ReqParamProvider): string {
       return sails.config.appUrl + this.getBrandAndPortalPath(req);
@@ -197,31 +267,380 @@ export namespace Services {
       return portal;
     }
 
-    /** Save draft variables after whitelist + contrast validation */
-    public async saveDraft(input: { branding: string; variables: Record<string, string>; actor?: unknown; }): Promise<BrandingModel | null> {
-      const normalized = BrandingThemeCssService.validateVariables(input.variables || {});
-      const brand = await BrandingConfig.findOne({ name: input.branding });
-      if (!brand) throw new Error('branding-not-found');
-      await BrandingConfig.update({ id: brand.id }, { variables: normalized });
-      const updated = await this.refreshBrandingCache(brand.id);
+    // ------------------------------------------------------------------
+    // Revisioned draft and version lifecycle (design.md sections 3.3, 5, 7).
+    // Every colour/typeface draft mutation requires `expectedDraftRevision`
+    // and applies exactly one logical mutation with one revision increment via
+    // a conditional update. Publish/restore require both expected counters,
+    // re-verify stored bytes, and move active state in a single row update.
+    // ------------------------------------------------------------------
+
+    private readHistoryMaxVersions(): number {
+      return getBrandingPositiveInt('historyMaxVersions', BRANDING_HISTORY_MAX_VERSIONS);
+    }
+
+    private snapshotKey(value: unknown): string {
+      return JSON.stringify(value === undefined ? null : value);
+    }
+
+    private brandCounters(brand: Record<string, unknown>): { version: number; draftRevision: number } {
+      return {
+        version: typeof brand.version === 'number' ? brand.version : 0,
+        draftRevision: typeof brand.draftRevision === 'number' ? brand.draftRevision : 0,
+      };
+    }
+
+    private conflictError(brand: Record<string, unknown>): Error {
+      const current = this.brandCounters(brand);
+      const error = new Error(
+        `branding-conflict: expected version ${current.version} and draft revision ${current.draftRevision}`
+      ) as Error & { code?: string; current?: { version: number; draftRevision: number } };
+      error.code = 'branding-conflict';
+      error.current = current;
+      return error;
+    }
+
+    private codedError(code: string, message: string): Error {
+      const error = new Error(`${code}: ${message}`) as Error & { code?: string };
+      error.code = code;
+      return error;
+    }
+
+    private isUniqueViolation(error: unknown): boolean {
+      const code =
+        typeof (error as { code?: unknown })?.code === 'string' ? String((error as { code?: unknown }).code) : '';
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      return code === 'E_UNIQUE' || /E_UNIQUE|unique|duplicate key/i.test(`${code} ${message}`);
+    }
+
+    private extractActor(actor: unknown): { actorId?: string; actorDisplayName?: string } {
+      if (!actor || typeof actor !== 'object') {
+        return {};
+      }
+      const record = actor as Record<string, unknown>;
+      const actorId =
+        typeof record.id === 'string' || typeof record.id === 'number'
+          ? String(record.id)
+          : typeof record.username === 'string'
+            ? record.username
+            : undefined;
+      const actorDisplayName =
+        typeof record.displayName === 'string'
+          ? record.displayName
+          : typeof record.name === 'string'
+            ? record.name
+            : typeof record.username === 'string'
+              ? record.username
+              : actorId;
+      return { actorId, actorDisplayName };
+    }
+
+    private async loadBrandOrThrow(branding: string): Promise<Record<string, unknown>> {
+      const brand = (await BrandingConfig.findOne({ name: branding })) as unknown as Record<string, unknown> | null;
+      if (!brand) {
+        throw this.codedError('branding-not-found', `Brand not found: ${branding}`);
+      }
+      return brand;
+    }
+
+    private draftTypefaceOf(brand: Record<string, unknown>): BrandingTypefaceState {
+      return normalizeTypefaceState(brand.draftTypeface);
+    }
+
+    private async listHistoriesAsc(brandingId: string): Promise<BrandingConfigHistoryAttributes[]> {
+      return (await BrandingConfigHistory.find({ branding: brandingId }).sort(
+        'version ASC'
+      )) as unknown as BrandingConfigHistoryAttributes[];
+    }
+
+    private activeHistoryRow(
+      histories: BrandingConfigHistoryAttributes[],
+      activeVersion: number
+    ): BrandingConfigHistoryAttributes | undefined {
+      return histories.find(history => history.version === activeVersion);
+    }
+
+    private async maxHistoryVersion(brandingId: string): Promise<number> {
+      const histories = await this.listHistoriesAsc(brandingId);
+      return histories.reduce((max, history) => Math.max(max, history.version), 0);
+    }
+
+    /** Canonical Admin-state response builder (design.md section 5.3). */
+    public async getAdminState(branding: string): Promise<BrandingAdminState> {
+      const brand = await this.loadBrandOrThrow(branding);
+      const { version: activeVersion, draftRevision } = this.brandCounters(brand);
+      const histories = await this.listHistoriesAsc(String(brand.id));
+      const activeRow = this.activeHistoryRow(histories, activeVersion);
+      const activeVariables = (activeRow?.variables ?? {}) as Record<string, string>;
+      const activeTypeface = normalizeTypefaceState(
+        (brand.typeface as BrandingTypefaceState | null | undefined) ?? activeRow?.typeface ?? null
+      );
+      const draftVariables = ((brand.variables ?? {}) as Record<string, string>) || {};
+      const draftTypeface = this.draftTypefaceOf(brand);
+      const versions: BrandingVersionEntry[] = [...histories]
+        .sort((left, right) => right.version - left.version)
+        .map(history => ({
+          id: String(history.id),
+          branding: String(brand.id),
+          version: history.version,
+          hash: history.hash,
+          dateCreated: history.dateCreated as unknown as string,
+          actorId: history.actorId,
+          actorDisplayName: history.actorDisplayName,
+          restoredFromVersion: history.restoredFromVersion,
+          variables: ((history.variables ?? {}) as Record<string, string>) || {},
+          typeface: normalizeTypefaceState(history.typeface as BrandingTypefaceState | null | undefined),
+        }));
+      const healthWarnings = await this.activeHealthWarnings(String(brand.id), activeTypeface);
+      return {
+        branding: { id: String(brand.id), name: String(brand.name) },
+        active: {
+          version: activeVersion,
+          hash: String(brand.hash ?? ''),
+          variables: activeVariables,
+          typeface: activeTypeface,
+        },
+        draft: {
+          revision: draftRevision,
+          variables: draftVariables,
+          typeface: draftTypeface,
+          dirty: {
+            colours: this.snapshotKey(draftVariables) !== this.snapshotKey(activeVariables),
+            typeface: this.snapshotKey(draftTypeface) !== this.snapshotKey(activeTypeface),
+          },
+        },
+        versions,
+        limits: {
+          faceMaxBytes: getBrandingPositiveInt('typefaceFaceMaxBytes', BRANDING_TYPEFACE_FACE_MAX_BYTES),
+          familyMaxBytes: getBrandingPositiveInt('typefaceFamilyMaxBytes', BRANDING_TYPEFACE_FAMILY_MAX_BYTES),
+          historyMaxVersions: this.readHistoryMaxVersions(),
+        },
+        healthWarnings,
+      };
+    }
+
+    /** Retained versions newest-first. */
+    public async listVersions(branding: string): Promise<BrandingVersionEntry[]> {
+      return (await this.getAdminState(branding)).versions;
+    }
+
+    /** Advisory active-asset health; config retrieval never fails on storage errors. */
+    private async activeHealthWarnings(
+      brandingId: string,
+      activeTypeface: BrandingTypefaceState
+    ): Promise<BrandingHealthWarning[]> {
+      const warnings: BrandingHealthWarning[] = [];
+      for (const face of orderedTypefaceFaces(activeTypeface)) {
+        try {
+          await BrandingTypefaceService.readFace(brandingId, face.sha256);
+        } catch (error) {
+          const code = (error as { code?: string })?.code === 'typeface-corrupt' ? 'face-corrupt' : 'face-unavailable';
+          sails.log.warn(`BrandingService active typeface health: brand ${brandingId} slot ${face.slot} ${code}`);
+          warnings.push({ code, slot: face.slot, sha256: face.sha256 });
+        }
+      }
+      return warnings;
+    }
+
+    private requireDraftRevision(brand: Record<string, unknown>, expectedDraftRevision?: number): number {
+      const current = typeof brand.draftRevision === 'number' ? brand.draftRevision : 0;
+      if (expectedDraftRevision === undefined || expectedDraftRevision !== current) {
+        throw this.conflictError(brand);
+      }
+      return current;
+    }
+
+    private requireCounters(
+      brand: Record<string, unknown>,
+      expectedVersion?: number,
+      expectedDraftRevision?: number
+    ): void {
+      const current = this.brandCounters(brand);
+      if (
+        expectedVersion === undefined ||
+        expectedVersion !== current.version ||
+        expectedDraftRevision === undefined ||
+        expectedDraftRevision !== current.draftRevision
+      ) {
+        throw this.conflictError(brand);
+      }
+    }
+
+    private async conditionalDraftUpdate(
+      brand: Record<string, unknown>,
+      patch: Record<string, unknown>
+    ): Promise<Record<string, unknown>> {
+      const current = typeof brand.draftRevision === 'number' ? brand.draftRevision : 0;
+      const updated = (await BrandingConfig.updateOne({ id: brand.id, draftRevision: current }).set({
+        ...patch,
+        draftRevision: current + 1,
+      })) as unknown as Record<string, unknown> | null;
+      if (!updated) {
+        const reread = await this.loadBrandOrThrow(String(brand.name));
+        throw this.conflictError(reread);
+      }
       return updated;
     }
 
-    /** Generate preview token storing compiled CSS in CacheEntry */
-    public async preview(branding: string, portal: string): Promise<{ token: string; url: string; hash: string; }> {
-      const brand = await BrandingConfig.findOne({ name: branding });
-      if (!brand) throw new Error('branding-not-found');
-      const { css, hash } = BrandingThemeCssService.generate(brand.variables || {});
+    /** Save colour draft; typeface draft is preserved untouched. */
+    public async saveDraft(input: {
+      branding: string;
+      variables: Record<string, string>;
+      expectedDraftRevision?: number;
+      actor?: unknown;
+    }): Promise<BrandingAdminState> {
+      const brand = await this.loadBrandOrThrow(input.branding);
+      this.requireDraftRevision(brand, input.expectedDraftRevision);
+      const normalized = BrandingThemeCssService.validateVariables(input.variables || {});
+      await this.conditionalDraftUpdate(brand, { variables: normalized });
+      return this.getAdminState(input.branding);
+    }
+
+    /** Stage one uploaded face and apply a single-slot draft mutation. */
+    public async uploadTypefaceFace(input: {
+      branding: string;
+      slot: string;
+      bytes: Buffer;
+      originalFilename?: string;
+      expectedDraftRevision?: number;
+      actor?: unknown;
+    }): Promise<BrandingAdminState> {
+      if (!isBrandingTypefaceSlot(input.slot)) {
+        throw this.codedError('branding-invalid', `Invalid typeface slot: ${String(input.slot)}`);
+      }
+      const brand = await this.loadBrandOrThrow(input.branding);
+      this.requireDraftRevision(brand, input.expectedDraftRevision);
+      const draft = this.draftTypefaceOf(brand);
+      // Editing an existing custom typeface begins from the active state.
+      const base =
+        draft.mode === 'default' && normalizeTypefaceState(brand.typeface).mode === 'custom'
+          ? { ...(normalizeTypefaceState(brand.typeface).faces ?? {}) }
+          : { ...(draft.faces ?? {}) };
+      const face = await BrandingTypefaceService.inspectAndStoreFace({
+        brandingId: String(brand.id),
+        slot: input.slot,
+        bytes: input.bytes,
+        originalFilename: input.originalFilename,
+        existingFaces: orderedTypefaceFaces({ mode: 'custom', faces: base }),
+      });
+      base[input.slot] = face;
+      await this.conditionalDraftUpdate(brand, { draftTypeface: { mode: 'custom', faces: base } });
+      return this.getAdminState(input.branding);
+    }
+
+    /** Remove one draft face; the active typeface is untouched. */
+    public async removeTypefaceFace(input: {
+      branding: string;
+      slot: string;
+      expectedDraftRevision?: number;
+      actor?: unknown;
+    }): Promise<BrandingAdminState> {
+      if (!isBrandingTypefaceSlot(input.slot)) {
+        throw this.codedError('branding-invalid', `Invalid typeface slot: ${String(input.slot)}`);
+      }
+      const brand = await this.loadBrandOrThrow(input.branding);
+      this.requireDraftRevision(brand, input.expectedDraftRevision);
+      const draft = this.draftTypefaceOf(brand);
+      if (draft.mode !== 'custom' || !draft.faces?.[input.slot]) {
+        throw this.codedError('branding-face-not-found', `No draft face in slot: ${String(input.slot)}`);
+      }
+      const faces = { ...(draft.faces ?? {}) };
+      delete faces[input.slot];
+      const next: BrandingTypefaceState =
+        Object.keys(faces).length === 0 ? { mode: 'default', faces: {} } : { mode: 'custom', faces };
+      await this.conditionalDraftUpdate(brand, { draftTypeface: next });
+      return this.getAdminState(input.branding);
+    }
+
+    /** Set the draft typeface to Default Typography; draft colours are preserved. */
+    public async useDefaultTypography(input: {
+      branding: string;
+      expectedDraftRevision?: number;
+      actor?: unknown;
+    }): Promise<BrandingAdminState> {
+      const brand = await this.loadBrandOrThrow(input.branding);
+      this.requireDraftRevision(brand, input.expectedDraftRevision);
+      await this.conditionalDraftUpdate(brand, { draftTypeface: { mode: 'default', faces: {} } });
+      return this.getAdminState(input.branding);
+    }
+
+    /** Copy only the active typeface into the draft; draft colours are preserved. */
+    public async revertTypefaceDraft(input: {
+      branding: string;
+      expectedDraftRevision?: number;
+      actor?: unknown;
+    }): Promise<BrandingAdminState> {
+      const brand = await this.loadBrandOrThrow(input.branding);
+      this.requireDraftRevision(brand, input.expectedDraftRevision);
+      const histories = await this.listHistoriesAsc(String(brand.id));
+      const { version: activeVersion } = this.brandCounters(brand);
+      const activeRow = this.activeHistoryRow(histories, activeVersion);
+      const activeTypeface = normalizeTypefaceState(
+        (brand.typeface as BrandingTypefaceState | null | undefined) ?? activeRow?.typeface ?? null
+      );
+      await this.conditionalDraftUpdate(brand, { draftTypeface: activeTypeface });
+      return this.getAdminState(input.branding);
+    }
+
+    private previewUrl(branding: string, portal: string, token: string): string {
+      return `/${branding}/${portal}/preview/${token}.css`;
+    }
+
+    /** Generate preview CSS for an exact draft revision (non-mutating). */
+    public async preview(
+      branding: string,
+      portal: string,
+      expectedDraftRevision?: number
+    ): Promise<{ token: string; url: string; hash: string; revision: number }> {
+      const brand = await this.loadBrandOrThrow(branding);
+      const current = typeof brand.draftRevision === 'number' ? brand.draftRevision : 0;
+      if (expectedDraftRevision === undefined || expectedDraftRevision !== current) {
+        throw this.conflictError(brand);
+      }
+      const draftVariables = ((brand.variables ?? {}) as Record<string, string>) || {};
+      const draftTypeface = this.draftTypefaceOf(brand);
+      const { css, hash } = BrandingThemeCssService.generate(draftVariables, {
+        typeface: draftTypeface,
+        brandName: String(brand.name),
+      });
       const token = crypto.randomBytes(16).toString('hex');
       const name = `branding-preview:${token}`;
       const ts = Math.floor(Date.now() / 1000);
-      await CacheEntry.create({ name, data: { css, branding, portal, hash }, ts_added: ts });
-      const url = `/${branding}/${portal}/preview/${token}.css`;
-      return { token, url, hash };
+      await CacheEntry.create({ name, data: { css, branding, portal, hash, revision: current }, ts_added: ts });
+      return { token, url: this.previewUrl(branding, portal, token), hash, revision: current };
+    }
+
+    /** Preview a retained version without mutating the draft. */
+    public async previewVersion(input: {
+      branding: string;
+      portal: string;
+      versionId: string;
+    }): Promise<{ token: string; url: string; hash: string }> {
+      const brand = await this.loadBrandOrThrow(input.branding);
+      // Brand-scoped lookup: rows from another brand never match, so cross-brand
+      // restores/previews are rejected as not-found.
+      const histories = await this.listHistoriesAsc(String(brand.id));
+      const row = histories.find(history => String(history.id) === String(input.versionId));
+      if (!row) {
+        throw this.codedError('history-not-found', `Version not found: ${input.versionId}`);
+      }
+      const variables = ((row.variables ?? {}) as Record<string, string>) || {};
+      const typeface = normalizeTypefaceState(row.typeface as BrandingTypefaceState | null | undefined);
+      const { css, hash } = BrandingThemeCssService.generate(variables, { typeface, brandName: String(brand.name) });
+      const token = crypto.randomBytes(16).toString('hex');
+      const ts = Math.floor(Date.now() / 1000);
+      await CacheEntry.create({
+        name: `branding-preview:${token}`,
+        data: { css, branding: input.branding, portal: input.portal, hash, versionId: String(row.id) },
+        ts_added: ts,
+      });
+      return { token, url: this.previewUrl(input.branding, input.portal, token), hash };
     }
 
     /** Fetch preview CSS (helper for tests); enforces TTL */
-    public async fetchPreview(token: string): Promise<{ css: string; branding: string; portal: string; hash: string; }> {
+    public async fetchPreview(
+      token: string
+    ): Promise<{ css: string; branding: string; portal: string; hash: string; revision?: number; versionId?: string }> {
       const ttl = _.get(sails, 'config.branding.previewTtlSeconds', 300);
       const name = `branding-preview:${token}`;
       const entry = await CacheEntry.findOne({ name });
@@ -233,53 +652,305 @@ export namespace Services {
       }
       // Single-use: destroy after first successful fetch
       await CacheEntry.destroy({ id: entry.id });
-      return entry.data as { css: string; branding: string; portal: string; hash: string; };
-    }
-
-    /** Publish current draft (variables) -> CSS, bump version, persist hash, history */
-    public async publish(branding: string, portal: string, _actor: unknown, opts?: { expectedVersion?: number; }): Promise<{ version: number; hash: string; idempotent?: boolean; }> {
-      const brand = await BrandingConfig.findOne({ name: branding });
-      if (!brand) throw new Error('branding-not-found');
-      if (opts?.expectedVersion != null && brand.version != null && opts.expectedVersion !== brand.version) {
-        throw new Error('publish-conflict');
-      }
-      const { css, hash } = BrandingThemeCssService.generate(brand.variables || {});
-      // Idempotency: if hash unchanged from last published, do not create new history/version
-      if (brand.hash && brand.hash === hash) {
-        return { version: brand.version || 0, hash: brand.hash, idempotent: true };
-      }
-      const newVersion = (brand.version || 0) + 1;
-      await BrandingConfig.update({ id: brand.id }, { css, hash, version: newVersion });
-      await BrandingConfigHistory.create({ branding: brand.id, version: newVersion, hash, css, variables: brand.variables });
-      await this.refreshBrandingCache(brand.id);
-      return { version: newVersion, hash };
-    }
-
-    /** Rollback to a previous published version via history id */
-    public async rollback(historyId: string, _actor: unknown): Promise<{ version: number; hash: string; branding: BrandingModel | null; }> {
-      const historyEntry = await BrandingConfigHistory.findOne({ id: historyId }).populate('branding') as unknown as BrandingConfigHistoryAttributes | null;
-      if (!historyEntry) throw new Error('history-not-found');
-      const branding = historyEntry.branding as unknown as BrandingModel | null;
-      if (!branding) throw new Error('branding-not-found');
-
-      // Restore variables, CSS, hash from history
-      await BrandingConfig.update({ id: (branding as BrandingModel).id }, {
-        variables: historyEntry.variables,
-        css: historyEntry.css,
-        hash: historyEntry.hash,
-        version: historyEntry.version
-      });
-      const refreshed = await this.refreshBrandingCache((branding as BrandingModel).id);
-      return {
-        version: historyEntry.version,
-        hash: historyEntry.hash,
-        branding: refreshed
+      return entry.data as {
+        css: string;
+        branding: string;
+        portal: string;
+        hash: string;
+        revision?: number;
+        versionId?: string;
       };
+    }
+
+    private async buildPublishSnapshot(brand: Record<string, unknown>): Promise<{
+      variables: Record<string, string>;
+      typeface: BrandingTypefaceState;
+      css: string;
+      hash: string;
+    }> {
+      const variables = BrandingThemeCssService.validateVariables(
+        (((brand.variables ?? {}) as Record<string, string>) || {}) as Record<string, string>
+      );
+      const typeface = this.draftTypefaceOf(brand);
+      if (!isPublishableTypefaceState(typeface)) {
+        throw this.codedError('branding-invalid', 'A custom typeface cannot be published without a Regular face');
+      }
+      await BrandingTypefaceService.assertTypefaceAvailable(String(brand.id), typeface);
+      const { css, hash } = BrandingThemeCssService.generate(variables, { typeface, brandName: String(brand.name) });
+      return { variables, typeface, css, hash };
+    }
+
+    /** Publish the draft atomically; unchanged publishes are idempotent. */
+    public async publish(
+      branding: string,
+      portal: string,
+      actor: unknown,
+      opts?: { expectedVersion?: number; expectedDraftRevision?: number }
+    ): Promise<{ state: BrandingAdminState; version: number; hash: string; idempotent?: boolean }> {
+      const brand = await this.loadBrandOrThrow(branding);
+      this.requireCounters(brand, opts?.expectedVersion, opts?.expectedDraftRevision);
+      const snapshot = await this.buildPublishSnapshot(brand);
+      const { version: activeVersion, draftRevision } = this.brandCounters(brand);
+      const histories = await this.listHistoriesAsc(String(brand.id));
+      const activeRow = this.activeHistoryRow(histories, activeVersion);
+      const activeVariables = ((activeRow?.variables ?? {}) as Record<string, string>) || {};
+      const activeTypeface = normalizeTypefaceState(
+        (brand.typeface as BrandingTypefaceState | null | undefined) ?? activeRow?.typeface ?? null
+      );
+      if (
+        String(brand.hash ?? '') === snapshot.hash &&
+        this.snapshotKey(snapshot.variables) === this.snapshotKey(activeVariables) &&
+        this.snapshotKey(snapshot.typeface) === this.snapshotKey(activeTypeface)
+      ) {
+        const state = await this.getAdminState(branding);
+        return { state, version: activeVersion, hash: String(brand.hash ?? ''), idempotent: true };
+      }
+      const maxVersion = histories.reduce((max, history) => Math.max(max, history.version), activeVersion);
+      const nextVersion = maxVersion + 1;
+      const attribution = this.extractActor(actor);
+      const historyValues = {
+        branding: brand.id,
+        version: nextVersion,
+        hash: snapshot.hash,
+        css: snapshot.css,
+        variables: snapshot.variables,
+        typeface: snapshot.typeface,
+        ...(attribution.actorId ? { actorId: attribution.actorId } : {}),
+        ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
+      };
+      const datastore = typeof BrandingConfig.getDatastore === 'function' ? BrandingConfig.getDatastore() : undefined;
+      await runWithOptionalTransaction(
+        datastore,
+        async connection => {
+          const createQuery = BrandingConfigHistory.create(historyValues) as unknown as {
+            usingConnection?: (conn: unknown) => Promise<unknown>;
+          } & Promise<unknown>;
+          let created: { id?: unknown } | null = null;
+          try {
+            created = (await (connection && typeof createQuery.usingConnection === 'function'
+              ? createQuery.usingConnection(connection)
+              : createQuery)) as { id?: unknown } | null;
+          } catch (error) {
+            if (!this.isUniqueViolation(error)) {
+              throw error;
+            }
+            const reread = await this.loadBrandOrThrow(branding);
+            throw this.conflictError(reread);
+          }
+          const updateQuery = BrandingConfig.updateOne({
+            id: brand.id,
+            version: activeVersion,
+            draftRevision,
+          }).set({
+            css: snapshot.css,
+            hash: snapshot.hash,
+            version: nextVersion,
+            typeface: snapshot.typeface,
+            draftTypeface: snapshot.typeface,
+            draftRevision: draftRevision + 1,
+          }) as unknown as {
+            usingConnection?: (conn: unknown) => Promise<unknown>;
+          } & Promise<unknown>;
+          const updated = (await (connection && typeof updateQuery.usingConnection === 'function'
+            ? updateQuery.usingConnection(connection)
+            : updateQuery)) as unknown as Record<string, unknown> | null;
+          if (!updated) {
+            if (!connection && created && created.id !== undefined) {
+              await BrandingConfigHistory.destroy({ id: created.id }).catch(() => undefined);
+            }
+            const reread = await this.loadBrandOrThrow(branding);
+            throw this.conflictError(reread);
+          }
+        },
+        { logger: sails.log }
+      );
+      await this.pruneHistories(String(brand.id));
+      await this.refreshBrandingCache(String(brand.id));
+      const state = await this.getAdminState(branding);
+      return { state, version: nextVersion, hash: snapshot.hash };
+    }
+
+    /** Restore a retained version as a new monotonically increasing version. */
+    public async restore(input: {
+      branding: string;
+      versionId: string;
+      expectedVersion?: number;
+      expectedDraftRevision?: number;
+      actor?: unknown;
+    }): Promise<{ state: BrandingAdminState; version: number; hash: string }> {
+      const brand = await this.loadBrandOrThrow(input.branding);
+      this.requireCounters(brand, input.expectedVersion, input.expectedDraftRevision);
+      const histories = await this.listHistoriesAsc(String(brand.id));
+      const row = histories.find(history => String(history.id) === String(input.versionId));
+      if (!row) {
+        throw this.codedError('history-not-found', `Version not found: ${input.versionId}`);
+      }
+      const { version: activeVersion, draftRevision } = this.brandCounters(brand);
+      const variables = BrandingThemeCssService.validateVariables(
+        (((row.variables ?? {}) as Record<string, string>) || {}) as unknown as Record<string, string>
+      );
+      const typeface = normalizeTypefaceState(row.typeface as BrandingTypefaceState | null | undefined);
+      // Re-read and hash-check every face before any active mutation.
+      await BrandingTypefaceService.assertTypefaceAvailable(String(brand.id), typeface);
+      // Regenerate CSS from the historical snapshot rather than trusting stored CSS.
+      const { css, hash } = BrandingThemeCssService.generate(variables, { typeface, brandName: String(brand.name) });
+      const maxVersion = histories.reduce((max, history) => Math.max(max, history.version), activeVersion);
+      const nextVersion = maxVersion + 1;
+      const attribution = this.extractActor(input.actor);
+      const historyValues = {
+        branding: brand.id,
+        version: nextVersion,
+        hash,
+        css,
+        variables,
+        typeface,
+        restoredFromVersion: row.version,
+        ...(attribution.actorId ? { actorId: attribution.actorId } : {}),
+        ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
+      };
+      const datastore = typeof BrandingConfig.getDatastore === 'function' ? BrandingConfig.getDatastore() : undefined;
+      await runWithOptionalTransaction(
+        datastore,
+        async connection => {
+          const createQuery = BrandingConfigHistory.create(historyValues) as unknown as {
+            usingConnection?: (conn: unknown) => Promise<unknown>;
+          } & Promise<unknown>;
+          let created: { id?: unknown } | null = null;
+          try {
+            created = (await (connection && typeof createQuery.usingConnection === 'function'
+              ? createQuery.usingConnection(connection)
+              : createQuery)) as { id?: unknown } | null;
+          } catch (error) {
+            if (!this.isUniqueViolation(error)) {
+              throw error;
+            }
+            const reread = await this.loadBrandOrThrow(input.branding);
+            throw this.conflictError(reread);
+          }
+          const updateQuery = BrandingConfig.updateOne({
+            id: brand.id,
+            version: activeVersion,
+            draftRevision,
+          }).set({
+            css,
+            hash,
+            version: nextVersion,
+            variables,
+            typeface,
+            draftTypeface: typeface,
+            draftRevision: draftRevision + 1,
+          }) as unknown as {
+            usingConnection?: (conn: unknown) => Promise<unknown>;
+          } & Promise<unknown>;
+          const updated = (await (connection && typeof updateQuery.usingConnection === 'function'
+            ? updateQuery.usingConnection(connection)
+            : updateQuery)) as unknown as Record<string, unknown> | null;
+          if (!updated) {
+            if (!connection && created && created.id !== undefined) {
+              await BrandingConfigHistory.destroy({ id: created.id }).catch(() => undefined);
+            }
+            const reread = await this.loadBrandOrThrow(input.branding);
+            throw this.conflictError(reread);
+          }
+        },
+        { logger: sails.log }
+      );
+      await this.pruneHistories(String(brand.id));
+      await this.refreshBrandingCache(String(brand.id));
+      const state = await this.getAdminState(input.branding);
+      return { state, version: nextVersion, hash };
+    }
+
+    /**
+     * Deprecated one-major-release alias with restore semantics.
+     * Kept only for the compatibility route; new code must call restore.
+     */
+    public async rollback(
+      versionId: string,
+      actor: unknown,
+      opts?: { branding?: string; expectedVersion?: number; expectedDraftRevision?: number }
+    ): Promise<{ state: BrandingAdminState; version: number; hash: string }> {
+      let branding = opts?.branding;
+      if (!branding) {
+        const row = (await BrandingConfigHistory.findOne({
+          id: versionId,
+        })) as unknown as BrandingConfigHistoryAttributes | null;
+        if (!row) {
+          throw this.codedError('history-not-found', `Version not found: ${versionId}`);
+        }
+        const populated = row.branding as unknown as { id?: unknown; name?: unknown } | string | number;
+        if (typeof populated === 'object' && populated !== null && populated.id !== undefined) {
+          const brand = (await BrandingConfig.findOne({ id: populated.id })) as unknown as Record<
+            string,
+            unknown
+          > | null;
+          if (!brand) {
+            throw this.codedError('branding-not-found', `Brand not found for version: ${versionId}`);
+          }
+          branding = String(brand.name);
+        } else {
+          const brand = (await BrandingConfig.findOne({ id: populated as string })) as unknown as Record<
+            string,
+            unknown
+          > | null;
+          if (!brand) {
+            throw this.codedError('branding-not-found', `Brand not found for version: ${versionId}`);
+          }
+          branding = String(brand.name);
+        }
+      }
+      return this.restore({
+        branding,
+        versionId,
+        expectedVersion: opts?.expectedVersion,
+        expectedDraftRevision: opts?.expectedDraftRevision,
+        actor,
+      });
+    }
+
+    /** Retain only the newest configured history rows after a durable transition. */
+    private async pruneHistories(brandingId: string): Promise<void> {
+      const retain = this.readHistoryMaxVersions();
+      const histories = (await BrandingConfigHistory.find({ branding: brandingId }).sort(
+        'version DESC'
+      )) as unknown as BrandingConfigHistoryAttributes[];
+      for (const history of histories.slice(retain)) {
+        await BrandingConfigHistory.destroy({ id: history.id });
+        sails.log.verbose(`BrandingService pruned branding ${brandingId} version ${history.version}`);
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Page-rendering helpers for layouts (design.md sections 3.4, 9.1).
+    // Synchronous reads of the in-memory brand cache so EJS layouts can
+    // decide font inclusion without storage I/O. A missing or corrupt active
+    // face never re-enables Google fonts here; the browser falls back via CSS
+    // while the Admin state carries the health warning.
+    // ------------------------------------------------------------------
+
+    /** Regular-face public URL for an active custom typeface, else null. */
+    public getActiveTypefaceFontInfo(brandingName: string): { regularUrl: string } | null {
+      const brand = this.getBrand(brandingName);
+      const typeface = normalizeTypefaceState((brand as BrandingModel | undefined)?.typeface);
+      if (typeface.mode !== 'custom' || !typeface.faces?.regular) {
+        return null;
+      }
+      return {
+        regularUrl: BrandingTypefaceService.publicUrl(
+          String((brand as BrandingModel).name),
+          typeface.faces.regular.sha256
+        ),
+      };
+    }
+
+    /** True when the resolved brand has an active custom typeface with a Regular face. */
+    public hasActiveCustomTypeface(brandingName: string): boolean {
+      return this.getActiveTypefaceFontInfo(brandingName) !== null;
     }
 
     /** Refresh a single branding record in the in-memory cache (this.brandings & availableBrandings) */
     public async refreshBrandingCache(id: string): Promise<BrandingModel | null> {
-      const updated = await BrandingConfig.findOne({ id }).populate('roles') as unknown as BrandingModel | null;
+      const updated = (await BrandingConfig.findOne({ id }).populate('roles')) as unknown as BrandingModel | null;
       if (updated) {
         const idx = this.brandings.findIndex((b: BrandingModel) => b.id === id);
         if (idx >= 0) {
@@ -291,9 +962,7 @@ export namespace Services {
       }
       return updated;
     }
-
   }
-
 }
 
 declare global {
