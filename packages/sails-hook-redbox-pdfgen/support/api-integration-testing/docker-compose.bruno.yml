@@ -47,9 +47,9 @@ services:
 
   redboxportal:
     build:
-      context: ../..
+      context: ../../../..
       dockerfile: Dockerfile
-      target: redbox-hook--researchdatabox-sails-hook-redbox-pdfgen
+      target: runtime_pdfgen
     ports:
       - "1500:1500"
     volumes:
@@ -59,7 +59,7 @@ services:
     expose:
       - "1500"
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:1500/default/rdmp/home"]
+      test: ["CMD-SHELL", "curl --fail http://localhost:1500/default/rdmp/home"]
       interval: "10s"
       timeout: "5s"
       retries: 10
@@ -98,7 +98,7 @@ services:
     ports:
       - "8983:8983"
     healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:8983"]
+      test: ["CMD-SHELL", "curl --fail http://localhost:8983"]
       interval: "10s"
       timeout: "5s"
       retries: 10

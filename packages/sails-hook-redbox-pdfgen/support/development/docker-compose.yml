@@ -6,9 +6,9 @@ networks:
 services:
   rbportal:
     build:
-      context: "../../"
+      context: "../../../.."
       dockerfile: "Dockerfile"
-      target: "redbox-hook--researchdatabox-sails-hook-redbox-pdfgen"
+      target: "runtime_pdfgen"
     ports:
       - "1500:1500"
       - "9876:9876"

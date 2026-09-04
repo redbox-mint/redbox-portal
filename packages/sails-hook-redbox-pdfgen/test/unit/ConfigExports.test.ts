@@ -30,6 +30,46 @@ describe('Config exports', () => {
     expect(Object.keys(mergedJobs)).to.deep.equal(['SolrSearchService-CreateOrUpdateIndex', 'PDFService-CreatePDF']);
   });
 
+  it('merges duplicate agenda jobs without discarding application-only settings', () => {
+    const existingJobs = {
+      'PDFService-CreatePDF': {
+        fnName: 'applicationservice.createPDF',
+        backend: 'sqs' as const,
+        options: {
+          concurrency: 8,
+          priority: 'high' as const,
+        },
+        schedule: {
+          method: 'every' as const,
+          intervalOrSchedule: '10 minutes',
+          opts: {
+            timezone: 'Australia/Adelaide',
+          },
+        },
+      },
+    };
+
+    const mergedJobs = mergeAgendaQueueJobs(existingJobs, agendaQueue.jobs);
+
+    expect(mergedJobs['PDFService-CreatePDF']).to.deep.equal({
+      fnName: 'rdmpservice.queuedTriggerSubscriptionHandler',
+      backend: 'sqs',
+      options: {
+        concurrency: 1,
+        priority: 'high',
+        lockLifetime: 120 * 1000,
+        lockLimit: 1,
+      },
+      schedule: {
+        method: 'every',
+        intervalOrSchedule: '10 minutes',
+        opts: {
+          timezone: 'Australia/Adelaide',
+        },
+      },
+    });
+  });
+
   it('registers the PDF token as a secret config field', () => {
     expect(PDFGEN_CONFIG_MODEL.secretFields).to.deep.equal(['token']);
   });
@@ -40,6 +80,10 @@ describe('Config exports', () => {
     });
     expect(packageJson.devDependencies['@researchdatabox/redbox-core']).to.equal('file:../redbox-core');
     expect(packageJson.peerDependencies).to.not.have.property('@researchdatabox/redbox-core-types');
+  });
+
+  it('declares luxon as a pinned runtime dependency', () => {
+    expect(packageJson.dependencies.luxon).to.equal('3.7.2');
   });
 
   it('leaves sourceUrlBase unset so the service can derive it from the current brand', () => {

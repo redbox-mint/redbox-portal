@@ -57,6 +57,8 @@ type PdfgenRuntimePDFOptions = PdfgenPDFOptions & {
   path?: string;
 };
 
+type SailsLower = (...args: unknown[]) => void;
+
 function getAuditBrandId(record: PdfRecord): string | undefined {
   const brandId = record.metaMetadata?.brandId;
   return brandId == null ? undefined : String(brandId);
@@ -85,6 +87,7 @@ export namespace Services {
       interruptReason?: 'shutdown' | 'superseded';
     }> = new Map();
     private generationTasks: Set<Fiber.RuntimeFiber<void, never>> = new Set();
+    private shutdownCoordinatorInstalled = false;
     private DatastreamService!: DatastreamService;
     protected override _exportedMethods: string[] = [
       'createPDF',
@@ -99,9 +102,35 @@ export namespace Services {
           this.DatastreamService = sails.services[datastreamServiceName] as unknown as DatastreamService;
         }
       });
-      if (typeof sails.on === 'function') {
-        sails.on('lower', () => this.shutdownPDFRetries());
+      this.installShutdownCoordinator();
+    }
+
+    private installShutdownCoordinator(): void {
+      if (this.shutdownCoordinatorInstalled) {
+        return;
       }
+      const sailsWithLower = sails as Sails.Application & { lower?: SailsLower };
+      if (typeof sailsWithLower.lower !== 'function') {
+        return;
+      }
+      const lower = sailsWithLower.lower.bind(sailsWithLower);
+      let shutdownPromise: Promise<void> | undefined;
+
+      sailsWithLower.lower = (...args: unknown[]): void => {
+        if (shutdownPromise != null) {
+          return;
+        }
+        shutdownPromise = this.shutdownPDFRetries();
+        void (async () => {
+          try {
+            await shutdownPromise;
+          } catch (error) {
+            sails.log.warn('PDFService::Failed to complete PDF cleanup before Sails shutdown.', error);
+          }
+          lower(...args);
+        })();
+      };
+      this.shutdownCoordinatorInstalled = true;
     }
 
     public async shutdownPDFRetries(): Promise<void> {
@@ -634,7 +663,9 @@ export namespace Services {
               attemptsRun += 1;
               yield* this.attemptPDFGeneration(oid, record, options, brand, nextAttempt, parentAuditCtx).pipe(
                 Effect.matchEffect({
-                  onSuccess: () => Effect.sync(() => closeParent('success')),
+                  onSuccess: (result) => Effect.sync(() => closeParent(
+                    result.outcome === 'duplicateSuppressed' ? 'skipped' : 'success'
+                  )),
                   onFailure: (error: PDFError) => {
                     if (this.isRetryable(error)) {
                       if (remainingRetries === 1) {
@@ -653,7 +684,11 @@ export namespace Services {
         attemptsRun += 1;
         return yield* this.attemptPDFGeneration(oid, record, options, brand, 1, parentAuditCtx).pipe(
           Effect.matchEffect({
-            onSuccess: () => Effect.sync(() => {
+            onSuccess: (result) => Effect.sync(() => {
+              if (result.outcome === 'duplicateSuppressed') {
+                closeParent('skipped');
+                return;
+              }
               this.cancelPendingRetry(currentURL);
               closeParent('success');
             }),

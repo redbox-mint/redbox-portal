@@ -1,29 +1,13 @@
 const { Effect } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
-const { clearPdfgenTestGlobals, installPdfgenTestGlobals } = require('../support/globals');
+const {
+  clearPdfgenTestGlobals,
+  installPdfgenTestGlobals,
+  waitForAssertion,
+} = require('../support/globals');
 
 const globalAny = global as any;
-
-async function waitForAssertion(assertion: () => void, timeoutMs = 1000): Promise<void> {
-  const startedAt = Date.now();
-  let lastError: unknown;
-
-  while (Date.now() - startedAt < timeoutMs) {
-    try {
-      assertion();
-      return;
-    } catch (error) {
-      lastError = error;
-      await new Promise(resolve => setTimeout(resolve, 5));
-    }
-  }
-
-  assertion();
-  if (lastError != null) {
-    throw lastError;
-  }
-}
 
 describe('PDFService Unit Tests', () => {
   let pdfService: any;
@@ -76,6 +60,22 @@ describe('PDFService Unit Tests', () => {
     clearPdfgenTestGlobals();
   });
 
+  it('should accept an assertion that passes on the final retry', async () => {
+    const clock = sinon.useFakeTimers();
+    let attempts = 0;
+    const assertion = waitForAssertion(() => {
+      attempts += 1;
+      if (attempts < 3) {
+        throw new Error('not ready');
+      }
+    }, 10);
+
+    await clock.tickAsync(10);
+    await assertion;
+
+    expect(attempts).to.equal(3);
+  });
+
   it('should fail fast if required services are missing', async () => {
     delete globalAny.sails.services.storagemanagerservice;
     delete globalAny.StorageManagerService;
@@ -87,6 +87,30 @@ describe('PDFService Unit Tests', () => {
 
     expect(exit._tag).to.equal('Failure');
     expect((exit as any).cause).to.exist;
+  });
+
+  it('should await PDF cleanup before delegating to sails.lower', async () => {
+    let finishCleanup!: () => void;
+    const cleanup = new Promise<void>((resolve) => {
+      finishCleanup = resolve;
+    });
+    const originalLower = sinon.stub();
+    const lowerOptions = { hardShutdown: true };
+    const lowerCallback = sinon.stub();
+    globalAny.sails.lower = originalLower;
+    sinon.stub(pdfService, 'registerSailsHook');
+    const shutdownStub = sinon.stub(pdfService, 'shutdownPDFRetries').returns(cleanup);
+
+    pdfService.init();
+    globalAny.sails.lower(lowerOptions, lowerCallback);
+
+    expect(shutdownStub.calledOnce).to.be.true;
+    expect(originalLower.called).to.be.false;
+
+    finishCleanup();
+    await waitForAssertion(() => {
+      expect(originalLower.calledOnceWithExactly(lowerOptions, lowerCallback)).to.be.true;
+    });
   });
 
   it('should return the record and log in the background when its brand cannot be resolved', async () => {

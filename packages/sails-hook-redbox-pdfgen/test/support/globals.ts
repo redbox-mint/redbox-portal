@@ -3,6 +3,29 @@ const sinon = require('sinon');
 
 type LogFn = (...args: unknown[]) => void;
 
+async function waitForAssertion(assertion: () => void, timeoutMs = 1000): Promise<void> {
+  const startedAt = Date.now();
+  let lastError: unknown;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      assertion();
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+  }
+
+  try {
+    assertion();
+    return;
+  } catch (error) {
+    lastError = error;
+  }
+  throw lastError;
+}
+
 function installPdfgenTestGlobals(overrides: Record<string, unknown> = {}): void {
   const storageDiskPutStub = sinon.stub().resolves();
   const storageDiskDeleteStub = sinon.stub().resolves();
@@ -61,4 +84,5 @@ function clearPdfgenTestGlobals(): void {
 module.exports = {
   installPdfgenTestGlobals,
   clearPdfgenTestGlobals,
+  waitForAssertion,
 };

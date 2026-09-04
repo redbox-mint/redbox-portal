@@ -16,7 +16,39 @@ headers {
 }
 
 script:pre-request {
-  await new Promise((resolve) => setTimeout(() => resolve(), 45000));
+  const pollIntervalMs = 2000;
+  const deadline = Date.now() + 210000;
+  const dmpOid = String(bru.getEnvVar("dmpOid"));
+  const datastreamUrl = `${bru.getEnvVar("host")}/default/rdmp/api/records/datastreams/${dmpOid}`;
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await bru.sendRequest({
+        method: "GET",
+        url: datastreamUrl,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${bru.getEnvVar("token")}`
+        },
+        timeout: 5000
+      });
+      const records = response.data?.records;
+      const pdfExists = Array.isArray(records) && records.some((record) => {
+        const fileId = String(record.fileId);
+        return fileId.includes(dmpOid) && fileId.endsWith(".pdf");
+      });
+      if (pdfExists) {
+        break;
+      }
+    } catch (_error) {
+      // The final request and its existing assertions report any persistent failure.
+    }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs > 0) {
+      await bru.sleep(Math.min(pollIntervalMs, remainingMs));
+    }
+  }
 }
 
 tests {

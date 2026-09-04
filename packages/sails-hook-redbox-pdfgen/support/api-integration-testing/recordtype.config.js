@@ -49,6 +49,7 @@ exports.recordtype = {
                                 post: [{
                                         function: 'sails.services.pdfservice.createPDF',
                                         options: {
+                                                readinessStrategy: 'selector',
                                                 waitForSelector: 'div#loading.hidden',
                                                 pdfPrefix: 'rdmp-pdf',
                                         }
@@ -106,6 +107,7 @@ exports.recordtype = {
                  post: [{
                    function: 'sails.services.pdfservice.createPDF',
                    options: {
+                     readinessStrategy: 'selector',
                      waitForSelector: 'div#loading.hidden',
                      pdfPrefix: 'rdmp-pdf',
                    }

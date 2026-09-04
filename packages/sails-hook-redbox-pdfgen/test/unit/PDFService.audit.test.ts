@@ -1,7 +1,11 @@
 const { Cause, Effect } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
-const { clearPdfgenTestGlobals, installPdfgenTestGlobals } = require('../support/globals');
+const {
+  clearPdfgenTestGlobals,
+  installPdfgenTestGlobals,
+  waitForAssertion,
+} = require('../support/globals');
 
 const globalAny = global as any;
 
@@ -10,26 +14,6 @@ type StubAuditService = {
   completeAudit: sinon.SinonStub;
   failAudit: sinon.SinonStub;
 };
-
-async function waitForAssertion(assertion: () => void, timeoutMs = 1000): Promise<void> {
-  const startedAt = Date.now();
-  let lastError: unknown;
-
-  while (Date.now() - startedAt < timeoutMs) {
-    try {
-      assertion();
-      return;
-    } catch (error) {
-      lastError = error;
-      await new Promise(resolve => setTimeout(resolve, 5));
-    }
-  }
-
-  assertion();
-  if (lastError != null) {
-    throw lastError;
-  }
-}
 
 function installAuditServiceStub(): StubAuditService {
   let nextId = 0;
@@ -158,6 +142,37 @@ describe('PDFService Integration Audit', () => {
     expect(completeDetails.responseSummary).to.deep.equal({
       outcome: 'duplicateSuppressed',
       attempt: 1,
+    });
+  });
+
+  it('marks the parent audit as skipped when the initial attempt is a duplicate', async () => {
+    const record = { metaMetadata: { brandId: 1 } };
+    const options = {};
+    const currentURL = 'http://localhost:1500/default/rdmp/record/view/oid-parent-duplicate';
+
+    pdfService.processMap.add(currentURL);
+    const observable = pdfService.createPDF('oid-parent-duplicate', record, options, {});
+    await new Promise((resolve, reject) => {
+      observable.subscribe({ next: resolve, error: reject });
+    });
+
+    let parentSkipped: any;
+    await waitForAssertion(() => {
+      parentSkipped = auditStub.completeAudit
+        .getCalls()
+        .find(
+          (call: any) =>
+            call.args[0]?.integrationAction === 'generatePdfTrigger' &&
+            call.args[1]?.responseSummary?.finalStatus === 'skipped'
+        );
+      expect(parentSkipped).to.exist;
+    });
+    pdfService.processMap.delete(currentURL);
+
+    expect(parentSkipped!.args[1].message).to.equal('PDF generation pipeline skipped.');
+    expect(parentSkipped!.args[1].responseSummary).to.deep.equal({
+      attemptsRun: 1,
+      finalStatus: 'skipped',
     });
   });
 
@@ -388,6 +403,42 @@ describe('PDFService Integration Audit', () => {
     expect(parentFinal).to.exist;
     expect(parentFinal!.args[1].responseSummary.attemptsRun).to.equal(2);
     expect(parentFinal!.args[1].responseSummary.finalStatus).to.equal('success');
+  });
+
+  it('marks the parent audit as skipped when a retry attempt is a duplicate', async () => {
+    const record = { metaMetadata: { brandId: 1 } };
+    const options = { maxRetries: 1, retryDelayMs: 100 };
+    const currentURL = 'http://localhost:1500/default/rdmp/record/view/oid-retry-duplicate';
+
+    mockPage.goto.rejects(new Error('transient'));
+    const observable = pdfService.createPDF('oid-retry-duplicate', record, options, {});
+    await new Promise((resolve, reject) => {
+      observable.subscribe({ next: resolve, error: reject });
+    });
+
+    await waitForAssertion(() => {
+      expect(pdfService.retryTasks.size).to.equal(1);
+    });
+    pdfService.processMap.add(currentURL);
+
+    let parentSkipped: any;
+    await waitForAssertion(() => {
+      parentSkipped = auditStub.completeAudit
+        .getCalls()
+        .find(
+          (call: any) =>
+            call.args[0]?.integrationAction === 'generatePdfTrigger' &&
+            call.args[1]?.responseSummary?.finalStatus === 'skipped'
+        );
+      expect(parentSkipped).to.exist;
+    });
+    pdfService.processMap.delete(currentURL);
+
+    expect(mockPage.goto.calledOnce).to.be.true;
+    expect(parentSkipped!.args[1].responseSummary).to.deep.equal({
+      attemptsRun: 2,
+      finalStatus: 'skipped',
+    });
   });
 
   it('fails the parent audit when a pending background retry is interrupted on shutdown', async () => {
