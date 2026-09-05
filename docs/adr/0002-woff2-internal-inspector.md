@@ -25,8 +25,15 @@ decoding on the application event loop and bounds crafted-input resource use.
 
 The decoder is not a browser's complete OpenType sanitizer. Required sfnt tables
 and WOFF2 decoding are validated; browser load tests remain a distinct acceptance
-gate. Variable fonts are genuinely decoded before `fvar` rejection. Metadata XML
-remains advisory with bounded Brotli output and bounded matching.
+gate. Variable fonts are genuinely decoded before `fvar` rejection. Within the same worker, extract weight from OS/2.usWeightClass and slope from
+OS/2.fsSelection plus head.macStyle. Extract bounded Unicode name records,
+preferring typographic family/subfamily IDs 16/17 over IDs 1/2. Scan at most
+512 records and decode at most 512 bytes per name, retaining at most 256 characters.
+Standard sfnt metadata takes precedence over advisory XML fallback. Compare both
+weight and style with the selected slot; mismatches warn without changing the slot.
+Metadata XML remains advisory with bounded Brotli output and bounded matching.
+See the [OpenType name specification](https://learn.microsoft.com/en-us/typography/opentype/spec/name)
+and [OS/2 specification](https://learn.microsoft.com/en-us/typography/opentype/spec/os2).
 
 Replace synthetic successful-upload fixtures with Fontsource Roboto 5.3.0 static
 and variable WOFF2 files, with SIL OFL licensing and provenance in

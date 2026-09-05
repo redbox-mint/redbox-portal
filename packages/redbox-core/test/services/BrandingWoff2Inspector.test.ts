@@ -62,9 +62,9 @@ describe('BrandingWoff2Inspector genuine decoding', function () {
     font.writeUInt32BE(offset, 28);
     font.writeUInt32BE(compressed.length, 32);
     font.writeUInt32BE(Buffer.byteLength(xml), 36);
-    expect((await inspectWoff2Buffer(font)).inspection).to.deep.equal({});
+    expect((await inspectWoff2Buffer(font)).inspection).to.deep.equal((await inspectWoff2Buffer(bytes)).inspection);
     font.writeUInt32BE(1024, 36);
-    expect((await inspectWoff2Buffer(font)).inspection).to.deep.equal({});
+    expect((await inspectWoff2Buffer(font)).inspection).to.deep.equal((await inspectWoff2Buffer(bytes)).inspection);
   });
   it('rejects invalid directory transforms and absurd expanded table sizes within deadline', async function () {
     const transform = fixture();

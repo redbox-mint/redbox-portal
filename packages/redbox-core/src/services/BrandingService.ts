@@ -790,6 +790,8 @@ export namespace Services {
         ) {
           await this.conditionalDraftUpdate(brand, { variables: activeVariables, draftTypeface: activeTypeface });
         }
+        // A previous write may have committed but lost its response before cache refresh.
+        await this.refreshBrandingCache(String(brand.id));
         const state = await this.getAdminState(branding);
         return { state, version: activeVersion, hash: String(brand.hash ?? ''), idempotent: true };
       }

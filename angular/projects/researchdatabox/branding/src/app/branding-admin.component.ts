@@ -170,6 +170,11 @@ export class BrandingAdminComponent extends BaseComponent {
     return this.inFlight.has(key);
   }
 
+  isUnavailable(key: string): boolean {
+    if (key === 'logo' || key === 'favicon') return this.isBusy(key);
+    return this.conflict || Array.from(this.inFlight).some(action => action !== 'logo' && action !== 'favicon');
+  }
+
   faceFor(slot: BrandingTypefaceSlot) {
     return this.state?.draft.typeface.faces?.[slot];
   }
@@ -216,7 +221,7 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   private async runMutation<T>(key: string, action: string, work: () => Promise<T>): Promise<T | undefined> {
-    if (this.inFlight.size > 0 || this.conflict) {
+    if (this.isUnavailable(key)) {
       return undefined;
     }
     this.inFlight.add(key);
@@ -243,7 +248,6 @@ export class BrandingAdminComponent extends BaseComponent {
 
   /** Reload canonical state after a conflict without losing local sample text. */
   async reloadState() {
-    this.conflict = false;
     this.message = this.error = undefined;
     await this.loadConfig();
   }
@@ -594,6 +598,7 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   async uploadFace(slot: BrandingTypefaceSlot, event: Event) {
+    if (this.isUnavailable(`face-${slot}`)) return;
     const file = this.selectedFile(event);
     if (!file) {
       return;

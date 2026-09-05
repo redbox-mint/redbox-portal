@@ -101,9 +101,12 @@ export namespace Services {
       return normalized[token.key] || token.defaultValue;
     }
 
-    private buildRootCss(normalized: Record<string, string>): string {
+    private buildRootCss(normalized: Record<string, string>, customTypeface = false): string {
       const variableLines = brandingThemeTokens.map(token => {
-        const value = this.getVariableValue(normalized, token);
+        const value =
+          customTypeface && token.key === 'print-font-family'
+            ? 'var(--rb-brand-font-family)'
+            : this.getVariableValue(normalized, token);
         return `  ${token.cssVar}: ${value};`;
       });
       const lines: string[] = [':root {'];
@@ -138,7 +141,11 @@ export namespace Services {
     generate(variables: Record<string, string>, opts?: BrandingThemeCssOptions): { css: string; hash: string } {
       const normalized = this.normalizeVariables(variables || {}, { ignoreUnknownKeys: true });
       const typefaceCss = this.buildTypefaceCss(opts?.typeface ?? null, opts?.brandName);
-      const css = [typefaceCss, this.buildRootCss(normalized), this.buildCompatibilityCss()]
+      const css = [
+        typefaceCss,
+        this.buildRootCss(normalized, normalizeTypefaceState(opts?.typeface).mode === 'custom'),
+        this.buildCompatibilityCss(),
+      ]
         .filter(block => block.length > 0)
         .join('\n\n');
       const hash = crypto.createHash('sha256').update(css).digest('hex').slice(0, 32);

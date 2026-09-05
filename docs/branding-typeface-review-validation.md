@@ -23,11 +23,35 @@ history. Those cases now pass.
 
 ## Results
 
-- Backend branding suite: 153 passing.
-- Chrome Angular suite: 26 passing, including real font loading and text metrics.
+- Backend branding suite: 156 passing.
+- Chrome Angular suite: 28 passing, including real font loading, text metrics and deferred-request availability.
+- Explicit Playwright browser suite: 2 passing (actual print cascade/font loading and trusted Tab/Enter native file pickers).
 - Core TypeScript compilation: passed.
 - Targeted lint: zero warnings/errors.
 - Edited-file formatting and `git diff --check`: passed.
+
+## Follow-up review of a4c0c4dbb
+
+- Generated custom CSS now bridges `--rb-print-font-family` to the active custom
+  family. The browser test compiles the real SCSS bridge, applies generated CSS
+  afterward, loads the real print stylesheet, enables print media, and checks
+  body/headings/cells plus successful custom font loading. Inactive defaults remain.
+- The isolated decoder now returns bounded standard sfnt family, subfamily,
+  weight and style metadata. Real Regular/Bold/Italic files are tested in all four
+  slots: exact matches do not warn; mismatches (including Bold-only or Italic-only
+  in Bold Italic) warn while accepting bytes and preserving the selected slot.
+- Native, visible file inputs replace the hidden upload/replace controls. An
+  explicit browser test uses the native markup from the actual Angular template
+  and Bootstrap CSS; trusted Tab then Enter must focus/open each file chooser.
+  Angular component tests separately cover compiled bindings and focusability.
+- Shared-revision controls use the same availability rule as the mutation guard.
+  Deferred uploads disable competing controls without discarding selected files.
+  Logo/favicon actions remain independent and conflict reload must succeed before
+  shared controls re-enable.
+- Idempotent publish refreshes the active cache. A regression uses cloned database
+  reads, a v2 commit with lost response, and retry with current counters to verify
+  cached CSS/hash/version and public custom-font detection all agree with the DB.
+  Ambiguous failures still do not delete publication history.
 
 ## Commands
 
@@ -49,13 +73,23 @@ CI=true node node_modules/@angular/cli/bin/ng.js test @researchdatabox/branding 
   --watch=false --browsers=ChromeHeadlessNoSandbox
 ```
 
+Explicit browser regressions, from the repository root (requires its existing
+`@playwright/test` dependency and an installed Chrome via `CHROME_BIN`):
+
+```sh
+TS_NODE_PROJECT=packages/redbox-core/test/tsconfig.json node --no-experimental-strip-types \
+  -r ts-node/register/transpile-only -r chai node_modules/mocha/bin/mocha.js \
+  --no-config --require packages/redbox-core/test/setup.ts \
+  packages/redbox-core/test/browser/Branding.browser.ts --reporter dot
+```
+
 Core compilation: `cd packages/redbox-core && node node_modules/typescript/bin/tsc`.
 Targeted oxlint, formatting checks and `git diff --check` cover the edited files.
 
 ## Scope and limitations
 
-This evidence is from real service/controller unit paths and Chrome component
-tests. The mounted portal, database integration, REST/AJAX Bruno lifecycle and
+This evidence is from real service/controller unit paths, Chrome component
+tests, and the explicit browser regressions described above. The mounted portal, database integration, REST/AJAX Bruno lifecycle and
 Node 26 runtime were not rerun. Previous synthetic-fixture success must not be
 used as browser-rendering evidence.
 

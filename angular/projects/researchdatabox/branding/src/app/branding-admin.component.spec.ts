@@ -203,6 +203,73 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.draftConfig).toEqual({ primary: '#0000ff' });
   });
 
+  it('disables shared actions during a deferred upload while keeping image actions independent', async () => {
+    await initWith(adminState());
+    let finish!: (state: BrandingAdminState) => void;
+    const upload = spyOn(serviceStub, 'uploadFace').and.returnValue(
+      new Promise(resolve => {
+        finish = resolve;
+      })
+    );
+    const publish = spyOn(serviceStub, 'publish');
+    const logo = spyOn(serviceStub, 'uploadLogo').and.resolveTo({});
+    const inputs = Array.from(
+      fixture.nativeElement.querySelectorAll('input[accept=".woff2,font/woff2"]')
+    ) as HTMLInputElement[];
+    const selectedFiles = () => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(['font'], 'font.woff2'));
+      return transfer.files;
+    };
+    inputs[0].files = selectedFiles();
+    inputs[0].dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(inputs.every(input => input.disabled)).toBeTrue();
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    for (const label of ['branding-save-draft', 'branding-publish', 'branding-use-default-typography']) {
+      const button = buttons.find(candidate => candidate.textContent?.includes(label))!;
+      expect(button.disabled).withContext(label).toBeTrue();
+      button.click();
+    }
+    expect(publish).not.toHaveBeenCalled();
+    inputs[1].files = selectedFiles();
+    await component.uploadFace('bold', { target: inputs[1] } as unknown as Event);
+    expect(inputs[1].files?.length).toBe(1);
+    expect(upload).toHaveBeenCalledTimes(1);
+    const logoInput = fixture.nativeElement.querySelector('#logoUpload') as HTMLInputElement;
+    expect(logoInput.disabled).toBeFalse();
+    logoInput.files = selectedFiles();
+    logoInput.dispatchEvent(new Event('change'));
+    await Promise.resolve();
+    expect(logo).toHaveBeenCalledTimes(1);
+    finish(adminState());
+    await settled();
+    expect(inputs.every(input => !input.disabled)).toBeTrue();
+  });
+
+  it('keeps conflict controls disabled until a successful reload', async () => {
+    await initWith(adminState());
+    component.conflict = true;
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector('input[accept=".woff2,font/woff2"]') as HTMLInputElement;
+    expect(input.disabled).toBeTrue();
+    serviceStub.loadConfig = () => Promise.reject(new Error('offline'));
+    await component.reloadState();
+    fixture.detectChanges();
+    expect(component.conflict).toBeTrue();
+    expect(input.disabled).toBeTrue();
+    expect((fixture.nativeElement.querySelector('#faviconUpload') as HTMLInputElement).disabled).toBeFalse();
+    serviceStub.loadConfig = () => Promise.resolve(adminState());
+    await component.reloadState();
+    fixture.detectChanges();
+    expect(component.conflict).toBeFalse();
+    expect(input.disabled).toBeFalse();
+    input.focus();
+    expect(document.activeElement).toBe(input);
+    expect(getComputedStyle(input).display).not.toBe('none');
+  });
+
   async function initWith(state: BrandingAdminState) {
     serviceStub.loadConfig = () => Promise.resolve(state);
     fixture.detectChanges();

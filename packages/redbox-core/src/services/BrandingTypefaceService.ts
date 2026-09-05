@@ -73,14 +73,6 @@ const SLOT_DESCRIPTORS: Record<BrandingTypefaceSlot, BrandingTypefaceSlotDescrip
   boldItalic: { weight: 700, style: 'italic' },
 };
 
-/** Subfamily keywords expected per slot; anything else present warns (slot stays authoritative). */
-const SLOT_SUBFAMILY_KEYWORDS: Record<BrandingTypefaceSlot, string[]> = {
-  regular: ['regular'],
-  bold: ['bold'],
-  italic: ['italic'],
-  boldItalic: ['bold', 'italic'],
-};
-
 function readPositiveInt(
   key: 'typefaceFaceMaxBytes' | 'typefaceFamilyMaxBytes' | 'typefaceOrphanGraceMs',
   fallback: number
@@ -139,14 +131,16 @@ export namespace Services {
 
     private mismatchWarnings(slot: BrandingTypefaceSlot, inspection: BrandingTypefaceInspection): string[] {
       const warnings: string[] = [];
-      const subfamily = inspection.subfamily?.trim();
-      if (subfamily) {
-        const keywords = SLOT_SUBFAMILY_KEYWORDS[slot];
-        const lowered = subfamily.toLowerCase();
-        const matches = keywords.some(keyword => lowered.includes(keyword));
-        if (!matches) {
-          warnings.push(`embedded subfamily "${subfamily}" differs from slot "${slot}"; slot remains authoritative`);
-        }
+      const descriptor = SLOT_DESCRIPTORS[slot];
+      const subfamily = inspection.subfamily?.toLowerCase();
+      const weight = inspection.embeddedWeight ?? (subfamily ? (/bold/.test(subfamily) ? 700 : 400) : undefined);
+      const style =
+        inspection.embeddedStyle ?? (subfamily ? (/italic|oblique/.test(subfamily) ? 'italic' : 'normal') : undefined);
+      if (
+        (weight !== undefined && weight !== descriptor.weight) ||
+        (style !== undefined && style !== descriptor.style)
+      ) {
+        warnings.push(`embedded descriptors differ from slot "${slot}"; slot remains authoritative`);
       }
       return warnings;
     }

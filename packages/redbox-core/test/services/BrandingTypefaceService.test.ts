@@ -213,15 +213,24 @@ describe('BrandingTypefaceService', function () {
     ).to.equal('typeface-empty');
   });
 
-  it('warns on embedded descriptor mismatch without rejecting', async function () {
-    const xml = '<?xml version="1.0"?><metadata><name id="1">Mismatch</name><name id="2">Bold</name></metadata>';
-    const bytes = buildWoff2(staticTables(), { metaXml: xml });
-    const regular = await service.inspectAndStoreFace({ brandingId: 'b', slot: 'regular', bytes });
-    expect(regular.warnings).to.have.lengthOf(1);
-    expect(regular.warnings[0]).to.contain('regular');
-    const bold = await service.inspectAndStoreFace({ brandingId: 'b', slot: 'bold', bytes });
-    expect(bold.warnings).to.deep.equal([]);
-  });
+  for (const [name, variant, matching] of [
+    ['regular', 64, 'regular'],
+    ['bold', 65, 'bold'],
+    ['italic', 66, 'italic'],
+  ] as const) {
+    it(`extracts real ${name} metadata and warns for mismatched slots without rejecting`, async function () {
+      const bytes = buildWoff2(staticTables(), { compressedSize: variant });
+      for (const slot of ['regular', 'bold', 'italic', 'boldItalic']) {
+        const face = await service.inspectAndStoreFace({ brandingId: 'b', slot, bytes });
+        expect(face.inspection.family).to.equal('Roboto');
+        expect(face.inspection.subfamily).to.equal(name[0].toUpperCase() + name.slice(1));
+        expect(face.inspection.embeddedWeight).to.equal(name === 'bold' ? 700 : 400);
+        expect(face.inspection.embeddedStyle).to.equal(name === 'italic' ? 'italic' : 'normal');
+        expect(face.slot).to.equal(slot);
+        expect(face.warnings.length).to.equal(slot === matching ? 0 : 1);
+      }
+    });
+  }
 
   it('enforces face and distinct-family compressed limits', async function () {
     (

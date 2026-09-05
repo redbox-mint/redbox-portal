@@ -100,7 +100,7 @@ export interface Woff2InspectResult {
   isVariable: boolean;
   /** Resolved table tags in directory order. */
   tableTags: string[];
-  /** Best-effort metadata (family/subfamily) from the metadata block, if any. */
+  /** Best-effort standard sfnt metadata, with optional XML fallback. */
   inspection: BrandingTypefaceInspection;
 }
 
@@ -337,7 +337,7 @@ export async function inspectWoff2Buffer(input: Buffer): Promise<Woff2InspectRes
   decoding += 1;
   let shutdown: (() => Promise<number>) | undefined;
   try {
-    await new Promise<void>((resolve, reject) => {
+    const embedded = await new Promise<BrandingTypefaceInspection>((resolve, reject) => {
       const worker = new Worker(
         `
         const { parentPort, workerData } = require('node:worker_threads');
@@ -366,7 +366,34 @@ export async function inspectWoff2Buffer(input: Buffer): Promise<Woff2InspectRes
           }
           if (tables.get('head').readUInt32BE(12) !== 0x5f0f3cf5) throw new Error('Invalid head magic');
           if (!tables.has('glyf') && !tables.has('CFF ') && !tables.has('CFF2')) throw new Error('Missing outlines');
-          parentPort.postMessage(true);
+          const inspection = {};
+          const os2 = tables.get('OS/2'), head = tables.get('head');
+          const weight = os2.readUInt16BE(4);
+          if (weight >= 1 && weight <= 1000) inspection.embeddedWeight = weight;
+          const selection = os2.readUInt16BE(62);
+          inspection.embeddedStyle = (selection & 1) || (selection & 512) || (head.readUInt16BE(44) & 2) ? 'italic' : 'normal';
+          const names = tables.get('name');
+          const storage = names.readUInt16BE(4);
+          const choices = new Map();
+          // Advisory extraction: cap record scanning and each decoded string.
+          for (let i = 0; i < Math.min(names.readUInt16BE(2), 512); i++) {
+            const at = 6 + i * 12;
+            if (at + 12 > names.length) break;
+            const platform = names.readUInt16BE(at), encoding = names.readUInt16BE(at + 2), language = names.readUInt16BE(at + 4);
+            const id = names.readUInt16BE(at + 6), length = names.readUInt16BE(at + 8);
+            const offset = storage + names.readUInt16BE(at + 10);
+            if (![1,2,16,17].includes(id) || ![0,3].includes(platform) || offset + length > names.length) continue;
+            if (platform === 3 && ![0,1,10].includes(encoding)) continue;
+            const bytes = names.subarray(offset, offset + Math.min(length, 512));
+            let value = '';
+            for (let j = 0; j + 1 < bytes.length; j += 2) value += String.fromCharCode(bytes.readUInt16BE(j));
+            value = value.replace(/[\\x00-\\x1f\\x7f]/g, '').trim().slice(0, 256);
+            const field = id === 1 || id === 16 ? 'family' : 'subfamily';
+            const score = (id >= 16 ? 4 : 0) + (language === 0x409 ? 2 : 0) + (platform === 3 ? 1 : 0);
+            if (value && (!choices.has(field) || score > choices.get(field).score)) choices.set(field, { value, score });
+          }
+          for (const [field, choice] of choices) inspection[field] = choice.value;
+          parentPort.postMessage(inspection);
         }).catch(() => parentPort.postMessage(false));
       `,
         {
@@ -386,7 +413,7 @@ export async function inspectWoff2Buffer(input: Buffer): Promise<Woff2InspectRes
       worker.once('message', valid => {
         clearTimeout(timer);
         void worker.terminate();
-        if (valid === true) resolve();
+        if (valid && typeof valid === 'object') resolve(valid);
         else fail();
       });
       worker.once('error', () => {
@@ -399,7 +426,7 @@ export async function inspectWoff2Buffer(input: Buffer): Promise<Woff2InspectRes
         fail();
       });
     });
-    return result;
+    return { ...result, inspection: { ...result.inspection, ...embedded } };
   } finally {
     await shutdown?.();
     decoding -= 1;

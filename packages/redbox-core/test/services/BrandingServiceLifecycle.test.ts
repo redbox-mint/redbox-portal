@@ -95,6 +95,7 @@ describe('BrandingService lifecycle', function () {
   let failNextHistoryCreate: null | 'unique' = null;
   let service: {
     brandings: Array<Record<string, unknown>>;
+    hasActiveCustomTypeface(branding: string): boolean;
     getAdminState(branding: string): Promise<Record<string, unknown>>;
     listVersions(branding: string): Promise<Array<Record<string, unknown>>>;
     saveDraft(input: Record<string, unknown>): Promise<Record<string, unknown>>;
@@ -153,7 +154,8 @@ describe('BrandingService lifecycle', function () {
     const typeface = require('../../src/services/BrandingTypefaceService');
     (global as unknown as Record<string, unknown>).BrandingTypefaceService = new typeface.Services.BrandingTypeface();
     (global as unknown as Record<string, unknown>).BrandingConfig = {
-      findOne: (criteria: Record<string, unknown>) => brandQuery(brands.find(row => matches(row, criteria)) ?? null),
+      findOne: (criteria: Record<string, unknown>) =>
+        brandQuery(structuredClone(brands.find(row => matches(row, criteria)) ?? null)),
       find: () => Promise.resolve(brands.map(row => ({ ...row }))),
       updateOne: (criteria: Record<string, unknown>) => ({
         set: async (patch: Record<string, unknown>) => {
@@ -751,6 +753,42 @@ describe('BrandingService lifecycle', function () {
     expect(conflict.code).to.equal('branding-conflict');
     expect(brands[0].version).to.equal(1);
     expect(histories.map(row => row.version).sort()).to.deep.equal([1]);
+  });
+
+  it('heals public cached CSS and version on retry after a committed write loses its response', async function () {
+    service.brandings = structuredClone(brands);
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#ff0000' }, expectedDraftRevision: 1 });
+    await service.uploadTypefaceFace({
+      branding: 'default',
+      slot: 'regular',
+      bytes: buildWoff2(),
+      expectedDraftRevision: 2,
+    });
+    updateError = { commit: true };
+    try {
+      await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 3 });
+    } catch (error) {
+      expect((error as Error).message).to.equal('response lost');
+    }
+    expect(brands[0].version).to.equal(2);
+    expect(service.brandings[0].version).to.equal(1);
+    expect(service.hasActiveCustomTypeface('default')).to.equal(false);
+    updateError = undefined;
+    const state = adminStateOf(await service.getAdminState('default'));
+    const retry = await service.publish(
+      'default',
+      'portal',
+      {},
+      { expectedVersion: state.active.version, expectedDraftRevision: state.draft.revision }
+    );
+    expect(retry.idempotent).to.equal(true);
+    expect(service.brandings[0].version).to.equal(2);
+    expect(service.hasActiveCustomTypeface('default')).to.equal(true);
+    expect(service.brandings[0].hash).to.equal(brands[0].hash);
+    expect(service.brandings[0].css).to.equal(brands[0].css);
+    expect(service.brandings[0].css).to.contain('--rb-primary: #ff0000');
+    expect(histories).to.have.lengthOf(2);
   });
 
   it('refreshes the cache only after a committed active change', async function () {
