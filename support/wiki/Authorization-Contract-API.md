@@ -331,7 +331,13 @@ denial returns `403` without disclosing another brand's topology.
 checks the deployed registry projection and orphaned scopes, authorization route
 declarations, migration and bounded persistence drift, datastore transaction
 support, unresolved shadow mismatches, at least one effective administrator per
-brand, and the protected minimum of two effective system administrators. The
+brand, and the protected minimum of two effective system administrators. It also
+models the release gates that cannot be inferred safely from live database state:
+navigation parity, approved security differences, measured performance against
+the approved budget, build/instance identity, the representative shadow window,
+rollback rehearsal, product/security/operations/hook-owner/integrator approvals,
+and a durable SHA-256 evidence-bundle fingerprint. Missing or malformed evidence
+is a blocker; it is never treated as an implicit approval. The
 response reports the complete missing-brand count but at most 100 sorted brand
 identifiers, along with bounded blocker/warning codes and subjects; it never
 returns raw records or configuration secrets. `readyForEnforce` is true only
@@ -339,7 +345,12 @@ when no blocker exists.
 
 The readiness route does not switch authorization mode, repair drift, adopt new
 system scopes, or provide the Phase 8.6 stop-gate decision. Operators must treat
-a failed or truncated dependency check as not ready.
+a failed or truncated dependency check as not ready. Release owners supply the
+immutable evidence references through deployment-managed
+`authorization.releaseEvidence`; repository tests can prove that each gate fails
+closed, but cannot manufacture the external approvals, representative traffic,
+performance measurements, multi-instance identity observations, or rollback
+rehearsal evidence required for an actual release.
 
 ## Configuration export and import
 
@@ -399,7 +410,14 @@ Authorization contract failures use `application/problem+json` independently
 of the requested API envelope version. Every problem includes `type`, `title`,
 `status`, `detail`, `instance`, stable `code`, and `requestId`. Details are
 bounded and never echo request values, backend exceptions, missing scopes,
-role topology, or cross-brand identifiers.
+role topology, or cross-brand identifiers. Public authorization codes use the
+`authorization.*` namespace consistently across authentication policies,
+resource controllers, runtime schemas, and generated OpenAPI (for example,
+`authorization.authentication-required`, `authorization.invalid-credential`,
+`authorization.scope-denied`, `authorization.resource-denied`,
+`authorization.not-found`, and `authorization.csrf-required` for session
+mutation CSRF failures). Internal decision reasons such as
+`resource-not-found` are not public Problem Details codes.
 
 | Status | Stable condition examples                                                                |
 | ------ | ---------------------------------------------------------------------------------------- |

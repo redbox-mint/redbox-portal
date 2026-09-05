@@ -56,6 +56,8 @@ const prepareMismatch = (record: Record<string, unknown>, isCreate: boolean): vo
   }
   optionalText(record, 'brandId', 128);
   optionalText(record, 'sampleRequestId', 128);
+  optionalText(record, 'resolvedBy', 128);
+  optionalText(record, 'resolutionReason', 1_000);
   if (record.resolvedAt === '') {
     delete record.resolvedAt;
   }
@@ -124,6 +126,12 @@ export class AuthorizationShadowMismatchClass {
 
   @Attr({ type: 'string', columnType: 'datetime' })
   public resolvedAt?: string | Date;
+
+  @Attr({ type: 'string' })
+  public resolvedBy?: string;
+
+  @Attr({ type: 'string' })
+  public resolutionReason?: string;
 }
 
 export const AuthorizationShadowMismatchWLDef = toWaterlineModelDef(AuthorizationShadowMismatchClass);
@@ -138,6 +146,8 @@ export interface AuthorizationShadowMismatchAttributes extends Sails.WaterlineAt
   principalCategory: AuthorizationPrincipalCategory;
   reasonCode: AuthorizationDecisionReasonCode;
   resolvedAt?: string | Date;
+  resolvedBy?: string;
+  resolutionReason?: string;
   routeId: string;
   sampleRequestId?: string;
   scopeOutcome: AuthorizationShadowOutcome;

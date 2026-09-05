@@ -2,17 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { isAuthorizationResourceError } from '../authorization';
 
 export type AuthorizationProblemCode =
-  | 'authentication-required'
-  | 'invalid-authorization-header'
-  | 'invalid-bearer-credential'
-  | 'principal-inactive'
-  | 'brand-not-found'
-  | 'brand-not-authorized'
-  | 'access-denied'
-  | 'route-authorization-missing'
-  | 'resource-not-found'
-  | 'resource-denied'
-  | 'authorization-unavailable';
+  | 'authorization.authentication-required'
+  | 'authorization.invalid-credential'
+  | 'authorization.scope-denied'
+  | 'authorization.resource-denied'
+  | 'authorization.csrf-required'
+  | 'authorization.not-found'
+  | 'authorization.internal-error';
 
 const AUTHORIZATION_PROBLEM_MAX_INSTANCE_LENGTH = 2_048;
 
@@ -47,7 +43,7 @@ export function sendAuthorizationProblem(
     .status(status)
     .type('application/problem+json')
     .json({
-      type: `https://redboxresearchdata.com/problems/authorization/${code}`,
+      type: `https://redboxresearchdata.com/problems/${code.replaceAll('.', '/')}`,
       title,
       status,
       detail: title,
@@ -61,13 +57,13 @@ export function sendAuthorizationProblem(
 export function sendAuthorizationResourceError(req: Sails.Req, res: Sails.Res, error: unknown): boolean {
   if (!isAuthorizationResourceError(error)) return false;
   if (error.status === 404) {
-    sendAuthorizationProblem(req, res, 404, 'resource-not-found', 'Resource was not found.');
+    sendAuthorizationProblem(req, res, 404, 'authorization.not-found', 'Resource was not found.');
     return true;
   }
   if (error.status === 401) {
-    sendAuthorizationProblem(req, res, 401, 'authentication-required', 'Authentication is required.');
+    sendAuthorizationProblem(req, res, 401, 'authorization.authentication-required', 'Authentication is required.');
     return true;
   }
-  sendAuthorizationProblem(req, res, 403, 'resource-denied', 'Resource access is denied.');
+  sendAuthorizationProblem(req, res, 403, 'authorization.resource-denied', 'Resource access is denied.');
   return true;
 }

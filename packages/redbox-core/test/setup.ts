@@ -65,7 +65,10 @@ const capturingMeter: Meter = new Proxy(noopMeter, {
   },
 });
 const capturingMeterProvider: MeterProvider = {
-  getMeter: name => name === 'redbox.record-validation' || name === 'redbox.record-schema' ? capturingMeter : noopMeter,
+  getMeter: name =>
+    name === 'redbox.record-validation' || name === 'redbox.record-schema' || name === 'redbox.authorization'
+      ? capturingMeter
+      : noopMeter,
 };
 if (!metrics.setGlobalMeterProvider(capturingMeterProvider)) {
   throw new Error('The core test suite could not install its OpenTelemetry meter provider.');
@@ -87,17 +90,30 @@ export function getCapturedOpenTelemetryMeasurements(): readonly CapturedOpenTel
  * Sets up minimal global mocks required for service module loading.
  */
 
+// Explicit test-only opt-in for the authorization migration checkpoint
+// memory mirror (see AuthorizationMigrationService.memoryCheckpointFallbackAllowed).
+// Staging/dev/production require durable storage; only the unit-test suite
+// may use process memory, and only via this explicit variable.
+if (process.env.AUTHORIZATION_MIGRATION_CHECKPOINT_MEMORY === undefined) {
+  process.env.AUTHORIZATION_MIGRATION_CHECKPOINT_MEMORY = 'test-allowed';
+}
+
 // Create logger that will be used by services
 const mockLogger = {
-  verbose: () => { },
-  debug: () => { },
-  info: () => { },
-  warn: () => { },
-  error: () => { },
-  trace: () => { }
+  verbose: () => {},
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  trace: () => {},
 };
 
-// Set up minimal sails global required for service module loading
+// Set up minimal sails global required for service module loading.
+// Complete descriptor: every Sails.Application surface the core suite touches
+// (config, log, services, models, events, sockets, actions, datastore) is
+// present so the full suite does not depend on file load order or per-file
+// stubs for baseline shape. Individual suites override globals per test and
+// restore them in scoped hooks.
 (global as any).sails = {
   config: {
     appPath: '/app',
@@ -105,32 +121,49 @@ const mockLogger = {
     auth: {
       defaultBrand: 'default',
       defaultPortal: 'portal',
-      roles: [
-        { name: 'Admin' },
-        { name: 'Maintainer' },
-        { name: 'Researcher' },
-        { name: 'Guest' }
-      ]
+      roles: [{ name: 'Admin' }, { name: 'Maintainer' }, { name: 'Researcher' }, { name: 'Guest' }],
     },
     http: { rootContext: '' },
     appUrl: 'http://localhost:1500',
     log: {
       createNamespaceLogger: () => mockLogger,
-      customLogger: mockLogger
+      customLogger: mockLogger,
     },
     brandingAware: () => ({}),
-    brandingConfigurationDefaults: {}
+    brandingConfigurationDefaults: {},
+    authorization: { mode: 'legacy' },
+    // Contract-only tests must not present an empty object as the runtime
+    // route table: `route-registry` treats any object (including `{}`) as
+    // authoritative and `validate:api-routes` then fails on zero configured
+    // routes. Leave runtime routes undefined so the merged contract registry
+    // is authoritative unless a suite explicitly populates it (and restores
+    // it afterwards to isolate setup state).
   },
   log: mockLogger,
   services: {},
-  on: () => { } // Mock sails.on for event handlers
+  models: {},
+  after: (_events: string | string[], cb: () => void) => {
+    void _events;
+    void cb;
+  },
+  sockets: {
+    join: () => {},
+    leave: () => {},
+    broadcast: () => {},
+    blast: () => {},
+    getId: () => '',
+  },
+  getActions: () => ({}),
+  on: () => {}, // Mock sails.on for event handlers
+  emit: () => {}, // Mock sails.emit for event handlers
+  getDatastore: () => undefined,
 };
 
 // Set up lodash as global
 (global as any)._ = lodash;
 
 // Set up minimal model mocks that might be accessed during module loading
-(global as any).CacheEntry = { findOne: () => ({ exec: () => { } }) };
-(global as any).AsynchProgress = { find: () => ({ exec: () => { } }) };
-(global as any).Role = { find: () => ({ exec: () => { } }) };
-(global as any).BrandingConfig = { findOne: () => ({ exec: () => { } }) };
+(global as any).CacheEntry = { findOne: () => ({ exec: () => {} }) };
+(global as any).AsynchProgress = { find: () => ({ exec: () => {} }) };
+(global as any).Role = { find: () => ({ exec: () => {} }) };
+(global as any).BrandingConfig = { findOne: () => ({ exec: () => {} }) };

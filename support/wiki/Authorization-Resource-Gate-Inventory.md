@@ -33,7 +33,7 @@ authorize the target brand, entity, or record.
 | Active and deleted records | `RecordsService.authorizeRecordCollection`, `getAuthorizedMeta`, and `getAuthorizedDeletedRecordMeta` | Route capability is composed with base `record.read`/`record.update`, authoritative brand, and ACL before data is returned. Missing and foreign records are intentionally collapsed. | `packages/redbox-core/test/services/AuthorizationResourceGates.test.ts`, `test/integration/services/AuthorizationPhase7.test.ts` |
 | Record ACL, search, storage, and exports | `AuthorizationService.authorizeRecord`, `RecordsService`, `MongoStorageService`, and `SolrSearchService` | Direct-user grants and edit-implies-view are preserved. Persisted ACL roles use immutable same-brand `role.key ?? role.name`. `record.read.all`/`record.update.all` bypass only the ACL and never brand ownership. Mongo, Solr, direct reads, and exports receive the same effective keys and brand predicate. | `packages/redbox-core/test/authorization/resource-access.test.ts`, `packages/redbox-core/test/services/SolrSearchService.test.ts`, `test/integration/services/MongoStorageConcurrency.test.ts`, `test/integration/services/SolrSearchService.test.ts` |
 | Attachments, audit, related records, integration audit, record schemas, and dynamic form discovery | Record-aware `RecordsService` methods and `getAuthorizedMeta` | Every record-adjacent read/write resolves the parent record first through the route-specific capability, base record action, brand, and ACL. Integration-audit rows are not queried until the parent record passes. | `packages/redbox-core/test/controllers/webservice/IntegrationAuditController.test.ts`, `packages/redbox-core/test/controllers/webservice/FormManagementController.test.ts`, record controller and schema suites |
-| Vocabularies and entries | `VocabularyService.*Authorized` and parent-scoped entry methods | ID, slug, notation, tree, import, sync, export, reorder, update, and delete remain inside the active brand. Entry authorization is inherited from the parent vocabulary. | `packages/redbox-core/test/services/VocabularyService.test.ts`, vocabulary controller suites, `test/integration/services/AuthorizationPhase7.test.ts` |
+| Vocabularies and entries | `VocabularyService.listAuthorized`, `getAuthorizedByIdOrSlug`, `createAuthorized`, `updateAuthorized`, `reorderEntriesAuthorized`, `deleteAuthorized`, `getAuthorizedTree`, `requireAuthorizedBrandOperation` | List, get-by-ID/slug, create, update, reorder, delete, and tree reads run through the authorized wrappers with the request context brand. Entry reads (`getEntries`, `getChildren`, `getEntryByNotation`, `getAncestorChain`, `expandPaths`) and `getTree`/`upsertEntries` are internal storage primitives: they accept an explicit brand or parent vocabulary ID and must only be called after the parent vocabulary passes its authorized wrapper. There are no `importAuthorized`/`syncAuthorized`/`exportAuthorized` methods; import/sync/export run through the authorized vocabulary wrapper plus the Figshare service brand contract. Raw `getById`, `getByIdOrSlug`, `create`, `update`, `reorderEntries`, `delete`, and `list` remain exported for the wrappers and background jobs only; controllers must not call them with request-supplied IDs. | `packages/redbox-core/test/services/VocabularyService.test.ts`, `packages/redbox-core/test/authorization/vocabulary-inventory.test.ts`, vocabulary controller suites, `test/integration/services/AuthorizationPhase7.test.ts` |
 | Figshare/RVA vocabulary state and crosswalks | `FigshareVocabularyService` context objects and authorized vocabulary import/sync | Catalogue, preview, apply, crosswalk, and remote import operations carry an explicit brand ID; payload brand values are not authority. | Figshare vocabulary service/controller suites and `test/integration/services/FigshareVocabularyBootstrapData.test.ts` |
 | Forms, record types, and workflows | `FormsService`, `RecordTypesService`, and parent-record-type `WorkflowStepsService` contracts | Form and record-type lookup always supplies the active brand. A workflow step is reachable only through its brand-constrained record type. Record-aware form/schema discovery additionally applies the record gate. | Forms, record-type, workflow, record-schema controller/service suites and `test/integration/services/AuthorizationPhase7.test.ts` |
 | Dashboard types and dashboard configuration | `DashboardTypesService` and `DashboardConfigService` with explicit brand | Stored definitions and configuration merge only the active brand. No protected controller falls back to the default brand. | dashboard service/controller suites and `test/integration/services/AuthorizationPhase7.test.ts` |
@@ -47,6 +47,33 @@ authorize the target brand, entity, or record.
 | User-triggered jobs and asynchronous progress | Immutable queued authority envelope plus `RecordsService` re-authorization | Queue payloads persist actor ID, brand, operation ID, and exact scopes; worker start re-resolves the actor and rejects payload authority expansion. Progress lookup is brand constrained and bounded. Trusted scheduled work uses named, scope-limited system-process contexts. | async/job authorization suites and `packages/redbox-core/test/services/WorkspaceAsyncAuthorization.test.ts` |
 | Privileged WebSocket events | Request resource authorization plus per-message context re-resolution | Handshake context is presentation state only. Each subscribe/progress message re-resolves active principal, assignments, route capability, parent record, brand, and ACL, so revocation takes effect on the next event. | `packages/redbox-core/test/controllers/AsynchController.test.ts` and workspace async suites |
 | Hook-owned entities | Hook route metadata and the hook's brand-aware service contract | The maintained `redbox-hook-dev` package does not add a separate brand-owned persistence model. Storage hooks operate through the record boundary. Any future hook model must declare global/brand ownership, an explicit context-bearing service contract, bounded queries, and a cross-brand integration fixture before its route can be merged. | hook route merge/loader suites plus the owning hook's required resource test |
+
+## Code-backed reconciliation
+
+The machine-readable companion is
+`packages/redbox-core/src/authorization/resource-inventory.ts`, owned by
+`packages/redbox-core/test/authorization/resource-inventory.test.ts`.
+Reconciliation is bidirectional with no skipped rows: every inventoried
+service operation resolves against service exports/prototypes, every
+inventoried controller action resolves against its controller prototype (the
+documented vocabulary export adapter has no dedicated action by design, which
+the test pins as an absence), and `HookLoader#registerRedboxModels` resolves
+against the real model registration/ownership contract in
+`src/loader/index.ts`: the `sails.hasModels` gate requiring a
+`registerRedboxModels()` hook export, the `hookModels[modelName] = { module }`
+ownership map, and the `generateModelShims` embedding of
+`require(module).registerRedboxModels()[name]` with `globalId`. The reverse direction fails on
+any unlisted export across every reconciled family: every export of each of the
+17 family services (Records, Vocabulary, Users, Asynchs, Reports, NamedQuery,
+AppConfig, Branding, HarvestRun, IntegrationAudit, Forms, RecordTypes,
+WorkflowSteps, DashboardConfig, DashboardTypes, FigshareVocabulary,
+SolrSearch) and every reachable action of every discovered controller
+(`src/controllers` tree, runtime `_exportedMethods`) must be inventoried or
+carry an explicit reason in `RESOURCE_EXCLUDED_OPERATIONS`
+(inherited `convertToType` utilities, service lifecycle hooks, static
+configuration reads, branding URL helpers, controller lifecycle hooks, pure
+view renders, public asset renders, pre-auth handshakes, notification dispatch,
+and the readiness report).
 
 ## Existence-oracle response contract
 

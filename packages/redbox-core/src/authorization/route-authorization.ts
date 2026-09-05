@@ -67,12 +67,17 @@ export function normalizeRouteAuthorization(value: unknown): RouteAuthorization 
   }
 }
 
+/** Pure carrier for the request-local authorization context. Structurally satisfied by `Sails.Req`. */
+export interface RequestAuthorizationCarrier {
+  readonly authorization?: AuthorizationContext;
+}
+
 /** Fail-closed controller seam for actions that pass request authority into a resource gate. */
-export function requireRequestAuthorizationContext(req: Sails.Req): AuthorizationContext {
-  if (req.authorization === undefined) {
+export function requireRequestAuthorizationContext(carrier: RequestAuthorizationCarrier): AuthorizationContext {
+  if (carrier.authorization === undefined) {
     throw new Error('The request did not pass authorization context resolution.');
   }
-  return req.authorization;
+  return carrier.authorization;
 }
 
 export function createRouteId(route: AuthorizableRoute): string {

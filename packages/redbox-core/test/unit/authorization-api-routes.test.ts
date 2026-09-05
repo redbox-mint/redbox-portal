@@ -933,6 +933,10 @@ describe('authorization contract API routes', function () {
       requestId: 'request-1',
     };
     assert.equal(authorizationProblemSchema.safeParse(boundedProblem).success, true);
+    assert.equal(
+      authorizationProblemSchema.safeParse({ ...boundedProblem, code: 'resource-not-found' }).success,
+      false
+    );
     assert.equal(authorizationProblemSchema.safeParse({ ...boundedProblem, roleId: 'hidden' }).success, false);
     assert.equal(authorizationProblemSchema.safeParse({ ...boundedProblem, detail: 'x'.repeat(1_001) }).success, false);
   });

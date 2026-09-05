@@ -258,4 +258,37 @@ describe('authorization decisions', () => {
 
     assert.equal(decision.evidence, undefined);
   });
+
+  it('fails closed when brand state is missing or unknown', () => {
+    const base = createAllowedInput();
+
+    const missingBrand = decideAuthorization({
+      ...base,
+      brand: undefined,
+    });
+    assert.equal(missingBrand.allowed, false);
+    assert.equal(missingBrand.reasonCode, 'brand-not-found');
+
+    const unknownExists = decideAuthorization({
+      ...base,
+      brand: { brandId: 'brand-a' },
+    });
+    assert.equal(unknownExists.allowed, false);
+    assert.equal(unknownExists.reasonCode, 'brand-not-found');
+
+    const unknownAuthorized = decideAuthorization({
+      ...base,
+      brand: { brandId: 'brand-a', exists: true },
+    });
+    assert.equal(unknownAuthorized.allowed, false);
+    assert.equal(unknownAuthorized.reasonCode, 'brand-not-authorized');
+
+    const evidence = decideAuthorization({
+      ...base,
+      brand: { brandId: 'brand-a' },
+      includeEvidence: true,
+    });
+    assert.equal(evidence.evidence?.brandKnown, false);
+    assert.equal(evidence.evidence?.brandAuthorized, false);
+  });
 });

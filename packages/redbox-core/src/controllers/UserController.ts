@@ -579,57 +579,61 @@ export namespace Controllers {
           callback: (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) => void
         ) => (req: Sails.Req, res: Sails.Res) => void;
       };
-      passport.authenticate('aaf-jwt', function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string) {
-        sails.log.verbose('At AAF Controller, verify...');
-        sails.log.verbose('Error:');
-        sails.log.verbose(err);
-        sails.log.verbose('Info:');
-        sails.log.verbose(info);
-        sails.log.verbose('User:');
-        sails.log.verbose(user);
-        if (err || !user) {
-          sails.log.error(err);
-          // means the provider has authenticated the user, but has been rejected, redirect to catch-all
-
-          const errorMessage = _.get(err, 'message', err?.toString() ?? '');
-          if (errorMessage === 'authorized-email-denied') {
-            req.session['data'] = {
-              message: 'error-auth',
-              detailedMessage: 'authorized-email-denied',
-            };
-            return res.forbidden();
-          }
-
-          // from https://sailsjs.com/documentation/reference/response-res/res-server-error
-          // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
-          // so storing the data in session
-          if (_.isEmpty(req.session.data)) {
-            req.session['data'] = {
-              message: 'error-auth',
-              detailedMessage: `${err}${info}`,
-            };
-          }
-          return res.serverError();
-        }
-
-        const requestDetails = new RequestDetails(req);
-        UsersService.addUserAuditEvent(user, 'login', requestDetails)
-          .then(_response => {
-            sails.log.debug(
-              `User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`
-            );
-          })
-          .catch(err => {
-            sails.log.error(`User login audit event created for AAF login failed`);
+      passport.authenticate(
+        'aaf-jwt',
+        function (err: Error | null, user: AnyRecord | false, info: AnyRecord | string): unknown {
+          sails.log.verbose('At AAF Controller, verify...');
+          sails.log.verbose('Error:');
+          sails.log.verbose(err);
+          sails.log.verbose('Info:');
+          sails.log.verbose(info);
+          sails.log.verbose('User:');
+          sails.log.verbose(user);
+          if (err || !user) {
             sails.log.error(err);
-          });
+            // means the provider has authenticated the user, but has been rejected, redirect to catch-all
 
-        req.logIn(user, function (err: unknown) {
-          if (err) res.send(err);
-          sails.log.debug('AAF Login OK, redirecting...');
-          return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
-        });
-      })(req, res);
+            const errorMessage = _.get(err, 'message', err?.toString() ?? '');
+            if (errorMessage === 'authorized-email-denied') {
+              req.session['data'] = {
+                message: 'error-auth',
+                detailedMessage: 'authorized-email-denied',
+              };
+              return res.forbidden();
+            }
+
+            // from https://sailsjs.com/documentation/reference/response-res/res-server-error
+            // "The specified data will be excluded from the JSON response and view locals if the app is running in the "production" environment (i.e. process.env.NODE_ENV === 'production')."
+            // so storing the data in session
+            if (_.isEmpty(req.session.data)) {
+              req.session['data'] = {
+                message: 'error-auth',
+                detailedMessage: `${err}${info}`,
+              };
+            }
+            return res.serverError();
+          }
+
+          const requestDetails = new RequestDetails(req);
+          UsersService.addUserAuditEvent(user, 'login', requestDetails)
+            .then(_response => {
+              sails.log.debug(
+                `User login audit event created for AAF login: ${_.isEmpty(user) ? '' : (user as AnyRecord).id}`
+              );
+            })
+            .catch(err => {
+              sails.log.error(`User login audit event created for AAF login failed`);
+              sails.log.error(err);
+            });
+
+          req.logIn(user, function (err: unknown) {
+            if (err) res.send(err);
+            sails.log.debug('AAF Login OK, redirecting...');
+            return (sails.getActions()['user/redirpostlogin'] as (req: Sails.Req, res: Sails.Res) => void)(req, res);
+          });
+          return undefined;
+        }
+      )(req, res);
     }
 
     public find(req: Sails.Req, res: Sails.Res) {

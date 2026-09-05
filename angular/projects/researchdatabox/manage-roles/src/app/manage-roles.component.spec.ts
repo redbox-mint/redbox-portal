@@ -1,12 +1,17 @@
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { getStubTranslationService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
-import { AuthorizationMe } from './authorization-admin.models';
+import {
+  AuthorizationProjection,
+  AuthorizationProjectionService,
+  getStubTranslationService,
+  LoggerService,
+  TranslationService,
+} from '@researchdatabox/portal-ng-common';
 import { AuthorizationAdminService } from './authorization-admin.service';
 import { ManageRolesComponent } from './manage-roles.component';
 
 describe('ManageRolesComponent', () => {
-  const projection: AuthorizationMe = {
+  const projection: AuthorizationProjection = {
     brand: { id: 'brand-1', name: 'Brand one' },
     rolloutMode: 'shadow' as const,
     principal: { category: 'system-admin' as const, authMethod: 'session', active: true, userId: 'admin' },
@@ -20,15 +25,22 @@ describe('ManageRolesComponent', () => {
     ],
   };
   let service: jasmine.SpyObj<AuthorizationAdminService>;
+  let projectionService: jasmine.SpyObj<AuthorizationProjectionService>;
 
   beforeEach(async () => {
     service = jasmine.createSpyObj<AuthorizationAdminService>('AuthorizationAdminService', [
       'waitForInit',
-      'getMe',
       'toUiError',
     ]);
     service.waitForInit.and.resolveTo(service);
-    service.getMe.and.resolveTo(projection);
+    projectionService = jasmine.createSpyObj<AuthorizationProjectionService>('AuthorizationProjectionService', [
+      'waitForInit',
+      'load',
+      'refresh',
+    ]);
+    projectionService.waitForInit.and.resolveTo(projectionService);
+    projectionService.load.and.resolveTo(projection);
+    projectionService.refresh.and.resolveTo(projection);
     history.replaceState({}, '', `${location.pathname}?tab=scopes`);
     await TestBed.configureTestingModule({
       declarations: [ManageRolesComponent],
@@ -36,6 +48,7 @@ describe('ManageRolesComponent', () => {
         LoggerService,
         { provide: TranslationService, useValue: getStubTranslationService() },
         { provide: AuthorizationAdminService, useValue: service },
+        { provide: AuthorizationProjectionService, useValue: projectionService },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -46,7 +59,7 @@ describe('ManageRolesComponent', () => {
     fixture.autoDetectChanges(true);
     await fixture.componentInstance.waitForInit();
     await fixture.whenStable();
-    expect(service.getMe).toHaveBeenCalledTimes(1);
+    expect(projectionService.load).toHaveBeenCalledTimes(1);
     expect(fixture.componentInstance.activeTab).toBe('scopes');
     expect(fixture.nativeElement.textContent).toContain('not authoritative');
     expect(fixture.nativeElement.querySelector('[role="tablist"]')).not.toBeNull();
@@ -54,7 +67,7 @@ describe('ManageRolesComponent', () => {
   });
 
   it('gates tabs from effective scopes rather than usernames or labels', async () => {
-    service.getMe.and.resolveTo({ ...projection, scopeKeys: ['authorization.role.read'] });
+    projectionService.load.and.resolveTo({ ...projection, scopeKeys: ['authorization.role.read'] });
     const fixture = TestBed.createComponent(ManageRolesComponent);
     fixture.autoDetectChanges(true);
     await fixture.componentInstance.waitForInit();
@@ -76,7 +89,7 @@ describe('ManageRolesComponent', () => {
   });
 
   it('fails closed without rendering a tab panel when no administration scope is effective', async () => {
-    service.getMe.and.resolveTo({ ...projection, scopeKeys: ['authorization.self.read'] });
+    projectionService.load.and.resolveTo({ ...projection, scopeKeys: ['authorization.self.read'] });
     const fixture = TestBed.createComponent(ManageRolesComponent);
     fixture.autoDetectChanges(true);
     await fixture.componentInstance.waitForInit();
@@ -92,15 +105,15 @@ describe('ManageRolesComponent', () => {
     const fixture = TestBed.createComponent(ManageRolesComponent);
     fixture.detectChanges();
     await fixture.componentInstance.waitForInit();
-    let resolveOlder: (value: AuthorizationMe) => void = () => undefined;
-    let resolveNewer: (value: AuthorizationMe) => void = () => undefined;
-    const older = new Promise<AuthorizationMe>(resolve => {
+    let resolveOlder: (value: AuthorizationProjection) => void = () => undefined;
+    let resolveNewer: (value: AuthorizationProjection) => void = () => undefined;
+    const older = new Promise<AuthorizationProjection>(resolve => {
       resolveOlder = resolve;
     });
-    const newer = new Promise<AuthorizationMe>(resolve => {
+    const newer = new Promise<AuthorizationProjection>(resolve => {
       resolveNewer = resolve;
     });
-    service.getMe.and.returnValues(older, newer);
+    projectionService.refresh.and.returnValues(older, newer);
 
     const olderRefresh = fixture.componentInstance.reloadProjection();
     const newerRefresh = fixture.componentInstance.reloadProjection();

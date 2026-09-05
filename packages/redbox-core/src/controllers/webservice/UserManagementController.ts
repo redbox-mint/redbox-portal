@@ -27,7 +27,8 @@ import {
 import { UserAttributes } from '../../waterline-models/User';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
-import { sendAuthorizationResourceError } from '../../policies/authorization-response';
+import { requireRequestAuthorizationContext } from '../../authorization';
+import { ensureAuthorizationRequestId, sendAuthorizationResourceError } from '../../policies/authorization-response';
 
 export namespace Controllers {
   /**
@@ -269,7 +270,7 @@ export namespace Controllers {
             return respondWithUser(response);
           }
           const mergedRoleIds = this.mergeBrandRoleIds(response, brand.id, roleIds);
-          UsersService.updateUserRoles(response.id, mergedRoleIds).subscribe(
+          UsersService.updateUserRoles(response.id, mergedRoleIds, { brandId: String(brand.id) }).subscribe(
             (roleUser: UserModel) => {
               const user: UserModel = roleUser;
               sails.log.verbose(user);
@@ -420,10 +421,9 @@ export namespace Controllers {
             const brand: BrandingModel = BrandingService.getBrandFromReq(req);
             const roleIds = RolesService.getRoleIds(brand.roles, roles);
             const mergedRoleIds = this.mergeBrandRoleIds(targetUser ?? userReq, brand.id, roleIds);
-            UsersService.updateUserRoles(
-              (user as globalThis.Record<string, unknown>).id as string,
-              mergedRoleIds
-            ).subscribe(
+            UsersService.updateUserRoles((user as globalThis.Record<string, unknown>).id as string, mergedRoleIds, {
+              brandId: String(brand.id),
+            }).subscribe(
               (user: unknown) => {
                 //TODO: Add roles to the response
                 const u = user as globalThis.Record<string, unknown>;
@@ -779,21 +779,37 @@ export namespace Controllers {
       const body = validated.body as Record<string, unknown>;
       const roleName = (body.roleName as string | undefined) ?? (validated.query.roleName as string | undefined);
       sails.log.verbose('createSystemRole - roleName ' + roleName);
-      if (!_.isUndefined(roleName)) {
-        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
-        await RolesService.createRoleWithBrand(brand, roleName);
-        const response: APIActionResponse = new APIActionResponse(
-          roleName + ' create call success',
-          roleName + ' create call success'
-        );
-        return this.apiRespond(req, res, response);
-      } else {
+      if (_.isUndefined(roleName)) {
         const errorResponse = new APIErrorResponse(
           'Role name has to be passed in as url param or in the body { roleName: nameOfRole }'
         );
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ title: errorResponse.message, detail: errorResponse.details }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
+      try {
+        const brand: BrandingModel = BrandingService.getBrandFromReq(req);
+        const actor = requireRequestAuthorizationContext(req);
+        await RoleAdministrationService.createRole({
+          actor,
+          brandId: String(brand.id ?? ''),
+          key: String(roleName),
+          displayName: String(roleName),
+          requestId: ensureAuthorizationRequestId(req),
+        });
+        const response: APIActionResponse = new APIActionResponse(
+          roleName + ' create call success',
+          roleName + ' create call success'
+        );
+        return this.apiRespond(req, res, response);
+      } catch (error) {
+        if (sendAuthorizationResourceError(req, res, error)) return;
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: (error as Error)?.message ?? 'An error has occurred' }],
           headers: this.getNoCacheHeaders(),
         });
       }

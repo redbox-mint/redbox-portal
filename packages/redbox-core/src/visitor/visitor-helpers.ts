@@ -1,20 +1,23 @@
 import fs from 'fs';
 import {
-  FormConfigFrame, FormModesConfig,
+  FormConfigFrame,
+  FormModesConfig,
   formValidatorsSharedDefinitions,
-  ILogger, PropertiesHelper, QuestionTreeFieldComponentConfigFrame, ReusableFormDefinitions
+  ILogger,
+  PropertiesHelper,
+  QuestionTreeFieldComponentConfigFrame,
+  ReusableFormDefinitions,
 } from '@researchdatabox/sails-ng-common';
-import {MigrationV4ToV5FormConfigVisitor} from './migrate-config-v4-v5.visitor';
-import {TemplateFormConfigVisitor} from './template.visitor';
-import {ConstructFormConfigVisitor} from './construct.visitor';
-import {ValidatorFormConfigVisitor} from './validator.visitor';
-import {ClientFormConfigVisitor} from './client.visitor';
+import { MigrationV4ToV5FormConfigVisitor } from './migrate-config-v4-v5.visitor';
+import { TemplateFormConfigVisitor } from './template.visitor';
+import { ConstructFormConfigVisitor } from './construct.visitor';
+import { ValidatorFormConfigVisitor } from './validator.visitor';
+import { ClientFormConfigVisitor } from './client.visitor';
 // import {VocabInlineFormConfigVisitor} from './vocab-inline.visitor';
-import {AttachmentFieldsVisitor} from './attachment-fields.visitor';
-import {reusableFormDefinitions} from '../config';
-import {cloneDeep as _cloneDeep} from 'lodash';
-import {QuestionTreeHelper} from "@researchdatabox/sails-ng-common/dist/src/config/component/question-tree.helper";
-
+import { AttachmentFieldsVisitor } from './attachment-fields.visitor';
+import { reusableFormDefinitions } from '../config';
+import { cloneDeep as _cloneDeep } from 'lodash';
+import { QuestionTreeHelper } from '@researchdatabox/sails-ng-common/dist/src/config/component/question-tree.helper';
 
 export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logger: ILogger) {
   console.log(`ℹ️ Run form visitors to confirm migrated config is valid.`);
@@ -22,18 +25,20 @@ export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logge
   // Also run other visitors to check for issues in the migration.
   const constructVisitor = new ConstructFormConfigVisitor(logger);
   const constructResult = await constructVisitor.start({
-    data: formConfig, formMode: 'edit', reusableFormDefs: reusableFormDefinitions
+    data: formConfig,
+    formMode: 'edit',
+    reusableFormDefs: reusableFormDefinitions,
   });
 
   const templateVisitor = new TemplateFormConfigVisitor(logger);
   await templateVisitor.start({
-    form: constructResult
+    form: constructResult,
   });
 
   const validatorVisitor = new ValidatorFormConfigVisitor(logger);
   await validatorVisitor.start({
     form: constructResult,
-    validatorDefinitions: formValidatorsSharedDefinitions
+    validatorDefinitions: formValidatorsSharedDefinitions,
   });
 
   // const vocabInlineVisitor = new VocabInlineFormConfigVisitor(logger);
@@ -65,7 +70,7 @@ export async function migrateFormConfigFile(
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const v4FormConfig = require(inputPath);
-  const migrated = await migrateVisitor.start({data: v4FormConfig});
+  const migrated = await migrateVisitor.start({ data: v4FormConfig });
 
   let tsContent: string;
   if (outputFormat === 'cjs') {
@@ -116,8 +121,8 @@ export default questionTreeConfig;`;
           class: 'QuestionTreeComponent',
           config: migrated,
         },
-      }
-    ]
+      },
+    ],
   };
 
   return {
@@ -128,34 +133,40 @@ export default questionTreeConfig;`;
 }
 
 export async function createClientFormConfig(
-  data: FormConfigFrame, logger: ILogger,
-  formMode?: FormModesConfig, userRoles?: string[], reusableFormDefs?: ReusableFormDefinitions,
+  data: FormConfigFrame,
+  logger: ILogger,
+  formMode?: FormModesConfig,
+  userRoles?: string[],
+  reusableFormDefs?: ReusableFormDefinitions,
   record?: Record<string, unknown> | null
 ) {
-
-  formMode = formMode ?? "edit";
+  formMode = formMode ?? 'edit';
   userRoles = userRoles ?? ['Admin', 'Librarians', 'Researcher', 'Guest'];
   reusableFormDefs = reusableFormDefs ?? reusableFormDefinitions;
 
   const constructor = new ConstructFormConfigVisitor(logger);
-  const form = await constructor.start({data, reusableFormDefs, formMode, record});
+  const form = await constructor.start({ data, reusableFormDefs, formMode, record });
 
   // const vocabVisitor = new VocabInlineFormConfigVisitor(logger);
   // await vocabVisitor.resolveVocabs(form, 'default');
 
   const visitor = new ClientFormConfigVisitor(logger);
-  const result = await visitor.start({form, reusableFormDefs, formMode, userRoles});
+  const result = await visitor.start({ form, reusableFormDefs, formMode, userRoles });
 
   if (!result) {
-    throw new Error(`The form config is invalid because all form fields were removed, ` +
-      `the form config must have at least one field: ` +
-      `${JSON.stringify({data, formMode, userRoles, record, reusableFormDefs})}`
+    throw new Error(
+      `The form config is invalid because all form fields were removed, ` +
+        `the form config must have at least one field: ` +
+        `${JSON.stringify({ data, formMode, userRoles, record, reusableFormDefs })}`
     );
   }
   return result;
 }
 
-export async function createQuestionTreeDiagram(componentConfig: QuestionTreeFieldComponentConfigFrame, logger: ILogger,): Promise<string> {
+export async function createQuestionTreeDiagram(
+  componentConfig: QuestionTreeFieldComponentConfigFrame,
+  logger: ILogger
+): Promise<string> {
   const propertiesHelper = new PropertiesHelper();
   const questionTreeHelper = new QuestionTreeHelper(logger);
   const availableOutcomeValues = (componentConfig?.availableOutcomes ?? []).map(i => i.value);
@@ -163,13 +174,21 @@ export async function createQuestionTreeDiagram(componentConfig: QuestionTreeFie
 
   const frontmatter: string[] = [];
 
-  const diagramType = "flowchart";
-  const orientation: "LR" | "TB" | "BT" = "LR";
+  const diagramType = 'flowchart';
+  const orientation: 'LR' | 'TB' | 'BT' = 'LR';
   const diagram: string[] = [`${diagramType} ${orientation}`];
 
-  const {errors, questionAnswerValuesMap} = questionTreeHelper.validateQuestions(componentConfig.questions);
+  const { errors, questionAnswerValuesMap } = questionTreeHelper.validateQuestions(componentConfig.questions);
   componentConfig.questions.forEach((question, questionIndex) => {
-    errors.push(...questionTreeHelper.validateQuestion(question, questionIndex, availableOutcomeValues, availableMeta, questionAnswerValuesMap));
+    errors.push(
+      ...questionTreeHelper.validateQuestion(
+        question,
+        questionIndex,
+        availableOutcomeValues,
+        availableMeta,
+        questionAnswerValuesMap
+      )
+    );
 
     // add decision node for each question
     const nodeLabel = `Question: ${question.label ?? question.id}`;
@@ -184,19 +203,19 @@ export async function createQuestionTreeDiagram(componentConfig: QuestionTreeFie
         continue;
       }
       switch (currentRule.op) {
-        case "true":
+        case 'true':
           continue;
-        case "and":
-        case "or":
+        case 'and':
+        case 'or':
           rulesToProcess.push(...currentRule.args);
           break;
-        case "in":
-        case "notin":
-        case "only":
+        case 'in':
+        case 'notin':
+        case 'only':
           const nodeFrom = currentRule.q;
           const nodeTo = question.id;
           const connectorText = currentRule.a.join(', ');
-          diagram.push(`  ${nodeFrom}-->|${connectorText}|${nodeTo}`)
+          diagram.push(`  ${nodeFrom}-->|${connectorText}|${nodeTo}`);
           break;
         default:
           // Setting currentRule to a variable typed with never ensures that all possible switch cases
@@ -213,7 +232,9 @@ export async function createQuestionTreeDiagram(componentConfig: QuestionTreeFie
         continue;
       }
       const nodeId = [question.id, propertiesHelper.toFieldReference(answer.outcome)].join('-');
-      const metaText = Object.entries(answer.meta ?? {}).map(([k, v]) => `${k}=${v}`).join('\n');
+      const metaText = Object.entries(answer.meta ?? {})
+        .map(([k, v]) => `${k}=${v}`)
+        .join('\n');
       const outcomeLabel = `"\`Outcome: ${answer.outcome}\n${metaText}\`"`;
       // diagram.push(`  ${nodeId}@{shape:rounded,label:${outcomeLabel}}`);
       diagram.push(`  ${nodeId}(${outcomeLabel})`);

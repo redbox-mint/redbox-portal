@@ -1325,7 +1325,7 @@ export namespace Controllers {
       }
     }
 
-    public async addDataStreams(req: Sails.Req, res: Sails.Res) {
+    public async addDataStreams(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const brand: BrandingModel = BrandingService.getBrandFromReq(req);
@@ -1525,6 +1525,7 @@ export namespace Controllers {
             }
           }
         );
+      return undefined;
     }
 
     /**

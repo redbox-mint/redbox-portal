@@ -33,7 +33,7 @@ import type {
   ResolvedRecordValidationResult,
   UnresolvedRecordValidationResult,
 } from '../../src/services/RecordValidationService';
-import type { Services as FormsServiceTypes } from '../../src/services/FormsService';
+import type { Services as FormsServiceTypes, FormRecordAccessContext } from '../../src/services/FormsService';
 import type {
   PersistRecordSchemaSaveUsageRequest,
   PersistRecordSchemaSaveUsageResult,
@@ -5045,8 +5045,8 @@ describe('RecordsService', function () {
         portal: 'portal',
         recordType: 'rdmp',
         caller: {
-          brand: { id: 'brand-1' } as BrandingModel,
-          user: { username: 'user-1', roles: [] } as UserModel,
+          brand: { id: 'brand-1' } as unknown as FormRecordAccessContext['brand'],
+          user: { id: 'user-1', username: 'user-1', roles: [] } as unknown as FormRecordAccessContext['user'],
         },
       });
       expect(resolution.kind).to.equal('resolved');
@@ -7237,6 +7237,7 @@ describe('RecordsService', function () {
           id: 'description',
           message: 'description',
           errors: [{ class: 'htmlSanitized', message: '@validator-warning-html-sanitized', params: {} }],
+          lineagePaths: { formConfig: [], dataModel: [], angularComponents: [], layout: [] },
         },
       };
 
@@ -11821,19 +11822,21 @@ describe('RecordsService', function () {
         enableConcurrency(mode);
         let current = internalRecord(7);
         mockStorageService.getMeta.callsFake(async () => _.cloneDeep(current));
-        mockStorageService.updateMeta.callsFake(async (_brand, oid, candidate, user, options) => {
-          expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: 7 });
-          expect(options.resolution).to.equal('internal');
-          expect(user.serviceIdentity).to.equal('DoiService.publishDoiTrigger');
-          current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: 8 };
-          return {
-            success: true,
-            oid,
-            applicationState: 'applied',
-            committedRevision: 8,
-            committedRecord: _.cloneDeep(current),
-          };
-        });
+        mockStorageService.updateMeta.callsFake(
+          async (_brand: any, oid: any, candidate: any, user: any, options: any) => {
+            expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: 7 });
+            expect(options.resolution).to.equal('internal');
+            expect(user.serviceIdentity).to.equal('DoiService.publishDoiTrigger');
+            current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: 8 };
+            return {
+              success: true,
+              oid,
+              applicationState: 'applied',
+              committedRevision: 8,
+              committedRecord: _.cloneDeep(current),
+            };
+          }
+        );
 
         const result = await RecordsService.updateMetaInternal({
           actor: { kind: 'service', id: 'DoiService.publishDoiTrigger' },
@@ -11926,27 +11929,29 @@ describe('RecordsService', function () {
       const computedFrom: string[] = [];
       const dispatchedRequestIds: string[] = [];
       mockStorageService.getMeta.callsFake(async () => _.cloneDeep(current));
-      mockStorageService.updateMeta.callsFake(async (_brand, oid, candidate, _user, options) => {
-        dispatchedRequestIds.push(options.requestId);
-        if (dispatchedRequestIds.length === 1) {
-          current = internalRecord(2, 'second-baseline');
+      mockStorageService.updateMeta.callsFake(
+        async (_brand: any, oid: any, candidate: any, _user: any, options: any) => {
+          dispatchedRequestIds.push(options.requestId);
+          if (dispatchedRequestIds.length === 1) {
+            current = internalRecord(2, 'second-baseline');
+            return {
+              success: false,
+              oid,
+              applicationState: 'not-applied',
+              nonApplicationReason: 'stale-revision',
+            };
+          }
+          expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: 2 });
+          current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: 3 };
           return {
-            success: false,
+            success: true,
             oid,
-            applicationState: 'not-applied',
-            nonApplicationReason: 'stale-revision',
+            applicationState: 'applied',
+            committedRevision: 3,
+            committedRecord: _.cloneDeep(current),
           };
         }
-        expect(options.precondition).to.deep.equal({ requireRevision: true, expectedRevision: 2 });
-        current = { ..._.cloneDeep(candidate), redboxOid: oid, revision: 3 };
-        return {
-          success: true,
-          oid,
-          applicationState: 'applied',
-          committedRevision: 3,
-          committedRecord: _.cloneDeep(current),
-        };
-      });
+      );
 
       const result = await RecordsService.mutateMetaInternal({
         actor: { kind: 'service', id: 'RecordsService.appendToRecord' },
@@ -11954,7 +11959,7 @@ describe('RecordsService', function () {
         oid: 'internal-record-1',
         triggerPreSaveTriggers: false,
         triggerPostSaveTriggers: false,
-        mutate: snapshot => {
+        mutate: (snapshot: any) => {
           computedFrom.push(String(snapshot.metadata?.title));
           return { ...snapshot, metadata: { ...snapshot.metadata, targeted: computedFrom.length } };
         },

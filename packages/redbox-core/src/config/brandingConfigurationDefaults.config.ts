@@ -1,7 +1,7 @@
 /**
  * Branding Configuration Defaults Interface
  * (sails.config.brandingConfigurationDefaults and sails.config.auth)
- * 
+ *
  * Default configuration for per-brand settings including auth, menus, panels.
  */
 
@@ -11,212 +11,215 @@ import { raid } from './raid.config';
 import { OniPublishing, type OniPublishingConfigData } from '../configmodels/OniPublishing';
 
 export interface BrandAuthLocalConfig {
-    usernameField: string;
-    passwordField: string;
-    default?: {
-        adminUser: string;
-        adminPw: string;
-        email: string;
-    };
-    templatePath: string;
-    postLoginRedir: string;
-    hooks?: Record<string, unknown>;
+  usernameField: string;
+  passwordField: string;
+  default?: {
+    adminUser: string;
+    adminPw: string;
+    email: string;
+  };
+  templatePath: string;
+  postLoginRedir: string;
+  hooks?: Record<string, unknown>;
 }
 
 export interface BrandAuthAafConfig {
-    defaultRole: string;
-    attributesField: string;
-    usernameField: string;
-    postLoginRedir: string;
-    opts: Record<string, unknown>;
-    templatePath: string;
+  defaultRole: string;
+  attributesField: string;
+  usernameField: string;
+  postLoginRedir: string;
+  opts: Record<string, unknown>;
+  templatePath: string;
 }
 
 export interface BrandAuthOidcConfig {
-    debugMode: boolean;
-    discoverAttemptsMax: number;
-    discoverFailureSleep: number;
-    defaultRole: string;
-    postLoginRedir: string;
-    claimMappings: Record<string, string>;
-    opts: {
-        issuer: string;
-        client: {
-            client_id: string;
-            client_secret: string;
-            redirect_uris: string[];
-            post_logout_redirect_uris: string[];
-        };
-        params: {
-            scope: string;
-        };
+  debugMode: boolean;
+  discoverAttemptsMax: number;
+  discoverFailureSleep: number;
+  defaultRole: string;
+  postLoginRedir: string;
+  claimMappings: Record<string, string>;
+  opts: {
+    issuer: string;
+    client: {
+      client_id: string;
+      client_secret: string;
+      redirect_uris: string[];
+      post_logout_redirect_uris: string[];
     };
-    templatePath: string;
+    params: {
+      scope: string;
+    };
+  };
+  templatePath: string;
 }
 
 export interface BrandAuthConfig {
-    defaultRole: string;
-    active: string[];
-    local: BrandAuthLocalConfig;
-    aaf: BrandAuthAafConfig;
-    oidc: BrandAuthOidcConfig;
+  defaultRole: string;
+  active: string[];
+  local: BrandAuthLocalConfig;
+  aaf: BrandAuthAafConfig;
+  oidc: BrandAuthOidcConfig;
 }
 
 export interface MenuItemConfig {
-    id: string;
-    labelKey: string;
-    href: string;
-    requiresAuth?: boolean;
-    hideWhenAuth?: boolean;
-    requiredRoles?: string[];
-    visibleWhenTranslationExists?: boolean;
-    children?: MenuItemConfig[];
+  id: string;
+  labelKey: string;
+  href: string;
+  requiresAuth?: boolean;
+  hideWhenAuth?: boolean;
+  requiredRoles?: string[];
+  requiredScope?: string;
+  visibleWhenTranslationExists?: boolean;
+  children?: MenuItemConfig[];
 }
 
 export interface BrandingMenuConfig {
-    items: MenuItemConfig[];
-    showSearch: boolean;
+  items: MenuItemConfig[];
+  showSearch: boolean;
 }
 
 export interface HomePanelItemConfig {
-    id: string;
-    labelKey: string;
-    href: string;
+  id: string;
+  labelKey: string;
+  href: string;
 }
 
 export interface BrandingHomePanelConfig {
-    id: string;
-    titleKey: string;
-    iconClass: string;
-    columnClass: string;
-    items: HomePanelItemConfig[];
+  id: string;
+  titleKey: string;
+  iconClass: string;
+  columnClass: string;
+  items: HomePanelItemConfig[];
 }
 
 export interface BrandingHomePanelsConfig {
-    panels: BrandingHomePanelConfig[];
+  panels: BrandingHomePanelConfig[];
 }
 
 export interface AdminSidebarItemConfig {
-    id: string;
-    labelKey: string;
-    href: string;
+  id: string;
+  labelKey: string;
+  href: string;
+  requiredScope?: string;
 }
 
 export interface AdminSidebarSectionConfig {
-    id: string;
-    titleKey: string;
-    defaultExpanded: boolean;
-    requiredRoles?: string[];
-    items: AdminSidebarItemConfig[];
+  id: string;
+  titleKey: string;
+  defaultExpanded: boolean;
+  requiredRoles?: string[];
+  requiredScope?: string;
+  items: AdminSidebarItemConfig[];
 }
 
 export interface BrandingAdminSidebarConfig {
-    header: {
-        titleKey: string;
-        iconClass: string;
-    };
-    sections: AdminSidebarSectionConfig[];
-    footerLinks: AdminSidebarItemConfig[];
+  header: {
+    titleKey: string;
+    iconClass: string;
+  };
+  sections: AdminSidebarSectionConfig[];
+  footerLinks: AdminSidebarItemConfig[];
 }
 
 export interface PathRuleConfig {
-    path: string;
-    role: string;
-    can_update?: boolean;
-    can_read?: boolean;
+  path: string;
+  role: string;
+  can_update?: boolean;
+  can_read?: boolean;
 }
 
 export interface AuthRoleConfig {
-    name: string;
+  name: string;
 }
 
 export interface AuthBootstrapConfig {
-    roles: AuthRoleConfig[];
-    rules: PathRuleConfig[];
-    defaultBrand: string;
-    defaultPortal: string;
-    loginPath: string;
-    hiddenRoles: string[];
-    hiddenUsers: string[];
-    postLogoutRedir: string;
+  roles: AuthRoleConfig[];
+  rules: PathRuleConfig[];
+  defaultBrand: string;
+  defaultPortal: string;
+  loginPath: string;
+  hiddenRoles: string[];
+  hiddenUsers: string[];
+  postLogoutRedir: string;
 }
 
 export interface BrandingConfigurationDefaultsConfig {
-    auth: BrandAuthConfig;
-    menu: BrandingMenuConfig;
-    homePanels: BrandingHomePanelsConfig;
-    adminSidebar: BrandingAdminSidebarConfig;
-    doiPublishing?: DoiPublishingConfigData;
-    figsharePublishing?: import('../configmodels/FigsharePublishing').FigsharePublishingConfigData;
-    raidPublishing?: RaidPublishingConfigData;
-    oniPublishing?: OniPublishingConfigData;
+  auth: BrandAuthConfig;
+  menu: BrandingMenuConfig;
+  homePanels: BrandingHomePanelsConfig;
+  adminSidebar: BrandingAdminSidebarConfig;
+  doiPublishing?: DoiPublishingConfigData;
+  figsharePublishing?: import('../configmodels/FigsharePublishing').FigsharePublishingConfigData;
+  raidPublishing?: RaidPublishingConfigData;
+  oniPublishing?: OniPublishingConfigData;
 }
 
 /**
  * Default brand auth config - used when brand-specific config is not set
  */
 const defaultBrandAuthConfig: BrandAuthConfig = {
-    defaultRole: 'Guest',
-    active: [],
-    local: {
-        usernameField: 'username',
-        passwordField: 'password',
-        default: {
-            adminUser: 'admin',
-            adminPw: 'rbadmin',
-            email: 'admin@redboxresearchdata.com.au'
-        },
-        templatePath: 'local.ejs',
-        postLoginRedir: 'researcher/home',
-        hooks: {
-            onCreate: { pre: [], post: [] },
-            onUpdate: { pre: [], post: [] }
-        }
+  defaultRole: 'Guest',
+  active: [],
+  local: {
+    usernameField: 'username',
+    passwordField: 'password',
+    default: {
+      adminUser: 'admin',
+      adminPw: 'rbadmin',
+      email: 'admin@redboxresearchdata.com.au',
     },
-    aaf: {
-        defaultRole: 'Researcher',
-        attributesField: 'https://aaf.edu.au/attributes',
-        usernameField: 'sub',
-        postLoginRedir: 'researcher/home',
-        opts: {
-            jsonWebTokenOptions: {
-                issuer: 'https://rapid.aaf.edu.au',
-                ignoreNotBefore: true,
-                clockTolerance: 120,
-            },
-            passReqToCallback: true
-        },
-        templatePath: 'aaf.ejs'
+    templatePath: 'local.ejs',
+    postLoginRedir: 'researcher/home',
+    hooks: {
+      onCreate: { pre: [], post: [] },
+      onUpdate: { pre: [], post: [] },
     },
-    oidc: {
-        debugMode: false,
-        discoverAttemptsMax: 5,
-        discoverFailureSleep: 5000,
-        defaultRole: 'Researcher',
-        postLoginRedir: 'researcher/home',
-        claimMappings: {
-            username: 'sub',
-            name: 'name',
-            email: 'email',
-            givenname: 'given_name',
-            surname: 'family_name',
-            cn: 'name',
-            displayName: 'name'
-        },
-        opts: {
-            issuer: '',
-            client: {
-                client_id: '',
-                client_secret: '',
-                redirect_uris: [''],
-                post_logout_redirect_uris: ['']
-            },
-            params: {
-                scope: 'openid email profile'
-            }
-        },
-        templatePath: 'openidconnect.ejs'
-    }
+  },
+  aaf: {
+    defaultRole: 'Researcher',
+    attributesField: 'https://aaf.edu.au/attributes',
+    usernameField: 'sub',
+    postLoginRedir: 'researcher/home',
+    opts: {
+      jsonWebTokenOptions: {
+        issuer: 'https://rapid.aaf.edu.au',
+        ignoreNotBefore: true,
+        clockTolerance: 120,
+      },
+      passReqToCallback: true,
+    },
+    templatePath: 'aaf.ejs',
+  },
+  oidc: {
+    debugMode: false,
+    discoverAttemptsMax: 5,
+    discoverFailureSleep: 5000,
+    defaultRole: 'Researcher',
+    postLoginRedir: 'researcher/home',
+    claimMappings: {
+      username: 'sub',
+      name: 'name',
+      email: 'email',
+      givenname: 'given_name',
+      surname: 'family_name',
+      cn: 'name',
+      displayName: 'name',
+    },
+    opts: {
+      issuer: '',
+      client: {
+        client_id: '',
+        client_secret: '',
+        redirect_uris: [''],
+        post_logout_redirect_uris: [''],
+      },
+      params: {
+        scope: 'openid email profile',
+      },
+    },
+    templatePath: 'openidconnect.ejs',
+  },
 };
 
 /**
@@ -224,29 +227,30 @@ const defaultBrandAuthConfig: BrandAuthConfig = {
  * supplied by hooks or per-brand configuration.
  */
 const defaultMenuConfig: BrandingMenuConfig = {
-    items: [
-        {
-            id: 'home-auth',
-            labelKey: 'menu-home',
-            href: '/researcher/home',
-            requiresAuth: true
-        },
-        {
-            id: 'admin',
-            labelKey: 'menu-admin',
-            href: '/admin',
-            requiresAuth: true,
-            requiredRoles: ['Admin', 'Librarians']
-        },
-        {
-            id: 'home-anon',
-            labelKey: 'menu-home',
-            href: '/home',
-            requiresAuth: false,
-            hideWhenAuth: true
-        }
-    ],
-    showSearch: true
+  items: [
+    {
+      id: 'home-auth',
+      labelKey: 'menu-home',
+      href: '/researcher/home',
+      requiresAuth: true,
+    },
+    {
+      id: 'admin',
+      labelKey: 'menu-admin',
+      href: '/admin',
+      requiresAuth: true,
+      requiredRoles: ['Admin', 'Librarians'],
+      requiredScope: 'authorization.role.read',
+    },
+    {
+      id: 'home-anon',
+      labelKey: 'menu-home',
+      href: '/home',
+      requiresAuth: false,
+      hideWhenAuth: true,
+    },
+  ],
+  showSearch: true,
 };
 
 /**
@@ -254,7 +258,7 @@ const defaultMenuConfig: BrandingMenuConfig = {
  * supplied by hooks or per-brand configuration.
  */
 const defaultHomePanelsConfig: BrandingHomePanelsConfig = {
-    panels: []
+  panels: [],
 };
 
 /**
@@ -262,78 +266,156 @@ const defaultHomePanelsConfig: BrandingHomePanelsConfig = {
  * This can be overridden per-brand via the admin UI or environment config.
  */
 const defaultAdminSidebarConfig: BrandingAdminSidebarConfig = {
-    header: {
-        titleKey: 'menu-admin',
-        iconClass: 'fa fa-cog'
+  header: {
+    titleKey: 'menu-admin',
+    iconClass: 'fa fa-cog',
+  },
+  sections: [
+    {
+      id: 'analyze',
+      titleKey: 'menu-analyze',
+      defaultExpanded: true,
+      items: [
+        { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports', requiredScope: 'report.run' },
+        {
+          id: 'harvest-runs',
+          labelKey: 'menu-harvest-runs',
+          href: '/admin/harvest-runs',
+          requiredScope: 'harvest.read',
+        },
+        { id: 'export', labelKey: 'menu-export', href: '/admin/export', requiredScope: 'export.run' },
+        {
+          id: 'deleted',
+          labelKey: 'deleted-records-heading',
+          href: '/admin/deletedRecords',
+          requiredScope: 'record.read',
+        },
+      ],
     },
-    sections: [
+    {
+      id: 'system',
+      titleKey: 'menu-syssettings',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      requiredScope: 'authorization.role.read',
+      items: [
+        { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles', requiredScope: 'authorization.role.read' },
+        { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users', requiredScope: 'user.read' },
         {
-            id: 'analyze',
-            titleKey: 'menu-analyze',
-            defaultExpanded: true,
-            items: [
-                { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
-                { id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' },
-                { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
-                { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
-            ]
+          id: 'system-msg',
+          labelKey: 'menu-systemmessages',
+          href: '/admin/appconfig/edit/systemMessage',
+          requiredScope: 'app-config.manage',
         },
         {
-            id: 'system',
-            titleKey: 'menu-syssettings',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
-                { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
-                { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
-                { id: 'web-analytics', labelKey: 'menu-webanalytics', href: '/admin/appconfig/edit/webAnalytics' },
-                { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
-                { id: 'dashboard-config', labelKey: 'menu-dashboard-config', href: '/admin/dashboard-config' },
-                { id: 'named-query', labelKey: 'menu-named-query', href: '/admin/named-query' }
-            ]
+          id: 'web-analytics',
+          labelKey: 'menu-webanalytics',
+          href: '/admin/appconfig/edit/webAnalytics',
+          requiredScope: 'app-config.manage',
         },
         {
-            id: 'navigation',
-            titleKey: 'menu-navigation',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
-                { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
-                { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
-                { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
-                { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
-            ]
+          id: 'domains',
+          labelKey: 'menu-authorizeddomainsemails',
+          href: '/admin/appconfig/edit/authorizedDomainsEmails',
+          requiredScope: 'app-config.manage',
         },
         {
-            id: 'lookup',
-            titleKey: 'system-lookup-records',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' },
-                { id: 'vocabulary', labelKey: 'menu-vocabulary-management', href: '/admin/vocabulary/manager' }
-            ]
+          id: 'dashboard-config',
+          labelKey: 'menu-dashboard-config',
+          href: '/admin/dashboard-config',
+          requiredScope: 'dashboard.configure',
         },
         {
-            id: 'integrations',
-            titleKey: 'menu-integrations',
-            defaultExpanded: true,
-            requiredRoles: ['Admin'],
-            items: [
-                {
-                    id: 'figshare-vocabularies',
-                    labelKey: 'menu-figshare-vocabularies',
-                    href: '/admin/integrations/figshare/vocabularies'
-                }
-            ]
-        }
-    ],
-    footerLinks: [
-        { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding' },
-        { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
-    ]
+          id: 'named-query',
+          labelKey: 'menu-named-query',
+          href: '/admin/named-query',
+          requiredScope: 'named-query.manage',
+        },
+      ],
+    },
+    {
+      id: 'navigation',
+      titleKey: 'menu-navigation',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      requiredScope: 'app-config.manage',
+      items: [
+        {
+          id: 'menu',
+          labelKey: 'menu-menuconfiguration',
+          href: '/admin/appconfig/edit/menu',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'homepanels',
+          labelKey: 'menu-homepanelsconfiguration',
+          href: '/admin/appconfig/edit/homePanels',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'adminsidebar',
+          labelKey: 'menu-adminsidebarconfiguration',
+          href: '/admin/appconfig/edit/adminSidebar',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'figsharepublishing',
+          labelKey: 'menu-figsharepublishingconfiguration',
+          href: '/admin/appconfig/edit/figsharePublishing',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'onipublishing',
+          labelKey: 'menu-onipublishingconfiguration',
+          href: '/admin/appconfig/edit/oniPublishing',
+          requiredScope: 'app-config.manage',
+        },
+      ],
+    },
+    {
+      id: 'lookup',
+      titleKey: 'system-lookup-records',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        {
+          id: 'party',
+          labelKey: 'system-lookup-record-item1',
+          href: '/dashboard/party',
+          requiredScope: 'dashboard.read',
+        },
+        {
+          id: 'vocabulary',
+          labelKey: 'menu-vocabulary-management',
+          href: '/admin/vocabulary/manager',
+          requiredScope: 'vocabulary.manage',
+        },
+      ],
+    },
+    {
+      id: 'integrations',
+      titleKey: 'menu-integrations',
+      defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        {
+          id: 'figshare-vocabularies',
+          labelKey: 'menu-figshare-vocabularies',
+          href: '/admin/integrations/figshare/vocabularies',
+          requiredScope: 'vocabulary.manage',
+        },
+      ],
+    },
+  ],
+  footerLinks: [
+    { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding', requiredScope: 'branding.manage' },
+    {
+      id: 'translation',
+      labelKey: 'admin-configure-translation',
+      href: '/admin/translation',
+      requiredScope: 'translation.manage',
+    },
+  ],
 };
 
 const DEFAULT_DOI_BASE_URL = 'https://api.test.datacite.org';
@@ -346,62 +428,62 @@ const DEFAULT_DOI_PASSWORD = '';
  * Demo-specific profiles (dataPublication) are provided by redbox-hook-dev.
  */
 const defaultDoiPublishingConfig: DoiPublishingConfigData = {
-    enabled: true,
-    defaultProfile: '',
-    connection: {
-        baseUrl: DEFAULT_DOI_BASE_URL,
-        username: DEFAULT_DOI_USERNAME,
-        password: DEFAULT_DOI_PASSWORD,
-        timeoutMs: 30000,
-        retry: {
-            maxAttempts: 3,
-            baseDelayMs: 500,
-            maxDelayMs: 4000,
-            retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
-            retryOnMethods: ['get', 'put', 'patch', 'delete']
-        }
+  enabled: true,
+  defaultProfile: '',
+  connection: {
+    baseUrl: DEFAULT_DOI_BASE_URL,
+    username: DEFAULT_DOI_USERNAME,
+    password: DEFAULT_DOI_PASSWORD,
+    timeoutMs: 30000,
+    retry: {
+      maxAttempts: 3,
+      baseDelayMs: 500,
+      maxDelayMs: 4000,
+      retryOnStatusCodes: [408, 429, 500, 502, 503, 504],
+      retryOnMethods: ['get', 'put', 'patch', 'delete'],
     },
-    operations: {
-        createEvent: 'publish',
-        updateEvent: 'publish',
-        allowDeleteDraft: true,
-        allowStateChange: true
-    },
-    profiles: {}
+  },
+  operations: {
+    createEvent: 'publish',
+    updateEvent: 'publish',
+    allowDeleteDraft: true,
+    allowStateChange: true,
+  },
+  profiles: {},
 };
 
 const defaultRaidPublishingConfig: RaidPublishingConfigData = {
-    enabled: true,
-    connection: {
-        baseUrl: raid.basePath,
-        token: raid.token,
-        timeoutMs: 30000,
-        oauth: {
-            url: raid.oauth.url,
-            clientId: raid.oauth.client_id,
-            username: raid.oauth.username,
-            password: raid.oauth.password,
-            timeoutMs: 10000,
-            expirySkewMs: 30000
-        },
-        retry: {
-            maxAttempts: 3,
-            baseDelayMs: 500,
-            maxDelayMs: 10000,
-            jitter: true,
-            retryOnStatusCodes: [408, 425, 429, 500, 502, 503, 504]
-        }
+  enabled: true,
+  connection: {
+    baseUrl: raid.basePath,
+    token: raid.token,
+    timeoutMs: 30000,
+    oauth: {
+      url: raid.oauth.url,
+      clientId: raid.oauth.client_id,
+      username: raid.oauth.username,
+      password: raid.oauth.password,
+      timeoutMs: 10000,
+      expirySkewMs: 30000,
     },
-    durableRetry: {
-        jobName: raid.retryJobName,
-        schedule: raid.retryJobSchedule,
-        maxAttempts: raid.retryJobMaxAttempts
+    retry: {
+      maxAttempts: 3,
+      baseDelayMs: 500,
+      maxDelayMs: 10000,
+      jitter: true,
+      retryOnStatusCodes: [408, 425, 429, 500, 502, 503, 504],
     },
-    saveBodyInMeta: raid.saveBodyInMeta,
-    raidFieldName: raid.raidFieldName,
-    orcidBaseUrl: raid.orcidBaseUrl,
-    types: raid.types,
-    mapping: raid.mapping
+  },
+  durableRetry: {
+    jobName: raid.retryJobName,
+    schedule: raid.retryJobSchedule,
+    maxAttempts: raid.retryJobMaxAttempts,
+  },
+  saveBodyInMeta: raid.saveBodyInMeta,
+  raidFieldName: raid.raidFieldName,
+  orcidBaseUrl: raid.orcidBaseUrl,
+  types: raid.types,
+  mapping: raid.mapping,
 };
 
 /**
@@ -409,11 +491,11 @@ const defaultRaidPublishingConfig: RaidPublishingConfigData = {
  * Provides fallback values when brand-specific config is not set
  */
 export const brandingConfigurationDefaults: Partial<BrandingConfigurationDefaultsConfig> = {
-    auth: defaultBrandAuthConfig,
-    menu: defaultMenuConfig,
-    homePanels: defaultHomePanelsConfig,
-    adminSidebar: defaultAdminSidebarConfig,
-    doiPublishing: defaultDoiPublishingConfig,
-    raidPublishing: defaultRaidPublishingConfig,
-    oniPublishing: new OniPublishing()
+  auth: defaultBrandAuthConfig,
+  menu: defaultMenuConfig,
+  homePanels: defaultHomePanelsConfig,
+  adminSidebar: defaultAdminSidebarConfig,
+  doiPublishing: defaultDoiPublishingConfig,
+  raidPublishing: defaultRaidPublishingConfig,
+  oniPublishing: new OniPublishing(),
 };

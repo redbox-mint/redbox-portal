@@ -1733,7 +1733,7 @@ export namespace Controllers {
       }
     }
 
-    public async search(req: Sails.Req, res: Sails.Res) {
+    public async search(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const brand: BrandingModel = this.getReqBrand(req);
       let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
       try {
@@ -1819,6 +1819,7 @@ export namespace Controllers {
           v1: errorMessage,
         });
       }
+      return undefined;
     }
     /**
      * Returns the RecordType configuration based of the response model that is intentionally restricting
@@ -2539,7 +2540,7 @@ export namespace Controllers {
       return res.redirect(`${BrandingService.getFullPath(req)}/dashboard-view/consolidated`);
     }
 
-    public async getRecordList(req: Sails.Req, res: Sails.Res) {
+    public async getRecordList(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const brand: BrandingModel = this.getReqBrand(req);
       let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
       try {
@@ -2633,9 +2634,10 @@ export namespace Controllers {
           v1: errorMessage,
         });
       }
+      return undefined;
     }
 
-    public async getDeletedRecordList(req: Sails.Req, res: Sails.Res) {
+    public async getDeletedRecordList(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const brand: BrandingModel = this.getReqBrand(req);
       let authorization: ReturnType<typeof requireRequestResourceAuthorization>;
       try {
@@ -2722,6 +2724,7 @@ export namespace Controllers {
           v1: errorMessage,
         });
       }
+      return undefined;
     }
 
     public renderDeletedRecords(req: Sails.Req, res: Sails.Res) {

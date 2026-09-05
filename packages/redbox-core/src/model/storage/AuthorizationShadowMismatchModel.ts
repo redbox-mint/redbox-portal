@@ -15,4 +15,6 @@ export class AuthorizationShadowMismatchModel {
   lastSeenAt!: string | Date;
   sampleRequestId?: string;
   resolvedAt?: string | Date;
+  resolvedBy?: string;
+  resolutionReason?: string;
 }

@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { afterEach, describe, it } from 'mocha';
 import {
+  AUTHORIZATION_NATIVE_COLLECTION_INDEXES,
   AUTHORIZATION_PERSISTENCE_MODEL_INDEXES,
   Services,
   ensureAuthorizationPersistenceIndexes,
@@ -37,7 +38,10 @@ describe('AuthorizationPersistenceService', () => {
 
     await ensureAuthorizationPersistenceIndexes(identity => models.get(identity));
 
-    assert.equal(created.size, AUTHORIZATION_PERSISTENCE_MODEL_INDEXES.length);
+    assert.equal(
+      created.size,
+      AUTHORIZATION_PERSISTENCE_MODEL_INDEXES.length + AUTHORIZATION_NATIVE_COLLECTION_INDEXES.length
+    );
     const roleIndexes = created.get('role');
     assert.ok(roleIndexes);
     assert.deepEqual(
@@ -52,6 +56,18 @@ describe('AuthorizationPersistenceService', () => {
     for (const index of roleIndexes.filter(index => index.name !== 'role_identity_key_unique')) {
       assert.ok(index.partialFilterExpression, `${String(index.name)} must exclude pre-migration Role rows.`);
     }
+    // Native checkpoint/lease collections carry durable uniqueness so
+    // concurrent lifts cannot fork resume state or the migration lease.
+    for (const native of AUTHORIZATION_NATIVE_COLLECTION_INDEXES) {
+      const nativeIndexes = created.get(native.collectionName);
+      assert.ok(nativeIndexes, `native collection '${native.collectionName}' must be ensured`);
+      for (const required of native.indexes) {
+        assert.deepEqual(
+          nativeIndexes.find(index => index.name === required.name),
+          { key: { ...required.key }, name: required.name, unique: true }
+        );
+      }
+    }
   });
 
   it('is idempotent for equivalent indexes and rejects an unsafe non-sparse identity index', async () => {
@@ -64,13 +80,25 @@ describe('AuthorizationPersistenceService', () => {
       tableName,
       getDatastore: () => ({
         manager: {
-          collection: () => ({
-            indexes: async () => indexes,
-            createIndexes: async () => {
-              createInvocations += 1;
-              return [];
-            },
-          }),
+          // Native checkpoint/lease collections resolve through the same
+          // anchor manager: report their required unique indexes as already
+          // present so idempotency covers the native contract too.
+          collection: (name: string) => {
+            const native = AUTHORIZATION_NATIVE_COLLECTION_INDEXES.find(entry => entry.collectionName === name);
+            return {
+              indexes: async () =>
+                native !== undefined
+                  ? ([
+                      { key: { _id: 1 }, name: '_id_' },
+                      ...native.indexes.map(index => ({ key: { ...index.key }, name: index.name, unique: true })),
+                    ] as ExistingAuthorizationIndex[])
+                  : indexes,
+              createIndexes: async () => {
+                createInvocations += 1;
+                return [];
+              },
+            };
+          },
         },
       }),
     });

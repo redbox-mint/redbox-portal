@@ -1,6 +1,12 @@
 import { Component, ElementRef, Inject, QueryList, ViewChildren } from '@angular/core';
-import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
-import { AuthorizationMe, AuthorizationUiErrorState } from './authorization-admin.models';
+import {
+  AuthorizationProjection,
+  AuthorizationProjectionService,
+  BaseComponent,
+  LoggerService,
+  TranslationService,
+} from '@researchdatabox/portal-ng-common';
+import { AuthorizationUiErrorState } from './authorization-admin.models';
 import { AuthorizationAdminService } from './authorization-admin.service';
 
 export type AuthorizationAdminTab = 'roles' | 'assignments' | 'scopes' | 'audit';
@@ -25,7 +31,7 @@ export class ManageRolesComponent extends BaseComponent {
     { id: 'audit', label: 'Audit', requiredScope: 'authorization.audit.read' },
   ];
 
-  public projection?: AuthorizationMe;
+  public projection?: AuthorizationProjection;
   public activeTab?: AuthorizationAdminTab;
   public loadingProjection = false;
   public projectionError?: AuthorizationUiErrorState;
@@ -37,10 +43,12 @@ export class ManageRolesComponent extends BaseComponent {
   constructor(
     @Inject(LoggerService) private readonly loggerService: LoggerService,
     @Inject(TranslationService) translationService: TranslationService,
-    @Inject(AuthorizationAdminService) private readonly authorizationAdminService: AuthorizationAdminService
+    @Inject(AuthorizationAdminService) private readonly authorizationAdminService: AuthorizationAdminService,
+    @Inject(AuthorizationProjectionService)
+    private readonly authorizationProjectionService: AuthorizationProjectionService
   ) {
     super();
-    this.initDependencies = [translationService, authorizationAdminService];
+    this.initDependencies = [translationService, authorizationAdminService, authorizationProjectionService];
   }
 
   public get availableTabs(): TabDefinition[] {
@@ -72,7 +80,9 @@ export class ManageRolesComponent extends BaseComponent {
     this.loadingProjection = true;
     this.projectionError = undefined;
     try {
-      const projection = await this.authorizationAdminService.getMe();
+      const projection = announce
+        ? await this.authorizationProjectionService.refresh()
+        : await this.authorizationProjectionService.load();
       if (requestId !== this.projectionRequestId) {
         return;
       }

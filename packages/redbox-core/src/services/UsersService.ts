@@ -32,6 +32,7 @@ import { Services as services } from '../CoreService';
 import { redactObject } from '../utilities/RedactionUtils';
 import { AuthorizationResourceError } from '../authorization/errors';
 import { Services as AuthorizationServiceModule } from './AuthorizationService';
+import { authorizationScopeRequiredAccess, roleAdministrationAccess } from './AuthorizationServiceAccess';
 
 import * as crypto from 'crypto';
 
@@ -211,12 +212,8 @@ export namespace Services {
         throw new Error(`Unable to assign the ${provider} onboarding role.`);
       }
 
-      const scopeService = sails.services.authorizationscopeservice as unknown as {
-        getRegistry(): { all: readonly { key: string }[] };
-      };
-      const roleAdministrationService = sails.services.roleadministrationservice as unknown as {
-        grantAssignment(command: Record<string, unknown>): Promise<unknown>;
-      };
+      const scopeService = authorizationScopeRequiredAccess();
+      const roleAdministrationService = roleAdministrationAccess();
       const allowedScopes = scopeService.getRegistry().all.map(scope => scope.key);
       const operationId = `onboarding:${provider}:${String(brand.id)}:${String(userId)}`;
       const actor = await new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
@@ -1975,11 +1972,7 @@ export namespace Services {
                   .then(() => {
                     that
                       .resolveLinkedUserCandidate(user)
-                      .then(resolvedUser =>
-                        done(null, resolvedUser as AnyRecord, {
-                          scope: 'all',
-                        })
-                      )
+                      .then(resolvedUser => done(null, resolvedUser as AnyRecord))
                       .catch((resolveErr: unknown) => done(resolveErr));
                   })
                   .catch((err: unknown) => {
@@ -2517,9 +2510,31 @@ export namespace Services {
             String((role as AnyRecord).id ?? '')
           );
           const roleIdsToMerge = _.filter(secondaryBrandRoleIds, roleId => !primaryBrandRoleIds.has(roleId));
-          if (!_.isEmpty(roleIdsToMerge)) {
-            const addRoleQuery = User.addToCollection(String(primaryUser.id ?? ''), 'roles').members(roleIdsToMerge);
-            await firstValueFrom(this.getObservable(addRoleQuery, 'exec', 'simplecb'));
+          const roleAdministrationService = roleAdministrationAccess();
+          const scopeService = authorizationScopeRequiredAccess();
+          const allowedScopes = scopeService.getRegistry().all.map(scope => scope.key);
+          const linkOperationId = `account-link:${brandId}:${String(primaryUser.id ?? '')}`;
+          const linkActor = await new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
+            linkOperationId,
+            brandId,
+            allowedScopes
+          );
+          // Canonicalize assignment ownership to the primary account through the
+          // guarded writer so quorum and delegation invariants are rechecked.
+          for (const role of _.filter(
+            secondaryBrandRoles,
+            (role: unknown) => !primaryBrandRoleIds.has(String((role as AnyRecord).id ?? ''))
+          )) {
+            const roleObj = role as AnyRecord;
+            await roleAdministrationService.grantAssignment({
+              actor: linkActor,
+              brandId,
+              principalId: String(primaryUser.id ?? ''),
+              roleKey: String(roleObj.key ?? roleObj.name),
+              source: 'manual',
+              sourceKey: 'manual',
+              requestId: linkOperationId,
+            });
           }
 
           const retainedSecondaryRoleIds = _.map(
@@ -2533,6 +2548,44 @@ export namespace Services {
             }),
             (role: unknown) => String((role as AnyRecord).id ?? '')
           );
+          // Retire the secondary's in-brand assignments now that the primary
+          // holds the merged authority; source tuples are revoked individually
+          // so provenance and suppression survive the canonicalization.
+          for (const role of secondaryBrandRoles) {
+            const roleObj = role as AnyRecord;
+            const assignmentResult =
+              typeof RoleAssignment !== 'undefined'
+                ? await RoleAssignment.find({
+                    principalType: 'user',
+                    principalId: String(secondaryUserObj.id ?? ''),
+                    role: String(roleObj.id ?? ''),
+                  })
+                : undefined;
+            const assignmentRows: AnyRecord[] = Array.isArray(assignmentResult)
+              ? (assignmentResult as unknown as AnyRecord[])
+              : [];
+            for (const row of assignmentRows) {
+              if (String(row.status ?? '') === 'revoked') {
+                continue;
+              }
+              try {
+                await roleAdministrationService.revokeAssignment({
+                  actor: linkActor,
+                  brandId,
+                  principalId: String(secondaryUserObj.id ?? ''),
+                  roleKey: String(roleObj.key ?? roleObj.name),
+                  source: String(row.source ?? 'manual'),
+                  sourceKey: String(row.sourceKey ?? 'manual'),
+                  expectedVersion: Number(row.version ?? 1),
+                  requestId: linkOperationId,
+                });
+              } catch (error) {
+                if ((error as { code?: string }).code !== 'authorization.not-found') {
+                  throw error;
+                }
+              }
+            }
+          }
           const replaceRoleQuery = User.replaceCollection(String(secondaryUserObj.id ?? ''), 'roles').members(
             retainedSecondaryRoleIds
           );
@@ -2672,23 +2725,179 @@ export namespace Services {
       );
     };
 
-    public updateUserRoles = (userid: string | number, newRoleIds: Array<string | number>): Observable<UserModel> => {
-      return this.getUserWithId(userid).pipe(
-        flatMap(user => {
-          if (user) {
-            if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
-              return throwError(new Error('Please assign at least one role'));
-            }
-            // START Sails 1.0 upgrade
-            const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
-            // END Sails 1.0 upgrade
-            return this.getObservable<UserModel>(q, 'exec', 'simplecb');
-          } else {
-            return throwError(new Error('No such user with id:' + userid));
-          }
-        })
-      );
+    public updateUserRoles = (
+      userid: string | number,
+      newRoleIds: Array<string | number>,
+      options: { brandId?: string } = {}
+    ): Observable<UserModel> => {
+      return from(this.applyUserRoleAssignments(userid, newRoleIds, options));
     };
+
+    /**
+     * Compatibility adapter: converts a desired role-ID set into sourced manual
+     * assignments through RoleAdministrationService. Supported flows must not
+     * mutate the legacy user-role association directly; the assignment service
+     * dual-writes that projection transactionally.
+     *
+     * When `options.brandId` is supplied (every maintained HTTP flow passes the
+     * request brand), requested roles are constrained to that brand and
+     * cross-brand IDs are rejected as unknown, per the authorization contract.
+     * Each grant/revoke/suppress is one required transaction; the composite is
+     * step-wise, so a mid-sequence failure surfaces the error for an idempotent
+     * retry instead of pretending the whole update committed atomically.
+     */
+    private async applyUserRoleAssignments(
+      userid: string | number,
+      newRoleIds: Array<string | number>,
+      options: { brandId?: string } = {}
+    ): Promise<UserModel> {
+      const user = await firstValueFrom(this.getUserWithId(userid));
+      if (!user) {
+        throw new Error('No such user with id:' + userid);
+      }
+      if (_.isEmpty(newRoleIds) || newRoleIds.length === 0) {
+        throw new Error('Please assign at least one role');
+      }
+
+      const currentRolesEarly = ((user as AnyRecord).roles as AnyRecord[] | undefined) ?? [];
+      const roleBrandId = (role: AnyRecord): string => {
+        const branding = role.branding as string | AnyRecord | undefined;
+        return _.isObject(branding) ? String((branding as AnyRecord).id ?? '') : String(branding ?? '');
+      };
+      const activeBrandId = options.brandId !== undefined && options.brandId.length > 0 ? options.brandId : undefined;
+      // Resolve every requested ID without a brand predicate so foreign-brand
+      // preservation candidates remain visible; brand scoping is enforced below.
+      const requestedCriteria: Record<string, unknown> = { id: { in: [...newRoleIds] } };
+      const requestedRoles = (await Role.find(requestedCriteria)) as unknown as Array<
+        AnyRecord & {
+          id: string;
+          name: string;
+          key?: string;
+          branding?: string | AnyRecord;
+          contextType?: string;
+          protectedKind?: string;
+        }
+      >;
+      const missing = (newRoleIds as Array<string | number>).filter(
+        id => !requestedRoles.some(role => String(role.id) === String(id))
+      );
+      if (missing.length > 0) {
+        throw new Error('Unknown role requested');
+      }
+      for (const role of requestedRoles) {
+        if (role.contextType === 'system' || role.protectedKind === 'system-admin') {
+          throw new Error('System roles cannot be assigned through user management');
+        }
+        if (role.protectedKind === 'guest') {
+          throw new Error('Guest cannot be assigned explicitly');
+        }
+      }
+
+      const requestedBrands = _.uniq(requestedRoles.map(roleBrandId).filter(brandId => brandId.length > 0));
+      if (activeBrandId !== undefined) {
+        // Same-brand update with foreign preservation: foreign requested IDs are
+        // allowed only when they preserve roles the user already holds in other
+        // brands. Active-brand roles are updated through the guarded writer;
+        // foreign brands are left untouched.
+        const currentIds = new Set(currentRolesEarly.map(role => String((role as AnyRecord).id ?? '')));
+        const foreignRequested = requestedRoles.filter(role => roleBrandId(role) !== activeBrandId);
+        const foreignNotHeld = foreignRequested.filter(role => !currentIds.has(String(role.id)));
+        if (foreignNotHeld.length > 0) {
+          throw new Error('Unknown role requested');
+        }
+      } else if (requestedBrands.length > 1) {
+        throw new Error('Requested roles must belong to a single brand');
+      }
+
+      const scopeService = authorizationScopeRequiredAccess();
+      const roleAdministrationService = roleAdministrationAccess();
+      const allowedScopes = scopeService.getRegistry().all.map(scope => scope.key);
+
+      const currentRoles = currentRolesEarly;
+      const desiredIds = new Set(newRoleIds.map(id => String(id)));
+
+      // When the caller constrains the update to one brand, only that brand is
+      // mutated; foreign-brand assignments are preserved untouched.
+      const brands =
+        activeBrandId !== undefined
+          ? [activeBrandId]
+          : _.uniq([...requestedBrands, ...currentRoles.map(roleBrandId)]).filter(brandId => brandId.length > 0);
+
+      for (const brandId of brands) {
+        const operationId = `user-management:${String(brandId)}:${String(user.id)}`;
+        const actor = await new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
+          operationId,
+          brandId,
+          allowedScopes
+        );
+        const brandRequested = requestedRoles.filter(role => roleBrandId(role) === brandId);
+        const brandCurrent = currentRoles.filter(role => roleBrandId(role) === brandId);
+
+        for (const role of brandRequested.filter(
+          role => !currentRoles.some(current => String(current.id) === String(role.id))
+        )) {
+          await roleAdministrationService.grantAssignment({
+            actor,
+            brandId,
+            principalId: String(user.id),
+            roleKey: String(role.key ?? role.name),
+            source: 'manual',
+            sourceKey: 'manual',
+            requestId: operationId,
+          });
+        }
+        for (const role of brandCurrent.filter(role => !desiredIds.has(String(role.id)))) {
+          // Roles survive through sourced assignment rows; removal must address
+          // every source tuple that grants the role, not just manual grants.
+          // External rows are suppressed (locally removed, provider state kept);
+          // other sources are revoked through their exact tuple.
+          const assignmentRows =
+            typeof RoleAssignment !== 'undefined'
+              ? ((await RoleAssignment.find({
+                  principalType: 'user',
+                  principalId: String(user.id),
+                  role: String(role.id),
+                })) as unknown as AnyRecord[])
+              : [];
+          for (const row of Array.isArray(assignmentRows) ? assignmentRows : []) {
+            if (String(row.status ?? '') === 'revoked') {
+              continue;
+            }
+            const command = {
+              actor,
+              brandId,
+              principalId: String(user.id),
+              roleKey: String(role.key ?? role.name),
+              expectedVersion: Number(row.version ?? 1),
+              requestId: operationId,
+            };
+            try {
+              if (String(row.source ?? '') === 'external') {
+                await roleAdministrationService.suppressAssignment({
+                  ...command,
+                  assignmentId: String(row.id ?? ''),
+                });
+              } else {
+                await roleAdministrationService.revokeAssignment({
+                  ...command,
+                  source: String(row.source ?? 'manual'),
+                  sourceKey: String(row.sourceKey ?? 'manual'),
+                });
+              }
+            } catch (error) {
+              // A concurrent writer removed the tuple first; the end state is
+              // already what the caller asked for.
+              if ((error as { code?: string }).code !== 'authorization.not-found') {
+                throw error;
+              }
+            }
+          }
+        }
+      }
+
+      const refreshed = await firstValueFrom(this.getUserWithId(userid));
+      return (refreshed ?? user) as UserModel;
+    }
 
     private updateUserAfterLogin(user: unknown, done: (err: unknown, user: unknown) => void) {
       const userObj = user as AnyRecord;

@@ -23,7 +23,7 @@ import {
   TabContentFieldComponentDefinitionOutline,
   TabContentFormComponentDefinitionOutline,
   TabFieldComponentDefinitionOutline,
-  TabFormComponentDefinitionOutline
+  TabFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 import { VocabularyEntryAttributes } from '../waterline-models';
 
@@ -40,7 +40,6 @@ type ComponentConfigWithInlineVocab = {
 type ResolveVocabsOptions = {
   includeHistoricalValues?: boolean;
 };
-
 
 export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   protected override logName = 'VocabInlineFormConfigVisitor';
@@ -73,83 +72,97 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     // No-op for components that are irrelevant to inline vocab resolution.
   }
 
-  async visitFormConfig(item: FormConfigOutline): Promise<void> {
+  override async visitFormConfig(item: FormConfigOutline): Promise<void> {
     for (const component of item.componentDefinitions) {
       await component.accept(this);
     }
   }
 
-  async visitDropdownInputFormComponentDefinition(item: DropdownInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitDropdownInputFormComponentDefinition(
+    item: DropdownInputFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
-  async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitRadioInputFormComponentDefinition(item: RadioInputFormComponentDefinitionOutline): Promise<void> {
     await this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
-  async visitCheckboxInputFormComponentDefinition(item: CheckboxInputFormComponentDefinitionOutline): Promise<void> {
+  override async visitCheckboxInputFormComponentDefinition(
+    item: CheckboxInputFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.enqueueIfInlineVocab(item, item.component?.config, false);
   }
 
-  async visitCheckboxTreeFormComponentDefinition(item: CheckboxTreeFormComponentDefinitionOutline): Promise<void> {
+  override async visitCheckboxTreeFormComponentDefinition(
+    item: CheckboxTreeFormComponentDefinitionOutline
+  ): Promise<void> {
     await this.enqueueIfInlineVocab(item, item.component?.config, true);
   }
 
-  async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
+  override async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
     await item.component.accept(this);
   }
 
-  async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
+  override async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) {
       await def.accept(this);
     }
   }
 
-  async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
+  override async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
     await item.component.accept(this);
   }
 
-  async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
+  override async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
     for (const tab of item.config?.tabs ?? []) {
       await tab.accept(this);
     }
   }
 
-  async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
+  override async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
     await item.component.accept(this);
   }
 
-  async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
+  override async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
     for (const panel of item.config?.panels ?? []) {
       await panel.accept(this);
     }
   }
 
-  async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
+  override async visitAccordionPanelFormComponentDefinition(
+    item: AccordionPanelFormComponentDefinitionOutline
+  ): Promise<void> {
     await item.component.accept(this);
   }
 
-  async visitAccordionPanelFieldComponentDefinition(item: AccordionPanelFieldComponentDefinitionOutline): Promise<void> {
+  override async visitAccordionPanelFieldComponentDefinition(
+    item: AccordionPanelFieldComponentDefinitionOutline
+  ): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) {
       await def.accept(this);
     }
   }
 
-  async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
+  override async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
     await item.component.accept(this);
   }
 
-  async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
+  override async visitTabContentFieldComponentDefinition(
+    item: TabContentFieldComponentDefinitionOutline
+  ): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) {
       await def.accept(this);
     }
   }
 
-  async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
+  override async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
     await item.component.accept(this);
   }
 
-  async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
+  override async visitRepeatableFieldComponentDefinition(
+    item: RepeatableFieldComponentDefinitionOutline
+  ): Promise<void> {
     await item.config?.elementTemplate?.accept(this);
   }
 
@@ -162,9 +175,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       return;
     }
 
-    this.pendingResolutions.push(
-      this.resolveInlineVocab(definition, componentConfig, treeMode)
-    );
+    this.pendingResolutions.push(this.resolveInlineVocab(definition, componentConfig, treeMode));
   }
 
   private async resolveInlineVocab(
@@ -172,7 +183,6 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     componentConfig: ComponentConfigWithInlineVocab,
     treeMode: boolean
   ): Promise<void> {
-
     try {
       const entries = await this.fetchAllEntries(this.branding, String(componentConfig.vocabRef ?? ''));
       const filteredEntries = await this.filterHistoricalEntries(entries, definition, componentConfig, treeMode);
@@ -180,10 +190,10 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
         componentConfig.treeData = this.buildTreeData(filteredEntries, componentConfig);
         return;
       }
-      componentConfig.options = filteredEntries.map((entry) => ({
+      componentConfig.options = filteredEntries.map(entry => ({
         label: String(entry?.label ?? ''),
         value: String(entry?.value ?? ''),
-        disabled: this.shouldDisableHistoricalEntry(entry, componentConfig) ? true : undefined
+        disabled: this.shouldDisableHistoricalEntry(entry, componentConfig) ? true : undefined,
       }));
     } catch (error) {
       this.logger.warn(
@@ -194,10 +204,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     }
   }
 
-  private async fetchAllEntries(
-    branding: string,
-    vocabRef: string
-  ): Promise<VocabularyEntryAttributes[]> {
+  private async fetchAllEntries(branding: string, vocabRef: string): Promise<VocabularyEntryAttributes[]> {
     const allEntries: VocabularyEntryAttributes[] = [];
     const limit = 1000;
     let offset = 0;
@@ -207,7 +214,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       const response = await VocabularyService.getEntries(branding, vocabRef, {
         limit,
         offset,
-        includeHistoricalValues: this.includeHistoricalValues
+        includeHistoricalValues: this.includeHistoricalValues,
       });
       if (!response) {
         throw new Error(`Inline vocabulary '${vocabRef}' was not found for branding '${branding}'`);
@@ -241,7 +248,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       ? await this.selectedTreeValuesFromModelValue(definition?.model?.config?.value)
       : await this.selectedValuesFromModelValue(definition?.model?.config?.value);
 
-    return entries.filter((entry) => {
+    return entries.filter(entry => {
       if (!this.isHistorical(entry)) {
         return true;
       }
@@ -259,9 +266,9 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     entry: VocabularyEntryAttributes,
     componentConfig: ComponentConfigWithInlineVocab
   ): boolean {
-    return this.includeHistoricalValues &&
-      componentConfig.historicalVocabMode === 'disable' &&
-      this.isHistorical(entry);
+    return (
+      this.includeHistoricalValues && componentConfig.historicalVocabMode === 'disable' && this.isHistorical(entry)
+    );
   }
 
   private isHistorical(entry: VocabularyEntryAttributes): boolean {
@@ -366,7 +373,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
         parent: String(entry.parent ?? '').trim() || null,
         children: [],
         hasChildren: false,
-        disabled: this.shouldDisableHistoricalEntry(entry, componentConfig) ? true : undefined
+        disabled: this.shouldDisableHistoricalEntry(entry, componentConfig) ? true : undefined,
       });
     }
 

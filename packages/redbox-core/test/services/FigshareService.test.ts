@@ -308,6 +308,8 @@ function buildAssetClient(
     publishArticle: async () => ({}),
     listLicenses: async () => [],
     searchInstitutionAccounts: async () => [],
+    listPublicCategories: async () => [],
+    listAccountCategories: async () => [],
   };
 }
 
@@ -441,21 +443,28 @@ describe('FigshareService', function () {
     client.getArticle = sinon.stub().resolves({ id: '12345', is_embargoed: false });
     client.setEmbargo = sinon.stub().resolves({});
 
-    await syncEmbargoPhase(client, config, {
-      metadata: {
-        embargoActive: true,
-        embargoType: 'file',
-        embargoUntil: '2026-08-31T01:42:13.000Z',
-        embargoReason: 'File embargo reason',
-      },
-    } as RecordModel, '12345');
+    await syncEmbargoPhase(
+      client,
+      config,
+      {
+        metadata: {
+          embargoActive: true,
+          embargoType: 'file',
+          embargoUntil: '2026-08-31T01:42:13.000Z',
+          embargoReason: 'File embargo reason',
+        },
+      } as unknown as RecordModel,
+      '12345'
+    );
 
-    expect((client.setEmbargo as sinon.SinonStub).calledOnceWithExactly('12345', {
-      is_embargoed: true,
-      embargo_type: 'file',
-      embargo_date: '2026-08-31T01:42:13.000Z',
-      embargo_reason: 'File embargo reason',
-    })).to.equal(true);
+    expect(
+      (client.setEmbargo as sinon.SinonStub).calledOnceWithExactly('12345', {
+        is_embargoed: true,
+        embargo_type: 'file',
+        embargo_date: '2026-08-31T01:42:13.000Z',
+        embargo_reason: 'File embargo reason',
+      })
+    ).to.equal(true);
   });
 
   it('clears an existing embargo when the active binding is empty', async function () {
@@ -473,7 +482,7 @@ describe('FigshareService', function () {
     client.getArticle = sinon.stub().resolves({ id: '67890', is_embargoed: true });
     client.clearEmbargo = sinon.stub().resolves({});
 
-    await syncEmbargoPhase(client, config, { metadata: {} } as RecordModel, '67890');
+    await syncEmbargoPhase(client, config, { metadata: {} } as unknown as RecordModel, '67890');
 
     expect((client.clearEmbargo as sinon.SinonStub).calledOnceWithExactly('67890')).to.equal(true);
   });
@@ -501,14 +510,19 @@ describe('FigshareService', function () {
     });
     client.setEmbargo = sinon.stub().resolves({});
 
-    await syncEmbargoPhase(client, config, {
-      metadata: {
-        embargoActive: 'embargoed',
-        embargoType: 'article',
-        embargoUntil: '2027-01-31T00:00:00.000Z',
-        embargoReason: 'Full embargo reason',
-      },
-    } as RecordModel, '12345');
+    await syncEmbargoPhase(
+      client,
+      config,
+      {
+        metadata: {
+          embargoActive: 'embargoed',
+          embargoType: 'article',
+          embargoUntil: '2027-01-31T00:00:00.000Z',
+          embargoReason: 'Full embargo reason',
+        },
+      } as unknown as RecordModel,
+      '12345'
+    );
 
     expect((client.setEmbargo as sinon.SinonStub).called).to.equal(false);
   });
@@ -529,9 +543,14 @@ describe('FigshareService', function () {
 
     let thrown: unknown;
     try {
-      await syncEmbargoPhase(client, config, {
-        metadata: { embargoActive: true, embargoType: 'account' },
-      } as RecordModel, '12345');
+      await syncEmbargoPhase(
+        client,
+        config,
+        {
+          metadata: { embargoActive: true, embargoType: 'account' },
+        } as unknown as RecordModel,
+        '12345'
+      );
     } catch (error) {
       thrown = error;
     }
@@ -541,8 +560,8 @@ describe('FigshareService', function () {
 
   it('infers record oid from the full job id prefix when record fields are empty', function () {
     const context = createRunContext(
-      { redboxOid: '', id: '', oid: '', metaMetadata: { brandId: 'default' }, metadata: {} } as RecordModel,
-      buildFigsharePublishingConfig() as FigsharePublishingConfigData,
+      { redboxOid: '', id: '', oid: '', metaMetadata: { brandId: 'default' }, metadata: {} } as unknown as RecordModel,
+      buildFigsharePublishingConfig() as unknown as FigsharePublishingConfigData,
       ' rdmp-1_0.test:publish-job '
     );
 
@@ -557,8 +576,8 @@ describe('FigshareService', function () {
         oid: 'legacy-oid',
         metaMetadata: { brandId: 'default' },
         metadata: {},
-      } as RecordModel,
-      buildFigsharePublishingConfig() as FigsharePublishingConfigData,
+      } as unknown as RecordModel,
+      buildFigsharePublishingConfig() as unknown as FigsharePublishingConfigData,
       'job-id:publish-job'
     );
 
@@ -1381,6 +1400,8 @@ describe('FigshareService', function () {
       publishArticle: async () => ({}),
       listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
       searchInstitutionAccounts,
+      listPublicCategories: async () => [],
+      listAccountCategories: async () => [],
     };
 
     const payload = await buildMetadataPayload(config, record, client);
@@ -1654,12 +1675,12 @@ describe('FigshareService', function () {
   });
 
   it('extracts created article id from the Figshare Location header', async function () {
-    const article = mapCreateArticleResponse<{ id?: string; location?: string }>({
+    const article = mapCreateArticleResponse({
       data: {},
       headers: {
         location: 'https://api.figsh.com/v2/account/articles/123456',
       },
-    });
+    }) as { id?: string; location?: string };
 
     expect(article.id).to.equal('123456');
     expect(article.location).to.equal('https://api.figsh.com/v2/account/articles/123456');
@@ -1714,6 +1735,8 @@ describe('FigshareService', function () {
       publishArticle: async () => ({}),
       listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
       searchInstitutionAccounts: async () => [],
+      listPublicCategories: async () => [],
+      listAccountCategories: async () => [],
     };
 
     const article = await syncMetadataPhase(client, config, record, {
@@ -2537,8 +2560,9 @@ describe('FigshareService', function () {
     expect(schema.properties.queue.properties.publishAfterUploadDelay.default).to.equal('in 2 minutes');
     expect(schema.properties.assets.properties.staging.properties.disk.default).to.equal('figshare-staging');
     expect(schema.properties.assets.properties.staging.properties.keyPrefix.default).to.equal('figshare/');
-    expect(schema.properties.embargo.properties.accessRights.properties.embargoType.properties.kind.enum)
-      .to.include.members(['path', 'handlebars', 'jsonata']);
+    expect(
+      schema.properties.embargo.properties.accessRights.properties.embargoType.properties.kind.enum
+    ).to.include.members(['path', 'handlebars', 'jsonata']);
     expect(schema.properties.workflow.properties.transitionJob.properties.username.default).to.equal('');
     expect(schema.properties.testing).to.equal(undefined);
   });

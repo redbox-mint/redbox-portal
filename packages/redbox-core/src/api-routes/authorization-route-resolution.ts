@@ -66,7 +66,8 @@ export function resolveRouteAuthorizationForRequest(req: Sails.Req): ResolvedRou
     });
   }
 
-  const configuredRoutes = sails.config.routes;
+  const runtimeRoutes = typeof sails === 'undefined' ? undefined : sails.config?.routes;
+  const configuredRoutes: Record<string, unknown> = isRecord(runtimeRoutes) ? runtimeRoutes : {};
   const method = normalizeMethod(req.method);
   const matchedRoutePath = getMatchedRoutePath(req);
   const actualPath = requestPath(req);

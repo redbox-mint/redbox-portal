@@ -355,6 +355,10 @@ function fixture() {
       counts.recordAcl += 1;
       return true;
     },
+    readRequestTokenScopeCeiling(req) {
+      if (req.authorizationTokenScopeCeiling !== undefined) return req.authorizationTokenScopeCeiling;
+      return req.authorization?.tokenScopeCeiling;
+    },
   };
   return { service: new Services.AuthorizationService(dependencies), counts, state, roles };
 }
@@ -545,7 +549,7 @@ describe('AuthorizationService', () => {
         passport: { user: 'ordinary' },
       } as unknown as Sails.Req['session'],
       user: { id: 'ordinary', username: 'ordinary-user' },
-      authInfo: { scopeKeys: [] },
+      authorizationTokenScopeCeiling: Object.freeze([]),
       authorizationAuthMethod: 'bearer',
     });
 
@@ -593,7 +597,15 @@ describe('AuthorizationService', () => {
     ]);
     assert.equal(systemContext.contextType, 'system');
     assert.deepEqual(systemContext.effectiveScopeKeys, ['system.authorization.manage']);
-    assert.equal(service.authorizeAction(systemContext, asScopeKey('system.authorization.manage')).allowed, true);
+    // Fail-closed brand gate: a brandless system context carries the granted
+    // system scope in `effectiveScopeKeys` (consumed via requireSystemActor),
+    // but the brand-agnostic action gate denies without an authorized brand
+    // so `authorizeAction` can never grant brandless authority by itself.
+    assert.equal(service.authorizeAction(systemContext, asScopeKey('system.authorization.manage')).allowed, false);
+    assert.equal(
+      service.authorizeAction(systemContext, asScopeKey('system.authorization.manage')).reasonCode,
+      'brand-not-found'
+    );
 
     const brandJob = await service.createSystemProcessContext('brand-export', BRAND_A, ['record.read']);
     assert.equal(service.authorizeAction(brandJob, asScopeKey('record.read')).allowed, true);

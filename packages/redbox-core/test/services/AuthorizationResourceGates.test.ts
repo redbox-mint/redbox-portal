@@ -57,10 +57,10 @@ describe('RecordsService Phase 7 resource gates', () => {
       authorizeRecord: sinon.stub().resolves(decision(asScopeKey('record.read'), true, 'allowed')),
       hasScope: sinon.stub().returns(false),
     };
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     const previousBrandingService = Reflect.get(globalThis, 'BrandingService');
     try {
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         services: { ...(previousSails?.services ?? {}), authorizationservice: authorizationService },
       };
@@ -105,16 +105,16 @@ describe('RecordsService Phase 7 resource gates', () => {
       assert.deepEqual(actionCalls, ['record.audit.read', 'record.read']);
       assert.equal(getMeta.callCount, 1, 'a missing base record scope must not cause an identifier lookup');
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       if (previousBrandingService === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
       else Reflect.set(globalThis, 'BrandingService', previousBrandingService);
     }
   });
 
   it('preserves direct-user, edit-implies-view and immutable same-brand role ACL semantics', () => {
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     try {
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         services: {
           ...(previousSails?.services ?? {}),
@@ -178,14 +178,14 @@ describe('RecordsService Phase 7 resource gates', () => {
         'flat Solr brand fields must use the same same-brand ACL decision'
       );
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
     }
   });
 
   it('limits broad ACL bypass to records owned by the active brand', () => {
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     try {
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         services: {
           ...(previousSails?.services ?? {}),
@@ -258,7 +258,7 @@ describe('RecordsService Phase 7 resource gates', () => {
         false
       );
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
     }
   });
 });

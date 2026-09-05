@@ -4,6 +4,8 @@ import { describe, it } from 'mocha';
 import { isWebServiceAuthenticated } from '../../src/policies/isWebServiceAuthenticated';
 import { isAuthenticated } from '../../src/policies/isAuthenticated';
 import { freezeAuthorizationContext } from '../../src/authorization';
+import { asScopeKey, createScopeRegistry } from '../../src/authorization';
+import { Services as AuthorizationServices } from '../../src/services/AuthorizationService';
 
 interface ResponseCapture {
   readonly response: Sails.Res;
@@ -42,7 +44,7 @@ function request(overrides: Partial<Sails.Req> = {}): Sails.Req {
   } as Sails.Req;
 }
 
-function installPassport(result: Error | Record<string, unknown> | false): void {
+function installPassport(result: Error | Record<string, unknown> | false, info?: unknown): void {
   sails.config.passport = {
     authenticate:
       (
@@ -51,7 +53,7 @@ function installPassport(result: Error | Record<string, unknown> | false): void 
       ) =>
       (req: Sails.Req, _res: Sails.Res) => {
         if (result instanceof Error) callback(result, false, undefined);
-        else callback(null, result, undefined);
+        else callback(null, result, info);
         return req;
       },
   } as unknown as Sails.ConfigObject['passport'];
@@ -93,7 +95,7 @@ describe('isWebServiceAuthenticated policy', function () {
     assert.equal(nextCalls, 0);
     assert.equal(state.status, 401);
     assert.equal(state.contentType, 'application/problem+json');
-    assert.equal((state.body as { code: string }).code, 'invalid-authorization-header');
+    assert.equal((state.body as { code: string }).code, 'authorization.invalid-credential');
   });
 
   it('rejects a Passport error or false result instead of falling through to Guest', function () {
@@ -107,7 +109,7 @@ describe('isWebServiceAuthenticated policy', function () {
 
       assert.equal(nextCalls, 0);
       assert.equal(state.status, 401);
-      assert.equal((state.body as { code: string }).code, 'invalid-bearer-credential');
+      assert.equal((state.body as { code: string }).code, 'authorization.invalid-credential');
     }
   });
 
@@ -127,6 +129,86 @@ describe('isWebServiceAuthenticated policy', function () {
     assert.equal(nextCalls, 1);
     assert.equal(req.authorizationAuthMethod, 'bearer');
     assert.deepEqual(req.user, bearerUser);
+  });
+
+  it('preserves a validated Passport scope ceiling into context resolution and denies scopes above it', async function () {
+    installPassport({ id: 'bearer-user', username: 'integration' }, { scopeKeys: ['portal.home.read'] });
+    const req = request({
+      headers: { authorization: 'Bearer supplied-token' },
+      params: { branding: 'default' },
+    });
+    const { response } = responseCapture();
+    let nextCalls = 0;
+
+    isWebServiceAuthenticated(req, response, () => nextCalls++);
+    assert.equal(nextCalls, 1);
+    assert.deepEqual(req.authorizationTokenScopeCeiling, ['portal.home.read']);
+
+    const registry = createScopeRegistry([
+      {
+        sourceType: 'core',
+        sourcePackage: '@researchdatabox/redbox-core',
+        sourceVersion: 'test',
+        definitions: [
+          { key: asScopeKey('portal.home.read'), label: 'Home', description: 'Read home.', risk: 'read' },
+          { key: asScopeKey('record.read'), label: 'Records', description: 'Read records.', risk: 'read' },
+        ],
+      },
+    ]);
+    const service = new AuthorizationServices.AuthorizationService({
+      getRegistry: () => registry,
+      resolveBrand: async () => ({ id: 'brand-1', name: 'default' }),
+      findUser: async () => ({ id: 'bearer-user', username: 'integration', accountLinkState: 'active' }),
+      findAssignments: async () => [
+        {
+          id: 'assignment-1',
+          principalId: 'bearer-user',
+          role: 'role-1',
+          branding: 'brand-1',
+          source: 'manual',
+          sourceKey: 'manual',
+          status: 'active',
+          sourcePresent: true,
+        },
+      ],
+      findRoles: async () => [
+        {
+          id: 'role-1',
+          name: 'Reader',
+          key: 'Reader',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+          status: 'active',
+        },
+      ],
+      findTemplateRevisions: async () => [],
+      findRoleScopeOverrides: async () => [
+        { id: 'override-1', role: 'role-1', scopeKey: 'portal.home.read', effect: 'add' },
+        { id: 'override-2', role: 'role-1', scopeKey: 'record.read', effect: 'add' },
+      ],
+      recordBrandId: () => undefined,
+      recordAclAllows: () => false,
+    });
+    const context = await service.resolveRequestContext(req);
+
+    assert.deepEqual(context.grantedScopeKeys, ['portal.home.read', 'record.read']);
+    assert.deepEqual(context.effectiveScopeKeys, ['portal.home.read']);
+    assert.equal(service.authorizeAction(context, asScopeKey('record.read')).reasonCode, 'token-scope-ceiling');
+  });
+
+  it('rejects malformed Passport scope ceilings before context construction', function () {
+    for (const scopeKeys of ['record.read', ['record.read', 42], ['Record.Read']] as const) {
+      installPassport({ id: 'bearer-user' }, { scopeKeys });
+      const req = request({ headers: { authorization: 'Bearer supplied-token' } });
+      const { response, state } = responseCapture();
+
+      isWebServiceAuthenticated(req, response, () => assert.fail('malformed ceiling reached context policy'));
+
+      assert.equal(state.status, 401);
+      assert.equal((state.body as { code: string }).code, 'authorization.invalid-credential');
+      assert.equal(req.authorizationTokenScopeCeiling, undefined);
+    }
   });
 
   it('accepts the case-insensitive Bearer authentication scheme', function () {
@@ -149,7 +231,7 @@ describe('isWebServiceAuthenticated policy', function () {
     isWebServiceAuthenticated(req, response, () => assert.fail('disabled bearer reached next'));
 
     assert.equal(state.status, 401);
-    assert.equal((state.body as { code: string }).code, 'invalid-bearer-credential');
+    assert.equal((state.body as { code: string }).code, 'authorization.invalid-credential');
   });
 });
 
@@ -183,6 +265,6 @@ describe('isAuthenticated policy', function () {
     isAuthenticated(req, response, () => assert.fail('anonymous request reached next'));
 
     assert.equal(state.status, 401);
-    assert.equal((state.body as { code: string }).code, 'authentication-required');
+    assert.equal((state.body as { code: string }).code, 'authorization.authentication-required');
   });
 });

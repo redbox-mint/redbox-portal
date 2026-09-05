@@ -2,20 +2,24 @@ import { Services as services } from '../CoreService';
 import {
   AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS,
   AuthorizationAdministrationError,
+  asScopeKey,
+  isExactBrandAdminRole,
+  isExactSystemAdminRole,
   validateRouteAuthorizations,
   type AuthorizationContext,
   type RolloutMode,
-  type ScopeKey,
   type ScopeRegistry,
 } from '../authorization';
 import { getMergedApiRoutes } from '../api-routes';
 import { AUTHORIZATION_MIGRATION_NAME, type AuthorizationDriftReport } from './AuthorizationMigrationService';
+import { Services as AuthorizationServices } from './AuthorizationService';
 import type { RoleAttributes } from '../waterline-models/Role';
 import type { RoleAssignmentAttributes } from '../waterline-models/RoleAssignment';
 import type { UserAttributes } from '../waterline-models/User';
 import type { RequiredTransactionCapabilityProbe } from '../utilities/RequiredTransactionUtils';
+import type { AuthorizationApprovalEvidence, AuthorizationReleaseEvidence } from '../config/authorization.config';
 
-const SYSTEM_MANAGE_SCOPE = 'system.authorization.manage' as ScopeKey;
+const SYSTEM_MANAGE_SCOPE = asScopeKey('system.authorization.manage');
 const MAX_READINESS_FINDINGS = 100;
 const MAX_READINESS_SUBJECTS = 100;
 
@@ -37,6 +41,7 @@ export interface AuthorizationReadinessReport {
   }>;
   readonly routes: Readonly<{
     routeCount: number;
+    configuredRouteCount: number;
     valid: boolean;
   }>;
   readonly migration: Readonly<{
@@ -55,6 +60,22 @@ export interface AuthorizationReadinessReport {
     systemAdministratorCount: number;
     requiredSystemAdministratorCount: 2;
   }>;
+  readonly releaseGates: Readonly<{
+    navigationParity: boolean;
+    approvedSecurityDifferences: boolean;
+    performance: boolean;
+    identity: Readonly<{ complete: boolean; buildVersion?: string; instanceId?: string }>;
+    shadowWindow: boolean;
+    rollback: boolean;
+    approvals: Readonly<{
+      product: boolean;
+      security: boolean;
+      operations: boolean;
+      hookOwners: boolean;
+      integrators: boolean;
+    }>;
+    durableFingerprint: boolean;
+  }>;
   readonly blockers: readonly AuthorizationReadinessFinding[];
   readonly warnings: readonly AuthorizationReadinessFinding[];
 }
@@ -63,9 +84,94 @@ export interface AuthorizationReadinessDependencies {
   readonly now: () => Date;
   readonly getMode: () => RolloutMode;
   readonly getRegistry: () => ScopeRegistry;
-  readonly validateRoutes: (registry: ScopeRegistry) => { readonly routeCount: number; readonly valid: boolean };
+  readonly validateRoutes: (registry: ScopeRegistry) => {
+    readonly routeCount: number;
+    readonly configuredRouteCount: number;
+    readonly valid: boolean;
+  };
   readonly reportDrift: () => Promise<AuthorizationDriftReport>;
   readonly probeTransactions: () => Promise<RequiredTransactionCapabilityProbe>;
+  readonly getReleaseEvidence: () => AuthorizationReleaseEvidence | undefined;
+}
+
+const SHA256_FINGERPRINT = /^[a-f0-9]{64}$/u;
+
+function validEvidence(value: AuthorizationApprovalEvidence | undefined): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    value?.approved === true &&
+    typeof value.fingerprint === 'string' &&
+    SHA256_FINGERPRINT.test(value.fingerprint) &&
+    typeof value.approvedAt === 'string' &&
+    Number.isFinite(Date.parse(value.approvedAt))
+  );
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  return normalized.length === 0 ? undefined : normalized;
+}
+
+function isFiniteNonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function isFiniteNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+
+function releaseGateState(
+  evidence: AuthorizationReleaseEvidence | undefined
+): AuthorizationReadinessReport['releaseGates'] {
+  const performance = evidence?.performance;
+  const shadow = evidence?.shadowWindow;
+  const shadowDurationHours =
+    shadow === undefined ? -1 : (Date.parse(shadow.completedAt) - Date.parse(shadow.startedAt)) / 3_600_000;
+  const approvals = evidence?.approvals;
+  const buildVersion = nonEmptyString(evidence?.identity?.buildVersion);
+  const instanceId = nonEmptyString(evidence?.identity?.instanceId);
+  return Object.freeze({
+    navigationParity: validEvidence(evidence?.navigationParity),
+    approvedSecurityDifferences: validEvidence(evidence?.approvedSecurityDifferences),
+    performance:
+      performance !== undefined &&
+      validEvidence(performance) &&
+      isFiniteNonNegativeNumber(performance.baselineP95Ms) &&
+      isFiniteNonNegativeNumber(performance.baselineP99Ms) &&
+      performance.baselineP99Ms >= performance.baselineP95Ms &&
+      isFiniteNonNegativeNumber(performance.maximumOverheadP95Ms) &&
+      isFiniteNonNegativeNumber(performance.maximumOverheadP99Ms) &&
+      isFiniteNonNegativeNumber(performance.observedOverheadP95Ms) &&
+      isFiniteNonNegativeNumber(performance.observedOverheadP99Ms) &&
+      performance.observedOverheadP95Ms <= performance.maximumOverheadP95Ms &&
+      performance.observedOverheadP99Ms <= performance.maximumOverheadP99Ms &&
+      isFiniteNonNegativeInteger(performance.baselineQueryCount) &&
+      isFiniteNonNegativeInteger(performance.maximumQueryCount) &&
+      isFiniteNonNegativeInteger(performance.observedQueryCount) &&
+      performance.observedQueryCount <= performance.maximumQueryCount,
+    identity: Object.freeze({
+      complete: buildVersion !== undefined && instanceId !== undefined,
+      ...(buildVersion === undefined ? {} : { buildVersion }),
+      ...(instanceId === undefined ? {} : { instanceId }),
+    }),
+    shadowWindow:
+      shadow !== undefined &&
+      validEvidence(shadow) &&
+      Number.isFinite(shadowDurationHours) &&
+      shadow.minimumHours > 0 &&
+      shadowDurationHours >= shadow.minimumHours,
+    rollback: validEvidence(evidence?.rollback),
+    approvals: Object.freeze({
+      product: validEvidence(approvals?.product),
+      security: validEvidence(approvals?.security),
+      operations: validEvidence(approvals?.operations),
+      hookOwners: validEvidence(approvals?.hookOwners),
+      integrators: validEvidence(approvals?.integrators),
+    }),
+    durableFingerprint: SHA256_FINGERPRINT.test(evidence?.durableFingerprint ?? ''),
+  });
 }
 
 function associationId(value: unknown): string | undefined {
@@ -95,16 +201,18 @@ function defaultDependencies(): AuthorizationReadinessDependencies {
       const routes = getMergedApiRoutes();
       validateRouteAuthorizations(routes, registry, 'merged contract API routes');
       AuthorizationRolloutService.validateRouteConfiguration();
-      return Object.freeze({ routeCount: routes.length, valid: true });
+      const configuredRouteCount = Object.keys(sails.config.routes ?? {}).length;
+      return Object.freeze({ routeCount: routes.length, configuredRouteCount, valid: true });
     },
     reportDrift: () => AuthorizationMigrationService.reportDrift(MAX_READINESS_FINDINGS),
     probeTransactions: () => AuthorizationAuditService.probeTransactions(),
+    getReleaseEvidence: () => sails.config.authorization.releaseEvidence,
   };
 }
 
 export namespace Services {
   export class AuthorizationReadinessService extends services.Core.Service {
-    protected override _exportedMethods: string[] = ['getReport'];
+    protected override _exportedMethods: string[] = ['getReport', 'getOperatorReport'];
 
     private readonly dependencies: AuthorizationReadinessDependencies;
 
@@ -168,13 +276,11 @@ export namespace Services {
       let systemRoleCount = 0;
       for (const role of roles) {
         const roleBrandId = associationId(role.branding);
-        const validSystemRole =
-          role.protectedKind === 'system-admin' && role.contextType === 'system' && roleBrandId === undefined;
+        // Shared exact validators: key/identity/display/context/brand/version
+        // must all be exact; a count alone cannot prove protected identity.
+        const validSystemRole = isExactSystemAdminRole(role);
         const validBrandRole =
-          role.protectedKind === 'brand-admin' &&
-          role.contextType === 'brand' &&
-          roleBrandId !== undefined &&
-          knownBrandIds.has(roleBrandId);
+          roleBrandId !== undefined && knownBrandIds.has(roleBrandId) && isExactBrandAdminRole(role, roleBrandId);
         if (!validSystemRole && !validBrandRole) {
           throw new Error('Administrator readiness encountered malformed protected-role ownership.');
         }
@@ -207,18 +313,12 @@ export namespace Services {
         }
         const roleBrandId = associationId(role.branding);
         const assignmentBrandId = associationId(assignment.branding);
-        if (
-          role.protectedKind === 'system-admin' &&
-          role.contextType === 'system' &&
-          roleBrandId === undefined &&
-          assignmentBrandId === undefined
-        ) {
+        if (isExactSystemAdminRole(role) && roleBrandId === undefined && assignmentBrandId === undefined) {
           systemAdministrators.add(assignment.principalId);
         } else if (
-          role.protectedKind === 'brand-admin' &&
-          role.contextType === 'brand' &&
           roleBrandId !== undefined &&
-          roleBrandId === assignmentBrandId
+          roleBrandId === assignmentBrandId &&
+          isExactBrandAdminRole(role, roleBrandId)
         ) {
           const principals = brandAdministrators.get(roleBrandId) ?? new Set<string>();
           principals.add(assignment.principalId);
@@ -247,15 +347,29 @@ export namespace Services {
       const registry = this.dependencies.getRegistry();
       const blockers: AuthorizationReadinessFinding[] = [];
       const warnings: AuthorizationReadinessFinding[] = [];
-      let routes: AuthorizationReadinessReport['routes'] = Object.freeze({ routeCount: 0, valid: false });
+      let routes: AuthorizationReadinessReport['routes'] = Object.freeze({
+        routeCount: 0,
+        configuredRouteCount: 0,
+        valid: false,
+      });
       try {
         routes = this.dependencies.validateRoutes(registry);
       } catch (_error) {
         blockers.push(this.finding('authorization-readiness.route-declarations-invalid', 1));
       }
-      if (!routes.valid || !Number.isSafeInteger(routes.routeCount) || routes.routeCount < 1) {
+      if (
+        !routes.valid ||
+        !Number.isSafeInteger(routes.routeCount) ||
+        routes.routeCount < 1 ||
+        !Number.isSafeInteger(routes.configuredRouteCount) ||
+        routes.configuredRouteCount < routes.routeCount
+      ) {
         routes = Object.freeze({
           routeCount: Number.isSafeInteger(routes.routeCount) && routes.routeCount >= 0 ? routes.routeCount : 0,
+          configuredRouteCount:
+            Number.isSafeInteger(routes.configuredRouteCount) && routes.configuredRouteCount >= 0
+              ? routes.configuredRouteCount
+              : 0,
           valid: false,
         });
         if (!blockers.some(blocker => blocker.code === 'authorization-readiness.route-declarations-invalid')) {
@@ -297,6 +411,55 @@ export namespace Services {
           )
         );
       }
+      // Persisted bootstrap issues: `AuthorizationBootstrapService.bootstrap`
+      // stores its result (reconcile + protected invariant issues) at
+      // `sails.config.authorizationReadiness`. Readiness must consume those
+      // persisted issues, otherwise a bootstrap blocker would never block
+      // enforce readiness.
+      try {
+        const sailsGlobal = (globalThis as Record<string, unknown>).sails as
+          | { config?: { authorizationReadiness?: { issues?: unknown } } }
+          | undefined;
+        const persistedIssues = sailsGlobal?.config?.authorizationReadiness?.issues;
+        if (Array.isArray(persistedIssues)) {
+          const bootstrapBlockers = persistedIssues.filter(
+            (issue): issue is { code: string } =>
+              typeof issue === 'object' &&
+              issue !== null &&
+              (issue as { severity?: unknown }).severity === 'blocker' &&
+              typeof (issue as { code?: unknown }).code === 'string'
+          );
+          if (bootstrapBlockers.length > 0) {
+            blockers.push(
+              this.finding(
+                'authorization-readiness.bootstrap-invariants-blocked',
+                bootstrapBlockers.length,
+                bootstrapBlockers.map(issue => issue.code)
+              )
+            );
+          }
+          const bootstrapWarnings = persistedIssues.filter(
+            (issue): issue is { code: string } =>
+              typeof issue === 'object' &&
+              issue !== null &&
+              (issue as { severity?: unknown }).severity === 'warning' &&
+              typeof (issue as { code?: unknown }).code === 'string'
+          );
+          if (bootstrapWarnings.length > 0) {
+            warnings.push(
+              this.finding(
+                'authorization-readiness.bootstrap-invariants-warning',
+                bootstrapWarnings.length,
+                bootstrapWarnings.map(issue => issue.code)
+              )
+            );
+          }
+        }
+      } catch {
+        // Persisted-issue consumption is observational: a malformed persisted
+        // result must not crash readiness, but drift/migration blockers above
+        // still gate enforce.
+      }
       const transactionProbe = await this.dependencies.probeTransactions();
       const transactions: RequiredTransactionCapabilityProbe =
         transactionProbe.available === true
@@ -325,6 +488,20 @@ export namespace Services {
           )
         );
       }
+      const releaseGates = releaseGateState(this.dependencies.getReleaseEvidence());
+      const releaseGateFindings: ReadonlyArray<readonly [boolean, string]> = [
+        [releaseGates.navigationParity, 'authorization-readiness.navigation-parity-evidence-missing'],
+        [releaseGates.approvedSecurityDifferences, 'authorization-readiness.security-differences-approval-missing'],
+        [releaseGates.performance, 'authorization-readiness.performance-evidence-missing'],
+        [releaseGates.identity.complete, 'authorization-readiness.deployment-identity-missing'],
+        [releaseGates.shadowWindow, 'authorization-readiness.shadow-window-evidence-missing'],
+        [releaseGates.rollback, 'authorization-readiness.rollback-rehearsal-evidence-missing'],
+        [Object.values(releaseGates.approvals).every(Boolean), 'authorization-readiness.release-approvals-missing'],
+        [releaseGates.durableFingerprint, 'authorization-readiness.durable-fingerprint-missing'],
+      ];
+      for (const [satisfied, code] of releaseGateFindings) {
+        if (!satisfied) blockers.push(this.finding(code, 1));
+      }
       return Object.freeze({
         generatedAt: now.toISOString(),
         mode,
@@ -346,9 +523,24 @@ export namespace Services {
         transactions,
         shadow: Object.freeze({ unresolvedMismatchCount }),
         administrators,
+        releaseGates,
         blockers: Object.freeze(blockers.slice(0, MAX_READINESS_FINDINGS)),
         warnings: Object.freeze(warnings.slice(0, MAX_READINESS_FINDINGS)),
       });
+    }
+
+    /**
+     * Non-HTTP operator entry point for the readiness command. Builds the
+     * privileged system-process context internally so callers cannot supply a
+     * hand-rolled actor; mirrors the controller path through getReport.
+     */
+    public async getOperatorReport(): Promise<AuthorizationReadinessReport> {
+      const actor = await new AuthorizationServices.AuthorizationService().createSystemProcessContext(
+        'authorization-readiness',
+        undefined,
+        [SYSTEM_MANAGE_SCOPE]
+      );
+      return this.getReport(actor);
     }
   }
 }

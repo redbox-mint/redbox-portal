@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { asScopeKey } from '../../src/authorization';
 import { Services } from '../../src/services/WorkspaceAsyncService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { of } from 'rxjs';
@@ -45,7 +46,7 @@ describe('WorkspaceAsyncService', function () {
         actorId: 'user-1',
         operationId: 'operation-1',
         branding: 'brand-1',
-        requiredScope: 'record.update',
+        requiredScope: asScopeKey('record.update'),
       };
       const expected = { id: 1, ...input, status: 'started' };
 

@@ -171,8 +171,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
-      - run: &installCodecov
-          # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-codecov-cli
+      - run: &installCodecov # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-codecov-cli
           name: Install codecov
           command: |
             mkdir -p /tmp/.codecov-cli
@@ -393,6 +392,10 @@ jobs:
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
+      # Gate D (Phase 3 Solr ACL parity, P3-009) must fail on skip: a skipped
+      # parity suite is missing evidence, never a pass. Forwarded into the
+      # Mocha compose profile and asserted by run-mocha-redbox.sh.
+      AUTHORIZATION_GATE_D_STRICT: '1'
     steps:
       - checkout
       - attach_workspace:

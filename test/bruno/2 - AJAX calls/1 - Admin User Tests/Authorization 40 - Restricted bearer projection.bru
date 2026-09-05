@@ -20,7 +20,7 @@ tests {
     const mode = bru.getEnvVar("authorizationMode") || "legacy";
     if (mode !== "enforce") {
       expect(res.getStatus()).to.equal(403);
-      expect(res.getBody()).to.include({ status: 403, code: "access-denied" });
+      expect(res.getBody()).to.include({ status: 403, code: "authorization.scope-denied" });
       return;
     }
 

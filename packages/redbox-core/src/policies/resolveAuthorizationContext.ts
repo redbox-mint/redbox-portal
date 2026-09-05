@@ -26,7 +26,7 @@ export async function resolveAuthorizationContext(
       requestId: req.authorizationRequestId,
       errorCode: 'resolution-failed',
     });
-    sendAuthorizationProblem(req, res, 500, 'authorization-unavailable', 'Authorization is unavailable.');
+    sendAuthorizationProblem(req, res, 500, 'authorization.internal-error', 'Authorization is unavailable.');
   }
 }
 

@@ -630,7 +630,7 @@ export namespace Services {
       record: RecordModel,
       options: Record<string, unknown>,
       user: UserModel
-    ) {
+    ): RecordModel | undefined {
       if (!this.shouldRunFigshareLifecycleSync(oid, record, options, user)) {
         sails.log.debug(`FigService - uploadFilesToFigshareArticle trigger condition not met for ${oid}`);
         return record;
@@ -680,6 +680,7 @@ export namespace Services {
           await this.persistSyncRecord(oid, record, user, previousMetadata);
           sails.log.error(`FigService - uploadFilesToFigshareArticle sync failed for ${oid}`, error);
         });
+      return undefined;
     }
 
     public async deleteFilesFromRedboxTrigger(

@@ -6,6 +6,11 @@
     "types": ["node", "mocha", "chai"]
   },
   "include": [
+    "../src/sails.ts",
+    "../src/waterline-models/**/*.ts",
+    "../src/services/**/*.ts",
+    "../src/**/*.d.ts",
+    "regenerate-legacy-baseline-snapshot.ts",
     "verify-record-contract-coverage.ts",
     "verify-record-schema-rollout.ts",
     "../test/unit/record-contract/record-contract-coverage-command.test.ts",

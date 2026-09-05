@@ -46,6 +46,15 @@ export namespace Controllers {
       return sanitizedUser as UserAttributes;
     }
 
+    /**
+     * Opaque brand-scoped 404 used when a user target is absent or outside the
+     * request brand. Intentionally emits only no-cache headers: Deprecation and
+     * Link successor headers are withheld so the response does not oracle
+     * cross-brand existence (the Link successor embeds the request brand path)
+     * and so deprecation state cannot be probed across brands. The narrowed
+     * legacy AJAX contract documents this exception and pins it in
+     * `legacy-role-ajax-contracts.test.ts`.
+     */
     private sendOpaqueUserNotFound(req: Sails.Req, res: Sails.Res) {
       return this.sendResp(req, res, {
         status: 404,
@@ -199,8 +208,24 @@ export namespace Controllers {
           })
         )
         .subscribe((pageData: globalThis.Record<string, unknown>) => {
-          this.sendResp(req, res, { data: pageData.roles, headers: this.getNoCacheHeaders() });
+          this.sendResp(req, res, {
+            data: pageData.roles,
+            headers: this.getLegacyRoleAjaxHeaders(req, 'roles'),
+          });
         });
+    }
+
+    /**
+     * The legacy AJAX role routes are compatibility adapters over the
+     * authorization contract API and are deprecated for the documented window.
+     */
+    private getLegacyRoleAjaxHeaders(req: Sails.Req, successorAction: 'roles' | 'assignments'): Record<string, string> {
+      const successorBase = `${BrandingService.getBrandAndPortalPath(req)}/api/authorization`;
+      return {
+        ...this.getNoCacheHeaders(),
+        Deprecation: 'true',
+        Link: `<${successorBase}/${successorAction}>; rel="successor-version"`,
+      };
     }
 
     public async searchLinkCandidates(req: Sails.Req, res: Sails.Res) {
@@ -526,7 +551,7 @@ export namespace Controllers {
               const roles = details.roles;
               const brand: BrandingModel = BrandingService.getBrandFromReq(req);
               const roleIds = RolesService.getRoleIds(brand.roles, roles);
-              UsersService.updateUserRoles(user.id as string, roleIds).subscribe(
+              UsersService.updateUserRoles(user.id as string, roleIds, { brandId: String(brand.id) }).subscribe(
                 (_user: unknown) => {
                   this.sendResp(req, res, {
                     data: { status: true, message: 'User created successfully' },
@@ -590,7 +615,7 @@ export namespace Controllers {
               const roles = details.roles;
               const roleIds = RolesService.getRoleIds(brand.roles, roles);
               const mergedRoleIds = this.mergeBrandRoleIds(target, String(brand.id), roleIds);
-              UsersService.updateUserRoles(userid, mergedRoleIds).subscribe(
+              UsersService.updateUserRoles(userid, mergedRoleIds, { brandId: String(brand.id) }).subscribe(
                 (_user: unknown) => {
                   this.sendResp(req, res, {
                     data: { status: true, message: 'User updated successfully' },
@@ -644,23 +669,26 @@ export namespace Controllers {
         if (!target) return this.sendOpaqueUserNotFound(req, res);
         const roleIds = RolesService.getRoleIds(brand.roles, newRoleNames);
         const mergedRoleIds = this.mergeBrandRoleIds(target, String(brand.id), roleIds);
-        UsersService.updateUserRoles(userid, mergedRoleIds).subscribe(
+        UsersService.updateUserRoles(userid, mergedRoleIds, { brandId: String(brand.id) }).subscribe(
           (_user: unknown) => {
-            this.sendResp(req, res, { data: { status: true, message: 'Save OK.' }, headers: this.getNoCacheHeaders() });
+            this.sendResp(req, res, {
+              data: { status: true, message: 'Save OK.' },
+              headers: this.getLegacyRoleAjaxHeaders(req, 'assignments'),
+            });
           },
           (error: unknown) => {
             sails.log.error('Failed to update user roles:');
             sails.log.error(error);
             this.sendResp(req, res, {
               data: { status: false, message: (error as Error).message },
-              headers: this.getNoCacheHeaders(),
+              headers: this.getLegacyRoleAjaxHeaders(req, 'assignments'),
             });
           }
         );
       } else {
         this.sendResp(req, res, {
           data: { status: false, message: 'Please provide userid and/or roles names.' },
-          headers: this.getNoCacheHeaders(),
+          headers: this.getLegacyRoleAjaxHeaders(req, 'assignments'),
         });
       }
       return;

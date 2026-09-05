@@ -1,5 +1,11 @@
 import { Services as services } from '../CoreService';
-import { StorageConfig, DiskConfig, GridFSDriverOptions, Visibility, storage as defaultStorageConfig } from '../config/storage.config';
+import {
+  StorageConfig,
+  DiskConfig,
+  GridFSDriverOptions,
+  Visibility,
+  storage as defaultStorageConfig,
+} from '../config/storage.config';
 import { GridFSDriver } from '../storage/GridFSDriver';
 
 /**
@@ -76,7 +82,7 @@ export namespace Services {
   }
 
   export class StorageManager extends services.Core.Service {
-    protected _exportedMethods: string[] = [
+    protected override _exportedMethods: string[] = [
       'init',
       'bootstrap',
       'disk',
@@ -88,7 +94,7 @@ export namespace Services {
       'getStagingDiskConfig',
     ];
 
-    protected logHeader: string = 'StorageManagerService::';
+    protected override logHeader: string = 'StorageManagerService::';
 
     // Flydrive module references (loaded dynamically since ESM-only)
     private _DiskConstructor: DiskConstructor | null = null;

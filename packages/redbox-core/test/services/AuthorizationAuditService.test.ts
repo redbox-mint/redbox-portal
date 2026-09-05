@@ -96,13 +96,47 @@ describe('AuthorizationAuditService', () => {
     assert.deepEqual(event.after, { headers: {}, safe: { status: 'active' } });
   });
 
-  it('exports append/read/retention operations but no update or arbitrary destroy', () => {
+  it('rejects credential material in free-text fields and redacts it from snapshots', () => {
+    assert.throws(
+      () =>
+        createAuthorizationAuditEvent(
+          { ...EVENT_INPUT, reason: 'rotated token Bearer abcdef123456' },
+          'succeeded',
+          FACTORY
+        ),
+      /credential material/
+    );
+    assert.throws(
+      () =>
+        createAuthorizationAuditEvent(
+          { ...EVENT_INPUT, requestId: 'password=supersecret-value' },
+          'succeeded',
+          FACTORY
+        ),
+      /credential material/
+    );
+    const event = createAuthorizationAuditEvent(
+      {
+        ...EVENT_INPUT,
+        after: { notes: 'call back on Bearer abcdef123456', safe: 'ok' },
+      },
+      'succeeded',
+      FACTORY
+    );
+    assert.deepEqual(event.after, { notes: 'call back on [REDACTED]', safe: 'ok' });
+  });
+
+  it('exports append/query/retention operations but no raw read, update, or arbitrary destroy', () => {
     const exported = new Services.AuthorizationAuditService(FACTORY).exports();
     assert.equal(typeof exported.createSucceededEvent, 'function');
     assert.equal(typeof exported.createSucceededEventOnce, 'function');
     assert.equal(typeof exported.recordAttempt, 'function');
-    assert.equal(typeof exported.readEvents, 'function');
+    assert.equal(typeof exported.queryEvents, 'function');
     assert.equal(typeof exported.applyRetention, 'function');
+    // The raw storage read accepts arbitrary filters without actor, scope, or
+    // brand checks, so it must stay an internal helper behind queryEvents and
+    // must never be reachable through the Sails service shim.
+    assert.equal(exported.readEvents, undefined);
     assert.equal(exported.update, undefined);
     assert.equal(exported.destroy, undefined);
   });
@@ -343,7 +377,7 @@ describe('AuthorizationAuditService', () => {
     });
   });
 
-  it('uses a stable timestamp/eventId cursor and returns detached immutable event snapshots', async () => {
+  it('serves paged audit reads only through the authorized query with the active brand forced', async () => {
     const occurredAt = '2026-08-27T12:00:00.000Z';
     const persistedEvents = ['audit-3', 'audit-2', 'audit-1'].map(id => ({
       id,
@@ -355,6 +389,7 @@ describe('AuthorizationAuditService', () => {
       actorId: 'operator-1',
       authMethod: 'operator',
       targetType: 'role',
+      brandId: 'brand-1',
       before: { nested: { status: 'inactive' } },
       occurredAt,
     }));
@@ -385,32 +420,38 @@ describe('AuthorizationAuditService', () => {
     });
 
     const service = new Services.AuthorizationAuditService(FACTORY);
-    const filter = Object.freeze({ actorId: 'operator-1', limit: 2 });
-    const firstPage = await service.readEvents(filter);
+    const reader = actorContext(['authorization.audit.read']);
+    const query = Object.freeze({ actor: reader, actorId: 'operator-1', limit: 2 });
+    // The internal storage read is not part of the exported surface: every audit
+    // read must pass actor, scope, and brand authorization in queryEvents.
+    assert.equal((service.exports() as Record<string, unknown>).readEvents, undefined);
+    const firstPage = await service.queryEvents(query);
     assert.deepEqual(
-      firstPage.events.map(event => event.id),
-      ['audit-3', 'audit-2']
+      firstPage.items.map(event => event.eventId),
+      ['event-audit-3', 'event-audit-2']
     );
     assert.equal(typeof firstPage.nextCursor, 'string');
     assert.equal(Object.isFrozen(firstPage), true);
-    assert.equal(Object.isFrozen(firstPage.events), true);
-    assert.equal(Object.isFrozen(firstPage.events[0]), true);
-    assert.equal(Object.isFrozen(firstPage.events[0].before), true);
-    assert.notEqual(firstPage.events[0], persistedEvents[0]);
+    assert.equal(Object.isFrozen(firstPage.items), true);
+    assert.equal(Object.isFrozen(firstPage.items[0]), true);
+    assert.equal(Object.isFrozen(firstPage.items[0].before), true);
+    assert.notEqual(firstPage.items[0], persistedEvents[0]);
+    assert.equal('id' in firstPage.items[0], false);
     assert.throws(() => {
-      (firstPage.events[0].before as { nested: { status: string } }).nested.status = 'tampered';
+      (firstPage.items[0].before as { nested: { status: string } }).nested.status = 'tampered';
     }, TypeError);
     assert.deepEqual(persistedEvents[0].before, { nested: { status: 'inactive' } });
 
-    const secondPage = await service.readEvents({ ...filter, cursor: firstPage.nextCursor });
+    const secondPage = await service.queryEvents({ ...query, cursor: firstPage.nextCursor });
     assert.deepEqual(
-      secondPage.events.map(event => event.id),
-      ['audit-1']
+      secondPage.items.map(event => event.eventId),
+      ['event-audit-1']
     );
     assert.equal(secondPage.nextCursor, undefined);
-    assert.deepEqual(criteriaSeen[0], { actorId: 'operator-1' });
+    assert.deepEqual(criteriaSeen[0], { actorId: 'operator-1', brandId: 'brand-1' });
     assert.deepEqual(criteriaSeen[1], {
       actorId: 'operator-1',
+      brandId: 'brand-1',
       or: [{ occurredAt: { '<': occurredAt } }, { eventId: { '<': 'event-audit-2' }, occurredAt }],
     });
     assert.deepEqual(sortsSeen, [
@@ -418,7 +459,74 @@ describe('AuthorizationAuditService', () => {
       [{ occurredAt: 'DESC' }, { eventId: 'DESC' }],
     ]);
     assert.deepEqual(limitsSeen, [3, 3]);
-    assert.deepEqual(filter, { actorId: 'operator-1', limit: 2 });
+    assert.deepEqual(query, { actor: reader, actorId: 'operator-1', limit: 2 });
+  });
+
+  it('rejects non-canonical cursors and cursors breaching the eventId persistence bound', async () => {
+    const service = new Services.AuthorizationAuditService(FACTORY);
+    const reader = actorContext(['authorization.audit.read']);
+    const encodeTestCursor = (payload: unknown): string =>
+      Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+    const validCursor = encodeTestCursor({
+      eventId: 'event-1',
+      occurredAt: '2026-08-28T00:00:00.000Z',
+      version: 1,
+    });
+    const overlongCursor = encodeTestCursor({
+      eventId: 'e'.repeat(129),
+      occurredAt: '2026-08-28T00:00:00.000Z',
+      version: 1,
+    });
+    const malformedCursors = [
+      `${validCursor}!`,
+      `${validCursor}=`,
+      `${validCursor} `,
+      `${validCursor}+`,
+      'A',
+      overlongCursor,
+    ];
+    Reflect.set(globalThis, 'AuthorizationAudit', {
+      find() {
+        throw new Error('Malformed cursors must be rejected before storage access.');
+      },
+    });
+    for (const cursor of malformedCursors) {
+      await assert.rejects(service.queryEvents({ actor: reader, cursor }), /cursor is invalid/);
+    }
+
+    // The persistence bound is 128 chars: a 128-char eventId cursor remains valid.
+    let criteria: Record<string, unknown> | undefined;
+    Reflect.set(globalThis, 'AuthorizationAudit', {
+      find(value: Record<string, unknown>) {
+        criteria = value;
+        const query = {
+          sort() {
+            return query;
+          },
+          limit() {
+            return query;
+          },
+          then(resolve: (events: Record<string, unknown>[]) => unknown) {
+            return Promise.resolve([]).then(resolve);
+          },
+        };
+        return query;
+      },
+    });
+    const boundaryCursor = encodeTestCursor({
+      eventId: 'e'.repeat(128),
+      occurredAt: '2026-08-28T00:00:00.000Z',
+      version: 1,
+    });
+    const page = await service.queryEvents({ actor: reader, cursor: boundaryCursor });
+    assert.equal(page.items.length, 0);
+    assert.deepEqual(criteria, {
+      brandId: 'brand-1',
+      or: [
+        { occurredAt: { '<': '2026-08-28T00:00:00.000Z' } },
+        { eventId: { '<': 'e'.repeat(128) }, occurredAt: '2026-08-28T00:00:00.000Z' },
+      ],
+    });
   });
 
   it('forces brand audit readers to their active brand and strips storage-only fields', async () => {

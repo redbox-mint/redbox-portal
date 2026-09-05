@@ -35,12 +35,45 @@ approved numeric p95/p99 authorization-overhead budget. No product/security
 approval record is present in the repository. Those two approvals cannot be
 created by a code change and remain explicit release blockers; Phase 9
 repository implementation is complete, but Gate A and any later enforce/release
-readiness claim remain open.
+readiness claim remain open. Remediation (2026-09-03): the readiness report now
+models these gates as fail-closed blockers driven by operator-supplied
+`authorization.releaseEvidence`, and `npm run authorization:readiness` reports
+them; supplying the durable evidence remains an external release action.
 
-Phases 10 through 15 remain planning input and are not claimed by this ledger.
-Phase 16 and later enforcement/shadow rollout work is outside the remediation
-scope. The maintained wiki, production/test files, and these three planning
-inputs are retained under `support/` as versioned repository artifacts.
+**Remediation ledger (2026-09-03): phases 10 through 13 implemented.**
+This remediation round completed the repository implementation of phases 10
+through 13 on top of `219cff3cb` and the final council remediation:
+
+- Phase 10: `requiredScope` on menu/home-panel/admin-sidebar configuration
+  (schema editors included), mode-aware navigation evaluation with fail-closed
+  unknown-scope handling in `enforce`, navigation shadow-mismatch evidence,
+  migrated default navigation entries with a navigation/route scope parity
+  test, and the shared `AuthorizationProjectionService` in `portal-ng-common`
+  consumed by `manage-roles`.
+- Phase 11: onboarding confirmed on `RoleAdministrationService` with
+  `getNestedRoles()` deprecated and removed from exported runtime methods;
+  user create/update role flows converted to a guarded assignment-service
+  adapter (Guest/system/cross-brand rejection, response shape preserved);
+  linked-account authority canonicalized through the guarded writer; legacy
+  AJAX role routes carry `Deprecation`/successor headers.
+- Phase 12: bearer hardening verified through policy tests plus automated
+  credential-sentinel leakage coverage for Problem Details, CSRF denials, and
+  audit payloads; integrator migration documented.
+- Phase 13: readiness report extended with the fail-closed release-evidence
+  gates; operator readiness and system-administrator recovery commands added
+  (`scripts/authorization-readiness.js`, `scripts/recover-system-admin.js`);
+  shadow mismatch acknowledgement and bounded retention added.
+- Phase 15 documentation deliverables (administration, scope catalog, hook
+  contract, migration/rollout, bearer migration, operations) published under
+  `support/wiki/` and indexed.
+
+Phases 14 through 16 remain operational/planning work that cannot be completed
+by repository changes alone: representative-traffic shadow evidence, external
+product/security/operations/hook-owner/integrator approvals recorded as release
+evidence, rollback rehearsal, deployment to production, and the integrator
+evidence gate for compatibility retirement (phase 16 is explicitly unscheduled).
+The maintained wiki, production/test files, and these three planning inputs are
+retained under `support/` as versioned repository artifacts.
 
 ## Orchestrator working rules
 
@@ -1063,77 +1096,77 @@ Complete when keyboard and basic accessibility smoke tests pass.
 
 ### 10.1 Extend navigation config contracts
 
-- [ ] Add `requiredScope` to menu items.
-- [ ] Add it to home panel items.
-- [ ] Add it to admin sidebar items and sections.
-- [ ] Update JSON/config schemas and editors.
-- [ ] Validate keys against merged runtime registry.
-- [ ] Keep `requiredRoles` readable during compatibility.
+- [x] Add `requiredScope` to menu items.
+- [x] Add it to home panel items.
+- [x] Add it to admin sidebar items and sections.
+- [x] Update JSON/config schemas and editors.
+- [x] Validate keys against merged runtime registry.
+- [x] Keep `requiredRoles` readable during compatibility.
 
 Complete when old configs deserialize and new configs prefer scope keys.
 
 ### 10.2 Use authorization service in navigation
 
-- [ ] Build resolution context once per request.
-- [ ] Evaluate `requiredScope` through `AuthorizationService`.
-- [ ] Evaluate legacy roles only according to rollout compatibility rules.
-- [ ] Report shadow visibility differences safely.
-- [ ] Migrate default Admin/Librarian/Researcher entries.
-- [ ] Verify each destination uses the same scope.
+- [x] Build resolution context once per request.
+- [x] Evaluate `requiredScope` through `AuthorizationService`.
+- [x] Evaluate legacy roles only according to rollout compatibility rules.
+- [x] Report shadow visibility differences safely.
+- [x] Migrate default Admin/Librarian/Researcher entries.
+- [x] Verify each destination uses the same scope.
 
 Complete when link visibility and direct route decisions agree for the matrix.
 
 ### 10.3 Add shared Angular projection service
 
-- [ ] Create typed `/me` models/service in `portal-ng-common`.
-- [ ] Expose loaded state and `hasScope()`.
-- [ ] Refresh on login/logout/brand switch and admin mutation.
-- [ ] Handle unavailable/denied projection safely.
-- [ ] Export through library public API.
-- [ ] Add tests and usage documentation.
+- [x] Create typed `/me` models/service in `portal-ng-common`.
+- [x] Expose loaded state and `hasScope()`.
+- [x] Refresh on login/logout/brand switch and admin mutation.
+- [x] Handle unavailable/denied projection safely.
+- [x] Export through library public API.
+- [x] Add tests and usage documentation.
 
 Complete when other Angular apps can hide affordances without copying role-name logic.
 
 ### 10.4 Verify navigation compatibility
 
-- [ ] Legacy-mode existing config tests.
-- [ ] Shadow comparison tests.
-- [ ] Enforce scope tests.
-- [ ] Unknown/orphaned scope tests.
-- [ ] Default navigation parity test.
+- [x] Legacy-mode existing config tests.
+- [x] Shadow comparison tests.
+- [x] Enforce scope tests.
+- [x] Unknown/orphaned scope tests.
+- [x] Default navigation parity test.
 
 **STOP GATE K — Navigation migrated**
 
-- [ ] New configuration writes scopes.
-- [ ] Existing role-based configuration remains readable for the promised window.
-- [ ] Hidden links never substitute for server policy.
+- [x] New configuration writes scopes.
+- [x] Existing role-based configuration remains readable for the promised window.
+- [x] Hidden links never substitute for server policy.
 
 ## 11. Migrate onboarding, hooks, and legacy role endpoints
 
 ### 11.1 Replace `getNestedRoles()` onboarding
 
-- [ ] Add per-brand/provider configurable default role key.
-- [ ] Default to existing `Researcher` key when unset.
-- [ ] Assign exactly that explicit role through `RoleAdministrationService`.
-- [ ] Rely on implicit Guest.
-- [ ] Create the onboarding source only for a genuinely first brand/provider onboarding.
-- [ ] Retain revoked onboarding rows so later logins do not reapply a changed default role.
-- [ ] Handle missing/inactive configured role as readiness/auth onboarding error without privilege fallback.
-- [ ] Update AAF tests.
-- [ ] Update OIDC tests.
-- [ ] Update local-user/bootstrap tests.
-- [ ] Deprecate/remove `getNestedRoles()` after all callers/tests migrate.
+- [x] Add per-brand/provider configurable default role key.
+- [x] Default to existing `Researcher` key when unset.
+- [x] Assign exactly that explicit role through `RoleAdministrationService`.
+- [x] Rely on implicit Guest.
+- [x] Create the onboarding source only for a genuinely first brand/provider onboarding.
+- [x] Retain revoked onboarding rows so later logins do not reapply a changed default role.
+- [x] Handle missing/inactive configured role as readiness/auth onboarding error without privilege fallback.
+- [x] Update AAF tests.
+- [x] Update OIDC tests.
+- [x] Update local-user/bootstrap tests.
+- [x] Deprecate/remove `getNestedRoles()` after all callers/tests migrate.
 
 Complete when no onboarding path encodes a fixed role hierarchy.
 
 ### 11.2 Adapt user creation/update
 
-- [ ] Convert requested role names/keys to same-brand role assignments.
-- [ ] Validate all roles before user/assignment mutation.
-- [ ] Use required transaction where user + roles must be atomic.
-- [ ] Prevent Guest/system/cross-brand poisoning.
-- [ ] Preserve supported response shape.
-- [ ] Audit role changes through authorization audit.
+- [x] Convert requested role names/keys to same-brand role assignments.
+- [x] Validate all roles before user/assignment mutation.
+- [ ] Use required transaction where user + roles must be atomic. (2026-09-03 review: every assignment grant/revoke/suppress runs in its own required transaction, but the composite user update is step-wise; a mid-sequence failure is surfaced to the caller for an idempotent retry rather than rolled back as one unit.)
+- [x] Prevent Guest/system/cross-brand poisoning.
+- [x] Preserve supported response shape.
+- [x] Audit role changes through authorization audit.
 
 Complete when user management contains no direct role collection writer.
 
@@ -1142,13 +1175,13 @@ Complete when user management contains no direct role collection writer.
 - [ ] Require recent, server-verified, pair-bound proof for both identities; client-supplied IDs alone are not proof.
 - [ ] Preview merged role authority across every affected brand before apply.
 - [ ] Reject a brand administrator when either account carries authority outside the actor's brand.
-- [ ] Canonicalize assignment ownership to primary account.
-- [ ] Merge source tuples without duplicating authority.
+- [x] Canonicalize assignment ownership to primary account.
+- [x] Merge source tuples without duplicating authority.
 - [ ] Revoke/retire alias associations consistently.
-- [ ] Enforce final-system-admin guard before linking.
-- [ ] Enforce final-brand-admin guard in every affected brand before linking.
+- [x] Enforce final-system-admin guard before linking.
+- [x] Enforce final-brand-admin guard in every affected brand before linking.
 - [ ] Preserve audit provenance of supplied and canonical targets.
-- [ ] Commit link state, assignments, legacy projection, quorum checks, and audits atomically.
+- [ ] Commit link state, assignments, legacy projection, quorum checks, and audits atomically. (2026-09-03 review: link canonicalization runs as ordered, individually transactional and audited steps; the record-metadata rewrite cannot share the datastore transaction. Steps are idempotent on retry; a single-atomic-commit implementation remains open.)
 - [ ] Do not guess how to redistribute merged authority on unlink.
 - [ ] Add rollback/concurrency tests.
 
@@ -1156,183 +1189,183 @@ Complete when linking cannot remove or duplicate protected authority unexpectedl
 
 ### 11.4 Adapt legacy AJAX routes
 
-- [ ] Make `/admin/roles/get` read new roles and project legacy shape.
-- [ ] Make `/admin/roles/user` translate names/keys and call assignment service.
+- [x] Make `/admin/roles/get` read new roles and project legacy shape.
+- [x] Make `/admin/roles/user` translate names/keys and call assignment service.
 - [ ] Reject empty-role behavior according to documented compatibility mapping without bypassing Guest semantics.
-- [ ] Add deprecation headers and successor links.
-- [ ] Preserve expected status/body for supported valid callers.
-- [ ] Add cross-brand/protected tests.
+- [x] Add deprecation headers and successor links.
+- [x] Preserve expected status/body for supported valid callers.
+- [x] Add cross-brand/protected tests.
 
 Complete when compatibility routes have no separate business logic.
 
 ### 11.5 Publish/update claim-hook contract
 
-- [ ] Export external-source replacement types/service method with `sourcePresent` and local-suppression semantics.
-- [ ] Require provider/source/brand/subject/role keys.
-- [ ] Update maintained claim hooks.
-- [ ] Update hook archetype docs/example.
-- [ ] Add idempotent login synchronization tests.
-- [ ] Add provider disappearance/reappearance and local suppress/unsuppress tests.
-- [ ] State that group-mapping UI is deferred.
+- [x] Export external-source replacement types/service method with `sourcePresent` and local-suppression semantics.
+- [x] Require provider/source/brand/subject/role keys.
+- [x] Update maintained claim hooks.
+- [x] Update hook archetype docs/example.
+- [x] Add idempotent login synchronization tests.
+- [x] Add provider disappearance/reappearance and local suppress/unsuppress tests.
+- [x] State that group-mapping UI is deferred.
 
 Complete when hooks can retain current claims behavior without direct association writes.
 
 ### 11.6 Verify compatibility flows
 
-- [ ] Local/AAF/OIDC onboarding.
-- [ ] Multi-brand default roles.
-- [ ] User create/update/link.
-- [ ] Legacy AJAX response contract.
-- [ ] External source synchronization.
-- [ ] Guest never persisted as assignment.
+- [x] Local/AAF/OIDC onboarding.
+- [x] Multi-brand default roles.
+- [x] User create/update/link.
+- [x] Legacy AJAX response contract.
+- [x] External source synchronization.
+- [x] Guest never persisted as assignment.
 
 **STOP GATE L — Supported writers migrated**
 
-- [ ] No maintained writer bypasses `RoleAdministrationService`.
-- [ ] Integrator compatibility APIs remain functional.
-- [ ] Fixed nested-role onboarding is gone.
-- [ ] Direct database writes are reported as unsupported drift.
+- [x] No maintained writer bypasses `RoleAdministrationService`.
+- [x] Integrator compatibility APIs remain functional.
+- [x] Fixed nested-role onboarding is gone.
+- [x] Direct database writes are reported as unsupported drift.
 
 ## 12. Complete legacy bearer security and compatibility
 
 ### 12.1 Harden bearer outcomes
 
-- [ ] No header remains anonymous/session as appropriate.
-- [ ] Wrong scheme/malformed value returns `401` when credential intent is supplied.
-- [ ] Unknown/revoked token returns `401`.
-- [ ] Disabled effective account returns `401`.
-- [ ] Valid token resolves canonical user and current assignments.
-- [ ] Token revoke/replace takes effect next request.
-- [ ] Guest never handles a failed supplied bearer.
+- [x] No header remains anonymous/session as appropriate.
+- [x] Wrong scheme/malformed value returns `401` when credential intent is supplied.
+- [x] Unknown/revoked token returns `401`.
+- [x] Disabled effective account returns `401`.
+- [x] Valid token resolves canonical user and current assignments.
+- [x] Token revoke/replace takes effect next request.
+- [x] Guest never handles a failed supplied bearer.
 
 Complete when all authentication boundary cases have policy and Bruno tests.
 
 ### 12.2 Apply scopes and resource gates to bearer clients
 
-- [ ] Test effective `/me` projection for bearer.
-- [ ] Test allowed/denied role administration actions.
-- [ ] Test two-brand role differences.
-- [ ] Test record action scope + ACL.
-- [ ] Test cross-brand entity `404`.
-- [ ] Test system-admin explicit scopes.
-- [ ] Confirm no API Admin shortcut remains.
+- [x] Test effective `/me` projection for bearer.
+- [x] Test allowed/denied role administration actions.
+- [x] Test two-brand role differences.
+- [x] Test record action scope + ACL.
+- [x] Test cross-brand entity `404`.
+- [x] Test system-admin explicit scopes.
+- [x] Confirm no API Admin shortcut remains.
 
 Complete when bearer and session principals with the same user/brand receive the same authorization result.
 
 ### 12.3 Eliminate credential leakage
 
-- [ ] Audit log statements around Passport/bearer failures.
-- [ ] Audit HTTP errors and Problem Details.
-- [ ] Audit authorization/admin audit events.
-- [ ] Audit shadow aggregates and metrics.
-- [ ] Audit import/export and support diagnostics.
-- [ ] Add automated secret sentinel tests.
+- [x] Audit log statements around Passport/bearer failures.
+- [x] Audit HTTP errors and Problem Details.
+- [x] Audit authorization/admin audit events.
+- [x] Audit shadow aggregates and metrics.
+- [x] Audit import/export and support diagnostics.
+- [x] Add automated secret sentinel tests.
 
 Complete when deliberate sentinel tokens do not appear in captured output/storage.
 
 ### 12.4 Document integrator migration
 
-- [ ] Call the credential an opaque legacy bearer token.
-- [ ] Document new required scopes/status outcomes.
-- [ ] Document effective-scope test endpoint.
-- [ ] Document deprecation headers/routes.
-- [ ] State one-or-two-release compatibility intent.
-- [ ] State OAuth replacement/product is deferred.
+- [x] Call the credential an opaque legacy bearer token.
+- [x] Document new required scopes/status outcomes.
+- [x] Document effective-scope test endpoint.
+- [x] Document deprecation headers/routes.
+- [x] State one-or-two-release compatibility intent.
+- [x] State OAuth replacement/product is deferred.
 
 **STOP GATE M — Legacy bearer safely bounded**
 
-- [ ] Legacy clients remain usable.
-- [ ] They cannot bypass scope/brand/entity/record checks.
-- [ ] Invalid tokens cannot gain Guest access.
-- [ ] No docs/runtime mislabel tokens as OAuth/JWT.
+- [x] Legacy clients remain usable.
+- [x] They cannot bypass scope/brand/entity/record checks.
+- [x] Invalid tokens cannot gain Guest access.
+- [x] No docs/runtime mislabel tokens as OAuth/JWT.
 
 ## 13. Add readiness, operational recovery, and rollout evidence
 
 ### 13.1 Implement readiness service/report
 
-- [ ] Registry conflicts/generation.
-- [ ] Route declaration coverage.
-- [ ] Unknown/orphaned references.
-- [ ] Template/role/Guest/system-admin invariants.
-- [ ] At least one active, unexpired, unsuppressed brand administrator in every brand.
-- [ ] At least two active, unexpired, unsuppressed system administrators for enforce readiness.
-- [ ] Transaction support.
-- [ ] Migration completion.
-- [ ] Legacy projection drift.
-- [ ] Navigation/route parity.
-- [ ] Unresolved shadow mismatches.
-- [ ] Users/roles dependent on new-only custom scopes that would lose capability during emergency legacy rollback.
-- [ ] Approved security differences.
-- [ ] Build version/mode/instance identity.
-- [ ] Machine-readable JSON plus concise operator summary.
+- [x] Registry conflicts/generation.
+- [x] Route declaration coverage.
+- [x] Unknown/orphaned references.
+- [x] Template/role/Guest/system-admin invariants.
+- [x] At least one active, unexpired, unsuppressed brand administrator in every brand.
+- [x] At least two active, unexpired, unsuppressed system administrators for enforce readiness.
+- [x] Transaction support.
+- [x] Migration completion.
+- [x] Legacy projection drift.
+- [x] Navigation/route parity.
+- [x] Unresolved shadow mismatches.
+- [x] Users/roles dependent on new-only custom scopes that would lose capability during emergency legacy rollback.
+- [x] Approved security differences.
+- [x] Build version/mode/instance identity.
+- [x] Machine-readable JSON plus concise operator summary.
 
 Complete when fixtures trigger every blocker/warning deterministically.
 
 ### 13.2 Add orphan reconciliation
 
-- [ ] Require explicit operator action after rolling deployment completion.
-- [ ] Compare persisted definitions with merged runtime registry.
-- [ ] Preview affected roles/templates/routes.
-- [ ] Mark absent definitions orphaned transactionally/audited.
-- [ ] Never delete definitions/grants automatically.
-- [ ] Make repeat execution idempotent.
+- [x] Require explicit operator action after rolling deployment completion.
+- [x] Compare persisted definitions with merged runtime registry.
+- [x] Preview affected roles/templates/routes.
+- [x] Mark absent definitions orphaned transactionally/audited.
+- [x] Never delete definitions/grants automatically.
+- [x] Make repeat execution idempotent.
 
 Complete when removing/re-adding a hook has safe, explainable behavior.
 
 ### 13.3 Add mismatch retention/resolution
 
-- [ ] Add paginated readiness/admin view of unresolved fingerprints.
-- [ ] Allow authorized operator acknowledgement with reason.
-- [ ] Retain counts/first/last evidence.
-- [ ] Delete only old resolved aggregates after configured retention.
-- [ ] Audit acknowledgement/retention operations appropriately.
+- [x] Add paginated readiness/admin view of unresolved fingerprints.
+- [x] Allow authorized operator acknowledgement with reason.
+- [x] Retain counts/first/last evidence.
+- [x] Delete only old resolved aggregates after configured retention.
+- [x] Audit acknowledgement/retention operations appropriately.
 
 Complete when unresolved evidence remains stable across instances and deployment restarts.
 
 ### 13.4 Add operator system-admin recovery
 
-- [ ] Implement non-HTTP command in normal application context.
-- [ ] Require exact canonical username/user ID.
-- [ ] Reject aliases, ambiguity, missing, or disabled target.
-- [ ] Require explicit confirmation and reason.
-- [ ] Use required transaction and same assignment/audit invariants.
-- [ ] Make repeat invocation idempotent.
-- [ ] Print safe verification only.
-- [ ] Document invocation and post-check.
+- [x] Implement non-HTTP command in normal application context.
+- [x] Require exact canonical username/user ID.
+- [x] Reject aliases, ambiguity, missing, or disabled target.
+- [x] Require explicit confirmation and reason.
+- [x] Use required transaction and same assignment/audit invariants.
+- [x] Make repeat invocation idempotent.
+- [x] Print safe verification only.
+- [x] Document invocation and post-check.
 
 Complete when lockout recovery is tested without adding a web backdoor.
 
 ### 13.5 Add operational metrics/logs
 
-- [ ] Decision counts by bounded route/mode/outcome/reason/category.
-- [ ] Shadow discrepancy counts.
-- [ ] Mutation outcomes.
-- [ ] Version conflicts.
-- [ ] Invalid bearer attempts.
-- [ ] Orphan grants.
-- [ ] Transaction failures.
-- [ ] Expired assignment observations.
-- [ ] Quorum guard rejections.
-- [ ] Cardinality/redaction tests.
+- [x] Decision counts by bounded route/mode/outcome/reason/category.
+- [x] Shadow discrepancy counts.
+- [x] Mutation outcomes.
+- [x] Version conflicts.
+- [x] Invalid bearer attempts.
+- [x] Orphan grants.
+- [x] Transaction failures.
+- [x] Expired assignment observations.
+- [x] Quorum guard rejections.
+- [x] Cardinality/redaction tests.
 
 Complete when metrics are actionable and contain no unbounded/user/resource/token labels.
 
 ### 13.6 Verify operations
 
-- [ ] Run multi-instance mismatch race tests.
-- [ ] Run readiness blocker matrix.
-- [ ] Run recovery tests.
-- [ ] Run retention tests.
-- [ ] Run authorization-audit indefinite/bounded/legal-hold retention tests separately from shadow retention.
-- [ ] Run secret/cardinality tests.
-- [ ] Publish operations wiki page.
+- [x] Run multi-instance mismatch race tests.
+- [x] Run readiness blocker matrix.
+- [x] Run recovery tests.
+- [x] Run retention tests.
+- [x] Run authorization-audit indefinite/bounded/legal-hold retention tests separately from shadow retention.
+- [x] Run secret/cardinality tests.
+- [x] Publish operations wiki page.
 
 **STOP GATE N — Operators can assess and recover**
 
-- [ ] Readiness requires no manual database inspection.
-- [ ] Recovery is audited, transactional, idempotent, and non-HTTP.
-- [ ] Shadow evidence is durable/bounded/private.
-- [ ] Tools never change rollout mode automatically.
+- [x] Readiness requires no manual database inspection.
+- [x] Recovery is audited, transactional, idempotent, and non-HTTP.
+- [x] Shadow evidence is durable/bounded/private.
+- [x] Tools never change rollout mode automatically.
 
 ## 14. Execute shadow rollout and close discrepancies
 
@@ -1449,15 +1482,15 @@ Complete when rollback remains tested throughout the supported release.
 
 ### 15.4 Finish documentation
 
-- [ ] Authorization administration guide.
-- [ ] Scope catalog/reference.
-- [ ] Hook scope/claim assignment contract.
-- [ ] Migration/shadow/enforce/rollback guide.
-- [ ] Legacy bearer integrator migration guide.
-- [ ] Operations/readiness/recovery guide.
-- [ ] API/OpenAPI reference updates.
-- [ ] Release notes distinguishing authorization from authentication.
-- [ ] Wiki Home/index links.
+- [x] Authorization administration guide.
+- [x] Scope catalog/reference.
+- [x] Hook scope/claim assignment contract.
+- [x] Migration/shadow/enforce/rollback guide.
+- [x] Legacy bearer integrator migration guide.
+- [x] Operations/readiness/recovery guide.
+- [x] API/OpenAPI reference updates.
+- [x] Release notes distinguishing authorization from authentication.
+- [x] Wiki Home/index links.
 
 Complete when an administrator, hook author, integrator, and operator each have a complete path for their responsibilities.
 

@@ -33,23 +33,17 @@ describe('AuthorizationAdminService', () => {
 
   afterEach(() => http.verify());
 
-  it('loads /me relative to the active brand and unwraps a v2 response', async () => {
-    const promise = service.getMe();
+  it('loads catalog resources relative to the active brand and unwraps a v2 response', async () => {
+    const promise = service.listScopes();
     await Promise.resolve();
-    const request = http.expectOne('http://localhost/default/rdmp/api/authorization/me');
+    const request = http.expectOne('http://localhost/default/rdmp/api/authorization/scopes');
     expect(request.request.method).toBe('GET');
     expect(request.request.context.get(RB_HTTP_INTERCEPTOR_AUTH_CSRF)).toBe('testCsrfValue');
     request.flush({
-      data: {
-        brand: { id: 'brand-1', name: 'Brand one' },
-        rolloutMode: 'shadow',
-        principal: { category: 'authenticated', authMethod: 'session', active: true, userId: 'user-1' },
-        roles: [],
-        scopeKeys: ['authorization.self.read'],
-      },
+      data: { items: [{ key: 'record.read' }] },
       meta: {},
     });
-    expect((await promise).rolloutMode).toBe('shadow');
+    expect((await promise).items[0].key).toBe('record.read');
   });
 
   it('sends documented cursor filters and URL-encodes grandfathered role keys', async () => {
@@ -115,10 +109,10 @@ describe('AuthorizationAdminService', () => {
   });
 
   it('does not expose arbitrary server details from a 500 response', async () => {
-    const promise = service.getMe();
+    const promise = service.listScopes();
     await Promise.resolve();
     http
-      .expectOne(request => request.url.endsWith('/authorization/me'))
+      .expectOne(request => request.url.endsWith('/authorization/scopes'))
       .flush(
         {
           status: 500,

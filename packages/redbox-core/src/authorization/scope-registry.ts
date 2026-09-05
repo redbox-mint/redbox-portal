@@ -296,35 +296,37 @@ export function createScopeRegistry(sources: readonly unknown[]): ScopeRegistry 
   const all = Object.freeze([...orderedDefinitions]);
   const generation = buildGeneration(all);
 
-  return {
+  return Object.freeze({
     all,
     generation,
-    get(scopeKey) {
+    get(scopeKey: ScopeKey) {
       return registry.get(scopeKey);
     },
-    has(scopeKey) {
+    has(scopeKey: ScopeKey) {
       return registry.has(scopeKey);
     },
-    isActive(scopeKey) {
+    isActive(scopeKey: ScopeKey) {
       return registry.get(scopeKey)?.status === 'active';
     },
-    list(options) {
+    list(options?: { namespace?: string; includeDeprecated?: boolean }) {
       const includeDeprecated = options?.includeDeprecated ?? false;
       const namespace = options?.namespace;
 
-      return all.filter(definition => {
-        if (namespace && definition.namespace !== namespace) {
-          return false;
-        }
+      return Object.freeze(
+        all.filter(definition => {
+          if (namespace && definition.namespace !== namespace) {
+            return false;
+          }
 
-        if (!includeDeprecated && definition.status !== 'active') {
-          return false;
-        }
+          if (!includeDeprecated && definition.status !== 'active') {
+            return false;
+          }
 
-        return true;
-      });
+          return true;
+        })
+      );
     },
-    validateScopeKeys(scopeKeys) {
+    validateScopeKeys(scopeKeys: readonly ScopeKey[]) {
       const activeScopeKeys: ScopeKey[] = [];
       const inactiveScopeKeys: ScopeKey[] = [];
       const missingScopeKeys: ScopeKey[] = [];
@@ -344,11 +346,11 @@ export function createScopeRegistry(sources: readonly unknown[]): ScopeRegistry 
         activeScopeKeys.push(scopeKey);
       }
 
-      return {
+      return Object.freeze({
         activeScopeKeys: Object.freeze(activeScopeKeys),
         inactiveScopeKeys: Object.freeze(inactiveScopeKeys),
         missingScopeKeys: Object.freeze(missingScopeKeys),
-      };
+      });
     },
-  };
+  });
 }

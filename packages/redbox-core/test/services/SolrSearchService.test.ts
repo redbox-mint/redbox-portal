@@ -239,6 +239,67 @@ describe('SolrSearchService', function () {
     });
   });
 
+  describe('addAuthParams ACL-string preservation', function () {
+    // Repository-side preservation proof for indexed Solr ACL strings. These
+    // are pure query-builder unit tests: they compare the emitted `fq` filter
+    // value byte-for-byte, never open a Solr client, and never write records.
+    // RUNTIME EVIDENCE GAP (2026-09-05): no live Solr is reachable from this
+    // environment (localhost:8983 connection refused; Solr runs only inside
+    // the integration docker-compose profiles), so an against-live-Solr
+    // round-trip was NOT run. Re-run under the mocha/bruno profiles with Solr
+    // up before claiming runtime Solr evidence.
+    it('emits byte-identical view/edit ACL clauses preserving legacy key case and spaces', function () {
+      const params = new URLSearchParams();
+      const roles = [
+        { name: 'Research Team', branding: 'brand-1' },
+        { name: 'Admin', branding: 'brand-1' },
+      ];
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'jsmith', roles, brand);
+
+      expect(params.get('fq')).to.equal(
+        'authorization_edit:jsmith OR authorization_view:jsmith OR ' +
+          'authorization_viewRoles:(Admin OR Research Team) OR ' +
+          'authorization_editRoles:(Admin OR Research Team)'
+      );
+    });
+
+    it('emits no role clauses and no empty parentheses for a system-only principal', function () {
+      const params = new URLSearchParams();
+      const roles = [{ key: 'system-administrator' }, { key: 'Foreign', branding: { id: 'brand-2' } }];
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'jsmith', roles, brand);
+
+      expect(params.get('fq')).to.equal('authorization_edit:jsmith OR authorization_view:jsmith');
+    });
+
+    it('emits byte-identical edit-only clauses when editAccessOnly is set', function () {
+      const params = new URLSearchParams();
+      const roles = [{ name: 'Admin', branding: 'brand-1' }];
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'jsmith', roles, brand, true);
+
+      expect(params.get('fq')).to.equal('authorization_edit:jsmith OR authorization_editRoles:(Admin)');
+    });
+
+    it('emits byte-identical escaped ACL terms for special characters', function () {
+      const params = new URLSearchParams();
+      const roles = [{ key: 'Researcher+(*)', name: 'Renamed label', branding: { id: 'brand-1' } }];
+      const brand = { id: 'brand-1', name: 'default' };
+
+      (SolrSearchService as any).addAuthParams(params, 'user:*', roles, brand);
+
+      expect(params.get('fq')).to.equal(
+        'authorization_edit:user\\:\\* OR authorization_view:user\\:\\* OR ' +
+          'authorization_viewRoles:(Researcher\\+\\(\\*\\)) OR ' +
+          'authorization_editRoles:(Researcher\\+\\(\\*\\))'
+      );
+    });
+  });
+
   describe('parseQueryFragment', function () {
     it('should treat a bare expression as the q param', function () {
       const params = (SolrSearchService as any).parseQueryFragment('metaMetadata_type:rdmp&rows=10');

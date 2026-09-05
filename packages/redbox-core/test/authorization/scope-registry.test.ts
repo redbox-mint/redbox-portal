@@ -227,4 +227,126 @@ describe('authorization scope registry', () => {
       'scope-definition-conflict'
     );
   });
+
+  it('rejects byte-identical duplicate scope declarations', () => {
+    assertValidationError(
+      () =>
+        createScopeRegistry([
+          createSource({
+            sourceType: 'core',
+            sourcePackage: '@researchdatabox/redbox-core',
+            sourceVersion: '1.0.0',
+            definitions: [
+              {
+                key: asScopeKey('record.read'),
+                label: 'Read records',
+                description: 'Allows reading records.',
+                risk: 'read',
+              },
+            ],
+          }),
+          createSource({
+            sourceType: 'core',
+            sourcePackage: '@researchdatabox/redbox-core',
+            sourceVersion: '1.0.0',
+            definitions: [
+              {
+                key: asScopeKey('record.read'),
+                label: 'Read records',
+                description: 'Allows reading records.',
+                risk: 'read',
+              },
+            ],
+          }),
+        ]),
+      'scope-definition-duplicate'
+    );
+  });
+
+  it('exposes an actually immutable registry without breaking the read API', () => {
+    const registry = createScopeRegistry([
+      createSource({
+        sourceType: 'core',
+        sourcePackage: '@researchdatabox/redbox-core',
+        sourceVersion: '1.0.0',
+        definitions: [
+          {
+            key: asScopeKey('record.read'),
+            label: 'Read records',
+            description: 'Allows reading records.',
+            risk: 'read',
+          },
+        ],
+      }),
+    ]);
+
+    assert.equal(Object.isFrozen(registry), true);
+    assert.equal(Object.isFrozen(registry.all), true);
+    assert.equal(Object.isFrozen(registry.all[0]), true);
+    assert.equal(Object.isFrozen(registry.list()), true);
+    const summary = registry.validateScopeKeys([asScopeKey('record.read')]);
+    assert.equal(Object.isFrozen(summary.activeScopeKeys), true);
+    assert.equal(Object.isFrozen(summary.inactiveScopeKeys), true);
+    assert.equal(Object.isFrozen(summary.missingScopeKeys), true);
+
+    assert.throws(() => {
+      (registry.all as unknown as unknown[]).push({
+        key: 'record.injected',
+        label: 'Injected',
+        description: 'Injected scope.',
+        risk: 'read',
+      });
+    });
+    assert.throws(() => {
+      (registry.all[0] as unknown as Record<string, unknown>).label = 'Mutated';
+    });
+    assert.throws(() => {
+      (registry.list() as unknown as unknown[]).push(asScopeKey('record.read'));
+    });
+    assert.throws(() => {
+      (registry as unknown as Record<string, unknown>).generation = 'mutated';
+    });
+
+    // Read API still works after freezing.
+    assert.equal(registry.has(asScopeKey('record.read')), true);
+    assert.equal(registry.isActive(asScopeKey('record.read')), true);
+    assert.equal(registry.get(asScopeKey('record.read'))?.label, 'Read records');
+    assert.deepEqual(
+      registry.list().map(definition => definition.key),
+      ['record.read']
+    );
+  });
+
+  it('treats unknown scopes as missing across every negative read path', () => {
+    const registry = createScopeRegistry([
+      createSource({
+        sourceType: 'core',
+        sourcePackage: '@researchdatabox/redbox-core',
+        sourceVersion: '1.0.0',
+        definitions: [
+          {
+            key: asScopeKey('record.read'),
+            label: 'Read records',
+            description: 'Allows reading records.',
+            risk: 'read',
+          },
+        ],
+      }),
+    ]);
+
+    const unknown = asScopeKey('record.publish');
+    assert.equal(registry.has(unknown), false);
+    assert.equal(registry.isActive(unknown), false);
+    assert.equal(registry.get(unknown), undefined);
+    assert.deepEqual(registry.validateScopeKeys([unknown]).missingScopeKeys, [unknown]);
+    assert.deepEqual(registry.validateScopeKeys([unknown]).activeScopeKeys, []);
+  });
+
+  it('keeps core scope catalog exports immutable for public consumers', () => {
+    const authorization = require('../../src/authorization') as Record<string, unknown>;
+    assert.equal(typeof authorization.createScopeRegistry, 'function');
+    assert.equal(typeof authorization.decideAuthorization, 'function');
+    assert.equal(typeof authorization.requireRequestAuthorizationContext, 'function');
+    assert.equal(typeof authorization.validateRouteAuthorizations, 'function');
+  });
 });

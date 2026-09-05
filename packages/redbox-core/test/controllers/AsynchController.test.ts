@@ -60,7 +60,7 @@ function request(attachedContext = context()) {
       action: 'subscribe',
     },
     param(name: string) {
-      return this.params[name];
+      return (this as unknown as { params: Record<string, unknown> }).params[name];
     },
   } as unknown as Sails.Req;
 }
@@ -89,10 +89,10 @@ describe('AsynchController privileged socket events', () => {
       finish: sinon.stub(),
       update: sinon.stub(),
     };
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     const previousAsynchsService = Reflect.get(globalThis, 'AsynchsService');
     try {
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         services: {
           ...(previousSails?.services ?? {}),
@@ -136,7 +136,7 @@ describe('AsynchController privileged socket events', () => {
       assert.equal(asynchronousState.finish.called, false);
       assert.equal(asynchronousState.update.called, false);
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       if (previousAsynchsService === undefined) Reflect.deleteProperty(globalThis, 'AsynchsService');
       else Reflect.set(globalThis, 'AsynchsService', previousAsynchsService);
       sinon.restore();
@@ -156,11 +156,11 @@ describe('AsynchController privileged socket events', () => {
     resolveUserContext.onSecondCall().resolves(context({ scopes: [] }));
     const authorizeBrandEntity = sinon.stub().callsFake(authorizeCurrentBrand);
     const join = sinon.stub().callsFake((_req, _room, callback) => callback());
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     const previousBrandingService = Reflect.get(globalThis, 'BrandingService');
     const previousAsynchsService = Reflect.get(globalThis, 'AsynchsService');
     try {
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         services: {
           ...(previousSails?.services ?? {}),
@@ -188,10 +188,10 @@ describe('AsynchController privileged socket events', () => {
       assert.equal(join.callCount, 1, 'the revoked event must not join the room');
       assert.equal(progressLookup.callCount, 0, 'an in-brand ACL denial must not trigger alternate identifier lookups');
       assert.equal((res.status as unknown as sinon.SinonStub).calledOnceWithExactly(403), true);
-      assert.equal((res.json as unknown as sinon.SinonStub).firstCall.args[0].code, 'resource-denied');
+      assert.equal((res.json as unknown as sinon.SinonStub).firstCall.args[0].code, 'authorization.resource-denied');
       assert.equal(sendResp.callCount, 1);
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       if (previousBrandingService === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
       else Reflect.set(globalThis, 'BrandingService', previousBrandingService);
       if (previousAsynchsService === undefined) Reflect.deleteProperty(globalThis, 'AsynchsService');
@@ -213,11 +213,11 @@ describe('AsynchController privileged socket events', () => {
     const resolveUserContext = sinon.stub().resolves(context());
     const authorizeBrandEntity = sinon.stub().callsFake(authorizeCurrentBrand);
     const join = sinon.stub().callsFake((_req, _room, callback) => callback());
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     const previousBrandingService = Reflect.get(globalThis, 'BrandingService');
     const previousAsynchsService = Reflect.get(globalThis, 'AsynchsService');
     try {
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         services: {
           ...(previousSails?.services ?? {}),
@@ -242,7 +242,7 @@ describe('AsynchController privileged socket events', () => {
       assert.equal(join.callCount, 1);
       assert.equal((sendResp.secondCall.args[2] as { status?: number }).status, 403);
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       if (previousBrandingService === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
       else Reflect.set(globalThis, 'BrandingService', previousBrandingService);
       if (previousAsynchsService === undefined) Reflect.deleteProperty(globalThis, 'AsynchsService');
@@ -256,11 +256,11 @@ describe('AsynchController privileged socket events', () => {
     const authorizeBrandEntity = sinon.stub().callsFake(authorizeCurrentBrand);
     const getAuthorizedMeta = sinon.stub();
     const authorizeRecordCollection = sinon.stub();
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     const previousBrandingService = Reflect.get(globalThis, 'BrandingService');
     const previousAsynchsService = Reflect.get(globalThis, 'AsynchsService');
     try {
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         services: {
           ...(previousSails?.services ?? {}),
@@ -278,11 +278,14 @@ describe('AsynchController privileged socket events', () => {
       await controller.subscribe(request(), res);
 
       assert.equal((res.status as unknown as sinon.SinonStub).calledOnceWithExactly(401), true);
-      assert.equal((res.json as unknown as sinon.SinonStub).firstCall.args[0].code, 'authentication-required');
+      assert.equal(
+        (res.json as unknown as sinon.SinonStub).firstCall.args[0].code,
+        'authorization.authentication-required'
+      );
       assert.equal(getAuthorizedMeta.called, false);
       assert.equal(authorizeRecordCollection.called, false);
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       if (previousBrandingService === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
       else Reflect.set(globalThis, 'BrandingService', previousBrandingService);
       if (previousAsynchsService === undefined) Reflect.deleteProperty(globalThis, 'AsynchsService');

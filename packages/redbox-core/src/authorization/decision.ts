@@ -16,8 +16,8 @@ function createEvidence(
     requiredScopeActive,
     principalActive: input.principal.active,
     principalHasRequiredScope,
-    brandKnown: input.brand?.exists ?? true,
-    brandAuthorized: input.brand?.authorized ?? true,
+    brandKnown: input.brand?.exists ?? false,
+    brandAuthorized: input.brand?.authorized ?? false,
     tokenAllowsRequiredScope: input.tokenCeiling ? input.tokenCeiling.scopeKeys.includes(input.requiredScope) : true,
     resourceFound: input.resource?.found ?? true,
     resourceBrandMatches: input.resource?.brandMatches ?? true,
@@ -65,11 +65,11 @@ export function decideAuthorization(input: AuthorizationDecisionInput): Authoriz
     return createDecision(input, false, 'principal-inactive', evidence);
   }
 
-  if (!(input.brand?.exists ?? true)) {
+  if (!(input.brand?.exists ?? false)) {
     return createDecision(input, false, 'brand-not-found', evidence);
   }
 
-  if (!(input.brand?.authorized ?? true)) {
+  if (!(input.brand?.authorized ?? false)) {
     return createDecision(input, false, 'brand-not-authorized', evidence);
   }
 
