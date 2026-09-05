@@ -16,7 +16,7 @@ export function isAuthenticated(req: Sails.Req, res: Sails.Res, next: Sails.Next
     next();
     return;
   }
-  sendAuthorizationProblem(req, res, 401, 'authentication-required', 'Authentication is required.');
+  sendAuthorizationProblem(req, res, 401, 'authorization.authentication-required', 'Authentication is required.');
 }
 
 export default isAuthenticated;

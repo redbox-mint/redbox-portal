@@ -97,7 +97,10 @@ export const authorizationProblemSchema = z
     status: z.number().int().min(400).max(599),
     detail: z.string().max(1_000),
     instance: z.string().max(2_048),
-    code: z.string().max(128),
+    code: z
+      .string()
+      .regex(/^authorization\.[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/u)
+      .max(128),
     requestId: identifierField,
   })
   .strict()
@@ -723,6 +726,32 @@ export const authorizationReadinessSchema = z
         brandsWithoutAdministrator: z.array(identifierField).max(100),
         systemAdministratorCount: z.number().int().min(0),
         requiredSystemAdministratorCount: z.literal(2),
+      })
+      .strict(),
+    releaseGates: z
+      .object({
+        navigationParity: z.boolean(),
+        approvedSecurityDifferences: z.boolean(),
+        performance: z.boolean(),
+        identity: z
+          .object({
+            complete: z.boolean(),
+            buildVersion: z.string().min(1).max(128).optional(),
+            instanceId: z.string().min(1).max(128).optional(),
+          })
+          .strict(),
+        shadowWindow: z.boolean(),
+        rollback: z.boolean(),
+        approvals: z
+          .object({
+            product: z.boolean(),
+            security: z.boolean(),
+            operations: z.boolean(),
+            hookOwners: z.boolean(),
+            integrators: z.boolean(),
+          })
+          .strict(),
+        durableFingerprint: z.boolean(),
       })
       .strict(),
     blockers: z.array(authorizationReadinessFindingSchema).max(100),

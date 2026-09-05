@@ -362,7 +362,7 @@ describe('RecordController getWorkflowSteps', () => {
     await controller.view(req, res);
 
     expect((res.status as any).calledOnceWithExactly(404)).to.be.true;
-    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 404, code: 'resource-not-found' });
+    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 404, code: 'authorization.not-found' });
   });
 
   it('returns badRequest when record oid is empty', async () => {
@@ -401,7 +401,7 @@ describe('RecordController getWorkflowSteps', () => {
     await controller.view(req, res);
 
     expect((res.status as any).calledOnceWithExactly(403)).to.be.true;
-    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 403, code: 'resource-denied' });
+    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 403, code: 'authorization.resource-denied' });
     expect(sendViewStub.called).to.be.false;
     expect((controller.recordsService.getMeta as sinon.SinonStub).calledOnce).to.be.true;
   });
@@ -690,7 +690,7 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect(sendRespStub.called).to.be.false;
     expect((res.status as any).calledOnceWithExactly(404)).to.be.true;
-    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 404, code: 'resource-not-found' });
+    expect((res.json as any).firstCall.args[0]).to.deep.include({ status: 404, code: 'authorization.not-found' });
   });
 
   for (const missingRecord of [undefined, null, {}]) {
@@ -2129,11 +2129,11 @@ describe('RecordController getWorkflowSteps', () => {
     };
 
     await (controller as any).updateInternal(baseRequest, res);
-    expectAuthorizationProblem(404, 'resource-not-found');
+    expectAuthorizationProblem(404, 'authorization.not-found');
 
     resetAuthorizationResponse();
     await controller.delete(baseRequest, res);
-    expectAuthorizationProblem(404, 'resource-not-found');
+    expectAuthorizationProblem(404, 'authorization.not-found');
     expect(updateMeta.notCalled).to.equal(true);
     expect(deleteRecord.notCalled).to.equal(true);
 
@@ -2141,11 +2141,11 @@ describe('RecordController getWorkflowSteps', () => {
     getMeta.rejects(new Error('private lookup failure'));
     resetAuthorizationResponse();
     await (controller as any).updateInternal(baseRequest, res);
-    expectAuthorizationProblem(404, 'resource-not-found');
+    expectAuthorizationProblem(404, 'authorization.not-found');
 
     resetAuthorizationResponse();
     await controller.delete(baseRequest, res);
-    expectAuthorizationProblem(404, 'resource-not-found');
+    expectAuthorizationProblem(404, 'authorization.not-found');
     expect(JSON.stringify((res.json as unknown as sinon.SinonStub).args)).not.to.include('private lookup failure');
 
     getMeta.resetBehavior();
@@ -2158,11 +2158,11 @@ describe('RecordController getWorkflowSteps', () => {
     hasEditAccess.returns(false);
     resetAuthorizationResponse();
     await (controller as any).updateInternal(baseRequest, res);
-    expectAuthorizationProblem(403, 'resource-denied');
+    expectAuthorizationProblem(403, 'authorization.resource-denied');
 
     resetAuthorizationResponse();
     await controller.delete(baseRequest, res);
-    expectAuthorizationProblem(403, 'resource-denied');
+    expectAuthorizationProblem(403, 'authorization.resource-denied');
     expect(sendResp.called).to.equal(false);
     expect(updateMeta.notCalled).to.equal(true);
     expect(deleteRecord.notCalled).to.equal(true);

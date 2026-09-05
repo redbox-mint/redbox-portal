@@ -67,8 +67,23 @@ export interface AuthorizationShadowMismatchInput {
   readonly brandId?: string;
   readonly principalCategory: AuthorizationContext['principal']['category'];
   readonly legacyAllowed: boolean;
-  readonly decision: AuthorizationDecision;
+  /**
+   * Bounded decision view: only the allowed/reasonCode pair feeds the fingerprint
+   * and persisted aggregate, so callers may pass any decision-shaped value.
+   */
+  readonly decision: Readonly<{ allowed: boolean; reasonCode: AuthorizationDecision['reasonCode'] }>;
   readonly requestId: string;
+}
+
+export interface AuthorizationMismatchAcknowledgementInput {
+  readonly fingerprint?: unknown;
+  readonly acknowledgedBy?: unknown;
+  readonly reason?: unknown;
+}
+
+export interface AuthorizationMismatchRetentionInput {
+  readonly olderThanDays?: unknown;
+  readonly limit?: unknown;
 }
 
 export interface AuthorizationRolloutDependencies {
@@ -159,7 +174,12 @@ function defaultLegacyEvaluation(req: Sails.Req, context: AuthorizationContext):
   return rules === null || pathRules.canRead(rules, roles, brand.name);
 }
 
-async function persistShadowMismatch(input: AuthorizationShadowMismatchInput, now: Date): Promise<void> {
+/**
+ * Atomically upserts one bounded shadow mismatch aggregate. Shared by the route
+ * rollout engine and the navigation visibility comparison; callers must never
+ * include actor/resource identifiers or credentials in the route ID.
+ */
+export async function persistShadowMismatch(input: AuthorizationShadowMismatchInput, now: Date): Promise<void> {
   const observedAt = now.toISOString();
   const routeId = input.routeId.slice(0, 256);
   const brandId = input.brandId?.slice(0, 128);
@@ -171,12 +191,7 @@ async function persistShadowMismatch(input: AuthorizationShadowMismatchInput, no
     legacyAllowed: input.legacyAllowed,
     decision: input.decision,
   });
-  const collection: unknown = AuthorizationShadowMismatch.getDatastore().manager.collection(
-    AuthorizationShadowMismatch.tableName
-  );
-  if (!isRecord(collection) || typeof collection.updateOne !== 'function') {
-    throw new Error('Authorization shadow mismatch collection does not support atomic updates.');
-  }
+  const collection = mismatchCollection();
   const update = {
     $setOnInsert: {
       fingerprint,
@@ -202,6 +217,36 @@ async function persistShadowMismatch(input: AuthorizationShadowMismatchInput, no
     const existingRowUpdate = { $set: update.$set, $unset: update.$unset, $inc: update.$inc };
     await collection.updateOne({ fingerprint }, existingRowUpdate, { upsert: false });
   }
+}
+
+function mismatchCollection(): {
+  updateOne(filter: unknown, update: unknown, options?: unknown): Promise<unknown>;
+  find(filter: unknown, options?: unknown): { limit(limit: number): { toArray(): Promise<unknown[]> } };
+  deleteMany(filter: unknown): Promise<{ deletedCount?: number }>;
+} {
+  const raw: unknown = AuthorizationShadowMismatch.getDatastore().manager.collection(
+    AuthorizationShadowMismatch.tableName
+  );
+  if (!isRecord(raw)) {
+    throw new Error('Authorization shadow mismatch collection does not support atomic updates.');
+  }
+  const collection = raw as {
+    updateOne?: (filter: unknown, update: unknown, options?: unknown) => Promise<unknown>;
+    find?: (filter: unknown, options?: unknown) => { limit(limit: number): { toArray(): Promise<unknown[]> } };
+    deleteMany?: (filter: unknown) => Promise<{ deletedCount?: number }>;
+  };
+  if (
+    typeof collection.updateOne !== 'function' ||
+    typeof collection.find !== 'function' ||
+    typeof collection.deleteMany !== 'function'
+  ) {
+    throw new Error('Authorization shadow mismatch collection does not support acknowledgement or retention.');
+  }
+  return {
+    updateOne: (filter, update, options) => collection.updateOne!(filter, update, options),
+    find: (filter, options) => collection.find!(filter, options),
+    deleteMany: filter => collection.deleteMany!(filter),
+  };
 }
 
 function defaultDependencies(): AuthorizationRolloutDependencies {
@@ -267,6 +312,72 @@ export namespace Services {
           errorCode: 'persistence-failed',
         });
       });
+    }
+
+    /**
+     * Operator acknowledgement of one unresolved shadow mismatch. The bounded
+     * operator identity and reason are stored durably on the aggregate row; this
+     * is operational evidence and never enters the append-only audit.
+     */
+    public async acknowledgeShadowMismatch(
+      input: AuthorizationMismatchAcknowledgementInput
+    ): Promise<{ fingerprint: string; resolvedAt: string }> {
+      const fingerprint = typeof input.fingerprint === 'string' ? input.fingerprint.trim() : '';
+      if (!/^[a-f0-9]{64}$/u.test(fingerprint)) {
+        throw new Error('Acknowledgement requires the exact 64-character mismatch fingerprint.');
+      }
+      const acknowledgedBy =
+        typeof input.acknowledgedBy === 'string' && input.acknowledgedBy.trim().length > 0
+          ? input.acknowledgedBy.trim().slice(0, 128)
+          : '';
+      if (acknowledgedBy.length === 0) {
+        throw new Error('Acknowledgement requires a bounded operator identity.');
+      }
+      const reason = typeof input.reason === 'string' ? input.reason.trim().slice(0, 1_000) : '';
+      if (reason.length === 0) {
+        throw new Error('Acknowledgement requires a bounded operator reason.');
+      }
+      const collection = mismatchCollection();
+      const resolvedAt = new Date().toISOString();
+      // The native driver resolves updateOne to an UpdateResult even when nothing
+      // matches; matchedCount is the only reliable no-match signal.
+      const updated = (await collection.updateOne(
+        { fingerprint, resolvedAt: null },
+        { $set: { resolvedAt, resolvedBy: acknowledgedBy, resolutionReason: reason } }
+      )) as { matchedCount?: number } | null | undefined;
+      if (updated === null || updated === undefined || Number(updated.matchedCount ?? 0) < 1) {
+        throw new Error('No unresolved shadow mismatch matches that fingerprint.');
+      }
+      return Object.freeze({ fingerprint, resolvedAt });
+    }
+
+    /**
+     * Bounded retention of already-resolved aggregates. Unresolved evidence is
+     * never deleted and deletion is bounded per invocation.
+     */
+    public async retainResolvedShadowMismatches(
+      input: AuthorizationMismatchRetentionInput = {}
+    ): Promise<{ deleted: number; truncated: boolean }> {
+      const olderThanDays = Number(input.olderThanDays);
+      if (!Number.isFinite(olderThanDays) || olderThanDays < 1) {
+        throw new Error('Retention requires olderThanDays of at least 1.');
+      }
+      const limit = Number(input.limit ?? 1_000);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 10_000) {
+        throw new Error('Retention requires a bounded per-invocation limit of at most 10,000.');
+      }
+      const cutoff = new Date(Date.now() - olderThanDays * 86_400_000).toISOString();
+      const collection = mismatchCollection();
+      const stale = (await collection
+        .find({ resolvedAt: { $ne: null }, lastSeenAt: { $lt: cutoff } }, { projection: { _id: 1 } })
+        .limit(limit)
+        .toArray()) as Array<{ _id?: unknown }>;
+      if (stale.length === 0) {
+        return Object.freeze({ deleted: 0, truncated: false });
+      }
+      const ids = stale.map(row => row._id).filter(id => id !== undefined);
+      await collection.deleteMany({ _id: { $in: ids } });
+      return Object.freeze({ deleted: ids.length, truncated: stale.length >= limit });
     }
 
     public evaluateRequest(input: AuthorizationRolloutInput): AuthorizationRolloutResult {

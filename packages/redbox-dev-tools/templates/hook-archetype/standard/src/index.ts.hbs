@@ -1,6 +1,12 @@
 import '@researchdatabox/redbox-core';
 import { defineRedboxHook, type HookRegistrationMap } from '@researchdatabox/redbox-core';
 import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
+// Optional Phase 1 authorization scope contract. Keep commented until the hook
+// declares its own business scopes. Enabling requires both steps below; the
+// loader discovers the provider synchronously via
+// `registerRedboxAuthorizationScopes()` only when package.json sets
+// `"sails": { "hasAuthorizationScopes": true }`.
+// import type { AuthorizationScopeDefinition } from '@researchdatabox/redbox-core';
 import type { HookRedboxControllers } from './api/controllers';
 import type { HookRedboxServices } from './api/services';
 import { brandingConfigurationDefaults } from './config/brandingConfigurationDefaults';
@@ -8,6 +14,23 @@ import { reusableFormDefinitions } from './config/reusableFormDefinitions';
 import { MigrationExports, registerRedboxMigrations } from './migrations';
 
 export {};
+
+/// Optional Phase 1 scope-provider example (disabled by default).
+/// The loader calls this synchronously during static shim discovery and merges
+/// the result with the core catalog before route validation. It must return an
+/// array (never a Promise), use the hook-owned `{{hookShortName}}` namespace,
+/// and avoid reserved core namespaces. Duplicate keys and conflicts are
+/// rejected at registry build time.
+/// function registerRedboxAuthorizationScopes(): readonly AuthorizationScopeDefinition[] {
+///   return [
+///     {
+///       key: '{{hookShortName}}.read' as AuthorizationScopeDefinition['key'],
+///       label: 'Read {{hookPascalName}} data',
+///       description: 'Read data owned by the {{packageName}} hook.',
+///       risk: 'read',
+///     },
+///   ];
+/// }
 
 const hook = defineRedboxHook({
   initialize(_sails, done) {
@@ -17,21 +40,21 @@ const hook = defineRedboxHook({
     return {
       before: {},
       after: {
-        'GET /hooks/{{hookShortName}}/status': 'ExampleController.index'
-      }
+        'GET /hooks/{{hookShortName}}/status': 'ExampleController.index',
+      },
     };
   },
   configure() {},
   defaults: {
     __configKey__: {
-      _hookTimeout: 120000
+      _hookTimeout: 120000,
     },
-    policies: {}
+    policies: {},
   },
   registerRedboxConfig(): HookRegistrationMap {
     return {
       brandingConfigurationDefaults,
-      reusableFormDefinitions
+      reusableFormDefinitions,
     };
   },
   registerRedboxControllers(): HookRedboxControllers {
@@ -43,13 +66,16 @@ const hook = defineRedboxHook({
   registerRedboxFormConfigs(): Record<string, FormConfigFrame> {
     return require('./form-config').FormConfigExports as Record<string, FormConfigFrame>;
   },
+  // Optional Phase 1 scope provider. Uncomment after enabling
+  // `"hasAuthorizationScopes": true` in package.json.
+  // registerRedboxAuthorizationScopes,
   additionalExports: {
     ControllerExports: require('./api/controllers').ControllerExports,
     ServiceExports: require('./api/services').ServiceExports,
     FormConfigExports: require('./form-config').FormConfigExports,
     MigrationExports,
-    registerRedboxMigrations
-  }
+    registerRedboxMigrations,
+  },
 });
 
 module.exports = hook;

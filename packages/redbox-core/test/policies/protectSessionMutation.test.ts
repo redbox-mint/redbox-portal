@@ -63,6 +63,7 @@ describe('protectSessionMutation policy', function () {
     const missing = responseCapture();
     protectSessionMutation(missingRequest, missing.response, () => assert.fail('missing CSRF reached next'));
     assert.equal(missing.state.status, 403);
+    assert.equal((missing.state.body as { code: string }).code, 'authorization.csrf-required');
   });
 
   it('exempts only a server-resolved valid bearer and rejects unresolved credentials', function () {
@@ -76,6 +77,7 @@ describe('protectSessionMutation policy', function () {
     const anonymous = responseCapture();
     protectSessionMutation(anonymousRequest, anonymous.response, () => assert.fail('anonymous mutation reached next'));
     assert.equal(anonymous.state.status, 401);
+    assert.equal((anonymous.state.body as { code: string }).code, 'authorization.authentication-required');
   });
 
   it('never reflects query-string credentials in CSRF Problem Details', function () {

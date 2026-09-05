@@ -21,7 +21,7 @@ tests {
     expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/problem+json");
     expect(res.getBody()).to.deep.include({
       status: 401,
-      code: "invalid-bearer-credential"
+      code: "authorization.invalid-credential"
     });
   });
 }

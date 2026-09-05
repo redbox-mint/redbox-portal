@@ -28,7 +28,7 @@ tests {
     expect(res.getStatus()).to.equal(403);
     expect(res.headers["content-type"]).to.include("application/problem+json");
     const body = res.getBody();
-    expect(body).to.include({ status: 403, code: "access-denied" });
+    expect(body).to.include({ status: 403, code: "authorization.scope-denied" });
     expect(body.requestId).to.be.a("string").and.not.empty;
   });
 }

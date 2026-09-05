@@ -348,18 +348,11 @@ function defaultRecordBrandId(record: Readonly<Record<string, unknown>>): string
 }
 
 function defaultTokenScopeCeiling(req: Sails.Req): readonly string[] | undefined {
-  const attachedCeiling = req.authorization?.tokenScopeCeiling;
-  const authInfo = req.authInfo;
-  const authInfoCeiling =
-    isRecord(authInfo) && Array.isArray(authInfo.scopeKeys)
-      ? authInfo.scopeKeys.every(scopeKey => typeof scopeKey === 'string')
-        ? Object.freeze(authInfo.scopeKeys.filter((scopeKey): scopeKey is string => typeof scopeKey === 'string'))
-        : Object.freeze<string[]>([])
-      : undefined;
-  if (attachedCeiling === undefined) return authInfoCeiling;
-  if (authInfoCeiling === undefined) return attachedCeiling;
-  const authInfoScopeKeys = new Set(authInfoCeiling);
-  return Object.freeze(attachedCeiling.filter(scopeKey => authInfoScopeKeys.has(scopeKey)));
+  // The validated request ceiling attached by the bearer policy wins. A trusted
+  // pre-resolved context attached server-side (for example by a socket handshake)
+  // keeps its own ceiling while RBAC authority is refreshed from storage.
+  if (req.authorizationTokenScopeCeiling !== undefined) return req.authorizationTokenScopeCeiling;
+  return req.authorization?.tokenScopeCeiling;
 }
 
 function defaultDependencies(): AuthorizationServiceDependencies {

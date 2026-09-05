@@ -18,12 +18,15 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
+import type { AuthorizationContext, RolloutMode, ScopeKey } from '../authorization';
+import { AuthorizationShadowMismatchInput, persistShadowMismatch } from './AuthorizationRolloutService';
+import { authorizationRuntimeAccess, authorizationScopeAccess } from './AuthorizationServiceAccess';
 import {
   MenuItem,
   MenuConfigData,
   ResolvedMenuItem,
   ResolvedMenu,
-  DEFAULT_MENU_CONFIG
+  DEFAULT_MENU_CONFIG,
 } from '../configmodels/MenuConfig';
 import {
   HomePanel,
@@ -32,7 +35,7 @@ import {
   ResolvedHomePanel,
   ResolvedHomePanelItem,
   ResolvedHomePanels,
-  DEFAULT_HOME_PANEL_CONFIG
+  DEFAULT_HOME_PANEL_CONFIG,
 } from '../configmodels/HomePanelConfig';
 import {
   AdminSidebarSection,
@@ -41,10 +44,9 @@ import {
   ResolvedAdminSidebar,
   ResolvedAdminSidebarSection,
   ResolvedAdminSidebarItem,
-  DEFAULT_ADMIN_SIDEBAR_CONFIG
+  DEFAULT_ADMIN_SIDEBAR_CONFIG,
 } from '../configmodels/AdminSidebarConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
-
 
 /**
  * Context object containing request state for visibility checks
@@ -55,6 +57,9 @@ interface ResolutionContext {
   brand: BrandingModel | null;
   brandPortalPath: string;
   currentPath: string;
+  rolloutMode: RolloutMode;
+  authorization?: AuthorizationContext;
+  requestId?: string;
 }
 
 /**
@@ -65,16 +70,23 @@ interface FilterableItem {
   hideWhenAuth?: boolean;
   featureFlag?: string;
   requiredRoles?: string[];
+  requiredScope?: string;
   visibleWhenTranslationExists?: boolean;
   labelKey: string;
   href: string;
   external?: boolean;
 }
 
+interface ScopeGateResult {
+  declared: boolean;
+  /** undefined when the scope engine has no authoritative or comparable opinion. */
+  scopeAllowed?: boolean;
+}
+
 export namespace Services {
   /**
    * Navigation service that provides brand-aware menu and home panel configuration
-   * 
+   *
    * This service reads navigation configuration from the branding-aware config system
    * and resolves it into ready-to-render structures with proper filtering
    * based on authentication state, roles, translations, and placeholder pages.
@@ -88,7 +100,7 @@ export namespace Services {
       'resolveAdminSidebar',
       'getDefaultMenuConfig',
       'getDefaultHomePanelConfig',
-      'getDefaultAdminSidebarConfig'
+      'getDefaultAdminSidebarConfig',
     ];
 
     // =========================================================================
@@ -118,7 +130,7 @@ export namespace Services {
 
     /**
      * Resolves the menu configuration for the current request context
-     * 
+     *
      * @param req - The Express/Sails request object
      * @returns ResolvedMenu ready for rendering in templates
      */
@@ -141,21 +153,21 @@ export namespace Services {
 
         return {
           items: resolvedItems,
-          showSearch: menuConfig.showSearch !== false
+          showSearch: menuConfig.showSearch !== false,
         };
       } catch (error) {
         sails.log.error('[NavigationService] Error resolving menu:', error);
         // Return minimal menu on error
         return {
           items: [],
-          showSearch: true
+          showSearch: true,
         };
       }
     }
 
     /**
      * Resolves the home panel configuration for the current request context
-     * 
+     *
      * @param req - The Express/Sails request object
      * @returns ResolvedHomePanels ready for rendering in templates
      */
@@ -183,21 +195,21 @@ export namespace Services {
         }
 
         return {
-          panels: resolvedPanels
+          panels: resolvedPanels,
         };
       } catch (error) {
         console.error('[NavigationService] Error resolving home panels:', error);
         sails.log.error('[NavigationService] Error resolving home panels:', error);
         // Return empty panels on error
         return {
-          panels: []
+          panels: [],
         };
       }
     }
 
     /**
      * Resolves the admin sidebar configuration for the current request context
-     * 
+     *
      * @param req - The Express/Sails request object
      * @returns ResolvedAdminSidebar ready for rendering in templates
      */
@@ -219,7 +231,7 @@ export namespace Services {
         const headerConfig = adminSidebarConfig.header || {};
         const header = {
           title: this.translateLabel(headerConfig.titleKey || 'menu-admin'),
-          iconClass: headerConfig.iconClass || 'fa fa-cog'
+          iconClass: headerConfig.iconClass || 'fa fa-cog',
         };
 
         // Resolve sections
@@ -243,7 +255,7 @@ export namespace Services {
         return {
           header,
           sections: resolvedSections,
-          footerLinks: resolvedFooterLinks
+          footerLinks: resolvedFooterLinks,
         };
       } catch (error) {
         sails.log.error('[NavigationService] Error resolving admin sidebar:', error);
@@ -251,10 +263,10 @@ export namespace Services {
         return {
           header: {
             title: 'Admin',
-            iconClass: 'fa fa-cog'
+            iconClass: 'fa fa-cog',
           },
           sections: [],
-          footerLinks: []
+          footerLinks: [],
         };
       }
     }
@@ -273,14 +285,158 @@ export namespace Services {
       const isAuthenticated = req.isAuthenticated ? req.isAuthenticated() : false;
       const user = req.user;
       const currentPath = req.path || '';
+      const authorization = req.authorization;
+      const requestId = typeof req.authorizationRequestId === 'string' ? req.authorizationRequestId : undefined;
 
       return {
         isAuthenticated,
         user,
         brand,
         brandPortalPath,
-        currentPath
+        currentPath,
+        rolloutMode: this.rolloutMode(),
+        authorization,
+        requestId,
       };
+    }
+
+    // =========================================================================
+    // Scope-Based Visibility (requiredScope)
+    // =========================================================================
+
+    /**
+     * Deployment-wide rollout mode; unknown configurations behave as legacy.
+     */
+    private rolloutMode(): RolloutMode {
+      const configured = (sails.config as { authorization?: { mode?: unknown } }).authorization?.mode;
+      return configured === 'shadow' || configured === 'enforce' ? configured : 'legacy';
+    }
+
+    private isKnownScope(scopeKey: string): boolean | undefined {
+      const registryService = authorizationScopeAccess();
+      if (registryService === undefined || typeof registryService.getRegistry !== 'function') {
+        return undefined;
+      }
+      try {
+        return registryService.getRegistry().isActive(scopeKey as ScopeKey);
+      } catch {
+        return undefined;
+      }
+    }
+
+    private hasScope(context: ResolutionContext, scopeKey: string): boolean | undefined {
+      const authorizationService = authorizationRuntimeAccess();
+      if (
+        authorizationService === undefined ||
+        typeof authorizationService.hasScope !== 'function' ||
+        context.authorization === undefined
+      ) {
+        return undefined;
+      }
+      try {
+        return authorizationService.hasScope(context.authorization, scopeKey as ScopeKey);
+      } catch {
+        return undefined;
+      }
+    }
+
+    /**
+     * Evaluates one requiredScope declaration against the rollout mode.
+     *
+     * `legacy`/`shadow` never hide items because of the scope engine; `enforce`
+     * fails closed when the scope is unknown, the engine is unavailable, or the
+     * principal lacks the scope.
+     */
+    private evaluateRequiredScope(requiredScope: string | undefined, context: ResolutionContext): ScopeGateResult {
+      if (!requiredScope) {
+        return { declared: false };
+      }
+      if (context.rolloutMode !== 'enforce') {
+        return { declared: true, scopeAllowed: this.hasScope(context, requiredScope) };
+      }
+      const known = this.isKnownScope(requiredScope);
+      if (known === false) {
+        sails.log.warn('[NavigationService] requiredScope is not declared by the runtime registry; failing closed.', {
+          errorCode: 'unknown-required-scope',
+        });
+        return { declared: true, scopeAllowed: false };
+      }
+      const scopeAllowed = this.hasScope(context, requiredScope);
+      if (scopeAllowed === undefined) {
+        sails.log.warn('[NavigationService] Authorization context is unavailable for requiredScope; failing closed.', {
+          errorCode: 'authorization-context-unavailable',
+        });
+        return { declared: true, scopeAllowed: false };
+      }
+      return { declared: true, scopeAllowed };
+    }
+
+    /**
+     * Records a shadow visibility difference for items that declare both
+     * requiredRoles and requiredScope. Evidence is bounded and never blocks the
+     * rendered navigation.
+     */
+    private recordVisibilityMismatch(
+      context: ResolutionContext,
+      surfaceId: string,
+      roleAllowed: boolean,
+      scopeAllowed: boolean
+    ): void {
+      if (context.rolloutMode !== 'shadow' || context.authorization === undefined) {
+        return;
+      }
+      const input: AuthorizationShadowMismatchInput = {
+        routeId: `navigation:${surfaceId}`,
+        ...(context.brand?.id === undefined ? {} : { brandId: String(context.brand.id) }),
+        principalCategory: context.authorization.principal.category,
+        legacyAllowed: roleAllowed,
+        decision: {
+          allowed: scopeAllowed,
+          reasonCode: scopeAllowed ? 'allowed' : 'scope-missing',
+        },
+        requestId: context.requestId ?? 'navigation-resolution',
+      };
+      void persistShadowMismatch(input, new Date()).catch(() => {
+        // Evidence storage must never change rendered visibility; one bounded
+        // operational warning per navigation resolution is enough.
+        sails.log.warn('[NavigationService] Navigation shadow mismatch persistence failed.', {
+          errorCode: 'persistence-failed',
+        });
+      });
+    }
+
+    /**
+     * Applies the requiredRoles compatibility gate and the requiredScope gate.
+     * Returns the effective visibility; role behavior is unchanged in every mode
+     * while requiredScope becomes authoritative only in enforce.
+     */
+    private applyScopeAwareGates(
+      item: Pick<FilterableItem, 'requiredRoles' | 'requiredScope'>,
+      context: ResolutionContext,
+      surfaceId: string
+    ): boolean {
+      let roleAllowed: boolean | undefined;
+      if (item.requiredRoles && item.requiredRoles.length > 0 && context.isAuthenticated && context.user) {
+        roleAllowed = this.userHasAnyRole(context.user, context.brand, item.requiredRoles);
+        if (!roleAllowed) {
+          return false;
+        }
+      }
+
+      const scopeGate = this.evaluateRequiredScope(item.requiredScope, context);
+      if (scopeGate.declared && context.rolloutMode === 'enforce' && scopeGate.scopeAllowed === false) {
+        return false;
+      }
+      if (
+        scopeGate.declared &&
+        context.rolloutMode === 'shadow' &&
+        roleAllowed !== undefined &&
+        scopeGate.scopeAllowed !== undefined &&
+        roleAllowed !== scopeGate.scopeAllowed
+      ) {
+        this.recordVisibilityMismatch(context, surfaceId, roleAllowed, scopeGate.scopeAllowed);
+      }
+      return true;
     }
 
     // =========================================================================
@@ -293,17 +449,14 @@ export namespace Services {
     private mergeMenuWithDefaults(customConfig: Partial<MenuConfigData>): MenuConfigData {
       return {
         items: customConfig.items || DEFAULT_MENU_CONFIG.items,
-        showSearch: customConfig.showSearch !== undefined ? customConfig.showSearch : DEFAULT_MENU_CONFIG.showSearch
+        showSearch: customConfig.showSearch !== undefined ? customConfig.showSearch : DEFAULT_MENU_CONFIG.showSearch,
       };
     }
 
     /**
      * Recursively resolves menu items with filtering and URL resolution
      */
-    private async resolveMenuItems(
-      items: MenuItem[],
-      context: ResolutionContext
-    ): Promise<ResolvedMenuItem[]> {
+    private async resolveMenuItems(items: MenuItem[], context: ResolutionContext): Promise<ResolvedMenuItem[]> {
       const resolvedItems: ResolvedMenuItem[] = [];
 
       for (const item of items) {
@@ -319,19 +472,16 @@ export namespace Services {
     /**
      * Resolves a single menu item, returning null if it should be hidden
      */
-    private async resolveMenuItem(
-      item: MenuItem,
-      context: ResolutionContext
-    ): Promise<ResolvedMenuItem | null> {
+    private async resolveMenuItem(item: MenuItem, context: ResolutionContext): Promise<ResolvedMenuItem | null> {
       // Check visibility rules (shared logic)
-      const visibilityResult = this.checkItemVisibility(item, context);
+      const visibilityResult = this.checkItemVisibility(item, context, `menu:${item.id ?? item.labelKey}`);
       if (!visibilityResult.visible) {
         return null;
       }
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      const external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? item.external === true;
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -354,7 +504,7 @@ export namespace Services {
         label: visibilityResult.resolvedLabel,
         href,
         external,
-        active
+        active,
       };
 
       if (external) {
@@ -404,17 +554,14 @@ export namespace Services {
      */
     private mergeHomePanelsWithDefaults(customConfig: Partial<HomePanelConfigData>): HomePanelConfigData {
       return {
-        panels: customConfig.panels || DEFAULT_HOME_PANEL_CONFIG.panels
+        panels: customConfig.panels || DEFAULT_HOME_PANEL_CONFIG.panels,
       };
     }
 
     /**
      * Resolves a single home panel
      */
-    private async resolveHomePanel(
-      panel: HomePanel,
-      context: ResolutionContext
-    ): Promise<ResolvedHomePanel | null> {
+    private async resolveHomePanel(panel: HomePanel, context: ResolutionContext): Promise<ResolvedHomePanel | null> {
       // Resolve panel items
       const resolvedItems: ResolvedHomePanelItem[] = [];
       for (const item of panel.items) {
@@ -434,7 +581,7 @@ export namespace Services {
         title: this.translateLabel(panel.titleKey),
         iconClass: panel.iconClass,
         columnClass: panel.columnClass || 'col-md-3 homepanel',
-        items: resolvedItems
+        items: resolvedItems,
       };
     }
 
@@ -446,7 +593,7 @@ export namespace Services {
       context: ResolutionContext
     ): Promise<ResolvedHomePanelItem | null> {
       // Check visibility rules (shared logic)
-      const visibilityResult = this.checkItemVisibility(item, context);
+      const visibilityResult = this.checkItemVisibility(item, context, `homePanel:${item.id ?? item.labelKey}`);
       if (!visibilityResult.visible) {
         // sails.log.debug(`[NavigationService] Item ${item.id || item.labelKey} hidden by visibility rules`);
         return null;
@@ -454,7 +601,7 @@ export namespace Services {
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      const external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? item.external === true;
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -463,7 +610,7 @@ export namespace Services {
       const resolved: ResolvedHomePanelItem = {
         label: visibilityResult.resolvedLabel,
         href,
-        external
+        external,
       };
 
       if (external) {
@@ -484,7 +631,7 @@ export namespace Services {
       return {
         header: customConfig.header || DEFAULT_ADMIN_SIDEBAR_CONFIG.header,
         sections: customConfig.sections || DEFAULT_ADMIN_SIDEBAR_CONFIG.sections,
-        footerLinks: customConfig.footerLinks || DEFAULT_ADMIN_SIDEBAR_CONFIG.footerLinks
+        footerLinks: customConfig.footerLinks || DEFAULT_ADMIN_SIDEBAR_CONFIG.footerLinks,
       };
     }
 
@@ -495,7 +642,7 @@ export namespace Services {
       section: AdminSidebarSection,
       context: ResolutionContext
     ): Promise<ResolvedAdminSidebarSection | null> {
-      const { isAuthenticated, user, brand } = context;
+      const { isAuthenticated } = context;
 
       // Check section-level visibility rules
 
@@ -518,12 +665,10 @@ export namespace Services {
         }
       }
 
-      // 3. Role filtering for section
-      if (section.requiredRoles && section.requiredRoles.length > 0 && isAuthenticated && user) {
-        const hasRequiredRole = this.userHasAnyRole(user, brand, section.requiredRoles);
-        if (!hasRequiredRole) {
-          return null;
-        }
+      // 3. Role filtering (legacy compatibility) and scope filtering
+      // (requiredScope; authoritative only in enforce mode) for the section
+      if (!this.applyScopeAwareGates(section, context, `adminSidebarSection:${section.id}`)) {
+        return null;
       }
 
       // Resolve section items
@@ -544,7 +689,7 @@ export namespace Services {
         id: section.id,
         title: this.translateLabel(section.titleKey),
         defaultExpanded: section.defaultExpanded !== false, // default true
-        items: resolvedItems
+        items: resolvedItems,
       };
     }
 
@@ -556,14 +701,14 @@ export namespace Services {
       context: ResolutionContext
     ): Promise<ResolvedAdminSidebarItem | null> {
       // Check visibility rules (shared logic)
-      const visibilityResult = this.checkItemVisibility(item, context);
+      const visibilityResult = this.checkItemVisibility(item, context, `adminSidebar:${item.id ?? item.labelKey}`);
       if (!visibilityResult.visible) {
         return null;
       }
 
       // Get the resolved href and external flag
       let href = visibilityResult.resolvedHref || item.href;
-      const external = visibilityResult.resolvedExternal ?? (item.external === true);
+      const external = visibilityResult.resolvedExternal ?? item.external === true;
 
       // URL building
       href = this.resolveUrl(href, context.brandPortalPath, external);
@@ -572,7 +717,7 @@ export namespace Services {
       const resolved: ResolvedAdminSidebarItem = {
         label: visibilityResult.resolvedLabel,
         href,
-        external
+        external,
       };
 
       if (external) {
@@ -591,25 +736,24 @@ export namespace Services {
      */
     private checkItemVisibility(
       item: FilterableItem,
-      context: ResolutionContext
+      context: ResolutionContext,
+      surfaceId: string
     ): {
       visible: boolean;
       resolvedLabel: string;
       resolvedHref?: string;
       resolvedExternal?: boolean;
     } {
-      const { isAuthenticated, user, brand } = context;
-
       // 1. Auth state filtering
       const requiresAuth = item.requiresAuth !== false; // default true
       const hideWhenAuth = item.hideWhenAuth === true;
 
-      if (requiresAuth && !isAuthenticated) {
-        // sails.log.debug(`[NavigationService] Item ${item.labelKey} hidden: requiresAuth=${requiresAuth}, isAuthenticated=${isAuthenticated}`);
+      if (requiresAuth && !context.isAuthenticated) {
+        // sails.log.debug(`[NavigationService] Item ${item.labelKey} hidden: requiresAuth=${requiresAuth}, isAuthenticated=${context.isAuthenticated}`);
         return { visible: false, resolvedLabel: '' };
       }
-      if (hideWhenAuth && isAuthenticated) {
-        // sails.log.debug(`[NavigationService] Item ${item.labelKey} hidden: hideWhenAuth=${hideWhenAuth}, isAuthenticated=${isAuthenticated}`);
+      if (hideWhenAuth && context.isAuthenticated) {
+        // sails.log.debug(`[NavigationService] Item ${item.labelKey} hidden: hideWhenAuth=${hideWhenAuth}, isAuthenticated=${context.isAuthenticated}`);
         return { visible: false, resolvedLabel: '' };
       }
 
@@ -621,12 +765,10 @@ export namespace Services {
         }
       }
 
-      // 3. Role filtering
-      if (item.requiredRoles && item.requiredRoles.length > 0 && isAuthenticated && user) {
-        const hasRequiredRole = this.userHasAnyRole(user, brand, item.requiredRoles);
-        if (!hasRequiredRole) {
-          return { visible: false, resolvedLabel: '' };
-        }
+      // 3. Role filtering (legacy compatibility) and scope filtering
+      // (requiredScope; authoritative only in enforce mode)
+      if (!this.applyScopeAwareGates(item, context, surfaceId)) {
+        return { visible: false, resolvedLabel: '' };
       }
 
       // 4. Translation handling
@@ -646,7 +788,7 @@ export namespace Services {
         visible: true,
         resolvedLabel: label,
         resolvedHref,
-        resolvedExternal
+        resolvedExternal,
       };
     }
 

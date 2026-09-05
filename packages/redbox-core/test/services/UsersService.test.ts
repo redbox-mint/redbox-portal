@@ -1,4 +1,5 @@
 import * as sinon from 'sinon';
+import { Services as AuthorizationServices } from '../../src/services/AuthorizationService';
 import { of, throwError } from 'rxjs';
 import { UserWLDef } from '../../src/waterline-models/User';
 import {
@@ -1031,7 +1032,7 @@ describe('UsersService', function () {
           username: 'secondary-user',
           email: 'secondary@test.com',
           accountLinkState: 'active',
-          roles: [{ id: 'role-secondary', branding: 'brand-1' }],
+          roles: [{ id: 'role-secondary', name: 'Librarians', key: 'Librarians', branding: 'brand-1' }],
         })
       );
       configureModelMethod(mockUserLink.findOne, null);
@@ -1069,15 +1070,43 @@ describe('UsersService', function () {
         ])
       );
 
-      const result = await UsersService.linkAccounts('primary-1', 'secondary-1', 'admin-user', 'brand-1').toPromise();
+      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
+      const revokeAssignment = sinon
+        .stub()
+        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
+      (mockSails.services as any).authorizationscopeservice = {
+        getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
+      };
+      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment };
+      const systemContext = sinon
+        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
+        .resolves({ principal: { category: 'system-process' } } as never);
 
-      expect(mockUserLink.create.calledOnce).to.be.true;
-      expect(mockUser.addToCollection.calledOnce).to.be.true;
-      expect(mockUser.replaceCollection.calledOnce).to.be.true;
-      expect(mockUser.update.called).to.be.true;
-      expect((global as any).RecordsService.mutateMetaInternal.calledOnce).to.be.true;
-      expect(result.impact?.rolesMerged).to.equal(1);
-      expect(result.impact?.recordsRewritten).to.equal(1);
+      try {
+        const result = await UsersService.linkAccounts('primary-1', 'secondary-1', 'admin-user', 'brand-1').toPromise();
+
+        expect(mockUserLink.create.calledOnce).to.be.true;
+        expect(mockUser.addToCollection.called).to.be.false;
+        expect(mockUser.replaceCollection.calledOnce).to.be.true;
+        expect(mockUser.update.called).to.be.true;
+        expect((global as any).RecordsService.mutateMetaInternal.calledOnce).to.be.true;
+        expect(result.impact?.rolesMerged).to.equal(1);
+        expect(result.impact?.recordsRewritten).to.equal(1);
+        expect(grantAssignment.calledOnce).to.be.true;
+        expect(grantAssignment.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          principalId: 'primary-1',
+          roleKey: 'Librarians',
+          source: 'manual',
+        });
+        for (const revokeCall of revokeAssignment.getCalls()) {
+          expect(revokeCall.args[0]).to.include({ principalId: 'secondary-1' });
+        }
+      } finally {
+        systemContext.restore();
+        delete (mockSails.services as any).authorizationscopeservice;
+        delete (mockSails.services as any).roleadministrationservice;
+      }
     });
 
     it('should reject linking a secondary user that already has linked accounts', async function () {
@@ -1163,14 +1192,349 @@ describe('UsersService', function () {
   });
 
   describe('updateUserRoles', function () {
-    it('should update user roles', async function () {
-      const user = { id: 'user-1', username: 'testuser', roles: [{ id: 'role-1' }] };
+    it('routes requested role changes through the assignment service instead of direct association writes', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [{ id: 'role-1', branding: 'brand-1' }] };
       configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-1',
+          name: 'Researcher',
+          key: 'Researcher',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+        {
+          id: 'role-2',
+          name: 'Librarians',
+          key: 'Librarians',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
+      const revokeAssignment = sinon
+        .stub()
+        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
+      (mockSails.services as any).authorizationscopeservice = {
+        getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
+      };
+      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment };
+      const systemContext = sinon
+        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
+        .resolves({ principal: { category: 'system-process' } } as never);
 
-      const result = await UsersService.updateUserRoles('user-1', ['role-1', 'role-2']).toPromise();
+      try {
+        const result = await UsersService.updateUserRoles('user-1', ['role-1', 'role-2'], {
+          brandId: 'brand-1',
+        }).toPromise();
 
-      expect(result).to.exist;
-      expect(mockUser.replaceCollection.called).to.be.true;
+        expect(result).to.exist;
+        expect(mockUser.replaceCollection.called).to.be.false;
+        expect(grantAssignment.calledOnce).to.be.true;
+        expect(grantAssignment.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          principalId: 'user-1',
+          roleKey: 'Librarians',
+          source: 'manual',
+        });
+        expect(revokeAssignment.called).to.be.false;
+        expect(systemContext.calledOnce).to.be.true;
+      } finally {
+        systemContext.restore();
+        delete (mockSails.services as any).authorizationscopeservice;
+        delete (mockSails.services as any).roleadministrationservice;
+      }
+    });
+
+    it('rejects requested roles outside the caller brand and multi-brand batches', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-1',
+          name: 'Researcher',
+          key: 'Researcher',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+        {
+          id: 'role-foreign',
+          name: 'Admin',
+          key: 'Admin',
+          branding: 'brand-2',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-foreign'], { brandId: 'brand-1' }).toPromise();
+        expect.fail('Expected cross-brand role request to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Unknown role requested');
+      }
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-1', 'role-foreign']).toPromise();
+        expect.fail('Expected multi-brand role batch to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Requested roles must belong to a single brand');
+      }
+    });
+
+    it('preserves foreign-brand assignments while updating active-brand roles through the guarded writer', async function () {
+      const user = {
+        id: 'user-1',
+        username: 'testuser',
+        roles: [
+          { id: 'role-1', name: 'Researcher', key: 'Researcher', branding: 'brand-1' },
+          { id: 'role-foreign', name: 'Admin', key: 'Admin', branding: 'brand-2' },
+        ],
+      };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-2',
+          name: 'Librarians',
+          key: 'Librarians',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+        {
+          id: 'role-foreign',
+          name: 'Admin',
+          key: 'Admin',
+          branding: 'brand-2',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
+      const revokeAssignment = sinon
+        .stub()
+        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
+      (mockSails.services as any).authorizationscopeservice = {
+        getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
+      };
+      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment };
+      const systemContext = sinon
+        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
+        .resolves({ principal: { category: 'system-process' } } as never);
+      const previousRoleAssignment = Object.getOwnPropertyDescriptor(globalThis, 'RoleAssignment');
+      Reflect.set(globalThis, 'RoleAssignment', {
+        find: (criteria: Record<string, unknown>) =>
+          createQueryObject([
+            {
+              id: 'assignment-active-1',
+              principalType: 'user',
+              principalId: 'user-1',
+              role: criteria.role,
+              source: 'manual',
+              sourceKey: 'manual',
+              status: 'active',
+              version: 2,
+            },
+          ]),
+      });
+
+      try {
+        const result = await UsersService.updateUserRoles('user-1', ['role-foreign', 'role-2'], {
+          brandId: 'brand-1',
+        }).toPromise();
+
+        expect(result).to.exist;
+        expect(grantAssignment.calledOnce).to.be.true;
+        expect(grantAssignment.firstCall.args[0]).to.include({ brandId: 'brand-1', roleKey: 'Librarians' });
+        expect(revokeAssignment.calledOnce).to.be.true;
+        expect(revokeAssignment.firstCall.args[0]).to.include({ brandId: 'brand-1', roleKey: 'Researcher' });
+        expect(systemContext.calledOnce).to.be.true;
+        expect(systemContext.firstCall.args[1]).to.equal('brand-1');
+        expect(mockUser.replaceCollection.called).to.be.false;
+      } finally {
+        systemContext.restore();
+        delete (mockSails.services as any).authorizationscopeservice;
+        delete (mockSails.services as any).roleadministrationservice;
+        if (previousRoleAssignment === undefined) Reflect.deleteProperty(globalThis, 'RoleAssignment');
+        else Object.defineProperty(globalThis, 'RoleAssignment', previousRoleAssignment);
+      }
+    });
+
+    it('rejects unheld foreign-brand role grants through a same-brand update', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-foreign',
+          name: 'Admin',
+          key: 'Admin',
+          branding: 'brand-2',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-foreign'], { brandId: 'brand-1' }).toPromise();
+        expect.fail('Expected unheld foreign role grant to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Unknown role requested');
+      }
+    });
+
+    it('removes every source tuple behind a dropped role and suppresses external rows', async function () {
+      const user = {
+        id: 'user-1',
+        username: 'testuser',
+        roles: [{ id: 'role-2', name: 'Librarians', key: 'Librarians', branding: 'brand-1' }],
+      };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-1',
+          name: 'Researcher',
+          key: 'Researcher',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
+      const revokeAssignment = sinon
+        .stub()
+        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
+      const suppressAssignment = sinon
+        .stub()
+        .resolves({ data: {}, version: 1, auditEventId: 'audit-3', requestId: 'r1' });
+      (mockSails.services as any).authorizationscopeservice = {
+        getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
+      };
+      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment, suppressAssignment };
+      const systemContext = sinon
+        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
+        .resolves({ principal: { category: 'system-process' } } as never);
+      const previousRoleAssignment = Object.getOwnPropertyDescriptor(globalThis, 'RoleAssignment');
+      Reflect.set(globalThis, 'RoleAssignment', {
+        find: (criteria: Record<string, unknown>) =>
+          createQueryObject([
+            {
+              id: 'assignment-manual-1',
+              principalType: 'user',
+              principalId: 'user-1',
+              role: criteria.role,
+              source: 'manual',
+              sourceKey: 'manual',
+              status: 'active',
+              version: 3,
+            },
+            {
+              id: 'assignment-external-1',
+              principalType: 'user',
+              principalId: 'user-1',
+              role: criteria.role,
+              source: 'external',
+              sourceKey: 'hr-provider',
+              status: 'active',
+              sourcePresent: true,
+              version: 5,
+            },
+            {
+              id: 'assignment-revoked-1',
+              principalType: 'user',
+              principalId: 'user-1',
+              role: criteria.role,
+              source: 'onboarding',
+              sourceKey: 'oidc',
+              status: 'revoked',
+              version: 9,
+            },
+          ]),
+      });
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-1'], { brandId: 'brand-1' }).toPromise();
+
+        expect(grantAssignment.calledOnce).to.be.true;
+        expect(revokeAssignment.calledOnce).to.be.true;
+        expect(revokeAssignment.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          principalId: 'user-1',
+          roleKey: 'Librarians',
+          source: 'manual',
+          sourceKey: 'manual',
+          expectedVersion: 3,
+        });
+        expect(suppressAssignment.calledOnce).to.be.true;
+        expect(suppressAssignment.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          principalId: 'user-1',
+          roleKey: 'Librarians',
+          assignmentId: 'assignment-external-1',
+          expectedVersion: 5,
+        });
+      } finally {
+        systemContext.restore();
+        delete (mockSails.services as any).authorizationscopeservice;
+        delete (mockSails.services as any).roleadministrationservice;
+        if (previousRoleAssignment === undefined) Reflect.deleteProperty(globalThis, 'RoleAssignment');
+        else Object.defineProperty(globalThis, 'RoleAssignment', previousRoleAssignment);
+      }
+    });
+
+    it('rejects empty role requests and unknown roles', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, []);
+
+      try {
+        await UsersService.updateUserRoles('user-1', []).toPromise();
+        expect.fail('Expected empty role request to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Please assign at least one role');
+      }
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-unknown']).toPromise();
+        expect.fail('Expected unknown role to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Unknown role requested');
+      }
+    });
+
+    it('rejects system and Guest roles through user management', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      mockRole.find
+        .onFirstCall()
+        .returns(
+          createQueryObject([
+            { id: 'role-system', name: 'system-admin', contextType: 'system', protectedKind: 'system-admin' },
+          ])
+        );
+      mockRole.find
+        .onSecondCall()
+        .returns(
+          createQueryObject([
+            { id: 'role-guest', name: 'Guest', branding: 'brand-1', contextType: 'brand', protectedKind: 'guest' },
+          ])
+        );
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-system']).toPromise();
+        expect.fail('Expected system role assignment to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('System roles cannot be assigned through user management');
+      }
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-guest']).toPromise();
+        expect.fail('Expected Guest assignment to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Guest cannot be assigned explicitly');
+      }
     });
   });
 

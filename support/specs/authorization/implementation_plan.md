@@ -353,7 +353,7 @@ Tests are interleaved with production changes. A phase is not complete when only
 ### 0.2 Inventory role and record dependencies
 
 - Find all reads/writes of `User.roles`, `Role.users`, `Role.name`, `sails.config.auth.roles`, and `sails.config.auth.rules`.
-- Find every call to `RolesService.getNestedRoles()`, `UsersService.updateUserRoles()`, and Waterline role collection mutation.
+- Find every call to `RolesService.getNestedRoles()`, `UsersService.updateUserRoles()`, and Waterline role collection mutation. Enumerate one inventory row per production `updateUserRoles` call site (grouped locations rejected by test) with deterministic source-to-inventory reconciliation.
 - Inventory record ACL readers/writers across record controllers, search/Solr, export, attachments, visitors, asynchronous actions, and integrations.
 - Inventory configuration schemas using `requiredRoles`, including menu, home panels, admin sidebar, and form/visitor configuration.
 - Inventory hook contracts that mutate roles based on claims.
@@ -362,7 +362,7 @@ Tests are interleaved with production changes. A phase is not complete when only
 ### 0.3 Capture golden legacy fixtures
 
 - Create fixtures for Guest, Researcher, Librarians, Admin, the bootstrap administrator, and representative custom roles in two brands.
-- Capture expected legacy decisions for every inventoried action.
+- Capture expected legacy decisions for every inventoried action, reconciled as routeId × granting role × applicable operation × brand with explicit exclusions for public, pre-auth, and no-rule-grant routes; omissions fail the matrix test.
 - Capture record ACL decisions for direct users, `viewRoles`, `editRoles`, and edit-implies-view.
 - Capture valid, absent, malformed, revoked, and disabled-user legacy bearer behavior.
 - Capture a reproducible legacy request-latency/query-count baseline and agree the maximum authorization overhead before enforce.

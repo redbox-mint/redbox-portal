@@ -59,13 +59,13 @@ function job(): WorkspaceAsyncAttributes {
 
 describe('WorkspaceAsyncService authorization context', () => {
   it('allowlists targets, persists complete authority, and prevents later updates from replacing it', async () => {
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     const previousModel = Reflect.get(globalThis, 'WorkspaceAsync');
     try {
       const query = { exec: (callback: (error: null, value: unknown) => void) => callback(null, {}) };
       const create = sinon.stub().returns(query);
       const update = sinon.stub().returns(query);
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         config: { ...(previousSails?.config ?? {}), workspaceAsync: { allowedOperations: ['safejobservice.execute'] } },
       };
@@ -79,6 +79,8 @@ describe('WorkspaceAsyncService authorization context', () => {
             service: 'unsafe',
             method: 'run',
             username: 'user-one',
+            operationId: 'operation-1',
+            requiredScope: SCOPE,
           }),
         /not allowlisted/
       );
@@ -87,6 +89,8 @@ describe('WorkspaceAsyncService authorization context', () => {
         service.start({
           ...job(),
           username: 'user-one',
+          operationId: 'operation-1',
+          requiredScope: SCOPE,
         })
       );
       assert.deepEqual(create.firstCall.args[0], {
@@ -121,7 +125,7 @@ describe('WorkspaceAsyncService authorization context', () => {
         assert.equal(updatePayload[field], undefined);
       }
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       if (previousModel === undefined) Reflect.deleteProperty(globalThis, 'WorkspaceAsync');
       else Reflect.set(globalThis, 'WorkspaceAsync', previousModel);
       sinon.restore();
@@ -129,11 +133,11 @@ describe('WorkspaceAsyncService authorization context', () => {
   });
 
   it('re-resolves the actor at execution and denies revoked or no-longer-allowlisted jobs', async () => {
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     try {
       const target = sinon.stub().returns(of({ ok: true }));
       const authorizeAction = sinon.stub().returns({ allowed: false });
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         config: { ...(previousSails?.config ?? {}), workspaceAsync: { allowedOperations: ['safejobservice.execute'] } },
         services: {
@@ -163,7 +167,12 @@ describe('WorkspaceAsyncService authorization context', () => {
 
       update.resetHistory();
       authorizeAction.returns({ allowed: true });
-      (globalThis.sails.config as Record<string, unknown>).workspaceAsync = { allowedOperations: [] };
+      (
+        (globalThis as unknown as { sails: { config: Record<string, unknown> } }).sails.config as Record<
+          string,
+          unknown
+        >
+      ).workspaceAsync = { allowedOperations: [] };
       await (
         service as unknown as { executePending: (value: WorkspaceAsyncAttributes) => Promise<void> }
       ).executePending(job());
@@ -173,13 +182,13 @@ describe('WorkspaceAsyncService authorization context', () => {
         message: { code: 'operation-not-allowlisted' },
       });
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       sinon.restore();
     }
   });
 
   it('passes constrained user/process envelopes to an allowlisted target and bounds pending scans', async () => {
-    const previousSails = globalThis.sails;
+    const previousSails = (globalThis as unknown as { sails: any }).sails;
     const previousModel = Reflect.get(globalThis, 'WorkspaceAsync');
     try {
       const target = sinon.stub().returns(of({ ok: true }));
@@ -187,7 +196,7 @@ describe('WorkspaceAsyncService authorization context', () => {
       const limit = sinon.stub().returns(query);
       const sort = sinon.stub().returns({ limit });
       const find = sinon.stub().returns({ sort });
-      (globalThis as unknown as { sails: unknown }).sails = {
+      (globalThis as unknown as { sails: any }).sails = {
         ...previousSails,
         config: { ...(previousSails?.config ?? {}), workspaceAsync: { allowedOperations: ['safejobservice.execute'] } },
         services: {
@@ -223,7 +232,7 @@ describe('WorkspaceAsyncService authorization context', () => {
       assert.equal(sort.calledOnceWithExactly('id ASC'), true);
       assert.equal(limit.calledOnceWithExactly(100), true);
     } finally {
-      (globalThis as unknown as { sails: unknown }).sails = previousSails;
+      (globalThis as unknown as { sails: any }).sails = previousSails;
       if (previousModel === undefined) Reflect.deleteProperty(globalThis, 'WorkspaceAsync');
       else Reflect.set(globalThis, 'WorkspaceAsync', previousModel);
       sinon.restore();

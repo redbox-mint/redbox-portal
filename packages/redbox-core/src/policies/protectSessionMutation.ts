@@ -18,7 +18,7 @@ export function protectSessionMutation(req: Sails.Req, res: Sails.Res, next: Sai
     return;
   }
   if (req.authorizationAuthMethod !== 'session') {
-    sendAuthorizationProblem(req, res, 401, 'authentication-required', 'Authentication is required.');
+    sendAuthorizationProblem(req, res, 401, 'authorization.authentication-required', 'Authentication is required.');
     return;
   }
 
@@ -27,7 +27,7 @@ export function protectSessionMutation(req: Sails.Req, res: Sails.Res, next: Sai
       next();
       return;
     }
-    sendAuthorizationProblem(req, res, 403, 'access-denied', 'CSRF token is invalid or missing.');
+    sendAuthorizationProblem(req, res, 403, 'authorization.csrf-required', 'CSRF token is invalid or missing.');
   });
 }
 

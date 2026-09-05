@@ -5,6 +5,18 @@ import { Controllers } from '../../src/controllers/FormVocabularyController';
 
 describe('FormVocabularyController', () => {
   let controller: Controllers.FormVocabulary;
+  let savedSailsDescriptor: PropertyDescriptor | undefined;
+
+  before(() => {
+    // Save the suite-wide sails descriptor once so per-test stubs never leak
+    // a deleted sails global into other suites running in the same process.
+    savedSailsDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'sails');
+  });
+
+  after(() => {
+    if (savedSailsDescriptor === undefined) Reflect.deleteProperty(globalThis, 'sails');
+    else Object.defineProperty(globalThis, 'sails', savedSailsDescriptor);
+  });
 
   const makeReq = (params: Record<string, unknown> = {}, extras: Record<string, unknown> = {}): Sails.Req => {
     return {
@@ -53,7 +65,6 @@ describe('FormVocabularyController', () => {
     delete (global as any).VocabularyService;
     delete (global as any).FormVocabularyService;
     delete (global as any).BrandingService;
-    delete (global as any).sails;
   });
 
   it('returns 400 for get when vocabIdOrSlug is missing', async () => {

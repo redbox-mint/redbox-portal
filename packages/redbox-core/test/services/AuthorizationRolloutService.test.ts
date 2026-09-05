@@ -213,7 +213,7 @@ describe('AuthorizationRolloutService', function () {
     sails.config.routes = {
       ...routes,
       'get /unclassified': { controller: 'MissingController', action: 'show' },
-    } as Sails.ConfigObject['routes'];
+    } as unknown as Sails.ConfigObject['routes'];
     sails.config.apiRoutesHooks = [];
     const service = new Services.AuthorizationRolloutService({
       getMode: () => 'legacy',
@@ -280,7 +280,8 @@ describe('AuthorizationRolloutService', function () {
       rolesservice: { getAdmin: () => ({ id: 'legacy-admin', name: 'Admin' }) },
       pathrulesservice: {
         getRulesFromPath: () => [{ id: 'rule-1' }],
-        canRead: (_rules: unknown[], roles: Array<{ id: string }>) => {
+        canRead: (...args: unknown[]) => {
+          const roles = args[1] as Array<{ id: string }>;
           receivedRoleIds = roles.map(role => role.id);
           return roles.some(role => role.id === 'legacy-admin');
         },
@@ -343,5 +344,117 @@ describe('AuthorizationRolloutService', function () {
 
     assert.equal(result.allowed, true);
     assert.equal(result.enforcedBy, 'legacy');
+  });
+
+  describe('shadow mismatch acknowledgement and retention', function () {
+    const FINGERPRINT = 'a'.repeat(64);
+    let updateOne: { calledWith: unknown[]; resolves: unknown };
+    let collection: Record<string, unknown>;
+    let originalDescriptor: PropertyDescriptor | undefined;
+
+    beforeEach(function () {
+      originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'AuthorizationShadowMismatch');
+      updateOne = { calledWith: [], resolves: { matchedCount: 1 } };
+      collection = {};
+      Reflect.set(globalThis, 'AuthorizationShadowMismatch', {
+        tableName: 'authorizationshadowmismatch',
+        getDatastore: () => ({
+          manager: { collection: () => collection },
+        }),
+      });
+    });
+
+    afterEach(function () {
+      if (originalDescriptor === undefined) Reflect.deleteProperty(globalThis, 'AuthorizationShadowMismatch');
+      else Object.defineProperty(globalThis, 'AuthorizationShadowMismatch', originalDescriptor);
+    });
+
+    function installCollection(overrides: Record<string, unknown> = {}): void {
+      Object.assign(collection, {
+        updateOne: async (filter: unknown, update: unknown) => {
+          updateOne.calledWith.push({ filter, update });
+          return updateOne.resolves;
+        },
+        find: () => ({
+          limit: () => ({ toArray: async () => [{ _id: 'row-1' }, { _id: 'row-2' }] }),
+        }),
+        deleteMany: async () => ({ deletedCount: 2 }),
+        ...overrides,
+      });
+    }
+
+    it('acknowledges one unresolved mismatch with bounded operator identity and reason', async function () {
+      installCollection();
+      const service = new Services.AuthorizationRolloutService();
+
+      const result = await service.acknowledgeShadowMismatch({
+        fingerprint: FINGERPRINT,
+        acknowledgedBy: 'operator-1',
+        reason: 'approved security difference',
+      });
+
+      assert.equal(result.fingerprint, FINGERPRINT);
+      assert.equal(typeof result.resolvedAt, 'string');
+      const call = updateOne.calledWith[0] as {
+        filter: Record<string, unknown>;
+        update: { $set: Record<string, unknown> };
+      };
+      assert.deepEqual(call.filter, { fingerprint: FINGERPRINT, resolvedAt: null });
+      assert.equal(call.update.$set.resolvedBy, 'operator-1');
+      assert.equal(call.update.$set.resolutionReason, 'approved security difference');
+    });
+
+    it('rejects malformed fingerprints, missing identity, and missing reasons', async function () {
+      installCollection();
+      const service = new Services.AuthorizationRolloutService();
+
+      await assert.rejects(
+        service.acknowledgeShadowMismatch({ fingerprint: 'not-a-fingerprint', acknowledgedBy: 'o', reason: 'r' }),
+        /64-character/
+      );
+      await assert.rejects(
+        service.acknowledgeShadowMismatch({ fingerprint: FINGERPRINT, acknowledgedBy: '  ', reason: 'r' }),
+        /operator identity/
+      );
+      await assert.rejects(
+        service.acknowledgeShadowMismatch({ fingerprint: FINGERPRINT, acknowledgedBy: 'o', reason: '' }),
+        /operator reason/
+      );
+    });
+
+    it('fails closed when no unresolved mismatch matches the fingerprint', async function () {
+      // The native driver reports a zero match as an UpdateResult, never null.
+      installCollection({ updateOne: async () => ({ matchedCount: 0 }) });
+      const service = new Services.AuthorizationRolloutService();
+
+      await assert.rejects(
+        service.acknowledgeShadowMismatch({ fingerprint: FINGERPRINT, acknowledgedBy: 'o', reason: 'r' }),
+        /No unresolved shadow mismatch/
+      );
+    });
+
+    it('deletes only resolved aggregates past the cutoff within a bounded limit', async function () {
+      let capturedFilter: unknown;
+      installCollection({
+        deleteMany: async (filter: unknown) => {
+          capturedFilter = filter;
+          return { deletedCount: 2 };
+        },
+      });
+      const service = new Services.AuthorizationRolloutService();
+
+      const result = await service.retainResolvedShadowMismatches({ olderThanDays: 30, limit: 100 });
+
+      assert.deepEqual(result, { deleted: 2, truncated: false });
+      assert.deepEqual(capturedFilter, { _id: { $in: ['row-1', 'row-2'] } });
+    });
+
+    it('refuses unbounded or invalid retention requests', async function () {
+      installCollection();
+      const service = new Services.AuthorizationRolloutService();
+
+      await assert.rejects(service.retainResolvedShadowMismatches({ olderThanDays: 0 }), /olderThanDays/);
+      await assert.rejects(service.retainResolvedShadowMismatches({ olderThanDays: 30, limit: 100_000 }), /bounded/);
+    });
   });
 });

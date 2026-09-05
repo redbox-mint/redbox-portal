@@ -142,7 +142,9 @@ describe('generateHookArchetype standard template', () => {
     expect(readGenerated('src/migrations/index.ts')).to.contain('export function registerRedboxMigrations()');
     expect(readGenerated('Dockerfile')).to.contain('npm pack --pack-destination /tmp --silent');
     expect(readGenerated('support/development/docker-compose.yml')).to.contain('minio:');
-    expect(readGenerated('support/development/docker-compose.core-mount.yml')).to.contain('@researchdatabox/redbox-core');
+    expect(readGenerated('support/development/docker-compose.core-mount.yml')).to.contain(
+      '@researchdatabox/redbox-core'
+    );
     expect(readGenerated('support/integration-testing/run-mocha-hook.sh')).to.contain('RBPORTAL_MOCHA_TEST_PATHS');
     expect(readGenerated('support/integration-testing/run-mocha-redbox.sh')).to.contain('generateAllShims');
     expect(readGenerated('language-defaults/en/translation.json')).to.contain('DemoClient hook ready');
@@ -153,5 +155,21 @@ describe('generateHookArchetype standard template', () => {
     const prepareCoreMode = fs.statSync(path.join(tempRoot, 'support', 'development', 'prepare-core-mount.sh')).mode;
     expect((prepareMinioMode & 0o111) > 0).to.equal(true);
     expect((prepareCoreMode & 0o111) > 0).to.equal(true);
+  });
+
+  it('includes the optional Phase 1 scope-provider contract without enabling it by default', () => {
+    hookArchetypeModule.generateHookArchetype({
+      cwd: tempRoot,
+      packageName: 'redbox-hook-demo-client',
+    });
+
+    const indexTs = readGenerated('src/index.ts');
+    expect(indexTs).to.contain('registerRedboxAuthorizationScopes');
+    expect(indexTs).to.contain('AuthorizationScopeDefinition');
+    expect(indexTs).to.contain('hasAuthorizationScopes');
+    expect(indexTs).to.contain('demo-client.read');
+
+    const pkg = JSON.parse(readGenerated('package.json'));
+    expect(pkg.sails.hasAuthorizationScopes ?? false).to.equal(false);
   });
 });

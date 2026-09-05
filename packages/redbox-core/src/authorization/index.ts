@@ -15,3 +15,8 @@ export * from './administration';
 export * from './configuration-schema';
 export * from './route-authorization';
 export * from './legacy-route-scope-map';
+export * from './legacy-authorization-baseline';
+export * from './legacy-authorization-baseline.snapshot';
+export * from './protected-role-validators';
+export * from './role-inventory';
+export * from './resource-inventory';

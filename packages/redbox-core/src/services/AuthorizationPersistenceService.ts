@@ -70,7 +70,27 @@ const roleIndexes = [
  * sails-mongo 2.x does not materialise it. These named definitions are applied by
  * {@link AuthorizationPersistenceService.init} after the ORM has loaded and before
  * migrations/core bootstrap execute.
+ *
+ * The native migration checkpoint/lease collections below are part of the same
+ * durability contract: the checkpoint collection carries a unique
+ * `{ migrationName: 1, phase: 1 }` key so concurrent lifts cannot fork resume
+ * state, and the lease collection carries a unique `{ migrationName: 1 }` key
+ * so at most one runner advances checkpoints at a time. They are ensured by
+ * the same `init` path via `ensureNativeCollectionIndexes`.
  */
+export const AUTHORIZATION_NATIVE_COLLECTION_INDEXES = Object.freeze([
+  {
+    collectionName: 'authorizationmigrationcheckpoint',
+    indexes: [{ key: { migrationName: 1, phase: 1 }, name: 'authorization_migration_checkpoint_unique', unique: true }],
+  },
+  {
+    collectionName: 'authorizationmigrationlease',
+    indexes: [{ key: { migrationName: 1 }, name: 'authorization_migration_lease_unique', unique: true }],
+  },
+] as const satisfies readonly {
+  readonly collectionName: string;
+  readonly indexes: readonly AuthorizationRuntimeIndex[];
+}[]);
 export const AUTHORIZATION_PERSISTENCE_MODEL_INDEXES = Object.freeze([
   { modelIdentity: 'role', indexes: roleIndexes },
   {
@@ -315,6 +335,36 @@ export async function ensureAuthorizationPersistenceIndexes(
 ): Promise<void> {
   for (const definition of AUTHORIZATION_PERSISTENCE_MODEL_INDEXES) {
     await ensureModelIndexes(definition, resolveModel);
+  }
+  await ensureNativeCollectionIndexes(resolveModel);
+}
+
+async function ensureNativeCollectionIndexes(resolveModel: AuthorizationIndexModelResolver): Promise<void> {
+  const anchor = resolveModel('role');
+  if (anchor === undefined) return;
+  const manager = anchor.getDatastore().manager;
+  if (!isAuthorizationMongoManager(manager)) return;
+  for (const native of AUTHORIZATION_NATIVE_COLLECTION_INDEXES) {
+    const collection = manager.collection(native.collectionName);
+    if (typeof collection?.indexes !== 'function' || typeof collection.createIndexes !== 'function') {
+      continue;
+    }
+    let existingIndexes: readonly ExistingAuthorizationIndex[];
+    try {
+      existingIndexes = await collection.indexes();
+    } catch (error) {
+      if (!isNamespaceNotFound(error)) {
+        throw error;
+      }
+      existingIndexes = [];
+    }
+    const missing = native.indexes.filter(
+      required =>
+        !existingIndexes.some(existing => indexKeysEqual(existing, required) && indexOptionsEqual(existing, required))
+    );
+    if (missing.length > 0) {
+      await collection.createIndexes([...missing]);
+    }
   }
 }
 

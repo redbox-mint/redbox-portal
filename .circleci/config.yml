@@ -426,6 +426,10 @@ jobs:
     resource_class: large
     environment:
       RBPORTAL_IMAGE: redbox-portal:test
+      # Gate D (Phase 3 Solr ACL parity, P3-009) must fail on skip: a skipped
+      # parity suite is missing evidence, never a pass. Forwarded into the
+      # Mocha compose profile and asserted by run-mocha-redbox.sh.
+      AUTHORIZATION_GATE_D_STRICT: '1'
     steps:
       - checkout
       - attach_workspace:

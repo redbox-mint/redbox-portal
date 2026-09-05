@@ -8,6 +8,7 @@ import {
   AUTHORIZATION_AUDIT_TARGET_TYPES,
   AuthorizationAdministrationError,
   AuthorizationPersistenceValidationError,
+  assertAuthorizationFreeTextSafe,
   redactAuthorizationPersistenceValue,
   sanitizeAuthorizationText,
   type AuthorizationAuditActorType,
@@ -125,11 +126,16 @@ function requireSanitizedText(value: unknown, field: string, maxLength: number):
   if (sanitized === undefined) {
     throw new AuthorizationPersistenceValidationError('audit-event-invalid', `${field} is required.`);
   }
+  assertAuthorizationFreeTextSafe(sanitized, field);
   return sanitized;
 }
 
-function optionalSanitizedText(value: unknown, maxLength: number): string | undefined {
-  return sanitizeAuthorizationText(value, maxLength);
+function optionalSanitizedText(value: unknown, field: string, maxLength: number): string | undefined {
+  const sanitized = sanitizeAuthorizationText(value, maxLength);
+  if (sanitized !== undefined) {
+    assertAuthorizationFreeTextSafe(sanitized, field);
+  }
+  return sanitized;
 }
 
 export function createAuthorizationAuditEvent(
@@ -172,15 +178,15 @@ export function createAuthorizationAuditEvent(
     actorType: input.actorType,
     actorId: requireSanitizedText(input.actorId, 'actorId', 128),
     authMethod: input.authMethod,
-    brandId: optionalSanitizedText(input.brandId, 128),
+    brandId: optionalSanitizedText(input.brandId, 'brandId', 128),
     targetType: input.targetType,
-    targetId: optionalSanitizedText(input.targetId, 128),
+    targetId: optionalSanitizedText(input.targetId, 'targetId', 128),
     before: input.before === undefined ? undefined : redactAndFreeze(input.before),
     after: input.after === undefined ? undefined : redactAndFreeze(input.after),
-    reasonCode: optionalSanitizedText(input.reasonCode, 128),
-    reason: optionalSanitizedText(input.reason, 1_000),
-    requestId: optionalSanitizedText(input.requestId, 128),
-    batchId: optionalSanitizedText(input.batchId, 128),
+    reasonCode: optionalSanitizedText(input.reasonCode, 'reasonCode', 128),
+    reason: optionalSanitizedText(input.reason, 'reason', 1_000),
+    requestId: optionalSanitizedText(input.requestId, 'requestId', 128),
+    batchId: optionalSanitizedText(input.batchId, 'batchId', 128),
     occurredAt: factory.now().toISOString(),
   });
 }
@@ -252,17 +258,43 @@ function encodeCursor(event: AuthorizationAuditAttributes): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
 }
 
+const AUTHORIZATION_AUDIT_CURSOR_BASE64URL_PATTERN = /^[A-Za-z0-9\-_]+$/;
+const AUTHORIZATION_AUDIT_CURSOR_MAX_EVENT_ID_LENGTH = 128;
+
 function decodeCursor(cursor: string): AuthorizationAuditCursor {
   if (cursor.length < 1 || cursor.length > 1_024) {
     throw new AuthorizationPersistenceValidationError('audit-event-invalid', 'Authorization audit cursor is invalid.');
   }
-  let value: unknown;
+  // Strict canonical base64url: Node's base64url decoder silently ignores
+  // malformed trailing characters, so reject anything outside the unpadded
+  // base64url alphabet and any length that cannot decode (`% 4 === 1`).
+  if (!AUTHORIZATION_AUDIT_CURSOR_BASE64URL_PATTERN.test(cursor) || cursor.length % 4 === 1) {
+    throw new AuthorizationPersistenceValidationError('audit-event-invalid', 'Authorization audit cursor is invalid.');
+  }
+  let decoded: string;
   try {
-    value = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+    decoded = Buffer.from(cursor, 'base64url').toString('utf8');
   } catch (_error) {
     throw new AuthorizationPersistenceValidationError('audit-event-invalid', 'Authorization audit cursor is invalid.');
   }
-  if (!isObject(value) || value.version !== 1 || typeof value.eventId !== 'string' || value.eventId.length === 0) {
+  // Reject non-canonical encodings (alternative padding/whitespace variants):
+  // only the exact encoder output is accepted.
+  if (Buffer.from(decoded, 'utf8').toString('base64url') !== cursor) {
+    throw new AuthorizationPersistenceValidationError('audit-event-invalid', 'Authorization audit cursor is invalid.');
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(decoded);
+  } catch (_error) {
+    throw new AuthorizationPersistenceValidationError('audit-event-invalid', 'Authorization audit cursor is invalid.');
+  }
+  if (
+    !isObject(value) ||
+    value.version !== 1 ||
+    typeof value.eventId !== 'string' ||
+    value.eventId.length < 1 ||
+    value.eventId.length > AUTHORIZATION_AUDIT_CURSOR_MAX_EVENT_ID_LENGTH
+  ) {
     throw new AuthorizationPersistenceValidationError('audit-event-invalid', 'Authorization audit cursor is invalid.');
   }
   const date = new Date(typeof value.occurredAt === 'string' ? value.occurredAt : '');
@@ -314,7 +346,6 @@ export namespace Services {
       'createSucceededEventOnce',
       'probeTransactions',
       'queryEvents',
-      'readEvents',
       'recordAttempt',
     ];
 
@@ -416,7 +447,13 @@ export namespace Services {
       });
     }
 
-    public async readEvents(filter: AuthorizationAuditReadFilter = {}): Promise<AuthorizationAuditReadResult> {
+    /**
+     * Internal, unauthorized storage read behind {@link queryEvents}. It accepts raw
+     * filter criteria and must never be exported: every caller must first pass the
+     * actor, scope, and brand checks in `queryEvents`, which constrains the brand
+     * filter to the actor's authorized context.
+     */
+    private async readEvents(filter: AuthorizationAuditReadFilter = {}): Promise<AuthorizationAuditReadResult> {
       const criteria: Record<string, unknown> = {};
       const limit = boundedPageSize(filter.limit);
       if (filter.actorId !== undefined) {

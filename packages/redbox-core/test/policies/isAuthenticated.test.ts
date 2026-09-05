@@ -45,6 +45,6 @@ describe('isAuthenticated policy', function () {
 
     expect(nextCalled).to.be.false;
     expect(getStatus()).to.equal(401);
-    expect(getJson()).to.include({ code: 'authentication-required', status: 401 });
+    expect(getJson()).to.include({ code: 'authorization.authentication-required', status: 401 });
   });
 });

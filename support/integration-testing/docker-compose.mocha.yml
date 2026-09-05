@@ -18,6 +18,9 @@ x-rbportal-env: &rbportal-env
   - CI=${CI:-false}
   - RBPORTAL_MOCHA_TEST_PATHS=${RBPORTAL_MOCHA_TEST_PATHS:-}
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/mocha
+  # Gate D strict mode: forwarded from CI so P3-009 parity skips fail closed.
+  # Asserted by run-mocha-redbox.sh when CI=true.
+  - AUTHORIZATION_GATE_D_STRICT=${AUTHORIZATION_GATE_D_STRICT:-}
   # Keep the schema contract default explicit when tests regenerate runtime config shims.
   - sails_recordSchema__unknownProperties=allow
 

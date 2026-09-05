@@ -52,6 +52,13 @@ export interface AdminSidebarItem {
   requiredRoles?: string[];
 
   /**
+   * Business scope key required to see this item (evaluated by the authorization
+   * service against the request context; authoritative in enforce mode)
+   * @title Required Scope
+   */
+  requiredScope?: string;
+
+  /**
    * Optional feature flag key (evaluated via sails.config.appmode)
    * @title Feature Flag
    */
@@ -94,6 +101,13 @@ export interface AdminSidebarSection {
    * @default []
    */
   requiredRoles?: string[];
+
+  /**
+   * Business scope key required to see this section (evaluated by the
+   * authorization service; authoritative in enforce mode)
+   * @title Required Scope
+   */
+  requiredScope?: string;
 
   /**
    * If true, section is only shown when user is authenticated
@@ -233,7 +247,7 @@ export class AdminSidebarConfig extends AppConfig {
 export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
   header: {
     titleKey: 'menu-admin',
-    iconClass: 'fa fa-cog'
+    iconClass: 'fa fa-cog',
   },
   sections: [
     {
@@ -241,44 +255,106 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
       titleKey: 'menu-analyze',
       defaultExpanded: true,
       items: [
-        { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
-        { id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' },
-        { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
-        { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
-      ]
+        { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports', requiredScope: 'report.run' },
+        {
+          id: 'harvest-runs',
+          labelKey: 'menu-harvest-runs',
+          href: '/admin/harvest-runs',
+          requiredScope: 'harvest.read',
+        },
+        { id: 'export', labelKey: 'menu-export', href: '/admin/export', requiredScope: 'export.run' },
+        {
+          id: 'deleted',
+          labelKey: 'deleted-records-heading',
+          href: '/admin/deletedRecords',
+          requiredScope: 'record.read',
+        },
+      ],
     },
     {
       id: 'system',
       titleKey: 'menu-syssettings',
       defaultExpanded: true,
       requiredRoles: ['Admin'],
+      requiredScope: 'authorization.role.read',
       items: [
-        { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
-        { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
-        { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
-        { id: 'web-analytics', labelKey: 'menu-webanalytics', href: '/admin/appconfig/edit/webAnalytics' },
-        { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
-        { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
-        { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
-        { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
-        { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
-        { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
-      ]
+        { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles', requiredScope: 'authorization.role.read' },
+        { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users', requiredScope: 'user.read' },
+        {
+          id: 'system-msg',
+          labelKey: 'menu-systemmessages',
+          href: '/admin/appconfig/edit/systemMessage',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'web-analytics',
+          labelKey: 'menu-webanalytics',
+          href: '/admin/appconfig/edit/webAnalytics',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'domains',
+          labelKey: 'menu-authorizeddomainsemails',
+          href: '/admin/appconfig/edit/authorizedDomainsEmails',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'menu',
+          labelKey: 'menu-menuconfiguration',
+          href: '/admin/appconfig/edit/menu',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'homepanels',
+          labelKey: 'menu-homepanelsconfiguration',
+          href: '/admin/appconfig/edit/homePanels',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'adminsidebar',
+          labelKey: 'menu-adminsidebarconfiguration',
+          href: '/admin/appconfig/edit/adminSidebar',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'figsharepublishing',
+          labelKey: 'menu-figsharepublishingconfiguration',
+          href: '/admin/appconfig/edit/figsharePublishing',
+          requiredScope: 'app-config.manage',
+        },
+        {
+          id: 'onipublishing',
+          labelKey: 'menu-onipublishingconfiguration',
+          href: '/admin/appconfig/edit/oniPublishing',
+          requiredScope: 'app-config.manage',
+        },
+      ],
     },
     {
       id: 'lookup',
       titleKey: 'system-lookup-records',
       defaultExpanded: true,
       requiredRoles: ['Admin'],
+      requiredScope: 'dashboard.read',
       items: [
-        { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' }
-      ]
-    }
+        {
+          id: 'party',
+          labelKey: 'system-lookup-record-item1',
+          href: '/dashboard/party',
+          requiredScope: 'dashboard.read',
+        },
+      ],
+    },
   ],
   footerLinks: [
-    { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding' },
-    { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
-  ]
+    { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding', requiredScope: 'branding.manage' },
+    {
+      id: 'translation',
+      labelKey: 'admin-configure-translation',
+      href: '/admin/translation',
+      requiredScope: 'translation.manage',
+    },
+  ],
 };
 
 /**
@@ -295,13 +371,13 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
       description: 'Header configuration for the admin sidebar',
       widget: {
         formlyConfig: {
-          type: 'admin-sidebar-editor'
-        }
+          type: 'admin-sidebar-editor',
+        },
       },
       properties: {
         titleKey: { type: 'string', title: 'Title Key', default: 'menu-admin' },
-        iconClass: { type: 'string', title: 'Icon Class', default: 'fa fa-cog' }
-      }
+        iconClass: { type: 'string', title: 'Icon Class', default: 'fa fa-cog' },
+      },
     },
     sections: {
       type: 'array',
@@ -319,27 +395,32 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
             type: 'array',
             title: 'Required Roles',
             items: { type: 'string' },
-            default: []
+            default: [],
+          },
+          requiredScope: {
+            type: 'string',
+            title: 'Required Scope',
+            description: 'Business scope key required to see this section',
           },
           featureFlag: { type: 'string', title: 'Feature Flag' },
           items: {
             type: 'array',
             title: 'Items',
             items: { $ref: '#/definitions/sidebarItem' },
-            default: []
-          }
+            default: [],
+          },
         },
-        required: ['id', 'titleKey', 'items']
+        required: ['id', 'titleKey', 'items'],
       },
-      default: []
+      default: [],
     },
     footerLinks: {
       type: 'array',
       title: 'Footer Links',
       description: 'Links displayed at the bottom of the sidebar',
       items: { $ref: '#/definitions/sidebarItem' },
-      default: []
-    }
+      default: [],
+    },
   },
   definitions: {
     sidebarItem: {
@@ -355,13 +436,18 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
           type: 'array',
           title: 'Required Roles',
           items: { type: 'string' },
-          default: []
+          default: [],
+        },
+        requiredScope: {
+          type: 'string',
+          title: 'Required Scope',
+          description: 'Business scope key required to see this item',
         },
         featureFlag: { type: 'string', title: 'Feature Flag' },
-        visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false }
+        visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
       },
-      required: ['labelKey', 'href']
-    }
+      required: ['labelKey', 'href'],
+    },
   },
-  required: ['sections', 'footerLinks']
+  required: ['sections', 'footerLinks'],
 };

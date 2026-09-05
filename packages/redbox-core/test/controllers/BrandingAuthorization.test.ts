@@ -18,8 +18,8 @@ describe('branding controller resource authorization', function () {
   beforeEach(function () {
     previousBrandingService = Reflect.get(globalThis, 'BrandingService');
     previousBrandingLogoService = Reflect.get(globalThis, 'BrandingLogoService');
-    previousSails = globalThis.sails;
-    (globalThis as unknown as { sails: unknown }).sails = {
+    previousSails = (globalThis as unknown as { sails: any }).sails;
+    (globalThis as unknown as { sails: any }).sails = {
       config: {},
       log: {
         debug: sinon.stub(),
@@ -39,7 +39,7 @@ describe('branding controller resource authorization', function () {
 
   afterEach(function () {
     sinon.restore();
-    (globalThis as unknown as { sails: unknown }).sails = previousSails;
+    (globalThis as unknown as { sails: any }).sails = previousSails;
     if (previousBrandingService === undefined) Reflect.deleteProperty(globalThis, 'BrandingService');
     else Reflect.set(globalThis, 'BrandingService', previousBrandingService);
     if (previousBrandingLogoService === undefined) Reflect.deleteProperty(globalThis, 'BrandingLogoService');
@@ -92,7 +92,7 @@ describe('branding controller resource authorization', function () {
     const req = {
       params: { branding: 'foreign', portal: 'rdmp' },
       param(name: string) {
-        return this.params[name];
+        return (this as unknown as { params: Record<string, unknown> }).params[name];
       },
     } as unknown as Sails.Req;
     const response = { json: sinon.stub() } as unknown as Sails.Res;

@@ -26,6 +26,7 @@
     "typecheck:record-schema-tests": "tsc --noEmit -p test/tsconfig.record-schema.json",
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
+    "snapshot:legacy-baseline": "prettier --check \"scripts/regenerate-legacy-baseline-snapshot.ts\" && TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/regenerate-legacy-baseline-snapshot.ts && prettier --write \"src/authorization/legacy-authorization-baseline.snapshot.ts\"",
     "doc:api": "npm run generate-openapi --",
     "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"
   },

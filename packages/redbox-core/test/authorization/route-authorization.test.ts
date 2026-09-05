@@ -128,10 +128,40 @@ describe('route authorization metadata', function () {
     assert.doesNotThrow(() => validateRouteAuthorizations([declaredHookRoute], mergedRegistry, 'merged hook route'));
   });
 
-  it('provides a fail-closed controller context seam', function () {
+  it('provides a fail-closed controller context seam behind a pure request-context contract', function () {
+    const context = requireRequestAuthorizationContext({
+      authorization: {
+        contextType: 'brand',
+        principal: { category: 'authenticated', authMethod: 'session', active: true },
+        roles: [],
+        compatibilityRoles: [],
+        roleKeys: [],
+        grantedScopeKeys: [],
+        effectiveScopeKeys: [],
+        scopeProvenance: [],
+        resolutionEvidence: {
+          expiredAssignmentIds: [],
+          ignoredAssignmentIds: [],
+          inactiveRoleIds: [],
+          ignoredRoleIds: [],
+          missingTemplateRevisionRoleIds: [],
+          inactiveScopeKeys: [],
+          missingScopeKeys: [],
+          rejectedScopeKeys: [],
+        },
+      },
+    });
+    assert.equal(context.contextType, 'brand');
+
     assert.throws(
-      () => requireRequestAuthorizationContext({ authorization: undefined } as Sails.Req),
+      () => requireRequestAuthorizationContext({ authorization: undefined }),
       /did not pass authorization context resolution/u
     );
+    assert.throws(() => requireRequestAuthorizationContext({}), /did not pass authorization context resolution/u);
+
+    // A Sails request remains structurally compatible without the pure module
+    // importing the ambient Sails type.
+    const sailsShaped = { authorization: context } as unknown as { authorization?: typeof context };
+    assert.equal(requireRequestAuthorizationContext(sailsShaped), context);
   });
 });

@@ -6,6 +6,7 @@ import {
   AUTHORIZATION_AUDIT_EVENT_TYPES,
   AUTHORIZATION_AUDIT_OUTCOMES,
   AUTHORIZATION_AUDIT_TARGET_TYPES,
+  assertAuthorizationFreeTextSafe,
   redactAuthorizationPersistenceValue,
   sanitizeAuthorizationText,
   type AuthorizationAuditActorType,
@@ -21,6 +22,7 @@ const requiredText = (record: Record<string, unknown>, field: string, maxLength:
   if (value === undefined) {
     throw new Error(`AuthorizationAudit.${field} is required.`);
   }
+  assertAuthorizationFreeTextSafe(value, field);
   record[field] = value;
 };
 
@@ -32,6 +34,7 @@ const optionalText = (record: Record<string, unknown>, field: string, maxLength:
   if (value === undefined) {
     delete record[field];
   } else {
+    assertAuthorizationFreeTextSafe(value, field);
     record[field] = value;
   }
 };

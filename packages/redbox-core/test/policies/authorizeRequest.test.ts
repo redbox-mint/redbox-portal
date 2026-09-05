@@ -114,7 +114,7 @@ describe('authorizeRequest policy', function () {
     authorizeRequest(req, response, () => assert.fail('denied request reached next'));
 
     assert.equal(state.status, 401);
-    assert.equal((state.body as { code: string }).code, 'authentication-required');
+    assert.equal((state.body as { code: string }).code, 'authorization.authentication-required');
     assert.equal(typeof (state.body as { requestId: string }).requestId, 'string');
   });
 
@@ -125,7 +125,7 @@ describe('authorizeRequest policy', function () {
     authorizeRequest(req, response, () => assert.fail('denied request reached next'));
 
     assert.equal(state.status, 403);
-    assert.equal((state.body as { code: string }).code, 'access-denied');
+    assert.equal((state.body as { code: string }).code, 'authorization.scope-denied');
     assert.equal(JSON.stringify(state.body).includes('record.read'), false);
   });
 

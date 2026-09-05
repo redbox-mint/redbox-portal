@@ -82,25 +82,30 @@ export namespace Controllers {
         if (sendAuthorizationResourceError(req, res, error)) return;
         throw error;
       }
-      AsynchsService.get({ id, branding: brand.id }).subscribe((existing: globalThis.Record<string, unknown>[]) => {
-        const existingProgress = existing?.[0];
-        const startedBy = String(existingProgress?.started_by ?? '');
-        const username = String(req.user?.username ?? '');
-        const actorId = String(existingProgress?.actorId ?? '');
-        const currentActorId = String(authorization.context.principal.userId ?? '');
-        if (
-          !existingProgress ||
-          (actorId ? !currentActorId || actorId !== currentActorId : !startedBy || !username || startedBy !== username)
-        ) {
-          return this.sendAccessDenied(req, res);
-        }
-        AsynchsService.finish({ id, branding: brand.id }).subscribe(
-          (progress: globalThis.Record<string, unknown>[]) => {
-            this.broadcast(req, 'stop', progress[0]);
-            this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+      AsynchsService.get({ id, branding: brand.id }).subscribe(
+        (existing: globalThis.Record<string, unknown>[]): unknown => {
+          const existingProgress = existing?.[0];
+          const startedBy = String(existingProgress?.started_by ?? '');
+          const username = String(req.user?.username ?? '');
+          const actorId = String(existingProgress?.actorId ?? '');
+          const currentActorId = String(authorization.context.principal.userId ?? '');
+          if (
+            !existingProgress ||
+            (actorId
+              ? !currentActorId || actorId !== currentActorId
+              : !startedBy || !username || startedBy !== username)
+          ) {
+            return this.sendAccessDenied(req, res);
           }
-        );
-      });
+          AsynchsService.finish({ id, branding: brand.id }).subscribe(
+            (progress: globalThis.Record<string, unknown>[]) => {
+              this.broadcast(req, 'stop', progress[0]);
+              this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+            }
+          );
+          return undefined;
+        }
+      );
     }
 
     public async update(req: Sails.Req, res: Sails.Res) {
@@ -114,26 +119,31 @@ export namespace Controllers {
         if (sendAuthorizationResourceError(req, res, error)) return;
         throw error;
       }
-      AsynchsService.get({ id, branding: brand.id }).subscribe((existing: globalThis.Record<string, unknown>[]) => {
-        const existingProgress = existing?.[0];
-        const startedBy = String(existingProgress?.started_by ?? '');
-        const username = String(req.user?.username ?? '');
-        const actorId = String(existingProgress?.actorId ?? '');
-        const currentActorId = String(authorization.context.principal.userId ?? '');
-        if (
-          !existingProgress ||
-          (actorId ? !currentActorId || actorId !== currentActorId : !startedBy || !username || startedBy !== username)
-        ) {
-          return this.sendAccessDenied(req, res);
-        }
-        const progressObj = this.createProgressObjFromRequest(req);
-        AsynchsService.update({ id, branding: brand.id }, progressObj).subscribe(
-          (progress: globalThis.Record<string, unknown>[]) => {
-            this.broadcast(req, 'update', progress[0]);
-            this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+      AsynchsService.get({ id, branding: brand.id }).subscribe(
+        (existing: globalThis.Record<string, unknown>[]): unknown => {
+          const existingProgress = existing?.[0];
+          const startedBy = String(existingProgress?.started_by ?? '');
+          const username = String(req.user?.username ?? '');
+          const actorId = String(existingProgress?.actorId ?? '');
+          const currentActorId = String(authorization.context.principal.userId ?? '');
+          if (
+            !existingProgress ||
+            (actorId
+              ? !currentActorId || actorId !== currentActorId
+              : !startedBy || !username || startedBy !== username)
+          ) {
+            return this.sendAccessDenied(req, res);
           }
-        );
-      });
+          const progressObj = this.createProgressObjFromRequest(req);
+          AsynchsService.update({ id, branding: brand.id }, progressObj).subscribe(
+            (progress: globalThis.Record<string, unknown>[]) => {
+              this.broadcast(req, 'update', progress[0]);
+              this.sendResp(req, res, { data: progress[0], headers: this.getNoCacheHeaders() });
+            }
+          );
+          return undefined;
+        }
+      );
     }
 
     protected createProgressObjFromRequest(req: Sails.Req): Record<string, unknown> {
@@ -200,7 +210,7 @@ export namespace Controllers {
       return result;
     }
 
-    public async subscribe(req: Sails.Req, res: Sails.Res) {
+    public async subscribe(req: Sails.Req, res: Sails.Res): Promise<unknown> {
       const roomId = req.param('roomId');
       sails.log.verbose(`Trying to join asynchronous room: ${roomId}`);
       if (!req.isSocket) {
@@ -213,7 +223,7 @@ export namespace Controllers {
         authorization = await this.reauthorizePrivilegedSocketMessage(req);
         brand = this.authorizedBrand(req, authorization.context);
       } catch (error) {
-        if (sendAuthorizationResourceError(req, res, error)) return;
+        if (sendAuthorizationResourceError(req, res, error)) return undefined;
         throw error;
       }
       const recordsService = sails.services.recordsservice as unknown as RecordsService;
@@ -257,6 +267,7 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders(),
         });
       });
+      return undefined;
     }
 
     /**
@@ -279,7 +290,8 @@ export namespace Controllers {
       }
 
       const service = sails.services.authorizationservice as unknown as
-        Partial<PrivilegedSocketAuthorizationService> | undefined;
+        | Partial<PrivilegedSocketAuthorizationService>
+        | undefined;
       if (
         service === undefined ||
         typeof service.resolveUserContext !== 'function' ||
@@ -447,7 +459,7 @@ export namespace Controllers {
       });
     }
 
-    public unsubscribe(req: Sails.Req, res: Sails.Res) {
+    public unsubscribe(req: Sails.Req, res: Sails.Res): unknown {
       if (!req.isSocket) {
         return res.badRequest();
       }
@@ -467,6 +479,7 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders(),
         });
       });
+      return undefined;
     }
 
     protected broadcast(req: Sails.Req, eventName: string, progressObj: globalThis.Record<string, unknown>) {

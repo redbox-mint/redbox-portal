@@ -71,7 +71,7 @@ function recordControllerResponseFixture(): RecordControllerResponseFixture {
 function expectAuthorizationProblem(
   fixture: RecordControllerResponseFixture,
   status: 401 | 403 | 404,
-  code: 'authentication-required' | 'resource-denied' | 'resource-not-found'
+  code: 'authorization.authentication-required' | 'authorization.resource-denied' | 'authorization.not-found'
 ): void {
   expect(fixture.status.calledOnceWithExactly(status)).to.equal(true);
   expect(fixture.json.firstCall.args[0]).to.deep.include({ status, code });
@@ -642,7 +642,7 @@ describe('Webservice RecordController body source', () => {
     await controller.restoreRecord(req, response.response);
 
     expect(recordsService.restoreRecord.called).to.be.false;
-    expectAuthorizationProblem(response, 404, 'resource-not-found');
+    expectAuthorizationProblem(response, 404, 'authorization.not-found');
   });
 
   afterEach(() => {
@@ -1694,7 +1694,7 @@ describe('Webservice RecordController body source', () => {
 
       await controller.transitionWorkflow(req, response.response);
 
-      expectAuthorizationProblem(response, 404, 'resource-not-found');
+      expectAuthorizationProblem(response, 404, 'authorization.not-found');
       expect(recordsService.hasEditAccess.notCalled).to.equal(true);
       expect((global as any).WorkflowStepsService.get.notCalled).to.equal(true);
       expect(recordsService.updateMeta.notCalled).to.equal(true);
@@ -2083,7 +2083,7 @@ describe('Webservice RecordController body source', () => {
       expect(recordsService.getDeletedRecordMeta.calledWithMatch('record-1', { id: 'brand-1' })).to.be.true;
       expect(recordsService.getMeta.called).to.be.false;
       expect(recordsService.restoreRecord.called).to.be.false;
-      expectAuthorizationProblem(response, 404, 'resource-not-found');
+      expectAuthorizationProblem(response, 404, 'authorization.not-found');
     });
 
     it('does not permanently delete an active record when no deleted record exists', async () => {
@@ -2105,7 +2105,7 @@ describe('Webservice RecordController body source', () => {
       expect(recordsService.getDeletedRecordMeta.calledWithMatch('record-1', { id: 'brand-1' })).to.be.true;
       expect(recordsService.getMeta.called).to.be.false;
       expect(recordsService.destroyDeletedRecord.called).to.be.false;
-      expectAuthorizationProblem(response, 404, 'resource-not-found');
+      expectAuthorizationProblem(response, 404, 'authorization.not-found');
     });
     for (const method of ['restoreRecord', 'destroyDeletedRecord'] as const) {
       it(`rejects ${method} when the deleted record belongs to another brand`, async () => {
@@ -2123,7 +2123,7 @@ describe('Webservice RecordController body source', () => {
 
         await controller[method](req, response.response);
 
-        expectAuthorizationProblem(response, 404, 'resource-not-found');
+        expectAuthorizationProblem(response, 404, 'authorization.not-found');
         expect(recordsService[method].called).to.be.false;
       });
     }
@@ -2141,7 +2141,7 @@ describe('Webservice RecordController body source', () => {
 
       await controller.restoreRecord(req, response.response);
 
-      expectAuthorizationProblem(response, 404, 'resource-not-found');
+      expectAuthorizationProblem(response, 404, 'authorization.not-found');
       expect(JSON.stringify(response.json.args)).not.to.include('storage unavailable');
       expect(recordsService.restoreRecord.called).to.be.false;
     });
@@ -2170,7 +2170,7 @@ describe('Webservice RecordController body source', () => {
         const missingResponse = recordControllerResponseFixture();
 
         await testCase.invoke(readRequest(testCase.name === 'list'), missingResponse.response);
-        expectAuthorizationProblem(missingResponse, 404, 'resource-not-found');
+        expectAuthorizationProblem(missingResponse, 404, 'authorization.not-found');
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
         expect(JSON.stringify(missingResponse.json.args), testCase.name).not.to.include('must-not-return');
 
@@ -2184,7 +2184,7 @@ describe('Webservice RecordController body source', () => {
         const deniedResponse = recordControllerResponseFixture();
 
         await testCase.invoke(readRequest(testCase.name === 'list'), deniedResponse.response);
-        expectAuthorizationProblem(deniedResponse, 403, 'resource-denied');
+        expectAuthorizationProblem(deniedResponse, 403, 'authorization.resource-denied');
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
         expect(JSON.stringify(deniedResponse.json.args), testCase.name).not.to.include('must-not-return');
       });
@@ -2262,7 +2262,7 @@ describe('Webservice RecordController body source', () => {
       );
       expect(unauthorizedFile.notCalled).to.equal(true);
       expect(recordsService.updateMeta.notCalled).to.equal(true);
-      expectAuthorizationProblem(unauthorizedResponse, 403, 'resource-denied');
+      expectAuthorizationProblem(unauthorizedResponse, 403, 'authorization.resource-denied');
     });
 
     it('routes a standalone upload through RecordsService CAS before finalizing bytes', async () => {
@@ -2407,7 +2407,7 @@ describe('Webservice RecordController body source', () => {
       expect(recordsService.updateMeta.notCalled).to.equal(true);
       expect(addDatastreams.notCalled).to.equal(true);
       expect(removeStagedDatastream.calledWith('staged-file-1')).to.equal(true);
-      expectAuthorizationProblem(response, 403, 'resource-denied');
+      expectAuthorizationProblem(response, 403, 'authorization.resource-denied');
       expect(JSON.stringify(response.json.args)).not.to.include('must-not-return');
     });
 

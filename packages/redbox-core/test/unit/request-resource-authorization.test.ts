@@ -72,7 +72,7 @@ describe('request resource authorization extraction', () => {
 
   it('treats explicit runtime target authorization as authoritative over the central contract map', () => {
     const req = request();
-    req.path = '/brand-a/rdmp/api/records/metadata/record-1';
+    (req as unknown as { path: string }).path = '/brand-a/rdmp/api/records/metadata/record-1';
     req.options!.authorization = { kind: 'scope', scope: asScopeKey('record.update') };
     req.options!.routeId = 'explicit-record-update';
 
@@ -85,7 +85,7 @@ describe('request resource authorization extraction', () => {
   it('falls back to the central contract map when framework route metadata is absent', () => {
     resetResolvedApiRouteCache();
     const req = request();
-    req.path = '/brand-a/rdmp/api/records/metadata/record-1';
+    (req as unknown as { path: string }).path = '/brand-a/rdmp/api/records/metadata/record-1';
     req.route = 'get /:branding/:portal/api/records/metadata/:oid';
     req.options = {};
 
@@ -99,11 +99,42 @@ describe('request resource authorization extraction', () => {
   it('fails closed when neither an explicit target nor a central/configured route resolves', () => {
     resetResolvedApiRouteCache();
     const req = request();
-    req.path = '/__authorization_unmapped_resource__';
+    (req as unknown as { path: string }).path = '/__authorization_unmapped_resource__';
     req.route = undefined;
     req.options = {};
 
     assert.throws(() => requireRequestResourceAuthorization(req), /requires an explicit scoped route declaration/u);
     resetResolvedApiRouteCache();
+  });
+
+  it('fails closed with the scoped-route error when sails.config.routes is absent', () => {
+    resetResolvedApiRouteCache();
+    const globalWithSails = globalThis as typeof globalThis & {
+      sails?: { config?: Record<string, unknown> };
+    };
+    const previousRoutes = globalWithSails.sails?.config?.routes;
+    const hadRoutesKey =
+      globalWithSails.sails?.config !== undefined &&
+      Object.prototype.hasOwnProperty.call(globalWithSails.sails.config, 'routes');
+    if (globalWithSails.sails?.config) {
+      (globalWithSails.sails.config as Record<string, unknown>).routes = undefined;
+    }
+    const req = request();
+    (req as unknown as { path: string }).path = '/__authorization_unmapped_resource__';
+    req.route = undefined;
+    req.options = {};
+
+    try {
+      assert.throws(() => requireRequestResourceAuthorization(req), /requires an explicit scoped route declaration/u);
+    } finally {
+      if (globalWithSails.sails?.config) {
+        if (hadRoutesKey) {
+          (globalWithSails.sails.config as Record<string, unknown>).routes = previousRoutes;
+        } else {
+          delete (globalWithSails.sails.config as Record<string, unknown>).routes;
+        }
+      }
+      resetResolvedApiRouteCache();
+    }
   });
 });

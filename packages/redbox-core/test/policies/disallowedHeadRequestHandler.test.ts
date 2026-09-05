@@ -45,7 +45,7 @@ describe('disallowedHeadRequestHandler policy', function () {
         (_strategy: string, callback: (error: Error | null, user: false) => void) =>
         (_req: Sails.Req, _res: Sails.Res) =>
           callback(null, false),
-    } as Sails.ConfigObject['passport'];
+    } as unknown as Sails.ConfigObject['passport'];
     const { req, res, getStatus, getBody } = createMockReqRes('HEAD');
     req.headers.authorization = 'Bearer invalid-token';
 
@@ -58,7 +58,7 @@ describe('disallowedHeadRequestHandler policy', function () {
     }
 
     expect(getStatus()).to.equal(401);
-    expect(JSON.parse(getBody() ?? '{}')).to.include({ code: 'invalid-bearer-credential' });
+    expect(JSON.parse(getBody() ?? '{}')).to.include({ code: 'authorization.invalid-credential' });
   });
 
   it('should allow GET requests', function () {

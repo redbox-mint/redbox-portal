@@ -59,27 +59,27 @@ function respondDenied(
     return;
   }
   if (result.reasonCode === 'brand-not-found') {
-    sendAuthorizationProblem(req, res, 404, 'brand-not-found', 'Brand was not found.');
+    sendAuthorizationProblem(req, res, 404, 'authorization.not-found', 'Brand was not found.');
     return;
   }
   if (result.reasonCode === 'principal-inactive') {
-    sendAuthorizationProblem(req, res, 401, 'principal-inactive', 'Principal is inactive.');
+    sendAuthorizationProblem(req, res, 401, 'authorization.invalid-credential', 'Principal is inactive.');
     return;
   }
   if (redirectAnonymousBrowser(req, res, context)) return;
   if (context.principal.category === 'anonymous') {
-    sendAuthorizationProblem(req, res, 401, 'authentication-required', 'Authentication is required.');
+    sendAuthorizationProblem(req, res, 401, 'authorization.authentication-required', 'Authentication is required.');
     return;
   }
   if (result.reasonCode === 'brand-not-authorized') {
-    sendAuthorizationProblem(req, res, 403, 'brand-not-authorized', 'Brand access is not authorized.');
+    sendAuthorizationProblem(req, res, 403, 'authorization.scope-denied', 'Brand access is not authorized.');
     return;
   }
   if (result.scopeDecision.requiredScope === undefined && result.reasonCode === 'scope-missing') {
-    sendAuthorizationProblem(req, res, 403, 'route-authorization-missing', 'Route authorization is unavailable.');
+    sendAuthorizationProblem(req, res, 403, 'authorization.scope-denied', 'Route authorization is unavailable.');
     return;
   }
-  sendAuthorizationProblem(req, res, 403, 'access-denied', 'Access is denied.');
+  sendAuthorizationProblem(req, res, 403, 'authorization.scope-denied', 'Access is denied.');
 }
 
 export function authorizeRequest(req: Sails.Req, res: Sails.Res, next: Sails.NextFunction): void {
@@ -92,7 +92,7 @@ export function authorizeRequest(req: Sails.Req, res: Sails.Res, next: Sails.Nex
 
   const context = req.authorization;
   if (context === undefined) {
-    sendAuthorizationProblem(req, res, 500, 'authorization-unavailable', 'Authorization context is unavailable.');
+    sendAuthorizationProblem(req, res, 500, 'authorization.internal-error', 'Authorization context is unavailable.');
     return;
   }
 
@@ -120,7 +120,7 @@ export function authorizeRequest(req: Sails.Req, res: Sails.Res, next: Sails.Nex
       requestId: req.authorizationRequestId,
       errorCode: 'evaluation-failed',
     });
-    sendAuthorizationProblem(req, res, 500, 'authorization-unavailable', 'Authorization is unavailable.');
+    sendAuthorizationProblem(req, res, 500, 'authorization.internal-error', 'Authorization is unavailable.');
   }
 }
 

@@ -227,6 +227,7 @@ declare global {
       apiRequest?: ValidatedApiRouteRequest;
       authorization?: AuthorizationContext;
       authorizationAuthMethod?: Extract<AuthorizationAuthMethod, 'anonymous' | 'session' | 'bearer'>;
+      authorizationTokenScopeCeiling?: readonly string[];
       authorizationRequestId?: string;
       resourceAuthorization?: RequestResourceAuthorization;
       query: { [key: string]: string | undefined };

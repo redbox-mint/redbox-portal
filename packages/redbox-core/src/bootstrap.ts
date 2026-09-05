@@ -47,8 +47,12 @@ export async function coreBootstrap(): Promise<void> {
   const defaultBrand = await lastValueFrom(sails.services.brandingservice.bootstrap() as Observable<unknown>);
   sails.log.verbose('Branding service, bootstrapped.');
 
-  await sails.services.authorizationscopeservice.bootstrap();
-  sails.log.verbose('Authorization scope catalog and templates, reconciled.');
+  // Authorization catalog/template reconciliation is lease-fenced inside
+  // AuthorizationBootstrapService.bootstrap (after UsersService.bootstrap
+  // resolves the canonical bootstrap user below). It must not run here
+  // unleased: a concurrent lift could otherwise reconcile the catalog
+  // against this lift while the shared durable migration lease is held
+  // elsewhere.
 
   const _rolesBootstrapResult = await lastValueFrom(
     sails.services.rolesservice.bootstrap(defaultBrand) as Observable<unknown>

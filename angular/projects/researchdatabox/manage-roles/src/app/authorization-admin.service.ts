@@ -9,7 +9,6 @@ import {
   AuditCatalogQuery,
   AuthorizationAssignment,
   AuthorizationAuditEvent,
-  AuthorizationMe,
   AuthorizationMutationResult,
   AuthorizationProblemDetails,
   AuthorizationRole,
@@ -67,10 +66,6 @@ export class AuthorizationAdminService extends HttpClientService {
     await super.waitForInit();
     this.enableCsrfHeader();
     return this;
-  }
-
-  public getMe(): Promise<AuthorizationMe> {
-    return this.get<AuthorizationMe>('/me');
   }
 
   public listScopes(query: ScopeCatalogQuery = {}): Promise<ScopeCatalogPage> {

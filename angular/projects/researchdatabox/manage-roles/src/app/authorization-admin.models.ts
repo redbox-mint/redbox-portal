@@ -1,5 +1,3 @@
-export type RolloutMode = 'legacy' | 'shadow' | 'enforce';
-export type AuthorizationAuthMethod = 'anonymous' | 'session' | 'bearer' | 'internal';
 export type ProtectedRoleKind = 'none' | 'guest' | 'brand-admin' | 'system-admin';
 export type RoleStatus = 'active' | 'inactive';
 export type ScopeRisk = 'read' | 'write' | 'admin' | 'system';
@@ -59,22 +57,6 @@ export interface AuthorizationProblemDetails {
   instance: string;
   code: string;
   requestId: string;
-}
-
-export interface AuthorizationMe {
-  brand?: {
-    id: string;
-    name: string;
-  };
-  rolloutMode: RolloutMode;
-  principal: {
-    category: 'anonymous' | 'authenticated' | 'system-admin' | 'legacy-bearer' | 'system-process';
-    authMethod: AuthorizationAuthMethod;
-    active: boolean;
-    userId?: string;
-  };
-  roles: AuthorizationEffectiveRole[];
-  scopeKeys: string[];
 }
 
 export interface AuthorizationEffectiveRole {

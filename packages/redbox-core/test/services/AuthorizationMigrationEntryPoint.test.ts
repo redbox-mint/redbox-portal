@@ -49,4 +49,29 @@ describe('authorization migration entry point', () => {
       /duplicate-brand-role-key.*2/u
     );
   });
+
+  it('blocks when a capped prefix hides blockers (500 warnings precede a blocker)', async () => {
+    const migration = require(migrationPath) as LocalMigration;
+    const warnings = Array.from({ length: 500 }, (_, index) => ({
+      code: `warning-${index}`,
+      severity: 'warning',
+      entityType: 'role',
+    }));
+    // Fail-closed truncation: the visible prefix carries no blocker, but the
+    // truncated flag proves unseen issues may include blockers.
+    await assert.rejects(
+      migration.up({
+        context: {
+          services: {
+            authorizationmigrationservice: {
+              async run() {
+                return { issues: warnings, issuesTruncated: true };
+              },
+            },
+          },
+        },
+      }),
+      /migration-issues-truncated/u
+    );
+  });
 });

@@ -26,6 +26,15 @@ export NYC_OUTPUT=${NYC_OUTPUT:-/tmp/nyc_output}
 mkdir -p "$NYC_OUTPUT"
 chmod 777 "$NYC_OUTPUT" || true
 
+# Gate D strict mode: in CI the parity suite must fail on skip instead of
+# passing silently. The value is forwarded from docker-compose.mocha.yml;
+# assert it here so a misconfigured Gate D job fails closed with a clear error.
+echo "AUTHORIZATION_GATE_D_STRICT=${AUTHORIZATION_GATE_D_STRICT:-<unset>} CI=${CI:-false}"
+if [[ "${CI:-false}" == "true" && "${AUTHORIZATION_GATE_D_STRICT:-}" != "1" ]]; then
+  echo "Gate D requires AUTHORIZATION_GATE_D_STRICT=1 in CI so Solr ACL parity skips fail closed." >&2
+  exit 1
+fi
+
 test_args=()
 if [[ -n "${RBPORTAL_MOCHA_TEST_PATHS:-}" ]]; then
   mapfile -t env_test_args <<< "${RBPORTAL_MOCHA_TEST_PATHS}"

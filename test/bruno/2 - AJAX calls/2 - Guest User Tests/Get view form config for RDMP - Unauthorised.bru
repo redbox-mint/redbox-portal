@@ -28,6 +28,6 @@ tests {
   test("Problem identifies authentication as required", function () {
       var jsonData = res.getBody();
       
-      expect(jsonData.code).to.eql("authentication-required");
+      expect(jsonData.code).to.eql("authorization.authentication-required");
   });
 }
