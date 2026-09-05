@@ -14,7 +14,7 @@ const crypto = require('crypto');
  * 3. Legacy rollback repair: the old `rollback` implementation rewound the
  *    active version number instead of allocating a new version. If the current
  *    active state is not represented by the maximum history version, or the
- *    active snapshot (variables/css/hash) differs from the history row bearing
+ *    active snapshot (css/hash) differs from the history row bearing
  *    its version, the current active colours are preserved as a new complete
  *    history row at `max + 1` (Default Typography) and the active version is
  *    moved to that value before any pruning.
@@ -35,6 +35,48 @@ const crypto = require('crypto');
 
 const MIGRATION_NAME = '20260904000000-branding-typeface-backfill';
 const DEFAULT_HISTORY_MAX_VERSIONS = 3;
+// Frozen legacy editable keys: hidden/derived CSS tokens cannot be restored as inputs.
+const LEGACY_EDITABLE_KEYS = new Set([
+  'site-branding-area-background-color',
+  'logo-heading-text-color',
+  'panel-branding-background-color',
+  'panel-branding-color',
+  'panel-branding-border-color',
+  'main-menu-branding-background-color',
+  'header-branding-link-color',
+  'header-branding-background-color',
+  'header-branding-text-color',
+  'main-menu-active-item-color',
+  'main-menu-active-item-color-hover',
+  'main-menu-active-item-background-color',
+  'main-menu-active-item-background-color-hover',
+  'main-menu-inactive-item-color',
+  'main-menu-inactive-item-color-hover',
+  'main-menu-inactive-item-background-color',
+  'main-menu-inactive-item-background-color-hover',
+  'main-menu-inactive-dropdown-item-color',
+  'main-menu-inactive-dropdown-item-color-hover',
+  'main-menu-inactive-dropdown-item-background-color',
+  'main-menu-active-dropdown-item-color',
+  'main-menu-active-dropdown-item-color-hover',
+  'main-menu-active-dropdown-item-background-color',
+  'main-menu-active-dropdown-item-background-color-hover',
+  'body-background-color',
+  'body-text-color',
+  'anchor-color',
+  'anchor-color-hover',
+  'anchor-color-focus',
+  'footer-bottom-area-branding-background-color',
+  'footer-bottom-area-branding-color',
+  'primary',
+  'secondary',
+  'success',
+  'info',
+  'warning',
+  'danger',
+  'light',
+  'dark',
+]);
 
 function isMissing(value) {
   return value === undefined || value === null;
@@ -57,22 +99,19 @@ function effectiveHash(brand) {
 }
 
 function activeMatchesHistory(brand, history) {
-  return (
-    snapshotKey(brand.variables) === snapshotKey(history.variables) &&
-    snapshotKey(brand.css) === snapshotKey(history.css) &&
-    effectiveHash(brand) === history.hash
-  );
+  return snapshotKey(brand.css) === snapshotKey(history.css) && effectiveHash(brand) === history.hash;
 }
 
 function readHistoryMaxVersions(sails) {
   try {
     const configured = sails && sails.config && sails.config.branding && sails.config.branding.historyMaxVersions;
-    if (typeof configured === 'number' && Number.isFinite(configured) && configured > 0) {
-      return Math.floor(configured);
+    if (typeof configured === 'number' && Number.isSafeInteger(configured) && configured > 0) {
+      return configured;
     }
   } catch (_ignored) {
     // Fall through to the default.
   }
+  sails.log.info('Branding typeface backfill: Invalid historyMaxVersions; using safe default 3.');
   return DEFAULT_HISTORY_MAX_VERSIONS;
 }
 
@@ -112,7 +151,25 @@ async function backfillHistoryTypeface(BrandingConfigHistory, histories) {
   }
 }
 
-async function preserveActiveState(BrandingConfig, BrandingConfigHistory, sails, brand, maxVersion) {
+// `variables` on the brand is the independent draft, never publication evidence.
+function publishedVariables(brand, histories) {
+  const matching = histories.find(row => activeMatchesHistory(brand, row));
+  if (matching) return matching.variables || {};
+  const root = /:root\s*\{([^}]+)\}/.exec(brand.css || '');
+  const variables = {};
+  if (root) {
+    for (const match of root[1].matchAll(/--rb-([a-z0-9-]+)\s*:\s*(#[a-fA-F0-9]{3,8})\s*;/g)) {
+      if (LEGACY_EDITABLE_KEYS.has(match[1])) variables[match[1]] = match[2];
+    }
+  }
+  if (Object.keys(variables).length === 0) {
+    // Do not prune anything when the published snapshot cannot be recovered.
+    throw new Error(`Branding typeface backfill: cannot recover published colours for brand ${brand.id}`);
+  }
+  return variables;
+}
+
+async function preserveActiveState(BrandingConfig, BrandingConfigHistory, sails, brand, maxVersion, histories) {
   const nextVersion = maxVersion + 1;
   // BrandingConfigHistory.hash is required and rejects empty strings, so a
   // never-published brand (empty hash) is preserved under the deterministic
@@ -123,7 +180,7 @@ async function preserveActiveState(BrandingConfig, BrandingConfigHistory, sails,
     version: nextVersion,
     hash: preservedHash,
     css: brand.css || '',
-    variables: brand.variables || {},
+    variables: publishedVariables(brand, histories),
     typeface: null,
   };
   try {
@@ -189,7 +246,14 @@ async function migrateBrand(sails, brand, retain) {
     (activeVersion === 0 && maxVersion === 0) ||
     (activeVersion === maxVersion && maxRow !== undefined && activeMatchesHistory(brand, maxRow));
   if (!activeRepresented) {
-    stats.preservedVersion = await preserveActiveState(BrandingConfig, BrandingConfigHistory, sails, brand, maxVersion);
+    stats.preservedVersion = await preserveActiveState(
+      BrandingConfig,
+      BrandingConfigHistory,
+      sails,
+      brand,
+      maxVersion,
+      histories
+    );
     histories = await BrandingConfigHistory.find({ branding: brand.id }).sort('version ASC');
   }
 

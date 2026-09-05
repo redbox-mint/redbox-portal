@@ -1,27 +1,6 @@
-/**
- * Minimal dependency-free WOFF2 structural inspector (T00 decision).
- *
- * Why no `fontkit`: fontkit@2.0.4 is the only maintained Node candidate with
- * WOFF2 + variable detection, but it carries an open crafted-font
- * denial-of-service report (foliojs/fontkit#368, April 2026: a small crafted
- * TrueType font crashes the Node process via composite glyph path access),
- * has had no release since Aug 2024, pulls Brotli/restructure transitive
- * dependencies with semver ranges, and parses full glyph outlines we never
- * need. Using it would expose glyph-path attack surface for a task that only
- * needs container validation, `fvar` detection, and best-effort metadata.
- *
- * This inspector therefore validates only the WOFF2 container (W3C WOFF2
- * REC 2024, sections 3-4): 48-byte header, table directory with UIntBase128
- * lengths, known-tag table (fvar = flag 47), collection rejection, and
- * offset/length overlap checks. It never decompresses the font data block
- * and never touches glyph outlines, so the fontkit composite-glyph crash
- * class cannot trigger. Best-effort family metadata comes only from the
- * optional Extended Metadata XML block (decompressed with Node's built-in
- * zlib, capped at 1 MiB of actual decompressed output via maxOutputLength), otherwise fields stay undefined.
- *
- * See docs/adr/0002-woff2-internal-inspector.md for the full decision.
- */
+/** WOFF2 container inspection plus isolated, deadline-bounded genuine decoding. */
 import zlib from 'zlib';
+import { Worker } from 'node:worker_threads';
 import type { BrandingTypefaceInspection } from '../model/BrandingTypeface';
 
 export const WOFF2_SIGNATURE = 0x774f4632;
@@ -97,6 +76,7 @@ const KNOWN_TABLE_TAGS: readonly string[] = [
 ];
 
 export type Woff2InspectErrorCode =
+  | 'DECODE_FAILED'
   | 'EMPTY'
   | 'TRUNCATED'
   | 'BAD_SIGNATURE'
@@ -223,7 +203,7 @@ function extractMetadataFamily(metaBytes: Buffer): BrandingTypefaceInspection {
  * Variable fonts are NOT thrown here; they are reported via `isVariable` so
  * the caller can reject with the domain-appropriate error.
  */
-export function inspectWoff2Buffer(input: Buffer): Woff2InspectResult {
+function inspectContainer(input: Buffer): Woff2InspectResult {
   const buf = Buffer.isBuffer(input) ? input : Buffer.from(input as Uint8Array);
   if (buf.length === 0) {
     throw new Woff2InspectError('EMPTY', 'Empty font data');
@@ -255,6 +235,7 @@ export function inspectWoff2Buffer(input: Buffer): Woff2InspectResult {
   readU16(buf, cursor); // reserved (must be zero on encode; tolerated on decode per spec)
   readU32(buf, cursor); // totalSfntSize (reference only)
   const totalCompressedSize = readU32(buf, cursor);
+  if (totalCompressedSize === 0) throw new Woff2InspectError('DECODE_FAILED', 'Missing compressed font data');
   readU16(buf, cursor); // majorVersion
   readU16(buf, cursor); // minorVersion
   const metaOffset = readU32(buf, cursor);
@@ -346,4 +327,81 @@ export function inspectWoff2Buffer(input: Buffer): Woff2InspectResult {
   }
 
   return { isVariable: tableTags.includes('fvar'), tableTags, inspection };
+}
+
+// At most two untrusted decoders per process, with no unbounded waiting queue.
+let decoding = 0;
+export async function inspectWoff2Buffer(input: Buffer): Promise<Woff2InspectResult> {
+  const result = inspectContainer(input);
+  if (decoding >= 2) throw new Woff2InspectError('DECODE_FAILED', 'Font inspector busy; retry upload');
+  decoding += 1;
+  let shutdown: (() => Promise<number>) | undefined;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const worker = new Worker(
+        `
+        const { parentPort, workerData } = require('node:worker_threads');
+        // The pinned Emscripten decoder grows its exported memory through this
+        // JS method. Bound linear memory separately from the worker's V8 heap.
+        const grow = WebAssembly.Memory.prototype.grow;
+        WebAssembly.Memory.prototype.grow = function(pages) {
+          if (this.buffer.byteLength + pages * 65536 > 64 * 1024 * 1024) throw new RangeError('Decoder memory budget');
+          return grow.call(this, pages);
+        };
+        require(workerData.decoder)(workerData.bytes).then(raw => {
+          const font = Buffer.from(raw);
+          if (font.length < 12) throw new Error('Missing sfnt header');
+          const count = font.readUInt16BE(4);
+          if (!count || 12 + count * 16 > font.length) throw new Error('Invalid sfnt directory');
+          const tables = new Map();
+          for (let i = 0; i < count; i++) {
+            const entry = 12 + i * 16;
+            const tag = font.toString('ascii', entry, entry + 4);
+            const offset = font.readUInt32BE(entry + 8), length = font.readUInt32BE(entry + 12);
+            if (tables.has(tag) || offset < 12 + count * 16 || offset + length > font.length) throw new Error('Invalid sfnt table');
+            tables.set(tag, font.subarray(offset, offset + length));
+          }
+          for (const [tag, minimum] of [['head',54], ['hhea',36], ['maxp',6], ['hmtx',4], ['cmap',4], ['name',6], ['OS/2',78], ['post',32]]) {
+            if (!tables.has(tag) || tables.get(tag).length < minimum) throw new Error('Missing or truncated ' + tag);
+          }
+          if (tables.get('head').readUInt32BE(12) !== 0x5f0f3cf5) throw new Error('Invalid head magic');
+          if (!tables.has('glyf') && !tables.has('CFF ') && !tables.has('CFF2')) throw new Error('Missing outlines');
+          parentPort.postMessage(true);
+        }).catch(() => parentPort.postMessage(false));
+      `,
+        {
+          eval: true,
+          execArgv: [],
+          workerData: { decoder: require.resolve('wawoff2/decompress'), bytes: input },
+          resourceLimits: { maxOldGenerationSizeMb: 32, maxYoungGenerationSizeMb: 8, stackSizeMb: 2 },
+        }
+      );
+      shutdown = () => worker.terminate();
+      const fail = () =>
+        reject(new Woff2InspectError('DECODE_FAILED', 'Invalid font data or decoder resource budget exceeded'));
+      const timer = setTimeout(() => {
+        void worker.terminate();
+        fail();
+      }, 2000);
+      worker.once('message', valid => {
+        clearTimeout(timer);
+        void worker.terminate();
+        if (valid === true) resolve();
+        else fail();
+      });
+      worker.once('error', () => {
+        clearTimeout(timer);
+        void worker.terminate();
+        fail();
+      });
+      worker.once('exit', () => {
+        clearTimeout(timer);
+        fail();
+      });
+    });
+    return result;
+  } finally {
+    await shutdown?.();
+    decoding -= 1;
+  }
 }

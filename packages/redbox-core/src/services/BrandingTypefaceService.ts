@@ -201,7 +201,7 @@ export namespace Services {
       }
       let inspection: BrandingTypefaceInspection;
       try {
-        const result = inspectWoff2Buffer(bytes);
+        const result = await inspectWoff2Buffer(bytes);
         if (result.isVariable) {
           throw new BrandingTypefaceError('typeface-variable-font', 'Variable fonts are not supported');
         }

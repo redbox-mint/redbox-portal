@@ -47,7 +47,7 @@ interface TypefaceSlotCard {
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
   imports: [CommonModule, FormsModule, BrandingPreviewComponent, I18NextPipe],
-  providers: [BrandingAdminService]
+  providers: [BrandingAdminService],
 })
 export class BrandingAdminComponent extends BaseComponent {
   previewUrl?: SafeResourceUrl;
@@ -85,7 +85,12 @@ export class BrandingAdminComponent extends BaseComponent {
     { slot: 'regular', label: 'branding-face-regular-label', required: true, hint: 'branding-face-required-hint' },
     { slot: 'bold', label: 'branding-face-bold-label', required: false, hint: 'branding-face-optional-hint' },
     { slot: 'italic', label: 'branding-face-italic-label', required: false, hint: 'branding-face-optional-hint' },
-    { slot: 'boldItalic', label: 'branding-face-boldItalic-label', required: false, hint: 'branding-face-optional-hint' },
+    {
+      slot: 'boldItalic',
+      label: 'branding-face-boldItalic-label',
+      required: false,
+      hint: 'branding-face-optional-hint',
+    },
   ];
 
   constructor(
@@ -169,9 +174,9 @@ export class BrandingAdminComponent extends BaseComponent {
     return this.state?.draft.typeface.faces?.[slot];
   }
 
-  private replaceState(state: BrandingAdminState): void {
+  private replaceState(state: BrandingAdminState, preserveColours = false): void {
     this.state = state;
-    this.draftConfig = this.filterDraftVariables(state.draft.variables);
+    if (!preserveColours) this.draftConfig = this.filterDraftVariables(state.draft.variables);
     this.conflict = false;
     this.pendingRestoreId = null;
   }
@@ -183,7 +188,9 @@ export class BrandingAdminComponent extends BaseComponent {
       this.message = undefined;
       this.error = this.i18n.t('branding-conflict-detail');
     } else if (mutation?.kind === 'limit') {
-      this.error = this.i18n.t('branding-upload-too-large', { detail: mutation.message || this.i18n.t('branding-upload-limit-detail') });
+      this.error = this.i18n.t('branding-upload-too-large', {
+        detail: mutation.message || this.i18n.t('branding-upload-limit-detail'),
+      });
     } else {
       const serverMessage = this.errorDetail(error);
       this.error = this.i18n.t(action, { detail: serverMessage });
@@ -209,7 +216,7 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   private async runMutation<T>(key: string, action: string, work: () => Promise<T>): Promise<T | undefined> {
-    if (this.inFlight.has(key)) {
+    if (this.inFlight.size > 0 || this.conflict) {
       return undefined;
     }
     this.inFlight.add(key);
@@ -247,109 +254,311 @@ export class BrandingAdminComponent extends BaseComponent {
         name: this.i18n.t('branding-header-name'),
         help: this.i18n.t('branding-header-help'),
         variables: [
-          { key: 'header-branding-text-color', label: this.i18n.t('branding-header-text-color-label'), default: '#333', help: this.i18n.t('branding-header-text-color-help') },
-          { key: 'header-branding-link-color', label: this.i18n.t('branding-header-link-color-label'), default: '#222', help: this.i18n.t('branding-header-link-color-help') },
-          { key: 'header-branding-background-color', label: this.i18n.t('branding-header-background-color-label'), default: '#f4f4f4', help: this.i18n.t('branding-header-background-color-help') }
-        ]
+          {
+            key: 'header-branding-text-color',
+            label: this.i18n.t('branding-header-text-color-label'),
+            default: '#333',
+            help: this.i18n.t('branding-header-text-color-help'),
+          },
+          {
+            key: 'header-branding-link-color',
+            label: this.i18n.t('branding-header-link-color-label'),
+            default: '#222',
+            help: this.i18n.t('branding-header-link-color-help'),
+          },
+          {
+            key: 'header-branding-background-color',
+            label: this.i18n.t('branding-header-background-color-label'),
+            default: '#f4f4f4',
+            help: this.i18n.t('branding-header-background-color-help'),
+          },
+        ],
       },
       {
         name: this.i18n.t('branding-site-branding-name'),
         help: this.i18n.t('branding-site-branding-help'),
         variables: [
-          { key: 'site-branding-area-background-color', label: this.i18n.t('branding-site-branding-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-site-branding-background-color-help') },
-          { key: 'logo-heading-text-color', label: this.i18n.t('branding-logo-heading-text-color-label'), default: '#ffffff', help: this.i18n.t('branding-logo-heading-text-color-help') }
-        ]
+          {
+            key: 'site-branding-area-background-color',
+            label: this.i18n.t('branding-site-branding-background-color-label'),
+            default: '#b1101a',
+            help: this.i18n.t('branding-site-branding-background-color-help'),
+          },
+          {
+            key: 'logo-heading-text-color',
+            label: this.i18n.t('branding-logo-heading-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-logo-heading-text-color-help'),
+          },
+        ],
       },
       {
         name: this.i18n.t('branding-menu-name'),
         help: this.i18n.t('branding-menu-help'),
         variables: [
-          { key: 'main-menu-branding-background-color', label: this.i18n.t('branding-main-menu-background-color-label'), default: '#500005', help: this.i18n.t('branding-main-menu-background-color-help') },
-          { key: 'main-menu-active-item-color', label: this.i18n.t('branding-main-menu-active-item-color-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-item-color-help') },
-          { key: 'main-menu-active-item-color-hover', label: this.i18n.t('branding-main-menu-active-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-active-item-color-hover-help') },
-          { key: 'main-menu-active-item-background-color', label: this.i18n.t('branding-main-menu-active-item-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-main-menu-active-item-background-color-help') },
-          { key: 'main-menu-active-item-background-color-hover', label: this.i18n.t('branding-main-menu-active-item-background-color-hover-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-item-background-color-hover-help') },
-          { key: 'main-menu-inactive-item-color', label: this.i18n.t('branding-main-menu-inactive-item-color-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-inactive-item-color-help') },
-          { key: 'main-menu-inactive-item-color-hover', label: this.i18n.t('branding-main-menu-inactive-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-inactive-item-color-hover-help') },
-          { key: 'main-menu-inactive-item-background-color', label: this.i18n.t('branding-main-menu-inactive-item-background-color-label'), default: '#500005', help: this.i18n.t('branding-main-menu-inactive-item-background-color-help') },
-          { key: 'main-menu-inactive-item-background-color-hover', label: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-help') },
+          {
+            key: 'main-menu-branding-background-color',
+            label: this.i18n.t('branding-main-menu-background-color-label'),
+            default: '#500005',
+            help: this.i18n.t('branding-main-menu-background-color-help'),
+          },
+          {
+            key: 'main-menu-active-item-color',
+            label: this.i18n.t('branding-main-menu-active-item-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-main-menu-active-item-color-help'),
+          },
+          {
+            key: 'main-menu-active-item-color-hover',
+            label: this.i18n.t('branding-main-menu-active-item-color-hover-label'),
+            default: '#888',
+            help: this.i18n.t('branding-main-menu-active-item-color-hover-help'),
+          },
+          {
+            key: 'main-menu-active-item-background-color',
+            label: this.i18n.t('branding-main-menu-active-item-background-color-label'),
+            default: '#b1101a',
+            help: this.i18n.t('branding-main-menu-active-item-background-color-help'),
+          },
+          {
+            key: 'main-menu-active-item-background-color-hover',
+            label: this.i18n.t('branding-main-menu-active-item-background-color-hover-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-main-menu-active-item-background-color-hover-help'),
+          },
+          {
+            key: 'main-menu-inactive-item-color',
+            label: this.i18n.t('branding-main-menu-inactive-item-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-main-menu-inactive-item-color-help'),
+          },
+          {
+            key: 'main-menu-inactive-item-color-hover',
+            label: this.i18n.t('branding-main-menu-inactive-item-color-hover-label'),
+            default: '#888',
+            help: this.i18n.t('branding-main-menu-inactive-item-color-hover-help'),
+          },
+          {
+            key: 'main-menu-inactive-item-background-color',
+            label: this.i18n.t('branding-main-menu-inactive-item-background-color-label'),
+            default: '#500005',
+            help: this.i18n.t('branding-main-menu-inactive-item-background-color-help'),
+          },
+          {
+            key: 'main-menu-inactive-item-background-color-hover',
+            label: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-main-menu-inactive-item-background-color-hover-help'),
+          },
 
-          { key: 'main-menu-active-dropdown-item-color', label: this.i18n.t('branding-main-menu-active-dropdown-item-color-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-dropdown-item-color-help') },
-          { key: 'main-menu-active-dropdown-item-color-hover', label: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-help') },
-          { key: 'main-menu-active-dropdown-item-background-color', label: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-help') },
-          { key: 'main-menu-active-dropdown-item-background-color-hover', label: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-hover-label'), default: '#ffffff', help: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-hover-help') },
+          {
+            key: 'main-menu-active-dropdown-item-color',
+            label: this.i18n.t('branding-main-menu-active-dropdown-item-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-main-menu-active-dropdown-item-color-help'),
+          },
+          {
+            key: 'main-menu-active-dropdown-item-color-hover',
+            label: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-label'),
+            default: '#888',
+            help: this.i18n.t('branding-main-menu-active-dropdown-item-color-hover-help'),
+          },
+          {
+            key: 'main-menu-active-dropdown-item-background-color',
+            label: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-label'),
+            default: '#b1101a',
+            help: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-help'),
+          },
+          {
+            key: 'main-menu-active-dropdown-item-background-color-hover',
+            label: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-hover-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-main-menu-active-dropdown-item-background-color-hover-help'),
+          },
 
-          { key: 'main-menu-inactive-dropdown-item-color', label: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-label'), default: '#a9a9a9', help: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-help') },
-          { key: 'main-menu-inactive-dropdown-item-color-hover', label: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-hover-label'), default: '#888', help: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-hover-help') },
-          { key: 'main-menu-inactive-dropdown-item-background-color', label: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-label'), default: '#222', help: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-help') }
-        ]
+          {
+            key: 'main-menu-inactive-dropdown-item-color',
+            label: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-label'),
+            default: '#a9a9a9',
+            help: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-help'),
+          },
+          {
+            key: 'main-menu-inactive-dropdown-item-color-hover',
+            label: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-hover-label'),
+            default: '#888',
+            help: this.i18n.t('branding-main-menu-inactive-dropdown-item-color-hover-help'),
+          },
+          {
+            key: 'main-menu-inactive-dropdown-item-background-color',
+            label: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-label'),
+            default: '#222',
+            help: this.i18n.t('branding-main-menu-inactive-dropdown-item-background-color-help'),
+          },
+        ],
       },
       {
         name: this.i18n.t('branding-content-name'),
         help: this.i18n.t('branding-content-help'),
         variables: [
-          { key: 'body-text-color', label: this.i18n.t('branding-body-text-color-label'), default: '#333', help: this.i18n.t('branding-body-text-color-help') },
-          { key: 'body-background-color', label: this.i18n.t('branding-body-background-color-label'), default: '#ffffff', help: this.i18n.t('branding-body-background-color-help') }
-        ]
+          {
+            key: 'body-text-color',
+            label: this.i18n.t('branding-body-text-color-label'),
+            default: '#333',
+            help: this.i18n.t('branding-body-text-color-help'),
+          },
+          {
+            key: 'body-background-color',
+            label: this.i18n.t('branding-body-background-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-body-background-color-help'),
+          },
+        ],
       },
       {
         name: this.i18n.t('branding-links-name'),
         help: this.i18n.t('branding-links-help'),
         variables: [
-          { key: 'anchor-color', label: this.i18n.t('branding-anchor-color-label'), default: '#337ab7', help: this.i18n.t('branding-anchor-color-help') },
-          { key: 'anchor-color-hover', label: this.i18n.t('branding-anchor-color-hover-label'), default: '#23527c', help: this.i18n.t('branding-anchor-color-hover-help') },
-          { key: 'anchor-color-focus', label: this.i18n.t('branding-anchor-color-focus-label'), default: '#23527c', help: this.i18n.t('branding-anchor-color-focus-help') }
-        ]
+          {
+            key: 'anchor-color',
+            label: this.i18n.t('branding-anchor-color-label'),
+            default: '#337ab7',
+            help: this.i18n.t('branding-anchor-color-help'),
+          },
+          {
+            key: 'anchor-color-hover',
+            label: this.i18n.t('branding-anchor-color-hover-label'),
+            default: '#23527c',
+            help: this.i18n.t('branding-anchor-color-hover-help'),
+          },
+          {
+            key: 'anchor-color-focus',
+            label: this.i18n.t('branding-anchor-color-focus-label'),
+            default: '#23527c',
+            help: this.i18n.t('branding-anchor-color-focus-help'),
+          },
+        ],
       },
       {
         name: this.i18n.t('branding-panels-name'),
         help: this.i18n.t('branding-panels-help'),
         variables: [
-          { key: 'panel-branding-background-color', label: this.i18n.t('branding-panel-background-color-label'), default: '#b1101a', help: this.i18n.t('branding-panel-background-color-help') },
-          { key: 'panel-branding-color', label: this.i18n.t('branding-panel-text-color-label'), default: '#ffffff', help: this.i18n.t('branding-panel-text-color-help') },
-          { key: 'panel-branding-border-color', label: this.i18n.t('branding-panel-border-color-label'), default: '#ddd', help: this.i18n.t('branding-panel-border-color-help') }
-        ]
+          {
+            key: 'panel-branding-background-color',
+            label: this.i18n.t('branding-panel-background-color-label'),
+            default: '#b1101a',
+            help: this.i18n.t('branding-panel-background-color-help'),
+          },
+          {
+            key: 'panel-branding-color',
+            label: this.i18n.t('branding-panel-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-panel-text-color-help'),
+          },
+          {
+            key: 'panel-branding-border-color',
+            label: this.i18n.t('branding-panel-border-color-label'),
+            default: '#ddd',
+            help: this.i18n.t('branding-panel-border-color-help'),
+          },
+        ],
       },
       {
         name: this.i18n.t('branding-footer-name'),
         help: this.i18n.t('branding-footer-help'),
         variables: [
-          { key: 'footer-bottom-area-branding-background-color', label: this.i18n.t('branding-footer-background-color-label'), default: '#000', help: this.i18n.t('branding-footer-background-color-help') },
-          { key: 'footer-bottom-area-branding-color', label: this.i18n.t('branding-footer-text-color-label'), default: '#ffffff', help: this.i18n.t('branding-footer-text-color-help') }
-        ]
+          {
+            key: 'footer-bottom-area-branding-background-color',
+            label: this.i18n.t('branding-footer-background-color-label'),
+            default: '#000',
+            help: this.i18n.t('branding-footer-background-color-help'),
+          },
+          {
+            key: 'footer-bottom-area-branding-color',
+            label: this.i18n.t('branding-footer-text-color-label'),
+            default: '#ffffff',
+            help: this.i18n.t('branding-footer-text-color-help'),
+          },
+        ],
       },
       {
         name: this.i18n.t('branding-bootstrap-contextual-name'),
         help: this.i18n.t('branding-bootstrap-contextual-help'),
         variables: [
-          { key: 'primary', label: this.i18n.t('branding-primary-label'), default: '#0d6efd', help: this.i18n.t('branding-primary-help') },
-          { key: 'secondary', label: this.i18n.t('branding-secondary-label'), default: '#6c757d', help: this.i18n.t('branding-secondary-help') },
-          { key: 'success', label: this.i18n.t('branding-success-label'), default: '#198754', help: this.i18n.t('branding-success-help') },
-          { key: 'info', label: this.i18n.t('branding-info-label'), default: '#0dcaf0', help: this.i18n.t('branding-info-help') },
-          { key: 'warning', label: this.i18n.t('branding-warning-label'), default: '#ffc107', help: this.i18n.t('branding-warning-help') },
-          { key: 'danger', label: this.i18n.t('branding-danger-label'), default: '#dc3545', help: this.i18n.t('branding-danger-help') },
-          { key: 'light', label: this.i18n.t('branding-light-label'), default: '#f8f9fa', help: this.i18n.t('branding-light-help') },
-          { key: 'dark', label: this.i18n.t('branding-dark-label'), default: '#212529', help: this.i18n.t('branding-dark-help') }
-        ]
-      }
+          {
+            key: 'primary',
+            label: this.i18n.t('branding-primary-label'),
+            default: '#0d6efd',
+            help: this.i18n.t('branding-primary-help'),
+          },
+          {
+            key: 'secondary',
+            label: this.i18n.t('branding-secondary-label'),
+            default: '#6c757d',
+            help: this.i18n.t('branding-secondary-help'),
+          },
+          {
+            key: 'success',
+            label: this.i18n.t('branding-success-label'),
+            default: '#198754',
+            help: this.i18n.t('branding-success-help'),
+          },
+          {
+            key: 'info',
+            label: this.i18n.t('branding-info-label'),
+            default: '#0dcaf0',
+            help: this.i18n.t('branding-info-help'),
+          },
+          {
+            key: 'warning',
+            label: this.i18n.t('branding-warning-label'),
+            default: '#ffc107',
+            help: this.i18n.t('branding-warning-help'),
+          },
+          {
+            key: 'danger',
+            label: this.i18n.t('branding-danger-label'),
+            default: '#dc3545',
+            help: this.i18n.t('branding-danger-help'),
+          },
+          {
+            key: 'light',
+            label: this.i18n.t('branding-light-label'),
+            default: '#f8f9fa',
+            help: this.i18n.t('branding-light-help'),
+          },
+          {
+            key: 'dark',
+            label: this.i18n.t('branding-dark-label'),
+            default: '#212529',
+            help: this.i18n.t('branding-dark-help'),
+          },
+        ],
+      },
     ];
+  }
+
+  private async saveCurrentColours(): Promise<void> {
+    const colours = { ...this.draftConfig };
+    const state = await this.brandingService.saveColourDraft(colours, this.draftRevision);
+    this.replaceState(state, true);
   }
 
   async saveDraft() {
     const state = await this.runMutation('save-draft', 'branding-failed-save-draft', () =>
-      this.brandingService.saveColourDraft(this.draftConfig, this.draftRevision)
+      this.brandingService.saveColourDraft({ ...this.draftConfig }, this.draftRevision)
     );
     if (state) {
-      this.replaceState(state);
+      this.replaceState(state, true);
       this.clearPreview();
       this.message = this.i18n.t('branding-draft-saved');
     }
   }
 
   async createPreview() {
-    const preview = await this.runMutation('preview', 'branding-failed-generate-preview', () =>
-      this.brandingService.createPreview(this.draftRevision)
-    );
+    const preview = await this.runMutation('preview', 'branding-failed-generate-preview', async () => {
+      await this.saveCurrentColours();
+      return this.brandingService.createPreview(this.draftRevision);
+    });
     if (preview) {
       this.previewKind = 'draft';
       const base = this.brandingService.getBrandingAndPortalUrl();
@@ -373,11 +582,12 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   async publish() {
-    const state = await this.runMutation('publish', 'branding-failed-publish', () =>
-      this.brandingService.publish(this.activeVersion, this.draftRevision)
-    );
+    const state = await this.runMutation('publish', 'branding-failed-publish', async () => {
+      await this.saveCurrentColours();
+      return this.brandingService.publish(this.activeVersion, this.draftRevision);
+    });
     if (state) {
-      this.replaceState(state);
+      this.replaceState(state, true);
       this.clearPreview();
       this.message = state.idempotent ? this.i18n.t('branding-publish-unchanged') : this.i18n.t('branding-published');
     }
@@ -397,7 +607,7 @@ export class BrandingAdminComponent extends BaseComponent {
       this.brandingService.uploadFace(slot, file, file.name, this.draftRevision)
     );
     if (state) {
-      this.replaceState(state);
+      this.replaceState(state, true);
       this.clearPreview();
       this.message = this.i18n.t('branding-face-uploaded', { slot: this.i18n.t(`branding-face-${slot}-label`) });
     }
@@ -408,7 +618,7 @@ export class BrandingAdminComponent extends BaseComponent {
       this.brandingService.removeFace(slot, this.draftRevision)
     );
     if (state) {
-      this.replaceState(state);
+      this.replaceState(state, true);
       this.clearPreview();
       this.message = this.i18n.t('branding-face-removed', { slot: this.i18n.t(`branding-face-${slot}-label`) });
     }
@@ -419,7 +629,7 @@ export class BrandingAdminComponent extends BaseComponent {
       this.brandingService.useDefaultTypography(this.draftRevision)
     );
     if (state) {
-      this.replaceState(state);
+      this.replaceState(state, true);
       this.clearPreview();
       this.message = this.i18n.t('branding-default-draft-set');
     }
@@ -430,7 +640,7 @@ export class BrandingAdminComponent extends BaseComponent {
       this.brandingService.revertTypefaceDraft(this.draftRevision)
     );
     if (state) {
-      this.replaceState(state);
+      this.replaceState(state, true);
       this.clearPreview();
       this.message = this.i18n.t('branding-typeface-draft-reverted');
     }
@@ -517,10 +727,14 @@ export class BrandingAdminComponent extends BaseComponent {
     }
     const present = BRANDING_TYPEFACE_SLOTS.filter(slot => typeface.faces?.[slot]);
     return present.length > 0
-      ? this.i18n.t('branding-summary-custom', { faces: present.map(slot => this.i18n.t(`branding-face-${slot}-label`)).join(', ') })
+      ? this.i18n.t('branding-summary-custom', {
+          faces: present.map(slot => this.i18n.t(`branding-face-${slot}-label`)).join(', '),
+        })
       : this.i18n.t('branding-summary-incomplete');
   }
 
   // Expose readiness to template
-  get initialized() { return this.componentReady; }
+  get initialized() {
+    return this.componentReady;
+  }
 }

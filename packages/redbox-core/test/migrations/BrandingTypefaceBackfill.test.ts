@@ -155,6 +155,63 @@ function history(brandId: string, version: number, overrides: Record<string, unk
 }
 
 describe('Branding typeface backfill migration', function () {
+  it('keeps an independent blue draft out of published red history', async function () {
+    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    brandingconfig.seed([brand({ version: 2, variables: { primary: '#0000ff' } })]);
+    brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
+    await migration[0].up({ context: sails });
+    expect(brandingconfig.rows[0].version).to.equal(2);
+    expect(brandingconfig.rows[0].variables).to.deep.equal({ primary: '#0000ff' });
+    expect(brandingconfighistory.rows).to.have.lengthOf(2);
+  });
+
+  it('preserves published colours on rollback without copying the draft', async function () {
+    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    brandingconfig.seed([brand({ version: 1, variables: { primary: '#0000ff' } })]);
+    brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
+    await migration[0].up({ context: sails });
+    expect(brandingconfighistory.rows.find(row => row.version === 3)?.variables).to.deep.equal({ primary: '#112233' });
+    expect(brandingconfig.rows[0].variables).to.deep.equal({ primary: '#0000ff' });
+  });
+
+  for (const limit of [0.5, 1.5, NaN, Infinity, 0, -1]) {
+    it(`uses a logged safe retention default for ${limit}`, async function () {
+      const { sails, brandingconfig, brandingconfighistory, infos } = buildSails();
+      sails.config.branding.historyMaxVersions = limit;
+      brandingconfig.seed([brand({ version: 4 })]);
+      brandingconfighistory.seed([1, 2, 3, 4].map(version => history('brand-1', version)));
+      await migration[0].up({ context: sails });
+      expect(brandingconfighistory.rows.map(row => row.version)).to.deep.equal([2, 3, 4]);
+      expect(infos.some(message => message.includes('Invalid historyMaxVersions'))).to.equal(true);
+    });
+  }
+
+  it('recovers restorable editable colours from real published CSS without a matching row', async function () {
+    const { Services } = require('../../src/services/BrandingThemeCssService');
+    const theme = new Services.BrandingThemeCss();
+    const published = theme.generate({ primary: '#ff0000' });
+    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    brandingconfig.seed([brand({ version: 5, ...published, variables: { primary: '#0000ff' } })]);
+    await migration[0].up({ context: sails });
+    const variables = brandingconfighistory.rows[0].variables;
+    expect(theme.generate(theme.validateVariables(variables)).css).to.equal(published.css);
+    expect(brandingconfig.rows[0].variables).to.deep.equal({ primary: '#0000ff' });
+  });
+
+  it('fails before pruning unrecoverable published colours', async function () {
+    const { sails, brandingconfig, brandingconfighistory } = buildSails();
+    brandingconfig.seed([brand({ version: 5, css: 'unrecoverable', hash: 'different' })]);
+    brandingconfighistory.seed([1, 2, 3, 4].map(version => history('brand-1', version)));
+    let error: unknown;
+    try {
+      await migration[0].up({ context: sails });
+    } catch (caught) {
+      error = caught;
+    }
+    expect((error as Error).message).to.contain('cannot recover published colours');
+    expect(brandingconfighistory.rows).to.have.lengthOf(4);
+  });
+
   it('exports a single named migration with up and no destructive down', function () {
     expect(migration).to.be.an('array').with.lengthOf(1);
     expect(migration[0].name).to.equal('20260904000000-branding-typeface-backfill');
@@ -207,13 +264,13 @@ describe('Branding typeface backfill migration', function () {
 
   it('preserves divergent active colours over a same-number history', async function () {
     const { sails, brandingconfig, brandingconfighistory } = buildSails();
-    brandingconfig.seed([brand({ version: 2, css: 'css-diverged', hash: 'hash-diverged' })]);
+    brandingconfig.seed([brand({ version: 2, css: ':root { --rb-primary: #ff0000; }', hash: 'hash-diverged' })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
     await migration[0].up({ context: sails });
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
     expect(updated?.version).to.equal(3);
     const preserved = await brandingconfighistory.findOne({ branding: 'brand-1', version: 3 });
-    expect(preserved?.css).to.equal('css-diverged');
+    expect(preserved?.css).to.equal(':root { --rb-primary: #ff0000; }');
     expect(preserved?.typeface).to.equal(null);
   });
 

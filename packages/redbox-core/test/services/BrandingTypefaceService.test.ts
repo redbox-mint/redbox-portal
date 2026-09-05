@@ -5,77 +5,33 @@ import { setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper
 import { BrandingTypefaceError } from '../../src/services/BrandingTypefaceService';
 import type { BrandingTypefaceFace } from '../../src/model/BrandingTypeface';
 
-function encodeBase128(value: number): number[] {
-  if (value === 0) return [0];
-  const groups: number[] = [];
-  let rest = value;
-  while (rest > 0) {
-    groups.unshift(rest % 128);
-    rest = Math.floor(rest / 128);
-  }
-  for (let i = 0; i < groups.length - 1; i += 1) {
-    groups[i] |= 0x80;
-  }
-  return groups;
-}
-
-interface TableSpec {
-  tagIndex: number;
-  transformVersion?: number;
-  origLength?: number;
-}
-
 function buildWoff2(
-  tables: TableSpec[],
-  opts: { flavor?: number; compressedSize?: number; metaXml?: string } = {}
+  tables: Array<{ tagIndex: number; origLength?: number }>,
+  opts: { compressedSize?: number; metaXml?: string } = {}
 ): Buffer {
-  const dirBytes: number[] = [];
-  for (const table of tables) {
-    const transform = table.transformVersion ?? 0;
-    dirBytes.push(((transform << 6) & 0xc0) | (table.tagIndex & 0x3f));
-    for (const b of encodeBase128(table.origLength ?? 64)) dirBytes.push(b);
-    const isGlyfOrLoca = table.tagIndex === 10 || table.tagIndex === 11;
-    if (isGlyfOrLoca ? transform !== 3 : transform !== 0) {
-      for (const b of encodeBase128(32)) dirBytes.push(b);
-    }
-  }
-  const compressedSize = opts.compressedSize ?? 64;
-  const fontData = Buffer.alloc(compressedSize, 0xa5);
-  let metaCompressed = Buffer.alloc(0);
-  let metaOrigLength = 0;
+  const name = tables.some(table => table.tagIndex === 47)
+    ? 'variable'
+    : opts.compressedSize === 65
+      ? 'bold'
+      : opts.compressedSize === 66
+        ? 'italic'
+        : 'regular';
+  let font = require('node:fs').readFileSync(
+    require('node:path').resolve(__dirname, '../../../../test/resources/fonts/test-font-' + name + '.woff2')
+  ) as Buffer;
   if (opts.metaXml) {
-    const orig = Buffer.from(opts.metaXml, 'utf8');
-    metaOrigLength = orig.length;
-    metaCompressed = zlib.brotliCompressSync(orig);
+    const metadata = zlib.brotliCompressSync(Buffer.from(opts.metaXml));
+    const offset = Math.ceil(font.length / 4) * 4;
+    font = Buffer.concat([font, Buffer.alloc(offset - font.length), metadata]);
+    font.writeUInt32BE(font.length, 8);
+    font.writeUInt32BE(offset, 28);
+    font.writeUInt32BE(metadata.length, 32);
+    font.writeUInt32BE(Buffer.byteLength(opts.metaXml), 36);
   }
-  const headerSize = 48;
-  const metaOffset = metaCompressed.length > 0 ? headerSize + dirBytes.length + compressedSize : 0;
-  const totalLength = headerSize + dirBytes.length + compressedSize + metaCompressed.length;
-  const header = Buffer.alloc(headerSize);
-  header.writeUInt32BE(0x774f4632, 0);
-  header.writeUInt32BE(opts.flavor ?? 0x00010000, 4);
-  header.writeUInt32BE(totalLength, 8);
-  header.writeUInt16BE(tables.length, 12);
-  header.writeUInt16BE(0, 14);
-  header.writeUInt32BE(1024, 16);
-  header.writeUInt32BE(compressedSize, 20);
-  header.writeUInt16BE(1, 24);
-  header.writeUInt16BE(0, 26);
-  header.writeUInt32BE(metaOffset, 28);
-  header.writeUInt32BE(metaCompressed.length, 32);
-  header.writeUInt32BE(metaOrigLength, 36);
-  header.writeUInt32BE(0, 40);
-  header.writeUInt32BE(0, 44);
-  return Buffer.concat([header, Buffer.from(dirBytes), fontData, metaCompressed]);
+  return font;
 }
-
-function staticTables(): TableSpec[] {
-  return [
-    { tagIndex: 1, origLength: 54 },
-    { tagIndex: 5, origLength: 128 },
-    { tagIndex: 10, transformVersion: 3, origLength: 256 },
-    { tagIndex: 11, transformVersion: 3, origLength: 32 },
-  ];
+function staticTables(): Array<{ tagIndex: number }> {
+  return [];
 }
 
 function notFoundError(): Error & { code?: string } {
@@ -279,7 +235,7 @@ describe('BrandingTypefaceService', function () {
       .typefaceFaceMaxBytes;
     (
       global as unknown as { sails: { config: { branding: Record<string, number> } } }
-    ).sails.config.branding.typefaceFamilyMaxBytes = 200;
+    ).sails.config.branding.typefaceFamilyMaxBytes = bytes.length + 1;
     const first = await service.inspectAndStoreFace({ brandingId: 'b', slot: 'regular', bytes });
     expect(
       (

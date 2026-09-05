@@ -1,57 +1,39 @@
-# ADR 0002 — WOFF2 inspection via internal structural parser
+# ADR 0002 — Isolated WOFF2 decoding and structural inspection
 
-Status: accepted
-Date: 2026-09-04
-Decides: tasklist.md T00 (design.md sections 2, 3.2, 8.1, 8.2, 14)
+Status: accepted; supersedes the container-only decision of 2026-09-04
+Date: 2026-09-05
 
-## Context
+The original container-only inspector accepted empty compressed payloads and
+synthetic filler fixtures which Chrome rejected. That decision did not satisfy
+the design's structural decoding gate. Container validation alone is insufficient.
 
-The Brand Typeface feature (design.md, ADR 0001) needs server-side WOFF2
-validation that parses untrusted bytes from a `Buffer`, rejects
-malformed/truncated input fail-closed, distinguishes static from variable
-fonts via the table directory (including `fvar`), and extracts best-effort
-family metadata — on the repo's Node 24 CI and Node 26 runtime images.
+Use exactly pinned `wawoff2@2.0.1` (MIT), the WebAssembly build of Google's
+WOFF2 decoder, following the internal header/directory checks. Decode the actual
+Brotli stream and WOFF2 transforms, then check the reconstructed sfnt directory,
+required tables, head magic, and presence of outlines. Reject errors closed before
+storage. Keep original uploaded bytes; decoded output is validation-only.
 
-The only maintained Node candidate, `fontkit@2.0.4` (MIT, last publish Aug
-2024), was evaluated and rejected:
+Run each decoder in a disposable worker, with no inherited runtime preload hooks,
+a two-second wall-clock deadline, a 32 MiB V8 old heap, an 8 MiB young heap and
+a 64 MiB WebAssembly memory budget. The pinned Emscripten build grows its exported
+linear memory via the JS `Memory.grow` method; cap that method within the worker
+before loading the decoder. At most two decoders run per process; excess work
+fails closed without accumulating a waiting queue. These are execution-resource
+budgets, not a configurable decompressed-font-size policy. Revisit the memory
+bound when changing the pinned decoder build. This avoids synchronous untrusted
+decoding on the application event loop and bounds crafted-input resource use.
 
-- Open crafted-font denial-of-service report (foliojs/fontkit#368, Apr 2026):
-  a small crafted TrueType font crashes the Node process via composite
-  glyph path access. No fixed release exists, so the design gate ("no known
-  unmitigated crafted-font DoS") fails.
-- Full glyph outline/layout parsing is unnecessary attack surface for this
-  feature, which only needs container validation + `fvar` detection.
-- Transitive dependencies (`brotli`, `restructure`, `dfa`, …) use semver
-  ranges, conflicting with the repo's exact-pinning supply-chain policy.
+The decoder is not a browser's complete OpenType sanitizer. Required sfnt tables
+and WOFF2 decoding are validated; browser load tests remain a distinct acceptance
+gate. Variable fonts are genuinely decoded before `fvar` rejection. Metadata XML
+remains advisory with bounded Brotli output and bounded matching.
 
-Alternatives (`opentype.js`, `wawoff2`, `fonteditor-core`) either share the
-same glyph-path exposure, lack maintained WOFF2/variable support, or add
-native/wasm loading complexity. A minimal internal inspector satisfies the
-same structural-validation requirements with zero new dependencies.
+Replace synthetic successful-upload fixtures with Fontsource Roboto 5.3.0 static
+and variable WOFF2 files, with SIL OFL licensing and provenance in
+`test/resources/fonts/README.md`. Chrome tests must check successful `FontFace.load`
+and rendered text metrics, not merely computed family names. Corrupt and empty
+payloads remain rejection fixtures.
 
-## Decision
-
-Implement `packages/redbox-core/src/services/BrandingWoff2Inspector.ts`: a
-dependency-free parser for the WOFF2 header + table directory (W3C WOFF2 REC
-2024, sections 3–4) with strict UIntBase128, known-tag resolution
-(`fvar` = flag 47), collection rejection, and offset/overlap checks. It never
-decompresses the font data block and never touches glyph outlines.
-Best-effort family/subfamily metadata comes only from the optional Extended
-Metadata XML block via Node built-in `zlib` (capped at 1 MiB `metaOrigLength`);
-absent/corrupt metadata yields empty inspection, not rejection.
-
-Test fixtures are synthesised in-test
-(`test/services/BrandingWoff2Inspector.test.ts`): valid static, valid
-variable (`fvar`), malformed signature, truncated prefixes, 50 crafted
-buffers, metadata mismatch extraction, and collection/flavor rejection. No
-third-party font bytes, so no licence record is required.
-
-## Consequences
-
-- No `package.json`/lockfile change; exact-pinning policy untouched.
-- Crafted-input failures are controlled `Woff2InspectError`s; the glyph-path
-  DoS class cannot trigger (no outline parsing).
-- Node 24/26 compatible (only `Buffer` + built-in `zlib`).
-- `BrandingTypefaceService` (T03) must import this inspector and treat
-  `isVariable === true` as rejection; metadata stays advisory (warnings, not
-  validity).
+Sources: [decoder](https://github.com/fontello/wawoff2),
+[decoder build settings](https://github.com/fontello/wawoff2/blob/master/src/Makefile),
+[WOFF2 compressed-data requirements](https://www.w3.org/TR/WOFF2/#compressedDataFormat).

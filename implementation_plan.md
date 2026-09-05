@@ -1,6 +1,6 @@
 # Custom Brand Typeface Implementation Plan
 
-Status: ready for orchestration
+Status: implementation under review; see docs/branding-typeface-review-validation.md
 Depends on: [design.md](design.md)
 Executable work items: [tasklist.md](tasklist.md)
 

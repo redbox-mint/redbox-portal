@@ -7,23 +7,48 @@ import { Pipe, PipeTransform } from '@angular/core';
 import { BrandingAdminComponent } from './branding-admin.component';
 import { BrandingAdminService } from './branding-admin.service';
 import { BrandingAdminState, BrandingTypefaceFace, BrandingTypefaceSlot } from './branding-admin.model';
-import { LoggerService, TranslationService, ConfigService, UtilityService, I18NextPipe } from '@researchdatabox/portal-ng-common';
+import {
+  LoggerService,
+  TranslationService,
+  ConfigService,
+  UtilityService,
+  I18NextPipe,
+} from '@researchdatabox/portal-ng-common';
 import { getStubConfigService } from '@researchdatabox/portal-ng-common';
 
 @Pipe({ name: 'i18next', standalone: true })
 class I18NextPipeStub implements PipeTransform {
-  transform(key: string) { return key; }
+  transform(key: string) {
+    return key;
+  }
 }
 
-class LoggerStub { debug() { /*noop*/ } error() { /*noop*/ } }
+class LoggerStub {
+  debug() {
+    /*noop*/
+  }
+  error() {
+    /*noop*/
+  }
+}
 class TranslationStub {
-  t(key: string) { return key; }
-  isInitializing() { return false; }
-  async waitForInit() { return this; }
+  t(key: string) {
+    return key;
+  }
+  isInitializing() {
+    return false;
+  }
+  async waitForInit() {
+    return this;
+  }
 }
 class UtilityStub {
   async waitForDependencies(deps: any[]) {
-    for (const d of deps) { if (d && typeof d.waitForInit === 'function') { await d.waitForInit(); } }
+    for (const d of deps) {
+      if (d && typeof d.waitForInit === 'function') {
+        await d.waitForInit();
+      }
+    }
   }
 }
 const configStubInstance: any = getStubConfigService();
@@ -32,16 +57,38 @@ configStubInstance.getConfig = async () => testConfig;
 configStubInstance.config = testConfig;
 
 function face(slot: BrandingTypefaceSlot, sha: string, filename?: string): BrandingTypefaceFace {
-  return { slot, sha256: sha, originalFilename: filename ?? `${slot}.woff2`, sizeBytes: 100, uploadedAt: '2026-01-01T00:00:00.000Z', inspection: {}, warnings: [] };
+  return {
+    slot,
+    sha256: sha,
+    originalFilename: filename ?? `${slot}.woff2`,
+    sizeBytes: 100,
+    uploadedAt: '2026-01-01T00:00:00.000Z',
+    inspection: {},
+    warnings: [],
+  };
 }
 
 function adminState(overrides: Partial<BrandingAdminState> = {}): BrandingAdminState {
   return {
     branding: { id: 'brand-1', name: 'default' },
     active: { version: 1, hash: 'h', variables: { primary: '#112233' }, typeface: { mode: 'default', faces: {} } },
-    draft: { revision: 2, variables: { primary: '#112233' }, typeface: { mode: 'default', faces: {} }, dirty: { colours: false, typeface: false } },
+    draft: {
+      revision: 2,
+      variables: { primary: '#112233' },
+      typeface: { mode: 'default', faces: {} },
+      dirty: { colours: false, typeface: false },
+    },
     versions: [
-      { id: 'h1', version: 1, hash: 'h', dateCreated: '2026-01-01', actorId: 'u1', actorDisplayName: 'Admin', variables: {}, typeface: { mode: 'default', faces: {} } },
+      {
+        id: 'h1',
+        version: 1,
+        hash: 'h',
+        dateCreated: '2026-01-01',
+        actorId: 'u1',
+        actorDisplayName: 'Admin',
+        variables: {},
+        typeface: { mode: 'default', faces: {} },
+      },
     ],
     limits: { faceMaxBytes: 1, familyMaxBytes: 2, historyMaxVersions: 3 },
     healthWarnings: [],
@@ -64,8 +111,10 @@ describe('BrandingAdminComponent typography experience', () => {
       removeFace: (slot: string, revision: number) => Promise.resolve(adminState()),
       useDefaultTypography: (revision: number) => Promise.resolve(adminState()),
       revertTypefaceDraft: (revision: number) => Promise.resolve(adminState()),
-      createPreview: (revision: number) => Promise.resolve({ token: 'tok', url: 'u', hash: 'h', revision, previewToken: 'tok', previewUrl: 'u' }),
-      previewVersion: (id: string) => Promise.resolve({ token: 'tok', url: 'u', hash: 'h', previewToken: 'tok', previewUrl: 'u' }),
+      createPreview: (revision: number) =>
+        Promise.resolve({ token: 'tok', url: 'u', hash: 'h', revision, previewToken: 'tok', previewUrl: 'u' }),
+      previewVersion: (id: string) =>
+        Promise.resolve({ token: 'tok', url: 'u', hash: 'h', previewToken: 'tok', previewUrl: 'u' }),
       publish: (version: number, revision: number) => Promise.resolve(adminState()),
       restore: (id: string, version: number, revision: number) => Promise.resolve(adminState()),
       uploadLogo: () => Promise.resolve({}),
@@ -89,6 +138,69 @@ describe('BrandingAdminComponent typography experience', () => {
       .compileComponents();
     fixture = TestBed.createComponent(BrandingAdminComponent);
     component = fixture.componentInstance;
+  });
+
+  it('saves visible colours before preview and publication using the resulting revision', async () => {
+    await initWith(adminState());
+    component.draftConfig = { primary: '#0000ff' };
+    const save = spyOn(serviceStub, 'saveColourDraft').and.callFake(
+      async (variables: Record<string, string>, revision: number) => {
+        const state = adminState();
+        state.draft.variables = variables;
+        state.draft.revision = revision + 1;
+        return state;
+      }
+    );
+    const preview = spyOn(serviceStub, 'createPreview').and.callThrough();
+    await component.createPreview();
+    expect(save).toHaveBeenCalledWith({ primary: '#0000ff' }, 2);
+    expect(preview).toHaveBeenCalledWith(3);
+    const publish = spyOn(serviceStub, 'publish').and.callThrough();
+    await component.publish();
+    expect(publish).toHaveBeenCalledWith(1, 4);
+  });
+
+  it('keeps local colour edits through independent typography mutations', async () => {
+    await initWith(adminState());
+    component.draftConfig = { primary: '#0000ff' };
+    await component.useDefaultTypography();
+    expect(component.draftConfig).toEqual({ primary: '#0000ff' });
+    await component.revertTypefaceDraft();
+    expect(component.draftConfig).toEqual({ primary: '#0000ff' });
+    await component.removeFace('bold');
+    expect(component.draftConfig).toEqual({ primary: '#0000ff' });
+  });
+
+  it('stops publication after a colour-save conflict and preserves local input', async () => {
+    await initWith(adminState());
+    component.draftConfig = { primary: '#0000ff' };
+    spyOn(serviceStub, 'saveColourDraft').and.rejectWith({ kind: 'conflict' });
+    const publish = spyOn(serviceStub, 'publish');
+    await component.publish();
+    expect(publish).not.toHaveBeenCalled();
+    expect(component.conflict).toBeTrue();
+    expect(component.draftConfig).toEqual({ primary: '#0000ff' });
+  });
+
+  it('serializes mutations and keeps edits entered while publication is pending', async () => {
+    await initWith(adminState());
+    let finish!: (state: BrandingAdminState) => void;
+    spyOn(serviceStub, 'publish').and.returnValue(
+      new Promise(resolve => {
+        finish = resolve;
+      })
+    );
+    const remove = spyOn(serviceStub, 'removeFace');
+    const publishing = component.publish();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    component.draftConfig = { primary: '#0000ff' };
+    await component.removeFace('bold');
+    expect(remove).not.toHaveBeenCalled();
+    finish(adminState());
+    await publishing;
+    expect(component.draftConfig).toEqual({ primary: '#0000ff' });
   });
 
   async function initWith(state: BrandingAdminState) {
@@ -120,7 +232,12 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(text).toContain('branding-typography-state-default');
 
     const complete = adminState({
-      draft: { revision: 3, variables: {}, typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64)) } }, dirty: { colours: false, typeface: true } },
+      draft: {
+        revision: 3,
+        variables: {},
+        typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64)) } },
+        dirty: { colours: false, typeface: true },
+      },
     });
     serviceStub.loadConfig = () => Promise.resolve(complete);
     await component.loadConfig();
@@ -129,7 +246,12 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(text).toContain('branding-typography-state-custom');
 
     const incomplete = adminState({
-      draft: { revision: 4, variables: {}, typeface: { mode: 'custom', faces: { bold: face('bold', 'b'.repeat(64)) } }, dirty: { colours: false, typeface: true } },
+      draft: {
+        revision: 4,
+        variables: {},
+        typeface: { mode: 'custom', faces: { bold: face('bold', 'b'.repeat(64)) } },
+        dirty: { colours: false, typeface: true },
+      },
     });
     serviceStub.loadConfig = () => Promise.resolve(incomplete);
     await component.loadConfig();
@@ -141,8 +263,12 @@ describe('BrandingAdminComponent typography experience', () => {
 
     const warned = adminState({
       draft: {
-        revision: 5, variables: {},
-        typeface: { mode: 'custom', faces: { regular: { ...face('regular', 'a'.repeat(64)), warnings: ['embedded subfamily differs'] } } },
+        revision: 5,
+        variables: {},
+        typeface: {
+          mode: 'custom',
+          faces: { regular: { ...face('regular', 'a'.repeat(64)), warnings: ['embedded subfamily differs'] } },
+        },
         dirty: { colours: false, typeface: true },
       },
     });
@@ -156,7 +282,10 @@ describe('BrandingAdminComponent typography experience', () => {
     await initWith(adminState());
     const file = new File(['font'], 'regular.woff2', { type: 'font/woff2' });
     let resolveUpload!: (state: BrandingAdminState) => void;
-    serviceStub.uploadFace = () => new Promise<BrandingAdminState>(resolve => { resolveUpload = resolve; });
+    serviceStub.uploadFace = () =>
+      new Promise<BrandingAdminState>(resolve => {
+        resolveUpload = resolve;
+      });
     const pending = component.uploadFace('regular', { target: { files: [file], value: 'x' } } as unknown as Event);
     expect(component.isBusy('face-regular')).toBe(true);
     resolveUpload(adminState());
@@ -172,8 +301,12 @@ describe('BrandingAdminComponent typography experience', () => {
   it('escapes filenames through interpolation', async () => {
     const evil = adminState({
       draft: {
-        revision: 2, variables: {},
-        typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64), '<img src=x onerror=alert(1)>') } },
+        revision: 2,
+        variables: {},
+        typeface: {
+          mode: 'custom',
+          faces: { regular: face('regular', 'a'.repeat(64), '<img src=x onerror=alert(1)>') },
+        },
         dirty: { colours: false, typeface: true },
       },
     });
@@ -221,7 +354,12 @@ describe('BrandingAdminComponent typography experience', () => {
 
   it('renders active health warnings without failing config load', async () => {
     const degraded = adminState({
-      active: { version: 1, hash: 'h', variables: {}, typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64)) } } },
+      active: {
+        version: 1,
+        hash: 'h',
+        variables: {},
+        typeface: { mode: 'custom', faces: { regular: face('regular', 'a'.repeat(64)) } },
+      },
       healthWarnings: [{ code: 'face-unavailable', slot: 'regular', sha256: 'a'.repeat(64) }],
     });
     await initWith(degraded);
@@ -235,15 +373,38 @@ describe('BrandingAdminComponent typography experience', () => {
   it('lists history with actor and active marker, previews, and restores with confirmation', async () => {
     const state = adminState({
       versions: [
-        { id: 'h2', version: 2, hash: 'h2', dateCreated: '2026-02-01', actorId: 'u2', actorDisplayName: 'Second Admin', variables: {}, typeface: { mode: 'custom', faces: {} } },
-        { id: 'h1', version: 1, hash: 'h1', dateCreated: '2026-01-01', actorId: 'u1', actorDisplayName: 'Admin', variables: {}, typeface: { mode: 'default', faces: {} } },
+        {
+          id: 'h2',
+          version: 2,
+          hash: 'h2',
+          dateCreated: '2026-02-01',
+          actorId: 'u2',
+          actorDisplayName: 'Second Admin',
+          variables: {},
+          typeface: { mode: 'custom', faces: {} },
+        },
+        {
+          id: 'h1',
+          version: 1,
+          hash: 'h1',
+          dateCreated: '2026-01-01',
+          actorId: 'u1',
+          actorDisplayName: 'Admin',
+          variables: {},
+          typeface: { mode: 'default', faces: {} },
+        },
       ],
     });
     await initWith(state);
     // Active marker follows the active version (set active to version 2).
     component.state = adminState({
       active: { version: 2, hash: 'h2', variables: {}, typeface: { mode: 'custom', faces: {} } },
-      draft: { revision: 5, variables: {}, typeface: { mode: 'custom', faces: {} }, dirty: { colours: false, typeface: false } },
+      draft: {
+        revision: 5,
+        variables: {},
+        typeface: { mode: 'custom', faces: {} },
+        dirty: { colours: false, typeface: false },
+      },
       versions: state.versions,
     });
     await settled();

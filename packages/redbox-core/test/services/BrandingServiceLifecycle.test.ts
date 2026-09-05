@@ -1,48 +1,12 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
-import zlib from 'zlib';
+import fs from 'node:fs';
+import path from 'node:path';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
-function encodeBase128(value: number): number[] {
-  if (value === 0) return [0];
-  const groups: number[] = [];
-  let rest = value;
-  while (rest > 0) {
-    groups.unshift(rest % 128);
-    rest = Math.floor(rest / 128);
-  }
-  for (let i = 0; i < groups.length - 1; i += 1) {
-    groups[i] |= 0x80;
-  }
-  return groups;
-}
-
-function buildWoff2(compressedSize = 64): Buffer {
-  const tables = [
-    { tagIndex: 1, origLength: 54 },
-    { tagIndex: 5, origLength: 128 },
-    { tagIndex: 10, transformVersion: 3, origLength: 256 },
-    { tagIndex: 11, transformVersion: 3, origLength: 32 },
-  ];
-  const dirBytes: number[] = [];
-  for (const table of tables) {
-    const transform = table.transformVersion ?? 0;
-    dirBytes.push(((transform << 6) & 0xc0) | (table.tagIndex & 0x3f));
-    for (const b of encodeBase128(table.origLength)) dirBytes.push(b);
-  }
-  void zlib;
-  const fontData = Buffer.alloc(compressedSize, 0xa5);
-  const header = Buffer.alloc(48);
-  header.writeUInt32BE(0x774f4632, 0);
-  header.writeUInt32BE(0x00010000, 4);
-  header.writeUInt32BE(48 + dirBytes.length + compressedSize, 8);
-  header.writeUInt16BE(tables.length, 12);
-  header.writeUInt16BE(0, 14);
-  header.writeUInt32BE(1024, 16);
-  header.writeUInt32BE(compressedSize, 20);
-  header.writeUInt16BE(1, 24);
-  header.writeUInt16BE(0, 26);
-  return Buffer.concat([header, Buffer.from(dirBytes), fontData]);
+function buildWoff2(variant = 64): Buffer {
+  const name = variant === 64 ? 'regular' : variant === 65 ? 'bold' : 'italic';
+  return fs.readFileSync(path.resolve(__dirname, '../../../../test/resources/fonts/test-font-' + name + '.woff2'));
 }
 
 interface FakeRow {
@@ -127,6 +91,7 @@ describe('BrandingService lifecycle', function () {
   let transactionCalls = 0;
   let datastoreMode: 'none' | 'tx' | 'unsupported' = 'none';
   let failNextBrandUpdate = false;
+  let updateError: { code?: string; commit?: boolean } | undefined;
   let failNextHistoryCreate: null | 'unique' = null;
   let service: {
     brandings: Array<Record<string, unknown>>;
@@ -178,6 +143,7 @@ describe('BrandingService lifecycle', function () {
     transactionCalls = 0;
     datastoreMode = 'none';
     failNextBrandUpdate = false;
+    updateError = undefined;
     failNextHistoryCreate = null;
     let historySeq = 100;
 
@@ -191,6 +157,7 @@ describe('BrandingService lifecycle', function () {
       find: () => Promise.resolve(brands.map(row => ({ ...row }))),
       updateOne: (criteria: Record<string, unknown>) => ({
         set: async (patch: Record<string, unknown>) => {
+          if (updateError && !updateError.commit) throw Object.assign(new Error('update failed'), updateError);
           if (failNextBrandUpdate) {
             failNextBrandUpdate = false;
             return undefined;
@@ -199,6 +166,7 @@ describe('BrandingService lifecycle', function () {
           if (!row) return undefined;
           Object.assign(row, patch);
           brandWrites += 1;
+          if (updateError?.commit) throw Object.assign(new Error('response lost'), updateError);
           return { ...row };
         },
         usingConnection: function () {
@@ -337,6 +305,96 @@ describe('BrandingService lifecycle', function () {
     const missing = await conflictOf(service.saveDraft({ branding: 'default', variables: {} }));
     expect(missing.code).to.equal('branding-conflict');
   });
+
+  it('treats equivalent generated colour CSS as unchanged and aligns the draft', async function () {
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+    await service.saveDraft({
+      branding: 'default',
+      variables: { primary: '#112233', secondary: '#6c757d' },
+      expectedDraftRevision: 1,
+    });
+    const result = await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 2 });
+    expect(result.idempotent).to.equal(true);
+    expect(histories).to.have.lengthOf(1);
+    expect(brands[0].variables).to.deep.equal(histories[0].variables);
+  });
+
+  it('identical font reupload does not create or prune a publication', async function () {
+    const bytes = buildWoff2();
+    await service.uploadTypefaceFace({
+      branding: 'default',
+      slot: 'regular',
+      bytes,
+      originalFilename: 'first.woff2',
+      expectedDraftRevision: 0,
+    });
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 1 });
+    await service.uploadTypefaceFace({
+      branding: 'default',
+      slot: 'regular',
+      bytes,
+      originalFilename: 'renamed.woff2',
+      expectedDraftRevision: 2,
+    });
+    const result = await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 3 });
+    expect(result.idempotent).to.equal(true);
+    expect(histories).to.have.lengthOf(1);
+    expect(brands[0].draftTypeface).to.deep.equal(brands[0].typeface);
+  });
+
+  it('does not resurrect removed faces when adding Regular to an empty draft', async function () {
+    for (const [revision, slot] of ['regular', 'bold', 'italic'].entries()) {
+      await service.uploadTypefaceFace({
+        branding: 'default',
+        slot,
+        bytes: buildWoff2(),
+        expectedDraftRevision: revision,
+      });
+    }
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 3 });
+    for (const [index, slot] of ['bold', 'italic', 'regular'].entries()) {
+      await service.removeTypefaceFace({ branding: 'default', slot, expectedDraftRevision: 4 + index });
+    }
+    const result = adminStateOf(
+      await service.uploadTypefaceFace({
+        branding: 'default',
+        slot: 'regular',
+        bytes: buildWoff2(),
+        expectedDraftRevision: 7,
+      })
+    );
+    expect(Object.keys(result.draft.typeface.faces)).to.deep.equal(['regular']);
+  });
+
+  for (const operation of ['publish', 'restore']) {
+    it(`cleans history on certified ${operation} failure but preserves uncertain committed history`, async function () {
+      await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+      const versionId = histories[0].id;
+      await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 1 });
+      const attempt = () =>
+        operation === 'publish'
+          ? service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 2 })
+          : service.restore({ branding: 'default', versionId, expectedVersion: 1, expectedDraftRevision: 2 });
+      updateError = { code: 'E_INVALID_VALUES_TO_SET' };
+      try {
+        await attempt();
+        throw new Error('expected failure');
+      } catch (error) {
+        expect((error as Error).message).to.equal('update failed');
+      }
+      expect(histories).to.have.lengthOf(1);
+      expect(brands[0].version).to.equal(1);
+      updateError = { commit: true };
+      try {
+        await attempt();
+        throw new Error('expected failure');
+      } catch (error) {
+        expect((error as Error).message).to.equal('response lost');
+      }
+      expect(histories).to.have.lengthOf(2);
+      expect(brands[0].version).to.equal(2);
+    });
+  }
 
   it('keeps colour and typeface drafts independent', async function () {
     const bytes = buildWoff2();

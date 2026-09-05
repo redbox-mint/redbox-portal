@@ -6,40 +6,9 @@ const path = require('path');
 import { setupServiceTestGlobals, cleanupServiceTestGlobals } from '../services/testHelper';
 import { Controllers } from '../../src/controllers/BrandingController';
 
-function encodeBase128(value: number): number[] {
-  if (value === 0) return [0];
-  const groups: number[] = [];
-  let rest = value;
-  while (rest > 0) {
-    groups.unshift(rest % 128);
-    rest = Math.floor(rest / 128);
-  }
-  for (let i = 0; i < groups.length - 1; i += 1) {
-    groups[i] |= 0x80;
-  }
-  return groups;
-}
-
-function buildWoff2(compressedSize = 64): Buffer {
-  const tables = [
-    { tagIndex: 1, origLength: 54 },
-    { tagIndex: 5, origLength: 128 },
-    { tagIndex: 10, transformVersion: 3, origLength: 256 },
-    { tagIndex: 11, transformVersion: 3, origLength: 32 },
-  ];
-  const dirBytes: number[] = [];
-  for (const table of tables) {
-    const transform = table.transformVersion ?? 0;
-    dirBytes.push(((transform << 6) & 0xc0) | (table.tagIndex & 0x3f));
-    for (const b of encodeBase128(table.origLength)) dirBytes.push(b);
-  }
-  const fontData = Buffer.alloc(compressedSize, 0xa5);
-  const header = Buffer.alloc(48);
-  header.writeUInt32BE(0x774f4632, 0);
-  header.writeUInt32BE(0x00010000, 4);
-  header.writeUInt32BE(48 + dirBytes.length + compressedSize, 8);
-  header.writeUInt16BE(tables.length, 12);
-  return Buffer.concat([header, Buffer.from(dirBytes), fontData]);
+function buildWoff2(size = 0): Buffer {
+  const bytes = fs.readFileSync(path.resolve(__dirname, '../../../../test/resources/fonts/test-font-regular.woff2'));
+  return size > bytes.length ? Buffer.concat([bytes, Buffer.alloc(size - bytes.length)]) : bytes;
 }
 
 class FakeDisk {

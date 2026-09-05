@@ -1,195 +1,93 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
-import zlib from 'zlib';
-import { spawnSync } from 'node:child_process';
-import { inspectWoff2Buffer, Woff2InspectError, WOFF2_SIGNATURE } from '../../src/services/BrandingWoff2Inspector';
+import fs from 'node:fs';
+import path from 'node:path';
+import zlib from 'node:zlib';
+import { inspectWoff2Buffer, Woff2InspectError } from '../../src/services/BrandingWoff2Inspector';
 
-function encodeBase128(value: number): number[] {
-  if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw new Error('out of range');
-  if (value === 0) return [0];
-  const groups: number[] = [];
-  let rest = value;
-  while (rest > 0) {
-    groups.unshift(rest % 128);
-    rest = Math.floor(rest / 128);
-  }
-  for (let i = 0; i < groups.length - 1; i += 1) {
-    groups[i] |= 0x80;
-  }
-  return groups;
+function fixture(name = 'regular'): Buffer {
+  return fs.readFileSync(path.resolve(__dirname, '../../../../test/resources/fonts/test-font-' + name + '.woff2'));
 }
-
-interface TableSpec {
-  tagIndex: number;
-  transformVersion?: number;
-  origLength?: number;
-}
-
-function buildWoff2(
-  tables: TableSpec[],
-  opts: { flavor?: number; compressedSize?: number; metaXml?: string } = {}
-): Buffer {
-  const dirBytes: number[] = [];
-  for (const table of tables) {
-    const transform = table.transformVersion ?? 0;
-    dirBytes.push(((transform << 6) & 0xc0) | (table.tagIndex & 0x3f));
-    for (const b of encodeBase128(table.origLength ?? 64)) dirBytes.push(b);
-    const isGlyfOrLoca = table.tagIndex === 10 || table.tagIndex === 11;
-    const transformed = isGlyfOrLoca ? transform !== 3 : transform !== 0;
-    if (transformed) {
-      for (const b of encodeBase128(32)) dirBytes.push(b);
-    }
+async function rejects(bytes: Buffer): Promise<void> {
+  let error: unknown;
+  try {
+    await inspectWoff2Buffer(bytes);
+  } catch (caught) {
+    error = caught;
   }
-  const compressedSize = opts.compressedSize ?? 64;
-  const fontData = Buffer.alloc(compressedSize, 0xa5);
-
-  let metaCompressed = Buffer.alloc(0);
-  let metaOrigLength = 0;
-  if (opts.metaXml) {
-    const orig = Buffer.from(opts.metaXml, 'utf8');
-    metaOrigLength = orig.length;
-    metaCompressed = zlib.brotliCompressSync(orig);
+  expect(error).to.be.instanceOf(Woff2InspectError);
+}
+describe('BrandingWoff2Inspector genuine decoding', function () {
+  for (const name of ['regular', 'bold', 'italic', 'variable']) {
+    it(`decodes real licensed ${name} bytes`, async function () {
+      const result = await inspectWoff2Buffer(fixture(name));
+      expect(result.isVariable).to.equal(name === 'variable');
+      expect(result.tableTags).to.include('head');
+    });
   }
-
-  const headerSize = 48;
-  const metaOffset = metaCompressed.length > 0 ? headerSize + dirBytes.length + compressedSize : 0;
-  const totalLength = headerSize + dirBytes.length + compressedSize + metaCompressed.length;
-
-  const header = Buffer.alloc(headerSize);
-  header.writeUInt32BE(WOFF2_SIGNATURE, 0);
-  header.writeUInt32BE(opts.flavor ?? 0x00010000, 4);
-  header.writeUInt32BE(totalLength, 8);
-  header.writeUInt16BE(tables.length, 12);
-  header.writeUInt16BE(0, 14);
-  header.writeUInt32BE(1024, 16);
-  header.writeUInt32BE(compressedSize, 20);
-  header.writeUInt16BE(1, 24);
-  header.writeUInt16BE(0, 26);
-  header.writeUInt32BE(metaOffset, 28);
-  header.writeUInt32BE(metaCompressed.length, 32);
-  header.writeUInt32BE(metaOrigLength, 36);
-  header.writeUInt32BE(0, 40);
-  header.writeUInt32BE(0, 44);
-
-  return Buffer.concat([header, Buffer.from(dirBytes), fontData, metaCompressed]);
-}
-
-/** Synthesised fixtures: no third-party font bytes, no licence encumbrance. */
-function staticTables(): TableSpec[] {
-  return [
-    { tagIndex: 1, origLength: 54 },
-    { tagIndex: 5, origLength: 128 },
-    { tagIndex: 10, transformVersion: 3, origLength: 256 },
-    { tagIndex: 11, transformVersion: 3, origLength: 32 },
-  ];
-}
-
-describe('BrandingWoff2Inspector (T00 decision)', function () {
-  it('bounds parsing time for 1 MiB of adversarial metadata', function () {
-    this.timeout(8000);
-    const font = buildWoff2(staticTables(), { metaXml: '<name '.repeat(174762) });
-    // A child-process deadline also catches synchronous event-loop stalls,
-    // which Mocha's in-process timeout cannot interrupt.
-    const parsed = spawnSync(
-      process.execPath,
-      [
-        '--no-experimental-strip-types',
-        '-r',
-        'ts-node/register/transpile-only',
-        '-e',
-        `const { inspectWoff2Buffer } = require(${JSON.stringify(require.resolve('../../src/services/BrandingWoff2Inspector'))});
-       const result = inspectWoff2Buffer(require('node:fs').readFileSync(0));
-       process.stdout.write(JSON.stringify(result.inspection));`,
-      ],
-      { input: font, timeout: 2000 }
-    );
-    expect(parsed.error, 'metadata inspection must complete within two seconds').to.equal(undefined);
-    expect(parsed.status, parsed.stderr.toString()).to.equal(0);
-    expect(JSON.parse(parsed.stdout.toString())).to.deep.equal({});
+  it('rejects the zero-payload header that previously passed', async function () {
+    const bytes = Buffer.alloc(50);
+    bytes.writeUInt32BE(0x774f4632, 0);
+    bytes.writeUInt32BE(0x10000, 4);
+    bytes.writeUInt32BE(50, 8);
+    bytes.writeUInt16BE(1, 12);
+    bytes[48] = 1;
+    bytes[49] = 54;
+    await rejects(bytes);
   });
-
-  it('accepts a valid static WOFF2 and reports no variable flag', function () {
-    const result = inspectWoff2Buffer(buildWoff2(staticTables()));
-    expect(result.isVariable).to.equal(false);
-    expect(result.tableTags).to.include('glyf');
-    expect(result.tableTags).to.not.include('fvar');
+  it('rejects filler data with an otherwise real header and directory', async function () {
+    const bytes = fixture();
+    bytes.fill(0xa5, bytes.length - 1000);
+    await rejects(bytes);
   });
-
-  it('detects a variable WOFF2 via the fvar table entry', function () {
-    const result = inspectWoff2Buffer(buildWoff2([...staticTables(), { tagIndex: 47, origLength: 64 }]));
-    expect(result.isVariable).to.equal(true);
-    expect(result.tableTags).to.include('fvar');
+  it('rejects truncated input and crafted headers without crashing', async function () {
+    const full = fixture();
+    for (const size of [0, 10, 47, 48, full.length - 1]) await rejects(full.subarray(0, size));
+    for (let i = 0; i < 50; i++) await rejects(Buffer.alloc(64, i));
   });
-
-  it('rejects malformed input with a controlled error', function () {
-    const bad = buildWoff2(staticTables());
-    bad.writeUInt32BE(0xdeadbeef, 0);
-    expect(() => inspectWoff2Buffer(bad)).to.throw(Woff2InspectError, /signature/);
-    expect(() => inspectWoff2Buffer(Buffer.from([0x01, 0x02]))).to.throw(Woff2InspectError);
-    expect(() => inspectWoff2Buffer(Buffer.alloc(0))).to.throw(Woff2InspectError);
-  });
-
-  it('rejects truncated input without crashing', function () {
-    const full = buildWoff2(staticTables());
-    for (const end of [10, 47, 48, full.length - 1]) {
-      expect(() => inspectWoff2Buffer(full.subarray(0, end))).to.throw(Woff2InspectError);
-    }
-    // Crafted-input loop: many malformed buffers must not terminate the process.
-    for (let i = 0; i < 50; i += 1) {
-      const crafted = Buffer.alloc(64, i & 0xff);
-      expect(() => inspectWoff2Buffer(crafted)).to.throw(Woff2InspectError);
+  it('rejects collections and unsupported flavors', async function () {
+    for (const flavor of [0x74746366, 0x12345678]) {
+      const bytes = fixture();
+      bytes.writeUInt32BE(flavor, 4);
+      await rejects(bytes);
     }
   });
-
-  it('extracts best-effort family metadata only from the metadata block', function () {
-    const xml = '<?xml version="1.0"?><metadata><name id="1">Mismatch Family</name><name id="2">Bold</name></metadata>';
-    const result = inspectWoff2Buffer(buildWoff2(staticTables(), { metaXml: xml }));
-    expect(result.inspection.family).to.equal('Mismatch Family');
-    expect(result.inspection.subfamily).to.equal('Bold');
-    const plain = inspectWoff2Buffer(buildWoff2(staticTables()));
-    expect(plain.inspection.family).to.equal(undefined);
-  });
-
-  it('rejects collections and bad flavors closed', function () {
-    expect(() => inspectWoff2Buffer(buildWoff2(staticTables(), { flavor: 0x74746366 }))).to.throw(Woff2InspectError);
-    expect(() => inspectWoff2Buffer(buildWoff2(staticTables(), { flavor: 0x12345678 }))).to.throw(Woff2InspectError);
-  });
-
-  it('accepts WOFF2 known tags beyond fvar, including Graphite tables', function () {
-    const result = inspectWoff2Buffer(
-      buildWoff2([...staticTables(), { tagIndex: 48 }, { tagIndex: 58 }, { tagIndex: 62 }])
-    );
-    expect(result.isVariable).to.equal(false);
-    expect(result.tableTags).to.include('gvar');
-    expect(result.tableTags).to.include('Silf');
-    expect(result.tableTags).to.include('Sill');
-  });
-
-  it('accepts the hmtx transform but rejects other unexpected transforms', function () {
-    const hmtx = inspectWoff2Buffer(
-      buildWoff2([...staticTables(), { tagIndex: 3, transformVersion: 1, origLength: 64 }])
-    );
-    expect(hmtx.tableTags).to.include('hmtx');
-    expect(() =>
-      inspectWoff2Buffer(buildWoff2([...staticTables(), { tagIndex: 3, transformVersion: 2, origLength: 64 }]))
-    ).to.throw(Woff2InspectError, /transform/);
-    expect(() =>
-      inspectWoff2Buffer(buildWoff2([...staticTables(), { tagIndex: 0, transformVersion: 1, origLength: 64 }]))
-    ).to.throw(Woff2InspectError, /transform/);
-    expect(() =>
-      inspectWoff2Buffer(buildWoff2([...staticTables(), { tagIndex: 10, transformVersion: 1, origLength: 64 }]))
-    ).to.throw(Woff2InspectError, /transform/);
-  });
-
-  it('caps Extended Metadata decompression instead of trusting the declared length', function () {
-    const xml = `<?xml version="1.0"?><metadata><name id="1">Bomb Family</name>${'A'.repeat(1_200_000)}</metadata>`;
-    const font = buildWoff2(staticTables(), { metaXml: xml });
-    // Lie about the declared length the way a crafted font would: uncapped
-    // decompression would expand ~KBs of Brotli past 1 MiB and extract 'Bomb
-    // Family'; the cap degrades to empty advisory metadata instead.
+  it('retains bounded advisory metadata handling on a genuine font', async function () {
+    const bytes = fixture();
+    const xml = '<name '.repeat(174762);
+    const compressed = zlib.brotliCompressSync(Buffer.from(xml));
+    const offset = Math.ceil(bytes.length / 4) * 4;
+    const font = Buffer.concat([bytes, Buffer.alloc(offset - bytes.length), compressed]);
+    font.writeUInt32BE(font.length, 8);
+    font.writeUInt32BE(offset, 28);
+    font.writeUInt32BE(compressed.length, 32);
+    font.writeUInt32BE(Buffer.byteLength(xml), 36);
+    expect((await inspectWoff2Buffer(font)).inspection).to.deep.equal({});
     font.writeUInt32BE(1024, 36);
-    const result = inspectWoff2Buffer(font);
-    expect(result.isVariable).to.equal(false);
-    expect(result.inspection.family).to.equal(undefined);
+    expect((await inspectWoff2Buffer(font)).inspection).to.deep.equal({});
+  });
+  it('rejects invalid directory transforms and absurd expanded table sizes within deadline', async function () {
+    const transform = fixture();
+    transform[48] |= 0x80;
+    await rejects(transform);
+    const huge = fixture();
+    huge.writeUInt32BE(0xffffffff, 16);
+    // A header size is advisory; changing it must never allocate that amount.
+    const started = Date.now();
+    try {
+      await inspectWoff2Buffer(huge);
+    } catch (error) {
+      expect(error).to.be.instanceOf(Woff2InspectError);
+    }
+    expect(Date.now() - started).to.be.lessThan(2500);
+  });
+  it('keeps the event loop responsive while decoding', async function () {
+    let ticked = false;
+    const timer = setTimeout(() => {
+      ticked = true;
+    }, 0);
+    await inspectWoff2Buffer(fixture('variable'));
+    clearTimeout(timer);
+    expect(ticked).to.equal(true);
   });
 });

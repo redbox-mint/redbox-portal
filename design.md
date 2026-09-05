@@ -259,7 +259,7 @@ For every brand:
 2. Backfill `typeface: null` on historical rows where absent.
 3. Determine the maximum historical version.
 4. Correct legacy rollback state before pruning:
-   - if the current active state is not represented by the maximum version, or the active snapshot differs from the row bearing its version, preserve the current active colours as a new complete history row at `max + 1` and set the active version to that value;
+   - if the current active state is not represented by the maximum version, or the active snapshot differs from the row bearing its version, recover current active colours from matching published history or published CSS (never the independent colour draft), fail before pruning if recovery is impossible, and preserve them as a new complete history row at `max + 1` and set the active version to that value;
    - if active version is non-zero but no matching history exists, snapshot the active state at `max + 1`;
    - treat its typeface as Default Typography.
 5. Retain only the newest configured number of history rows, default three.
@@ -305,7 +305,7 @@ Publication is externally atomic: a page request must observe either the previou
 2. Validate colour draft and typeface draft invariants.
 3. Re-read every referenced face from storage and verify its SHA-256 hash.
 4. Generate CSS and the composite hash.
-5. If the hash equals the active hash and the normalised snapshots are equal, return the current version with `idempotent: true` and create no history row.
+5. If the hash equals the active hash and face slot/hash identities are equal, align equivalent draft colours and typeface metadata to the active snapshot with a conditional revision update if needed, return the current version with `idempotent: true`, and create no history row.
 6. Allocate `max(active version, maximum history version) + 1`.
 7. In `runWithOptionalTransaction`, create the complete history row and conditionally update the single `BrandingConfig` row with CSS, hash, version, active typeface, aligned draft typeface, and the expected counters.
 8. Prune history beyond the configured newest count after the new version is durable.
@@ -501,7 +501,7 @@ The UI keeps no private authoritative draft. After every successful mutation it 
 
 ### 11.2 Preview
 
-Expand the representative Shadow DOM preview to include body text, headings, navigation, link, button, form control, Regular, Bold, Italic, and Bold Italic examples. Allow an Administrator to enter unsaved local sample text; this text never leaves the browser and is not part of draft state.
+Register preview font faces in the document under a unique per-preview alias, remove them when superseded/destroyed, and reset inherited active typography for Default previews. Verify actual font loading and text metrics in Chrome. Expand the representative Shadow DOM preview to include body text, headings, navigation, link, button, form control, Regular, Bold, Italic, and Bold Italic examples. Allow an Administrator to enter unsaved local sample text; this text never leaves the browser and is not part of draft state.
 
 If a custom draft lacks Regular, show the incomplete-draft state rather than attempting to make an optional face act as Regular. Retained historical versions can be previewed without changing the current draft.
 

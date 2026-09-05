@@ -536,11 +536,7 @@ export namespace Services {
       const brand = await this.loadBrandOrThrow(input.branding);
       this.requireDraftRevision(brand, input.expectedDraftRevision);
       const draft = this.draftTypefaceOf(brand);
-      // Editing an existing custom typeface begins from the active state.
-      const base =
-        draft.mode === 'default' && normalizeTypefaceState(brand.typeface).mode === 'custom'
-          ? { ...(normalizeTypefaceState(brand.typeface).faces ?? {}) }
-          : { ...(draft.faces ?? {}) };
+      const base = { ...(draft.faces ?? {}) };
       const face = await BrandingTypefaceService.inspectAndStoreFace({
         brandingId: String(brand.id),
         slot: input.slot,
@@ -701,6 +697,73 @@ export namespace Services {
       return { variables, typeface, css, hash };
     }
 
+    private async persistPublication(
+      brand: BrandingConfigAttributes,
+      historyValues: Partial<BrandingConfigHistoryAttributes>,
+      snapshot: { css: string; hash: string; variables: Record<string, string>; typeface: BrandingTypefaceState },
+      nextVersion: number
+    ): Promise<void> {
+      const { version: activeVersion, draftRevision } = this.brandCounters(brand);
+      const datastore = typeof BrandingConfig.getDatastore === 'function' ? BrandingConfig.getDatastore() : undefined;
+      await runWithOptionalTransaction(
+        datastore,
+        async connection => {
+          const createQuery = BrandingConfigHistory.create(historyValues);
+          let created: BrandingConfigHistoryAttributes | null = null;
+          try {
+            created = await (connection && typeof createQuery.usingConnection === 'function'
+              ? createQuery.usingConnection(connection)
+              : createQuery);
+          } catch (error) {
+            if (!this.isUniqueViolation(error)) {
+              throw error;
+            }
+            const reread = await this.loadBrandOrThrow(String(brand.name));
+            throw this.conflictError(reread);
+          }
+          let updated: BrandingConfigAttributes | null | undefined;
+          try {
+            const updateQuery = BrandingConfig.updateOne({
+              id: brand.id,
+              version: activeVersion,
+              draftRevision,
+            }).set({
+              variables: snapshot.variables,
+              css: snapshot.css,
+              hash: snapshot.hash,
+              version: nextVersion,
+              typeface: snapshot.typeface,
+              draftTypeface: snapshot.typeface,
+              draftRevision: draftRevision + 1,
+            });
+            updated = await (connection && typeof updateQuery.usingConnection === 'function'
+              ? updateQuery.usingConnection(connection)
+              : updateQuery);
+          } catch (error) {
+            // Only adapter/Waterline validation failures certify non-application.
+            // A transport timeout may occur after commit: retain its history.
+            const code = (error as { code?: string }).code;
+            if (
+              !connection &&
+              created?.id !== undefined &&
+              ['E_INVALID_NEW_RECORD', 'E_INVALID_VALUES_TO_SET', 'E_USAGE', 'E_UNIQUE'].includes(code ?? '')
+            ) {
+              await BrandingConfigHistory.destroy({ id: created.id });
+            }
+            throw error;
+          }
+          if (!updated) {
+            if (!connection && created && created.id !== undefined) {
+              await BrandingConfigHistory.destroy({ id: created.id }).catch(() => undefined);
+            }
+            const reread = await this.loadBrandOrThrow(String(brand.name));
+            throw this.conflictError(reread);
+          }
+        },
+        { logger: sails.log }
+      );
+    }
+
     /** Publish the draft atomically; unchanged publishes are idempotent. */
     public async publish(
       branding: string,
@@ -711,16 +774,22 @@ export namespace Services {
       const brand = await this.loadBrandOrThrow(branding);
       this.requireCounters(brand, opts?.expectedVersion, opts?.expectedDraftRevision);
       const snapshot = await this.buildPublishSnapshot(brand);
-      const { version: activeVersion, draftRevision } = this.brandCounters(brand);
+      const { version: activeVersion } = this.brandCounters(brand);
       const histories = await this.listHistoriesAsc(String(brand.id));
       const activeRow = this.activeHistoryRow(histories, activeVersion);
       const activeVariables = activeRow?.variables ?? {};
       const activeTypeface = normalizeTypefaceState(brand.typeface ?? activeRow?.typeface ?? null);
       if (
         String(brand.hash ?? '') === snapshot.hash &&
-        this.snapshotKey(snapshot.variables) === this.snapshotKey(activeVariables) &&
-        this.snapshotKey(snapshot.typeface) === this.snapshotKey(activeTypeface)
+        this.snapshotKey(orderedTypefaceFaces(snapshot.typeface).map(face => [face.slot, face.sha256])) ===
+          this.snapshotKey(orderedTypefaceFaces(activeTypeface).map(face => [face.slot, face.sha256]))
       ) {
+        if (
+          this.snapshotKey(snapshot.typeface) !== this.snapshotKey(activeTypeface) ||
+          this.snapshotKey(snapshot.variables) !== this.snapshotKey(activeVariables)
+        ) {
+          await this.conditionalDraftUpdate(brand, { variables: activeVariables, draftTypeface: activeTypeface });
+        }
         const state = await this.getAdminState(branding);
         return { state, version: activeVersion, hash: String(brand.hash ?? ''), idempotent: true };
       }
@@ -737,48 +806,7 @@ export namespace Services {
         ...(attribution.actorId ? { actorId: attribution.actorId } : {}),
         ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
       };
-      const datastore = typeof BrandingConfig.getDatastore === 'function' ? BrandingConfig.getDatastore() : undefined;
-      await runWithOptionalTransaction(
-        datastore,
-        async connection => {
-          const createQuery = BrandingConfigHistory.create(historyValues);
-          let created: BrandingConfigHistoryAttributes | null = null;
-          try {
-            created = await (connection && typeof createQuery.usingConnection === 'function'
-              ? createQuery.usingConnection(connection)
-              : createQuery);
-          } catch (error) {
-            if (!this.isUniqueViolation(error)) {
-              throw error;
-            }
-            const reread = await this.loadBrandOrThrow(branding);
-            throw this.conflictError(reread);
-          }
-          const updateQuery = BrandingConfig.updateOne({
-            id: brand.id,
-            version: activeVersion,
-            draftRevision,
-          }).set({
-            css: snapshot.css,
-            hash: snapshot.hash,
-            version: nextVersion,
-            typeface: snapshot.typeface,
-            draftTypeface: snapshot.typeface,
-            draftRevision: draftRevision + 1,
-          });
-          const updated = await (connection && typeof updateQuery.usingConnection === 'function'
-            ? updateQuery.usingConnection(connection)
-            : updateQuery);
-          if (!updated) {
-            if (!connection && created && created.id !== undefined) {
-              await BrandingConfigHistory.destroy({ id: created.id }).catch(() => undefined);
-            }
-            const reread = await this.loadBrandOrThrow(branding);
-            throw this.conflictError(reread);
-          }
-        },
-        { logger: sails.log }
-      );
+      await this.persistPublication(brand, historyValues, snapshot, nextVersion);
       await this.pruneHistories(String(brand.id));
       await this.refreshBrandingCache(String(brand.id));
       const state = await this.getAdminState(branding);
@@ -800,7 +828,7 @@ export namespace Services {
       if (!row) {
         throw this.codedError('history-not-found', `Version not found: ${input.versionId}`);
       }
-      const { version: activeVersion, draftRevision } = this.brandCounters(brand);
+      const { version: activeVersion } = this.brandCounters(brand);
       const variables = BrandingThemeCssService.validateVariables(row.variables ?? {});
       const typeface = normalizeTypefaceState(row.typeface);
       // Re-read and hash-check every face before any active mutation.
@@ -821,49 +849,7 @@ export namespace Services {
         ...(attribution.actorId ? { actorId: attribution.actorId } : {}),
         ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
       };
-      const datastore = typeof BrandingConfig.getDatastore === 'function' ? BrandingConfig.getDatastore() : undefined;
-      await runWithOptionalTransaction(
-        datastore,
-        async connection => {
-          const createQuery = BrandingConfigHistory.create(historyValues);
-          let created: BrandingConfigHistoryAttributes | null = null;
-          try {
-            created = await (connection && typeof createQuery.usingConnection === 'function'
-              ? createQuery.usingConnection(connection)
-              : createQuery);
-          } catch (error) {
-            if (!this.isUniqueViolation(error)) {
-              throw error;
-            }
-            const reread = await this.loadBrandOrThrow(input.branding);
-            throw this.conflictError(reread);
-          }
-          const updateQuery = BrandingConfig.updateOne({
-            id: brand.id,
-            version: activeVersion,
-            draftRevision,
-          }).set({
-            css,
-            hash,
-            version: nextVersion,
-            variables,
-            typeface,
-            draftTypeface: typeface,
-            draftRevision: draftRevision + 1,
-          });
-          const updated = await (connection && typeof updateQuery.usingConnection === 'function'
-            ? updateQuery.usingConnection(connection)
-            : updateQuery);
-          if (!updated) {
-            if (!connection && created && created.id !== undefined) {
-              await BrandingConfigHistory.destroy({ id: created.id }).catch(() => undefined);
-            }
-            const reread = await this.loadBrandOrThrow(input.branding);
-            throw this.conflictError(reread);
-          }
-        },
-        { logger: sails.log }
-      );
+      await this.persistPublication(brand, historyValues, { css, hash, variables, typeface }, nextVersion);
       await this.pruneHistories(String(brand.id));
       await this.refreshBrandingCache(String(brand.id));
       const state = await this.getAdminState(input.branding);
