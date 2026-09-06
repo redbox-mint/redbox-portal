@@ -4,15 +4,25 @@ import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@ang
 import {
   Role,
   User,
+  LinkAccountsPreview,
+  LinkOperationState,
   LinkedUserSummary,
+  RetryLinkAccountsOptions,
+  RoleSummary,
+  UserAccessOptions,
   UserLinkCandidate,
   UserLinkResponse,
   UserAuditRecord,
   UserAuditResponse,
+  AuthorizationProjectionService,
   BaseComponent,
+  LinkAccountsOptions,
   LoggerService,
+  SaveResult,
   TranslationService,
   UserService,
+  getApiProblemCode,
+  getApiProblemStatus,
 } from '@researchdatabox/portal-ng-common';
 import { UserForm, matchingValuesValidator, optionalEmailValidator, passwordStrengthValidator } from './forms';
 import * as _ from 'lodash';
@@ -26,6 +36,7 @@ type ManageUser = User & {
   effectivePrimaryUsername?: string;
   linkedAccountCount?: number;
   loginDisabled?: boolean;
+  loginDisabledVersion?: number;
   effectiveLoginDisabled?: boolean;
   disabledByPrimaryUserId?: string;
   disabledByPrimaryUsername?: string;
@@ -54,6 +65,8 @@ type UserDetailsPayload = {
   email: string;
   password: string;
   roles: string[];
+  /** AUTH-P5-002: mandatory caller-observed version for CAS. */
+  expectedVersion: number;
 };
 
 type SaveResponse = {
@@ -66,11 +79,27 @@ type AuditModalUser = Pick<ManageUser, 'id' | 'username' | 'name' | 'email' | 't
 type LinkingUserService = UserService & {
   getUserLinks: (primaryUserId: string) => Promise<UserLinkResponse>;
   searchLinkCandidates: (primaryUserId: string, query: string) => Promise<UserLinkCandidate[]>;
-  linkAccounts: (primaryUserId: string, secondaryUserId: string) => Promise<UserLinkResponse>;
+  linkAccounts: (
+    primaryUserId: string,
+    secondaryUserId: string,
+    options: LinkAccountsOptions
+  ) => Promise<UserLinkResponse>;
+  previewLinkAccounts: (primaryUserId: string, secondaryUserId: string) => Promise<LinkAccountsPreview>;
+  getLinkOperation: (operationId: string) => Promise<LinkOperationState>;
+  retryLinkOperation: (
+    operationId: string,
+    primaryUserId: string,
+    secondaryUserId: string,
+    options: RetryLinkAccountsOptions
+  ) => Promise<UserLinkResponse>;
   getUserAudit: (userId: string) => Promise<UserAuditResponse>;
-  disableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
-  enableUser: (userId: string) => Promise<{ status: boolean; message: string }>;
+  disableUser: (userId: string, options: UserAccessOptions) => Promise<SaveResult>;
+  enableUser: (userId: string, options: UserAccessOptions) => Promise<SaveResult>;
 };
+
+/** Bounded client-side polling budget for durable link operations. */
+export const LINK_OPERATION_POLL_ATTEMPTS = 6;
+export const LINK_OPERATION_POLL_INTERVAL_MS = 1000;
 
 @Component({
   selector: 'manage-users',
@@ -137,17 +166,19 @@ export class ManageUsersComponent extends BaseComponent {
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UserService) private userService: LinkingUserService,
-    @Inject(FormBuilder) private _fb: FormBuilder
+    @Inject(FormBuilder) private _fb: FormBuilder,
+    @Inject(AuthorizationProjectionService)
+    private authorizationProjection: AuthorizationProjectionService
   ) {
     super();
     this.loggerService.debug(`Manage Users waiting for deps to init...`);
-    this.initDependencies = [this.translationService, this.userService];
+    this.initDependencies = [this.translationService, this.userService, this.authorizationProjection];
   }
 
   protected override async initComponent(): Promise<void> {
-    const roles = (await this.userService.getBrandRoles()) as unknown as Role[];
+    const roles: RoleSummary[] = await this.userService.getBrandRoles();
     for (const role of roles) {
-      this.allRoles.push(role);
+      this.allRoles.push({ id: role.id, name: role.name, users: [], hasRole: false });
     }
     await this.refreshUsers();
   }
@@ -254,9 +285,10 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async refreshUsers() {
-    const users = (await this.userService.getUsers({
+    const raw = await this.userService.getUsers({
       includeDisabled: this.showDisabledUsers,
-    })) as unknown as ManageUser[];
+    });
+    const users: ManageUser[] = Array.isArray(raw) ? (raw as ManageUser[]) : ((raw.records ?? []) as ManageUser[]);
     this.allUsers = [];
     for (const user of users) {
       this.allUsers.push(user);
@@ -288,6 +320,9 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   newUser() {
+    if (!this.canCreateUser()) {
+      return;
+    }
     this.setNewUserMessage();
     this.setupForms(true);
     this.showNewUserModal();
@@ -365,8 +400,13 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async genKey(userid: string): Promise<void> {
+    if (!this.canManageTokens()) {
+      this.setUpdateMessage('Token management requires user.token.manage authorization.', 'danger');
+      return;
+    }
     this.setUpdateMessage('Generating...', 'primary');
-    const saveRes = (await this.userService.genKey(userid)) as unknown as SaveResponse;
+    const keyVersion = this.allUsers.find(user => user.id === userid)?.loginDisabledVersion ?? 1;
+    const saveRes: SaveResult = await this.userService.genKey(userid, keyVersion);
     if (saveRes.status) {
       this.showToken = true;
       if (this.currentUser != null) {
@@ -380,8 +420,13 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async revokeKey(userid: string): Promise<void> {
+    if (!this.canManageTokens()) {
+      this.setUpdateMessage('Token management requires user.token.manage authorization.', 'danger');
+      return;
+    }
     this.setUpdateMessage('Revoking...', 'primary');
-    const saveRes = (await this.userService.revokeKey(userid)) as unknown as SaveResponse;
+    const revokeVersion = this.allUsers.find(user => user.id === userid)?.loginDisabledVersion ?? 1;
+    const saveRes: SaveResult = await this.userService.revokeKey(userid, revokeVersion);
     if (saveRes.status) {
       if (this.currentUser != null) {
         this.currentUser.token = '';
@@ -395,6 +440,10 @@ export class ManageUsersComponent extends BaseComponent {
 
   async updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
+    if (!this.canManageUsers()) {
+      this.setUpdateMessage('User management requires user.manage authorization.', 'danger');
+      return;
+    }
     if (!isValid) {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
@@ -404,13 +453,15 @@ export class ManageUsersComponent extends BaseComponent {
       email: user.email,
       password: user.passwords.password,
       roles: [],
+      // AUTH-P5-002: profile CAS is mandatory (legacy rows send the healed version 1).
+      expectedVersion: this.currentUser?.loginDisabledVersion ?? 1,
     };
     _.forEach(user.roles, role => {
       details.roles.push(role.name);
     });
     this.setUpdateMessage('Saving...', 'primary');
 
-    const saveRes = (await this.userService.updateUserDetails(user.userid, details)) as unknown as SaveResponse;
+    const saveRes: SaveResult = await this.userService.updateUserDetails(user.userid, details);
     if (saveRes.status) {
       this.hideDetailsModal();
       await this.refreshUsers();
@@ -422,11 +473,15 @@ export class ManageUsersComponent extends BaseComponent {
 
   async newUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
+    if (!this.canCreateUser()) {
+      this.setNewUserMessage('User management requires user.manage authorization.', 'danger');
+      return;
+    }
     if (!isValid) {
       this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
       return;
     }
-    const details: UserDetailsPayload = {
+    const details: Omit<UserDetailsPayload, 'expectedVersion'> = {
       name: user.name,
       email: user.email,
       password: user.passwords.password,
@@ -438,7 +493,7 @@ export class ManageUsersComponent extends BaseComponent {
     });
 
     this.setNewUserMessage('Saving...', 'primary');
-    const saveRes = (await this.userService.addLocalUser(user.username, details)) as unknown as SaveResponse;
+    const saveRes: SaveResult = await this.userService.addLocalUser(user.username, details);
     if (saveRes.status) {
       this.hideNewUserModal();
       await this.refreshUsers();
@@ -577,10 +632,20 @@ export class ManageUsersComponent extends BaseComponent {
       this.auditSummary = response.summary || { returnedCount: this.auditRecords.length, truncated: false };
     } catch (error: unknown) {
       this.loggerService.error('Failed to load user audit:', error);
-      this.auditError =
-        (error as Error)?.message ||
-        this.translationService.t('manage-users-audit-error') ||
-        'Failed to load audit history.';
+      const code = getApiProblemCode(error);
+      const status = getApiProblemStatus(error);
+      if (code === 'authorization.not-found' || status === 404) {
+        this.auditError = 'The requested user was not found.';
+      } else if (code === 'authorization.scope-denied' || status === 403) {
+        this.auditError = 'You lack authorization to view audit history.';
+      } else if (code === 'authorization.transaction-unavailable' || status === 503) {
+        this.auditError = 'Audit storage is temporarily unavailable. Retry shortly.';
+      } else {
+        this.auditError =
+          (error as Error)?.message ||
+          this.translationService.t('manage-users-audit-error') ||
+          'Failed to load audit history.';
+      }
       this.auditRecords = [];
       this.auditSummary = { returnedCount: 0, truncated: false };
     } finally {
@@ -592,6 +657,17 @@ export class ManageUsersComponent extends BaseComponent {
     const baseMessage = this.translationService.t('manage-users-link-success') || 'Accounts linked successfully.';
     const rolesMerged = response.impact?.rolesMerged ?? 0;
     const recordsRewritten = response.impact?.recordsRewritten ?? 0;
+
+    // AUTH-TXN-001: pending record rewrites are surfaced, never hidden.
+    // Link state alone is insufficient — the durable operation ID lets the
+    // operator poll for completion.
+    if (response.recordsPending === true) {
+      const pendingNotice =
+        this.translationService.t('manage-users-link-success-pending') ||
+        'Record authorization rewrite is pending reconciliation.';
+      const operationSuffix = response.linkOperationId !== undefined ? ` Operation: ${response.linkOperationId}.` : '';
+      return `${baseMessage} ${pendingNotice}${operationSuffix}`;
+    }
 
     if (rolesMerged === 0 && recordsRewritten === 0) {
       return baseMessage;
@@ -620,8 +696,15 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async disableUser(user: ManageUser) {
+    if (!this.canManageAccess()) {
+      this.setUpdateMessage('User management requires user.manage authorization.', 'danger');
+      return;
+    }
     try {
-      const response = await this.userService.disableUser(user.id);
+      const response = await this.userService.disableUser(user.id, {
+        // AUTH-P5-002: CAS is mandatory (legacy rows send the healed version 1).
+        expectedVersion: user.loginDisabledVersion ?? 1,
+      });
       if (response.status) {
         this.setUpdateMessage(
           this.translationService.t('manage-users-disable-success') || 'User disabled successfully.',
@@ -632,13 +715,34 @@ export class ManageUsersComponent extends BaseComponent {
         this.setUpdateMessage(response.message || 'Failed to disable user.', 'danger');
       }
     } catch (error: unknown) {
-      this.setUpdateMessage((error as Error)?.message || 'Failed to disable user.', 'danger');
+      const code = getApiProblemCode(error);
+      const status = getApiProblemStatus(error);
+      if (code === 'authorization.version-conflict' || status === 409) {
+        // Stale CAS: refresh so the operator retries against live versions.
+        await this.refreshUsers();
+        this.setUpdateMessage(
+          this.translationService.t('manage-users-disable-stale') ||
+            'User access changed since it was read. Refreshed — retry the action.',
+          'danger'
+        );
+      } else if (code === 'authorization.transaction-unavailable' || status === 503) {
+        this.setUpdateMessage('User storage is temporarily unavailable. Retry shortly.', 'danger');
+      } else {
+        this.setUpdateMessage((error as Error)?.message || 'Failed to disable user.', 'danger');
+      }
     }
   }
 
   async enableUser(user: ManageUser) {
+    if (!this.canManageAccess()) {
+      this.setUpdateMessage('User management requires user.manage authorization.', 'danger');
+      return;
+    }
     try {
-      const response = await this.userService.enableUser(user.id);
+      const response = await this.userService.enableUser(user.id, {
+        // AUTH-P5-002: CAS is mandatory (legacy rows send the healed version 1).
+        expectedVersion: user.loginDisabledVersion ?? 1,
+      });
       if (response.status) {
         this.setUpdateMessage(
           this.translationService.t('manage-users-enable-success') || 'User enabled successfully.',
@@ -649,7 +753,20 @@ export class ManageUsersComponent extends BaseComponent {
         this.setUpdateMessage(response.message || 'Failed to enable user.', 'danger');
       }
     } catch (error: unknown) {
-      this.setUpdateMessage((error as Error)?.message || 'Failed to enable user.', 'danger');
+      const code = getApiProblemCode(error);
+      const status = getApiProblemStatus(error);
+      if (code === 'authorization.version-conflict' || status === 409) {
+        await this.refreshUsers();
+        this.setUpdateMessage(
+          this.translationService.t('manage-users-enable-stale') ||
+            'User access changed since it was read. Refreshed — retry the action.',
+          'danger'
+        );
+      } else if (code === 'authorization.transaction-unavailable' || status === 503) {
+        this.setUpdateMessage('User storage is temporarily unavailable. Retry shortly.', 'danger');
+      } else {
+        this.setUpdateMessage((error as Error)?.message || 'Failed to enable user.', 'danger');
+      }
     }
   }
 
@@ -734,8 +851,67 @@ export class ManageUsersComponent extends BaseComponent {
     return ((this.newUserForm as FormGroup).get('allRoles') as FormArray).controls as FormGroup[];
   }
 
+  /**
+   * RB-ANGULAR-001: mutation affordances are gated through the server
+   * authorization projection, not only link state. The server remains
+   * authoritative; these gates only hide affordances.
+   */
+  canManageUsers(): boolean {
+    try {
+      return this.authorizationProjection.hasScope('user.manage');
+    } catch {
+      return false;
+    }
+  }
+
+  canManageAccountLinks(): boolean {
+    try {
+      return this.authorizationProjection.hasScope('user.account-link.manage');
+    } catch {
+      return false;
+    }
+  }
+
+  canManageAccess(): boolean {
+    return this.canManageUsers();
+  }
+
+  /**
+   * RB-ANGULAR-001 exact projections: user creation is gated on `user.manage`
+   * (the add button previously rendered for every viewer).
+   */
+  canCreateUser(): boolean {
+    return this.canManageUsers();
+  }
+
+  /**
+   * Audit history is gated on the route-declared `user.read` scope (see
+   * `legacy-route-scope-map`: `UserManagementController#getUserAudit` requires
+   * `user.read`), not the broader `user.manage`. Display and handler both use
+   * this gate; the server remains authoritative.
+   */
+  canViewAudit(): boolean {
+    try {
+      return this.authorizationProjection.hasScope('user.read');
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * RB-ANGULAR-001 exact projections: API token controls require
+   * `user.token.manage`, not the broader `user.manage`.
+   */
+  canManageTokens(): boolean {
+    try {
+      return this.authorizationProjection.hasScope('user.token.manage');
+    } catch {
+      return false;
+    }
+  }
+
   canManageLinks(user: ManageUser): boolean {
-    return user.accountLinkState !== 'linked-alias';
+    return user.accountLinkState !== 'linked-alias' && this.canManageAccountLinks();
   }
 
   isLinkedAlias(user: AccountStatusUser): boolean {
@@ -801,7 +977,7 @@ export class ManageUsersComponent extends BaseComponent {
 
   async manageLinks(username: string) {
     const user = _.find(this.allUsers, existingUser => existingUser.username === username) || null;
-    if (user == null) {
+    if (user == null || !this.canManageLinks(user)) {
       return;
     }
     this.linkPrimaryUser = user;
@@ -818,7 +994,7 @@ export class ManageUsersComponent extends BaseComponent {
       return;
     }
     try {
-      const response = (await this.userService.getUserLinks(this.linkPrimaryUser.id)) as UserLinkResponse;
+      const response: UserLinkResponse = await this.userService.getUserLinks(this.linkPrimaryUser.id);
       this.linkedAccounts = response.linkedAccounts || [];
     } catch (error: unknown) {
       this.loggerService.error('Failed to load linked accounts:', error);
@@ -866,6 +1042,94 @@ export class ManageUsersComponent extends BaseComponent {
     }
   }
 
+  private describeLinkError(error: unknown): string {
+    // AUTH-CAS-HTTP-001: discriminate stable Problem Details instead of
+    // showing raw transport text for every failure.
+    const code = getApiProblemCode(error);
+    const status = getApiProblemStatus(error);
+    const translate = (key: string, fallback: string): string => this.translationService.t(key) || fallback;
+    if (code === 'authorization.version-conflict' || status === 409) {
+      return translate(
+        'manage-users-link-failed-conflict',
+        'Link conflict: the accounts changed since preview, or are already linked. Refresh and retry.'
+      );
+    }
+    if (code === 'authorization.preview-stale') {
+      return translate(
+        'manage-users-link-failed-stale-preview',
+        'Link preview expired. Search again and confirm the link.'
+      );
+    }
+    if (code === 'authorization.not-found' || status === 404) {
+      return translate('manage-users-link-failed-not-found', 'One of the accounts was not found.');
+    }
+    if (code === 'authorization.scope-denied' || status === 403) {
+      return translate('manage-users-link-failed-denied', 'You lack account-link authorization for this brand.');
+    }
+    if (code === 'authorization.transaction-unavailable' || status === 503) {
+      return translate(
+        'manage-users-link-failed-unavailable',
+        'Link storage is temporarily unavailable. Retry shortly.'
+      );
+    }
+    if (code === 'authorization.bulk-invalid' || status === 422) {
+      return translate('manage-users-link-failed-invalid', 'Link request was invalid.');
+    }
+    return (error as Error)?.message || translate('manage-users-link-failed', 'Failed to link accounts.');
+  }
+
+  /** Test-seam delay; overridden in specs for fast bounded polling. */
+  protected linkPollDelayMs = LINK_OPERATION_POLL_INTERVAL_MS;
+
+  private delayForLinkPoll(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Bounded poll of the durable link operation. Returns the terminal state
+   * (completed/failed) or the last observed state when the budget exhausts.
+   * Never polls unboundedly: at most `maxAttempts` reads with `delayMs`
+   * pauses. Exported for specs.
+   */
+  async pollLinkOperation(
+    operationId: string,
+    maxAttempts: number = LINK_OPERATION_POLL_ATTEMPTS,
+    delayMs?: number
+  ): Promise<LinkOperationState> {
+    const pause = delayMs ?? this.linkPollDelayMs;
+    let last: LinkOperationState | undefined;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const state = await this.userService.getLinkOperation(operationId);
+      last = state;
+      if (state.status === 'completed' || state.status === 'failed' || state.recordsPending !== true) {
+        return state;
+      }
+      if (attempt + 1 < maxAttempts) {
+        await this.delayForLinkPoll(pause);
+      }
+    }
+    return last as LinkOperationState;
+  }
+
+  /**
+   * Bounded single retry of a pending operation using the preview proof.
+   * The retry reuses the same operation ID and pair proof; attempts beyond
+   * the server budget fail closed with 422.
+   */
+  async retryPendingLinkOperation(operationId: string, preview: LinkAccountsPreview): Promise<UserLinkResponse> {
+    const options: RetryLinkAccountsOptions = {
+      primaryExpectedVersion: preview.primaryExpectedVersion,
+      secondaryExpectedVersion: preview.secondaryExpectedVersion,
+      linkConfirmationToken: preview.confirmationToken,
+    };
+    return await this.userService.retryLinkOperation(
+      operationId,
+      preview.primaryUserId,
+      preview.secondaryUserId,
+      options
+    );
+  }
+
   async submitLink() {
     if (this.linkPrimaryUser == null || this.selectedLinkCandidate == null) {
       this.setLinkMessage(
@@ -877,7 +1141,48 @@ export class ManageUsersComponent extends BaseComponent {
     this.isLinkSaving = true;
     this.setLinkMessage(this.translationService.t('manage-users-link-linking') || 'Linking accounts...', 'primary');
     try {
-      const response = await this.userService.linkAccounts(this.linkPrimaryUser.id, this.selectedLinkCandidate.id);
+      // AUTH-LINK-PROOF-001: server-bound preview/confirmation flow. Preview
+      // resolves the canonical pair and issues pair versions plus a
+      // short-lived confirmation token and operation ID; apply carries the
+      // full proof. Pending results are polled (bounded) and retried once
+      // through the durable operation — never left as a bare ID.
+      const preview = await this.userService.previewLinkAccounts(
+        this.linkPrimaryUser.id,
+        this.selectedLinkCandidate.id
+      );
+      let response = await this.userService.linkAccounts(preview.primaryUserId, preview.secondaryUserId, {
+        primaryExpectedVersion: preview.primaryExpectedVersion,
+        secondaryExpectedVersion: preview.secondaryExpectedVersion,
+        linkConfirmationToken: preview.confirmationToken,
+        linkOperationId: preview.linkOperationId,
+      });
+      if (response.recordsPending === true && response.linkOperationId) {
+        const operationId = response.linkOperationId;
+        let terminal = await this.pollLinkOperation(operationId);
+        if (terminal.recordsPending === true && terminal.status !== 'failed') {
+          response = await this.retryPendingLinkOperation(operationId, preview);
+          if (response.recordsPending === true && response.linkOperationId) {
+            terminal = await this.pollLinkOperation(response.linkOperationId);
+            response = {
+              ...response,
+              recordsPending: terminal.recordsPending,
+              impact: {
+                recordsRewritten: terminal.recordsRewritten,
+                rolesMerged: terminal.rolesAdopted,
+              },
+            };
+          }
+        } else {
+          response = {
+            ...response,
+            recordsPending: terminal.recordsPending,
+            impact: {
+              recordsRewritten: terminal.recordsRewritten,
+              rolesMerged: terminal.rolesAdopted,
+            },
+          };
+        }
+      }
       await this.refreshUsers();
       this.linkPrimaryUser =
         _.find(this.allUsers, existingUser => existingUser.id === response.primary.id) || this.linkPrimaryUser;
@@ -885,14 +1190,12 @@ export class ManageUsersComponent extends BaseComponent {
       this.linkCandidates = [];
       this.linkSearchQuery = '';
       this.selectedLinkCandidate = null;
-      this.setLinkMessage(this.buildLinkSuccessMessage(response), 'success');
-    } catch (error: unknown) {
       this.setLinkMessage(
-        (error as Error)?.message ||
-          this.translationService.t('manage-users-link-failed') ||
-          'Failed to link accounts.',
-        'danger'
+        this.buildLinkSuccessMessage(response),
+        response.recordsPending === true ? 'warning' : 'success'
       );
+    } catch (error: unknown) {
+      this.setLinkMessage(this.describeLinkError(error), 'danger');
     } finally {
       this.isLinkSaving = false;
     }

@@ -1,29 +1,49 @@
 import { strict as assert } from 'node:assert';
-import { afterEach, describe, it } from 'mocha';
-import { asRoleKey, asScopeKey, createScopeRegistry, freezeAuthorizationContext } from '../../src/authorization';
+import { afterEach, before, describe, it } from 'mocha';
+import {
+  asRoleKey,
+  asScopeKey,
+  createScopeRegistry,
+  freezeAuthorizationContext,
+  type AuthorizationContext,
+} from '../../src/authorization';
+import { genuineTestActor } from './genuineActor';
+import { ROLE_WRITER_INVENTORY } from '../../src/authorization/role-inventory';
 import { Services, type RoleAdministrationServiceDependencies } from '../../src/services/RoleAdministrationService';
 
-const actor = freezeAuthorizationContext({
-  contextType: 'brand',
-  principal: {
-    category: 'authenticated',
-    authMethod: 'session',
-    active: true,
-    userId: 'operator-1',
-    username: 'operator',
-  },
-  brand: { requestedIdentifier: 'brand-1', id: 'brand-1', name: 'Brand 1', exists: true, authorized: true },
-  roles: [],
-  compatibilityRoles: [],
-  grantedScopeKeys: [asScopeKey('authorization.role.manage')],
-  effectiveScopeKeys: [asScopeKey('authorization.role.manage')],
-  scopeProvenance: [],
-});
+/**
+ * AUTH-P5-001: test actors cross the genuine resolver boundary (the real
+ * `AuthorizationService` via `genuineTestActor`) instead of minting frozen
+ * forgeries. `authorization/context` exports no issuer, marker, or
+ * predicate, so deep imports cannot forge a recognized actor.
+ */
+type TestActorInput = Parameters<typeof freezeAuthorizationContext>[0];
 
-const reader = freezeAuthorizationContext({
-  ...actor,
-  grantedScopeKeys: [asScopeKey('authorization.role.read')],
-  effectiveScopeKeys: [asScopeKey('authorization.role.read')],
+let actor!: AuthorizationContext;
+let reader!: AuthorizationContext;
+
+before(async () => {
+  actor = await genuineTestActor({
+    contextType: 'brand',
+    principal: {
+      category: 'authenticated',
+      authMethod: 'session',
+      active: true,
+      userId: 'operator-1',
+      username: 'operator',
+    },
+    brand: { requestedIdentifier: 'brand-1', id: 'brand-1', name: 'Brand 1', exists: true, authorized: true },
+    roles: [],
+    compatibilityRoles: [],
+    grantedScopeKeys: [asScopeKey('authorization.role.manage')],
+    effectiveScopeKeys: [asScopeKey('authorization.role.manage')],
+    scopeProvenance: [],
+  });
+  reader = await genuineTestActor({
+    ...(actor as unknown as TestActorInput),
+    grantedScopeKeys: [asScopeKey('authorization.role.read')],
+    effectiveScopeKeys: [asScopeKey('authorization.role.read')],
+  });
 });
 
 function connectedResult<T>(value: T): Promise<T> & { usingConnection: () => Promise<T> } {
@@ -75,11 +95,16 @@ describe('RoleAdministrationService', () => {
       'applyRoleScopes',
       'applyRoleTemplateUpgrade',
       'applyScopeAdoption',
+      // RB-SVC-EXPORT-001: production registry-surface export required by
+      // UsersService.updateUserRoles. Removing it breaks the production call
+      // path even when direct unit calls still resolve.
+      'applyUserRoleSet',
       'createRole',
       'deleteRole',
       'grantAssignment',
       'inactivateRole',
       'getRole',
+      'linkUserAccounts',
       'listAssignments',
       'listRoles',
       'previewBulkAssignments',
@@ -94,6 +119,7 @@ describe('RoleAdministrationService', () => {
       'publishTemplateRevision',
       'replaceExternalAssignments',
       'revokeAssignment',
+      'setUserAccess',
       'suppressAssignment',
       'unsuppressAssignment',
       'updateRole',
@@ -101,6 +127,13 @@ describe('RoleAdministrationService', () => {
     assert.ok(supported.every(method => typeof exported[method] === 'function'));
     assert.equal(exported.update, undefined);
     assert.equal(exported.destroy, undefined);
+  });
+
+  it('reconciles the role-writer inventory for link, access, and role-set writers', () => {
+    const text = ROLE_WRITER_INVENTORY.map(row => `${row.location} ${row.operation}`).join('\n');
+    for (const operation of ['linkUserAccounts', 'setUserAccess', 'applyUserRoleSet']) {
+      assert.ok(text.includes(operation), `role-writer inventory must reconcile ${operation}`);
+    }
   });
 
   it('lists only bounded current-brand role metadata and resolves template keys in one batch', async () => {
@@ -218,7 +251,7 @@ describe('RoleAdministrationService', () => {
           ]),
       }),
     });
-    const assignmentReader = freezeAuthorizationContext({
+    const assignmentReader = await genuineTestActor({
       ...reader,
       grantedScopeKeys: [asScopeKey('authorization.assignment.read')],
       effectiveScopeKeys: [asScopeKey('authorization.assignment.read')],
@@ -311,7 +344,7 @@ describe('RoleAdministrationService', () => {
           ]),
       }),
     });
-    const systemReader = freezeAuthorizationContext({
+    const systemReader = await genuineTestActor({
       ...reader,
       grantedScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
       effectiveScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
@@ -368,7 +401,7 @@ describe('RoleAdministrationService', () => {
           ]),
       }),
     });
-    const systemReader = freezeAuthorizationContext({
+    const systemReader = await genuineTestActor({
       ...reader,
       grantedScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
       effectiveScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('system.authorization.manage')],
@@ -412,7 +445,7 @@ describe('RoleAdministrationService', () => {
         return Promise.resolve(undefined);
       },
     });
-    const systemReader = freezeAuthorizationContext({
+    const systemReader = await genuineTestActor({
       ...reader,
       grantedScopeKeys: [asScopeKey('system.authorization.manage')],
       effectiveScopeKeys: [asScopeKey('system.authorization.manage')],
@@ -437,7 +470,7 @@ describe('RoleAdministrationService', () => {
 
   it('reports selected-role bulk template conflicts without issuing a confirmation token', async () => {
     const connection = Object.freeze({ lease: 'bulk-template-preview' }) as Sails.Connection;
-    const systemReader = freezeAuthorizationContext({
+    const systemReader = await genuineTestActor({
       ...reader,
       grantedScopeKeys: [asScopeKey('system.authorization.manage')],
       effectiveScopeKeys: [asScopeKey('system.authorization.manage')],
@@ -527,7 +560,7 @@ describe('RoleAdministrationService', () => {
     });
     Reflect.set(globalThis, 'Role', { findOne: () => connectedResult(role) });
     Reflect.set(globalThis, 'RoleScopeOverride', { find: () => ({ sort: () => connectedResult([]) }) });
-    const crossBrandActor = freezeAuthorizationContext({
+    const crossBrandActor = await genuineTestActor({
       ...actor,
       roles: [
         {
@@ -699,7 +732,8 @@ describe('RoleAdministrationService', () => {
 
   it('normalizes datastore write conflicts to a documented audited version conflict', async () => {
     let attempt:
-      { readonly input: { readonly reasonCode?: string }; readonly outcome: 'denied' | 'failed' } | undefined;
+      | { readonly input: { readonly reasonCode?: string }; readonly outcome: 'denied' | 'failed' }
+      | undefined;
     const service = new Services.RoleAdministrationService({
       runTransaction: async () => {
         throw { raw: { code: 112, codeName: 'WriteConflict' } };
@@ -908,7 +942,7 @@ describe('RoleAdministrationService', () => {
         ],
       },
     ]);
-    const systemActor = freezeAuthorizationContext({
+    const systemActor = await genuineTestActor({
       ...actor,
       grantedScopeKeys: [asScopeKey('authorization.self.read'), asScopeKey('system.authorization.manage')],
       effectiveScopeKeys: [asScopeKey('authorization.self.read'), asScopeKey('system.authorization.manage')],
@@ -970,7 +1004,7 @@ describe('RoleAdministrationService', () => {
         ],
       },
     ]);
-    const systemActor = freezeAuthorizationContext({
+    const systemActor = await genuineTestActor({
       ...actor,
       grantedScopeKeys: [asScopeKey('authorization.self.read'), asScopeKey('system.authorization.manage')],
       effectiveScopeKeys: [asScopeKey('authorization.self.read'), asScopeKey('system.authorization.manage')],
@@ -1069,7 +1103,7 @@ describe('RoleAdministrationService', () => {
       },
     ]);
     let registry = activeRegistry;
-    const systemActor = freezeAuthorizationContext({
+    const systemActor = await genuineTestActor({
       ...actor,
       grantedScopeKeys: [asScopeKey('authorization.self.read'), asScopeKey('system.authorization.manage')],
       effectiveScopeKeys: [asScopeKey('authorization.self.read'), asScopeKey('system.authorization.manage')],
@@ -1249,7 +1283,7 @@ describe('RoleAdministrationService', () => {
     it('rejects a confirmation token that does not match the applied scope set', async () => {
       stubRole();
       // This actor must hold everything it delegates, so the handshake is what fails.
-      const delegatingActor = freezeAuthorizationContext({
+      const delegatingActor = await genuineTestActor({
         ...actor,
         grantedScopeKeys: [
           asScopeKey('authorization.role.manage'),
@@ -1378,7 +1412,7 @@ describe('RoleAdministrationService', () => {
         config: {},
         models: {},
       });
-      const systemActor = freezeAuthorizationContext({
+      const systemActor = await genuineTestActor({
         ...actor,
         contextType: 'system',
         grantedScopeKeys: [asScopeKey('system.authorization.manage')],
@@ -1438,7 +1472,7 @@ describe('RoleAdministrationService', () => {
         count: (criteria: { readonly status?: string }) => connectedResult(criteria.status === 'active' ? 2 : 1_500),
         find: () => ({ limit: () => connectedResult([]) }),
       });
-      const delegatingActor = freezeAuthorizationContext({
+      const delegatingActor = await genuineTestActor({
         ...actor,
         grantedScopeKeys: [asScopeKey('authorization.role.manage'), asScopeKey('record.read')],
         effectiveScopeKeys: [asScopeKey('authorization.role.manage'), asScopeKey('record.read')],
@@ -1470,7 +1504,7 @@ describe('RoleAdministrationService', () => {
           connectedResult(criteria.status === 'active' ? activeAssignments : 4),
         find: () => ({ limit: () => connectedResult([]) }),
       });
-      const delegatingActor = freezeAuthorizationContext({
+      const delegatingActor = await genuineTestActor({
         ...actor,
         grantedScopeKeys: [asScopeKey('authorization.role.manage'), asScopeKey('record.read')],
         effectiveScopeKeys: [asScopeKey('authorization.role.manage'), asScopeKey('record.read')],
@@ -1611,7 +1645,7 @@ describe('RoleAdministrationService', () => {
           populate: () => Promise.reject(new Error('legacy association unavailable')),
         }),
       });
-      const delegatingActor = freezeAuthorizationContext({
+      const delegatingActor = await genuineTestActor({
         ...actor,
         grantedScopeKeys: [asScopeKey('authorization.role.manage'), asScopeKey('record.read')],
         effectiveScopeKeys: [asScopeKey('authorization.role.manage'), asScopeKey('record.read')],
@@ -1632,6 +1666,175 @@ describe('RoleAdministrationService', () => {
       assert.equal(preview.dependencies?.scanIncomplete, true);
       assert.deepEqual(preview.fatalErrors, ['assignment-impact-limit']);
       assert.equal(preview.confirmationToken, undefined);
+    });
+
+    describe('user role-set atomic CAS', () => {
+      const connection = Object.freeze({ lease: 'role-set-user-cas' }) as unknown as Sails.Connection;
+
+      function stubRoleSetStores(stores: {
+        onUserUpdate?: (criteria: Record<string, unknown>) => void;
+        onAssignmentCreate?: () => void;
+      }): { connections: Sails.Connection[] } {
+        const connections: Sails.Connection[] = [];
+        const leased = <T>(value: T): { usingConnection: (leased: Sails.Connection) => Promise<T> } => ({
+          usingConnection: (leasedConnection: Sails.Connection) => {
+            connections.push(leasedConnection);
+            return Promise.resolve(value);
+          },
+        });
+        const role = {
+          id: 'role-1',
+          name: 'researcher',
+          key: 'researcher',
+          displayName: 'Researchers',
+          contextType: 'brand',
+          branding: 'brand-1',
+          protectedKind: 'none',
+          status: 'active',
+          version: 1,
+        };
+        const createdAssignment = {
+          id: 'assignment-1',
+          principalType: 'user',
+          principalId: 'user-1',
+          role: 'role-1',
+          branding: 'brand-1',
+          source: 'manual',
+          sourceKey: 'manual',
+          status: 'active',
+          sourcePresent: true,
+          version: 1,
+        };
+        const originalUser = Reflect.get(globalThis, 'User');
+        Reflect.set(globalThis, 'User', {
+          findOne: () =>
+            leased({
+              id: 'user-1',
+              username: 'target-user',
+              loginDisabled: false,
+              loginDisabledVersion: 3,
+              accountLinkState: 'active',
+            }),
+          updateOne: (criteria: Record<string, unknown>) => {
+            stores.onUserUpdate?.(criteria);
+            return {
+              set: (values: Record<string, unknown>) => {
+                assert.equal(values.loginDisabledVersion, 4);
+                return leased({ id: 'user-1', loginDisabledVersion: 4 });
+              },
+            };
+          },
+          addToCollection: () => ({ members: () => leased(undefined) }),
+          __restoreUser: originalUser,
+        });
+        Reflect.set(globalThis, 'Role', {
+          find: () => ({ limit: () => leased([role]) }),
+        });
+        Reflect.set(globalThis, 'RoleTemplate', { findOne: () => leased(undefined) });
+        Reflect.set(globalThis, 'RoleScopeOverride', { find: () => ({ sort: () => leased([]) }) });
+        Reflect.set(globalThis, 'RoleAssignment', {
+          findOne: () => leased(undefined),
+          find: () => ({ limit: () => leased([createdAssignment]) }),
+          create: () => {
+            stores.onAssignmentCreate?.();
+            return { fetch: () => leased(createdAssignment) };
+          },
+        });
+        return { connections };
+      }
+
+      function restoreRoleSetStores(): void {
+        const originalUser = Reflect.get(Reflect.get(globalThis, 'User') ?? {}, '__restoreUser');
+        if (originalUser === undefined) Reflect.deleteProperty(globalThis, 'User');
+        else Reflect.set(globalThis, 'User', originalUser);
+      }
+
+      async function assignmentActor(): Promise<import('../../src/authorization').AuthorizationContext> {
+        return genuineTestActor({
+          principal: { category: 'authenticated', authMethod: 'session', active: true, userId: 'operator-1' },
+          brand: { id: 'brand-1', name: 'Brand 1', requestedIdentifier: 'brand-1', exists: true, authorized: true },
+          effectiveScopeKeys: ['authorization.assignment.manage', 'user.manage'],
+        });
+      }
+
+      function roleSetService(): Services.RoleAdministrationService {
+        return new Services.RoleAdministrationService({
+          runTransaction: work => work(connection),
+          getRegistry: () => createScopeRegistry([]),
+          audit: () => ({
+            createSucceededEvent: async () => ({ eventId: 'event-role-set' }) as never,
+            recordAttempt: async () => ({ persisted: true }),
+          }),
+        });
+      }
+
+      it('pins and bumps the user version on the same transaction connection as the assignment writes', async () => {
+        let userUpdateCriteria: Record<string, unknown> | undefined;
+        let assignmentCreated = false;
+        const { connections } = stubRoleSetStores({
+          onUserUpdate: criteria => {
+            userUpdateCriteria = criteria;
+          },
+          onAssignmentCreate: () => {
+            assignmentCreated = true;
+          },
+        });
+        try {
+          const result = await roleSetService().applyUserRoleSet({
+            actor: await assignmentActor(),
+            brandId: 'brand-1',
+            principalId: 'user-1',
+            grants: [{ roleKey: 'researcher' }],
+            removals: [],
+            userExpectedVersion: 3,
+            requestId: 'request-role-set-cas',
+          });
+
+          assert.equal(result.data.granted, 1);
+          assert.equal(result.changed, true);
+          assert.ok(assignmentCreated, 'the assignment write must happen in the same transaction');
+          assert.deepEqual(userUpdateCriteria, { id: 'user-1', loginDisabledVersion: 3 });
+          assert.ok(connections.length >= 3, 'user CAS, assignment, and audit share one connection');
+          assert.ok(connections.every(leased => leased === connection));
+        } finally {
+          restoreRoleSetStores();
+        }
+      });
+
+      it('rejects a stale user version before any assignment write', async () => {
+        let assignmentCreated = false;
+        let userUpdateCount = 0;
+        stubRoleSetStores({
+          onUserUpdate: () => {
+            userUpdateCount += 1;
+          },
+          onAssignmentCreate: () => {
+            assignmentCreated = true;
+          },
+        });
+        try {
+          await assert.rejects(
+            roleSetService().applyUserRoleSet({
+              actor: await assignmentActor(),
+              brandId: 'brand-1',
+              principalId: 'user-1',
+              grants: [{ roleKey: 'researcher' }],
+              removals: [],
+              userExpectedVersion: 2,
+              requestId: 'request-role-set-stale',
+            }),
+            (error: unknown) =>
+              typeof error === 'object' &&
+              error !== null &&
+              'code' in error &&
+              error.code === 'authorization.version-conflict'
+          );
+          assert.equal(assignmentCreated, false);
+          assert.equal(userUpdateCount, 0);
+        } finally {
+          restoreRoleSetStores();
+        }
+      });
     });
   });
 });

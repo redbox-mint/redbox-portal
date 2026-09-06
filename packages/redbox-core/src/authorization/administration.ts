@@ -195,6 +195,255 @@ export interface ReplaceExternalAssignmentsCommand extends AuthorizationAdminist
   readonly provider: string;
   readonly sourceKey: string;
   readonly roleKeys: readonly string[];
+  /**
+   * Caller-observed source state for compare-and-set. Each entry pins the
+   * assignment version the caller saw for that role key. When supplied, every
+   * entry must match a live row with the same version and every live row must
+   * be pinned; any drift surfaces as `authorization.version-conflict` with no
+   * partial counters or success audit. Omission preserves provider-sync flows
+   * that reconcile without tracking versions; those writes remain CAS-guarded
+   * by per-row version predicates.
+   */
+  readonly expectedState?: readonly ExternalAssignmentExpectedState[];
+}
+
+export interface ExternalAssignmentExpectedState {
+  readonly roleKey: string;
+  readonly expectedVersion: number;
+}
+
+export interface SetUserAccessCommand extends AuthorizationAdministrationCommand {
+  readonly brandId: string;
+  readonly userId: string;
+  readonly disabled: boolean;
+  /**
+   * Optional optimistic-concurrency guard carrying the caller-observed
+   * `loginDisabledVersion`. When supplied it must match or the mutation fails
+   * with `authorization.version-conflict`; read-modify-write callers must
+   * supply it. Quorum-critical races remain serialized by protected-role
+   * locks even when it is omitted.
+   */
+  readonly expectedVersion?: number;
+}
+
+export interface UserAccessResult {
+  readonly userId: string;
+  readonly disabled: boolean;
+  readonly changed: boolean;
+}
+
+export interface LinkUserAccountsCommand extends AuthorizationAdministrationCommand {
+  readonly brandId: string;
+  readonly primaryUserId: string;
+  readonly secondaryUserId: string;
+  /**
+   * DEPRECATED wire fallback, no longer consumed for progress accounting.
+   * Progress is durable truth (`recordsCompletedOids.length` on the stored
+   * operation); caller-supplied counts are never trusted. Retained on the
+   * wire shape only so older clients still validate.
+   */
+  readonly recordsRewritten?: number;
+  /**
+   * AUTH-LINK-PROOF-001 pair-bound server proof: caller-observed secondary
+   * `loginDisabledVersion` (missing reads as 1 for legacy rows). REQUIRED:
+   * when omitted the link fails with `authorization.version-conflict` so
+   * callers must prove a recent read of BOTH identities (see
+   * `primaryExpectedVersion`). Any drift fails closed before any write.
+   */
+  readonly secondaryExpectedVersion?: number;
+  /**
+   * AUTH-LINK-PROOF-001 caller-observed primary `loginDisabledVersion`.
+   * REQUIRED alongside `secondaryExpectedVersion`.
+   */
+  readonly primaryExpectedVersion?: number;
+  /**
+   * AUTH-LINK-PROOF-001 server-bound pair confirmation token issued by
+   * `previewLinkAccounts`. Binds actor + brand + primary/secondary pair +
+   * both expected versions + content hash with a short expiry. REQUIRED: the
+   * writer re-verifies the token before any write so preview/confirmation
+   * cannot be bypassed or replayed across pairs.
+   */
+  readonly linkConfirmationToken?: string;
+  /**
+   * AUTH-TXN-001 stable idempotency key for the durable link operation. When
+   * supplied, the writer records `pending/running/completed/failed`
+   * transitions against it so a retry of the same operation resumes instead
+   * of conflicting with its own prior commit.
+   */
+  readonly linkOperationId?: string;
+}
+
+/**
+ * AUTH-P5-006: canonical mandatory link DTO. The wire
+ * `LinkUserAccountsCommand` keeps proof fields optional so legacy callers
+ * fail closed at runtime (never at the type boundary); writers normalize to
+ * this mandatory family via `normalizeLinkUserAccountsRequest` immediately
+ * after the scope gate, and every downstream proof/operation check consumes
+ * only this shape. Publicly exported as the single contract for
+ * preview → apply → retry (operation ID, both expected versions, and the
+ * pair-bound confirmation token are all required).
+ */
+export interface LinkUserAccountsRequest extends AuthorizationAdministrationCommand {
+  readonly brandId: string;
+  readonly primaryUserId: string;
+  readonly secondaryUserId: string;
+  readonly secondaryExpectedVersion: number;
+  readonly primaryExpectedVersion: number;
+  readonly linkConfirmationToken: string;
+  readonly linkOperationId: string;
+  readonly recordsRewritten?: number;
+}
+
+/**
+ * AUTH-P5-006 mandatory retry DTO. Retries re-prove the full preview
+ * contract — operation ID, both account versions, and the pair-bound
+ * confirmation token are ALL required and are verified against the STORED
+ * durable proof (versions, snapshot, proof hash) before only the record
+ * phase resumes. The authorization commit is never re-executed on resume.
+ */
+export interface RetryLinkOperationCommand extends AuthorizationAdministrationCommand {
+  readonly brandId: string;
+  readonly primaryUserId: string;
+  readonly secondaryUserId: string;
+  readonly primaryExpectedVersion: number;
+  readonly secondaryExpectedVersion: number;
+  readonly linkConfirmationToken: string;
+  readonly linkOperationId: string;
+  readonly requestId: string;
+  readonly reason?: string;
+}
+
+function positiveLinkVersion(value: number | undefined, field: string): number {
+  if (value === undefined) {
+    throw new AuthorizationAdministrationError(
+      'authorization.version-conflict',
+      409,
+      'Both primaryExpectedVersion and secondaryExpectedVersion are required to link accounts.'
+    );
+  }
+  if (!Number.isSafeInteger(value) || Number(value) < 1) {
+    throw new AuthorizationAdministrationError(
+      'authorization.version-conflict',
+      409,
+      `${field} must be a positive integer.`
+    );
+  }
+  return Number(value);
+}
+
+/**
+ * AUTH-P5-006: normalize the legacy wire command to the canonical mandatory
+ * request. Omitted/invalid proof fails closed with the stable link codes
+ * (409 version-conflict for versions, 409 preview-stale for the
+ * token/operation ID) so preview/confirmation cannot be bypassed.
+ */
+export function normalizeLinkUserAccountsRequest(command: LinkUserAccountsCommand): LinkUserAccountsRequest {
+  const primaryExpectedVersion = positiveLinkVersion(command.primaryExpectedVersion, 'primaryExpectedVersion');
+  const secondaryExpectedVersion = positiveLinkVersion(command.secondaryExpectedVersion, 'secondaryExpectedVersion');
+  const linkConfirmationToken = typeof command.linkConfirmationToken === 'string' ? command.linkConfirmationToken : '';
+  if (linkConfirmationToken.length === 0) {
+    throw new AuthorizationAdministrationError(
+      'authorization.preview-stale',
+      409,
+      'A link preview confirmation token is required to link accounts.'
+    );
+  }
+  const linkOperationId = typeof command.linkOperationId === 'string' ? command.linkOperationId.trim() : '';
+  if (linkOperationId.length === 0) {
+    throw new AuthorizationAdministrationError(
+      'authorization.preview-stale',
+      409,
+      'A link operation ID from preview is required to link accounts.'
+    );
+  }
+  return Object.freeze({
+    ...command,
+    primaryExpectedVersion,
+    secondaryExpectedVersion,
+    linkConfirmationToken,
+    linkOperationId,
+  });
+}
+
+export interface UserAccountLinkResult {
+  readonly primaryUserId: string;
+  readonly secondaryUserId: string;
+  readonly rolesAdopted: number;
+  readonly rolesRetired: number;
+  readonly recordsRewritten: number;
+  /**
+   * AUTH-TXN-001: true when the authorization commit succeeded but the
+   * separate Record-datastore rewrite phase did not complete (partial or
+   * skipped). Operators must reconcile via the `user.link-records-pending`
+   * audit event; the authorization commit is NOT rolled back because the two
+   * datastores share no transaction.
+   */
+  readonly recordsPending: boolean;
+  readonly changed: boolean;
+  /**
+   * AUTH-TXN-001 stable operation key for the durable link operation
+   * (`pending/running/completed/failed`). Mandatory end-to-end: every link
+   * result carries it so clients always poll/retry idempotently.
+   */
+  readonly linkOperationId: string;
+}
+
+export interface PreviewLinkAccountsCommand extends AuthorizationAdministrationCommand {
+  readonly brandId: string;
+  readonly primaryUserId: string;
+  readonly secondaryUserId: string;
+}
+
+export interface LinkAccountsPreview {
+  readonly primaryUserId: string;
+  readonly secondaryUserId: string;
+  readonly primaryExpectedVersion: number;
+  readonly secondaryExpectedVersion: number;
+  readonly primaryUsername: string;
+  readonly secondaryUsername: string;
+  readonly rolesToAdopt: number;
+  readonly rolesToRetire: number;
+  readonly confirmationToken: string;
+  readonly linkOperationId: string;
+}
+
+export interface RoleSetGrant {
+  readonly roleKey: string;
+  readonly expectedVersion?: number;
+  readonly sourceKey?: string;
+  readonly expiresAt?: string;
+}
+
+export interface RoleSetRemoval {
+  readonly roleKey: string;
+  readonly assignmentId?: string;
+  readonly source?: string;
+  readonly sourceKey?: string;
+  readonly expectedVersion: number;
+}
+
+export interface ApplyUserRoleSetCommand extends AuthorizationAdministrationCommand {
+  readonly brandId: string;
+  readonly principalId: string;
+  readonly grants: readonly RoleSetGrant[];
+  readonly removals: readonly RoleSetRemoval[];
+  /**
+   * AUTH-P5-002: caller-observed user-row version. When supplied, the writer
+   * pins it against the user row and bumps it in the SAME required
+   * transaction as the assignment writes (atomic CAS): a concurrent
+   * disable/link/profile commit aborts the whole set with 409 instead of
+   * interleaving with role changes.
+   */
+  readonly userExpectedVersion?: number;
+}
+
+export interface UserRoleSetResult {
+  readonly principalId: string;
+  readonly granted: number;
+  readonly revoked: number;
+  readonly suppressed: number;
+  readonly noOp: number;
+  readonly changed: boolean;
 }
 
 export type BulkAssignmentAction = 'grant' | 'revoke';
@@ -246,6 +495,7 @@ export interface RoleCatalogQuery {
   readonly search?: string;
   readonly status?: 'active' | 'inactive';
   readonly templateKey?: string;
+  readonly requestId?: string;
 }
 
 export interface RoleCatalogItem {
@@ -497,6 +747,7 @@ export const AUTHORIZATION_CONFIRMATION_OPERATIONS = [
   'scope-adoption',
   'config-export-sensitive',
   'config-import',
+  'account-link',
 ] as const;
 
 export type AuthorizationConfirmationOperation = (typeof AUTHORIZATION_CONFIRMATION_OPERATIONS)[number];

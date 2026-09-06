@@ -26,7 +26,6 @@ import { ConfigService } from './config.service';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
 import { LoggerService } from './logger.service';
-import { merge as _merge } from 'lodash-es';
 
 export interface User {
   id: string;
@@ -44,6 +43,7 @@ export interface User {
   effectivePrimaryUsername?: string;
   linkedAccountCount?: number;
   loginDisabled?: boolean;
+  loginDisabledVersion?: number;
   effectiveLoginDisabled?: boolean;
   disabledByPrimaryUserId?: string;
   disabledByPrimaryUsername?: string;
@@ -66,6 +66,13 @@ export interface UserLoginResult {
 export interface SaveResult {
   status: boolean;
   message: string;
+  version?: number;
+}
+
+export interface UserAccessOptions {
+  /** AUTH-P5-002: mandatory caller-observed version for CAS (legacy rows send 1). */
+  expectedVersion: number;
+  reason?: string;
 }
 
 export interface LinkedUserSummary {
@@ -94,6 +101,114 @@ export interface UserLinkResponse {
     recordsRewritten: number;
     rolesMerged: number;
   };
+  // AUTH-TXN-001: pending status + operation ID are mandatory end-to-end so
+  // the UI always polls the durable operation instead of assuming atomic
+  // completion.
+  recordsPending: boolean;
+  linkOperationId: string;
+}
+
+export interface UserListResponse {
+  records: User[];
+}
+
+export interface UserDetailsUpdate {
+  name?: string;
+  email?: string;
+  password?: string;
+  roles?: string[];
+  /** AUTH-P5-002: mandatory caller-observed version for CAS (legacy rows send 1). */
+  expectedVersion: number;
+}
+
+export interface LocalUserCreateDetails {
+  name?: string;
+  email?: string;
+  password?: string;
+  roles?: string[];
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+}
+
+/**
+ * Pair-bound proof for account-link apply. All four fields are REQUIRED:
+ * both caller-observed versions, the preview confirmation token, and the
+ * stable operation ID from preview. Omission fails closed server-side.
+ */
+export interface LinkAccountsOptions {
+  primaryExpectedVersion: number;
+  secondaryExpectedVersion: number;
+  linkConfirmationToken: string;
+  linkOperationId: string;
+  reason?: string;
+}
+
+export interface RetryLinkAccountsOptions {
+  primaryExpectedVersion: number;
+  secondaryExpectedVersion: number;
+  linkConfirmationToken: string;
+  reason?: string;
+}
+
+export interface LinkAccountsPreview {
+  primaryUserId: string;
+  secondaryUserId: string;
+  primaryExpectedVersion: number;
+  secondaryExpectedVersion: number;
+  primaryUsername: string;
+  secondaryUsername: string;
+  rolesToAdopt: number;
+  rolesToRetire: number;
+  confirmationToken: string;
+  linkOperationId: string;
+}
+
+export type LinkOperationStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+export interface LinkOperationState {
+  operationId: string;
+  brandId: string;
+  primaryUserId: string;
+  secondaryUserId: string;
+  primaryUsername: string;
+  secondaryUsername: string;
+  secondaryEmail: string;
+  status: LinkOperationStatus;
+  recordsPending: boolean;
+  recordsRewritten: number;
+  rolesAdopted: number;
+  rolesRetired: number;
+  attemptCount: number;
+  // AUTH-TXN-001 durable plan + per-record progress (mandatory).
+  recordOids: string[];
+  recordsCompletedOids: string[];
+}
+
+export interface ApiProblem {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  code?: string;
+  instance?: string;
+  requestId?: string;
+}
+
+export function getApiProblemCode(error: unknown): string | undefined {
+  const data = (error as { error?: unknown })?.error;
+  if (typeof data === 'object' && data !== null && 'code' in data) {
+    const code = (data as { code?: unknown }).code;
+    return typeof code === 'string' ? code : undefined;
+  }
+  return undefined;
+}
+
+export function getApiProblemStatus(error: unknown): number | undefined {
+  const status = (error as { status?: unknown })?.status;
+  return typeof status === 'number' ? status : undefined;
 }
 
 export interface UserAuditActor {
@@ -125,23 +240,21 @@ export interface UserAuditResponse {
 }
 
 /**
- * User-centric functions. 
- * 
+ * User-centric functions.
+ *
  * Note: functions will be ported over as these are consumed by the apps/
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
- * 
+ *
  */
 @Injectable()
 export class UserService extends HttpClientService {
+  protected infoUrl: string = '';
+  protected loginUrl: string = '';
 
-  protected infoUrl: string = "";
-  protected loginUrl: string = "";
-  private requestOptions:any = null as any;
-  
-  constructor( 
-    @Inject(HttpClient) protected override http: HttpClient, 
+  constructor(
+    @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
@@ -150,33 +263,31 @@ export class UserService extends HttpClientService {
     super(http, rootContext, utilService, configService);
   }
   public getInfo(): Promise<User> {
-    const req = this.http.get<User>(this.infoUrl, {responseType: 'json', observe: 'body', context: this.httpContext});
-    req.pipe(
-      map((data:any) => {
-        return data as User;
-      })
-    );
+    const req = this.http.get<User>(this.infoUrl, {
+      responseType: 'json',
+      observe: 'body',
+      context: this.httpContext,
+    });
     return firstValueFrom(req);
-  } 
+  }
 
-  loginLocal(username: string, password: string): Promise<any> {
-    this.loggerService.debug(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}:: ${this.loginUrl}`);
-    const req = this.http.post(this.loginUrl, {username: username, password:password, branding:this.config.branding, portal: this.config.portal}, {responseType: 'json', observe: 'body', context: this.httpContext});
-    req.pipe(
-      map((data: any) => {
-        return data as UserLoginResult
-      })
+  loginLocal(username: string, password: string): Promise<UserLoginResult> {
+    this.loggerService.debug(
+      `Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}:: ${this.loginUrl}`
+    );
+    const req = this.http.post<UserLoginResult>(
+      this.loginUrl,
+      { username: username, password: password, branding: this.config.branding, portal: this.config.portal },
+      { responseType: 'json', observe: 'body', context: this.httpContext }
     );
     return firstValueFrom(req);
   }
 
-  public override async waitForInit(): Promise<any> {
+  public override async waitForInit(): Promise<this> {
     await super.waitForInit();
     this.infoUrl = `${this.baseUrlWithContext}/user/info`;
     this.loginUrl = `${this.baseUrlWithContext}/user/login_local`;
-    this.requestOptions = this.reqOptsJsonBodyOnly;
     this.enableCsrfHeader();
-    _merge(this.requestOptions, {context: this.httpContext});
     return this;
   }
 
@@ -188,124 +299,250 @@ export class UserService extends HttpClientService {
     return this.infoUrl;
   }
 
-  // old options from angular legacy
-  // headersObj['X-Source'] = 'jsclient';
-  // headersObj['Content-Type'] = 'application/json;charset=utf-8';
-  // headersObj['X-CSRF-Token'] = this.config.csrfToken;
-  public async getUsers(options?: { includeDisabled?: boolean }) {
-    let url = `${this.brandingAndPortalUrl}/admin/users/get`;
+  // RB-ANGULAR-001: typed /api contract endpoints. The legacy /admin URLs are
+  // no longer used by maintained operations; every call below carries the
+  // ambient CSRF context inline (no shared request-options bridge).
+  private apiJsonOptions(): object {
+    return { responseType: 'json', observe: 'body', context: this.httpContext };
+  }
+
+  public async getUsers(options?: { includeDisabled?: boolean }): Promise<User[] | UserListResponse> {
+    let url = `${this.brandingAndPortalUrl}/api/users`;
     if (options?.includeDisabled) {
       url += '?includeDisabled=true';
     }
-    const result$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
-    let result =  await firstValueFrom(result$);
-    return result; // old function in angular legacy returned User[]
+    const result$ = this.http
+      .get<User[] | UserListResponse>(url, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+      })
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
-  public async updateUserDetails(userid: any, details: any) {
-    let url = `${this.brandingAndPortalUrl}/admin/users/update`;
-    const result$ = this.http.post(url, {userid: userid, details:details}, this.requestOptions).pipe(map(res => res));
-    let result =  await firstValueFrom(result$);
-    return result; // old function in angular legacy returned SaveResult[]
+  public async updateUserDetails(userid: string, details: UserDetailsUpdate): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/api/users`;
+    const result$ = this.http
+      .post<SaveResult>(
+        url,
+        { id: userid, ...details },
+        { responseType: 'json', observe: 'body', context: this.httpContext }
+      )
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
-  public async addLocalUser(username: any, details: any) {
-    let url = `${this.brandingAndPortalUrl}/admin/users/newUser`;
-    const result$ =  this.http.post(url, {username: username, details:details}, this.requestOptions).pipe(map(res => res));
-    let result =  await firstValueFrom(result$);
-    return result; // old function in angular legacy returned SaveResult[]
+  public async addLocalUser(username: string, details: LocalUserCreateDetails): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/api/users`;
+    const result$ = this.http
+      .put<SaveResult>(
+        url,
+        { username: username, ...details },
+        { responseType: 'json', observe: 'body', context: this.httpContext }
+      )
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
-  public async genKey(userid: any) {
-    let url = `${this.brandingAndPortalUrl}/admin/users/genKey`;
-    const result$ = this.http.post(url, {userid: userid}, this.requestOptions).pipe(map(res => res));
-    let result =  await firstValueFrom(result$);
-    return result; // old function in angular legacy returned SaveResult[]
+  public async genKey(userid: string, expectedVersion: number): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/api/users/token/generate`;
+    const result$ = this.http
+      .post<SaveResult>(
+        url,
+        {},
+        {
+          responseType: 'json',
+          observe: 'body',
+          context: this.httpContext,
+          params: { id: userid, expectedVersion: String(expectedVersion) },
+        }
+      )
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
-  public async revokeKey(userid: any) {
-    let url = `${this.brandingAndPortalUrl}/admin/users/revokeKey`;
-    const result$ = this.http.post(url, {userid: userid}, this.requestOptions).pipe(map(res => res));
-    let result =  await firstValueFrom(result$);
-    return result; // old function in angular legacy returned SaveResult[]
+  public async revokeKey(userid: string, expectedVersion: number): Promise<SaveResult> {
+    const url = `${this.brandingAndPortalUrl}/api/users/token/revoke`;
+    const result$ = this.http
+      .post<SaveResult>(
+        url,
+        {},
+        {
+          responseType: 'json',
+          observe: 'body',
+          context: this.httpContext,
+          params: { id: userid, expectedVersion: String(expectedVersion) },
+        }
+      )
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
-  public async getBrandRoles() {
-    let url = `${this.brandingAndPortalUrl}/admin/roles/get`;
-    const result$ = this.http.get(url,this.requestOptions).pipe(map(res => res));
-    let result =  await firstValueFrom(result$);
-    return result; // old function in angular legacy returned Role[]
+  public async getBrandRoles(): Promise<RoleSummary[]> {
+    const url = `${this.brandingAndPortalUrl}/api/roles`;
+    const result$ = this.http
+      .get<RoleSummary[]>(url, { responseType: 'json', observe: 'body', context: this.httpContext })
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
-  public async updateUserRoles(userid: any, roleIds: any) {
-    let url = `${this.brandingAndPortalUrl}/admin/roles/user`;
-    const result$ = this.http.post(url, {userid: userid, roles:roleIds},this.requestOptions).pipe(map(res => res));
-    let result =  await firstValueFrom(result$);
-    return result; // old function in angular legacy returned SaveResult[]
+  public async updateUserRoles(userid: string, roleIds: string[], expectedVersion: number): Promise<SaveResult> {
+    // AUTH-P5-002: role CAS is mandatory — the caller-observed user version
+    // is always sent (the server rejects the write without it).
+    const url = `${this.brandingAndPortalUrl}/api/users`;
+    const result$ = this.http
+      .post<SaveResult>(
+        url,
+        { id: userid, roles: roleIds, expectedVersion },
+        { responseType: 'json', observe: 'body', context: this.httpContext }
+      )
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
   }
 
   public async searchLinkCandidates(primaryUserId: string, query: string): Promise<UserLinkCandidate[]> {
-    const url = `${this.brandingAndPortalUrl}/admin/users/link/candidates`;
-    const result$ = this.http.get<UserLinkCandidate[]>(url, {
-      responseType: 'json',
-      observe: 'body',
-      context: this.httpContext,
-      params: {
-        primaryUserId,
-        query
-      }
-    }).pipe(map(res => res));
+    // RB-ANGULAR-001: contract endpoint (was compatibility /admin/users/...).
+    const url = `${this.brandingAndPortalUrl}/api/users/link/candidates`;
+    const result$ = this.http
+      .get<UserLinkCandidate[]>(url, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+        params: {
+          primaryUserId,
+          query,
+        },
+      })
+      .pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
   public async getUserLinks(primaryUserId: string): Promise<UserLinkResponse> {
-    const url = `${this.brandingAndPortalUrl}/admin/users/${primaryUserId}/links`;
-    const result$ = this.http.get<UserLinkResponse>(url, {
-      responseType: 'json',
-      observe: 'body',
-      context: this.httpContext
-    }).pipe(map(res => res));
+    // RB-ANGULAR-001: contract endpoint (was compatibility /admin/users/...).
+    const url = `${this.brandingAndPortalUrl}/api/users/${primaryUserId}/links`;
+    const result$ = this.http
+      .get<UserLinkResponse>(url, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+      })
+      .pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
   public async getUserAudit(userId: string): Promise<UserAuditResponse> {
-    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/audit`;
-    const result$ = this.http.get<UserAuditResponse>(url, {
-      responseType: 'json',
-      observe: 'body',
-      context: this.httpContext
-    }).pipe(map(res => res));
+    // RB-ANGULAR-001: contract endpoint (was compatibility /admin/users/...).
+    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/audit`;
+    const result$ = this.http
+      .get<UserAuditResponse>(url, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+      })
+      .pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
-  public async disableUser(userId: string): Promise<SaveResult> {
-    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/disable`;
-    const result$ = this.http.post<SaveResult>(url, {}, {
-      responseType: 'json',
-      observe: 'body',
-      context: this.httpContext
-    }).pipe(map(res => res));
+  public async disableUser(userId: string, options: UserAccessOptions): Promise<SaveResult> {
+    // RB-ANGULAR-001: contract endpoint (was compatibility /admin/users/...).
+    // AUTH-P5-002: CAS is mandatory — the version is always sent.
+    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/disable`;
+    const body: Record<string, unknown> = { expectedVersion: options.expectedVersion };
+    if (options.reason !== undefined) body['reason'] = options.reason;
+    const result$ = this.http
+      .post<SaveResult>(url, body, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+      })
+      .pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
-  public async enableUser(userId: string): Promise<SaveResult> {
-    const url = `${this.brandingAndPortalUrl}/admin/users/${userId}/enable`;
-    const result$ = this.http.post<SaveResult>(url, {}, {
-      responseType: 'json',
-      observe: 'body',
-      context: this.httpContext
-    }).pipe(map(res => res));
+  public async enableUser(userId: string, options: UserAccessOptions): Promise<SaveResult> {
+    // RB-ANGULAR-001: contract endpoint (was compatibility /admin/users/...).
+    // AUTH-P5-002: CAS is mandatory — the version is always sent.
+    const url = `${this.brandingAndPortalUrl}/api/users/${userId}/enable`;
+    const body: Record<string, unknown> = { expectedVersion: options.expectedVersion };
+    if (options.reason !== undefined) body['reason'] = options.reason;
+    const result$ = this.http
+      .post<SaveResult>(url, body, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+      })
+      .pipe(map(res => res));
     return await firstValueFrom(result$);
   }
 
-  public async linkAccounts(primaryUserId: string, secondaryUserId: string): Promise<UserLinkResponse> {
-    const url = `${this.brandingAndPortalUrl}/admin/users/link`;
-    const result$ = this.http.post<UserLinkResponse>(url, { primaryUserId, secondaryUserId }, {
-      responseType: 'json',
-      observe: 'body',
-      context: this.httpContext
-    }).pipe(map(res => res));
+  public async linkAccounts(
+    primaryUserId: string,
+    secondaryUserId: string,
+    options: LinkAccountsOptions
+  ): Promise<UserLinkResponse> {
+    // RB-ANGULAR-001: contract endpoint carrying the full pair-bound proof
+    // (both expected versions plus the preview confirmation token and the
+    // stable operation ID). All proof fields are required — omission fails
+    // closed server-side.
+    const url = `${this.brandingAndPortalUrl}/api/users/link`;
+    const body: Record<string, unknown> = {
+      primaryUserId,
+      secondaryUserId,
+      primaryExpectedVersion: options.primaryExpectedVersion,
+      secondaryExpectedVersion: options.secondaryExpectedVersion,
+      linkConfirmationToken: options.linkConfirmationToken,
+      linkOperationId: options.linkOperationId,
+    };
+    if (options.reason !== undefined) body['reason'] = options.reason;
+    const result$ = this.http
+      .post<UserLinkResponse>(url, body, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+      })
+      .pipe(map(res => res));
     return await firstValueFrom(result$);
   }
-  
+
+  public async previewLinkAccounts(primaryUserId: string, secondaryUserId: string): Promise<LinkAccountsPreview> {
+    const url = `${this.brandingAndPortalUrl}/api/users/link/preview`;
+    const result$ = this.http
+      .post<LinkAccountsPreview>(
+        url,
+        { primaryUserId, secondaryUserId },
+        { responseType: 'json', observe: 'body', context: this.httpContext }
+      )
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async getLinkOperation(operationId: string): Promise<LinkOperationState> {
+    const url = `${this.brandingAndPortalUrl}/api/users/link/operations/${operationId}`;
+    const result$ = this.http
+      .get<LinkOperationState>(url, { responseType: 'json', observe: 'body', context: this.httpContext })
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
+
+  public async retryLinkOperation(
+    operationId: string,
+    primaryUserId: string,
+    secondaryUserId: string,
+    options: RetryLinkAccountsOptions
+  ): Promise<UserLinkResponse> {
+    const url = `${this.brandingAndPortalUrl}/api/users/link/operations/${operationId}/retry`;
+    const body: Record<string, unknown> = {
+      primaryUserId,
+      secondaryUserId,
+      primaryExpectedVersion: options.primaryExpectedVersion,
+      secondaryExpectedVersion: options.secondaryExpectedVersion,
+      linkConfirmationToken: options.linkConfirmationToken,
+    };
+    if (options.reason !== undefined) body['reason'] = options.reason;
+    const result$ = this.http
+      .post<UserLinkResponse>(url, body, { responseType: 'json', observe: 'body', context: this.httpContext })
+      .pipe(map(res => res));
+    return await firstValueFrom(result$);
+  }
 }

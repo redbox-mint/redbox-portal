@@ -2,6 +2,10 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'mocha';
 import { asScopeKey, createScopeRegistry } from '../../src/authorization';
 import {
+  createSystemProcessContextInternal,
+  isTrustedAuthorizationContextInternal,
+} from '../../src/services/AuthorizationActorIssuer';
+import {
   Services,
   type AuthorizationAssignmentSourceRecord,
   type AuthorizationBrandSourceRecord,
@@ -360,7 +364,13 @@ function fixture() {
       return req.authorization?.tokenScopeCeiling;
     },
   };
-  return { service: new Services.AuthorizationService(dependencies), counts, state, roles };
+  return {
+    service: new Services.AuthorizationService(dependencies),
+    counts,
+    state,
+    roles,
+    issuerDeps: { getRegistry: dependencies.getRegistry, resolveBrand: dependencies.resolveBrand },
+  };
 }
 
 function request(overrides: Partial<Sails.Req> = {}): Sails.Req {
@@ -587,14 +597,22 @@ describe('AuthorizationService', () => {
   });
 
   it('keeps the trusted system-process factory off request service exports and constrains system context scopes', async () => {
-    const { service } = fixture();
+    const { service, issuerDeps } = fixture();
     const exported = service.exports();
     assert.equal(exported.createSystemProcessContext, undefined);
+    // Unforgeable via class: no public issuance or verification methods exist
+    // on the instance or its prototype — minting goes through the internal
+    // issuer module only.
+    const serviceRecord = service as unknown as Record<string, unknown>;
+    assert.equal(serviceRecord['createSystemProcessContext'], undefined);
+    assert.equal(serviceRecord['isTrustedAuthorizationContext'], undefined);
+    assert.equal(serviceRecord['requireTrustedAuthorizationContext'], undefined);
 
-    const systemContext = await service.createSystemProcessContext('catalog-reconcile', undefined, [
+    const systemContext = await createSystemProcessContextInternal(issuerDeps, 'catalog-reconcile', undefined, [
       'system.authorization.manage',
       'record.read',
     ]);
+    assert.equal(isTrustedAuthorizationContextInternal(systemContext), true);
     assert.equal(systemContext.contextType, 'system');
     assert.deepEqual(systemContext.effectiveScopeKeys, ['system.authorization.manage']);
     // Fail-closed brand gate: a brandless system context carries the granted
@@ -607,22 +625,24 @@ describe('AuthorizationService', () => {
       'brand-not-found'
     );
 
-    const brandJob = await service.createSystemProcessContext('brand-export', BRAND_A, ['record.read']);
+    const brandJob = await createSystemProcessContextInternal(issuerDeps, 'brand-export', BRAND_A, ['record.read']);
     assert.equal(service.authorizeAction(brandJob, asScopeKey('record.read')).allowed, true);
 
-    const constrainedBrandJob = await service.createSystemProcessContext('brand-reconcile', BRAND_A, [
+    const constrainedBrandJob = await createSystemProcessContextInternal(issuerDeps, 'brand-reconcile', BRAND_A, [
       'record.read',
       'system.authorization.manage',
     ]);
     assert.deepEqual(constrainedBrandJob.effectiveScopeKeys, ['record.read']);
 
-    const invalidBrandJob = await service.createSystemProcessContext('missing-brand', 'unknown-brand', ['record.read']);
+    const invalidBrandJob = await createSystemProcessContextInternal(issuerDeps, 'missing-brand', 'unknown-brand', [
+      'record.read',
+    ]);
     assert.deepEqual(invalidBrandJob.effectiveScopeKeys, []);
     assert.equal(service.hasScope(invalidBrandJob, asScopeKey('record.read')), false);
   });
 
   it('reveals provenance only through a same-brand actor with authorization.explain', async () => {
-    const { service, counts } = fixture();
+    const { service, counts, issuerDeps } = fixture();
     const ordinary = await service.resolveUserContext('ordinary', BRAND_A, 'session');
     const denied = await service.explainDecision(ordinary, 'primary', BRAND_A, asScopeKey('record.read'), {
       brandId: BRAND_B,
@@ -647,7 +667,9 @@ describe('AuthorizationService', () => {
       'explanation consumes caller-supplied resource evidence and performs no object lookup'
     );
 
-    const brandJob = await service.createSystemProcessContext('brand-explain', BRAND_A, ['authorization.explain']);
+    const brandJob = await createSystemProcessContextInternal(issuerDeps, 'brand-explain', BRAND_A, [
+      'authorization.explain',
+    ]);
     const crossBrandJobExplanation = await service.explainDecision(
       brandJob,
       'ordinary',

@@ -116,6 +116,20 @@ export function createLegacyBearerAuthorizationPrincipal(input: {
   });
 }
 
+/**
+ * Authorization context freezing helpers (no issuance capability).
+ *
+ * This module intentionally owns NO provenance: there is no WeakSet, no
+ * marker, no issuer, and no predicate here. `freezeAuthorizationContext`
+ * produces an explicitly untrusted frozen candidate; only the genuine
+ * resolver in `services/AuthorizationService.ts` (module-private issuer plus
+ * the guarded `isTrustedAuthorizationContext` /
+ * `requireTrustedAuthorizationContext` instance operations) can mint and
+ * recognize server-issued contexts. Deep-importing this module therefore
+ * cannot forge a recognized actor context, and no predicate is importable
+ * from any publishable entry point.
+ */
+
 /** Finalizes the authority-bearing object and recursively freezes every nested collection. */
 export function freezeAuthorizationContext(input: AuthorizationContextInput): AuthorizationContext {
   const roles = Object.freeze((input.roles ?? []).map(freezeRole));

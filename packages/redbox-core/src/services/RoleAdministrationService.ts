@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Services as services } from '../CoreService';
 import {
   AUTHORIZATION_ADMIN_CONFIRMATION_TTL_MS,
@@ -17,6 +17,7 @@ import {
   createAuthorizationConfirmationToken,
   getRoleEffectiveScopes,
   isAuthorizationAdministrationError,
+  normalizeLinkUserAccountsRequest,
   normalizeRoleScopeOverrides,
   normalizedNewRoleKey,
   normalizedScopeKeys,
@@ -32,6 +33,8 @@ import {
   type ApplyRoleScopesCommand,
   type ApplyRoleTemplateUpgradeCommand,
   type ApplyScopeAdoptionCommand,
+  type ApplyUserRoleSetCommand,
+  type UserRoleSetResult,
   type AssignmentAdministrationSnapshot,
   type AssignmentByIdCommand,
   type AssignmentCatalogPage,
@@ -53,10 +56,14 @@ import {
   type BulkTemplateUpgradeRoleConflict,
   type BulkTemplateUpgradeRolePreview,
   type CreateRoleCommand,
+  type ExternalAssignmentExpectedState,
   type ExternalReplacementResult,
   type GrantAssignmentCommand,
+  type LinkUserAccountsCommand,
+  type LinkAccountsPreview,
   type PreviewBulkAssignmentsCommand,
   type PreviewBulkTemplateUpgradeCommand,
+  type PreviewLinkAccountsCommand,
   type PreviewAuthorizationConfigurationImportCommand,
   type PreviewRoleLifecycleCommand,
   type PreviewRoleScopesCommand,
@@ -65,6 +72,7 @@ import {
   type PreviewTemplateRevisionCommand,
   type PublishTemplateRevisionCommand,
   type ReplaceExternalAssignmentsCommand,
+  type RetryLinkOperationCommand,
   type RevokeAssignmentCommand,
   type RoleAdministrationSnapshot,
   type RoleAssignmentSource,
@@ -75,9 +83,13 @@ import {
   type RoleScopeOverride,
   type ScopeKey,
   type ScopeRegistry,
+  type SetUserAccessCommand,
   type UpdateRoleCommand,
+  type UserAccessResult,
+  type UserAccountLinkResult,
 } from '../authorization';
 import type { AuthorizationAuditEventInput } from './AuthorizationAuditService';
+import { isTrustedAuthorizationContextInternal } from './AuthorizationActorIssuer';
 import * as AuthorizationConfigurationServiceModule from './AuthorizationConfigurationService';
 import type { AuthorizationAuditAttributes } from '../waterline-models/AuthorizationAudit';
 import type { RoleAttributes } from '../waterline-models/Role';
@@ -95,6 +107,49 @@ const ASSIGNMENT_READ_SCOPE = 'authorization.assignment.read' as ScopeKey;
 const SYSTEM_MANAGE_SCOPE = 'system.authorization.manage' as ScopeKey;
 const MANUAL_SOURCE_KEY = 'manual';
 const MAX_LINK_DEPTH = 16;
+/** AUTH-TXN-001 bounded idempotent retry budget for a durable link operation. */
+const LINK_OPERATION_MAX_ATTEMPTS = 5;
+
+export interface LinkOperationState {
+  readonly operationId: string;
+  readonly brandId: string;
+  readonly primaryUserId: string;
+  readonly secondaryUserId: string;
+  readonly primaryUsername: string;
+  readonly secondaryUsername: string;
+  readonly secondaryEmail: string;
+  readonly status: 'pending' | 'running' | 'completed' | 'failed';
+  readonly recordsPending: boolean;
+  readonly recordsRewritten: number;
+  readonly rolesAdopted: number;
+  readonly rolesRetired: number;
+  readonly attemptCount: number;
+  /**
+   * AUTH-TXN-001 durable plan + proof. `recordOids` is the bounded complete
+   * record plan discovered BEFORE any authority mutation; `proofHash` is the
+   * SHA-256 of the pair-bound confirmation token; `assignmentSnapshot` is the
+   * frozen authoritative snapshot bound into that token;
+   * `primaryExpectedVersion`/`secondaryExpectedVersion` are the bound account
+   * versions; `proofActorId` is the preview actor identity. Retry consumes
+   * ONLY this stored plan/proof.
+   */
+  readonly recordOids: readonly string[];
+  readonly recordsCompletedOids: readonly string[];
+  readonly primaryExpectedVersion?: number;
+  readonly secondaryExpectedVersion?: number;
+  readonly proofHash?: string;
+  readonly assignmentSnapshot?: readonly string[];
+  readonly proofActorId?: string;
+}
+
+/**
+ * AUTH-TXN-001 reduced-runtime mirror. Production persists every transition
+ * to the `UserLinkOperation` model (Mongo); when the model is unavailable
+ * (unit fakes) this process-local mirror preserves read-your-write
+ * transitions. It is NOT durability proof — only the shipped model +
+ * migration is.
+ */
+const linkOperationFallback = new Map<string, LinkOperationState>();
 
 interface AuditWriter {
   createSucceededEvent(
@@ -122,6 +177,23 @@ export interface RoleAdministrationServiceDependencies {
   readonly audit: () => AuditWriter;
   readonly configurationImport: () => ConfigurationImportWriter;
   readonly runTransaction: <T>(work: (connection: Sails.Connection) => Promise<T>) => Promise<T>;
+}
+
+/**
+ * AUTH-P5-001 module-private verifier. Server-issued provenance lives in the
+ * internal `AuthorizationActorIssuer` module closure; verification goes
+ * through its guarded predicate. The predicate is NOT injectable: callers
+ * cannot supply `() => true`. Published consumers cannot deep-import the
+ * issuer module (package `exports` exposes only the entry point and
+ * package.json), so only genuine server code paths that hold a
+ * server-issued context pass.
+ */
+function defaultIsTrustedActor(actor: unknown): boolean {
+  try {
+    return isTrustedAuthorizationContextInternal(actor);
+  } catch {
+    return false;
+  }
 }
 
 interface LoadedRoleState {
@@ -429,7 +501,15 @@ export namespace Services {
       'deleteRole',
       'listAssignments',
       'grantAssignment',
+      'applyUserRoleSet',
+      'linkUserAccounts',
+      'previewLinkAccounts',
+      'getLinkOperation',
+      'retryLinkOperation',
+      'recoverIncompleteLinkOperations',
+      'replayIncompleteLinkOperations',
       'revokeAssignment',
+      'setUserAccess',
       'suppressAssignment',
       'unsuppressAssignment',
       'replaceExternalAssignments',
@@ -449,9 +529,73 @@ export namespace Services {
       this.dependencies = { ...defaultDependencies(), ...dependencies };
     }
 
+    /**
+     * AUTH-ACTOR-001: fail-closed trusted-actor validation with non-forgeable
+     * provenance. The writer only trusts server-issued contexts recognized by
+     * the internal `AuthorizationActorIssuer` guarded predicate
+     * (module-private WeakSet capability populated by the genuine
+     * `AuthorizationService` resolvers and the internal system-process
+     * factory).
+     * `Object.isFrozen` or public `freezeAuthorizationContext` output alone is
+     * INSUFFICIENT — a caller that manually freezes a forged object (or calls
+     * the public freezer) is rejected because it lacks the capability. Scope
+     * gates additionally re-check `scopeProvenance` so claimed
+     * `effectiveScopeKeys` cannot mint authority. Canonical authMethods:
+     * `session`, `bearer`, `internal`.
+     */
+    private isTrustedActor(actor: unknown): boolean {
+      try {
+        return defaultIsTrustedActor(actor);
+      } catch {
+        return false;
+      }
+    }
+
     private actorId(command: AuthorizationAdministrationCommand): string {
-      const actorId = command.actor.principal.userId ?? command.actor.principal.operationId;
-      if (!command.actor.principal.active || actorId === undefined || actorId.trim().length === 0) {
+      const actor: unknown = command.actor;
+      if (actor === undefined || actor === null || !this.isTrustedActor(actor)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      const principal: unknown =
+        typeof actor === 'object' && actor !== null && 'principal' in actor ? actor.principal : undefined;
+      const userIdRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'userId' in principal ? principal.userId : undefined;
+      const operationIdRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'operationId' in principal
+          ? principal.operationId
+          : undefined;
+      const actorId =
+        (typeof userIdRaw === 'string' ? userIdRaw : undefined) ??
+        (typeof operationIdRaw === 'string' ? operationIdRaw : undefined);
+      const active =
+        typeof principal === 'object' && principal !== null && 'active' in principal && principal.active === true;
+      const categoryRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'category' in principal ? principal.category : undefined;
+      const category = typeof categoryRaw === 'string' ? categoryRaw : '';
+      const authMethodRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'authMethod' in principal
+          ? principal.authMethod
+          : undefined;
+      const authMethod = typeof authMethodRaw === 'string' ? authMethodRaw : '';
+      if (
+        !active ||
+        actorId === undefined ||
+        actorId.trim().length === 0 ||
+        category === 'anonymous' ||
+        category.length === 0 ||
+        !['session', 'bearer', 'internal'].includes(authMethod)
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      if (!Array.isArray(command.actor.effectiveScopeKeys)) {
         throw new AuthorizationAdministrationError(
           'authorization.authentication-required',
           401,
@@ -475,18 +619,56 @@ export namespace Services {
       return this.dependencies.configurationImport().applyImport(command);
     }
 
+    /**
+     * Scope gate with provenance binding: the claimed `effectiveScopeKeys`
+     * entry is insufficient unless `scopeProvenance` carries the scope (or the
+     * actor is a server-issued `internal` system-process whose scopes were
+     * bounded at mint time).
+     */
+    private hasProvenScope(actor: AuthorizationAdministrationCommand['actor'], scopeKey: ScopeKey): boolean {
+      if (!actor.effectiveScopeKeys.includes(scopeKey)) return false;
+      if (actor.principal.authMethod === 'internal') return true;
+      return actor.scopeProvenance.some(provenance => provenance.scopeKey === scopeKey);
+    }
+
     private requireScope(command: AuthorizationAdministrationCommand, scopeKey: ScopeKey, brandId?: string): void {
       this.actorId(command);
       if (brandId !== undefined && command.actor.contextType === 'brand' && command.actor.brand?.id !== brandId) {
         throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target was not found.');
       }
-      if (!command.actor.effectiveScopeKeys.includes(scopeKey)) {
+      if (!this.hasProvenScope(command.actor, scopeKey)) {
         throw new AuthorizationAdministrationError(
           'authorization.scope-denied',
           403,
           'The actor lacks the required authorization scope.'
         );
       }
+    }
+
+    /**
+     * P5-G6 scope contract: legacy user-management routes declare
+     * `user.manage` / `user.account-link.manage` while the guarded writer is
+     * authoritative for `authorization.assignment.manage`. To preserve
+     * custom-role compatibility, the writer accepts either the canonical
+     * assignment scope or the legacy user-management scope. Brand-admin
+     * holds both; legacy custom roles keep working via the legacy scope.
+     */
+    private requireAssignmentOrLegacyScope(
+      command: AuthorizationAdministrationCommand,
+      brandId: string,
+      legacyScope: ScopeKey
+    ): void {
+      this.actorId(command);
+      if (command.actor.contextType === 'brand' && command.actor.brand?.id !== brandId) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target was not found.');
+      }
+      if (this.hasProvenScope(command.actor, ASSIGNMENT_MANAGE_SCOPE)) return;
+      if (this.hasProvenScope(command.actor, legacyScope)) return;
+      throw new AuthorizationAdministrationError(
+        'authorization.scope-denied',
+        403,
+        'The actor lacks the required authorization scope.'
+      );
     }
 
     private auditInput(
@@ -496,13 +678,30 @@ export namespace Services {
       targetId?: string,
       extra: Partial<AuthorizationAuditEventInput> = {}
     ): AuthorizationAuditEventInput {
-      const actor = command.actor.principal;
+      // AUTH-ACTOR-001: fail closed when the trusted actor is omitted instead
+      // of throwing a TypeError that bypasses the stable 401 contract.
+      // Requires the non-forgeable server-issued capability, not mere freezing.
+      const commandActor: unknown = command.actor;
+      const principal: unknown =
+        typeof commandActor === 'object' && commandActor !== null && 'principal' in commandActor
+          ? commandActor.principal
+          : undefined;
+      const authMethod: unknown =
+        typeof principal === 'object' && principal !== null && 'authMethod' in principal
+          ? principal.authMethod
+          : undefined;
+      if (principal === undefined || principal === null || !this.isTrustedActor(commandActor)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
       return {
         eventType,
-        actorType: actor.authMethod === 'internal' ? 'system-process' : 'user',
+        actorType: authMethod === 'internal' ? 'system-process' : 'user',
         actorId: this.actorId(command),
-        authMethod:
-          actor.authMethod === 'bearer' ? 'legacy-bearer' : actor.authMethod === 'internal' ? 'internal' : 'session',
+        authMethod: authMethod === 'bearer' ? 'legacy-bearer' : authMethod === 'internal' ? 'internal' : 'session',
         brandId: command.brandId,
         targetType,
         targetId,
@@ -513,6 +712,28 @@ export namespace Services {
       };
     }
 
+    private normalizeMutationError(error: unknown): unknown {
+      return isWriteConflictError(error) || isUniqueConstraintError(error)
+        ? new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'Authorization state changed concurrently.'
+          )
+        : error;
+    }
+
+    private async recordDeniedAttempt(audit: AuthorizationAuditEventInput, error: unknown): Promise<unknown> {
+      const normalizedError = this.normalizeMutationError(error);
+      await this.dependencies.audit().recordAttempt(
+        {
+          ...audit,
+          ...(isAuthorizationAdministrationError(normalizedError) ? { reasonCode: normalizedError.code } : {}),
+        },
+        isAuthorizationAdministrationError(normalizedError) ? 'denied' : 'failed'
+      );
+      return normalizedError;
+    }
+
     private async runMutation<T>(
       command: AuthorizationAdministrationCommand,
       audit: AuthorizationAuditEventInput,
@@ -521,22 +742,22 @@ export namespace Services {
       try {
         return await this.dependencies.runTransaction(work);
       } catch (error) {
-        const normalizedError =
-          isWriteConflictError(error) || isUniqueConstraintError(error)
-            ? new AuthorizationAdministrationError(
-                'authorization.version-conflict',
-                409,
-                'Authorization state changed concurrently.'
-              )
-            : error;
-        await this.dependencies.audit().recordAttempt(
-          {
-            ...audit,
-            ...(isAuthorizationAdministrationError(normalizedError) ? { reasonCode: normalizedError.code } : {}),
-          },
-          isAuthorizationAdministrationError(normalizedError) ? 'denied' : 'failed'
-        );
-        throw normalizedError;
+        throw await this.recordDeniedAttempt(audit, error);
+      }
+    }
+
+    /**
+     * Audited wrapper for mutation pre-phases that must run before the required
+     * transaction opens (scope checks, payload parsing, preview hashing, and
+     * confirmation verification). Malformed, tampered, replayed, and
+     * scope-denied attempts are recorded atomically instead of escaping
+     * without a denied-attempt audit row.
+     */
+    private async runAuditedPrePhase<T>(audit: AuthorizationAuditEventInput, work: () => Promise<T>): Promise<T> {
+      try {
+        return await work();
+      } catch (error) {
+        throw await this.recordDeniedAttempt(audit, error);
       }
     }
 
@@ -831,7 +1052,7 @@ export namespace Services {
 
     public async listRoles(query: RoleCatalogQuery): Promise<RoleCatalogPage> {
       this.requireScope(
-        { actor: query.actor, brandId: query.brandId, requestId: 'authorization-role-catalog-read' },
+        { actor: query.actor, brandId: query.brandId, requestId: query.requestId ?? 'authorization-role-catalog-read' },
         ROLE_READ_SCOPE,
         query.brandId
       );
@@ -897,7 +1118,7 @@ export namespace Services {
       const cursor = boundedRoleQueryText(query.cursor, 'cursor', 256, true);
       const principalId = boundedRoleQueryText(query.principalId, 'userId', 256, true);
       const roleKey = boundedRoleQueryText(query.roleKey, 'roleKey', 256, true);
-      const includeSystemAssignments = query.actor.effectiveScopeKeys.includes(SYSTEM_MANAGE_SCOPE);
+      const includeSystemAssignments = this.hasProvenScope(query.actor, SYSTEM_MANAGE_SCOPE);
 
       let selectedRoleIds: readonly string[] | undefined;
       if (roleKey !== undefined) {
@@ -1429,6 +1650,42 @@ export namespace Services {
       });
     }
 
+    /**
+     * P5-G9 risk-broadening classification (spec 5.3): scope previews must
+     * return explicit warnings when added scopes broaden privilege. Ranks
+     * read < write < admin < system; emits one `risk-broadening:<risk>` per
+     * distinct added risk plus `risk-level-increased:<from>-><to>` when the
+     * maximum added risk exceeds the current maximum.
+     */
+    private scopeRiskBroadeningWarnings(current: readonly ScopeKey[], added: readonly ScopeKey[]): readonly string[] {
+      if (added.length === 0) return Object.freeze([] as string[]);
+      const order = ['read', 'write', 'admin', 'system'] as const;
+      const rank = (risk: unknown): number => {
+        const index = (order as readonly unknown[]).indexOf(risk);
+        return index >= 0 ? index : -1;
+      };
+      const registry = this.dependencies.getRegistry();
+      const currentRisks: string[] = [];
+      for (const key of current) {
+        const risk = registry.get(key)?.risk as unknown;
+        if (typeof risk === 'string' && rank(risk) >= 0) currentRisks.push(risk);
+      }
+      const addedRisks: string[] = [];
+      for (const key of added) {
+        const risk = registry.get(key)?.risk as unknown;
+        if (typeof risk === 'string' && rank(risk) >= 0) addedRisks.push(risk);
+      }
+      const distinctAdded = [...new Set(addedRisks)].sort((left, right) => rank(left) - rank(right));
+      const warnings: string[] = distinctAdded.map(risk => `risk-broadening:${String(risk)}`);
+      const currentMax = currentRisks.length > 0 ? Math.max(...currentRisks.map(rank)) : -1;
+      const addedMax = addedRisks.length > 0 ? Math.max(...addedRisks.map(rank)) : -1;
+      if (addedMax > currentMax && addedMax >= 0) {
+        const from = currentMax >= 0 ? String(order[currentMax]) : 'none';
+        warnings.push(`risk-level-increased:${from}->${String(order[addedMax])}`);
+      }
+      return Object.freeze(warnings);
+    }
+
     private async scopePreview(
       command: PreviewRoleScopesCommand,
       connection?: Sails.Connection,
@@ -1503,6 +1760,7 @@ export namespace Services {
         dependencies.scanIncomplete || activeAssignments.incomplete
           ? Object.freeze(['assignment-impact-limit'])
           : Object.freeze<string[]>([]);
+      const warnings = this.scopeRiskBroadeningWarnings(current.effectiveScopeKeys, addedScopeKeys);
       return Object.freeze({
         operation: allowSystemAdoption ? 'scope-adoption' : 'role-scopes',
         current,
@@ -1511,7 +1769,7 @@ export namespace Services {
         removedScopeKeys,
         affectedAssignments: activeAssignments.references,
         dependencies,
-        warnings: Object.freeze([]),
+        warnings,
         fatalErrors,
         confirmationToken:
           changed && fatalErrors.length === 0
@@ -2034,8 +2292,7 @@ export namespace Services {
       let current = (await User.findOne({ id: identifier }).usingConnection(connection)) as UserAttributes | undefined;
       if (current === undefined) {
         current = (await User.findOne({ username: identifier }).usingConnection(connection)) as
-          | UserAttributes
-          | undefined;
+          UserAttributes | undefined;
       }
       const visited = new Set<string>();
       for (let depth = 0; current !== undefined && depth < MAX_LINK_DEPTH; depth += 1) {
@@ -2054,8 +2311,7 @@ export namespace Services {
           return current;
         }
         current = (await User.findOne({ id: current.linkedPrimaryUserId }).usingConnection(connection)) as
-          | UserAttributes
-          | undefined;
+          UserAttributes | undefined;
       }
       throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
     }
@@ -2073,7 +2329,7 @@ export namespace Services {
         if (role.protectedKind !== 'system-admin' || brandId !== undefined) {
           throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target role was not found.');
         }
-        if (!command.actor.effectiveScopeKeys.includes(SYSTEM_MANAGE_SCOPE)) {
+        if (!this.hasProvenScope(command.actor, SYSTEM_MANAGE_SCOPE)) {
           throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target role was not found.');
         }
         this.requireScope(command, SYSTEM_MANAGE_SCOPE);
@@ -2331,11 +2587,19 @@ export namespace Services {
         throw new AuthorizationAdministrationError('authorization.version-conflict', 409, 'The assignment changed.');
       }
       const existingExpiry = existing.expiresAt == null ? undefined : new Date(existing.expiresAt).toISOString();
-      if (existing.status === 'active' && existing.sourcePresent && existingExpiry === expiresAt) {
+      const isGrantNoOp = existing.status === 'active' && existing.sourcePresent && existingExpiry === expiresAt;
+      if (isGrantNoOp) {
         if (isProtectedAdministratorRole(role) && expiresAt !== undefined) {
           await this.assertAdministratorQuorum(role, connection, true);
         }
         return { assignment: existing, changed: false, eventType: 'assignment.noop' };
+      }
+      if (command.expectedVersion === undefined) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'An expectedVersion is required to modify an existing assignment.'
+        );
       }
       if (isProtectedAdministratorRole(role) && expiresAt !== undefined) {
         await this.lockProtectedRole(role, this.actorId(command), connection);
@@ -2459,8 +2723,7 @@ export namespace Services {
       connection: Sails.Connection
     ): Promise<{ assignment: RoleAssignmentAttributes; role: RoleAttributes }> {
       const assignment = (await RoleAssignment.findOne({ id: command.assignmentId }).usingConnection(connection)) as
-        | RoleAssignmentAttributes
-        | undefined;
+        RoleAssignmentAttributes | undefined;
       if (assignment === undefined)
         throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The assignment was not found.');
       const roleId = associationId(assignment.role);
@@ -2580,23 +2843,3393 @@ export namespace Services {
       });
     }
 
-    public async replaceExternalAssignments(
-      command: ReplaceExternalAssignmentsCommand
-    ): Promise<AuthorizationMutationResult<ExternalReplacementResult>> {
-      this.requireScope(command, ASSIGNMENT_MANAGE_SCOPE, command.brandId);
-      const provider = requiredAuthorizationText(command.provider, 'provider', 64);
-      const sourceIdentity = `${provider}::${requiredAuthorizationText(command.sourceKey, 'sourceKey', 64)}`;
-      const roleKeys = uniqueStrings(
-        command.roleKeys.map(roleKey => requiredAuthorizationText(roleKey, 'roleKey', 128))
+    /**
+     * P5-G4 atomic legacy role-set writer. Applies every grant/removal for one
+     * principal+brand in a single required transaction with one audit event,
+     * one CAS boundary, and one quorum evaluation. Any mid-sequence failure
+     * rolls the whole set back with a denied-attempt audit and no partial
+     * success counters.
+     */
+    public async applyUserRoleSet(
+      command: ApplyUserRoleSetCommand
+    ): Promise<AuthorizationMutationResult<UserRoleSetResult>> {
+      const auditInput = this.auditInput(
+        command,
+        'assignment.role-set-applied',
+        'role-assignment',
+        command.principalId
       );
-      if (roleKeys.length > AUTHORIZATION_ADMIN_MAX_BULK_ROWS) {
+      return this.runMutation(command, auditInput, async connection => {
+        const brandId = requiredAuthorizationText(command.brandId, 'brandId', 256);
+        this.requireAssignmentOrLegacyScope(command, brandId, 'user.manage' as ScopeKey);
+        const principalId = requiredAuthorizationText(command.principalId, 'principalId', 256);
+        const user = await this.canonicalUser(principalId, connection);
+        // AUTH-P5-002 atomic user-row CAS: when the caller pins the observed
+        // user version, re-pin and bump it in THIS required transaction —
+        // the same commit as the assignment writes below. The predicate
+        // carries legacy null-healing for version 1; a zero-row result is a
+        // lost race (409), never a silent interleave with a concurrent
+        // disable/link/profile mutation.
+        if (command.userExpectedVersion !== undefined) {
+          const rawUserVersion: unknown = (user as UserAttributes).loginDisabledVersion;
+          const observedUserVersion =
+            typeof rawUserVersion === 'number' && Number.isSafeInteger(rawUserVersion) ? (rawUserVersion as number) : 1;
+          const expectedUserVersion = positiveVersion(command.userExpectedVersion);
+          if (observedUserVersion !== expectedUserVersion) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'The user changed since it was read.'
+            );
+          }
+          const userCasCriteria =
+            observedUserVersion === 1
+              ? { id: user.id, or: [{ loginDisabledVersion: 1 }, { loginDisabledVersion: null }] }
+              : { id: user.id, loginDisabledVersion: observedUserVersion };
+          requireUpdatedRow(
+            (await User.updateOne(userCasCriteria)
+              .set({ loginDisabledVersion: observedUserVersion + 1 })
+              .usingConnection(connection)) as UserAttributes | undefined,
+            'The user changed since it was read.'
+          );
+        }
+        const grants = [...(command.grants ?? [])];
+        const removals = [...(command.removals ?? [])];
+        if (grants.length + removals.length === 0) {
+          throw new AuthorizationAdministrationError(
+            'authorization.bulk-invalid',
+            422,
+            'The role set must contain at least one grant or removal.'
+          );
+        }
+        if (grants.length + removals.length > AUTHORIZATION_ADMIN_MAX_BULK_ROWS) {
+          throw new AuthorizationAdministrationError(
+            'authorization.bulk-invalid',
+            422,
+            'The role set exceeds the bounded operation limit.'
+          );
+        }
+        const grantRoles = new Map<
+          string,
+          { readonly role: RoleAttributes; readonly grant: ApplyUserRoleSetCommand['grants'][number] }
+        >();
+        for (const grant of grants) {
+          const role = await this.findRole(grant.roleKey, brandId, connection);
+          this.assignmentRoleScope(command, role);
+          this.requireAssignableRole(role);
+          await this.validateAssignmentDelegation(command, role, connection);
+          if (grantRoles.has(role.id)) {
+            throw new AuthorizationAdministrationError(
+              'authorization.bulk-invalid',
+              422,
+              'A role may appear only once per role-set batch.'
+            );
+          }
+          grantRoles.set(role.id, { role, grant });
+        }
+        const removalGroups = new Map<
+          string,
+          {
+            readonly role: RoleAttributes;
+            readonly removals: ApplyUserRoleSetCommand['removals'][number][];
+          }
+        >();
+        const removalTupleKey = (removal: ApplyUserRoleSetCommand['removals'][number]): string => {
+          if (removal.assignmentId !== undefined) {
+            return `id:${requiredAuthorizationText(removal.assignmentId, 'assignmentId', 256)}`;
+          }
+          const source = String(removal.source ?? MANUAL_SOURCE_KEY);
+          const sourceKey = requiredAuthorizationText(removal.sourceKey ?? MANUAL_SOURCE_KEY, 'sourceKey', 128);
+          return `tuple:${source}::${sourceKey}`;
+        };
+        for (const removal of removals) {
+          const role = await this.findRole(removal.roleKey, brandId, connection);
+          this.assignmentRoleScope(command, role);
+          const key = role.id;
+          if (grantRoles.has(key)) {
+            throw new AuthorizationAdministrationError(
+              'authorization.bulk-invalid',
+              422,
+              'A role may appear only once per role-set batch.'
+            );
+          }
+          // Legacy compatibility: one role may carry several sourced tuples
+          // (manual + external, distinct sourceKeys, etc.). Aggregate removals
+          // by role while preserving every exact source tuple. Only an exact
+          // duplicate tuple target is rejected.
+          const tupleKey = removalTupleKey(removal);
+          const existing = removalGroups.get(key);
+          if (existing !== undefined) {
+            const seen = new Set(existing.removals.map(entry => removalTupleKey(entry)));
+            if (seen.has(tupleKey)) {
+              throw new AuthorizationAdministrationError(
+                'authorization.bulk-invalid',
+                422,
+                'A role source tuple may appear only once per role-set batch.'
+              );
+            }
+            removalGroups.set(key, { role: existing.role, removals: [...existing.removals, removal] });
+          } else {
+            removalGroups.set(key, { role, removals: [removal] });
+          }
+          // Validate the expectedVersion shape eagerly so malformed batches
+          // fail before any write.
+          positiveVersion(removal.expectedVersion);
+        }
+        const removalRoles = removalGroups;
+        const affectedRoles = new Map<string, RoleAttributes>();
+        for (const entry of grantRoles.values()) affectedRoles.set(entry.role.id, entry.role);
+        for (const entry of removalRoles.values()) affectedRoles.set(entry.role.id, entry.role);
+        for (const role of [...affectedRoles.values()].sort((left, right) => left.id.localeCompare(right.id))) {
+          if (isProtectedAdministratorRole(role)) {
+            await this.lockProtectedRole(role, this.actorId(command), connection);
+          }
+        }
+        let granted = 0;
+        let revoked = 0;
+        let suppressed = 0;
+        let noOp = 0;
+        for (const entry of [...grantRoles.values()].sort((left, right) => left.role.id.localeCompare(right.role.id))) {
+          const { role, grant } = entry;
+          const grantCommand: GrantAssignmentCommand = {
+            ...command,
+            principalId: user.id,
+            roleKey: String(role.key ?? role.name),
+            source: 'manual',
+            sourceKey: grant.sourceKey ?? MANUAL_SOURCE_KEY,
+            ...(grant.expiresAt === undefined ? {} : { expiresAt: grant.expiresAt }),
+            ...(grant.expectedVersion === undefined ? {} : { expectedVersion: grant.expectedVersion }),
+          };
+          const outcome = await this.grantWithinTransaction(grantCommand, role, user.id, connection);
+          if (outcome.changed) granted += 1;
+          else noOp += 1;
+          await this.projectLegacyAuthority(user.id, role, connection);
+        }
+        const flattenedRemovals: {
+          readonly role: RoleAttributes;
+          readonly removal: ApplyUserRoleSetCommand['removals'][number];
+        }[] = [];
+        for (const group of removalRoles.values()) {
+          for (const removal of group.removals) {
+            flattenedRemovals.push({ role: group.role, removal });
+          }
+        }
+        flattenedRemovals.sort((left, right) => {
+          const roleOrder = left.role.id.localeCompare(right.role.id);
+          if (roleOrder !== 0) return roleOrder;
+          const leftKey =
+            left.removal.assignmentId !== undefined
+              ? `id:${String(left.removal.assignmentId)}`
+              : `tuple:${String(left.removal.source ?? MANUAL_SOURCE_KEY)}::${String(left.removal.sourceKey ?? MANUAL_SOURCE_KEY)}`;
+          const rightKey =
+            right.removal.assignmentId !== undefined
+              ? `id:${String(right.removal.assignmentId)}`
+              : `tuple:${String(right.removal.source ?? MANUAL_SOURCE_KEY)}::${String(right.removal.sourceKey ?? MANUAL_SOURCE_KEY)}`;
+          return leftKey.localeCompare(rightKey);
+        });
+        for (const entry of flattenedRemovals) {
+          const { role, removal } = entry;
+          const expectedVersion = positiveVersion(removal.expectedVersion);
+          if (removal.assignmentId !== undefined) {
+            const assignment = (await RoleAssignment.findOne({ id: removal.assignmentId }).usingConnection(
+              connection
+            )) as RoleAssignmentAttributes | undefined;
+            if (assignment === undefined) {
+              throw new AuthorizationAdministrationError(
+                'authorization.not-found',
+                404,
+                'The assignment was not found.'
+              );
+            }
+            this.assertAssignmentRoleContext(assignment, role);
+            if (assignment.version !== expectedVersion) {
+              throw new AuthorizationAdministrationError(
+                'authorization.version-conflict',
+                409,
+                'The assignment changed.'
+              );
+            }
+            if (String(assignment.source ?? '') === 'external') {
+              if (assignment.status !== 'suppressed') {
+                requireUpdatedRow(
+                  (await RoleAssignment.updateOne({ id: assignment.id, version: assignment.version })
+                    .set({
+                      status: 'suppressed',
+                      suppressedBy: this.actorId(command),
+                      suppressedAt: this.dependencies.now(),
+                      reason: optionalAuthorizationText(command.reason, 1_000),
+                      version: assignment.version + 1,
+                    })
+                    .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+                  'The assignment changed since it was read.'
+                );
+                suppressed += 1;
+              } else {
+                noOp += 1;
+              }
+            } else {
+              if (assignment.status !== 'revoked') {
+                requireUpdatedRow(
+                  (await RoleAssignment.updateOne({ id: assignment.id, version: assignment.version })
+                    .set({
+                      status: 'revoked',
+                      revokedBy: this.actorId(command),
+                      revokedAt: this.dependencies.now(),
+                      reason: optionalAuthorizationText(command.reason, 1_000),
+                      version: assignment.version + 1,
+                    })
+                    .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+                  'The assignment changed since it was read.'
+                );
+                revoked += 1;
+              } else {
+                noOp += 1;
+              }
+            }
+            await this.projectLegacyAuthority(user.id, role, connection);
+            continue;
+          }
+          const tuple = await this.findAssignmentByTuple(
+            user.id,
+            role.id,
+            (removal.source ?? 'manual') as RoleAssignmentSource,
+            requiredAuthorizationText(removal.sourceKey ?? MANUAL_SOURCE_KEY, 'sourceKey', 128),
+            connection
+          );
+          if (tuple === undefined) {
+            throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The assignment was not found.');
+          }
+          this.assertAssignmentRoleContext(tuple, role);
+          if (tuple.version !== expectedVersion) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'The assignment changed.'
+            );
+          }
+          if (String(tuple.source ?? '') === 'external') {
+            if (tuple.status !== 'suppressed') {
+              requireUpdatedRow(
+                (await RoleAssignment.updateOne({ id: tuple.id, version: tuple.version })
+                  .set({
+                    status: 'suppressed',
+                    suppressedBy: this.actorId(command),
+                    suppressedAt: this.dependencies.now(),
+                    reason: optionalAuthorizationText(command.reason, 1_000),
+                    version: tuple.version + 1,
+                  })
+                  .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+                'The assignment changed since it was read.'
+              );
+              suppressed += 1;
+            } else {
+              noOp += 1;
+            }
+          } else {
+            if (tuple.status !== 'revoked') {
+              requireUpdatedRow(
+                (await RoleAssignment.updateOne({ id: tuple.id, version: tuple.version })
+                  .set({
+                    status: 'revoked',
+                    revokedBy: this.actorId(command),
+                    revokedAt: this.dependencies.now(),
+                    reason: optionalAuthorizationText(command.reason, 1_000),
+                    version: tuple.version + 1,
+                  })
+                  .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+                'The assignment changed since it was read.'
+              );
+              revoked += 1;
+            } else {
+              noOp += 1;
+            }
+          }
+          await this.projectLegacyAuthority(user.id, role, connection);
+        }
+        for (const role of affectedRoles.values()) {
+          await this.assertAdministratorQuorum(role, connection);
+        }
+        const data = Object.freeze({
+          principalId: user.id,
+          granted,
+          revoked,
+          suppressed,
+          noOp,
+          changed: granted + revoked + suppressed > 0,
+        });
+        const audit = await this.dependencies.audit().createSucceededEvent(
+          {
+            ...auditInput,
+            targetId: user.id,
+            after: { ...data, brandId },
+          },
+          connection
+        );
+        return Object.freeze({
+          data,
+          version: 1,
+          auditEventId: audit.eventId,
+          requestId: command.requestId,
+          changed: data.changed,
+        });
+      });
+    }
+
+    private async loadAccessTargetUser(userId: string, connection: Sails.Connection): Promise<UserAttributes> {
+      const target = (await User.findOne({ id: userId }).usingConnection(connection)) as UserAttributes | undefined;
+      if (target === undefined) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
+      }
+      return target;
+    }
+
+    private async userLinkInBrand(userId: string, brandId: string, connection: Sails.Connection): Promise<boolean> {
+      if (typeof UserLink === 'undefined') return false;
+      const link = (await UserLink.findOne({
+        brandId,
+        status: 'active',
+        or: [{ primaryUserId: userId }, { secondaryUserId: userId }],
+      }).usingConnection(connection)) as { readonly id?: string } | undefined;
+      return link != null;
+    }
+
+    private async authoritativeActiveAssignments(
+      principalId: string,
+      connection: Sails.Connection,
+      branding?: string
+    ): Promise<RoleAssignmentAttributes[]> {
+      const rows = (await RoleAssignment.find({
+        principalType: 'user',
+        principalId,
+        ...(branding === undefined ? {} : { branding }),
+        status: 'active',
+        sourcePresent: true,
+        or: [{ expiresAt: null }, { expiresAt: { '>': this.dependencies.now() } }],
+      })
+        .limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS + 1)
+        .usingConnection(connection)) as RoleAssignmentAttributes[];
+      if (rows.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'The principal assignment state exceeds the bounded operation limit.'
+        );
+      }
+      return rows;
+    }
+
+    /**
+     * Authoritative link read (P5-002): every RoleAssignment row for the
+     * principal, all statuses including expired/inactive. The account-link
+     * writer must consider inactive/expired sourced tuples so they are never
+     * collapsed into a manual grant; active/source-aware adoption and
+     * revocation decisions are applied in-memory via `activeAt` below.
+     */
+    private async authoritativeAllAssignments(
+      principalId: string,
+      connection: Sails.Connection,
+      branding?: string
+    ): Promise<RoleAssignmentAttributes[]> {
+      const rows = (await RoleAssignment.find({
+        principalType: 'user',
+        principalId,
+        ...(branding === undefined ? {} : { branding }),
+      })
+        .limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS + 1)
+        .usingConnection(connection)) as RoleAssignmentAttributes[];
+      if (rows.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'The principal assignment state exceeds the bounded operation limit.'
+        );
+      }
+      return rows;
+    }
+
+    private async legacyBrandRoleIds(userId: string, brandId: string, connection: Sails.Connection): Promise<string[]> {
+      const populated = (await User.findOne({ id: userId }).populate('roles').usingConnection(connection)) as
+        UserAttributes | undefined;
+      const roles = (populated?.roles ?? []) as { readonly id?: unknown; readonly branding?: unknown }[];
+      const ids: string[] = [];
+      for (const role of roles) {
+        const branding = role.branding as string | { readonly id?: unknown } | undefined;
+        const roleBrandId =
+          typeof branding === 'object' && branding !== null ? String(branding.id ?? '') : String(branding ?? '');
+        if (roleBrandId === brandId && (typeof role.id === 'string' || typeof role.id === 'number')) {
+          ids.push(String(role.id));
+        }
+      }
+      return uniqueStrings(ids);
+    }
+
+    private async principalBelongsToBrand(
+      userId: string,
+      brandId: string,
+      connection: Sails.Connection
+    ): Promise<boolean> {
+      // AUTH-LINK-001: brand membership considers any sourced tuple (including
+      // revoked/suppressed/expired history), the legacy projection, and link
+      // rows — not only currently effective assignments — so users with only
+      // historical brand authority are still recognized as brand members while
+      // cross-brand users remain opaque 404.
+      const authoritative = await this.authoritativeActiveAssignments(userId, connection, brandId);
+      if (authoritative.length > 0) return true;
+      const all = await this.authoritativeAllAssignments(userId, connection, brandId);
+      if (all.length > 0) return true;
+      if ((await this.legacyBrandRoleIds(userId, brandId, connection)).length > 0) return true;
+      return this.userLinkInBrand(userId, brandId, connection);
+    }
+
+    private actorUsername(command: AuthorizationAdministrationCommand): string {
+      return command.actor.principal.username?.trim() || this.actorId(command);
+    }
+
+    private async writeLegacyUserAuditRow(
+      actorUsername: string,
+      action: string,
+      context: Record<string, unknown>,
+      connection: Sails.Connection
+    ): Promise<void> {
+      if (typeof UserAudit === 'undefined') return;
+      await UserAudit.create({
+        user: { username: actorUsername },
+        action,
+        additionalContext: JSON.stringify(context),
+      }).usingConnection(connection);
+    }
+
+    /**
+     * Versioned guarded user-access mutation (P5-001). Disabling or enabling a
+     * user re-locks every protected administrator role the target effectively
+     * holds, applies the access change and the AuthorizationAudit success event
+     * on the same required transaction, and re-evaluates the administrator
+     * quorum against post-update state so a failure rolls everything back.
+     */
+    public async setUserAccess(command: SetUserAccessCommand): Promise<AuthorizationMutationResult<UserAccessResult>> {
+      const auditInput = this.auditInput(
+        command,
+        command.disabled ? 'user.disabled' : 'user.enabled',
+        'user',
+        command.userId
+      );
+      return this.runMutation(command, auditInput, async connection => {
+        const brandId = requiredAuthorizationText(command.brandId, 'brandId', 256);
+        const userId = requiredAuthorizationText(command.userId, 'userId', 256);
+        this.requireAssignmentOrLegacyScope(command, brandId, 'user.manage' as ScopeKey);
+        const actorId = this.actorId(command);
+        const target = await this.loadAccessTargetUser(userId, connection);
+        if (target.accountLinkState === 'linked-alias' || target.linkedPrimaryUserId?.trim()) {
+          throw new AuthorizationAdministrationError(
+            'authorization.invalid-role',
+            400,
+            command.disabled
+              ? 'Cannot disable a linked alias user. Disable the primary account instead.'
+              : 'Cannot enable a linked alias user. Enable the primary account instead.'
+          );
+        }
+        if (!(await this.principalBelongsToBrand(target.id, brandId, connection))) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
+        }
+        const assignments = await this.authoritativeActiveAssignments(target.id, connection);
+        const roleIds = uniqueStrings(
+          assignments.map(row => associationId(row.role)).filter((value): value is string => value !== undefined)
+        );
+        const roles =
+          roleIds.length > 0
+            ? ((await Role.find({ id: roleIds }).limit(roleIds.length).usingConnection(connection)) as RoleAttributes[])
+            : [];
+        if (roles.some(role => role.contextType === 'system' && role.protectedKind === 'system-admin')) {
+          this.requireScope(command, SYSTEM_MANAGE_SCOPE);
+        }
+        const protectedRoles = roles.filter(role => isProtectedAdministratorRole(role));
+        const current = target.loginDisabled === true;
+        // P5-G1: legacy User documents predate loginDisabledVersion. Missing
+        // (or non-integer) values read as version 1; the CAS predicate below
+        // matches both `1` and missing/null so the first guarded mutation
+        // heals the field to 2 atomically instead of 409ing forever.
+        const rawVersion = target.loginDisabledVersion as unknown;
+        const versionMissing = !(typeof rawVersion === 'number' && Number.isSafeInteger(rawVersion as number));
+        const currentVersion = versionMissing ? 1 : (rawVersion as number);
+        // AUTH-CAS-HTTP-001: validate supplied CAS before the no-op short
+        // circuit so stale callers cannot observe a false success.
+        if (command.expectedVersion !== undefined && currentVersion !== positiveVersion(command.expectedVersion)) {
+          throw new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'The user access state changed since it was read.'
+          );
+        }
+        if (current === command.disabled) {
+          const data = Object.freeze({ userId: target.id, disabled: current, changed: false });
+          const audit = await this.dependencies
+            .audit()
+            .createSucceededEvent({ ...auditInput, eventType: 'user.access-noop', after: data }, connection);
+          return Object.freeze({
+            data,
+            version: currentVersion,
+            auditEventId: audit.eventId,
+            requestId: command.requestId,
+            changed: false,
+          });
+        }
+        // AUTH-CAS-HTTP-001: CAS is required for state-changing mutations on
+        // versioned rows. Legacy rows without the field (versionMissing) may
+        // omit it once for backfill; versioned rows must pin the observed
+        // version or fail with 409. No-op reads may omit it for idempotent
+        // retries (already validated above when supplied).
+        if (!versionMissing && command.expectedVersion === undefined) {
+          throw new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'An expectedVersion is required to modify user access state.'
+          );
+        }
+        // Serialize quorum-critical disable work: a concurrent administrator
+        // removal that commits first fails this lock with a version conflict
+        // instead of silently violating quorum.
+        if (command.disabled) {
+          for (const role of [...protectedRoles].sort((left, right) => left.id.localeCompare(right.id))) {
+            await this.lockProtectedRole(role, actorId, connection);
+          }
+        }
+        // True compare-and-set: the database predicate pins the observed
+        // loginDisabledVersion so concurrent disable/enable writers cannot
+        // both succeed. A lost update resolves to undefined and surfaces as a
+        // stable authorization.version-conflict with no success audit; the
+        // surrounding required transaction rolls back quorum locks and audits.
+        // Legacy rows without the field match via `or` and are backfilled to
+        // currentVersion + 1 on first mutation.
+        const casCriteria =
+          versionMissing && currentVersion === 1
+            ? { id: target.id, or: [{ loginDisabledVersion: 1 }, { loginDisabledVersion: null }] }
+            : { id: target.id, loginDisabledVersion: currentVersion };
+        const updated = requireUpdatedRow(
+          (await User.updateOne(casCriteria)
+            .set({ loginDisabled: command.disabled, loginDisabledVersion: currentVersion + 1 })
+            .usingConnection(connection)) as UserAttributes | undefined,
+          'The user access state changed since it was read.'
+        );
+        if (command.disabled) {
+          // Re-evaluate against post-update state: the disabled target no
+          // longer counts as an effective administrator.
+          for (const role of protectedRoles) {
+            await this.assertAdministratorQuorum(role, connection);
+          }
+        }
+        const data = Object.freeze({ userId: updated.id, disabled: command.disabled, changed: true });
+        const audit = await this.dependencies.audit().createSucceededEvent(
+          {
+            ...auditInput,
+            before: { disabled: current, version: currentVersion },
+            after: { ...data, version: currentVersion + 1 },
+          },
+          connection
+        );
+        await this.writeLegacyUserAuditRow(
+          this.actorUsername(command),
+          command.disabled ? 'disable-user' : 'enable-user',
+          { userId: updated.id, brandId },
+          connection
+        );
+        return Object.freeze({
+          data,
+          version: currentVersion + 1,
+          auditEventId: audit.eventId,
+          requestId: command.requestId,
+          changed: true,
+        });
+      });
+    }
+
+    /**
+     * AUTH-TXN-001 explicit cross-store consistency protocol.
+     *
+     * Role/User/UserLink/RoleAssignment live on the default `mongodb`
+     * datastore while records live on the separate `redboxStorage` Mongo
+     * database (see `config/datastores.config.ts`). The two datastores share
+     * no session, so passing the Role transaction connection to Record writes
+     * cannot provide a distributed commit. This helper therefore NEVER uses
+     * the Role connection: it runs on the Record datastore's own connection
+     * (or without one in reduced runtimes) with brand and revision CAS
+     * predicates, idempotent recomputation, and drift reporting.
+     *
+     * Protocol: the authorization transaction commits first; this phase runs
+     * afterwards. A record failure does NOT roll back the committed
+     * authorization state. Instead the caller records a
+     * `user.link-records-pending` audit event and returns
+     * `recordsPending: true` so operators can retry/reconcile. Tests must not
+     * claim single-commit rollback across datastores.
+     *
+     * AUTH-LINK-001: every rewritten record is constrained to the link brand
+     * (`metaMetadata.brandId`) and to its observed `revision` when present. A
+     * cross-brand row is treated as not-found (never rewritten); a revision
+     * mismatch surfaces as `authorization.version-conflict` for retry.
+     */
+    /**
+     * AUTH-TXN-001 bounded record-plan discovery. Returns the complete set of
+     * record OIDs whose authorization references the secondary identity
+     * (usernames or pending email) in the link brand. The limit is applied
+     * BEFORE await (max+1 probe); oversized sets fail closed. A row matching
+     * without an OID fails closed (its rewrite would be untargetable).
+     * Returns null when the Record store is unavailable (reduced runtimes).
+     */
+    private async discoverLinkedRecordPlan(
+      secondaryUsername: string,
+      secondaryEmail: string,
+      brandId: string
+    ): Promise<readonly string[] | null> {
+      const secondaryName = String(secondaryUsername ?? '');
+      const secondaryMail = String(secondaryEmail ?? '').toLowerCase();
+      if (secondaryName.length === 0 && secondaryMail.length === 0) return Object.freeze([]);
+      const recordGlobal = (globalThis as unknown as Record<string, unknown>).Record as
+        | {
+            find?: (criteria: Record<string, unknown>) => unknown;
+            updateOne?: (criteria: Record<string, unknown>) => unknown;
+          }
+        | undefined;
+      if (recordGlobal?.find === undefined || recordGlobal?.updateOne === undefined) return null;
+      // AUTH-LINK-002: brand-constrained discovery predicate. The brand is
+      // part of the query (not a post-read filter) so foreign-brand rows are
+      // never returned; unbranded rows are still excluded post-read as opaque
+      // not-found. The bounded limit is applied BEFORE await (max+1 probe).
+      const criteria: Record<string, unknown> = {
+        'metaMetadata.brandId': brandId,
+        or: [
+          ...(secondaryName.length > 0
+            ? [{ 'authorization.edit': secondaryName }, { 'authorization.view': secondaryName }]
+            : []),
+          ...(secondaryMail.length > 0
+            ? [{ 'authorization.editPending': secondaryMail }, { 'authorization.viewPending': secondaryMail }]
+            : []),
+        ],
+      };
+      let findQuery = recordGlobal.find(criteria) as unknown as {
+        meta?: (values: Record<string, unknown>) => unknown;
+        limit?: (value: number) => unknown;
+      };
+      if (typeof findQuery?.meta === 'function') {
+        findQuery = findQuery.meta({ enableExperimentalDeepTargets: true }) as typeof findQuery;
+      }
+      // AUTH-P5-003: the bound MUST hold before await. A query surface without
+      // a limit capability fails closed — never an unbounded await.
+      if (typeof findQuery?.limit !== 'function') {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'Linked record discovery is unavailable without a bounded query.'
+        );
+      }
+      findQuery = findQuery.limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS + 1) as typeof findQuery;
+      // Deliberately no `.usingConnection(roleConnection)`: records live on a
+      // different datastore/session.
+      const rows = (await findQuery) as unknown[];
+      const discovered = Array.isArray(rows) ? rows : [];
+      // AUTH-TXN-001: bound record discovery. An unbounded rewrite fan-out
+      // is not a safe second phase; oversized result sets fail closed for
+      // operator-scoped reconciliation instead of partially rewriting.
+      if (discovered.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'The linked record set exceeds the bounded rewrite limit.'
+        );
+      }
+      const oids: string[] = [];
+      for (const row of discovered) {
+        const oid = String((row as Record<string, unknown>).redboxOid ?? '');
+        if (oid.length === 0) {
+          throw new AuthorizationAdministrationError(
+            'authorization.invalid-role',
+            400,
+            'Linked record authorization state is unavailable.'
+          );
+        }
+        oids.push(oid);
+      }
+      return Object.freeze(oids);
+    }
+
+    /**
+     * AUTH-TXN-001 plan-scoped record rewrite (Commit 2). Consumes ONLY the
+     * stored plan: fresh discovery is intersected with `planOids`, so a retry
+     * can never rewrite outside the persisted plan. Planned OIDs absent from
+     * fresh discovery already converged (rewritten or removed) and count as
+     * complete. Returns the rewritten count plus the durable per-record
+     * progress (`completedOids`). Progress is ALSO appended to the optional
+     * `progress` out-param as rows complete, so a mid-pass failure still
+     * persists its completed prefix instead of losing partial work.
+     * Returns `rewritten: -1` when the Record store is unavailable (reduced
+     * runtimes only). Both the initial pass and every retry pass the
+     * persisted pre-mutation plan: the operation plan is authoritative, and
+     * no unplanned write ever runs.
+     */
+    private async rewriteLinkedRecordAuthorizationsSeparateStore(
+      primaryUsername: string,
+      secondaryUsername: string,
+      secondaryEmail: string,
+      brandId: string,
+      planOids: readonly string[] | undefined,
+      progress?: string[]
+    ): Promise<{ readonly rewritten: number; readonly completedOids: readonly string[] }> {
+      const secondaryName = String(secondaryUsername ?? '');
+      const secondaryMail = String(secondaryEmail ?? '').toLowerCase();
+      const primaryName = String(primaryUsername ?? '');
+      if ((secondaryName.length === 0 && secondaryMail.length === 0) || primaryName.length === 0) {
+        return { rewritten: 0, completedOids: Object.freeze([]) };
+      }
+      const recordGlobal = (globalThis as unknown as Record<string, unknown>).Record as
+        | {
+            find?: (criteria: Record<string, unknown>) => unknown;
+            updateOne?: (criteria: Record<string, unknown>) => unknown;
+          }
+        | undefined;
+      if (recordGlobal?.find === undefined || recordGlobal?.updateOne === undefined) {
+        return { rewritten: -1, completedOids: Object.freeze([]) };
+      }
+      // AUTH-LINK-002: brand-constrained discovery predicate. The brand is
+      // part of the query (not a post-read filter) so foreign-brand rows are
+      // never returned; unbranded rows are still excluded post-read as opaque
+      // not-found. The bounded limit is applied BEFORE await (max+1 probe).
+      const criteria: Record<string, unknown> = {
+        'metaMetadata.brandId': brandId,
+        or: [
+          ...(secondaryName.length > 0
+            ? [{ 'authorization.edit': secondaryName }, { 'authorization.view': secondaryName }]
+            : []),
+          ...(secondaryMail.length > 0
+            ? [{ 'authorization.editPending': secondaryMail }, { 'authorization.viewPending': secondaryMail }]
+            : []),
+        ],
+      };
+      let findQuery = recordGlobal.find(criteria) as unknown as {
+        meta?: (values: Record<string, unknown>) => unknown;
+        limit?: (value: number) => unknown;
+      };
+      if (typeof findQuery?.meta === 'function') {
+        findQuery = findQuery.meta({ enableExperimentalDeepTargets: true }) as typeof findQuery;
+      }
+      // AUTH-P5-003: the bound MUST hold before await. A query surface without
+      // a limit capability fails closed — never an unbounded await.
+      if (typeof findQuery?.limit !== 'function') {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'Linked record discovery is unavailable without a bounded query.'
+        );
+      }
+      findQuery = findQuery.limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS + 1) as typeof findQuery;
+      // Deliberately no `.usingConnection(roleConnection)`: records live on a
+      // different datastore/session.
+      const rows = (await findQuery) as unknown[];
+      const uniq = (values: string[]): string[] => [...new Set(values)];
+      const discovered = Array.isArray(rows) ? rows : [];
+      // AUTH-TXN-001: bound record discovery. An unbounded rewrite fan-out
+      // is not a safe second phase; oversized result sets fail closed for
+      // operator-scoped reconciliation instead of partially rewriting.
+      if (discovered.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'The linked record set exceeds the bounded rewrite limit.'
+        );
+      }
+      const planned = planOids === undefined ? undefined : new Set(planOids);
+      const completed: string[] = progress ?? [];
+      // Planned OIDs absent from fresh discovery already converged (rewritten
+      // by an earlier attempt or removed): record them up front so even a
+      // mid-pass failure preserves the converged prefix.
+      if (planned !== undefined) {
+        const freshOids = new Set(discovered.map(row => String((row as Record<string, unknown>).redboxOid ?? '')));
+        for (const oid of planned) {
+          if (oid.length > 0 && !freshOids.has(oid) && !completed.includes(oid)) completed.push(oid);
+        }
+      }
+      let rewritten = 0;
+      for (const row of discovered) {
+        const recordObj = row as Record<string, unknown>;
+        const oid = String(recordObj.redboxOid ?? '');
+        // AUTH-TXN-001 plan authority: every pass consumes ONLY the stored
+        // plan. Fresh matches outside the plan are never touched on a
+        // planned pass.
+        if (planned !== undefined && !planned.has(oid)) continue;
+        // Brand predicate: never rewrite a record owned by another brand —
+        // and never rewrite an UNBRANDED row under a brand link (its
+        // ownership is unverifiable). Both surface as opaque not-found so
+        // the operation reports pending drift for operator reconciliation
+        // instead of silently rewriting foreign or orphan state.
+        const meta = (recordObj.metaMetadata ?? {}) as Record<string, unknown>;
+        const recordBrand = typeof meta.brandId === 'string' ? String(meta.brandId) : '';
+        if (recordBrand.length === 0 || recordBrand !== brandId) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target was not found.');
+        }
+        const current = ((recordObj.authorization ?? {}) as Record<string, unknown>) ?? {};
+        const edit = uniq(((current.edit ?? []) as unknown[]).map(value => String(value)));
+        const view = uniq(((current.view ?? []) as unknown[]).map(value => String(value)));
+        const editPending = ((current.editPending ?? []) as unknown[]).map(value => String(value).toLowerCase());
+        const viewPending = ((current.viewPending ?? []) as unknown[]).map(value => String(value).toLowerCase());
+        const nextEdit = uniq(edit.map(username => (username === secondaryName ? primaryName : username)));
+        const nextView = uniq(view.map(username => (username === secondaryName ? primaryName : username)));
+        let nextEditPending = [...editPending];
+        let nextEditWithPrimary = [...nextEdit];
+        let nextViewPending = [...viewPending];
+        let nextViewWithPrimary = [...nextView];
+        let changed =
+          JSON.stringify(nextEdit) !== JSON.stringify(edit) || JSON.stringify(nextView) !== JSON.stringify(view);
+        if (secondaryMail.length > 0 && editPending.includes(secondaryMail)) {
+          nextEditPending = nextEditPending.filter(email => email !== secondaryMail);
+          nextEditWithPrimary = uniq([...nextEditWithPrimary, primaryName]);
+          changed = true;
+        }
+        if (secondaryMail.length > 0 && viewPending.includes(secondaryMail)) {
+          nextViewPending = nextViewPending.filter(email => email !== secondaryMail);
+          nextViewWithPrimary = uniq([...nextViewWithPrimary, primaryName]);
+          changed = true;
+        }
+        // Idempotent no-op: the row already carries no secondary references
+        // (rewritten by an earlier attempt). Counts as durable progress.
+        if (!changed) {
+          if (oid.length > 0) completed.push(oid);
+          continue;
+        }
+        if (oid.length === 0) {
+          throw new AuthorizationAdministrationError(
+            'authorization.invalid-role',
+            400,
+            'Linked record authorization state is unavailable.'
+          );
+        }
+        const nextAuthorization = {
+          ...current,
+          edit: nextEditWithPrimary,
+          view: nextViewWithPrimary,
+          editPending: nextEditPending,
+          viewPending: nextViewPending,
+        };
+        // Revision CAS (required): every rewritten record must carry an
+        // observed numeric revision pinned into the update predicate AND the
+        // brand predicate. Rows without a revision fail as pending drift
+        // (never an unversioned blind update) for operator reconciliation.
+        const observedRevision = (recordObj as Record<string, unknown>).revision;
+        if (typeof observedRevision !== 'number' || !Number.isSafeInteger(observedRevision)) {
+          throw new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'The linked record changed since it was read.'
+          );
+        }
+        const updateCriteria: Record<string, unknown> = {
+          redboxOid: oid,
+          revision: observedRevision,
+          'metaMetadata.brandId': brandId,
+        };
+        const nextValues: Record<string, unknown> = {
+          authorization: nextAuthorization,
+          revision: observedRevision + 1,
+        };
+        const updateQuery = (recordGlobal.updateOne as (criteria: Record<string, unknown>) => unknown)(
+          updateCriteria
+        ) as unknown as {
+          set?: (values: Record<string, unknown>) => unknown;
+        };
+        if (typeof updateQuery?.set !== 'function') {
+          throw new AuthorizationAdministrationError(
+            'authorization.invalid-role',
+            400,
+            'Linked record authorization state is unavailable.'
+          );
+        }
+        const updated = (await updateQuery.set(nextValues)) as Record<string, unknown> | undefined;
+        requireUpdatedRow(updated, 'The linked record changed since it was read.');
+        rewritten += 1;
+        completed.push(oid);
+      }
+      return Object.freeze({ rewritten, completedOids: Object.freeze([...completed]) });
+    }
+
+    /**
+     * AUTH-TXN-001 + AUTH-LINK-001: two-commit link protocol.
+     *
+     * Commit 1 (required transaction on the default `mongodb` datastore):
+     * canonical users, brand membership for BOTH accounts, pair-bound
+     * expected versions, delegation ceiling, sourced-tuple adoption/retirement
+     * with CAS, `UserLink` uniqueness (secondary may have exactly one active
+     * link; duplicates/ races surface as 409), secondary canonical update,
+     * legacy projection heal, quorum re-check, drift guard, and audits.
+     *
+     * Commit 2 (separate Record-datastore phase, no shared session): linked
+     * record rewrites with brand (`metaMetadata.brandId`, unbranded rows are
+     * rejected as opaque not-found) and `revision` CAS predicates over a
+     * bounded discovery set. A record failure never rolls back Commit 1; it
+     * is reported via a `user.link-records-pending` audit and
+     * `recordsPending: true`. The `userlink { secondaryUserId: 1, status: 1 }`
+     * unique constraint is enforceable in production via the
+     * `AUTHORIZATION_PERSISTENCE_MODEL_INDEXES` entry, the model declaration,
+     * and migration `20260905T120000-account-link-uniqueness`; the
+     * application pre-check plus duplicate-key normalization make the race a
+     * stable 409 even before the index converges.
+     */
+    public async linkUserAccounts(
+      command: LinkUserAccountsCommand
+    ): Promise<AuthorizationMutationResult<UserAccountLinkResult>> {
+      const auditInput = this.auditInput(command, 'user.linked', 'user', command.primaryUserId);
+      // AUTH-P5-009 completed-operation proof: the idempotent completed
+      // resume is NOT a brand+pair-only shortcut. The lookup uses the caller
+      // operation key first (preserving the documented drift-before-token
+      // ordering for fresh links), but a completed stored row is returned
+      // ONLY after the canonical mandatory DTO (operation ID, both account
+      // versions, pair-bound confirmation token), the proven link scope, the
+      // caller versions and CURRENT caller actor bound to the stored proof,
+      // and the full stored proof (proofHash, assignmentSnapshot, both account
+      // versions, proofActorId, operation identity, brand/pair) plus token
+      // verification (signature + expiry + content) all succeed. An expired
+      // or tampered token fails closed with preview-stale instead of
+      // returning the stored result.
+      const operationId = this.linkOperationKey(command);
+      const prior = await this.readLinkOperationState(operationId);
+      if (prior !== undefined && prior.status === 'completed' && prior.recordsPending !== true) {
+        const completedProof = normalizeLinkUserAccountsRequest(command);
+        const completedBrandId = requiredAuthorizationText(command.brandId, 'brandId', 256);
+        this.requireAssignmentOrLegacyScope(command, completedBrandId, 'user.account-link.manage' as ScopeKey);
+        this.requireCompletedLinkProof(prior, completedProof, command);
+        return this.resumeStoredLinkResult(command, prior, false);
+      }
+      const attemptCount = (prior?.attemptCount ?? 0) + 1;
+      if (attemptCount > LINK_OPERATION_MAX_ATTEMPTS) {
         throw new AuthorizationAdministrationError(
           'authorization.bulk-invalid',
           422,
-          'External replacement exceeds the role limit.'
+          'The link operation exceeded the bounded retry limit.'
         );
       }
+      // AUTH-TXN-001 durability: NO pre-commit running row with an empty plan.
+      // The full plan (usernames/email) plus the committed authorization phase
+      // are persisted ATOMICALLY inside Commit 1 on the same leased
+      // connection (see the `writeLinkOperationState(..., connection, ...)`
+      // call before the Commit 1 return). Persistence failures inside Commit 1
+      // throw and roll the authorization commit back (fail closed).
+      const priorAttemptCount = prior?.attemptCount ?? 0;
+      let recordPlan:
+        | {
+            readonly primaryUsername: string;
+            readonly secondaryUsername: string;
+            readonly secondaryEmail: string;
+            readonly recordOids: readonly string[];
+            /**
+             * AUTH-P5-004: true only when the Record store produced a complete
+             * bounded plan inside Commit 1 (false when discovery found the
+             * store unavailable and persisted an empty plan). The initial
+             * record pass consumes the persisted plan ONLY when complete;
+             * otherwise it reports pending drift without an unplanned write.
+             */
+            readonly planComplete: boolean;
+          }
+        | undefined;
+      // AUTH-TXN-001 proof bundle, captured inside Commit 1 and threaded
+      // through every post-commit durable write (pending/completed) so the
+      // stored operation always carries the complete plan + proof.
+      let committedProof:
+        | {
+            readonly primaryExpectedVersion: number;
+            readonly secondaryExpectedVersion: number;
+            readonly proofHash: string;
+            readonly assignmentSnapshot: readonly string[];
+            readonly proofActorId: string;
+          }
+        | undefined;
+      let committed: AuthorizationMutationResult<UserAccountLinkResult>;
+      try {
+        committed = await this.runMutation(command, auditInput, async connection => {
+          if (typeof UserLink === 'undefined') {
+            throw new AuthorizationAdministrationError(
+              'authorization.invalid-role',
+              400,
+              'Account linking is unavailable.'
+            );
+          }
+          const brandId = requiredAuthorizationText(command.brandId, 'brandId', 256);
+          this.requireAssignmentOrLegacyScope(command, brandId, 'user.account-link.manage' as ScopeKey);
+          const actorId = this.actorId(command);
+          const primaryId = requiredAuthorizationText(command.primaryUserId, 'primaryUserId', 256);
+          const secondaryId = requiredAuthorizationText(command.secondaryUserId, 'secondaryUserId', 256);
+          // AUTH-P5-006: pair-bound server proof. Both expected versions
+          // are required immediately after the scope gate — omission fails
+          // closed so callers must prove a recent server-verified read of
+          // BOTH identities. The confirmation token and operation ID are
+          // normalized to the canonical mandatory request below, AFTER the
+          // live-version drift checks, preserving the documented
+          // drift-before-token ordering (stale pairs fail with
+          // version-conflict even when no token is supplied).
+          if (command.primaryExpectedVersion === undefined || command.secondaryExpectedVersion === undefined) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'Both primaryExpectedVersion and secondaryExpectedVersion are required to link accounts.'
+            );
+          }
+          const primaryExpected = positiveVersion(command.primaryExpectedVersion, 'primaryExpectedVersion');
+          const secondaryExpected = positiveVersion(command.secondaryExpectedVersion, 'secondaryExpectedVersion');
+          if (primaryId === secondaryId) {
+            throw new AuthorizationAdministrationError(
+              'authorization.invalid-role',
+              400,
+              'Cannot link a user to itself.'
+            );
+          }
+          // Resolve the canonical primary inside the transaction so a
+          // concurrently linked primary cannot be adopted inconsistently.
+          let primary = await this.loadAccessTargetUser(primaryId, connection);
+          const seenPrimaryIds = new Set<string>();
+          for (let depth = 0; depth < MAX_LINK_DEPTH; depth += 1) {
+            if (seenPrimaryIds.has(primary.id)) {
+              throw new AuthorizationAdministrationError(
+                'authorization.not-found',
+                404,
+                'The target user was not found.'
+              );
+            }
+            seenPrimaryIds.add(primary.id);
+            if (!primary.linkedPrimaryUserId?.trim()) break;
+            const next = (await User.findOne({ id: primary.linkedPrimaryUserId }).usingConnection(connection)) as
+              UserAttributes | undefined;
+            if (next === undefined) {
+              throw new AuthorizationAdministrationError(
+                'authorization.not-found',
+                404,
+                'The target user was not found.'
+              );
+            }
+            primary = next;
+          }
+          if (primary.linkedPrimaryUserId?.trim()) {
+            throw new AuthorizationAdministrationError(
+              'authorization.not-found',
+              404,
+              'The target user was not found.'
+            );
+          }
+          if (primary.accountLinkState === 'linked-alias') {
+            throw new AuthorizationAdministrationError(
+              'authorization.invalid-role',
+              400,
+              'Primary user cannot be a linked alias.'
+            );
+          }
+          if (primary.loginDisabled === true) {
+            throw new AuthorizationAdministrationError(
+              'authorization.invalid-role',
+              400,
+              'Cannot link accounts: primary user is disabled.'
+            );
+          }
+          const secondary = await this.loadAccessTargetUser(secondaryId, connection);
+          // AUTH-LINK-PROOF-001: both accounts must be active. The primary
+          // disabled check above is symmetric: a disabled secondary cannot be
+          // linked (its authority must not move while login is barred).
+          if (secondary.loginDisabled === true) {
+            throw new AuthorizationAdministrationError(
+              'authorization.invalid-role',
+              400,
+              'Cannot link accounts: secondary user is disabled.'
+            );
+          }
+          if (secondary.accountLinkState === 'linked-alias') {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'Secondary user is already linked to another primary account.'
+            );
+          }
+          if (
+            (secondary.linkedPrimaryUserId?.trim() ?? '') !== '' &&
+            String(secondary.linkedPrimaryUserId) !== String(primary.id)
+          ) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'Secondary user is already linked to another primary account.'
+            );
+          }
+          if (!(await this.principalBelongsToBrand(primary.id, brandId, connection))) {
+            throw new AuthorizationAdministrationError(
+              'authorization.not-found',
+              404,
+              'The target user was not found.'
+            );
+          }
+          // AUTH-LINK-001: both accounts are brand members. The secondary check
+          // is symmetric so a brand administrator cannot link authority owned
+          // by another brand via the secondary side.
+          if (!(await this.principalBelongsToBrand(secondary.id, brandId, connection))) {
+            throw new AuthorizationAdministrationError(
+              'authorization.not-found',
+              404,
+              'The target user was not found.'
+            );
+          }
+          // AUTH-LINK-001 pair-bound expected versions (server proof that the
+          // caller recently read BOTH identities). Missing loginDisabledVersion
+          // reads as 1 for legacy rows. Both versions are REQUIRED (checked at
+          // entry); any drift fails closed before any write.
+          const secondaryRawVersion = (secondary as UserAttributes).loginDisabledVersion as unknown;
+          const secondaryLiveVersion =
+            typeof secondaryRawVersion === 'number' && Number.isSafeInteger(secondaryRawVersion)
+              ? (secondaryRawVersion as number)
+              : 1;
+          if (secondaryLiveVersion !== secondaryExpected) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'The secondary account changed since it was read.'
+            );
+          }
+          const primaryRawVersion = (primary as UserAttributes).loginDisabledVersion as unknown;
+          const primaryLiveVersion =
+            typeof primaryRawVersion === 'number' && Number.isSafeInteger(primaryRawVersion)
+              ? (primaryRawVersion as number)
+              : 1;
+          if (primaryLiveVersion !== primaryExpected) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'The primary account changed since it was read.'
+            );
+          }
+          // AUTH-LINK-PROOF-001 + AUTH-LINK-003: the preview confirmation
+          // token binds actor + brand + pair + both versions + authoritative
+          // assignment snapshot + operation ID with a short expiry. The live
+          // snapshot is recomputed here and verified as the token content:
+          // any assignment drift (new/removed/expired/suppressed tuples or
+          // version movement on either account) or operation-ID confusion
+          // fails closed with 409 before any write.
+          // AUTH-P5-006: normalize to the canonical mandatory request here,
+          // after the live-version drift checks. Omitted confirmation token
+          // or operation ID fails closed with preview-stale, and every
+          // downstream proof/operation check consumes this one shape.
+          const proof = normalizeLinkUserAccountsRequest(command);
+          const linkToken = proof.linkConfirmationToken;
+          const liveSnapshot = await this.snapshotLinkAssignments(
+            String(primary.id),
+            String(secondary.id),
+            brandId,
+            connection
+          );
+          const liveOperationId = proof.linkOperationId;
+          this.verifyConfirmation(
+            command,
+            linkToken,
+            'account-link',
+            `account-link:${primaryId}:${secondaryId}`,
+            secondaryExpected,
+            this.linkProofContent(
+              primaryId,
+              secondaryId,
+              primaryExpected,
+              secondaryExpected,
+              liveSnapshot.snapshot,
+              liveOperationId
+            )
+          );
+          const existingLink = (await UserLink.findOne({
+            secondaryUserId: String(secondary.id),
+            status: 'active',
+          }).usingConnection(connection)) as { readonly id?: string } | undefined;
+          if (existingLink != null) {
+            // AUTH-LINK-RACE-001: existing-link conflicts normalize to 409
+            // (safe idempotent retry of the SAME operation resumes via the
+            // durable operation record; a different operation conflicting here
+            // is a version conflict, never a 400). A pending operation for the
+            // same pair (records awaiting reconciliation) resumes from any
+            // request key so operators can retry without the original key.
+            // Completed rows found here still pass the full completed-proof
+            // gate (caller versions + current actor + token vs stored proof):
+            // there is no brand+pair-only bypass.
+            const retryable = await this.findResumableLinkOperation(command, String(secondary.id), brandId);
+            if (retryable !== undefined) {
+              if (retryable.status === 'completed' && retryable.recordsPending !== true) {
+                this.requireCompletedLinkProof(retryable, proof, command);
+              }
+              return this.resumeCompletedLinkOperation(retryable);
+            }
+            const pendingForPair = await this.findPendingLinkOperationForPair(
+              String(primary.id),
+              String(secondary.id),
+              brandId
+            );
+            if (pendingForPair !== undefined) {
+              return this.resumeCompletedLinkOperation(pendingForPair);
+            }
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'Secondary user is already linked.'
+            );
+          }
+          const secondaryOwnLinks = (await UserLink.findOne({
+            primaryUserId: String(secondary.id),
+            status: 'active',
+          }).usingConnection(connection)) as { readonly id?: string } | undefined;
+          if (secondaryOwnLinks != null) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'Secondary user already has linked accounts.'
+            );
+          }
+          // AUTH-TXN-001 durable plan: discover the bounded complete record
+          // plan BEFORE any authority mutation. The OID set is persisted
+          // atomically with the authorization commit (see the Commit 1
+          // operation write); the initial record pass and every retry consume
+          // ONLY this stored plan. A null plan means the Record store is
+          // unavailable (reduced runtimes): it is persisted as empty AND
+          // marked incomplete so Commit 2 reports pending drift instead of
+          // running an unplanned write.
+          const discoveredRecordOids = await this.discoverLinkedRecordPlan(
+            String(secondary.username ?? ''),
+            String(secondary.email ?? ''),
+            brandId
+          );
+          const recordOids: readonly string[] = discoveredRecordOids ?? Object.freeze([]);
+          // Authoritative brand authority for the secondary: every
+          // RoleAssignment row (all statuses, including expired/inactive),
+          // never the legacy projection. Active/source-aware adoption and
+          // revocation decisions are applied in-memory below via `activeAt`
+          // and exact sourced-tuple matching, preserving
+          // source/sourceKey/expiresAt and never collapsing into a manual
+          // grant.
+          const secondaryAllTuples = await this.authoritativeAllAssignments(String(secondary.id), connection);
+          const nowForSecondaryRead = this.dependencies.now();
+          const secondaryActiveTuples = secondaryAllTuples.filter(tuple => activeAt(tuple, nowForSecondaryRead));
+          const secondaryRoleIds = uniqueStrings(
+            secondaryAllTuples
+              .map(row => associationId(row.role))
+              .filter((value): value is string => value !== undefined)
+          );
+          const secondaryRoles =
+            secondaryRoleIds.length > 0
+              ? ((await Role.find({ id: secondaryRoleIds })
+                  .limit(secondaryRoleIds.length)
+                  .usingConnection(connection)) as RoleAttributes[])
+              : [];
+          const secondaryRolesById = new Map(secondaryRoles.map(role => [role.id, role]));
+          for (const tuple of secondaryActiveTuples) {
+            const role = secondaryRolesById.get(associationId(tuple.role) ?? '');
+            if (
+              role === undefined ||
+              role.contextType !== 'brand' ||
+              associationId(role.branding) !== brandId ||
+              associationId(tuple.branding) !== brandId
+            ) {
+              throw new AuthorizationAdministrationError(
+                'authorization.not-found',
+                404,
+                'The secondary account holds authority outside the active brand context.'
+              );
+            }
+            this.assertAssignmentRoleContext(tuple, role);
+          }
+          // Authoritative adoption only: the legacy User.roles projection is
+          // never authoritative. Brand authority derives solely from
+          // RoleAssignment tuples; legacy drift is healed via projection
+          // writes below, never via new grants. Only active/effective sourced
+          // tuples (active status, source present, unexpired) are adopted.
+          // Revoked, suppressed, or expired rows remain non-effective: they are
+          // never recreated or reactivated as active on the primary and never
+          // collapsed into a manual grant.
+          const brandSecondaryTuples = secondaryAllTuples.filter(tuple => associationId(tuple.branding) === brandId);
+          const brandRolesById = new Map(secondaryRoles.map(role => [role.id, role]));
+          const now = this.dependencies.now();
+          const brandSecondaryEffective = brandSecondaryTuples.filter(tuple => activeAt(tuple, now));
+          const brandRoleIds = uniqueStrings(
+            brandSecondaryTuples
+              .map(row => associationId(row.role))
+              .filter((value): value is string => value !== undefined)
+          );
+          const effectiveBrandRoleIds = uniqueStrings(
+            brandSecondaryEffective
+              .map(row => associationId(row.role))
+              .filter((value): value is string => value !== undefined)
+          );
+          // Query every primary brand tuple (all statuses) so adoption matches
+          // the exact sourced tuple instead of collapsing by role id. A primary
+          // row with the same role but a different source is a distinct grant.
+          const primaryBrandTuplesAll = (await RoleAssignment.find({
+            principalType: 'user',
+            principalId: String(primary.id),
+            branding: brandId,
+          })
+            .limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS + 1)
+            .usingConnection(connection)) as RoleAssignmentAttributes[];
+          if (primaryBrandTuplesAll.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+            throw new AuthorizationAdministrationError(
+              'authorization.query-bound-exceeded',
+              409,
+              'The principal assignment state exceeds the bounded operation limit.'
+            );
+          }
+          const sourceTupleKey = (roleId: string, source: string, sourceKey: string): string =>
+            `${roleId}::${source}::${sourceKey}`;
+          const primaryTupleBySourceKey = new Map(
+            primaryBrandTuplesAll.map(row => [
+              sourceTupleKey(associationId(row.role) ?? '', String(row.source), String(row.sourceKey)),
+              row,
+            ])
+          );
+          const protectedRoles = new Map<string, RoleAttributes>();
+          for (const roleId of effectiveBrandRoleIds) {
+            const role = brandRolesById.get(roleId);
+            if (role === undefined || associationId(role.branding) !== brandId || role.contextType !== 'brand') {
+              throw new AuthorizationAdministrationError(
+                'authorization.not-found',
+                404,
+                'The secondary account holds authority outside the active brand context.'
+              );
+            }
+            if (role.protectedKind === 'guest') {
+              throw new AuthorizationAdministrationError(
+                'authorization.protected-role',
+                409,
+                'Guest is implicit and cannot be linked.'
+              );
+            }
+            if (isProtectedAdministratorRole(role)) protectedRoles.set(role.id, role);
+          }
+          for (const role of [...protectedRoles.values()].sort((left, right) => left.id.localeCompare(right.id))) {
+            await this.lockProtectedRole(role, actorId, connection);
+          }
+          const normalizeExpiry = (value: unknown): string | null => {
+            if (value == null) return null;
+            const time = new Date(String(value)).getTime();
+            return Number.isNaN(time) ? String(value) : new Date(time).toISOString();
+          };
+          const isEffectiveTuple = (row: RoleAssignmentAttributes, at: Date): boolean =>
+            row.status === 'active' &&
+            row.sourcePresent === true &&
+            (row.expiresAt == null || new Date(String(row.expiresAt)).getTime() > at.getTime());
+          let rolesAdopted = 0;
+          for (const tuple of brandSecondaryEffective) {
+            const roleId = associationId(tuple.role) ?? '';
+            const role = brandRolesById.get(roleId);
+            if (role === undefined) continue;
+            const tupleKey = sourceTupleKey(roleId, String(tuple.source), String(tuple.sourceKey));
+            const existing = primaryTupleBySourceKey.get(tupleKey);
+            if (existing !== undefined) {
+              // P5-G2 lifecycle collision: validate exact authoritative state
+              // (status/sourcePresent/expiresAt), not only tuple identity. An
+              // effective secondary tuple colliding with a revoked, suppressed,
+              // expired, or otherwise divergent primary tuple must not force the
+              // primary active or clear lifecycle metadata. Deny with a stable
+              // conflict so both sides stay exactly preserved for operator
+              // resolution.
+              const existingEffective = isEffectiveTuple(existing, now);
+              const expiryMatches = normalizeExpiry(existing.expiresAt) === normalizeExpiry(tuple.expiresAt);
+              if (existingEffective && expiryMatches) {
+                continue;
+              }
+              throw new AuthorizationAdministrationError(
+                'authorization.version-conflict',
+                409,
+                'The primary account holds a divergent assignment for a linked role.'
+              );
+            }
+            this.requireAssignableRole(role);
+            const effective = (await this.loadRoleState(role, connection)).effectiveScopeKeys;
+            if (!hasEveryScope(command.actor.effectiveScopeKeys, effective)) {
+              throw new AuthorizationAdministrationError(
+                'authorization.delegation-ceiling',
+                403,
+                'The linked role exceeds the actor delegation ceiling.'
+              );
+            }
+            // Preserve every authoritative source tuple verbatim on the
+            // primary: source, sourceKey, and expiry travel with the grant.
+            // No reactivation path exists: a colliding primary tuple above
+            // either matches exactly (skipped) or denies the link.
+            await RoleAssignment.create({
+              principalType: 'user',
+              principalId: String(primary.id),
+              role: role.id,
+              branding: brandId,
+              source: tuple.source,
+              sourceKey: tuple.sourceKey,
+              status: 'active',
+              sourcePresent: true,
+              assignedBy: actorId,
+              assignedAt: now,
+              ...(tuple.expiresAt == null ? {} : { expiresAt: tuple.expiresAt }),
+              reason: optionalAuthorizationText(command.reason, 1_000),
+              version: 1,
+            })
+              .fetch()
+              .usingConnection(connection);
+            rolesAdopted += 1;
+            primaryTupleBySourceKey.set(tupleKey, {
+              ...tuple,
+              principalId: String(primary.id),
+              status: 'active',
+              sourcePresent: true,
+            } as RoleAssignmentAttributes);
+          }
+          let rolesRetired = 0;
+          // Brand-scoped retirement: only effective secondary tuples in the
+          // requested brand are revoked. Revoked, suppressed, or expired rows
+          // are non-effective and remain exactly preserved (never collapsed to
+          // revoked). Assignments from unrelated brands are untouched.
+          const brandSecondaryToRetire = brandSecondaryTuples.filter(tuple => isEffectiveTuple(tuple, now));
+          for (const tuple of brandSecondaryToRetire) {
+            requireUpdatedRow(
+              (await RoleAssignment.updateOne({ id: tuple.id, version: tuple.version })
+                .set({
+                  status: 'revoked',
+                  revokedBy: actorId,
+                  revokedAt: now,
+                  reason: optionalAuthorizationText(command.reason, 1_000),
+                  version: tuple.version + 1,
+                })
+                .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+              'The secondary assignment changed since it was read.'
+            );
+            rolesRetired += 1;
+          }
+          // AUTH-TXN-001: capture the record plan but do NOT rewrite records
+          // inside the authorization transaction. Records live on `redboxStorage`
+          // and share no session with this transaction; any record failure after
+          // this commit is reported as pending drift, never as a rollback.
+          // The OID plan was discovered BEFORE any authority mutation above
+          // and travels with the proof bundle below.
+          recordPlan = {
+            primaryUsername: String(primary.username ?? ''),
+            secondaryUsername: String(secondary.username ?? ''),
+            secondaryEmail: String(secondary.email ?? ''),
+            recordOids,
+            planComplete: discoveredRecordOids !== null,
+          };
+          committedProof = {
+            primaryExpectedVersion: primaryExpected,
+            secondaryExpectedVersion: secondaryExpected,
+            proofHash: this.linkProofHash(linkToken),
+            assignmentSnapshot: [...liveSnapshot.snapshot],
+            proofActorId: actorId,
+          };
+          // UserLink storage uniqueness: exactly one active link per secondary.
+          // The pre-check above fails closed for the common case; the insert
+          // below is the race guard (unique-index violation normalizes to 409
+          // via runMutation). Production must enforce a unique partial index on
+          // `{ secondaryUserId: 1, status: 1 }`.
+          await UserLink.create({
+            primaryUserId: String(primary.id),
+            primaryUsername: String(primary.username ?? ''),
+            secondaryUserId: String(secondary.id),
+            secondaryUsername: String(secondary.username ?? ''),
+            brandId,
+            status: 'active',
+            createdBy: this.actorUsername(command),
+          }).usingConnection(connection);
+          // AUTH-LINK-RACE-001 + AUTH-LINK-003: CAS both user rows inside the
+          // protocol and ADVANCE the shared primary link version. The
+          // secondary canonical update pins `loginDisabledVersion` (legacy
+          // rows read as 1) and heals it forward; the primary row is
+          // CAS-verified with a version-pinned predicate and advanced by one
+          // so concurrent primary disable/link attempts abort instead of
+          // interleaving and later readers observe link movement.
+          const primaryCasCriteria =
+            primaryLiveVersion === 1
+              ? {
+                  id: String(primary.id),
+                  or: [{ loginDisabledVersion: 1 }, { loginDisabledVersion: null }],
+                }
+              : { id: String(primary.id), loginDisabledVersion: primaryLiveVersion };
+          requireUpdatedRow(
+            (await User.updateOne(primaryCasCriteria)
+              .set({ loginDisabledVersion: primaryLiveVersion + 1 })
+              .usingConnection(connection)) as UserAttributes | undefined,
+            'The primary account changed since it was read.'
+          );
+          const secondaryCasCriteria =
+            secondaryLiveVersion === 1
+              ? {
+                  id: String(secondary.id),
+                  or: [{ loginDisabledVersion: 1 }, { loginDisabledVersion: null }],
+                }
+              : { id: String(secondary.id), loginDisabledVersion: secondaryLiveVersion };
+          requireUpdatedRow(
+            (await User.updateOne(secondaryCasCriteria)
+              .set({
+                token: '',
+                accountLinkState: 'linked-alias',
+                linkedPrimaryUserId: String(primary.id),
+                loginDisabledVersion: secondaryLiveVersion + 1,
+              })
+              .usingConnection(connection)) as UserAttributes | undefined,
+            'The secondary account changed since it was read.'
+          );
+          // Heal the legacy projection from authoritative state (P5-G5).
+          // Authoritative effective state (status/sourcePresent/expiresAt) is
+          // the only source of truth; the projection never creates grants.
+          // Heals: secondary adopted roles for both users, secondary
+          // legacy-only drift, primary-only authoritative drift, and primary
+          // legacy-only drift.
+          for (const roleId of brandRoleIds) {
+            const role = brandRolesById.get(roleId);
+            if (role === undefined) continue;
+            await this.projectLegacyAuthority(String(primary.id), role, connection);
+            await this.projectLegacyAuthority(String(secondary.id), role, connection);
+          }
+          const legacySecondaryRoleIds = await this.legacyBrandRoleIds(String(secondary.id), brandId, connection);
+          const legacyOnlyRoleIds = legacySecondaryRoleIds.filter(roleId => !brandRolesById.has(roleId));
+          if (legacyOnlyRoleIds.length > 0) {
+            const legacyOnlyRoles = (await Role.find({ id: legacyOnlyRoleIds })
+              .limit(legacyOnlyRoleIds.length)
+              .usingConnection(connection)) as RoleAttributes[];
+            for (const role of legacyOnlyRoles) {
+              if (associationId(role.branding) !== brandId || role.contextType !== 'brand') continue;
+              await this.projectLegacyAuthority(String(secondary.id), role, connection);
+            }
+          }
+          const primaryAuthoritativeActive = await this.authoritativeActiveAssignments(
+            String(primary.id),
+            connection,
+            brandId
+          );
+          const primaryActiveRoleIds = uniqueStrings(
+            primaryAuthoritativeActive
+              .map(row => associationId(row.role))
+              .filter((value): value is string => value !== undefined)
+          );
+          if (primaryActiveRoleIds.length > 0) {
+            const primaryActiveRoles = (await Role.find({ id: primaryActiveRoleIds })
+              .limit(primaryActiveRoleIds.length)
+              .usingConnection(connection)) as RoleAttributes[];
+            for (const role of primaryActiveRoles) {
+              if (associationId(role.branding) !== brandId || role.contextType !== 'brand') continue;
+              await this.projectLegacyAuthority(String(primary.id), role, connection);
+            }
+          }
+          const legacyPrimaryRoleIds = await this.legacyBrandRoleIds(String(primary.id), brandId, connection);
+          const primaryAuthoritativeRoleIdSet = new Set([
+            ...brandRolesById.keys(),
+            ...primaryActiveRoleIds,
+            ...primaryBrandTuplesAll
+              .map(row => associationId(row.role))
+              .filter((value): value is string => value !== undefined),
+          ]);
+          const primaryLegacyOnlyIds = legacyPrimaryRoleIds.filter(
+            roleId => !primaryAuthoritativeRoleIdSet.has(roleId)
+          );
+          if (primaryLegacyOnlyIds.length > 0) {
+            const primaryLegacyOnlyRoles = (await Role.find({ id: primaryLegacyOnlyIds })
+              .limit(primaryLegacyOnlyIds.length)
+              .usingConnection(connection)) as RoleAttributes[];
+            for (const role of primaryLegacyOnlyRoles) {
+              if (associationId(role.branding) !== brandId || role.contextType !== 'brand') continue;
+              await this.projectLegacyAuthority(String(primary.id), role, connection);
+            }
+          }
+          // Post-revocation quorum: the secondary no longer counts as effective.
+          for (const role of protectedRoles.values()) {
+            await this.assertAdministratorQuorum(role, connection);
+          }
+          // Dual-write drift guard (P5-G5): authoritative state must now show
+          // the secondary with no live brand authority and the primary holding
+          // every adopted effective source tuple with exact state
+          // (status/sourcePresent/expiresAt), not only tuple identity.
+          // Non-effective (revoked/suppressed/expired) tuples are intentionally
+          // not adopted and remain non-effective and preserved.
+          const secondaryAfter = await this.authoritativeActiveAssignments(String(secondary.id), connection, brandId);
+          if (secondaryAfter.length > 0) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'The secondary assignment state changed during linking.'
+            );
+          }
+          const primaryAfterAll = await this.authoritativeAllAssignments(String(primary.id), connection, brandId);
+          const primaryAfterByKey = new Map(
+            primaryAfterAll.map(row => [
+              sourceTupleKey(associationId(row.role) ?? '', String(row.source), String(row.sourceKey)),
+              row,
+            ])
+          );
+          const driftedTuple = brandSecondaryEffective.some(tuple => {
+            const row = primaryAfterByKey.get(
+              sourceTupleKey(associationId(tuple.role) ?? '', String(tuple.source), String(tuple.sourceKey))
+            );
+            if (row === undefined) return true;
+            if (row.status !== 'active' || row.sourcePresent !== true) return true;
+            return normalizeExpiry(row.expiresAt) !== normalizeExpiry(tuple.expiresAt);
+          });
+          if (driftedTuple) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'The primary assignment state changed during linking.'
+            );
+          }
+          const data = Object.freeze({
+            primaryUserId: String(primary.id),
+            secondaryUserId: String(secondary.id),
+            rolesAdopted,
+            rolesRetired,
+            recordsRewritten: 0,
+            recordsPending: true,
+            changed: true,
+            linkOperationId: operationId,
+          });
+          const audit = await this.dependencies.audit().createSucceededEvent(
+            {
+              ...auditInput,
+              targetId: String(primary.id),
+              after: { ...data, primaryUsername: primary.username, secondaryUsername: secondary.username, brandId },
+            },
+            connection
+          );
+          await this.writeLegacyUserAuditRow(
+            this.actorUsername(command),
+            'link-accounts',
+            {
+              primaryUserId: primary.id,
+              primaryUsername: primary.username,
+              secondaryUserId: secondary.id,
+              secondaryUsername: secondary.username,
+              brandId,
+              rolesMerged: rolesAdopted,
+              recordsRewritten: 0,
+              recordsPending: true,
+            },
+            connection
+          );
+          // AUTH-TXN-001: persist the full record plan + committed
+          // authorization phase + authority proof ATOMICALLY with Commit 1 on
+          // the same leased connection. A persistence failure throws and rolls
+          // Commit 1 back (fail closed) via runMutation — never a
+          // committed-but-untracked link. CAS on the prior attempt count
+          // defeats concurrent writers (creation races additionally break on
+          // the unique operationId index).
+          await this.writeLinkOperationState(
+            {
+              operationId,
+              brandId,
+              primaryUserId: String(primary.id),
+              secondaryUserId: String(secondary.id),
+              primaryUsername: String(primary.username ?? ''),
+              secondaryUsername: String(secondary.username ?? ''),
+              secondaryEmail: String(secondary.email ?? ''),
+              status: 'pending',
+              recordsPending: true,
+              recordsRewritten: 0,
+              rolesAdopted,
+              rolesRetired,
+              attemptCount,
+              recordOids,
+              recordsCompletedOids: Object.freeze([]),
+              primaryExpectedVersion: committedProof?.primaryExpectedVersion,
+              secondaryExpectedVersion: committedProof?.secondaryExpectedVersion,
+              proofHash: committedProof?.proofHash,
+              assignmentSnapshot: committedProof?.assignmentSnapshot,
+              proofActorId: committedProof?.proofActorId,
+            },
+            connection,
+            priorAttemptCount,
+            prior?.status
+          );
+          return Object.freeze({
+            data,
+            version: 1,
+            auditEventId: audit.eventId,
+            requestId: command.requestId,
+            changed: true,
+          });
+        });
+      } catch (error) {
+        // AUTH-TXN-001: the authorization commit did not happen. Record the
+        // terminal failed transition (runMutation already recorded the denied
+        // attempt) so operators and retry logic observe it durably. A
+        // persistence failure here must not mask the original authorization
+        // error, but it is surfaced via the audit fallback chain.
+        try {
+          await this.writeLinkOperationState(
+            {
+              operationId,
+              brandId: String(command.brandId ?? ''),
+              primaryUserId: String(command.primaryUserId ?? ''),
+              secondaryUserId: String(command.secondaryUserId ?? ''),
+              primaryUsername: '',
+              secondaryUsername: '',
+              secondaryEmail: '',
+              status: 'failed',
+              recordsPending: false,
+              recordsRewritten: 0,
+              rolesAdopted: 0,
+              rolesRetired: 0,
+              attemptCount,
+              // No plan/proof: nothing was authorized. Failed rows never
+              // resume the record phase (retry re-runs the full link), so
+              // they are permanently incomplete by construction.
+              recordOids: Object.freeze([]),
+              recordsCompletedOids: Object.freeze([]),
+            },
+            undefined,
+            priorAttemptCount,
+            prior?.status
+          );
+        } catch (persistenceError) {
+          await this.dependencies.audit().recordAttempt(
+            {
+              ...auditInput,
+              eventType: 'user.link-records-pending',
+              targetId: String(command.primaryUserId ?? ''),
+              reasonCode: 'authorization.internal-error',
+              after: { linkOperationId: operationId },
+            },
+            'failed'
+          );
+          void persistenceError;
+        }
+        throw error;
+      }
+      // Commit 2 (separate Record-datastore phase). The authorization commit
+      // above is durable; record failures are reported as pending drift.
+      // AUTH-P5-004: the initial pass consumes ONLY the persisted pre-mutation
+      // plan (`planComplete` from Commit 1 discovery). It never runs an
+      // unplanned write: when discovery found the Record store unavailable,
+      // the pass reports pending drift; retries consume the stored plan (see
+      // retryLinkOperation).
+      const plan = recordPlan ?? {
+        primaryUsername: '',
+        secondaryUsername: '',
+        secondaryEmail: '',
+        recordOids: Object.freeze([]),
+        planComplete: false,
+      };
+      const proofBundle = committedProof;
+      let rewriteOutcome: { readonly rewritten: number; readonly completedOids: readonly string[] } = {
+        rewritten: -1,
+        completedOids: Object.freeze([]),
+      };
+      const initialProgress: string[] = [];
+      try {
+        rewriteOutcome =
+          plan.planComplete === true
+            ? await this.rewriteLinkedRecordAuthorizationsSeparateStore(
+                plan.primaryUsername,
+                plan.secondaryUsername,
+                plan.secondaryEmail,
+                requiredAuthorizationText(command.brandId, 'brandId', 256),
+                [...plan.recordOids],
+                initialProgress
+              )
+            : { rewritten: -1, completedOids: Object.freeze([]) };
+      } catch (error) {
+        const code =
+          typeof error === 'object' && error !== null && 'code' in error
+            ? String((error as { code?: unknown }).code ?? 'authorization.internal-error')
+            : 'authorization.internal-error';
+        // AUTH-TXN-001: authorization is committed; records await
+        // reconciliation. Persist the completed prefix (durable monotonic
+        // per-record progress) so bounded retry resumes instead of
+        // restarting. The operation stays `pending` (not failed).
+        const partialCompleted = Object.freeze([...initialProgress]);
+        await this.dependencies.audit().recordAttempt(
+          {
+            ...auditInput,
+            eventType: 'user.link-records-pending',
+            targetId: String(committed.data.primaryUserId),
+            reasonCode: code,
+            after: {
+              ...committed.data,
+              recordsPending: true,
+              recordsRewritten: partialCompleted.length,
+              errorCode: code,
+            },
+          },
+          'failed'
+        );
+        await this.writeLinkOperationState(
+          {
+            operationId,
+            brandId: String(command.brandId ?? ''),
+            primaryUserId: String(committed.data.primaryUserId),
+            secondaryUserId: String(committed.data.secondaryUserId),
+            primaryUsername: plan.primaryUsername,
+            secondaryUsername: plan.secondaryUsername,
+            secondaryEmail: plan.secondaryEmail,
+            status: 'pending',
+            recordsPending: true,
+            recordsRewritten: partialCompleted.length,
+            rolesAdopted: Number(committed.data.rolesAdopted ?? 0),
+            rolesRetired: Number(committed.data.rolesRetired ?? 0),
+            attemptCount,
+            recordOids: [...plan.recordOids],
+            recordsCompletedOids: [...partialCompleted],
+            primaryExpectedVersion: proofBundle?.primaryExpectedVersion,
+            secondaryExpectedVersion: proofBundle?.secondaryExpectedVersion,
+            proofHash: proofBundle?.proofHash,
+            assignmentSnapshot: proofBundle?.assignmentSnapshot,
+            proofActorId: proofBundle?.proofActorId,
+          },
+          undefined,
+          attemptCount,
+          'pending'
+        );
+        return Object.freeze({
+          data: Object.freeze({
+            ...committed.data,
+            recordsRewritten: partialCompleted.length,
+            recordsPending: true,
+            linkOperationId: operationId,
+          }),
+          version: committed.version,
+          auditEventId: committed.auditEventId,
+          requestId: committed.requestId,
+          changed: true,
+        });
+      }
+      // AUTH-TXN-001: progress is durable truth (completed OID count), never
+      // a caller-supplied claim. When the Record store is unavailable
+      // (rewritten < 0, reduced runtimes only — production always hosts the
+      // model), completion is UNVERIFIED: report pending drift.
+      const recordsRewritten = rewriteOutcome.rewritten < 0 ? 0 : rewriteOutcome.completedOids.length;
+      if (rewriteOutcome.rewritten < 0) {
+        await this.dependencies.audit().recordAttempt(
+          {
+            ...auditInput,
+            eventType: 'user.link-records-pending',
+            targetId: String(committed.data.primaryUserId),
+            reasonCode: 'record-store-unavailable',
+            after: {
+              ...committed.data,
+              recordsRewritten,
+              recordsPending: true,
+              errorCode: 'record-store-unavailable',
+            },
+          },
+          'failed'
+        );
+        await this.writeLinkOperationState(
+          {
+            operationId,
+            brandId: String(command.brandId ?? ''),
+            primaryUserId: String(committed.data.primaryUserId),
+            secondaryUserId: String(committed.data.secondaryUserId),
+            primaryUsername: plan.primaryUsername,
+            secondaryUsername: plan.secondaryUsername,
+            secondaryEmail: plan.secondaryEmail,
+            status: 'pending',
+            recordsPending: true,
+            recordsRewritten,
+            rolesAdopted: Number(committed.data.rolesAdopted ?? 0),
+            rolesRetired: Number(committed.data.rolesRetired ?? 0),
+            attemptCount,
+            recordOids: [...plan.recordOids],
+            recordsCompletedOids: [...rewriteOutcome.completedOids],
+            primaryExpectedVersion: proofBundle?.primaryExpectedVersion,
+            secondaryExpectedVersion: proofBundle?.secondaryExpectedVersion,
+            proofHash: proofBundle?.proofHash,
+            assignmentSnapshot: proofBundle?.assignmentSnapshot,
+            proofActorId: proofBundle?.proofActorId,
+          },
+          undefined,
+          attemptCount,
+          'pending'
+        );
+        return Object.freeze({
+          data: Object.freeze({
+            ...committed.data,
+            recordsRewritten,
+            recordsPending: true,
+            linkOperationId: operationId,
+          }),
+          version: committed.version,
+          auditEventId: committed.auditEventId,
+          requestId: committed.requestId,
+          changed: true,
+        });
+      }
+      // AUTH-TXN-001 completion: `completed` is contingent on the durable
+      // completion audit. Both persist in ONE transaction — a failure leaves
+      // the operation `pending` (fail closed) instead of claiming completion
+      // without audit proof. Errors are never swallowed.
+      try {
+        await this.dependencies.runTransaction(async completionConnection => {
+          await this.dependencies.audit().createSucceededEvent(
+            {
+              ...auditInput,
+              eventType: 'user.link-operation-completed',
+              targetId: String(committed.data.primaryUserId),
+              after: {
+                ...committed.data,
+                recordsRewritten,
+                recordsPending: false,
+                linkOperationId: operationId,
+              },
+            },
+            completionConnection
+          );
+          await this.writeLinkOperationState(
+            {
+              operationId,
+              brandId: String(command.brandId ?? ''),
+              primaryUserId: String(committed.data.primaryUserId),
+              secondaryUserId: String(committed.data.secondaryUserId),
+              primaryUsername: plan.primaryUsername,
+              secondaryUsername: plan.secondaryUsername,
+              secondaryEmail: plan.secondaryEmail,
+              status: 'completed',
+              recordsPending: false,
+              recordsRewritten,
+              rolesAdopted: Number(committed.data.rolesAdopted ?? 0),
+              rolesRetired: Number(committed.data.rolesRetired ?? 0),
+              attemptCount,
+              recordOids: [...plan.recordOids],
+              recordsCompletedOids: [...rewriteOutcome.completedOids],
+              primaryExpectedVersion: proofBundle?.primaryExpectedVersion,
+              secondaryExpectedVersion: proofBundle?.secondaryExpectedVersion,
+              proofHash: proofBundle?.proofHash,
+              assignmentSnapshot: proofBundle?.assignmentSnapshot,
+              proofActorId: proofBundle?.proofActorId,
+            },
+            completionConnection,
+            attemptCount,
+            'pending'
+          );
+        });
+      } catch (completionError) {
+        // Fail closed: completion audit/persistence failed, so the operation
+        // stays pending for bounded retry instead of reporting completed.
+        await this.dependencies.audit().recordAttempt(
+          {
+            ...auditInput,
+            eventType: 'user.link-records-pending',
+            targetId: String(committed.data.primaryUserId),
+            reasonCode: 'authorization.internal-error',
+            after: { ...committed.data, recordsPending: true, linkOperationId: operationId },
+          },
+          'failed'
+        );
+        void completionError;
+        return Object.freeze({
+          data: Object.freeze({
+            ...committed.data,
+            recordsRewritten,
+            recordsPending: true,
+            linkOperationId: operationId,
+          }),
+          version: committed.version,
+          auditEventId: committed.auditEventId,
+          requestId: committed.requestId,
+          changed: true,
+        });
+      }
+      return Object.freeze({
+        data: Object.freeze({
+          ...committed.data,
+          recordsRewritten,
+          recordsPending: false,
+          linkOperationId: operationId,
+        }),
+        version: committed.version,
+        auditEventId: committed.auditEventId,
+        requestId: committed.requestId,
+        changed: true,
+      });
+    }
+
+    /**
+     * AUTH-LINK-PROOF-001 server-bound preview/confirmation flow. Read-only:
+     * resolves the canonical primary, validates both accounts are active
+     * brand members, reads live pair versions, counts adoptable/retirable
+     * sourced tuples, and issues a short-lived pair-bound confirmation token
+     * plus a stable `linkOperationId`. The writer re-verifies the token and
+     * both versions before any write; preview alone never mutates.
+     */
+    public async previewLinkAccounts(command: PreviewLinkAccountsCommand): Promise<LinkAccountsPreview> {
+      const brandId = requiredAuthorizationText(command.brandId, 'brandId', 256);
+      this.requireAssignmentOrLegacyScope(command, brandId, 'user.account-link.manage' as ScopeKey);
+      const primaryId = requiredAuthorizationText(command.primaryUserId, 'primaryUserId', 256);
+      const secondaryId = requiredAuthorizationText(command.secondaryUserId, 'secondaryUserId', 256);
+      if (primaryId === secondaryId) {
+        throw new AuthorizationAdministrationError('authorization.invalid-role', 400, 'Cannot link a user to itself.');
+      }
+      return this.dependencies.runTransaction(async connection => {
+        if (typeof UserLink === 'undefined') {
+          throw new AuthorizationAdministrationError(
+            'authorization.invalid-role',
+            400,
+            'Account linking is unavailable.'
+          );
+        }
+        const primary = await this.loadLinkPreviewPrimary(primaryId, connection);
+        const secondary = (await User.findOne({ id: secondaryId }).usingConnection(connection)) as
+          UserAttributes | undefined;
+        if (secondary === undefined) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
+        }
+        this.assertLinkPreviewPairActive(primary, secondary);
+        if (!(await this.principalBelongsToBrand(primary.id, brandId, connection))) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
+        }
+        if (!(await this.principalBelongsToBrand(secondary.id, brandId, connection))) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
+        }
+        const primaryLiveVersion = this.liveLoginDisabledVersion(primary);
+        const secondaryLiveVersion = this.liveLoginDisabledVersion(secondary);
+        // AUTH-LINK-003: bounded authoritative snapshots for BOTH accounts.
+        // The snapshot (tuple identities + versions + lifecycle) and the
+        // operation ID are bound into the confirmation content so drift or
+        // operation confusion fails closed at apply time.
+        const {
+          rolesToAdopt,
+          rolesToRetire,
+          snapshot: assignmentSnapshot,
+        } = await this.snapshotLinkAssignments(String(primary.id), String(secondary.id), brandId, connection);
+        const linkOperationId = this.dependencies.randomId();
+        const content = this.linkProofContent(
+          String(primary.id),
+          String(secondary.id),
+          primaryLiveVersion,
+          secondaryLiveVersion,
+          assignmentSnapshot,
+          linkOperationId
+        );
+        const confirmationToken = this.issueConfirmation(
+          { ...command, requestId: command.requestId },
+          'account-link',
+          `account-link:${content.primaryUserId}:${content.secondaryUserId}`,
+          secondaryLiveVersion,
+          content
+        );
+        return Object.freeze({
+          primaryUserId: content.primaryUserId,
+          secondaryUserId: content.secondaryUserId,
+          primaryExpectedVersion: primaryLiveVersion,
+          secondaryExpectedVersion: secondaryLiveVersion,
+          primaryUsername: String(primary.username ?? ''),
+          secondaryUsername: String(secondary.username ?? ''),
+          rolesToAdopt,
+          rolesToRetire,
+          confirmationToken,
+          linkOperationId,
+        });
+      });
+    }
+
+    /**
+     * AUTH-TXN-001: expose durable link-operation state. Returns the
+     * pending/running/completed/failed record keyed by the stable operation
+     * ID so clients can poll and retry idempotently. 404 when unknown.
+     */
+    public async getLinkOperation(
+      actor: AuthorizationContext,
+      brandId: string,
+      linkOperationId: string
+    ): Promise<LinkOperationState> {
+      const operationId = requiredAuthorizationText(linkOperationId, 'linkOperationId', 256);
+      const cleanBrandId = requiredAuthorizationText(brandId, 'brandId', 256);
+      this.actorId({ actor, brandId: cleanBrandId, requestId: 'link-operation-read' });
+      // AUTH-P5-004 actor brand binding: a brand-scoped actor reads only its
+      // own brand's operations; cross-brand rows are opaque 404 below.
+      if (actor.contextType === 'brand' && actor.brand?.id !== cleanBrandId) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The link operation was not found.');
+      }
+      if (
+        !this.hasProvenScope(actor, ASSIGNMENT_READ_SCOPE) &&
+        !this.hasProvenScope(actor, ASSIGNMENT_MANAGE_SCOPE) &&
+        !this.hasProvenScope(actor, 'user.account-link.manage' as ScopeKey)
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.scope-denied',
+          403,
+          'The actor lacks the required authorization scope.'
+        );
+      }
+      const stored = await this.readLinkOperationState(operationId);
+      if (stored === undefined || stored.brandId !== cleanBrandId) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The link operation was not found.');
+      }
+      return Object.freeze({ ...stored });
+    }
+
+    /**
+     * AUTH-TXN-001 bounded idempotent retry over the MANDATORY retry DTO. A
+     * completed operation returns its stored result without re-executing. A
+     * pending operation resumes SAFELY: the caller re-proves the full preview
+     * contract (operation ID, both account versions, confirmation token) and
+     * every element is verified against the STORED durable proof before only
+     * the record phase re-runs — the authorization commit is never
+     * re-executed, so retry cannot conflict with its own prior commit. Rows
+     * missing proof on a resumable status are rejected as incomplete (never
+     * rebuilt from mutable live users). Attempts beyond the bounded limit
+     * fail closed with 422.
+     */
+    public async retryLinkOperation(
+      command: RetryLinkOperationCommand
+    ): Promise<AuthorizationMutationResult<UserAccountLinkResult>> {
+      // AUTH-P5-004: retries carry the same provenance/scope/brand gate as the
+      // initial link — a server-issued actor with proven
+      // `user.account-link.manage` (or assignment-manage) bound to the
+      // operation brand. The stored pair match below re-verifies brand+pair.
+      const retryBrandId = requiredAuthorizationText(command.brandId, 'brandId', 256);
+      this.requireAssignmentOrLegacyScope(command, retryBrandId, 'user.account-link.manage' as ScopeKey);
+      // AUTH-P5-006: normalize to the canonical mandatory retry DTO first.
+      // Omitted/invalid operation ID, versions, or token fail closed here
+      // (never a partial validation of scope/op/brand/pair alone).
+      const proof = normalizeLinkUserAccountsRequest(command);
+      const operationId = proof.linkOperationId;
+      const stored = await this.readLinkOperationState(operationId);
+      if (stored === undefined) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The link operation was not found.');
+      }
+      if (
+        stored.brandId !== String(command.brandId ?? '') ||
+        stored.primaryUserId !== String(command.primaryUserId ?? '') ||
+        stored.secondaryUserId !== String(command.secondaryUserId ?? '')
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The link retry does not match the stored operation pair.'
+        );
+      }
+      // Bind even read-only resume to the stored proof versions, then to the
+      // full stored proof (including the confirmation token). The completed
+      // idempotent resume verifies the token exactly like a work-resuming
+      // retry: an expired or tampered token fails closed with preview-stale
+      // instead of returning the stored result (no brand+pair-only bypass).
+      if (
+        proof.primaryExpectedVersion !== stored.primaryExpectedVersion ||
+        proof.secondaryExpectedVersion !== stored.secondaryExpectedVersion
+      ) {
+        // `undefined` stored versions mark rows that never carried proof
+        // (failed rows predate proof capture): they fail closed here rather
+        // than comparing against undefined.
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The link retry does not match the stored operation proof.'
+        );
+      }
+      if (stored.status === 'completed' && stored.recordsPending !== true) {
+        // The shared completed-proof gate re-checks caller versions plus the
+        // CURRENT caller actor binding and the token against the stored
+        // proof (the inline version check above stays as the first fail-fast
+        // mismatch signal with the same stable code).
+        this.requireCompletedLinkProof(stored, proof, command);
+        return this.resumeStoredLinkResult(command, stored, false);
+      }
+      if (stored.attemptCount >= LINK_OPERATION_MAX_ATTEMPTS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.bulk-invalid',
+          422,
+          'The link operation exceeded the bounded retry limit.'
+        );
+      }
+      // Failed BEFORE the authorization commit: re-run the whole link (the
+      // prior attempt wrote nothing durable, so no self-conflict is possible).
+      // The mandatory DTO carries the full proof the fresh link requires.
+      if (stored.status === 'failed') {
+        return this.linkUserAccounts(command);
+      }
+      // Resumable statuses MUST carry the complete durable plan + proof.
+      // Anything less is rejected as incomplete — the plan is never rebuilt
+      // from mutable live users, which could authorize a different pairing
+      // than the committed one.
+      const storedSnapshot = stored.assignmentSnapshot;
+      if (
+        stored.status !== 'pending' ||
+        !Array.isArray(stored.recordOids) ||
+        stored.proofHash === undefined ||
+        storedSnapshot === undefined ||
+        stored.primaryExpectedVersion === undefined ||
+        stored.secondaryExpectedVersion === undefined ||
+        stored.proofActorId === undefined
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The link operation plan is unavailable for retry.'
+        );
+      }
+      // Bind the retry token to the stored proof: it must reproduce the
+      // committed confirmation exactly (operation, pair, brand, versions,
+      // preview actor, content hash).
+      this.verifyStoredLinkProof(stored, proof);
+      // Pending with committed authorization: resume only the record phase
+      // over the STORED plan (never fresh discovery scope). The rewrite is
+      // idempotent (already-rewritten rows carry no secondary references and
+      // are skipped), so partial multi-record progress converges instead of
+      // restarting.
+      const auditInput = this.auditInput(command, 'user.linked', 'user', stored.primaryUserId);
+      const nextAttempt = stored.attemptCount + 1;
+      // AUTH-P5-004 retry fencing: claim the CAS lease (attempt count + status)
+      // BEFORE record I/O so concurrent retries serialize; a lost lease fails
+      // closed with version-conflict instead of double-rewriting records.
+      await this.writeLinkOperationState(
+        {
+          ...stored,
+          status: 'pending',
+          recordsPending: true,
+          attemptCount: nextAttempt,
+        },
+        undefined,
+        stored.attemptCount,
+        stored.status
+      );
+      const resumePlan = {
+        primaryUsername: stored.primaryUsername,
+        secondaryUsername: stored.secondaryUsername,
+        secondaryEmail: stored.secondaryEmail,
+      };
+      const retryProgress: string[] = [];
+      let rewriteOutcome: { readonly rewritten: number; readonly completedOids: readonly string[] };
+      try {
+        rewriteOutcome = await this.rewriteLinkedRecordAuthorizationsSeparateStore(
+          resumePlan.primaryUsername,
+          resumePlan.secondaryUsername,
+          resumePlan.secondaryEmail,
+          stored.brandId,
+          [...stored.recordOids],
+          retryProgress
+        );
+      } catch (error) {
+        const code =
+          typeof error === 'object' && error !== null && 'code' in error
+            ? String((error as { code?: unknown }).code ?? 'authorization.internal-error')
+            : 'authorization.internal-error';
+        // AUTH-P5-004: CAS on the currently persisted attempt count AND
+        // status. Progress is the durable union of previously completed and
+        // newly completed OIDs (monotonic — never reset).
+        const partialCompleted = Object.freeze([...new Set([...stored.recordsCompletedOids, ...retryProgress])]);
+        await this.writeLinkOperationState(
+          {
+            ...stored,
+            status: 'pending',
+            recordsPending: true,
+            recordsRewritten: partialCompleted.length,
+            recordsCompletedOids: [...partialCompleted],
+            attemptCount: nextAttempt,
+          },
+          undefined,
+          nextAttempt,
+          'pending'
+        );
+        await this.dependencies.audit().recordAttempt(
+          {
+            ...auditInput,
+            eventType: 'user.link-records-pending',
+            targetId: stored.primaryUserId,
+            reasonCode: code,
+            after: { recordsPending: true, errorCode: code, linkOperationId: operationId },
+          },
+          'failed'
+        );
+        return this.resumeStoredLinkResult(
+          command,
+          { ...stored, recordsPending: true, recordsRewritten: partialCompleted.length, attemptCount: nextAttempt },
+          false
+        );
+      }
+      if (rewriteOutcome.rewritten < 0) {
+        // AUTH-P5-004: CAS on the leased attempt count AND status.
+        await this.writeLinkOperationState(
+          {
+            ...stored,
+            status: 'pending',
+            recordsPending: true,
+            attemptCount: nextAttempt,
+          },
+          undefined,
+          nextAttempt,
+          'pending'
+        );
+        return this.resumeStoredLinkResult(
+          command,
+          { ...stored, recordsPending: true, attemptCount: nextAttempt },
+          false
+        );
+      }
+      // Durable monotonic progress: previously completed plus newly completed.
+      const totalCompleted = Object.freeze([
+        ...new Set([...stored.recordsCompletedOids, ...rewriteOutcome.completedOids]),
+      ]);
+      const resumed: LinkOperationState = {
+        ...stored,
+        status: 'completed',
+        recordsPending: false,
+        recordsRewritten: totalCompleted.length,
+        recordsCompletedOids: [...totalCompleted],
+        attemptCount: nextAttempt,
+      };
+      // Completed contingent on the durable completion audit in one
+      // transaction; failures stay pending (fail closed, never swallowed).
+      await this.dependencies.runTransaction(async completionConnection => {
+        await this.dependencies.audit().createSucceededEvent(
+          {
+            ...auditInput,
+            eventType: 'user.link-operation-completed',
+            targetId: stored.primaryUserId,
+            after: { recordsRewritten: totalCompleted.length, recordsPending: false, linkOperationId: operationId },
+          },
+          completionConnection
+        );
+        await this.writeLinkOperationState(resumed, completionConnection, nextAttempt, 'pending');
+      });
+      return this.resumeStoredLinkResult(command, resumed, false);
+    }
+
+    /**
+     * AUTH-TXN-001 restart recovery: durable list of resumable (pending /
+     * running) link operations. Terminal rows are never returned. When the
+     * durable `UserLinkOperation` model exists its answer is authoritative
+     * (durable read errors fail closed with 503, never a silent empty list);
+     * the process-local mirror serves reduced runtimes without the model only.
+     */
+    public async recoverIncompleteLinkOperations(limit = 50): Promise<readonly LinkOperationState[]> {
+      const bounded = Number.isSafeInteger(limit) && limit >= 1 ? Math.min(Number(limit), 200) : 50;
+      if (typeof UserLinkOperation === 'undefined') {
+        return Object.freeze(
+          [...linkOperationFallback.values()]
+            .filter(state => state.status === 'pending' || state.status === 'running')
+            .sort((left, right) => left.operationId.localeCompare(right.operationId))
+            .slice(0, bounded)
+            .map(state => Object.freeze({ ...state }))
+        );
+      }
+      let rows: unknown;
+      try {
+        rows = await UserLinkOperation.find({
+          or: [{ status: 'pending' }, { status: 'running' }],
+        }).limit(bounded);
+      } catch (error) {
+        if (isAuthorizationAdministrationError(error)) throw error;
+        throw new AuthorizationAdministrationError(
+          'authorization.audit-unavailable',
+          503,
+          'The link operation state is unavailable.'
+        );
+      }
+      const states: LinkOperationState[] = [];
+      for (const row of Array.isArray(rows) ? rows : []) {
+        const operationId = String((row as Record<string, unknown>).operationId ?? '');
+        if (operationId.length === 0) continue;
+        const stored = await this.readLinkOperationState(operationId);
+        if (stored !== undefined && (stored.status === 'pending' || stored.status === 'running')) {
+          states.push(stored);
+        }
+      }
+      return Object.freeze(
+        states.sort((left, right) => left.operationId.localeCompare(right.operationId)).slice(0, bounded)
+      );
+    }
+
+    /**
+     * AUTH-TXN-001 restart-safe replay/compensation over the STORED durable
+     * plan. Unlike `retryLinkOperation` (which re-proves a caller-supplied
+     * confirmation token), this server-side recovery consumes ONLY the
+     * committed plan + proof already persisted in each operation row
+     * (`recordOids`, `recordsCompletedOids`, `proofHash`,
+     * `assignmentSnapshot`, bound account versions, `proofActorId`) and
+     * re-drives ONLY the record phase — the authorization commit is never
+     * re-executed. Each resumable row is CAS-claimed (attempt count + status
+     * fenced) before record I/O so concurrent recovery workers serialize; a
+     * lost lease is skipped, an exhausted budget marks the row failed, and
+     * rows with an incomplete stored plan fail closed instead of rebuilding a
+     * plan from mutable live users. Every terminal (`completed`) transition
+     * persists fenced by operationId + claimed attempt/status inside ONE
+     * transaction with the durable completion audit; failures stay `pending`
+     * (fail closed, never swallowed). Compensation is monotonic progress:
+     * previously completed OIDs union newly completed OIDs, so partial
+     * multi-record work converges instead of restarting.
+     *
+     * Lift integration: invoke once at startup (and on a bounded schedule)
+     * from the lifted server runtime so a restarted process resumes committed
+     * link work instead of merely listing it.
+     */
+    public async replayIncompleteLinkOperations(options?: {
+      readonly limit?: number;
+      readonly maxAttempts?: number;
+      readonly onRewrite?: (
+        plan: Pick<
+          LinkOperationState,
+          'primaryUsername' | 'secondaryUsername' | 'secondaryEmail' | 'brandId' | 'recordOids'
+        >,
+        progress: string[]
+      ) => Promise<{ readonly rewritten: number; readonly completedOids: readonly string[] }>;
+    }): Promise<readonly LinkOperationState[]> {
+      const limit = Number.isSafeInteger(options?.limit) ? Number(options?.limit) : 50;
+      const maxAttempts = Number.isSafeInteger(options?.maxAttempts) ? Number(options?.maxAttempts) : 5;
+      const resumable = await this.recoverIncompleteLinkOperations(limit);
+      const ordered = [...resumable].sort((left, right) => left.operationId.localeCompare(right.operationId));
+      const settled: LinkOperationState[] = [];
+      for (const state of ordered) {
+        const fresh = await this.readLinkOperationState(state.operationId);
+        const current = fresh ?? state;
+        if (current.status === 'completed' || current.status === 'failed') {
+          settled.push(current);
+          continue;
+        }
+        if (
+          current.status !== 'pending' ||
+          !Array.isArray(current.recordOids) ||
+          current.proofHash === undefined ||
+          current.assignmentSnapshot === undefined ||
+          current.primaryExpectedVersion === undefined ||
+          current.secondaryExpectedVersion === undefined ||
+          current.proofActorId === undefined
+        ) {
+          settled.push(
+            await this.failIncompleteLinkOperation(current, 'The link operation plan is unavailable for retry.')
+          );
+          continue;
+        }
+        if (current.attemptCount >= maxAttempts || current.attemptCount >= LINK_OPERATION_MAX_ATTEMPTS) {
+          settled.push(
+            await this.failIncompleteLinkOperation(current, 'The link operation exceeded the bounded retry limit.')
+          );
+          continue;
+        }
+        const nextAttempt = current.attemptCount + 1;
+        try {
+          await this.writeLinkOperationState(
+            { ...current, status: 'pending', recordsPending: true, attemptCount: nextAttempt },
+            undefined,
+            current.attemptCount,
+            current.status
+          );
+        } catch (claimError) {
+          if (isAuthorizationAdministrationError(claimError)) {
+            const reread = await this.readLinkOperationState(current.operationId);
+            if (reread !== undefined) {
+              settled.push(reread);
+              continue;
+            }
+          }
+          throw claimError;
+        }
+        const recoveryAudit: AuthorizationAuditEventInput = {
+          eventType: 'user.linked',
+          actorType: 'system-process',
+          actorId: current.proofActorId,
+          authMethod: 'internal',
+          brandId: current.brandId,
+          targetType: 'user',
+          targetId: current.primaryUserId,
+          requestId: `link-recovery:${current.operationId}`,
+        };
+        const retryProgress: string[] = [];
+        let rewriteOutcome: { readonly rewritten: number; readonly completedOids: readonly string[] };
+        try {
+          rewriteOutcome =
+            options?.onRewrite !== undefined
+              ? await options.onRewrite(
+                  {
+                    primaryUsername: current.primaryUsername,
+                    secondaryUsername: current.secondaryUsername,
+                    secondaryEmail: current.secondaryEmail,
+                    brandId: current.brandId,
+                    recordOids: [...current.recordOids],
+                  },
+                  retryProgress
+                )
+              : await this.rewriteLinkedRecordAuthorizationsSeparateStore(
+                  current.primaryUsername,
+                  current.secondaryUsername,
+                  current.secondaryEmail,
+                  current.brandId,
+                  [...current.recordOids],
+                  retryProgress
+                );
+        } catch (error) {
+          const code =
+            typeof error === 'object' && error !== null && 'code' in error
+              ? String((error as { code?: unknown }).code ?? 'authorization.internal-error')
+              : 'authorization.internal-error';
+          const partialCompleted = Object.freeze([...new Set([...current.recordsCompletedOids, ...retryProgress])]);
+          await this.writeLinkOperationState(
+            {
+              ...current,
+              status: 'pending',
+              recordsPending: true,
+              recordsRewritten: partialCompleted.length,
+              recordsCompletedOids: [...partialCompleted],
+              attemptCount: nextAttempt,
+            },
+            undefined,
+            nextAttempt,
+            'pending'
+          );
+          await this.dependencies.audit().recordAttempt(
+            {
+              ...recoveryAudit,
+              eventType: 'user.link-records-pending',
+              reasonCode: code,
+              after: { recordsPending: true, errorCode: code, linkOperationId: current.operationId },
+            },
+            'failed'
+          );
+          const reread = await this.readLinkOperationState(current.operationId);
+          settled.push(reread ?? { ...current, status: 'pending', recordsPending: true, attemptCount: nextAttempt });
+          continue;
+        }
+        if (rewriteOutcome.rewritten < 0) {
+          await this.writeLinkOperationState(
+            { ...current, status: 'pending', recordsPending: true, attemptCount: nextAttempt },
+            undefined,
+            nextAttempt,
+            'pending'
+          );
+          const reread = await this.readLinkOperationState(current.operationId);
+          settled.push(reread ?? { ...current, status: 'pending', recordsPending: true, attemptCount: nextAttempt });
+          continue;
+        }
+        const totalCompleted = Object.freeze([
+          ...new Set([...current.recordsCompletedOids, ...rewriteOutcome.completedOids]),
+        ]);
+        const resumed: LinkOperationState = {
+          ...current,
+          status: 'completed',
+          recordsPending: false,
+          recordsRewritten: totalCompleted.length,
+          recordsCompletedOids: [...totalCompleted],
+          attemptCount: nextAttempt,
+        };
+        try {
+          await this.dependencies.runTransaction(async completionConnection => {
+            await this.dependencies.audit().createSucceededEvent(
+              {
+                ...recoveryAudit,
+                eventType: 'user.link-operation-completed',
+                after: {
+                  recordsRewritten: totalCompleted.length,
+                  recordsPending: false,
+                  linkOperationId: current.operationId,
+                },
+              },
+              completionConnection
+            );
+            await this.writeLinkOperationState(resumed, completionConnection, nextAttempt, 'pending');
+          });
+        } catch {
+          await this.writeLinkOperationState(
+            { ...current, status: 'pending', recordsPending: true, attemptCount: nextAttempt },
+            undefined,
+            nextAttempt,
+            'pending'
+          );
+          const reread = await this.readLinkOperationState(current.operationId);
+          settled.push(reread ?? { ...current, status: 'pending', recordsPending: true, attemptCount: nextAttempt });
+          continue;
+        }
+        const completed = await this.readLinkOperationState(current.operationId);
+        settled.push(completed ?? resumed);
+      }
+      return Object.freeze([...settled]);
+    }
+
+    /**
+     * AUTH-TXN-001 recovery terminal-failure writer. Fenced by operationId +
+     * the freshly read attempt/status (pinned into the update predicate), so a
+     * concurrent claim winner is never overwritten; terminal rows are
+     * idempotent.
+     */
+    private async failIncompleteLinkOperation(
+      current: LinkOperationState,
+      detail: string
+    ): Promise<LinkOperationState> {
+      const fresh = await this.readLinkOperationState(current.operationId);
+      const target = fresh ?? current;
+      if (target.status === 'completed' || target.status === 'failed') return target;
+      const failed: LinkOperationState = { ...target, status: 'failed', recordsPending: false };
+      try {
+        await this.writeLinkOperationState(failed, undefined, target.attemptCount, target.status);
+      } catch (error) {
+        if (isAuthorizationAdministrationError(error)) {
+          const reread = await this.readLinkOperationState(current.operationId);
+          if (reread !== undefined) return reread;
+        }
+        throw error;
+      }
+      await this.dependencies.audit().recordAttempt(
+        {
+          eventType: 'user.linked',
+          actorType: 'system-process',
+          actorId: target.proofActorId ?? 'system-recovery',
+          authMethod: 'internal',
+          brandId: target.brandId,
+          targetType: 'user',
+          targetId: target.primaryUserId,
+          requestId: `link-recovery:${target.operationId}`,
+          reasonCode: 'authorization.bulk-invalid',
+          after: { recordsPending: false, linkOperationId: target.operationId, detail },
+        },
+        'failed'
+      );
+      return (await this.readLinkOperationState(current.operationId)) ?? failed;
+    }
+
+    /**
+     * AUTH-P5-009 completed-operation proof gate shared by every completed
+     * resume path (`linkUserAccounts` early resume, the in-transaction
+     * existing-link conflict resume, and the `retryLinkOperation` completed
+     * resume). All paths require the same durable proof: operation identity
+     * (stored.operationId === caller operation ID), brand/pair match, the
+     * caller-supplied account versions bound to the stored proof versions
+     * (a resume that ignores caller versions is rejected), the CURRENT
+     * caller actor bound to the stored proof actor (a different operator
+     * cannot replay another actor's completed proof), and a complete stored
+     * row (proofHash, assignmentSnapshot, both versions, proofActorId). The
+     * caller confirmation token is then verified against the stored proof
+     * (signature + expiry + operation/target/brand/version/actor/content +
+     * proof hash). Any gap fails closed; an expired token surfaces the
+     * deliberate preview-stale expiry error instead of returning stored data.
+     * There is no brand+pair-only bypass.
+     */
+    private requireCompletedLinkProof(
+      stored: LinkOperationState,
+      proof: {
+        readonly linkConfirmationToken: string;
+        readonly linkOperationId: string;
+        readonly brandId: string;
+        readonly primaryUserId: string;
+        readonly secondaryUserId: string;
+        readonly primaryExpectedVersion: number;
+        readonly secondaryExpectedVersion: number;
+      },
+      command: AuthorizationAdministrationCommand
+    ): void {
+      if (
+        stored.operationId !== proof.linkOperationId ||
+        stored.brandId !== String(proof.brandId ?? '') ||
+        stored.primaryUserId !== String(proof.primaryUserId ?? '') ||
+        stored.secondaryUserId !== String(proof.secondaryUserId ?? '') ||
+        stored.brandId.length === 0 ||
+        stored.primaryUserId.length === 0 ||
+        stored.secondaryUserId.length === 0
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The link retry does not match the stored operation proof.'
+        );
+      }
+      if (
+        stored.proofHash === undefined ||
+        stored.assignmentSnapshot === undefined ||
+        stored.primaryExpectedVersion === undefined ||
+        stored.secondaryExpectedVersion === undefined ||
+        stored.proofActorId === undefined
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The link operation proof is incomplete.'
+        );
+      }
+      // Caller versions are bound on every resume path: a completed resume
+      // that ignores them would return stale authority to a caller that never
+      // observed the committed account state.
+      if (
+        proof.primaryExpectedVersion !== stored.primaryExpectedVersion ||
+        proof.secondaryExpectedVersion !== stored.secondaryExpectedVersion
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The link retry does not match the stored operation proof.'
+        );
+      }
+      // The CURRENT caller actor is bound to the stored proof actor: only the
+      // operator whose preview produced the committed confirmation may replay
+      // the completed result. `actorId` additionally re-validates trusted
+      // server-issued provenance (forged actors fail closed with 401).
+      if (this.actorId(command) !== stored.proofActorId) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The link retry does not match the stored operation proof.'
+        );
+      }
+      this.verifyStoredLinkProof(stored, proof);
+    }
+
+    /**
+     * AUTH-P5-006 retry proof verification against the STORED durable proof
+     * (not the live caller claims). Decodes the caller token (signature +
+     * expiry) and requires operation, target, brand, secondary version,
+     * preview actor, and content hash to reproduce the committed confirmation
+     * exactly. Any mismatch fails closed with preview-stale.
+     */
+    private verifyStoredLinkProof(
+      stored: LinkOperationState,
+      proof: { readonly linkConfirmationToken: string; readonly linkOperationId: string }
+    ): void {
+      const expectedContent = this.linkProofContent(
+        stored.primaryUserId,
+        stored.secondaryUserId,
+        Number(stored.primaryExpectedVersion),
+        Number(stored.secondaryExpectedVersion),
+        stored.assignmentSnapshot ?? [],
+        stored.operationId
+      );
+      let claims: AuthorizationConfirmationClaims;
+      try {
+        claims = verifyAuthorizationConfirmationToken(
+          proof.linkConfirmationToken,
+          this.dependencies.getConfirmationSecret(),
+          this.dependencies.now()
+        );
+      } catch (error) {
+        // Preserve the deliberate expired-token error so an expired
+        // confirmation surfaces as an expiry (not a generic invalid proof);
+        // all token failures remain fail-closed preview-stale.
+        if (isAuthorizationAdministrationError(error) && error.code === 'authorization.preview-stale') throw error;
+        throw new AuthorizationAdministrationError(
+          'authorization.preview-stale',
+          409,
+          'The link retry proof is invalid.'
+        );
+      }
+      if (
+        claims.operation !== 'account-link' ||
+        claims.target !== `account-link:${stored.primaryUserId}:${stored.secondaryUserId}` ||
+        claims.brandId !== stored.brandId ||
+        claims.expectedVersion !== stored.secondaryExpectedVersion ||
+        claims.actorId !== stored.proofActorId ||
+        claims.contentHash !== authorizationContentHash(expectedContent) ||
+        this.linkProofHash(proof.linkConfirmationToken) !== stored.proofHash
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.preview-stale',
+          409,
+          'The link retry does not match the stored operation proof.'
+        );
+      }
+    }
+    private liveLoginDisabledVersion(user: UserAttributes): number {
+      const raw = (user as UserAttributes).loginDisabledVersion as unknown;
+      return typeof raw === 'number' && Number.isSafeInteger(raw) ? (raw as number) : 1;
+    }
+
+    private async loadLinkPreviewPrimary(primaryId: string, connection: Sails.Connection): Promise<UserAttributes> {
+      let primary = await this.loadAccessTargetUser(primaryId, connection);
+      const seen = new Set<string>();
+      for (let depth = 0; depth < MAX_LINK_DEPTH; depth += 1) {
+        if (seen.has(primary.id)) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
+        }
+        seen.add(primary.id);
+        if (!primary.linkedPrimaryUserId?.trim()) break;
+        const next = (await User.findOne({ id: primary.linkedPrimaryUserId }).usingConnection(connection)) as
+          UserAttributes | undefined;
+        if (next === undefined) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
+        }
+        primary = next;
+      }
+      if (primary.linkedPrimaryUserId?.trim() || primary.accountLinkState === 'linked-alias') {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-role',
+          400,
+          'Primary user cannot be a linked alias.'
+        );
+      }
+      return primary;
+    }
+
+    private assertLinkPreviewPairActive(primary: UserAttributes, secondary: UserAttributes): void {
+      if (primary.loginDisabled === true) {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-role',
+          400,
+          'Cannot link accounts: primary user is disabled.'
+        );
+      }
+      if (secondary.loginDisabled === true) {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-role',
+          400,
+          'Cannot link accounts: secondary user is disabled.'
+        );
+      }
+      if (secondary.accountLinkState === 'linked-alias') {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'Secondary user is already linked to another primary account.'
+        );
+      }
+    }
+
+    /**
+     * AUTH-LINK-003 authoritative assignment snapshots for BOTH accounts in
+     * the link brand. Bounded (max+1 probe, fail closed). Each entry pins the
+     * tuple identity + version so the writer can reject drift, plus the role
+     * context so foreign-brand authority is rejected before confirmation.
+     */
+    /**
+     * AUTH-P5-005: bounded authoritative snapshots for ALL affected brands.
+     * Both accounts load every-brand assignment state (no brand filter), so
+     * foreign-brand drift cannot hide outside the requested-brand view; every
+     * effective tuple whose role or tuple brand escapes the link brand (other
+     * than unbranded system tuples) then fails closed. The proof snapshot
+     * carries complete tuple identity — tuple id, principal, tuple brand,
+     * role id/key, version, status, source/sourceKey, sourcePresent, expiry —
+     * normalized and sorted; operation ID and account/link versions travel in
+     * the confirmation content alongside it (see preview/apply call sites).
+     */
+    private async snapshotLinkAssignments(
+      primaryId: string,
+      secondaryId: string,
+      brandId: string,
+      connection: Sails.Connection
+    ): Promise<{
+      readonly rolesToAdopt: number;
+      readonly rolesToRetire: number;
+      readonly snapshot: readonly string[];
+    }> {
+      const now = this.dependencies.now();
+      const [primaryAll, secondaryAll] = await Promise.all([
+        this.authoritativeAllAssignments(primaryId, connection),
+        this.authoritativeAllAssignments(secondaryId, connection),
+      ]);
+      if (primaryAll.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'The principal assignment state exceeds the bounded operation limit.'
+        );
+      }
+      if (secondaryAll.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'The principal assignment state exceeds the bounded operation limit.'
+        );
+      }
+      const roleIds = uniqueStrings(
+        [...primaryAll, ...secondaryAll]
+          .map(row => associationId(row.role))
+          .filter((value): value is string => value !== undefined)
+      );
+      const roles =
+        roleIds.length > 0
+          ? ((await Role.find({ id: roleIds }).limit(roleIds.length).usingConnection(connection)) as RoleAttributes[])
+          : [];
+      const rolesById = new Map(roles.map(role => [role.id, role]));
+      // Foreign-authority rejection: any effective tuple (either account)
+      // whose role is unresolved, system-scoped, or brand-escaped fails closed
+      // here. There is no silent skip: an assignment row pointing at a missing
+      // role, or a system tuple with no brand, must never authorize a link —
+      // system authority moves only through separately authorized system flows.
+      for (const tuple of [...primaryAll, ...secondaryAll]) {
+        if (!activeAt(tuple, now)) continue;
+        const role = rolesById.get(associationId(tuple.role) ?? '');
+        if (role === undefined) {
+          throw new AuthorizationAdministrationError(
+            'authorization.not-found',
+            404,
+            'The account holds authority from an unresolved role.'
+          );
+        }
+        const tupleBrand = associationId(tuple.branding);
+        const roleBrand = associationId(role.branding);
+        if (role.contextType === 'system') {
+          throw new AuthorizationAdministrationError(
+            'authorization.not-found',
+            404,
+            'The account holds system authority outside a separately authorized system flow.'
+          );
+        }
+        if (tupleBrand !== brandId || roleBrand !== brandId) {
+          throw new AuthorizationAdministrationError(
+            'authorization.not-found',
+            404,
+            'The account holds authority outside the active brand context.'
+          );
+        }
+      }
+      const secondaryActive = secondaryAll.filter(tuple => activeAt(tuple, now));
+      const brandEffective = secondaryActive.filter(tuple => {
+        const role = rolesById.get(associationId(tuple.role) ?? '');
+        return (
+          role !== undefined &&
+          role.contextType === 'brand' &&
+          associationId(role.branding) === brandId &&
+          associationId(tuple.branding) === brandId
+        );
+      });
+      const snapshot = Object.freeze(
+        [...primaryAll, ...secondaryAll]
+          .map(tuple => {
+            const roleId = associationId(tuple.role) ?? '?';
+            const role = rolesById.get(associationId(tuple.role) ?? '');
+            const roleKey = role !== undefined ? roleIdentity(role) : '?';
+            // Bind the complete role identity AND version: a role row mutated
+            // between preview and apply (template upgrade, scope change) must
+            // drift the snapshot so confirmation fails closed.
+            const roleVersion = role !== undefined ? Number(role.version ?? 0) : 0;
+            const tupleBrand = associationId(tuple.branding) ?? '';
+            const expiryRaw = tuple.expiresAt == null ? undefined : new Date(tuple.expiresAt);
+            const expiry =
+              expiryRaw === undefined || Number.isNaN(expiryRaw.getTime()) ? 'never' : expiryRaw.toISOString();
+            return [
+              String(tuple.id ?? '?'),
+              String(tuple.principalId ?? '?'),
+              tupleBrand,
+              roleId,
+              roleKey,
+              `rv${Number.isSafeInteger(roleVersion) ? roleVersion : 0}`,
+              `v${Number(tuple.version ?? 0)}`,
+              String(tuple.status ?? '?'),
+              String(tuple.source ?? '?'),
+              String(tuple.sourceKey ?? '?'),
+              `present=${tuple.sourcePresent === true ? '1' : '0'}`,
+              `exp=${expiry}`,
+            ].join('::');
+          })
+          .sort()
+      );
+      return Object.freeze({
+        rolesToAdopt: brandEffective.length,
+        rolesToRetire: brandEffective.length,
+        snapshot,
+      });
+    }
+
+    private async countLinkAdoptions(
+      primaryId: string,
+      secondaryId: string,
+      brandId: string,
+      connection: Sails.Connection
+    ): Promise<{ readonly rolesToAdopt: number; readonly rolesToRetire: number }> {
+      const { rolesToAdopt, rolesToRetire } = await this.snapshotLinkAssignments(
+        primaryId,
+        secondaryId,
+        brandId,
+        connection
+      );
+      return Object.freeze({ rolesToAdopt, rolesToRetire });
+    }
+
+    /**
+     * AUTH-P5-006 canonical proof content. The field order is part of the
+     * confirmation hash: preview, apply, and retry MUST build it through this
+     * helper so hashes agree. Binds pair + both account versions +
+     * authoritative assignment snapshot + operation ID.
+     */
+    private linkProofContent(
+      primaryUserId: string,
+      secondaryUserId: string,
+      primaryExpectedVersion: number,
+      secondaryExpectedVersion: number,
+      assignmentSnapshot: readonly string[],
+      linkOperationId: string
+    ): {
+      readonly primaryUserId: string;
+      readonly secondaryUserId: string;
+      readonly primaryExpectedVersion: number;
+      readonly secondaryExpectedVersion: number;
+      readonly assignmentSnapshot: readonly string[];
+      readonly linkOperationId: string;
+    } {
+      return Object.freeze({
+        primaryUserId,
+        secondaryUserId,
+        primaryExpectedVersion,
+        secondaryExpectedVersion,
+        assignmentSnapshot,
+        linkOperationId,
+      });
+    }
+
+    private linkProofHash(token: string): string {
+      return createHash('sha256').update(token, 'utf8').digest('hex');
+    }
+
+    private linkOperationKey(command: LinkUserAccountsCommand): string {
+      const explicit = typeof command.linkOperationId === 'string' ? command.linkOperationId.trim() : '';
+      if (explicit.length > 0) return explicit;
+      // Stable per-link key scoped by the request idempotency key: the same
+      // operation retried with the same requestId (or explicit
+      // linkOperationId) resumes instead of conflicting, while distinct
+      // requests never share retry budget.
+      const brandId = String(command.brandId ?? '').trim();
+      const primaryId = String(command.primaryUserId ?? '').trim();
+      const secondaryId = String(command.secondaryUserId ?? '').trim();
+      const requestId = String(command.requestId ?? '').trim();
+      return `account-link:${brandId}:${primaryId}:${secondaryId}:${requestId}`;
+    }
+
+    private async readLinkOperationState(operationId: string): Promise<LinkOperationState | undefined> {
+      if (typeof UserLinkOperation === 'undefined') return linkOperationFallback.get(operationId);
+      try {
+        const row = (await UserLinkOperation.findOne({ operationId })) as unknown as
+          (LinkOperationState & { readonly id?: string }) | undefined;
+        if (row === undefined || row === null) {
+          // AUTH-P5-004: never use the memory mirror when the durable model
+          // exists. A miss is authoritative absence (the mirror may hold a
+          // rolled-back write from this process); drop the stale mirror entry
+          // and report undefined so callers 404 instead of resurrecting
+          // state that never committed.
+          linkOperationFallback.delete(operationId);
+          return undefined;
+        }
+        const record = row as unknown as Record<string, unknown>;
+        const status = record.status as LinkOperationState['status'];
+        if (status !== 'pending' && status !== 'running' && status !== 'completed' && status !== 'failed') {
+          throw new AuthorizationAdministrationError(
+            'authorization.audit-unavailable',
+            503,
+            'The link operation state is unavailable.'
+          );
+        }
+        const asStringArray = (value: unknown): readonly string[] =>
+          Object.freeze((Array.isArray(value) ? value : []).map(entry => String(entry)));
+        const asNumberOrUndefined = (value: unknown): number | undefined =>
+          typeof value === 'number' && Number.isSafeInteger(value) ? value : undefined;
+        const asStringOrUndefined = (value: unknown): string | undefined =>
+          typeof value === 'string' && value.length > 0 ? value : undefined;
+        const state: LinkOperationState = {
+          operationId: String(record.operationId ?? operationId),
+          brandId: String(record.brandId ?? ''),
+          primaryUserId: String(record.primaryUserId ?? ''),
+          secondaryUserId: String(record.secondaryUserId ?? ''),
+          primaryUsername: String(record.primaryUsername ?? ''),
+          secondaryUsername: String(record.secondaryUsername ?? ''),
+          secondaryEmail: String(record.secondaryEmail ?? ''),
+          status,
+          recordsPending: record.recordsPending === true,
+          recordsRewritten: Number(record.recordsRewritten ?? 0),
+          rolesAdopted: Number(record.rolesAdopted ?? 0),
+          rolesRetired: Number(record.rolesRetired ?? 0),
+          attemptCount: Number(record.attemptCount ?? 0),
+          recordOids: asStringArray(record.recordOids),
+          recordsCompletedOids: asStringArray(record.recordsCompletedOids),
+          primaryExpectedVersion: asNumberOrUndefined(record.primaryExpectedVersion),
+          secondaryExpectedVersion: asNumberOrUndefined(record.secondaryExpectedVersion),
+          proofHash: asStringOrUndefined(record.proofHash),
+          assignmentSnapshot: Array.isArray(record.assignmentSnapshot)
+            ? (Object.freeze(record.assignmentSnapshot.map(entry => String(entry))) as readonly string[])
+            : undefined,
+          proofActorId: asStringOrUndefined(record.proofActorId),
+        };
+        linkOperationFallback.set(operationId, state);
+        return state;
+      } catch (error) {
+        if (isAuthorizationAdministrationError(error)) throw error;
+        // AUTH-P5-004: durable read errors fail closed when the durable model
+        // exists. Falling back to process memory would resurrect stale state
+        // or hide a committed operation after restart (and a 404 would invite
+        // duplicate links), so surface 503 instead. Only the absent-model
+        // reduced runtime (model undefined, handled above) uses the mirror.
+        throw new AuthorizationAdministrationError(
+          'authorization.audit-unavailable',
+          503,
+          'The link operation state is unavailable.'
+        );
+      }
+    }
+
+    /**
+     * Durable operation persistence with CAS on `attemptCount` + `status`.
+     *
+     * - When `connection` is supplied (inside Commit 1 / completion
+     *   transactions) persistence failures THROW so the transaction rolls back
+     *   instead of claiming durability it does not have (fail closed).
+     * - Transitions use compare-and-set on the prior attempt count AND the
+     *   expected prior status: both are pinned IN the update predicate so
+     *   concurrent writers lose with 409 instead of silently overwriting
+     *   each other (no pre-read/update-by-id split).
+     * - Reduced runtimes without the `UserLinkOperation` model keep the
+     *   process-local mirror only (never claimed as durability proof).
+     */
+    private async writeLinkOperationState(
+      state: LinkOperationState,
+      connection?: Sails.Connection,
+      expectedAttemptCount?: number,
+      expectedStatus?: LinkOperationState['status']
+    ): Promise<void> {
+      // AUTH-P5-004: the memory mirror is updated ONLY after the durable
+      // persist succeeds. Mirroring before persistence would let a rolled-back
+      // transaction resurrect uncommitted state on the next in-process read.
+      // Only the absent-model reduced runtime relies on the mirror.
+      if (typeof UserLinkOperation === 'undefined') {
+        linkOperationFallback.set(state.operationId, Object.freeze({ ...state }));
+        return;
+      }
+      const values = { ...state, attemptCount: state.attemptCount };
+      const casPredicate = (): Record<string, unknown> => {
+        const predicate: Record<string, unknown> = { operationId: state.operationId };
+        if (expectedAttemptCount !== undefined) predicate.attemptCount = expectedAttemptCount;
+        if (expectedStatus !== undefined) predicate.status = expectedStatus;
+        return predicate;
+      };
+      const assertExpectedState = (existing: { readonly attemptCount?: unknown; readonly status?: unknown }): void => {
+        if (expectedAttemptCount !== undefined && Number(existing.attemptCount ?? 0) !== expectedAttemptCount) {
+          throw new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'The link operation changed concurrently.'
+          );
+        }
+        if (expectedStatus !== undefined && existing.status !== expectedStatus) {
+          throw new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'The link operation changed concurrently.'
+          );
+        }
+      };
+      const persist = async (): Promise<void> => {
+        if (connection !== undefined) {
+          const existing = (await UserLinkOperation.findOne({ operationId: state.operationId }).usingConnection(
+            connection
+          )) as unknown as
+            { readonly id?: string; readonly attemptCount?: number; readonly status?: unknown } | undefined;
+          if (existing == null) {
+            if (expectedAttemptCount !== undefined && expectedAttemptCount !== 0) {
+              throw new AuthorizationAdministrationError(
+                'authorization.version-conflict',
+                409,
+                'The link operation changed concurrently.'
+              );
+            }
+            if (expectedStatus !== undefined) {
+              throw new AuthorizationAdministrationError(
+                'authorization.version-conflict',
+                409,
+                'The link operation changed concurrently.'
+              );
+            }
+            await UserLinkOperation.create({ ...values }).usingConnection(connection);
+          } else {
+            assertExpectedState(existing as { readonly attemptCount?: unknown; readonly status?: unknown });
+            // AUTH-P5-004: atomic CAS — the expected prior attempt count
+            // AND status are pinned IN the update predicate so concurrent
+            // writers abort instead of interleaving (no pre-read/update-by-id
+            // split). requireUpdatedRow converts a CAS miss (zero rows) to 409.
+            requireUpdatedRow(
+              (await UserLinkOperation.updateOne(casPredicate())
+                .set({ ...values })
+                .usingConnection(connection)) as unknown as Record<string, unknown> | undefined,
+              'The link operation changed concurrently.'
+            );
+          }
+        } else {
+          const existing = (await UserLinkOperation.findOne({ operationId: state.operationId })) as unknown as
+            { readonly id?: string; readonly attemptCount?: number; readonly status?: unknown } | undefined;
+          if (existing == null) {
+            if (expectedAttemptCount !== undefined && expectedAttemptCount !== 0) {
+              throw new AuthorizationAdministrationError(
+                'authorization.version-conflict',
+                409,
+                'The link operation changed concurrently.'
+              );
+            }
+            if (expectedStatus !== undefined) {
+              throw new AuthorizationAdministrationError(
+                'authorization.version-conflict',
+                409,
+                'The link operation changed concurrently.'
+              );
+            }
+            await UserLinkOperation.create({ ...values });
+          } else {
+            assertExpectedState(existing as { readonly attemptCount?: unknown; readonly status?: unknown });
+            // AUTH-P5-004: atomic CAS — the expected prior attempt count
+            // AND status are pinned IN the update predicate so concurrent
+            // writers abort instead of interleaving (no pre-read/update-by-id
+            // split).
+            requireUpdatedRow(
+              (await UserLinkOperation.updateOne(casPredicate()).set({
+                ...values,
+              })) as unknown as Record<string, unknown> | undefined,
+              'The link operation changed concurrently.'
+            );
+          }
+        }
+      };
+      // Fail closed whenever the model exists: a persistence failure must
+      // never be silently swallowed into a false durability claim. Only the
+      // absent-model reduced runtime falls back to the process-local mirror.
+      // The mirror refreshes only here, after a successful durable persist.
+      await persist();
+      linkOperationFallback.set(state.operationId, Object.freeze({ ...state }));
+    }
+
+    private async findResumableLinkOperation(
+      command: LinkUserAccountsCommand,
+      secondaryId: string,
+      brandId: string
+    ): Promise<LinkOperationState | undefined> {
+      const stored = await this.readLinkOperationState(this.linkOperationKey(command));
+      if (
+        stored === undefined ||
+        stored.brandId !== brandId ||
+        stored.secondaryUserId !== secondaryId ||
+        String(command.primaryUserId ?? '') !== stored.primaryUserId
+      ) {
+        return undefined;
+      }
+      return stored.status === 'completed' || stored.status === 'pending' ? stored : undefined;
+    }
+
+    private async findPendingLinkOperationForPair(
+      primaryId: string,
+      secondaryId: string,
+      brandId: string
+    ): Promise<LinkOperationState | undefined> {
+      const matches = (state: LinkOperationState): boolean =>
+        state.status === 'pending' &&
+        state.brandId === brandId &&
+        state.primaryUserId === primaryId &&
+        state.secondaryUserId === secondaryId;
+      if (typeof UserLinkOperation !== 'undefined') {
+        // AUTH-P5-004: durable errors fail closed — a failed durable lookup
+        // must never silently fall back to process memory and report "no
+        // pending operation" when one exists. When the durable model exists
+        // its answer is authoritative: the process-local mirror is a
+        // reduced-runtime facility only and is never consulted here.
+        const rows = (await UserLinkOperation.find({
+          brandId,
+          secondaryUserId: secondaryId,
+          status: 'pending',
+        }).limit(10)) as unknown as Record<string, unknown>[];
+        for (const row of rows ?? []) {
+          if (String(row.primaryUserId ?? '') === primaryId) {
+            const stored = await this.readLinkOperationState(String(row.operationId ?? ''));
+            if (stored !== undefined && matches(stored)) return stored;
+          }
+        }
+        return undefined;
+      }
+      for (const stored of linkOperationFallback.values()) {
+        if (matches(stored)) return stored;
+      }
+      return undefined;
+    }
+
+    private resumeCompletedLinkOperation(
+      stored: LinkOperationState
+    ): AuthorizationMutationResult<UserAccountLinkResult> {
+      const data = Object.freeze({
+        primaryUserId: stored.primaryUserId,
+        secondaryUserId: stored.secondaryUserId,
+        rolesAdopted: stored.rolesAdopted,
+        rolesRetired: stored.rolesRetired,
+        recordsRewritten: stored.recordsRewritten,
+        recordsPending: stored.recordsPending,
+        changed: false,
+        linkOperationId: stored.operationId,
+      });
+      return Object.freeze({
+        data,
+        version: 1,
+        auditEventId: stored.operationId,
+        requestId: stored.operationId,
+        changed: false,
+      });
+    }
+
+    private resumeStoredLinkResult(
+      command: LinkUserAccountsCommand,
+      stored: LinkOperationState,
+      changed: boolean
+    ): AuthorizationMutationResult<UserAccountLinkResult> {
+      void command;
+      const data = Object.freeze({
+        primaryUserId: stored.primaryUserId,
+        secondaryUserId: stored.secondaryUserId,
+        rolesAdopted: stored.rolesAdopted,
+        rolesRetired: stored.rolesRetired,
+        recordsRewritten: stored.recordsRewritten,
+        recordsPending: stored.recordsPending,
+        changed,
+        linkOperationId: stored.operationId,
+      });
+      return Object.freeze({
+        data,
+        version: 1,
+        auditEventId: stored.operationId,
+        requestId: stored.operationId,
+        changed,
+      });
+    }
+
+    private normalizedExternalExpectedState(
+      expectedState: readonly ExternalAssignmentExpectedState[] | undefined
+    ): ReadonlyMap<string, number> | undefined {
+      if (expectedState === undefined) return undefined;
+      const pinned = new Map<string, number>();
+      for (const entry of expectedState) {
+        const roleKey = requiredAuthorizationText(entry.roleKey, 'expectedState[].roleKey', 128);
+        const version = positiveVersion(entry.expectedVersion, 'expectedState[].expectedVersion');
+        if (pinned.has(roleKey)) {
+          throw new AuthorizationAdministrationError(
+            'authorization.bulk-invalid',
+            422,
+            'An external expected role may appear only once.'
+          );
+        }
+        pinned.set(roleKey, version);
+      }
+      return pinned;
+    }
+
+    private assertExternalExpectedState(
+      expectedState: ReadonlyMap<string, number> | undefined,
+      existing: readonly RoleAssignmentAttributes[],
+      rolesById: ReadonlyMap<string, RoleAttributes>
+    ): void {
+      if (expectedState === undefined) return;
+      const liveKeys = new Set<string>();
+      for (const assignment of existing) {
+        const role = rolesById.get(associationId(assignment.role) ?? '');
+        if (role === undefined) continue;
+        const key = roleIdentity(role);
+        liveKeys.add(key);
+        const pinned = expectedState.get(key);
+        if (pinned === undefined || assignment.version !== pinned) {
+          throw new AuthorizationAdministrationError(
+            'authorization.version-conflict',
+            409,
+            'The external source state changed since it was read.'
+          );
+        }
+      }
+      if (liveKeys.size !== expectedState.size || [...expectedState.keys()].some(key => !liveKeys.has(key))) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The external source state changed since it was read.'
+        );
+      }
+    }
+
+    public async replaceExternalAssignments(
+      command: ReplaceExternalAssignmentsCommand
+    ): Promise<AuthorizationMutationResult<ExternalReplacementResult>> {
       const auditInput = this.auditInput(command, 'assignment.source-replaced', 'role-assignment', command.principalId);
+      // P5-G7: normalization/scope/payload/expected-state denials before the
+      // required transaction must still create a denied AuthorizationAudit.
+      // Wrap the complete apply boundary in the denied-attempt audit wrapper.
+      const prePhase = await this.runAuditedPrePhase(auditInput, async () => {
+        this.requireScope(command, ASSIGNMENT_MANAGE_SCOPE, command.brandId);
+        const provider = requiredAuthorizationText(command.provider, 'provider', 64);
+        const sourceIdentity = `${provider}::${requiredAuthorizationText(command.sourceKey, 'sourceKey', 64)}`;
+        const roleKeys = uniqueStrings(
+          command.roleKeys.map(roleKey => requiredAuthorizationText(roleKey, 'roleKey', 128))
+        );
+        if (roleKeys.length > AUTHORIZATION_ADMIN_MAX_BULK_ROWS) {
+          throw new AuthorizationAdministrationError(
+            'authorization.bulk-invalid',
+            422,
+            'External replacement exceeds the role limit.'
+          );
+        }
+        const expectedState = this.normalizedExternalExpectedState(command.expectedState);
+        return { provider, sourceIdentity, roleKeys, expectedState };
+      });
+      const { provider, sourceIdentity, roleKeys, expectedState } = prePhase;
       return this.runMutation(command, auditInput, async connection => {
         const user = await this.canonicalUser(command.principalId, connection);
         const roles: RoleAttributes[] = [];
@@ -2625,7 +6258,6 @@ export namespace Services {
         }
         const rolesById = new Map(roles.map(role => [role.id, role]));
         const existingByRole = new Map(existing.map(assignment => [associationId(assignment.role), assignment]));
-        const protectedRoles = new Map<string, RoleAttributes>();
         for (const assignment of existing) {
           const roleId = associationId(assignment.role);
           let role = roleId === undefined ? undefined : rolesById.get(roleId);
@@ -2642,28 +6274,65 @@ export namespace Services {
           this.assignmentRoleScope(command, role);
           this.assertAssignmentRoleContext(assignment, role);
           rolesById.set(role.id, role);
-          if (role.protectedKind === 'brand-admin' || role.protectedKind === 'system-admin')
-            protectedRoles.set(role.id, role);
         }
+        this.assertExternalExpectedState(expectedState, existing, rolesById);
+        type ExternalChange =
+          | { readonly kind: 'create'; readonly role: RoleAttributes }
+          | { readonly kind: 'reactivate'; readonly role: RoleAttributes; readonly current: RoleAssignmentAttributes }
+          | {
+              readonly kind: 'mark-present';
+              readonly role: RoleAttributes;
+              readonly current: RoleAssignmentAttributes;
+            }
+          | { readonly kind: 'mark-absent'; readonly role: RoleAttributes; readonly current: RoleAssignmentAttributes }
+          | { readonly kind: 'revoke'; readonly role: RoleAttributes; readonly current: RoleAssignmentAttributes };
+        const changes: ExternalChange[] = [];
+        let noOp = 0;
         for (const role of roles) {
-          if (role.protectedKind === 'brand-admin' || role.protectedKind === 'system-admin')
-            protectedRoles.set(role.id, role);
+          const current = existingByRole.get(role.id);
+          if (current === undefined) {
+            changes.push({ kind: 'create', role });
+          } else if (current.status === 'suppressed') {
+            if (!current.sourcePresent) changes.push({ kind: 'mark-present', role, current });
+            else noOp += 1;
+          } else if (current.status !== 'active' || !current.sourcePresent) {
+            changes.push({ kind: 'reactivate', role, current });
+          } else noOp += 1;
         }
-        for (const role of [...protectedRoles.values()].sort((left, right) => left.id.localeCompare(right.id))) {
+        const desiredRoleIds = new Set(roles.map(role => role.id));
+        for (const current of existing) {
+          const roleId = associationId(current.role);
+          if (roleId === undefined || desiredRoleIds.has(roleId)) continue;
+          const role = rolesById.get(roleId);
+          if (role === undefined) continue;
+          if (current.status === 'suppressed') {
+            if (current.sourcePresent) changes.push({ kind: 'mark-absent', role, current });
+            else noOp += 1;
+          } else if (current.status !== 'revoked' || current.sourcePresent) {
+            changes.push({ kind: 'revoke', role, current });
+          } else noOp += 1;
+        }
+        // Lock only protected roles with a planned change. An identical
+        // no-op round trip must not bump Role.version via lockProtectedRole.
+        const changedProtectedRoles = new Map<string, RoleAttributes>();
+        for (const change of changes) {
+          if (change.role.protectedKind === 'brand-admin' || change.role.protectedKind === 'system-admin') {
+            changedProtectedRoles.set(change.role.id, change.role);
+          }
+        }
+        for (const role of [...changedProtectedRoles.values()].sort((left, right) => left.id.localeCompare(right.id))) {
           await this.lockProtectedRole(role, this.actorId(command), connection);
         }
         let created = 0;
         let reactivated = 0;
         let revoked = 0;
         let suppressedUpdated = 0;
-        let noOp = 0;
-        for (const role of roles) {
-          const current = existingByRole.get(role.id);
-          if (current === undefined) {
+        for (const change of changes) {
+          if (change.kind === 'create') {
             await RoleAssignment.create({
               principalType: 'user',
               principalId: user.id,
-              role: role.id,
+              role: change.role.id,
               branding: command.brandId,
               source: 'external',
               sourceKey: sourceIdentity,
@@ -2677,53 +6346,57 @@ export namespace Services {
               .fetch()
               .usingConnection(connection);
             created += 1;
-          } else if (current.status === 'suppressed') {
-            if (!current.sourcePresent) {
-              await RoleAssignment.updateOne({ id: current.id, version: current.version })
-                .set({ sourcePresent: true, version: current.version + 1 })
-                .usingConnection(connection);
-              suppressedUpdated += 1;
-            } else noOp += 1;
-          } else if (current.status !== 'active' || !current.sourcePresent) {
-            await RoleAssignment.updateOne({ id: current.id, version: current.version })
-              .set({
-                status: 'active',
-                sourcePresent: true,
-                revokedAt: null,
-                revokedBy: null,
-                assignedAt: this.dependencies.now(),
-                assignedBy: this.actorId(command),
-                version: current.version + 1,
-              })
-              .usingConnection(connection);
+          } else if (change.kind === 'reactivate') {
+            // Every expected CAS update is required: a lost update surfaces as
+            // a version conflict with no counters and no success audit.
+            requireUpdatedRow(
+              (await RoleAssignment.updateOne({ id: change.current.id, version: change.current.version })
+                .set({
+                  status: 'active',
+                  sourcePresent: true,
+                  revokedAt: null,
+                  revokedBy: null,
+                  assignedAt: this.dependencies.now(),
+                  assignedBy: this.actorId(command),
+                  version: change.current.version + 1,
+                })
+                .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+              'The external assignment changed since it was read.'
+            );
             reactivated += 1;
-          } else noOp += 1;
-        }
-        const desiredRoleIds = new Set(roles.map(role => role.id));
-        for (const current of existing) {
-          const roleId = associationId(current.role);
-          if (roleId === undefined || desiredRoleIds.has(roleId)) continue;
-          if (current.status === 'suppressed') {
-            if (current.sourcePresent) {
-              await RoleAssignment.updateOne({ id: current.id, version: current.version })
-                .set({ sourcePresent: false, version: current.version + 1 })
-                .usingConnection(connection);
-              suppressedUpdated += 1;
-            } else noOp += 1;
-          } else if (current.status !== 'revoked' || current.sourcePresent) {
-            await RoleAssignment.updateOne({ id: current.id, version: current.version })
-              .set({
-                status: 'revoked',
-                sourcePresent: false,
-                revokedAt: this.dependencies.now(),
-                revokedBy: this.actorId(command),
-                version: current.version + 1,
-              })
-              .usingConnection(connection);
+          } else if (change.kind === 'mark-present') {
+            requireUpdatedRow(
+              (await RoleAssignment.updateOne({ id: change.current.id, version: change.current.version })
+                .set({ sourcePresent: true, version: change.current.version + 1 })
+                .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+              'The external assignment changed since it was read.'
+            );
+            suppressedUpdated += 1;
+          } else if (change.kind === 'mark-absent') {
+            requireUpdatedRow(
+              (await RoleAssignment.updateOne({ id: change.current.id, version: change.current.version })
+                .set({ sourcePresent: false, version: change.current.version + 1 })
+                .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+              'The external assignment changed since it was read.'
+            );
+            suppressedUpdated += 1;
+          } else {
+            requireUpdatedRow(
+              (await RoleAssignment.updateOne({ id: change.current.id, version: change.current.version })
+                .set({
+                  status: 'revoked',
+                  sourcePresent: false,
+                  revokedAt: this.dependencies.now(),
+                  revokedBy: this.actorId(command),
+                  version: change.current.version + 1,
+                })
+                .usingConnection(connection)) as RoleAssignmentAttributes | undefined,
+              'The external assignment changed since it was read.'
+            );
             revoked += 1;
-          } else noOp += 1;
+          }
         }
-        for (const role of protectedRoles.values()) await this.assertAdministratorQuorum(role, connection);
+        for (const role of changedProtectedRoles.values()) await this.assertAdministratorQuorum(role, connection);
         const allRoleIds = uniqueStrings(
           [...roles.map(role => role.id), ...existing.map(row => associationId(row.role) ?? '')].filter(Boolean)
         );
@@ -2863,30 +6536,6 @@ export namespace Services {
     public async applyBulkAssignments(
       command: ApplyBulkAssignmentsCommand
     ): Promise<AuthorizationMutationResult<BulkMutationResult>> {
-      this.requireScope(command, ASSIGNMENT_MANAGE_SCOPE, command.brandId);
-      const rows = parseBulkAssignmentRows(command.rows, command.format);
-      const previewRows = await this.dependencies.runTransaction(connection =>
-        this.bulkPreviewRows(command, rows, connection)
-      );
-      if (previewRows.some(row => row.outcome === 'invalid')) {
-        throw new AuthorizationAdministrationError(
-          'authorization.bulk-invalid',
-          422,
-          'The assignment batch contains invalid rows.'
-        );
-      }
-      const content = {
-        rows: previewRows.map(row => ({ ...row, row: { ...row.row } })),
-        reason: optionalAuthorizationText(command.reason, 1_000),
-      };
-      this.verifyConfirmation(
-        command,
-        command.confirmationToken,
-        'assignment-bulk',
-        command.brandId,
-        undefined,
-        content
-      );
       const batchId = command.batchId ?? this.dependencies.randomId();
       const auditInput = this.auditInput(
         { ...command, batchId },
@@ -2894,13 +6543,43 @@ export namespace Services {
         'role-assignment',
         command.brandId
       );
-      return this.runMutation(command, auditInput, async connection => {
-        const fresh = await this.bulkPreviewRows(command, rows, connection);
+      // Scope, payload, preview, and confirmation checks run inside the
+      // denied-attempt audit wrapper so malformed, tampered, replayed, and
+      // scope-denied attempts are recorded atomically.
+      const prePhase = await this.runAuditedPrePhase(auditInput, async () => {
+        this.requireScope(command, ASSIGNMENT_MANAGE_SCOPE, command.brandId);
+        const rows = parseBulkAssignmentRows(command.rows, command.format);
+        const previewRows = await this.dependencies.runTransaction(connection =>
+          this.bulkPreviewRows(command, rows, connection)
+        );
+        if (previewRows.some(row => row.outcome === 'invalid')) {
+          throw new AuthorizationAdministrationError(
+            'authorization.bulk-invalid',
+            422,
+            'The assignment batch contains invalid rows.'
+          );
+        }
+        const content = {
+          rows: previewRows.map(row => ({ ...row, row: { ...row.row } })),
+          reason: optionalAuthorizationText(command.reason, 1_000),
+        };
+        this.verifyConfirmation(
+          command,
+          command.confirmationToken,
+          'assignment-bulk',
+          command.brandId,
+          undefined,
+          content
+        );
+        return { rows, previewRows, content };
+      });
+      return this.runMutation({ ...command, batchId }, auditInput, async connection => {
+        const fresh = await this.bulkPreviewRows(command, prePhase.rows, connection);
         if (
           authorizationContentHash({
             rows: fresh.map(row => ({ ...row, row: { ...row.row } })),
             reason: optionalAuthorizationText(command.reason, 1_000),
-          }) !== authorizationContentHash(content)
+          }) !== authorizationContentHash(prePhase.content)
         ) {
           throw new AuthorizationAdministrationError(
             'authorization.preview-stale',

@@ -824,9 +824,11 @@ Tests are interleaved with production changes. A phase is not complete when only
 
 - Route legacy role listing/update through the new read/mutation services.
 - Convert user create/update role arrays into manual assignments.
+- Validate requested roles before any user/assignment mutation (unknown names are 422); create compensates by destroying ONLY same-request new accounts (pre-existing duplicates are never destroyed, partial state is reported); update restores the snapshotted prior profile when the role phase fails.
+- Request-facing user mutations (`addLocalUser`, `updateUserDetails`, `setUserKey` and brand variants) require the frozen server-built actor; raw storage lives behind non-exported helpers. Onboarding mints a system-process context with exactly `authorization.assignment.manage`, never the full registry.
 - Update account linking to merge/canonicalize sourced assignments while enforcing final-brand-admin and final-system-admin safety.
-- Require recent server-verified proof of both identities, preview merged authority across all affected brands, and reject brand administrators acting outside their brand.
-- Commit the link, assignment canonicalization, legacy projection, quorum validation, and audits atomically; do not implement automatic authority redistribution on unlink.
+- Require recent server-verified proof of both identities, preview merged authority across all affected brands, and reject brand administrators acting outside their brand. (2026-09-05: `previewLinkAccounts` + required pair versions + `account-link` confirmation token.)
+- Commit the link as a durable TWO-COMMIT protocol (required transaction on `mongodb`, then a separate brand/revision-CAS record phase with a `UserLinkOperation` pending/running/completed/failed outbox and bounded idempotent record-phase retry); do not implement automatic authority redistribution on unlink. Single-datastore atomicity across the record boundary is explicitly NOT claimed (no shared transaction exists).
 - Maintain response compatibility and add deprecation headers/docs.
 - Add drift checks between assignment authority and legacy associations.
 

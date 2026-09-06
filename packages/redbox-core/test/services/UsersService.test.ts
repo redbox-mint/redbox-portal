@@ -1,5 +1,7 @@
 import * as sinon from 'sinon';
-import { Services as AuthorizationServices } from '../../src/services/AuthorizationService';
+import * as AuthorizationActorIssuer from '../../src/services/AuthorizationActorIssuer';
+import { freezeAuthorizationContext } from '../../src/authorization';
+import { genuineTestActor } from './genuineActor';
 import { of, throwError } from 'rxjs';
 import { UserWLDef } from '../../src/waterline-models/User';
 import {
@@ -11,6 +13,30 @@ import {
 } from './testHelper';
 
 let expect: Chai.ExpectStatic;
+
+// AUTH-ACTOR-001: request-facing mutations require a SERVER-ISSUED actor.
+// These helpers issue through the genuine `AuthorizationService` resolver
+// (stub brand/registry); bare `freezeAuthorizationContext` output (or
+// `Object.freeze` forgeries) without the resolver capability is rejected.
+async function buildTestBrandActor(scopes: string[] = ['user.manage', 'user.account-link.manage']): Promise<any> {
+  return genuineTestActor({
+    contextType: 'brand',
+    principal: { category: 'authenticated', authMethod: 'session', active: true, userId: 'admin-1' },
+    brand: { requestedIdentifier: 'brand-1', id: 'brand-1', name: 'Brand 1' },
+    effectiveScopeKeys: scopes,
+  });
+}
+
+async function buildTestBearerActor(
+  scopes: string[] = ['user.manage', 'user.account-link.manage', 'authorization.assignment.manage']
+): Promise<any> {
+  return genuineTestActor({
+    contextType: 'brand',
+    principal: { category: 'legacy-bearer', authMethod: 'bearer', active: true, userId: 'api-user-1' },
+    brand: { requestedIdentifier: 'brand-1', id: 'brand-1', name: 'Brand 1' },
+    effectiveScopeKeys: scopes,
+  });
+}
 
 describe('UsersService', function () {
   let mockSails: any;
@@ -79,13 +105,9 @@ describe('UsersService', function () {
     };
 
     mockRecord = {
-      find: sinon.stub().returns({
-        meta: sinon.stub().returns({
-          then: sinon.stub().callsFake(cb => {
-            cb([]);
-            return { catch: sinon.stub() };
-          }),
-        }),
+      find: sinon.stub().callsFake(() => {
+        const query: any = createQueryObject([]);
+        return query;
       }),
     };
 
@@ -493,9 +515,9 @@ describe('UsersService', function () {
     });
   });
 
-  describe('findAndAssignAccessToRecords', function () {
+  describe('assignAccessToPendingRecordsForLifecycle', function () {
     it('should not crash when no pending records found', async function () {
-      const result = await UsersService.findAndAssignAccessToRecords('pending-email@test.com', 'user-1');
+      const result = await UsersService.assignAccessToPendingRecordsForLifecycle('pending-email@test.com', 'user-1');
       expect(result).to.equal(0);
     });
 
@@ -503,7 +525,7 @@ describe('UsersService', function () {
       const records = [{ redboxOid: 'record-1' }, { redboxOid: 'record-2' }];
       configureModelMethod(mockRecord.find, records);
 
-      const result = await UsersService.findAndAssignAccessToRecords('pending@test.com', 'user-1');
+      const result = await UsersService.assignAccessToPendingRecordsForLifecycle('pending@test.com', 'user-1');
 
       expect(mockRecord.find.called).to.be.true;
       expect((global as any).RecordsService.provideUserAccessAndRemovePendingAccess.callCount).to.equal(2);
@@ -694,13 +716,11 @@ describe('UsersService', function () {
       configureModelMethod(mockUserLink.findOne, null);
 
       try {
-        await UsersService.updateUserDetailsForBrand(
-          'user-1',
-          'Updated User',
-          'updated@example.test',
-          '',
-          'brand-1'
-        ).toPromise();
+        await UsersService.updateUserDetailsForBrand('user-1', 'Updated User', 'updated@example.test', '', 'brand-1', {
+          actorContext: await buildTestBrandActor(['user.manage']),
+          expectedVersion: 1,
+          requestId: 'test-update-brand-denied',
+        }).toPromise();
         expect.fail('Expected a cross-brand update to fail');
       } catch (error) {
         expect((error as { code?: string }).code).to.equal('authorization.not-found');
@@ -719,7 +739,12 @@ describe('UsersService', function () {
         'Updated User',
         'updated@example.test',
         '',
-        'brand-1'
+        'brand-1',
+        {
+          actorContext: await buildTestBrandActor(['user.manage']),
+          expectedVersion: 1,
+          requestId: 'test-update-brand-ok',
+        }
       ).toPromise();
 
       expect(updated?.[1]?.[0]?.name).to.equal('Updated User');
@@ -1012,12 +1037,15 @@ describe('UsersService', function () {
   });
 
   describe('linkAccounts', function () {
-    it('should create links and rewrite authorization references', async function () {
-      (global as any).RecordsService.mutateMetaInternal.resolves({
-        outcome: 'saved-with-warnings',
-        wasPersisted: () => true,
-        isComplete: () => false,
-      });
+    // AUTH-ACTOR-001: genuine resolver-issued context (active, session,
+    // brand-authorized). Omitted/forged variants are rejected by dedicated
+    // fail-closed tests below.
+    let fakeLinkActor: any;
+    before(async function () {
+      fakeLinkActor = await buildTestBrandActor(['user.account-link.manage']);
+    });
+
+    it('should delegate tuple adoption to the guarded link writer and rewrite authorization references', async function () {
       mockUser.findOne.onFirstCall().returns(
         createQueryObject({
           id: 'primary-1',
@@ -1035,19 +1063,6 @@ describe('UsersService', function () {
           roles: [{ id: 'role-secondary', name: 'Librarians', key: 'Librarians', branding: 'brand-1' }],
         })
       );
-      configureModelMethod(mockUserLink.findOne, null);
-      configureModelMethod(mockRecord.find, [
-        {
-          redboxOid: 'record-1',
-          metaMetadata: { brandId: 'brand-1' },
-          authorization: {
-            edit: ['secondary-user'],
-            view: [],
-            editPending: ['secondary@test.com'],
-            viewPending: [],
-          },
-        },
-      ]);
       configureModelMethod(mockUserLink.find, [
         {
           primaryUserId: 'primary-1',
@@ -1070,46 +1085,121 @@ describe('UsersService', function () {
         ])
       );
 
-      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
-      const revokeAssignment = sinon
-        .stub()
-        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
-      (mockSails.services as any).authorizationscopeservice = {
-        getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
-      };
-      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment };
-      const systemContext = sinon
-        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
-        .resolves({ principal: { category: 'system-process' } } as never);
+      // P5-G8: the guarded writer returns AuthorizationMutationResult with
+      // rolesAdopted under `data`; the adapter must read the real shape.
+      // P5-Gate-F: record rewrites commit inside the guarded writer
+      // transaction; the facade performs no Record write itself.
+      const linkUserAccounts = sinon.stub().resolves({
+        data: {
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          rolesAdopted: 1,
+          rolesRetired: 1,
+          recordsRewritten: 1,
+          changed: true,
+        },
+        version: 1,
+        auditEventId: 'event-1',
+        requestId: 'link-req-1',
+        changed: true,
+      });
+      (mockSails.services as any).roleadministrationservice = { linkUserAccounts };
 
       try {
-        const result = await UsersService.linkAccounts('primary-1', 'secondary-1', 'admin-user', 'brand-1').toPromise();
+        const result = await UsersService.linkAccounts('primary-1', 'secondary-1', 'admin-user', 'brand-1', {
+          actorContext: fakeLinkActor,
+          requestId: 'link-req-1',
+        }).toPromise();
 
-        expect(mockUserLink.create.calledOnce).to.be.true;
-        expect(mockUser.addToCollection.called).to.be.false;
-        expect(mockUser.replaceCollection.calledOnce).to.be.true;
-        expect(mockUser.update.called).to.be.true;
-        expect((global as any).RecordsService.mutateMetaInternal.calledOnce).to.be.true;
+        expect(linkUserAccounts.calledOnce).to.be.true;
+        expect(linkUserAccounts.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          requestId: 'link-req-1',
+        });
+        expect(linkUserAccounts.firstCall.args[0]).to.not.have.property('recordsRewritten');
+        // Canonical link state, tuple adoption, projection, and record
+        // rewrites now commit inside the guarded writer, not here.
+        expect(mockUserLink.create.called).to.be.false;
+        expect(mockUser.replaceCollection.called).to.be.false;
+        expect((global as any).RecordsService.mutateMetaInternal.called).to.be.false;
+        expect(mockRecord.find.called).to.be.false;
         expect(result.impact?.rolesMerged).to.equal(1);
         expect(result.impact?.recordsRewritten).to.equal(1);
-        expect(grantAssignment.calledOnce).to.be.true;
-        expect(grantAssignment.firstCall.args[0]).to.include({
-          brandId: 'brand-1',
-          principalId: 'primary-1',
-          roleKey: 'Librarians',
-          source: 'manual',
-        });
-        for (const revokeCall of revokeAssignment.getCalls()) {
-          expect(revokeCall.args[0]).to.include({ principalId: 'secondary-1' });
-        }
       } finally {
-        systemContext.restore();
-        delete (mockSails.services as any).authorizationscopeservice;
         delete (mockSails.services as any).roleadministrationservice;
       }
     });
 
-    it('should reject linking a secondary user that already has linked accounts', async function () {
+    it('forwards CAS versions, confirmation token, and operation id, and exposes recordsPending', async function () {
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'primary-user',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-primary', branding: 'brand-1' }],
+        })
+      );
+      mockUser.findOne.onSecondCall().returns(
+        createQueryObject({
+          id: 'secondary-1',
+          username: 'secondary-user',
+          email: 'secondary@test.com',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-secondary', name: 'Librarians', key: 'Librarians', branding: 'brand-1' }],
+        })
+      );
+      configureModelMethod(mockUserLink.find, []);
+      mockUser.find.onFirstCall().returns(createQueryObject([]));
+
+      const linkUserAccounts = sinon.stub().resolves({
+        data: {
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          rolesAdopted: 0,
+          rolesRetired: 0,
+          recordsRewritten: 0,
+          recordsPending: true,
+          changed: true,
+          linkOperationId: 'link-op-1',
+        },
+        version: 1,
+        auditEventId: 'event-1',
+        requestId: 'link-req-2',
+        changed: true,
+      });
+      (mockSails.services as any).roleadministrationservice = { linkUserAccounts };
+
+      try {
+        const result = await UsersService.linkAccounts('primary-1', 'secondary-1', 'admin-user', 'brand-1', {
+          actorContext: fakeLinkActor,
+          requestId: 'link-req-2',
+          primaryExpectedVersion: 3,
+          secondaryExpectedVersion: 5,
+          linkConfirmationToken: 'confirm-token-1',
+          linkOperationId: 'link-op-1',
+        }).toPromise();
+
+        expect(linkUserAccounts.calledOnce).to.be.true;
+        expect(linkUserAccounts.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          primaryUserId: 'primary-1',
+          secondaryUserId: 'secondary-1',
+          requestId: 'link-req-2',
+          primaryExpectedVersion: 3,
+          secondaryExpectedVersion: 5,
+          linkConfirmationToken: 'confirm-token-1',
+          linkOperationId: 'link-op-1',
+        });
+        expect(result.recordsPending).to.equal(true);
+        expect(result.linkOperationId).to.equal('link-op-1');
+      } finally {
+        delete (mockSails.services as any).roleadministrationservice;
+      }
+    });
+
+    it('should surface guarded link failures without persisting a link locally', async function () {
       mockUser.findOne.onFirstCall().returns(
         createQueryObject({
           id: 'primary-2',
@@ -1127,23 +1217,60 @@ describe('UsersService', function () {
           roles: [{ id: 'role-secondary', branding: 'brand-1' }],
         })
       );
-      mockUserLink.findOne.onFirstCall().returns(createQueryObject(null));
-      mockUserLink.findOne.onSecondCall().returns(
-        createQueryObject({
-          primaryUserId: 'primary-1',
-          secondaryUserId: 'secondary-1',
-          status: 'active',
-        })
-      );
+      const linkUserAccounts = sinon.stub().rejects(new Error('Secondary user already has linked accounts'));
+      (mockSails.services as any).roleadministrationservice = { linkUserAccounts };
 
       try {
-        await UsersService.linkAccounts('primary-2', 'primary-1', 'admin-user', 'brand-1').toPromise();
+        await UsersService.linkAccounts('primary-2', 'primary-1', 'admin-user', 'brand-1', {
+          actorContext: fakeLinkActor,
+        }).toPromise();
         expect.fail('Expected linkAccounts to throw');
       } catch (error) {
         expect((error as Error).message).to.equal('Secondary user already has linked accounts');
+      } finally {
+        delete (mockSails.services as any).roleadministrationservice;
       }
 
+      expect(linkUserAccounts.calledOnce).to.be.true;
       expect(mockUserLink.create.called).to.be.false;
+    });
+
+    it('P5-G3 leaves record authorizations untouched when the guarded link fails', async function () {
+      configureModelMethod(mockRecord.find, []);
+      (global as any).RecordsService.mutateMetaInternal.resetHistory();
+      mockUser.findOne.onFirstCall().returns(
+        createQueryObject({
+          id: 'primary-2',
+          username: 'other-primary',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-primary', branding: 'brand-1' }],
+        })
+      );
+      mockUser.findOne.onSecondCall().returns(
+        createQueryObject({
+          id: 'primary-1',
+          username: 'current-primary',
+          email: 'primary@test.com',
+          accountLinkState: 'active',
+          roles: [{ id: 'role-secondary', branding: 'brand-1' }],
+        })
+      );
+      const linkUserAccounts = sinon.stub().rejects(new Error('Secondary user already has linked accounts'));
+      (mockSails.services as any).roleadministrationservice = { linkUserAccounts };
+
+      try {
+        await UsersService.linkAccounts('primary-2', 'primary-1', 'admin-user', 'brand-1', {
+          actorContext: fakeLinkActor,
+        }).toPromise();
+        expect.fail('Expected linkAccounts to throw');
+      } catch (error) {
+        expect((error as Error).message).to.equal('Secondary user already has linked accounts');
+      } finally {
+        delete (mockSails.services as any).roleadministrationservice;
+      }
+
+      expect(linkUserAccounts.calledOnce).to.be.true;
+      expect((global as any).RecordsService.mutateMetaInternal.called).to.be.false;
     });
   });
 
@@ -1153,7 +1280,11 @@ describe('UsersService', function () {
       configureModelMethod(mockUser.findOne, user);
       configureModelMethod(mockUser.update, [{ id: 'user-1', token: 'hashed' }]);
 
-      const result = await UsersService.setUserKey('user-1', 'new-api-key').toPromise();
+      const result = await UsersService.setUserKey('user-1', 'new-api-key', {
+        actorContext: await buildTestBrandActor(['user.token.manage']),
+        expectedVersion: 1,
+        requestId: 'test-set-key-1',
+      }).toPromise();
 
       expect(result).to.exist;
     });
@@ -1163,9 +1294,31 @@ describe('UsersService', function () {
       configureModelMethod(mockUser.findOne, user);
       configureModelMethod(mockUser.update, [{ id: 'user-1', token: '' }]);
 
-      const result = await UsersService.setUserKey('user-1', '').toPromise();
+      const result = await UsersService.setUserKey('user-1', '', {
+        actorContext: await buildTestBrandActor(['user.token.manage']),
+        expectedVersion: 1,
+        requestId: 'test-set-key-2',
+      }).toPromise();
 
       expect(result).to.exist;
+    });
+
+    it('rejects setUserKey with a user.manage actor lacking the proven token scope', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', token: 'hashed' }]);
+
+      let code: string | undefined;
+      try {
+        await UsersService.setUserKey('user-1', 'new-api-key', {
+          actorContext: await buildTestBrandActor(['user.manage']),
+          expectedVersion: 1,
+          requestId: 'test-set-key-scope',
+        }).toPromise();
+      } catch (error) {
+        code = (error as { code?: string })?.code;
+      }
+      expect(code).to.equal('authorization.scope-denied');
     });
   });
 
@@ -1175,7 +1328,11 @@ describe('UsersService', function () {
       configureModelMethod(mockUser.findOne, user);
       configureModelMethod(mockUser.update, [{ id: 'user-1', name: 'New Name', email: 'new@email.com' }]);
 
-      const result = await UsersService.updateUserDetails('user-1', 'New Name', 'new@email.com', null).toPromise();
+      const result = await UsersService.updateUserDetails('user-1', 'New Name', 'new@email.com', null, {
+        actorContext: await buildTestBrandActor(),
+        expectedVersion: 1,
+        requestId: 'test-update-details-1',
+      }).toPromise();
 
       expect(result).to.exist;
     });
@@ -1185,7 +1342,11 @@ describe('UsersService', function () {
       configureModelMethod(mockUser.findOne, user);
       configureModelMethod(mockUser.update, [{ id: 'user-1', name: 'Name', password: 'hashedpw' }]);
 
-      const result = await UsersService.updateUserDetails('user-1', 'Name', '', 'newpassword').toPromise();
+      const result = await UsersService.updateUserDetails('user-1', 'Name', '', 'newpassword', {
+        actorContext: await buildTestBrandActor(),
+        expectedVersion: 1,
+        requestId: 'test-update-details-2',
+      }).toPromise();
 
       expect(result).to.exist;
     });
@@ -1213,39 +1374,91 @@ describe('UsersService', function () {
           protectedKind: 'none',
         },
       ]);
-      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
-      const revokeAssignment = sinon
+      // P5-G4: the whole brand role-set applies through one atomic batch.
+      const applyUserRoleSet = sinon
         .stub()
-        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
+        .resolves({ data: { granted: 1 }, version: 1, auditEventId: 'audit-1', requestId: 'r1', changed: true });
       (mockSails.services as any).authorizationscopeservice = {
         getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
       };
-      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment };
-      const systemContext = sinon
-        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
-        .resolves({ principal: { category: 'system-process' } } as never);
+      (mockSails.services as any).roleadministrationservice = { applyUserRoleSet };
+      // AUTH-ACTOR-001: request actor is required; no system fallback on request paths.
+      const requestActor = await buildTestBrandActor(['authorization.assignment.manage']);
+      const systemContext = sinon.stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal');
 
       try {
         const result = await UsersService.updateUserRoles('user-1', ['role-1', 'role-2'], {
           brandId: 'brand-1',
+          actorContext: requestActor as never,
+          requestId: 'req-1',
+          expectedVersion: 1,
         }).toPromise();
 
         expect(result).to.exist;
         expect(mockUser.replaceCollection.called).to.be.false;
-        expect(grantAssignment.calledOnce).to.be.true;
-        expect(grantAssignment.firstCall.args[0]).to.include({
+        expect(applyUserRoleSet.calledOnce).to.be.true;
+        expect(applyUserRoleSet.firstCall.args[0]).to.include({
           brandId: 'brand-1',
           principalId: 'user-1',
-          roleKey: 'Librarians',
-          source: 'manual',
         });
-        expect(revokeAssignment.called).to.be.false;
-        expect(systemContext.calledOnce).to.be.true;
+        expect(applyUserRoleSet.firstCall.args[0].actor).to.equal(requestActor);
+        expect(applyUserRoleSet.firstCall.args[0].grants).to.deep.equal([{ roleKey: 'Librarians' }]);
+        expect(applyUserRoleSet.firstCall.args[0].removals).to.deep.equal([]);
+        expect(systemContext.called).to.be.false;
       } finally {
         systemContext.restore();
         delete (mockSails.services as any).authorizationscopeservice;
         delete (mockSails.services as any).roleadministrationservice;
       }
+    });
+
+    it('rejects role-set writes without a caller-observed expectedVersion (mandatory CAS)', async function () {
+      const user = {
+        id: 'user-1',
+        username: 'testuser',
+        loginDisabledVersion: 3,
+        roles: [{ id: 'role-1', branding: 'brand-1' }],
+      };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-1',
+          name: 'Researcher',
+          key: 'Researcher',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+      (mockSails.services as any).roleadministrationservice = {
+        applyUserRoleSet: sinon.stub().resolves({ changed: false }),
+      };
+      const requestActor = await buildTestBrandActor(['authorization.assignment.manage']);
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-1'], {
+          brandId: 'brand-1',
+          actorContext: requestActor as never,
+          requestId: 'req-cas-missing',
+        } as never).toPromise();
+        expect.fail('Expected missing expectedVersion to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.version-conflict');
+      }
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-1'], {
+          brandId: 'brand-1',
+          actorContext: requestActor as never,
+          requestId: 'req-cas-stale',
+          expectedVersion: 2,
+        }).toPromise();
+        expect.fail('Expected stale expectedVersion to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.version-conflict');
+      }
+      expect(((mockSails.services as any).roleadministrationservice.applyUserRoleSet as sinon.SinonStub).called).to.be
+        .false;
+      delete (mockSails.services as any).roleadministrationservice;
     });
 
     it('rejects requested roles outside the caller brand and multi-brand batches', async function () {
@@ -1271,17 +1484,22 @@ describe('UsersService', function () {
       ]);
 
       try {
-        await UsersService.updateUserRoles('user-1', ['role-foreign'], { brandId: 'brand-1' }).toPromise();
+        await UsersService.updateUserRoles('user-1', ['role-foreign'], {
+          brandId: 'brand-1',
+          expectedVersion: 1,
+        }).toPromise();
         expect.fail('Expected cross-brand role request to throw');
       } catch (error) {
-        expect((error as Error).message).to.equal('Unknown role requested');
+        expect((error as { code?: string }).code).to.equal('authorization.invalid-role');
       }
 
       try {
-        await UsersService.updateUserRoles('user-1', ['role-1', 'role-foreign']).toPromise();
+        await UsersService.updateUserRoles('user-1', ['role-1', 'role-foreign'], {
+          expectedVersion: 1,
+        }).toPromise();
         expect.fail('Expected multi-brand role batch to throw');
       } catch (error) {
-        expect((error as Error).message).to.equal('Requested roles must belong to a single brand');
+        expect((error as { code?: string }).code).to.equal('authorization.invalid-role');
       }
     });
 
@@ -1313,21 +1531,22 @@ describe('UsersService', function () {
           protectedKind: 'none',
         },
       ]);
-      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
-      const revokeAssignment = sinon
+      const applyUserRoleSet = sinon
         .stub()
-        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
+        .resolves({ data: { granted: 1 }, version: 1, auditEventId: 'audit-1', requestId: 'r1', changed: true });
       (mockSails.services as any).authorizationscopeservice = {
         getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
       };
-      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment };
-      const systemContext = sinon
-        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
-        .resolves({ principal: { category: 'system-process' } } as never);
+      (mockSails.services as any).roleadministrationservice = { applyUserRoleSet };
+      const requestActor = await buildTestBrandActor(['authorization.assignment.manage']);
+      const systemContext = sinon.stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal');
       const previousRoleAssignment = Object.getOwnPropertyDescriptor(globalThis, 'RoleAssignment');
       Reflect.set(globalThis, 'RoleAssignment', {
-        find: (criteria: Record<string, unknown>) =>
-          createQueryObject([
+        find: (criteria: Record<string, unknown>) => {
+          // Only the removed role (role-1/Researcher) has a backing tuple;
+          // the granted role (role-2/Librarians) has none.
+          if (String(criteria.role ?? '') !== 'role-1') return createQueryObject([]);
+          return createQueryObject([
             {
               id: 'assignment-active-1',
               principalType: 'user',
@@ -1338,21 +1557,27 @@ describe('UsersService', function () {
               status: 'active',
               version: 2,
             },
-          ]),
+          ]);
+        },
       });
 
       try {
         const result = await UsersService.updateUserRoles('user-1', ['role-foreign', 'role-2'], {
           brandId: 'brand-1',
+          actorContext: requestActor as never,
+          requestId: 'req-2',
+          expectedVersion: 1,
         }).toPromise();
 
         expect(result).to.exist;
-        expect(grantAssignment.calledOnce).to.be.true;
-        expect(grantAssignment.firstCall.args[0]).to.include({ brandId: 'brand-1', roleKey: 'Librarians' });
-        expect(revokeAssignment.calledOnce).to.be.true;
-        expect(revokeAssignment.firstCall.args[0]).to.include({ brandId: 'brand-1', roleKey: 'Researcher' });
-        expect(systemContext.calledOnce).to.be.true;
-        expect(systemContext.firstCall.args[1]).to.equal('brand-1');
+        expect(applyUserRoleSet.calledOnce).to.be.true;
+        expect(applyUserRoleSet.firstCall.args[0]).to.include({ brandId: 'brand-1', principalId: 'user-1' });
+        expect(applyUserRoleSet.firstCall.args[0].actor).to.equal(requestActor);
+        expect(applyUserRoleSet.firstCall.args[0].grants).to.deep.equal([{ roleKey: 'Librarians' }]);
+        expect(applyUserRoleSet.firstCall.args[0].removals).to.deep.equal([
+          { roleKey: 'Researcher', source: 'manual', sourceKey: 'manual', expectedVersion: 2 },
+        ]);
+        expect(systemContext.called).to.be.false;
         expect(mockUser.replaceCollection.called).to.be.false;
       } finally {
         systemContext.restore();
@@ -1378,10 +1603,13 @@ describe('UsersService', function () {
       ]);
 
       try {
-        await UsersService.updateUserRoles('user-1', ['role-foreign'], { brandId: 'brand-1' }).toPromise();
+        await UsersService.updateUserRoles('user-1', ['role-foreign'], {
+          brandId: 'brand-1',
+          expectedVersion: 1,
+        }).toPromise();
         expect.fail('Expected unheld foreign role grant to throw');
       } catch (error) {
-        expect((error as Error).message).to.equal('Unknown role requested');
+        expect((error as { code?: string }).code).to.equal('authorization.invalid-role');
       }
     });
 
@@ -1402,24 +1630,24 @@ describe('UsersService', function () {
           protectedKind: 'none',
         },
       ]);
-      const grantAssignment = sinon.stub().resolves({ data: {}, version: 1, auditEventId: 'audit-1', requestId: 'r1' });
-      const revokeAssignment = sinon
+      // P5-G4: removals for every source tuple go through one atomic batch.
+      const applyUserRoleSet = sinon
         .stub()
-        .resolves({ data: {}, version: 1, auditEventId: 'audit-2', requestId: 'r1' });
-      const suppressAssignment = sinon
-        .stub()
-        .resolves({ data: {}, version: 1, auditEventId: 'audit-3', requestId: 'r1' });
+        .resolves({ data: { granted: 1 }, version: 1, auditEventId: 'audit-1', requestId: 'r1', changed: true });
       (mockSails.services as any).authorizationscopeservice = {
         getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
       };
-      (mockSails.services as any).roleadministrationservice = { grantAssignment, revokeAssignment, suppressAssignment };
-      const systemContext = sinon
-        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
-        .resolves({ principal: { category: 'system-process' } } as never);
+      (mockSails.services as any).roleadministrationservice = { applyUserRoleSet };
+      const requestActorMulti = await buildTestBrandActor(['authorization.assignment.manage']);
+      const systemContext = sinon.stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal');
       const previousRoleAssignment = Object.getOwnPropertyDescriptor(globalThis, 'RoleAssignment');
       Reflect.set(globalThis, 'RoleAssignment', {
-        find: (criteria: Record<string, unknown>) =>
-          createQueryObject([
+        find: (criteria: Record<string, unknown>) => {
+          // Only the dropped role (role-2/Librarians) has backing tuples;
+          // the granted role (role-1/Researcher) has none, so its grant
+          // carries no expectedVersion.
+          if (String(criteria.role ?? '') !== 'role-2') return createQueryObject([]);
+          return createQueryObject([
             {
               id: 'assignment-manual-1',
               principalType: 'user',
@@ -1451,30 +1679,28 @@ describe('UsersService', function () {
               status: 'revoked',
               version: 9,
             },
-          ]),
+          ]);
+        },
       });
 
       try {
-        await UsersService.updateUserRoles('user-1', ['role-1'], { brandId: 'brand-1' }).toPromise();
+        await UsersService.updateUserRoles('user-1', ['role-1'], {
+          brandId: 'brand-1',
+          actorContext: requestActorMulti as never,
+          requestId: 'req-multi',
+          expectedVersion: 1,
+        }).toPromise();
 
-        expect(grantAssignment.calledOnce).to.be.true;
-        expect(revokeAssignment.calledOnce).to.be.true;
-        expect(revokeAssignment.firstCall.args[0]).to.include({
+        expect(applyUserRoleSet.calledOnce).to.be.true;
+        expect(applyUserRoleSet.firstCall.args[0]).to.include({
           brandId: 'brand-1',
           principalId: 'user-1',
-          roleKey: 'Librarians',
-          source: 'manual',
-          sourceKey: 'manual',
-          expectedVersion: 3,
         });
-        expect(suppressAssignment.calledOnce).to.be.true;
-        expect(suppressAssignment.firstCall.args[0]).to.include({
-          brandId: 'brand-1',
-          principalId: 'user-1',
-          roleKey: 'Librarians',
-          assignmentId: 'assignment-external-1',
-          expectedVersion: 5,
-        });
+        expect(applyUserRoleSet.firstCall.args[0].grants).to.deep.equal([{ roleKey: 'Researcher' }]);
+        expect(applyUserRoleSet.firstCall.args[0].removals).to.deep.equal([
+          { roleKey: 'Librarians', source: 'manual', sourceKey: 'manual', expectedVersion: 3 },
+          { roleKey: 'Librarians', assignmentId: 'assignment-external-1', expectedVersion: 5 },
+        ]);
       } finally {
         systemContext.restore();
         delete (mockSails.services as any).authorizationscopeservice;
@@ -1484,23 +1710,76 @@ describe('UsersService', function () {
       }
     });
 
+    it('P5-G4 surfaces mid-sequence batch failures without partial writes', async function () {
+      const user = {
+        id: 'user-1',
+        username: 'testuser',
+        roles: [{ id: 'role-2', name: 'Librarians', key: 'Librarians', branding: 'brand-1' }],
+      };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-1',
+          name: 'Researcher',
+          key: 'Researcher',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+      const applyUserRoleSet = sinon
+        .stub()
+        .rejects(Object.assign(new Error('The assignment changed.'), { code: 'authorization.version-conflict' }));
+      (mockSails.services as any).authorizationscopeservice = {
+        getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
+      };
+      (mockSails.services as any).roleadministrationservice = { applyUserRoleSet };
+      const requestActorFail = await buildTestBrandActor(['authorization.assignment.manage']);
+      const systemContext = sinon.stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal');
+      const previousRoleAssignment = Object.getOwnPropertyDescriptor(globalThis, 'RoleAssignment');
+      Reflect.set(globalThis, 'RoleAssignment', {
+        find: () => createQueryObject([]),
+      });
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-1'], {
+          brandId: 'brand-1',
+          actorContext: requestActorFail as never,
+          requestId: 'req-fail',
+          expectedVersion: 1,
+        }).toPromise();
+        expect.fail('Expected batch conflict to throw');
+      } catch (error) {
+        expect((error as { code?: string }).code ?? (error as Error).message).to.not.equal(undefined);
+      } finally {
+        systemContext.restore();
+        delete (mockSails.services as any).authorizationscopeservice;
+        delete (mockSails.services as any).roleadministrationservice;
+        if (previousRoleAssignment === undefined) Reflect.deleteProperty(globalThis, 'RoleAssignment');
+        else Object.defineProperty(globalThis, 'RoleAssignment', previousRoleAssignment);
+      }
+
+      expect(applyUserRoleSet.calledOnce).to.be.true;
+      expect(mockUser.replaceCollection.called).to.be.false;
+    });
+
     it('rejects empty role requests and unknown roles', async function () {
       const user = { id: 'user-1', username: 'testuser', roles: [] };
       configureModelMethod(mockUser.findOne, user);
       configureModelMethod(mockRole.find, []);
 
       try {
-        await UsersService.updateUserRoles('user-1', []).toPromise();
+        await UsersService.updateUserRoles('user-1', [], { expectedVersion: 1 }).toPromise();
         expect.fail('Expected empty role request to throw');
       } catch (error) {
-        expect((error as Error).message).to.equal('Please assign at least one role');
+        expect((error as { code?: string }).code).to.equal('authorization.invalid-role');
       }
 
       try {
-        await UsersService.updateUserRoles('user-1', ['role-unknown']).toPromise();
+        await UsersService.updateUserRoles('user-1', ['role-unknown'], { expectedVersion: 1 }).toPromise();
         expect.fail('Expected unknown role to throw');
       } catch (error) {
-        expect((error as Error).message).to.equal('Unknown role requested');
+        expect((error as { code?: string }).code).to.equal('authorization.invalid-role');
       }
     });
 
@@ -1523,17 +1802,81 @@ describe('UsersService', function () {
         );
 
       try {
-        await UsersService.updateUserRoles('user-1', ['role-system']).toPromise();
+        await UsersService.updateUserRoles('user-1', ['role-system'], { expectedVersion: 1 }).toPromise();
         expect.fail('Expected system role assignment to throw');
       } catch (error) {
-        expect((error as Error).message).to.equal('System roles cannot be assigned through user management');
+        expect((error as { code?: string }).code).to.equal('authorization.scope-denied');
       }
 
       try {
-        await UsersService.updateUserRoles('user-1', ['role-guest']).toPromise();
+        await UsersService.updateUserRoles('user-1', ['role-guest'], { expectedVersion: 1 }).toPromise();
         expect.fail('Expected Guest assignment to throw');
       } catch (error) {
-        expect((error as Error).message).to.equal('Guest cannot be assigned explicitly');
+        expect((error as { code?: string }).code).to.equal('authorization.invalid-role');
+      }
+    });
+
+    it('forwards the request actor, request id, and reason to the atomic role-set writer', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [{ id: 'role-1', branding: 'brand-1' }] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockRole.find, [
+        {
+          id: 'role-1',
+          name: 'Researcher',
+          key: 'Researcher',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+        {
+          id: 'role-2',
+          name: 'Librarians',
+          key: 'Librarians',
+          branding: 'brand-1',
+          contextType: 'brand',
+          protectedKind: 'none',
+        },
+      ]);
+      const applyUserRoleSet = sinon
+        .stub()
+        .resolves({ data: { granted: 1 }, version: 1, auditEventId: 'audit-1', requestId: 'req-actor', changed: true });
+      (mockSails.services as any).authorizationscopeservice = {
+        getRegistry: () => ({ all: [{ key: 'authorization.assignment.manage' }] }),
+      };
+      (mockSails.services as any).roleadministrationservice = { applyUserRoleSet };
+      const systemContext = sinon
+        .stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal')
+        .resolves({ principal: { category: 'system-process' } } as never);
+      const previousRoleAssignment = Object.getOwnPropertyDescriptor(globalThis, 'RoleAssignment');
+      Reflect.set(globalThis, 'RoleAssignment', { find: () => createQueryObject([]) });
+      const requestActor = await buildTestBrandActor(['authorization.assignment.manage']);
+
+      try {
+        await UsersService.updateUserRoles('user-1', ['role-1', 'role-2'], {
+          brandId: 'brand-1',
+          actorContext: requestActor as never,
+          requestId: 'req-actor-1',
+          reason: 'grant via request actor',
+          expectedVersion: 1,
+        }).toPromise();
+
+        expect(applyUserRoleSet.calledOnce).to.be.true;
+        // The exact request actor must reach the guarded writer so delegation,
+        // audit, and quorum use the caller identity; no system fallback occurs.
+        expect(applyUserRoleSet.firstCall.args[0].actor).to.equal(requestActor);
+        expect(applyUserRoleSet.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          principalId: 'user-1',
+          requestId: 'req-actor-1',
+          reason: 'grant via request actor',
+        });
+        expect(systemContext.called).to.be.false;
+      } finally {
+        systemContext.restore();
+        delete (mockSails.services as any).authorizationscopeservice;
+        delete (mockSails.services as any).roleadministrationservice;
+        if (previousRoleAssignment === undefined) Reflect.deleteProperty(globalThis, 'RoleAssignment');
+        else Object.defineProperty(globalThis, 'RoleAssignment', previousRoleAssignment);
       }
     });
   });
@@ -1547,10 +1890,136 @@ describe('UsersService', function () {
       // Create returns new user
       configureModelMethod(mockUser.create, { id: 'user-new', username: 'newuser' });
 
-      const result = await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123').toPromise();
+      const result = await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123', {
+        actorContext: await buildTestBrandActor(),
+        requestId: 'test-add-local-user-1',
+      }).toPromise();
 
       expect(result).to.exist;
       expect(result.username).to.equal('newuser');
+    });
+  });
+
+  describe('mutation actor fail-closed contracts', function () {
+    it('rejects addLocalUser without an actor context', async function () {
+      try {
+        await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123').toPromise();
+        expect.fail('Expected omitted actor to fail closed');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.authentication-required');
+      }
+      expect(mockUser.create.called).to.be.false;
+    });
+
+    it('rejects updateUserDetails and setUserKey without an actor context', async function () {
+      try {
+        await UsersService.updateUserDetails('user-1', 'Name', 'a@test.com', null, {
+          expectedVersion: 1,
+        }).toPromise();
+        expect.fail('Expected omitted actor to fail closed');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.authentication-required');
+      }
+
+      try {
+        await UsersService.setUserKey('user-1', 'key', { expectedVersion: 1 }).toPromise();
+        expect.fail('Expected omitted actor to fail closed');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.authentication-required');
+      }
+      expect(mockUser.update.called).to.be.false;
+    });
+
+    it('rejects a forged unfrozen plain-object actor', async function () {
+      const forgedActor = {
+        contextType: 'brand',
+        principal: { category: 'authenticated', authMethod: 'session', active: true, userId: 'admin-1' },
+        brand: { requestedIdentifier: 'brand-1', id: 'brand-1', name: 'Brand 1', exists: true, authorized: true },
+        roles: [],
+        compatibilityRoles: [],
+        grantedScopeKeys: ['user.manage'],
+        effectiveScopeKeys: ['user.manage'],
+        scopeProvenance: [],
+      };
+      expect(Object.isFrozen(forgedActor)).to.be.false;
+
+      try {
+        await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123', {
+          actorContext: forgedActor as never,
+          requestId: 'test-forged-actor',
+        }).toPromise();
+        expect.fail('Expected forged actor to fail closed');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.authentication-required');
+      }
+      expect(mockUser.create.called).to.be.false;
+    });
+
+    it('rejects an active FROZEN forgery without the server-issued capability (FORGED_FROZEN_ACTOR)', async function () {
+      // The review probe: a caller freezes a structurally plausible object
+      // via the PUBLIC freezer (or Object.freeze) but cannot mint the
+      // module-private WeakSet capability. Must fail closed with 401.
+      const forgedFrozen = freezeAuthorizationContext({
+        contextType: 'brand',
+        principal: { category: 'authenticated', authMethod: 'session', active: true, userId: 'attacker' },
+        brand: { requestedIdentifier: 'brand-1', id: 'brand-1', name: 'Brand 1', exists: true, authorized: true },
+        roles: [],
+        compatibilityRoles: [],
+        grantedScopeKeys: ['user.manage'] as never,
+        effectiveScopeKeys: ['user.manage'] as never,
+        scopeProvenance: [{ scopeKey: 'user.manage', roleIds: ['role-1'], roleKeys: ['researcher'] }] as never,
+      });
+      expect(Object.isFrozen(forgedFrozen)).to.be.true;
+
+      try {
+        await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123', {
+          actorContext: forgedFrozen as never,
+          requestId: 'test-forged-frozen-actor',
+        }).toPromise();
+        expect.fail('Expected frozen forgery to fail closed (FORGED_FROZEN_ACTOR_ACCEPTED)');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.authentication-required');
+      }
+      expect(mockUser.create.called).to.be.false;
+    });
+
+    it('rejects a genuine actor whose scopes lack the required claim', async function () {
+      // Provenance-free claims are impossible by construction (the resolver
+      // always re-derives provenance and `authorization/context` exports no
+      // minting capability), so the scope gate is proven with a genuine
+      // actor that was never granted `user.manage`.
+      const scopeMissing = await buildTestBrandActor(['user.account-link.manage']);
+      try {
+        await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123', {
+          actorContext: scopeMissing as never,
+          requestId: 'test-scope-missing',
+        }).toPromise();
+        expect.fail('Expected scope-missing actor to fail closed');
+      } catch (error) {
+        expect((error as { code?: string }).code).to.equal('authorization.scope-denied');
+      }
+      expect(mockUser.create.called).to.be.false;
+    });
+
+    it('accepts a genuine canonical bearer principal (legacy-bearer category, bearer authMethod)', async function () {
+      const bearerActor = await buildTestBearerActor(['user.manage']);
+      expect(Object.isFrozen(bearerActor)).to.be.true;
+      configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser', accountLinkState: 'active' });
+      const setUserAccess = sinon.stub().resolves({ data: { disabled: true, changed: true }, version: 2 });
+      (mockSails.services as any).roleadministrationservice = { setUserAccess };
+
+      try {
+        const result = await UsersService.disableUser('user-1', 'api-user-1', 'brand-1', {
+          actorContext: bearerActor,
+          expectedVersion: 1,
+          requestId: 'test-bearer-disable-1',
+        });
+
+        expect(setUserAccess.calledOnce).to.be.true;
+        expect(result.version).to.equal(2);
+      } finally {
+        delete (mockSails.services as any).roleadministrationservice;
+      }
     });
   });
 
@@ -1751,7 +2220,12 @@ describe('UsersService', function () {
       expect(exported).to.have.property('findUsersWithName');
       expect(exported).to.have.property('findUsersWithEmail');
       expect(exported).to.have.property('findUsersWithQuery');
-      expect(exported).to.have.property('findAndAssignAccessToRecords');
+      // AUTH-P5-002: the old actor-less export name is gone; the lifecycle
+      // helper is a registered internal capability attached by the exports()
+      // override (production-mode coverage lives in UsersLifecycleLoader.test;
+      // mocha export-everything mode intentionally exposes all methods).
+      expect(exported).to.not.have.property('findAndAssignAccessToRecords');
+      expect((UsersService as any).assignAccessToPendingRecordsForLifecycle).to.be.a('function');
       expect(exported).to.have.property('getUsers');
       expect(exported).to.have.property('getUsersForBrand');
       expect(exported).to.have.property('getUserForBrand');
@@ -2006,16 +2480,38 @@ describe('UsersService', function () {
   });
 
   describe('disableUser', function () {
-    it('should set loginDisabled to true and create audit event', async function () {
+    let fakeAccessActor: any;
+    before(async function () {
+      fakeAccessActor = await buildTestBrandActor(['user.manage']);
+    });
+
+    it('should route disable through the versioned guarded mutation', async function () {
       configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser', accountLinkState: 'active' });
-      configureModelMethod(mockUser.update, [{ id: 'user-1', loginDisabled: true }]);
-      configureModelMethod(mockUserAudit.create, { id: 'audit-1' });
+      const setUserAccess = sinon.stub().resolves({ data: { disabled: true, changed: true }, version: 2 });
+      (mockSails.services as any).roleadministrationservice = { setUserAccess };
 
-      await UsersService.disableUser('user-1', 'admin', 'brand-1');
+      try {
+        await UsersService.disableUser('user-1', 'admin', 'brand-1', {
+          actorContext: fakeAccessActor,
+          requestId: 'disable-req-1',
+          expectedVersion: 1,
+        });
 
-      expect(mockUser.update.calledOnce).to.be.true;
-      expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1' });
-      expect(mockUserAudit.create.called).to.be.true;
+        expect(setUserAccess.calledOnce).to.be.true;
+        expect(setUserAccess.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          userId: 'user-1',
+          disabled: true,
+          expectedVersion: 1,
+          requestId: 'disable-req-1',
+        });
+        // The guarded writer owns the User and audit writes on its
+        // transaction; this facade must not dual-write them directly.
+        expect(mockUser.update.called).to.be.false;
+        expect(mockUserAudit.create.called).to.be.false;
+      } finally {
+        delete (mockSails.services as any).roleadministrationservice;
+      }
     });
 
     it('should reject disabling a linked alias user', async function () {
@@ -2027,7 +2523,10 @@ describe('UsersService', function () {
       });
 
       try {
-        await UsersService.disableUser('alias-1', 'admin', 'brand-1');
+        await UsersService.disableUser('alias-1', 'admin', 'brand-1', {
+          actorContext: fakeAccessActor,
+          expectedVersion: 1,
+        });
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('Cannot disable a linked alias user');
@@ -2038,7 +2537,10 @@ describe('UsersService', function () {
       configureModelMethod(mockUser.findOne, null);
 
       try {
-        await UsersService.disableUser('no-such-user', 'admin', 'brand-1');
+        await UsersService.disableUser('no-such-user', 'admin', 'brand-1', {
+          actorContext: fakeAccessActor,
+          expectedVersion: 1,
+        });
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('User not found');
@@ -2047,16 +2549,36 @@ describe('UsersService', function () {
   });
 
   describe('enableUser', function () {
-    it('should set loginDisabled to false and create audit event', async function () {
+    let fakeAccessActor: any;
+    before(async function () {
+      fakeAccessActor = await buildTestBrandActor(['user.manage']);
+    });
+
+    it('should route enable through the versioned guarded mutation', async function () {
       configureModelMethod(mockUser.findOne, { id: 'user-1', username: 'testuser', accountLinkState: 'active' });
-      configureModelMethod(mockUser.update, [{ id: 'user-1', loginDisabled: false }]);
-      configureModelMethod(mockUserAudit.create, { id: 'audit-1' });
+      const setUserAccess = sinon.stub().resolves({ data: { disabled: false, changed: true }, version: 3 });
+      (mockSails.services as any).roleadministrationservice = { setUserAccess };
 
-      await UsersService.enableUser('user-1', 'admin', 'brand-1');
+      try {
+        await UsersService.enableUser('user-1', 'admin', 'brand-1', {
+          actorContext: fakeAccessActor,
+          requestId: 'enable-req-1',
+          expectedVersion: 2,
+        });
 
-      expect(mockUser.update.calledOnce).to.be.true;
-      expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1' });
-      expect(mockUserAudit.create.called).to.be.true;
+        expect(setUserAccess.calledOnce).to.be.true;
+        expect(setUserAccess.firstCall.args[0]).to.include({
+          brandId: 'brand-1',
+          userId: 'user-1',
+          disabled: false,
+          expectedVersion: 2,
+          requestId: 'enable-req-1',
+        });
+        expect(mockUser.update.called).to.be.false;
+        expect(mockUserAudit.create.called).to.be.false;
+      } finally {
+        delete (mockSails.services as any).roleadministrationservice;
+      }
     });
 
     it('should reject enabling a linked alias user', async function () {
@@ -2068,7 +2590,10 @@ describe('UsersService', function () {
       });
 
       try {
-        await UsersService.enableUser('alias-1', 'admin', 'brand-1');
+        await UsersService.enableUser('alias-1', 'admin', 'brand-1', {
+          actorContext: fakeAccessActor,
+          expectedVersion: 1,
+        });
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('Cannot enable a linked alias user');
@@ -2106,6 +2631,281 @@ describe('UsersService', function () {
       const result = await UsersService.enrichUsersWithEffectiveDisabledState(users);
 
       expect(result[0].effectiveLoginDisabled).to.be.false;
+    });
+  });
+
+  describe('AUTH-P5-002 guarded mutations', function () {
+    it('pins the observed version into the update predicate (atomic CAS)', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [], loginDisabledVersion: 4 };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', name: 'New Name' }]);
+
+      const result = await UsersService.updateUserDetails('user-1', 'New Name', 'new@email.com', null, {
+        actorContext: await buildTestBrandActor(),
+        expectedVersion: 4,
+        requestId: 'test-cas-predicate',
+      }).toPromise();
+
+      expect(result).to.exist;
+      expect(mockUser.update.calledOnce).to.be.true;
+      expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1', loginDisabledVersion: 4 });
+    });
+
+    it('heals legacy null versions into the predicate instead of blind id-only writes', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', token: 'hashed' }]);
+
+      await UsersService.setUserKey('user-1', 'new-api-key', {
+        actorContext: await buildTestBrandActor(['user.token.manage']),
+        expectedVersion: 1,
+        requestId: 'test-cas-heal',
+      }).toPromise();
+
+      expect(mockUser.update.calledOnce).to.be.true;
+      expect(mockUser.update.firstCall.args[0]).to.deep.equal({
+        id: 'user-1',
+        or: [{ loginDisabledVersion: 1 }, { loginDisabledVersion: null }],
+      });
+    });
+
+    it('fails closed on audit failure and compensates the created row', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject(null));
+      configureModelMethod(mockUser.find, []);
+      configureModelMethod(mockUser.create, { id: 'user-new', username: 'newuser' });
+      mockUserAudit.create.returns(createQueryObject(null, new Error('audit store down')));
+
+      let code: string | undefined;
+      try {
+        await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123', {
+          actorContext: await buildTestBrandActor(),
+          requestId: 'test-audit-fail-closed',
+        }).toPromise();
+        expect.fail('Expected audit failure to fail closed');
+      } catch (error) {
+        code = (error as { code?: string })?.code;
+      }
+      expect(code).to.equal('authorization.audit-unavailable');
+      expect(mockUser.destroy.calledOnce).to.be.true;
+      expect(mockUser.destroy.firstCall.args[0]).to.deep.equal({
+        id: 'user-new',
+        or: [{ loginDisabledVersion: 1 }, { loginDisabledVersion: null }],
+      });
+    });
+
+    it('surfaces a failed create compensation instead of swallowing it', async function () {
+      mockUser.findOne.onFirstCall().returns(createQueryObject(null));
+      configureModelMethod(mockUser.find, []);
+      configureModelMethod(mockUser.create, { id: 'user-new', username: 'newuser' });
+      mockUserAudit.create.returns(createQueryObject(null, new Error('audit store down')));
+      mockUser.destroy.returns(createQueryObject(null, new Error('destroy store down')));
+
+      let error: any;
+      try {
+        await UsersService.addLocalUser('newuser', 'New User', 'new@email.com', 'password123', {
+          actorContext: await buildTestBrandActor(),
+          requestId: 'test-audit-compensation-failed',
+        }).toPromise();
+        expect.fail('Expected audit failure to fail closed');
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.code).to.equal('authorization.audit-unavailable');
+      expect((error?.details as { compensation?: string })?.compensation).to.equal('compensation-failed');
+    });
+
+    it('rejects profile and token mutations without a mandatory expectedVersion', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [], loginDisabledVersion: 4 };
+      configureModelMethod(mockUser.findOne, user);
+
+      for (const call of [
+        async () =>
+          UsersService.updateUserDetails('user-1', 'Name', 'a@test.com', null, {
+            actorContext: await buildTestBrandActor(),
+            requestId: 'test-mandatory-missing',
+          } as never).toPromise(),
+        async () =>
+          UsersService.setUserKey('user-1', 'key', {
+            actorContext: await buildTestBrandActor(['user.token.manage']),
+            requestId: 'test-mandatory-missing',
+          } as never).toPromise(),
+      ]) {
+        let code: string | undefined;
+        try {
+          await call();
+          expect.fail('Expected omitted expectedVersion to fail closed');
+        } catch (error) {
+          code = (error as { code?: string })?.code;
+        }
+        expect(code).to.equal('authorization.version-conflict');
+      }
+      expect(mockUser.update.called).to.be.false;
+    });
+
+    it('advances the version atomically with the predicate and rejects zero-row CAS', async function () {
+      const user = { id: 'user-1', username: 'testuser', roles: [], loginDisabledVersion: 4 };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', token: 'hashed', loginDisabledVersion: 5 }]);
+
+      const result = await UsersService.setUserKey('user-1', 'new-api-key', {
+        actorContext: await buildTestBrandActor(['user.token.manage']),
+        expectedVersion: 4,
+        requestId: 'test-cas-advance',
+      }).toPromise();
+
+      expect(result).to.exist;
+      expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1', loginDisabledVersion: 4 });
+      const keyPayload = mockUser.update.firstCall.args[1] as { token?: unknown; loginDisabledVersion?: unknown };
+      expect(typeof keyPayload.token).to.equal('string');
+      expect((keyPayload.token as string).length).to.be.greaterThan(0);
+      expect(keyPayload.loginDisabledVersion).to.equal(5);
+
+      // A zero-row result is a lost race: 409 with no success audit.
+      configureModelMethod(mockUser.update, []);
+      mockUserAudit.create.resetHistory();
+      let code: string | undefined;
+      try {
+        await UsersService.setUserKey('user-1', 'new-api-key', {
+          actorContext: await buildTestBrandActor(['user.token.manage']),
+          expectedVersion: 4,
+          requestId: 'test-cas-zero-row',
+        }).toPromise();
+        expect.fail('Expected zero-row CAS to fail closed');
+      } catch (error) {
+        code = (error as { code?: string })?.code;
+      }
+      expect(code).to.equal('authorization.version-conflict');
+      expect(mockUserAudit.create.called).to.be.false;
+    });
+
+    it('restores the prior profile best-effort when the update audit fails', async function () {
+      const user = { id: 'user-1', username: 'testuser', name: 'Old', email: 'old@test.com', roles: [] };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', name: 'New' }]);
+      mockUserAudit.create.returns(createQueryObject(null, new Error('audit store down')));
+
+      let error: any;
+      try {
+        await UsersService.updateUserDetails('user-1', 'New', 'new@test.com', null, {
+          actorContext: await buildTestBrandActor(),
+          expectedVersion: 1,
+          requestId: 'test-audit-restore',
+        }).toPromise();
+        expect.fail('Expected audit failure to fail closed');
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.code).to.equal('authorization.audit-unavailable');
+      expect((error?.details as { compensation?: string })?.compensation).to.equal('restored');
+      // Mutation write + compensating restore write.
+      expect(mockUser.update.callCount).to.equal(2);
+      expect(mockUser.update.secondCall.args[1]).to.deep.equal({
+        name: 'Old',
+        email: 'old@test.com',
+        loginDisabledVersion: 2,
+      });
+    });
+
+    it('rejects pending-record discovery without a bounded limit capability', async function () {
+      mockRecord.find.returns({ meta: () => createQueryObject([]) });
+
+      let code: string | undefined;
+      try {
+        await UsersService.assignAccessToPendingRecordsForLifecycle('pending@test.com', 'user-1');
+        expect.fail('Expected unbounded discovery to fail closed');
+      } catch (error) {
+        code = (error as { code?: string })?.code;
+      }
+      expect(code).to.equal('authorization.query-bound-exceeded');
+    });
+
+    it('rejects oversized pending-record discovery instead of unbounded fan-out', async function () {
+      configureModelMethod(mockRecord.find, new Array(501).fill({ redboxOid: 'record-1' }));
+
+      let code: string | undefined;
+      try {
+        await UsersService.assignAccessToPendingRecordsForLifecycle('pending@test.com', 'user-1');
+        expect.fail('Expected oversized discovery to fail closed');
+      } catch (error) {
+        code = (error as { code?: string })?.code;
+      }
+      expect(code).to.equal('authorization.query-bound-exceeded');
+      expect((global as any).RecordsService.provideUserAccessAndRemovePendingAccess.called).to.be.false;
+    });
+  });
+
+  describe('AUTH-P5-007 exact-restore compensator', function () {
+    it('restores empty email and null password hash verbatim with CAS and audit', async function () {
+      const user = {
+        id: 'user-1',
+        username: 'testuser',
+        roles: [{ id: 'role-1', branding: 'brand-1' }],
+        loginDisabledVersion: 4,
+        name: 'Changed',
+        email: 'changed@test.com',
+      };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, [{ id: 'user-1', name: 'Old' }]);
+
+      const result = await UsersService.compensateUserDetailsForBrand(
+        'user-1',
+        { name: 'Old', email: '', passwordHash: null },
+        'brand-1',
+        { actorContext: await buildTestBrandActor(), requestId: 'test-compensate-verbatim' }
+      ).toPromise();
+
+      expect(result).to.exist;
+      expect(mockUser.update.calledOnce).to.be.true;
+      // Version-pinned atomic predicate (CAS), never a blind id-only write.
+      expect(mockUser.update.firstCall.args[0]).to.deep.equal({ id: 'user-1', loginDisabledVersion: 4 });
+      // Every field restored verbatim, including empty-string email and null hash.
+      expect(mockUser.update.firstCall.args[1]).to.deep.equal({
+        loginDisabledVersion: 5,
+        name: 'Old',
+        email: '',
+        password: null,
+      });
+      expect(mockUserAudit.create.calledOnce).to.be.true;
+    });
+
+    it('fails closed with version-conflict when the restore predicate matches nothing', async function () {
+      const user = {
+        id: 'user-1',
+        username: 'testuser',
+        roles: [{ id: 'role-1', branding: 'brand-1' }],
+        loginDisabledVersion: 4,
+      };
+      configureModelMethod(mockUser.findOne, user);
+      configureModelMethod(mockUser.update, []);
+
+      let code: string | undefined;
+      try {
+        await UsersService.compensateUserDetailsForBrand(
+          'user-1',
+          { name: 'Old', email: '', passwordHash: null },
+          'brand-1',
+          { actorContext: await buildTestBrandActor(), requestId: 'test-compensate-conflict' }
+        ).toPromise();
+        expect.fail('Expected restore conflict to fail closed');
+      } catch (error) {
+        code = (error as { code?: string })?.code;
+      }
+      expect(code).to.equal('authorization.version-conflict');
+    });
+
+    it('rejects compensation without a proven user.manage actor', async function () {
+      let code: string | undefined;
+      try {
+        await UsersService.compensateUserDetailsForBrand('user-1', { name: 'Old' }, 'brand-1', {
+          actorContext: await buildTestBrandActor(['user.token.manage']),
+          requestId: 'test-compensate-scope',
+        }).toPromise();
+        expect.fail('Expected scope denial');
+      } catch (error) {
+        code = (error as { code?: string })?.code;
+      }
+      expect(code).to.equal('authorization.scope-denied');
+      expect(mockUser.update.called).to.be.false;
     });
   });
 });

@@ -3,8 +3,11 @@ import { Services as services } from '../CoreService';
 import type { WorkspaceAsyncAttributes } from '../waterline-models/WorkspaceAsync';
 
 import { DateTime } from 'luxon';
-import { asScopeKey, type AuthorizationContext, type ScopeKey } from '../authorization';
-import { Services as AuthorizationServiceModule } from './AuthorizationService';
+import { asScopeKey, type AuthorizationContext, type ScopeKey, type ScopeRegistry } from '../authorization';
+import {
+  createSystemProcessContextInternal,
+  type AuthorizationActorIssuerDependencies,
+} from './AuthorizationActorIssuer';
 
 type WorkspaceAsyncStartInput = {
   name: string;
@@ -20,6 +23,33 @@ type WorkspaceAsyncStartInput = {
 };
 
 export namespace Services {
+  /**
+   * AUTH-P5-001: deps for the internal-only system-process mint path
+   * (registry via `authorizationscopeservice`, brand via `brandingservice`).
+   * Only this genuine server module can reach the issuer.
+   */
+  function systemProcessIssuerDeps(): AuthorizationActorIssuerDependencies {
+    return {
+      getRegistry: () => {
+        const service = sails.services?.authorizationscopeservice as { getRegistry?: () => ScopeRegistry } | undefined;
+        const registry = service?.getRegistry?.();
+        if (registry === undefined) {
+          throw new Error(`Required authorization dependency 'authorizationscopeservice' is unavailable.`);
+        }
+        return registry;
+      },
+      resolveBrand: async identifier => {
+        const service = sails.services?.brandingservice as
+          { getBrandById?: (id: string) => unknown; getBrand?: (id: string) => unknown } | undefined;
+        const resolved = (await service?.getBrandById?.(identifier)) ?? (await service?.getBrand?.(identifier));
+        if (typeof resolved !== 'object' || resolved === null) return undefined;
+        const candidate = resolved as { readonly id?: unknown; readonly name?: unknown };
+        if (typeof candidate.id !== 'string' && typeof candidate.id !== 'number') return undefined;
+        return typeof candidate.name === 'string' ? { id: candidate.id, name: candidate.name } : { id: candidate.id };
+      },
+    };
+  }
+
   /**
    * WorkspaceAsync Service
    *
@@ -111,7 +141,8 @@ export namespace Services {
       const requiredScope = asScopeKey(wa.requiredScope);
       const [userContext, processContext] = await Promise.all([
         authorizationService.resolveUserContext(wa.actorId, wa.branding, 'session'),
-        new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
+        createSystemProcessContextInternal(
+          systemProcessIssuerDeps(),
           `workspace-async:${wa.operationId}`,
           wa.branding,
           [requiredScope]

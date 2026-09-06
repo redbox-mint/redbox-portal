@@ -1400,6 +1400,11 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
   }),
   // RoleAdministrationService: Authorization contract writers and previews; authorization-operation surface, not a brand-owned resource operation.
   Object.freeze({
+    operation: 'RoleAdministrationService#applyUserRoleSet',
+    reason:
+      'Authorization contract writer for atomic legacy role-set batches; authorization-operation surface, not a brand-owned resource operation.',
+  }),
+  Object.freeze({
     operation: 'RoleAdministrationService#applyBulkAssignments',
     reason:
       'Authorization contract writers and previews; authorization-operation surface, not a brand-owned resource operation.',
@@ -1457,6 +1462,26 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
     operation: 'RoleAdministrationService#inactivateRole',
     reason:
       'Authorization contract writers and previews; authorization-operation surface, not a brand-owned resource operation.',
+  }),
+  Object.freeze({
+    operation: 'RoleAdministrationService#linkUserAccounts',
+    reason:
+      'Authorization contract writer requiring authorization.assignment.manage (or legacy user.account-link.manage) with brand context; authorization-operation surface, not a brand-owned resource operation.',
+  }),
+  Object.freeze({
+    operation: 'RoleAdministrationService#previewLinkAccounts',
+    reason:
+      'Authorization contract preview requiring authorization.assignment.manage (or legacy user.account-link.manage) with brand context; read-only pair-bound proof issuance, not a brand-owned resource operation.',
+  }),
+  Object.freeze({
+    operation: 'RoleAdministrationService#getLinkOperation',
+    reason:
+      'Authorization contract read requiring authorization.assignment.read/manage (or legacy user.account-link.manage) with brand context; durable operation state lookup, not a brand-owned resource operation.',
+  }),
+  Object.freeze({
+    operation: 'RoleAdministrationService#retryLinkOperation',
+    reason:
+      'Authorization contract retry requiring authorization.assignment.manage (or legacy user.account-link.manage) with brand context; bounded idempotent record-phase resume, not a brand-owned resource operation.',
   }),
   Object.freeze({
     operation: 'RoleAdministrationService#listAssignments',
@@ -1527,6 +1552,11 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
     operation: 'RoleAdministrationService#revokeAssignment',
     reason:
       'Authorization contract writers and previews; authorization-operation surface, not a brand-owned resource operation.',
+  }),
+  Object.freeze({
+    operation: 'RoleAdministrationService#setUserAccess',
+    reason:
+      'Authorization contract writer requiring authorization.assignment.manage (or legacy user.manage) with brand context; authorization-operation surface, not a brand-owned resource operation.',
   }),
   Object.freeze({
     operation: 'RoleAdministrationService#suppressAssignment',
@@ -2949,9 +2979,12 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
   {
     family: 'record-acl-search-storage-exports',
     service: 'UsersService',
-    operation: 'findAndAssignAccessToRecords',
+    operation: 'assignAccessToPendingRecordsForLifecycle',
     classification: 'brand-bearing',
-    notes: 'Pending-access record grant resolving the effective user before assigning.',
+    notes:
+      'Registered INTERNAL lifecycle capability (attached by the Users exports() override, never on the ' +
+      'request-facing export list): pending-access record grant resolving the effective user before assigning. ' +
+      'Invoked only from the User model afterCreate/afterUpdate hook.',
   },
   {
     family: 'user-management-linking',
@@ -5697,6 +5730,27 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
     operation: 'linkAccounts',
     classification: 'brand-bearing',
     notes: 'Brand-constrained account link carrying actor and brand.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'webservice/UserManagementController',
+    operation: 'previewLinkAccounts',
+    classification: 'brand-bearing',
+    notes: 'Brand-constrained link preview issuing pair versions and confirmation token with request actor.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'webservice/UserManagementController',
+    operation: 'getLinkOperation',
+    classification: 'brand-bearing',
+    notes: 'Brand-constrained durable link-operation state read with request actor.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'webservice/UserManagementController',
+    operation: 'retryLinkOperation',
+    classification: 'brand-bearing',
+    notes: 'Brand-constrained idempotent link-operation retry carrying actor and brand.',
   },
   {
     family: 'user-management-linking',

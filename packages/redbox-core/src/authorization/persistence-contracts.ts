@@ -42,6 +42,13 @@ export const AUTHORIZATION_AUDIT_EVENT_TYPES = [
   'scope.orphaned',
   'template.reconciled',
   'template.revision-published',
+  'user.access-noop',
+  'user.disabled',
+  'user.enabled',
+  'user.linked',
+  'user.link-records-pending',
+  'user.link-operation-completed',
+  'assignment.role-set-applied',
 ] as const;
 export type AuthorizationAuditEventType = (typeof AUTHORIZATION_AUDIT_EVENT_TYPES)[number];
 
@@ -56,6 +63,7 @@ export const AUTHORIZATION_AUDIT_TARGET_TYPES = [
   'role-scope-override',
   'role-template',
   'role-template-revision',
+  'user',
 ] as const;
 export type AuthorizationAuditTargetType = (typeof AUTHORIZATION_AUDIT_TARGET_TYPES)[number];
 

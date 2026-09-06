@@ -35,6 +35,8 @@ export * from './RoleTemplateRevision';
 export * from './ThemeConfig';
 export * from './User';
 export * from './UserLink';
+export * from './UserLinkOperation';
+export * from './UserMutationOperation';
 export * from './UserAudit';
 export * from './Vocabulary';
 export * from './VocabularyEntry';
@@ -81,6 +83,8 @@ import { RoleTemplateRevisionWLDef } from './RoleTemplateRevision';
 import { ThemeConfigWLDef } from './ThemeConfig';
 import { UserWLDef } from './User';
 import { UserLinkWLDef } from './UserLink';
+import { UserLinkOperationWLDef } from './UserLinkOperation';
+import { UserMutationOperationWLDef } from './UserMutationOperation';
 import { UserAuditWLDef } from './UserAudit';
 import { VocabularyWLDef } from './Vocabulary';
 import { VocabularyEntryWLDef } from './VocabularyEntry';
@@ -130,6 +134,8 @@ export const WaterlineModels = {
   ThemeConfig: ThemeConfigWLDef,
   User: UserWLDef,
   UserLink: UserLinkWLDef,
+  UserLinkOperation: UserLinkOperationWLDef,
+  UserMutationOperation: UserMutationOperationWLDef,
   UserAudit: UserAuditWLDef,
   Vocabulary: VocabularyWLDef,
   VocabularyEntry: VocabularyEntryWLDef,

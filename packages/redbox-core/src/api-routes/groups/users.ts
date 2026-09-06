@@ -1,11 +1,15 @@
 import { z } from '../zod-openapi';
 
 import { apiRoute } from '../route-factory';
+import { authorizationProblemResponse } from '../schemas/authorization';
 import {
   arrayField,
   apiActionResponseSchema,
   createUserApiResponseSchema,
   idParams,
+  integerField,
+  linkAccountsPreviewSchema,
+  linkOperationStateSchema,
   listApiResponseSchema,
   roleSummarySchema,
   userRecordSchema,
@@ -113,10 +117,33 @@ export const linkAccountsRoute = apiRoute(
       required: true,
       content: {
         'application/json': {
-          schema: objectField({ primaryUserId: stringField(), secondaryUserId: stringField() }, [
-            'primaryUserId',
-            'secondaryUserId',
-          ]),
+          schema: objectField(
+            {
+              primaryUserId: stringField(),
+              secondaryUserId: stringField(),
+              reason: stringField('Link reason'),
+              secondaryExpectedVersion: integerField(
+                'Caller-observed secondary loginDisabledVersion for pair-bound CAS (required)'
+              ),
+              primaryExpectedVersion: integerField(
+                'Caller-observed primary loginDisabledVersion for pair-bound CAS (required)'
+              ),
+              linkConfirmationToken: stringField(
+                'Server-bound pair confirmation token from the link preview (required)'
+              ),
+              linkOperationId: stringField(
+                'Stable idempotency key for the durable link operation (required, from preview)'
+              ),
+            },
+            [
+              'primaryUserId',
+              'secondaryUserId',
+              'primaryExpectedVersion',
+              'secondaryExpectedVersion',
+              'linkConfirmationToken',
+              'linkOperationId',
+            ]
+          ),
         },
       },
     },
@@ -124,7 +151,125 @@ export const linkAccountsRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Link accounts',
-    responses: { 200: responseField(userLinkResponseSchema, 'Linked accounts updated') },
+    responses: {
+      200: responseField(userLinkResponseSchema, 'Linked accounts updated'),
+      // AUTH-CAS-HTTP-001: error statuses use RFC 9457 Problem Details, not
+      // the success schema.
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks account-link authorization'),
+      404: authorizationProblemResponse('User or brand not found (opaque)'),
+      409: authorizationProblemResponse('Link conflict: already linked, stale pair versions, or stale preview'),
+      422: authorizationProblemResponse('Link request was invalid'),
+      503: authorizationProblemResponse('Link storage capability unavailable'),
+    },
+  }
+);
+
+export const previewLinkAccountsRoute = apiRoute(
+  'post',
+  '/:branding/:portal/api/users/link/preview',
+  'webservice/UserManagementController',
+  'previewLinkAccounts',
+  {
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: objectField(
+            {
+              primaryUserId: stringField(),
+              secondaryUserId: stringField(),
+              reason: stringField('Link reason'),
+            },
+            ['primaryUserId', 'secondaryUserId']
+          ),
+        },
+      },
+    },
+  },
+  {
+    tags: ['Users'],
+    summary: 'Preview account link',
+    responses: {
+      200: responseField(linkAccountsPreviewSchema, 'Link preview with pair versions and confirmation token'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks account-link authorization'),
+      404: authorizationProblemResponse('User or brand not found (opaque)'),
+      422: authorizationProblemResponse('Link preview request was invalid'),
+      503: authorizationProblemResponse('Link storage capability unavailable'),
+    },
+  }
+);
+
+export const getLinkOperationRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/users/link/operations/:operationId',
+  'webservice/UserManagementController',
+  'getLinkOperation',
+  { params: objectField({ operationId: stringField() }, ['operationId']) },
+  {
+    tags: ['Users'],
+    summary: 'Get link operation state',
+    responses: {
+      200: responseField(linkOperationStateSchema, 'Durable link operation state'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks account-link authorization'),
+      404: authorizationProblemResponse('Link operation not found'),
+      503: authorizationProblemResponse('Link storage capability unavailable'),
+    },
+  }
+);
+
+export const retryLinkOperationRoute = apiRoute(
+  'post',
+  '/:branding/:portal/api/users/link/operations/:operationId/retry',
+  'webservice/UserManagementController',
+  'retryLinkOperation',
+  {
+    params: objectField({ operationId: stringField() }, ['operationId']),
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: objectField(
+            {
+              primaryUserId: stringField(),
+              secondaryUserId: stringField(),
+              reason: stringField('Link reason'),
+              secondaryExpectedVersion: integerField(
+                'Caller-observed secondary loginDisabledVersion for pair-bound CAS (required)'
+              ),
+              primaryExpectedVersion: integerField(
+                'Caller-observed primary loginDisabledVersion for pair-bound CAS (required)'
+              ),
+              linkConfirmationToken: stringField(
+                'Server-bound pair confirmation token from the link preview (required)'
+              ),
+            },
+            [
+              'primaryUserId',
+              'secondaryUserId',
+              'primaryExpectedVersion',
+              'secondaryExpectedVersion',
+              'linkConfirmationToken',
+            ]
+          ),
+        },
+      },
+    },
+  },
+  {
+    tags: ['Users'],
+    summary: 'Retry link operation',
+    responses: {
+      200: responseField(userLinkResponseSchema, 'Link operation resumed'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks account-link authorization'),
+      404: authorizationProblemResponse('Link operation not found'),
+      409: authorizationProblemResponse('Link conflict on retry'),
+      422: authorizationProblemResponse('Retry limit exceeded or request invalid'),
+      503: authorizationProblemResponse('Link storage capability unavailable'),
+    },
   }
 );
 
@@ -155,7 +300,15 @@ export const createUserRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Create user',
-    responses: { 201: responseField(createUserApiResponseSchema, 'User created') },
+    responses: {
+      201: responseField(createUserApiResponseSchema, 'User created'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks user authorization'),
+      404: authorizationProblemResponse('Brand not found (opaque)'),
+      409: authorizationProblemResponse('Username or email already exists'),
+      422: authorizationProblemResponse('Requested roles are unknown in this brand'),
+      503: authorizationProblemResponse('User storage capability unavailable'),
+    },
   }
 );
 
@@ -177,8 +330,12 @@ export const updateUserRoute = apiRoute(
               email: stringField(),
               password: stringField(),
               roles: arrayField(userRoleSelectionSchema),
+              expectedVersion: integerField('Caller-observed loginDisabledVersion for compare-and-set (required)'),
             },
-            ['id', 'name', 'email', 'password']
+            // RB-ANGULAR-001: role-only updates (e.g. updateUserRoles) carry
+            // just the id plus roles; the controller defaults the rest.
+            // AUTH-P5-002: every profile mutation pins CAS.
+            ['id', 'expectedVersion']
           ),
         },
       },
@@ -187,7 +344,15 @@ export const updateUserRoute = apiRoute(
   {
     tags: ['Users'],
     summary: 'Update user',
-    responses: { 201: responseField(createUserApiResponseSchema, 'User updated') },
+    responses: {
+      201: responseField(createUserApiResponseSchema, 'User updated'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks user authorization'),
+      404: authorizationProblemResponse('User or brand not found (opaque)'),
+      409: authorizationProblemResponse('Stale version or quorum conflict'),
+      422: authorizationProblemResponse('Requested roles are unknown in this brand'),
+      503: authorizationProblemResponse('User storage capability unavailable'),
+    },
   }
 );
 
@@ -196,11 +361,39 @@ export const disableUserRoute = apiRoute(
   '/:branding/:portal/api/users/:id/disable',
   'webservice/UserManagementController',
   'disableUser',
-  { params: idParams },
+  {
+    params: idParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: objectField(
+            {
+              expectedVersion: integerField(
+                'Caller-observed loginDisabledVersion for compare-and-set (required for versioned users)'
+              ),
+              reason: stringField('Disable reason'),
+            },
+            ['expectedVersion'],
+            'Disable user payload',
+            true
+          ),
+        },
+      },
+    },
+  },
   {
     tags: ['Users'],
     summary: 'Disable user',
-    responses: { 200: responseField(statusMessageResponseSchema, 'User disabled') },
+    responses: {
+      200: responseField(statusMessageResponseSchema, 'User disabled'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks user authorization'),
+      404: authorizationProblemResponse('User or brand not found (opaque)'),
+      409: authorizationProblemResponse('Stale version or quorum conflict'),
+      422: authorizationProblemResponse('Disable request was invalid'),
+      503: authorizationProblemResponse('User storage capability unavailable'),
+    },
   }
 );
 
@@ -209,11 +402,39 @@ export const enableUserRoute = apiRoute(
   '/:branding/:portal/api/users/:id/enable',
   'webservice/UserManagementController',
   'enableUser',
-  { params: idParams },
+  {
+    params: idParams,
+    body: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: objectField(
+            {
+              expectedVersion: integerField(
+                'Caller-observed loginDisabledVersion for compare-and-set (required for versioned users)'
+              ),
+              reason: stringField('Enable reason'),
+            },
+            ['expectedVersion'],
+            'Enable user payload',
+            true
+          ),
+        },
+      },
+    },
+  },
   {
     tags: ['Users'],
     summary: 'Enable user',
-    responses: { 200: responseField(statusMessageResponseSchema, 'User enabled') },
+    responses: {
+      200: responseField(statusMessageResponseSchema, 'User enabled'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks user authorization'),
+      404: authorizationProblemResponse('User or brand not found (opaque)'),
+      409: authorizationProblemResponse('Stale version or quorum conflict'),
+      422: authorizationProblemResponse('Enable request was invalid'),
+      503: authorizationProblemResponse('User storage capability unavailable'),
+    },
   }
 );
 
@@ -222,11 +443,28 @@ export const generateAPITokenRoute = apiRoute(
   '/:branding/:portal/api/users/token/generate',
   'webservice/UserManagementController',
   'generateAPIToken',
-  { query: objectField({ id: stringField() }, ['id']) },
+  {
+    query: objectField(
+      {
+        id: stringField(),
+        expectedVersion: integerField('Caller-observed loginDisabledVersion for compare-and-set (required)'),
+      },
+      ['id', 'expectedVersion']
+    ),
+  },
   {
     tags: ['Users'],
     summary: 'Generate API token',
-    responses: { 200: responseField(userApiTokenApiResponseSchema, 'API token generated') },
+    responses: {
+      200: responseField(userApiTokenApiResponseSchema, 'API token generated'),
+      400: authorizationProblemResponse('User id is required'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks user authorization'),
+      404: authorizationProblemResponse('User or brand not found (opaque)'),
+      409: authorizationProblemResponse('Stale version or quorum conflict'),
+      422: authorizationProblemResponse('Missing or invalid expectedVersion'),
+      503: authorizationProblemResponse('User storage capability unavailable'),
+    },
   }
 );
 
@@ -235,11 +473,28 @@ export const revokeAPITokenRoute = apiRoute(
   '/:branding/:portal/api/users/token/revoke',
   'webservice/UserManagementController',
   'revokeAPIToken',
-  { query: objectField({ id: stringField() }, ['id']) },
+  {
+    query: objectField(
+      {
+        id: stringField(),
+        expectedVersion: integerField('Caller-observed loginDisabledVersion for compare-and-set (required)'),
+      },
+      ['id', 'expectedVersion']
+    ),
+  },
   {
     tags: ['Users'],
     summary: 'Revoke API token',
-    responses: { 200: responseField(userApiTokenApiResponseSchema, 'API token revoked') },
+    responses: {
+      200: responseField(userApiTokenApiResponseSchema, 'API token revoked'),
+      400: authorizationProblemResponse('User id is required'),
+      401: authorizationProblemResponse('Authentication is required'),
+      403: authorizationProblemResponse('The active principal lacks user authorization'),
+      404: authorizationProblemResponse('User or brand not found (opaque)'),
+      409: authorizationProblemResponse('Stale version or quorum conflict'),
+      422: authorizationProblemResponse('Missing or invalid expectedVersion'),
+      503: authorizationProblemResponse('User storage capability unavailable'),
+    },
   }
 );
 
@@ -279,7 +534,10 @@ export const userApiRoutes = [
   searchLinkCandidatesRoute,
   getUserLinksRoute,
   getUserAuditRoute,
+  previewLinkAccountsRoute,
   linkAccountsRoute,
+  getLinkOperationRoute,
+  retryLinkOperationRoute,
   createUserRoute,
   updateUserRoute,
   disableUserRoute,

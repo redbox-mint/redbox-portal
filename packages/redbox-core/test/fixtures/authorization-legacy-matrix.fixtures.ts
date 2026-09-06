@@ -1562,6 +1562,38 @@ export const LEGACY_MATRIX_EXPECTATIONS: readonly LegacyMatrixExpectation[] = Ob
   },
   {
     principal: 'admin-brand-1',
+    routeId: 'POST /:branding/:portal/api/users/link/preview (webservice/UserManagementController#previewLinkAccounts)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/users/link/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason: 'Admin can_update api/users/link/preview',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'GET /:branding/:portal/api/users/link/operations/:operationId (webservice/UserManagementController#getLinkOperation)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/users/link/operations/op-1',
+    operation: 'read',
+    expected: 'allow',
+    reason: 'Admin can_read api/users/link/operations/:operationId',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
+    routeId:
+      'POST /:branding/:portal/api/users/link/operations/:operationId/retry (webservice/UserManagementController#retryLinkOperation)',
+    brandId: 'brand-1',
+    path: '/default/rdmp/api/users/link/operations/op-1/retry',
+    operation: 'write',
+    expected: 'allow',
+    reason: 'Admin can_update api/users/link/operations/:operationId/retry',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-1',
     routeId: 'GET /:branding/:portal/api/admin/config (webservice/AdminController#getAppConfig)',
     brandId: 'brand-1',
     path: '/default/rdmp/api/admin/config',
@@ -3124,6 +3156,41 @@ export const LEGACY_MATRIX_EXPECTATIONS: readonly LegacyMatrixExpectation[] = Ob
     operation: 'write',
     expected: 'allow',
     reason: 'Admin can_update api/users/link [brand-2 mirror of admin-brand-1 on /default/rdmp/api/users/link]',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId: 'POST /:branding/:portal/api/users/link/preview (webservice/UserManagementController#previewLinkAccounts)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/users/link/preview',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'Admin can_update api/users/link/preview [brand-2 mirror of admin-brand-1 on /default/rdmp/api/users/link/preview]',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'GET /:branding/:portal/api/users/link/operations/:operationId (webservice/UserManagementController#getLinkOperation)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/users/link/operations/op-1',
+    operation: 'read',
+    expected: 'allow',
+    reason:
+      'Admin can_read api/users/link/operations/:operationId [brand-2 mirror of admin-brand-1 on /default/rdmp/api/users/link/operations/op-1]',
+    gate: 'path-rule',
+  },
+  {
+    principal: 'admin-brand-2',
+    routeId:
+      'POST /:branding/:portal/api/users/link/operations/:operationId/retry (webservice/UserManagementController#retryLinkOperation)',
+    brandId: 'brand-2',
+    path: '/second/rdmp/api/users/link/operations/op-1/retry',
+    operation: 'write',
+    expected: 'allow',
+    reason:
+      'Admin can_update api/users/link/operations/:operationId/retry [brand-2 mirror of admin-brand-1 on /default/rdmp/api/users/link/operations/op-1/retry]',
     gate: 'path-rule',
   },
   {

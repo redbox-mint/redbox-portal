@@ -8,7 +8,7 @@ import {
   type AuthorizationContext,
 } from '../../src/authorization';
 import { AUTHORIZATION_MIGRATION_NAME } from '../../src/services/AuthorizationMigrationService';
-import { Services as AuthorizationServices } from '../../src/services/AuthorizationService';
+import * as AuthorizationActorIssuer from '../../src/services/AuthorizationActorIssuer';
 import { Services } from '../../src/services/AuthorizationReadinessService';
 
 function queryResult<T>(value: T) {
@@ -560,7 +560,7 @@ describe('AuthorizationReadinessService', () => {
 
   it('getOperatorReport builds the privileged system-process context internally', async () => {
     const createSystemProcessContext = sinon
-      .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
+      .stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal')
       .resolves(systemActor());
     Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
     Reflect.set(globalThis, 'User', {
@@ -616,10 +616,9 @@ describe('AuthorizationReadinessService', () => {
         getReleaseEvidence: () => completeReleaseEvidence,
       }).getOperatorReport();
 
-      assert.equal(
-        createSystemProcessContext.calledWith('authorization-readiness', undefined, ['system.authorization.manage']),
-        true
-      );
+      assert.equal(createSystemProcessContext.firstCall.args[1], 'authorization-readiness');
+      assert.equal(createSystemProcessContext.firstCall.args[2], undefined);
+      assert.deepEqual(createSystemProcessContext.firstCall.args[3], ['system.authorization.manage']);
       assert.equal(report.readyForEnforce, true);
       assert.equal(report.blockers.length, 0);
     } finally {

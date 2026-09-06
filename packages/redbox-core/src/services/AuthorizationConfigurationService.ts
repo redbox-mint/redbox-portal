@@ -319,6 +319,7 @@ export namespace Services {
         targetType: 'authorization-config',
         targetId,
         requestId: requiredAuthorizationText(command.requestId, 'requestId', 128),
+        batchId: optionalAuthorizationText(command.batchId, 128),
         reason: optionalAuthorizationText(command.reason, 1_000),
         ...extra,
       };
@@ -1496,7 +1497,8 @@ export namespace Services {
       command: ApplyAuthorizationConfigurationImportCommand
     ): Promise<AuthorizationConfigurationImportResult> {
       this.requireSystemScope(command);
-      let auditInput = this.auditInput(command, 'authorization.config-imported', CONFIGURATION_TARGET);
+      const batchId = command.batchId ?? this.dependencies.randomId();
+      let auditInput = this.auditInput({ ...command, batchId }, 'authorization.config-imported', CONFIGURATION_TARGET);
       try {
         const document = parseAuthorizationConfigurationDocument(command.document);
         auditInput = { ...auditInput, targetId: authorizationContentHash(document) };
@@ -1523,7 +1525,6 @@ export namespace Services {
             );
           }
           const actorId = this.actorId(command);
-          const batchId = this.dependencies.randomId();
           const importedTemplateByKey = new Map<string, RoleTemplateAttributes>();
           for (const templatePlan of plan.templates) {
             let current = templatePlan.current;

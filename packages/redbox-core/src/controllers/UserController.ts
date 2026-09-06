@@ -21,6 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { NextFunction } from 'express';
 import { BrandingModel, Controllers as controllers, RequestDetails } from '../index';
 import { redactObject } from '../utilities/RedactionUtils';
+import { ensureAuthorizationRequestId, parseMandatoryExpectedVersion } from '../policies/authorization-response';
 
 type AnyRecord = globalThis.Record<string, unknown>;
 
@@ -183,6 +184,15 @@ export namespace Controllers {
       if (details.name) {
         name = details.name as string;
       }
+      // AUTH-P5-002: profile CAS is mandatory even on the self-service path.
+      const profileExpectedVersion = parseMandatoryExpectedVersion(req);
+      if (profileExpectedVersion === undefined) {
+        return this.sendResp(req, res, {
+          status: 422,
+          displayErrors: [{ detail: 'An expectedVersion is required to modify user profile state.' }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
       if (name) {
         const brand = BrandingService.getBrandFromReq(req);
         UsersService.updateUserDetailsForBrand(
@@ -190,7 +200,12 @@ export namespace Controllers {
           name,
           details.email as string,
           details.password as string,
-          String(brand.id ?? '')
+          String(brand.id ?? ''),
+          {
+            actorContext: req.authorization,
+            expectedVersion: profileExpectedVersion,
+            requestId: ensureAuthorizationRequestId(req),
+          }
         ).subscribe(
           _user => {
             this.sendResp(req, res, {
@@ -229,9 +244,22 @@ export namespace Controllers {
       }
 
       if (userid) {
+        // AUTH-P5-002: token rotation is a versioned mutation.
+        const keyExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (keyExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to rotate the user API token.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const uuid = uuidv4();
         const brand = BrandingService.getBrandFromReq(req);
-        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? '')).subscribe(
+        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? ''), {
+          actorContext: req.authorization,
+          expectedVersion: keyExpectedVersion,
+          requestId: ensureAuthorizationRequestId(req),
+        }).subscribe(
           _user => {
             this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
           },
@@ -266,9 +294,22 @@ export namespace Controllers {
       }
 
       if (userid) {
+        // AUTH-P5-002: token revocation is a versioned mutation.
+        const revokeExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (revokeExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to revoke the user API token.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const uuid = null;
         const brand = BrandingService.getBrandFromReq(req);
-        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? '')).subscribe(
+        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? ''), {
+          actorContext: req.authorization,
+          expectedVersion: revokeExpectedVersion,
+          requestId: ensureAuthorizationRequestId(req),
+        }).subscribe(
           _user => {
             this.sendResp(req, res, {
               data: { status: true, message: 'UUID revoked successfully' },
