@@ -29,6 +29,7 @@ jobs:
       - setup_remote_docker
       - run:
           name: Build test image via Dockerfile
+          no_output_timeout: 30m
           command: |
             docker build \
               --progress plain \
