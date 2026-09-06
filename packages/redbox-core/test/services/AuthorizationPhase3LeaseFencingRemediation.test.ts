@@ -602,7 +602,7 @@ describe('Phase 3 acceptance: takeover between lease validation and mutation can
             expiresAt: new Date(Date.now() + MIGRATION_LEASE_TTL_MS),
           };
         }
-        return baseCheckpoint.updateOne(filter, update, options);
+        return baseCheckpoint.updateOne(filter, update);
       },
     };
     restoreRole = stubRoleDatastore({
@@ -928,7 +928,7 @@ describe('Phase 3 acceptance: bootstrap validates the lease around catalog work 
   }
 
   function restoreBootstrapWorld(saved: { savedServices: unknown; savedReadiness: unknown }): void {
-    sails.services = savedServices as typeof sails.services;
+    sails.services = saved.savedServices as typeof sails.services;
     if (saved.savedReadiness === undefined) Reflect.deleteProperty(sails.config, 'authorizationReadiness');
     else Reflect.set(sails.config, 'authorizationReadiness', saved.savedReadiness);
   }

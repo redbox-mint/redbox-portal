@@ -1,4 +1,5 @@
 import { Services as services } from '../CoreService';
+import { issueTrustedAuthorizationContextInternal } from './AuthorizationActorIssuer';
 import {
   AUTHORIZATION_ROLE_STATUSES,
   AUTHORIZATION_MAX_RESOLUTION_EVIDENCE_ITEMS,
@@ -15,7 +16,6 @@ import {
   createLegacyBearerAuthorizationPrincipal,
   createUserAuthorizationPrincipal,
   decideAuthorization,
-  freezeAuthorizationContext,
   getRoleEffectiveScopes,
   type AuthorizationAuthMethod,
   type AuthorizationCompatibilityRole,
@@ -486,6 +486,18 @@ function isSystemScope(scopeKey: ScopeKey): boolean {
   return scopeKey.startsWith('system.');
 }
 
+/**
+ * AUTH-P5-001: non-forgeable server-issued provenance is owned exclusively by
+ * the internal `services/AuthorizationActorIssuer` module (module-private
+ * WeakSet plus issue/verify capability). This resolver mints genuine
+ * contexts only via `issueTrustedAuthorizationContextInternal` below and
+ * exposes NO issuance or verification methods: `new
+ * AuthorizationService().createSystemProcessContext(...)` and
+ * `isTrusted/requireTrusted` no longer exist, so deep-importing this class
+ * cannot forge or recognize actors. Trusted verification for internal use
+ * lives in the issuer module.
+ */
+
 function opaqueResourceDecision(decision: AuthorizationDecision): AuthorizationDecision {
   if (decision.reasonCode !== 'resource-brand-mismatch') return decision;
   return Object.freeze({
@@ -706,7 +718,7 @@ export namespace Services {
     }): Promise<AuthorizationContext> {
       const evidence = createMutableEvidence();
       if (!input.principal.active || !input.brand.exists || !input.brand.authorized || input.brand.id === undefined) {
-        return freezeAuthorizationContext({
+        return issueTrustedAuthorizationContextInternal({
           contextType: 'brand',
           principal: input.principal,
           brand: input.brand,
@@ -900,7 +912,7 @@ export namespace Services {
               },
             }),
       }));
-      return freezeAuthorizationContext({
+      return issueTrustedAuthorizationContextInternal({
         contextType: 'brand',
         principal,
         brand: input.brand,
@@ -990,52 +1002,6 @@ export namespace Services {
       this.requestContexts.set(req, pending);
       pending.catch(() => this.requestContexts.delete(req));
       return pending;
-    }
-
-    /**
-     * Trusted-job factory. This deliberately is not in `_exportedMethods`, so loader
-     * shims and request/controller service globals cannot choose an internal identity
-     * or its scopes.
-     */
-    public async createSystemProcessContext(
-      operationId: string,
-      brandIdentifier: string | undefined,
-      allowedScopes: readonly string[]
-    ): Promise<AuthorizationContext> {
-      if (operationId.trim().length === 0) throw new Error('A system-process operation id is required.');
-      const registry = this.dependencies.getRegistry();
-      const validated = registry.validateScopeKeys(this.normalizeTokenScopeCeiling(allowedScopes) ?? []);
-      const brand = brandIdentifier === undefined ? undefined : await this.resolveBrand(brandIdentifier);
-      const brandUsable = brand === undefined || (brand.exists && brand.authorized && brand.id !== undefined);
-      const grantedScopeKeys = brandUsable
-        ? validated.activeScopeKeys.filter(scopeKey =>
-            brand === undefined ? isSystemScope(scopeKey) : !isSystemScope(scopeKey)
-          )
-        : [];
-      const grantedScopeKeySet = new Set(grantedScopeKeys);
-      const principal = Object.freeze({
-        category: 'system-process' as const,
-        authMethod: 'internal' as const,
-        active: true,
-        operationId,
-      });
-      return freezeAuthorizationContext({
-        contextType: brand === undefined ? 'system' : 'brand',
-        principal,
-        ...(brand === undefined ? {} : { brand }),
-        grantedScopeKeys,
-        effectiveScopeKeys: grantedScopeKeys,
-        resolutionEvidence: {
-          expiredAssignmentIds: [],
-          ignoredAssignmentIds: [],
-          inactiveRoleIds: [],
-          ignoredRoleIds: [],
-          missingTemplateRevisionRoleIds: [],
-          inactiveScopeKeys: validated.inactiveScopeKeys,
-          missingScopeKeys: validated.missingScopeKeys,
-          rejectedScopeKeys: validated.activeScopeKeys.filter(scopeKey => !grantedScopeKeySet.has(scopeKey)),
-        },
-      });
     }
 
     public getEffectiveRoles(context: AuthorizationContext): readonly EffectiveAuthorizationRole[] {

@@ -1,7 +1,18 @@
 /// <reference path="../sails.ts" />
 import { Entity, Attr, toWaterlineModelDef } from '../decorators';
 
-@Entity('userlink')
+@Entity('userlink', {
+  indexes: [
+    // AUTH-LINK-RACE-001 enforceable uniqueness: exactly one active link per
+    // secondary. The writer pre-checks inside its required transaction and
+    // normalizes insert races to 409; this partial unique index makes the
+    // constraint enforceable in production Mongo (see migration
+    // 20260905T120000-account-link-uniqueness).
+    { attributes: { secondaryUserId: 1, status: 1 }, unique: true },
+    { attributes: { primaryUserId: 1, status: 1 } },
+    { attributes: { brandId: 1, status: 1 } },
+  ],
+})
 export class UserLinkClass {
   @Attr({ type: 'string', required: true })
   public primaryUserId!: string;

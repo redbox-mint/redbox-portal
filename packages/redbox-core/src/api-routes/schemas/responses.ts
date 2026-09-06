@@ -543,8 +543,51 @@ export const userLinkResponseSchema = withOpenApi(
         rolesMerged: z.number().int(),
       })
       .optional(),
+    // AUTH-TXN-001: pending status + operation ID are mandatory end-to-end
+    // so clients always poll the durable operation instead of assuming
+    // atomic completion.
+    recordsPending: z.boolean(),
+    linkOperationId: z.string(),
   }),
   { description: 'Linked accounts response' }
+);
+
+export const linkAccountsPreviewSchema = withOpenApi(
+  z.object({
+    primaryUserId: z.string(),
+    secondaryUserId: z.string(),
+    primaryExpectedVersion: z.number().int(),
+    secondaryExpectedVersion: z.number().int(),
+    primaryUsername: z.string(),
+    secondaryUsername: z.string(),
+    rolesToAdopt: z.number().int(),
+    rolesToRetire: z.number().int(),
+    confirmationToken: z.string(),
+    linkOperationId: z.string(),
+  }),
+  { description: 'Account link preview with pair-bound proof' }
+);
+
+export const linkOperationStateSchema = withOpenApi(
+  z.object({
+    operationId: z.string(),
+    brandId: z.string(),
+    primaryUserId: z.string(),
+    secondaryUserId: z.string(),
+    primaryUsername: z.string(),
+    secondaryUsername: z.string(),
+    secondaryEmail: z.string(),
+    status: z.enum(['pending', 'running', 'completed', 'failed']),
+    recordsPending: z.boolean(),
+    recordsRewritten: z.number().int(),
+    rolesAdopted: z.number().int(),
+    rolesRetired: z.number().int(),
+    attemptCount: z.number().int(),
+    // AUTH-TXN-001 durable plan + per-record progress (mandatory).
+    recordOids: z.array(z.string()),
+    recordsCompletedOids: z.array(z.string()),
+  }),
+  { description: 'Durable link operation state' }
 );
 
 export const userAuditActorSchema = withOpenApi(
@@ -591,6 +634,7 @@ export const statusMessageResponseSchema = withOpenApi(
   z.object({
     status: z.boolean(),
     message: z.string(),
+    version: z.number().int().optional(),
   }),
   { description: 'Status and message response' }
 );
@@ -723,6 +767,7 @@ export const userRecordSchema = withOpenApi(
       effectivePrimaryUsername: z.string().optional(),
       linkedAccountCount: z.number().int().optional(),
       loginDisabled: z.boolean().optional(),
+      loginDisabledVersion: z.number().int().optional(),
       effectiveLoginDisabled: z.boolean().optional(),
       disabledByPrimaryUserId: z.string().optional(),
       disabledByPrimaryUsername: z.string().optional(),

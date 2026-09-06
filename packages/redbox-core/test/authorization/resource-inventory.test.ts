@@ -44,6 +44,7 @@ function exportedOperations(instance: { exports(): Record<string, unknown> }): S
  * explicitly excluded.
  */
 const NON_SERVICE_MODULES = new Set([
+  'AuthorizationActorIssuer',
   'AuthorizationServiceAccess',
   'BrandingThemeTokens',
   'form-record-access-user',
@@ -394,6 +395,17 @@ describe('resource operation inventory', function () {
       assert.ok(entry.operation.includes('#'), `exclusion must name a service operation: ${entry.operation}`);
     }
     assert.ok(excluded.has('VocabularyService#convertToType'));
+    // Phase 5 guarded writers: newly exported user-access and account-link
+    // operations remain authorization-operation surface with brand-scoped
+    // writers, explicitly excluded with their required scopes documented.
+    for (const operation of ['RoleAdministrationService#linkUserAccounts', 'RoleAdministrationService#setUserAccess']) {
+      assert.ok(excluded.has(operation), operation);
+      const entry = RESOURCE_EXCLUDED_OPERATIONS.find(candidate => candidate.operation === operation);
+      assert.ok(
+        entry?.reason.includes('authorization.assignment.manage'),
+        `${operation} must document the required assignment scope`
+      );
+    }
 
     const inventoried = new Set(RESOURCE_OPERATION_INVENTORY.map(row => `${row.service}#${row.operation}`));
 

@@ -174,6 +174,39 @@ export const AUTHORIZATION_PERSISTENCE_MODEL_INDEXES = Object.freeze([
       { key: { brandId: 1, lastSeenAt: -1 }, name: 'authorization_shadow_brand_lookup' },
     ],
   },
+  {
+    modelIdentity: 'userlink',
+    indexes: [
+      // AUTH-LINK-RACE-001 enforceable uniqueness: exactly one active link
+      // per secondary. Concurrent writers that both pass the application
+      // pre-check fail closed on duplicate-key (normalized to 409).
+      { key: { secondaryUserId: 1, status: 1 }, name: 'user_link_secondary_status_unique', unique: true },
+      { key: { primaryUserId: 1, status: 1 }, name: 'user_link_primary_status_lookup' },
+      { key: { brandId: 1, status: 1 }, name: 'user_link_brand_status_lookup' },
+    ],
+  },
+  {
+    modelIdentity: 'userlinkoperation',
+    indexes: [
+      // AUTH-TXN-001 durable operation/outbox key: one row per stable
+      // operation ID carries pending/running/completed/failed transitions for
+      // bounded idempotent reconciliation and safe retry.
+      { key: { operationId: 1 }, name: 'user_link_operation_id_unique', unique: true },
+      { key: { brandId: 1, status: 1 }, name: 'user_link_operation_brand_status_lookup' },
+      { key: { secondaryUserId: 1, status: 1 }, name: 'user_link_operation_secondary_status_lookup' },
+    ],
+  },
+  {
+    modelIdentity: 'usermutationoperation',
+    indexes: [
+      // AUTH-SAGA-001 durable user composite saga/outbox key: one row per
+      // stable operation ID for restart-safe recovery of create/update +
+      // role assignment composites.
+      { key: { operationId: 1 }, name: 'user_mutation_operation_id_unique', unique: true },
+      { key: { brandId: 1, status: 1 }, name: 'user_mutation_operation_brand_status_lookup' },
+      { key: { username: 1, status: 1 }, name: 'user_mutation_operation_username_status_lookup' },
+    ],
+  },
 ] as const satisfies readonly AuthorizationPersistenceModelIndexes[]);
 
 function normalizeIndexValue(value: unknown): unknown {

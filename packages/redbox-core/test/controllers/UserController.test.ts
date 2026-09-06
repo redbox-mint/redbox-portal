@@ -114,6 +114,59 @@ describe('UserController', () => {
     });
   });
 
+  describe('update expectedVersion schema boundary', () => {
+    function updateReq(body: Record<string, unknown>) {
+      return {
+        isAuthenticated: () => true,
+        user: { id: 'user-1' },
+        body,
+        authorization: { actor: 'test' },
+      } as unknown as Sails.Req;
+    }
+
+    it('should accept a nested details.expectedVersion on profile update', () => {
+      const res = {} as unknown as Sails.Res;
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      controller.update(updateReq({ details: { name: 'New Name', expectedVersion: 4 } }), res);
+
+      expect((global as any).UsersService.updateUserDetailsForBrand.calledOnce).to.be.true;
+      const options = (global as any).UsersService.updateUserDetailsForBrand.firstCall.args[5] as {
+        expectedVersion: number;
+      };
+      expect(options.expectedVersion).to.equal(4);
+      expect(
+        sendRespStub.calledWith(
+          sinon.match.any,
+          sinon.match.any,
+          sinon.match({ data: { status: true, message: 'Profile updated successfully.' } })
+        )
+      ).to.be.true;
+    });
+
+    it('should reject conflicting top-level and nested expectedVersion on profile update', () => {
+      const res = {} as unknown as Sails.Res;
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      controller.update(updateReq({ expectedVersion: 4, details: { name: 'New Name', expectedVersion: 5 } }), res);
+
+      expect((global as any).UsersService.updateUserDetailsForBrand.called).to.be.false;
+      expect(sendRespStub.calledOnce).to.be.true;
+      expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
+    });
+
+    it('should reject profile update without any expectedVersion', () => {
+      const res = {} as unknown as Sails.Res;
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      controller.update(updateReq({ details: { name: 'New Name' } }), res);
+
+      expect((global as any).UsersService.updateUserDetailsForBrand.called).to.be.false;
+      expect(sendRespStub.calledOnce).to.be.true;
+      expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
+    });
+  });
+
   describe('OIDC error logging', () => {
     it('should redact secrets and tokens from the logged configuration', () => {
       const oidcConfig = {

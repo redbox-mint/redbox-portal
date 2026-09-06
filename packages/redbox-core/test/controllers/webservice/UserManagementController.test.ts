@@ -1,6 +1,7 @@
 import * as sinon from 'sinon';
 import { map, of, throwError } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/UserManagementController';
+import { AuthorizationAdministrationError } from '../../../src/authorization/errors';
 
 let expect: Chai.ExpectStatic;
 
@@ -22,6 +23,7 @@ describe('Webservice UserManagementController', () => {
   let originalUsersService: any;
   let originalBrandingService: any;
   let originalRolesService: any;
+  let originalRoleAdministrationService: any;
 
   before(async () => {
     const chai = await import('chai');
@@ -33,6 +35,7 @@ describe('Webservice UserManagementController', () => {
     originalUsersService = (global as any).UsersService;
     originalBrandingService = (global as any).BrandingService;
     originalRolesService = (global as any).RolesService;
+    originalRoleAdministrationService = (global as any).RoleAdministrationService;
 
     (global as any).sails = {
       log: {
@@ -109,6 +112,30 @@ describe('Webservice UserManagementController', () => {
       updateUserDetailsForBrand: sinon
         .stub()
         .callsFake((...args: unknown[]) => (global as any).UsersService.updateUserDetails(...args)),
+      // AUTH-SAGA-001 fail-closed outbox fakes: the controller persists the
+      // saga row BEFORE mutating and fails closed (503/409, no mutation)
+      // when persistence rejects. These resolve by default; suites override
+      // per test to prove the fail-closed path.
+      beginUserMutationOperation: sinon.stub().callsFake(async (input: any) => ({
+        operationId: input.operationId,
+        kind: input.kind,
+        brandId: input.brandId,
+        username: input.username,
+        status: 'pending',
+        attemptCount: 0,
+        roleIds: input.roleIds ?? [],
+        requestId: input.requestId,
+      })),
+      markUserMutationRunning: sinon.stub().callsFake(async (operationId: string) => ({
+        operationId,
+        status: 'running',
+        attemptCount: 1,
+        roleIds: [],
+      })),
+      completeUserMutationOperation: sinon.stub().resolves({ status: 'completed' }),
+      failUserMutationOperation: sinon.stub().resolves({ status: 'failed' }),
+      destroyNewlyCreatedUserRecord: sinon.stub().resolves('compensated'),
+      compensateUserDetailsForBrand: sinon.stub().returns(of([])),
     };
 
     controller = new Controllers.UserManagement();
@@ -120,6 +147,7 @@ describe('Webservice UserManagementController', () => {
     (global as any).UsersService = originalUsersService;
     (global as any).BrandingService = originalBrandingService;
     (global as any).RolesService = originalRolesService;
+    (global as any).RoleAdministrationService = originalRoleAdministrationService;
   });
 
   it('should search link candidates', async () => {
@@ -369,15 +397,32 @@ describe('Webservice UserManagementController', () => {
         session: { branding: 'default' },
         user: { username: 'admin-user' },
         params: { id: 'user-1' },
+        body: { expectedVersion: 2, reason: 'offboard' },
       });
       const res = {} as unknown as Sails.Res;
-      const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.disableUser(req, res);
 
       expect((global as any).UsersService.disableUser.calledWith('user-1', 'admin-user', 'brand-1')).to.be.true;
-      expect(apiRespondStub.calledOnce).to.be.true;
-      expect(apiRespondStub.firstCall.args[2]?.status).to.be.true;
+      expect(sendRespStub.calledOnce).to.be.true;
+      expect(sendRespStub.firstCall.args[2]?.data?.status).to.be.true;
+    });
+
+    it('should reject disabling without a CAS expectedVersion', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: 'user-1' },
+        body: {},
+      });
+      const res = {} as unknown as Sails.Res;
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.disableUser(req, res);
+
+      expect((global as any).UsersService.disableUser.called).to.be.false;
+      expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
     });
 
     it('should reject when user id is missing', async () => {
@@ -416,15 +461,32 @@ describe('Webservice UserManagementController', () => {
         session: { branding: 'default' },
         user: { username: 'admin-user' },
         params: { id: 'user-1' },
+        body: { expectedVersion: 3 },
       });
       const res = {} as unknown as Sails.Res;
-      const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
 
       await controller.enableUser(req, res);
 
       expect((global as any).UsersService.enableUser.calledWith('user-1', 'admin-user', 'brand-1')).to.be.true;
-      expect(apiRespondStub.calledOnce).to.be.true;
-      expect(apiRespondStub.firstCall.args[2]?.status).to.be.true;
+      expect(sendRespStub.calledOnce).to.be.true;
+      expect(sendRespStub.firstCall.args[2]?.data?.status).to.be.true;
+    });
+
+    it('should reject enabling without a CAS expectedVersion', async () => {
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        params: { id: 'user-1' },
+        body: {},
+      });
+      const res = {} as unknown as Sails.Res;
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.enableUser(req, res);
+
+      expect((global as any).UsersService.enableUser.called).to.be.false;
+      expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
     });
 
     it('should reject when user id is missing', async () => {
@@ -484,9 +546,43 @@ describe('Webservice UserManagementController', () => {
 
       controller.createUser(req, {} as Sails.Res);
       await new Promise(resolve => setImmediate(resolve));
+      await Promise.resolve();
 
       expect((global as any).UsersService.getUserWithUsername.calledOnceWithExactly('existing-user')).to.be.true;
       expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+    });
+    it('fails closed without mutating when the saga outbox is unavailable', async () => {
+      const sagaError = new AuthorizationAdministrationError(
+        'authorization.saga-unavailable',
+        503,
+        'The user mutation saga store is unavailable.'
+      );
+      (global as any).UsersService.beginUserMutationOperation = sinon.stub().rejects(sagaError);
+      (global as any).UsersService.addLocalUser = sinon.stub().returns(of({ id: 'user-new' }));
+      // The fail-closed path answers through the Problem Details sender
+      // (not sendResp), so the response fake must offer the status/type/json
+      // chain the sender uses.
+      const jsonStub = sinon.stub();
+      const typeStub = sinon.stub().returns({ json: jsonStub });
+      const statusStub = sinon.stub().returns({ type: typeStub });
+      const res = { status: statusStub } as unknown as Sails.Res;
+      const req = makeReq({
+        path: '/default/rdmp/api/users',
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        body: {
+          username: 'new-user',
+          name: 'New User',
+          email: 'new@example.org',
+          password: 'secret',
+        },
+      });
+
+      await controller.createUser(req, res);
+
+      expect((global as any).UsersService.addLocalUser.called).to.be.false;
+      expect(statusStub.firstCall.args[0]).to.equal(503);
+      expect(jsonStub.firstCall.args[0]?.code).to.equal('authorization.saga-unavailable');
     });
     it('rejects updating a user outside the current brand', async () => {
       (global as any).UsersService.getUserWithId = sinon.stub().returns(
@@ -505,6 +601,20 @@ describe('Webservice UserManagementController', () => {
       await controller.updateUser(req, {} as Sails.Res);
 
       expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
+    });
+
+    it('rejects updating a user without a CAS expectedVersion', async () => {
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        body: { id: 'user-1', name: 'Renamed' },
+      });
+
+      await controller.updateUser(req, {} as Sails.Res);
+
+      expect((global as any).UsersService.updateUserDetails.called).to.be.false;
+      expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
     });
 
     for (const method of ['generateAPIToken', 'revokeAPIToken'] as const) {
@@ -534,7 +644,24 @@ describe('Webservice UserManagementController', () => {
             username: 'target-user',
           })
         );
-        const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
+        const req = makeReq({
+          session: { branding: 'default' },
+          user: { username: 'admin-user' },
+          query: { id: 'user-1', expectedVersion: '2' },
+        });
+
+        await controller[method](req, {} as Sails.Res);
+
+        expect((global as any).UsersService.setUserKey.calledOnce).to.be.true;
+        expect((global as any).UsersService.setUserKey.firstCall.args[0]).to.equal('user-1');
+        expect((global as any).UsersService.setUserKeyForBrand.firstCall.args[3]?.expectedVersion).to.equal(2);
+        expect(sendRespStub.calledOnce).to.be.true;
+        expect(sendRespStub.firstCall.args[2]?.data?.username).to.equal('target-user');
+      });
+
+      it(`rejects ${method} without a CAS expectedVersion`, async () => {
+        const sendRespStub = sinon.stub(controller as any, 'sendResp');
         const req = makeReq({
           session: { branding: 'default' },
           user: { username: 'admin-user' },
@@ -543,11 +670,62 @@ describe('Webservice UserManagementController', () => {
 
         await controller[method](req, {} as Sails.Res);
 
-        expect((global as any).UsersService.setUserKey.calledOnce).to.be.true;
-        expect((global as any).UsersService.setUserKey.firstCall.args[0]).to.equal('user-1');
-        expect(apiRespondStub.calledOnce).to.be.true;
-        expect(apiRespondStub.firstCall.args[2]?.username).to.equal('target-user');
+        expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
       });
     }
+  });
+
+  describe('system roles (sendResp contract)', () => {
+    it('lists brand roles through sendResp with the declared list shape', async () => {
+      (global as any).BrandingService.getBrand = sinon.stub().returns({
+        id: 'brand-1',
+        name: 'default',
+        roles: [{ id: 'role-1', name: 'Researcher' }],
+      });
+      const req = makeReq({ session: { branding: 'default' }, user: { username: 'admin-user' } });
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+      await controller.listSystemRoles(req, {} as Sails.Res);
+
+      expect(sendRespStub.calledOnce).to.be.true;
+      expect(sendRespStub.firstCall.args[2]?.data?.summary?.numFound).to.equal(1);
+      expect(sendRespStub.firstCall.args[2]?.data?.records).to.deep.equal([{ id: 'role-1', name: 'Researcher' }]);
+    });
+
+    it('creates a system role through sendResp and never uses apiRespond', async () => {
+      const createRole = sinon.stub().resolves({ version: 1 });
+      (global as any).RoleAdministrationService = { createRole };
+      const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        body: { roleName: 'librarian' },
+        authorization: { contextType: 'brand' },
+      });
+
+      await controller.createSystemRole(req, {} as Sails.Res);
+
+      expect(createRole.calledOnce).to.be.true;
+      expect(apiRespondStub.called).to.be.false;
+      expect(sendRespStub.calledOnce).to.be.true;
+      expect(sendRespStub.firstCall.args[2]?.data?.message).to.contain('librarian');
+    });
+
+    it('rejects role creation without a role name with 400 through sendResp', async () => {
+      const apiRespondStub = sinon.stub(controller as any, 'apiRespond');
+      const sendRespStub = sinon.stub(controller as any, 'sendResp');
+      const req = makeReq({
+        session: { branding: 'default' },
+        user: { username: 'admin-user' },
+        body: {},
+        query: {},
+      });
+
+      await controller.createSystemRole(req, {} as Sails.Res);
+
+      expect(apiRespondStub.called).to.be.false;
+      expect(sendRespStub.firstCall.args[2]?.status).to.equal(400);
+    });
   });
 });

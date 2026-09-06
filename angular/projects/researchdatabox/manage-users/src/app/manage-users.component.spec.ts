@@ -3,7 +3,15 @@ import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe } from '@researchdatabox/portal-ng-common';
+import {
+  UtilityService,
+  LoggerService,
+  TranslationService,
+  ConfigService,
+  UserService,
+  AuthorizationProjectionService,
+  I18NextPipe,
+} from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
@@ -17,8 +25,8 @@ const password = 'very-scary-password';
 const baseRolesData = [
   {
     name: 'Admin',
-    id: '123'
-  }
+    id: '123',
+  },
 ];
 
 const baseUsersData = [
@@ -36,9 +44,9 @@ const baseUsersData = [
     roles: [
       {
         name: 'Admin',
-        id: '123'
-      }
-    ]
+        id: '123',
+      },
+    ],
   },
   {
     name: 'Alias User',
@@ -51,8 +59,8 @@ const baseUsersData = [
     linkedPrimaryUserId: 'ABC123',
     effectivePrimaryUsername: 'admin',
     passwords: { password: '', confirmPassword: '' },
-    roles: []
-  }
+    roles: [],
+  },
 ];
 
 const baseAuditRecords = [
@@ -64,7 +72,7 @@ const baseAuditRecords = [
     details: 'User logged in',
     parsedAdditionalContext: { ip: '127.0.0.1' },
     rawAdditionalContext: '{"ip":"127.0.0.1"}',
-    parseError: false
+    parseError: false,
   },
   {
     id: 'audit-2',
@@ -74,7 +82,7 @@ const baseAuditRecords = [
     details: 'This account was chosen as the primary account during account linking',
     parsedAdditionalContext: { primaryUserId: 'ABC123', secondaryUserId: 'ALIAS123' },
     rawAdditionalContext: '{"primaryUserId":"ABC123","secondaryUserId":"ALIAS123"}',
-    parseError: false
+    parseError: false,
   },
   {
     id: 'audit-3',
@@ -84,8 +92,8 @@ const baseAuditRecords = [
     details: 'Account linking event',
     parsedAdditionalContext: null,
     rawAdditionalContext: '[REDACTED_UNPARSEABLE_AUDIT_CONTEXT]',
-    parseError: true
-  }
+    parseError: true,
+  },
 ];
 
 let rolesData: any[];
@@ -123,49 +131,58 @@ describe('ManageUsersComponent', () => {
       'manage-users-link-success-roles-merged': '{{count}} roles merged',
       'manage-users-link-success-records-rewritten': '{{count}} records rewritten',
       'manage-users-disable-success': 'User disabled successfully.',
-      'manage-users-enable-success': 'User enabled successfully.'
+      'manage-users-enable-success': 'User enabled successfully.',
     });
     userService = getStubUserService(username, password, {}, usersData, rolesData);
-    userService.getUserAudit = jasmine.createSpy('getUserAudit').and.callFake((userId: string) => Promise.resolve({
-      user: usersData.find((user) => user.id === userId) || usersData[0],
-      records: auditRecords,
-      summary: { returnedCount: auditRecords.length, truncated: false }
-    }));
+    userService.getUserAudit = jasmine.createSpy('getUserAudit').and.callFake((userId: string) =>
+      Promise.resolve({
+        user: usersData.find(user => user.id === userId) || usersData[0],
+        records: auditRecords,
+        summary: { returnedCount: auditRecords.length, truncated: false },
+      })
+    );
     const testModule = TestBed.configureTestingModule({
-      declarations: [
-        ManageUsersComponent
-      ],
-      imports: [
-        FormsModule,
-        ReactiveFormsModule,
-        I18NextPipe,
-        ModalModule.forRoot()
-      ],
+      declarations: [ManageUsersComponent],
+      imports: [FormsModule, ReactiveFormsModule, I18NextPipe, ModalModule.forRoot()],
       providers: [
         FormBuilder,
         {
           provide: APP_BASE_HREF,
-          useValue: 'base'
+          useValue: 'base',
         },
         LoggerService,
         UtilityService,
         {
           provide: TranslationService,
-          useValue: translationService
+          useValue: translationService,
         },
         {
           provide: ConfigService,
-          useValue: configService
+          useValue: configService,
         },
         {
           provide: UserService,
-          useValue: userService
-        }
-      ]
+          useValue: userService,
+        },
+        {
+          provide: AuthorizationProjectionService,
+          useValue: {
+            // Route-declared scopes: audit reads require user.read (not
+            // user.manage); keep the full set for affordance tests.
+            hasScope: (scope: string) =>
+              scope === 'user.manage' ||
+              scope === 'user.read' ||
+              scope === 'user.account-link.manage' ||
+              scope === 'user.token.manage',
+            load: () => Promise.resolve(),
+          },
+        },
+      ],
     });
 
     TestBed.inject(FormBuilder);
     TestBed.inject(UserService);
+    TestBed.inject(AuthorizationProjectionService);
     await testModule.compileComponents();
   });
 
@@ -193,7 +210,10 @@ describe('ManageUsersComponent', () => {
     return fixture;
   }
 
-  async function createComponent(): Promise<{ fixture: ComponentFixture<ManageUsersComponent>, app: ManageUsersComponent }> {
+  async function createComponent(): Promise<{
+    fixture: ComponentFixture<ManageUsersComponent>;
+    app: ManageUsersComponent;
+  }> {
     const fixture = createFixture();
     const app = fixture.componentInstance;
     fixture.detectChanges();
@@ -210,30 +230,35 @@ describe('ManageUsersComponent', () => {
           provide: ChangeDetectorRef,
           useValue: {
             detectChanges: () => undefined,
-            markForCheck: () => undefined
-          }
+            markForCheck: () => undefined,
+          },
         },
         {
           provide: ApplicationRef,
           useValue: {
             destroyed: false,
-            tick: () => undefined
-          }
+            tick: () => undefined,
+          },
         },
         {
           provide: NgZone,
-          useValue: TestBed.inject(NgZone)
-        }
+          useValue: TestBed.inject(NgZone),
+        },
       ],
-      parent: TestBed.inject(Injector)
+      parent: TestBed.inject(Injector),
     });
 
-    return runInInjectionContext(injector, () => new ManageUsersComponent(
-      TestBed.inject(LoggerService),
-      TestBed.inject(TranslationService),
-      TestBed.inject(UserService),
-      TestBed.inject(FormBuilder)
-    ));
+    return runInInjectionContext(
+      injector,
+      () =>
+        new ManageUsersComponent(
+          TestBed.inject(LoggerService),
+          TestBed.inject(TranslationService),
+          TestBed.inject(UserService),
+          TestBed.inject(FormBuilder),
+          TestBed.inject(AuthorizationProjectionService)
+        )
+    );
   }
 
   it('should create the app and perform testing of basic functions', async () => {
@@ -333,14 +358,18 @@ describe('ManageUsersComponent', () => {
     const app = createBareComponent();
     const secondaryLinkRecord = {
       ...auditRecords[1],
-      details: 'This account was linked as a secondary alias to another account'
+      details: 'This account was linked as a secondary alias to another account',
     };
 
     app.auditModalUser = usersData[0] as any;
-    expect(app.getAuditDetailsLabel(auditRecords[1] as any)).toBe('This account was chosen as the primary account during account linking');
+    expect(app.getAuditDetailsLabel(auditRecords[1] as any)).toBe(
+      'This account was chosen as the primary account during account linking'
+    );
 
     app.auditModalUser = usersData[1] as any;
-    expect(app.getAuditDetailsLabel(secondaryLinkRecord as any)).toBe('This account was linked as a secondary alias to another account');
+    expect(app.getAuditDetailsLabel(secondaryLinkRecord as any)).toBe(
+      'This account was linked as a secondary alias to another account'
+    );
 
     expect(app.getAuditDetailsLabel(auditRecords[2] as any)).toBe('Account linking event');
   });
@@ -353,7 +382,7 @@ describe('ManageUsersComponent', () => {
 
     const linkedAliasUser = {
       accountLinkState: 'linked-alias',
-      effectivePrimaryUsername: 'admin'
+      effectivePrimaryUsername: 'admin',
     };
     expect(app.getAccountStatusBadge(linkedAliasUser as any)).toContain('Linked');
     expect(app.getAccountStatusContext(linkedAliasUser as any)).toContain('admin');
@@ -371,7 +400,7 @@ describe('ManageUsersComponent', () => {
       type: 'local',
       accountLinkState: 'linked-alias',
       effectivePrimaryUsername: 'admin',
-      roles: []
+      roles: [],
     } as any;
     app.setupForms(false);
     app.isDetailsModalShown = true;
@@ -404,7 +433,7 @@ describe('ManageUsersComponent', () => {
     const app = createBareComponent();
     const roles = [
       { key: '123', value: 'Admin', checked: true },
-      { key: '456', value: 'User', checked: false }
+      { key: '456', value: 'User', checked: false },
     ];
     const mapped = app.mapRoles(roles);
     expect(mapped).not.toBeNull();
@@ -494,15 +523,43 @@ describe('ManageUsersComponent', () => {
     spyOn(userService, 'getUsers').and.resolveTo(usersData);
     spyOn(userService, 'getUserLinks').and.resolveTo({
       primary: usersData[0],
-      linkedAccounts: [{ id: 'ALIAS123', username: 'alias', name: 'Alias User', email: 'alias@example.com', type: 'local' }]
+      linkedAccounts: [
+        { id: 'ALIAS123', username: 'alias', name: 'Alias User', email: 'alias@example.com', type: 'local' },
+      ],
     });
     spyOn(userService, 'searchLinkCandidates').and.resolveTo([
-      { id: 'candidate-1', username: 'candidate', name: 'Candidate User', email: 'candidate@example.com', type: 'local' }
+      {
+        id: 'candidate-1',
+        username: 'candidate',
+        name: 'Candidate User',
+        email: 'candidate@example.com',
+        type: 'local',
+      },
     ]);
     spyOn(userService, 'linkAccounts').and.resolveTo({
       primary: usersData[0],
-      linkedAccounts: [{ id: 'candidate-1', username: 'candidate', name: 'Candidate User', email: 'candidate@example.com', type: 'local' }],
-      impact: { rolesMerged: 2, recordsRewritten: 3 }
+      linkedAccounts: [
+        {
+          id: 'candidate-1',
+          username: 'candidate',
+          name: 'Candidate User',
+          email: 'candidate@example.com',
+          type: 'local',
+        },
+      ],
+      impact: { rolesMerged: 2, recordsRewritten: 3 },
+    });
+    spyOn(userService, 'previewLinkAccounts').and.resolveTo({
+      primaryUserId: 'ABC123',
+      secondaryUserId: 'candidate-1',
+      primaryExpectedVersion: 1,
+      secondaryExpectedVersion: 1,
+      primaryUsername: 'admin',
+      secondaryUsername: 'candidate',
+      rolesToAdopt: 1,
+      rolesToRetire: 1,
+      confirmationToken: 'preview-token',
+      linkOperationId: 'op-link-1',
     });
 
     await app.manageLinks('admin');
@@ -517,7 +574,15 @@ describe('ManageUsersComponent', () => {
 
     app.selectLinkCandidate(app.linkCandidates[0] as any);
     await app.submitLink();
-    expect(userService.linkAccounts).toHaveBeenCalledWith('ABC123', 'candidate-1');
+    // RB-ANGULAR-001: submit runs preview/confirmation and applies the full
+    // pair-bound proof (both versions + token + operation id).
+    expect(userService.previewLinkAccounts).toHaveBeenCalledWith('ABC123', 'candidate-1');
+    expect(userService.linkAccounts).toHaveBeenCalledWith('ABC123', 'candidate-1', {
+      primaryExpectedVersion: 1,
+      secondaryExpectedVersion: 1,
+      linkConfirmationToken: 'preview-token',
+      linkOperationId: 'op-link-1',
+    });
     expect(app.linkedAccounts.length).toBe(1);
     expect(app.linkCandidates).toEqual([]);
     expect(app.selectedLinkCandidate).toBeNull();
@@ -526,6 +591,143 @@ describe('ManageUsersComponent', () => {
     expect(app.linkMsg).toContain('Accounts linked successfully.');
     expect(app.linkMsg).toContain('2 roles merged');
     expect(app.linkMsg).toContain('3 records rewritten');
+  });
+
+  it('should surface pending link state and conflict errors distinctly', async () => {
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
+    app.linkPrimaryUser = usersData[0] as any;
+    app.selectedLinkCandidate = { id: 'candidate-1', username: 'candidate' } as any;
+    (app as unknown as { linkPollDelayMs: number }).linkPollDelayMs = 0;
+    spyOn(userService, 'getUsers').and.resolveTo(usersData);
+    spyOn(userService, 'previewLinkAccounts').and.resolveTo({
+      primaryUserId: 'ABC123',
+      secondaryUserId: 'candidate-1',
+      primaryExpectedVersion: 1,
+      secondaryExpectedVersion: 1,
+      primaryUsername: 'admin',
+      secondaryUsername: 'candidate',
+      rolesToAdopt: 0,
+      rolesToRetire: 0,
+      confirmationToken: 'preview-token',
+      linkOperationId: 'op-pending-1',
+    });
+    spyOn(userService, 'linkAccounts').and.resolveTo({
+      primary: usersData[0],
+      linkedAccounts: [],
+      impact: { rolesMerged: 0, recordsRewritten: 0 },
+      recordsPending: true,
+      linkOperationId: 'op-pending-1',
+    });
+    // Bounded poll observes the durable operation staying pending; the single
+    // bounded retry is then exercised and still pending.
+    spyOn(userService, 'getLinkOperation').and.resolveTo({
+      operationId: 'op-pending-1',
+      brandId: 'brand-1',
+      primaryUserId: 'ABC123',
+      secondaryUserId: 'candidate-1',
+      primaryUsername: 'admin',
+      secondaryUsername: 'candidate',
+      secondaryEmail: 'candidate@example.com',
+      status: 'pending',
+      recordsPending: true,
+      recordsRewritten: 0,
+      rolesAdopted: 0,
+      rolesRetired: 0,
+      attemptCount: 1,
+    });
+    spyOn(userService, 'retryLinkOperation').and.resolveTo({
+      primary: usersData[0],
+      linkedAccounts: [],
+      impact: { rolesMerged: 0, recordsRewritten: 0 },
+      recordsPending: true,
+      linkOperationId: 'op-pending-1',
+    });
+    await app.submitLink();
+    expect(app.linkMsgType).toBe('warning');
+    expect(app.linkMsg).toContain('pending');
+    expect(app.linkMsg).toContain('op-pending-1');
+    expect(userService.getLinkOperation).toHaveBeenCalledWith('op-pending-1');
+    expect(userService.retryLinkOperation).toHaveBeenCalledWith('op-pending-1', 'ABC123', 'candidate-1', {
+      primaryExpectedVersion: 1,
+      secondaryExpectedVersion: 1,
+      linkConfirmationToken: 'preview-token',
+    });
+
+    const conflict = { status: 409, error: { code: 'authorization.version-conflict' } };
+    (userService.linkAccounts as jasmine.Spy).and.rejectWith(conflict);
+    await app.submitLink();
+    expect(app.linkMsgType).toBe('danger');
+    expect(app.linkMsg).toContain('changed since preview');
+  });
+
+  it('should poll a pending operation to completion without retry', async () => {
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
+    app.linkPrimaryUser = usersData[0] as any;
+    app.selectedLinkCandidate = { id: 'candidate-1', username: 'candidate' } as any;
+    (app as unknown as { linkPollDelayMs: number }).linkPollDelayMs = 0;
+    spyOn(userService, 'getUsers').and.resolveTo(usersData);
+    spyOn(userService, 'previewLinkAccounts').and.resolveTo({
+      primaryUserId: 'ABC123',
+      secondaryUserId: 'candidate-1',
+      primaryExpectedVersion: 1,
+      secondaryExpectedVersion: 1,
+      primaryUsername: 'admin',
+      secondaryUsername: 'candidate',
+      rolesToAdopt: 1,
+      rolesToRetire: 1,
+      confirmationToken: 'preview-token',
+      linkOperationId: 'op-poll-1',
+    });
+    spyOn(userService, 'linkAccounts').and.resolveTo({
+      primary: usersData[0],
+      linkedAccounts: [],
+      impact: { rolesMerged: 0, recordsRewritten: 0 },
+      recordsPending: true,
+      linkOperationId: 'op-poll-1',
+    });
+    const pendingState = {
+      operationId: 'op-poll-1',
+      brandId: 'brand-1',
+      primaryUserId: 'ABC123',
+      secondaryUserId: 'candidate-1',
+      primaryUsername: 'admin',
+      secondaryUsername: 'candidate',
+      secondaryEmail: 'candidate@example.com',
+      status: 'pending' as const,
+      recordsPending: true,
+      recordsRewritten: 0,
+      rolesAdopted: 0,
+      rolesRetired: 0,
+      attemptCount: 1,
+    };
+    const completedState = {
+      ...pendingState,
+      status: 'completed' as const,
+      recordsPending: false,
+      recordsRewritten: 2,
+      rolesAdopted: 1,
+      rolesRetired: 1,
+    };
+    const getSpy = spyOn(userService, 'getLinkOperation').and.resolveTo(pendingState);
+    getSpy.withArgs('op-poll-1').and.returnValues(Promise.resolve(pendingState), Promise.resolve(completedState));
+    const retrySpy = spyOn(userService, 'retryLinkOperation');
+    const terminal = await app.pollLinkOperation('op-poll-1', 3, 0);
+    expect(terminal.status).toBe('completed');
+    expect(terminal.recordsPending).toBeFalse();
+    expect(getSpy).toHaveBeenCalledWith('op-poll-1');
+    expect(retrySpy).not.toHaveBeenCalled();
+  });
+
+  it('should gate audit display on user.read even without user.manage (custom-scope projection)', async () => {
+    const app = createBareComponent();
+    const projection = TestBed.inject(AuthorizationProjectionService) as unknown as {
+      hasScope: (scope: string) => boolean;
+    };
+    spyOn(projection, 'hasScope').and.callFake((scope: string) => scope === 'user.read');
+    expect(app.canViewAudit()).toBeTrue();
+    expect(app.canManageUsers()).toBeFalse();
   });
 
   it('should handle empty and failed account linking flows', async () => {
@@ -558,6 +760,18 @@ describe('ManageUsersComponent', () => {
     await app.submitLink();
     expect(app.linkMsg).toBe('Select an account to link.');
 
+    spyOn(userService, 'previewLinkAccounts').and.resolveTo({
+      primaryUserId: 'ABC123',
+      secondaryUserId: 'ALIAS123',
+      primaryExpectedVersion: 1,
+      secondaryExpectedVersion: 1,
+      primaryUsername: 'admin',
+      secondaryUsername: 'alias',
+      rolesToAdopt: 0,
+      rolesToRetire: 0,
+      confirmationToken: 'preview-token',
+      linkOperationId: 'op-fail-1',
+    });
     spyOn(userService, 'linkAccounts').and.rejectWith(new Error('link failed'));
     app.selectedLinkCandidate = { id: 'ALIAS123', username: 'alias' } as any;
     await app.submitLink();
@@ -596,10 +810,18 @@ describe('ManageUsersComponent', () => {
     expect(app.auditRecords).toEqual([]);
     expect(app.auditSummary).toEqual({ returnedCount: 0, truncated: false });
     expect(app.isAuditLoading).toBeFalse();
-    expect(app.getAuditDetailsLabel({ action: 'logout', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('User logged out');
-    expect(app.getAuditDetailsLabel({ action: 'disable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('Admin disabled this account');
-    expect(app.getAuditDetailsLabel({ action: 'enable-user', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('Admin enabled this account');
-    expect(app.getAuditDetailsLabel({ action: 'other', details: 'fallback', actor: { username: 'admin' } } as any)).toBe('fallback');
+    expect(
+      app.getAuditDetailsLabel({ action: 'logout', details: 'fallback', actor: { username: 'admin' } } as any)
+    ).toBe('User logged out');
+    expect(
+      app.getAuditDetailsLabel({ action: 'disable-user', details: 'fallback', actor: { username: 'admin' } } as any)
+    ).toBe('Admin disabled this account');
+    expect(
+      app.getAuditDetailsLabel({ action: 'enable-user', details: 'fallback', actor: { username: 'admin' } } as any)
+    ).toBe('Admin enabled this account');
+    expect(
+      app.getAuditDetailsLabel({ action: 'other', details: 'fallback', actor: { username: 'admin' } } as any)
+    ).toBe('fallback');
   });
 
   it('should toggle disabled users and handle enable and disable actions', async () => {
@@ -617,10 +839,13 @@ describe('ManageUsersComponent', () => {
     await app.disableUser(usersData[0] as any);
     expect(app.updateDetailsMsgType).toBe('success');
     expect(app.updateDetailsMsg).toBe('User disabled successfully.');
+    // AUTH-P5-002: CAS is mandatory — legacy rows without a version send the healed 1.
+    expect(userService.disableUser).toHaveBeenCalledWith('ABC123', { expectedVersion: 1 });
 
     await app.enableUser(usersData[0] as any);
     expect(app.updateDetailsMsgType).toBe('danger');
     expect(app.updateDetailsMsg).toBe('nope');
+    expect(userService.enableUser).toHaveBeenCalledWith('ABC123', { expectedVersion: 1 });
 
     (userService.disableUser as jasmine.Spy).and.rejectWith(new Error('disable crash'));
     await app.disableUser(usersData[0] as any);
@@ -638,10 +863,10 @@ describe('ManageUsersComponent', () => {
     app.setupForms(false);
     app.setupForms(true);
 
-    const updatePasswords = ((app.updateUserForm as any).controls['passwords']);
+    const updatePasswords = (app.updateUserForm as any).controls['passwords'];
     updatePasswords.setErrors({ passwordStrengthDetails: { errors: ['Too short'] } });
     updatePasswords.controls['confirmPassword'].markAsTouched();
-    const newPasswords = ((app.newUserForm as any).controls['passwords']);
+    const newPasswords = (app.newUserForm as any).controls['passwords'];
     newPasswords.setErrors({ passwordStrengthDetails: { errors: ['Need symbol'] } });
     expect(app.isUpdateUserFormConfirmPasswordTouched()).toBeTrue();
     expect(app.getUpdateUserPasswordErrors()).toEqual(['Too short']);
@@ -657,7 +882,7 @@ describe('ManageUsersComponent', () => {
       ...cloneTestData(baseUsersData[0]),
       effectiveLoginDisabled: true,
       loginDisabled: false,
-      disabledByPrimaryUsername: 'admin'
+      disabledByPrimaryUsername: 'admin',
     } as any;
 
     expect(app.isEffectivelyDisabled(disabledViaPrimaryUser)).toBeTrue();
@@ -665,6 +890,13 @@ describe('ManageUsersComponent', () => {
     expect(app.isDisabledViaPrimary(disabledViaPrimaryUser)).toBeTrue();
     expect(app.canManageLinks(usersData[0] as any)).toBeTrue();
     expect(app.canManageLinks(usersData[1] as any)).toBeFalse();
+    // RB-ANGULAR-001: mutation affordances follow the authorization projection.
+    expect(app.canManageUsers()).toBeTrue();
+    expect(app.canManageAccountLinks()).toBeTrue();
+    expect(app.canManageAccess()).toBeTrue();
+    expect(app.canCreateUser()).toBeTrue();
+    expect(app.canViewAudit()).toBeTrue();
+    expect(app.canManageTokens()).toBeTrue();
     expect(app.getAccountStatusBadge(disabledViaPrimaryUser)).toBe('Disabled via admin');
     expect(app.getAccountStatusBadge({ effectiveLoginDisabled: true, loginDisabled: true } as any)).toBe('Disabled');
     expect(app.getAccountStatusBadge({} as any)).toBe('Active');
@@ -680,7 +912,7 @@ describe('ManageUsersComponent', () => {
     app.searchFilter.prevName = 'Admin';
     app.searchFilter.users = [
       { value: null, label: 'Any', checked: false },
-      { value: 'Local Admin', label: 'Local Admin', checked: true }
+      { value: 'Local Admin', label: 'Local Admin', checked: true },
     ];
 
     app.resetFilter();

@@ -30,19 +30,59 @@ import { UserModel } from '../model/storage/UserModel';
 import { UserAttributes } from '../waterline-models/User';
 import { Services as services } from '../CoreService';
 import { redactObject } from '../utilities/RedactionUtils';
-import { AuthorizationResourceError } from '../authorization/errors';
-import { Services as AuthorizationServiceModule } from './AuthorizationService';
-import { authorizationScopeRequiredAccess, roleAdministrationAccess } from './AuthorizationServiceAccess';
+import { AuthorizationAdministrationError, AuthorizationResourceError } from '../authorization/errors';
+import type { AuthorizationContext, ScopeRegistry } from '../authorization';
+import {
+  createSystemProcessContextInternal,
+  isTrustedAuthorizationContextInternal,
+  type AuthorizationActorIssuerDependencies,
+} from './AuthorizationActorIssuer';
+import { roleAdministrationAccess } from './AuthorizationServiceAccess';
 
 import * as crypto from 'crypto';
 
 declare const Buffer: typeof globalThis.Buffer;
+
+function issuerBrandRecord(value: unknown): { readonly id: string | number; readonly name?: string } | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const candidate = value as { readonly id?: unknown; readonly name?: unknown };
+  if (typeof candidate.id !== 'string' && typeof candidate.id !== 'number') return undefined;
+  if (candidate.name !== undefined && typeof candidate.name !== 'string') return undefined;
+  return candidate.name === undefined ? { id: candidate.id } : { id: candidate.id, name: candidate.name };
+}
+
+/**
+ * AUTH-P5-001: deps for the internal-only system-process mint path. The
+ * registry comes from `authorizationscopeservice` and brand resolution from
+ * `brandingservice`, mirroring the genuine resolver's own deps; only this
+ * genuine server module can reach the issuer.
+ */
+function systemProcessIssuerDeps(): AuthorizationActorIssuerDependencies {
+  return {
+    getRegistry: () => {
+      const service = sails.services?.authorizationscopeservice as { getRegistry?: () => ScopeRegistry } | undefined;
+      const registry = service?.getRegistry?.();
+      if (registry === undefined) {
+        throw new Error(`Required authorization dependency 'authorizationscopeservice' is unavailable.`);
+      }
+      return registry;
+    },
+    resolveBrand: async identifier => {
+      const service = sails.services?.brandingservice as
+        { getBrandById?: (id: string) => unknown; getBrand?: (id: string) => unknown } | undefined;
+      const resolved = (await service?.getBrandById?.(identifier)) ?? (await service?.getBrand?.(identifier));
+      return issuerBrandRecord(resolved);
+    },
+  };
+}
 
 export namespace Services {
   type AnyRecord = Record<string, unknown>;
   type DoneCallback = (err: unknown, user?: unknown, info?: unknown) => void;
   const DEFAULT_AAF_ATTRIBUTES_FIELD = 'https://aaf.edu.au/attributes';
   const DEFAULT_AAF_USERNAME_FIELD = 'sub';
+  /** AUTH-P5-002: bounded fan-out for pending-access assignment at signup. */
+  const FIND_ASSIGN_ACCESS_MAX_RECORDS = 500;
   type BcryptLike = {
     compare: (password: string, hash: string, cb: (err: unknown, res: boolean) => void) => void;
     hash: (password: string, saltRounds: number, cb: (err: unknown, hash: string) => void) => void;
@@ -100,6 +140,64 @@ export namespace Services {
     linkedAt?: string | Date;
   }
 
+  /**
+   * AUTH-P5-002: `expectedVersion` is MANDATORY for admin mutations. The
+   * caller-observed `loginDisabledVersion` is pinned into the update
+   * predicate and advanced atomically; omitting it fails closed with 409
+   * instead of performing a blind id-only write.
+   */
+  interface GuardedUserMutationOptions {
+    readonly expectedVersion: number;
+    readonly requestId?: string;
+    readonly reason?: string;
+    readonly actorContext?: AuthorizationContext;
+  }
+
+  interface GuardedRoleSetOptions {
+    readonly brandId?: string;
+    readonly requestId?: string;
+    readonly reason?: string;
+    readonly actorContext?: AuthorizationContext;
+    /**
+     * AUTH-P5-002: mandatory caller-observed user version. The role-set
+     * writer pins it against the user row before delegating to the
+     * per-tuple CAS writer; omission fails closed with 409.
+     */
+    readonly expectedVersion: number;
+  }
+
+  interface GuardedLinkOptions {
+    readonly requestId?: string;
+    readonly reason?: string;
+    readonly actorContext?: AuthorizationContext;
+    readonly primaryExpectedVersion?: number;
+    readonly secondaryExpectedVersion?: number;
+    readonly linkConfirmationToken?: string;
+    readonly linkOperationId?: string;
+  }
+
+  interface GuardedUserMutationActorOptions {
+    readonly actorContext?: AuthorizationContext;
+    readonly requestId?: string;
+    readonly reason?: string;
+    /** AUTH-P5-002: mandatory caller-observed version for admin mutations. */
+    readonly expectedVersion: number;
+  }
+
+  /**
+   * Actor-input shape for service-internal writers (compensator, request
+   * actor resolution) that pin the freshly observed version themselves. The
+   * version stays optional here; request-facing admin mutations use
+   * `GuardedUserMutationActorOptions` (mandatory).
+   */
+  interface GuardedUserMutationActorInput {
+    readonly actorContext?: AuthorizationContext;
+    readonly requestId?: string;
+    readonly reason?: string;
+    readonly expectedVersion?: number;
+    readonly brandId?: string;
+  }
+
   interface UserLinkResponse {
     primary: LinkedUserSummary;
     linkedAccounts: LinkedUserSummary[];
@@ -107,6 +205,40 @@ export namespace Services {
       recordsRewritten: number;
       rolesMerged: number;
     };
+    recordsPending?: boolean;
+    linkOperationId?: string;
+  }
+
+  /**
+   * AUTH-SAGA-001 persisted saga/outbox record shape (durable
+   * `UserMutationOperation` model when available).
+   */
+  interface UserMutationSagaRecord {
+    readonly operationId?: unknown;
+    readonly kind?: unknown;
+    readonly brandId?: unknown;
+    readonly username?: unknown;
+    readonly userId?: unknown;
+    readonly status?: unknown;
+    readonly attemptCount?: unknown;
+    readonly roleIds?: unknown;
+    readonly createdIsNew?: unknown;
+    readonly requestId?: unknown;
+    readonly lastError?: unknown;
+  }
+
+  interface UserMutationSagaState {
+    readonly operationId: string;
+    readonly kind: 'create' | 'update';
+    readonly brandId: string;
+    readonly username: string;
+    readonly userId?: string;
+    readonly status: 'pending' | 'running' | 'completed' | 'failed';
+    readonly attemptCount: number;
+    readonly roleIds: readonly string[];
+    readonly createdIsNew?: boolean;
+    readonly requestId?: string;
+    readonly lastError?: string;
   }
 
   interface UserAuditActor {
@@ -160,6 +292,38 @@ export namespace Services {
    *
    */
   export class Users extends services.Core.Service {
+    /**
+     * AUTH-P5-002 registered internal lifecycle capability. The User model
+     * `afterCreate`/`afterUpdate` hook invokes
+     * `assignAccessToPendingRecordsForLifecycle` on the service instance. It
+     * is attached here — NOT via `_exportedMethods` — so the request-facing
+     * export list stays free of actor-less mutations while the production
+     * loader shim (`ServiceExports['UsersService']`, built without the mocha
+     * export-everything flag) still carries the capability the lifecycle
+     * depends on. Never call from HTTP paths: request flows must use the
+     * guarded writers (`updateUserDetails*`, `setUserKey*`, `linkAccounts`).
+     */
+    public override exports(): Record<string, unknown> {
+      const exported = super.exports();
+      exported['assignAccessToPendingRecordsForLifecycle'] = this.assignAccessToPendingRecordsForLifecycle.bind(this);
+      // AUTH-SAGA-001: the controller drives the durable user-mutation
+      // outbox through the service global. In production the loader shim
+      // only carries `exports()` (+ `_exportedMethods`), so the saga and
+      // saga-compensation entry points are attached here — never via
+      // `_exportedMethods` — to stay off the request-facing export list
+      // while remaining reachable in-process. None of these mint authority:
+      // every mutation they perform still requires a trusted actor.
+      exported['beginUserMutationOperation'] = this.beginUserMutationOperation.bind(this);
+      exported['markUserMutationRunning'] = this.markUserMutationRunning.bind(this);
+      exported['completeUserMutationOperation'] = this.completeUserMutationOperation.bind(this);
+      exported['failUserMutationOperation'] = this.failUserMutationOperation.bind(this);
+      exported['recoverIncompleteUserMutationOperations'] = this.recoverIncompleteUserMutationOperations.bind(this);
+      exported['replayIncompleteUserMutationOperations'] = this.replayIncompleteUserMutationOperations.bind(this);
+      exported['destroyNewlyCreatedUserRecord'] = this.destroyNewlyCreatedUserRecord.bind(this);
+      exported['compensateUserDetailsForBrand'] = this.compensateUserDetailsForBrand.bind(this);
+      return exported;
+    }
+
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'updateUserRoles',
@@ -173,7 +337,10 @@ export namespace Services {
       'findUsersWithName',
       'findUsersWithEmail',
       'findUsersWithQuery',
-      'findAndAssignAccessToRecords',
+      // AUTH-P5-002: the pending-access lifecycle helper is intentionally
+      // absent here (see the `exports()` override above): it carries no actor
+      // or operation scope, so it must never appear on the request-facing
+      // export list. Request paths must use the guarded writers below.
       'getUsers',
       'getUsersForBrand',
       'getUserForBrand',
@@ -212,15 +379,14 @@ export namespace Services {
         throw new Error(`Unable to assign the ${provider} onboarding role.`);
       }
 
-      const scopeService = authorizationScopeRequiredAccess();
       const roleAdministrationService = roleAdministrationAccess();
-      const allowedScopes = scopeService.getRegistry().all.map(scope => scope.key);
+      // AUTH-REQUEST-MUTATION-001: onboarding receives exactly the assignment
+      // scope it needs — no registry-wide grant. createSystemProcessContext
+      // further narrows to brand/system-eligible scopes.
       const operationId = `onboarding:${provider}:${String(brand.id)}:${String(userId)}`;
-      const actor = await new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
-        operationId,
-        String(brand.id),
-        allowedScopes
-      );
+      const actor = await createSystemProcessContextInternal(systemProcessIssuerDeps(), operationId, String(brand.id), [
+        'authorization.assignment.manage',
+      ]);
 
       await roleAdministrationService.grantAssignment({
         actor,
@@ -308,129 +474,6 @@ export namespace Services {
       return (resolved as AnyRecord | null) ?? (user as AnyRecord);
     }
 
-    private async rewriteLinkedRecordAuthorizations(
-      primaryUser: AnyRecord,
-      secondaryUser: AnyRecord,
-      actor: string
-    ): Promise<number> {
-      const secondaryUsername = String(secondaryUser.username ?? '');
-      const secondaryEmail = String(secondaryUser.email ?? '').toLowerCase();
-      const records = await Record.find({
-        or: [
-          { 'authorization.edit': secondaryUsername },
-          { 'authorization.view': secondaryUsername },
-          { 'authorization.editPending': secondaryEmail },
-          { 'authorization.viewPending': secondaryEmail },
-        ],
-      }).meta({
-        enableExperimentalDeepTargets: true,
-      });
-
-      let rewrittenCount = 0;
-      for (const record of records as unknown[]) {
-        const recordObj = _.cloneDeep(record) as AnyRecord;
-        const authorization = (recordObj.authorization ?? {}) as AnyRecord;
-        authorization.edit = _.uniq((authorization.edit ?? []) as string[]);
-        authorization.view = _.uniq((authorization.view ?? []) as string[]);
-        authorization.editPending = ((authorization.editPending ?? []) as string[]).map(email =>
-          String(email).toLowerCase()
-        );
-        authorization.viewPending = ((authorization.viewPending ?? []) as string[]).map(email =>
-          String(email).toLowerCase()
-        );
-        recordObj.authorization = authorization;
-
-        let changed = false;
-        const nextEdit = _.map(authorization.edit as string[], username =>
-          username === secondaryUsername ? String(primaryUser.username ?? '') : username
-        );
-        const nextView = _.map(authorization.view as string[], username =>
-          username === secondaryUsername ? String(primaryUser.username ?? '') : username
-        );
-        if (!_.isEqual(nextEdit, authorization.edit)) {
-          authorization.edit = _.uniq(nextEdit);
-          changed = true;
-        }
-        if (!_.isEqual(nextView, authorization.view)) {
-          authorization.view = _.uniq(nextView);
-          changed = true;
-        }
-
-        if (_.includes(authorization.editPending as string[], secondaryEmail)) {
-          authorization.editPending = _.without(authorization.editPending as string[], secondaryEmail);
-          authorization.edit = _.uniq([...(authorization.edit as string[]), String(primaryUser.username ?? '')]);
-          changed = true;
-        }
-        if (_.includes(authorization.viewPending as string[], secondaryEmail)) {
-          authorization.viewPending = _.without(authorization.viewPending as string[], secondaryEmail);
-          authorization.view = _.uniq([...(authorization.view as string[]), String(primaryUser.username ?? '')]);
-          changed = true;
-        }
-
-        if (changed) {
-          const oid = String(recordObj.redboxOid ?? '');
-          const response = await RecordsService.mutateMetaInternal({
-            actor: { kind: 'service', id: 'UsersService.rewriteLinkedRecordAuthorizations' },
-            authorization: { kind: 'service' },
-            oid,
-            user: { username: actor },
-            triggerPreSaveTriggers: false,
-            triggerPostSaveTriggers: false,
-            mutate: snapshot => {
-              const candidate = snapshot as unknown as AnyRecord;
-              const current = (candidate.authorization ?? {}) as AnyRecord;
-              const edit = _.uniq((current.edit ?? []) as string[]).map(username =>
-                username === secondaryUsername ? String(primaryUser.username ?? '') : username
-              );
-              const view = _.uniq((current.view ?? []) as string[]).map(username =>
-                username === secondaryUsername ? String(primaryUser.username ?? '') : username
-              );
-              const editPending = ((current.editPending ?? []) as string[])
-                .map(email => String(email).toLowerCase())
-                .filter(email => email !== secondaryEmail);
-              const viewPending = ((current.viewPending ?? []) as string[])
-                .map(email => String(email).toLowerCase())
-                .filter(email => email !== secondaryEmail);
-              candidate.authorization = {
-                ...current,
-                edit: _.uniq([
-                  ...edit,
-                  ...(((current.editPending ?? []) as string[]).some(
-                    email => String(email).toLowerCase() === secondaryEmail
-                  )
-                    ? [String(primaryUser.username ?? '')]
-                    : []),
-                ]),
-                view: _.uniq([
-                  ...view,
-                  ...(((current.viewPending ?? []) as string[]).some(
-                    email => String(email).toLowerCase() === secondaryEmail
-                  )
-                    ? [String(primaryUser.username ?? '')]
-                    : []),
-                ]),
-                editPending,
-                viewPending,
-              };
-              return candidate;
-            },
-            retry: { idempotent: true, recomputable: true, maxAttempts: 3 },
-          });
-          if (!response.wasPersisted()) {
-            throw new Error(String(response.message ?? response.outcome));
-          }
-          if (response.outcome === 'saved-with-warnings') {
-            sails.log.warn(`User permission rewrite persisted with warnings for ${String(recordObj.redboxOid ?? '')}`, {
-              requestId: response.requestId,
-            });
-          }
-          rewrittenCount++;
-        }
-      }
-
-      return rewrittenCount;
-    }
-
     private async resolveEffectiveDisabledState(user: UserAttributes): Promise<{
       effectiveLoginDisabled: boolean;
       disabledByPrimaryUserId?: string;
@@ -485,7 +528,223 @@ export namespace Services {
       });
     }
 
-    public async disableUser(userId: string, actor: string, brandId: string): Promise<void> {
+    /**
+     * AUTH-P5-001 module-private verifier. Provenance lives in the internal
+     * `AuthorizationActorIssuer` module closure; verification goes through
+     * its guarded predicate. Never exported: untrusted callers cannot
+     * deep-import an issuer or predicate.
+     */
+    private isTrustedActor(actor: unknown): boolean {
+      try {
+        return isTrustedAuthorizationContextInternal(actor);
+      } catch {
+        return false;
+      }
+    }
+
+    /**
+     * AUTH-ACTOR-001: request-facing mutations fail closed when the trusted
+     * request actor is omitted or forged. Controllers must pass
+     * `req.authorization` (server-built, frozen via `freezeAuthorizationContext`).
+     * Structurally supplied identity/scope arrays are never trusted: unfrozen
+     * (non-server-bound), inactive, anonymous, non-canonical authMethod, or
+     * brand-mismatched contexts are rejected before any authorization, audit,
+     * quorum, or CAS work. Canonical authMethods are `session`, `bearer`
+     * (legacy API token, category `legacy-bearer`), and `internal`
+     * (system-process). Background callers must use the bounded
+     * non-exported `*AsSystemJob` entry points below, never these methods.
+     */
+    private hasProvenScope(actor: AuthorizationContext, scopeKey: string): boolean {
+      const effective: readonly unknown[] = Array.isArray(actor.effectiveScopeKeys) ? actor.effectiveScopeKeys : [];
+      if (!effective.includes(scopeKey)) {
+        return false;
+      }
+      if (actor.principal.authMethod === 'internal') return true;
+      return actor.scopeProvenance.some(provenance => provenance.scopeKey === scopeKey);
+    }
+
+    private requireProvenScope(actor: AuthorizationContext, scopeKey: string): void {
+      if (!this.hasProvenScope(actor, scopeKey)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.scope-denied',
+          403,
+          'The actor lacks the required authorization scope.'
+        );
+      }
+    }
+
+    private requireRequestActor(
+      brandId: string,
+      options?: { readonly actorContext?: AuthorizationContext; readonly requestId?: string }
+    ): { readonly actor: AuthorizationContext; readonly requestId: string } {
+      const actor = options?.actorContext;
+      if (actor === undefined || actor === null || !this.isTrustedActor(actor)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      const principal: unknown = actor.principal;
+      const active =
+        typeof principal === 'object' && principal !== null && 'active' in principal && principal.active === true;
+      const categoryRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'category' in principal ? principal.category : undefined;
+      const category = String(categoryRaw ?? '');
+      const userIdRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'userId' in principal ? principal.userId : undefined;
+      const userId = typeof userIdRaw === 'string' ? userIdRaw.trim() : '';
+      const operationIdRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'operationId' in principal
+          ? principal.operationId
+          : undefined;
+      const operationId = typeof operationIdRaw === 'string' ? operationIdRaw.trim() : '';
+      if (
+        !active ||
+        category === 'anonymous' ||
+        category.length === 0 ||
+        (userId.length === 0 && operationId.length === 0)
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      const authMethodRaw: unknown =
+        typeof principal === 'object' && principal !== null && 'authMethod' in principal
+          ? principal.authMethod
+          : undefined;
+      const authMethod = String(authMethodRaw ?? '');
+      if (!['session', 'bearer', 'internal'].includes(authMethod)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      if (actor.contextType === 'brand') {
+        const brand: unknown = actor.brand;
+        const brandIdRaw: unknown = typeof brand === 'object' && brand !== null && 'id' in brand ? brand.id : undefined;
+        const authorizedRaw: unknown =
+          typeof brand === 'object' && brand !== null && 'authorized' in brand ? brand.authorized : undefined;
+        const actorBrandId = typeof brandIdRaw === 'string' ? String(brandIdRaw) : '';
+        if (actorBrandId !== brandId || authorizedRaw !== true) {
+          throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target was not found.');
+        }
+      }
+      if (!Array.isArray(actor.effectiveScopeKeys)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      return { actor, requestId: options?.requestId ?? crypto.randomUUID() };
+    }
+
+    /**
+     * Bounded non-exported system-job actor factory with per-operation minimum
+     * scopes. Deliberately NOT in `_exportedMethods`: only trusted internal
+     * callers may use the `*AsSystemJob` wrappers below. Each wrapper passes
+     * the minimum scope its guarded writer requires (never the full registry,
+     * never a four-scope bundle), and the operationId names the job for audit
+     * attribution.
+     */
+    private async createSystemJobActor(
+      operationId: string,
+      brandId: string,
+      scopes: readonly string[] = ['user.manage']
+    ): Promise<AuthorizationContext> {
+      return createSystemProcessContextInternal(systemProcessIssuerDeps(), operationId, brandId, scopes);
+    }
+
+    private async guardedUserAccess(
+      userId: string,
+      brandId: string,
+      disabled: boolean,
+      options: GuardedUserMutationOptions
+    ): Promise<{ readonly version: number; readonly changed: boolean }> {
+      const guarded = this.requireRequestActor(brandId, options);
+      const result = (await roleAdministrationAccess().setUserAccess({
+        actor: guarded.actor,
+        brandId,
+        userId,
+        disabled,
+        expectedVersion: options.expectedVersion,
+        requestId: guarded.requestId,
+        reason: options.reason,
+      })) as unknown as {
+        readonly data?: { readonly version?: number };
+        readonly version?: number;
+        readonly changed?: boolean;
+      };
+      const version =
+        typeof result?.version === 'number'
+          ? result.version
+          : typeof result?.data?.version === 'number'
+            ? Number(result.data.version)
+            : 1;
+      return { version, changed: result?.changed === true };
+    }
+
+    /**
+     * Bounded non-exported system-job entry point for trusted background work
+     * (onboarding, scheduled jobs, recovery). Creates a named system-process
+     * context with minimal scopes. Never callable from HTTP: it is a private
+     * method and is deliberately absent from `_exportedMethods`.
+     */
+    /**
+     * AUTH-P5-002: system jobs observe-then-pin like any other writer. When
+     * the job omits the version the current row is read first so the
+     * downstream guarded mutation still receives a mandatory pinned version.
+     */
+    private async resolveSystemJobVersion(
+      userId: string,
+      brandId: string,
+      job: { readonly expectedVersion?: number }
+    ): Promise<number> {
+      if (job.expectedVersion !== undefined) return job.expectedVersion;
+      const target = await firstValueFrom(this.getUserForBrand(userId, brandId));
+      const current = target ?? (await User.findOne({ id: userId }));
+      if (current == null) throw this.opaqueUserNotFound();
+      return this.observedUserVersion(current);
+    }
+
+    private async disableUserAsSystemJob(
+      userId: string,
+      brandId: string,
+      job: { readonly operationId: string; readonly reason?: string; readonly expectedVersion?: number }
+    ): Promise<{ readonly version: number; readonly changed: boolean }> {
+      const actor = await this.createSystemJobActor(job.operationId, brandId);
+      return this.guardedUserAccess(userId, brandId, true, {
+        actorContext: actor,
+        requestId: job.operationId,
+        reason: job.reason,
+        expectedVersion: await this.resolveSystemJobVersion(userId, brandId, job),
+      });
+    }
+
+    private async enableUserAsSystemJob(
+      userId: string,
+      brandId: string,
+      job: { readonly operationId: string; readonly reason?: string; readonly expectedVersion?: number }
+    ): Promise<{ readonly version: number; readonly changed: boolean }> {
+      const actor = await this.createSystemJobActor(job.operationId, brandId);
+      return this.guardedUserAccess(userId, brandId, false, {
+        actorContext: actor,
+        requestId: job.operationId,
+        reason: job.reason,
+        expectedVersion: await this.resolveSystemJobVersion(userId, brandId, job),
+      });
+    }
+
+    public async disableUser(
+      userId: string,
+      actor: string,
+      brandId: string,
+      options: GuardedUserMutationOptions
+    ): Promise<{ readonly version: number; readonly changed: boolean }> {
       const user = await User.findOne({ id: userId });
       if (user == null) {
         throw new Error('User not found');
@@ -493,19 +752,37 @@ export namespace Services {
       if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
         throw new Error('Cannot disable a linked alias user. Disable the primary account instead.');
       }
-      await User.update({ id: userId }).set({ loginDisabled: true });
-      await this.addUserAuditEvent({ username: actor }, 'disable-user', { userId, brandId });
+      // Authorization-critical state change runs through the versioned
+      // guarded mutation (quorum locks, required transaction, audit).
+      const result = await this.guardedUserAccess(
+        String((user as unknown as AnyRecord).id ?? userId),
+        brandId,
+        true,
+        options
+      );
+      void actor;
+      return result;
     }
 
-    public async disableUserForBrand(userId: string, actor: string, brandId: string): Promise<void> {
+    public async disableUserForBrand(
+      userId: string,
+      actor: string,
+      brandId: string,
+      options: GuardedUserMutationOptions
+    ): Promise<{ readonly version: number; readonly changed: boolean }> {
       const target = await firstValueFrom(this.getUserForBrand(userId, brandId));
       if (!target) {
         throw this.opaqueUserNotFound();
       }
-      await this.disableUser(String(target.id ?? userId), actor, brandId);
+      return this.disableUser(String(target.id ?? userId), actor, brandId, options);
     }
 
-    public async enableUser(userId: string, actor: string, brandId: string): Promise<void> {
+    public async enableUser(
+      userId: string,
+      actor: string,
+      brandId: string,
+      options: GuardedUserMutationOptions
+    ): Promise<{ readonly version: number; readonly changed: boolean }> {
       const user = await User.findOne({ id: userId });
       if (user == null) {
         throw new Error('User not found');
@@ -513,16 +790,27 @@ export namespace Services {
       if (String((user as unknown as AnyRecord).accountLinkState ?? 'active') === 'linked-alias') {
         throw new Error('Cannot enable a linked alias user. Enable the primary account instead.');
       }
-      await User.update({ id: userId }).set({ loginDisabled: false });
-      await this.addUserAuditEvent({ username: actor }, 'enable-user', { userId, brandId });
+      const result = await this.guardedUserAccess(
+        String((user as unknown as AnyRecord).id ?? userId),
+        brandId,
+        false,
+        options
+      );
+      void actor;
+      return result;
     }
 
-    public async enableUserForBrand(userId: string, actor: string, brandId: string): Promise<void> {
+    public async enableUserForBrand(
+      userId: string,
+      actor: string,
+      brandId: string,
+      options: GuardedUserMutationOptions
+    ): Promise<{ readonly version: number; readonly changed: boolean }> {
       const target = await firstValueFrom(this.getUserForBrand(userId, brandId));
       if (!target) {
         throw this.opaqueUserNotFound();
       }
-      await this.enableUser(String(target.id ?? userId), actor, brandId);
+      return this.enableUser(String(target.id ?? userId), actor, brandId, options);
     }
 
     private toAuditActor(user: unknown): UserAuditActor {
@@ -2096,10 +2384,904 @@ export namespace Services {
     }
 
     /**
-     * @return User: the newly created user
-     *
+     * AUTH-REQUEST-MUTATION-001: guarded actor-bearing seam for request
+     * mutations that carry no brand scope of their own. Requires a frozen
+     * server-built actor context and canonical authMethod; when a brandId is
+     * supplied the actor must be bound to that brand.
      */
-    public addLocalUser = (username: string, name: string, email: string, password: string): Observable<UserModel> => {
+    private requireMutationActor(options?: GuardedUserMutationActorInput): {
+      readonly actor: AuthorizationContext;
+      readonly requestId: string;
+    } {
+      const actor = options?.actorContext;
+      if (actor === undefined || actor === null || !this.isTrustedActor(actor)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      const brandId = options?.brandId;
+      if (brandId !== undefined && brandId.trim().length > 0) {
+        return this.requireRequestActor(brandId, options);
+      }
+      const mutationPrincipal: unknown = actor.principal;
+      const active =
+        typeof mutationPrincipal === 'object' &&
+        mutationPrincipal !== null &&
+        'active' in mutationPrincipal &&
+        mutationPrincipal.active === true;
+      const categoryRaw: unknown =
+        typeof mutationPrincipal === 'object' && mutationPrincipal !== null && 'category' in mutationPrincipal
+          ? mutationPrincipal.category
+          : undefined;
+      const category = String(categoryRaw ?? '');
+      const userIdRaw: unknown =
+        typeof mutationPrincipal === 'object' && mutationPrincipal !== null && 'userId' in mutationPrincipal
+          ? mutationPrincipal.userId
+          : undefined;
+      const userId = typeof userIdRaw === 'string' ? userIdRaw.trim() : '';
+      const operationIdRaw: unknown =
+        typeof mutationPrincipal === 'object' && mutationPrincipal !== null && 'operationId' in mutationPrincipal
+          ? mutationPrincipal.operationId
+          : undefined;
+      const operationId = typeof operationIdRaw === 'string' ? operationIdRaw.trim() : '';
+      const authMethodRaw: unknown =
+        typeof mutationPrincipal === 'object' && mutationPrincipal !== null && 'authMethod' in mutationPrincipal
+          ? mutationPrincipal.authMethod
+          : undefined;
+      const authMethod = String(authMethodRaw ?? '');
+      if (
+        !active ||
+        category === 'anonymous' ||
+        category.length === 0 ||
+        (userId.length === 0 && operationId.length === 0) ||
+        !['session', 'bearer', 'internal'].includes(authMethod) ||
+        !Array.isArray(actor.effectiveScopeKeys)
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.authentication-required',
+          401,
+          'An active authoritative actor context is required.'
+        );
+      }
+      return { actor, requestId: options?.requestId ?? crypto.randomUUID() };
+    }
+
+    /**
+     * @return User: the newly created user
+     * AUTH-REQUEST-MUTATION-001: request seam. Callers must supply the
+     * server-built actor (`req.authorization`) plus the target brandId; the
+     * raw insert lives in the non-exported `createLocalUserRecord` below.
+     */
+    /**
+     * Operation-specific guarded writer for local-user creation.
+     * Exact scope: `user.manage` (proven, not merely claimed). Writes a
+     * `UserAudit` row attributing the server-issued actor; raw insert stays in
+     * the non-exported `createLocalUserRecord`.
+     */
+    public addLocalUser = (
+      username: string,
+      name: string,
+      email: string,
+      password: string,
+      options?: GuardedUserMutationActorInput & { readonly brandId?: string }
+    ): Observable<UserModel> => {
+      const guarded = this.requireMutationActor(options);
+      this.requireProvenScope(guarded.actor, 'user.manage');
+      const actorId = this.describeGuardedActor(guarded.actor);
+      return this.createLocalUserRecord(username, name, email, password).pipe(
+        flatMap(created => {
+          return from(
+            (async () => {
+              // AUTH-P5-002: audit is part of the create contract. When the
+              // audit write fails the just-created row is compensated
+              // (destroyed) so no unaudited user survives; the audit failure
+              // still throws fail-closed, and a failed compensation is
+              // surfaced (never swallowed) so operators reconcile instead of
+              // observing a silent unaudited row.
+              try {
+                await this.writeGuardedUserAudit(created, 'create-local-user', {
+                  username,
+                  actor: actorId,
+                  requestId: guarded.requestId,
+                });
+              } catch (auditError) {
+                // AUTH-P5-002: version-bound compensation of the row THIS
+                // request created (never a pre-existing row). A failed
+                // compensation is surfaced in the thrown 503 details — never
+                // swallowed — so no unaudited row survives silently.
+                const compensation = await this.destroyNewlyCreatedUserRecord(
+                  String((created as AnyRecord)?.id ?? ''),
+                  guarded.requestId
+                );
+                throw this.auditFailureWithCompensation(auditError, compensation, guarded.requestId);
+              }
+              return created;
+            })()
+          );
+        })
+      );
+    };
+
+    /**
+     * AUTH-P5-007 centralized create-phase compensator. Destroys ONLY a row
+     * this request created: the delete is version-bound to the freshly
+     * created version (1-or-null legacy healing) and verified — a zero-row
+     * result means the row changed under us and reports
+     * `compensation-failed` instead of pretending the rollback happened.
+     * Pre-existing rows are never deleted through this path (callers gate on
+     * created-is-new). Never throws: the outcome string lets controllers
+     * report both the primary failure and the compensation outcome.
+     */
+    public async destroyNewlyCreatedUserRecord(
+      createdId: string,
+      requestId: string
+    ): Promise<'compensated' | 'compensation-failed'> {
+      try {
+        if (createdId.trim().length === 0) return 'compensation-failed';
+        const destroyed = (await firstValueFrom(
+          super.getObservable<unknown[]>(User.destroy(this.versionPinnedUserCriteria(createdId, 1)))
+        )) as unknown[];
+        if (!Array.isArray(destroyed) || destroyed.length === 0) {
+          sails.log.error('UsersService::destroyNewlyCreatedUserRecord() -> version-bound destroy matched nothing', {
+            requestId,
+          });
+          return 'compensation-failed';
+        }
+        return 'compensated';
+      } catch (error) {
+        sails.log.error('UsersService::destroyNewlyCreatedUserRecord() -> destroy failed', {
+          requestId,
+          error: error instanceof Error ? error.message : error,
+        });
+        return 'compensation-failed';
+      }
+    }
+
+    private describeGuardedActor(actor: AuthorizationContext): string {
+      const described: unknown = actor.principal;
+      const userId: unknown =
+        typeof described === 'object' && described !== null && 'userId' in described ? described.userId : undefined;
+      const operationId: unknown =
+        typeof described === 'object' && described !== null && 'operationId' in described
+          ? described.operationId
+          : undefined;
+      if (typeof userId === 'string' && userId.length > 0) return userId;
+      if (typeof operationId === 'string' && operationId.length > 0) return operationId;
+      return 'unknown-actor';
+    }
+
+    private async writeGuardedUserAudit(user: unknown, action: string, context: unknown): Promise<void> {
+      // AUTH-P5-002: fail closed. A mutation without a durable audit trail is
+      // reported as a failure (503) instead of silently succeeding; callers
+      // must treat the operation as unconfirmed and retry idempotently.
+      try {
+        await firstValueFrom(
+          super.getObservable<Record<string, unknown>>(
+            UserAudit.create({
+              username: (user as AnyRecord)?.username ?? (user as AnyRecord)?.id ?? 'unknown',
+              action,
+              additionalContext: JSON.stringify(context ?? {}),
+            } as AnyRecord)
+          )
+        );
+      } catch {
+        throw new AuthorizationAdministrationError(
+          'authorization.audit-unavailable',
+          503,
+          'The user audit trail is unavailable; the mutation was not confirmed.'
+        );
+      }
+    }
+
+    /**
+     * AUTH-P5-002: best-effort exact restore after an audit failure. The
+     * mutation already committed, so leaving it in place would strand an
+     * unaudited row; the prior field values are written back through a
+     * version-pinned predicate (zero-row tolerated, reported as
+     * `restore-conflict`). The restore itself carries no new audit row — it
+     * returns the record to its previously audited state — and the caller
+     * MUST still throw fail-closed with the compensation outcome attached so
+     * operators can reconcile instead of observing a false success.
+     */
+    private async restoreUserFieldsBestEffort(
+      userid: string | number,
+      restore: Record<string, unknown>
+    ): Promise<'restored' | 'restore-conflict' | 'restore-failed'> {
+      try {
+        const fresh = await firstValueFrom(this.getUserWithId(userid));
+        if (!fresh) return 'restore-failed';
+        const observed = this.observedUserVersion(fresh);
+        const updated = await firstValueFrom(
+          this.getObservable<UserModel[]>(
+            User.update(this.versionPinnedUserCriteria(userid, observed), {
+              ...restore,
+              loginDisabledVersion: observed + 1,
+            })
+          )
+        );
+        return this.simpleCallbackRows<UserModel>(updated).length > 0 ? 'restored' : 'restore-conflict';
+      } catch {
+        return 'restore-failed';
+      }
+    }
+
+    /**
+     * AUTH-P5-002: unwraps the `exec`/`simplecb` callback envelope. That
+     * calling convention resolves to the raw callback arguments
+     * `[err, rows]` (NOT the rows array): index 0 is the Waterline error and
+     * index 1 the affected rows. Callers must use this helper — indexing the
+     * envelope directly either resurrects the pre-read row on a CAS miss
+     * (`envelope[0] ?? user`) or audits a null.
+     */
+    private simpleCallbackRows<T>(envelope: unknown): T[] {
+      if (
+        Array.isArray(envelope) &&
+        envelope.length === 2 &&
+        (envelope[0] === null || envelope[0] === undefined) &&
+        Array.isArray(envelope[1])
+      ) {
+        return envelope[1] as T[];
+      }
+      return Array.isArray(envelope) ? (envelope as T[]) : [];
+    }
+
+    private auditFailureWithCompensation(
+      auditError: unknown,
+      compensation: 'restored' | 'restore-conflict' | 'restore-failed' | 'compensated' | 'compensation-failed',
+      requestId: string
+    ): AuthorizationAdministrationError {
+      const detail = auditError instanceof Error ? auditError.message : String(auditError);
+      return new AuthorizationAdministrationError(
+        'authorization.audit-unavailable',
+        503,
+        `The user audit trail is unavailable; the mutation was not confirmed (compensation: ${compensation}).`,
+        { auditFailure: detail, compensation, requestId }
+      );
+    }
+
+    /**
+     * AUTH-P5-002: mandatory caller-observed concurrency version. Admin
+     * mutations MUST pin the version they observed: omitting it (or sending a
+     * non-positive-integer) fails closed with 409 instead of performing a
+     * blind id-only write that could interleave with a concurrent
+     * disable/link mutation.
+     */
+    private assertUserExpectedVersion(user: unknown, expectedVersion: number | undefined): void {
+      if (expectedVersion === undefined) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'An expectedVersion is required to modify user state.'
+        );
+      }
+      if (!Number.isSafeInteger(expectedVersion) || Number(expectedVersion) < 1) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'User state changed concurrently.'
+        );
+      }
+      const record = user as AnyRecord;
+      const current = Number(
+        record.version ?? record.loginDisabledVersion ?? (record.id !== undefined ? 1 : Number.NaN)
+      );
+      if (Number.isSafeInteger(current) && current !== Number(expectedVersion)) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'User state changed concurrently.'
+        );
+      }
+    }
+
+    /**
+     * Non-exported internal version check for service-internal writers
+     * (exact-restore compensator, system jobs) that pin the freshly observed
+     * version themselves. Preserves the legacy optional semantics; every
+     * request-facing admin mutation uses `assertUserExpectedVersion`.
+     */
+    private assertOptionalUserExpectedVersion(user: unknown, expectedVersion: number | undefined): void {
+      if (expectedVersion === undefined) return;
+      this.assertUserExpectedVersion(user, expectedVersion);
+    }
+
+    /**
+     * AUTH-P5-002: caller-observed concurrency version for atomic update
+     * predicates. Legacy rows without any version read as 1 (fail closed on
+     * unreadable versions is handled by pinning, never by blind id-only
+     * writes in the guarded paths).
+     */
+    private observedUserVersion(user: unknown): number {
+      const record = user as AnyRecord;
+      const current = Number(
+        record.version ?? record.loginDisabledVersion ?? (record.id !== undefined ? 1 : Number.NaN)
+      );
+      return Number.isSafeInteger(current) && current >= 1 ? current : 1;
+    }
+
+    /**
+     * AUTH-P5-002: atomic compare-and-set predicate. The pre-read version is
+     * pinned INTO the update criteria (with legacy null-healing for version
+     * 1) so a concurrent disable/link mutation aborts the write instead of
+     * interleaving with it. An empty update result must be treated as a
+     * version conflict by the caller.
+     */
+    private versionPinnedUserCriteria(userid: string | number, observedVersion: number): Record<string, unknown> {
+      if (observedVersion === 1) {
+        return {
+          id: userid,
+          or: [{ loginDisabledVersion: 1 }, { loginDisabledVersion: null }],
+        };
+      }
+      return { id: userid, loginDisabledVersion: observedVersion };
+    }
+
+    /**
+     * AUTH-SAGA-001 persisted restart-safe saga/outbox for user
+     * create/update + role-assignment composites. The profile row and the
+     * assignment rows share the default datastore, but the legacy
+     * `User.create` callback seam cannot join the assignment writer's
+     * required transaction in-request. Every composite therefore persists a
+     * saga row BEFORE mutating (outbox), transitions it with CAS
+     * (pending -> running -> completed/failed, attempt-count fenced), and
+     * replays it via `replayIncompleteUserMutationOperations` so a restarted
+     * process resumes the stored plan (`roleIds`, `createdIsNew`, `userId`)
+     * or compensates instead of losing it.
+     *
+     * Fail-closed durability: when the durable `UserMutationOperation` model
+     * is unavailable in a lifted server runtime every saga entry point
+     * throws `authorization.saga-unavailable` (503) and controllers abort
+     * BEFORE mutating — persistence failures never fall back to in-process
+     * state. The process-local mirror below exists ONLY for reduced runtimes
+     * without a lifted Sails environment (unit fakes); it is never
+     * durability proof — only the shipped model + unique index is.
+     */
+    private userMutationSagaMirror = new Map<string, UserMutationSagaState>();
+
+    private userMutationOperationModel(): Sails.Model<UserMutationSagaRecord> | undefined {
+      const candidate: unknown = typeof UserMutationOperation !== 'undefined' ? UserMutationOperation : undefined;
+      if (typeof candidate !== 'object' || candidate === null) return undefined;
+      if (!('findOne' in candidate) || !('create' in candidate) || !('update' in candidate)) return undefined;
+      return candidate as Sails.Model<UserMutationSagaRecord>;
+    }
+
+    /**
+     * AUTH-SAGA-001 reduced-runtime detector. The mirror is allowed only
+     * when no Sails environment is lifted (unit fakes) or the lifted
+     * environment is explicitly `test`. A lifted non-test server without the
+     * durable model fails closed via `requireUserMutationOperationModel`.
+     */
+    private isSagaMemoryMirrorAllowed(): boolean {
+      try {
+        if (typeof sails === 'undefined') return true;
+        const environment: unknown = sails.config?.environment;
+        if (environment === undefined || environment === null) return true;
+        return String(environment) === 'test';
+      } catch {
+        return false;
+      }
+    }
+
+    private sagaUnavailableError(): AuthorizationAdministrationError {
+      return new AuthorizationAdministrationError(
+        'authorization.saga-unavailable',
+        503,
+        'The user mutation saga store is unavailable; the mutation was not confirmed.'
+      );
+    }
+
+    private boundedSagaRoleIds(roleIds: readonly string[] | undefined): string[] {
+      if (roleIds === undefined) return [];
+      return [...new Set(roleIds.map(roleId => String(roleId)).filter(roleId => roleId.length > 0))]
+        .sort()
+        .slice(0, 500);
+    }
+
+    public async beginUserMutationOperation(input: {
+      readonly operationId: string;
+      readonly kind: 'create' | 'update';
+      readonly brandId: string;
+      readonly username: string;
+      readonly roleIds?: readonly string[];
+      readonly requestId?: string;
+    }): Promise<UserMutationSagaState> {
+      const operationId = String(input.operationId ?? '').trim();
+      const brandId = String(input.brandId ?? '').trim();
+      const username = String(input.username ?? '').trim();
+      if (operationId.length === 0 || brandId.length === 0 || username.length === 0) {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-query',
+          400,
+          'A saga operation requires kind, brand, and username.'
+        );
+      }
+      if (input.kind !== 'create' && input.kind !== 'update') {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-query',
+          400,
+          'A saga operation kind must be create or update.'
+        );
+      }
+      const roleIds = this.boundedSagaRoleIds(input.roleIds);
+      const model = this.userMutationOperationModel();
+      if (model === undefined) {
+        // AUTH-SAGA-001 fail-closed: a lifted non-test server without the
+        // durable model never falls back to in-process state; it aborts
+        // BEFORE any profile mutation so callers send 503 with nothing
+        // stored. The mirror below runs only in reduced unit-test runtimes.
+        if (!this.isSagaMemoryMirrorAllowed()) throw this.sagaUnavailableError();
+        const existing = this.userMutationSagaMirror.get(operationId);
+        if (existing !== undefined) return existing;
+        const state: UserMutationSagaState = {
+          operationId,
+          kind: input.kind,
+          brandId,
+          username,
+          status: 'pending',
+          attemptCount: 0,
+          roleIds,
+          requestId: input.requestId,
+        };
+        this.userMutationSagaMirror.set(operationId, state);
+        return state;
+      }
+      const existing = (await model.findOne({ operationId })) as UserMutationSagaRecord | null;
+      if (existing !== null && existing !== undefined) {
+        return this.toUserMutationSagaState(existing);
+      }
+      try {
+        const created = (await model.create({
+          operationId,
+          kind: input.kind,
+          brandId,
+          username,
+          status: 'pending',
+          attemptCount: 0,
+          roleIds,
+          requestId: input.requestId,
+        })) as UserMutationSagaRecord;
+        return this.toUserMutationSagaState(created);
+      } catch (error) {
+        if (this.isUniqueConstraintViolation(error)) {
+          const raced = (await model.findOne({ operationId })) as UserMutationSagaRecord | null;
+          if (raced !== null && raced !== undefined) return this.toUserMutationSagaState(raced);
+        }
+        throw error;
+      }
+    }
+
+    public async markUserMutationRunning(operationId: string, maxAttempts = 5): Promise<UserMutationSagaState> {
+      const id = String(operationId ?? '').trim();
+      if (id.length === 0) {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-query',
+          400,
+          'A saga operation id is required.'
+        );
+      }
+      const model = this.userMutationOperationModel();
+      if (model === undefined) {
+        // AUTH-SAGA-001 fail-closed mirror gate (see begin): lifted
+        // non-test servers without the durable model abort instead of
+        // fencing attempts in-process.
+        if (!this.isSagaMemoryMirrorAllowed()) throw this.sagaUnavailableError();
+        const current = this.userMutationSagaMirror.get(id);
+        if (current === undefined) {
+          throw new AuthorizationAdministrationError(
+            'authorization.not-found',
+            404,
+            'The saga operation was not found.'
+          );
+        }
+        if (current.status !== 'pending' && current.status !== 'running') return current;
+        if (current.attemptCount >= maxAttempts) {
+          throw new AuthorizationAdministrationError(
+            'authorization.bulk-invalid',
+            422,
+            'The saga operation exceeded its retry budget.'
+          );
+        }
+        const next: UserMutationSagaState = { ...current, status: 'running', attemptCount: current.attemptCount + 1 };
+        this.userMutationSagaMirror.set(id, next);
+        return next;
+      }
+      const current = (await model.findOne({ operationId: id })) as UserMutationSagaRecord | null;
+      if (current === null || current === undefined) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The saga operation was not found.');
+      }
+      const currentState = this.toUserMutationSagaState(current);
+      if (currentState.status === 'completed' || currentState.status === 'failed') return currentState;
+      if (currentState.attemptCount >= maxAttempts) {
+        throw new AuthorizationAdministrationError(
+          'authorization.bulk-invalid',
+          422,
+          'The saga operation exceeded its retry budget.'
+        );
+      }
+      const updated = (await model.update(
+        { operationId: id, attemptCount: currentState.attemptCount },
+        { status: 'running', attemptCount: currentState.attemptCount + 1 }
+      )) as UserMutationSagaRecord[];
+      if (!Array.isArray(updated) || updated.length === 0) {
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The saga operation changed under this attempt.'
+        );
+      }
+      return this.toUserMutationSagaState(updated[0]);
+    }
+
+    public async completeUserMutationOperation(
+      operationId: string,
+      patch?: { readonly userId?: string; readonly createdIsNew?: boolean },
+      expectedAttemptCount?: number
+    ): Promise<UserMutationSagaState> {
+      return this.finishUserMutationOperation(operationId, 'completed', undefined, patch, expectedAttemptCount);
+    }
+
+    public async failUserMutationOperation(
+      operationId: string,
+      lastError: string,
+      expectedAttemptCount?: number
+    ): Promise<UserMutationSagaState> {
+      return this.finishUserMutationOperation(
+        operationId,
+        'failed',
+        String(lastError ?? '').slice(0, 1000),
+        undefined,
+        expectedAttemptCount
+      );
+    }
+
+    private async finishUserMutationOperation(
+      operationId: string,
+      status: 'completed' | 'failed',
+      lastError: string | undefined,
+      patch: { readonly userId?: string; readonly createdIsNew?: boolean } | undefined,
+      expectedAttemptCount?: number
+    ): Promise<UserMutationSagaState> {
+      const id = String(operationId ?? '').trim();
+      if (id.length === 0) {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-query',
+          400,
+          'A saga operation id is required.'
+        );
+      }
+      if (
+        expectedAttemptCount !== undefined &&
+        (!Number.isSafeInteger(expectedAttemptCount) || expectedAttemptCount < 0)
+      ) {
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-query',
+          400,
+          'A saga attempt fence must be a non-negative attempt count.'
+        );
+      }
+      const model = this.userMutationOperationModel();
+      if (model === undefined) {
+        // AUTH-SAGA-001 fail-closed mirror gate (see begin).
+        if (!this.isSagaMemoryMirrorAllowed()) throw this.sagaUnavailableError();
+        const current = this.userMutationSagaMirror.get(id);
+        if (current === undefined) {
+          throw new AuthorizationAdministrationError(
+            'authorization.not-found',
+            404,
+            'The saga operation was not found.'
+          );
+        }
+        // AUTH-SAGA-REMEDIATION fenced terminal: a terminal row is
+        // idempotent; a stale attempt on a running row is a lost race
+        // (409) and never overwrites the claimed attempt.
+        if (current.status === 'completed' || current.status === 'failed') return current;
+        if (expectedAttemptCount !== undefined) {
+          if (current.attemptCount !== expectedAttemptCount || current.status !== 'running') {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'The saga operation changed under this attempt.'
+            );
+          }
+        }
+        const next: UserMutationSagaState = {
+          ...current,
+          status,
+          ...(lastError === undefined ? {} : { lastError }),
+          ...(patch?.userId === undefined ? {} : { userId: patch.userId }),
+          ...(patch?.createdIsNew === undefined ? {} : { createdIsNew: patch.createdIsNew }),
+        };
+        this.userMutationSagaMirror.set(id, next);
+        return next;
+      }
+      if (expectedAttemptCount === undefined) {
+        // AUTH-SAGA-REMEDIATION fenced terminal default: an unfenced caller
+        // never performs a blind operationId-only overwrite. The current row
+        // is read first; terminal rows are idempotent, otherwise the write is
+        // pinned on the freshly read attempt count + running status so a
+        // concurrent claim cannot be silently overwritten.
+        const current = (await model.findOne({ operationId: id })) as UserMutationSagaRecord | null;
+        if (current === null || current === undefined) {
+          throw new AuthorizationAdministrationError(
+            'authorization.not-found',
+            404,
+            'The saga operation was not found.'
+          );
+        }
+        const currentState = this.toUserMutationSagaState(current);
+        if (currentState.status === 'completed' || currentState.status === 'failed') return currentState;
+        const fenced = (await model.update(
+          { operationId: id, attemptCount: currentState.attemptCount, status: 'running' },
+          {
+            status,
+            ...(lastError === undefined ? {} : { lastError }),
+            ...(patch?.userId === undefined ? {} : { userId: patch.userId }),
+            ...(patch?.createdIsNew === undefined ? {} : { createdIsNew: patch.createdIsNew }),
+          }
+        )) as UserMutationSagaRecord[];
+        if (Array.isArray(fenced) && fenced.length > 0) return this.toUserMutationSagaState(fenced[0]);
+        const raced = (await model.findOne({ operationId: id })) as UserMutationSagaRecord | null;
+        if (raced !== null && raced !== undefined) {
+          const racedState = this.toUserMutationSagaState(raced);
+          if (racedState.status === 'completed' || racedState.status === 'failed') return racedState;
+        }
+        throw new AuthorizationAdministrationError(
+          'authorization.version-conflict',
+          409,
+          'The saga operation changed under this attempt.'
+        );
+      }
+      // AUTH-SAGA-REMEDIATION fenced terminal write: the claimed attempt
+      // (operationId + attemptCount + running status) is pinned INTO the
+      // update predicate so a stale or retried attempt cannot overwrite the
+      // terminal state written by the winner. Terminal rows are idempotent.
+      const fenced = (await model.update(
+        { operationId: id, attemptCount: expectedAttemptCount, status: 'running' },
+        {
+          status,
+          ...(lastError === undefined ? {} : { lastError }),
+          ...(patch?.userId === undefined ? {} : { userId: patch.userId }),
+          ...(patch?.createdIsNew === undefined ? {} : { createdIsNew: patch.createdIsNew }),
+        }
+      )) as UserMutationSagaRecord[];
+      if (Array.isArray(fenced) && fenced.length > 0) return this.toUserMutationSagaState(fenced[0]);
+      const current = (await model.findOne({ operationId: id })) as UserMutationSagaRecord | null;
+      if (current === null || current === undefined) {
+        throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The saga operation was not found.');
+      }
+      const currentState = this.toUserMutationSagaState(current);
+      if (currentState.status === 'completed' || currentState.status === 'failed') return currentState;
+      throw new AuthorizationAdministrationError(
+        'authorization.version-conflict',
+        409,
+        'The saga operation changed under this attempt.'
+      );
+    }
+
+    /**
+     * AUTH-SAGA-001 recovery: lists resumable (pending/running) saga rows so
+     * a restarted process can replay them via
+     * `replayIncompleteUserMutationOperations`. Terminal rows are never
+     * returned; replay consumes ONLY the stored plan (`roleIds`,
+     * `createdIsNew`, `userId`). Fail-closed when the durable store is
+     * unavailable in a lifted non-test runtime (see begin).
+     */
+    public async recoverIncompleteUserMutationOperations(limit = 50): Promise<readonly UserMutationSagaState[]> {
+      const bounded = Number.isSafeInteger(limit) && limit >= 1 ? Math.min(Number(limit), 200) : 50;
+      const model = this.userMutationOperationModel();
+      if (model === undefined) {
+        if (!this.isSagaMemoryMirrorAllowed()) throw this.sagaUnavailableError();
+        return [...this.userMutationSagaMirror.values()]
+          .filter(state => state.status === 'pending' || state.status === 'running')
+          .sort((left, right) => left.operationId.localeCompare(right.operationId))
+          .slice(0, bounded);
+      }
+      const query: unknown = model.find({
+        or: [{ status: 'pending' }, { status: 'running' }],
+      });
+      const limited: unknown =
+        typeof query === 'object' && query !== null && 'limit' in query
+          ? await (query as { limit(value: number): Promise<unknown> }).limit(bounded)
+          : await (query as Promise<unknown>);
+      if (!Array.isArray(limited)) return [];
+      return (limited as UserMutationSagaRecord[]).map(record => this.toUserMutationSagaState(record));
+    }
+
+    /**
+     * AUTH-SAGA-001 restart-safe replay/compensation. Claims every resumable
+     * (pending/running) saga row with the CAS attempt fence
+     * (`markUserMutationRunning`), then re-drives ONLY the stored plan:
+     *
+     * - the default replayer (`replayStoredUserMutationPlan`) resolves the
+     *   user row (`userId`, else username-in-brand), re-applies the stored
+     *   `roleIds` through the guarded role-set writer under a bounded
+     *   system-process actor (observe-then-pin version, idempotent grants),
+     *   and completes the row with the resolved `userId`/`createdIsNew`;
+     * - a caller-supplied `onReplay` may replace the default (tests, brand
+     *   jobs); it receives the claimed state and must use only stored fields;
+     * - a failed replay marks the row `failed` with the truncated detail. For
+     *   `create` rows this request created (`createdIsNew`), the orphan
+     *   profile row is compensated through the version-bound destroy and
+     *   BOTH outcomes are recorded in `lastError` — never suppressed.
+     *
+     * Claiming is idempotent across restarts: a row already terminal is
+     * returned as-is, a lost CAS race (409, another worker claimed it) is
+     * skipped, and an exhausted retry budget marks the row failed instead of
+     * retrying forever. Fail-closed when the durable store is unavailable
+     * in a lifted non-test runtime (inherited from recover/mark/finish).
+     */
+    public async replayIncompleteUserMutationOperations(options?: {
+      readonly limit?: number;
+      readonly maxAttempts?: number;
+      readonly onReplay?: (
+        state: UserMutationSagaState
+      ) => Promise<{ readonly userId?: string; readonly createdIsNew?: boolean } | void>;
+    }): Promise<readonly UserMutationSagaState[]> {
+      const limit = Number.isSafeInteger(options?.limit) ? Number(options?.limit) : 50;
+      const maxAttempts = Number.isSafeInteger(options?.maxAttempts) ? Number(options?.maxAttempts) : 5;
+      const resumable = await this.recoverIncompleteUserMutationOperations(limit);
+      const ordered = [...resumable].sort((left, right) => left.operationId.localeCompare(right.operationId));
+      const settled: UserMutationSagaState[] = [];
+      for (const state of ordered) {
+        let claimed: UserMutationSagaState;
+        try {
+          claimed = await this.markUserMutationRunning(state.operationId, maxAttempts);
+        } catch (claimError) {
+          const code: unknown =
+            typeof claimError === 'object' && claimError !== null && 'code' in claimError ? claimError.code : undefined;
+          if (code === 'authorization.bulk-invalid') {
+            settled.push(
+              await this.failUserMutationOperation(
+                state.operationId,
+                'The saga operation exceeded its retry budget before replay.'
+              )
+            );
+            continue;
+          }
+          if (code === 'authorization.version-conflict') continue;
+          throw claimError;
+        }
+        if (claimed.status === 'completed' || claimed.status === 'failed') {
+          settled.push(claimed);
+          continue;
+        }
+        try {
+          const patch =
+            options?.onReplay !== undefined
+              ? await options.onReplay(claimed)
+              : await this.replayStoredUserMutationPlan(claimed);
+          settled.push(
+            await this.completeUserMutationOperation(
+              claimed.operationId,
+              {
+                ...(claimed.userId === undefined && patch?.userId === undefined
+                  ? {}
+                  : { userId: String(patch?.userId ?? claimed.userId) }),
+                ...(claimed.createdIsNew === undefined && patch?.createdIsNew === undefined
+                  ? {}
+                  : { createdIsNew: patch?.createdIsNew ?? claimed.createdIsNew }),
+              },
+              claimed.attemptCount
+            )
+          );
+        } catch (replayError) {
+          const detail = String(
+            replayError instanceof Error ? replayError.message : (replayError ?? 'Saga replay failed.')
+          ).slice(0, 700);
+          let compensationSuffix = '';
+          if (claimed.kind === 'create' && claimed.createdIsNew === true && claimed.userId !== undefined) {
+            const compensation = await this.destroyNewlyCreatedUserRecord(
+              claimed.userId,
+              claimed.requestId ?? `saga-replay:${claimed.operationId}`
+            );
+            compensationSuffix = ` Compensation: ${compensation}.`;
+          }
+          settled.push(
+            await this.failUserMutationOperation(
+              claimed.operationId,
+              `${detail}.${compensationSuffix}`.slice(0, 1000),
+              claimed.attemptCount
+            )
+          );
+        }
+      }
+      return settled;
+    }
+
+    /**
+     * AUTH-SAGA-001 default stored-plan replayer. Resolves the user row for
+     * the claimed saga (stored `userId`, else username constrained to the
+     * stored brand — never a cross-brand row), then re-applies the stored
+     * `roleIds` through the guarded role-set writer under a bounded
+     * system-process actor with the freshly observed version pinned. A row
+     * without role work resolves to its `userId` so the caller completes it;
+     * a row without any resolvable user throws so the caller fails it
+     * (and compensates when this request created it).
+     */
+    private async replayStoredUserMutationPlan(
+      state: UserMutationSagaState
+    ): Promise<{ readonly userId?: string; readonly createdIsNew?: boolean }> {
+      const requestId = state.requestId ?? `saga-replay:${state.operationId}`;
+      let userId = state.userId;
+      if (userId === undefined) {
+        // AUTH-SAGA-001 reduced-runtime guard: without a lifted User store
+        // there is no resolvable row, so fail with the controlled detail
+        // (never a leaked `User is not defined` ReferenceError).
+        if (typeof User === 'undefined') {
+          throw new Error('Replay found no user row for the stored saga plan.');
+        }
+        let candidate: UserModel | null = null;
+        try {
+          candidate = await firstValueFrom(this.getUserWithUsername(state.username));
+        } catch {
+          throw new Error('Replay found no user row for the stored saga plan.');
+        }
+        if (candidate != null && (await this.userBelongsToBrand(candidate, state.brandId))) {
+          userId = String((candidate as AnyRecord).id ?? '');
+        }
+      }
+      if (userId === undefined || userId.length === 0) {
+        throw new Error('Replay found no user row for the stored saga plan.');
+      }
+      if (state.roleIds.length === 0) {
+        return { userId, createdIsNew: state.createdIsNew ?? (state.kind === 'create' ? undefined : false) };
+      }
+      const actor = await this.createSystemJobActor(`saga-replay:${state.operationId}`, state.brandId, [
+        'user.manage',
+        'authorization.assignment.manage',
+      ]);
+      const target = await firstValueFrom(this.getUserForBrand(userId, state.brandId));
+      const current = target ?? (await User.findOne({ id: userId }));
+      if (current == null) throw new Error('Replay found no user row for the stored saga plan.');
+      await this.applyUserRoleAssignments(userId, [...state.roleIds], {
+        brandId: state.brandId,
+        actorContext: actor,
+        requestId,
+        expectedVersion: this.observedUserVersion(current),
+        reason: `Saga replay of ${state.operationId}.`,
+      });
+      return { userId, createdIsNew: state.createdIsNew ?? (state.kind === 'create' ? undefined : false) };
+    }
+
+    private toUserMutationSagaState(record: UserMutationSagaRecord): UserMutationSagaState {
+      const roleIds = Array.isArray(record.roleIds) ? record.roleIds.map(value => String(value)) : [];
+      const status =
+        record.status === 'completed' || record.status === 'failed' || record.status === 'running'
+          ? record.status
+          : 'pending';
+      const kind = record.kind === 'update' ? 'update' : 'create';
+      return {
+        operationId: String(record.operationId ?? ''),
+        kind,
+        brandId: String(record.brandId ?? ''),
+        username: String(record.username ?? ''),
+        ...(record.userId === undefined ? {} : { userId: String(record.userId) }),
+        status,
+        attemptCount: Number.isSafeInteger(record.attemptCount) ? Number(record.attemptCount) : 0,
+        roleIds,
+        ...(record.createdIsNew === undefined ? {} : { createdIsNew: record.createdIsNew === true }),
+        ...(record.requestId === undefined ? {} : { requestId: String(record.requestId) }),
+        ...(record.lastError === undefined ? {} : { lastError: String(record.lastError) }),
+      };
+    }
+
+    private isUniqueConstraintViolation(error: unknown): boolean {
+      if (typeof error !== 'object' || error === null) return false;
+      const code: unknown = 'code' in error ? error.code : undefined;
+      if (code === 'E_UNIQUE') return true;
+      const message = error instanceof Error ? error.message : String(error);
+      return message.includes('E_UNIQUE') || message.includes('duplicate key');
+    }
+
+    /** Non-exported raw storage helper. Never callable from HTTP directly. */
+    private createLocalUserRecord = (
+      username: string,
+      name: string,
+      email: string,
+      password: string
+    ): Observable<UserModel> => {
       const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
       const usernameField = authConfig.local?.usernameField ?? 'username';
       const passwordField = authConfig.local?.passwordField ?? 'password';
@@ -2422,7 +3604,8 @@ export namespace Services {
       primaryUserId: string,
       secondaryUserId: string,
       actor: string,
-      brandId: string
+      brandId: string,
+      options: GuardedLinkOptions = {}
     ): Observable<UserLinkResponse> => {
       return from(
         (async () => {
@@ -2430,200 +3613,111 @@ export namespace Services {
             throw new Error('Both primary and secondary users are required');
           }
 
+          // Resolve candidates for record-authorization rewrite targeting. All
+          // authorization-critical validation re-runs authoritatively inside
+          // the guarded link transaction below.
           const primaryEffective = await firstValueFrom(this.getEffectiveUser(primaryUserId));
           const secondaryUser = await firstValueFrom(this.getUserWithId(secondaryUserId));
           if (_.isEmpty(primaryEffective) || _.isEmpty(secondaryUser)) {
             throw this.opaqueUserNotFound();
           }
 
-          const primaryUser = primaryEffective as UserModel;
-          const secondaryUserObj = secondaryUser as UserModel;
-          this.normalizeAccountLinkState(primaryUser);
-          this.normalizeAccountLinkState(secondaryUserObj);
-
-          const primaryDisabledState = await this.resolveEffectiveDisabledState(primaryUser);
-          if (primaryDisabledState.effectiveLoginDisabled) {
-            throw new Error('Cannot link accounts: primary user is disabled');
-          }
-
+          const primaryUser = primaryEffective as unknown as AnyRecord;
+          const secondaryUserObj = secondaryUser as unknown as AnyRecord;
           if (String(primaryUser.id ?? '') === String(secondaryUserObj.id ?? '')) {
             throw new Error('Cannot link a user to itself');
           }
-          if (String(primaryUser.accountLinkState ?? 'active') === 'linked-alias') {
-            throw new Error('Primary user cannot be a linked alias');
-          }
-          if (
-            !_.isEmpty(secondaryUserObj.linkedPrimaryUserId) &&
-            String(secondaryUserObj.linkedPrimaryUserId) !== String(primaryUser.id ?? '')
-          ) {
-            throw new Error('Secondary user is already linked to another primary account');
-          }
-          if (!this.hasRoleInBrand(primaryUser, brandId)) {
-            throw this.opaqueUserNotFound();
-          }
-
-          const secondaryBrandRoles = this.getRolesForBrand(secondaryUserObj, brandId);
-          const secondaryForeignRoles = _.filter((secondaryUserObj.roles as unknown[]) ?? [], (role: unknown) => {
-            const roleObj = role as AnyRecord;
-            const branding = roleObj.branding as string | AnyRecord | undefined;
-            const roleBrandId = _.isObject(branding)
-              ? String((branding as AnyRecord).id ?? '')
-              : String(branding ?? '');
-            return roleBrandId !== brandId;
+          // The human actor username travels via the guarded actor context and
+          // legacy audit inside the writer; the positional actor string is
+          // retained for route compatibility only and is never trusted for
+          // authorization. AUTH-ACTOR-001: the trusted actor MUST be supplied
+          // via options.actorContext (req.authorization); omission fails closed.
+          void actor;
+          // Cross-store protocol (AUTH-TXN-001): authorization state commits in
+          // the guarded writer transaction first; linked-record rewrites run
+          // afterwards on the separate Record datastore with brand/revision
+          // predicates and drift reporting. No record write occurs here.
+          const guarded = this.requireRequestActor(brandId, {
+            actorContext: options.actorContext,
+            requestId: options.requestId ?? `account-link:${brandId}:${String(primaryUser.id ?? primaryUserId)}`,
           });
-          if (!_.isEmpty(secondaryForeignRoles)) {
-            throw this.opaqueUserNotFound();
-          }
-
-          const existingLink =
-            typeof UserLink !== 'undefined'
-              ? await UserLink.findOne({ secondaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
-              : null;
-          if (!_.isEmpty(existingLink)) {
-            throw new Error('Secondary user is already linked');
-          }
-
-          const secondaryOwnLinks =
-            typeof UserLink !== 'undefined'
-              ? await UserLink.findOne({ primaryUserId: String(secondaryUserObj.id ?? ''), status: 'active' })
-              : null;
-          if (!_.isEmpty(secondaryOwnLinks)) {
-            throw new Error('Secondary user already has linked accounts');
-          }
-
-          if (typeof UserLink !== 'undefined') {
-            await UserLink.create({
-              primaryUserId: String(primaryUser.id ?? ''),
-              primaryUsername: String(primaryUser.username ?? ''),
-              secondaryUserId: String(secondaryUserObj.id ?? ''),
-              secondaryUsername: String(secondaryUserObj.username ?? ''),
-              brandId: brandId,
-              status: 'active',
-              createdBy: actor,
-            });
-          }
-
-          const primaryBrandRoleIds = new Set(
-            _.map(this.getRolesForBrand(primaryUser, brandId), (role: unknown) => String((role as AnyRecord).id ?? ''))
-          );
-          const secondaryBrandRoleIds = _.map(secondaryBrandRoles, (role: unknown) =>
-            String((role as AnyRecord).id ?? '')
-          );
-          const roleIdsToMerge = _.filter(secondaryBrandRoleIds, roleId => !primaryBrandRoleIds.has(roleId));
-          const roleAdministrationService = roleAdministrationAccess();
-          const scopeService = authorizationScopeRequiredAccess();
-          const allowedScopes = scopeService.getRegistry().all.map(scope => scope.key);
-          const linkOperationId = `account-link:${brandId}:${String(primaryUser.id ?? '')}`;
-          const linkActor = await new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
-            linkOperationId,
+          const linkResult = (await roleAdministrationAccess().linkUserAccounts({
+            actor: guarded.actor,
             brandId,
-            allowedScopes
-          );
-          // Canonicalize assignment ownership to the primary account through the
-          // guarded writer so quorum and delegation invariants are rechecked.
-          for (const role of _.filter(
-            secondaryBrandRoles,
-            (role: unknown) => !primaryBrandRoleIds.has(String((role as AnyRecord).id ?? ''))
-          )) {
-            const roleObj = role as AnyRecord;
-            await roleAdministrationService.grantAssignment({
-              actor: linkActor,
-              brandId,
-              principalId: String(primaryUser.id ?? ''),
-              roleKey: String(roleObj.key ?? roleObj.name),
-              source: 'manual',
-              sourceKey: 'manual',
-              requestId: linkOperationId,
-            });
-          }
-
-          const retainedSecondaryRoleIds = _.map(
-            _.filter((secondaryUserObj.roles as unknown[]) ?? [], (role: unknown) => {
-              const roleObj = role as AnyRecord;
-              const branding = roleObj.branding as string | AnyRecord | undefined;
-              const roleBrandId = _.isObject(branding)
-                ? String((branding as AnyRecord).id ?? '')
-                : String(branding ?? '');
-              return roleBrandId !== brandId;
-            }),
-            (role: unknown) => String((role as AnyRecord).id ?? '')
-          );
-          // Retire the secondary's in-brand assignments now that the primary
-          // holds the merged authority; source tuples are revoked individually
-          // so provenance and suppression survive the canonicalization.
-          for (const role of secondaryBrandRoles) {
-            const roleObj = role as AnyRecord;
-            const assignmentResult =
-              typeof RoleAssignment !== 'undefined'
-                ? await RoleAssignment.find({
-                    principalType: 'user',
-                    principalId: String(secondaryUserObj.id ?? ''),
-                    role: String(roleObj.id ?? ''),
-                  })
-                : undefined;
-            const assignmentRows: AnyRecord[] = Array.isArray(assignmentResult)
-              ? (assignmentResult as unknown as AnyRecord[])
-              : [];
-            for (const row of assignmentRows) {
-              if (String(row.status ?? '') === 'revoked') {
-                continue;
-              }
-              try {
-                await roleAdministrationService.revokeAssignment({
-                  actor: linkActor,
-                  brandId,
-                  principalId: String(secondaryUserObj.id ?? ''),
-                  roleKey: String(roleObj.key ?? roleObj.name),
-                  source: String(row.source ?? 'manual'),
-                  sourceKey: String(row.sourceKey ?? 'manual'),
-                  expectedVersion: Number(row.version ?? 1),
-                  requestId: linkOperationId,
-                });
-              } catch (error) {
-                if ((error as { code?: string }).code !== 'authorization.not-found') {
-                  throw error;
-                }
-              }
-            }
-          }
-          const replaceRoleQuery = User.replaceCollection(String(secondaryUserObj.id ?? ''), 'roles').members(
-            retainedSecondaryRoleIds
-          );
-          await firstValueFrom(this.getObservable(replaceRoleQuery, 'exec', 'simplecb'));
-
-          await User.update({ id: String(secondaryUserObj.id ?? '') }).set({
-            token: '',
-            accountLinkState: 'linked-alias',
-            linkedPrimaryUserId: String(primaryUser.id ?? ''),
-          });
-
-          const recordsRewritten = await this.rewriteLinkedRecordAuthorizations(primaryUser, secondaryUserObj, actor);
-
-          await this.addUserAuditEvent({ username: actor }, 'link-accounts', {
-            primaryUserId: primaryUser.id,
-            primaryUsername: primaryUser.username,
-            secondaryUserId: secondaryUserObj.id,
-            secondaryUsername: secondaryUserObj.username,
-            brandId: brandId,
-            rolesMerged: roleIdsToMerge.length,
-            recordsRewritten: recordsRewritten,
-          });
+            primaryUserId: String(primaryUser.id ?? primaryUserId),
+            secondaryUserId: String(secondaryUserObj.id ?? secondaryUserId),
+            primaryExpectedVersion: options.primaryExpectedVersion,
+            secondaryExpectedVersion: options.secondaryExpectedVersion,
+            linkConfirmationToken: options.linkConfirmationToken,
+            linkOperationId: options.linkOperationId,
+            requestId: guarded.requestId,
+            reason: options.reason,
+          })) as unknown as AnyRecord;
 
           const linkedAccounts = await firstValueFrom(
-            this.getLinkedAccountsInternal(primaryUser as UserModel, brandId)
+            this.getLinkedAccountsInternal(primaryEffective as UserModel, brandId)
           );
+          const linkData = (linkResult.data ?? linkResult) as AnyRecord;
+          // AUTH-TXN-001: recordsPending + linkOperationId are mandatory
+          // end-to-end (the writer always supplies both).
           return {
             ...linkedAccounts,
             impact: {
-              recordsRewritten: recordsRewritten,
-              rolesMerged: roleIdsToMerge.length,
+              recordsRewritten: Number(linkData.recordsRewritten ?? 0),
+              rolesMerged: Number(linkData.rolesAdopted ?? 0),
             },
+            recordsPending: (linkData.recordsPending as boolean | undefined) === true,
+            linkOperationId: String(linkData.linkOperationId ?? ''),
           };
         })()
       );
     };
 
-    public setUserKey = (userid: string | number, uuid: string | null): Observable<UserModel> => {
+    /**
+     * Operation-specific guarded writer for API-token replacement.
+     * Exact scope: `user.token.manage` (proven). `expectedVersion` is
+     * mandatory: the observed version is pinned into the predicate and
+     * advanced atomically; a zero-row result is a lost race (409), never a
+     * silent fallback to the pre-read row. An audit failure restores the
+     * prior token hash best-effort and throws 503 with the compensation
+     * outcome attached.
+     */
+    public setUserKey = (
+      userid: string | number,
+      uuid: string | null,
+      options: GuardedUserMutationActorOptions & { readonly brandId?: string }
+    ): Observable<UserModel> => {
+      const guarded = this.requireMutationActor(options);
+      this.requireProvenScope(guarded.actor, 'user.token.manage');
+      const actorId = this.describeGuardedActor(guarded.actor);
+      return from(
+        (async () => {
+          const current = await firstValueFrom(this.getUserWithId(userid));
+          this.assertUserExpectedVersion(current, options?.expectedVersion);
+          const observed = this.observedUserVersion(current);
+          const updated = await firstValueFrom(this.persistUserKeyRecord(userid, uuid, observed));
+          try {
+            await this.writeGuardedUserAudit(updated, 'set-user-key', {
+              actor: actorId,
+              requestId: guarded.requestId,
+            });
+          } catch (auditError) {
+            const compensation = await this.restoreUserFieldsBestEffort(userid, {
+              token: (current as AnyRecord)?.token ?? null,
+            });
+            throw this.auditFailureWithCompensation(auditError, compensation, guarded.requestId);
+          }
+          return updated;
+        })()
+      );
+    };
+
+    /** Non-exported raw storage helper. Never callable from HTTP directly. */
+    private persistUserKeyRecord = (
+      userid: string | number,
+      uuid: string | null,
+      observedVersion: number
+    ): Observable<UserModel> => {
       const uuidHash = _.isEmpty(uuid)
         ? null
         : crypto
@@ -2633,16 +3727,29 @@ export namespace Services {
       return this.getUserWithId(userid).pipe(
         flatMap(user => {
           if (user) {
-            const q = User.update(
-              {
-                id: userid,
-              },
-              {
-                token: uuidHash,
-              }
-            );
+            // AUTH-P5-002: atomic predicate+increment (CAS). The observed
+            // version is pinned INTO the criteria AND advanced by one in the
+            // same write, so a concurrent mutation aborts instead of
+            // interleaving (no ABA reuse). A zero-row result is a lost race
+            // and fails closed with 409 — never a silent fallback to the
+            // pre-read row.
+            const criteria = this.versionPinnedUserCriteria(userid, observedVersion);
+            const q = User.update(criteria, {
+              token: uuidHash,
+              loginDisabledVersion: observedVersion + 1,
+            });
             return this.getObservable<UserModel[]>(q, 'exec', 'simplecb').pipe(
-              map((updatedUsers: UserModel[]) => updatedUsers[0] ?? user)
+              map((envelope: unknown) => {
+                const rows = this.simpleCallbackRows<UserModel>(envelope);
+                if (rows.length === 0) {
+                  throw new AuthorizationAdministrationError(
+                    'authorization.version-conflict',
+                    409,
+                    'User state changed concurrently.'
+                  );
+                }
+                return rows[0];
+              })
             );
           } else {
             return throwError(new Error('No such user with id:' + userid));
@@ -2651,23 +3758,104 @@ export namespace Services {
       );
     };
 
-    public setUserKeyForBrand = (userid: string, uuid: string | null, brandId: string): Observable<UserModel> => {
+    public setUserKeyForBrand = (
+      userid: string,
+      uuid: string | null,
+      brandId: string,
+      options: GuardedUserMutationActorOptions
+    ): Observable<UserModel> => {
       return from(
         (async () => {
+          const guarded = this.requireMutationActor({ ...options, brandId });
+          this.requireProvenScope(guarded.actor, 'user.token.manage');
           const target = await firstValueFrom(this.getUserForBrand(userid, brandId));
           if (!target) {
             throw this.opaqueUserNotFound();
           }
-          return await firstValueFrom(this.setUserKey(String(target.id ?? userid), uuid));
+          this.assertUserExpectedVersion(target, options?.expectedVersion);
+          const observed = this.observedUserVersion(target);
+          const updated = await firstValueFrom(this.persistUserKeyRecord(String(target.id ?? userid), uuid, observed));
+          try {
+            await this.writeGuardedUserAudit(updated, 'set-user-key', {
+              actor: this.describeGuardedActor(guarded.actor),
+              brandId,
+              requestId: guarded.requestId,
+            });
+          } catch (auditError) {
+            const compensation = await this.restoreUserFieldsBestEffort(String(target.id ?? userid), {
+              token: (target as unknown as AnyRecord)?.token ?? null,
+            });
+            throw this.auditFailureWithCompensation(auditError, compensation, guarded.requestId);
+          }
+          return updated;
         })()
       );
     };
 
+    /**
+     * Operation-specific guarded writer for profile updates.
+     * Exact scope: `user.manage` (proven). `expectedVersion` is mandatory and
+     * is pinned into the predicate while the version advances atomically; a
+     * zero-row result is a lost race (409). An audit failure restores the
+     * prior profile best-effort and throws 503 with the compensation outcome
+     * attached. Raw storage stays non-exported.
+     */
     public updateUserDetails = (
       userid: string | number,
       name: string,
       email: string,
-      password: string
+      password: string,
+      options: GuardedUserMutationActorOptions & { readonly brandId?: string }
+    ): Observable<UserModel[]> => {
+      const guarded = this.requireMutationActor(options);
+      this.requireProvenScope(guarded.actor, 'user.manage');
+      return from(
+        (async () => {
+          const current = await firstValueFrom(this.getUserWithId(userid));
+          this.assertUserExpectedVersion(current, options?.expectedVersion);
+          const observed = this.observedUserVersion(current);
+          const updated = await firstValueFrom(
+            this.persistUserDetailsRecord(userid, name, email, password, options, observed)
+          );
+          // The `exec`/`simplecb` envelope resolves to `[err, rows]`; a CAS
+          // miss yields zero rows and fails closed with 409 (never a silent
+          // fallback to the pre-read row). The envelope shape is preserved
+          // for legacy Observable consumers.
+          const updatedRows = this.simpleCallbackRows<UserModel>(updated);
+          if (updatedRows.length === 0) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'User state changed concurrently.'
+            );
+          }
+          try {
+            await this.writeGuardedUserAudit(updatedRows[0], 'update-user-details', {
+              actor: this.describeGuardedActor(guarded.actor),
+              requestId: guarded.requestId,
+            });
+          } catch (auditError) {
+            const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
+            const passwordField = authConfig.local?.passwordField ?? 'password';
+            const prior = (current ?? {}) as AnyRecord;
+            const restore: Record<string, unknown> = { name: prior.name };
+            if (prior.email !== undefined) restore['email'] = prior.email;
+            if (prior[passwordField] !== undefined) restore[passwordField] = prior[passwordField];
+            const compensation = await this.restoreUserFieldsBestEffort(userid, restore);
+            throw this.auditFailureWithCompensation(auditError, compensation, guarded.requestId);
+          }
+          return updated;
+        })()
+      );
+    };
+
+    /** Non-exported raw storage helper. Never callable from HTTP directly. */
+    private persistUserDetailsRecordInner = (
+      userid: string | number,
+      name: string,
+      email: string,
+      password: string,
+      observedVersion: number
     ): Observable<UserModel[]> => {
       const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
       const passwordField = authConfig.local?.passwordField ?? 'password';
@@ -2676,6 +3864,9 @@ export namespace Services {
           if (user) {
             const update: Record<string, unknown> = {
               name: name,
+              // AUTH-P5-002: atomic predicate+increment (CAS) — the version
+              // advances in the same write the predicate pins.
+              loginDisabledVersion: observedVersion + 1,
             };
 
             if (!_.isEmpty(email)) {
@@ -2692,12 +3883,7 @@ export namespace Services {
               const salt = bcrypt.genSaltSync(10);
               update[passwordField] = bcrypt.hashSync(password, salt);
             }
-            const q = User.update(
-              {
-                id: userid,
-              },
-              update
-            );
+            const q = User.update(this.versionPinnedUserCriteria(userid, observedVersion), update);
             return this.getObservable<UserModel[]>(q, 'exec', 'simplecb');
           } else {
             return throwError(new Error('No such user with id:' + userid));
@@ -2706,21 +3892,69 @@ export namespace Services {
       );
     };
 
+    /** Non-exported raw storage helper. Never callable from HTTP directly. */
+    private persistUserDetailsRecord = (
+      userid: string | number,
+      name: string,
+      email: string,
+      password: string,
+      options: GuardedUserMutationActorOptions & { readonly brandId?: string },
+      observedVersion: number
+    ): Observable<UserModel[]> => {
+      void options;
+      return this.persistUserDetailsRecordInner(userid, name, email, password, observedVersion);
+    };
+
     /** Mutate user profile data only after resolving brand membership opaquely. */
     public updateUserDetailsForBrand = (
       userid: string | number,
       name: string,
       email: string,
       password: string,
-      brandId: string
+      brandId: string,
+      options: GuardedUserMutationActorOptions
     ): Observable<UserModel[]> => {
       return from(
         (async () => {
+          const guarded = this.requireMutationActor({ ...options, brandId });
+          this.requireProvenScope(guarded.actor, 'user.manage');
           const target = await firstValueFrom(this.getUserForBrand(String(userid), brandId));
           if (!target) {
             throw this.opaqueUserNotFound();
           }
-          return await firstValueFrom(this.updateUserDetails(userid, name, email, password));
+          this.assertUserExpectedVersion(target, options?.expectedVersion);
+          const observed = this.observedUserVersion(target);
+          const updated = await firstValueFrom(
+            this.persistUserDetailsRecord(userid, name, email, password, options, observed)
+          );
+          // See `updateUserDetails`: the `exec`/`simplecb` envelope resolves
+          // to `[err, rows]`; zero rows is a lost race (409), and the
+          // envelope shape is preserved for legacy Observable consumers.
+          const updatedRows = this.simpleCallbackRows<UserModel>(updated);
+          if (updatedRows.length === 0) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'User state changed concurrently.'
+            );
+          }
+          try {
+            await this.writeGuardedUserAudit(updatedRows[0], 'update-user-details', {
+              actor: this.describeGuardedActor(guarded.actor),
+              brandId,
+              requestId: guarded.requestId,
+            });
+          } catch (auditError) {
+            const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
+            const passwordField = authConfig.local?.passwordField ?? 'password';
+            const prior = (target ?? {}) as unknown as AnyRecord;
+            const restore: Record<string, unknown> = { name: prior.name };
+            if (prior.email !== undefined) restore['email'] = prior.email;
+            if (prior[passwordField] !== undefined) restore[passwordField] = prior[passwordField];
+            const compensation = await this.restoreUserFieldsBestEffort(userid, restore);
+            throw this.auditFailureWithCompensation(auditError, compensation, guarded.requestId);
+          }
+          return updated;
         })()
       );
     };
@@ -2728,11 +3962,74 @@ export namespace Services {
     public updateUserRoles = (
       userid: string | number,
       newRoleIds: Array<string | number>,
-      options: { brandId?: string } = {}
+      options: GuardedRoleSetOptions
     ): Observable<UserModel> => {
       return from(this.applyUserRoleAssignments(userid, newRoleIds, options));
     };
 
+    /**
+     * AUTH-P5-007: guarded exact-restore compensator for composite
+     * profile+role flows. Unlike `updateUserDetails*` (which skips empty
+     * email/password), this writer restores EVERY field verbatim — including
+     * empty-string and null email/password hash — through the same guarded
+     * writer contract: exact scope (`user.manage`, proven), version-pinned
+     * atomic predicate (CAS, version advances), and fail-closed audit. Never callable from HTTP
+     * directly (absent from `_exportedMethods`); controllers invoke it on the
+     * service instance after a role-phase failure. Callers pass the raw prior
+     * values (`undefined` fields are left untouched). The version is optional
+     * here because the compensator pins the freshly observed version itself;
+     * every request-facing admin mutation still requires it.
+     */
+    public compensateUserDetailsForBrand = (
+      userid: string | number,
+      prior: {
+        readonly name?: string | null;
+        readonly email?: string | null;
+        readonly passwordHash?: string | null;
+      },
+      brandId: string,
+      options?: GuardedUserMutationActorInput
+    ): Observable<UserModel[]> => {
+      return from(
+        (async () => {
+          const guarded = this.requireMutationActor({ ...options, brandId });
+          this.requireProvenScope(guarded.actor, 'user.manage');
+          const target = await firstValueFrom(this.getUserForBrand(String(userid), brandId));
+          if (!target) {
+            throw this.opaqueUserNotFound();
+          }
+          this.assertOptionalUserExpectedVersion(target, options?.expectedVersion);
+          const authConfig = this.getAuthConfig(BrandingService.getDefault().name);
+          const passwordField = authConfig.local?.passwordField ?? 'password';
+          const observed = this.observedUserVersion(target);
+          const restore: Record<string, unknown> = { loginDisabledVersion: observed + 1 };
+          if (prior.name !== undefined) restore['name'] = prior.name;
+          if (prior.email !== undefined) restore['email'] = prior.email;
+          if (prior.passwordHash !== undefined) restore[passwordField] = prior.passwordHash;
+          // Node-style exec unwrapping: an empty update result is a real
+          // empty array (unlike the legacy `simplecb` envelope), so the
+          // length check below is a genuine CAS-miss detector.
+          const updated = await firstValueFrom(
+            this.getObservable<UserModel[]>(
+              User.update(this.versionPinnedUserCriteria(userid, this.observedUserVersion(target)), restore)
+            )
+          );
+          if (this.simpleCallbackRows<UserModel>(updated).length === 0) {
+            throw new AuthorizationAdministrationError(
+              'authorization.version-conflict',
+              409,
+              'User state changed concurrently.'
+            );
+          }
+          await this.writeGuardedUserAudit(updated?.[0] ?? target, 'compensate-user-details', {
+            actor: this.describeGuardedActor(guarded.actor),
+            brandId,
+            requestId: guarded.requestId,
+          });
+          return updated;
+        })()
+      );
+    };
     /**
      * Compatibility adapter: converts a desired role-ID set into sourced manual
      * assignments through RoleAdministrationService. Supported flows must not
@@ -2742,21 +4039,40 @@ export namespace Services {
      * When `options.brandId` is supplied (every maintained HTTP flow passes the
      * request brand), requested roles are constrained to that brand and
      * cross-brand IDs are rejected as unknown, per the authorization contract.
-     * Each grant/revoke/suppress is one required transaction; the composite is
-     * step-wise, so a mid-sequence failure surfaces the error for an idempotent
-     * retry instead of pretending the whole update committed atomically.
+     * Each brand role-set applies through one atomic batch writer (one
+     * transaction/audit/CAS/quorum); a mid-sequence failure rolls the whole
+     * brand set back for an idempotent retry.
+     *
+     * Request-actor propagation: HTTP callers must supply the request
+     * authorization context (`options.actorContext`) and request id so the
+     * guarded writer enforces the caller delegation ceiling and attributes
+     * audit/assignedBy to the real operator. When omitted (background jobs and
+     * legacy tests) a bounded system-process context is synthesized; it must
+     * never be used to bypass the route scope gate on request paths.
      */
     private async applyUserRoleAssignments(
       userid: string | number,
       newRoleIds: Array<string | number>,
-      options: { brandId?: string } = {}
+      options: GuardedRoleSetOptions
     ): Promise<UserModel> {
       const user = await firstValueFrom(this.getUserWithId(userid));
       if (!user) {
-        throw new Error('No such user with id:' + userid);
+        throw new AuthorizationResourceError('authorization.not-found', 404);
       }
+      // AUTH-P5-002: mandatory user-row CAS on the role-set path. The caller
+      // must prove a recent read of the user row; the version is pinned here
+      // before any brand loop delegates to the per-tuple CAS writer, so a
+      // concurrent disable/link/profile mutation aborts with 409 instead of
+      // interleaving with role changes.
+      this.assertUserExpectedVersion(user, options.expectedVersion);
       if (_.isEmpty(newRoleIds) || newRoleIds.length === 0) {
-        throw new Error('Please assign at least one role');
+        // AUTH-CAS-HTTP-001: stable contract — empty role sets are 422, never
+        // a generic 500 from a plain Error.
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-role',
+          422,
+          'At least one role must be assigned.'
+        );
       }
 
       const currentRolesEarly = ((user as AnyRecord).roles as AnyRecord[] | undefined) ?? [];
@@ -2782,14 +4098,26 @@ export namespace Services {
         id => !requestedRoles.some(role => String(role.id) === String(id))
       );
       if (missing.length > 0) {
-        throw new Error('Unknown role requested');
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-role',
+          422,
+          'One or more requested roles are unknown in this brand.'
+        );
       }
       for (const role of requestedRoles) {
         if (role.contextType === 'system' || role.protectedKind === 'system-admin') {
-          throw new Error('System roles cannot be assigned through user management');
+          throw new AuthorizationAdministrationError(
+            'authorization.scope-denied',
+            403,
+            'System roles cannot be assigned through user management.'
+          );
         }
         if (role.protectedKind === 'guest') {
-          throw new Error('Guest cannot be assigned explicitly');
+          throw new AuthorizationAdministrationError(
+            'authorization.invalid-role',
+            422,
+            'The guest role cannot be assigned explicitly.'
+          );
         }
       }
 
@@ -2803,15 +4131,21 @@ export namespace Services {
         const foreignRequested = requestedRoles.filter(role => roleBrandId(role) !== activeBrandId);
         const foreignNotHeld = foreignRequested.filter(role => !currentIds.has(String(role.id)));
         if (foreignNotHeld.length > 0) {
-          throw new Error('Unknown role requested');
+          throw new AuthorizationAdministrationError(
+            'authorization.invalid-role',
+            422,
+            'One or more requested roles are unknown in this brand.'
+          );
         }
       } else if (requestedBrands.length > 1) {
-        throw new Error('Requested roles must belong to a single brand');
+        throw new AuthorizationAdministrationError(
+          'authorization.invalid-role',
+          422,
+          'Requested roles must belong to a single brand.'
+        );
       }
 
-      const scopeService = authorizationScopeRequiredAccess();
       const roleAdministrationService = roleAdministrationAccess();
-      const allowedScopes = scopeService.getRegistry().all.map(scope => scope.key);
 
       const currentRoles = currentRolesEarly;
       const desiredIds = new Set(newRoleIds.map(id => String(id)));
@@ -2824,28 +4158,49 @@ export namespace Services {
           : _.uniq([...requestedBrands, ...currentRoles.map(roleBrandId)]).filter(brandId => brandId.length > 0);
 
       for (const brandId of brands) {
-        const operationId = `user-management:${String(brandId)}:${String(user.id)}`;
-        const actor = await new AuthorizationServiceModule.AuthorizationService().createSystemProcessContext(
-          operationId,
-          brandId,
-          allowedScopes
-        );
+        const operationId = options.requestId ?? `user-management:${String(brandId)}:${String(user.id)}`;
+        // AUTH-ACTOR-001: the same trusted request actor reaches
+        // authorization, audit, quorum, and CAS. Omitted/forged actors fail
+        // closed; background callers must use updateUserRolesAsSystemJob.
+        const actor = this.requireRequestActor(brandId, {
+          actorContext: options.actorContext,
+          requestId: operationId,
+        }).actor;
         const brandRequested = requestedRoles.filter(role => roleBrandId(role) === brandId);
         const brandCurrent = currentRoles.filter(role => roleBrandId(role) === brandId);
 
+        // P5-G4: route the whole brand role-set through one atomic batch
+        // writer (one transaction/audit/CAS/quorum). A mid-sequence failure
+        // rolls everything back for an idempotent retry.
+        const grants: Array<{ roleKey: string; expectedVersion?: number }> = [];
         for (const role of brandRequested.filter(
           role => !currentRoles.some(current => String(current.id) === String(role.id))
         )) {
-          await roleAdministrationService.grantAssignment({
-            actor,
-            brandId,
-            principalId: String(user.id),
+          // Existing tuples (for example after legacy-projection drift) are
+          // reactivated, which requires caller CAS under the guarded writer.
+          const existingTuples =
+            typeof RoleAssignment !== 'undefined' && typeof RoleAssignment.find === 'function'
+              ? ((await RoleAssignment.find({
+                  principalType: 'user',
+                  principalId: String(user.id),
+                  role: String(role.id),
+                  source: 'manual',
+                  sourceKey: 'manual',
+                })) as unknown as AnyRecord[])
+              : [];
+          const existingTuple = Array.isArray(existingTuples) ? existingTuples[0] : undefined;
+          grants.push({
             roleKey: String(role.key ?? role.name),
-            source: 'manual',
-            sourceKey: 'manual',
-            requestId: operationId,
+            ...(existingTuple == null ? {} : { expectedVersion: Number(existingTuple.version ?? 1) }),
           });
         }
+        const removals: Array<{
+          roleKey: string;
+          assignmentId?: string;
+          source?: string;
+          sourceKey?: string;
+          expectedVersion: number;
+        }> = [];
         for (const role of brandCurrent.filter(role => !desiredIds.has(String(role.id)))) {
           // Roles survive through sourced assignment rows; removal must address
           // every source tuple that grants the role, not just manual grants.
@@ -2863,35 +4218,48 @@ export namespace Services {
             if (String(row.status ?? '') === 'revoked') {
               continue;
             }
-            const command = {
-              actor,
-              brandId,
-              principalId: String(user.id),
-              roleKey: String(role.key ?? role.name),
-              expectedVersion: Number(row.version ?? 1),
-              requestId: operationId,
-            };
-            try {
-              if (String(row.source ?? '') === 'external') {
-                await roleAdministrationService.suppressAssignment({
-                  ...command,
-                  assignmentId: String(row.id ?? ''),
-                });
-              } else {
-                await roleAdministrationService.revokeAssignment({
-                  ...command,
-                  source: String(row.source ?? 'manual'),
-                  sourceKey: String(row.sourceKey ?? 'manual'),
-                });
-              }
-            } catch (error) {
-              // A concurrent writer removed the tuple first; the end state is
-              // already what the caller asked for.
-              if ((error as { code?: string }).code !== 'authorization.not-found') {
-                throw error;
-              }
+            if (String(row.source ?? '') === 'external') {
+              removals.push({
+                roleKey: String(role.key ?? role.name),
+                assignmentId: String(row.id ?? ''),
+                expectedVersion: Number(row.version ?? 1),
+              });
+            } else {
+              removals.push({
+                roleKey: String(role.key ?? role.name),
+                source: String(row.source ?? 'manual'),
+                sourceKey: String(row.sourceKey ?? 'manual'),
+                expectedVersion: Number(row.version ?? 1),
+              });
             }
           }
+        }
+        if (grants.length + removals.length === 0) continue;
+        try {
+          await roleAdministrationService.applyUserRoleSet({
+            actor,
+            brandId,
+            principalId: String(user.id),
+            grants,
+            removals,
+            requestId: operationId,
+            // AUTH-P5-002: the caller-pinned user version travels into the
+            // atomic batch writer, which re-pins and bumps it in the SAME
+            // required transaction as the assignment writes (see
+            // `applyUserRoleSet`): a concurrent disable/link/profile commit
+            // aborts the whole set with 409 instead of interleaving.
+            userExpectedVersion: options.expectedVersion,
+            ...(options.reason === undefined ? {} : { reason: options.reason }),
+          });
+        } catch (error) {
+          // A concurrent writer removed every targeted tuple first; the end
+          // state is already what the caller asked for. Anything else aborts
+          // the atomic batch for retry.
+          const code = (error as { code?: string }).code;
+          if (code === 'authorization.not-found' && removals.length > 0 && grants.length === 0) {
+            continue;
+          }
+          throw error;
         }
       }
 
@@ -2979,10 +4347,26 @@ export namespace Services {
      * we're not able to reliably determine the username before they login to the system for the first time.
      *
      **/
-    public async findAndAssignAccessToRecords(pendingValue: string, userid: string): Promise<number> {
+    /**
+     * Internal lifecycle helper invoked from the User model `afterCreate`
+     * hook. NOT remotely callable (absent from `_exportedMethods`) and NOT a
+     * request mutation: it assigns pending record access for the just-created
+     * user. Discovery is bounded (fail closed above the limit) and per-record
+     * failures propagate instead of partial-crediting.
+     */
+    /**
+     * AUTH-P5-002 registered internal lifecycle capability (see the
+     * `exports()` override). Invoked ONLY from the User model
+     * `afterCreate`/`afterUpdate` hook via the service instance — never from
+     * HTTP. Bounded discovery with fail-closed limits; request paths must use
+     * the guarded writers instead.
+     */
+    public async assignAccessToPendingRecordsForLifecycle(pendingValue: string, userid: string): Promise<number> {
       const effectiveUser = await firstValueFrom(this.getEffectiveUser(userid));
       const effectiveUsername = _.get(effectiveUser, 'username', userid) as string;
-      const records = await Record.find({
+      // AUTH-P5-002: bounded discovery — the limit is applied BEFORE await and
+      // a missing limit capability fails closed (never an unbounded await).
+      const findQuery = Record.find({
         or: [
           {
             'authorization.editPending': pendingValue,
@@ -2991,16 +4375,46 @@ export namespace Services {
             'authorization.viewPending': pendingValue,
           },
         ],
-      }).meta({
+      }) as unknown as {
+        limit?: (value: number) => unknown;
+        meta?: (values: Record<string, unknown>) => unknown;
+      };
+      if (typeof findQuery?.limit !== 'function') {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'Pending record discovery is unavailable without a bounded query.'
+        );
+      }
+      const boundedQuery = findQuery.limit(FIND_ASSIGN_ACCESS_MAX_RECORDS + 1) as unknown as {
+        meta?: (values: Record<string, unknown>) => unknown;
+      };
+      if (typeof boundedQuery?.meta !== 'function') {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'Pending record discovery is unavailable without a bounded query.'
+        );
+      }
+      const records = (await boundedQuery.meta({
         enableExperimentalDeepTargets: true,
-      });
+      })) as unknown[];
       const recordsArr = records as unknown[];
+      if (recordsArr.length > FIND_ASSIGN_ACCESS_MAX_RECORDS) {
+        throw new AuthorizationAdministrationError(
+          'authorization.query-bound-exceeded',
+          409,
+          'Pending record discovery exceeds the bounded assignment limit.'
+        );
+      }
       if (_.isEmpty(recordsArr)) {
-        sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
+        sails.log.verbose(
+          `UsersService::assignAccessToPendingRecordsForLifecycle() -> No pending records: ${pendingValue}`
+        );
         return 0;
       }
       sails.log.verbose(
-        `UsersService::findAndAssignAccessToRecords() -> Found ${recordsArr.length} records to assign permissions`
+        `UsersService::assignAccessToPendingRecordsForLifecycle() -> Found ${recordsArr.length} records to assign permissions`
       );
       let updated = 0;
       for (const record of recordsArr) {

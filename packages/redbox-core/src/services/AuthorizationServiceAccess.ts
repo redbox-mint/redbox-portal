@@ -11,6 +11,9 @@ export interface RoleAdministrationServiceAccess {
   grantAssignment(command: Record<string, unknown>): Promise<unknown>;
   revokeAssignment(command: Record<string, unknown>): Promise<unknown>;
   suppressAssignment(command: Record<string, unknown>): Promise<unknown>;
+  applyUserRoleSet(command: Record<string, unknown>): Promise<unknown>;
+  setUserAccess(command: Record<string, unknown>): Promise<unknown>;
+  linkUserAccounts(command: Record<string, unknown>): Promise<unknown>;
 }
 
 export interface AuthorizationScopeServiceAccess {

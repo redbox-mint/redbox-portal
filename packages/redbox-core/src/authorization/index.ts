@@ -8,7 +8,13 @@ export * from './core-scopes';
 export * from './default-role-templates';
 export * from './role-effective-scopes';
 export * from './resource-access';
-export * from './context';
+export {
+  freezeAuthorizationContext,
+  createAnonymousAuthorizationPrincipal,
+  createUserAuthorizationPrincipal,
+  createLegacyBearerAuthorizationPrincipal,
+  type AuthorizationContextInput,
+} from './context';
 export * from './decision';
 export * from './shadow-fingerprint';
 export * from './administration';

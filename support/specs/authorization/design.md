@@ -257,7 +257,15 @@ Multiple sources may independently grant the same role. Revoking one source does
 
 Guest never has assignment rows. It is injected from the active brand configuration. Linked-account operations canonicalize to the active primary user before reading or mutating assignments.
 
-Account linking remains a `UsersService` operation gated by `user.account-link.manage`, but it must obtain recent, server-verified proof for both identities and preview the merged authority across every affected brand. The link, assignment canonicalization, legacy projection, quorum checks, and audits commit atomically. A brand administrator cannot link authority owned by another brand. A client-supplied user pair is not proof, and unlinking cannot guess how to redistribute already merged authority.
+Account linking remains a `UsersService` operation gated by `user.account-link.manage`, but it must obtain recent, server-verified proof for both identities and preview the merged authority across every affected brand. The implemented protocol (2026-09-05) is a durable TWO-COMMIT protocol, not a single atomic commit, because `Role`/`User`/`UserLink` live on the default `mongodb` datastore while records live on the separate `redboxStorage` database, which share no transaction:
+
+- Preview (`previewLinkAccounts`, read-only): resolves the canonical primary, requires both accounts active and brand members, reads live pair versions, counts adoptable/retirable sourced tuples, and issues a short-lived pair-bound `account-link` confirmation token (actor + brand + pair + both versions + content hash) plus a stable `linkOperationId`.
+- Commit 1 (required transaction on `mongodb`): pair versions + token re-verified before any write; sourced-tuple adoption/retirement with per-row CAS; `UserLink` insert guarded by the enforceable unique `{ secondaryUserId: 1, status: 1 }` constraint (model + `AUTHORIZATION_PERSISTENCE_MODEL_INDEXES` + migration `20260905T120000-account-link-uniqueness`; races normalize to 409); both user rows CAS-updated; legacy projection healed; quorum re-checked; link audits written.
+- Commit 2 (separate Record-datastore phase): linked-record rewrites with a bounded discovery set, mandatory `metaMetadata.brandId` predicate (unbranded rows rejected as opaque not-found), and `revision` CAS. Failures never roll back Commit 1; they are reported via `user.link-records-pending` audit with `recordsPending: true`.
+- Durability (`UserLinkOperation` pending/running/completed/failed keyed by stable operation ID): completion emits `user.link-operation-completed`; `retryLinkOperation` resumes ONLY the idempotent record phase for pending operations (failed-before-commit operations re-run the link); attempts are bounded; pending state is exposed through the service, REST (`/link/operations/:id`, `/retry`), and UI.
+- Existing-link conflicts normalize to 409 with safe retry (same-operation resume, pending-for-pair resume); distinct operations conflicting on one secondary get 409.
+
+A brand administrator cannot link authority owned by another brand. A client-supplied user pair is not proof, and unlinking cannot guess how to redistribute already merged authority. Live overlapping-transaction concurrency and cross-datastore rollback are unsupported by the runtime and are NOT claimed; tests prove ordering, predicates, drift reporting, and idempotent recovery.
 
 ### 2.7 `AuthorizationAudit`
 
@@ -499,15 +507,23 @@ Only request-local memoization is allowed. Mutable role/assignment authorization
 
 Every write accepts:
 
-- an authoritative actor context;
+- an authoritative actor context (server-built and frozen; structurally
+  plausible caller objects are rejected; canonical authMethods are `session`,
+  `bearer` for legacy API tokens, and `internal` for system-process);
 - an explicit brand or system context;
-- `expectedVersion` for mutable existing resources;
+- `expectedVersion` for mutable existing resources (required for
+  state-changing mutations on versioned rows; stale versions fail with 409
+  before any no-op short-circuit);
 - an optional sanitized reason;
 - request/batch correlation metadata.
 
 Every write uses a required datastore transaction. `runWithOptionalTransaction` is not valid for these operations. A new `runWithRequiredTransaction` utility must fail closed when the adapter cannot guarantee atomicity. Rollout readiness fails until the deployment datastore supports the transaction contract.
 
 Optimistic updates use a compare-and-set predicate on `version`; no matching row yields `409 authorization.version-conflict`. The audit insert and all primary/projection writes share the same leased connection.
+
+User create/update composites use an explicit durable saga instead of a single transaction across the legacy `User.create` and assignment phases: requested roles are validated before any mutation; create compensates by destroying ONLY accounts newly created by the same request (pre-existing duplicates are never destroyed, failures report partial state); update snapshots the prior profile and restores it when the role phase fails (reporting restore failures as well).
+
+Transaction-unavailable (adapter without transaction support) is a stable `503 authorization.transaction-unavailable` Problem Details response, distinct from 500.
 
 Denied administrative attempts have no primary mutation with which to share a transaction. They are written as independent denied audit events with a bounded security-log fallback. An audit-storage failure never converts a denial into an allow. Successful mutations remain contingent on their audit insert succeeding in the same transaction.
 

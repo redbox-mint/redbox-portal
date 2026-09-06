@@ -37,7 +37,7 @@ export const ROLE_WRITER_INVENTORY: readonly RoleWriterInventoryRow[] = Object.f
   {
     location: 'packages/redbox-core/src/services/RoleAdministrationService.ts',
     operation:
-      'createRole / updateRole / previewRoleScopes / applyRoleScopes / previewTemplateRevision / publishTemplateRevision / previewRoleTemplateUpgrade / applyRoleTemplateUpgrade / previewRoleInactivation / inactivateRole / previewRoleDeletion / deleteRole / grantAssignment / revokeAssignment / suppressAssignment / unsuppressAssignment / replaceExternalAssignments / previewBulkAssignments / applyBulkAssignments / previewScopeAdoption / applyScopeAdoption / previewBulkTemplateUpgrade / applyBulkTemplateUpgrade / previewConfigurationImport / applyConfigurationImport',
+      'createRole / updateRole / previewRoleScopes / applyRoleScopes / previewTemplateRevision / publishTemplateRevision / previewRoleTemplateUpgrade / applyRoleTemplateUpgrade / previewRoleInactivation / inactivateRole / previewRoleDeletion / deleteRole / grantAssignment / revokeAssignment / suppressAssignment / unsuppressAssignment / replaceExternalAssignments / previewBulkAssignments / applyBulkAssignments / previewScopeAdoption / applyScopeAdoption / previewBulkTemplateUpgrade / applyBulkTemplateUpgrade / previewConfigurationImport / applyConfigurationImport / setUserAccess / linkUserAccounts / applyUserRoleSet',
     classification: 'supported-service',
     notes:
       'Only supported role/template/assignment writer. Dual-writes the legacy user-role projection transactionally with audit.',
@@ -51,31 +51,31 @@ export const ROLE_WRITER_INVENTORY: readonly RoleWriterInventoryRow[] = Object.f
   },
   {
     location: 'packages/redbox-core/src/services/UsersService.ts:applyUserRoleAssignments',
-    operation: 'updateUserRoles -> grant/revoke/suppress per brand',
+    operation: 'updateUserRoles -> applyUserRoleSet per brand (one transaction/audit/CAS/quorum)',
     classification: 'compatibility-adapter',
     notes:
-      'Compatibility adapter. Same-brand role set is applied through the guarded writer; foreign-brand assignments are preserved untouched.',
+      'Compatibility adapter. Same-brand role set applies through one atomic batch writer; foreign-brand assignments are preserved untouched. AUTH-P5-002: expectedVersion is mandatory and pinned against the user row before any brand loop delegates to the per-tuple CAS writer.',
   },
   {
     location: 'packages/redbox-core/src/controllers/AdminController.ts:updateUserRoles',
     operation: 'POST /:branding/:portal/admin/roles/user',
     classification: 'compatibility-adapter',
     notes:
-      'Translates role names to same-brand IDs, merges foreign-brand IDs for preservation, delegates to UsersService.updateUserRoles with brandId.',
+      'Translates role names to same-brand IDs, merges foreign-brand IDs for preservation, requires a mandatory request expectedVersion (422 when omitted), and delegates to UsersService.updateUserRoles with brandId plus expectedVersion.',
   },
   {
     location: 'packages/redbox-core/src/controllers/AdminController.ts:addLocalUser',
     operation: 'POST /:branding/:portal/admin/users/newUser with details.roles',
     classification: 'compatibility-adapter',
     notes:
-      'Maintained call site of UsersService.updateUserRoles. Translates requested role names via RolesService.getRoleIds and delegates with brandId; no direct association write.',
+      'Maintained call site of UsersService.updateUserRoles. Translates requested role names via RolesService.getRoleIds and delegates with brandId plus the just-created row observed version as CAS; no direct association write.',
   },
   {
     location: 'packages/redbox-core/src/controllers/AdminController.ts:updateUserDetails',
     operation: 'POST /:branding/:portal/admin/users/update with details.roles',
     classification: 'compatibility-adapter',
     notes:
-      'Maintained call site of UsersService.updateUserRoles. Merges foreign-brand IDs via mergeBrandRoleIds before delegating with brandId; no direct association write.',
+      'Maintained call site of UsersService.updateUserRoles. Merges foreign-brand IDs via mergeBrandRoleIds before delegating with brandId plus the post-profile observed version as CAS (fail-closed partial state when unreadable); no direct association write.',
   },
   {
     location: 'packages/redbox-core/src/controllers/webservice/UserManagementController.ts:createUser',
@@ -83,14 +83,14 @@ export const ROLE_WRITER_INVENTORY: readonly RoleWriterInventoryRow[] = Object.f
       'UsersService.updateUserRoles(response.id, mergedRoleIds, { brandId }) on user create with requested roles',
     classification: 'compatibility-adapter',
     notes:
-      'Production call site (UserManagementController.createUser). Converts requested role names to same-brand IDs, merges foreign-brand IDs, delegates with brandId. Never writes associations directly.',
+      'Production call site (UserManagementController.createUser). Converts requested role names to same-brand IDs, merges foreign-brand IDs, delegates with brandId plus the in-request observed user version as CAS. Never writes associations directly.',
   },
   {
     location: 'packages/redbox-core/src/controllers/webservice/UserManagementController.ts:updateUser',
     operation: 'UsersService.updateUserRoles(user.id, mergedRoleIds, { brandId }) on user update with requested roles',
     classification: 'compatibility-adapter',
     notes:
-      'Production call site (UserManagementController.updateUser). Converts requested role names to same-brand IDs via RolesService.getRoleIds, merges foreign-brand IDs, delegates with brandId. Never writes associations directly.',
+      'Production call site (UserManagementController.updateUser). Converts requested role names to same-brand IDs via RolesService.getRoleIds, merges foreign-brand IDs, delegates with brandId plus the post-profile observed version as CAS (fail-closed partial state when unreadable). Never writes associations directly.',
   },
   {
     location: 'packages/redbox-core/src/controllers/webservice/UserManagementController.ts:createSystemRole',
@@ -129,10 +129,10 @@ export const ROLE_WRITER_INVENTORY: readonly RoleWriterInventoryRow[] = Object.f
   },
   {
     location: 'packages/redbox-core/src/services/UsersService.ts:linkAccounts',
-    operation: 'link alias cleanup User.replaceCollection on roles (foreign retention)',
-    classification: 'internal-bootstrap',
+    operation: 'linkAccounts -> RoleAdministrationService.linkUserAccounts (guarded account-link delegation)',
+    classification: 'compatibility-adapter',
     notes:
-      'Account-link internals only: retains foreign-brand roles while the alias is created through the guarded writer before projection cleanup.',
+      'Delegates account linking to the guarded RoleAdministrationService.linkUserAccounts writer; never writes role collections directly.',
   },
   {
     location: 'packages/redbox-core/src/services/RolesService.ts:createRoleWithBrand',

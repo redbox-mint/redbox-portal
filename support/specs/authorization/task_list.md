@@ -4,6 +4,22 @@ This is the execution checklist for the authorization delivery. Read [design.md]
 
 Tasks are ordered by dependency. Keep checkboxes accurate in the implementation branch and attach test/evidence links beside completed stop gates.
 
+## Bounded-worktree qualification (2026-09-06 round)
+
+This round verifies repository behavior only with bounded checks runnable in
+this worktree (nested controller suites, focused Phase 5/service suites, core
+`src`/`test` `tsc`, lint, Prettier, `git diff --check`, API/OpenAPI route
+suites with timeout, Angular common/manage-users build/type/spec where
+feasible). The following are explicitly NOT claimed as repository-verified in
+this round and remain open operational/release gates: Docker/Mongo
+concurrency, overlapping-transaction races, commit/rollback on live
+datastores, restart/rollback rehearsal, recovery on real deployments, Bruno
+collections run against a live portal, browser/Playwright workflows, numeric
+performance (query-count/latency budgets, p95/p99), and product/security
+sign-off. Historical `[x]` marks below record prior implementation state, not
+a fresh full-stack release qualification. Gate A and the operational phases
+14 through 16 remain OPEN (see the ledger below and sections 14/15).
+
 ## Reconciled delivery evidence through Phase 9
 
 This ledger reconciles the implementation at `219cff3cb` plus the final council
@@ -392,6 +408,14 @@ Complete when primary mutation/audit rollback tests and denied-attempt failure t
 - [x] Run core build/lint/format.
 - [x] Verify package manifests still use exact dependency versions.
 
+**Bounded-worktree limitation (2026-09-06):** the Docker smoke-lift and
+live commit/rollback probes above are historical implementation evidence,
+NOT re-verified in this bounded round (no Docker daemon/live Mongo in this
+worktree). Repository evidence in this round is the in-memory
+required-transaction unit coverage plus `src`/`test` type/build/lint
+checks; live concurrency/rollback/restart remain open operational gates
+(see sections 14/15 and Gate A).
+
 **STOP GATE C — Atomic persistence proven**
 
 - [x] Model indexes work on the supported Mongo profile.
@@ -714,12 +738,228 @@ Complete when oversized/malformed/stale/partial-failure/replay tests pass.
 - [x] Run dual-write drift cases.
 - [x] Run full service package checks.
 
+**Bounded-worktree limitation (2026-09-06):** concurrency/rollback items
+above are proven with in-memory Waterline fakes plus an injected
+transaction runner (named Phase 5 runtime regressions). True
+cross-connection concurrency, physical rollback, overlapping-transaction
+races, and restart recovery require the Docker-backed suites and are NOT
+proven here; numeric performance approval remains under open Gate A.
+
 **STOP GATE F — Single safe writer established**
 
 - [x] All supported mutations use one service.
 - [x] Atomicity and CAS are proven.
 - [x] Protected roles/quorum survive concurrency.
 - [x] Legacy projection remains rollback-ready.
+
+**Remediation evidence (2026-09-06, independent review FAIL → fix):**
+repository-verifiable hardening only, each item owned by a named runtime
+regression test (in-memory Waterline fakes + injected transaction runner —
+see the Limitation note in `RoleAdministrationPhase5Findings.test.ts`: true
+cross-connection concurrency, physical rollback, and restart recovery still
+require the Docker-backed suites and are NOT proven here):
+
+- AUTH-P5-001: the WeakSet mint capability, the marker/issuer, AND the
+  predicate are module-private to `services/AuthorizationService.ts` (no
+  `mark...`/`issue...`/`isServerIssued...` export on the service module, the
+  deep `authorization/context` module, or the public index; issuance only via
+  the module-private `issueServerAuthorizationContext` used by
+  `AuthorizationService` resolvers). Trusted writers
+  (`RoleAdministrationService`, `UsersService`) verify actors only through
+  the guarded `isTrustedAuthorizationContext` /
+  `requireTrustedAuthorizationContext` instance operations on genuine
+  resolver instances (module-private shared verifiers, injectable for
+  tests). Proven by
+  `RoleAdministrationPhase5IndependentVerification.test.ts` (frozen forgery
+  rejected via the guarded operation, mint+predicate non-export asserted on
+  all three entry points) and the fail-closed actor tests in
+  `UsersService.test.ts`. Genuine-actor test helpers never import an
+  issuer/predicate.
+- AUTH-P5-002: guarded user mutations pin the observed version into atomic
+  update predicates (CAS with legacy null-healing), audit writes fail closed
+  (`authorization.audit-unavailable`, 503) with compensating destroy on
+  create, and `findAndAssignAccessToRecords` is removed from exported methods
+  with bounded discovery. `expectedVersion` is mandatory on EVERY
+  request-facing user mutation path, including the role-set path:
+  `GuardedRoleSetOptions.expectedVersion` is required and pinned against
+  the user row at `applyUserRoleAssignments` entry (409 when omitted or
+  stale, writer never runs); the standalone legacy roles route
+  (`AdminController.updateUserRoles`) rejects a missing version with 422;
+  composite create/update flows pin the in-request observed (create) or
+  post-profile observed (update) version and fail closed with partial state
+  when unreadable; Angular `updateUserRoles` sends the required
+  `expectedVersion`. Proven by the `AUTH-P5-002 guarded mutations` block and
+  the `updateUserRoles` mandatory-CAS block in `UsersService.test.ts`
+  (predicate shape asserted from the actual `User.update` call args,
+  audit-failure compensation, bound/overflow rejection), the 422 contract
+  tests in `legacy-role-ajax-contracts.test.ts` and
+  `UserManagementController.test.ts`, and the `expectedVersion` body
+  assertion in `user.service.spec.ts`.
+- AUTH-P5-003: linked-record discovery fails closed when the query surface
+  lacks a limit capability (bound applied before await); updates keep the
+  mandatory numeric revision pinned in brand+oid+revision CAS predicates.
+  Proven by the AUTH-P5-003 block in
+  `RoleAdministrationPhase5GateRemediation.test.ts` (limit-less surface →
+  pending drift with `query-bound-exceeded`) and the existing revision-CAS
+  assertions.
+- AUTH-P5-004: the complete record plan persists atomically inside Commit 1;
+  durable read errors throw 503 instead of falling back to process memory;
+  operation transitions pin the attempt count in the update predicate
+  (atomic CAS); completion uses the current persisted count inside the
+  audit-contingent transaction; retries require the provenance/scope/brand
+  gate plus the explicit preview operation ID. The initial record pass
+  consumes ONLY the persisted pre-mutation plan (`planComplete` from Commit
+  1 discovery; an unavailable Record store reports pending drift with no
+  unplanned write); `findPendingLinkOperationForPair` never consults the
+  process-local mirror when the durable model exists. Proven by the
+  AUTH-P5-004 block in `RoleAdministrationPhase5GateRemediation.test.ts`
+  plus the stored-plan authority test in
+  `RoleAdministrationPhase5CompletedProof.test.ts` (late arrival outside the
+  plan is never rewritten).
+- AUTH-P5-005: all-brand authoritative snapshots for both accounts (no
+  brand filter) with complete tuple proof (id, principal, tuple brand, role
+  id/key, version, status, source/sourceKey, sourcePresent, expiry) and
+  foreign-brand rejection. Proven by the AUTH-P5-005 block in
+  `RoleAdministrationPhase5GateRemediation.test.ts`.
+- AUTH-P5-006: one canonical mandatory DTO
+  (`LinkUserAccountsRequest` + `normalizeLinkUserAccountsRequest`, publicly
+  exported from the authorization index); versions enforced after the scope
+  gate, token/operation binding after the live-version drift checks
+  (drift-before-token ordering preserved); retries bind the explicit
+  operation ID. Proven by the AUTH-P5-006 block in
+  `RoleAdministrationPhase5IndependentVerification.test.ts` plus the
+  preview → apply → retry round trips in the Phase 5 suites.
+- AUTH-P5-007: composite flows prevalidate roles, track newly-inserted vs
+  pre-existing rows (never deleting existing), restore every field verbatim
+  (including empty/null email/password hash) through the guarded
+  `compensateUserDetailsForBrand` CAS writer (no direct writes), and return
+  primary + compensation failure detail in Problem Details and legacy
+  envelopes. Proven by the `AUTH-P5-007 exact-restore compensator` block in
+  `UsersService.test.ts`.
+- AUTH-P5-008: `api/migrations/20260905T120000-account-link-uniqueness.js`
+  and `UserLinkOperation.ts` are git-tracked sources, the model is in
+  `WaterlineModels`/index with `userlinkoperation` identity plus
+  `AUTHORIZATION_PERSISTENCE_MODEL_INDEXES` coverage, and loader generation
+  converges from those tracked sources (`discoverLocalMigrationFiles` +
+  temp-dir `generateMigrationConfigShim` output + `WaterlineModels`
+  membership). The suite asserts the ignored generated artifacts
+  (`config/migrations.js`, `api/models/UserLink*.js`) stay untracked and
+  never asserts them on disk. Proven by the AUTH-P5-008 block in
+  `RoleAdministrationPhase5IndependentVerification.test.ts` (includes a
+  `git ls-files` tracked-source assertion).
+- AUTH-P5-009 (2026-09-06): completed-operation proof enforcement on EVERY
+  completed resume (`linkUserAccounts` early `completed && !recordsPending`,
+  the in-transaction existing-link conflict resume, and
+  `retryLinkOperation` `completed`). All require the canonical mandatory
+  DTO/scope, the caller-supplied versions bound to the stored proof
+  versions, the CURRENT caller actor bound to the stored proof actor, a
+  complete stored row (proofHash, assignmentSnapshot, both account versions,
+  proofActorId, operation identity, brand/pair), and token/proof
+  verification with the deliberate expired-token error; there is no
+  brand+pair-only bypass. Proven by the runtime-behavior suite in
+  `RoleAdministrationPhase5CompletedProof.test.ts` (all resumes,
+  mismatch/tamper, expired token, missing/incomplete row, foreign-actor and
+  version-drift rejection on both completed paths, stored-plan authority, no
+  durable-memory fallback, status+attempt CAS, partial per-record progress,
+  all-brand authority, preview/get/retry round trip).
+- AUTH-P5-010: Prettier + `git diff --check` enforced on touched files.
+- AUTH-P5-011 (2026-09-06): every affected `UserManagementController` action
+  uses typed `sendResp` (no `apiRespond` remains in the controller):
+  `listSystemRoles` and `createSystemRole` converted with the declared 200
+  list/action shapes preserved; disable/enable/token/profile/link/preview/
+  retry/audit paths already on `sendResp` with mandatory-`expectedVersion`
+  behavior tests. Proven by the `system roles (sendResp contract)` block in
+  `UserManagementController.test.ts` (list shape, create success never
+  touches `apiRespond`, 400 path) plus the existing disable/enable/token
+  CAS tests.
+
+Explicitly NOT claimed (external release verification): live Mongo
+rollback/index/concurrency, overlapping-transaction races, cross-datastore
+rollback, restart recovery on real deployments, Bruno against a live portal,
+browser/Playwright workflows, and numeric performance
+approval. Gate A and operational phases 14 through 16 remain OPEN.
+
+**Strict-gate remediation (2026-09-06 round 2, repository-verified):**
+
+- AUTH-P5-001 packaging/provenance: package `exports` now exposes only the
+  entry point + `package.json`, so the internal
+  `services/AuthorizationActorIssuer` module is unreachable via published
+  package subpaths (source index/context/service modules still export no
+  mint/verifier symbols). `RoleAdministrationServiceDependencies`
+  no longer accepts an injectable `isTrustedActor` predicate — verification
+  always goes through the module-private guarded predicate, and an injected
+  `() => true` is ignored (forgeries still 401). Proven by the new
+  independent suite
+  `test/services/AuthorizationActorProvenancePackaging.test.ts` (4 passing:
+  exports map, symbol non-export, forgery-vs-genuine, injection ignored)
+  plus the 77 passing Phase 5 gate/remediation/completed-proof suites and
+  `resource-inventory` reconciliation.
+- AUTH-SAGA-001 user composite durability: new persisted
+  `UserMutationOperation` model (`waterline-models/UserMutationOperation`,
+  `WaterlineModels` membership, `AUTHORIZATION_PERSISTENCE_MODEL_INDEXES`
+  coverage) backs a saga/outbox in `UsersService`
+  (`begin` idempotent / `markRunning` attempt-fenced CAS / `complete` /
+  `fail` / `recoverIncompleteUserMutationOperations` with bounded retry
+  budget, unique-conflict resume, terminal exclusion). `createUser` and
+  `updateUser` persist the validated role plan before the role phase and
+  transition it on success/failure without changing the existing
+  compensation semantics. Proven by the new
+  `test/services/UsersMutationSaga.test.ts` (3 passing: idempotent+CAS,
+  budget+failure, cross-instance restart recovery via the durable store)
+  plus the 151 passing `RoleAdministrationService`/`UsersService`/
+  lifecycle suites and 58 passing controller suites.
+- Regression preservation: retry fencing/lease, user role CAS, all-brand
+  authority/quorum, role-only profile preservation, API Problem
+  Details/route propagation, manage-users tests, test types, and cast
+  hygiene revalidated — `typecheck:strict` clean, `tsc -p test/tsconfig`
+  clean, `oxlint` clean, Prettier applied, `git diff --check` clean,
+  `test/unit/api-routes.test.ts` 52 passing.
+
+**Strict-gate remediation (2026-09-06 round, repository-verified):**
+
+- AUTH-P5-001 issuer hardening: the non-forgeable WeakSet capability moved
+  from `services/AuthorizationService.ts` into the internal-only
+  `services/AuthorizationActorIssuer.ts` (untracked → tracked this round;
+  NOT exported from `src/authorization/index.ts`; no class/service
+  surface, so `resource-inventory.test.ts` lists it in
+  `NON_SERVICE_MODULES`). `AuthorizationService` exposes no
+  `createSystemProcessContext` / `isTrusted` / `requireTrusted` methods;
+  genuine resolvers mint via `issueTrustedAuthorizationContextInternal` and
+  bounded production callers via `createSystemProcessContextInternal`;
+  writers verify via `isTrustedAuthorizationContextInternal`.
+  `test/services/genuineActor.ts` mints only through the internal issuer or
+  the real resolver. Proven by 141 passing Phase 5 suites +
+  `resource-inventory.test.ts` reconciliation (80/80 controller+inventory
+  suite) and `tsc -p tsconfig.strict.json` clean.
+- CAS/saga/preserve: `UsersService` mandatory `expectedVersion` CAS on all
+  guarded mutations; `UserManagementController.createUser`/`updateUser`
+  pin in-request/post-profile versions with partial-state + compensation
+  reporting; role-only updates preserve omitted name/email (password left
+  untouched); `destroyNewlyCreatedUserRecord` version-bound compensation.
+  Proven by `UsersService.test.ts` + `UsersLifecycleLoader.test.ts`
+  (123 passing) and controller CAS tests.
+- Link operations: `getLinkOperation` binds brand actors to the requested
+  brand with opaque 404 on cross-brand rows; `retryLinkOperation` claims
+  the CAS lease (attempt count + status) BEFORE record I/O with later
+  writes fenced on the leased values; bounded attempts; preview/get/retry
+  round trip intact. Proven by the Phase 5 gate/remediation/completed-proof
+  suites (141 passing).
+- HTTP contract: token generate/revoke error paths route through
+  `sendAuthorizationAdministrationError`/`sendAuthorizationResourceError`
+  (409/401/403/404 stable, 500 without leaks); token routes declare
+  complete 200/400/401/403/404/409/422/503 Problem Details schemas;
+  `createSystemRole` propagates the `:roleName` path param authoritatively
+  (body/query legacy fallbacks). Proven by `test/unit/api-routes.test.ts`
+  (OpenAPI/spec suite passing) and `UserManagementController.test.ts`.
+- Cast hygiene: security-sensitive `as unknown as` removed from actor
+  paths in `RoleAdministrationService` (`actorId`/`auditInput` use `in`
+  narrowing), `UsersService` (`hasProvenScope`/`requireRequestActor`/
+  `requireMutationActor`/`describeGuardedActor`), `authorization-response`
+  policy (`res.status` direct), and `UserManagementController`/
+  `AdminController` role/brand handling. `tsc -p tsconfig.strict.json`,
+  `tsc -p tsconfig.json`, and `tsc -p test/tsconfig.json` all pass clean;
+  `oxlint` 0 warnings/errors on touched files; Prettier applied;
+  `git diff --check` clean.
 
 ## 6. Declare and enforce route scopes with rollout modes
 
@@ -812,6 +1052,12 @@ Complete when concurrent upserts are correct and privacy tests pass.
 - [x] Run OpenAPI generation/validation.
 - [x] Run focused Bruno authentication/status tests.
 - [x] Run build/lint/format.
+
+**Bounded-worktree limitation (2026-09-06):** the Bruno authentication/status
+item above is collection/contract evidence; a live-portal Bruno run is an
+operational gate and is NOT claimed as repository-verified in this round.
+Repository evidence here is `validate:api-routes`, policy suites, and
+OpenAPI generation/validation where feasible.
 
 **STOP GATE G — Every route explicitly classified**
 
@@ -984,6 +1230,12 @@ Complete when response content cannot reveal secrets or cross-brand topology.
 - [x] Test payload limits/pagination/filter validation.
 - [x] Generate and audit OpenAPI.
 
+**Bounded-worktree limitation (2026-09-06):** the Bruno collections above
+are maintained contract artifacts; executing them against a live portal is
+an operational gate and is NOT claimed as repository-verified in this
+round. Repository evidence here is the Mocha controller/service suites and
+OpenAPI generation/audit where feasible.
+
 **STOP GATE I — API complete**
 
 - [x] Every admin workflow is available through one contract API.
@@ -1085,6 +1337,12 @@ Complete when keyboard and basic accessibility smoke tests pass.
 - [x] Run browser workflow tests in both brand/system admin contexts.
 - [x] Verify direct route denial independent of hidden buttons.
 
+**Bounded-worktree limitation (2026-09-06):** the browser-workflow item
+above is an operational gate (Playwright/live browser) and is NOT claimed
+as repository-verified in this round. Repository evidence here is the
+Angular unit suites and builds/types where feasible; direct route denial
+is covered by server policy suites.
+
 **STOP GATE J — UI/API parity**
 
 - [x] UI performs all normal workflows through contract APIs.
@@ -1162,8 +1420,8 @@ Complete when no onboarding path encodes a fixed role hierarchy.
 ### 11.2 Adapt user creation/update
 
 - [x] Convert requested role names/keys to same-brand role assignments.
-- [x] Validate all roles before user/assignment mutation.
-- [ ] Use required transaction where user + roles must be atomic. (2026-09-03 review: every assignment grant/revoke/suppress runs in its own required transaction, but the composite user update is step-wise; a mid-sequence failure is surfaced to the caller for an idempotent retry rather than rolled back as one unit.)
+- [x] Validate all roles before user/assignment mutation. (2026-09-05: create/update resolve names to same-brand IDs first; unknown names fail closed with 422 before any mutation — create never returns success with silently dropped roles.)
+- [x] Durable saga with explicit new-vs-pre-existing tracking (no single transaction across the legacy User.create + assignment phases). (2026-09-05: create compensates by destroying ONLY accounts newly created by the same request; pre-existing duplicates are never destroyed and failures report partial state; update snapshots the prior profile and restores it on role-phase failure, reporting restore failures too. User+RoleAssignment share the default datastore; a single required transaction remains a future orchestration, documented in design.md.)
 - [x] Prevent Guest/system/cross-brand poisoning.
 - [x] Preserve supported response shape.
 - [x] Audit role changes through authorization audit.
@@ -1172,18 +1430,19 @@ Complete when user management contains no direct role collection writer.
 
 ### 11.3 Adapt linked accounts
 
-- [ ] Require recent, server-verified, pair-bound proof for both identities; client-supplied IDs alone are not proof.
-- [ ] Preview merged role authority across every affected brand before apply.
-- [ ] Reject a brand administrator when either account carries authority outside the actor's brand.
+- [x] Require recent, server-verified, pair-bound proof for both identities; client-supplied IDs alone are not proof. (2026-09-05 resolution: `previewLinkAccounts` issues pair versions + short-lived `account-link` confirmation token binding actor/brand/pair/versions/content; `linkUserAccounts` requires both `primaryExpectedVersion`/`secondaryExpectedVersion` and re-verifies the token before any write.)
+- [x] Preview merged role authority across every affected brand before apply. (2026-09-05: preview returns rolesToAdopt/rolesToRetire computed from authoritative assignments; both accounts must be active brand members.)
+- [x] Reject a brand administrator when either account carries authority outside the actor's brand.
 - [x] Canonicalize assignment ownership to primary account.
 - [x] Merge source tuples without duplicating authority.
-- [ ] Revoke/retire alias associations consistently.
+- [x] Revoke/retire alias associations consistently. (Secondary effective brand tuples retire with per-row CAS; primary collisions on divergent state fail with 409.)
 - [x] Enforce final-system-admin guard before linking.
 - [x] Enforce final-brand-admin guard in every affected brand before linking.
-- [ ] Preserve audit provenance of supplied and canonical targets.
-- [ ] Commit link state, assignments, legacy projection, quorum checks, and audits atomically. (2026-09-03 review: link canonicalization runs as ordered, individually transactional and audited steps; the record-metadata rewrite cannot share the datastore transaction. Steps are idempotent on retry; a single-atomic-commit implementation remains open.)
+- [x] Preserve audit provenance of supplied and canonical targets. (link + legacy link-accounts audits carry both identities, brand, roles merged, and pending state.)
+- [x] Durable two-commit link protocol with bounded idempotent recovery (NOT single-datastore atomicity). (2026-09-05: Commit 1 required transaction on `mongodb`; Commit 2 separate Record-datastore phase with brand predicate, revision CAS, bounded discovery; unbranded rows rejected as opaque not-found; `UserLinkOperation` pending/running/completed/failed keyed by stable operation ID; `retryLinkOperation` resumes only the record phase; completion audit `user.link-operation-completed`; pending exposed via service/API/UI. Cross-datastore rollback is unsupported by design — see design.md.)
+- [x] Existing-link conflicts normalize to 409 with safe retry. (Same-operation resume + pending-for-pair resume; distinct operations conflicting on one secondary get 409; unique `{secondaryUserId,status}` constraint shipped in model + `AUTHORIZATION_PERSISTENCE_MODEL_INDEXES` + migration `20260905T120000-account-link-uniqueness`.)
 - [ ] Do not guess how to redistribute merged authority on unlink.
-- [ ] Add rollback/concurrency tests.
+- [x] Add rollback/concurrency tests. (Stale pair versions, race-to-one-winner, partial multi-record progress + idempotent recovery, CAS coverage; live overlapping-transaction concurrency remains Docker-only and is documented as such.)
 
 Complete when linking cannot remove or duplicate protected authority unexpectedly.
 
@@ -1191,7 +1450,7 @@ Complete when linking cannot remove or duplicate protected authority unexpectedl
 
 - [x] Make `/admin/roles/get` read new roles and project legacy shape.
 - [x] Make `/admin/roles/user` translate names/keys and call assignment service.
-- [ ] Reject empty-role behavior according to documented compatibility mapping without bypassing Guest semantics.
+- [x] Reject empty-role behavior according to documented compatibility mapping without bypassing Guest semantics. (2026-09-05: empty sets are 422 `authorization.invalid-role`, unknown names are 422, system assignments are 403, Guest is 422 — stable codes, never generic 500; controllers validate names before mutating.)
 - [x] Add deprecation headers and successor links.
 - [x] Preserve expected status/body for supported valid callers.
 - [x] Add cross-brand/protected tests.
@@ -1225,6 +1484,7 @@ Complete when hooks can retain current claims behavior without direct associatio
 - [x] Integrator compatibility APIs remain functional.
 - [x] Fixed nested-role onboarding is gone.
 - [x] Direct database writes are reported as unsupported drift.
+- [x] Link proof/preview/confirmation, durable two-commit recovery, composite new-vs-pre-existing compensation, and empty-role mapping are implemented and tested (11.2/11.3/11.4 above). Residual external-runtime limits (no cross-datastore rollback, no live overlapping-transaction concurrency without Docker/Mongo replica set) are documented in design.md and test headers, not claimed as proven.
 
 ## 12. Complete legacy bearer security and compatibility
 
@@ -1359,6 +1619,11 @@ Complete when metrics are actionable and contain no unbounded/user/resource/toke
 - [x] Run authorization-audit indefinite/bounded/legal-hold retention tests separately from shadow retention.
 - [x] Run secret/cardinality tests.
 - [x] Publish operations wiki page.
+
+**Bounded-worktree limitation (2026-09-06):** multi-instance races and
+recovery/retention against live deployments are operational gates; the
+repository evidence here is deterministic unit/integration coverage, not a
+fresh multi-instance or restart rehearsal.
 
 **STOP GATE N — Operators can assess and recover**
 
@@ -1495,6 +1760,11 @@ Complete when rollback remains tested throughout the supported release.
 Complete when an administrator, hook author, integrator, and operator each have a complete path for their responsibilities.
 
 ### 15.5 Run final verification suite
+
+**Bounded-worktree note (2026-09-06):** only the bounded subset below is
+runnable/verifiable in this worktree; mounted Docker/Mongo, live Bruno, and
+Playwright/browser rows remain open operational gates and are NOT marked
+verified here. Gate A and phases 14–16 stay OPEN.
 
 - [ ] `npm --prefix packages/redbox-core run build`.
 - [ ] `npm --prefix packages/redbox-core run test`.

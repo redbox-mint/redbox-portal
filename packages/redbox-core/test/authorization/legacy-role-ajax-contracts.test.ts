@@ -202,7 +202,6 @@ describe('legacy role AJAX contracts', function () {
         'packages/redbox-core/src/services/RolesService.ts:bootstrap',
         'packages/redbox-core/src/services/RolesService.ts:createRoleWithBrand',
         'packages/redbox-core/src/services/UsersService.ts:initDefAdmin',
-        'packages/redbox-core/src/services/UsersService.ts:linkAccounts',
       ],
       'production association-write call sites changed; update ROLE_WRITER_INVENTORY one row per call site'
     );
@@ -232,6 +231,32 @@ describe('legacy role AJAX contracts', function () {
       [],
       `stale association-write inventory rows:\n${staleAssociationRows.join('\n')}`
     );
+    // 2b. Guarded account-link delegation: UsersService.linkAccounts must
+    // delegate to RoleAdministrationService.linkUserAccounts and must never
+    // directly mutate a roles/users collection. The global scan above
+    // already fails if a direct write reappears (it would surface as an
+    // unexpected discovered site); this pins the delegation explicitly.
+    const usersSource = productionSources['src/services/UsersService.ts'];
+    assert.ok(usersSource !== undefined, 'UsersService source must be discovered');
+    const linkAccountsIndex = usersSource.indexOf('public linkAccounts');
+    assert.ok(linkAccountsIndex !== -1, 'UsersService.linkAccounts must exist as a delegation adapter');
+    const linkAccountsTail = usersSource.slice(linkAccountsIndex, linkAccountsIndex + 8000);
+    assert.ok(
+      linkAccountsTail.includes('linkUserAccounts'),
+      'UsersService.linkAccounts must delegate to the guarded RoleAdministrationService writer'
+    );
+    const linkTailAssociationPattern =
+      /(addToCollection|replaceCollection|removeFromCollection)\([^;]{0,300}?['"](roles|users)['"]/;
+    assert.equal(
+      linkTailAssociationPattern.test(linkAccountsTail),
+      false,
+      'UsersService.linkAccounts must not directly write roles/users associations'
+    );
+    const linkInventory = ROLE_WRITER_INVENTORY.filter(
+      row => row.location === 'packages/redbox-core/src/services/UsersService.ts:linkAccounts'
+    );
+    assert.equal(linkInventory.length, 1, 'UsersService.linkAccounts inventory row is required');
+    assert.equal(linkInventory[0].classification, 'compatibility-adapter');
 
     // 3. RoleAdministrationService mutations: every mutation named by the
     // supported-service row must exist in the service source.
@@ -359,7 +384,10 @@ describe('legacy role AJAX controllers', function () {
     installGlobals();
     const controller = new AdminControllers.Admin();
     const calls = stubSendResp(controller as unknown as { sendResp: unknown });
-    await controller.updateUserRoles(ajaxReq({ userid: 'user-1', roles: ['Researcher'] }), {} as Sails.Res);
+    await controller.updateUserRoles(
+      ajaxReq({ userid: 'user-1', roles: ['Researcher'], expectedVersion: 2 }),
+      {} as Sails.Res
+    );
     // updateUserRoles subscribes asynchronously; allow the observable to flush.
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(calls.length, 1);
@@ -369,11 +397,28 @@ describe('legacy role AJAX controllers', function () {
     assert.ok(String(calls[0].headers['Link']).includes('/api/authorization/assignments'));
   });
 
+  it('rejects updateUserRoles without a CAS expectedVersion (422, writer never runs)', async function () {
+    installGlobals();
+    const controller = new AdminControllers.Admin();
+    const calls = stubSendResp(controller as unknown as { sendResp: unknown });
+    await controller.updateUserRoles(ajaxReq({ userid: 'user-1', roles: ['Researcher'] }), {} as Sails.Res);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].status, 422);
+    assert.equal(
+      (Reflect.get(globalThis, 'UsersService') as { updateUserRoles: sinon.SinonStub }).updateUserRoles.called,
+      false
+    );
+  });
+
   it('returns failure with Deprecation/Link headers when the writer rejects', async function () {
     installGlobals({ updateUserRoles: throwError(() => new Error('writer failed')) });
     const controller = new AdminControllers.Admin();
     const calls = stubSendResp(controller as unknown as { sendResp: unknown });
-    await controller.updateUserRoles(ajaxReq({ userid: 'user-1', roles: ['Researcher'] }), {} as Sails.Res);
+    await controller.updateUserRoles(
+      ajaxReq({ userid: 'user-1', roles: ['Researcher'], expectedVersion: 2 }),
+      {} as Sails.Res
+    );
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(calls.length, 1);
     assert.equal((calls[0].data as { status: boolean }).status, false);
@@ -385,7 +430,10 @@ describe('legacy role AJAX controllers', function () {
     installGlobals({ updateUserRoles: throwError(() => new Error('Guest cannot be assigned explicitly')) });
     const controller = new AdminControllers.Admin();
     const calls = stubSendResp(controller as unknown as { sendResp: unknown });
-    await controller.updateUserRoles(ajaxReq({ userid: 'user-1', roles: ['Guest'] }), {} as Sails.Res);
+    await controller.updateUserRoles(
+      ajaxReq({ userid: 'user-1', roles: ['Guest'], expectedVersion: 2 }),
+      {} as Sails.Res
+    );
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(calls.length, 1);
     assert.equal((calls[0].data as { status: boolean }).status, false);
@@ -397,7 +445,7 @@ describe('legacy role AJAX controllers', function () {
     installGlobals({ updateUserRoles: throwError(() => new Error('Please assign at least one role')) });
     const controller = new AdminControllers.Admin();
     const calls = stubSendResp(controller as unknown as { sendResp: unknown });
-    await controller.updateUserRoles(ajaxReq({ userid: 'user-1', roles: [] }), {} as Sails.Res);
+    await controller.updateUserRoles(ajaxReq({ userid: 'user-1', roles: [], expectedVersion: 2 }), {} as Sails.Res);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(calls.length, 1);
     assert.equal((calls[0].data as { status: boolean }).status, false);
@@ -408,7 +456,10 @@ describe('legacy role AJAX controllers', function () {
     installGlobals({ getUserForBrand: of(null) });
     const controller = new AdminControllers.Admin();
     const calls = stubSendResp(controller as unknown as { sendResp: unknown });
-    await controller.updateUserRoles(ajaxReq({ userid: 'foreign-user', roles: ['Researcher'] }), {} as Sails.Res);
+    await controller.updateUserRoles(
+      ajaxReq({ userid: 'foreign-user', roles: ['Researcher'], expectedVersion: 2 }),
+      {} as Sails.Res
+    );
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(calls.length, 1);
     assert.equal(calls[0].status, 404);

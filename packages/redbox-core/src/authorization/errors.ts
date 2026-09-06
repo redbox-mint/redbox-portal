@@ -70,6 +70,8 @@ export const AUTHORIZATION_ADMINISTRATION_ERROR_CODES = [
   'authorization.delegation-ceiling',
   'authorization.bulk-invalid',
   'authorization.query-bound-exceeded',
+  'authorization.audit-unavailable',
+  'authorization.saga-unavailable',
 ] as const;
 
 export type AuthorizationAdministrationErrorCode = (typeof AUTHORIZATION_ADMINISTRATION_ERROR_CODES)[number];
@@ -81,7 +83,7 @@ export type AuthorizationAdministrationErrorCode = (typeof AUTHORIZATION_ADMINIS
  */
 export class AuthorizationAdministrationError extends Error {
   readonly code: AuthorizationAdministrationErrorCode;
-  readonly status: 400 | 401 | 403 | 404 | 409 | 422;
+  readonly status: 400 | 401 | 403 | 404 | 409 | 422 | 503;
   readonly details?: Readonly<Record<string, unknown>>;
 
   constructor(

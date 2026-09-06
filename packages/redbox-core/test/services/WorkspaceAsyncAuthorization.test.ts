@@ -3,7 +3,7 @@ import { describe, it } from 'mocha';
 import { firstValueFrom, of } from 'rxjs';
 import * as sinon from 'sinon';
 import { asScopeKey, freezeAuthorizationContext, type AuthorizationContext } from '../../src/authorization';
-import { Services as AuthorizationServices } from '../../src/services/AuthorizationService';
+import * as AuthorizationActorIssuer from '../../src/services/AuthorizationActorIssuer';
 import { Services } from '../../src/services/WorkspaceAsyncService';
 import type { WorkspaceAsyncAttributes } from '../../src/waterline-models/WorkspaceAsync';
 
@@ -149,9 +149,7 @@ describe('WorkspaceAsyncService authorization context', () => {
           safejobservice: { execute: target },
         },
       };
-      sinon
-        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
-        .resolves(processContext());
+      sinon.stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal').resolves(processContext());
       const service = new Services.WorkspaceAsyncService();
       const update = sinon.stub(service, 'update').returns(of([]));
 
@@ -209,9 +207,7 @@ describe('WorkspaceAsyncService authorization context', () => {
         },
       };
       Reflect.set(globalThis, 'WorkspaceAsync', { find });
-      sinon
-        .stub(AuthorizationServices.AuthorizationService.prototype, 'createSystemProcessContext')
-        .resolves(processContext());
+      sinon.stub(AuthorizationActorIssuer, 'createSystemProcessContextInternal').resolves(processContext());
       const service = new Services.WorkspaceAsyncService();
       const update = sinon.stub(service, 'update').returns(of([]));
 

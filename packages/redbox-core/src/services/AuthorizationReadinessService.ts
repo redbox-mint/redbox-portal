@@ -12,7 +12,7 @@ import {
 } from '../authorization';
 import { getMergedApiRoutes } from '../api-routes';
 import { AUTHORIZATION_MIGRATION_NAME, type AuthorizationDriftReport } from './AuthorizationMigrationService';
-import { Services as AuthorizationServices } from './AuthorizationService';
+import { createSystemProcessContextInternal } from './AuthorizationActorIssuer';
 import type { RoleAttributes } from '../waterline-models/Role';
 import type { RoleAssignmentAttributes } from '../waterline-models/RoleAssignment';
 import type { UserAttributes } from '../waterline-models/User';
@@ -535,7 +535,10 @@ export namespace Services {
      * hand-rolled actor; mirrors the controller path through getReport.
      */
     public async getOperatorReport(): Promise<AuthorizationReadinessReport> {
-      const actor = await new AuthorizationServices.AuthorizationService().createSystemProcessContext(
+      // Brand-less operator report: only `system.*` scopes survive issuance,
+      // and `resolveBrand` is unreachable with an undefined brand identifier.
+      const actor = await createSystemProcessContextInternal(
+        { getRegistry: this.dependencies.getRegistry, resolveBrand: async () => undefined },
         'authorization-readiness',
         undefined,
         [SYSTEM_MANAGE_SCOPE]

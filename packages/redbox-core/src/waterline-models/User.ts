@@ -2,7 +2,12 @@
 import { Entity, Attr, HasMany, BeforeCreate, AfterCreate, AfterUpdate, toWaterlineModelDef } from '../decorators';
 
 declare const sails: Sails.Application;
-declare const UsersService: { findAndAssignAccessToRecords: (email: string, username: string) => Promise<number> };
+// AUTH-P5-002 registered internal lifecycle capability (attached by the
+// Users service `exports()` override in production as well as mocha mode).
+// The lifecycle resolves it at call time and fails closed when absent.
+declare const UsersService: {
+  assignAccessToPendingRecordsForLifecycle?: (email: string, username: string) => Promise<number>;
+};
 declare const _: typeof import('lodash');
 
 const customToJSON = function customToJSON(this: Record<string, unknown>) {
@@ -25,7 +30,14 @@ const assignAccessToPendingRecords = async function assignAccessToPendingRecords
   user: Record<string, unknown>
 ): Promise<number> {
   if (user.email == null || user.name === 'Local Admin') return 0;
-  return await UsersService.findAndAssignAccessToRecords(user.email as string, user.username as string);
+  const capability =
+    typeof UsersService !== 'undefined' ? UsersService.assignAccessToPendingRecordsForLifecycle : undefined;
+  if (typeof capability !== 'function') {
+    throw new Error(
+      'UsersService.assignAccessToPendingRecordsForLifecycle is unavailable; the lifecycle capability is not registered.'
+    );
+  }
+  return await capability.call(UsersService, user.email as string, user.username as string);
 };
 
 const hashPassword = (user: Record<string, unknown>, cb: (err?: Error) => void) => {
@@ -106,6 +118,9 @@ export class UserClass {
   @Attr({ type: 'boolean', defaultsTo: false })
   public loginDisabled!: boolean;
 
+  @Attr({ type: 'number', defaultsTo: 1 })
+  public loginDisabledVersion?: number;
+
   @HasMany('workspaceApp', 'user')
   public workspaceApps?: unknown[];
 
@@ -131,6 +146,7 @@ export interface UserAttributes extends Sails.WaterlineAttributes {
   linkedAccountCount?: number;
   linkedPrimaryUserId?: string;
   loginDisabled?: boolean;
+  loginDisabledVersion?: number;
   effectiveLoginDisabled?: boolean;
   disabledByPrimaryUserId?: string;
   disabledByPrimaryUsername?: string;

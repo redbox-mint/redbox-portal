@@ -1,7 +1,7 @@
 /*
-* Series of helper functions to simplify testing.
-*/
-import { merge as _merge, isEmpty as _isEmpty } from "lodash-es";
+ * Series of helper functions to simplify testing.
+ */
+import { merge as _merge, isEmpty as _isEmpty } from 'lodash-es';
 import { InitOptions, TOptions } from 'i18next';
 /**
  * Returns stub for `ConfigService`.
@@ -27,16 +27,14 @@ export function getStubConfigService(configBlock: any = null) {
         fallbackLng: 'en',
         debug: true,
         returnEmptyString: false,
-        ns: [
-          'translation'
-        ],
+        ns: ['translation'],
         // provide inline resources to avoid relying on XHR backend in unit tests
         resources: {
           en: {
             translation: {
-              key1: 'value1'
-            }
-          }
+              key1: 'value1',
+            },
+          },
         },
         // lang detection plugin options
         detection: {
@@ -49,8 +47,8 @@ export function getStubConfigService(configBlock: any = null) {
           // optional expire and domain for set cookie
           cookieMinutes: 10080, // 7 days
           // cookieDomain: I18NEXT_LANG_COOKIE_DOMAIN
-        }
-      }
+        },
+      },
     };
   }
 
@@ -63,8 +61,7 @@ export function getStubConfigService(configBlock: any = null) {
       return configBlock;
     },
 
-    configUrl: `${configBlock.rootContext}/dynamic/apiClientConfig?v=${new Date().getTime()}`
-
+    configUrl: `${configBlock.rootContext}/dynamic/apiClientConfig?v=${new Date().getTime()}`,
   };
 }
 /**
@@ -78,15 +75,11 @@ export function getStubConfigService(configBlock: any = null) {
 export function getStubTranslationService(translationMap: any = null) {
   if (_isEmpty(translationMap)) {
     translationMap = {
-      "key1": "value1"
-    }
+      key1: 'value1',
+    };
   }
 
-  function applyInterpolation(
-    template: string,
-    defaultValueOrOptions?: string | TOptions,
-    options?: TOptions
-  ) {
+  function applyInterpolation(template: string, defaultValueOrOptions?: string | TOptions, options?: TOptions) {
     const interpolationOptions = typeof defaultValueOrOptions === 'string' ? options : defaultValueOrOptions;
     if (_isEmpty(interpolationOptions)) {
       return template;
@@ -102,7 +95,15 @@ export function getStubTranslationService(translationMap: any = null) {
 
   return {
     translationMap: translationMap,
-    translationChanges$: { pipe: () => ({ subscribe: () => ({ unsubscribe() {/* noop */ } }) }) },
+    translationChanges$: {
+      pipe: () => ({
+        subscribe: () => ({
+          unsubscribe() {
+            /* noop */
+          },
+        }),
+      }),
+    },
     waitForInit: function () {
       return true;
     },
@@ -121,7 +122,7 @@ export function getStubTranslationService(translationMap: any = null) {
       }
 
       return options?.defaultValue ?? defaultValueOrOptions?.defaultValue ?? key;
-    }
+    },
   };
 }
 /**
@@ -132,8 +133,13 @@ export function getStubTranslationService(translationMap: any = null) {
  * @param loginResult
  * @returns
  */
-export function getStubUserService(username: string = '', password: string = '', loginResult: any = { url: '#greatsuccess', user: null }, userData: any = {}, rolesData: any = {}) {
-
+export function getStubUserService(
+  username: string = '',
+  password: string = '',
+  loginResult: any = { url: '#greatsuccess', user: null },
+  userData: any = {},
+  rolesData: any = {}
+) {
   return {
     waitForInit: function () {
       return true;
@@ -152,38 +158,70 @@ export function getStubUserService(username: string = '', password: string = '',
         this.loginResult.message = 'Invalid username/password';
       }
       return this.loginResult;
-    }, getBrandRoles() {
+    },
+    getBrandRoles() {
       return rolesData;
-    }, getUsers() {
+    },
+    getUsers() {
       return userData;
-    }, updateUserDetails() {
+    },
+    updateUserDetails() {
       return { status: 'OK' };
-    }, addLocalUser() {
+    },
+    addLocalUser() {
       return { status: 'OK' };
-    }, updateUserRoles() {
+    },
+    updateUserRoles() {
       return { status: 'OK' };
-    }, genKey() {
+    },
+    genKey() {
       return { status: true, message: 'generated-token' };
-    }, revokeKey() {
+    },
+    revokeKey() {
       return { status: true, message: 'revoked' };
-    }, searchLinkCandidates() {
+    },
+    searchLinkCandidates() {
       return [];
-    }, getUserLinks() {
+    },
+    getUserLinks() {
       return { primary: userData[0] || null, linkedAccounts: [] };
-    }, getUserAudit() {
+    },
+    getUserAudit() {
       return { user: userData[0] || null, records: [], summary: { returnedCount: 0, truncated: false } };
-    }, linkAccounts() {
+    },
+    linkAccounts() {
       return { primary: userData[0] || null, linkedAccounts: [], impact: { recordsRewritten: 0, rolesMerged: 0 } };
-    }, disableUser() {
+    },
+    previewLinkAccounts() {
+      return {
+        primaryUserId: 'primary-1',
+        secondaryUserId: 'secondary-1',
+        primaryExpectedVersion: 1,
+        secondaryExpectedVersion: 1,
+        primaryUsername: 'primary-1',
+        secondaryUsername: 'secondary-1',
+        rolesToAdopt: 0,
+        rolesToRetire: 0,
+        confirmationToken: 'stub-token',
+        linkOperationId: 'stub-op',
+      };
+    },
+    getLinkOperation() {
+      return { operationId: 'stub-op', status: 'completed', recordsPending: false };
+    },
+    retryLinkOperation() {
+      return { primary: userData[0] || null, linkedAccounts: [], impact: { recordsRewritten: 0, rolesMerged: 0 } };
+    },
+    disableUser() {
       return { status: true, message: 'disabled' };
-    }, enableUser() {
+    },
+    enableUser() {
       return { status: true, message: 'enabled' };
-    }
+    },
   };
 }
 
 export function getStubRecordService(recordData: any = {}) {
-
   return {
     baseUrl: 'base',
     brandingAndPortalUrl: 'base/default/rdmp',
@@ -195,20 +233,26 @@ export function getStubRecordService(recordData: any = {}) {
     },
     getAllTypes: function () {
       return recordData['types'];
-    }, getDashboardType: function () {
+    },
+    getDashboardType: function () {
       return recordData['dashboardType'];
-    }, getDashboardView: function () {
+    },
+    getDashboardView: function () {
       return recordData['dashboardView'];
-    }, getWorkflowSteps: function () {
+    },
+    getWorkflowSteps: function () {
       return recordData['step'];
-    }, getRecords: function () {
+    },
+    getRecords: function () {
       return recordData['records'];
-    }, getRelatedRecords: function () {
+    },
+    getRelatedRecords: function () {
       return recordData['relatedRecords'];
-    }, getDeletedRecords: function () {
+    },
+    getDeletedRecords: function () {
       return recordData['deletedRecords'];
-    }
-  }
+    },
+  };
 }
 
 export const localeId = 'cimode';
@@ -220,7 +264,6 @@ export function appInit(translationService: { waitForInit: () => Promise<any> | 
 }
 
 export function getStubReportService(reportData: any = {}) {
-
   return {
     baseUrl: 'base',
     brandingAndPortalUrl: 'base/default/rdmp',
@@ -235,6 +278,6 @@ export function getStubReportService(reportData: any = {}) {
     },
     getReportConfig: function (name: string) {
       return reportData.reportConfig;
-    }
+    },
   };
 }

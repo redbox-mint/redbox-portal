@@ -4,7 +4,13 @@ import { of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap } from 'rxjs/operators';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAttributes } from '../waterline-models/User';
-import { sendAuthorizationResourceError } from '../policies/authorization-response';
+import {
+  ensureAuthorizationRequestId,
+  parseMandatoryExpectedVersion,
+  sendAuthorizationAdministrationError,
+  sendAuthorizationResourceError,
+  sendAuthorizationTransactionUnavailable,
+} from '../policies/authorization-response';
 
 export namespace Controllers {
   /**
@@ -73,17 +79,45 @@ export namespace Controllers {
       brandId: string,
       brandRoleIds: Array<string | number>
     ): Array<string | number> {
-      const foreignRoleIds = ((user.roles ?? []) as unknown as Array<Record<string, unknown>>)
-        .filter(role => {
-          const branding = role.branding as string | Record<string, unknown> | undefined;
-          const roleBrandId = _.isObject(branding)
-            ? String((branding as Record<string, unknown>).id ?? '')
-            : String(branding ?? '');
-          return roleBrandId !== brandId;
-        })
-        .map(role => role.id as string | number)
-        .filter(roleId => roleId != null);
+      const roles: unknown = user.roles ?? [];
+      if (!Array.isArray(roles)) return _.uniq([...brandRoleIds]);
+      const foreignRoleIds: Array<string | number> = [];
+      for (const role of roles) {
+        if (typeof role !== 'object' || role === null || !('branding' in role)) continue;
+        const branding: unknown = role.branding;
+        let roleBrandId = '';
+        if (typeof branding === 'string') roleBrandId = branding;
+        else if (typeof branding === 'object' && branding !== null && 'id' in branding) {
+          roleBrandId = String(branding.id ?? '');
+        }
+        if (roleBrandId === brandId) continue;
+        if (typeof role === 'object' && role !== null && 'id' in role) {
+          const id: unknown = role.id;
+          if (typeof id === 'string' || typeof id === 'number') foreignRoleIds.push(id);
+        }
+      }
       return _.uniq([...foreignRoleIds, ...brandRoleIds]);
+    }
+
+    /**
+     * AUTH-P5-002: observed user version for the in-request role-set CAS.
+     * Mirrors the service read rule (`version ?? loginDisabledVersion`,
+     * legacy rows read as 1); undefined only when no user row is present,
+     * in which case the caller must fail closed instead of writing blind.
+     */
+    private observedUserVersionForRoleCas(user: unknown): number | undefined {
+      let current: unknown = user;
+      for (let depth = 0; depth < 4 && Array.isArray(current) && current.length > 0; depth += 1) {
+        current = current[0];
+      }
+      if (current === null || current === undefined || typeof current !== 'object') return undefined;
+      const record = current as Record<string, unknown>;
+      const version = record.version ?? record.loginDisabledVersion;
+      if (typeof version === 'number' && Number.isSafeInteger(version) && version >= 1) return version;
+      if (version === undefined || version === null) {
+        return record.id !== undefined ? 1 : undefined;
+      }
+      return undefined;
     }
 
     /**
@@ -159,13 +193,20 @@ export namespace Controllers {
               ? user.username
               : primaryUsernamesById[String(user.linkedPrimaryUserId ?? '')] || user.username;
             user.token = _.isEmpty(user.token) ? null : 'user-has-token-but-is-suppressed';
-            user.roles = brandId
-              ? _.filter(
-                  user.roles as globalThis.Record<string, unknown>[],
-                  (role: globalThis.Record<string, unknown>) =>
-                    role.branding === brandId || (role.branding as globalThis.Record<string, unknown>)?.id === brandId
-                )
-              : user.roles;
+            if (brandId !== undefined && brandId !== null) {
+              const userRoles: unknown = user.roles;
+              if (Array.isArray(userRoles)) {
+                user.roles = _.filter(userRoles, (role: unknown) => {
+                  if (typeof role !== 'object' || role === null || !('branding' in role)) return false;
+                  const branding: unknown = role.branding;
+                  if (typeof branding === 'string') return branding === brandId;
+                  if (typeof branding === 'object' && branding !== null && 'id' in branding) {
+                    return branding.id === brandId;
+                  }
+                  return false;
+                });
+              }
+            }
             delete user.password;
             responseUsers.push(user);
           }
@@ -360,7 +401,29 @@ export namespace Controllers {
             primaryUserId,
             secondaryUserId,
             String(req.user?.username ?? 'system'),
-            String(brand.id)
+            String(brand.id),
+            {
+              actorContext: req.authorization,
+              requestId: ensureAuthorizationRequestId(req),
+              reason: typeof req.body?.reason === 'string' ? String(req.body.reason) : undefined,
+              // AUTH-LINK-PROOF-001: forward the pair-bound proof fields.
+              primaryExpectedVersion:
+                typeof req.body?.primaryExpectedVersion === 'number' &&
+                Number.isSafeInteger(req.body.primaryExpectedVersion)
+                  ? req.body.primaryExpectedVersion
+                  : undefined,
+              secondaryExpectedVersion:
+                typeof req.body?.secondaryExpectedVersion === 'number' &&
+                Number.isSafeInteger(req.body.secondaryExpectedVersion)
+                  ? req.body.secondaryExpectedVersion
+                  : undefined,
+              linkConfirmationToken:
+                typeof req.body?.linkConfirmationToken === 'string'
+                  ? String(req.body.linkConfirmationToken)
+                  : undefined,
+              linkOperationId:
+                typeof req.body?.linkOperationId === 'string' ? String(req.body.linkOperationId) : undefined,
+            }
           )
         );
         return this.sendResp(req, res, {
@@ -368,6 +431,8 @@ export namespace Controllers {
           headers: this.getNoCacheHeaders(),
         });
       } catch (error) {
+        if (sendAuthorizationAdministrationError(req, res, error as Error)) return;
+        if (sendAuthorizationTransactionUnavailable(req, res, error)) return;
         if (sendAuthorizationResourceError(req, res, error)) return;
         sails.log.error('Failed to link accounts:');
         sails.log.error(error);
@@ -420,9 +485,33 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await UsersService.disableUserForBrand(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        const disableExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (disableExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to modify user access state.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const disableResult = await UsersService.disableUserForBrand(
+          userId,
+          String(req.user?.username ?? 'system'),
+          String(brand.id),
+          {
+            expectedVersion: disableExpectedVersion,
+            actorContext: req.authorization,
+            requestId: ensureAuthorizationRequestId(req),
+            reason: typeof req.body?.reason === 'string' ? String(req.body.reason) : undefined,
+          }
+        );
         return this.sendResp(req, res, {
-          data: { status: true, message: 'User disabled successfully' },
+          data: {
+            status: true,
+            message: 'User disabled successfully',
+            ...((disableResult as { readonly version?: number } | undefined)?.version === undefined
+              ? {}
+              : { version: (disableResult as { readonly version: number }).version }),
+          },
           headers: this.getNoCacheHeaders(),
         });
       } catch (err) {
@@ -454,9 +543,33 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await UsersService.enableUserForBrand(userId, String(req.user?.username ?? 'system'), String(brand.id));
+        const enableExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (enableExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to modify user access state.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+        const enableResult = await UsersService.enableUserForBrand(
+          userId,
+          String(req.user?.username ?? 'system'),
+          String(brand.id),
+          {
+            expectedVersion: enableExpectedVersion,
+            actorContext: req.authorization,
+            requestId: ensureAuthorizationRequestId(req),
+            reason: typeof req.body?.reason === 'string' ? String(req.body.reason) : undefined,
+          }
+        );
         return this.sendResp(req, res, {
-          data: { status: true, message: 'User enabled successfully' },
+          data: {
+            status: true,
+            message: 'User enabled successfully',
+            ...((enableResult as { readonly version?: number } | undefined)?.version === undefined
+              ? {}
+              : { version: (enableResult as { readonly version: number }).version }),
+          },
           headers: this.getNoCacheHeaders(),
         });
       } catch (err) {
@@ -475,9 +588,21 @@ export namespace Controllers {
       if (userid) {
         const target = await this.requireUserInBrand(req, userid);
         if (!target) return this.sendOpaqueUserNotFound(req, res);
+        const keyExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (keyExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to rotate the user API token.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const brand = BrandingService.getBrandFromReq(req);
         const uuid = uuidv4();
-        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? '')).subscribe(
+        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? ''), {
+          actorContext: req.authorization,
+          expectedVersion: keyExpectedVersion,
+          requestId: ensureAuthorizationRequestId(req),
+        }).subscribe(
           (_user: unknown) => {
             this.sendResp(req, res, { data: { status: true, message: uuid }, headers: this.getNoCacheHeaders() });
           },
@@ -505,9 +630,21 @@ export namespace Controllers {
       if (userid) {
         const target = await this.requireUserInBrand(req, userid);
         if (!target) return this.sendOpaqueUserNotFound(req, res);
+        const revokeExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (revokeExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to revoke the user API token.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const brand = BrandingService.getBrandFromReq(req);
         const uuid = '';
-        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? '')).subscribe(
+        UsersService.setUserKeyForBrand(userid, uuid, String(brand.id ?? ''), {
+          actorContext: req.authorization,
+          expectedVersion: revokeExpectedVersion,
+          requestId: ensureAuthorizationRequestId(req),
+        }).subscribe(
           (_user: unknown) => {
             this.sendResp(req, res, {
               data: { status: true, message: 'UUID revoked successfully' },
@@ -545,13 +682,65 @@ export namespace Controllers {
         password = details.password;
       }
       if (username && name && password) {
-        UsersService.addLocalUser(username, name, details.email, password).subscribe(
+        // AUTH-COMPOSITE-001 legacy protocol: validate roles BEFORE any
+        // write; compensate newly created rows on role-phase failure (never
+        // destroy pre-existing rows); report primary + compensation errors.
+        const legacyBrand: BrandingModel = BrandingService.getBrandFromReq(req);
+        const requestedRoles: string[] = Array.isArray(details.roles) ? details.roles : [];
+        if (requestedRoles.length > 0) {
+          const preIds = RolesService.getRoleIds(legacyBrand.roles, requestedRoles);
+          if (preIds.length !== requestedRoles.length) {
+            this.sendResp(req, res, {
+              data: { status: false, message: 'One or more requested roles are unknown in this brand.' },
+              headers: this.getNoCacheHeaders(),
+            });
+            return;
+          }
+        }
+        UsersService.addLocalUser(username, name, details.email, password, {
+          actorContext: req.authorization,
+          brandId: String(BrandingService.getBrandFromReq(req)?.id ?? ''),
+          requestId: ensureAuthorizationRequestId(req),
+        }).subscribe(
           (user: globalThis.Record<string, unknown>) => {
             if (details.roles) {
               const roles = details.roles;
               const brand: BrandingModel = BrandingService.getBrandFromReq(req);
               const roleIds = RolesService.getRoleIds(brand.roles, roles);
-              UsersService.updateUserRoles(user.id as string, roleIds, { brandId: String(brand.id) }).subscribe(
+              if (roleIds.length !== (roles as unknown[]).length) {
+                const createdId = String(user.id ?? '');
+                void (async () => {
+                  // AUTH-P5-007 centralized saga compensation: version-bound
+                  // destroy of the row THIS request created (never a
+                  // pre-existing row), awaited, with both outcomes reported.
+                  const compensation = await UsersService.destroyNewlyCreatedUserRecord(
+                    createdId,
+                    ensureAuthorizationRequestId(req)
+                  );
+                  const compensationFailure =
+                    compensation === 'compensated' ? undefined : 'Compensating rollback failed.';
+                  this.sendResp(req, res, {
+                    data: {
+                      status: false,
+                      message:
+                        'One or more requested roles are unknown in this brand.' +
+                        (compensationFailure !== undefined
+                          ? ` Compensating rollback also failed: ${compensationFailure}`
+                          : ''),
+                    },
+                    headers: this.getNoCacheHeaders(),
+                  });
+                })();
+                return;
+              }
+              UsersService.updateUserRoles(user.id as string, roleIds, {
+                brandId: String(brand.id),
+                actorContext: req.authorization,
+                requestId: ensureAuthorizationRequestId(req),
+                // AUTH-P5-002: the row was created by THIS request, so its
+                // just-observed version is the CAS base.
+                expectedVersion: this.observedUserVersionForRoleCas(user) ?? 1,
+              }).subscribe(
                 (_user: unknown) => {
                   this.sendResp(req, res, {
                     data: { status: true, message: 'User created successfully' },
@@ -561,10 +750,29 @@ export namespace Controllers {
                 (error: unknown) => {
                   sails.log.error('Failed to update user roles:');
                   sails.log.error(error);
-                  this.sendResp(req, res, {
-                    data: { status: false, message: (error as Error).message },
-                    headers: this.getNoCacheHeaders(),
-                  });
+                  const createdId = String(user.id ?? '');
+                  void (async () => {
+                    // AUTH-P5-007 centralized saga compensation: version-bound
+                    // destroy of the row THIS request created (never a
+                    // pre-existing row), awaited, with both outcomes reported.
+                    const compensation = await UsersService.destroyNewlyCreatedUserRecord(
+                      createdId,
+                      ensureAuthorizationRequestId(req)
+                    );
+                    const compensationFailure =
+                      compensation === 'compensated' ? undefined : 'Compensating rollback failed.';
+                    this.sendResp(req, res, {
+                      data: {
+                        status: false,
+                        message:
+                          (error as Error).message +
+                          (compensationFailure !== undefined
+                            ? ` Compensating rollback also failed: ${compensationFailure}`
+                            : ''),
+                      },
+                      headers: this.getNoCacheHeaders(),
+                    });
+                  })();
                 }
               );
             } else {
@@ -602,20 +810,69 @@ export namespace Controllers {
       if (userid && name) {
         const target = await this.requireUserInBrand(req, String(userid));
         if (!target) return this.sendOpaqueUserNotFound(req, res);
+        const profileExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (profileExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to modify user profile state.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const brand: BrandingModel = BrandingService.getBrandFromReq(req);
-        UsersService.updateUserDetailsForBrand(
-          userid,
-          name,
-          details.email,
-          details.password,
-          String(brand.id ?? '')
-        ).subscribe(
+        // AUTH-COMPOSITE-001 legacy protocol: validate roles BEFORE the
+        // profile mutation; snapshot all prior fields; restore on role-phase
+        // failure and report both errors.
+        const legacyRequestedRoles: string[] = Array.isArray(details.roles) ? details.roles : [];
+        let legacyMergedRoleIds: Array<string | number> | undefined;
+        if (legacyRequestedRoles.length > 0) {
+          const legacyRoleIds = RolesService.getRoleIds(brand.roles, legacyRequestedRoles);
+          if (legacyRoleIds.length !== legacyRequestedRoles.length) {
+            this.sendResp(req, res, {
+              data: { status: false, message: 'One or more requested roles are unknown in this brand.' },
+              headers: this.getNoCacheHeaders(),
+            });
+            return;
+          }
+          legacyMergedRoleIds = this.mergeBrandRoleIds(target, String(brand.id), legacyRoleIds);
+        }
+        // AUTH-P5-007: verbatim prior snapshot (empty/null preserved) for the
+        // guarded exact-restore compensator — no lossy coercion, no direct
+        // writes on the restore path.
+        const verbatimLegacyField = (value: unknown): string | null => (typeof value === 'string' ? value : null);
+        const legacyPrior = {
+          name: verbatimLegacyField(target.name),
+          email: verbatimLegacyField(target.email),
+          passwordHash: verbatimLegacyField(target.password),
+        };
+        UsersService.updateUserDetailsForBrand(userid, name, details.email, details.password, String(brand.id ?? ''), {
+          actorContext: req.authorization,
+          expectedVersion: profileExpectedVersion,
+          requestId: ensureAuthorizationRequestId(req),
+        }).subscribe(
           (_user: unknown) => {
             if (details.roles) {
-              const roles = details.roles;
-              const roleIds = RolesService.getRoleIds(brand.roles, roles);
-              const mergedRoleIds = this.mergeBrandRoleIds(target, String(brand.id), roleIds);
-              UsersService.updateUserRoles(userid, mergedRoleIds, { brandId: String(brand.id) }).subscribe(
+              const mergedRoleIds = legacyMergedRoleIds ?? [];
+              // AUTH-P5-002: the roles phase pins the post-profile observed
+              // version (the profile write advanced it). An unresolvable
+              // version fails closed with partial state, never a blind write.
+              const postProfileVersion = this.observedUserVersionForRoleCas(_user);
+              if (postProfileVersion === undefined) {
+                this.sendResp(req, res, {
+                  data: {
+                    status: false,
+                    message:
+                      'Partial state: profile is stored but roles were not applied. Updated user state is unreadable.',
+                  },
+                  headers: this.getNoCacheHeaders(),
+                });
+                return;
+              }
+              UsersService.updateUserRoles(userid, mergedRoleIds, {
+                brandId: String(brand.id),
+                actorContext: req.authorization,
+                requestId: ensureAuthorizationRequestId(req),
+                expectedVersion: postProfileVersion,
+              }).subscribe(
                 (_user: unknown) => {
                   this.sendResp(req, res, {
                     data: { status: true, message: 'User updated successfully' },
@@ -625,10 +882,38 @@ export namespace Controllers {
                 (error: unknown) => {
                   sails.log.error('Failed to update user roles:');
                   sails.log.error(error);
-                  this.sendResp(req, res, {
-                    data: { status: false, message: (error as Error).message },
-                    headers: this.getNoCacheHeaders(),
-                  });
+                  void (async () => {
+                    let restoreFailure: string | undefined;
+                    try {
+                      const { firstValueFrom: rxFirstValueFrom } = await import('rxjs');
+                      // AUTH-P5-007: exact restore via the guarded compensator
+                      // (verbatim fields incl. empty/null, version-pinned CAS,
+                      // audit). No direct `User.update` writes.
+                      await rxFirstValueFrom(
+                        UsersService.compensateUserDetailsForBrand(
+                          userid,
+                          {
+                            name: legacyPrior.name,
+                            email: legacyPrior.email,
+                            passwordHash: legacyPrior.passwordHash,
+                          },
+                          String(brand.id ?? ''),
+                          { actorContext: req.authorization, requestId: ensureAuthorizationRequestId(req) }
+                        )
+                      );
+                    } catch (restoreError) {
+                      restoreFailure = (restoreError as Error)?.message ?? 'Profile restore failed.';
+                    }
+                    this.sendResp(req, res, {
+                      data: {
+                        status: false,
+                        message:
+                          `Partial state: profile mutation was restored but roles were not applied. ${(error as Error).message}` +
+                          (restoreFailure !== undefined ? ` Profile restore also failed: ${restoreFailure}` : ''),
+                      },
+                      headers: this.getNoCacheHeaders(),
+                    });
+                  })();
                 }
               );
             } else {
@@ -667,9 +952,23 @@ export namespace Controllers {
         const brand: BrandingModel = BrandingService.getBrandFromReq(req);
         const target = await this.requireUserInBrand(req, String(userid));
         if (!target) return this.sendOpaqueUserNotFound(req, res);
+        // AUTH-P5-002: role CAS is mandatory on the standalone roles route.
+        const rolesExpectedVersion = parseMandatoryExpectedVersion(req);
+        if (rolesExpectedVersion === undefined) {
+          return this.sendResp(req, res, {
+            status: 422,
+            displayErrors: [{ detail: 'An expectedVersion is required to modify user role state.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
         const roleIds = RolesService.getRoleIds(brand.roles, newRoleNames);
         const mergedRoleIds = this.mergeBrandRoleIds(target, String(brand.id), roleIds);
-        UsersService.updateUserRoles(userid, mergedRoleIds, { brandId: String(brand.id) }).subscribe(
+        UsersService.updateUserRoles(userid, mergedRoleIds, {
+          brandId: String(brand.id),
+          actorContext: req.authorization,
+          requestId: ensureAuthorizationRequestId(req),
+          expectedVersion: rolesExpectedVersion,
+        }).subscribe(
           (_user: unknown) => {
             this.sendResp(req, res, {
               data: { status: true, message: 'Save OK.' },

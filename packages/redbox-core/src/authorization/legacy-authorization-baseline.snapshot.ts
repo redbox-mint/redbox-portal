@@ -6,8 +6,8 @@
  * This module is the immutable characterization evidence for the legacy
  * PathRule/route compatibility baseline. It was generated from
  * `sails.config.auth.rules` (78 rows) and
- * `sails.config.routes` (317 configured routes,
- * 160 contract routes) and is checked in so that drift or
+ * `sails.config.routes` (320 configured routes,
+ * 163 contract routes) and is checked in so that drift or
  * omission in either source fails
  * `test/authorization/legacy-authorization-baseline.test.ts` instead of
  * silently moving the golden data.
@@ -3253,6 +3253,27 @@ export const FROZEN_LEGACY_ROUTE_BASELINE: readonly LegacyRouteBaselineEntry[] =
   },
   {
     routeId:
+      'POST /:branding/:portal/api/users/link/operations/:operationId/retry (webservice/UserManagementController#retryLinkOperation)',
+    method: 'post',
+    pattern: 'post /:branding/:portal/api/users/link/operations/:operationId/retry',
+    controller: 'webservice/UserManagementController',
+    action: 'retryLinkOperation',
+    authorizationKind: 'scope',
+    scopeOrReason: 'user.account-link.manage',
+    authExpectation: 'session-or-bearer',
+    brandOwned: true,
+    resourceType: 'user',
+    pathRuleMatches: [64],
+    grantingRoles: ['Admin'],
+    noRuleGrant: false,
+    broadRuleMasking: true,
+    representativeVariants: [
+      '/:branding/:portal/api/users/link/operations/:operationId/retry',
+      '/default/rdmp/api/users/link/operations/test-param/retry',
+    ],
+  },
+  {
+    routeId:
       'POST /:branding/:portal/api/records/workflow/step/:targetStep/:oid (webservice/RecordController#transitionWorkflow)',
     method: 'post',
     pattern: 'post /:branding/:portal/api/records/workflow/step/:targetStep/:oid',
@@ -3412,6 +3433,27 @@ export const FROZEN_LEGACY_ROUTE_BASELINE: readonly LegacyRouteBaselineEntry[] =
     representativeVariants: [
       '/:branding/:portal/api/records/schemas/update/:oid',
       '/default/rdmp/api/records/schemas/update/test-oid',
+    ],
+  },
+  {
+    routeId:
+      'GET /:branding/:portal/api/users/link/operations/:operationId (webservice/UserManagementController#getLinkOperation)',
+    method: 'get',
+    pattern: 'get /:branding/:portal/api/users/link/operations/:operationId',
+    controller: 'webservice/UserManagementController',
+    action: 'getLinkOperation',
+    authorizationKind: 'scope',
+    scopeOrReason: 'user.account-link.manage',
+    authExpectation: 'session-or-bearer',
+    brandOwned: true,
+    resourceType: 'user',
+    pathRuleMatches: [64],
+    grantingRoles: ['Admin'],
+    noRuleGrant: false,
+    broadRuleMasking: true,
+    representativeVariants: [
+      '/:branding/:portal/api/users/link/operations/:operationId',
+      '/default/rdmp/api/users/link/operations/test-param',
     ],
   },
   {
@@ -3611,6 +3653,23 @@ export const FROZEN_LEGACY_ROUTE_BASELINE: readonly LegacyRouteBaselineEntry[] =
       '/:branding/:portal/api/authorization/template-upgrades/bulk-preview',
       '/default/rdmp/api/authorization/template-upgrades/bulk-preview',
     ],
+  },
+  {
+    routeId: 'POST /:branding/:portal/api/users/link/preview (webservice/UserManagementController#previewLinkAccounts)',
+    method: 'post',
+    pattern: 'post /:branding/:portal/api/users/link/preview',
+    controller: 'webservice/UserManagementController',
+    action: 'previewLinkAccounts',
+    authorizationKind: 'scope',
+    scopeOrReason: 'user.account-link.manage',
+    authExpectation: 'session-or-bearer',
+    brandOwned: true,
+    resourceType: 'user',
+    pathRuleMatches: [64],
+    grantingRoles: ['Admin'],
+    noRuleGrant: false,
+    broadRuleMasking: true,
+    representativeVariants: ['/:branding/:portal/api/users/link/preview', '/default/rdmp/api/users/link/preview'],
   },
   {
     routeId: 'POST /:branding/:portal/api/users/token/generate (webservice/UserManagementController#generateAPIToken)',
@@ -6536,6 +6595,7 @@ export const FROZEN_CONTRACT_ROUTE_IDS: readonly string[] = Object.freeze([
   'GET /:branding/:portal/api/users/find (webservice/UserManagementController#getUser)',
   'GET /:branding/:portal/api/users/get (webservice/UserManagementController#getUser)',
   'GET /:branding/:portal/api/users/link/candidates (webservice/UserManagementController#searchLinkCandidates)',
+  'GET /:branding/:portal/api/users/link/operations/:operationId (webservice/UserManagementController#getLinkOperation)',
   'GET /:branding/:portal/api/vocabulary (webservice/VocabularyController#list)',
   'GET /:branding/:portal/api/vocabulary/:id (webservice/VocabularyController#get)',
   'PATCH /:branding/:portal/api/authorization/roles/:key (webservice/AuthorizationController#updateRole)',
@@ -6594,6 +6654,8 @@ export const FROZEN_CONTRACT_ROUTE_IDS: readonly string[] = Object.freeze([
   'POST /:branding/:portal/api/users/:id/disable (webservice/UserManagementController#disableUser)',
   'POST /:branding/:portal/api/users/:id/enable (webservice/UserManagementController#enableUser)',
   'POST /:branding/:portal/api/users/link (webservice/UserManagementController#linkAccounts)',
+  'POST /:branding/:portal/api/users/link/operations/:operationId/retry (webservice/UserManagementController#retryLinkOperation)',
+  'POST /:branding/:portal/api/users/link/preview (webservice/UserManagementController#previewLinkAccounts)',
   'POST /:branding/:portal/api/users/token/generate (webservice/UserManagementController#generateAPIToken)',
   'POST /:branding/:portal/api/users/token/revoke (webservice/UserManagementController#revokeAPIToken)',
   'POST /:branding/:portal/api/vocabulary (webservice/VocabularyController#create)',
@@ -6617,9 +6679,9 @@ export const FROZEN_CONTRACT_ROUTE_IDS: readonly string[] = Object.freeze([
 
 export const FROZEN_BASELINE_COUNTS = Object.freeze({
   pathRuleRows: 78,
-  configuredRoutes: 317,
-  contractRoutes: 160,
-  scopedRoutes: 299,
+  configuredRoutes: 320,
+  contractRoutes: 163,
+  scopedRoutes: 302,
   publicRoutes: 10,
   preAuthRoutes: 8,
 });

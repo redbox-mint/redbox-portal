@@ -275,6 +275,7 @@ describe('AdminController', () => {
     const req = {
       session: { branding: 'default' },
       user: { id: 'admin-1', username: 'admin-user' },
+      body: { expectedVersion: 2, reason: 'offboard' },
       param,
     } as unknown as Sails.Req;
     const res = {} as unknown as Sails.Res;
@@ -285,6 +286,25 @@ describe('AdminController', () => {
     expect((global as any).UsersService.disableUser.calledWith('user-2', 'admin-user', 'brand-1')).to.be.true;
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]?.data?.status).to.equal(true);
+  });
+
+  it('should reject disabling without a CAS expectedVersion', async () => {
+    const param = sinon.stub();
+    param.withArgs('id').returns('user-2');
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'admin-1', username: 'admin-user' },
+      body: {},
+      param,
+    } as unknown as Sails.Req;
+    const res = {} as unknown as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.disableUser(req, res);
+
+    expect((global as any).UsersService.disableUser.called).to.be.false;
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
   });
 
   it('should reject disabling your own admin account', async () => {
@@ -311,6 +331,7 @@ describe('AdminController', () => {
     const req = {
       session: { branding: 'default' },
       user: { id: 'admin-1', username: 'admin-user' },
+      body: { expectedVersion: 3 },
       param,
     } as unknown as Sails.Req;
     const res = {} as unknown as Sails.Res;
@@ -321,5 +342,73 @@ describe('AdminController', () => {
     expect((global as any).UsersService.enableUser.calledWith('user-2', 'admin-user', 'brand-1')).to.be.true;
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]?.data?.status).to.equal(true);
+  });
+
+  it('should reject enabling without a CAS expectedVersion', async () => {
+    const param = sinon.stub();
+    param.withArgs('id').returns('user-2');
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'admin-1', username: 'admin-user' },
+      body: {},
+      param,
+    } as unknown as Sails.Req;
+    const res = {} as unknown as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.enableUser(req, res);
+
+    expect((global as any).UsersService.enableUser.called).to.be.false;
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
+  });
+
+  it('should accept a nested details.expectedVersion on updateUserDetails', async () => {
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'admin-1', username: 'admin-user' },
+      body: { userid: 'user-1', details: { name: 'New Name', expectedVersion: 4 } },
+    } as unknown as Sails.Req;
+    const res = {} as unknown as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.updateUserDetails(req, res);
+
+    expect((global as any).UsersService.updateUserDetails.called).to.be.true;
+    const options = (global as any).UsersService.updateUserDetails.firstCall.args[5] as { expectedVersion: number };
+    expect(options.expectedVersion).to.equal(4);
+    expect(sendRespStub.calledOnce).to.be.true;
+  });
+
+  it('should reject conflicting top-level and nested expectedVersion on updateUserDetails', async () => {
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'admin-1', username: 'admin-user' },
+      body: { userid: 'user-1', expectedVersion: 4, details: { name: 'New Name', expectedVersion: 5 } },
+    } as unknown as Sails.Req;
+    const res = {} as unknown as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.updateUserDetails(req, res);
+
+    expect((global as any).UsersService.updateUserDetails.called).to.be.false;
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
+  });
+
+  it('should reject updateUserDetails without any expectedVersion', async () => {
+    const req = {
+      session: { branding: 'default' },
+      user: { id: 'admin-1', username: 'admin-user' },
+      body: { userid: 'user-1', details: { name: 'New Name' } },
+    } as unknown as Sails.Req;
+    const res = {} as unknown as Sails.Res;
+    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+
+    await controller.updateUserDetails(req, res);
+
+    expect((global as any).UsersService.updateUserDetails.called).to.be.false;
+    expect(sendRespStub.calledOnce).to.be.true;
+    expect(sendRespStub.firstCall.args[2]?.status).to.equal(422);
   });
 });

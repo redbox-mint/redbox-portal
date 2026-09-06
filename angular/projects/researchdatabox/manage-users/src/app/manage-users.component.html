@@ -41,10 +41,12 @@
               <span class="mu-toggle-switch"></span>
               <span class="mu-toggle-text">{{ 'manage-users-show-disabled' | i18next }}</span>
             </label>
-            <button class="btn btn-primary" type="button" (click)="newUser()">
-              <i class="fa fa-plus"></i>
-              {{ 'manage-users-add-local' | i18next }}
-            </button>
+            @if (canCreateUser()) {
+              <button class="btn btn-primary" type="button" (click)="newUser()">
+                <i class="fa fa-plus"></i>
+                {{ 'manage-users-add-local' | i18next }}
+              </button>
+            }
           </div>
         </div>
 
@@ -91,14 +93,16 @@
                   </td>
                   <td>
                     <div class="mu-action-group">
-                      <button
-                        type="button"
-                        class="btn btn-xs mu-btn-action mu-btn-action-edit"
-                        (click)="editUser(user.username)"
-                      >
-                        <i class="fa fa-pencil"></i>
-                        {{ 'manage-users-edit-link' | i18next }}
-                      </button>
+                      @if (canManageUsers()) {
+                        <button
+                          type="button"
+                          class="btn btn-xs mu-btn-action mu-btn-action-edit"
+                          (click)="editUser(user.username)"
+                        >
+                          <i class="fa fa-pencil"></i>
+                          {{ 'manage-users-edit-link' | i18next }}
+                        </button>
+                      }
                       @if (canManageLinks(user)) {
                         <button
                           type="button"
@@ -109,7 +113,7 @@
                           {{ 'manage-users-link-manage' | i18next }}
                         </button>
                       }
-                      @if (!isLinkedAlias(user)) {
+                      @if (!isLinkedAlias(user) && canManageAccess()) {
                         @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
                           <button
                             type="button"
@@ -131,14 +135,16 @@
                           </button>
                         }
                       }
-                      <button
-                        type="button"
-                        class="btn btn-xs mu-btn-action mu-btn-action-audit"
-                        (click)="viewAudit(user)"
-                      >
-                        <i class="fa fa-history"></i>
-                        {{ 'manage-users-audit-action' | i18next }}
-                      </button>
+                      @if (canViewAudit()) {
+                        <button
+                          type="button"
+                          class="btn btn-xs mu-btn-action mu-btn-action-audit"
+                          (click)="viewAudit(user)"
+                        >
+                          <i class="fa fa-history"></i>
+                          {{ 'manage-users-audit-action' | i18next }}
+                        </button>
+                      }
                     </div>
                   </td>
                 </tr>
@@ -451,7 +457,7 @@
                     }
                     <div class="mu-form-group">
                       <label class="mu-form-label">{{ 'manage-users-name' | i18next }}</label>
-                      @if (currentUser.type == 'local') {
+                      @if (currentUser.type == 'local' && canManageUsers()) {
                         <div class="mu-form-control-wrap">
                           <input type="text" formControlName="name" class="form-control" />
                           @if (updateUserForm.controls['name'].touched || submitted) {
@@ -463,13 +469,13 @@
                           }
                         </div>
                       }
-                      @if (currentUser.type != 'local') {
+                      @if (currentUser.type != 'local' || !canManageUsers()) {
                         <div class="mu-form-value">{{ currentUser.name }}</div>
                       }
                     </div>
                     <div class="mu-form-group">
                       <label class="mu-form-label">{{ 'manage-users-email' | i18next }}</label>
-                      @if (currentUser.type == 'local') {
+                      @if (currentUser.type == 'local' && canManageUsers()) {
                         <div class="mu-form-control-wrap">
                           <input type="email" formControlName="email" class="form-control" />
                           @if (updateUserForm.controls['email'].touched || submitted) {
@@ -481,7 +487,7 @@
                           }
                         </div>
                       }
-                      @if (currentUser.type != 'local') {
+                      @if (currentUser.type != 'local' || !canManageUsers()) {
                         <div class="mu-form-value">{{ currentUser.email }}</div>
                       }
                     </div>
@@ -500,7 +506,11 @@
                           <em>{{ 'manage-users-password-linked-notice' | i18next }}</em>
                         </div>
                       }
-                      @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
+                      @if (
+                        currentUser.accountLinkState !== 'linked-alias' &&
+                        currentUser.type == 'local' &&
+                        canManageUsers()
+                      ) {
                         <div class="mu-form-control-wrap" formGroupName="passwords">
                           <input
                             type="password"
@@ -514,7 +524,9 @@
                         <div class="mu-form-value">{{ 'manage-users-aaf-password' | i18next }}</div>
                       }
                     </div>
-                    @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
+                    @if (
+                      currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local' && canManageUsers()
+                    ) {
                       <div class="mu-form-group">
                         <label class="mu-form-label">{{ 'manage-users-confirm-password' | i18next }}</label>
                         <div class="mu-form-control-wrap" formGroupName="passwords">
@@ -548,7 +560,7 @@
                           <em>{{ 'manage-users-api-linked-notice' | i18next }}</em>
                         </div>
                       }
-                      @if (currentUser.accountLinkState !== 'linked-alias' && !currentUser.token) {
+                      @if (currentUser.accountLinkState !== 'linked-alias' && canManageTokens() && !currentUser.token) {
                         <div>
                           <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">
                             <i class="fa fa-key"></i>
@@ -556,7 +568,7 @@
                           </button>
                         </div>
                       }
-                      @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.token) {
+                      @if (currentUser.accountLinkState !== 'linked-alias' && canManageTokens() && currentUser.token) {
                         <div>
                           @if (showToken) {
                             <p>{{ 'manage-users-token-message' | i18next }}</p>
@@ -579,6 +591,8 @@
                     </h5>
                     @if (currentUser.accountLinkState === 'linked-alias') {
                       <em>{{ 'manage-users-roles-linked-notice' | i18next }}</em>
+                    } @else if (!canManageUsers()) {
+                      <em>{{ 'manage-users-roles-managed-notice' | i18next }}</em>
                     } @else {
                       <div [formArrayName]="'allRoles'" class="mu-roles-grid">
                         @for (role of getUpdateUserFormControls(); track role; let i = $index) {
@@ -787,26 +801,30 @@
                     <i class="fa fa-shield"></i>
                     {{ 'manage-users-roles-and-permissions' | i18next }}
                   </h5>
-                  <div [formArrayName]="'allRoles'" class="mu-roles-grid">
-                    @for (role of getNewUserFormControls(); track role; let i = $index) {
-                      <div [formGroup]="role" class="mu-role-item">
-                        <label class="mu-toggle-label" attr.for="role_{{ role.controls['key'].value }}">
-                          <input
-                            type="checkbox"
-                            formControlName="checked"
-                            id="role_{{ role.controls['key'].value }}"
-                            class="mu-toggle-input"
-                          />
-                          <span class="mu-toggle-switch"></span>
-                          <span class="mu-toggle-text">{{ role.controls['value'].value }}</span>
-                        </label>
+                  @if (!canManageUsers()) {
+                    <em>{{ 'manage-users-roles-managed-notice' | i18next }}</em>
+                  } @else {
+                    <div [formArrayName]="'allRoles'" class="mu-roles-grid">
+                      @for (role of getNewUserFormControls(); track role; let i = $index) {
+                        <div [formGroup]="role" class="mu-role-item">
+                          <label class="mu-toggle-label" attr.for="role_{{ role.controls['key'].value }}">
+                            <input
+                              type="checkbox"
+                              formControlName="checked"
+                              id="role_{{ role.controls['key'].value }}"
+                              class="mu-toggle-input"
+                            />
+                            <span class="mu-toggle-switch"></span>
+                            <span class="mu-toggle-text">{{ role.controls['value'].value }}</span>
+                          </label>
+                        </div>
+                      }
+                    </div>
+                    @if (!newUserForm.controls['roles'].valid && submitted) {
+                      <div class="form-text error text-danger" style="margin-top: 8px">
+                        <div>{{ 'manage-users-validation-role' | i18next }}</div>
                       </div>
                     }
-                  </div>
-                  @if (!newUserForm.controls['roles'].valid && submitted) {
-                    <div class="form-text error text-danger" style="margin-top: 8px">
-                      <div>{{ 'manage-users-validation-role' | i18next }}</div>
-                    </div>
                   }
                 </div>
               </div>
