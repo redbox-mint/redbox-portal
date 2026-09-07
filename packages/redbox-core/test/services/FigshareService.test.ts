@@ -2092,6 +2092,46 @@ describe('FigshareService', function () {
       expect((client.createArticleFile as sinon.SinonStub).calledOnce).to.equal(true);
     });
 
+    it('omits ignored URLs from fixture results and progress', async function () {
+      const client = buildAssetClient([]);
+      const config = {
+        ...buildLiveAssetConfig(),
+        runtime: { mode: 'fixture' },
+      } as any;
+      const record = buildAssetRecord([
+        { type: 'url', location: url, selected: true, ignore: true },
+        { type: 'url', location: 'https://example.org/published', selected: true },
+      ]);
+      const state: FigshareSyncState = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
+
+      expect(result.urlCount).to.equal(2);
+      expect(result.uploadedUrls.map((file: FigshareFile) => file.download_url)).to.deep.equal([
+        'https://example.org/published',
+      ]);
+      expect(state.partialProgress).to.include({ urlCount: 2, uploadedUrlCount: 1 });
+    });
+
+    it('deduplicates exact URLs in fixture results and progress', async function () {
+      const client = buildAssetClient([]);
+      const config = {
+        ...buildLiveAssetConfig(),
+        runtime: { mode: 'fixture' },
+      } as any;
+      const record = buildAssetRecord([
+        { type: 'url', location: url, selected: true },
+        { type: 'url', location: url, selected: true },
+      ]);
+      const state: FigshareSyncState = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
+
+      expect(result.urlCount).to.equal(2);
+      expect(result.uploadedUrls.map((file: FigshareFile) => file.download_url)).to.deep.equal([url]);
+      expect(state.partialProgress).to.include({ urlCount: 2, uploadedUrlCount: 1 });
+    });
+
     it('does not mistake a changed query for an unchanged link or delete the old link on failure', async function () {
       const client = buildAssetClient([]);
       client.listArticleFiles = sinon.stub().resolves([existingLink]);

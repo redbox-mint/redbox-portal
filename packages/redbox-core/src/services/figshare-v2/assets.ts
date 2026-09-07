@@ -343,6 +343,21 @@ async function syncLinkOnlyFiles(
   return uploadedUrls;
 }
 
+function getPublishableUrlEntries(selectedUrls: DataLocationEntry[]): DataLocationEntry[] {
+  const seenUrls = new Set<string>();
+  return selectedUrls.filter(entry => {
+    if (entry.ignore === true) {
+      return false;
+    }
+    const url = entry.location ?? '';
+    if (seenUrls.has(url)) {
+      return false;
+    }
+    seenUrls.add(url);
+    return true;
+  });
+}
+
 function toFixtureFigshareFile(
   entry: DataLocationEntry,
   articleId: string,
@@ -381,6 +396,7 @@ export async function syncAssetsPhase(
   // Preserve the 4.x behaviour: hosted attachments take precedence over
   // linked files. URL data locations remain available to metadata mappings.
   const syncLinkedFiles = config.assets.enableLinkFiles && !(config.assets.enableHostedFiles && attachmentCount > 0);
+  const publishableUrls = syncLinkedFiles ? getPublishableUrlEntries(selectedUrls) : [];
   const currentFiles = await listArticleFiles(client, articleId);
 
   if (hasPendingUploads(currentFiles)) {
@@ -399,7 +415,7 @@ export async function syncAssetsPhase(
       urlCount,
       uploadsComplete,
       uploadedAttachmentCount: attachmentCount,
-      uploadedUrlCount: syncLinkedFiles ? urlCount : 0,
+      uploadedUrlCount: publishableUrls.length,
     };
     setSyncState(config, record, syncState);
     return {
@@ -410,9 +426,7 @@ export async function syncAssetsPhase(
       uploadedAttachments: selectedAttachments.map((entry, index) =>
         toFixtureFigshareFile(entry, articleId, index, false)
       ),
-      uploadedUrls: syncLinkedFiles
-        ? selectedUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true))
-        : [],
+      uploadedUrls: publishableUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true)),
       dataLocations: selectedDataLocations,
     };
   }
@@ -434,7 +448,7 @@ export async function syncAssetsPhase(
     }
   }
 
-  const uploadedUrls = syncLinkedFiles ? await syncLinkOnlyFiles(client, articleId, selectedUrls, currentFiles) : [];
+  const uploadedUrls = syncLinkedFiles ? await syncLinkOnlyFiles(client, articleId, publishableUrls, currentFiles) : [];
 
   const refreshedFiles = attachmentCount > 0 ? await listArticleFiles(client, articleId) : currentFiles;
   const uploadsComplete =
