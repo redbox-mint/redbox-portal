@@ -274,13 +274,21 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        // The caller binds the preview to its own draft revision; a concurrent
-        // draft change surfaces as 409 instead of previewing a torn state.
+        // The caller may bind the preview to its own draft revision; a concurrent
+        // draft change surfaces as 409 instead of previewing a torn state. Keep
+        // the legacy no-body form working by binding it to the revision read
+        // above before the service re-checks the brand.
         const body = (req.body ?? {}) as Record<string, unknown>;
+        const expectedDraftRevision =
+          body.expectedDraftRevision === undefined
+            ? typeof brand.draftRevision === 'number'
+              ? brand.draftRevision
+              : 0
+            : (body.expectedDraftRevision as number | undefined);
         const result = await BrandingService.preview(
           branding,
           portal,
-          body.expectedDraftRevision as number | undefined
+          expectedDraftRevision
         );
         return this.sendResp(req, res, { data: result, headers: this.getNoCacheHeaders() });
       } catch (e: unknown) {

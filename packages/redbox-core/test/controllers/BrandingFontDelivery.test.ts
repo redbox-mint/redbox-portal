@@ -308,6 +308,33 @@ describe('Branding public font delivery and layouts', function () {
     expect((cacheEntries[0].data as { revision?: number }).revision).to.equal(0);
   });
 
+  it('keeps legacy preview requests bound to the current draft revision', async function () {
+    const branding = require('../../src/services/BrandingService');
+    (global as unknown as Record<string, unknown>).BrandingService = new branding.Services.Branding();
+    (global as unknown as Record<string, unknown>).BrandingThemeCssService =
+      new (require('../../src/services/BrandingThemeCssService').Services.BrandingThemeCss)();
+    const cacheEntries: Array<Record<string, unknown>> = [];
+    (global as unknown as Record<string, unknown>).CacheEntry = {
+      create: async (values: Record<string, unknown>) => {
+        cacheEntries.push(values);
+        return values;
+      },
+    };
+    const req = fakeReq({ branding: 'default', portal: 'rdmp' });
+    const captured = fakeRes();
+    const jsonBody: Array<unknown> = [];
+    (captured.res as Record<string, unknown>).json = (body: unknown) => {
+      jsonBody.push(body);
+      return captured.res;
+    };
+
+    await controller.createPreview(req as unknown as Sails.Req, captured.res as unknown as Sails.Res);
+
+    expect(jsonBody).to.have.lengthOf(1);
+    expect((jsonBody[0] as { token?: string }).token).to.match(/^[0-9a-f]{32}$/);
+    expect((cacheEntries[0].data as { revision?: number }).revision).to.equal(0);
+  });
+
   it('rejects preview token creation on a stale draft revision with 409', async function () {
     const branding = require('../../src/services/BrandingService');
     (global as unknown as Record<string, unknown>).BrandingService = new branding.Services.Branding();
