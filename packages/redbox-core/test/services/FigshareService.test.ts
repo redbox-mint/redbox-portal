@@ -2121,6 +2121,79 @@ describe('FigshareService', function () {
     });
   });
 
+  describe('syncAssetsPhase (mixed hosted attachments and URLs)', function () {
+    const locations = [
+      { type: 'attachment', fileId: 'file-1', name: 'file.txt', selected: true },
+      { type: 'url', location: 'https://example.org/dataset', selected: true },
+    ];
+
+    it('gives hosted attachments precedence and keeps the URL as record metadata', async function () {
+      installDatastreamStub(Buffer.from('existing attachment'), 19);
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon
+        .stub()
+        .resolves([{ id: 'hosted-file-1', name: 'file.txt', size: 19, status: 'available', is_link_only: false }]);
+      const record = buildAssetRecord(locations);
+      const state: FigshareSyncState = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, state);
+
+      expect(result.uploadedAttachments.map((file: FigshareFile) => file.id)).to.deep.equal(['hosted-file-1']);
+      expect(result.uploadedUrls).to.deep.equal([]);
+      expect(result.dataLocations).to.deep.equal(locations);
+      expect(state.partialProgress).to.include({
+        attachmentCount: 1,
+        uploadedAttachmentCount: 1,
+        urlCount: 1,
+        uploadedUrlCount: 0,
+        uploadsComplete: true,
+      });
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('uses the same attachment precedence in fixture mode', async function () {
+      const client = buildAssetClient([]);
+      const config = {
+        ...buildLiveAssetConfig(),
+        runtime: { mode: 'fixture' },
+      } as any;
+      const record = buildAssetRecord(locations);
+      const state: FigshareSyncState = { status: 'syncing' };
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
+
+      expect(result.uploadedAttachments).to.have.length(1);
+      expect(result.uploadedUrls).to.deep.equal([]);
+      expect(result.dataLocations).to.deep.equal(locations);
+      expect(state.partialProgress).to.include({ urlCount: 1, uploadedUrlCount: 0 });
+    });
+
+    it('still creates a linked file when hosted-file publishing is disabled', async function () {
+      const client = buildAssetClient([]);
+      client.getLocation = sinon.stub().resolves({
+        id: 'linked-file-1',
+        name: '',
+        status: 'available',
+        download_url: 'https://example.org/dataset',
+        is_link_only: true,
+      });
+      const config = buildLiveAssetConfig();
+      config.assets.enableHostedFiles = false;
+      const record = buildAssetRecord(locations);
+
+      const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, {});
+
+      expect(result.uploadedAttachments).to.deep.equal([]);
+      expect(result.uploadedUrls.map((file: FigshareFile) => file.id)).to.deep.equal(['linked-file-1']);
+      expect(
+        (client.createArticleFile as sinon.SinonStub).calledOnceWithExactly('article-1', {
+          link: 'https://example.org/dataset',
+        })
+      ).to.equal(true);
+    });
+  });
+
   describe('syncAssetsPhase (live upload)', function () {
     // Staging keys carry a per-attempt random UUID segment, e.g.
     // `figshare/article-1-oid-1-file-1-<uuid>/file.txt`.

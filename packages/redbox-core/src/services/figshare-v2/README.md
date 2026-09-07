@@ -22,6 +22,11 @@ values. An unchanged link is reused and excluded from deletion, so pre-save,
 post-save and subsequent saves do not try to create the same link again. Duplicate
 selected rows with the same URL also reuse one result. Matching is exact: a changed
 query string or path is a different link. If a new link cannot be created, existing
-links are preserved and the sync reports failure. This does not add support for
-mixing hosted attachments and linked files or change the replacement strategy for
-an edited URL.
+links are preserved and the sync reports failure. This does not change the
+replacement strategy for an edited URL.
+
+When selected data locations contain both hosted attachments and URLs, hosted
+attachments take precedence, matching the 4.x integration. The URL entries remain
+in the record for metadata bindings such as `Full Text URL`, but are not also sent
+to Figshare as linked files. URL entries become linked files when there are no
+hosted attachments, or when hosted-file publishing is disabled.

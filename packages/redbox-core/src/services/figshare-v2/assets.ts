@@ -378,6 +378,9 @@ export async function syncAssetsPhase(
 
   const attachmentCount = selectedAttachments.length;
   const urlCount = selectedUrls.length;
+  // Preserve the 4.x behaviour: hosted attachments take precedence over
+  // linked files. URL data locations remain available to metadata mappings.
+  const syncLinkedFiles = config.assets.enableLinkFiles && !(config.assets.enableHostedFiles && attachmentCount > 0);
   const currentFiles = await listArticleFiles(client, articleId);
 
   if (hasPendingUploads(currentFiles)) {
@@ -396,7 +399,7 @@ export async function syncAssetsPhase(
       urlCount,
       uploadsComplete,
       uploadedAttachmentCount: attachmentCount,
-      uploadedUrlCount: urlCount,
+      uploadedUrlCount: syncLinkedFiles ? urlCount : 0,
     };
     setSyncState(config, record, syncState);
     return {
@@ -407,7 +410,9 @@ export async function syncAssetsPhase(
       uploadedAttachments: selectedAttachments.map((entry, index) =>
         toFixtureFigshareFile(entry, articleId, index, false)
       ),
-      uploadedUrls: selectedUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true)),
+      uploadedUrls: syncLinkedFiles
+        ? selectedUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true))
+        : [],
       dataLocations: selectedDataLocations,
     };
   }
@@ -429,9 +434,7 @@ export async function syncAssetsPhase(
     }
   }
 
-  const uploadedUrls = config.assets.enableLinkFiles
-    ? await syncLinkOnlyFiles(client, articleId, selectedUrls, currentFiles)
-    : [];
+  const uploadedUrls = syncLinkedFiles ? await syncLinkOnlyFiles(client, articleId, selectedUrls, currentFiles) : [];
 
   const refreshedFiles = attachmentCount > 0 ? await listArticleFiles(client, articleId) : currentFiles;
   const uploadsComplete =
