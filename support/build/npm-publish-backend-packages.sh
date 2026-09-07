@@ -16,6 +16,7 @@ readonly PACKAGE_PATHS=(
   "packages/redbox-core"
   "packages/sails-hook-redbox-storage-mongo"
   "packages/redbox-dev-tools"
+  "packages/sails-hook-redbox-pdfgen"
 )
 
 readonly GENERATED_CORE_TYPES_PACKAGE_PATH="packages/redbox-core-types"
@@ -29,6 +30,7 @@ readonly STAGED_PACKAGE_PATHS=(
   "$GENERATED_CORE_TYPES_PACKAGE_PATH"
   "packages/sails-hook-redbox-storage-mongo"
   "packages/redbox-dev-tools"
+  "packages/sails-hook-redbox-pdfgen"
 )
 
 readonly INTERNAL_PACKAGES=(
@@ -40,6 +42,7 @@ readonly INTERNAL_PACKAGES=(
   "@researchdatabox/redbox-core-types"
   "@researchdatabox/sails-hook-redbox-storage-mongo"
   "@researchdatabox/redbox-dev-tools"
+  "@researchdatabox/sails-hook-redbox-pdfgen"
 )
 
 log() {
@@ -106,6 +109,7 @@ build_packages() {
   npm run compile:core
   npm run compile:storage-mongo
   npm run compile:dev-tools
+  npm run compile:pdfgen-hook
 }
 
 stage_packages() {
@@ -258,7 +262,7 @@ pack_dry_run() {
     version="$(package_version "$package_dir")"
     log "Packing $package_name@$version."
     pack_output_file="$(mktemp)"
-    (cd "$package_dir" && npm pack --dry-run --json >"$pack_output_file")
+    (cd "$package_dir" && npm pack --ignore-scripts --dry-run --json >"$pack_output_file")
     pack_summary="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8'))[0]; console.log([data.filename, data.files.length + ' files', data.size + ' bytes packed', data.unpackedSize + ' bytes unpacked', data.integrity].join(', '))" "$pack_output_file")"
     rm -f "$pack_output_file"
     log "$pack_summary"
@@ -280,7 +284,7 @@ publish_packages() {
     version="$(package_version "$STAGING_ROOT/$package_path")"
     log "Packing $package_name@$version for publish."
     pack_output_file="$(mktemp)"
-    (cd "$package_dir" && npm pack --json >"$pack_output_file")
+    (cd "$package_dir" && npm pack --ignore-scripts --json >"$pack_output_file")
     tarball_filename="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log(data[0].filename)" "$pack_output_file")"
     expected_integrity="$(node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); console.log(data[0].integrity)" "$pack_output_file")"
     rm -f "$pack_output_file"

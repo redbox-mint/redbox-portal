@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Sails Hook ReDBox PDFGen",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
