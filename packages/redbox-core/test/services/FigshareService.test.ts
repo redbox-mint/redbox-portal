@@ -1,7 +1,7 @@
 import * as sinon from 'sinon';
 import { Readable } from 'node:stream';
 import { createRequire } from 'node:module';
-import type { RecordModel } from '../../src/services/figshare-v2/types';
+import type { FigshareFile, FigshareSyncState, RecordModel } from '../../src/services/figshare-v2/types';
 import type { FigshareClient } from '../../src/services/figshare-v2/http';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
@@ -2033,6 +2033,92 @@ describe('FigshareService', function () {
     expect((global as any).IntegrationAuditService.completeAudit.called).to.equal(false);
     expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.equal(true);
     expect((global as any).IntegrationAuditService.failAudit.firstCall.args[1].message).to.equal('transition failed');
+  });
+
+  describe('syncAssetsPhase (URL-only repeat sync)', function () {
+    const url = 'https://example.org/dataset?version=1';
+    const existingLink: FigshareFile = {
+      id: 123,
+      name: '', // Figshare returns an empty name for linked files.
+      download_url: url,
+      is_link_only: true,
+      status: 'available',
+    };
+
+    it('creates once across pre-save, post-save and a subsequent save', async function () {
+      const client = buildAssetClient([]);
+      const files: FigshareFile[] = [];
+      client.listArticleFiles = sinon.stub().callsFake(async () => [...files]);
+      const create = sinon.stub().callsFake(async () => {
+        if (files.length > 0) throw new Error('Cannot add a linked file to an article that already has file(s).');
+        files.push(existingLink);
+        return { location: 'https://api.figshare.test/file-123' };
+      });
+      client.createArticleFile = create;
+      client.getLocation = sinon.stub().resolves(existingLink);
+      const config = buildLiveAssetConfig();
+      const record = buildAssetRecord([{ type: 'url', location: url, selected: true }]);
+
+      for (const phase of ['pre', 'post', 'next-save']) {
+        const state: FigshareSyncState = { status: 'syncing', correlationId: phase };
+        const result = await syncAssetsPhase(client, config, record, { id: 'article-1' }, state);
+        expect(result.uploadedUrls.map((file: FigshareFile) => file.id)).to.deep.equal([123]);
+        expect(result.uploadsComplete).to.equal(true);
+        expect(state.partialProgress?.uploadedUrlCount).to.equal(1);
+      }
+      expect(create.calledOnceWithExactly('article-1', { link: url })).to.equal(true);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('recovers using the remote link after local sync progress has been lost', async function () {
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon.stub().resolves([existingLink]);
+      const record = buildAssetRecord([{ type: 'url', location: url, selected: true }]);
+      const result = await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      expect(result.uploadedUrls).to.deep.equal([existingLink]);
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('creates only one link for duplicate selected URL rows', async function () {
+      const client = buildAssetClient([]);
+      client.getLocation = sinon.stub().resolves(existingLink);
+      const record = buildAssetRecord([
+        { type: 'url', location: url, selected: true },
+        { type: 'url', location: url, selected: true },
+      ]);
+      const result = await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      expect(result.uploadedUrls).to.have.length(1);
+      expect((client.createArticleFile as sinon.SinonStub).calledOnce).to.equal(true);
+    });
+
+    it('does not mistake a changed query for an unchanged link or delete the old link on failure', async function () {
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon.stub().resolves([existingLink]);
+      client.createArticleFile = sinon.stub().rejects(new Error('Figshare rejected replacement'));
+      const record = buildAssetRecord([{ type: 'url', location: url.replace('version=1', 'version=2'), selected: true }]);
+      let error: unknown;
+      try {
+        await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error).to.be.instanceOf(RBValidationError);
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(true);
+      expect((client.deleteArticleFile as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('deletes only deselected links and retains the selected existing link', async function () {
+      const client = buildAssetClient([]);
+      client.listArticleFiles = sinon.stub().resolves([
+        existingLink,
+        { ...existingLink, id: 456, download_url: 'https://example.org/removed' },
+      ]);
+      const record = buildAssetRecord([{ type: 'url', location: url, selected: true }]);
+      await syncAssetsPhase(client, buildLiveAssetConfig(), record, { id: 'article-1' }, {});
+      expect((client.createArticleFile as sinon.SinonStub).called).to.equal(false);
+      expect((client.deleteArticleFile as sinon.SinonStub).calledOnceWithExactly('article-1', '456')).to.equal(true);
+    });
   });
 
   describe('syncAssetsPhase (live upload)', function () {

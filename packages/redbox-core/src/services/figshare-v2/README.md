@@ -16,3 +16,12 @@ successful upload by default, or retained on success when `cleanupPolicy` is
 
 The fs-era `tempDir` and `diskSpaceThresholdBytes` settings have been removed from the
 config model; capacity failures now surface from the configured StorageManager disk.
+
+Linked-file sync matches selected URLs against existing linked files' `download_url`
+values. An unchanged link is reused and excluded from deletion, so pre-save,
+post-save and subsequent saves do not try to create the same link again. Duplicate
+selected rows with the same URL also reuse one result. Matching is exact: a changed
+query string or path is a different link. If a new link cannot be created, existing
+links are preserved and the sync reports failure. This does not add support for
+mixing hosted attachments and linked files or change the replacement strategy for
+an edited URL.
