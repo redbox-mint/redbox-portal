@@ -22,6 +22,7 @@ export {RecordTypeResponseModel} from "./RecordTypeResponseModel";
 export {DashboardTypeResponseModel} from "./DashboardTypeResponseModel";
 export {DashboardViewResponseModel, DashboardViewStepResponseModel} from "./DashboardViewResponseModel";
 export {SolrDocument} from "./SolrDocument";
+export * from './BrandingTypeface';
 export * from './record-contract';
 export * from './storage';
 export * from './api';
