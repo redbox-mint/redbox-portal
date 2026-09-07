@@ -101,6 +101,16 @@ describe('BrandingTypeface contracts', function () {
     try {
       expect(getBrandingPositiveInt('typefaceFaceMaxBytes', 10)).to.equal(10);
       expect(warnings.length).to.equal(1);
+      for (const key of [
+        'typefaceFaceMaxBytes',
+        'typefaceFamilyMaxBytes',
+        'historyMaxVersions',
+        'typefaceOrphanGraceMs',
+      ] as const) {
+        (globalThis as { sails?: any }).sails.config.branding[key] = 1.5;
+        expect(getBrandingPositiveInt(key, 10)).to.equal(10);
+      }
+      expect(warnings.length).to.equal(5);
       (globalThis as { sails?: any }).sails.config.branding.typefaceFaceMaxBytes = 123;
       expect(getBrandingPositiveInt('typefaceFaceMaxBytes', 10)).to.equal(123);
     } finally {

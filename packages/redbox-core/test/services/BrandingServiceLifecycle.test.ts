@@ -433,6 +433,14 @@ describe('BrandingService lifecycle', function () {
     expect(state.draft.typeface.mode).to.equal('custom');
     expect(state.draft.typeface.faces.regular).to.equal(undefined);
     try {
+      await service.preview('default', 'portal', 1);
+      throw new Error('expected preview to fail');
+    } catch (error) {
+      expect((error as { code?: string }).code).to.equal('branding-invalid');
+      expect((error as Error).message).to.contain('cannot be previewed without a Regular face');
+    }
+    expect(previews.size).to.equal(0);
+    try {
       await service.publish('default', 'portal', { id: 'u1' }, { expectedVersion: 0, expectedDraftRevision: 1 });
       throw new Error('expected publish to fail');
     } catch (error) {

@@ -77,8 +77,8 @@ interface BrandingSailsGlobals {
 export function getBrandingPositiveInt(key: keyof BrandingConfig, defaultValue: number): number {
     try {
         const configured = (globalThis as BrandingSailsGlobals).sails?.config?.branding?.[key];
-        if (typeof configured === 'number' && Number.isFinite(configured) && configured > 0) {
-            return Math.floor(configured);
+        if (typeof configured === 'number' && Number.isSafeInteger(configured) && configured > 0) {
+            return configured;
         }
     } catch {
         // Fall through to the default below.

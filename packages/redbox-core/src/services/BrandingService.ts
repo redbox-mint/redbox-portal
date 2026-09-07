@@ -625,6 +625,9 @@ export namespace Services {
       }
       const draftVariables = brand.variables ?? {};
       const draftTypeface = this.draftTypefaceOf(brand);
+      if (!isPublishableTypefaceState(draftTypeface)) {
+        throw this.codedError('branding-invalid', 'A custom typeface cannot be previewed without a Regular face');
+      }
       const { css, hash } = BrandingThemeCssService.generate(draftVariables, {
         typeface: draftTypeface,
         brandName: String(brand.name),

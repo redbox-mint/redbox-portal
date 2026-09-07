@@ -327,6 +327,8 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(text).toContain('branding-typography-incomplete');
     const publishButton = fixture.debugElement.query(By.css('button.btn-success'));
     expect(publishButton.nativeElement.disabled).toBe(true);
+    const previewButton = fixture.debugElement.query(By.css('button.btn-info'));
+    expect(previewButton.nativeElement.disabled).toBe(true);
 
     const warned = adminState({
       draft: {

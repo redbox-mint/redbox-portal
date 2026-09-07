@@ -226,7 +226,11 @@
                     {{ 'branding-save-draft-saving' | i18next }}
                   </span>
                 </button>
-                <button class="btn btn-info" (click)="createPreview()" [disabled]="isUnavailable('preview')">
+                <button
+                  class="btn btn-info"
+                  (click)="createPreview()"
+                  [disabled]="isUnavailable('preview') || customIncomplete"
+                >
                   <i class="fas fa-eye me-2"></i>
                   <span *ngIf="!isBusy('preview')">{{ 'branding-generate-preview-button' | i18next }}</span>
                   <span *ngIf="isBusy('preview')">
