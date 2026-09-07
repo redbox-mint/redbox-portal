@@ -16,8 +16,9 @@ const crypto = require('crypto');
  *    active state is not represented by the maximum history version, or the
  *    active snapshot (css/hash) differs from the history row bearing
  *    its version, the current active colours are preserved as a new complete
- *    history row at `max + 1` (Default Typography) and the active version is
- *    moved to that value before any pruning.
+ *    history row at `max(maxHistoryVersion, activeVersion) + 1` (Default
+ *    Typography) and the active version is moved to that value before any
+ *    pruning.
  * 4. Retains only the newest configured (`sails.config.branding.historyMaxVersions`,
  *    default 3) history rows per brand.
  *
@@ -170,7 +171,8 @@ function publishedVariables(brand, histories) {
 }
 
 async function preserveActiveState(BrandingConfig, BrandingConfigHistory, sails, brand, maxVersion, histories) {
-  const nextVersion = maxVersion + 1;
+  const activeVersion = typeof brand.version === 'number' ? brand.version : 0;
+  const nextVersion = Math.max(maxVersion, activeVersion) + 1;
   // BrandingConfigHistory.hash is required and rejects empty strings, so a
   // never-published brand (empty hash) is preserved under the deterministic
   // effective content hash (see effectiveHash) instead of ''.
@@ -240,7 +242,7 @@ async function migrateBrand(sails, brand, retain) {
   // Version zero with no history is the generated-default state and is already
   // represented. Otherwise the active state must equal the maximum-version row;
   // a rewound version, an unmatched version, or a divergent same-number
-  // snapshot is preserved as max + 1 before any pruning.
+  // snapshot is preserved as max(maxVersion, activeVersion) + 1 before any pruning.
   const maxRow = histories.find(history => history.version === maxVersion);
   const activeRepresented =
     (activeVersion === 0 && maxVersion === 0) ||

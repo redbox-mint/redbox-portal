@@ -791,6 +791,30 @@ describe('BrandingService lifecycle', function () {
     expect(histories).to.have.lengthOf(2);
   });
 
+  it('does not let an ambiguous publication consume a retained history slot on retry', async function () {
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 1 });
+    await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 2 });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#000000' }, expectedDraftRevision: 3 });
+    await service.publish('default', 'portal', {}, { expectedVersion: 2, expectedDraftRevision: 4 });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#ff0000' }, expectedDraftRevision: 5 });
+
+    updateError = {};
+    try {
+      await service.publish('default', 'portal', {}, { expectedVersion: 3, expectedDraftRevision: 6 });
+      throw new Error('expected ambiguous failure');
+    } catch (error) {
+      expect((error as Error).message).to.equal('update failed');
+    }
+    expect(brands[0].version).to.equal(3);
+    expect(histories.map(row => row.version).sort()).to.deep.equal([1, 2, 3, 4]);
+
+    updateError = undefined;
+    const retry = await service.publish('default', 'portal', {}, { expectedVersion: 3, expectedDraftRevision: 6 });
+    expect(retry.version).to.equal(5);
+    expect(histories.map(row => row.version).sort()).to.deep.equal([2, 3, 5]);
+  });
+
   it('refreshes the cache only after a committed active change', async function () {
     service.brandings = [{ ...brands[0] }];
     await service.publish('default', 'portal', { id: 'u1' }, { expectedVersion: 0, expectedDraftRevision: 0 });

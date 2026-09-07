@@ -333,13 +333,11 @@ export namespace Controllers {
         if (!branding || !/^[0-9a-f]{64}$/.test(sha256)) {
           return notFound();
         }
-        // The ETag is the content hash itself, so conditional requests short-
-        // circuit before any brand lookup or storage read.
+        // The ETag is the content hash itself, but conditional requests must
+        // only short-circuit after the brand and requested face have been
+        // validated. Otherwise a valid caller-supplied hash could turn a
+        // missing brand or object into a false 304 response.
         const etag = `"${sha256}"`;
-        res.set('ETag', etag);
-        if (req.headers['if-none-match'] === etag) {
-          return res.status(304).end();
-        }
         const brand = await BrandingConfig.findOne({ name: branding });
         if (!brand) {
           return notFound();
@@ -359,6 +357,10 @@ export namespace Controllers {
             return notFound();
           }
           this.setCachedFontResponse(cacheKey, buf);
+        }
+        res.set('ETag', etag);
+        if (req.headers['if-none-match'] === etag) {
+          return res.status(304).end();
         }
         res.set('Content-Type', 'font/woff2');
         res.set('Cache-Control', 'public, max-age=31536000, immutable');

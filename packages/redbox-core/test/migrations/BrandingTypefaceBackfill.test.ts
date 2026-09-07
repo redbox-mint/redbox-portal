@@ -252,14 +252,14 @@ describe('Branding typeface backfill migration', function () {
     expect(brandingconfighistory.rows.map(row => row.version).sort()).to.deep.equal([2, 3, 4]);
   });
 
-  it('snapshots active state with no matching history', async function () {
+  it('snapshots active state with no matching history without moving the version backwards', async function () {
     const { sails, brandingconfig, brandingconfighistory } = buildSails();
     brandingconfig.seed([brand({ version: 5 })]);
     brandingconfighistory.seed([history('brand-1', 1), history('brand-1', 2)]);
     await migration[0].up({ context: sails });
     const updated = await brandingconfig.findOne({ id: 'brand-1' });
-    expect(updated?.version).to.equal(3);
-    expect(brandingconfighistory.rows.map(row => row.version).sort()).to.deep.equal([1, 2, 3]);
+    expect(updated?.version).to.equal(6);
+    expect(brandingconfighistory.rows.map(row => row.version).sort()).to.deep.equal([1, 2, 6]);
   });
 
   it('preserves divergent active colours over a same-number history', async function () {

@@ -259,8 +259,8 @@ For every brand:
 2. Backfill `typeface: null` on historical rows where absent.
 3. Determine the maximum historical version.
 4. Correct legacy rollback state before pruning:
-   - if the current active state is not represented by the maximum version, or the active snapshot differs from the row bearing its version, recover current active colours from matching published history or published CSS (never the independent colour draft), fail before pruning if recovery is impossible, and preserve them as a new complete history row at `max + 1` and set the active version to that value;
-   - if active version is non-zero but no matching history exists, snapshot the active state at `max + 1`;
+   - if the current active state is not represented by the maximum version, or the active snapshot differs from the row bearing its version, recover current active colours from matching published history or published CSS (never the independent colour draft), fail before pruning if recovery is impossible, and preserve them as a new complete history row at `max(maxHistoryVersion, activeVersion) + 1` and set the active version to that value;
+   - if active version is non-zero but no matching history exists, snapshot the active state at `max(maxHistoryVersion, activeVersion) + 1`;
    - treat its typeface as Default Typography.
 5. Retain only the newest configured number of history rows, default three.
 
@@ -519,7 +519,7 @@ Restore requires a confirmation modal explaining that it immediately creates a n
 
 ## 12. Retention and orphan reconciliation
 
-After each successful publish or restore, retain only the newest `historyMaxVersions` complete history rows, default three. A face is referenced if its derived key appears in any brand's active typeface, draft typeface, or retained history.
+After each successful publish or restore, retain only the newest `historyMaxVersions` complete history rows, default three. If a non-transactional attempt leaves an ambiguous history row above the active version, a later successful publication of the identical snapshot removes that superseded non-active duplicate before retention is applied. A face is referenced if its derived key appears in any brand's active typeface, draft typeface, or retained history.
 
 Register a daily Agenda job named `BrandingTypefaceService-ReconcileAssets` with:
 
@@ -580,10 +580,10 @@ The Admin configuration response calculates health for the active typeface. Heal
 - Existing brands and historical rows without typeface fields behave as Default Typography.
 - Existing branding page URL, sidebar item, Angular mounting, and logo/favicon APIs remain.
 - Existing colour response fields remain during the transition; new clients should use the explicit `active`, `draft`, `versions`, `limits`, and `healthWarnings` sections.
-- Colour draft mutations now require `expectedDraftRevision`. This intentional contract tightening must be reflected in Angular and REST clients in the same release.
+- Colour draft mutations now require `expectedDraftRevision`, and the draft response is the complete Admin state. Publish and restore require both expected counters. This is an intentional v5 breaking change to the existing branding mutation REST routes; CSS-only page rendering remains compatible, but external REST/AJAX clients must send the new counters and consume the canonical state response.
 - The old `rollback` endpoint remains for one major release with new restore semantics and explicit deprecation metadata.
 - Hook styles retain precedence.
-- No custom typeface means byte-for-byte-equivalent generated colour behaviour where practical and unchanged EJS Google font inclusion.
+- No custom typeface means byte-for-byte-equivalent generated colour behaviour where practical and unchanged EJS Google font inclusion. Typeface bytes are deduplicated within a brand only; identical uploads under different brands intentionally use separate brand-scoped storage keys.
 
 ## 17. Verification criteria
 

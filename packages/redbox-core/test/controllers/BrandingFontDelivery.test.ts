@@ -196,13 +196,19 @@ describe('Branding public font delivery and layouts', function () {
     expect(badHash.statusCode).to.equal(404);
     const unknownBrand = fakeRes();
     await controller.renderFont(
-      fakeReq({ branding: 'nope', sha256: `${faceSha}.woff2` }) as unknown as Sails.Req,
+      fakeReq(
+        { branding: 'nope', sha256: `${faceSha}.woff2` },
+        { 'if-none-match': `"${faceSha}"` }
+      ) as unknown as Sails.Req,
       unknownBrand.res as unknown as Sails.Res
     );
     expect(unknownBrand.statusCode).to.equal(404);
     const absent = fakeRes();
     await controller.renderFont(
-      fakeReq({ branding: 'default', sha256: `${'a'.repeat(64)}.woff2` }) as unknown as Sails.Req,
+      fakeReq(
+        { branding: 'default', sha256: `${'a'.repeat(64)}.woff2` },
+        { 'if-none-match': `"${'a'.repeat(64)}"` }
+      ) as unknown as Sails.Req,
       absent.res as unknown as Sails.Res
     );
     expect(absent.statusCode).to.equal(404);
@@ -210,7 +216,7 @@ describe('Branding public font delivery and layouts', function () {
     disk.objects.set(`branding-fonts/brand-1/${faceSha}.woff2`, Buffer.from('tampered'));
     const corrupt = fakeRes();
     await controller.renderFont(
-      fakeReq({ branding: 'default', sha256: faceSha }) as unknown as Sails.Req,
+      fakeReq({ branding: 'default', sha256: faceSha }, { 'if-none-match': `"${faceSha}"` }) as unknown as Sails.Req,
       corrupt.res as unknown as Sails.Res
     );
     expect(corrupt.statusCode).to.equal(404);

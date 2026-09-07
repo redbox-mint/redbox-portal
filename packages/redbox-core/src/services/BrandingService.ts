@@ -366,6 +366,13 @@ export namespace Services {
       return histories.reduce((max, history) => Math.max(max, history.version), 0);
     }
 
+    private publicationIdentity(hash: unknown, typeface: unknown): string {
+      return this.snapshotKey({
+        hash: String(hash ?? ''),
+        faces: orderedTypefaceFaces(normalizeTypefaceState(typeface)).map(face => [face.slot, face.sha256]),
+      });
+    }
+
     /** Newest-first version entries shared by getAdminState and listVersions. */
     private buildVersionEntries(
       brand: BrandingConfigAttributes,
@@ -809,6 +816,7 @@ export namespace Services {
         ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
       };
       await this.persistPublication(brand, historyValues, snapshot, nextVersion);
+      await this.pruneSupersededAmbiguousHistories(String(brand.id), activeVersion, nextVersion, snapshot);
       await this.pruneHistories(String(brand.id));
       await this.refreshBrandingCache(String(brand.id));
       const state = await this.getAdminState(branding);
@@ -852,6 +860,10 @@ export namespace Services {
         ...(attribution.actorDisplayName ? { actorDisplayName: attribution.actorDisplayName } : {}),
       };
       await this.persistPublication(brand, historyValues, { css, hash, variables, typeface }, nextVersion);
+      await this.pruneSupersededAmbiguousHistories(String(brand.id), activeVersion, nextVersion, {
+        hash,
+        typeface,
+      });
       await this.pruneHistories(String(brand.id));
       await this.refreshBrandingCache(String(brand.id));
       const state = await this.getAdminState(input.branding);
@@ -908,6 +920,36 @@ export namespace Services {
       for (const history of histories.slice(retain)) {
         await BrandingConfigHistory.destroy({ id: history.id });
         sails.log.verbose(`BrandingService pruned branding ${brandingId} version ${history.version}`);
+      }
+    }
+
+    /**
+     * Remove an ambiguous non-transactional attempt once a later publication
+     * has committed the same snapshot. Such rows can sit above the active
+     * version when an update response is lost and must not consume retention.
+     */
+    private async pruneSupersededAmbiguousHistories(
+      brandingId: string,
+      activeVersion: number,
+      successfulVersion: number,
+      snapshot: { hash: string; typeface: BrandingTypefaceState }
+    ): Promise<void> {
+      const successfulIdentity = this.publicationIdentity(snapshot.hash, snapshot.typeface);
+      const histories = await this.listHistoriesAsc(brandingId);
+      for (const history of histories) {
+        if (
+          history.version <= activeVersion ||
+          history.version >= successfulVersion ||
+          history.id === undefined ||
+          history.id === null ||
+          this.publicationIdentity(history.hash, history.typeface) !== successfulIdentity
+        ) {
+          continue;
+        }
+        await BrandingConfigHistory.destroy({ id: history.id });
+        sails.log.verbose(
+          `BrandingService removed superseded ambiguous publication for brand ${brandingId} version ${history.version}`
+        );
       }
     }
 

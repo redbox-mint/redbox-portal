@@ -138,7 +138,7 @@ Checklist:
 - [ ] Backfill active/draft typeface fields and revision without overwriting existing values.
 - [ ] Backfill old history as Default Typography.
 - [ ] Detect legacy rollback/non-monotonic active state before pruning.
-- [ ] Preserve unmatched or divergent current active colours as `max + 1` exactly once.
+- [ ] Preserve unmatched or divergent current active colours as `max(maxHistoryVersion, activeVersion) + 1` exactly once.
 - [ ] Prune to configured newest history count only after preservation.
 - [ ] Make a second execution produce no writes or new history.
 - [ ] Use conditional writes plus the unique brand/version index to make concurrent pending-migration runners converge; verify rather than blindly accept a duplicate row.
