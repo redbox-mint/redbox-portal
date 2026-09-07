@@ -276,11 +276,24 @@ async function syncLinkOnlyFiles(
   currentFiles: FigshareFile[]
 ): Promise<FigshareFile[]> {
   const existingLinkFiles = currentFiles.filter(entry => entry.is_link_only === true);
+  const retainedLinkIds = new Set<string>();
 
   const uploadedUrls: FigshareFile[] = [];
   const creationErrors: Error[] = [];
   for (const entry of selectedUrls) {
     if (entry.ignore === true) {
+      continue;
+    }
+    const link = entry.location ?? '';
+    // Both save phases (and later retries) can sync the same URL. Figshare
+    // rejects creating another linked file when the article already has one.
+    if (uploadedUrls.some(file => file.download_url === link)) {
+      continue;
+    }
+    const existingLink = existingLinkFiles.find(file => file.download_url === link);
+    if (existingLink != null) {
+      retainedLinkIds.add(String(existingLink.id));
+      uploadedUrls.push(existingLink);
       continue;
     }
     let responseLocation: { location: string } | null = null;
@@ -289,7 +302,7 @@ async function syncLinkOnlyFiles(
       attempt += 1;
       try {
         responseLocation = await client.createArticleFile(articleId, {
-          link: entry.location ?? '',
+          link,
         });
         break;
       } catch (error) {
@@ -322,9 +335,27 @@ async function syncLinkOnlyFiles(
   }
 
   for (const file of existingLinkFiles) {
+    if (retainedLinkIds.has(String(file.id))) {
+      continue;
+    }
     await client.deleteArticleFile(articleId, String(file.id));
   }
   return uploadedUrls;
+}
+
+function getPublishableUrlEntries(selectedUrls: DataLocationEntry[]): DataLocationEntry[] {
+  const seenUrls = new Set<string>();
+  return selectedUrls.filter(entry => {
+    if (entry.ignore === true) {
+      return false;
+    }
+    const url = entry.location ?? '';
+    if (seenUrls.has(url)) {
+      return false;
+    }
+    seenUrls.add(url);
+    return true;
+  });
 }
 
 function toFixtureFigshareFile(
@@ -362,6 +393,10 @@ export async function syncAssetsPhase(
 
   const attachmentCount = selectedAttachments.length;
   const urlCount = selectedUrls.length;
+  // Preserve the 4.x behaviour: hosted attachments take precedence over
+  // linked files. URL data locations remain available to metadata mappings.
+  const syncLinkedFiles = config.assets.enableLinkFiles && !(config.assets.enableHostedFiles && attachmentCount > 0);
+  const publishableUrls = syncLinkedFiles ? getPublishableUrlEntries(selectedUrls) : [];
   const currentFiles = await listArticleFiles(client, articleId);
 
   if (hasPendingUploads(currentFiles)) {
@@ -380,7 +415,7 @@ export async function syncAssetsPhase(
       urlCount,
       uploadsComplete,
       uploadedAttachmentCount: attachmentCount,
-      uploadedUrlCount: urlCount,
+      uploadedUrlCount: publishableUrls.length,
     };
     setSyncState(config, record, syncState);
     return {
@@ -391,7 +426,7 @@ export async function syncAssetsPhase(
       uploadedAttachments: selectedAttachments.map((entry, index) =>
         toFixtureFigshareFile(entry, articleId, index, false)
       ),
-      uploadedUrls: selectedUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true)),
+      uploadedUrls: publishableUrls.map((entry, index) => toFixtureFigshareFile(entry, articleId, index, true)),
       dataLocations: selectedDataLocations,
     };
   }
@@ -413,9 +448,7 @@ export async function syncAssetsPhase(
     }
   }
 
-  const uploadedUrls = config.assets.enableLinkFiles
-    ? await syncLinkOnlyFiles(client, articleId, selectedUrls, currentFiles)
-    : [];
+  const uploadedUrls = syncLinkedFiles ? await syncLinkOnlyFiles(client, articleId, publishableUrls, currentFiles) : [];
 
   const refreshedFiles = attachmentCount > 0 ? await listArticleFiles(client, articleId) : currentFiles;
   const uploadsComplete =
