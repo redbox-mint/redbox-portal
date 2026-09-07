@@ -758,21 +758,25 @@ describe('BrandingService lifecycle', function () {
   it('heals public cached CSS and version on retry after a committed write loses its response', async function () {
     service.brandings = structuredClone(brands);
     await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
-    await service.saveDraft({ branding: 'default', variables: { primary: '#ff0000' }, expectedDraftRevision: 1 });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 1 });
+    await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 2 });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#000000' }, expectedDraftRevision: 3 });
+    await service.publish('default', 'portal', {}, { expectedVersion: 2, expectedDraftRevision: 4 });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#ff0000' }, expectedDraftRevision: 5 });
     await service.uploadTypefaceFace({
       branding: 'default',
       slot: 'regular',
       bytes: buildWoff2(),
-      expectedDraftRevision: 2,
+      expectedDraftRevision: 6,
     });
     updateError = { commit: true };
     try {
-      await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 3 });
+      await service.publish('default', 'portal', {}, { expectedVersion: 3, expectedDraftRevision: 7 });
     } catch (error) {
       expect((error as Error).message).to.equal('response lost');
     }
-    expect(brands[0].version).to.equal(2);
-    expect(service.brandings[0].version).to.equal(1);
+    expect(brands[0].version).to.equal(4);
+    expect(service.brandings[0].version).to.equal(3);
     expect(service.hasActiveCustomTypeface('default')).to.equal(false);
     updateError = undefined;
     const state = adminStateOf(await service.getAdminState('default'));
@@ -783,12 +787,13 @@ describe('BrandingService lifecycle', function () {
       { expectedVersion: state.active.version, expectedDraftRevision: state.draft.revision }
     );
     expect(retry.idempotent).to.equal(true);
-    expect(service.brandings[0].version).to.equal(2);
+    expect(service.brandings[0].version).to.equal(4);
     expect(service.hasActiveCustomTypeface('default')).to.equal(true);
     expect(service.brandings[0].hash).to.equal(brands[0].hash);
     expect(service.brandings[0].css).to.equal(brands[0].css);
     expect(service.brandings[0].css).to.contain('--rb-primary: #ff0000');
-    expect(histories).to.have.lengthOf(2);
+    expect(histories).to.have.lengthOf(3);
+    expect(histories.map(row => row.version).sort()).to.deep.equal([2, 3, 4]);
   });
 
   it('does not let an ambiguous publication consume a retained history slot on retry', async function () {
