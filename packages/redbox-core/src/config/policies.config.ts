@@ -21,15 +21,19 @@ export interface PoliciesConfig {
 }
 
 // Default policy chains
+// Navigation (menuResolver) runs after authentication and authorization
+// context resolution so it renders from the fresh authoritative request
+// context. authorizeRequest stays after navigation context is available;
+// denied requests are still rejected before controller execution.
 const defaultPolicies: PolicyName[] = [
   'brandingAndPortal',
   'checkBrandingValid',
   'setLang',
   'prepWs',
   'i18nLanguages',
-  'menuResolver',
   'isWebServiceAuthenticated',
   'resolveAuthorizationContext',
+  'menuResolver',
   'authorizeRequest',
   'contentSecurityPolicy',
 ];

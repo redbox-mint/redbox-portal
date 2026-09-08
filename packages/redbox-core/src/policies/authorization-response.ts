@@ -1,3 +1,4 @@
+import { observeAuthorizationResponse } from '../authorization/observability';
 import { randomUUID } from 'node:crypto';
 import { isAuthorizationAdministrationError, isAuthorizationResourceError } from '../authorization';
 import { AUTHORIZATION_TRANSACTION_UNAVAILABLE } from '../utilities/RequiredTransactionUtils';
@@ -50,6 +51,7 @@ export function sendAuthorizationProblem(
   code: AuthorizationProblemCode,
   title: string
 ): void {
+  observeAuthorizationResponse(req, status, code);
   const requestId = ensureAuthorizationRequestId(req);
   const instance = authorizationProblemInstance(req);
   res
@@ -77,6 +79,7 @@ export function sendAuthorizationTransactionUnavailable(req: Sails.Req, res: Sai
       ? String((error as { code?: unknown }).code ?? '')
       : '';
   if (code !== AUTHORIZATION_TRANSACTION_UNAVAILABLE) return false;
+  observeAuthorizationResponse(req, 503, 'authorization.transaction-unavailable');
   const requestId = ensureAuthorizationRequestId(req);
   const instance = authorizationProblemInstance(req);
   res.status(503).type('application/problem+json').json({
@@ -112,6 +115,7 @@ export function sendAuthorizationAdministrationError(
   const instance = authorizationProblemInstance(req);
   const status = error.status;
   const code = error.code as AuthorizationProblemCode;
+  observeAuthorizationResponse(req, status, code);
   const title =
     status === 409
       ? 'Authorization state changed.'

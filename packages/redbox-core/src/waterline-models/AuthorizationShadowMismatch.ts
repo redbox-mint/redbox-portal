@@ -2,9 +2,11 @@
 import { Attr, BeforeCreate, BeforeUpdate, Entity, toWaterlineModelDef } from '../decorators';
 import {
   AUTHORIZATION_DECISION_REASON_CODES,
+  AUTHORIZATION_MISMATCH_CLASSIFICATIONS,
   AUTHORIZATION_PRINCIPAL_CATEGORIES,
   sanitizeAuthorizationText,
   type AuthorizationDecisionReasonCode,
+  type AuthorizationMismatchClassification,
   type AuthorizationPrincipalCategory,
 } from '../authorization';
 
@@ -58,6 +60,24 @@ const prepareMismatch = (record: Record<string, unknown>, isCreate: boolean): vo
   optionalText(record, 'sampleRequestId', 128);
   optionalText(record, 'resolvedBy', 128);
   optionalText(record, 'resolutionReason', 1_000);
+  // Waterline supplies '' for an omitted optional string on create. Keep
+  // that initial unclassified state absent without admitting arbitrary labels.
+  if (isCreate && record.resolutionClassification === '') {
+    delete record.resolutionClassification;
+  }
+  if (Object.hasOwn(record, 'resolutionClassification')) {
+    if (
+      typeof record.resolutionClassification !== 'string' ||
+      !(AUTHORIZATION_MISMATCH_CLASSIFICATIONS as readonly string[]).includes(record.resolutionClassification)
+    ) {
+      throw new Error('AuthorizationShadowMismatch.resolutionClassification is invalid.');
+    }
+  }
+  // Only the audited native operator transaction may write closure state.
+  for (const field of ['remediationStatus', 'remediationEvidenceFingerprint', 'remediationVerifiedAt']) {
+    if (record[field] === '' || record[field] == null) delete record[field];
+    else throw new Error('Remediation closure requires the audited operator workflow.');
+  }
   if (record.resolvedAt === '') {
     delete record.resolvedAt;
   }
@@ -132,6 +152,18 @@ export class AuthorizationShadowMismatchClass {
 
   @Attr({ type: 'string' })
   public resolutionReason?: string;
+
+  @Attr({ type: 'string', isIn: AUTHORIZATION_MISMATCH_CLASSIFICATIONS })
+  public resolutionClassification?: AuthorizationMismatchClassification;
+
+  @Attr({ type: 'string', isIn: ['verified'] })
+  public remediationStatus?: 'verified';
+
+  @Attr({ type: 'string' })
+  public remediationEvidenceFingerprint?: string;
+
+  @Attr({ type: 'string', columnType: 'datetime' })
+  public remediationVerifiedAt?: string | Date;
 }
 
 export const AuthorizationShadowMismatchWLDef = toWaterlineModelDef(AuthorizationShadowMismatchClass);
@@ -148,6 +180,10 @@ export interface AuthorizationShadowMismatchAttributes extends Sails.WaterlineAt
   resolvedAt?: string | Date;
   resolvedBy?: string;
   resolutionReason?: string;
+  resolutionClassification?: AuthorizationMismatchClassification;
+  remediationStatus?: 'verified';
+  remediationEvidenceFingerprint?: string;
+  remediationVerifiedAt?: string | Date;
   routeId: string;
   sampleRequestId?: string;
   scopeOutcome: AuthorizationShadowOutcome;

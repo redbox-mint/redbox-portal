@@ -19,8 +19,13 @@
 
 import { Services as services } from '../CoreService';
 import type { AuthorizationContext, RolloutMode, ScopeKey } from '../authorization';
-import { AuthorizationShadowMismatchInput, persistShadowMismatch } from './AuthorizationRolloutService';
-import { authorizationRuntimeAccess, authorizationScopeAccess } from './AuthorizationServiceAccess';
+import type { AuthorizationShadowMismatchInput } from './AuthorizationRolloutService';
+import { observeAuthorization } from '../authorization/observability';
+import {
+  authorizationRolloutCollectionAccess,
+  authorizationRuntimeAccess,
+  authorizationScopeAccess,
+} from './AuthorizationServiceAccess';
 import {
   MenuItem,
   MenuConfigData,
@@ -396,37 +401,40 @@ export namespace Services {
         },
         requestId: context.requestId ?? 'navigation-resolution',
       };
-      void persistShadowMismatch(input, new Date()).catch(() => {
-        // Evidence storage must never change rendered visibility; one bounded
-        // operational warning per navigation resolution is enough.
-        sails.log.warn('[NavigationService] Navigation shadow mismatch persistence failed.', {
-          errorCode: 'persistence-failed',
-        });
-      });
+      // Use the same durable observer as request comparisons. Missing/broken
+      // collection services invalidate telemetry coverage without changing visibility.
+      observeAuthorization(() => authorizationRolloutCollectionAccess().recordShadowMismatch(input));
     }
 
     /**
      * Applies the requiredRoles compatibility gate and the requiredScope gate.
-     * Returns the effective visibility; role behavior is unchanged in every mode
-     * while requiredScope becomes authoritative only in enforce.
+     * Returns the effective visibility. In enforce mode a declared
+     * requiredScope is authoritative: legacy requiredRoles are shadow-only and
+     * never veto an allowed scope, so dual-gated navigation visibility exactly
+     * matches direct-route scope enforcement. When no scope is declared, or
+     * outside enforce mode, the legacy role gate still applies.
      */
     private applyScopeAwareGates(
       item: Pick<FilterableItem, 'requiredRoles' | 'requiredScope'>,
       context: ResolutionContext,
       surfaceId: string
     ): boolean {
+      const scopeGate = this.evaluateRequiredScope(item.requiredScope, context);
+      if (scopeGate.declared && context.rolloutMode === 'enforce') {
+        // Scope-authoritative: roles remain legacy/shadow evidence only and
+        // must not veto an allowed scope in enforce mode. evaluateRequiredScope
+        // already fails closed (false) for unknown scopes or missing context.
+        return scopeGate.scopeAllowed !== false;
+      }
+
       let roleAllowed: boolean | undefined;
       if (item.requiredRoles && item.requiredRoles.length > 0 && context.isAuthenticated && context.user) {
         roleAllowed = this.userHasAnyRole(context.user, context.brand, item.requiredRoles);
-        if (!roleAllowed) {
-          return false;
-        }
       }
-
-      const scopeGate = this.evaluateRequiredScope(item.requiredScope, context);
-      if (scopeGate.declared && context.rolloutMode === 'enforce' && scopeGate.scopeAllowed === false) {
-        return false;
-      }
+      // Shadow evidence must capture BOTH disagreement directions before the
+      // legacy result is applied: an early return on `roleAllowed === false`
+      // would silently drop every legacy-deny/scope-allow difference and bias
+      // the shadow aggregate toward legacy-allow/scope-deny only.
       if (
         scopeGate.declared &&
         context.rolloutMode === 'shadow' &&
@@ -435,6 +443,9 @@ export namespace Services {
         roleAllowed !== scopeGate.scopeAllowed
       ) {
         this.recordVisibilityMismatch(context, surfaceId, roleAllowed, scopeGate.scopeAllowed);
+      }
+      if (roleAllowed === false) {
+        return false;
       }
       return true;
     }

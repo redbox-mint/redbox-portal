@@ -715,6 +715,7 @@ describe('P3-R03 alias projection compares the canonical account set both direct
       protectedKind: 'none',
       contextType: 'brand',
       branding: 'brand-1',
+      status: 'active',
     };
     const alias = { id: 'alias-1', linkedPrimaryUserId: 'primary-1', loginDisabled: false, roles: [roleRow] };
     const primary = { id: 'primary-1', loginDisabled: false, roles: [] };
@@ -777,6 +778,7 @@ describe('P3-R03 alias projection compares the canonical account set both direct
       protectedKind: 'none',
       contextType: 'brand',
       branding: 'brand-1',
+      status: 'active',
     };
     const alias = { id: 'alias-1', linkedPrimaryUserId: 'primary-1', loginDisabled: false, roles: [] };
     const primary = { id: 'primary-1', loginDisabled: false, roles: [] };

@@ -58,11 +58,32 @@ describe('route authorization metadata', function () {
     }
     assert.equal(translationPolicies.getNamespace.includes('isWebServiceAuthenticated'), true);
     assert.deepEqual(userPolicies.info.slice(-4), [
-      'resolveAuthorizationContext',
+      'menuResolver',
       'authorizeRequest',
       'isAuthenticated',
       'contentSecurityPolicy',
     ]);
+  });
+
+  it('resolves navigation from the fresh authoritative authorization context', function () {
+    // menuResolver must run after authentication and context resolution so
+    // NavigationService.buildResolutionContext observes req.authorization.
+    const chains: Array<[string, string[]]> = [
+      ['*', policies['*'] as string[]],
+      ['UserController.*', (policies.UserController as Record<string, string[]>)['*']],
+      ['RenderViewController.render', (policies.RenderViewController as Record<string, string[]>)['render']],
+      ['RecordController.*', (policies.RecordController as Record<string, string[]>)['*']],
+    ];
+    for (const [label, chain] of chains) {
+      const authIndex = chain.indexOf('isWebServiceAuthenticated');
+      const contextIndex = chain.indexOf('resolveAuthorizationContext');
+      const menuIndex = chain.indexOf('menuResolver');
+      const authorizeIndex = chain.indexOf('authorizeRequest');
+      assert.ok(authIndex >= 0 && contextIndex >= 0 && menuIndex >= 0 && authorizeIndex >= 0, label);
+      assert.ok(authIndex < contextIndex, `${label}: authentication before context resolution`);
+      assert.ok(contextIndex < menuIndex, `${label}: navigation uses fresh authorization context`);
+      assert.ok(contextIndex < authorizeIndex, `${label}: route decision uses fresh authorization context`);
+    }
   });
 
   it('emits scope and compatibility metadata and describes the bearer as opaque', function () {

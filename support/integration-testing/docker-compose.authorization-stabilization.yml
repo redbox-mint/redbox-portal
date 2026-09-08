@@ -1,0 +1,34 @@
+# Isolated native-Mongo proof: read-only worktree mount, no Sails lift/shim generation.
+services:
+  mongodb:
+    image: mongo:7
+    profiles: [stabilization]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, 'db.runCommand({ping:1}).ok']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  proof:
+    image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
+    profiles: [stabilization]
+    working_dir: /opt/redbox-portal/packages/redbox-core
+    volumes:
+      - ../../:/opt/redbox-portal:ro
+    environment:
+      TS_NODE_PROJECT: test/tsconfig.json
+      AUTHORIZATION_TEST_MONGO_URL: mongodb://mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint: [node]
+    command:
+      - --no-experimental-strip-types
+      - ../../node_modules/mocha/bin/mocha.js
+      - --no-config
+      - --require
+      - ts-node/register/transpile-only
+      - --require
+      - test/setup.ts
+      - --timeout
+      - '20000'
+      - test/integration/authorization-stabilization.mongo.ts

@@ -1,4 +1,8 @@
-import type { AuthorizationDecisionReasonCode, AuthorizationPrincipalCategory } from '../../authorization';
+import type {
+  AuthorizationDecisionReasonCode,
+  AuthorizationMismatchClassification,
+  AuthorizationPrincipalCategory,
+} from '../../authorization';
 import type { AuthorizationShadowOutcome } from '../../waterline-models/AuthorizationShadowMismatch';
 
 export class AuthorizationShadowMismatchModel {
@@ -17,4 +21,8 @@ export class AuthorizationShadowMismatchModel {
   resolvedAt?: string | Date;
   resolvedBy?: string;
   resolutionReason?: string;
+  resolutionClassification?: AuthorizationMismatchClassification;
+  remediationStatus?: 'verified';
+  remediationEvidenceFingerprint?: string;
+  remediationVerifiedAt?: string | Date;
 }

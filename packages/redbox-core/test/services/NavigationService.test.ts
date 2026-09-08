@@ -1,6 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { Services as Rollout } from '../../src/services/AuthorizationRolloutService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('NavigationService', function () {
@@ -262,6 +263,7 @@ describe('NavigationService', function () {
       options: { hasScope?: boolean; known?: boolean } = {}
     ): void {
       mockSails.config.authorization = mode === undefined ? undefined : { mode };
+      mockSails.services.authorizationrolloutservice = new Rollout.AuthorizationRolloutService().exports();
       (mockSails.services as any).authorizationservice = {
         hasScope: sinon.stub().returns(options.hasScope ?? false),
       };
@@ -357,7 +359,10 @@ describe('NavigationService', function () {
       expect(result.items.some((item: { href: string }) => item.href.endsWith('/admin'))).to.equal(false);
     });
 
-    it('keeps the legacy role gate authoritative alongside requiredScope in enforce mode', async function () {
+    it('treats requiredScope as authoritative over requiredRoles in enforce mode', async function () {
+      // Documented and implemented contract: in enforce mode a declared
+      // requiredScope is authoritative and legacy requiredRoles are
+      // shadow-only, so they must never veto an allowed scope.
       configureAuthorization('enforce', { hasScope: true });
       (global as any).UsersService.hasRole = sinon.stub().returns(false);
       mockSails.config.brandingAware = sinon.stub().returns({
@@ -380,7 +385,7 @@ describe('NavigationService', function () {
 
       const result = await NavigationService.resolveMenu(scopeMenuReq());
 
-      expect(result.items.some((item: { href: string }) => item.href.endsWith('/admin'))).to.equal(false);
+      expect(result.items.some((item: { href: string }) => item.href.endsWith('/admin'))).to.equal(true);
     });
 
     it('records a bounded shadow mismatch when role and scope visibility disagree', async function () {
@@ -426,6 +431,53 @@ describe('NavigationService', function () {
       expect(update.$setOnInsert).to.include({ legacyOutcome: 'allow', scopeOutcome: 'deny' });
       expect(update.$setOnInsert.routeId).to.equal('navigation:menu:dual-gated');
       expect(JSON.stringify(update)).to.not.include('user-1');
+      delete (global as any).AuthorizationShadowMismatch;
+    });
+
+    it('records a bounded shadow mismatch in the legacy-deny/scope-allow direction', async function () {
+      configureAuthorization('shadow', { hasScope: true });
+      (global as any).UsersService.hasRole = sinon.stub().returns(false);
+      const updateOne = sinon.stub().resolves({});
+      (global as any).AuthorizationShadowMismatch = {
+        tableName: 'authorizationshadowmismatch',
+        getDatastore: () => ({
+          manager: {
+            collection: () => ({
+              updateOne,
+              find: () => ({ limit: () => ({ toArray: async () => [] }) }),
+              deleteMany: async () => ({ deletedCount: 0 }),
+            }),
+          },
+        }),
+      };
+      mockSails.config.brandingAware = sinon.stub().returns({
+        menu: {
+          items: [
+            {
+              id: 'dual-gated',
+              labelKey: 'dual-gated',
+              href: '/admin',
+              requiresAuth: true,
+              requiredRoles: ['Admin'],
+              requiredScope: 'record.read',
+            },
+          ],
+          showSearch: true,
+        },
+        homePanels: { panels: [] },
+        adminSidebar: { sections: [] },
+      });
+
+      const result = await NavigationService.resolveMenu(scopeMenuReq());
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(updateOne.calledOnce).to.equal(true);
+      const update = updateOne.firstCall.args[1];
+      expect(update.$setOnInsert).to.include({ legacyOutcome: 'deny', scopeOutcome: 'allow' });
+      expect(update.$setOnInsert.routeId).to.equal('navigation:menu:dual-gated');
+      expect(JSON.stringify(update)).to.not.include('user-1');
+      // Shadow mode keeps the legacy gate for rendering: legacy-deny still hides.
+      expect(result.items.some((item: { href: string }) => item.href.endsWith('/admin'))).to.equal(false);
       delete (global as any).AuthorizationShadowMismatch;
     });
 

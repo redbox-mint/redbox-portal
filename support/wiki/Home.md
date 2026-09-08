@@ -50,9 +50,9 @@ If you're new to RedBox Portal, here's where you can get started:
 
 ## Core Packages
 
-- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/redbox-core)**: Core type definitions, **business logic services**, Waterline models, policies, config defaults, and bootstrap functions.
+- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Core-Types)**: Core type definitions, **business logic services**, Waterline models, policies, config defaults, and bootstrap functions.
 - **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system that bridges Sails.js to core types, including service shim generation.
-- **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: Shared tooling for creating and maintaining ReDBox hooks.
+- **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Hook-Kit)**: Shared tooling for creating and maintaining ReDBox hooks.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer architecture and how to extend or override services.
 - **[Figshare Service Technical Guide](https://github.com/redbox-mint/redbox-portal/wiki/Figshare-Service-Technical-Guide)**: Public service surface, orchestration flows, and Figshare-specific config and type reference.
 - **[Controllers Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Controllers-Architecture)**: Controller locations, lifecycle (`init()`), shim generation, and hook overrides.
@@ -69,14 +69,12 @@ We welcome contributions from the community! Whether you're interested in fixing
 Join our vibrant community to discuss ideas, share knowledge, and get support:
 
 - **[Discussion Forum](https://redbox-community.slack.com)**: Participate in discussions and connect with other RedBox Portal users and developers via our Slack community.
-- **[ReDBox Portal API Documentation](https://redbox-mint.github.io/redbox-portal/additional-documentation/rest-api.html)**: Detailed information about the API endpoints and examples.
+- **[ReDBox Portal API Documentation](https://redbox-mint.github.io/redbox-portal/api/)**: Detailed information about the API endpoints and examples.
 
 ## Stay Updated
 
 Stay connected with the latest updates, releases, and news:
 
-- **Project Blog**: Read about the latest developments, feature highlights, and community stories.
 - **Product Roadmap**: Explore our [Product Roadmap](https://github.com/orgs/redbox-mint/projects/3/views/2) to see upcoming features and updates planned for RedBox Portal.
-- **Newsletter**: Subscribe to our newsletter for regular updates delivered to your inbox.
 
 Thank you for visiting the RedBox Portal project wiki! We hope you find this resource helpful and encourage you to contribute to our growing community.

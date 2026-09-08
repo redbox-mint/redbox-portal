@@ -1,3 +1,4 @@
+import { observeAuthorizationResponse } from '../authorization/observability';
 import {
   buildRecordSchemaForbiddenProblem,
   getMatchedRoutePath,
@@ -29,6 +30,7 @@ function sendRecordSchemaForbidden(req: Sails.Req, res: Sails.Res): void {
     Vary: RECORD_SCHEMA_RESPONSE_VARY,
     'Content-Type': RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
   });
+  observeAuthorizationResponse(req, 403, 'authorization.scope-denied');
   res.status(403).json(buildRecordSchemaForbiddenProblem(instance));
 }
 
@@ -44,6 +46,7 @@ function redirectAnonymousBrowser(req: Sails.Req, res: Sails.Res, context: Autho
   if (context.principal.category !== 'anonymous' || !acceptsHtml(req)) return false;
   const redirect = sails.getActions()['user/redirlogin'];
   if (typeof redirect !== 'function') return false;
+  observeAuthorizationResponse(req, 302, 'authorization.authentication-required');
   (redirect as (request: Sails.Req, response: Sails.Res) => void)(req, res);
   return true;
 }

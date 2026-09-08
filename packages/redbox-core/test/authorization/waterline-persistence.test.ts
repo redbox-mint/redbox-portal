@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, it } from 'mocha';
 import type { WaterlineModelDefinition } from '../../src/decorators';
+import { ALL_SHADOW_CLASSIFICATION_FIXTURES } from '../fixtures/authorization-shadow-classification.fixtures';
 import {
   AuthorizationAuditWLDef,
   AuthorizationScopeWLDef,
@@ -200,6 +201,41 @@ describe('authorization Waterline persistence', () => {
     );
     await assert.rejects(runLifecycle(RoleTemplateRevisionWLDef.beforeUpdate, {}), /immutable/);
     await assert.rejects(runLifecycle(RoleTemplateRevisionWLDef.beforeDestroy, {}), /immutable/);
+  });
+
+  it('accepts only the bounded shadow mismatch classification vocabulary', async () => {
+    assert.deepEqual(
+      AuthorizationShadowMismatchWLDef.attributes.resolutionClassification.isIn,
+      ALL_SHADOW_CLASSIFICATION_FIXTURES.map(row => row.classification)
+    );
+    for (const { classification } of ALL_SHADOW_CLASSIFICATION_FIXTURES) {
+      const record: Record<string, unknown> = {
+        fingerprint: 'a'.repeat(64),
+        routeId: 'route-1',
+        legacyOutcome: 'allow',
+        scopeOutcome: 'deny',
+        reasonCode: 'scope-missing',
+        principalCategory: 'authenticated',
+        count: 1,
+        resolutionClassification: classification,
+      };
+      await runLifecycle(AuthorizationShadowMismatchWLDef.beforeCreate, record);
+      assert.equal(record.resolutionClassification, classification);
+      await runLifecycle(AuthorizationShadowMismatchWLDef.beforeUpdate, { resolutionClassification: classification });
+    }
+    await assert.rejects(
+      runLifecycle(AuthorizationShadowMismatchWLDef.beforeCreate, {
+        fingerprint: 'a'.repeat(64),
+        routeId: 'route-1',
+        legacyOutcome: 'allow',
+        scopeOutcome: 'deny',
+        reasonCode: 'scope-missing',
+        principalCategory: 'authenticated',
+        count: 1,
+        resolutionClassification: 'free-text-triage',
+      }),
+      /resolutionClassification is invalid/
+    );
   });
 
   it('redacts direct audit snapshots and prevents audit updates', async () => {

@@ -91,7 +91,7 @@ Services are lazy-instantiated when first accessed, ensuring proper initializati
 | `CacheService` | In-memory and database caching |
 | ... | 32 additional services |
 
-See [Redbox Core Types - Services](redbox-core#core-services) for the complete service list.
+See [Redbox Core Types - Services](Redbox-Core-Types.md#core-services) for the complete service list.
 
 ### Controller Shims (`api/controllers/`)
 
@@ -265,6 +265,6 @@ const { generateAllShims } = require('@researchdatabox/redbox-core');
 
 ## See Also
 
-- [Redbox Core Types](redbox-core) - Source of models, policies, and config
+- [Redbox Core Types](Redbox-Core-Types.md) - Source of models, policies, and config
 - [Controllers Architecture](Controllers-Architecture) - Controller exports, shims, and lifecycle
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Creating hooks

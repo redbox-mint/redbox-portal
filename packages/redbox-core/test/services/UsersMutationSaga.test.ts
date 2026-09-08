@@ -69,6 +69,7 @@ describe('AUTH-SAGA-001 user mutation saga/outbox', () => {
   });
 
   it('begins idempotently and fences attempts with CAS', async () => {
+    installDurableSagaStore(new Map<string, FakeSagaRow>());
     const begun = await UsersService.beginUserMutationOperation({
       operationId: 'saga-cas-1',
       kind: 'create',
@@ -110,6 +111,7 @@ describe('AUTH-SAGA-001 user mutation saga/outbox', () => {
   });
 
   it('enforces the bounded retry budget and records failures', async () => {
+    installDurableSagaStore(new Map<string, FakeSagaRow>());
     await UsersService.beginUserMutationOperation({
       operationId: 'saga-budget-1',
       kind: 'update',

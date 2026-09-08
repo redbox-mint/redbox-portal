@@ -32,11 +32,12 @@ the readiness and shadow evidence described in
 The value is deployment-wide: every portal instance must use the same mode.
 
 ```javascript
-authorization: {
+// Merge into the deployment-owned config/env/<environment>.js configuration.
+module.exports.authorization = {
   mode: 'shadow',
   collectLegacyEvidenceInEnforce: true,
-  confirmationSecret: process.env.AUTHORIZATION_CONFIRMATION_SECRET
-}
+  confirmationSecret: process.env.AUTHORIZATION_CONFIRMATION_SECRET,
+};
 ```
 
 Container deployments can set the mode through the normal Sails environment
@@ -49,7 +50,7 @@ existing deployments retain one signing-key rotation boundary. A production
 deployment must override the shipped development session secret. The Sails
 environment override is `sails_authorization__confirmationSecret`.
 
-## Configuration Defaults (redbox-core)
+## Configuration Defaults (Redbox-Core-Types.md)
 
 All core configuration defaults are now centralized in the `@researchdatabox/redbox-core` package:
 
@@ -132,20 +133,18 @@ Figshare fixture mode is configured through environment/runtime config, not thro
 Example:
 
 ```javascript
-figshareDev: {
+module.exports.figshareDev = {
   enabled: true,
   mode: 'fixture',
   fixtures: {
     article: {
       id: 'fixture-123',
-      url: 'https://figshare.example/articles/fixture-123'
+      url: 'https://figshare.example/articles/fixture-123',
     },
-    licenses: [
-      { value: 1, name: 'CC-BY', url: 'https://license.test/cc-by' }
-    ],
-    articleFiles: []
-  }
-}
+    licenses: [{ value: 1, name: 'CC-BY', url: 'https://license.test/cc-by' }],
+    articleFiles: [],
+  },
+};
 ```
 
 For machine-specific developer fixtures, prefer `config/local.js` so fixture payloads do not need to be committed.
@@ -169,7 +168,7 @@ Compare these files to identify where a setting is being overwritten.
 
 ## See Also
 
-- [Redbox Core Types](redbox-core) - Where config defaults are defined
+- [Redbox Core Types](Redbox-Core-Types.md) - Where config defaults are defined
 - [Redbox Loader](Redbox-Loader) - How config shims are generated
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks
 - [Configuring Solr](Configuring-Solr) - Solr connection, schema, and pre-index mapping options

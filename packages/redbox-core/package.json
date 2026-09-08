@@ -9,6 +9,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./authorization/persistence-contracts": {
+      "types": "./dist/authorization/persistence-contracts.d.ts",
+      "default": "./dist/authorization/persistence-contracts.js"
+    },
+    "./authorization/shadow-classification": {
+      "types": "./dist/authorization/shadow-classification.d.ts",
+      "default": "./dist/authorization/shadow-classification.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

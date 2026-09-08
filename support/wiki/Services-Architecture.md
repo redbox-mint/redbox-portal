@@ -440,7 +440,7 @@ cat api/services/RecordsService.js
 
 ## See Also
 
-- [Redbox Core Types](redbox-core) - Package documentation and service list
+- [Redbox Core Types](Redbox-Core-Types.md) - Package documentation and service list
 - [Redbox Loader](Redbox-Loader) - Shim generation system
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Architecture Overview](Architecture-Overview) - System architecture

@@ -983,75 +983,106 @@ describe('AuthorizationMigrationService effective assignments', () => {
     assert.ok(report.issues.some(issue => issue.code === 'system-admin-assignment-missing'));
   });
 
-  it('treats an expired or withdrawn legacy projection as missing', async () => {
-    const countCalls: unknown[] = [];
-    const findOneCalls: unknown[] = [];
-    saved = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
-    savedModels = sails.models;
-    sails.models = {} as typeof sails.models;
-    try {
-      const roleValue = {
-        id: 'role-9',
-        name: 'Researcher',
-        contextType: 'brand',
-        branding: 'brand-1',
-        protectedKind: 'none',
-      };
-      Reflect.set(globalThis, 'BrandingConfig', { find: () => chainResult([]) });
-      Reflect.set(globalThis, 'Role', {
-        count: () => Promise.resolve(1),
-        find: () =>
-          chainResult([
-            {
-              id: 'system-admin',
-              name: 'system-admin',
-              key: 'system-admin',
-              identityKey: 'system:system-admin',
-              displayName: 'System administrators',
-              contextType: 'system',
-              protectedKind: 'system-admin',
-              status: 'active',
-              version: 2,
-              branding: null,
-            },
-          ]),
-        findOne: () => Promise.resolve(undefined),
-      });
-      Reflect.set(globalThis, 'RoleAssignment', {
-        count: () => Promise.resolve(2),
-        find: () => chainResult([]),
-        findOne: (criteria: unknown) => {
-          findOneCalls.push(criteria);
-          // Simulate the datastore filtering out expired/withdrawn rows: the
-          // effective predicate matches nothing, so the projection is missing.
-          return Promise.resolve(undefined);
-        },
-      });
-      Reflect.set(globalThis, 'User', {
-        find: () => chainResult([{ id: 'user-1', roles: [roleValue] }]),
-      });
-      Reflect.set(globalThis, 'PathRule', { find: () => chainResult([]) });
+  for (const scenario of [
+    { name: 'expired or withdrawn grants', sources: [], missing: true },
+    { name: 'manual grant without migration provenance', sources: ['manual'], missing: false },
+    { name: 'external grant without migration provenance', sources: ['external'], missing: false },
+    { name: 'multiple effective sources', sources: ['migration', 'manual', 'external'], missing: false },
+    { name: 'migration revoked with manual source remaining', sources: ['manual'], missing: false },
+    { name: 'final source revoked', sources: [], missing: true },
+    { name: 'unsupported source only', sources: ['unsupported'], missing: true },
+  ])
+    it(`checks effective membership for ${scenario.name}`, async () => {
+      const remainingSources = new Set(scenario.sources);
+      const findOneCalls: unknown[] = [];
+      saved = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+      savedModels = sails.models;
+      sails.models = {} as typeof sails.models;
+      try {
+        const roleValue = {
+          id: 'role-9',
+          name: 'Researcher',
+          contextType: 'brand',
+          branding: 'brand-1',
+          protectedKind: 'none',
+          status: 'active',
+        };
+        Reflect.set(globalThis, 'BrandingConfig', { find: () => chainResult([]) });
+        Reflect.set(globalThis, 'Role', {
+          count: () => Promise.resolve(1),
+          find: () =>
+            chainResult([
+              {
+                id: 'system-admin',
+                name: 'system-admin',
+                key: 'system-admin',
+                identityKey: 'system:system-admin',
+                displayName: 'System administrators',
+                contextType: 'system',
+                protectedKind: 'system-admin',
+                status: 'active',
+                version: 2,
+                branding: null,
+              },
+            ]),
+          findOne: () => Promise.resolve(undefined),
+        });
+        Reflect.set(globalThis, 'RoleAssignment', {
+          count: (criteria: Record<string, unknown>) => {
+            if (!('principalId' in criteria)) return Promise.resolve(2);
+            findOneCalls.push(criteria);
+            assert.equal(criteria.principalId, 'user-1');
+            assert.equal(criteria.role, 'role-9');
+            assert.equal(criteria.principalType, 'user');
+            assert.equal(Object.hasOwn(criteria, 'sourceKey'), false);
+            assert.deepEqual(criteria.source, ['manual', 'onboarding', 'migration', 'external', 'recovery']);
+            const supported = criteria.source as string[];
+            return Promise.resolve([...remainingSources].filter(source => supported.includes(source)).length);
+          },
+          find: () => chainResult([]),
+          findOne: (criteria: unknown) => {
+            findOneCalls.push(criteria);
+            // Simulate the datastore filtering out expired/withdrawn rows: the
+            // effective predicate matches nothing, so the projection is missing.
+            return Promise.resolve(undefined);
+          },
+        });
+        Reflect.set(globalThis, 'User', {
+          find: () => chainResult([{ id: 'user-1', roles: [roleValue] }]),
+        });
+        Reflect.set(globalThis, 'PathRule', { find: () => chainResult([]) });
 
-      const report = await new Services.AuthorizationMigrationService().reportDrift(10);
-      assert.ok(findOneCalls.length >= 1);
-      const projection = findOneCalls[0] as Record<string, unknown>;
-      assert.equal(projection.status, 'active');
-      assert.equal(projection.sourcePresent, true);
-      assert.ok(Array.isArray(projection.or));
-      assert.ok(
-        report.issues.some(issue => issue.code === 'legacy-assignment-projection-missing'),
-        'expired/withdrawn projection must report missing'
-      );
-    } finally {
-      for (const name of names) {
-        const descriptor = saved?.get(name);
-        if (descriptor === undefined) Reflect.deleteProperty(globalThis, name);
-        else Object.defineProperty(globalThis, name, descriptor);
+        const report = await new Services.AuthorizationMigrationService().reportDrift(10);
+        assert.ok(findOneCalls.length >= 1);
+        const projection = findOneCalls[0] as Record<string, unknown>;
+        assert.equal(projection.status, 'active');
+        assert.equal(projection.sourcePresent, true);
+        assert.ok(Array.isArray(projection.or));
+        assert.equal(
+          report.issues.some(issue => issue.code === 'legacy-assignment-projection-missing'),
+          scenario.missing
+        );
+        // Removing one grant must preserve the projection while another
+        // supported source remains; only revocation of the final source drifts.
+        if (scenario.sources.length > 1) {
+          for (const source of scenario.sources) {
+            remainingSources.delete(source);
+            const afterRevocation = await new Services.AuthorizationMigrationService().reportDrift(10);
+            assert.equal(
+              afterRevocation.issues.some(issue => issue.code === 'legacy-assignment-projection-missing'),
+              remainingSources.size === 0
+            );
+          }
+        }
+      } finally {
+        for (const name of names) {
+          const descriptor = saved?.get(name);
+          if (descriptor === undefined) Reflect.deleteProperty(globalThis, name);
+          else Object.defineProperty(globalThis, name, descriptor);
+        }
+        sails.models = savedModels;
       }
-      sails.models = savedModels;
-    }
-    void countCalls;
-  });
+    });
 });
 
 describe('AuthorizationMigrationService junction orphans', () => {

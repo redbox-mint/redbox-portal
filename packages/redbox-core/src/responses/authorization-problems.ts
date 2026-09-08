@@ -1,3 +1,4 @@
+import { observeAuthorizationResponse } from '../authorization/observability';
 import {
   AuthorizationPersistenceValidationError,
   AuthorizationValidationError,
@@ -93,6 +94,7 @@ function stableAuthorizationErrorType(
 /** Sends one bounded Problem Details response without exposing role topology or persistence errors. */
 export function sendAuthorizationContractProblem(req: Sails.Req, res: Sails.Res, error: unknown): void {
   const problem = contractProblem(error);
+  observeAuthorizationResponse(req, problem.status, problem.code);
   const requestId = ensureAuthorizationRequestId(req);
   const instance = authorizationProblemInstance(req);
   if (problem.status === 500) {

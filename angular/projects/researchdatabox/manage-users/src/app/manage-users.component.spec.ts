@@ -125,6 +125,8 @@ describe('ManageUsersComponent', () => {
       'manage-users-account-status-disabled': 'Disabled',
       'manage-users-link-no-results': 'No matching accounts found.',
       'manage-users-link-failed': 'Failed to link accounts.',
+      'manage-users-link-failed-conflict':
+        'Link conflict: the accounts changed since preview, or are already linked. Refresh and retry.',
       'manage-users-link-search-failed': 'Failed to search accounts.',
       'manage-users-link-select-candidate': 'Select an account to link.',
       'manage-users-link-success': 'Accounts linked successfully.',
@@ -175,6 +177,7 @@ describe('ManageUsersComponent', () => {
               scope === 'user.account-link.manage' ||
               scope === 'user.token.manage',
             load: () => Promise.resolve(),
+            waitForInit: () => Promise.resolve(),
           },
         },
       ],
@@ -655,8 +658,17 @@ describe('ManageUsersComponent', () => {
     });
 
     const conflict = { status: 409, error: { code: 'authorization.version-conflict' } };
-    (userService.linkAccounts as jasmine.Spy).and.rejectWith(conflict);
+    const conflictSpy = userService.linkAccounts as jasmine.Spy;
+    conflictSpy.calls.reset();
+    conflictSpy.and.rejectWith(conflict);
+    app.selectedLinkCandidate = { id: 'candidate-1', username: 'candidate' } as any;
     await app.submitLink();
+    expect(conflictSpy).toHaveBeenCalledOnceWith('ABC123', 'candidate-1', {
+      primaryExpectedVersion: 1,
+      secondaryExpectedVersion: 1,
+      linkConfirmationToken: 'preview-token',
+      linkOperationId: 'op-pending-1',
+    });
     expect(app.linkMsgType).toBe('danger');
     expect(app.linkMsg).toContain('changed since preview');
   });
