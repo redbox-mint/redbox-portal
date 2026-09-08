@@ -222,8 +222,11 @@ export namespace Services {
             // if (!('properties' in permittedChangesObj)) {
             //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
             // }
-            const permittedChangesProps = (('properties' in permittedChangesObj)
-              ? (permittedChangesObj['properties'] as Record<string | number, unknown>)
+            const permittedChangesProps = (('properties' in permittedChangesObj || 'optionalProperties' in permittedChangesObj)
+              ? {
+                  ...((permittedChangesObj['properties'] ?? {}) as Record<string | number, unknown>),
+                  ...((permittedChangesObj['optionalProperties'] ?? {}) as Record<string | number, unknown>),
+                }
               : permittedChangesObj) as Record<string | number, unknown>;
 
 

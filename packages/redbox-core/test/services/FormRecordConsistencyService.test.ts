@@ -236,6 +236,30 @@ describe('FormRecordConsistencyService', function () {
       expect(result).to.deep.equal({});
     });
 
+    it('preserves optional properties in nested permitted objects', function () {
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        {},
+        { rdmp: { oid: 'rdmp-1', title: 'Research data management plan' } },
+        {
+          properties: {
+            rdmp: {
+              properties: {
+                oid: { type: 'string' },
+              },
+              optionalProperties: {
+                title: { type: 'string' },
+              },
+            },
+          },
+        },
+        []
+      );
+
+      expect(result).to.deep.equal({
+        rdmp: { oid: 'rdmp-1', title: 'Research data management plan' },
+      });
+    });
+
     it('reports malformed primitive property schemas as validation errors', function () {
       const merge = () => FormRecordConsistencyService.mergeRecordMetadataPermitted(
         {},
