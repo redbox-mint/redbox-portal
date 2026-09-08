@@ -502,12 +502,6 @@ function isAuditService(value: unknown): value is {
   return isRecord(value) && typeof value.createSucceededEvent === 'function';
 }
 
-function defaultAppendAuditEvent(input: AuthorizationAuditEventInput, connection: Sails.Connection): Promise<void> {
-  return runtimeService('authorizationauditservice', isAuditService)
-    .createSucceededEvent(input, connection)
-    .then(() => undefined);
-}
-
 function defaultDependencies(): AuthorizationRolloutDependencies {
   return {
     getMode: () => sails.config.authorization.mode,
@@ -521,7 +515,9 @@ function defaultDependencies(): AuthorizationRolloutDependencies {
       runtimeService('authorizationservice', isScopeAuthorizationService).authorizeAction(context, authorization.scope),
     evaluateLegacy: defaultLegacyEvaluation,
     persistMismatch: input => persistShadowMismatch(input, new Date()),
-    appendAuditEvent: (input, _outcome, connection) => defaultAppendAuditEvent(input, connection),
+    appendAuditEvent: async (input, _outcome, connection) => {
+      await runtimeService('authorizationauditservice', isAuditService).createSucceededEvent(input, connection);
+    },
     runAtomic: work => runWithRequiredTransaction(AuthorizationShadowMismatch.getDatastore(), work),
   };
 }
@@ -891,15 +887,10 @@ export namespace Services {
             | { deletedCount?: unknown }
             | null
             | undefined;
-          if (
-            deletion === null ||
-            deletion === undefined ||
-            !Number.isSafeInteger(deletion.deletedCount) ||
-            Number(deletion.deletedCount) < 0
-          ) {
+          if (!Number.isSafeInteger(deletion?.deletedCount) || Number(deletion?.deletedCount) < 0) {
             throw new Error('Authorization shadow mismatch retention did not return a valid deletedCount.');
           }
-          deleted = Number(deletion.deletedCount);
+          deleted = Number(deletion?.deletedCount);
         }
         const result = Object.freeze({ deleted, truncated });
         // Same-transaction audit: a failure aborts the deletion above, so
