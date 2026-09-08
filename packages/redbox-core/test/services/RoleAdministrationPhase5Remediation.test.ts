@@ -1,6 +1,8 @@
 import { strict as assert } from 'node:assert';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
+import { generateMigrationConfigShim } from '../../src/loader';
 import { afterEach, describe, it } from 'mocha';
 import {
   asScopeKey,
@@ -733,7 +735,8 @@ describe('Phase 5 remediation: route contracts, migration registry, controller a
     assert.ok(linkRoute !== undefined, 'linkAccounts route must exist');
     const required = ((linkRoute as unknown as Record<string, unknown>).requestBody ??
       (linkRoute as unknown as Record<string, unknown>).request) as Record<string, unknown> as
-      { required?: string[] } | undefined;
+      | { required?: string[] }
+      | undefined;
     const requiredList = Array.isArray(required?.required)
       ? (required.required as string[])
       : (linkRoute as unknown as { required?: string[] }).required;
@@ -763,18 +766,29 @@ describe('Phase 5 remediation: route contracts, migration registry, controller a
     );
   });
 
-  it('registers the account-link migration through the production shim (actual require, not fs existence)', () => {
-    const shimPath = path.join(__dirname, '..', '..', '..', '..', 'config', 'migrations.js');
-    assert.ok(fs.existsSync(shimPath), 'production migration shim must exist');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const shim = require(shimPath) as { migrations: { name: string; up: unknown }[] };
-    const names = shim.migrations.map(migration => migration.name);
-    assert.ok(
-      names.includes('20260905T120000-account-link-uniqueness'),
-      `account-link migration must be registered (found: ${names.join(', ')})`
-    );
-    const accountLink = shim.migrations.find(migration => migration.name === '20260905T120000-account-link-uniqueness');
-    assert.equal(typeof accountLink?.up, 'function');
+  it('registers the account-link migration through the production shim (actual require, not fs existence)', async () => {
+    const appPath = path.resolve(__dirname, '../../../..');
+    const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'redbox-migration-shim-'));
+    const configDir = path.join(sandbox, 'config');
+    const shimPath = path.join(configDir, 'migrations.js');
+    try {
+      fs.mkdirSync(configDir);
+      fs.symlinkSync(path.join(appPath, 'api'), path.join(sandbox, 'api'), 'dir');
+      await generateMigrationConfigShim(configDir, appPath, []);
+      const shim = require(shimPath) as { migrations: { name: string; up: unknown }[] };
+      const names = shim.migrations.map(migration => migration.name);
+      assert.ok(
+        names.includes('20260905T120000-account-link-uniqueness'),
+        `account-link migration must be registered (found: ${names.join(', ')})`
+      );
+      const accountLink = shim.migrations.find(
+        migration => migration.name === '20260905T120000-account-link-uniqueness'
+      );
+      assert.equal(typeof accountLink?.up, 'function');
+    } finally {
+      delete require.cache[shimPath];
+      fs.rmSync(sandbox, { recursive: true, force: true });
+    }
   });
 
   it('create/update success paths use typed sendResp (no deprecated apiRespond)', () => {

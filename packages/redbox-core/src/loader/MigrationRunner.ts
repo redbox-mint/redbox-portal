@@ -18,7 +18,7 @@ import {
 export interface RedboxMigration {
   name: string;
   source?: string;
-  up: (params?: { context: typeof sails }) => Promise<void>;
+  up: (params?: { context: typeof sails; lease?: Pick<MigrationLeaseHandle, 'owner' | 'fence'> }) => Promise<void>;
   down?: (params?: { context: typeof sails }) => Promise<void>;
 }
 
@@ -303,7 +303,7 @@ export async function runPendingMigrations(migrations: RedboxMigration[]): Promi
     async (operation, connection) => requireLiveLease(operation, connection)
   );
 
-  const umzugMigrations = toRunnableMigrations(orderedMigrations).map(migration => ({
+  const umzugMigrations = orderedMigrations.map(migration => ({
     ...migration,
     up: async (params: { name: string; path?: string; context: typeof sails }) => {
       // Ownership gate before each migration: a runner that lost the lease
@@ -311,7 +311,10 @@ export async function runPendingMigrations(migrations: RedboxMigration[]): Promi
       // instead of running the next migration unguarded.
       await requireLiveLease(`migration '${migration.name}'`);
       startTimes.set(migration.name, Date.now());
-      return migration.up(params);
+      return migration.up({
+        context: params.context,
+        lease: leaseCell.active,
+      });
     },
   }));
 
