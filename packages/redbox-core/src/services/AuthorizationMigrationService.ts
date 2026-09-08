@@ -1977,10 +1977,9 @@ function migrationWinnerBlocker(
  * runs in its own transaction (aborted/ended by `runWithRequiredTransaction`
  * on failure) and the winner reread runs in a subsequent fresh
  * transaction/session where the committed winner is visible. This helper may
- * be called from inside an outer batch transaction: the fresh sessions are
- * independent of the outer lease, so a concurrent worker winning the race
- * never poisons the batch, and an outer batch failure can never leave an
- * assignment committed without its success audit.
+ * run only after the batch read transaction has closed: both transactions
+ * write the same lease fence and cannot overlap. A later batch failure can
+ * never leave an assignment committed without its success audit.
  *
  * @returns The created row, or `undefined` when a concurrent worker won the
  * race and its row is visible in the fresh reread (idempotent success).
@@ -3495,7 +3494,10 @@ export namespace Services {
         const batch = scoped ? fetched : afterCursorClientSide(fetched, lastId).slice(0, batchSize);
         if (batch.length === 0) break;
         const overflowUserIds = new Set<string>();
+        const assignmentMutations: Array<() => Promise<void>> = [];
         try {
+          // Finish the fenced read snapshot before opening assignment transactions;
+          // nested writers would contend with this transaction on the lease row.
           await runWithRequiredTransaction(User.getDatastore(), async connection => {
             if (lease !== undefined) {
               await fenceLeaseInMutationSession(lease, connection, 'assignments batch');
@@ -3602,60 +3604,62 @@ export namespace Services {
                     });
                     continue;
                   }
-                  try {
-                    await runWithRequiredTransaction(User.getDatastore(), async freshConnection => {
-                      if (lease !== undefined) {
-                        await fenceLeaseInMutationSession(lease, freshConnection, 'assignment adoption');
-                      }
-                      const rawReread: unknown = await RoleAssignment.findOne(
-                        migrationAssignmentSelector(input)
-                      ).usingConnection(freshConnection);
-                      const reread = asOptionalRoleAssignmentAttributes(rawReread, 'adoption reread');
-                      if (reread == null) throw new Error('Migration winner disappeared during adoption.');
-                      const rereadBlocker = migrationWinnerBlocker(input, reread, new Date());
-                      if (rereadBlocker !== undefined) throw new Error(`Migration winner invalid: ${rereadBlocker}.`);
-                      await sails.services.authorizationauditservice.createSucceededEvent(
-                        {
-                          eventType: 'assignment.noop',
-                          actorType: 'system-process',
-                          actorId: MIGRATION_ACTOR,
-                          authMethod: 'internal',
-                          targetType: 'role-assignment',
-                          targetId: reread.id,
-                          brandId: associationId(role.branding),
-                          after: {
-                            principalId: input.principalId,
-                            roleId: role.id,
-                            source: 'migration',
-                            state: 'active-adopted',
+                  assignmentMutations.push(async () => {
+                    try {
+                      await runWithRequiredTransaction(User.getDatastore(), async freshConnection => {
+                        if (lease !== undefined) {
+                          await fenceLeaseInMutationSession(lease, freshConnection, 'assignment adoption');
+                        }
+                        const rawReread: unknown = await RoleAssignment.findOne(
+                          migrationAssignmentSelector(input)
+                        ).usingConnection(freshConnection);
+                        const reread = asOptionalRoleAssignmentAttributes(rawReread, 'adoption reread');
+                        if (reread == null) throw new Error('Migration winner disappeared during adoption.');
+                        const rereadBlocker = migrationWinnerBlocker(input, reread, new Date());
+                        if (rereadBlocker !== undefined) throw new Error(`Migration winner invalid: ${rereadBlocker}.`);
+                        await sails.services.authorizationauditservice.createSucceededEvent(
+                          {
+                            eventType: 'assignment.noop',
+                            actorType: 'system-process',
+                            actorId: MIGRATION_ACTOR,
+                            authMethod: 'internal',
+                            targetType: 'role-assignment',
+                            targetId: reread.id,
+                            brandId: associationId(role.branding),
+                            after: {
+                              principalId: input.principalId,
+                              roleId: role.id,
+                              source: 'migration',
+                              state: 'active-adopted',
+                            },
+                            reasonCode: AUTHORIZATION_MIGRATION_NAME,
                           },
-                          reasonCode: AUTHORIZATION_MIGRATION_NAME,
-                        },
-                        freshConnection
-                      );
-                      if (lease !== undefined) {
-                        await fenceLeaseInMutationSession(lease, freshConnection, 'assignment adoption (pre-commit)');
-                      }
-                    });
-                  } catch (auditError) {
-                    // A failed reread/audit means the winner cannot be proven
-                    // effective: fail closed as blocking drift rather than
-                    // silently adopting.
-                    const message = auditError instanceof Error ? auditError.message : String(auditError);
-                    if (message.startsWith('Migration winner')) {
-                      const code = message.includes(':')
-                        ? message.slice(message.indexOf(':') + 2).replace(/\.$/, '')
-                        : 'migration-winner-not-effective';
-                      addIssue(summary, {
-                        code,
-                        severity: 'blocker',
-                        entityType: 'assignment',
-                        entityId: existing.id,
+                          freshConnection
+                        );
+                        if (lease !== undefined) {
+                          await fenceLeaseInMutationSession(lease, freshConnection, 'assignment adoption (pre-commit)');
+                        }
                       });
-                    } else {
-                      throw auditError;
+                    } catch (auditError) {
+                      // A failed reread/audit means the winner cannot be proven
+                      // effective: fail closed as blocking drift rather than
+                      // silently adopting.
+                      const message = auditError instanceof Error ? auditError.message : String(auditError);
+                      if (message.startsWith('Migration winner')) {
+                        const code = message.includes(':')
+                          ? message.slice(message.indexOf(':') + 2).replace(/\.$/, '')
+                          : 'migration-winner-not-effective';
+                        addIssue(summary, {
+                          code,
+                          severity: 'blocker',
+                          entityType: 'assignment',
+                          entityId: existing.id,
+                        });
+                      } else {
+                        throw auditError;
+                      }
                     }
-                  }
+                  });
                   continue;
                 }
                 // A concurrent migration worker may win the check-then-create race on
@@ -3663,30 +3667,42 @@ export namespace Services {
                 // atomically in a fresh transaction/session: the failed creation
                 // transaction is aborted/ended before the winner reread, because
                 // MongoDB aborts the transaction on duplicate-key and the aborted
-                // session is unusable. The outer batch lease is never reused for
-                // the mutation, so an outer batch failure cannot leave an
+                // session is unusable. The batch read session closes before
+                // the mutation, so a later batch failure cannot leave an
                 // assignment committed without its audit.
-                const created = await createMigrationAssignmentWithAuditAtomically(
-                  input,
-                  {
-                    after: { principalId: input.principalId, roleId: role.id, source: 'migration' },
-                    brandId: associationId(role.branding),
-                  },
-                  User.getDatastore(),
-                  summary.metrics,
-                  (code, winner) => {
-                    addIssue(summary, {
-                      code,
-                      severity: 'blocker',
-                      entityType: 'assignment',
-                      entityId: winner.id,
-                    });
-                  },
-                  lease
-                );
-                if (created === undefined) continue;
-                summary.assignmentsCreated += 1;
+                assignmentMutations.push(async () => {
+                  const created = await createMigrationAssignmentWithAuditAtomically(
+                    input,
+                    {
+                      after: { principalId: input.principalId, roleId: role.id, source: 'migration' },
+                      brandId: associationId(role.branding),
+                    },
+                    User.getDatastore(),
+                    summary.metrics,
+                    (code, winner) => {
+                      addIssue(summary, {
+                        code,
+                        severity: 'blocker',
+                        entityType: 'assignment',
+                        entityId: winner.id,
+                      });
+                    },
+                    lease
+                  );
+                  if (created !== undefined) summary.assignmentsCreated += 1;
+                });
               }
+            }
+            if (lease !== undefined) {
+              await fenceLeaseInMutationSession(lease, connection, 'assignments batch read (pre-commit)');
+            }
+          });
+          for (const mutateAssignment of assignmentMutations) {
+            await mutateAssignment();
+          }
+          await runWithRequiredTransaction(User.getDatastore(), async connection => {
+            if (lease !== undefined) {
+              await fenceLeaseInMutationSession(lease, connection, 'assignments batch audit');
             }
             await migrationAudit(
               'authorization.migration.batch-applied',
