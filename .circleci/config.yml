@@ -548,6 +548,9 @@ jobs:
             cd ./packages/redbox-core
             npm install --no-save --include=dev
       - run:
+          name: Build redbox-core package exports
+          command: npm run compile:core
+      - run:
           name: Verify record-contract coverage
           command: nvm install && npm run test:record-contracts
       - run:

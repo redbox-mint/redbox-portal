@@ -5,12 +5,34 @@ import { AUTHORIZATION_MIGRATION_NAME } from '../../src/services/AuthorizationMi
 
 interface LocalMigration {
   readonly name: string;
-  readonly up: (params: { context: { services: Record<string, unknown> } }) => Promise<void>;
+  readonly up: (params: {
+    context: { services: Record<string, unknown> };
+    lease?: { owner: string; fence: number };
+  }) => Promise<void>;
 }
 
 const migrationPath = path.resolve(__dirname, '../../../../api/migrations/20260828T120000-authorization-model-v1.js');
 
 describe('authorization migration entry point', () => {
+  it('passes the runner lease explicitly to the service', async () => {
+    const migration = require(migrationPath) as LocalMigration;
+    const lease = { owner: 'runner', fence: 1 };
+    await migration.up({
+      lease,
+      context: {
+        services: {
+          authorizationmigrationservice: {
+            async run(batchSize: unknown, receivedLease: unknown) {
+              assert.equal(batchSize, undefined);
+              assert.equal(receivedLease, lease);
+              return { issues: [] };
+            },
+          },
+        },
+      },
+    });
+  });
+
   it('delegates to the idempotent service and rejects bounded blocker summaries', async () => {
     const migration = require(migrationPath) as LocalMigration;
     assert.equal(migration.name, AUTHORIZATION_MIGRATION_NAME);

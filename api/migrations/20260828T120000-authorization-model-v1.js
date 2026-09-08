@@ -4,11 +4,11 @@ const MIGRATION_NAME = '20260828T120000-authorization-model-v1';
 
 module.exports = {
   name: MIGRATION_NAME,
-  up: async ({ context: sails } = {}) => {
+  up: async ({ context: sails, lease } = {}) => {
     if (!sails?.services?.authorizationmigrationservice) {
       throw new Error('AuthorizationMigrationService is unavailable. Regenerate ReDBox shims before lifting.');
     }
-    const result = await sails.services.authorizationmigrationservice.run();
+    const result = await sails.services.authorizationmigrationservice.run(undefined, lease);
     const blockers = result.issues.filter(issue => issue.severity === 'blocker');
     // Fail-closed truncation: a capped 500-entry prefix is not the full set.
     // When `issuesTruncated` is set, unseen issues beyond the visible prefix

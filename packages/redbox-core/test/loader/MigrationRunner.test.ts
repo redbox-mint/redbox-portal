@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as sinon from 'sinon';
 
+import { getActiveMigrationLease } from '../../src/services/AuthorizationMigrationService';
 import { runPendingMigrations, toRunnableMigrations, type RedboxMigration } from '../../src/loader/MigrationRunner';
 
 const fsPromises = fs.promises;
@@ -115,6 +116,23 @@ describe('MigrationRunner', function () {
     expect(created[0].ranAt).to.be.a('number');
     expect(created[0].durationMs).to.be.a('number');
     expect(created[0].executedBy).to.be.a('string').and.to.not.be.empty;
+  });
+
+  it('passes the held lease to migrations independently of service module state', async function () {
+    setMigrationModel();
+    let called = false;
+    await runPendingMigrations([
+      {
+        name: '2026.06.08T09.00.00-lease',
+        up: async params => {
+          called = true;
+          expect(params?.lease).to.equal(getActiveMigrationLease());
+          expect(params?.lease?.owner).to.be.a('string').and.to.not.be.empty;
+          expect(params?.lease?.fence).to.be.a('number');
+        },
+      },
+    ]);
+    expect(called).to.equal(true);
   });
 
   it('should log the pending migration names before executing', async function () {
