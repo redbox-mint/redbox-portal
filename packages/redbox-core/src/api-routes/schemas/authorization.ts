@@ -1,3 +1,8 @@
+import {
+  MAX_ROLLBACK_EXPOSURES,
+  MAX_ROLLBACK_SCOPES,
+  ROLLBACK_SCAN_REASONS,
+} from '../../authorization/rollback-exposure';
 import { z } from '../zod-openapi';
 import {
   AUTHORIZATION_AUDIT_ACTOR_TYPES,
@@ -691,6 +696,13 @@ const authorizationReadinessFindingSchema = z
   })
   .strict();
 
+const authorizationShadowGroupCountSchema = z
+  .object({
+    key: z.string().min(1).max(256),
+    count: z.number().int().min(1),
+  })
+  .strict();
+
 export const authorizationReadinessSchema = z
   .object({
     generatedAt: isoDateTimeField,
@@ -704,7 +716,13 @@ export const authorizationReadinessSchema = z
         orphanedScopeCount: z.number().int().min(0),
       })
       .strict(),
-    routes: z.object({ routeCount: z.number().int().min(0), valid: z.boolean() }).strict(),
+    routes: z
+      .object({
+        routeCount: z.number().int().min(0),
+        configuredRouteCount: z.number().int().min(0),
+        valid: z.boolean(),
+      })
+      .strict(),
     migration: z
       .object({
         name: z.string().min(1).max(128),
@@ -714,11 +732,50 @@ export const authorizationReadinessSchema = z
         warningCount: z.number().int().min(0),
       })
       .strict(),
+    rollbackExposure: z
+      .object({
+        complete: z.boolean(),
+        incompleteReasons: z.array(z.enum(ROLLBACK_SCAN_REASONS)).max(7),
+        affectedUserCount: z.number().int().min(0),
+        affectedRoleCount: z.number().int().min(0),
+        affectedCapabilityCount: z.number().int().min(0),
+        items: z
+          .array(
+            z
+              .object({
+                userId: identifierField,
+                roleId: identifierField,
+                roleKey: roleKeyField,
+                brandId: identifierField.optional(),
+                scopeKeys: z.array(scopeKeyField).max(MAX_ROLLBACK_SCOPES),
+                temporaryLegacyRoleAssessment: z.literal('required'),
+              })
+              .strict()
+          )
+          .max(MAX_ROLLBACK_EXPOSURES),
+      })
+      .strict(),
     transactions: z.union([
       z.object({ available: z.literal(true) }).strict(),
       z.object({ available: z.literal(false), code: z.literal('authorization.transaction-unavailable') }).strict(),
     ]),
-    shadow: z.object({ unresolvedMismatchCount: z.number().int().min(0) }).strict(),
+    shadow: z
+      .object({
+        unresolvedMismatchCount: z.number().int().min(0),
+        byRoute: z.array(authorizationShadowGroupCountSchema).max(20),
+        byReason: z.array(authorizationShadowGroupCountSchema).max(20),
+        byBrand: z.array(authorizationShadowGroupCountSchema).max(20),
+        byClassification: z.array(authorizationShadowGroupCountSchema).max(20),
+        groupsTruncated: z.boolean(),
+      })
+      .strict(),
+    deploymentIdentity: z
+      .object({
+        complete: z.boolean(),
+        buildVersion: z.string().min(1).max(128).optional(),
+        instanceId: z.string().min(1).max(128).optional(),
+      })
+      .strict(),
     administrators: z
       .object({
         brandCount: z.number().int().min(0),
@@ -738,6 +795,9 @@ export const authorizationReadinessSchema = z
             complete: z.boolean(),
             buildVersion: z.string().min(1).max(128).optional(),
             instanceId: z.string().min(1).max(128).optional(),
+            expectedBuildVersion: z.string().min(1).max(128).optional(),
+            expectedInstanceId: z.string().min(1).max(128).optional(),
+            match: z.boolean(),
           })
           .strict(),
         shadowWindow: z.boolean(),

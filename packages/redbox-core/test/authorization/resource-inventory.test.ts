@@ -45,6 +45,8 @@ function exportedOperations(instance: { exports(): Record<string, unknown> }): S
  */
 const NON_SERVICE_MODULES = new Set([
   'AuthorizationActorIssuer',
+  // Read-only helper invoked by AuthorizationReadinessService; no service exports.
+  'AuthorizationRollbackExposure',
   'AuthorizationServiceAccess',
   'BrandingThemeTokens',
   'form-record-access-user',
@@ -406,6 +408,19 @@ describe('resource operation inventory', function () {
         `${operation} must document the required assignment scope`
       );
     }
+    // Durable link recovery listing runs server-side over the stored plan with
+    // no new authority; the shadow mismatch operator listing is read-only
+    // review plumbing that never writes the append-only audit, while
+    // acknowledgement and retention append typed operator audit events.
+    for (const operation of [
+      'RoleAdministrationService#recoverIncompleteLinkOperations',
+      'AuthorizationRolloutService#listUnresolvedShadowMismatches',
+      'AuthorizationRolloutService#acknowledgeShadowMismatch',
+      'AuthorizationRolloutService#closeRemediatedShadowMismatch',
+      'AuthorizationRolloutService#retainResolvedShadowMismatches',
+    ]) {
+      assert.ok(excluded.has(operation), operation);
+    }
 
     const inventoried = new Set(RESOURCE_OPERATION_INVENTORY.map(row => `${row.service}#${row.operation}`));
 
@@ -453,6 +468,44 @@ describe('resource operation inventory', function () {
       'HookLoader#registerRedboxModels',
     ]) {
       assert.ok(inventoried.has(operation), operation);
+    }
+    // Durable user-mutation saga, recovery, and compensation operations are
+    // internal-job plumbing over the stored plan, except the brand-constrained
+    // detail compensator which carries the request brand.
+    const sagaByOp = new Map(RESOURCE_OPERATION_INVENTORY.map(row => [`${row.service}#${row.operation}`, row]));
+    for (const operation of [
+      'UsersService#beginUserMutationOperation',
+      'UsersService#markUserMutationRunning',
+      'UsersService#completeUserMutationOperation',
+      'UsersService#failUserMutationOperation',
+      'UsersService#recoverIncompleteUserMutationOperations',
+      'UsersService#replayIncompleteUserMutationOperations',
+      'UsersService#destroyNewlyCreatedUserRecord',
+    ]) {
+      assert.equal(sagaByOp.get(operation)?.classification, 'internal-job', operation);
+    }
+    assert.equal(sagaByOp.get('UsersService#compensateUserDetailsForBrand')?.classification, 'brand-bearing');
+    // Restart-safe link replay is user-management-linking internal-job
+    // plumbing over the stored brand/record plan: bounded rewrite, stored
+    // brand predicate, CAS-claimed attempts, process identity, and audit
+    // semantics — never a rebuild from mutable live users.
+    const linkReplay = sagaByOp.get('RoleAdministrationService#replayIncompleteLinkOperations');
+    assert.equal(linkReplay?.family, 'user-management-linking');
+    assert.equal(linkReplay?.classification, 'internal-job');
+    for (const semantic of [
+      'stored brandId',
+      'bounded record',
+      'brand predicate',
+      'CAS-claimed',
+      'bounded retry',
+      'system-process',
+      'audit',
+      'never rebuilds',
+    ]) {
+      assert.ok(
+        linkReplay?.notes.toLowerCase().includes(semantic.toLowerCase()),
+        `link replay inventory must document ${semantic}`
+      );
     }
 
     // Controllers: every reachable (_exportedMethods) action of every

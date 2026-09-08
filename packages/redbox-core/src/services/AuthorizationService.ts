@@ -1,3 +1,11 @@
+import {
+  authorizationTelemetry,
+  authorizationLabels,
+  observeAuthorization,
+  contextQuery,
+  measureAuthorizationContext,
+  inAuthorizationContextMeasurement,
+} from '../authorization/observability';
 import { Services as services } from '../CoreService';
 import { issueTrustedAuthorizationContextInternal } from './AuthorizationActorIssuer';
 import {
@@ -376,7 +384,9 @@ function defaultDependencies(): AuthorizationServiceDependencies {
       // username that happens to equal another account's id match two rows, which makes
       // Waterline's `findOne` throw, and would otherwise resolve authority to whichever
       // row the datastore returned first. An id is always the authoritative identity.
-      const user = (await User.findOne({ id: identifier })) ?? (await User.findOne({ username: identifier }));
+      const user =
+        (await contextQuery('user-id', () => User.findOne({ id: identifier }))) ??
+        (await contextQuery('user-name', () => User.findOne({ username: identifier })));
       if (user == null) return undefined;
       if (!isAuthorizationUserSourceRecord(user)) {
         throw new Error('User authorization query returned an invalid row.');
@@ -385,16 +395,18 @@ function defaultDependencies(): AuthorizationServiceDependencies {
     },
     async findAssignments(principalId, brandId, activeAt) {
       return readWaterlineRows(
-        RoleAssignment.find({
-          principalType: 'user',
-          principalId,
-          status: 'active',
-          sourcePresent: true,
-          and: [
-            { or: [{ branding: brandId }, { branding: null }] },
-            { or: [{ expiresAt: null }, { expiresAt: { '>': activeAt } }] },
-          ],
-        }),
+        contextQuery('assignments', () =>
+          RoleAssignment.find({
+            principalType: 'user',
+            principalId,
+            status: 'active',
+            sourcePresent: true,
+            and: [
+              { or: [{ branding: brandId }, { branding: null }] },
+              { or: [{ expiresAt: null }, { expiresAt: { '>': activeAt } }] },
+            ],
+          })
+        ),
         isAuthorizationAssignmentSourceRecord,
         'RoleAssignment'
       );
@@ -406,7 +418,11 @@ function defaultDependencies(): AuthorizationServiceDependencies {
         criteria.push({ branding: brandId, protectedKind: 'guest', status: 'active' });
       }
       if (criteria.length === 0) return [];
-      return readWaterlineRows(Role.find({ or: criteria }), isAuthorizationRoleSourceRecord, 'Role');
+      return readWaterlineRows(
+        contextQuery('roles', () => Role.find({ or: criteria })),
+        isAuthorizationRoleSourceRecord,
+        'Role'
+      );
     },
     async findTemplateRevisions(references) {
       if (references.length === 0) return [];
@@ -415,12 +431,14 @@ function defaultDependencies(): AuthorizationServiceDependencies {
         uniqueReferences.set(`${reference.templateId}:${reference.revision}`, reference);
       }
       return readWaterlineRows(
-        RoleTemplateRevision.find({
-          or: [...uniqueReferences.values()].map(reference => ({
-            template: reference.templateId,
-            revision: reference.revision,
-          })),
-        }),
+        contextQuery('revisions', () =>
+          RoleTemplateRevision.find({
+            or: [...uniqueReferences.values()].map(reference => ({
+              template: reference.templateId,
+              revision: reference.revision,
+            })),
+          })
+        ),
         isAuthorizationTemplateRevisionSourceRecord,
         'RoleTemplateRevision'
       );
@@ -428,7 +446,7 @@ function defaultDependencies(): AuthorizationServiceDependencies {
     async findRoleScopeOverrides(roleIds) {
       if (roleIds.length === 0) return [];
       return readWaterlineRows(
-        RoleScopeOverride.find({ role: [...roleIds] }),
+        contextQuery('overrides', () => RoleScopeOverride.find({ role: [...roleIds] })),
         isAuthorizationRoleScopeOverrideSourceRecord,
         'RoleScopeOverride'
       );
@@ -866,6 +884,18 @@ export namespace Services {
           provenanceByScope.set(scopeKey, provenance);
         }
       }
+      observeAuthorization(() =>
+        authorizationTelemetry.emit(
+          'orphan_observations',
+          uniqueSortedScopeKeys([...evidence.inactiveScopeKeys, ...evidence.missingScopeKeys]).length,
+          {
+            ...authorizationLabels(),
+            category: input.principal.category,
+            source: 'resolution',
+            reason: 'scope-orphaned',
+          }
+        )
+      );
       const grantedScopeKeys = uniqueSortedScopeKeys([...provenanceByScope.keys()]);
       const ceiling = input.tokenScopeCeiling;
       const ceilingSet = ceiling === undefined ? undefined : new Set(ceiling);
@@ -949,6 +979,11 @@ export namespace Services {
       authMethod: AuthorizationUserAuthMethod = 'session',
       tokenScopeCeiling?: readonly string[]
     ): Promise<AuthorizationContext> {
+      if (!inAuthorizationContextMeasurement()) {
+        return measureAuthorizationContext(authorizationLabels(), () =>
+          this.resolveUserContext(userId, brandIdentifier, authMethod, tokenScopeCeiling)
+        );
+      }
       const [brand, canonical] = await Promise.all([this.resolveBrand(brandIdentifier), this.canonicalUser(userId)]);
       const principal =
         authMethod === 'bearer'
@@ -985,8 +1020,14 @@ export namespace Services {
 
     public resolveRequestContext(req: Sails.Req): Promise<AuthorizationContext> {
       const existing = this.requestContexts.get(req);
+      observeAuthorization(() =>
+        authorizationTelemetry.emit('context_cache', 1, {
+          ...authorizationLabels(req),
+          outcome: existing === undefined ? 'miss' : 'hit',
+        })
+      );
       if (existing !== undefined) return existing;
-      const pending = (async () => {
+      const pending = measureAuthorizationContext(authorizationLabels(req), async () => {
         const brandIdentifier = requestedBrandIdentifier(req);
         const userId = requestUserIdentifier(req);
         const authMethod = requestUserAuthMethod(req, userId);
@@ -998,7 +1039,7 @@ export namespace Services {
         this.projectRequestUser(req, context);
         req.authorization = context;
         return context;
-      })();
+      });
       this.requestContexts.set(req, pending);
       pending.catch(() => this.requestContexts.delete(req));
       return pending;
@@ -1028,9 +1069,10 @@ export namespace Services {
         };
       } = {}
     ): AuthorizationDecision {
-      return decideAuthorization({
+      const registry = this.dependencies.getRegistry();
+      const decision = decideAuthorization({
         requiredScope,
-        registry: this.dependencies.getRegistry(),
+        registry,
         principal: {
           category: context.principal.category,
           authMethod: context.principal.authMethod,
@@ -1050,6 +1092,19 @@ export namespace Services {
         ...(options.resource === undefined ? {} : { resource: options.resource }),
         includeEvidence: options.includeEvidence,
       });
+      observeAuthorization(() =>
+        authorizationTelemetry.emit(
+          'orphan_observations',
+          decision.reasonCode === 'scope-orphaned' || !registry.has(requiredScope) ? 1 : 0,
+          {
+            ...authorizationLabels(),
+            category: context.principal.category,
+            source: 'decision',
+            reason: !registry.has(requiredScope) ? 'scope-missing' : 'scope-orphaned',
+          }
+        )
+      );
+      return decision;
     }
 
     public authorizeAction(context: AuthorizationContext, requiredScope: ScopeKey): AuthorizationDecision {

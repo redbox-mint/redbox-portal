@@ -3,6 +3,20 @@
 ## Unreleased
 
 - **Breaking:** Dashboard profiles, record-type defaults and overrides were replaced by independent settings for every workflow stage and custom-view step, with a new editor (save, copy from, bulk copy to with preview, revision-checked writes) and API. Retired `/api/dashboard-config` operations return `410`. A one-time migration converts v5.0.1 configuration and stops on material differences; see [Configuring Dashboard Tables](support/wiki/Configuring-Dashboard-Tables.md#upgrading-from-v501).
+
+- Added configurable authorization with business-capability scopes, brand-scoped
+  roles and assignments, transactional administration, and legacy/shadow/enforce
+  rollout modes. Existing session authentication and opaque legacy bearer
+  credentials remain supported; this permission model does not introduce OAuth
+  or change tokens into JWTs. See the
+  [authorization migration and rollout guide](support/wiki/Authorization-Migration-and-Rollout.md)
+  and [legacy bearer migration guide](support/wiki/Legacy-Bearer-Token-Migration.md).
+  Production enforcement remains gated on serving-fleet readiness, representative
+  shadow evidence, approved security differences, measured performance budgets,
+  rollback rehearsal, and product/security/operations/hook-owner/integrator
+  approvals. Repository tests do not close these external gates or the separate
+  production stabilization and compatibility-retirement gates.
+
 - Added concurrent-record modification protection across browser, API v1/v2,
   datastream, internal-writer, and delete/restore/purge paths. Record types can
   use compatible `last-write-wins`, migration `observe`, or enforcing `strict`

@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert';
-import { describe, it } from 'mocha';
+import { afterEach, beforeEach, describe, it } from 'mocha';
 
 import {
   Services as MigrationServices,
@@ -13,6 +13,14 @@ import {
 } from '../../src/authorization/protected-role-validators';
 import { DEFAULT_ROLE_TEMPLATES } from '../../src/authorization/default-role-templates';
 import { Services as ScopeServices } from '../../src/services/AuthorizationScopeService';
+import { Services as RoleServices } from '../../src/services/RoleAdministrationService';
+import { asRoleKey, createScopeRegistry } from '../../src/authorization';
+import { createAuthorizationAuditEvent } from '../../src/services/AuthorizationAuditService';
+import { genuineBrandActor } from './genuineActor';
+
+function connectedResult<T>(value: T) {
+  return Object.assign(Promise.resolve(value), { usingConnection: () => Promise.resolve(value) });
+}
 
 /** Predicate-honoring find chain: applies id range + sort + limit like a real adapter. */
 function honoringCollection(rows: Array<Record<string, unknown>>) {
@@ -44,7 +52,7 @@ function honoringCollection(rows: Array<Record<string, unknown>>) {
       const chain: Record<string, unknown> = {};
       chain.sort = () => chain;
       chain.populate = () => chain;
-      chain.limit = (n: number) => Promise.resolve(out.slice(0, n));
+      chain.limit = (n: number) => connectedResult(out.slice(0, n));
       return chain;
     },
   };
@@ -353,79 +361,60 @@ describe('P3-005 protected template pin validation', () => {
   });
 });
 
-describe('P3-009 supported-source matrix: non-migration assignments need no legacy projection', () => {
-  it('manual/onboarding/recovery/external effective rows do not false-positive', async () => {
-    const previousModels = sails.models;
+describe('P3-009 supported-source membership and migration provenance', () => {
+  const sources = ['manual', 'onboarding', 'recovery', 'external', 'migration'] as const;
+  const names = [
+    'BrandingConfig',
+    'Role',
+    'RoleAssignment',
+    'User',
+    'PathRule',
+    'RoleTemplate',
+    'RoleTemplateRevision',
+    'RoleScopeOverride',
+    'Record',
+    'DeletedRecord',
+    'AppConfig',
+    'Form',
+    'RecordType',
+    'WorkflowStep',
+  ] as const;
+  const brandRole = {
+    id: 'role-1',
+    name: 'Researcher',
+    key: 'Researcher',
+    identityKey: 'brand:brand-1:Researcher',
+    status: 'active',
+    version: 1,
+    contextType: 'brand',
+    branding: 'brand-1',
+    protectedKind: 'none',
+  };
+  const grant = (source: string) => ({
+    id: `a-${source}`,
+    principalId: 'user-1',
+    principalType: 'user',
+    role: brandRole,
+    branding: 'brand-1',
+    source,
+    sourceKey: source === 'migration' ? 'legacy-role:user-1:role-1' : `${source}:1`,
+    status: 'active',
+    sourcePresent: true,
+    expiresAt: null as string | null,
+  });
+  let assignments: ReturnType<typeof grant>[];
+  let user: { id: string; roles: (typeof brandRole)[] };
+  let saved: Map<string, PropertyDescriptor | undefined>;
+  let previousModels: typeof sails.models;
+
+  beforeEach(() => {
+    previousModels = sails.models;
     sails.models = {} as typeof sails.models;
-    const names = [
-      'BrandingConfig',
-      'Role',
-      'RoleAssignment',
-      'User',
-      'PathRule',
-      'RoleTemplate',
-      'RoleTemplateRevision',
-      'RoleScopeOverride',
-    ] as const;
-    const saved = new Map(names.map(n => [n, Object.getOwnPropertyDescriptor(globalThis, n)]));
-    const brandRole = {
-      id: 'role-1',
-      name: 'Researcher',
-      key: 'Researcher',
-      contextType: 'brand',
-      branding: 'brand-1',
-      protectedKind: 'none',
-    };
-    const assignments = [
-      {
-        id: 'a-manual',
-        principalId: 'user-1',
-        principalType: 'user',
-        role: brandRole,
-        branding: 'brand-1',
-        source: 'manual',
-        sourceKey: 'manual:1',
-        status: 'active',
-        sourcePresent: true,
-        expiresAt: null,
-      },
-      {
-        id: 'a-onboarding',
-        principalId: 'user-1',
-        principalType: 'user',
-        role: brandRole,
-        branding: 'brand-1',
-        source: 'onboarding',
-        sourceKey: 'onboarding:1',
-        status: 'active',
-        sourcePresent: true,
-        expiresAt: null,
-      },
-      {
-        id: 'a-recovery',
-        principalId: 'user-1',
-        principalType: 'user',
-        role: brandRole,
-        branding: 'brand-1',
-        source: 'recovery',
-        sourceKey: 'recovery:1',
-        status: 'active',
-        sourcePresent: true,
-        expiresAt: null,
-      },
-      {
-        id: 'a-external',
-        principalId: 'user-1',
-        principalType: 'user',
-        role: brandRole,
-        branding: 'brand-1',
-        source: 'external',
-        sourceKey: 'ext:1',
-        status: 'active',
-        sourcePresent: true,
-        expiresAt: null,
-      },
-    ];
+    saved = new Map(names.map(n => [n, Object.getOwnPropertyDescriptor(globalThis, n)]));
+    brandRole.status = 'active';
+    brandRole.version = 1;
+    assignments = [];
+    user = { id: 'user-1', roles: [] };
     Reflect.set(globalThis, 'BrandingConfig', honoringCollection([]));
     Reflect.set(globalThis, 'Role', {
       ...honoringCollection([brandRole]),
@@ -433,43 +422,247 @@ describe('P3-009 supported-source matrix: non-migration assignments need no lega
       findOne: async () => undefined,
     });
     Reflect.set(globalThis, 'RoleAssignment', {
-      find: (criteria: Record<string, unknown> = {}) => {
-        let out = [...assignments];
-        const idCrit = (criteria as Record<string, Record<string, string>>).id;
-        if (idCrit?.['>'] !== undefined) out = out.filter(a => a.id > String(idCrit['>']));
-        else if (idCrit?.['>='] !== undefined) out = out.filter(a => a.id >= String(idCrit['>=']));
-        const chain: Record<string, unknown> = {};
-        chain.populate = () => chain;
-        chain.sort = () => chain;
-        chain.limit = (n: number) => Promise.resolve(out.slice(0, n));
-        return chain;
+      find: (criteria: Record<string, unknown> = {}) => honoringCollection(assignments).find(criteria),
+      count: async (criteria: Record<string, unknown>) => {
+        if (criteria.principalId !== user.id || criteria.role !== brandRole.id) return 0;
+        return assignments.filter(
+          row =>
+            row.status === 'active' &&
+            row.sourcePresent &&
+            (row.expiresAt === null || new Date(row.expiresAt).getTime() > Date.now())
+        ).length;
       },
-      count: async () => 0,
-      findOne: async () => undefined,
     });
-    Reflect.set(globalThis, 'User', honoringCollection([]));
+    Reflect.set(globalThis, 'User', {
+      find: (criteria: Record<string, unknown> = {}) => honoringCollection([user]).find(criteria),
+      findOne: (criteria: Record<string, unknown>) => ({
+        populate: (_association: string, options: { limit: number; sort: string }) => {
+          assert.equal(options.limit, 501);
+          assert.equal(options.sort, 'id ASC');
+          return Promise.resolve(criteria.id === user.id ? user : undefined);
+        },
+      }),
+      getDatastore: () => ({
+        manager: {
+          collection: () => ({
+            find: () => ({
+              limit: (limit: number) => {
+                assert.equal(limit, 501);
+                return Promise.resolve([]);
+              },
+            }),
+          }),
+        },
+      }),
+    });
     Reflect.set(globalThis, 'PathRule', honoringCollection([]));
     Reflect.set(globalThis, 'RoleScopeOverride', { findOne: async () => undefined });
     installHealthyTemplateGlobals();
-    try {
-      const report = await new MigrationServices.AuthorizationMigrationService().reportDrift(100);
-      const projectionFalsePositives = report.issues.filter(
-        i => i.code === 'new-assignment-legacy-projection-missing' && String(i.entityId ?? '').startsWith('a-')
-      );
-      assert.deepEqual(
-        projectionFalsePositives,
-        [],
-        `non-migration sources must not false-positive: ${JSON.stringify(report.issues)}`
-      );
-    } finally {
-      sails.models = previousModels;
-      for (const n of names) {
-        const d = saved.get(n);
-        if (d === undefined) Reflect.deleteProperty(globalThis, n);
-        else Object.defineProperty(globalThis, n, d);
-      }
+  });
+  afterEach(() => {
+    sails.models = previousModels;
+    for (const n of names) {
+      const descriptor = saved.get(n);
+      if (descriptor === undefined) Reflect.deleteProperty(globalThis, n);
+      else Object.defineProperty(globalThis, n, descriptor);
     }
   });
+
+  async function assignmentFindings() {
+    const report = await new MigrationServices.AuthorizationMigrationService().reportDrift(100);
+    assert.equal(report.truncated, false);
+    return report.issues.filter(issue => issue.entityType === 'assignment');
+  }
+
+  async function inactivateRole() {
+    const connection = {
+      collection: () => ({ find: () => ({ limit: () => ({ toArray: async () => [] }) }) }),
+    } as unknown as Sails.Connection;
+    for (const name of ['Record', 'DeletedRecord']) {
+      Reflect.set(globalThis, name, { tableName: name, getDatastore: () => ({ manager: connection }) });
+    }
+    for (const name of ['AppConfig', 'Form', 'RecordType', 'WorkflowStep']) {
+      Reflect.set(globalThis, name, honoringCollection([]));
+    }
+    Reflect.set(globalThis, 'RoleScopeOverride', {
+      find: () => ({ sort: () => connectedResult([]) }),
+      findOne: async () => undefined,
+    });
+    Reflect.set(globalThis, 'Role', {
+      ...honoringCollection([brandRole]),
+      count: async () => 1,
+      findOne: ({ id }: { id: string }) => ({
+        populate: () =>
+          connectedResult(id === brandRole.id ? { ...brandRole, users: user.roles.length ? [user] : [] } : undefined),
+      }),
+      updateOne: (criteria: { id: string; version: number }) => ({
+        set: (patch: { status: string; version: number }) => ({
+          usingConnection: async (actual: Sails.Connection) => {
+            assert.equal(actual, connection);
+            assert.deepEqual(criteria, { id: brandRole.id, version: brandRole.version });
+            Object.assign(brandRole, patch);
+            return { ...brandRole };
+          },
+        }),
+      }),
+      replaceCollection: (id: string, association: string) => ({
+        members: (members: string[]) => ({
+          usingConnection: async (actual: Sails.Connection) => {
+            assert.equal(actual, connection);
+            assert.equal(id, brandRole.id);
+            assert.equal(association, 'users');
+            assert.deepEqual(members, []);
+            user.roles = [];
+          },
+        }),
+      }),
+    });
+    const assignmentModel = Reflect.get(globalThis, 'RoleAssignment') as object;
+    Reflect.set(globalThis, 'RoleAssignment', {
+      ...assignmentModel,
+      count: ({ role }: { role: string }) => connectedResult(role === brandRole.id ? assignments.length : 0),
+    });
+    const service = new RoleServices.RoleAdministrationService({
+      runTransaction: work => work(connection),
+      getRegistry: () => createScopeRegistry([]),
+      getConfirmationSecret: () => 'role-inactivation-regression-confirmation-secret',
+      audit: () => ({
+        createSucceededEvent: async (input, actual) => {
+          assert.equal(actual, connection);
+          return { id: 'audit-role-inactivation', ...createAuthorizationAuditEvent(input, 'succeeded') };
+        },
+        recordAttempt: async () => ({ persisted: true }),
+      }),
+    });
+    const command = {
+      actor: await genuineBrandActor(['authorization.role.manage']),
+      brandId: 'brand-1',
+      roleKey: asRoleKey(brandRole.key),
+      expectedVersion: brandRole.version,
+      requestId: 'role-inactivation-drift-regression',
+      reason: 'Retire this role while retaining assignment history',
+    };
+    const preview = await service.previewRoleInactivation(command);
+    assert.deepEqual(preview.fatalErrors, []);
+    assert.equal(preview.affectedAssignments, assignments.length);
+    assert.ok(preview.confirmationToken);
+    const result = await service.inactivateRole({ ...command, confirmationToken: preview.confirmationToken });
+    assert.equal(result.changed, true);
+    assert.equal(result.data.status, 'inactive');
+    assert.equal(result.version, 2);
+  }
+
+  for (const source of sources) {
+    it(`accepts retained ${source} assignments after supported role inactivation`, async () => {
+      assignments = [grant(source)];
+      user.roles = [brandRole];
+      assert.deepEqual(await assignmentFindings(), []);
+      const retained = assignments.map(row => ({ ...row, role: row.role.id }));
+      await inactivateRole();
+      assert.deepEqual(user.roles, []);
+      assert.deepEqual(
+        assignments.map(row => ({ ...row, role: row.role.id })),
+        retained
+      );
+      assert.deepEqual(await assignmentFindings(), []);
+    });
+    for (const status of ['inactive', 'disabled']) {
+      it(`does not require either projection for ${source} assignments with a ${status} role`, async () => {
+        brandRole.status = status;
+        assignments = [grant(source)];
+        assert.deepEqual(await assignmentFindings(), []);
+        user.roles = [brandRole];
+        assignments[0].status = 'revoked';
+        assert.deepEqual(await assignmentFindings(), []);
+      });
+    }
+    it(`accepts ${source} with legacy membership and source-appropriate provenance`, async () => {
+      assignments = [grant(source)];
+      user.roles = [brandRole];
+      assert.deepEqual(await assignmentFindings(), []);
+    });
+    it(`reports missing legacy membership for effective ${source} grants`, async () => {
+      assignments = [grant(source)];
+      assert.deepEqual(await assignmentFindings(), [
+        {
+          code: 'new-assignment-legacy-projection-missing',
+          severity: 'blocker',
+          entityType: 'assignment',
+          entityId: `a-${source}`,
+        },
+      ]);
+    });
+    for (const patch of [
+      { status: 'revoked' },
+      { status: 'suppressed' },
+      { sourcePresent: false },
+      { expiresAt: '2000-01-01T00:00:00.000Z' },
+    ]) {
+      it(`does not require legacy membership for ineffective ${source}: ${JSON.stringify(patch)}`, async () => {
+        assignments = [{ ...grant(source), ...patch }];
+        assert.deepEqual(await assignmentFindings(), []);
+      });
+    }
+  }
+
+  it('checks each supported source and both projection directions through final revocation', async () => {
+    assignments = sources.map(grant);
+    assert.deepEqual(
+      (await assignmentFindings()).map(issue => issue.entityId).sort(),
+      assignments.map(row => row.id).sort()
+    );
+    user.roles = [brandRole];
+    assert.deepEqual(await assignmentFindings(), []);
+    for (const assignment of assignments) {
+      assignment.status = 'revoked';
+      const report = await new MigrationServices.AuthorizationMigrationService().reportDrift(100);
+      assert.deepEqual(
+        report.issues.filter(
+          issue => issue.entityType === 'assignment' && issue.code !== 'legacy-assignment-projection-missing'
+        ),
+        []
+      );
+      assert.equal(
+        report.issues.some(issue => issue.code === 'legacy-assignment-projection-missing'),
+        assignments.every(row => row.status === 'revoked')
+      );
+    }
+    user.roles = [];
+    const cleaned = await new MigrationServices.AuthorizationMigrationService().reportDrift(100);
+    assert.equal(
+      cleaned.issues.some(issue => issue.code.includes('projection')),
+      false
+    );
+  });
+
+  for (const status of ['active', 'inactive', 'disabled']) {
+    for (const sourceKey of ['manual:1', 'legacy-role:user-1:another-role', 'legacy-role:unlinked-user:role-1']) {
+      it(`keeps migration provenance validation for active assignments with a ${status} role: ${sourceKey}`, async () => {
+        brandRole.status = status;
+        if (status === 'active') user.roles = [brandRole];
+        assignments = [{ ...grant('migration'), sourceKey }];
+        assert.deepEqual(
+          (await assignmentFindings()).map(issue => issue.code),
+          ['new-assignment-legacy-projection-missing']
+        );
+      });
+    }
+  }
+
+  for (const source of sources.filter(source => source !== 'migration')) {
+    it(`fails closed when the ${source} legacy membership read throws`, async () => {
+      assignments = [grant(source)];
+      Reflect.set(globalThis, 'User', {
+        find: () => honoringCollection([]).find(),
+        findOne: () => ({ populate: () => Promise.reject(new Error('projection unavailable')) }),
+      });
+      assert.ok(
+        (await assignmentFindings()).some(
+          issue => issue.code === 'assignment-legacy-projection-scan-incomplete' && issue.entityId === `a-${source}`
+        )
+      );
+    });
+  }
 });
 
 describe('P3-011 orphan cursor validation fails closed on predicate-ignoring adapters', () => {

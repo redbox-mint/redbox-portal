@@ -81,7 +81,7 @@ Common migrations:
 
 ## Utilizing Named Queries via REST API
 
-To utilize these named queries through the [REST API](https://redbox-mint.github.io/redbox-portal/additional-documentation/rest-api.html#report-report-get), send a request to the appropriate endpoint with the required parameters. For example, to call the `listRDMPRecords` query:
+To utilize these named queries through the [REST API](https://redbox-mint.github.io/redbox-portal/api/#tag/Reports), send a request to the appropriate endpoint with the required parameters. For example, to call the `listRDMPRecords` query:
 
 ```
 GET /default/rdmp/api/report/namedQuery/listRDMPRecords?title=someTitle&dateCreatedBefore=2022-05-01

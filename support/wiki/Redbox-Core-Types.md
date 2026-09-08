@@ -292,5 +292,5 @@ Hooks extending ReDBox can depend on this package:
 
 See also:
 - [Redbox Loader](Redbox-Loader) - Pre-lift shim generation
-- [Redbox Dev Tools](redbox-dev-tools) - Hook development toolkit
+- [Redbox Dev Tools](Redbox-Hook-Kit.md) - Hook development toolkit
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox)

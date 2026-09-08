@@ -1,3 +1,4 @@
+import { authorizationTelemetry, authorizationLabels, observeAuthorization } from '../authorization/observability';
 import { createHash, randomUUID } from 'node:crypto';
 import { Services as services } from '../CoreService';
 import {
@@ -109,6 +110,14 @@ const MANUAL_SOURCE_KEY = 'manual';
 const MAX_LINK_DEPTH = 16;
 /** AUTH-TXN-001 bounded idempotent retry budget for a durable link operation. */
 const LINK_OPERATION_MAX_ATTEMPTS = 5;
+/**
+ * Named bounded recovery-process identity for restart-safe link replay. The
+ * replay worker acts as its own system-process principal (authMethod
+ * internal); it never reuses the stored preview actor (`proofActorId`), which
+ * remains durable proof evidence only. The stored proof actor is still bound
+ * by the completed-proof gate on interactive resume paths.
+ */
+export const LINK_RECOVERY_PROCESS_ACTOR_ID = 'system-recovery:link-replay';
 
 export interface LinkOperationState {
   readonly operationId: string;
@@ -2292,7 +2301,8 @@ export namespace Services {
       let current = (await User.findOne({ id: identifier }).usingConnection(connection)) as UserAttributes | undefined;
       if (current === undefined) {
         current = (await User.findOne({ username: identifier }).usingConnection(connection)) as
-          UserAttributes | undefined;
+          | UserAttributes
+          | undefined;
       }
       const visited = new Set<string>();
       for (let depth = 0; current !== undefined && depth < MAX_LINK_DEPTH; depth += 1) {
@@ -2311,7 +2321,8 @@ export namespace Services {
           return current;
         }
         current = (await User.findOne({ id: current.linkedPrimaryUserId }).usingConnection(connection)) as
-          UserAttributes | undefined;
+          | UserAttributes
+          | undefined;
       }
       throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
     }
@@ -2515,6 +2526,13 @@ export namespace Services {
         .limit(AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS + 1)
         .usingConnection(connection)) as RoleAssignmentAttributes[];
       if (rows.length > AUTHORIZATION_ADMIN_MAX_IMPACT_ASSIGNMENTS) {
+        observeAuthorization(() =>
+          authorizationTelemetry.emit('quorum_rejections', 1, {
+            ...authorizationLabels(),
+            source: role.protectedKind,
+            reason: 'authorization.query-bound-exceeded',
+          })
+        );
         throw new AuthorizationAdministrationError(
           'authorization.query-bound-exceeded',
           409,
@@ -2529,6 +2547,16 @@ export namespace Services {
         : [];
       const activePrincipals = new Set(users.filter(isCanonicalActiveUser).map(user => user.id));
       if (activePrincipals.size === 0) {
+        observeAuthorization(() =>
+          authorizationTelemetry.emit('quorum_rejections', 1, {
+            ...authorizationLabels(),
+            source: role.protectedKind,
+            reason:
+              role.protectedKind === 'system-admin'
+                ? 'authorization.last-system-admin'
+                : 'authorization.last-brand-admin',
+          })
+        );
         throw new AuthorizationAdministrationError(
           role.protectedKind === 'system-admin' ? 'authorization.last-system-admin' : 'authorization.last-brand-admin',
           409,
@@ -2723,7 +2751,8 @@ export namespace Services {
       connection: Sails.Connection
     ): Promise<{ assignment: RoleAssignmentAttributes; role: RoleAttributes }> {
       const assignment = (await RoleAssignment.findOne({ id: command.assignmentId }).usingConnection(connection)) as
-        RoleAssignmentAttributes | undefined;
+        | RoleAssignmentAttributes
+        | undefined;
       if (assignment === undefined)
         throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The assignment was not found.');
       const roleId = associationId(assignment.role);
@@ -3249,7 +3278,8 @@ export namespace Services {
 
     private async legacyBrandRoleIds(userId: string, brandId: string, connection: Sails.Connection): Promise<string[]> {
       const populated = (await User.findOne({ id: userId }).populate('roles').usingConnection(connection)) as
-        UserAttributes | undefined;
+        | UserAttributes
+        | undefined;
       const roles = (populated?.roles ?? []) as { readonly id?: unknown; readonly branding?: unknown }[];
       const ids: string[] = [];
       for (const role of roles) {
@@ -3891,7 +3921,8 @@ export namespace Services {
             seenPrimaryIds.add(primary.id);
             if (!primary.linkedPrimaryUserId?.trim()) break;
             const next = (await User.findOne({ id: primary.linkedPrimaryUserId }).usingConnection(connection)) as
-              UserAttributes | undefined;
+              | UserAttributes
+              | undefined;
             if (next === undefined) {
               throw new AuthorizationAdministrationError(
                 'authorization.not-found',
@@ -4860,7 +4891,8 @@ export namespace Services {
         }
         const primary = await this.loadLinkPreviewPrimary(primaryId, connection);
         const secondary = (await User.findOne({ id: secondaryId }).usingConnection(connection)) as
-          UserAttributes | undefined;
+          | UserAttributes
+          | undefined;
         if (secondary === undefined) {
           throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
         }
@@ -5238,7 +5270,10 @@ export namespace Services {
      * transaction with the durable completion audit; failures stay `pending`
      * (fail closed, never swallowed). Compensation is monotonic progress:
      * previously completed OIDs union newly completed OIDs, so partial
-     * multi-record work converges instead of restarting.
+     * multi-record work converges instead of restarting. Recovery audit
+     * evidence is emitted under the named bounded recovery-process identity
+     * (`system-recovery:link-replay`, actorType system-process, authMethod
+     * internal), never the stored preview actor.
      *
      * Lift integration: invoke once at startup (and on a bounded schedule)
      * from the lifted server runtime so a restarted process resumes committed
@@ -5308,7 +5343,7 @@ export namespace Services {
         const recoveryAudit: AuthorizationAuditEventInput = {
           eventType: 'user.linked',
           actorType: 'system-process',
-          actorId: current.proofActorId,
+          actorId: LINK_RECOVERY_PROCESS_ACTOR_ID,
           authMethod: 'internal',
           brandId: current.brandId,
           targetType: 'user',
@@ -5452,7 +5487,7 @@ export namespace Services {
         {
           eventType: 'user.linked',
           actorType: 'system-process',
-          actorId: target.proofActorId ?? 'system-recovery',
+          actorId: LINK_RECOVERY_PROCESS_ACTOR_ID,
           authMethod: 'internal',
           brandId: target.brandId,
           targetType: 'user',
@@ -5619,7 +5654,8 @@ export namespace Services {
         seen.add(primary.id);
         if (!primary.linkedPrimaryUserId?.trim()) break;
         const next = (await User.findOne({ id: primary.linkedPrimaryUserId }).usingConnection(connection)) as
-          UserAttributes | undefined;
+          | UserAttributes
+          | undefined;
         if (next === undefined) {
           throw new AuthorizationAdministrationError('authorization.not-found', 404, 'The target user was not found.');
         }
@@ -5863,7 +5899,8 @@ export namespace Services {
       if (typeof UserLinkOperation === 'undefined') return linkOperationFallback.get(operationId);
       try {
         const row = (await UserLinkOperation.findOne({ operationId })) as unknown as
-          (LinkOperationState & { readonly id?: string }) | undefined;
+          | (LinkOperationState & { readonly id?: string })
+          | undefined;
         if (row === undefined || row === null) {
           // AUTH-P5-004: never use the memory mirror when the durable model
           // exists. A miss is authoritative absence (the mirror may hold a
@@ -5984,7 +6021,8 @@ export namespace Services {
           const existing = (await UserLinkOperation.findOne({ operationId: state.operationId }).usingConnection(
             connection
           )) as unknown as
-            { readonly id?: string; readonly attemptCount?: number; readonly status?: unknown } | undefined;
+            | { readonly id?: string; readonly attemptCount?: number; readonly status?: unknown }
+            | undefined;
           if (existing == null) {
             if (expectedAttemptCount !== undefined && expectedAttemptCount !== 0) {
               throw new AuthorizationAdministrationError(
@@ -6016,7 +6054,8 @@ export namespace Services {
           }
         } else {
           const existing = (await UserLinkOperation.findOne({ operationId: state.operationId })) as unknown as
-            { readonly id?: string; readonly attemptCount?: number; readonly status?: unknown } | undefined;
+            | { readonly id?: string; readonly attemptCount?: number; readonly status?: unknown }
+            | undefined;
           if (existing == null) {
             if (expectedAttemptCount !== undefined && expectedAttemptCount !== 0) {
               throw new AuthorizationAdministrationError(

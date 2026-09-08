@@ -20,7 +20,12 @@ export interface AuthorizationReleaseEvidence {
     maximumQueryCount: number;
     observedQueryCount: number;
   };
-  identity?: { buildVersion: string; instanceId: string };
+  identity?: {
+    /** Optional expected build version compared against the runtime-derived build identity. Never treated as proof by itself. */
+    buildVersion: string;
+    /** Optional expected instance identifier compared against the runtime-derived instance identity. Never treated as proof by itself. */
+    instanceId: string;
+  };
   shadowWindow?: AuthorizationApprovalEvidence & { startedAt: string; completedAt: string; minimumHours: number };
   rollback?: AuthorizationApprovalEvidence;
   approvals?: {

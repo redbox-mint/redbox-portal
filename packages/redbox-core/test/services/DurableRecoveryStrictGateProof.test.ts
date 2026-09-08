@@ -350,6 +350,53 @@ describe('AUTH-STRICT-GATE durable recovery and terminal fencing proof', () => {
     assert.equal(drained.length, 0);
   });
 
+  it('restart link replay emits the named bounded recovery-process identity, never the preview actor', async () => {
+    const shared = new Map<string, Record<string, unknown>>();
+    shared.set('link-recovery-1', pendingLinkRow({ proofActorId: 'operator-1' }));
+    installLinkStore(shared);
+    const audits = {
+      succeeded: [] as { readonly input: Record<string, unknown> }[],
+      attempts: [] as { readonly input: Record<string, unknown>; readonly outcome: 'denied' | 'failed' }[],
+    };
+    const { Services, LINK_RECOVERY_PROCESS_ACTOR_ID } =
+      require('../../src/services/RoleAdministrationService') as typeof import('../../src/services/RoleAdministrationService');
+    assert.equal(LINK_RECOVERY_PROCESS_ACTOR_ID, 'system-recovery:link-replay');
+    const afterRestart = new Services.RoleAdministrationService(linkServiceDependencies(audits) as never);
+
+    const settled = await afterRestart.replayIncompleteLinkOperations({
+      onRewrite: async () => ({ rewritten: 1, completedOids: ['rec-b'] }),
+    });
+    assert.equal(settled.length, 1);
+    assert.equal(settled[0].status, 'completed');
+    const completion = audits.succeeded.find(entry => entry.input.eventType === 'user.link-operation-completed');
+    assert.ok(completion !== undefined, 'replay must emit a terminal completion audit');
+    assert.equal(completion.input.actorType, 'system-process');
+    assert.equal(completion.input.authMethod, 'internal');
+    assert.equal(completion.input.actorId, 'system-recovery:link-replay');
+    assert.notEqual(completion.input.actorId, 'operator-1');
+
+    // Failed-path recovery audits use the same named identity.
+    const failedShared = new Map<string, Record<string, unknown>>();
+    const incomplete = pendingLinkRow({ operationId: 'link-incomplete-1', proofHash: undefined });
+    delete incomplete.assignmentSnapshot;
+    failedShared.set('link-incomplete-1', incomplete);
+    installLinkStore(failedShared);
+    const failedAudits = {
+      succeeded: [] as { readonly input: Record<string, unknown> }[],
+      attempts: [] as { readonly input: Record<string, unknown>; readonly outcome: 'denied' | 'failed' }[],
+    };
+    const retryService = new Services.RoleAdministrationService(linkServiceDependencies(failedAudits) as never);
+    const failed = await retryService.replayIncompleteLinkOperations({
+      onRewrite: async () => ({ rewritten: 0, completedOids: [] }),
+    });
+    assert.equal(failed.length, 1);
+    assert.equal(failed[0].status, 'failed');
+    assert.equal(failedAudits.attempts.length, 1);
+    assert.equal(failedAudits.attempts[0].input.actorType, 'system-process');
+    assert.equal(failedAudits.attempts[0].input.authMethod, 'internal');
+    assert.equal(failedAudits.attempts[0].input.actorId, 'system-recovery:link-replay');
+  });
+
   it('restart link replay fails incomplete and budget-exhausted rows closed without rebuilding plans', async () => {
     const shared = new Map<string, Record<string, unknown>>();
     const incomplete = pendingLinkRow({ operationId: 'link-incomplete-1', proofHash: undefined });

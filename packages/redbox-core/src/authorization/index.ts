@@ -17,6 +17,7 @@ export {
 } from './context';
 export * from './decision';
 export * from './shadow-fingerprint';
+export * from './shadow-classification';
 export * from './administration';
 export * from './configuration-schema';
 export * from './route-authorization';
@@ -26,3 +27,6 @@ export * from './legacy-authorization-baseline.snapshot';
 export * from './protected-role-validators';
 export * from './role-inventory';
 export * from './resource-inventory';
+
+export * from './rollback-exposure';
+export * from './shadow-remediation';

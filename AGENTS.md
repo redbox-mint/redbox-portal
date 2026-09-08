@@ -15,7 +15,7 @@ All project documentation is maintained in the `support/wiki/` submodule. Agents
 - **Services Architecture**: [support/wiki/Services-Architecture.md](support/wiki/Services-Architecture.md)
   - Consult for: Business logic services, service patterns, and how to extend/override services in hooks.
 
-- **Redbox Core Types**: [support/wiki/redbox-core.md](support/wiki/redbox-core.md)
+- **Redbox Core Types**: [support/wiki/Redbox-Core-Types.md](support/wiki/Redbox-Core-Types.md)
   - Consult for: Core package documentation, services list, models, policies, and config defaults.
 
 - **Redbox Loader**: [support/wiki/Redbox-Loader.md](support/wiki/Redbox-Loader.md)

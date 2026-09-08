@@ -156,18 +156,18 @@ They are migration constraints, not desired behavior.
 
 ## Terminology
 
-| Term | Meaning |
-| --- | --- |
-| Principal | A human user, the anonymous Guest principal, or a future service client. System administrator is a protected assignment, not a separate identity type. |
-| Scope | A stable business capability such as `record.read` or `authorization.assignment.manage`. |
-| Scope definition | Code- or hook-declared metadata for a scope: immutable key, label, description, namespace, and risk classification. |
-| Role template | A global, versioned default bundle of scopes. |
-| Brand role | A brand-scoped role instance derived from a template and optionally overridden for that brand. |
-| Role assignment | A relationship granting a principal a brand role, with provenance and optional expiry. |
-| Guest | The synthetic, brand-aware public baseline inherited by anonymous and authenticated principals. |
-| System administrator | A protected global assignment with explicit cross-brand and system capabilities. |
-| Authorization context | Trusted request or job context containing principal, active brand, effective scopes, authentication method, and request/correlation identity. |
-| Legacy bearer token | The current opaque UUID API credential associated with a user. It is not an OAuth token. |
+| Term                  | Meaning                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Principal             | A human user, the anonymous Guest principal, or a future service client. System administrator is a protected assignment, not a separate identity type. |
+| Scope                 | A stable business capability such as `record.read` or `authorization.assignment.manage`.                                                               |
+| Scope definition      | Code- or hook-declared metadata for a scope: immutable key, label, description, namespace, and risk classification.                                    |
+| Role template         | A global, versioned default bundle of scopes.                                                                                                          |
+| Brand role            | A brand-scoped role instance derived from a template and optionally overridden for that brand.                                                         |
+| Role assignment       | A relationship granting a principal a brand role, with provenance and optional expiry.                                                                 |
+| Guest                 | The synthetic, brand-aware public baseline inherited by anonymous and authenticated principals.                                                        |
+| System administrator  | A protected global assignment with explicit cross-brand and system capabilities.                                                                       |
+| Authorization context | Trusted request or job context containing principal, active brand, effective scopes, authentication method, and request/correlation identity.          |
+| Legacy bearer token   | The current opaque UUID API credential associated with a user. It is not an OAuth token.                                                               |
 
 ## Authorization decision model
 
@@ -470,19 +470,34 @@ unavailable.
 Authorization uses a typed append-only audit model rather than overloading the
 current loosely structured user-audit rows.
 
-Audit coverage includes:
+Typed `AuthorizationAudit` coverage includes:
 
 - role creation, template update, override, deactivation, and deletion;
 - scope grants and removals;
 - user-role assignments, expiry, removal, import, and batch operations;
 - Guest and system-administrator changes;
-- scope registration, deprecation, orphaning, and migration;
-- enforcement-mode and emergency rollback changes;
-- legacy token generation/replacement/revocation, plus expiry when a later
-  hardening phase supports it; and
+- scope registration, deprecation, orphaning, and migration; and
 - rejected attempts to perform protected administration.
 
-Events contain actor, target, brand, structured before/after values, reason,
+Legacy bearer-token generation, replacement, and explicit revocation through
+`UsersService.setUserKey` and `setUserKeyForBrand` write `UserAudit` records with
+action `set-user-key`. The token write is version-guarded. If user-audit
+persistence fails, the service attempts to restore the prior token hash on a
+best-effort basis and returns `503 authorization.audit-unavailable` with the
+compensation outcome. This compensation boundary is separate from transactional
+`AuthorizationAudit` events: the token mutation and its `UserAudit` record are
+not committed atomically. Legacy-token expiry remains deferred to a later
+hardening phase.
+
+Enforcement-mode changes, including emergency rollback, use deployment-system
+audit records as evidence. The runtime `AuthorizationAudit` vocabulary has no
+mode-change event. Keep deployment audit records separate from transactional
+`AuthorizationAudit` events for supported mutations performed during a rollout
+or rollback, such as temporary assignment grants and revokes. The
+[rollback runbook](Authorization-Migration-and-Rollout.md#phase-144-rollback-runbook)
+requires both deployment evidence and applicable mutation/cleanup evidence.
+
+`AuthorizationAudit` events contain actor, target, brand, structured before/after values, reason,
 request/correlation ID, authentication method, timestamp, and batch identity.
 They never contain passwords, bearer values, refresh tokens, or credential
 material. Brand security administrators can read their brand's events; system
@@ -503,11 +518,11 @@ monitor growth and use an explicit archival process.
 
 Authorization has one validated deployment-wide mode:
 
-| Mode | Authority | Behavior |
-| --- | --- | --- |
-| `legacy` | Existing path/role logic | New models and diagnostics may be populated, but legacy remains authoritative. |
-| `shadow` | Existing path/role logic | Legacy and scope decisions are both evaluated; bounded discrepancies are recorded. |
-| `enforce` | New scope model | Missing declarations and denied scope decisions fail closed. |
+| Mode      | Authority                | Behavior                                                                           |
+| --------- | ------------------------ | ---------------------------------------------------------------------------------- |
+| `legacy`  | Existing path/role logic | New models and diagnostics may be populated, but legacy remains authoritative.     |
+| `shadow`  | Existing path/role logic | Legacy and scope decisions are both evaluated; bounded discrepancies are recorded. |
+| `enforce` | New scope model          | Missing declarations and denied scope decisions fail closed.                       |
 
 Mode is deployment configuration, not an administrator-controlled UI toggle.
 Every application instance must run the same mode. The UI displays current mode
@@ -540,9 +555,17 @@ request ID; they do not contain actor IDs, raw URLs, resource IDs, or credential
    an authorization-independent scan. Otherwise, verify the existing keys and
    Mongo/Solr projections without rewriting them.
 9. Meet every readiness gate and switch the complete deployment to `enforce`.
-10. Keep legacy data and readers read-only for the first enforced release.
+10. Retain legacy data and compatibility readers for the first enforced release.
+    Throughout the compatibility period, supported role/assignment mutations
+    continue transactional legacy projection alongside the new assignment state,
+    including while running in `enforce` or returning to `legacy`.
 11. Remove legacy mode and compatibility readers only in a later release after
-    production validation.
+    production validation and the documented evidence-based retirement gates.
+
+Follow the [rollback boundary](Authorization-Migration-and-Rollout.md#phase-144-rollback-runbook)
+and [compatibility retirement rules](Authorization-Migration-and-Rollout.md#compatibility-retirement).
+The additive migration is not reversed by a mode rollback; direct database
+writes are not a supported repair path.
 
 Migrations are idempotent and restart-safe. Because the current runner has no
 cross-instance lock, upgrades run with one lifting instance before scaling out.
@@ -682,19 +705,19 @@ over speculative optimization.
 This register maps the design interview to the resulting decisions without
 reproducing the full question transcript.
 
-| Questions | Recorded decisions |
-| --- | --- |
-| Q1–Q7 | UI-configurable authorization, global templates with contextual assignments, human and service principals, protected security administration, canonical server scopes, staged compatibility, and OAuth as a separate phase. |
-| Q8–Q16 | Business-capability scopes, code/hook-owned registry, stable role keys, additive allow-only composition, preserved record ACLs, fail-closed protected actions, brand-specific assignments, Guest retained, and central effective-scope projection. |
-| Q17–Q27 | Flat scopes, simple action requirements, safe role lifecycle, Guest as public baseline with safeguards, explicit infrastructure allowlist, correct `401`/`403`, service-level brand enforcement, non-disclosing cross-brand failures, and safe hook scope lifecycle. |
-| Q28–Q35 | Protected global system administration, administrator quorum, explicit system and cross-brand scopes, target-brand operations, full brand-isolation remediation, ownership classification, and explicit contexts for jobs and hooks. |
-| Q36–Q45 | Immediate atomic versioned changes, next-request disablement and WebSocket revalidation, transactional authorization audit, no two-person approval in phase one, structured administration UI, impact explanations, API/UI parity, and lockout prevention. |
-| Q46–Q55 | Global templates with brand overrides, no mutable process cache, typed audit storage, configurable retention, idempotent scope reconciliation, compatibility role keys, mandatory declarations, legacy/shadow/enforce rollout, security-defect correction, and reviewed rather than mechanical mapping. |
-| Q56–Q66 | Reviewed template upgrades, deployment-wide rollout, operator-controlled mode, strict readiness gates, bounded shadow telemetry, limited emergency rollback, delayed legacy-data removal, conditional ACL/Solr migration with complete verification, broad test coverage, measured performance, and explicit system recovery. |
-| Q67–Q75 | Domain-action granularity, no UI-only scopes, navigation derivation, safe error contracts, legacy-bearer compatibility, generated OpenAPI, versioned configuration export/import, principal-neutral foundations, and immutable scope keys. |
-| Q76–Q87 | No role nesting, configurable Researcher-style onboarding, no retroactive default changes, local authority over external claims, assignment provenance and expiry, delegation ceilings, safe global identity linking, auditable bulk operations, single-version shadow/enforce rollout, and replacement-dependent token sunset. |
-| Q88–Q99 | Service integrations are the first OAuth use case, browser sessions remain, OAuth does not replace login, client registration is controlled, service clients default to one brand, Client Credentials is the initial grant, no refresh token for that grant, deliberate integrator migration, and user delegation is deferred. |
-| Q100–Q105 | No phase-one authorization-server dependency, current bearer credentials remain while the deployment choice is investigated, token hardening is separable from OAuth, local ReDBox authorization remains authoritative, and the OAuth issuer/deployment decision is explicitly deferred. |
+| Questions | Recorded decisions                                                                                                                                                                                                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1–Q7     | UI-configurable authorization, global templates with contextual assignments, human and service principals, protected security administration, canonical server scopes, staged compatibility, and OAuth as a separate phase.                                                                                                     |
+| Q8–Q16    | Business-capability scopes, code/hook-owned registry, stable role keys, additive allow-only composition, preserved record ACLs, fail-closed protected actions, brand-specific assignments, Guest retained, and central effective-scope projection.                                                                              |
+| Q17–Q27   | Flat scopes, simple action requirements, safe role lifecycle, Guest as public baseline with safeguards, explicit infrastructure allowlist, correct `401`/`403`, service-level brand enforcement, non-disclosing cross-brand failures, and safe hook scope lifecycle.                                                            |
+| Q28–Q35   | Protected global system administration, administrator quorum, explicit system and cross-brand scopes, target-brand operations, full brand-isolation remediation, ownership classification, and explicit contexts for jobs and hooks.                                                                                            |
+| Q36–Q45   | Immediate atomic versioned changes, next-request disablement and WebSocket revalidation, transactional authorization audit, no two-person approval in phase one, structured administration UI, impact explanations, API/UI parity, and lockout prevention.                                                                      |
+| Q46–Q55   | Global templates with brand overrides, no mutable process cache, typed audit storage, configurable retention, idempotent scope reconciliation, compatibility role keys, mandatory declarations, legacy/shadow/enforce rollout, security-defect correction, and reviewed rather than mechanical mapping.                         |
+| Q56–Q66   | Reviewed template upgrades, deployment-wide rollout, operator-controlled mode, strict readiness gates, bounded shadow telemetry, limited emergency rollback, delayed legacy-data removal, conditional ACL/Solr migration with complete verification, broad test coverage, measured performance, and explicit system recovery.   |
+| Q67–Q75   | Domain-action granularity, no UI-only scopes, navigation derivation, safe error contracts, legacy-bearer compatibility, generated OpenAPI, versioned configuration export/import, principal-neutral foundations, and immutable scope keys.                                                                                      |
+| Q76–Q87   | No role nesting, configurable Researcher-style onboarding, no retroactive default changes, local authority over external claims, assignment provenance and expiry, delegation ceilings, safe global identity linking, auditable bulk operations, single-version shadow/enforce rollout, and replacement-dependent token sunset. |
+| Q88–Q99   | Service integrations are the first OAuth use case, browser sessions remain, OAuth does not replace login, client registration is controlled, service clients default to one brand, Client Credentials is the initial grant, no refresh token for that grant, deliberate integrator migration, and user delegation is deferred.  |
+| Q100–Q105 | No phase-one authorization-server dependency, current bearer credentials remain while the deployment choice is investigated, token hardening is separable from OAuth, local ReDBox authorization remains authoritative, and the OAuth issuer/deployment decision is explicitly deferred.                                        |
 
 ## Remaining decisions
 

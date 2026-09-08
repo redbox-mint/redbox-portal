@@ -1,6 +1,12 @@
+import type { AuthorizationRollbackExposureReport } from '../authorization/rollback-exposure';
+import { reportRollbackExposure } from './AuthorizationRollbackExposure';
+import { createHash } from 'node:crypto';
+import os from 'node:os';
 import { Services as services } from '../CoreService';
 import {
   AUTHORIZATION_ADMIN_MAX_EXPORT_ROWS,
+  unresolvedShadowMismatchCriteria,
+  unresolvedShadowMismatchFilter,
   AuthorizationAdministrationError,
   asScopeKey,
   isExactBrandAdminRole,
@@ -22,6 +28,72 @@ import type { AuthorizationApprovalEvidence, AuthorizationReleaseEvidence } from
 const SYSTEM_MANAGE_SCOPE = asScopeKey('system.authorization.manage');
 const MAX_READINESS_FINDINGS = 100;
 const MAX_READINESS_SUBJECTS = 100;
+const MAX_RUNTIME_IDENTITY_LENGTH = 128;
+
+interface ShadowMismatchCollection {
+  find(filter: unknown, options?: unknown): { limit(limit: number): { toArray(): Promise<unknown[]> } };
+}
+
+interface ShadowMismatchManager {
+  collection(name: string): ShadowMismatchCollection;
+}
+
+function isShadowMismatchManager(value: unknown): value is ShadowMismatchManager {
+  return typeof value === 'object' && value !== null && 'collection' in value && typeof value.collection === 'function';
+}
+
+/**
+ * Runtime-derived deployment identity for the process that generated the
+ * readiness report. Values are observed from the running deployment (build
+ * environment variables, OS hostname), never from operator-supplied release
+ * evidence. An absent value means the deployment does not expose that
+ * identity signal; readiness reports it as missing rather than inferring it.
+ */
+export interface AuthorizationRuntimeIdentity {
+  readonly buildVersion?: string;
+  readonly instanceId?: string;
+}
+
+function normalizeRuntimeIdentityValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  if (normalized.length === 0 || normalized.length > MAX_RUNTIME_IDENTITY_LENGTH) return undefined;
+  return normalized;
+}
+
+function readFirstNonEmpty(values: readonly unknown[]): string | undefined {
+  for (const value of values) {
+    const normalized = normalizeRuntimeIdentityValue(value);
+    if (normalized !== undefined) return normalized;
+  }
+  return undefined;
+}
+
+/**
+ * Resolves the runtime deployment identity without consulting
+ * operator-supplied release evidence. Build version prefers explicit build
+ * environment signals (`REDBOX_BUILD_VERSION`, `BUILD_VERSION`,
+ * `APP_VERSION`); instance identity prefers `REDBOX_INSTANCE_ID`, then
+ * `HOSTNAME`, then `os.hostname()`. Every fleet member reports its own
+ * values, so fleet verification collects one report per instance.
+ */
+export function resolveAuthorizationRuntimeIdentity(
+  env: NodeJS.ProcessEnv = process.env,
+  hostname: () => string = () => os.hostname()
+): AuthorizationRuntimeIdentity {
+  const buildVersion = readFirstNonEmpty([env.REDBOX_BUILD_VERSION, env.BUILD_VERSION, env.APP_VERSION]);
+  let host: string | undefined;
+  try {
+    host = hostname();
+  } catch {
+    host = undefined;
+  }
+  const instanceId = readFirstNonEmpty([env.REDBOX_INSTANCE_ID, env.HOSTNAME, host]);
+  return Object.freeze({
+    ...(buildVersion === undefined ? {} : { buildVersion }),
+    ...(instanceId === undefined ? {} : { instanceId }),
+  });
+}
 
 export interface AuthorizationReadinessFinding {
   readonly code: string;
@@ -51,8 +123,37 @@ export interface AuthorizationReadinessReport {
     blockerCount: number;
     warningCount: number;
   }>;
+  readonly rollbackExposure: AuthorizationRollbackExposureReport;
   readonly transactions: RequiredTransactionCapabilityProbe;
-  readonly shadow: Readonly<{ unresolvedMismatchCount: number }>;
+  readonly shadow: Readonly<{
+    /** Open/unapproved aggregates excluding separately verified defect closures. */
+    unresolvedMismatchCount: number;
+    /**
+     * Bounded grouped summaries over shadow mismatch evidence. `byRoute`,
+     * `byReason`, and `byBrand` group unresolved aggregates; `byClassification`
+     * groups resolved aggregates and verified defect closures by their triage
+     * classification (plus `unclassified` for rows resolved before typed
+     * classifications existed). Observational only: grouping never gates
+     * readiness, and `groupsTruncated` reports incomplete evidence from scan
+     * or group limits, or a failed summary read.
+     */
+    byRoute: readonly AuthorizationShadowGroupCount[];
+    byReason: readonly AuthorizationShadowGroupCount[];
+    byBrand: readonly AuthorizationShadowGroupCount[];
+    byClassification: readonly AuthorizationShadowGroupCount[];
+    groupsTruncated: boolean;
+  }>;
+  /**
+   * Runtime-derived deployment identity observed from this reporting
+   * process (build environment, OS hostname). Reported alongside mode and
+   * registry generation for per-instance/fleet verification; never sourced
+   * from operator-supplied release evidence.
+   */
+  readonly deploymentIdentity: Readonly<{
+    complete: boolean;
+    buildVersion?: string;
+    instanceId?: string;
+  }>;
   readonly administrators: Readonly<{
     brandCount: number;
     brandsWithoutAdministratorCount: number;
@@ -64,7 +165,14 @@ export interface AuthorizationReadinessReport {
     navigationParity: boolean;
     approvedSecurityDifferences: boolean;
     performance: boolean;
-    identity: Readonly<{ complete: boolean; buildVersion?: string; instanceId?: string }>;
+    identity: Readonly<{
+      complete: boolean;
+      buildVersion?: string;
+      instanceId?: string;
+      expectedBuildVersion?: string;
+      expectedInstanceId?: string;
+      match: boolean;
+    }>;
     shadowWindow: boolean;
     rollback: boolean;
     approvals: Readonly<{
@@ -80,23 +188,45 @@ export interface AuthorizationReadinessReport {
   readonly warnings: readonly AuthorizationReadinessFinding[];
 }
 
+/**
+ * One bounded group within a shadow mismatch summary: a display key (route
+ * identifier, reason code, brand identifier or `unbranded`, acknowledgement
+ * classification or `unclassified`) and the number of aggregates it covers.
+ */
+export interface AuthorizationShadowGroupCount {
+  readonly key: string;
+  readonly count: number;
+}
+
+export interface AuthorizationShadowSummary {
+  readonly byRoute: readonly AuthorizationShadowGroupCount[];
+  readonly byReason: readonly AuthorizationShadowGroupCount[];
+  readonly byBrand: readonly AuthorizationShadowGroupCount[];
+  readonly byClassification: readonly AuthorizationShadowGroupCount[];
+  readonly truncated: boolean;
+}
+
 export interface AuthorizationReadinessDependencies {
   readonly now: () => Date;
   readonly getMode: () => RolloutMode;
   readonly getRegistry: () => ScopeRegistry;
+  readonly summarizeShadow: () => Promise<AuthorizationShadowSummary>;
+  readonly getCollectionEvidenceGap: () => boolean;
   readonly validateRoutes: (registry: ScopeRegistry) => {
     readonly routeCount: number;
     readonly configuredRouteCount: number;
     readonly valid: boolean;
   };
+  readonly reportRollbackExposure: (registry: ScopeRegistry, now: Date) => Promise<AuthorizationRollbackExposureReport>;
   readonly reportDrift: () => Promise<AuthorizationDriftReport>;
   readonly probeTransactions: () => Promise<RequiredTransactionCapabilityProbe>;
   readonly getReleaseEvidence: () => AuthorizationReleaseEvidence | undefined;
+  readonly getRuntimeIdentity: () => AuthorizationRuntimeIdentity;
 }
 
 const SHA256_FINGERPRINT = /^[a-f0-9]{64}$/u;
 
-function validEvidence(value: AuthorizationApprovalEvidence | undefined): boolean {
+function validEvidence(value: AuthorizationApprovalEvidence | undefined, reportTime: number): boolean {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -104,8 +234,166 @@ function validEvidence(value: AuthorizationApprovalEvidence | undefined): boolea
     typeof value.fingerprint === 'string' &&
     SHA256_FINGERPRINT.test(value.fingerprint) &&
     typeof value.approvedAt === 'string' &&
-    Number.isFinite(Date.parse(value.approvedAt))
+    Number.isFinite(Date.parse(value.approvedAt)) &&
+    Date.parse(value.approvedAt) <= reportTime
   );
+}
+
+/**
+ * Canonicalizes a JSON-encodable value with recursively sorted object keys so
+ * the release-evidence fingerprint is stable regardless of key insertion
+ * order. `undefined` object members are dropped (matching `JSON.stringify`
+ * semantics); array order is preserved because it carries meaning.
+ */
+function canonicalizeJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalizeJsonValue);
+  if (typeof value === 'object' && value !== null) {
+    const canonical: Record<string, unknown> = {};
+    for (const key of Object.keys(value).sort()) {
+      const entry = (value as Record<string, unknown>)[key];
+      if (entry !== undefined) canonical[key] = canonicalizeJsonValue(entry);
+    }
+    return canonical;
+  }
+  return value;
+}
+
+/**
+ * Recomputes the durable fingerprint for a complete release-evidence bundle.
+ * The fingerprint is the SHA-256 hex digest of the canonical JSON encoding of
+ * the bundle EXCLUDING `durableFingerprint` itself (which would otherwise make
+ * the hash self-referential). Returns `undefined` when the bundle is absent
+ * or cannot be canonically encoded, so callers fail closed.
+ */
+export function computeAuthorizationReleaseEvidenceFingerprint(
+  evidence: AuthorizationReleaseEvidence | undefined
+): string | undefined {
+  if (typeof evidence !== 'object' || evidence === null) return undefined;
+  try {
+    const { durableFingerprint: _ignored, ...bundle } = evidence;
+    return createHash('sha256')
+      .update(JSON.stringify(canonicalizeJsonValue(bundle)))
+      .digest('hex');
+  } catch {
+    return undefined;
+  }
+}
+
+export const MAX_SHADOW_SUMMARY_GROUPS = 20;
+export const MAX_SHADOW_SUMMARY_SCAN = 1_000;
+
+const INCOMPLETE_SHADOW_SUMMARY: AuthorizationShadowSummary = Object.freeze({
+  byRoute: Object.freeze([]),
+  byReason: Object.freeze([]),
+  byBrand: Object.freeze([]),
+  byClassification: Object.freeze([]),
+  truncated: true,
+});
+
+function toGroupCounts(counts: ReadonlyMap<string, number>): {
+  readonly groups: readonly AuthorizationShadowGroupCount[];
+  readonly truncated: boolean;
+} {
+  const sorted = [...counts.entries()]
+    .map(([key, count]) => ({ key, count }))
+    .sort((left, right) => right.count - left.count || (left.key < right.key ? -1 : left.key > right.key ? 1 : 0));
+  // The 20-group cap is observational but lossy: discarding any distinct
+  // group must be reported so triage never mistakes a bounded summary for a
+  // complete one. Output stays bounded; only the flag records the loss.
+  const truncated = sorted.length > MAX_SHADOW_SUMMARY_GROUPS;
+  return {
+    groups: Object.freeze(sorted.slice(0, MAX_SHADOW_SUMMARY_GROUPS).map(entry => Object.freeze(entry))),
+    truncated,
+  };
+}
+
+function boundedGroupKey(value: unknown, fallback: string, maxLength: number): string {
+  if (typeof value !== 'string' || value.trim().length === 0) return fallback;
+  return value.slice(0, maxLength);
+}
+
+/**
+ * Default bounded shadow mismatch summarizer. Scans at most
+ * `MAX_SHADOW_SUMMARY_SCAN + 1` unresolved rows (grouped by route, reason,
+ * and brand) and the same bound of resolved rows (grouped by acknowledgement
+ * classification), then keeps the top `MAX_SHADOW_SUMMARY_GROUPS` entries per
+ * dimension. Observational only: a datastore failure yields an empty truncated
+ * summary rather than blocking readiness, while the authoritative unresolved
+ * total still comes from `AuthorizationShadowMismatch.count`.
+ */
+/**
+ * Exported for regression coverage: the bounded production shadow
+ * summarizer used by `defaultDependencies()`. Tests mock the
+ * `AuthorizationShadowMismatch` datastore collection and assert the
+ * 20-group cap reports truncation while keeping output bounded.
+ */
+export async function defaultSummarizeShadow(): Promise<AuthorizationShadowSummary> {
+  try {
+    const manager: unknown = AuthorizationShadowMismatch.getDatastore().manager;
+    if (!isShadowMismatchManager(manager)) {
+      throw new Error('Authorization shadow mismatch datastore manager is unavailable.');
+    }
+    const collection = manager.collection(AuthorizationShadowMismatch.tableName);
+    const [unresolvedRows, resolvedRows] = await Promise.all([
+      collection
+        .find(unresolvedShadowMismatchFilter(), { projection: { _id: 0, routeId: 1, reasonCode: 1, brandId: 1 } })
+        .limit(MAX_SHADOW_SUMMARY_SCAN + 1)
+        .toArray(),
+      collection
+        .find(
+          { $or: [{ resolvedAt: { $ne: null } }, { remediationStatus: 'verified' }] },
+          { projection: { _id: 0, resolutionClassification: 1 } }
+        )
+        .limit(MAX_SHADOW_SUMMARY_SCAN + 1)
+        .toArray(),
+    ]);
+    const scanTruncated =
+      unresolvedRows.length > MAX_SHADOW_SUMMARY_SCAN || resolvedRows.length > MAX_SHADOW_SUMMARY_SCAN;
+    const unresolved = unresolvedRows.slice(0, MAX_SHADOW_SUMMARY_SCAN);
+    const resolved = resolvedRows.slice(0, MAX_SHADOW_SUMMARY_SCAN);
+    const byRoute = new Map<string, number>();
+    const byReason = new Map<string, number>();
+    const byBrand = new Map<string, number>();
+    for (const row of unresolved) {
+      if (typeof row !== 'object' || row === null) continue;
+      const record = row as Record<string, unknown>;
+      const routeKey = boundedGroupKey(record.routeId, 'unknown-route', 256);
+      const reasonKey = boundedGroupKey(record.reasonCode, 'unknown-reason', 128);
+      const brandKey = boundedGroupKey(record.brandId, 'unbranded', 128);
+      byRoute.set(routeKey, (byRoute.get(routeKey) ?? 0) + 1);
+      byReason.set(reasonKey, (byReason.get(reasonKey) ?? 0) + 1);
+      byBrand.set(brandKey, (byBrand.get(brandKey) ?? 0) + 1);
+    }
+    const byClassification = new Map<string, number>();
+    for (const row of resolved) {
+      if (typeof row !== 'object' || row === null) continue;
+      const key = boundedGroupKey((row as Record<string, unknown>).resolutionClassification, 'unclassified', 64);
+      byClassification.set(key, (byClassification.get(key) ?? 0) + 1);
+    }
+    const routeGroups = toGroupCounts(byRoute);
+    const reasonGroups = toGroupCounts(byReason);
+    const brandGroups = toGroupCounts(byBrand);
+    const classificationGroups = toGroupCounts(byClassification);
+    // Bounded output is retained (at most 20 entries per dimension), but the
+    // flag must report ANY loss: a bounded-scan overflow that may hide unseen
+    // groups, or the 20-group cap discarding a distinct group in any
+    // dimension.
+    const truncated =
+      scanTruncated ||
+      routeGroups.truncated ||
+      reasonGroups.truncated ||
+      brandGroups.truncated ||
+      classificationGroups.truncated;
+    return Object.freeze({
+      byRoute: routeGroups.groups,
+      byReason: reasonGroups.groups,
+      byBrand: brandGroups.groups,
+      byClassification: classificationGroups.groups,
+      truncated,
+    });
+  } catch {
+    return INCOMPLETE_SHADOW_SUMMARY;
+  }
 }
 
 function nonEmptyString(value: unknown): string | undefined {
@@ -123,21 +411,33 @@ function isFiniteNonNegativeInteger(value: unknown): value is number {
 }
 
 function releaseGateState(
-  evidence: AuthorizationReleaseEvidence | undefined
+  evidence: AuthorizationReleaseEvidence | undefined,
+  runtimeIdentity: AuthorizationRuntimeIdentity,
+  reportTime: number
 ): AuthorizationReadinessReport['releaseGates'] {
   const performance = evidence?.performance;
   const shadow = evidence?.shadowWindow;
-  const shadowDurationHours =
-    shadow === undefined ? -1 : (Date.parse(shadow.completedAt) - Date.parse(shadow.startedAt)) / 3_600_000;
+  const shadowStartedAt = shadow === undefined ? Number.NaN : Date.parse(shadow.startedAt);
+  const shadowCompletedAt = shadow === undefined ? Number.NaN : Date.parse(shadow.completedAt);
+  const shadowDurationHours = (shadowCompletedAt - shadowStartedAt) / 3_600_000;
   const approvals = evidence?.approvals;
-  const buildVersion = nonEmptyString(evidence?.identity?.buildVersion);
-  const instanceId = nonEmptyString(evidence?.identity?.instanceId);
+  // Runtime identity is the observed deployment signal; operator-supplied
+  // release evidence only carries optional expected values for comparison.
+  // A non-empty expected value never completes the gate by itself.
+  const runtimeBuildVersion = nonEmptyString(runtimeIdentity.buildVersion);
+  const runtimeInstanceId = nonEmptyString(runtimeIdentity.instanceId);
+  const expectedBuildVersion = nonEmptyString(evidence?.identity?.buildVersion);
+  const expectedInstanceId = nonEmptyString(evidence?.identity?.instanceId);
+  const match =
+    (expectedBuildVersion === undefined || expectedBuildVersion === runtimeBuildVersion) &&
+    (expectedInstanceId === undefined || expectedInstanceId === runtimeInstanceId);
+  const identityComplete = runtimeBuildVersion !== undefined && runtimeInstanceId !== undefined && match;
   return Object.freeze({
-    navigationParity: validEvidence(evidence?.navigationParity),
-    approvedSecurityDifferences: validEvidence(evidence?.approvedSecurityDifferences),
+    navigationParity: validEvidence(evidence?.navigationParity, reportTime),
+    approvedSecurityDifferences: validEvidence(evidence?.approvedSecurityDifferences, reportTime),
     performance:
       performance !== undefined &&
-      validEvidence(performance) &&
+      validEvidence(performance, reportTime) &&
       isFiniteNonNegativeNumber(performance.baselineP95Ms) &&
       isFiniteNonNegativeNumber(performance.baselineP99Ms) &&
       performance.baselineP99Ms >= performance.baselineP95Ms &&
@@ -152,25 +452,33 @@ function releaseGateState(
       isFiniteNonNegativeInteger(performance.observedQueryCount) &&
       performance.observedQueryCount <= performance.maximumQueryCount,
     identity: Object.freeze({
-      complete: buildVersion !== undefined && instanceId !== undefined,
-      ...(buildVersion === undefined ? {} : { buildVersion }),
-      ...(instanceId === undefined ? {} : { instanceId }),
+      complete: identityComplete,
+      ...(runtimeBuildVersion === undefined ? {} : { buildVersion: runtimeBuildVersion }),
+      ...(runtimeInstanceId === undefined ? {} : { instanceId: runtimeInstanceId }),
+      ...(expectedBuildVersion === undefined ? {} : { expectedBuildVersion }),
+      ...(expectedInstanceId === undefined ? {} : { expectedInstanceId }),
+      match,
     }),
     shadowWindow:
       shadow !== undefined &&
-      validEvidence(shadow) &&
+      validEvidence(shadow, reportTime) &&
       Number.isFinite(shadowDurationHours) &&
+      shadowStartedAt < shadowCompletedAt &&
+      shadowCompletedAt <= reportTime &&
       shadow.minimumHours > 0 &&
       shadowDurationHours >= shadow.minimumHours,
-    rollback: validEvidence(evidence?.rollback),
+    rollback: validEvidence(evidence?.rollback, reportTime),
     approvals: Object.freeze({
-      product: validEvidence(approvals?.product),
-      security: validEvidence(approvals?.security),
-      operations: validEvidence(approvals?.operations),
-      hookOwners: validEvidence(approvals?.hookOwners),
-      integrators: validEvidence(approvals?.integrators),
+      product: validEvidence(approvals?.product, reportTime),
+      security: validEvidence(approvals?.security, reportTime),
+      operations: validEvidence(approvals?.operations, reportTime),
+      hookOwners: validEvidence(approvals?.hookOwners, reportTime),
+      integrators: validEvidence(approvals?.integrators, reportTime),
     }),
-    durableFingerprint: SHA256_FINGERPRINT.test(evidence?.durableFingerprint ?? ''),
+    durableFingerprint:
+      typeof evidence?.durableFingerprint === 'string' &&
+      SHA256_FINGERPRINT.test(evidence.durableFingerprint) &&
+      computeAuthorizationReleaseEvidenceFingerprint(evidence) === evidence.durableFingerprint,
   });
 }
 
@@ -204,9 +512,16 @@ function defaultDependencies(): AuthorizationReadinessDependencies {
       const configuredRouteCount = Object.keys(sails.config.routes ?? {}).length;
       return Object.freeze({ routeCount: routes.length, configuredRouteCount, valid: true });
     },
+    reportRollbackExposure,
     reportDrift: () => AuthorizationMigrationService.reportDrift(MAX_READINESS_FINDINGS),
     probeTransactions: () => AuthorizationAuditService.probeTransactions(),
     getReleaseEvidence: () => sails.config.authorization.releaseEvidence,
+    getRuntimeIdentity: () => resolveAuthorizationRuntimeIdentity(),
+    summarizeShadow: () => defaultSummarizeShadow(),
+    getCollectionEvidenceGap: () => {
+      const health = AuthorizationRolloutService.getCollectionHealth();
+      return health.evidenceGap !== false || health.telemetryFailures !== 0 || health.telemetryRejections !== 0;
+    },
   };
 }
 
@@ -460,15 +775,57 @@ export namespace Services {
         // result must not crash readiness, but drift/migration blockers above
         // still gate enforce.
       }
+      let rollbackExposure: AuthorizationRollbackExposureReport;
+      try {
+        rollbackExposure = await this.dependencies.reportRollbackExposure(registry, now);
+      } catch {
+        rollbackExposure = {
+          complete: false,
+          incompleteReasons: ['query-failed'],
+          affectedUserCount: 0,
+          affectedRoleCount: 0,
+          affectedCapabilityCount: 0,
+          items: [],
+        };
+      }
+      if (!rollbackExposure.complete) {
+        blockers.push(
+          this.finding('authorization-readiness.rollback-exposure-incomplete', 1, rollbackExposure.incompleteReasons)
+        );
+      }
+      if (rollbackExposure.affectedUserCount > 0) {
+        warnings.push(
+          this.finding('authorization-readiness.rollback-custom-scope-exposure', rollbackExposure.affectedUserCount)
+        );
+      }
+      let collectionEvidenceGap = true;
+      try {
+        collectionEvidenceGap = this.dependencies.getCollectionEvidenceGap() !== false;
+      } catch {
+        /* Missing evidence blocks readiness. */
+      }
+      if (collectionEvidenceGap) blockers.push(this.finding('authorization-readiness.collection-evidence-gap', 1));
       const transactionProbe = await this.dependencies.probeTransactions();
       const transactions: RequiredTransactionCapabilityProbe =
         transactionProbe.available === true
           ? Object.freeze({ available: true })
           : Object.freeze({ available: false, code: 'authorization.transaction-unavailable' });
       if (!transactions.available) blockers.push(this.finding('authorization-readiness.transactions-unavailable', 1));
-      const unresolvedMismatchCount = await AuthorizationShadowMismatch.count({ resolvedAt: null });
+      // Use Waterline criteria, including legacy approvals and an explicit
+      // null branch for rows predating classification. One count avoids
+      // double-counting rows or racing separate total/approved counts.
+      const unresolvedMismatchCount = await AuthorizationShadowMismatch.count(unresolvedShadowMismatchCriteria());
       if (unresolvedMismatchCount > 0) {
         blockers.push(this.finding('authorization-readiness.unresolved-shadow-mismatches', unresolvedMismatchCount));
+      }
+      // Grouped summaries are observational evidence for triage: they never
+      // gate readiness, so a summarizer failure yields an empty truncated
+      // summary instead of blocking enforce.
+      let shadowSummary: AuthorizationShadowSummary;
+      try {
+        shadowSummary = await this.dependencies.summarizeShadow();
+      } catch {
+        shadowSummary = INCOMPLETE_SHADOW_SUMMARY;
       }
       const administrators = await this.administratorReadiness(now);
       if (administrators.brandsWithoutAdministratorCount > 0) {
@@ -488,7 +845,15 @@ export namespace Services {
           )
         );
       }
-      const releaseGates = releaseGateState(this.dependencies.getReleaseEvidence());
+      const runtimeIdentity = this.dependencies.getRuntimeIdentity();
+      const releaseGates = releaseGateState(this.dependencies.getReleaseEvidence(), runtimeIdentity, now.getTime());
+      const runtimeBuildVersion = nonEmptyString(runtimeIdentity.buildVersion);
+      const runtimeInstanceId = nonEmptyString(runtimeIdentity.instanceId);
+      const deploymentIdentity = Object.freeze({
+        complete: runtimeBuildVersion !== undefined && runtimeInstanceId !== undefined,
+        ...(runtimeBuildVersion === undefined ? {} : { buildVersion: runtimeBuildVersion }),
+        ...(runtimeInstanceId === undefined ? {} : { instanceId: runtimeInstanceId }),
+      });
       const releaseGateFindings: ReadonlyArray<readonly [boolean, string]> = [
         [releaseGates.navigationParity, 'authorization-readiness.navigation-parity-evidence-missing'],
         [releaseGates.approvedSecurityDifferences, 'authorization-readiness.security-differences-approval-missing'],
@@ -521,7 +886,16 @@ export namespace Services {
           warningCount: drift.summary.warning,
         }),
         transactions,
-        shadow: Object.freeze({ unresolvedMismatchCount }),
+        rollbackExposure,
+        shadow: Object.freeze({
+          unresolvedMismatchCount,
+          byRoute: shadowSummary.byRoute,
+          byReason: shadowSummary.byReason,
+          byBrand: shadowSummary.byBrand,
+          byClassification: shadowSummary.byClassification,
+          groupsTruncated: shadowSummary.truncated,
+        }),
+        deploymentIdentity,
         administrators,
         releaseGates,
         blockers: Object.freeze(blockers.slice(0, MAX_READINESS_FINDINGS)),

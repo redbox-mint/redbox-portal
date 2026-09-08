@@ -2,6 +2,7 @@ import { metrics } from '@opentelemetry/api';
 import { Services as services } from '../CoreService';
 import {
   DEFAULT_ROLE_TEMPLATES,
+  ROLE_ASSIGNMENT_SOURCES,
   FROZEN_LEGACY_ROUTE_BASELINE,
   LEGACY_PATH_RULE_BASELINE,
   buildRoleIdentityKey,
@@ -4245,20 +4246,23 @@ export namespace Services {
                 continue;
               }
               if (roleValue.protectedKind === 'guest' || roleValue.name === 'Guest') continue;
-              const sourceKey = `legacy-role:${String(user.id)}:${roleValue.id}`;
-              const assignment = await RoleAssignment.findOne(
+              if (roleValue.status !== 'active') continue;
+              // Membership is the union of every effective supported source. Count
+              // accepts multiple grants for the same user/role; findOne does not.
+              // Migration sourceKey/linkage validation remains in the assignments
+              // section and must not constrain this effective-membership check.
+              const assignmentCount = await RoleAssignment.count(
                 effectiveAssignmentCriteria(
                   {
                     principalType: 'user',
                     principalId,
                     role: roleValue.id,
-                    source: 'migration',
-                    sourceKey,
+                    source: [...ROLE_ASSIGNMENT_SOURCES],
                   },
                   now
                 )
               );
-              if (assignment == null) {
+              if (assignmentCount === 0) {
                 local.push({
                   code: 'legacy-assignment-projection-missing',
                   severity: 'blocker',
@@ -4358,7 +4362,7 @@ export namespace Services {
             // Supported-source gate independent of legacy projection: an
             // effective assignment with an unknown source can never prove its
             // provenance, so it blocks fail-closed without parsing any key.
-            const supportedSources: readonly string[] = ['manual', 'onboarding', 'migration', 'external', 'recovery'];
+            const supportedSources: readonly string[] = ROLE_ASSIGNMENT_SOURCES;
             if (!supportedSources.includes(String(assignment.source))) {
               local.push({
                 code: 'assignment-source-unsupported',
@@ -4376,33 +4380,31 @@ export namespace Services {
             // users section; here assignment -> legacy is checked so new-only
             // effective grants (or direct-write drift) cannot hide. System
             // assignments are intentionally brandless with no legacy projection
-            // and are excluded, as are non-effective rows (revoked/suppressed/
-            // expired/source-absent grant nothing). The migration-key check
+            // and are excluded, as are non-effective rows (inactive roles and
+            // revoked/suppressed/expired/source-absent assignments grant nothing).
+            // Active assignment provenance remains checked independently of
+            // role status, even when role inactivation removes legacy membership.
+            // The migration-key check
             // applies only when source=migration: legitimate manual,
-            // onboarding, recovery, and external assignments carry no legacy
-            // projection and must not false-positive as missing.
-            const assignmentEffective =
+            // onboarding, recovery, and external assignments have no migration
+            // sourceKey. Their supported writes still maintain legacy membership;
+            // migration-specific provenance must not false-positive as missing.
+            const assignmentCurrent =
               assignment.status === 'active' &&
               assignment.sourcePresent === true &&
               (assignment.expiresAt == null || new Date(assignment.expiresAt).getTime() > now.getTime());
-            if (
-              assignmentEffective &&
-              assignment.source === 'migration' &&
+            const legacyBrandAssignment =
+              assignmentCurrent &&
               assignment.role.contextType === 'brand' &&
               assignment.role.protectedKind !== 'guest' &&
-              assignment.role.name !== 'Guest'
-            ) {
-              const principalId = String(assignment.principalId);
-              // The migration sourceKey retains the original legacy user and
-              // role (`legacy-role:<originalUserId>:<roleId>`) while the
-              // assignment principal is the canonical primary; legacy junction
-              // rows stay on the alias. The reverse projection resolves the
-              // original legacy user, canonicalizes it to its root account, and
-              // validates source linkage plus role identity: the source role
-              // must equal the assigned role, and the original user's canonical
-              // root must equal the assignment principal. Without both checks a
-              // direct assignment for an unrelated primary would pass by
-              // unioning arbitrary source user roles.
+              assignment.role.name !== 'Guest';
+            const principalId = String(assignment.principalId);
+            const legacyUserIds = new Set<string>([principalId]);
+            if (legacyBrandAssignment && assignment.source === 'migration') {
+              // Migration provenance is separate from effective membership.
+              // Its sourceKey may identify an alias retaining the legacy role;
+              // validate role identity and canonical linkage before including
+              // that alias. Other sources project onto the principal directly.
               const sourceParts = migrationSourceKeyParts(assignment.source, assignment.sourceKey);
               if (sourceParts === undefined || sourceParts.roleId !== String(assignment.role.id)) {
                 local.push({
@@ -4417,46 +4419,44 @@ export namespace Services {
                 }
                 continue;
               }
-              const legacyUserIds = new Set<string>([principalId, sourceParts.originalUserId]);
+              let linkageValid = false;
+              try {
+                const originalUser = (await User.findOne({ id: sourceParts.originalUserId }).populate('roles', {
+                  limit: JUNCTION_SCAN_ROW_LIMIT + 1,
+                  sort: 'id ASC',
+                })) as UserAttributes | undefined;
+                if (originalUser != null) {
+                  const originalResolution = await resolveLinkChain(originalUser);
+                  if ('user' in originalResolution && String(originalResolution.user.id) === principalId) {
+                    linkageValid = true;
+                  }
+                } else if (sourceParts.originalUserId === principalId) {
+                  linkageValid = true;
+                }
+              } catch {
+                linkageValid = false;
+              }
+              if (!linkageValid) {
+                local.push({
+                  code: 'new-assignment-legacy-projection-missing',
+                  severity: 'blocker',
+                  entityType: 'assignment',
+                  entityId: String(assignment.id),
+                });
+                if (!flushItem('assignments', String(assignment.id), local)) {
+                  flushedAll = false;
+                  break;
+                }
+                continue;
+              }
+              legacyUserIds.add(sourceParts.originalUserId);
+            }
+            if (legacyBrandAssignment && assignment.role.status === 'active') {
               let legacyRoleIds: Set<string> | undefined;
               let projectionScanIncomplete = false;
               try {
                 let verifiedAny = false;
                 const union = new Set<string>();
-                // Validate the alias linkage before unioning roles: the original
-                // legacy user's canonical root must be the assignment principal.
-                // An unrelated alias/primary pair fails closed here instead of
-                // passing via an arbitrary union.
-                let linkageValid = false;
-                try {
-                  const originalUser = (await User.findOne({ id: sourceParts.originalUserId }).populate('roles', {
-                    limit: JUNCTION_SCAN_ROW_LIMIT + 1,
-                    sort: 'id ASC',
-                  })) as UserAttributes | undefined;
-                  if (originalUser != null) {
-                    const originalResolution = await resolveLinkChain(originalUser);
-                    if ('user' in originalResolution && String(originalResolution.user.id) === principalId) {
-                      linkageValid = true;
-                    }
-                  } else if (sourceParts.originalUserId === principalId) {
-                    linkageValid = true;
-                  }
-                } catch {
-                  linkageValid = false;
-                }
-                if (!linkageValid) {
-                  local.push({
-                    code: 'new-assignment-legacy-projection-missing',
-                    severity: 'blocker',
-                    entityType: 'assignment',
-                    entityId: String(assignment.id),
-                  });
-                  if (!flushItem('assignments', String(assignment.id), local)) {
-                    flushedAll = false;
-                    break;
-                  }
-                  continue;
-                }
                 for (const legacyUserId of legacyUserIds) {
                   let principal: UserAttributes | undefined;
                   try {
@@ -4514,9 +4514,8 @@ export namespace Services {
                   });
                 }
               } catch {
-                // Any other reverse-projection exception (link-chain
-                // resolution, orphan scan) leaves the scan incomplete: classify
-                // explicitly as an entity-scoped blocker, never a clean result.
+                // Any other reverse-projection exception leaves the scan
+                // incomplete: report an entity-scoped blocker.
                 local.push({
                   code: 'assignment-legacy-projection-scan-incomplete',
                   severity: 'blocker',

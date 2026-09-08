@@ -6,6 +6,11 @@
  */
 
 import type { AuthorizationContext, ScopeKey } from '../authorization';
+import type { AuthorizationShadowMismatchInput } from './AuthorizationRolloutService';
+
+export interface AuthorizationRolloutCollectionServiceAccess {
+  recordShadowMismatch(input: AuthorizationShadowMismatchInput): void;
+}
 
 export interface RoleAdministrationServiceAccess {
   grantAssignment(command: Record<string, unknown>): Promise<unknown>;
@@ -59,4 +64,9 @@ export function authorizationScopeRequiredAccess(): AuthorizationScopeServiceAcc
 /** Request-context scope evaluation; may be absent in reduced runtimes. */
 export function authorizationRuntimeAccess(): AuthorizationRuntimeServiceAccess | undefined {
   return optionalServiceAccess<AuthorizationRuntimeServiceAccess>('authorizationservice');
+}
+
+/** Shared serving-process collector; callers guard access so evidence cannot change visibility. */
+export function authorizationRolloutCollectionAccess(): AuthorizationRolloutCollectionServiceAccess {
+  return requiredServiceAccess<AuthorizationRolloutCollectionServiceAccess>('authorizationrolloutservice');
 }

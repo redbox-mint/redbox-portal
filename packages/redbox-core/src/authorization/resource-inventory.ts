@@ -499,12 +499,42 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
     reason: 'Inherited Core.Service DTO utility, not a resource operation.',
   }),
   Object.freeze({
+    operation: 'AuthorizationRolloutService#getCollectionHealth',
+    reason:
+      'Read-only non-HTTP serving-process collection continuity and telemetry health probe; fixed operational fields, no brand-owned resource or mutation.',
+  }),
+  Object.freeze({
+    operation: 'AuthorizationRolloutService#recordShadowMismatch',
+    reason:
+      'Non-HTTP request and navigation comparison collector; writes bounded operational aggregates through the shared durable health and telemetry observer, never changes authorization decisions or brand-owned resources.',
+  }),
+  Object.freeze({
     operation: 'AuthorizationRolloutService#evaluateRequest',
     reason: 'Rollout request evaluation against route configuration; no brand-owned resource.',
   }),
   Object.freeze({
     operation: 'AuthorizationRolloutService#validateRouteConfiguration',
     reason: 'Rollout request evaluation against route configuration; no brand-owned resource.',
+  }),
+  Object.freeze({
+    operation: 'AuthorizationRolloutService#listUnresolvedShadowMismatches',
+    reason:
+      'Non-HTTP operator listing of unresolved shadow aggregates with bounded fingerprint-ordered pagination; read-only operational evidence, never writes the append-only audit, no brand-owned resource.',
+  }),
+  Object.freeze({
+    operation: 'AuthorizationRolloutService#acknowledgeShadowMismatch',
+    reason:
+      'Non-HTTP operator acknowledgement canonicalizing the bounded operator identity, reason, and typed mismatch classification once before any mutation, storing those canonical values on the aggregate row, and appending a typed shadow.mismatch-acknowledged audit event with the same values (actorType=operator, authMethod=operator, succeeded outcome) in ONE required transaction so audit failure leaves the row unresolved; append-only audit evidence is never deleted, no brand-owned resource.',
+  }),
+  Object.freeze({
+    operation: 'AuthorizationRolloutService#closeRemediatedShadowMismatch',
+    reason:
+      'Non-HTTP operator closure of a classified defect using completed verification bound to build, registry and exact observations; preserves triage/history and appends shadow.mismatch-remediated evidence in the same required transaction. No brand-owned resource or release approval.',
+  }),
+  Object.freeze({
+    operation: 'AuthorizationRolloutService#retainResolvedShadowMismatches',
+    reason:
+      'Non-HTTP operator retention canonicalizing the bounded operator identity and reason once before any mutation, deleting only already-resolved aggregates past a bounded cutoff, and appending a typed shadow.retention.completed audit summary with the same values in ONE required transaction so audit failure leaves rows undeleted; unresolved evidence and append-only audit evidence are never deleted, no brand-owned resource.',
   }),
   // AuthorizationScopeService: Authorization scope catalog plumbing; no brand-owned resource.
   Object.freeze({
@@ -1483,6 +1513,12 @@ export const RESOURCE_EXCLUDED_OPERATIONS: readonly ResourceExcludedOperation[] 
     reason:
       'Authorization contract retry requiring authorization.assignment.manage (or legacy user.account-link.manage) with brand context; bounded idempotent record-phase resume, not a brand-owned resource operation.',
   }),
+  Object.freeze({
+    operation: 'RoleAdministrationService#recoverIncompleteLinkOperations',
+    reason:
+      'Non-HTTP server-side recovery listing pending/running link operations from the stored durable plan with a bounded limit; consumes committed plan state only, mints no authority, not a brand-owned resource operation.',
+  }),
+
   Object.freeze({
     operation: 'RoleAdministrationService#listAssignments',
     reason:
@@ -3105,6 +3141,78 @@ export const RESOURCE_OPERATION_INVENTORY: readonly ResourceOperationInventoryRo
     operation: 'bootstrap',
     classification: 'internal-job',
     notes: 'Bootstrap seeding of default users and roles; no request path.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'beginUserMutationOperation',
+    classification: 'internal-job',
+    notes:
+      'Durable user-mutation saga creation keyed by operationId with brandId and bounded roleIds in the stored plan; fail-closed without the durable store, mints no authority.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'markUserMutationRunning',
+    classification: 'internal-job',
+    notes:
+      'Saga attempt fencing claiming one resumable row with a compare-and-set attempt increment and bounded retry budget; lost races fail closed with version-conflict.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'completeUserMutationOperation',
+    classification: 'internal-job',
+    notes:
+      'Saga terminal completion persisting the resolved userId and created-is-new flag against the claimed attempt; consumes only stored plan fields.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'failUserMutationOperation',
+    classification: 'internal-job',
+    notes:
+      'Saga terminal failure persisting the bounded truncated error against the claimed attempt; terminal rows are never replayed.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'recoverIncompleteUserMutationOperations',
+    classification: 'internal-job',
+    notes:
+      'Non-HTTP server-side recovery listing pending/running saga rows with a bounded limit so a restarted process can replay the stored plan.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'replayIncompleteUserMutationOperations',
+    classification: 'internal-job',
+    notes:
+      'Restart-safe replay claiming each resumable saga row then re-driving only the stored roleIds through the guarded writer under a bounded system-process actor with compensation for newly created rows.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'destroyNewlyCreatedUserRecord',
+    classification: 'internal-job',
+    notes:
+      'Saga compensation destroying only a newly created user row through a version-pinned predicate; zero matched rows report compensation-failed, never deletes pre-existing rows.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'RoleAdministrationService',
+    operation: 'replayIncompleteLinkOperations',
+    classification: 'internal-job',
+    notes:
+      'Non-HTTP restart-safe replay resuming only the stored durable link plan (stored brandId plus bounded recordOids with proof hash, assignment snapshot, bound account versions, and proof actor) through a bounded record rewrite under the stored brand predicate with unbranded rows rejected as opaque not-found, CAS-claimed attempts with a bounded retry budget, named bounded system-process recovery identity (actorType system-process, authMethod internal, actorId system-recovery:link-replay; never the stored preview actor), and terminal completion audit; never rebuilds a plan from mutable live users.',
+  },
+  {
+    family: 'user-management-linking',
+    service: 'UsersService',
+    operation: 'compensateUserDetailsForBrand',
+    classification: 'brand-bearing',
+    notes:
+      'Brand-constrained user detail compensation requiring user.manage with the target resolved through getUserForBrand and a version-pinned restore.',
   },
   // Async jobs.
   {

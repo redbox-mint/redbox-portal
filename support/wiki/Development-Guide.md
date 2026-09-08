@@ -13,9 +13,9 @@ Welcome to our Development Guide! This resource aims to help developers effectiv
 
 ## Core Packages
 
-- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/redbox-core)**: Core type definitions, business logic services, models, policies, and config defaults.
+- **[Redbox Core Types](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Core-Types)**: Core type definitions, business logic services, models, policies, and config defaults.
 - **[Redbox Loader](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader)**: Pre-lift shim generation system.
-- **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/redbox-dev-tools)**: Shared tooling for developing ReDBox hooks.
+- **[Redbox Dev Tools](https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Hook-Kit)**: Shared tooling for developing ReDBox hooks.
 - **[Generated Reference Documentation](https://github.com/redbox-mint/redbox-portal/wiki/Generated-Reference-Documentation)**: Generate and audit hook extension and form contracts, compose the independent REST reference, and preview the complete site locally.
 - **[Services Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Services-Architecture)**: Deep dive into the service layer and how to extend services.
 
