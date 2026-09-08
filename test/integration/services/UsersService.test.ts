@@ -1,27 +1,46 @@
+import { firstValueFrom } from 'rxjs';
+import { adminMutationOptions } from '../helpers/authorization';
 describe('The UsersService', function () {
   before(function (done) {
     done();
   });
 
-  it('should retrieve user using ID, with valid roles, can update roles', function (done) {
-    var brand = BrandingService.getDefault();
-    RolesService.getRolesWithBrand(brand).subscribe(function(roles){
-      var adminRole = RolesService.getAdminFromRoles(roles);
-      var adminUser = adminRole.users[0];
-      UsersService.getUserWithId(adminUser.id).subscribe(function(retrievedUser) {
-        expect(retrievedUser).to.have.property('id', adminUser.id);
-        expect(UsersService.hasRole(retrievedUser, adminRole)).to.have.property('id', adminRole.id);
-        var newRolesIds =  _.map(roles, function(role) {
-          if (role.name != 'Admin') {
-            return role.id;
-          }
-        });
-        UsersService.updateUserRoles(adminUser.id, newRolesIds).subscribe(function(updatedUser){
-          expect(RolesService.getRoleWithName(updatedUser.roles, 'Admin')).to.be.undefined;
-          done();
-        });
-      });
-    });
+  it('retrieves a user with valid roles and updates roles with an authoritative actor', async function () {
+    const options = await adminMutationOptions();
+    const suffix = Date.now();
+    const user = await firstValueFrom(
+      UsersService.addLocalUser(
+        `roles-${suffix}`,
+        'Role update fixture',
+        `roles-${suffix}@example.test`,
+        'RBTest123!',
+        options
+      )
+    );
+    try {
+      const roles = await firstValueFrom(RolesService.getRolesWithBrand(BrandingService.getDefault()));
+      const researcher = roles.find(role => role.name === 'Researcher');
+      await firstValueFrom(
+        UsersService.updateUserRoles(user.id, [researcher.id], {
+          ...options,
+          expectedVersion: user.loginDisabledVersion,
+        })
+      );
+      const retrieved = await firstValueFrom(UsersService.getUserWithId(user.id));
+      expect(retrieved.id).to.equal(user.id);
+      expect(UsersService.hasRole(retrieved, researcher)).to.have.property('id', researcher.id);
+      const updated = await firstValueFrom(
+        UsersService.updateUserRoles(user.id, [], {
+          ...options,
+          expectedVersion: retrieved.loginDisabledVersion,
+        })
+      );
+      expect(updated.roles).to.deep.equal([]);
+    } finally {
+      await User.replaceCollection(user.id, 'roles').members([]);
+      await RoleAssignment.destroy({ principalId: user.id });
+      await User.destroy({ id: user.id });
+    }
   });
 
   describe('login restrictions using authorised email config', function () {
@@ -53,7 +72,7 @@ describe('The UsersService', function () {
       // Authorized domains and emails config problem: unknown auth type 'blah
       {
         args: {
-          conf: {authType: 'blah'},
+          conf: { authType: 'blah' },
           email: 'test@more@example.com',
         },
         expected: false,
@@ -61,7 +80,7 @@ describe('The UsersService', function () {
       // Authorized email configuration is disabled.
       {
         args: {
-          conf: {enabled: false},
+          conf: { enabled: false },
           email: 'test@example.com',
         },
         expected: true,
@@ -69,7 +88,7 @@ describe('The UsersService', function () {
       // No authorized email configuration. (oidc)
       {
         args: {
-          conf: {enabled: true, domainsOidc: [], emailsOidc: []},
+          conf: { enabled: true, domainsOidc: [], emailsOidc: [] },
           email: 'test@example.com',
         },
         expected: true,
@@ -77,7 +96,7 @@ describe('The UsersService', function () {
       // No authorized email configuration. (aaf)
       {
         args: {
-          conf: {enabled: true, domainsAaf: [], emailsAaf: []},
+          conf: { enabled: true, domainsAaf: [], emailsAaf: [] },
           email: 'test@example.com',
           authType: 'aaf',
         },
@@ -86,7 +105,7 @@ describe('The UsersService', function () {
       // Authorized email domain: example.com
       {
         args: {
-          conf: {enabled: true, domainsOidc: ['example.com'], emailsOidc: []},
+          conf: { enabled: true, domainsOidc: ['example.com'], emailsOidc: [] },
           email: 'test@example.com',
         },
         expected: true,
@@ -94,23 +113,23 @@ describe('The UsersService', function () {
       // Authorized email exception: test@example.com
       {
         args: {
-          conf: {enabled: true, domainsAaf: ['sub.example.com'], emailsAaf: ['test@example.com']},
+          conf: { enabled: true, domainsAaf: ['sub.example.com'], emailsAaf: ['test@example.com'] },
           email: 'test@example.com',
-          authType: 'aaf'
+          authType: 'aaf',
         },
         expected: true,
       },
       // Email is not authorized to login: test@example.com
       {
         args: {
-          conf: {enabled: true, domainsOidc: ['example.net'], emailsOidc: ['test@example.net']},
+          conf: { enabled: true, domainsOidc: ['example.net'], emailsOidc: ['test@example.net'] },
           email: 'test@example.com',
         },
         expected: false,
       },
     ];
 
-    tests.forEach(({args, expected}) => {
+    tests.forEach(({ args, expected }) => {
       it(`should ${expected ? 'pass' : 'fail'} with args ${JSON.stringify(args)}`, async function () {
         const authType = _.get(args, 'authType', 'oidc');
         const brandName = 'default';

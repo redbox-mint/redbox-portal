@@ -1,3 +1,4 @@
+import { withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   type AuthorizationContext,
@@ -40,7 +41,7 @@ describe('Authorization Phase 8 contract query and template publication services
   before(async () => {
     const admin = await User.findOne({ username: 'admin' });
     expect(admin).to.exist;
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     brand = await BrandingConfig.findOne({ name: 'default' });
     expect(brand).to.exist;
     otherBrand = await BrandingConfig.create({ name: `phase8-other-brand-${suffix}` }).fetch();

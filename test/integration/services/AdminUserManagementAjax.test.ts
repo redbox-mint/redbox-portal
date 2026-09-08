@@ -1,7 +1,8 @@
-import supertest from "supertest";
-import { firstValueFrom } from "rxjs";
+import { adminMutationOptions } from '../helpers/authorization';
+import supertest from 'supertest';
+import { firstValueFrom } from 'rxjs';
 
-describe("Admin user management AJAX routes", function () {
+describe('Admin user management AJAX routes', function () {
   this.timeout(60_000);
 
   let agent: supertest.Agent;
@@ -14,8 +15,9 @@ describe("Admin user management AJAX routes", function () {
     const app = (sails as any).hooks.http.app;
     agent = supertest.agent(app);
 
+    const options = await adminMutationOptions();
     const brand = BrandingService.getDefault();
-    const roleIds = RolesService.getRoleIds(brand.roles, ["Researcher"]);
+    const roleIds = RolesService.getRoleIds(brand.roles, ['Researcher']);
     const suffix = Date.now().toString();
 
     primaryUsername = `ajaxprimary${suffix}`;
@@ -24,96 +26,115 @@ describe("Admin user management AJAX routes", function () {
     const primaryUser = await firstValueFrom(
       UsersService.addLocalUser(
         primaryUsername,
-        "AJAX Primary User",
+        'AJAX Primary User',
         `${primaryUsername}@example.edu.au`,
-        "RBTest123!"
+        'RBTest123!',
+        options
       )
     );
-    await firstValueFrom(UsersService.updateUserRoles(primaryUser.id, roleIds));
+    await firstValueFrom(
+      UsersService.updateUserRoles(primaryUser.id, roleIds, {
+        ...options,
+        expectedVersion: primaryUser.loginDisabledVersion,
+      })
+    );
     primaryUserId = String(primaryUser.id);
 
     const secondaryUser = await firstValueFrom(
       UsersService.addLocalUser(
         secondaryUsername,
-        "AJAX Secondary User",
+        'AJAX Secondary User',
         `${secondaryUsername}@example.edu.au`,
-        "RBTest123!"
+        'RBTest123!',
+        options
       )
     );
-    await firstValueFrom(UsersService.updateUserRoles(secondaryUser.id, roleIds));
+    await firstValueFrom(
+      UsersService.updateUserRoles(secondaryUser.id, roleIds, {
+        ...options,
+        expectedVersion: secondaryUser.loginDisabledVersion,
+      })
+    );
     secondaryUserId = String(secondaryUser.id);
 
     const loginResponse = await agent
-      .post("/user/login_local")
-      .set("X-Source", "jsclient")
+      .post('/user/login_local')
+      .set('X-Source', 'jsclient')
       .send({
-        username: "admin",
-        password: "rbadmin",
-        branding: "default",
-        portal: "rdmp"
+        username: 'admin',
+        password: 'rbadmin',
+        branding: 'default',
+        portal: 'rdmp',
       })
       .expect(200);
 
-    expect(loginResponse.body.user.username).to.equal("admin");
+    expect(loginResponse.body.user.username).to.equal('admin');
   });
 
   after(async function () {
-    if (typeof UserLink !== "undefined") {
+    if (!primaryUserId || !secondaryUserId) return;
+    if (typeof UserLink !== 'undefined') {
       await UserLink.destroy({
-        or: [
-          { primaryUserId },
-          { secondaryUserId },
-          { primaryUsername },
-          { secondaryUsername }
-        ]
+        or: [{ primaryUserId }, { secondaryUserId }, { primaryUsername }, { secondaryUsername }],
       });
     }
-    if (typeof UserAudit !== "undefined") {
+    if (typeof UserAudit !== 'undefined') {
       await UserAudit.destroy({
         or: [
-          { "user.username": primaryUsername },
-          { "user.username": secondaryUsername },
+          { 'user.username': primaryUsername },
+          { 'user.username': secondaryUsername },
           { additionalContext: { contains: JSON.stringify(primaryUserId) } },
-          { additionalContext: { contains: JSON.stringify(secondaryUserId) } }
-        ]
+          { additionalContext: { contains: JSON.stringify(secondaryUserId) } },
+        ],
       }).meta({
-        enableExperimentalDeepTargets: true
+        enableExperimentalDeepTargets: true,
       });
     }
     await User.destroy({ id: [primaryUserId, secondaryUserId] });
   });
 
-  it("supports candidate search, linking, disable/enable, and audit retrieval", async function () {
+  it('supports candidate search, linking, disable/enable, and audit retrieval', async function () {
     const candidateResponse = await agent
-      .get("/default/rdmp/admin/users/link/candidates")
-      .set("X-Source", "jsclient")
+      .get('/default/rdmp/admin/users/link/candidates')
+      .set('X-Source', 'jsclient')
       .query({
         primaryUserId,
-        query: secondaryUsername
+        query: secondaryUsername,
       })
       .expect(200);
 
-    expect(candidateResponse.body).to.be.an("array");
+    expect(candidateResponse.body).to.be.an('array');
     expect(candidateResponse.body.some((candidate: { id: string }) => candidate.id === secondaryUserId)).to.equal(true);
 
+    const previewResponse = await agent
+      .post('/default/rdmp/api/users/link/preview')
+      .set('X-Source', 'jsclient')
+      .send({ primaryUserId, secondaryUserId })
+      .expect(200);
+    const preview = previewResponse.body;
+
     const linkResponse = await agent
-      .post("/default/rdmp/admin/users/link")
-      .set("X-Source", "jsclient")
+      .post('/default/rdmp/admin/users/link')
+      .set('X-Source', 'jsclient')
       .send({
         primaryUserId,
-        secondaryUserId
+        secondaryUserId,
+        primaryExpectedVersion: preview.primaryExpectedVersion,
+        secondaryExpectedVersion: preview.secondaryExpectedVersion,
+        linkConfirmationToken: preview.confirmationToken,
+        linkOperationId: preview.linkOperationId,
       })
       .expect(200);
 
     expect(linkResponse.body.primary.id).to.equal(primaryUserId);
-    expect(linkResponse.body.linkedAccounts).to.be.an("array");
+    expect(linkResponse.body.linkedAccounts).to.be.an('array');
     expect(linkResponse.body.linkedAccounts[0].id).to.equal(secondaryUserId);
-    expect(linkResponse.body.impact).to.have.property("rolesMerged");
-    expect(linkResponse.body.impact).to.have.property("recordsRewritten");
+    expect(linkResponse.body.impact).to.have.property('rolesMerged');
+    expect(linkResponse.body.impact).to.have.property('recordsRewritten');
 
     const linksResponse = await agent
       .get(`/default/rdmp/admin/users/${primaryUserId}/links`)
-      .set("X-Source", "jsclient")
+      .set('X-Source', 'jsclient')
       .expect(200);
 
     expect(linksResponse.body.primary.id).to.equal(primaryUserId);
@@ -122,51 +143,53 @@ describe("Admin user management AJAX routes", function () {
 
     const disableResponse = await agent
       .post(`/default/rdmp/admin/users/${primaryUserId}/disable`)
-      .set("X-Source", "jsclient")
-      .send({})
+      .set('X-Source', 'jsclient')
+      .send({ expectedVersion: (await User.findOne({ id: primaryUserId })).loginDisabledVersion })
       .expect(200);
 
     expect(disableResponse.body.status).to.equal(true);
 
     const usersDefaultResponse = await agent
-      .get("/default/rdmp/admin/users/get")
-      .set("X-Source", "jsclient")
+      .get('/default/rdmp/admin/users/get')
+      .set('X-Source', 'jsclient')
       .expect(200);
 
     expect(usersDefaultResponse.body.some((user: { id: string }) => user.id === primaryUserId)).to.equal(false);
     expect(usersDefaultResponse.body.some((user: { id: string }) => user.id === secondaryUserId)).to.equal(false);
 
     const usersWithDisabledResponse = await agent
-      .get("/default/rdmp/admin/users/get")
-      .set("X-Source", "jsclient")
-      .query({ includeDisabled: "true" })
+      .get('/default/rdmp/admin/users/get')
+      .set('X-Source', 'jsclient')
+      .query({ includeDisabled: 'true' })
       .expect(200);
 
     const disabledPrimary = usersWithDisabledResponse.body.find((user: { id: string }) => user.id === primaryUserId);
-    const disabledSecondary = usersWithDisabledResponse.body.find((user: { id: string }) => user.id === secondaryUserId);
+    const disabledSecondary = usersWithDisabledResponse.body.find(
+      (user: { id: string }) => user.id === secondaryUserId
+    );
     expect(disabledPrimary.effectiveLoginDisabled).to.equal(true);
     expect(disabledSecondary.effectiveLoginDisabled).to.equal(true);
     expect(disabledSecondary.disabledByPrimaryUserId).to.equal(primaryUserId);
 
     const enableResponse = await agent
       .post(`/default/rdmp/admin/users/${primaryUserId}/enable`)
-      .set("X-Source", "jsclient")
-      .send({})
+      .set('X-Source', 'jsclient')
+      .send({ expectedVersion: (await User.findOne({ id: primaryUserId })).loginDisabledVersion })
       .expect(200);
 
     expect(enableResponse.body.status).to.equal(true);
 
     const auditResponse = await agent
       .get(`/default/rdmp/admin/users/${primaryUserId}/audit`)
-      .set("X-Source", "jsclient")
+      .set('X-Source', 'jsclient')
       .expect(200);
 
     expect(auditResponse.body.user.id).to.equal(primaryUserId);
-    expect(auditResponse.body.records).to.be.an("array");
+    expect(auditResponse.body.records).to.be.an('array');
 
     const actions = auditResponse.body.records.map((record: { action: string }) => record.action);
-    expect(actions).to.include("link-accounts");
-    expect(actions).to.include("disable-user");
-    expect(actions).to.include("enable-user");
+    expect(actions).to.include('link-accounts');
+    expect(actions).to.include('disable-user');
+    expect(actions).to.include('enable-user');
   });
 });

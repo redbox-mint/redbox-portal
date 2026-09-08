@@ -1,3 +1,4 @@
+import { withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   buildRoleIdentityKey,
@@ -33,7 +34,7 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
   before(async () => {
     const admin = await User.findOne({ username: 'admin' });
     expect(admin).to.exist;
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     brandA = await BrandingConfig.findOne({ name: 'default' });
     expect(brandA).to.exist;
     brandB = await BrandingConfig.create({ name: `phase7-brand-${suffix}` }).fetch();

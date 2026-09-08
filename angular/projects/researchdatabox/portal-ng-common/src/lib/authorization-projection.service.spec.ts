@@ -33,7 +33,6 @@ describe('AuthorizationProjectionService', () => {
         ConfigService,
         LoggerService,
         UtilityService,
-        AuthorizationProjectionService,
       ],
     });
     service = TestBed.inject(AuthorizationProjectionService);

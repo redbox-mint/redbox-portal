@@ -13,6 +13,11 @@ export interface AuthorizationRolloutCollectionServiceAccess {
 }
 
 export interface RoleAdministrationServiceAccess {
+  getRole(
+    actor: AuthorizationContext,
+    brandId: string,
+    roleKey: string
+  ): Promise<{ readonly effectiveScopeKeys: readonly ScopeKey[] }>;
   grantAssignment(command: Record<string, unknown>): Promise<unknown>;
   revokeAssignment(command: Record<string, unknown>): Promise<unknown>;
   suppressAssignment(command: Record<string, unknown>): Promise<unknown>;

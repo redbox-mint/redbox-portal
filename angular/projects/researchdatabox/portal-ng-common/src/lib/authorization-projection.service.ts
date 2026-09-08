@@ -15,7 +15,7 @@ type ProjectionResponse = AuthorizationProjection | { data: AuthorizationProject
  *
  * This service is only an affordance layer. Server routes remain authoritative.
  */
-@Injectable({ providedIn: 'platform' })
+@Injectable({ providedIn: 'root' })
 export class AuthorizationProjectionService extends HttpClientService {
   private readonly stateSubject = new BehaviorSubject<AuthorizationProjectionState>({ status: 'idle' });
   private request?: Promise<AuthorizationProjection>;

@@ -1,3 +1,4 @@
+import { withMigrationLease } from '../helpers/authorization';
 describe('Authorization Phase 3 migration and bootstrap', function () {
   this.timeout(60_000);
 
@@ -11,7 +12,7 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
 
   async function protectedSystemAssignment() {
     const admin = await bootstrapAdmin();
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     await AuthorizationBootstrapService.bootstrap({ bootstrapUser: admin });
     const systemRole = await Role.findOne({
       protectedKind: 'system-admin',
@@ -84,7 +85,7 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
 
   it('establishes fresh protected state and reruns without duplicate catalog or assignments', async () => {
     const admin = await bootstrapAdmin();
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
 
     // The first run may legitimately do work — for example creating a Guest role for a
     // brand an earlier test introduced. Idempotency is a property of the rerun, so the
@@ -174,9 +175,9 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
   });
 
   it('writes no catalog audit events when the declared registry is unchanged', async () => {
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     const before = await AuthorizationAudit.count({ targetType: 'authorization-scope' });
-    const result = await AuthorizationScopeService.bootstrap();
+    const result = await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
 
     expect(result.scopesCreated).to.equal(0);
     expect(result.scopesUpdated).to.equal(0);
@@ -207,11 +208,15 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
     await User.addToCollection(alias.id, 'roles').members([guest.id, researcher.id]);
 
     const recordsBefore = JSON.stringify(await Record.find({}));
-    const rolesFirst = await AuthorizationMigrationService.reconcileBrandRoles(2);
-    const assignmentsFirst = await AuthorizationMigrationService.migrateUserAssignments(2, [alias.id]);
+    const rolesFirst = await withMigrationLease(lease => AuthorizationMigrationService.reconcileBrandRoles(2, lease));
+    const assignmentsFirst = await withMigrationLease(lease =>
+      AuthorizationMigrationService.migrateUserAssignments(2, [alias.id], lease)
+    );
     const assignmentsAfterFirst = await RoleAssignment.count({ source: 'migration' });
-    const rolesSecond = await AuthorizationMigrationService.reconcileBrandRoles(2);
-    const assignmentsSecond = await AuthorizationMigrationService.migrateUserAssignments(2, [alias.id]);
+    const rolesSecond = await withMigrationLease(lease => AuthorizationMigrationService.reconcileBrandRoles(2, lease));
+    const assignmentsSecond = await withMigrationLease(lease =>
+      AuthorizationMigrationService.migrateUserAssignments(2, [alias.id], lease)
+    );
 
     const migratedRole = await Role.findOne({ id: researcher.id });
     const retainedAlias = await User.findOne({ id: alias.id }).populate('roles');
@@ -248,7 +253,7 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
       metadataVersion: 1,
     }).fetch();
 
-    const startup = await AuthorizationScopeService.bootstrap();
+    const startup = await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     expect((await AuthorizationScope.findOne({ id: created.id })).status).to.equal('active');
     const preview = await AuthorizationScopeService.reconcileOrphans({ limit: 100 });
     expect(preview.impacts.map((impact: { key: string }) => impact.key)).to.include(key);
