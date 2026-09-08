@@ -256,10 +256,16 @@ describe('Authorization persistence models', function () {
     await expectRejected(createRoleAssignment({ ...assignment, branding: otherBrand.id }), /must match its brand role/);
 
     const guest = await createBrandRole(`Guest Exact ${id}`, brand.id, 'guest');
-    await expectRejected(
-      createRoleAssignment({ ...assignment, role: guest.id, branding: brand.id }),
-      /Guest is implicit/
-    );
+    try {
+      await expectRejected(
+        createRoleAssignment({ ...assignment, role: guest.id, branding: brand.id }),
+        /Guest is implicit/
+      );
+    } finally {
+      // This deliberately malformed protected role must not poison later
+      // bootstrap and request-authorization checks for the shared default brand.
+      await Role.destroy({ id: guest.id });
+    }
   });
 
   it('validates an assignment against a Role created on the same transaction connection', async () => {

@@ -1,3 +1,4 @@
+import { withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   freezeAuthorizationContext,
@@ -16,7 +17,7 @@ describe('Authorization Phase 6 route enforcement and rollout wiring', function 
   });
 
   it('starts with a valid rollout mode and a complete merged route declaration inventory', async () => {
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     expect(['legacy', 'shadow', 'enforce']).to.include(sails.config.authorization.mode);
     expect(() => AuthorizationRolloutService.validateRouteConfiguration()).not.to.throw();
 

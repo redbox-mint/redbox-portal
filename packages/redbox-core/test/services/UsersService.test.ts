@@ -190,6 +190,47 @@ describe('UsersService', function () {
     sinon.restore();
   });
 
+  describe('onboarding role assignment', function () {
+    for (const provider of ['oidc', 'aaf']) {
+      it(`delegates only the configured ${provider} role scopes`, async function () {
+        mockSails.services.authorizationscopeservice = {
+          getRegistry: () => ({
+            validateScopeKeys: (keys: string[]) => ({
+              activeScopeKeys: keys,
+              inactiveScopeKeys: [],
+              missingScopeKeys: [],
+            }),
+          }),
+        };
+        mockSails.services.brandingservice = { getBrandById: async () => ({ id: 'brand-1', name: 'default' }) };
+        const getRole = sinon.stub().resolves({ effectiveScopeKeys: ['record.create', 'record.read'] });
+        const grantAssignment = sinon.stub().resolves({});
+        mockSails.services.roleadministrationservice = { getRole, grantAssignment };
+
+        await UsersService.assignOnboardingRole({ id: 'user-1' }, { id: 'brand-1' }, { name: 'Researcher' }, provider);
+
+        expect(getRole.calledOnce).to.equal(true);
+        expect(getRole.firstCall.args[0].effectiveScopeKeys).to.deep.equal(['authorization.role.read']);
+        expect(getRole.firstCall.args.slice(1)).to.deep.equal(['brand-1', 'Researcher']);
+        expect(grantAssignment.calledOnce).to.equal(true);
+        const command = grantAssignment.firstCall.args[0];
+        expect(command).to.include({
+          brandId: 'brand-1',
+          principalId: 'user-1',
+          roleKey: 'Researcher',
+          source: 'onboarding',
+          sourceKey: provider,
+        });
+        expect(command.actor.principal.category).to.equal('system-process');
+        expect(command.actor.effectiveScopeKeys).to.have.members([
+          'authorization.assignment.manage',
+          'record.create',
+          'record.read',
+        ]);
+      });
+    }
+  });
+
   describe('hasRole', function () {
     it('should return role object when user has the role', function () {
       const user = {

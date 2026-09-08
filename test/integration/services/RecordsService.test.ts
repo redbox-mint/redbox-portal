@@ -1,3 +1,4 @@
+import { adminMutationOptions } from '../helpers/authorization';
 import { firstValueFrom } from 'rxjs';
 import sinon from 'sinon';
 import { createRecordSaveContext, type RecordValidationResolutionMetric } from '@researchdatabox/redbox-core';
@@ -67,11 +68,24 @@ describe('The RecordsService', function () {
     const editorUsername = `recordaudit-editor-${suffix}`;
     const viewerUsername = `recordaudit-viewer-${suffix}`;
 
+    const options = await adminMutationOptions();
     const editor = await firstValueFrom(
-      UsersService.addLocalUser(editorUsername, 'Record Audit Editor', `${editorUsername}@example.edu.au`, 'RBTest123!')
+      UsersService.addLocalUser(
+        editorUsername,
+        'Record Audit Editor',
+        `${editorUsername}@example.edu.au`,
+        'RBTest123!',
+        options
+      )
     );
     const viewer = await firstValueFrom(
-      UsersService.addLocalUser(viewerUsername, 'Record Audit Viewer', `${viewerUsername}@example.edu.au`, 'RBTest123!')
+      UsersService.addLocalUser(
+        viewerUsername,
+        'Record Audit Viewer',
+        `${viewerUsername}@example.edu.au`,
+        'RBTest123!',
+        options
+      )
     );
     createdUserIds.push(String(editor.id), String(viewer.id));
 

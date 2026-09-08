@@ -69,7 +69,8 @@ function systemProcessIssuerDeps(): AuthorizationActorIssuerDependencies {
     },
     resolveBrand: async identifier => {
       const service = sails.services?.brandingservice as
-        { getBrandById?: (id: string) => unknown; getBrand?: (id: string) => unknown } | undefined;
+        | { getBrandById?: (id: string) => unknown; getBrand?: (id: string) => unknown }
+        | undefined;
       const resolved = (await service?.getBrandById?.(identifier)) ?? (await service?.getBrand?.(identifier));
       return issuerBrandRecord(resolved);
     },
@@ -380,12 +381,20 @@ export namespace Services {
       }
 
       const roleAdministrationService = roleAdministrationAccess();
-      // AUTH-REQUEST-MUTATION-001: onboarding receives exactly the assignment
-      // scope it needs — no registry-wide grant. createSystemProcessContext
-      // further narrows to brand/system-eligible scopes.
       const operationId = `onboarding:${provider}:${String(brand.id)}:${String(userId)}`;
+      const reader = await createSystemProcessContextInternal(
+        systemProcessIssuerDeps(),
+        operationId,
+        String(brand.id),
+        ['authorization.role.read']
+      );
+      const configuredRole = await roleAdministrationService.getRole(reader, String(brand.id), role.name);
+      // Delegate only the configured onboarding role's current scopes. The guarded
+      // writer rechecks the role in its transaction, so a concurrent scope increase
+      // fails the delegation ceiling rather than gaining unreviewed authority.
       const actor = await createSystemProcessContextInternal(systemProcessIssuerDeps(), operationId, String(brand.id), [
         'authorization.assignment.manage',
+        ...configuredRole.effectiveScopeKeys,
       ]);
 
       await roleAdministrationService.grantAssignment({

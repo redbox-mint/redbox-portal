@@ -1,3 +1,4 @@
+import { withMigrationLease } from '../helpers/authorization';
 import type { AuthorizationContext } from '../../../packages/redbox-core/src/authorization';
 import { Services } from '../../../packages/redbox-core/src/services/RoleAdministrationService';
 
@@ -23,7 +24,7 @@ describe('Authorization Phase 5 role and assignment administration', function ()
   before(async () => {
     const admin = await User.findOne({ username: 'admin' });
     expect(admin).to.exist;
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     brand = await BrandingConfig.findOne({ name: 'default' });
     expect(brand).to.exist;
     await AuthorizationBootstrapService.bootstrap({ bootstrapUser: admin });

@@ -1,3 +1,4 @@
+import { withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   buildRoleIdentityKey,
@@ -42,7 +43,7 @@ describe('Authorization Phase 8.4 assignment contract services', function () {
   before(async () => {
     const admin = await User.findOne({ username: 'admin' });
     expect(admin).to.exist;
-    await AuthorizationScopeService.bootstrap();
+    await withMigrationLease(lease => AuthorizationScopeService.bootstrap(undefined, lease));
     brand = await BrandingConfig.findOne({ name: 'default' });
     expect(brand).to.exist;
     const defaultBrandAdministratorRole = await Role.findOne({

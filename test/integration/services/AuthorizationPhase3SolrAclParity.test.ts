@@ -1,3 +1,4 @@
+import { withMigrationLease } from '../helpers/authorization';
 /**
  * P3-009: Phase 3 Solr authorization_* byte-for-byte parity.
  *
@@ -82,7 +83,6 @@ describe('Authorization Phase 3 Solr ACL parity (P3-009)', function () {
             editRoles: variant === 'edit' ? ['Librarians'] : [],
           };
     return {
-      id: `p3-009-${variant}`,
       redboxOid: `p3-009-${variant}`,
       harvestId: 'p3-009',
       metaMetadata: { brandId: 'brand-p3-009', searchCore: coreId, type: 'rdmp' },
@@ -201,7 +201,7 @@ describe('Authorization Phase 3 Solr ACL parity (P3-009)', function () {
       // protected state, then re-fetch persisted records and reindex exactly
       // as production reindexing does.
       const globals = global as {
-        AuthorizationMigrationService?: { run: () => Promise<unknown> };
+        AuthorizationMigrationService?: { run: (batchSize: undefined, lease: unknown) => Promise<unknown> };
         AuthorizationBootstrapService?: { bootstrap: (input: unknown) => Promise<unknown> };
         User?: { findOne: (criteria: unknown) => Promise<{ id: string } | undefined> };
         Record?: { findOne: (criteria: unknown) => Promise<Record<string, unknown> | undefined> };
@@ -209,7 +209,7 @@ describe('Authorization Phase 3 Solr ACL parity (P3-009)', function () {
       if (globals.AuthorizationMigrationService?.run === undefined) {
         throw new Error('AuthorizationMigrationService.run is unavailable in the integration profile.');
       }
-      await globals.AuthorizationMigrationService.run();
+      await withMigrationLease(lease => globals.AuthorizationMigrationService!.run(undefined, lease));
       const admin = await globals.User?.findOne({ username: 'admin' });
       if (admin === undefined || globals.AuthorizationBootstrapService?.bootstrap === undefined) {
         throw new Error('Bootstrap parent administrator is unavailable in the integration profile.');
