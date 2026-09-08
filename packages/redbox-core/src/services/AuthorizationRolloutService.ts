@@ -16,7 +16,6 @@ import {
   normalizeRouteAuthorization,
   sanitizeAuthorizationText,
   validateRouteAuthorizations,
-  type AuthorizationAuditOutcome,
   type AuthorizationContext,
   type AuthorizationDecision,
   type AuthorizationMismatchClassification,
@@ -161,8 +160,8 @@ export interface AuthorizationRolloutDependencies {
    */
   readonly appendAuditEvent: (
     input: AuthorizationAuditEventInput,
-    outcome: AuthorizationAuditOutcome,
-    connection?: Sails.Connection
+    outcome: 'succeeded',
+    connection: Sails.Connection
   ) => Promise<void>;
   /**
    * Transaction runner coupling the native mismatch mutation with the
@@ -359,54 +358,28 @@ const RETENTION_DAYS_MIN = 1;
 const RETENTION_DAYS_MAX = 36_500;
 const INTEGER_TEXT_PATTERN = /^\d+$/;
 
-function parseRetentionOlderThanDays(value: unknown): number {
-  if (typeof value === 'number') {
-    if (!Number.isSafeInteger(value) || value < RETENTION_DAYS_MIN || value > RETENTION_DAYS_MAX) {
-      throw new Error(
-        `Retention requires olderThanDays as a bounded safe integer between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX}.`
-      );
-    }
-    return value;
-  }
+function parseBoundedInteger(value: unknown, minimum: number, maximum: number, message: string): number {
   if (typeof value === 'string') {
     const text = value.trim();
-    if (!INTEGER_TEXT_PATTERN.test(text)) {
-      throw new Error(
-        `Retention requires olderThanDays as a bounded safe integer between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX}.`
-      );
-    }
-    const parsed = Number(text);
-    if (!Number.isSafeInteger(parsed) || parsed < RETENTION_DAYS_MIN || parsed > RETENTION_DAYS_MAX) {
-      throw new Error(
-        `Retention requires olderThanDays as a bounded safe integer between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX}.`
-      );
-    }
-    return parsed;
+    value = INTEGER_TEXT_PATTERN.test(text) ? Number(text) : undefined;
   }
-  throw new Error(
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < minimum || value > maximum) {
+    throw new Error(message);
+  }
+  return value;
+}
+
+function parseRetentionOlderThanDays(value: unknown): number {
+  return parseBoundedInteger(
+    value,
+    RETENTION_DAYS_MIN,
+    RETENTION_DAYS_MAX,
     `Retention requires olderThanDays as a bounded safe integer between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX}.`
   );
 }
 
 function parseRetentionListLimit(value: unknown): number {
-  if (typeof value === 'number') {
-    if (!Number.isSafeInteger(value) || value < 1 || value > 10_000) {
-      throw new Error('Retention requires a bounded per-invocation limit of at most 10,000.');
-    }
-    return value;
-  }
-  if (typeof value === 'string') {
-    const text = value.trim();
-    if (!INTEGER_TEXT_PATTERN.test(text)) {
-      throw new Error('Retention requires a bounded per-invocation limit of at most 10,000.');
-    }
-    const parsed = Number(text);
-    if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 10_000) {
-      throw new Error('Retention requires a bounded per-invocation limit of at most 10,000.');
-    }
-    return parsed;
-  }
-  throw new Error('Retention requires a bounded per-invocation limit of at most 10,000.');
+  return parseBoundedInteger(value, 1, 10_000, 'Retention requires a bounded per-invocation limit of at most 10,000.');
 }
 
 function canonicalOperatorReason(value: unknown, operation: string): string {
@@ -529,21 +502,10 @@ function isAuditService(value: unknown): value is {
   return isRecord(value) && typeof value.createSucceededEvent === 'function';
 }
 
-function defaultAppendAuditEvent(
-  input: AuthorizationAuditEventInput,
-  outcome: AuthorizationAuditOutcome,
-  connection?: Sails.Connection
-): Promise<void> {
-  if (outcome !== 'succeeded') {
-    throw new Error('Shadow mismatch operator audit only records succeeded outcomes.');
-  }
-  const auditService = runtimeService('authorizationauditservice', isAuditService);
-  if (connection !== undefined) {
-    return auditService.createSucceededEvent(input, connection).then(() => undefined);
-  }
-  return runWithRequiredTransaction(AuthorizationAudit.getDatastore(), nested =>
-    auditService.createSucceededEvent(input, nested).then(() => undefined)
-  );
+function defaultAppendAuditEvent(input: AuthorizationAuditEventInput, connection: Sails.Connection): Promise<void> {
+  return runtimeService('authorizationauditservice', isAuditService)
+    .createSucceededEvent(input, connection)
+    .then(() => undefined);
 }
 
 function defaultDependencies(): AuthorizationRolloutDependencies {
@@ -559,7 +521,7 @@ function defaultDependencies(): AuthorizationRolloutDependencies {
       runtimeService('authorizationservice', isScopeAuthorizationService).authorizeAction(context, authorization.scope),
     evaluateLegacy: defaultLegacyEvaluation,
     persistMismatch: input => persistShadowMismatch(input, new Date()),
-    appendAuditEvent: (input, outcome, connection) => defaultAppendAuditEvent(input, outcome, connection),
+    appendAuditEvent: (input, _outcome, connection) => defaultAppendAuditEvent(input, connection),
     runAtomic: work => runWithRequiredTransaction(AuthorizationShadowMismatch.getDatastore(), work),
   };
 }
@@ -914,46 +876,32 @@ export namespace Services {
           .find(resolvedFilter, { projection: { _id: 1 } })
           .limit(limit + 1)
           .toArray()) as Array<{ _id?: unknown }>;
-        if (stale.length === 0) {
-          await this.dependencies.appendAuditEvent(
-            {
-              actorType: 'operator',
-              actorId: retainedBy,
-              authMethod: 'operator',
-              eventType: 'shadow.retention.completed',
-              targetType: 'authorization-shadow-mismatch',
-              after: { deleted: 0, truncated: false, olderThanDays, limit, cutoff },
-              reasonCode: 'shadow-retention-completed',
-              reason,
-            },
-            'succeeded',
-            connection
-          );
-          return Object.freeze({ deleted: 0, truncated: false });
-        }
         const truncated = stale.length > limit;
-        const ids = stale
-          .slice(0, limit)
-          .map(row => row._id)
-          .filter(id => id !== undefined);
-        // The audit summary carries only the driver-confirmed deletedCount:
-        // a concurrent delete racing this invocation must be reported as
-        // observed, not as assumed. A missing/invalid count fails closed so
-        // the audit never records a synthetic ids.length estimate.
-        const deletion = (await collection.deleteMany({ ...resolvedFilter, _id: { $in: ids } })) as
-          | { deletedCount?: unknown }
-          | null
-          | undefined;
-        if (
-          deletion === null ||
-          deletion === undefined ||
-          !Number.isSafeInteger(deletion.deletedCount) ||
-          Number(deletion.deletedCount) < 0
-        ) {
-          throw new Error('Authorization shadow mismatch retention did not return a valid deletedCount.');
+        let deleted = 0;
+        if (stale.length > 0) {
+          const ids = stale
+            .slice(0, limit)
+            .map(row => row._id)
+            .filter(id => id !== undefined);
+          // The audit summary carries only the driver-confirmed deletedCount:
+          // a concurrent delete racing this invocation must be reported as
+          // observed, not as assumed. A missing/invalid count fails closed so
+          // the audit never records a synthetic ids.length estimate.
+          const deletion = (await collection.deleteMany({ ...resolvedFilter, _id: { $in: ids } })) as
+            | { deletedCount?: unknown }
+            | null
+            | undefined;
+          if (
+            deletion === null ||
+            deletion === undefined ||
+            !Number.isSafeInteger(deletion.deletedCount) ||
+            Number(deletion.deletedCount) < 0
+          ) {
+            throw new Error('Authorization shadow mismatch retention did not return a valid deletedCount.');
+          }
+          deleted = Number(deletion.deletedCount);
         }
-        const confirmed = Number(deletion.deletedCount);
-        const result = Object.freeze({ deleted: confirmed, truncated });
+        const result = Object.freeze({ deleted, truncated });
         // Same-transaction audit: a failure aborts the deletion above, so
         // resolved rows are never removed without audit evidence.
         await this.dependencies.appendAuditEvent(

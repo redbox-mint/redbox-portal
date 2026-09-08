@@ -101,6 +101,47 @@ function queryResult<T>(value: T) {
   return query;
 }
 
+function installReadyAdminFixtures(): void {
+  Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
+  Reflect.set(globalThis, 'User', {
+    find: () =>
+      queryResult([
+        { id: 'brand-admin', accountLinkState: 'active' },
+        { id: 'system-admin', accountLinkState: 'active' },
+        { id: 'system-admin-2', accountLinkState: 'active' },
+      ]),
+  });
+  Reflect.set(globalThis, 'RoleAssignment', {
+    find: () =>
+      queryResult([
+        {
+          id: 'brand-assignment',
+          role: 'brand-admin-role',
+          branding: 'brand-1',
+          principalId: 'brand-admin',
+          status: 'active',
+          sourcePresent: true,
+        },
+        {
+          id: 'system-assignment',
+          role: 'system-admin-role',
+          branding: null,
+          principalId: 'system-admin',
+          status: 'active',
+          sourcePresent: true,
+        },
+        {
+          id: 'system-assignment-2',
+          role: 'system-admin-role',
+          branding: null,
+          principalId: 'system-admin-2',
+          status: 'active',
+          sourcePresent: true,
+        },
+      ]),
+  });
+}
+
 function systemActor(active = true): AuthorizationContext {
   return freezeAuthorizationContext({
     contextType: 'brand',
@@ -1127,44 +1168,7 @@ describe('AuthorizationReadinessService', () => {
   });
 
   it('does not treat operator-supplied identity as deployment evidence without a runtime signal', async () => {
-    Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
-    Reflect.set(globalThis, 'User', {
-      find: () =>
-        queryResult([
-          { id: 'brand-admin', accountLinkState: 'active' },
-          { id: 'system-admin', accountLinkState: 'active' },
-          { id: 'system-admin-2', accountLinkState: 'active' },
-        ]),
-    });
-    Reflect.set(globalThis, 'RoleAssignment', {
-      find: () =>
-        queryResult([
-          {
-            id: 'brand-assignment',
-            role: 'brand-admin-role',
-            branding: 'brand-1',
-            principalId: 'brand-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment-2',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin-2',
-            status: 'active',
-            sourcePresent: true,
-          },
-        ]),
-    });
+    installReadyAdminFixtures();
     const report = await readinessService({ getRuntimeIdentity: () => ({}) }).getReport(systemActor());
     assert.deepEqual(report.deploymentIdentity, { complete: false });
     assert.equal(report.releaseGates.identity.complete, false);
@@ -1179,44 +1183,7 @@ describe('AuthorizationReadinessService', () => {
   });
 
   it('blocks when expected deployment values disagree with the observed runtime identity', async () => {
-    Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
-    Reflect.set(globalThis, 'User', {
-      find: () =>
-        queryResult([
-          { id: 'brand-admin', accountLinkState: 'active' },
-          { id: 'system-admin', accountLinkState: 'active' },
-          { id: 'system-admin-2', accountLinkState: 'active' },
-        ]),
-    });
-    Reflect.set(globalThis, 'RoleAssignment', {
-      find: () =>
-        queryResult([
-          {
-            id: 'brand-assignment',
-            role: 'brand-admin-role',
-            branding: 'brand-1',
-            principalId: 'brand-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment-2',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin-2',
-            status: 'active',
-            sourcePresent: true,
-          },
-        ]),
-    });
+    installReadyAdminFixtures();
     const report = await readinessService({
       getRuntimeIdentity: () => ({ buildVersion: '9.9.9', instanceId: 'other-instance' }),
     }).getReport(systemActor());
@@ -1238,44 +1205,7 @@ describe('AuthorizationReadinessService', () => {
   });
 
   it('reports runtime deployment identity alongside mode and registry generation', async () => {
-    Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
-    Reflect.set(globalThis, 'User', {
-      find: () =>
-        queryResult([
-          { id: 'brand-admin', accountLinkState: 'active' },
-          { id: 'system-admin', accountLinkState: 'active' },
-          { id: 'system-admin-2', accountLinkState: 'active' },
-        ]),
-    });
-    Reflect.set(globalThis, 'RoleAssignment', {
-      find: () =>
-        queryResult([
-          {
-            id: 'brand-assignment',
-            role: 'brand-admin-role',
-            branding: 'brand-1',
-            principalId: 'brand-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment-2',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin-2',
-            status: 'active',
-            sourcePresent: true,
-          },
-        ]),
-    });
+    installReadyAdminFixtures();
     const report = await readinessService().getReport(systemActor());
     assert.equal(report.mode, 'shadow');
     assert.equal(report.registry.generation, registry.generation);
@@ -1296,44 +1226,7 @@ describe('AuthorizationReadinessService', () => {
   });
 
   it('samples the runtime identity once and reuses the observation for deployment identity and release gates', async () => {
-    Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
-    Reflect.set(globalThis, 'User', {
-      find: () =>
-        queryResult([
-          { id: 'brand-admin', accountLinkState: 'active' },
-          { id: 'system-admin', accountLinkState: 'active' },
-          { id: 'system-admin-2', accountLinkState: 'active' },
-        ]),
-    });
-    Reflect.set(globalThis, 'RoleAssignment', {
-      find: () =>
-        queryResult([
-          {
-            id: 'brand-assignment',
-            role: 'brand-admin-role',
-            branding: 'brand-1',
-            principalId: 'brand-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment-2',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin-2',
-            status: 'active',
-            sourcePresent: true,
-          },
-        ]),
-    });
+    installReadyAdminFixtures();
     let observations = 0;
     const report = await readinessService({
       getRuntimeIdentity: () => {
@@ -1373,44 +1266,7 @@ describe('AuthorizationReadinessService', () => {
   });
 
   it('invalidates the durable fingerprint on any bundle mutation', async () => {
-    Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
-    Reflect.set(globalThis, 'User', {
-      find: () =>
-        queryResult([
-          { id: 'brand-admin', accountLinkState: 'active' },
-          { id: 'system-admin', accountLinkState: 'active' },
-          { id: 'system-admin-2', accountLinkState: 'active' },
-        ]),
-    });
-    Reflect.set(globalThis, 'RoleAssignment', {
-      find: () =>
-        queryResult([
-          {
-            id: 'brand-assignment',
-            role: 'brand-admin-role',
-            branding: 'brand-1',
-            principalId: 'brand-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment-2',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin-2',
-            status: 'active',
-            sourcePresent: true,
-          },
-        ]),
-    });
+    installReadyAdminFixtures();
     async function readinessWithEvidence(evidence: unknown) {
       return readinessService({ getReleaseEvidence: () => evidence as never }).getReport(systemActor());
     }
@@ -1436,44 +1292,7 @@ describe('AuthorizationReadinessService', () => {
   });
 
   it('exposes bounded grouped shadow summaries without gating readiness', async () => {
-    Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
-    Reflect.set(globalThis, 'User', {
-      find: () =>
-        queryResult([
-          { id: 'brand-admin', accountLinkState: 'active' },
-          { id: 'system-admin', accountLinkState: 'active' },
-          { id: 'system-admin-2', accountLinkState: 'active' },
-        ]),
-    });
-    Reflect.set(globalThis, 'RoleAssignment', {
-      find: () =>
-        queryResult([
-          {
-            id: 'brand-assignment',
-            role: 'brand-admin-role',
-            branding: 'brand-1',
-            principalId: 'brand-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment-2',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin-2',
-            status: 'active',
-            sourcePresent: true,
-          },
-        ]),
-    });
+    installReadyAdminFixtures();
     const summary = {
       byRoute: [{ key: 'GET /:branding/:portal/admin (AdminController#index)', count: 3 }],
       byReason: [{ key: 'scope-missing', count: 3 }],
@@ -1577,44 +1396,7 @@ describe('AuthorizationReadinessService', () => {
   });
 
   it('validates bounded grouped shadow summaries against the readiness schema', async () => {
-    Reflect.set(globalThis, 'BrandingConfig', { find: () => queryResult([{ id: 'brand-1' }]) });
-    Reflect.set(globalThis, 'User', {
-      find: () =>
-        queryResult([
-          { id: 'brand-admin', accountLinkState: 'active' },
-          { id: 'system-admin', accountLinkState: 'active' },
-          { id: 'system-admin-2', accountLinkState: 'active' },
-        ]),
-    });
-    Reflect.set(globalThis, 'RoleAssignment', {
-      find: () =>
-        queryResult([
-          {
-            id: 'brand-assignment',
-            role: 'brand-admin-role',
-            branding: 'brand-1',
-            principalId: 'brand-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin',
-            status: 'active',
-            sourcePresent: true,
-          },
-          {
-            id: 'system-assignment-2',
-            role: 'system-admin-role',
-            branding: null,
-            principalId: 'system-admin-2',
-            status: 'active',
-            sourcePresent: true,
-          },
-        ]),
-    });
+    installReadyAdminFixtures();
     const report = await readinessService({
       summarizeShadow: async () => ({
         byRoute: [{ key: 'route-1', count: 2 }],

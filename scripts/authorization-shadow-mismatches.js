@@ -132,48 +132,6 @@ function parseRetentionDays(raw) {
   return days;
 }
 
-// Validates the format of provided flags without requiring presence. Used on
-// the --help path so `action --help` with valid flags still prints help while
-// invalid, unknown, or out-of-bounds flags are rejected before help is honored.
-function validateHelpOptionValues(action, options) {
-  if (action === 'close-remediated') {
-    for (const name of ['evidence-file', 'reason', 'operator']) {
-      if (options[name] !== undefined && options[name].trim().length === 0) fail(`Remediation requires --${name}.`);
-    }
-    return;
-  }
-  if (action === 'list') {
-    if (options.limit !== undefined) parseListLimit(options.limit);
-    if (options.cursor !== undefined && !FINGERPRINT_PATTERN.test(options.cursor)) {
-      fail('Listing cursor must be an exact 64-character mismatch fingerprint.');
-    }
-    return;
-  }
-  if (action === 'acknowledge') {
-    if (options.fingerprint !== undefined && !FINGERPRINT_PATTERN.test(options.fingerprint)) {
-      fail('Acknowledgement requires the exact 64-character mismatch fingerprint.');
-    }
-    if (options.reason !== undefined && options.reason.trim().length === 0) {
-      fail('Acknowledge requires --fingerprint, --reason, --operator, and --classification.');
-    }
-    if (options.operator !== undefined && options.operator.trim().length === 0) {
-      fail('Acknowledge requires --fingerprint, --reason, --operator, and --classification.');
-    }
-    if (options.classification !== undefined && !MISMATCH_CLASSIFICATIONS.includes(options.classification)) {
-      fail(`Acknowledge requires --classification as one of: ${MISMATCH_CLASSIFICATIONS.join(', ')}.`);
-    }
-    return;
-  }
-  if (options['older-than-days'] !== undefined) parseRetentionDays(options['older-than-days']);
-  if (options.limit !== undefined) parseRetentionLimit(options.limit);
-  if (options.reason !== undefined && options.reason.trim().length === 0) {
-    fail('Retain requires --older-than-days=<days>, --reason, and --operator.');
-  }
-  if (options.operator !== undefined && options.operator.trim().length === 0) {
-    fail('Retain requires --older-than-days=<days>, --reason, and --operator.');
-  }
-}
-
 // Strict argv parsing that runs fully BEFORE any Sails lift. Rejects unknown,
 // malformed, duplicate, and extra positional arguments plus out-of-bounds
 // numerics so invalid invocations never touch the datastore.
@@ -216,58 +174,35 @@ function parseArgv(argv) {
     positionals.push(token);
   }
 
-  if (helpRequested) {
-    const [helpAction, ...helpExtra] = positionals;
-    if (helpExtra.length > 0) {
-      fail(`Unexpected extra argument ${JSON.stringify(helpExtra[0])}: expected only one action.`);
-    }
-    if (helpAction !== undefined && !ACTIONS.includes(helpAction)) {
-      fail(`Shadow mismatch workflow requires one of: ${ACTIONS.join(', ')}.`);
-    }
-    if (helpAction === undefined) {
-      for (const name of seen.keys()) {
-        if (name === 'help') continue;
-        fail(`Unknown argument --${name} without an action: expected only --help.`);
-      }
-      return { help: true, action: undefined };
-    }
-    const helpAllowed = ALLOWLIST[helpAction];
-    for (const name of seen.keys()) {
-      if (name === 'help') continue;
-      if (!helpAllowed.has(name)) {
-        fail(`Unknown argument --${name} for action ${JSON.stringify(helpAction)}.`);
-      }
-    }
-    const helpOptions = {};
-    for (const [name, value] of seen.entries()) {
-      if (name === 'help') continue;
-      helpOptions[name] = value;
-    }
-    validateHelpOptionValues(helpAction, helpOptions);
-    return { help: true, action: helpAction };
-  }
-
   const [action, ...extra] = positionals;
-  if (action === undefined || !ACTIONS.includes(action)) {
-    fail(`Shadow mismatch workflow requires one of: ${ACTIONS.join(', ')}.`);
-  }
-  if (extra.length > 0) {
+  // Help historically reports extra positionals before an invalid action;
+  // normal invocations report the invalid action first.
+  if (extra.length > 0 && (helpRequested || ACTIONS.includes(action))) {
     fail(`Unexpected extra argument ${JSON.stringify(extra[0])}: expected only one action.`);
   }
-
-  const allowed = ALLOWLIST[action];
-  for (const name of seen.keys()) {
-    if (!allowed.has(name)) {
-      fail(`Unknown argument --${name} for action ${JSON.stringify(action)}.`);
-    }
+  if (!ACTIONS.includes(action) && !(helpRequested && action === undefined)) {
+    fail(`Shadow mismatch workflow requires one of: ${ACTIONS.join(', ')}.`);
   }
 
   const options = {};
   for (const [name, value] of seen.entries()) {
     if (name === 'help') continue;
+    if (action === undefined) {
+      fail(`Unknown argument --${name} without an action: expected only --help.`);
+    }
+    if (!ALLOWLIST[action].has(name)) {
+      fail(`Unknown argument --${name} for action ${JSON.stringify(action)}.`);
+    }
     options[name] = value;
   }
 
+  const parsedOptions = action === undefined ? options : validateOptions(action, options, helpRequested);
+  return helpRequested ? { help: true, action } : { help: false, action, options: parsedOptions };
+}
+
+// Help skips required fields while validating every provided option through
+// the same path as normal invocations, before any Sails lift.
+function validateOptions(action, options, helpRequested) {
   if (action === 'list') {
     if (options.limit !== undefined) {
       options.limit = parseListLimit(options.limit);
@@ -277,51 +212,50 @@ function parseArgv(argv) {
         fail('Listing cursor must be an exact 64-character mismatch fingerprint.');
       }
     }
-    return { help: false, action, options };
+    return options;
   }
 
   if (action === 'acknowledge') {
     const { fingerprint, reason, operator, classification } = options;
-    if (fingerprint === undefined || reason === undefined || operator === undefined || classification === undefined) {
+    if (
+      !helpRequested &&
+      (fingerprint === undefined || reason === undefined || operator === undefined || classification === undefined)
+    ) {
       fail('Acknowledge requires --fingerprint, --reason, --operator, and --classification.');
     }
-    if (!FINGERPRINT_PATTERN.test(fingerprint)) {
+    if (fingerprint !== undefined && !FINGERPRINT_PATTERN.test(fingerprint)) {
       fail('Acknowledgement requires the exact 64-character mismatch fingerprint.');
     }
-    if (reason.trim().length === 0 || operator.trim().length === 0) {
+    if (reason?.trim().length === 0 || operator?.trim().length === 0) {
       fail('Acknowledge requires --fingerprint, --reason, --operator, and --classification.');
     }
-    if (!MISMATCH_CLASSIFICATIONS.includes(classification)) {
+    if (classification !== undefined && !MISMATCH_CLASSIFICATIONS.includes(classification)) {
       fail(`Acknowledge requires --classification as one of: ${MISMATCH_CLASSIFICATIONS.join(', ')}.`);
     }
-    return { help: false, action, options };
+    return options;
   }
 
   if (action === 'close-remediated') {
     for (const name of ['evidence-file', 'reason', 'operator']) {
-      if (typeof options[name] !== 'string' || options[name].trim().length === 0)
+      if ((!helpRequested && options[name] === undefined) || options[name]?.trim().length === 0)
         fail(`Remediation requires --${name}.`);
     }
-    return { help: false, action, options };
+    return options;
   }
 
   const { 'older-than-days': olderThanDays, limit, reason, operator } = options;
-  if (olderThanDays === undefined || reason === undefined || operator === undefined) {
+  if (!helpRequested && (olderThanDays === undefined || reason === undefined || operator === undefined)) {
     fail('Retain requires --older-than-days=<days>, --reason, and --operator.');
   }
-  const days = parseRetentionDays(olderThanDays);
+  const days = olderThanDays === undefined ? undefined : parseRetentionDays(olderThanDays);
   let parsedLimit;
   if (limit !== undefined) {
     parsedLimit = parseRetentionLimit(limit);
   }
-  if (reason.trim().length === 0 || operator.trim().length === 0) {
+  if (reason?.trim().length === 0 || operator?.trim().length === 0) {
     fail('Retain requires --older-than-days=<days>, --reason, and --operator.');
   }
-  return {
-    help: false,
-    action,
-    options: { olderThanDays: days, ...(parsedLimit === undefined ? {} : { limit: parsedLimit }), reason, operator },
-  };
+  return { olderThanDays: days, ...(parsedLimit === undefined ? {} : { limit: parsedLimit }), reason, operator };
 }
 
 function readRemediationEvidence(file) {
