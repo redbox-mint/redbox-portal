@@ -412,6 +412,7 @@ describe('AuthorizationMigrationService assignment conflicts', () => {
     saved = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
     savedServices = sails.services;
     let userCalls = 0;
+    let transactionActive = false;
     Reflect.set(globalThis, 'User', {
       find: () => ({
         populate: () => ({
@@ -424,7 +425,15 @@ describe('AuthorizationMigrationService assignment conflicts', () => {
         }),
       }),
       getDatastore: () => ({
-        transaction: (work: (leased: Sails.Connection) => Promise<unknown>) => work(connection),
+        transaction: async (work: (leased: Sails.Connection) => Promise<unknown>) => {
+          assert.equal(transactionActive, false, 'lease-fenced transactions must not overlap');
+          transactionActive = true;
+          try {
+            return await work(connection);
+          } finally {
+            transactionActive = false;
+          }
+        },
       }),
     });
     Reflect.set(globalThis, 'RoleAssignment', {
@@ -432,7 +441,15 @@ describe('AuthorizationMigrationService assignment conflicts', () => {
         usingConnection: (leased: Sails.Connection) => {
           assert.equal(leased, connection);
           options.assignmentFindCalls?.push(criteria);
-          if (options.createBehavior === 'existing') return Promise.resolve({ id: 'assignment-1' });
+          if (options.createBehavior === 'existing') {
+            return Promise.resolve({
+              id: 'assignment-1',
+              ...criteria,
+              branding: roleValue.branding,
+              status: 'active',
+              sourcePresent: true,
+            });
+          }
           if (options.createBehavior === 'created') return Promise.resolve(undefined);
           // Post-conflict reread: the winning worker's row is now visible.
           if (options.createBehavior === 'unique-then-found' && (options.assignmentFindCalls?.length ?? 0) > 1) {
@@ -475,7 +492,7 @@ describe('AuthorizationMigrationService assignment conflicts', () => {
     assert.deepEqual(assignmentFindCalls[0], assignmentFindCalls[1]);
   });
 
-  it('creates the assignment when the projection is missing', async () => {
+  it('creates a missing assignment after closing the batch transaction', async () => {
     const createdCount = { count: 0 };
     installAssignmentMocks({ createBehavior: 'created', createdCount });
     const summary = await new Services.AuthorizationMigrationService().migrateUserAssignments(10);
@@ -483,7 +500,7 @@ describe('AuthorizationMigrationService assignment conflicts', () => {
     assert.equal(createdCount.count, 1);
   });
 
-  it('reruns are idempotent when the assignment already exists', async () => {
+  it('adopts an existing assignment after closing the batch transaction', async () => {
     const createdCount = { count: 0 };
     installAssignmentMocks({ createBehavior: 'existing', createdCount });
     const rerun = await new Services.AuthorizationMigrationService().migrateUserAssignments(10);
@@ -531,7 +548,7 @@ describe('AuthorizationMigrationService assignment conflicts', () => {
             // The aborted creation session must never be reused for reads.
             assert.equal(connection.aborted, false);
             if (connection.lease === 'migration-txn-1') {
-              // Outer pre-check snapshot misses the concurrent winner.
+              // The closed batch read snapshot missed the concurrent winner.
               return Promise.resolve(undefined);
             }
             if (createConnection !== undefined && connection === createConnection) {
@@ -566,7 +583,7 @@ describe('AuthorizationMigrationService assignment conflicts', () => {
       assert.equal(createConnection.aborted, true);
       assert.ok(rereadConnection !== undefined);
       assert.notEqual(rereadConnection, createConnection);
-      assert.equal(transactions.length, 3);
+      assert.equal(transactions.length, 4);
       assert.equal(transactions[0].lease, 'migration-txn-1');
       assert.equal(transactions[1].aborted, true);
       assert.equal(transactions[2].aborted, false);
