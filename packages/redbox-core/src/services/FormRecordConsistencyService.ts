@@ -253,7 +253,8 @@ export namespace Services {
                 const permittedChangesValueObj = isKeyInPermittedChange
                   ? requirePermittedChangesSchemaObject(permittedChangesValue)
                   : undefined;
-                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValueObj && 'properties' in permittedChangesValueObj;
+                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValueObj
+                  && ('properties' in permittedChangesValueObj || 'optionalProperties' in permittedChangesValueObj);
                 const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValueObj && 'elements' in permittedChangesValueObj;
                 const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValueObj && 'type' in permittedChangesValueObj;
                 const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValueObj && Object.keys(permittedChangesValueObj).length === 0;

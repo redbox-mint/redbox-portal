@@ -260,6 +260,27 @@ describe('FormRecordConsistencyService', function () {
       });
     });
 
+    it('merges nested objects with only optional properties and filters unpermitted changes', function () {
+      const result = FormRecordConsistencyService.mergeRecordMetadataPermitted(
+        { rdmp: { title: 'Original title', serverOnly: 'preserved' } },
+        { rdmp: { title: 'Updated title', serverOnly: 'changed', unexpected: 'hidden' } },
+        {
+          properties: {
+            rdmp: {
+              optionalProperties: {
+                title: { type: 'string' },
+              },
+            },
+          },
+        },
+        []
+      );
+
+      expect(result).to.deep.equal({
+        rdmp: { title: 'Updated title', serverOnly: 'preserved' },
+      });
+    });
+
     it('reports malformed primitive property schemas as validation errors', function () {
       const merge = () => FormRecordConsistencyService.mergeRecordMetadataPermitted(
         {},
