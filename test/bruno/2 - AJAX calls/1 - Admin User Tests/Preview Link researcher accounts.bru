@@ -1,0 +1,40 @@
+meta {
+  name: Preview link researcher accounts
+  type: http
+  seq: 54
+}
+
+post {
+  url: {{host}}/default/rdmp/api/users/link/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+  X-Source: jsclient
+}
+
+body:json {
+  {
+    "primaryUserId": "{{researcherUserId}}",
+    "secondaryUserId": "{{secondaryResearcherUserId}}"
+  }
+}
+
+tests {
+  test("Stores the server-bound link proof", function () {
+    var body = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(body).to.have.property("primaryExpectedVersion");
+    expect(body).to.have.property("secondaryExpectedVersion");
+    expect(body).to.have.property("confirmationToken");
+    expect(body).to.have.property("linkOperationId");
+    bru.setVar("legacyPrimaryExpectedVersion", body.primaryExpectedVersion);
+    bru.setVar("legacySecondaryExpectedVersion", body.secondaryExpectedVersion);
+    bru.setVar("legacyLinkConfirmationToken", body.confirmationToken);
+    bru.setVar("legacyLinkOperationId", body.linkOperationId);
+  });
+}
