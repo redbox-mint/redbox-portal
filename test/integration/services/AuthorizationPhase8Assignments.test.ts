@@ -1,10 +1,5 @@
 import { withMigrationLease } from '../helpers/authorization';
-import {
-  asScopeKey,
-  buildRoleIdentityKey,
-  freezeAuthorizationContext,
-  type AuthorizationContext,
-} from '../../../packages/redbox-core/src/authorization';
+import { buildRoleIdentityKey, type AuthorizationContext } from '../../../packages/redbox-core/src/authorization';
 import {
   authorizationAssignmentCatalogPageSchema,
   authorizationAssignmentMutationResultSchema,
@@ -73,24 +68,14 @@ describe('Authorization Phase 8.4 assignment contract services', function () {
       createdBy: 'phase84-fixture',
       updatedBy: 'phase84-fixture',
     }).fetch();
+    await BrandingService.refreshBrandingCache(otherBrand.id);
     await AuthorizationBootstrapService.bootstrap({ bootstrapUser: admin });
     actor = await AuthorizationService.resolveUserContext(admin.id, brand.id, 'session');
-    otherBrandActor = freezeAuthorizationContext({
-      ...actor,
-      brand: {
-        requestedIdentifier: otherBrand.name,
-        id: otherBrand.id,
-        name: otherBrand.name,
-        exists: true,
-        authorized: true,
-      },
-    });
-    restrictedActor = freezeAuthorizationContext({
-      ...actor,
-      grantedScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('authorization.assignment.manage')],
-      effectiveScopeKeys: [asScopeKey('authorization.assignment.read'), asScopeKey('authorization.assignment.manage')],
-      scopeProvenance: [],
-    });
+    otherBrandActor = await AuthorizationService.resolveUserContext(admin.id, otherBrand.id, 'session');
+    restrictedActor = await AuthorizationService.resolveUserContext(admin.id, brand.id, 'bearer', [
+      'authorization.assignment.read',
+      'authorization.assignment.manage',
+    ]);
     systemRole = await Role.findOne({ contextType: 'system', protectedKind: 'system-admin' });
     expect(systemRole).to.exist;
     const createdRole = await RoleAdministrationService.createRole({

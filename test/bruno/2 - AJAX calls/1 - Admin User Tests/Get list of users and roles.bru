@@ -37,7 +37,7 @@ tests {
   });
 
 
-  test("Check that researcher user has guest, researcher and librarian roles", function(){
+  test("Check that researcher user has researcher and librarian roles", function(){
       var researchUserRoles = [];
       var jsonData = res.getBody();
       for(var i=0; i< jsonData.length; i++) {
@@ -50,7 +50,6 @@ tests {
       }
 
       expect(researchUserRoles).to.contain("Researcher");
-      expect(researchUserRoles).to.contain("Guest");
       expect(researchUserRoles).to.contain("Librarians");
       expect(researchUserRoles).to.not.contain("Admin");
   });

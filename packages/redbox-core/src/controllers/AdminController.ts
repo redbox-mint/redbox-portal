@@ -108,7 +108,15 @@ export namespace Controllers {
     private observedUserVersionForRoleCas(user: unknown): number | undefined {
       let current: unknown = user;
       for (let depth = 0; depth < 4 && Array.isArray(current) && current.length > 0; depth += 1) {
-        current = current[0];
+        // Sails' `exec`/`simplecb` Observable contract is `[err, rows]`.
+        // The profile service deliberately preserves that legacy envelope,
+        // so unwrap the successful rows before inspecting the post-write
+        // version used by the role CAS.
+        if (current.length === 2 && (current[0] === null || current[0] === undefined) && Array.isArray(current[1])) {
+          current = current[1];
+        } else {
+          current = current[0];
+        }
       }
       if (current === null || current === undefined || typeof current !== 'object') return undefined;
       const record = current as Record<string, unknown>;

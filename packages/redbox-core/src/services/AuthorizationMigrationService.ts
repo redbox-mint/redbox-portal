@@ -2733,21 +2733,97 @@ async function withBoundedLimit<T>(chain: unknown, limit: number): Promise<T> {
 /**
  * Range predicate for the durable `lastId` cursor.
  *
- * sails-mongo maps `id` onto the native `_id`: a 24-hex string cursor is a
- * native ObjectId comparison, while any other string cursor is a plain string
- * comparison (unit-test doubles, string-key deployments). Callers MUST also
- * apply `afterCursorClientSide` to the fetched batch, because an adapter that
- * ignores the predicate (or a mixed-type `_id` collection) would otherwise
- * re-emit the previous page as duplicates or skip rows.
+ * sails-mongo maps `id` onto the native `_id`, but does not reify primary-key
+ * strings for range modifiers. Convert Mongo-shaped cursors explicitly; keep
+ * non-hex cursors as strings for unit-test doubles and string-key adapters.
+ * Callers MUST also apply `afterCursorClientSide` to the fetched batch,
+ * because an adapter that ignores the predicate (or a mixed-type `_id`
+ * collection) would otherwise re-emit the previous page or skip rows.
  */
 function idCursorCriteria(cursor: string | undefined): Record<string, unknown> {
   if (cursor === undefined) return {};
-  // sails-mongo coerces 24-hex `id` strings onto native ObjectIds; pass the
-  // raw cursor through so the adapter binds the correctly typed `_id` range.
-  // Non-hex cursors stay plain strings. Either way the client-side filter
-  // below is authoritative for resume correctness.
-  void isObjectIdHex;
+  // Non-Mongo adapters and test doubles use the Waterline string criterion.
+  // Mongo-shaped cursors are handled by the native page helper below because
+  // sails-mongo rejects ObjectId values in Waterline range criteria.
   return { id: { '>': cursor } };
+}
+
+function nativeObjectId(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (!isObject(value) || typeof value.toHexString !== 'function') return undefined;
+  const hex = Reflect.apply(value.toHexString, value, []);
+  return typeof hex === 'string' ? hex : undefined;
+}
+
+interface NativeObjectIdConstructor {
+  new (value: string): unknown;
+  isValid?(value: string): boolean;
+}
+
+function nativeObjectIdConstructor(collection: unknown): NativeObjectIdConstructor | undefined {
+  if (!isObject(collection) || !isObject(collection.s) || !isObject(collection.s.pkFactory)) return undefined;
+  const createPk = collection.s.pkFactory.createPk;
+  if (typeof createPk !== 'function') return undefined;
+  const sample = Reflect.apply(createPk, collection.s.pkFactory, []);
+  if (!isObject(sample) || typeof sample.constructor !== 'function') return undefined;
+  return sample.constructor as NativeObjectIdConstructor;
+}
+
+/**
+ * Fetches only native Mongo ids for a resumed page. Waterline exposes Mongo's
+ * ObjectId primary key as a string, but its range validator rejects the native
+ * value needed by Mongo's `_id` comparison. The page is subsequently hydrated
+ * through the transaction-bound Waterline model, so this helper need not
+ * duplicate adapter field conversion.
+ */
+async function nativeIdPage(
+  model: unknown,
+  collectionName: string,
+  cursor: string | undefined,
+  limit: number
+): Promise<Array<{ id: string }> | undefined> {
+  if (cursor === undefined || !isObjectIdHex(cursor) || !isObject(model)) return undefined;
+  const getDatastore = model.getDatastore;
+  if (typeof getDatastore !== 'function') return undefined;
+  let datastore: unknown;
+  try {
+    datastore = Reflect.apply(getDatastore, model, []);
+  } catch {
+    return undefined;
+  }
+  if (!isObject(datastore)) return undefined;
+  const manager = asNativeCollectionManager(datastore.manager);
+  if (manager === undefined) return undefined;
+  const collection = manager.collection(collectionName);
+  if (!isObject(collection) || typeof collection.find !== 'function') return undefined;
+  const ObjectIdConstructor = nativeObjectIdConstructor(collection);
+  if (ObjectIdConstructor === undefined || ObjectIdConstructor.isValid?.(cursor) !== true) {
+    throw new Error('authorization.scan-invalid: native Mongo collection exposes no compatible ObjectId factory.');
+  }
+  const rawChain = Reflect.apply(collection.find, collection, [
+    { _id: { $gt: new ObjectIdConstructor(cursor) } },
+    { projection: { _id: 1 } },
+  ]);
+  if (!isObject(rawChain) || typeof rawChain.sort !== 'function') {
+    throw new Error('authorization.scan-unbounded: native id cursor exposes no .sort method.');
+  }
+  const sorted = Reflect.apply(rawChain.sort, rawChain, [{ _id: 1 }]);
+  if (!isObject(sorted) || typeof sorted.limit !== 'function') {
+    throw new Error('authorization.scan-unbounded: native id cursor exposes no .limit method.');
+  }
+  const bounded = Reflect.apply(sorted.limit, sorted, [limit]);
+  if (!isObject(bounded) || typeof bounded.toArray !== 'function') {
+    throw new Error('authorization.scan-unbounded: native id cursor exposes no .toArray method.');
+  }
+  const rows: unknown = await Reflect.apply(bounded.toArray, bounded, []);
+  if (!Array.isArray(rows)) throw new Error('authorization.scan-invalid: native id cursor returned a non-array page.');
+  return rows.map((row, index) => {
+    const id = isObject(row) ? nativeObjectId(row._id) : undefined;
+    if (id === undefined) {
+      throw new Error(`authorization.scan-invalid: native id cursor row ${index} has no readable _id.`);
+    }
+    return { id };
+  });
 }
 
 /** Authoritative client-side resume filter: keeps only rows strictly after the cursor. */
@@ -3278,9 +3354,11 @@ export namespace Services {
       let scanIncomplete = false;
       for (;;) {
         const criteria = lastId === undefined ? {} : idCursorCriteria(lastId);
-        const fetched = (await Role.find(criteria)
-          .sort('id ASC')
-          .limit(batchSize + 1)) as RoleAttributes[];
+        const fetched =
+          (await nativeIdPage(Role, waterlineModelName(Role, 'role'), lastId, batchSize + 1)) ??
+          ((await Role.find(criteria)
+            .sort('id ASC')
+            .limit(batchSize + 1)) as RoleAttributes[]);
         // Authoritative resume: the adapter predicate is best-effort (sails-mongo
         // binds 24-hex cursors to native ObjectIds; other adapters may ignore
         // the range). Filter client-side so a resume never re-emits or skips.

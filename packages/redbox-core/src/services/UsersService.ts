@@ -2566,10 +2566,22 @@ export namespace Services {
       // reported as a failure (503) instead of silently succeeding; callers
       // must treat the operation as unconfirmed and retry idempotently.
       try {
+        // UserAudit.user is the required JSON representation of the user being
+        // audited. Keep the guarded path consistent with addUserAuditEvent,
+        // while avoiding mutation of the model instance that the caller may
+        // still need for compensation or its response.
+        const auditUser: AnyRecord =
+          typeof user === 'object' && user !== null && !Array.isArray(user)
+            ? { ...(user as AnyRecord) }
+            : { username: String(user ?? 'unknown') };
+        delete auditUser.password;
+        if ('additionalAttributes' in auditUser) {
+          auditUser.additionalAttributes = this.stringifyObject(auditUser.additionalAttributes);
+        }
         await firstValueFrom(
           super.getObservable<Record<string, unknown>>(
             UserAudit.create({
-              username: (user as AnyRecord)?.username ?? (user as AnyRecord)?.id ?? 'unknown',
+              user: auditUser,
               action,
               additionalContext: JSON.stringify(context ?? {}),
             } as AnyRecord)

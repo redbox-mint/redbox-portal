@@ -1,17 +1,18 @@
 meta {
   name: Revoke API Researcher User API Token
   type: http
-  seq: 7
+  seq: 8
 }
 
 post {
-  url: {{host}}/default/rdmp/api/users/token/revoke?id={{apiUserId}}
+  url: {{host}}/default/rdmp/api/users/token/revoke?id={{apiUserId}}&expectedVersion={{apiUserVersion}}
   body: json
   auth: none
 }
 
 query {
   id: {{apiUserId}}
+  expectedVersion: {{apiUserVersion}}
 }
 
 headers {

@@ -448,17 +448,24 @@ describe('Authorization persistence models', function () {
     expect(await AuthorizationAudit.count({ targetId: failedPrimaryTargetId })).to.equal(0);
 
     const associationRole = await Role.create({ name: `Association Role ${id}` }).fetch();
-    await expectRejected(
-      runWithRequiredTransaction(Role.getDatastore(), async connection => {
-        await BrandingConfig.addToCollection(brand.id, 'roles')
-          .members([associationRole.id])
-          .usingConnection(connection);
-        const associated = await Role.findOne({ id: associationRole.id }).usingConnection(connection);
-        expect(associated?.branding).to.equal(brand.id);
-        throw new Error('force association rollback');
-      })
-    );
-    const associationAfterRollback = await Role.findOne({ id: associationRole.id });
-    expect(associationAfterRollback?.branding).not.to.equal(brand.id);
+    try {
+      await expectRejected(
+        runWithRequiredTransaction(Role.getDatastore(), async connection => {
+          await BrandingConfig.addToCollection(brand.id, 'roles')
+            .members([associationRole.id])
+            .usingConnection(connection);
+          const associated = await Role.findOne({ id: associationRole.id }).usingConnection(connection);
+          expect(associated?.branding).to.equal(brand.id);
+          throw new Error('force association rollback');
+        })
+      );
+      const associationAfterRollback = await Role.findOne({ id: associationRole.id });
+      expect(associationAfterRollback?.branding).not.to.equal(brand.id);
+    } finally {
+      // The rollback assertion deliberately leaves this role brandless; remove
+      // it so the subsequent Phase 3 bootstrap does not report the fixture as
+      // an unrelated malformed production role.
+      await Role.destroy({ id: associationRole.id });
+    }
   });
 });

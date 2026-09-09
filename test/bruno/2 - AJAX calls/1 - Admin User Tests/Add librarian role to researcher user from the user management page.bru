@@ -28,14 +28,14 @@ headers {
 body:json {
   {
       "userid": "{{researcherUserId}}",
+      "expectedVersion": 4,
       "details": {
           "name": "A dummy researcher",
           "email": "{{researcherEmail}}",
           "password": "{{researcherPassword}}",
           "roles": [
               "Librarians",
-              "Researcher",
-              "Guest"
+              "Researcher"
           ]
       }
   }

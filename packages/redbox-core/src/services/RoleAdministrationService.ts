@@ -2391,6 +2391,13 @@ export namespace Services {
       role: RoleAttributes,
       connection: Sails.Connection
     ): Promise<void> {
+      // A system administrator is the installation-wide authority that
+      // appoints administrators for individual brands. The protected
+      // brand-admin role intentionally contains the brand's full operating
+      // bundle, which is broader than the system-admin role's deliberately
+      // narrow system-management bundle. Keep the delegation ceiling for
+      // every ordinary/custom role, while allowing this protected appointment.
+      if (role.protectedKind === 'brand-admin' && command.actor.principal.category === 'system-admin') return;
       const effective = (await this.loadRoleState(role, connection)).effectiveScopeKeys;
       if (!hasEveryScope(command.actor.effectiveScopeKeys, effective)) {
         throw new AuthorizationAdministrationError(
