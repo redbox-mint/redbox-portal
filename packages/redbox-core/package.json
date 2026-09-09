@@ -121,7 +121,7 @@
     "webpack": "5.110.2",
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.0",
-    "zod": "4.4.3",
+    "zod": "4.5.4",
     "@asteasolutions/zod-to-openapi": "9.1.0"
   },
   "overrides": {
