@@ -1,6 +1,6 @@
 ---
 name: 'Redbox Feature Implementation Review'
-description: 'Use only when explicitly invoked as "Redbox Feature Implementation Review" (or redbox-feature-implementation-review) to review a completed ReDBox feature implementation against a growing ruleset and emit structured issues for agent remediation.'
+description: 'Review completed ReDBox feature implementations against a growing ruleset and emit structured issues for agent remediation.'
 ---
 
 # Skill: Redbox Feature Implementation Review

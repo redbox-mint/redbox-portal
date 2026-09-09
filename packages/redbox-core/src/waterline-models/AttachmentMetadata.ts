@@ -178,8 +178,8 @@ export class AttachmentMetadataClass {
   @Attr({ type: 'boolean', defaultsTo: false })
   public isJournal?: boolean;
 
-  @Attr({ type: 'string', allowNull: true })
-  public attachmentId?: string | null;
+  @Attr({ type: 'string' })
+  public attachmentId?: string;
 
   @Attr({ type: 'string', isIn: ['add', 'finalize', 'delete'] })
   public operation?: 'add' | 'finalize' | 'delete';
@@ -217,26 +217,26 @@ export class AttachmentMetadataClass {
     | 'staging-preparing'
     | 'staging-cleanup';
 
-  @Attr({ type: 'string', allowNull: true })
-  public generation?: string | null;
+  @Attr({ type: 'string' })
+  public generation?: string;
 
-  @Attr({ type: 'string', allowNull: true })
-  public mutationFileId?: string | null;
+  @Attr({ type: 'string' })
+  public mutationFileId?: string;
 
-  @Attr({ type: 'string', allowNull: true })
-  public coordinationToken?: string | null;
+  @Attr({ type: 'string' })
+  public coordinationToken?: string;
 
   @Attr({ type: 'number', defaultsTo: 0 })
   public attemptCount?: number;
 
-  @Attr({ type: 'string', columnType: 'datetime', allowNull: true })
-  public lastAttemptAt?: string | null;
+  @Attr({ type: 'string', columnType: 'datetime' })
+  public lastAttemptAt?: string;
 
-  @Attr({ type: 'string', columnType: 'datetime', allowNull: true })
-  public coordinationLeaseExpiresAt?: string | null;
+  @Attr({ type: 'string', columnType: 'datetime' })
+  public coordinationLeaseExpiresAt?: string;
 
-  @Attr({ type: 'string', allowNull: true })
-  public lastSafeErrorCode?: string | null;
+  @Attr({ type: 'string' })
+  public lastSafeErrorCode?: string;
 
   @Attr({ type: 'string' })
   public contentType?: string;
@@ -276,7 +276,7 @@ export const AttachmentMetadataWLDef = toWaterlineModelDef(AttachmentMetadataCla
 
 export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes {
   accessCount?: number;
-  attachmentId?: string | null;
+  attachmentId?: string;
   operation?: 'add' | 'finalize' | 'delete';
   mutationState?:
     | 'prepared'
@@ -292,14 +292,14 @@ export interface AttachmentMetadataAttributes extends Sails.WaterlineAttributes 
     | 'staging-available'
     | 'staging-preparing'
     | 'staging-cleanup';
-  generation?: string | null;
+  generation?: string;
   isJournal?: boolean;
-  mutationFileId?: string | null;
-  coordinationToken?: string | null;
+  mutationFileId?: string;
+  coordinationToken?: string;
   attemptCount?: number;
-  lastAttemptAt?: string | Date | null;
-  coordinationLeaseExpiresAt?: string | Date | null;
-  lastSafeErrorCode?: string | null;
+  lastAttemptAt?: string | Date;
+  coordinationLeaseExpiresAt?: string | Date;
+  lastSafeErrorCode?: string;
   attachmentField?: string;
   contentLength?: number;
   contentType?: string;

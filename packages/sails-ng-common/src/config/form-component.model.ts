@@ -30,7 +30,6 @@ export class FormConstraintConfig implements FormConstraintConfigOutline {
  */
 export class FormConstraintAuthorizationConfig implements FormConstraintAuthorizationConfigOutline {
     allowRoles?: string[];
-    denyRoles?: string[];
 }
 
 

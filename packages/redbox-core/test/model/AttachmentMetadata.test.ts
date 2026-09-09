@@ -1,17 +1,17 @@
 let expect: Chai.ExpectStatic;
+import type { RuntimeRecord } from '../../src/runtimeValues';
 import { AttachmentMetadataWLDef } from '../../src/waterline-models/AttachmentMetadata';
 
 type WaterlineDef = {
-  attributes?: Record<string, { allowNull?: boolean }>;
-  beforeCreate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
-  beforeUpdate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
+  beforeCreate?: (record: RuntimeRecord, cb: (err?: Error) => void) => void;
+  beforeUpdate?: (record: RuntimeRecord, cb: (err?: Error) => void) => void;
 };
 
 function runHook(
   def: WaterlineDef,
   hook: 'beforeCreate' | 'beforeUpdate',
-  record: Record<string, unknown>
-): { record: Record<string, unknown>; error?: Error } {
+  record: RuntimeRecord
+): { record: RuntimeRecord; error?: Error } {
   let error: Error | undefined;
   def[hook]!(record, caught => {
     error = caught;
@@ -33,22 +33,6 @@ describe('AttachmentMetadata waterline model', function () {
     };
   }
 
-  it('allows null for optional attachment coordination metadata', function () {
-    const nullableFields = [
-      'attachmentId',
-      'generation',
-      'mutationFileId',
-      'coordinationToken',
-      'lastAttemptAt',
-      'coordinationLeaseExpiresAt',
-      'lastSafeErrorCode',
-    ];
-
-    for (const field of nullableFields) {
-      expect(AttachmentMetadataWLDef.attributes?.[field]?.allowNull, field).to.equal(true);
-    }
-  });
-
   it('normalizes journal metadata and access counters on create', function () {
     const result = runHook(AttachmentMetadataWLDef, 'beforeCreate', {
       ...valid(),
@@ -59,6 +43,9 @@ describe('AttachmentMetadata waterline model', function () {
       mutationState: ' pending ',
       generation: ` ${'g'.repeat(140)} `,
       mutationFileId: ' file-new ',
+      attemptCount: '2.8',
+      lastAttemptAt: '2026-08-22T00:00:00Z',
+      lastSafeErrorCode: ` ${'x'.repeat(140)} `,
     });
 
     expect(result.error).to.be.undefined;
@@ -71,8 +58,11 @@ describe('AttachmentMetadata waterline model', function () {
       operation: 'add',
       mutationState: 'pending',
       mutationFileId: 'file-new',
+      attemptCount: 2,
     });
     expect(String(result.record.generation)).to.have.length(128);
+    expect(String(result.record.lastSafeErrorCode)).to.have.length(128);
+    expect(result.record.lastAttemptAt).to.equal('2026-08-22T00:00:00.000Z');
   });
 
   it('normalizes valid partial updates and clears invalid optional values', function () {
@@ -84,6 +74,9 @@ describe('AttachmentMetadata waterline model', function () {
       mutationState: '',
       generation: '   ',
       mutationFileId: '   ',
+      attemptCount: -2,
+      lastAttemptAt: 'not-a-date',
+      lastSafeErrorCode: '   ',
     });
 
     expect(result.error).to.be.undefined;
@@ -95,6 +88,9 @@ describe('AttachmentMetadata waterline model', function () {
       mutationState: undefined,
       generation: undefined,
       mutationFileId: undefined,
+      attemptCount: 0,
+      lastAttemptAt: undefined,
+      lastSafeErrorCode: undefined,
     });
   });
 

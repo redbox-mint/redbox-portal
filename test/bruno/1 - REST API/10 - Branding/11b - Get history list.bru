@@ -1,0 +1,39 @@
+meta {
+  name: Get history list
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{host}}/default/rdmp/api/branding/history
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+}
+
+tests {
+  test("History list ok", function () {
+    const raw = res.getBody();
+    let body = raw;
+    expect(res.getStatus()).to.equal(200);
+
+    const contentType = res.getHeader('content-type') || '';
+    expect(contentType).to.contain('application/json');
+
+    
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      try {
+        body = JSON.parse(raw);
+      } catch (err) {
+        expect(body).to.eq("Failed")
+        throw new Error(`Expected JSON response but could not parse body: ${raw.substring(0, 200)}`);
+      }
+    }
+
+    if (Array.isArray(body) && body.length > 0) {
+      bru.setVar('first_history_id', body[0].id);
+    }
+  });
+}

@@ -326,7 +326,7 @@ export namespace Services {
                 ) {
                     // The change is permitted and an object, original and changed have the key and both are objects.
                     // Evaluate the properties of the object.
-                    const newPermittedChanges = permittedChangesValue as Record<string, unknown>;
+                    const newPermittedChanges = permittedChangesValueObj as Record<string, unknown>;
                     const newPath = [...currentPath, key];
                     const keyChanges = relevantChanges?.filter(i => arrayStartsWithArray(newPath, i?.path));
                     result[key] = this.mergeRecordMetadataPermitted(originalValueForMerge as object, changedValue as object, newPermittedChanges, keyChanges, newPath as FormRecordConsistencyChangePath);
