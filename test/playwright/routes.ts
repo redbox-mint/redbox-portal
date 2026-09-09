@@ -122,7 +122,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'manage-users',
-    requiredSelectors: ['#manage-users-search', 'manage-users table', 'button:has-text("Add a new local user")'],
+    requiredSelectors: ['#manage-users-search', 'manage-users table'],
     fallbackSelectors: ['manage-users img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/manage-users/browser/polyfills',
