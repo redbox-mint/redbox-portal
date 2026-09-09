@@ -13,6 +13,10 @@ This repository uses a mix of testing strategies including unit, integration, an
 | `npm run test:angular` | Frontend Unit | Runs Angular unit tests using `testDevAngular.sh`. |
 | `npm run test:sails-ng-common` | Package Unit | Runs tests for the `sails-ng-common` package. |
 | `cd packages/redbox-core && npm test` | Package Unit | Runs core-types unit tests (services and controllers). |
+| `npm run lint:unsafe-expressions` | Static Security Guard | Rejects new builtin eval and Lodash configuration-template execution, including provenance aliases in first-party assets, outside the documented legacy allowlist. |
+| `npm run test:unsafe-expressions` | Static Guard Unit | Runs parameterized provenance-bypass, end-to-end invocation, asset-boundary, metadata, and allowlist-growth tests. |
+| `npm run lint:explicit-type-nodes` | Type-Surface Quality Guard | Rejects new explicit `any`/`unknown` AST nodes in production source and isolated `redbox-core` public declaration emission outside the frozen legacy baseline. |
+| `npm run test:explicit-type-nodes` | Type-Surface Guard Unit | Runs adversarial AST, source-boundary, baseline-reconciliation, and declaration-leakage tests. |
 
 ## Running Tests
 

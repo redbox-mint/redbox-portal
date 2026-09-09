@@ -8,7 +8,6 @@ import {
   HarvestRunChunkModel,
   HarvestRunModel,
 } from './model/storage/HarvestRunModel';
-import type { RecordSaveContext } from './RecordSaveResponse';
 
 export type HarvestTrackedChunkRequest = {
   sourceRunId: string;
@@ -63,23 +62,20 @@ export interface HarvestRunService {
     recordTypeModel: RecordTypeModel,
     body: Record<string, unknown> | undefined,
     updateMode: string,
-    user: UserModel,
-    context?: RecordSaveContext
+    user: UserModel
   ): Promise<APIHarvestResponse[]>;
   submitLegacyRecords(
     brand: BrandingModel,
     recordTypeModel: RecordTypeModel,
     body: Record<string, unknown> | undefined,
     merge: boolean,
-    user: UserModel,
-    context?: RecordSaveContext
+    user: UserModel
   ): Promise<APIHarvestResponse[]>;
   submitChunk(
     brand: BrandingModel,
     recordTypeModel: RecordTypeModel,
     request: Record<string, unknown> | undefined,
-    user: UserModel,
-    context?: RecordSaveContext
+    user: UserModel
   ): Promise<HarvestTrackedChunkResponse>;
   listRuns(brand: BrandingModel, params: Partial<HarvestRunListQuery>): Promise<HarvestRunListResult>;
   getRun(brand: BrandingModel, runId: string): Promise<HarvestRunDetailResult | null>;

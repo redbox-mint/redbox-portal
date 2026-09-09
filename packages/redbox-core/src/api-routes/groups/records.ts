@@ -1,5 +1,4 @@
 import { apiRoute } from '../route-factory';
-import { recordSchemaResolverOpenApiExtension } from '../record-schema-openapi';
 import {
   arrayField,
   apiErrorResponseSchema,
@@ -23,11 +22,8 @@ import {
   recordListItemSchema,
   recordDeleteQuery,
   recordMetadataReadResponseSchema,
-  recordMutationHeaderFields,
   recordMutationHeaders,
-  RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   recordOperationQuery,
-  recordSchemaWritePreconditionHeaderField,
   recordSaveFailureResponseSchema,
   recordSaveSuccessResponseSchema,
   recordUpdateQuery,
@@ -46,23 +42,14 @@ const recordEntityTagResponseHeaders = {
   ETag: recordEntityTagSchema,
 };
 
-const recordSchemaDiscoveryResponseHeaders = {
-  Link: stringField('Immutable caller-effective record schema: rel="describedby"; type="application/schema+json"'),
-};
-
 const recordResponseWithTag = (schema: Parameters<typeof responseField>[0], description: string) => ({
   ...responseField(schema, description),
   headers: recordEntityTagResponseHeaders,
 });
 
-const recordResponseWithTagAndSchemaDiscovery = (schema: Parameters<typeof responseField>[0], description: string) => ({
-  ...responseField(schema, description),
-  headers: { ...recordEntityTagResponseHeaders, ...recordSchemaDiscoveryResponseHeaders },
-});
-
 const recordConcurrencyFailureResponses = {
   409: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record or form-definition conflict'),
-  412: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record revision or schema precondition failed'),
+  412: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record revision is stale or no longer active'),
   428: recordResponseWithTag(recordSaveFailureResponseSchema, 'Strict record precondition is required'),
 };
 
@@ -82,11 +69,6 @@ const recordLifecycleMutationResponses = {
   ...recordConcurrencyFailureResponses,
   500: recordResponseWithTag(recordSaveFailureResponseSchema, 'Lifecycle persistence outcome is unknown'),
 };
-
-const recordMutationWithSchemaHeaders = objectField({
-  ...recordMutationHeaderFields,
-  [RECORD_SCHEMA_WRITE_PRECONDITION_HEADER]: recordSchemaWritePreconditionHeaderField,
-});
 
 const recordListLegacyFallbacks = {
   editOnly: bodyFallback,
@@ -129,7 +111,6 @@ export const createRecordRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Create record metadata',
-    extensions: recordSchemaResolverOpenApiExtension('create'),
     responses: {
       201: {
         description: 'Record created',
@@ -137,7 +118,6 @@ export const createRecordRoute = apiRoute(
         headers: {
           Location: stringField('Location of the created record'),
           ...recordEntityTagResponseHeaders,
-          ...recordSchemaDiscoveryResponseHeaders,
         },
       },
       400: responseField(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
@@ -155,7 +135,7 @@ export const updateMetaRoute = apiRoute(
   {
     params: oidParams,
     query: recordUpdateQuery,
-    headers: recordMutationWithSchemaHeaders,
+    headers: recordMutationHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Record metadata payload', true) } },
@@ -168,9 +148,8 @@ export const updateMetaRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Update record metadata',
-    extensions: recordSchemaResolverOpenApiExtension('update'),
     responses: {
-      200: recordResponseWithTagAndSchemaDiscovery(recordSaveSuccessResponseSchema, 'Record metadata updated'),
+      200: recordResponseWithTag(recordSaveSuccessResponseSchema, 'Record metadata updated'),
       400: recordResponseWithTag(recordSaveFailureResponseSchema, 'Invalid request or record validation failure'),
       403: recordResponseWithTag(recordSaveFailureResponseSchema, 'Record or operation authorization failure'),
       ...recordConcurrencyFailureResponses,
@@ -259,7 +238,7 @@ export const getMetaRoute = apiRoute(
     tags: ['Records'],
     summary: 'Get record metadata',
     responses: {
-      200: recordResponseWithTagAndSchemaDiscovery(recordMetadataReadResponseSchema, 'Record metadata'),
+      200: recordResponseWithTag(recordMetadataReadResponseSchema, 'Record metadata'),
       403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
       404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
       500: responseField(apiErrorResponseSchema, 'Internal server error'),
@@ -701,7 +680,7 @@ export const transitionWorkflowRoute = apiRoute(
   {
     params: objectField({ targetStep: stringField(), oid: stringField() }, ['targetStep', 'oid']),
     query: recordOperationQuery,
-    headers: recordMutationWithSchemaHeaders,
+    headers: recordMutationHeaders,
     body: {
       required: true,
       content: { 'application/json': { schema: objectField({}, [], 'Workflow transition payload', true) } },

@@ -1,0 +1,5027 @@
+{
+  "schemaVersion": 1,
+  "documentation": "support/wiki/Legacy-Explicit-Type-Node-Baseline.md",
+  "owner": "ReDBox maintainers",
+  "rationale": "Legacy explicit type nodes predate the AST gate and are frozen per file until safely migrated.",
+  "followUp": "TYPE-SAFETY-LEGACY-BASELINE",
+  "declarationProjects": [
+    {
+      "tsconfig": "packages/redbox-core/tsconfig.json",
+      "outputRoot": "packages/redbox-core/dist"
+    }
+  ],
+  "entries": [
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/api-routes/groups/search-query.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:1503cb7cf7fb304ba1b55dca7aa54ccbd03ca2bbff7d7b54942c79f39707c037"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/api-routes/helpers.d.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:ec52bb40421a03eda9104e9eb2797be4b30e6e0d75794577d2daec2f3f009102"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/api-routes/openapi.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/api-routes/request-extraction.d.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:a95d198abfb24f77a739f4676ce2f759f6f94627657fc0d0e5190a473ed9615a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/api-routes/types.d.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:bf19f18a83192ff5d95c5c29caa114a244a589deef9639540c65ae3fb73c7fa5"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/api-routes/validation.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:fd7ab0b793ce8f201eace434c50919939e28c05e209c8bce323aa6066d18b660"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/Attachment.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:12381c2d5dbc4792a0f6d1b63215543127c9d2361046c0f0cbe1d5886d45534a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/AttachmentStagingIdentity.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/agendaQueue.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:01f70834a6c42cb278f1752ba9090f73fbae18c16901bac9a31a3d3089e42921"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/appmode.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/brandingConfigurationDefaults.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/companion.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:ea8901a83b0b0ca324454fbede706f045d69768f4df08079325556643590faa1"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/dashboardview.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/datastores.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:d67c9708ea576304675de2c6bfdac4ef1c744110ced752ff8bfd40ec490a153b"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/dompurify.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f8a9e8eeea1f80365196d2154554cfecd2362c2e3628b4dffadaa8c99f289d8e"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/form.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:1fd407b438d08ff2fb6d38fd1d45f9d9e831e4e36ceda8ad14da3f7c80b98d2a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/globals.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:bd1b293d35ddabcc08fca27e04cc7ef843064d112475ad6edc1e1753a4548760"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/http.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/index.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:c3a99da1120662fb5fc9b8d0ab9bed61a69c6f30e8150756f21625acd90a3ab5"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/namedQuery.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:dabb2a0954898c2fc6f3c9da87c7fe4a43bd296135c191ff09ddd80c898764e2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/ng2.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/peopleSearch.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:c74bacc0a1ab4616d0d7898517cbc973bfca0e33fb9e3fec9f1117c2bcad43d1"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/recordtype.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:93aace62c97bc11e64da4c34fe4809fc04a35281179d3ee096b6d05ee7bbe7bb"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/redboxSession.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:84c35af36034e22f5a52935b35e0b7de26535d08db08b9f2ffa749d1f6a481ef"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/routes.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/sockets.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:6e5891573c803626d7a935ea81160a06648a8f1941e20f928bb766fe87dd3910"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/storage.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:8f77172f0c90cdf8522e26470f0e104422fbed59d344d2de18b42af44d5b182e"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/views.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2862034eeaa28aa9eff6d4546f48a63d11a16957990a58844c9422cc636144ca"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/vocab.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:b3de4abd1fa2e99926694fc8bba2460e77ed066010beb115315fe6b14ba5f645"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/config/workflow.config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/configmodels/ConfigModels.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:4d32c0350a206a8bb252be54a51a4e10674c65de0e94f668c37aaff3d24a2d78"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/configmodels/DoiPublishing.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:f825bc1689c0dd6a7f9336f8c4cf68118a9d745e2abef116c6d0a652e3a04e76"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/configmodels/FigsharePublishing.d.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:96101d8af3cd49b7ba607c656199ed755cc3e7275c4015de8890d4a89c1b98c0"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/configmodels/OniPublishing.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:d09fafc530d80c15e0392c578132e1ace194a1e457876a57204af619aceb683c"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/configmodels/RaidPublishing.d.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:cda46a7c49e6bbca24c1f867f1b82909bcd71afdcbc86d4c96174a111a48508a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/AdminController.d.ts",
+      "anyCount": 16,
+      "unknownCount": 0,
+      "fingerprint": "sha256:3a0a587fd96f4bb85a9abc36456ae6552960df3c40b4fb4e52a2f33243c7d562"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/AppConfigController.d.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:2ce73f51d9a9bcffdedbb11a8beb4722cfa3884676e0041b66b7b735e1a6b3f2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/AsynchController.d.ts",
+      "anyCount": 4,
+      "unknownCount": 4,
+      "fingerprint": "sha256:6cee742a5c61f888c8e6ca7c5ba268180c5cd7085497621e41fb5ec9e406fd41"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/BrandingAppController.d.ts",
+      "anyCount": 12,
+      "unknownCount": 0,
+      "fingerprint": "sha256:45b051ad01ba75faf750fa90afadbed06c61e4b8e0906d9c11978cb8a396d12d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/BrandingController.d.ts",
+      "anyCount": 16,
+      "unknownCount": 0,
+      "fingerprint": "sha256:3a0a587fd96f4bb85a9abc36456ae6552960df3c40b4fb4e52a2f33243c7d562"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/DynamicAssetController.d.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:409dbf4eacc017614508fc7c9000483123aaf99ca193900558ef938699958eb8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/EmailController.d.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:409dbf4eacc017614508fc7c9000483123aaf99ca193900558ef938699958eb8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/ExportController.d.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:409dbf4eacc017614508fc7c9000483123aaf99ca193900558ef938699958eb8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/FormVocabularyController.d.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:c19addc265594098b13ef9c0126652fab6158dd9ad39f46611a409a932e9322a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/index.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/RecordAuditController.d.ts",
+      "anyCount": 10,
+      "unknownCount": 1,
+      "fingerprint": "sha256:351206455f337f5757b90f7a55c9d2f04800bad01e7e198fd0678531a1ec10d0"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/RecordController.d.ts",
+      "anyCount": 34,
+      "unknownCount": 30,
+      "fingerprint": "sha256:7d478d24c5af35805872c3e2915ab252f8bfe2e6418d71594ac12f745e77b437"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/ReportController.d.ts",
+      "anyCount": 16,
+      "unknownCount": 0,
+      "fingerprint": "sha256:3a0a587fd96f4bb85a9abc36456ae6552960df3c40b4fb4e52a2f33243c7d562"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/TranslationController.d.ts",
+      "anyCount": 12,
+      "unknownCount": 0,
+      "fingerprint": "sha256:45b051ad01ba75faf750fa90afadbed06c61e4b8e0906d9c11978cb8a396d12d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/UserController.d.ts",
+      "anyCount": 8,
+      "unknownCount": 0,
+      "fingerprint": "sha256:5bbc278bc3f8471bf4198ad421824ea57a05192c24c52f82bc6b2105e345dc29"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/VocabularyController.d.ts",
+      "anyCount": 14,
+      "unknownCount": 0,
+      "fingerprint": "sha256:bbbe79a80f0e60624466faf64cd0f4f21600bf7c0d4f96ef8d1d31e3e4f0b43a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/AdminController.d.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:edaa7efa9f442a8e4fb1b7eb38797362668a7c8de033b0e96c3e36aba7bbfa04"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/AppConfigController.d.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:2ce73f51d9a9bcffdedbb11a8beb4722cfa3884676e0041b66b7b735e1a6b3f2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/BrandingController.d.ts",
+      "anyCount": 14,
+      "unknownCount": 0,
+      "fingerprint": "sha256:bbbe79a80f0e60624466faf64cd0f4f21600bf7c0d4f96ef8d1d31e3e4f0b43a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/DashboardConfigController.d.ts",
+      "anyCount": 28,
+      "unknownCount": 0,
+      "fingerprint": "sha256:47fdb3edf1dd82850f1d61911efedb6964cea081dd1cdc101a80c356b324251d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/ExportController.d.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:409dbf4eacc017614508fc7c9000483123aaf99ca193900558ef938699958eb8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/figshare-vocabulary-errors.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:18784cca6194befab39f2d3ca1b9a725ccbf5a5cf3ff5966d8c5c6106704ad3a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/FigshareCrosswalkController.d.ts",
+      "anyCount": 18,
+      "unknownCount": 0,
+      "fingerprint": "sha256:7d152a9a4d66e6c1dad2f650900b36ea82560abb41b9fc168e9b64eaf2d985cd"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/FigshareVocabularyController.d.ts",
+      "anyCount": 20,
+      "unknownCount": 0,
+      "fingerprint": "sha256:0c3f62d5a5ad3374bcce1ed4a9b9623ef1b34002b827d0a6aa9808b80cc360ba"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/FormManagementController.d.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:2ce73f51d9a9bcffdedbb11a8beb4722cfa3884676e0041b66b7b735e1a6b3f2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/HarvestRunController.d.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:edaa7efa9f442a8e4fb1b7eb38797362668a7c8de033b0e96c3e36aba7bbfa04"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/IntegrationAuditController.d.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:409dbf4eacc017614508fc7c9000483123aaf99ca193900558ef938699958eb8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/NamedQueryController.d.ts",
+      "anyCount": 12,
+      "unknownCount": 0,
+      "fingerprint": "sha256:45b051ad01ba75faf750fa90afadbed06c61e4b8e0906d9c11978cb8a396d12d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/RecordController.d.ts",
+      "anyCount": 54,
+      "unknownCount": 26,
+      "fingerprint": "sha256:7afe3602292391e6bb475518f89a4f715090736b78c050462949880942d0ffac"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/RecordTypeController.d.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:2ce73f51d9a9bcffdedbb11a8beb4722cfa3884676e0041b66b7b735e1a6b3f2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/ReportController.d.ts",
+      "anyCount": 14,
+      "unknownCount": 0,
+      "fingerprint": "sha256:bbbe79a80f0e60624466faf64cd0f4f21600bf7c0d4f96ef8d1d31e3e4f0b43a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/SearchController.d.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:edaa7efa9f442a8e4fb1b7eb38797362668a7c8de033b0e96c3e36aba7bbfa04"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/TranslationController.d.ts",
+      "anyCount": 14,
+      "unknownCount": 0,
+      "fingerprint": "sha256:bbbe79a80f0e60624466faf64cd0f4f21600bf7c0d4f96ef8d1d31e3e4f0b43a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/UserManagementController.d.ts",
+      "anyCount": 24,
+      "unknownCount": 0,
+      "fingerprint": "sha256:e57f342156aac685229a1f0760cf23334e6fd7f6fb59bc99f1e21567c21923bf"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/webservice/VocabularyController.d.ts",
+      "anyCount": 16,
+      "unknownCount": 0,
+      "fingerprint": "sha256:3a0a587fd96f4bb85a9abc36456ae6552960df3c40b4fb4e52a2f33243c7d562"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/controllers/WorkspaceTypesController.d.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:409dbf4eacc017614508fc7c9000483123aaf99ca193900558ef938699958eb8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/CoreController.d.ts",
+      "anyCount": 0,
+      "unknownCount": 23,
+      "fingerprint": "sha256:74e4c882ac736f2b84ec517e055f17e02da5b14c59ac965bdf05fe1cb44088b3"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/CoreService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 11,
+      "fingerprint": "sha256:bf1619aa834fc3a740d73b50a50a7e69e0be149fd2e4a3c1f33917a6fdb09a25"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/Datastream.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/DatastreamService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:cb06b7b4eebb10c9f603158ef85b2a5234254008fa5c52f84ffe0321fa8d64f1"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/decorator/PopulateExportedMethods.decorator.d.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:32eb501476e297c6b89533c0417af38138699431198fa221841f248d0ecdd115"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/HarvestRunService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/loader/bootstrapShimRuntime.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:9484987267d17451e385132265eeb7cbcbf64b688e704040ea3ae07247759fc7"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/Logger.d.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:83fea1dec50baa2ea5084df96f8be970b769a7863b526b52933b6e8d6c4b3d4c"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/middleware/redboxSession.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:70f1c7964f9d9f077553c4d1787b4bb73390856f193ef460b2435c585d78a09c"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/api/APIResponseVersion2.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:03cdb8d0e6f8637e2473650e67ae5019db3aa642c44827710db2c2e3b8445d64"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/api/FigshareArticleCreate.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/api/FigshareArticleEmbargo.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:11232c44038aa25eeb8d9847be25cd93a6ea04ca1d4cf8a52d45967adc4bd756"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/api/FigshareArticleUpdate.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:1a8c3085e280052cd5b8a2022cb291e3235399efb837b350a6e079aa802c6c38"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/BuildResponse.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:7389c2a94460a7e215fec500883bce609511590283f1dcaae178a68d521a7b9c"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/config/ReportConfig.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/DashboardTypeResponseModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/RBValidationError.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:976203cf4a119bd7e3b8c8fc0ceec932a1f16c88feae4eda142d90348d3386ab"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/RecordTypeResponseModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:33e34f024ca6423e239263f9abc5464fdc01aa401fa5409c1df66277340a67cf"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/RequestDetails.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:419c3c4f28bdc58ca64333867bf982d95ab551aca033f4bb3e5fbd6c0c59a613"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/SolrDocument.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/AppConfigModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/AsynchProgressModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/BrandingModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/CacheEntryModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:3f9039ea96c0f61924790a17820a616e981e40dccf35bf868c19b4a46c3fe09d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/DashboardTypeModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/DeletedRecordModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:cf33e537c7c1a5362e576b4cd0d16d65e2d8fcc8308dcede34ac598c6906c9c6"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/HarvestRunModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/IntegrationAuditModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/RecordAuditModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/RecordModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:872faf93570a83d0aca605b868f7fd12bf4593e45252b3ce8eb901e19ceee397"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/UserAuditModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/UserModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:6e90b6f573f5385f45aec4df1bf1db77ddc229ac4872ada03da044781bb82ed0"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/WorkflowStepModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2feb2dc0381f73ffa417cb090f56bfd7a27c5cb6c88a2c3f94373ff00b4692e3"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/model/storage/WorkspaceAppModel.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/QueueService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:9e816f8637831c7b316bf5ae4128717d1a41d8ccab19108fe199b3c065c43792"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/RecordEntityTag.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/RecordFormFingerprint.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/RecordHttpConcurrency.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:7a81279ee8837969a9872102cca9a2eeb57a1b90d56ce4a4b3ae18ddb1a3094d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/RecordSaveResponse.d.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:139f25ce2209b59e251011e4630c70be016debc3b3fb8441a40252af044f621b"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/RecordsService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 78,
+      "fingerprint": "sha256:3df81ec4cf51935e32f9c06f7a3272891037526538716375dcfa32c1b5a22d37"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/RecordWriteClassification.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/responses/badRequest.d.ts",
+      "anyCount": 2,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e3bfe387a8bb7178a080e51f5b011d471b507237f85f31613ccd54d5104c7829"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/responses/created.d.ts",
+      "anyCount": 2,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e3bfe387a8bb7178a080e51f5b011d471b507237f85f31613ccd54d5104c7829"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/responses/forbidden.d.ts",
+      "anyCount": 2,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e3bfe387a8bb7178a080e51f5b011d471b507237f85f31613ccd54d5104c7829"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/responses/ok.d.ts",
+      "anyCount": 2,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e3bfe387a8bb7178a080e51f5b011d471b507237f85f31613ccd54d5104c7829"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/responses/serverError.d.ts",
+      "anyCount": 2,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e3bfe387a8bb7178a080e51f5b011d471b507237f85f31613ccd54d5104c7829"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/responses/siteTitle.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:8f299b56bd4193b10afaca719e49e77fd766e5b942dbcd42dc1bdca6f5493a2f"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/sails.d.ts",
+      "anyCount": 0,
+      "unknownCount": 53,
+      "fingerprint": "sha256:5286d6fd8c8e3493b752dfeb047b64b6d207482e115e4cc9a31e6db74264a612"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/SearchService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:1e7999c28a523a98f87f90d821fdeef5eeacd639cf3a4f4e499cdbafca0a823d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/AgendaQueueService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:a8f8ffc886d7d01ff88757abe7083b5d6893223d4161beb3ef34472f24e666c8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/AppConfigService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:f75d43a2d14e3ef8b7e7ab972c7b9de2f4d5bddf55cb01d33a29fd11f602e46c"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/AsynchsService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:a29774e3ee05340de862d3382cd5538c0a401b5488597680e2f48bc713bc9072"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/BrandingLogoService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/BrandingService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:8d8e1c2ac40d35be73096106a515604b41d159da36d41d7fd5b0666bacab10b1"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/CacheService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:2d7e36830c962030f7f0e7a420c2929b0d3435d0b9fb40eb09299546b95a2d6c"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/ConfigService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/DashboardTypesService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/audit.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:01c451497657c2728d71429856228563d912452e716a78c2b2ca2be9d16c697e"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/bindings.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:b69ef779f444b9d5c5cd6483a5e45130d24253044dc41704097018d03bb20745"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/context.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:d5fa987c546627f83c9ef3689f3b4d3b303d049446768f2fa394f8be529fa12d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/http.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:ea548a2686d4be3cdd8de488c5eb96adacd2d6bd10e8467a9a110d964f6bbb49"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/payload.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/profiles.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/runtime.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/doi-v2/types.d.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:7d9b0930c94971b7ab25531ba5c6fc5f9b186caeb56dc6b7630e56130450e5ce"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/DoiService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:3d23683ab5da2a13b1164294a0250266da190517b404d7e44ca2fc30a0c58572"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/EmailService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 17,
+      "fingerprint": "sha256:d6863b5ef8c8116b58c2235b0cd2a653daa58199d8c6481fa2252a80e987f080"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/audit.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:01c451497657c2728d71429856228563d912452e716a78c2b2ca2be9d16c697e"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/bindings.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:431358e72276257cc5b5316170c2ad031070a13a3c90383519614522d125a5b6"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/categories.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:ce9261df0faaf21a26eaec20eeca7236472981e9434ae93cbd6de69787f0af47"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/embargo.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/http.d.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:922eb22bd73d27cacde56d5cdd1dd97b68425ef93b10dbfcfd7d42b8e70c80a1"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/observability.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:580e66d2416256476b5e263ca3fe6a77ca2fba39f4c86a32423fcdb1a639e490"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/runtime.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/figshare-v2/types.d.ts",
+      "anyCount": 0,
+      "unknownCount": 29,
+      "fingerprint": "sha256:810fb0f2d6ba64a1dd26b9b684a94b3e62143199a1a856ca27d17fdf704d801c"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/FigshareService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:7851e90ee1a80fa62b454eb0340ac168863de5da1643ff141093ba1628457575"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/FigshareVocabularyService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:0f75fda62c7eec4c82c786f281a8d3dad727efc58f03d83ba588b7294ce04d90"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/FormRecordConsistencyService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:84d8ef8320a4dc34556a7e2a4b1aed82981c88249bf24ea8ac52e4844e699733"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/FormsService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:23123e6bf169bd2597c4844349567eeafe0fa0d9930ae22eb79600e062da0b57"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/FormVocabularyService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:45e6f819478070eadb1678df311d5e45e723610e1a9d54476c86c1538ad9f9d8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/HarvestRunService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/I18nEntriesService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:9e6d23bef67989ec6130c9569d641034d9ad1f33152ab626f58828af760ff459"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/index.d.ts",
+      "anyCount": 0,
+      "unknownCount": 52,
+      "fingerprint": "sha256:ad5cc5033fb863e38462f340a5dcd83d4e6a33f052b4f8f46ecf37c5d5439333"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/integration-v2/runtime.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:1c416a6d2befccb8851143b094bd2b3629c3c4421e5b4de7152be6d0fc804940"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/IntegrationAuditService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:f5b93f74f4f8b8d79c839f3fd8d56f5f03c7d5b6144cb7c4cedb374b878a257f"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/IntegrationNotificationService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/NamedQueryService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 27,
+      "fingerprint": "sha256:2fe8f0ce722d37e3c381e9577965d55e7563cdb2de8b44c8dac9b0239d368176"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/audit.d.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:901f75a20f01a30f5195c76b4444e8877f3b0b0cb3edf9f5f4c2015e814fe1dd"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/bindings.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:8aee0adaa5360ceff33a9c5de6e967694126155ab1a3441dede7ca40444dd231"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/config.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/crate.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:a76747ff53ccd828420a572afdbb11ab17a1d00f8466e9d32e9c4c84f8a5a443"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/flydriveOcflStore.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/ingestion.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:228371ef159eb2194d8da4eac08786e5e1cef0744cfc09e40f4a92bd8b5d5eaa"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/mapping.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:2a6682c82f9e7d329595d63b9a34eb9db67313e85c008a2b0b5fbefa769c7ae2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/runtime.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:83f4efabbb836766d7fc6959cfbc90e3227c92f320a99d27ade6ba49dbd0d3c8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/templating.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:898a3073770bf71426c4cd7d590dbf8abc115cf2df157e13e9cc37039a67affa"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/oni-v2/types.d.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:ae8999de627760afd445fa9dd9a6902e07dfe6336a808dd6df9df8c03e40f8da"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/OniService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:271a2091ed1221ccd03537bf0ed84d78114b892855b83a964f44c6734cae6c5f"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/OrcidService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:699cadb64d50f6003bbf6ad7019a468fef740a617431d56bc1ad1f900e762926"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/PathRulesService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:af580293ee28c5d05a73df399493256eedb47d543c33b8219f560e5193bb6fbc"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/raid-v2/audit.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:01c451497657c2728d71429856228563d912452e716a78c2b2ca2be9d16c697e"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/raid-v2/errors.d.ts",
+      "anyCount": 9,
+      "unknownCount": 9,
+      "fingerprint": "sha256:62737b685cec0935be274ef98837c5f8b677a9e3328912602e7679ad0ffa2d2d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/raid-v2/logger.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:da6b1a78c4e305d8abb026199ec92703d4ed8460f1d0ff0723613ca5c2c76149"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/raid-v2/mapping.d.ts",
+      "anyCount": 1,
+      "unknownCount": 1,
+      "fingerprint": "sha256:4eb93fec927614cf8f60f93125b72495acaf0cd0ffa0c5884e4031ba44037dcf"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/raid-v2/runtime.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:4d316d34a771a55390b488c3ca6c61e8ed59d3fd8b26f37ad118a05c0ba7f654"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/raid-v2/types.d.ts",
+      "anyCount": 0,
+      "unknownCount": 16,
+      "fingerprint": "sha256:6cf340eb1c51e45893815991b4a2b660a3215a0b575f003eb7507185e185fc96"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/RaidService.d.ts",
+      "anyCount": 1,
+      "unknownCount": 10,
+      "fingerprint": "sha256:c92112ce5a3245e59ca4551bff9c7d603026feec93f9f6ee16e7208aad064eaf"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/RDMPService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 36,
+      "fingerprint": "sha256:90cd8ab068595c534688fb14861b9656ef2b18c0869ed07ced6e12a6f449708b"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/RecordsService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 98,
+      "fingerprint": "sha256:cfda3bc1776b30f83a72e637ec38f32d0222dd4d307630957634c08a90c68b1a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/RecordTypesService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b2ac26eb02abd7c3cb0a7e61e2b9bd627d0d216876bfd766680b15d97d79645b"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/RecordValidationService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:ef0abb36f1d2ff499e5a8bc1072902df13190b0f9693c6e8fcf900e9d780f1b2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/ReportsService.d.ts",
+      "anyCount": 1,
+      "unknownCount": 17,
+      "fingerprint": "sha256:34c18d60c27a049e8404c0bf8118586a9a969bd7c4aa7f21e14132141fa245a8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/RolesService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:d58b0e9c611f5005b2e291222a92604f1124299b9830fdca34e35be7aa5ca3a7"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/SolrSearchService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:bef40c3e9dae3af37b796b7e2bba2ee5d98fd8965774e2ef8184fd11f9758388"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/StandardDatastreamService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:cb06b7b4eebb10c9f603158ef85b2a5234254008fa5c52f84ffe0321fa8d64f1"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/StorageManagerService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:37616fa022f8c90460cdef39fc43e9c1b4cfc84113285cb11120b16969337141"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/TranslationService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/TriggerService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:0bcc599c65243b9911e8d0041a895435df64b35408f8e5294f048afe254eb953"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/UsersService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 22,
+      "fingerprint": "sha256:40f049f79be2b652f24b9dd139c6947d3c85f457ddc0ceda3debf6da7173b481"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/ViewUtilsService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:9d70bd0ea49d57ab0247fa3aff1ab100c7006f97dc2ffc08eb5398b5e165daaa"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/WorkflowStepsService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:bb5a616f1b6c4b7fb1d458fb8aec23fdafa5e8cd85e3113475bc4d989a53f8bd"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/WorkspaceAsyncService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:5c55c8ab27b0b840a65271ba22859cd38f686d06590224fa4aa82852f3da31c8"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/WorkspaceService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 22,
+      "fingerprint": "sha256:1ee506f7f0e573b5454e4affd1b08e1cb8153e1fd8403d644723f9564f701c9a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/services/WorkspaceTypesService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:ca141a40f7bdbd5d1e6850ebb82d088e6d1863efe1242ff52ba853535dc6bca2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/storage/GridFSDriver.d.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:5628c6df24ebe5727d4cee42fa326e155e65b4b0572ceae4a44a42f1b72b25e6"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/StorageService.d.ts",
+      "anyCount": 0,
+      "unknownCount": 84,
+      "fingerprint": "sha256:a1da1306893a2d5317072b65f561fbeacbf83d1b3e4b271a0c22fe32bbcfc3bb"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/StorageServiceResponse.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:7fd362aa999acb28c1b7106bc2ad21e476571b40de3483ab6570ffbd35c2cabf"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/testing/storageConcurrencyConformance.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:aa38405b1cd0dbda054972cc0bbc5848ae5b9314990b88633fda8941b9a8cc7d"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/transformers/ExportJSONTransformer.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2debf047b814ff50428d76bc93b98498df6f2479a279f1d70f867bb5f2562cf4"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/utilities/ContextVariableUtils.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2b81dd422e730cfa3d3261d31dac0879c08e9fb9e46069af14887847872d23a7"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/utilities/RedactionUtils.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:663bdf741c7e575d0917e9ea6a58d0d8d6512f01d2a7c4e4a8e4f216f839197a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/utilities/TransactionUtils.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:18784cca6194befab39f2d3ca1b9a725ccbf5a5cf3ff5966d8c5c6106704ad3a"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/client.visitor.d.ts",
+      "anyCount": 0,
+      "unknownCount": 17,
+      "fingerprint": "sha256:365429b76a7d6b8846e8600cd25a53ad29ad702c3a33203102ed0fb9167404fb"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/construct.visitor.d.ts",
+      "anyCount": 2,
+      "unknownCount": 10,
+      "fingerprint": "sha256:84958452470e585e6e6ab05babf9ece3a1cd8dc1e5209ddc34c6bec65615398e"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/context-variables.visitor.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/data-value.visitor.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e6d2d9132ba142daf0eabf21948b2c01fcbd083f064fe42b072efc93f0963d97"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/json-type-def.visitor.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e6d2d9132ba142daf0eabf21948b2c01fcbd083f064fe42b072efc93f0963d97"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/migrate-config-v4-v5.visitor.d.ts",
+      "anyCount": 2,
+      "unknownCount": 11,
+      "fingerprint": "sha256:b731ddedb4b1a6815985bf1021809fa972473029eb1fba43f73251c3af81c955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/related-object-data-inline.visitor.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/validator.visitor.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:99aebf4a7e2233345432c330fd2eaaa3de51c2b7bed1dd80927ab42343fd8cc6"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/visitor/visitor-helpers.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/AppConfig.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/AsynchProgress.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/BrandingConfig.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:6c2ac4086b5cc9805cd2301a542afb96054b875824e5146d216047a0be73280f"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/BrandingConfigHistory.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/CacheEntry.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/DashboardType.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/FigshareVocabularyCrosswalkMapping.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/FigshareVocabularySyncRun.d.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:193a891e24d0a1c2f1cb93f384b86117ffde6e8fc69e313a7f0f2d4a52f73f11"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/HarvestRecordEvent.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/HarvestRun.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/HarvestRunChunk.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/I18nBundle.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:36432113e68123c7c6cccf94e73b5015364da3e3e03b9f265e3a2bc1f98554af"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/I18nTranslation.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:6f930fd7522ca9b637e8de8d9b9f782b0715c2a24bf36f078b486879eb1d0162"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/RBReport.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:4dee59d60050b18fb1393d36b07f4c4539a2bc55ba0328a9821d6350b8ae60cb"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/Role.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:11232c44038aa25eeb8d9847be25cd93a6ea04ca1d4cf8a52d45967adc4bd756"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/types.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/User.d.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:cda0057d94a73544570f7d5520eb7df45bb5a00cdf9b804d180e7730fb02caf2"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/UserAudit.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/Vocabulary.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5dfc865682234db06c21b0853eb0ab6241c6b1c50ea5d7be1b6b2ffa17cfefad"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/VocabularyEntry.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5dfc865682234db06c21b0853eb0ab6241c6b1c50ea5d7be1b6b2ffa17cfefad"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/WorkflowStep.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/WorkspaceApp.d.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "declaration",
+      "path": "packages/redbox-core/dist/waterline-models/WorkspaceAsync.d.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:5e34a89ded3119917662cbb1eae6ed72ac313b5f69436c6cfebef1699795380e"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/admin-figshare-vocabulary.component.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:0fc1df4fc7c77614b9c5dcf635f9b3d1906326629b20061f4b571406b50da8e1"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/admin-figshare-vocabulary/src/app/services/figshare-vocabulary-api.service.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:26a87a7dafca7becc593049dffab73e53a1fa87c13abf54e97c1d8e63c2ded85"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:a08abc005302ad08262709e360b0905ba91e123aa0a721198608239b619dde5d"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/admin-vocabulary/src/app/vocabulary-api.service.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e01aee98f67ceb9f11c80bfc2c5a5c197a6892da2462481dd0c579c73b7347c1"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/app-config/src/app/app-config.component.ts",
+      "anyCount": 5,
+      "unknownCount": 0,
+      "fingerprint": "sha256:bb3dc7c919bb8ac2756acad554a34c5dd2f94409033c5c370801751185c1ca12"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/admin-sidebar-editor/admin-sidebar-editor.type.ts",
+      "anyCount": 7,
+      "unknownCount": 0,
+      "fingerprint": "sha256:f55580520623fc89650e75aa9ee0ee744b2acf7bc2f508317a7115abfe294f42"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/figshare-binding-editor/figshare-binding-editor.type.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/home-panels-editor/home-panels-editor.type.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:bc43e46c4a4affc4744b6f279d55764be3ad73b103dd4edac847316c8fdcd0f7"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/menu-editor/menu-editor.type.ts",
+      "anyCount": 3,
+      "unknownCount": 0,
+      "fingerprint": "sha256:78e54cc18b42a4b3acdb5c33942d235bce0ce474b6194806f590e38df61738ad"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/app-config/src/app/fieldTypes/value-binding-editor/value-binding-editor.type.ts",
+      "anyCount": 0,
+      "unknownCount": 17,
+      "fingerprint": "sha256:8ce10f5d83219202eaa2570b2efbad7970468e6441ab9c49b1637630ca92197d"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/app-config/src/app/services/figshare-crosswalk-api.service.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e01aee98f67ceb9f11c80bfc2c5a5c197a6892da2462481dd0c579c73b7347c1"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/branding/src/app/branding-admin.component.ts",
+      "anyCount": 16,
+      "unknownCount": 0,
+      "fingerprint": "sha256:55eaf979515bac514c932e0acdcda20f5596e60e721ae6c06f3e9786931755c8"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/branding/src/app/branding-admin.service.ts",
+      "anyCount": 9,
+      "unknownCount": 0,
+      "fingerprint": "sha256:f12bfee12fe364b1089e8a2603d99b435d803f9733432624b4815927f7e73bb4"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/branding/src/app/branding-preview.component.ts",
+      "anyCount": 3,
+      "unknownCount": 0,
+      "fingerprint": "sha256:ac723a71e65dc589f8c450f679a0960cb17e47619dd6294036897148bbea7c90"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/dashboard-config-editor/src/app/dashboard-config-api.service.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:013e1b7d290499aaa5c0e11bba1a6752f4ceb9a9eec4f2f82fc5326422a8f9ff"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/dashboard-config-editor/src/app/template-preview/template-preview.component.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/dashboard-config-editor/src/app/template-preview/template-preview.service.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/dashboard/src/app/dashboard.component.ts",
+      "anyCount": 92,
+      "unknownCount": 0,
+      "fingerprint": "sha256:92cb87cf75eede825d20becd4025b0029366ca07f98a5b45ea0cef4369483f73"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.ts",
+      "anyCount": 14,
+      "unknownCount": 0,
+      "fingerprint": "sha256:136f5242168692d9ec888bd6be11938d5b90f486150b1ffce9dd1b033920a6d7"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/export/src/app/export.component.ts",
+      "anyCount": 16,
+      "unknownCount": 0,
+      "fingerprint": "sha256:647c9cfc236b06b9896713fd6a22f95246c470f615501c969157ecdc836b12b3"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/accordion.component.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:e0da2bfc10941a874919cf4eb902e8829c2c14839382950dc6aee73fa3ebff64"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/base-wrapper.component.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:13738455722928d49fac395a1208478e11a16cd0db00dba7941164c5dcb1a619"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/button-base.component.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/checkbox-tree.component.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:776a0f5484fc442485b0d2ccaa26662e80058f76ea29dff300b44b3aba2ac2da"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/content.component.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/data-location.component.ts",
+      "anyCount": 0,
+      "unknownCount": 23,
+      "fingerprint": "sha256:1c8ce8a1bc051ce508aa0123d468f5cddd53fb7d66955ae18cac697c120850f9"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/date-input.component.ts",
+      "anyCount": 1,
+      "unknownCount": 5,
+      "fingerprint": "sha256:05b7e54abfe50a78a3f81bf1e122877267c624c01edc01e7d41b973f55f920c9"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/default-layout.component.ts",
+      "anyCount": 2,
+      "unknownCount": 1,
+      "fingerprint": "sha256:cc23900918f8de702f34e389143886984af2c34376432885c08c4af747271045"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/file-upload.component.ts",
+      "anyCount": 0,
+      "unknownCount": 26,
+      "fingerprint": "sha256:e2f0b0a3374fa72ced6ff55474d771938554a1c574c53d6c5a69cd7f14c5be6d"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/group.component.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:c78fdfed4eb7cb07c53974d00dc6134d91e8b8c30a1e9a1cea3befea973dda23"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/inline-layout.component.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:8b72a6227f74aac902a52aba54f63a9fe77c808f2218afcb87b0a1f016f04983"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/integration-status.component.ts",
+      "anyCount": 2,
+      "unknownCount": 1,
+      "fingerprint": "sha256:847e745547c0e48495cbe6f887a32f4f7d637c24c562dde7d808635169c58264"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/map.component.ts",
+      "anyCount": 14,
+      "unknownCount": 43,
+      "fingerprint": "sha256:ce11a72d4cb8cc77cf3b573e4d18b284f53143167cea456b9f09d79a616d00fd"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/option-input-base.component.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:a407f7ceb4bfdd0e043fedf2603d6185b5977e7e4ba95c851a171f46ca68c3d4"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/pdf-list.component.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:fb3c9b3a03ebd23da7d77ea77946da0a3655a4af1e10a525b756019b852723ba"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/publish-data-location-selector.component.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:a04c8021463a24c22bb82565e6936df7ae7468686d3beecb6b732aaaebca5f0c"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/question-tree.component.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:c12609a5a4b94966de62b3c78d4bbb172c6411962383be8a2dd6fef767be178f"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/record-metadata-retriever.component.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:cb82b4c113c202d82f467a18a882f4176790337a78d6fb0681cee8beb592376f"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/record-selector.component.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:65a0606322a40a7f59e906dd5ab2b1e08ffb18840ff859f96415d47540ecd9f7"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/related-object-data.component.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/repeatable.component.ts",
+      "anyCount": 4,
+      "unknownCount": 45,
+      "fingerprint": "sha256:672bdff9c7e5fde828dcb6ecf322a11fdc35c8fef092399fcb9d673f5752a10b"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/save-status.component.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:a834aa86ede36d82db6681c99f4fb43380b22ad9014216bba6c4eed2ffaec94a"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/tab.component.ts",
+      "anyCount": 2,
+      "unknownCount": 11,
+      "fingerprint": "sha256:a826f3401fb6df0316c66df4fc211a6c12f61c5aad8d56b31ac59cd1d2415f0c"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/typeahead-input.component.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:b278941698081b7c9ab5d9b4de46c8ff8874f6d3ff9f2d4362d315ad8e56e2e5"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/validation-summary.component.ts",
+      "anyCount": 1,
+      "unknownCount": 9,
+      "fingerprint": "sha256:b24bfab61a741ed6cbfc61c93a894d78a0ef84ef5903723b96062d2862e3c808"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/component/workspace.component.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:eb6700ae0b4bada386ad53216f0b73729d875eb4bc82be47945178f79fb8a981"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-concurrency-state.ts",
+      "anyCount": 0,
+      "unknownCount": 20,
+      "fingerprint": "sha256:242d9d0c9301bc8edca213fc061a2c9b48b6f59f74a6ed3954b02d7872ac01fc"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-conflict-review.service.ts",
+      "anyCount": 0,
+      "unknownCount": 16,
+      "fingerprint": "sha256:6f36bb70d8728fe19e60ecff4809b29e2edbb8a680e63fbf3f43995b04f118c1"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-debug/form-debug-state.service.ts",
+      "anyCount": 0,
+      "unknownCount": 36,
+      "fingerprint": "sha256:deb4c5edf8407ff0b39c5be4035153e23c8b48e2641b68d9e03e57ee62548744"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-server-sync.service.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:104aa2022e6544039571a4c93b64304287a3bc94652279e466a368c9ed2a58b3"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-actions.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:431358e72276257cc5b5316170c2ad031070a13a3c90383519614522d125a5b6"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-compiled-template-evaluator.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:56d10cd9de5b9a74e16abfdce75eefa155eadef3959760ccf685125fde9f8872"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-condition-matcher.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:3a176cc2c1b43808f2e7643cddad5399f0cd98be57ff708bf58cfc9b8d825405"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-handler.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:bbfe72e713ae4acc4fe07fb9d58b972e8776e31ffbb7c9b624b3588299aca2b2"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-processors.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:5dae2529f5eb049eacd1e81aedc3408abbb08e8206bdb077138fa6587c8b733f"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/behaviours/form-behaviour-manager.service.ts",
+      "anyCount": 1,
+      "unknownCount": 1,
+      "fingerprint": "sha256:841317b00ad34f465d815fa03606d521d1d076c20593a12d7d2667763ebc95ea"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/custom-set-value.control.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:1c26146e07c8425704014215af5f5483efea53463031de9f24080f5e0f266454"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/effects/form-event-bus-adapter.effects.ts",
+      "anyCount": 8,
+      "unknownCount": 0,
+      "fingerprint": "sha256:c03db5dc8c1f4166e321125f5d4290a7a23b25648b9c5732df70246d5f35fb44"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/effects/form.effects.ts",
+      "anyCount": 3,
+      "unknownCount": 0,
+      "fingerprint": "sha256:9c0d9f834bb89cc992150a545c872d6a4e4a096671792a0117cd95299cb61099"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-base-event-consumer.ts",
+      "anyCount": 0,
+      "unknownCount": 14,
+      "fingerprint": "sha256:c17e189d961b121294e9fd7f52a8e76ecb6074ee7069db50826bba30221de0aa"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-base-event-producer-consumer.ts",
+      "anyCount": 1,
+      "unknownCount": 2,
+      "fingerprint": "sha256:e9b28cbfa15547399297dc1dc5efde801253e9fd924fb2a997c3517bd4af6069"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-change-event-consumer.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:8c4e864936c6c93dba19408b09f23fcda91496b3010ba45ebdfcb68d1e5b1cf6"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-change-event-producer.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:341628ee4824275d02ccd7f42b94cab2ddfad868fd9afb1a681fec0fb7d3d5d6"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-event.types.ts",
+      "anyCount": 5,
+      "unknownCount": 2,
+      "fingerprint": "sha256:fb528ee74955c2bb08434a50717ac0fea06bfe2eb70ba84e3f764d32c224b465"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-focus-request-coordinator.service.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:c9327cbef0653b05da7c33050c7a481a5a58c0abe575799c3539f72afd1e2af4"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-item-select-event-consumer.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:17600dc51bb7b978ef0f78cb112dc6afd6c3370fbc3b1d761156b78febe0a276"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-item-select-event-producer.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:504913373d2ada60d61a8541aecf82c838254c69e5365f875fab5b895b6641cf"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-sync-source-event-consumer.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:8c4e864936c6c93dba19408b09f23fcda91496b3010ba45ebdfcb68d1e5b1cf6"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-ui-attribute-change-event-consumer.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:ac3d94e208f7d410ac7d44ceaf9aead9a61c183a08c9ab89ddceab3c984bc572"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/events/spec-helper.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:95b780df6851b7c86b21354967845886e8480047114c56cb0367b9e368ac0dcd"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/facade/form-state.facade.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2182939b64be318cfb03bfaef8bb5616ad68181c13493b66c172147dfef9dd24"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/state/form.actions.ts",
+      "anyCount": 3,
+      "unknownCount": 0,
+      "fingerprint": "sha256:774812d9bb55b373a87962d6312e3ad02334e4c2b0ca32f98d314cb78247c93c"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form-state/state/form.state.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:3c20e0fdb081c867df4b3a9ce9a67f8b02cef7e8851bd49b0d61eda36f544b30"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form.component.ts",
+      "anyCount": 2,
+      "unknownCount": 38,
+      "fingerprint": "sha256:b59073629e350e0bfda2fe88c88f43ff541237732182cb6a85f7ee67ed3f62c9"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/form.service.ts",
+      "anyCount": 4,
+      "unknownCount": 17,
+      "fingerprint": "sha256:dee421ed68f03e369e925d90feaeaabf24b40324735624ae2b1ce0b91b3670cf"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/record-audit/record-audit-launcher.component.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:bfd12f5c962ae93841ab7158e7c2ab7dc8937f64c93510c80f351b6ee15ba274"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/service/typeahead-data.service.ts",
+      "anyCount": 0,
+      "unknownCount": 29,
+      "fingerprint": "sha256:65c70280fc6c03998a77e64488e0396106875b063eccd8f3ed3891ebdd9b1333"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/service/vocab-tree.service.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:bf0e53e236e5796becece332813149224962308808fd0670935aeed2a0531e63"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/form/src/app/static-comp-field.dictionary.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:e014a58035456ed09c9c7b6541bbf6f1d38e23e9881d2d414516a3b6b39918c6"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-run-api.service.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/harvest-runs/src/app/harvest-runs.component.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:38242259e30bb3c9c7988a1d0a4abe5ef541fceab1145c8dbd9c64ad05226b7b"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/local-auth/src/app/local-auth.component.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:c472dff9fb3b6cc8acc11bc8942e8a7492efa00886d87539fec2b5add8ed2006"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/manage-roles/src/app/manage-roles.component.ts",
+      "anyCount": 21,
+      "unknownCount": 0,
+      "fingerprint": "sha256:d8f5bcc3743a37de2f96f06ebc691884daf0c19dede61c5436ff85b8d43658f3"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/manage-users/src/app/forms.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:6ac7e03eb017edb0f431f028eb69821b9cbf82d011edcef7db1aede4920eeca1"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/manage-users/src/app/manage-users.component.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:a714331d68eb7a71a34b26fad6a2ad98a14278262f479ae1885d55e1ccef1647"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/named-query-editor/src/app/mongo-query-editor/mongo-query-editor.component.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:090e5ff0182933f31d0c7320e71608be084d468bd1ac9cb03c151858c532b46a"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-api.service.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:dabb2a0954898c2fc6f3c9da87c7fe4a43bd296135c191ff09ddd80c898764e2"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/named-query-editor/src/app/named-query-editor.component.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:ea30d64ebfb753be5d4d0c8d24ccf86041c97cf890353df5482fee6a20f23ae9"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/named-query-editor/src/app/query-param-editor/query-param-editor.component.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:03903c123f0cf0b6ee8f2370d6416313eeb8b0c48969f3084bcbe422e20212c8"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/named-query-editor/src/app/related-filter-editor/related-filter-editor.component.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/appconfig.service.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:4b5fbf5079331f3e75ac2eec5cde7fc6f81633a0f1433d12a411482916e09215"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/base.component.ts",
+      "anyCount": 5,
+      "unknownCount": 0,
+      "fingerprint": "sha256:042205118441873738984dc095988efbabf6c185ff9f0ebb44bec2f3984d89f5"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/config.service.ts",
+      "anyCount": 13,
+      "unknownCount": 0,
+      "fingerprint": "sha256:79c68ab5ee0d392dc3c024eb9ef6b219cc0ac9c8776612025275c8571d1d5197"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/csrf.interceptor.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:2b2bc0945527eef33479120572d3e746fabb937a22023d0cb3e2239adb9f705e"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/dashboard-models.ts",
+      "anyCount": 3,
+      "unknownCount": 0,
+      "fingerprint": "sha256:b722114355d05d63f24b8996b6ffb103a80153b399e26de67180e09243728362"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/form/base.model.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:32eb501476e297c6b89533c0417af38138699431198fa221841f248d0ecdd115"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/form/form-field-base.component.ts",
+      "anyCount": 4,
+      "unknownCount": 11,
+      "fingerprint": "sha256:8e88c4013f188ea48747e6d81b9cabbf949bba52f5c533f39e8cfe7308ca744c"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/form/resolver.interface.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:87cba2e5c0bc24fb2d71ec71058fcf5d72107e84f9474ffee2226b4deb91a5f9"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/handlebars-template.service.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:767d4dcce8050e9ed20c545fd941a931c9949b0d6c4ffa9d13fb0b078770b42b"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/httpClient.service.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:85f17d163ca14b0fcc121f3aa7f4d516fbcbad5ae7e7739dd4a5ac6611cac5b9"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/i18next.pipe.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:1b68b48d3d94513a88755f8ea2c01c3b7a566cd78246f9a41f6500d84c755f5a"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/initable.interface.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:13ac1f37ea27d6217df0a04336aea3974594855312bf5b502b42ffa8658ef822"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/lodash-template-utility.service.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:41c9496ee36ebc03c4ec6faa6d3aefdeae006dad22cf347ad634f48e84c64ed7"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/logger.service.ts",
+      "anyCount": 21,
+      "unknownCount": 3,
+      "fingerprint": "sha256:aea784322f5ae5b18e3d9239588c7c5a52a6bbf7a98a1fff96d796f162d4f8c2"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/record-table.component.ts",
+      "anyCount": 9,
+      "unknownCount": 0,
+      "fingerprint": "sha256:dbde8fe1677d7c6ba3bcd595fa2d304a8b264a5bb376b4370d2f3bb40a25b7e9"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.model.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:1832190c6638ab5725819e7871befd2aa215768fb7bd55890bb04c251ef19c77"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts",
+      "anyCount": 14,
+      "unknownCount": 49,
+      "fingerprint": "sha256:3368a7eda49f38763cd9ccf13666cf94b5ec53c3505e83adf26ae708d79e6547"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/report.service.ts",
+      "anyCount": 5,
+      "unknownCount": 0,
+      "fingerprint": "sha256:d828a17d8925a750360319d146fa0bcb2eaea8d0e0e8e219caef9c56d1e59916"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/service.interface.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:465e7b6efb75213b68ef38b4afc89611820fdc8096cfbd2ae58dfa947ac0ecae"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/translation.service.ts",
+      "anyCount": 22,
+      "unknownCount": 3,
+      "fingerprint": "sha256:81de7f7b87768712ff9909b74ec51ae1d3fee7a4804c03aacebfddad00b19d8a"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/user.service.ts",
+      "anyCount": 14,
+      "unknownCount": 1,
+      "fingerprint": "sha256:33da963c04e9825b2a2ac97b952ba8b3d713ed8ce9fb5b6bd713ec8984ddabeb"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/utility.service.ts",
+      "anyCount": 58,
+      "unknownCount": 1,
+      "fingerprint": "sha256:54996dcdb30f3a0bed5a38b5090cbe1cb06badfc6a6a012e2cffd24fa7934c5c"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/portal-ng-common/src/lib/workspace-type.service.ts",
+      "anyCount": 0,
+      "unknownCount": 11,
+      "fingerprint": "sha256:0a9889fc4888ccebcc2b75cbcc6c8737c2bff0ded2b2e8a400fd6985e2a512c4"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/record-search/src/app/record-search-refiner/record-search-refiner.component.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:b17e4dd248ae2c8c9ba85eed350a546deea59086e5036766bce19d22276f9b5d"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/record-search/src/app/record-search.component.ts",
+      "anyCount": 12,
+      "unknownCount": 4,
+      "fingerprint": "sha256:4d05e5d6b46ed2932f81adb85b97aa8ab938492ddea74990b6796bd95ea833b6"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/record-search/src/app/search-models.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:f4ee532746173bdb4410a9d9dfc93320a2b86ea8cccaf0630c5c6be817635043"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/record-search/src/app/search.service.ts",
+      "anyCount": 6,
+      "unknownCount": 0,
+      "fingerprint": "sha256:096a9a1488a8026b5d516302554645ba913d9fb53bbd97510813f00fc699df5b"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/report-config/src/app/report-config.component.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:5b6cee50421377db869999977a47fe1deb2efa03216225a3a004d02daa5dea3f"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/report-config/src/app/report-config.service.ts",
+      "anyCount": 1,
+      "unknownCount": 1,
+      "fingerprint": "sha256:17d36ad006c18d3c45d0a280e38e5d304f9d0ea26a57f816431945178eda84b1"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/report/src/app/report.component.ts",
+      "anyCount": 14,
+      "unknownCount": 0,
+      "fingerprint": "sha256:f6988f1d23689bddd83e3432d39eb48474e7f9d90485c2d9c9ce90fbd5fc2e00"
+    },
+    {
+      "scope": "source",
+      "path": "angular/projects/researchdatabox/translation/src/app/translation.component.ts",
+      "anyCount": 12,
+      "unknownCount": 1,
+      "fingerprint": "sha256:126688226131856011f582cca9749abac9806a15bec9161f9046a4deac60c1ae"
+    },
+    {
+      "scope": "source",
+      "path": "packages/agenda-sqs-backend/src/SqsJobRepository.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:18036cbbc5b148a485a7b750fd5a2e97e33834723d98f3b06ae75657944ef493"
+    },
+    {
+      "scope": "source",
+      "path": "packages/agenda-sqs-backend/src/SqsMessageCodec.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:f907a9e6451c3504a741338634fd94055c637fc46a218b071ce366e5d4e35f8e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/agenda-sqs-backend/src/types.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:2e4f388e199663028e3bd4afba220be2a876f429a7ab4a71bdcd85c83046ba9e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/raido/src/api.ts",
+      "anyCount": 27,
+      "unknownCount": 0,
+      "fingerprint": "sha256:e99872bd033251eb0727918beeae4c14ade622c1df24fa8c3624112dfcf06631"
+    },
+    {
+      "scope": "source",
+      "path": "packages/raido/src/common.ts",
+      "anyCount": 9,
+      "unknownCount": 3,
+      "fingerprint": "sha256:4592b4281492ff91826f54a63ee4fb41a92b2f00d4915c48885866b681cbb0c6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/raido/src/configuration.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:05247305f8ea8b881ca400410efc28c141b7eb83aaa9f45fc751aa495b6465d6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/groups/search-query.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:1b35f56595048cc514b5b708cab8ccdd6c3e9e3d76e9333b2a51786ad5953f85"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/groups/search.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:eb956337c21aa1e1d04d05faec849d76978fbe3ccb3399ea72a388a8fbb3fc0f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/helpers.ts",
+      "anyCount": 0,
+      "unknownCount": 36,
+      "fingerprint": "sha256:806d5086fa7cd635af58449030e9f18bfaf5a86099fa60a5f312ad354539e1c2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/openapi.ts",
+      "anyCount": 0,
+      "unknownCount": 29,
+      "fingerprint": "sha256:16b387d057d1b5450d8dea225a51f149063a9fdc5f38811ae8379e9e0bb2ce0b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/request-extraction.ts",
+      "anyCount": 0,
+      "unknownCount": 17,
+      "fingerprint": "sha256:4f41c9a630f61c87d70977c5c2b0a230f886ab64af403af7c45fa496b3363a65"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/route-registry.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:5bece32781096b78aceb96db480d62249151ce020f28ed8153a35c0314f998a9"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/schemas/common.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:52902b9213a0a755ed2dfa49424fb837d63a7a9049bee5646a4742c1487006ff"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/schemas/responses.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:52902b9213a0a755ed2dfa49424fb837d63a7a9049bee5646a4742c1487006ff"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/types.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:bf19f18a83192ff5d95c5c29caa114a244a589deef9639540c65ae3fb73c7fa5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/api-routes/validation.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:9f92900c35b3ccb8c6328ab856ccab6f5ca00256ed20a6d1ad7327c27857ed0e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/async.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:496b0b885749fdb07bc4e269ce641df1dc25f8edeed89237bb812de43b16f780"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/Attachment.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:0fcf0124f6d76fd44cff2b9a02a29196db53a450d29e4186aa841e0e047d4bd3"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/AttachmentStagingIdentity.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/bootstrap.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:55ee8dfb3797d680b207e569db5af660cfff5f57b116574926cfdcd3a7dcff3f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/agendaQueue.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:01f70834a6c42cb278f1752ba9090f73fbae18c16901bac9a31a3d3089e42921"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/appmode.config.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/brandingConfigurationDefaults.config.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/companion.config.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:ea8901a83b0b0ca324454fbede706f045d69768f4df08079325556643590faa1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/dashboardview.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/datastores.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:d67c9708ea576304675de2c6bfdac4ef1c744110ced752ff8bfd40ec490a153b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/dompurify.config.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:d621bc9bed883aae78ec27e774fecf023f2c5ffe17d738d0243cd6277139cb3d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/form.config.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:1fd407b438d08ff2fb6d38fd1d45f9d9e831e4e36ceda8ad14da3f7c80b98d2a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/globals.config.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:480aad25545ff8cacf8ac81706f561e26541398fa97a50a03ef704fb45927fcb"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/http.config.ts",
+      "anyCount": 0,
+      "unknownCount": 18,
+      "fingerprint": "sha256:85a26f1bc29160db64333bd805bd8cd71c587c0114cd1a8ad707178138ffa0cd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/index.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:14edc599e0a278fa7ea2f90edd5e92ba04b31208800fbf99d58aeee0b76147e2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/log.config.ts",
+      "anyCount": 0,
+      "unknownCount": 21,
+      "fingerprint": "sha256:16dac63f5e240d020caaae7b171901373a16acf5ed0edb32d3d9c0be6991d751"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/namedQuery.config.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:dabb2a0954898c2fc6f3c9da87c7fe4a43bd296135c191ff09ddd80c898764e2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/ng2.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/peopleSearch.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:c74bacc0a1ab4616d0d7898517cbc973bfca0e33fb9e3fec9f1117c2bcad43d1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/recordtype.config.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:93aace62c97bc11e64da4c34fe4809fc04a35281179d3ee096b6d05ee7bbe7bb"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/redboxSession.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:d58ffbba2702fa23376ff2435a4f9a84b439208af5966c5104c85e57cf93e779"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/routes.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/sockets.config.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:6e5891573c803626d7a935ea81160a06648a8f1941e20f928bb766fe87dd3910"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/storage.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:8f77172f0c90cdf8522e26470f0e104422fbed59d344d2de18b42af44d5b182e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/views.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2862034eeaa28aa9eff6d4546f48a63d11a16957990a58844c9422cc636144ca"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/vocab.config.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:b3de4abd1fa2e99926694fc8bba2460e77ed066010beb115315fe6b14ba5f645"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/config/workflow.config.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/configmodels/ConfigModels.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:4d32c0350a206a8bb252be54a51a4e10674c65de0e94f668c37aaff3d24a2d78"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/configmodels/DoiPublishing.ts",
+      "anyCount": 0,
+      "unknownCount": 25,
+      "fingerprint": "sha256:d7a3a3d6710782d233dfab4b39502ded0a12e914e3f065f430e787b0d83c6e3a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/configmodels/FigsharePublishing.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:fa6838ca4bb41b58b6b03d53e68617528a8361f3c65b0c2c5823484cdc097423"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/configmodels/OniPublishing.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:d9b27464ed4477426cfaaedcadb1f5cbc54dcd8f56c512be0d47b74c9ebb939f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/configmodels/RaidPublishing.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:cda46a7c49e6bbca24c1f867f1b82909bcd71afdcbc86d4c96174a111a48508a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/AdminController.ts",
+      "anyCount": 0,
+      "unknownCount": 29,
+      "fingerprint": "sha256:7dd567fae5c4b37be0f13a84fb4706f40cf21dce79d97acc128ca8b3a0fbbcb3"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/AppConfigController.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:5acc3b5db1614c31a37d2bd5f8228b3791bbc6ea2d3a32cf13641ba216d460d5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/AsynchController.ts",
+      "anyCount": 0,
+      "unknownCount": 28,
+      "fingerprint": "sha256:daa549c7b32cc5bb200ca5f528de1ade71643f89334952b4d131b0e682ecc23c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/BrandingAppController.ts",
+      "anyCount": 0,
+      "unknownCount": 23,
+      "fingerprint": "sha256:ebbf38ae4c7be1d0a366f6ccb355e3deda61e3997a7cfa1d5835b6127b05b9ac"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/BrandingController.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:b4db7ca9ebdded69e44e925531e20e3715c5c3cf03a7e9a3d8c5e7b5d925c0ac"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/DynamicAssetController.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:c1af5eddc4d259af4f059289bd5aa77ea05b698804887808321cda57ac1400b9"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/EmailController.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:c77e295df8ebbf844c4b50758236031fa1c1d60d425df5a7b22a1d7d4728d21f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/ExportController.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:4eacb222a312351db881db89e36273c9be37584d8371ded4882fd2af0691febf"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/FormVocabularyController.ts",
+      "anyCount": 0,
+      "unknownCount": 11,
+      "fingerprint": "sha256:7593c9d99618de68bb3fbe1d4bd8752aa6cb9cc48acca8c8a8b0be4924037985"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/index.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:abd204ba0a0685d37fe08f63ee803df109b4923257b2c283febd9097621e499b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/RecordAuditController.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:468aebe64347caf4ce46ecb9380db6fb9ac2582961826e72575c08434567faaf"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/RecordController.ts",
+      "anyCount": 0,
+      "unknownCount": 82,
+      "fingerprint": "sha256:a8aa7d129ef7a0a66afde6541f5ba9460d891b0e0a407f62291a7cec4f6c5cce"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/RenderViewController.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:4eacb222a312351db881db89e36273c9be37584d8371ded4882fd2af0691febf"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/ReportController.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:9e31c4ba30bed18d77d366267a280c978288bda32d9459581d1ffbff02dc4ee6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/ReportsController.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:4eacb222a312351db881db89e36273c9be37584d8371ded4882fd2af0691febf"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/TranslationController.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:8204db9c2d950a290b1b4592f4d2631291b12301326885f14f61167c460472e0"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/UserController.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:29af6e3ab80ac3e9b82c94d9e798f16df72096f16c6fa8998ed77a4f8889ee02"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/VocabularyController.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:a5d27d9c2ae478889484bbfea0323c52802319c506c942309771652010b87282"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/AdminController.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:35f6339bec4a1bb15bf0c1d78e987bf5ff296e0d17e7917f1b7cf4c5df466277"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/AppConfigController.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:98e2996f1b76f502af8fddfae4c666237779ba85bc9b1f1deef7b0fdb217103a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/BrandingController.ts",
+      "anyCount": 0,
+      "unknownCount": 20,
+      "fingerprint": "sha256:96c7d0a3fd95d9cb630d8eb216ecbf33a14967bef7fe2c7401e7a803f2c8b1ee"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/DashboardConfigController.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:5da37df9b50b29664e6565d031e3e1978c4a2409b3e84c8382813ee5e26e2b1c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/ExportController.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:cbe9e76ae20da8d0de6df53ce7817d0a4f97d911b07279a5e19cb31d8a6da619"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/figshare-vocabulary-errors.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:18784cca6194befab39f2d3ca1b9a725ccbf5a5cf3ff5966d8c5c6106704ad3a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/FigshareCrosswalkController.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:71320f0f406bdb8dd28b7cbeffb16536af73ed16998e14cfd2793e3a0906a20d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/FigshareVocabularyController.ts",
+      "anyCount": 0,
+      "unknownCount": 14,
+      "fingerprint": "sha256:a7ad35fb2ff44989bbb23ae722fcad567a65838de7752a43af1ad5b582ebcbd6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/FormManagementController.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:93293934d860caaff9d5cd4a7273cab595952716215148d810ae44133df16665"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/HarvestRunController.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:cf33e537c7c1a5362e576b4cd0d16d65e2d8fcc8308dcede34ac598c6906c9c6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/IntegrationAuditController.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:5dd9c8ee755a8c98dc723ade5f830f5e6d9704cfea8bc58464be72b2ac1cc692"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/NamedQueryController.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:98ffcfa33a63564dd3c75d037d1a8371b6fd23397819999fac49c5f04a20e15e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+      "anyCount": 0,
+      "unknownCount": 133,
+      "fingerprint": "sha256:3fbc724140e37a835d5d25e68bcd24049b6718eed35d0b3c5a00fd24b34b77dd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/RecordTypeController.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:3154ef7a15778be35ff73eca6a3a1dde2639566428909c66ad4d451575c53a6d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/ReportController.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:b307f11678a7db181fb36fac659220da271bccd634b22317eb454667f21f7bbd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/SearchController.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:e10cc8f7dcb32ced02960d1fc655c5ac67328591bdae36ec0cf395ef065b7683"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/TranslationController.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:4a641d9c299763db48838c8b8eda2dde59148f34f2f4f1008b19c8bf1d9ca1d1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/UserManagementController.ts",
+      "anyCount": 0,
+      "unknownCount": 57,
+      "fingerprint": "sha256:b9aad092e8ab3d44dd04bde6ac23c525b21f1153c09ed39acc89a9b283784fc4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/webservice/VocabularyController.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:a441e4d0cba6b869a6c841fee9ae1ddc206110e443be289a80140ea1eea2bae6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/WorkspaceAsyncController.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:924b578be1ddb53325651d0e54d14b5b7a9a4f212735d635657f2dac0db9d095"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/controllers/WorkspaceTypesController.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:f146bae3ba2823687b0ee6e069252871bd1b8329780a79197880ab9eae9d88fc"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/CoreController.ts",
+      "anyCount": 0,
+      "unknownCount": 50,
+      "fingerprint": "sha256:4761af750d63adbf8a37954748798bbeed74c38f3690d171cf14e543f5f0b1e3"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/CoreService.ts",
+      "anyCount": 0,
+      "unknownCount": 22,
+      "fingerprint": "sha256:5a33eb0ec056d788a4f39d7c18f6766eeffc0e29b7fa695e0ba06b1ce92fc1c9"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/Datastream.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/DatastreamService.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:cb06b7b4eebb10c9f603158ef85b2a5234254008fa5c52f84ffe0321fa8d64f1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/decorator/PopulateExportedMethods.decorator.ts",
+      "anyCount": 1,
+      "unknownCount": 1,
+      "fingerprint": "sha256:880a7cbb1c0f76c8ef5c998afec1c8b95a91cc19ba687c97f5c1cec14f343fe6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/decorators/Entity.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:7c21785f4e31fdab65981028dea8492f056dacacb56a5e8c5165628b92331295"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/decorators/Lifecycle.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:ff6f4b827886b1889c930a6b2388ef12b0de9320e09217aad8f2db3205026f2d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/decorators/registry.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:fd4f465fa4d0971398c27643f794cbed203431a12531b61c830fdb9b3e2de79e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/HarvestRunService.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/loader/bootstrapShimRuntime.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:a8159a277dedfad5f96696c757487e44206afac5502242c931a11b4c0335bd23"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/loader/MigrationRunner.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:adbcee61683fd408b6c10256406abe6329ef38bdff248c74a235ce1e0ef128bd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/Logger.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:83fea1dec50baa2ea5084df96f8be970b769a7863b526b52933b6e8d6c4b3d4c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/middleware/redboxSession.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:e646f725792a3a07eec5fc31a72a5b20801d747a789ad5c3aa02822126694ec9"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/api/APIResponseVersion2.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:03cdb8d0e6f8637e2473650e67ae5019db3aa642c44827710db2c2e3b8445d64"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/api/FigshareArticleCreate.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/api/FigshareArticleEmbargo.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:11232c44038aa25eeb8d9847be25cd93a6ea04ca1d4cf8a52d45967adc4bd756"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/api/FigshareArticleUpdate.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:1a8c3085e280052cd5b8a2022cb291e3235399efb837b350a6e079aa802c6c38"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/BuildResponse.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:7389c2a94460a7e215fec500883bce609511590283f1dcaae178a68d521a7b9c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/config/ReportConfig.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/DashboardTypeResponseModel.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/RBValidationError.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:14bd807263908d8dead4bb9affcbfd0d669a321e0d60f95aebe894c789ffb55e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/RecordTypeResponseModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:33e34f024ca6423e239263f9abc5464fdc01aa401fa5409c1df66277340a67cf"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/RequestDetails.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:419c3c4f28bdc58ca64333867bf982d95ab551aca033f4bb3e5fbd6c0c59a613"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/SolrDocument.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/AppConfigModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/AsynchProgressModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/BrandingModel.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/CacheEntryModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:3f9039ea96c0f61924790a17820a616e981e40dccf35bf868c19b4a46c3fe09d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/DashboardTypeModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/DeletedRecordModel.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:7d8c052b6106ad605143fafaa6a4c4a839d13b8643b31d6bd3f4617f02373205"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/HarvestRunModel.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/IntegrationAuditModel.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/RecordAuditModel.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/RecordModel.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:872faf93570a83d0aca605b868f7fd12bf4593e45252b3ce8eb901e19ceee397"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/UserAuditModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/UserModel.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:6e90b6f573f5385f45aec4df1bf1db77ddc229ac4872ada03da044781bb82ed0"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/WorkflowStepModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2feb2dc0381f73ffa417cb090f56bfd7a27c5cb6c88a2c3f94373ff00b4692e3"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/model/storage/WorkspaceAppModel.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e4255c8fab604778993dd943d3fb45dfeb2a81a95c2007ff010c141893087389"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/brandingAndPortal.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:40e2a320bb24eddea7f20e95a7df499f290b6c1edb35c1b40ab307b9dc71833b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/checkAuth.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:06d91fba26426569a1e4b7a664282bab104d684fefb643f76e264d904356a0b0"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/checkBrandingValid.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/companionAttachmentUploadAuth.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:f98622d6c9345107176827cc83261c049322c35fe1172c3bbcca9bd77d25ea76"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/contentSecurityPolicy.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:0bbd9652017ef4d354453283dc5c98b32252393f8db1d8f2e89723bd76da37b4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/i18nLanguages.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:992d714d6e2b965a4da60aa48eaffb82618f20ba03fa89d1a23e92738616891c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/isWebServiceAuthenticated.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:b08a63bbec9bcb5f121b50fd8c373ec7af82eae3fd358c5b2c5ba307b9c08d47"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/menuResolver.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:912dedb1f553250470b535b0f0e2856d241e7514bef0767bd3cd29bca1a687c3"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/noCache.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/policies/prepWs.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:40e2a320bb24eddea7f20e95a7df499f290b6c1edb35c1b40ab307b9dc71833b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/QueueService.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:9e816f8637831c7b316bf5ae4128717d1a41d8ccab19108fe199b3c065c43792"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/RecordConcurrencyObservability.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:cf33e537c7c1a5362e576b4cd0d16d65e2d8fcc8308dcede34ac598c6906c9c6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/RecordEntityTag.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/RecordFormFingerprint.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:4187d8d81c8f2a904964a524f8b07d41252f1f747242698427ed73f57732ac40"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/RecordHttpConcurrency.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:33b5ab2620fe29604dab7d109ec910cae1a92afc78dabae5cd562a49d2d901dd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/RecordSaveResponse.ts",
+      "anyCount": 0,
+      "unknownCount": 17,
+      "fingerprint": "sha256:def1b564d3d80a889789db104d8ca4109249fd01a463a065e385568e8eb36336"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/RecordsService.ts",
+      "anyCount": 0,
+      "unknownCount": 78,
+      "fingerprint": "sha256:fc19152234c8ebcf57c76be00e89108612b67fb7f6e8405cb0dd45a9eb062f6a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/RecordWriteClassification.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/responses/badRequest.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:c5f65e22498beb56c6f5dffef073f1473330bc6e398b207ade0ab19306d98135"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/responses/created.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:c5f65e22498beb56c6f5dffef073f1473330bc6e398b207ade0ab19306d98135"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/responses/forbidden.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:c5f65e22498beb56c6f5dffef073f1473330bc6e398b207ade0ab19306d98135"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/responses/ok.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:c5f65e22498beb56c6f5dffef073f1473330bc6e398b207ade0ab19306d98135"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/responses/serverError.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:c5f65e22498beb56c6f5dffef073f1473330bc6e398b207ade0ab19306d98135"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/responses/siteTitle.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:8f299b56bd4193b10afaca719e49e77fd766e5b942dbcd42dc1bdca6f5493a2f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/sails.d.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2fbf2db3e7e236b64f791bb3bd5428f3154390ff7a723006e483db77f9924f0a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/sails.ts",
+      "anyCount": 0,
+      "unknownCount": 53,
+      "fingerprint": "sha256:e147ea193836628174dd0578d780a6aae1f760025545a5aad4c99b805731653d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/SearchService.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:1e7999c28a523a98f87f90d821fdeef5eeacd639cf3a4f4e499cdbafca0a823d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/AgendaQueueService.ts",
+      "anyCount": 0,
+      "unknownCount": 33,
+      "fingerprint": "sha256:11381b9ef0e31bccb2f59c4ae83a2fd3913dd606e768c4027446f8451206efc5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/AppConfigService.ts",
+      "anyCount": 0,
+      "unknownCount": 23,
+      "fingerprint": "sha256:b5093db8b659143c9ad439e622db6af996bfb5b13d90fc952ad72c5aa693e405"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/AsynchsService.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:2257e5350555f901fa03785878e19dae86e23bfb12c1fa7e0c5ed507653154ce"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/AttachmentMetadataService.ts",
+      "anyCount": 0,
+      "unknownCount": 16,
+      "fingerprint": "sha256:dc33748f11abb0bc00369236aa8d00b3c76cd928fd33cbeeb250116c6d3182e8"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/BrandingLogoService.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:224dbc812ee6d58bc5f13dceba1a79664fcb6140bf4b8d7017236338f8a905ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/BrandingService.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:87b4fb86e95701e1a0552565ca0212db64bc27b47477c3dbdbc01b7ee0dd3eb9"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/CacheService.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3c7b5d1c630226b21d735084b1a16d5e774098d7e6bc0c9aaedfa572281fafa5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/ConfigService.ts",
+      "anyCount": 0,
+      "unknownCount": 19,
+      "fingerprint": "sha256:d71b93edc849230b6d0187c4a253ad584dfb4d56bc63a9e64e46c8b0a03ad21b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/DashboardConfigService.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:201c697e4e6cf4375abb05ff5766b08f495cc2821d4cdb982d553ee77e7a807e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/DashboardTypesService.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:18889673d007977e24a04de6966d3c1aebe8ca666760d45f56e39f0aa1b60238"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/audit.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:01c451497657c2728d71429856228563d912452e716a78c2b2ca2be9d16c697e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/bindings.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:a1bb2cd8148cd64b92de14573bb63d642d5c35279f48130375ffe6de6efe5031"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/context.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:fa1d8bf4d71e688c1e12f67de345a3b94866688cea1486a4ebd3edba49242078"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/http.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:ddcbdd785e001534f44ef964a474ae19c6f9f5457fede62518dd4b5fe7388f7d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/payload.ts",
+      "anyCount": 0,
+      "unknownCount": 47,
+      "fingerprint": "sha256:f117e7f23e7c2e800625b24347d00c3855f1d84ff9eb9e4fa0ae0f87be252249"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/profiles.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/runtime.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:173d6e5ecc27df2e70841ef4b30a387488bcf374b2e35746c942535354c347d1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/doi-v2/types.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:7d9b0930c94971b7ab25531ba5c6fc5f9b186caeb56dc6b7630e56130450e5ce"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/DoiService.ts",
+      "anyCount": 0,
+      "unknownCount": 22,
+      "fingerprint": "sha256:05be52b633f6755e437624e0bd11abcbb08738204005aed6b789c84f875ffa09"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/DomSanitizerService.ts",
+      "anyCount": 0,
+      "unknownCount": 22,
+      "fingerprint": "sha256:a57cf2aba1b1d42ebd34a1ccc324205dfb3eccfea08d0ddd94640d192deb5107"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/EmailService.ts",
+      "anyCount": 0,
+      "unknownCount": 36,
+      "fingerprint": "sha256:c21c9d15ed01a8acaf3f5f484230184a27dbe5995a3b5ced1cad06cc89ecb4de"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/assets.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:b4b24dd035ddf6ae52b3b1978da85b766b4461c8e5d2cec88e299c5f2c60f9e9"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/audit.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:01c451497657c2728d71429856228563d912452e716a78c2b2ca2be9d16c697e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/bindings.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:cc1dd8fe146d21b4d5da92ecb44473a1b783dc35b7e7207dbbd9a96a5cab82d3"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/categories.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:0cbdaf18c57fa41ad7e28fb3b826bf307ab5af69d6b0eb06aa4feda78f06fecc"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/config.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:623aaf398fc9c2edfb0258f13ed05782f14a3806075ecff4755b5adbeb29d3fb"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/context.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:db16758bee9518503f5c821f046813c14b2062c8a575157512f598f1edc6822e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/embargo.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/http.ts",
+      "anyCount": 0,
+      "unknownCount": 44,
+      "fingerprint": "sha256:ef95f3f9d970ec13e5d4327d4349cf77ce4c0ebc0923cb6e349a10413d0f4609"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/metadata.ts",
+      "anyCount": 0,
+      "unknownCount": 16,
+      "fingerprint": "sha256:2089dc91b547151e9135ed9f49c5e70ec49fa0d1d91b3e05a4ac1e853060f756"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/observability.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:08aaf1d10e25b9576b2b1f4e6ef5c26bedd067520e04eae8b72905d56f8258a1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/runtime.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/figshare-v2/types.ts",
+      "anyCount": 0,
+      "unknownCount": 34,
+      "fingerprint": "sha256:5aa53739ee8e487496bd9b773a836ec68d1825bacd001ba3582297ad09e2d849"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/FigshareService.ts",
+      "anyCount": 0,
+      "unknownCount": 35,
+      "fingerprint": "sha256:e34087d12226ff9ed18365cb7970ad2ec5d99d4910e4318c425fb6d68179809b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/FigshareVocabularyService.ts",
+      "anyCount": 0,
+      "unknownCount": 53,
+      "fingerprint": "sha256:aa8cb4a1f7a6382d0be13b626a64854d26f95f711ae6140b3ead0f3bbeb34d07"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/FormPayloadPrehydrateService.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:0c609a61404dc3ee5228da0de8b6cf4e6aecc775db098723bf825dd1e17d6b23"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/FormRecordConsistencyService.ts",
+      "anyCount": 0,
+      "unknownCount": 43,
+      "fingerprint": "sha256:58e529a5fa27ac720d7c72a4b7c345408d4f3ac5e872b4910fca0d9ef4402da0"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/FormsService.ts",
+      "anyCount": 0,
+      "unknownCount": 32,
+      "fingerprint": "sha256:c385e036ad7d7a269c8db29be38dcbb83c6b092985c77f71d031e9c9371808b4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/FormVocabularyService.ts",
+      "anyCount": 0,
+      "unknownCount": 34,
+      "fingerprint": "sha256:7714951ccdefc7a08ddf905293cdb4c84bbc5173dbd4018233dca53ccd4c970e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/HarvestRunService.ts",
+      "anyCount": 0,
+      "unknownCount": 36,
+      "fingerprint": "sha256:7d0d4dc8126f7d3a4d148e7ed0961a13de61e0f10d5eb7158c47e2e7c6bc39b6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/I18nEntriesService.ts",
+      "anyCount": 0,
+      "unknownCount": 18,
+      "fingerprint": "sha256:feec004b13349caf5f34232e06cc360fe23f4d8ae6bdf58b4c5ccaa3acebd3ac"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/index.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:58f08761b873a724804ff41aecf275f0a75bd63915246ad8dd4843408ffc2257"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/integration-v2/bindings.ts",
+      "anyCount": 0,
+      "unknownCount": 16,
+      "fingerprint": "sha256:f68bfe32f6223b1ca3b5228ae66d4c706fb6b24dca3e550be5fb27219f45e651"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/integration-v2/runtime.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:1c416a6d2befccb8851143b094bd2b3629c3c4421e5b4de7152be6d0fc804940"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/IntegrationAuditService.ts",
+      "anyCount": 0,
+      "unknownCount": 62,
+      "fingerprint": "sha256:f4926c83df8c63104a557268ad3fb0832c50e2fff8b3321049e21e06a6fe0c86"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/IntegrationNotificationService.ts",
+      "anyCount": 0,
+      "unknownCount": 15,
+      "fingerprint": "sha256:590c640584f1b9daeb3a0dd6597dae3b8f42612f9de79447195cad7a29a5d6fa"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/NamedQueryService.ts",
+      "anyCount": 0,
+      "unknownCount": 85,
+      "fingerprint": "sha256:07feb08302ae47debdfca177ce0ab520db587a8d6252bc40d2c815287eb79668"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/NavigationService.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:1de1767442d3da612100fadc1203201aa188e7b2214186906f7d37bb559ddc67"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/audit.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:901f75a20f01a30f5195c76b4444e8877f3b0b0cb3edf9f5f4c2015e814fe1dd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/bindings.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:431358e72276257cc5b5316170c2ad031070a13a3c90383519614522d125a5b6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/config.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:489f2d447eea92455d50910f95465cf20b4d61f5e103ad16387dd5faa211cd58"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/crate.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:b504aa5b643280076a12e8524f8dbbe7dcd5ddda22ee54b06c61a9ebc3f72802"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/flydriveOcflStore.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:527f80b3ba1b43e06ea10e0adb763dc5f19d197acec6234a86d51f15bb8ecdd2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/ingestion.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:4607d55eb8d6e2b2196cd4bfc62400bb80768ef0cc81d36495aca11b9c5b7d9c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/mapping.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:2c35bce16cc670389b5700015e1cd8052e4730157635b2ce0f0c8584da06f5fe"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/repository.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:031b97b57e0345b350ff594c3f91f4a6a173a5b0cad85e870af64e362413b504"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/runtime.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:93145f856bd71606d1025f340ad0f0b0300b8770e7664952908212c741f05060"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/templating.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:898a3073770bf71426c4cd7d590dbf8abc115cf2df157e13e9cc37039a67affa"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/oni-v2/types.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:ae8999de627760afd445fa9dd9a6902e07dfe6336a808dd6df9df8c03e40f8da"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/OniService.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:ef4572d110e4f0df42893ced817710ac0b93c97791e056958fab371e0f208000"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/OrcidService.ts",
+      "anyCount": 0,
+      "unknownCount": 21,
+      "fingerprint": "sha256:391dc0b664c99e952a80875461f9e91aae231fbea6e6aa53ccebf516155bf61d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/PathRulesService.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:9d1cab6105c535a42c12aacabe5edf0a0f75849d8fa015b623e30886debfeccb"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/raid-v2/audit.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:901f75a20f01a30f5195c76b4444e8877f3b0b0cb3edf9f5f4c2015e814fe1dd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/raid-v2/errors.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:b449e5d655632e5e43bf5b63b339ebfad624a1ac93f1eba10d0529b9bde46498"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/raid-v2/http.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:a6fb7c6f5bb578992cfa72c3967fd81650d1cadb78c58d029b26ea84c348d5bd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/raid-v2/logger.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:70c00639a0b3328ba7fa1c93eb5cba0086bcb090b44fb368b8302e56e74c8d18"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/raid-v2/mapping.ts",
+      "anyCount": 3,
+      "unknownCount": 13,
+      "fingerprint": "sha256:e2f99ec53bbe6ae30566865954f609333b94391667230efb3843084d06e66d77"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/raid-v2/runtime.ts",
+      "anyCount": 1,
+      "unknownCount": 7,
+      "fingerprint": "sha256:0abce7bf05cfc719691a58cc6b0d82d2bd7b3f2ff56daab231e6489154f7564f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/raid-v2/types.ts",
+      "anyCount": 0,
+      "unknownCount": 16,
+      "fingerprint": "sha256:916d8880ccaae671c178c6f06be8a7ed4c275cb3eeb8e132f6a48943f95b1f00"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/RaidService.ts",
+      "anyCount": 2,
+      "unknownCount": 16,
+      "fingerprint": "sha256:cc7b5ecd34fc02a899278e9e21d4a918854491ebcd36b8ed23787fe2c274d330"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/RDMPService.ts",
+      "anyCount": 0,
+      "unknownCount": 77,
+      "fingerprint": "sha256:b46e2b94a9be395a0b0ffd3ea77beaee0a26f972d62e4cab7484aaffedb33e5f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/RecordsService.ts",
+      "anyCount": 0,
+      "unknownCount": 258,
+      "fingerprint": "sha256:905ef6b310d25867262a761f971be696eedee5ce8b86326f552fcd4d05335644"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/RecordTypesService.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:d92beb680e47f012ce3156f8f9df896687b8fc1a84c0b3affee6233da7eed2de"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/RecordValidationService.ts",
+      "anyCount": 0,
+      "unknownCount": 58,
+      "fingerprint": "sha256:2b4112a86155684c0af39cdb557cb61dd52cf7d300c705663ce316e447e3339a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/ReportsService.ts",
+      "anyCount": 0,
+      "unknownCount": 50,
+      "fingerprint": "sha256:94c4867ef1b82edb5bd839f4ab64286731a1f496f884180ae41b94544f1487df"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/RolesService.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:286854a25805dbe93e5ffb8941f80e1a50b813ca5de931f19e631107c43549f2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/RvaImportService.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:ad4291ea287b96627ed7318d36e5889ac25bfca1fb8eab00b7a3908b6674dc88"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/SolrSearchService.ts",
+      "anyCount": 0,
+      "unknownCount": 35,
+      "fingerprint": "sha256:63d687250e3cf6c8f0776c826171407eed60f91b1937cb3531c4fe2b7566b9f9"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/StandardDatastreamService.ts",
+      "anyCount": 0,
+      "unknownCount": 44,
+      "fingerprint": "sha256:d89a33753fe163a8d29651888c65fa4c5f3e7c9719649ca0ebd4e6db6667145e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/StorageManagerService.ts",
+      "anyCount": 0,
+      "unknownCount": 24,
+      "fingerprint": "sha256:e62f48332111c027c60dd993dd834b8dd3bea54c17835beb6ec881e5f9d020d0"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/TranslationService.ts",
+      "anyCount": 0,
+      "unknownCount": 9,
+      "fingerprint": "sha256:c7b57f19552e737091baa7a8cae7fed0a23d2d973a7f90ff9ebd6075b45712f2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/TriggerService.ts",
+      "anyCount": 0,
+      "unknownCount": 44,
+      "fingerprint": "sha256:21f4c0d47e4f0810eddfd1c67257f4fbca69cc4ffd0f9707c21f524807e6dbd5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/UsersService.ts",
+      "anyCount": 0,
+      "unknownCount": 159,
+      "fingerprint": "sha256:f8fca6a6283303deb1a9af122a03745edd876f77891cfea1c6744845bc0570af"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/ViewUtilsService.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:64db0ac3f2d15be8f3aa60700818fe5a111354e2fac4b9ce054eee63b94afc93"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/VocabularyService.ts",
+      "anyCount": 0,
+      "unknownCount": 20,
+      "fingerprint": "sha256:f1d4bb542cc35c5c1f9e438e3e8b06c86971c49929c4942d0bbae88041de9967"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/WorkflowStepsService.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:197b56f5a567d9256b812c39e4cf5cee415b801c2079db79f2ffd2969b6a1b1f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/WorkspaceAsyncService.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:7974fafdfb1aeaec62f4484d2e43f74f26f069b949f4503d9c65e3e3c6a1d460"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/WorkspaceService.ts",
+      "anyCount": 0,
+      "unknownCount": 15,
+      "fingerprint": "sha256:32c121f26d5aa619509137da0c78565fd74c8aeca50960c0f659d4a696ed7255"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/services/WorkspaceTypesService.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:431b98860f1ad54ad8ff8848e2228857459c1287a8edaff1675f722431a95636"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/storage/GridFSDriver.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:68da9071540a56f0d7a9b3d1cd9b7bd45e72d5aa211bc8e197fa0f2802bb1d4f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/storage/TusStorageManagerDataStore.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:dc1d158ee147b302fa1181a8666aac558f8f63659ff608d7f5bb42431b2dac9b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/StorageService.ts",
+      "anyCount": 0,
+      "unknownCount": 84,
+      "fingerprint": "sha256:a1da1306893a2d5317072b65f561fbeacbf83d1b3e4b271a0c22fe32bbcfc3bb"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/StorageServiceResponse.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:7fd362aa999acb28c1b7106bc2ad21e476571b40de3483ab6570ffbd35c2cabf"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/testing/storageConcurrencyConformance.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:1c1e80d18d0cf716913da87d9fa7f8335853a82764133ee91c938f7d1d37a4f5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/transformers/ExportJSONTransformer.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2debf047b814ff50428d76bc93b98498df6f2479a279f1d70f867bb5f2562cf4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/utilities/ContextVariableUtils.ts",
+      "anyCount": 0,
+      "unknownCount": 11,
+      "fingerprint": "sha256:22a8eab9a00427365a476af3c254ba21dacaaa589f24d050fc863d43486e92c2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/utilities/RedactionUtils.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:07da6ebc0af29e56e7a4d1e9765b755d89c966770e863ce6c446c5a84a3c9bd4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/utilities/TransactionUtils.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:18784cca6194befab39f2d3ca1b9a725ccbf5a5cf3ff5966d8c5c6106704ad3a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/client.visitor.ts",
+      "anyCount": 1,
+      "unknownCount": 41,
+      "fingerprint": "sha256:10d9f84766894018c3829426161a0b3a879f5c29f22048f7dbd373dd0126ff10"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/construct.visitor.ts",
+      "anyCount": 0,
+      "unknownCount": 14,
+      "fingerprint": "sha256:04be1d4f0bc3f35e8d406ecb0c1ce00273ad623a7dca2325ba6370dcf91aa53b"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/context-variables.visitor.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:8a82066d1a6fa51c560b9aa9936d8c7e2d04ce78b833a7d236d653cf45748295"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/data-value.visitor.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f91dbfdea734291062e48fc506f60b5a4a12c59da85dbeb8f7b917b05b32c2f7"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/json-type-def.visitor.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:67bdf72b1b76341c05a44825d1f0e25126a2e25571c001abe0f8e367dcf519f2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/migrate-config-v4-v5.visitor.ts",
+      "anyCount": 1,
+      "unknownCount": 149,
+      "fingerprint": "sha256:b236fcc14a972a72baf8c025150f138001b09dfec24f655320ba9411ae3dcbfd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/related-object-data-inline.visitor.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/template.visitor.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:e249051f0ce4b81f9dba8afdb7e6e3219b2858fca37e6d3b7490b7937d19b9b4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/validator.visitor.ts",
+      "anyCount": 0,
+      "unknownCount": 14,
+      "fingerprint": "sha256:537c3443533c077ca625d24b0484622ac7dc2a2dd3efeb06a43930c5e01b674d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/visitor-helpers.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/visitor/vocab-inline.visitor.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:ec246eb8375a41a340bb9bbf63c481cee1b7862f90d6361488a8900ec652df36"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/AppConfig.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/AsynchProgress.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/AttachmentMetadata.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:e4470cfe3a005f48433e92d81140f4a9feb3374a3b8f701003a295b3aef943ba"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/BrandingConfig.ts",
+      "anyCount": 0,
+      "unknownCount": 16,
+      "fingerprint": "sha256:54f257ab8879cc81cba486cccd051db7a6e444ec62d3847f64e25eb298c9fe1f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/BrandingConfigHistory.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/CacheEntry.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/DashboardType.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/FigshareVocabularyCategory.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/FigshareVocabularyCrosswalk.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/FigshareVocabularyCrosswalkMapping.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:013e1b7d290499aaa5c0e11bba1a6752f4ceb9a9eec4f2f82fc5326422a8f9ff"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/FigshareVocabularySource.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/FigshareVocabularySyncRun.ts",
+      "anyCount": 0,
+      "unknownCount": 15,
+      "fingerprint": "sha256:275953aaf6f82b02117a532c3822431b93395611a36d6cbb473c6fe0afd8c92e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/HarvestRecordEvent.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/HarvestRun.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/HarvestRunChunk.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/I18nBundle.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:6c2ac4086b5cc9805cd2301a542afb96054b875824e5146d216047a0be73280f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/I18nTranslation.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:5c44904cba986b0bd3653f9b0eeb8413f22ab48507b4beb6586a6fe6dde8ab5d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/NamedQuery.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/RBReport.ts",
+      "anyCount": 0,
+      "unknownCount": 7,
+      "fingerprint": "sha256:e5278bcdad07b135da7b67b0a21ec437d30d32a01aa34193795bd3e2343a46c5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/Role.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:11232c44038aa25eeb8d9847be25cd93a6ea04ca1d4cf8a52d45967adc4bd756"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/types.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2b2042e6b7812b20551027f598675d04a1df1fa4dc0ae33c6ee78d1a10fa1754"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/User.ts",
+      "anyCount": 0,
+      "unknownCount": 15,
+      "fingerprint": "sha256:61427c56bd1a0afc19a72e3a9d8b05a2c4618088548340ce8d9080117019451d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/UserAudit.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/Vocabulary.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:d9604cd9df425e2a2bddd0286d704d4751eee7ca87eb1b75abebda99281f1247"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/VocabularyEntry.ts",
+      "anyCount": 0,
+      "unknownCount": 6,
+      "fingerprint": "sha256:5e5769f527a24cadb6767e0543c5e817ec9f3d9861b490341f5a8751af5fdd94"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/WorkflowStep.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/WorkspaceApp.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-core/src/waterline-models/WorkspaceAsync.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:a6ee04b348df43b62b8363bc9e6f0507193e27d10727e3b0be556666ab20d57d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/bin/run-hook-mocha.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/cli.ts",
+      "anyCount": 15,
+      "unknownCount": 0,
+      "fingerprint": "sha256:336a24a783001f35115df7b3aa275aaa14074395af808540baef514290852dd1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/commands/form-config.ts",
+      "anyCount": 15,
+      "unknownCount": 28,
+      "fingerprint": "sha256:0693dd18e97716fe0b628f6599aacfaa06243db9db6b9e554854c0f087387538"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/commands/sync-translation.ts",
+      "anyCount": 1,
+      "unknownCount": 3,
+      "fingerprint": "sha256:ca37fe63ca3d34bfbb81d1cfca9023c75a33baeed5fa36dc01affa3e3c85ddc4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/generators/add-method.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:500d690b1c884ccf74ca8edb48e9c2774f7ecaca9a4f0784d7fa341c243339d6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/generators/angular-app.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:f3b420daaff6cd405eae649cdf88c1d6050b1b7675852487b5ae1b3b7e68ff0e"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/generators/model.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:1a8c3085e280052cd5b8a2022cb291e3235399efb837b350a6e079aa802c6c38"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/runtime-resolver.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:76d36e73cd59355c8fe054fba215a3bf150d01b2fc45a51a048b669edcbcbec4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/templates/hook-archetype.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/redbox-dev-tools/src/utils/config-helper.ts",
+      "anyCount": 8,
+      "unknownCount": 0,
+      "fingerprint": "sha256:4145b3360ee21eafc3d798d777eb700d48eb195545add818d30a6997cc46d08d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/rva-registry/src/api.ts",
+      "anyCount": 111,
+      "unknownCount": 0,
+      "fingerprint": "sha256:d2a3158349be3f210ad8e4a6d7e1bc96fa87a837df63e79feed06aab6c24bb2a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/rva-registry/src/common.ts",
+      "anyCount": 11,
+      "unknownCount": 3,
+      "fingerprint": "sha256:bdf3407b6d20cc26ed4c8b203d45856cc784e98fa3826b76916dbc11b1f9adba"
+    },
+    {
+      "scope": "source",
+      "path": "packages/rva-registry/src/configuration.ts",
+      "anyCount": 4,
+      "unknownCount": 0,
+      "fingerprint": "sha256:05247305f8ea8b881ca400410efc28c141b7eb83aaa9f45fc751aa495b6465d6"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/index.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:525ea63eac256414daa06d81ff544f7eeca21247000a5a8d08d68ec281c47770"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/migrations/recordRevisionBackfill.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:18784cca6194befab39f2d3ca1b9a725ccbf5a5cf3ff5966d8c5c6106704ad3a"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/models/DeletedRecord.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:013e1b7d290499aaa5c0e11bba1a6752f4ceb9a9eec4f2f82fc5326422a8f9ff"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/models/IntegrationAudit.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/models/Record.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:f56a41e8bdff3c35f2b62532e428e2e3d8768c65bc803a9e76fdea28f8536fab"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/models/RecordAudit.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:3288456ecd263d981fd401f21b9fa56579954589b77f8890f6d424bec0e357ad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/services/index.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:58f08761b873a724804ff41aecf275f0a75bd63915246ad8dd4843408ffc2257"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts",
+      "anyCount": 0,
+      "unknownCount": 52,
+      "fingerprint": "sha256:42c1e1f48dd4fee06c5af7affca0de4866b85b9c3cb639e50efe6af5df44b43f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/base-field-component.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/content.model.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:c26fb31ead525179cf58d79b671854341fe3c34c703afee6d2fd111ddc272609"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/content.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:eb8866f3b8871dd40c338dc1db49615c3a98f0d76c11bf38261186dd29185c0c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/data-location.model.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:95106e40ce365f11f1644bbf8a3dabffd6b279b1110ac9d101018a43d53ed955"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/data-location.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/date-input.model.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:5a3d7153210e335b3d7c8c2ac8e0bc78bb74bcfd269d13f460688ed93291133d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/date-input.outline.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:71c721bdf4eca60c2830fd1f94a6ca20cff0e8b9537aad8fb7e6feb8ff45acb7"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/file-upload.model.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/file-upload.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/group.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/map.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:a6989f4ebd626fe164b765778f765d407ec0a6d67b4fc5b8c600d58b63fa5b29"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/pdf-list.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:0cd6440e591399a6b160806c6545270ae74b7f549cbb1ffdc0ee1485dd52c0f7"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/publish-data-location-selector.model.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/publish-data-location-selector.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/question-tree.helper.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:9dc96f2b74581d7dabf5e7858975e78e2ec823e6df7c872efe51d9d671b30bda"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/question-tree.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/related-object-data.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:b416075fd1640ec0793b9cc8ab24662c67edb0960f47f65b3cabf69026854426"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/repeatable.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5dfc865682234db06c21b0853eb0ab6241c6b1c50ea5d7be1b6b2ffa17cfefad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/typeahead-input.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:2e2cadaa0881e71521e399054b7d03e7095c421c94ae308368602451b9fcbe48"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/component/workspace.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:2397e081c903389a92a71d942f027719949e1df35caf7b2ace2661cdceebf404"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/field-component.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:e2914c6cff8815e513efdd48335a994b5b7655799b86f6a6b98cb85a8d0292a4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/form-component.model.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:797d69bf0a780287a07810aac665cd6272d00e0e9c0380d5a0c9de94c45a2962"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/form-component.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:368bb2aff7fb03b7d23ee1b116ae3f210a1517fd9f67f6008a6bd0d8aca41a94"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/form-override.model.ts",
+      "anyCount": 9,
+      "unknownCount": 20,
+      "fingerprint": "sha256:f98aa3c93e4394027fadf5b64c045a7edf6d87255a40157528d31358250119dd"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/form-override.outline.ts",
+      "anyCount": 1,
+      "unknownCount": 0,
+      "fingerprint": "sha256:dcffe22d7e7587ef82b269064495d19bc7edf1f23cad133769c49fca8dfbc3af"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/form-types.model.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:0ac03b66018b85e6f2241077b008c7eb15d49bf5f16fb6529c15febb9c4d27e3"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/form-types.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 8,
+      "fingerprint": "sha256:63a2f33ae096196a4f0dc7c3da6d37c02ae7d391bfe903128d157869decbf1f1"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/helpers.ts",
+      "anyCount": 1,
+      "unknownCount": 4,
+      "fingerprint": "sha256:8dc9409a1a10eee2f20e378480a6c56b83d216c312e64c56a76b8cd4b65c073d"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/names/naming-helpers.ts",
+      "anyCount": 2,
+      "unknownCount": 2,
+      "fingerprint": "sha256:b86a7bbc4b165554afb26aa43271e1f89eec3192cf282c8c70a16d134908bbaa"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/names/query-helpers.ts",
+      "anyCount": 3,
+      "unknownCount": 3,
+      "fingerprint": "sha256:5dbd9b15d4128706032ba004f83f46e9b32f7659b13ecf305b83c28714ca0e39"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/visitor/base.model.ts",
+      "anyCount": 2,
+      "unknownCount": 0,
+      "fingerprint": "sha256:84facc7dcf823ddcbe76b2e18ae9e50875358a3d10ac520b1393236651c4d360"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/config/visitor/common.model.ts",
+      "anyCount": 4,
+      "unknownCount": 3,
+      "fingerprint": "sha256:001149ba814f911052a433bc574b0dade4420b79c51628f4c8b5fe5929d83ad8"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/handlebars-helpers.ts",
+      "anyCount": 0,
+      "unknownCount": 72,
+      "fingerprint": "sha256:28f31a1d1d2fc6dd10a5aeee7dd7aba159d0cdebf8bf4127c0bbc6c4785e2529"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/html-helpers.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/internal/plain-record.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:c1075b68c1a3db3f34aa9747f3c36e46fefda305485833bc91cab18c09454383"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/jsonata-helpers.ts",
+      "anyCount": 0,
+      "unknownCount": 11,
+      "fingerprint": "sha256:e9142ff0566893573dafd948afeeb26f6cb14b31011b5734c125277f2cfdeba4"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/jsonata-parity.fixtures.ts",
+      "anyCount": 0,
+      "unknownCount": 2,
+      "fingerprint": "sha256:46e9bf90d9624e9c5c801b8d45a03d906275b91c1e535b992f72ffe0e4e2ad87"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/logger.interface.ts",
+      "anyCount": 12,
+      "unknownCount": 0,
+      "fingerprint": "sha256:3a3cb650a4bd9d2afbe08a8ae1157922853f79e3ab34389739d6ec1efadbc98f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/record-concurrency.model.ts",
+      "anyCount": 0,
+      "unknownCount": 13,
+      "fingerprint": "sha256:d044840ce9f9f6142e35a4eccb356f6689e6cf95c668f70294589a87abc8e4b2"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/record-diff.ts",
+      "anyCount": 0,
+      "unknownCount": 35,
+      "fingerprint": "sha256:a358288179501d865eed966a95f104e69bcd2af04b0edb8e778caeeb4cf7f526"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/record-save.model.ts",
+      "anyCount": 0,
+      "unknownCount": 12,
+      "fingerprint": "sha256:55d2357249dc050a2dade29be5d2c918b14bc32d8a1fdf0c67b6aee67c0bc87c"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/record.model.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5dfc865682234db06c21b0853eb0ab6241c6b1c50ea5d7be1b6b2ffa17cfefad"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/template.outline.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:169f0d82bda515319f59df529a3c8a0dc628c921448523f8aaf18a7f4bd55b0f"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/validation/form.model.ts",
+      "anyCount": 0,
+      "unknownCount": 5,
+      "fingerprint": "sha256:307a160ef698ec750ccb8cc0a5fae60873d5e5ae19722151931d9ed7f73384b7"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/validation/helpers.ts",
+      "anyCount": 0,
+      "unknownCount": 10,
+      "fingerprint": "sha256:9ef669aa023feed65b5c864ddfe9b78ce917266c331e530f42f226f95b17edbc"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/validation/record-validation.model.ts",
+      "anyCount": 0,
+      "unknownCount": 3,
+      "fingerprint": "sha256:14b697accbdb48980271f847c4651af21062bfce8cae908d876d7c567f66e635"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/validation/validation-groups.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:5bbfc50598eecfae745bebbc1904f510c418892ecfa1638dda60180c80425ea5"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/validation/validators-support.ts",
+      "anyCount": 0,
+      "unknownCount": 1,
+      "fingerprint": "sha256:a7262e9d2d07aeb04941995ac5048c5012218574fe66ac76098d67974879df77"
+    },
+    {
+      "scope": "source",
+      "path": "packages/sails-ng-common/src/validation/validators.ts",
+      "anyCount": 0,
+      "unknownCount": 4,
+      "fingerprint": "sha256:7d8c052b6106ad605143fafaa6a4c4a839d13b8643b31d6bd3f4617f02373205"
+    },
+    {
+      "scope": "source",
+      "path": "typescript/assets/default/default/js/client-script.ts",
+      "anyCount": 2,
+      "unknownCount": 1,
+      "fingerprint": "sha256:c8ade1464bbfe93ad3a4ed7ea903844f041c23ecae137002206545df3106492e"
+    }
+  ]
+}

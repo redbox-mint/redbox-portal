@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 1,
+  "generatedForTask": "A01",
+  "status": "proposed-contract-input",
+  "note": "These mappings characterize migration intent. They do not register actions or change runtime resolution; A02-A10 own those contracts and implementations.",
+  "mappings": [
+    {
+      "legacyExpression": "sails.services.rdmpservice.runTemplates",
+      "actionId": "redbox.core.record.apply-templates",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "drop",
+        "rationale": "runTemplates does not inspect forceRun; carrying it into the registered action would invent behavior."
+      },
+      "parameterTransform": {
+        "copy": ["parseObject", "templates[].field"],
+        "drop": ["forceRun"],
+        "transform": [
+          {
+            "from": "templates[].template",
+            "to": "templates[].template",
+            "rule": "Convert the shipped Lodash template to a bounded Handlebars template or an explicit JSONata value expression; reject unsupported imports/functions."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.assignPermissions",
+      "actionId": "redbox.core.record.assign-permissions",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "drop",
+        "rationale": "assignPermissions runs unconditionally when triggerCondition is empty and otherwise uses only that condition, so forceRun has no effect."
+      },
+      "parameterTransform": {
+        "copy": ["emailProperty", "editContributorProperties", "viewContributorProperties", "recordCreatorPermissions"],
+        "drop": ["forceRun"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate a present Lodash condition to JSONata; omit when empty."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.checkTotalSizeOfFilesInRecord",
+      "actionId": "redbox.core.record.validate-total-attachment-size",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "drop",
+        "rationale": "checkTotalSizeOfFilesInRecord runs unconditionally when triggerCondition is empty and otherwise uses only that condition, so forceRun has no effect."
+      },
+      "parameterTransform": {
+        "copy": ["maxUploadSizeMessageCode", "replaceOrAppend"],
+        "drop": ["forceRun"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate the Lodash condition to JSONata. The server-owned maximum remains outside persisted parameters."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.triggerservice.transitionWorkflow",
+      "actionId": "redbox.core.workflow.automatic-transition",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "automatic-transition",
+      "forceRunDisposition": {
+        "operation": "drop",
+        "rationale": "transitionWorkflow evaluates triggerCondition directly and never reads forceRun."
+      },
+      "parameterTransform": {
+        "copy": [],
+        "drop": ["forceRun"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate the Lodash condition to JSONata."
+          },
+          {
+            "from": "targetWorkflowStageName",
+            "to": "targetStage",
+            "rule": "Resolve the target stage from the authoritative workflow graph."
+          },
+          {
+            "from": "targetWorkflowStageLabel",
+            "to": "targetStageLabelCheck",
+            "rule": "Verify against the target stage and do not persist a second label source."
+          },
+          {
+            "from": "targetForm",
+            "to": "targetFormCheck",
+            "rule": "Verify against the target stage form and do not persist an action-owned form override."
+          }
+        ],
+        "note": "A10 owns the first-class transition engine. This proposed namespaced ID is a migration identity, not authorization to register the legacy mutating handler."
+      }
+    },
+    {
+      "legacyExpression": "sails.services.recordsservice.updateNotificationLog",
+      "actionId": "redbox.core.record.update-notification-state",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "transform",
+        "rationale": "When triggerCondition is absent, forceRun controls whether updateNotificationLog executes; a present triggerCondition takes precedence."
+      },
+      "parameterTransform": {
+        "copy": ["name", "flagName", "flagVal", "logName", "saveRecord"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate a present Lodash condition to JSONata."
+          },
+          {
+            "from": "forceRun",
+            "to": "condition",
+            "rule": "When triggerCondition is absent, translate forceRun=true to an always-true condition and false or missing to an always-false condition; ignore forceRun when triggerCondition is present."
+          }
+        ],
+        "note": "Nested saveRecord=true callbacks become ordinary ordered bindings; the registry handler must not recursively enter legacy hook resolution."
+      }
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.stripUserBasedPermissions",
+      "actionId": "redbox.core.record.strip-user-permissions",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "transform",
+        "rationale": "When triggerCondition is absent, forceRun controls whether permission stripping executes; a present triggerCondition takes precedence."
+      },
+      "parameterTransform": {
+        "copy": ["permissionTypes"],
+        "defaults": { "permissionTypes": "edit" },
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate the Lodash condition to JSONata."
+          },
+          {
+            "from": "forceRun",
+            "to": "condition",
+            "rule": "When triggerCondition is absent, translate forceRun=true to an always-true condition and false or missing to an always-false condition; ignore forceRun when triggerCondition is present."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.restoreUserBasedPermissions",
+      "actionId": "redbox.core.record.restore-user-permissions",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "transform",
+        "rationale": "When triggerCondition is absent, forceRun controls whether permission restoration executes; a present triggerCondition takes precedence."
+      },
+      "parameterTransform": {
+        "copy": [],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate the Lodash condition to JSONata."
+          },
+          {
+            "from": "forceRun",
+            "to": "condition",
+            "rule": "When triggerCondition is absent, translate forceRun=true to an always-true condition and false or missing to an always-false condition; ignore forceRun when triggerCondition is present."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.emailservice.sendRecordNotification",
+      "actionId": "redbox.core.notification.send-record-email",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "transform",
+        "rationale": "When triggerCondition is absent, forceRun controls whether the notification is sent; a present triggerCondition takes precedence."
+      },
+      "parameterTransform": {
+        "copy": ["template", "format", "otherSendOptions"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate a present Lodash condition to JSONata."
+          },
+          {
+            "from": "forceRun",
+            "to": "condition",
+            "rule": "When triggerCondition is absent, translate forceRun=true to an always-true condition and false or missing to an always-false condition; ignore forceRun when triggerCondition is present."
+          },
+          {
+            "from": "to|subject|from|cc|bcc",
+            "to": "same field",
+            "rule": "Validate and retain as bounded Handlebars text templates."
+          },
+          {
+            "from": "onNotifySuccess[]",
+            "to": "following bindings",
+            "rule": "Flatten each child in source order with a dependency on successful completion of the parent email binding."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.doiservice.publishDoiTrigger",
+      "actionId": "redbox.core.doi.publish",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "transform",
+        "rationale": "When triggerCondition is absent, forceRun controls whether DOI publication executes; a present triggerCondition takes precedence."
+      },
+      "parameterTransform": {
+        "copy": ["event", "profile"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate the Lodash condition to JSONata."
+          },
+          {
+            "from": "forceRun",
+            "to": "condition",
+            "rule": "When triggerCondition is absent, translate forceRun=true to an always-true condition and false or missing to an always-false condition; ignore forceRun when triggerCondition is present."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.doiservice.updateDoiTriggerSync",
+      "actionId": "redbox.core.doi.update",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "transform",
+        "rationale": "When triggerCondition is absent, forceRun controls whether the DOI update executes; a present triggerCondition takes precedence."
+      },
+      "parameterTransform": {
+        "copy": ["event", "profile"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate the Lodash condition to JSONata."
+          },
+          {
+            "from": "forceRun",
+            "to": "condition",
+            "rule": "When triggerCondition is absent, translate forceRun=true to an always-true condition and false or missing to an always-false condition; ignore forceRun when triggerCondition is present."
+          }
+        ]
+      }
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.addWorkspaceToRecord",
+      "actionId": "redbox.core.workspace.link-to-record",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "action-binding",
+      "forceRunDisposition": {
+        "operation": "drop",
+        "rationale": "addWorkspaceToRecord does not inspect forceRun; carrying it into the registered action would invent behavior."
+      },
+      "parameterTransform": {
+        "copy": ["rdmpOidField"],
+        "defaults": { "rdmpOidField": "rdmpOid" },
+        "drop": ["forceRun", "returnType"],
+        "note": "The registered result contract owns workspace response output; legacy returnType must not select an unvalidated result shape."
+      }
+    },
+    {
+      "legacyExpression": "sails.services.triggerservice.runHooksSync",
+      "actionId": "redbox.core.sequence.run",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "flatten-only",
+      "shippedOccurrenceCount": 0,
+      "forceRunDisposition": {
+        "operation": "drop",
+        "rationale": "runHooksSync does not inspect an outer forceRun option; only flattened child parameters retain their own legacy semantics."
+      },
+      "parameterTransform": {
+        "drop": ["forceRun"],
+        "transform": [
+          {
+            "from": "hooks[]",
+            "to": "adjacent bindings",
+            "rule": "Flatten valid children in source order. Fail migration on malformed or unknown child expressions instead of preserving legacy skip behavior."
+          }
+        ],
+        "note": "The proposed ID provides a stable migration diagnostic only; nested runner registration is intentionally out of scope."
+      }
+    },
+    {
+      "legacyExpression": "sails.services.rdmpservice.queueTriggerCall",
+      "actionId": "redbox.core.queue.dispatch-record-action",
+      "contractVersion": 1,
+      "owner": "@researchdatabox/redbox-core",
+      "migrationTargetKind": "queue-binding",
+      "shippedOccurrenceCount": 0,
+      "forceRunDisposition": {
+        "operation": "drop",
+        "rationale": "queueTriggerCall runs unconditionally when triggerCondition is empty and otherwise uses only that condition, so forceRun has no effect."
+      },
+      "parameterTransform": {
+        "copy": ["jobName"],
+        "drop": ["forceRun"],
+        "transform": [
+          {
+            "from": "triggerCondition",
+            "to": "condition",
+            "rule": "Translate the outer Lodash condition to JSONata."
+          },
+          {
+            "from": "triggerConfiguration.function",
+            "to": "queuedActionId+queuedContractVersion",
+            "rule": "Resolve through this mapping table and reject unknown expressions."
+          },
+          {
+            "from": "triggerConfiguration.options",
+            "to": "queuedParameters",
+            "rule": "Apply the mapped child action parameter transform."
+          }
+        ]
+      }
+    }
+  ]
+}

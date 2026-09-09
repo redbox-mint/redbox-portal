@@ -22,7 +22,6 @@ describe('record-save issue response schema', function () {
       message: '@validator-error-min-length',
       field: 'title',
       pointer: '/metadata/title',
-      expected: { type: 'string' },
       class: 'minLength',
       params: { actualLength: 2, requiredLength: 3 },
       targetField: { dataModel: ['title'] },
@@ -34,147 +33,6 @@ describe('record-save issue response schema', function () {
     });
 
     expect(result.success).to.equal(true);
-  });
-
-  it('accepts root and nested RFC 6901 pointers', function () {
-    for (const pointer of ['', '/metadata/title', '/a~0b/~1']) {
-      expect(
-        recordSaveIssueSchema.safeParse({
-          code: 'record-schema.type',
-          message: '@record-schema.type',
-          pointer,
-        }).success
-      ).to.equal(true);
-    }
-  });
-
-  it('rejects malformed RFC 6901 pointer escapes', function () {
-    for (const pointer of ['/a~2b', '/a~']) {
-      expect(recordSaveIssueSchema.safeParse({ message: '@record-schema.type', pointer }).success).to.equal(false);
-    }
-  });
-
-  it('accepts only the allowlisted expected type shape', function () {
-    expect(
-      recordSaveIssueSchema.safeParse({
-        message: '@record-schema.type',
-        expected: { type: 'integer' },
-      }).success
-    ).to.equal(true);
-    expect(
-      recordSaveIssueSchema.safeParse({
-        message: '@record-schema.type',
-        expected: { type: 'custom' },
-      }).success
-    ).to.equal(false);
-    expect(
-      recordSaveIssueSchema.safeParse({
-        message: '@record-schema.type',
-        expected: { type: 'string', submitted: 'secret' },
-      }).success
-    ).to.equal(false);
-  });
-
-  it('accepts schema source, phase, and code metadata in a typed save problem', function () {
-    const result = storageServiceResponseSchema.safeParse({
-      success: false,
-      oid: '',
-      message: '',
-      metadata: null,
-      totalItems: 0,
-      items: [],
-      outcome: 'not-saved',
-      problems: [
-        {
-          kind: 'validation',
-          source: 'schema',
-          phase: 'schema',
-          issues: [
-            {
-              code: 'record-schema.type',
-              message: '@record-schema.type',
-              pointer: '',
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(result.success).to.equal(true);
-  });
-
-  it('rejects schema provenance paired with a non-schema phase', function () {
-    const result = storageServiceResponseSchema.safeParse({
-      success: false,
-      oid: '',
-      message: '',
-      metadata: null,
-      totalItems: 0,
-      items: [],
-      outcome: 'not-saved',
-      problems: [
-        {
-          kind: 'validation',
-          source: 'schema',
-          phase: 'pre-save',
-          issues: [{ message: '@record-schema.type' }],
-        },
-      ],
-    });
-
-    expect(result.success).to.equal(false);
-  });
-
-  it('rejects the schema phase without schema provenance', function () {
-    const result = storageServiceResponseSchema.safeParse({
-      success: false,
-      oid: '',
-      message: '',
-      metadata: null,
-      totalItems: 0,
-      items: [],
-      outcome: 'not-saved',
-      problems: [
-        {
-          kind: 'validation',
-          phase: 'schema',
-          issues: [{ message: '@record-schema.type' }],
-        },
-      ],
-    });
-
-    expect(result.success).to.equal(false);
-  });
-
-  it('rejects unknown properties on both problem provenance branches', function () {
-    for (const problem of [
-      {
-        kind: 'validation',
-        source: 'schema',
-        phase: 'schema',
-        issues: [{ message: '@record-schema.type' }],
-        internalDetails: 'sensitive schema detail',
-      },
-      {
-        kind: 'processing',
-        phase: 'pre-save',
-        issues: [{ message: '@record-save-failed' }],
-        internalDetails: 'sensitive lifecycle detail',
-      },
-    ]) {
-      const result = storageServiceResponseSchema.safeParse({
-        success: false,
-        oid: '',
-        message: '',
-        metadata: null,
-        totalItems: 0,
-        items: [],
-        outcome: 'not-saved',
-        problems: [problem],
-      });
-
-      expect(result.success).to.equal(false);
-    }
   });
 
   it('rejects nested, unknown, or excessive validator parameters', function () {
@@ -232,5 +90,78 @@ describe('record-save issue response schema', function () {
     ).to.equal(false);
     expect(recordConcurrencyMetadataSchema.safeParse({ revision: -1 }).success).to.equal(false);
     expect(recordConcurrencyMetadataSchema.safeParse({ resolution: 'server-trust-me' }).success).to.equal(false);
+  });
+
+  it('accepts only the bounded action execution summary allowlist', function () {
+    const response = {
+      success: false,
+      oid: 'record-1',
+      message: '@record-save-failed',
+      metadata: null,
+      totalItems: 0,
+      items: [],
+      problems: [
+        {
+          kind: 'processing',
+          phase: 'pre-save',
+          issues: [{ code: 'pre-save-processing-failed', message: '@record-save-pre-save-processing-failed' }],
+          executionSummary: {
+            schemaVersion: 1,
+            executionId: 'execution-1',
+            requestId: '00000000-0000-4000-8000-000000000041',
+            trigger: 'record-hook',
+            operation: 'create',
+            partial: false,
+            completedThrough: 'pre',
+            durationMs: 4,
+            totalActions: 1,
+            counts: { failed: 1 },
+            actions: [
+              {
+                actionId: 'redbox.test.action',
+                mode: 'onCreate',
+                phase: 'pre',
+                status: 'failed',
+                attempts: 1,
+                durationMs: 3,
+                failureKind: 'validation',
+                failureCode: 'action-validation',
+              },
+            ],
+            truncated: false,
+          },
+        },
+      ],
+    };
+
+    expect(storageServiceResponseSchema.safeParse(response).success).to.equal(true);
+    expect(
+      storageServiceResponseSchema.safeParse({
+        ...response,
+        problems: [
+          {
+            ...response.problems[0],
+            executionSummary: {
+              ...response.problems[0].executionSummary,
+              record: { metadata: { token: 'secret' } },
+            },
+          },
+        ],
+      }).success
+    ).to.equal(false);
+    expect(
+      storageServiceResponseSchema.safeParse({
+        ...response,
+        problems: [
+          {
+            ...response.problems[0],
+            executionSummary: {
+              ...response.problems[0].executionSummary,
+              actions: [{ ...response.problems[0].executionSummary.actions[0], handler: 'function-string' }],
+            },
+          },
+        ],
+      }).success
+    ).to.equal(false);
   });
 });

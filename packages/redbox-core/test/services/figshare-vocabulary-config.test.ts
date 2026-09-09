@@ -40,7 +40,6 @@ describe('figshare-v2 vocabulary configuration', function () {
     sinon.restore();
     cleanupServiceTestGlobals();
     delete (global as any).BrandingService;
-    delete (global as any).AppConfigService;
   });
 
   describe('resolveFigshareVocabularyConfig', function () {
@@ -78,18 +77,6 @@ describe('figshare-v2 vocabulary configuration', function () {
       sinon.stub(ServiceExports, 'AppConfigService').get(() => undefined);
 
       expect(resolveFigshareVocabularyConfig('default')).to.equal(null);
-    });
-
-    it('uses the lifted global service when a peer module has an empty service registry', function () {
-      sinon.restore();
-      sinon.stub(ServiceExports, 'AppConfigService').get(() => undefined);
-      (global as any).AppConfigService = { getAppConfigurationForBrand: appConfigStub };
-
-      const config = resolveFigshareVocabularyConfig('default');
-
-      expect(config).to.not.equal(null);
-      expect(config.connection.baseUrl).to.equal('https://api.figshare.com');
-      expect(appConfigStub.calledWith('default')).to.equal(true);
     });
 
     it('leaves the token empty rather than throwing when none is configured', function () {

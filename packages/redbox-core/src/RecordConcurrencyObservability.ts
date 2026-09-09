@@ -1,13 +1,10 @@
 import { metrics, type Attributes } from '@opentelemetry/api';
-import {
-  RECORD_CONCURRENCY_PROBLEM_CODES,
-  RECORD_CONCURRENCY_RESOLUTIONS,
-  RECORD_CONCURRENT_MODIFICATION_MODES,
-  type RecordConcurrencyProblemCode,
-  type RecordConcurrencyResolution,
-  type RecordConcurrentModificationMode,
-  type RecordSaveOutcome,
-  type RecordSavePhase,
+import type {
+  RecordConcurrencyProblemCode,
+  RecordConcurrencyResolution,
+  RecordConcurrentModificationMode,
+  RecordSaveOutcome,
+  RecordSavePhase,
 } from '@researchdatabox/sails-ng-common';
 import type { RecordSaveOperation, RecordSaveRouteFamily } from './RecordSaveResponse';
 
@@ -49,7 +46,14 @@ export interface SafeRecordConcurrencyEvent {
   readonly errorType?: string;
 }
 
-const conflictCodes = new Set<string>(RECORD_CONCURRENCY_PROBLEM_CODES);
+const conflictCodes = new Set<string>([
+  'record-precondition-required',
+  'record-revision-stale',
+  'record-deleted',
+  'record-concurrency-capability-unavailable',
+  'form-definition-changed',
+  'record-lifecycle-operation-conflict',
+]);
 const eventKinds = new Set<string>(['save-outcome', 'internal-retry', 'lifecycle-recovery']);
 const routeFamilies = new Set<string>(['browser', 'api', 'internal']);
 const writeKinds = new Set<string>(['create', 'update', 'transition', 'delete', 'restore', 'purge']);
@@ -66,8 +70,14 @@ const outcomes = new Set<string>([
   'retained',
 ]);
 const preconditions = new Set<string>(['not-applicable', 'missing', 'matching', 'stale']);
-const modes = new Set<string>(RECORD_CONCURRENT_MODIFICATION_MODES);
-const resolutions = new Set<string>(RECORD_CONCURRENCY_RESOLUTIONS);
+const modes = new Set<string>(['last-write-wins', 'observe', 'strict']);
+const resolutions = new Set<string>([
+  'direct',
+  'already-current',
+  'client-auto-merged',
+  'client-manually-resolved',
+  'internal',
+]);
 const problemKinds = new Set<string>(['validation', 'processing', 'authorization', 'conflict', 'system', 'network']);
 const safeLogReferencePattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
@@ -116,7 +126,8 @@ export function recordConcurrencyMetricLabels(event: RecordConcurrencyEvent): At
     precondition: boundedMetricLabel(event.precondition, preconditions, 'other'),
     mode: event.mode === undefined ? 'unavailable' : boundedMetricLabel(event.mode, modes, 'other'),
     problem_code: event.problemCode ? (conflictCodes.has(event.problemCode) ? event.problemCode : 'other') : 'none',
-    resolution: event.resolution === undefined ? 'direct' : boundedMetricLabel(event.resolution, resolutions, 'other'),
+    resolution:
+      event.resolution === undefined ? 'direct' : boundedMetricLabel(event.resolution, resolutions, 'other'),
   };
 }
 
@@ -157,9 +168,24 @@ export function emitRecordConcurrencyEvent(
       : { resolution: boundedMetricLabel(event.resolution, resolutions, 'other') }),
     ...(event.errorType === undefined ? {} : { errorType: boundedLogReference(event.errorType, 'other') }),
   });
-  const logDetails = Object.freeze({ event: 'record_concurrency_event', ...safeEvent });
-  const isWarning =
-    Boolean(safeEvent.errorType || safeEvent.problemKind || safeEvent.problemCode) ||
+  const logDetails = Object.freeze({
+    event: 'record_concurrency_event',
+    kind: safeEvent.kind,
+    routeFamily: safeEvent.routeFamily,
+    writeKind: safeEvent.writeKind,
+    ...(safeEvent.recordType === undefined ? {} : { recordType: safeEvent.recordType }),
+    phase: safeEvent.phase,
+    outcome: safeEvent.outcome,
+    ...(safeEvent.mode === undefined ? {} : { mode: safeEvent.mode }),
+    ...(safeEvent.expectedRevision === undefined ? {} : { expectedRevision: safeEvent.expectedRevision }),
+    ...(safeEvent.currentRevision === undefined ? {} : { currentRevision: safeEvent.currentRevision }),
+    precondition: safeEvent.precondition,
+    ...(safeEvent.problemKind === undefined ? {} : { problemKind: safeEvent.problemKind }),
+    ...(safeEvent.problemCode === undefined ? {} : { problemCode: safeEvent.problemCode }),
+    ...(safeEvent.resolution === undefined ? {} : { resolution: safeEvent.resolution }),
+    ...(safeEvent.errorType === undefined ? {} : { errorType: safeEvent.errorType }),
+  });
+  const isWarning = Boolean(safeEvent.errorType || safeEvent.problemKind || safeEvent.problemCode) ||
     safeEvent.outcome === 'not-saved' ||
     safeEvent.outcome === 'unknown' ||
     safeEvent.outcome === 'saved-with-warnings' ||

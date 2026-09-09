@@ -1,0 +1,33 @@
+meta {
+  name: Missing definition identity
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/admin/record-definitions/B09MissingDefinition
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie") || bru.getEnvVar("adminCookie");
+  if (cookie) req.setHeader("Cookie", cookie);
+}
+
+tests {
+  test("Expected status 404", () => expect(res.getStatus()).to.equal(404));
+  test("No sensitive response data", () => {
+    const text = JSON.stringify(res.getBody());
+    expect(text).not.to.include("B09-bruno-secret-sentinel");
+    expect(text).not.to.include("protectedValue");
+    expect(text).not.to.include('"handler"');
+  });
+
+}

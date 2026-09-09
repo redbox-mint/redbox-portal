@@ -83,18 +83,4 @@ describe('BrandingConfig Model (semantic variables whitelist)', () => {
       invalidAttributesPattern
     );
   });
-
-  it('defaults draftRevision to 0 for new brands', async () => {
-    const created = await BrandingConfig.create({ name: 'tenant-typeface-defaults', variables: {} }).fetch();
-    expect(created.draftRevision).to.equal(0);
-  });
-
-  it('persists draft typeface state alongside colours', async () => {
-    const created = await BrandingConfig.create({ name: 'tenant-typeface-draft', variables: {} }).fetch();
-    const draftTypeface = { mode: 'custom', faces: {} };
-    const updated = await BrandingConfig.updateOne({ id: created.id }).set({ draftTypeface, draftRevision: 1 });
-    expect(updated.draftTypeface).to.deep.equal(draftTypeface);
-    expect(updated.draftRevision).to.equal(1);
-    expect(updated.typeface == null).to.equal(true);
-  });
 });
