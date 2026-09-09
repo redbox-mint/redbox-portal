@@ -403,7 +403,16 @@ describe('RecordController getWorkflowSteps', () => {
       params: { targetStep: 'route-step' },
       query: { operation: ' submit ' },
       headers: {},
-      body: { operation: 'body-must-not-control-validation', targetStep: 'body-step' },
+      options: { locals: { portal: '  tenant-portal  ' } },
+      body: {
+        operation: 'body-must-not-control-validation',
+        portal: 'forged-body-portal',
+        targetStep: 'body-step',
+        validationBypass: { mode: 'bypass' },
+        schemaOperation: 'forged-operation',
+        ifMatch: `"sha256:${'b'.repeat(64)}"`,
+        schemaOutcome: { digest: 'b'.repeat(64) },
+      },
       param: sinon.stub().callsFake((name: string) => (name === 'operation' ? 'body-operation' : 'body-step')),
     } as unknown as Sails.Req;
     const parsed = (controller as any).publicValidationOperation(req);
@@ -412,6 +421,11 @@ describe('RecordController getWorkflowSteps', () => {
     expect(parsed).to.deep.equal({ valid: true, value: 'submit' });
     expect(context.operation).to.equal('transition');
     expect(context.validationOperation).to.equal('submit');
+    expect(context.schemaOperation).to.equal('submit');
+    expect(context.portal).to.equal('tenant-portal');
+    expect(context.ifMatch).to.equal(undefined);
+    expect(context).not.to.have.property('schemaOutcome');
+    expect(context.validationBypass).to.equal(undefined);
     expect(context.validationRequestParameters).to.deep.equal({ targetStep: 'route-step' });
     expect((req.param as sinon.SinonStub).notCalled).to.equal(true);
     expect((controller as any).publicValidationOperation({ query: {} })).to.deep.equal({ valid: true });
@@ -707,11 +721,10 @@ describe('RecordController getWorkflowSteps', () => {
       workflow: { stage: 'draft' },
     });
     expect(createArgs[1]).to.deep.equal({ name: 'dataset' });
-    expect(createArgs[2]).to.equal(undefined);
-    expect(createArgs[3]).to.equal(form);
+    expect(createArgs[2]).to.equal(form);
   });
 
-  it('fingerprints the authoritative delivered form and preserves target intent', async function () {
+  it('fingerprints the authoritative delivered form independently of target intent', async function () {
     const currentRec = {
       redboxOid: 'oid-1',
       revision: 3,
@@ -720,7 +733,6 @@ describe('RecordController getWorkflowSteps', () => {
       workflow: { stage: 'draft' },
     };
     const recordType = { name: 'dataset' };
-    const targetStep = { name: 'published', config: { form: 'dataset-published' } };
     (global as any).sails.config = { reusableFormDefinitions: {}, validators: { definitions: [] } };
     (global as any).sails.services = {
       formpayloadprehydrateservice: { build: sinon.stub().resolves({}) },
@@ -733,7 +745,6 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormsService.buildClientFormConfig.resolves({ type: 'dataset' });
     (global as any).FormsService.discoverValidationOperations.resolves([]);
     (global as any).RecordTypesService.get.returns(of(recordType));
-    (global as any).WorkflowStepsService.get = sinon.stub().returns(of(targetStep));
     (controller.recordsService as any).getRecordFormFingerprint = sinon.stub().resolves('form-fingerprint-2');
     const req = {
       param: sinon
@@ -752,8 +763,7 @@ describe('RecordController getWorkflowSteps', () => {
     const args = (controller.recordsService as any).getRecordFormFingerprint.firstCall.args;
     expect(args[0]).to.equal(currentRec);
     expect(args[1]).to.deep.equal(recordType);
-    expect(args[2]).to.deep.equal(targetStep);
-    expect(args[3]).to.deep.include({ id: 'form-1', name: 'dataset-draft', branding: 'brand-1' });
+    expect(args[2]).to.deep.include({ id: 'form-1', name: 'dataset-draft', branding: 'brand-1' });
     expect(sendResp.firstCall.args[2].meta).to.deep.include({
       formFingerprint: 'form-fingerprint-2',
       revision: 3,
@@ -1163,7 +1173,10 @@ describe('RecordController getWorkflowSteps', () => {
       true,
       true,
       nextStep,
-      { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
+      {
+        metadata: { title: 'After', targetStep: 'body-step', operation: 'body-operation' },
+        mode: 'replace',
+      },
     ]);
     expect(currentRecord.workflow.stage).to.equal('draft');
     expect(currentRecord.metaMetadata.form).to.equal('dataset-draft');
@@ -1233,6 +1246,8 @@ describe('RecordController getWorkflowSteps', () => {
 
     expect((global as any).WorkflowStepsService.get.notCalled).to.equal(true);
     expect(updateMeta.calledOnce).to.equal(true);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({ metadata: req.body, mode: 'replace' });
+    expect(updateMeta.firstCall.args[7].metadata).to.equal(req.body);
     const context = updateMeta.firstCall.args[8];
     expect(context).to.include({ routeFamily: 'browser', operation: 'update' });
     expect(context.concurrency).to.deep.equal({ entityTagSupplied: false });
@@ -1342,6 +1357,60 @@ describe('RecordController getWorkflowSteps', () => {
     }
     expect(getMeta.notCalled).to.equal(true);
     expect(updateMeta.notCalled).to.equal(true);
+  });
+
+  it('passes the raw browser merge delta to RecordsService with array replacement semantics', async () => {
+    const currentRecord = {
+      redboxOid: 'oid-1',
+      metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' },
+      metadata: {
+        retained: 'keep',
+        nested: { retained: true, values: [{ id: 'stored-nested' }] },
+        values: [{ id: 'stored' }],
+      },
+      workflow: { stage: 'draft' },
+      authorization: { edit: ['tester'] },
+    };
+    const rawDelta = {
+      nested: { incoming: true, values: [{ id: 'incoming-nested' }] },
+      values: [{ id: 'incoming' }],
+    };
+    const saved = new RecordSaveResponse('00000000-0000-4000-8000-000000000126');
+    saved.oid = 'oid-1';
+    saved.outcome = 'saved';
+    saved.success = true;
+    const updateMeta = sinon.stub().resolves(saved);
+    controller.recordsService = {
+      getMeta: sinon.stub().resolves(currentRecord),
+      hasEditAccess: sinon.stub().returns(true),
+      updateMeta,
+    } as any;
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    const req = {
+      body: rawDelta,
+      headers: {},
+      params: { oid: 'oid-1' },
+      query: { merge: 'true' },
+      session: { branding: 'default' },
+      user: { username: 'tester' },
+    } as unknown as Sails.Req;
+    sinon.stub(controller as any, 'getApiVersion').returns('2.0');
+    sinon.stub(controller as any, 'sendResp');
+
+    await (controller as any).updateInternal(req, {} as Sails.Res);
+
+    expect(updateMeta.calledOnce).to.equal(true);
+    expect(updateMeta.firstCall.args[7]).to.deep.equal({
+      metadata: rawDelta,
+      mode: 'merge',
+      arrayMergeMode: 'replace',
+    });
+    expect(updateMeta.firstCall.args[7].metadata).to.equal(rawDelta);
+    expect(currentRecord.metadata).to.deep.equal({
+      retained: 'keep',
+      nested: { retained: true, values: [{ id: 'stored-nested' }] },
+      values: [{ id: 'stored' }],
+    });
   });
 
   it('does not let browser create body metadata initiate a transition', async () => {

@@ -112,14 +112,16 @@ describe('WorkspaceService', function() {
       const targetRecordOid = 'record-123';
       const workspaceOid = 'workspace-456';
       const workspaceData = { name: 'My Workspace' };
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
       
-      await WorkspaceService.addWorkspaceToRecord(targetRecordOid, workspaceOid, workspaceData);
+      await WorkspaceService.addWorkspaceToRecord(targetRecordOid, workspaceOid, workspaceData, undefined, user);
       
       expect((global as any).RecordsService.appendToRecord.calledOnce).to.be.true;
       const args = (global as any).RecordsService.appendToRecord.firstCall.args;
       expect(args[0]).to.equal(targetRecordOid);
       expect(args[1].id).to.equal(workspaceOid);
       expect(args[2]).to.equal('metadata.workspaces');
+      expect(args[5]).to.equal(user);
     });
 
     it('should use default empty workspaceData', async function() {
@@ -137,13 +139,15 @@ describe('WorkspaceService', function() {
     it('should remove workspace from record metadata', async function() {
       const targetRecordOid = 'record-123';
       const workspaceOid = 'workspace-456';
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
       
-      await WorkspaceService.removeWorkspaceFromRecord(targetRecordOid, workspaceOid);
+      await WorkspaceService.removeWorkspaceFromRecord(targetRecordOid, workspaceOid, {}, undefined, user);
       
       expect((global as any).RecordsService.removeFromRecord.calledOnce).to.be.true;
       const args = (global as any).RecordsService.removeFromRecord.firstCall.args;
       expect(args[0]).to.equal(targetRecordOid);
       expect(args[1].id).to.equal(workspaceOid);
+      expect(args[4]).to.equal(user);
     });
   });
 

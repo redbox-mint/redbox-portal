@@ -85,6 +85,37 @@ describe("Validator Visitor", async () => {
             layoutJsonPointer: '/contributors-layout/1/name-layout',
         });
     });
+    it('ignores related object data components during server validation', async function () {
+        const formConfig: FormConfigFrame = {
+            name: 'related-object-data-server-validation',
+            componentDefinitions: [
+                {
+                    name: 'workspaces',
+                    component: {
+                        class: 'RelatedObjectDataComponent',
+                        config: {
+                            dataPath: 'metadata.workspaces',
+                            oidProperty: 'id',
+                            relatedFields: ['title'],
+                        },
+                    },
+                    layout: { class: 'DefaultLayout', config: {} },
+                },
+            ],
+        };
+        const constructed = await new ConstructFormConfigVisitor(logger).start({
+            data: formConfig,
+            formMode: 'edit',
+            record: { metadata: { workspaces: [] } },
+        });
+
+        const actual = await new ValidatorFormConfigVisitor(logger).start({
+            form: constructed,
+            validatorDefinitions: formValidatorsSharedDefinitions,
+        });
+
+        expect(actual).to.deep.equal([]);
+    });
     it('checks the shared deadline around every repeatable row', async function () {
         const formConfig: FormConfigFrame = {
             name: 'repeatable-deadline',

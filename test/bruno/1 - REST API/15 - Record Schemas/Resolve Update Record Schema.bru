@@ -1,0 +1,71 @@
+meta {
+  name: Resolve Update Record Schema
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/schemas/update/{{dmpOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Returns a structurally partial schema for the existing record", function () {
+    expect(bru.getEnvVar("dmpOid"), "record created by Record Management").to.be.a("string").and.not.equal("");
+    expect(res.getStatus()).to.equal(200);
+    expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/schema+json");
+
+    const document = res.getBody();
+    expect(document).to.be.an("object");
+    expect(document["x-redbox-context"]).to.deep.include({
+      brand: "default",
+      portal: "rdmp",
+      kind: "update",
+      recordType: "rdmp",
+      workflowStep: "draft"
+    });
+    expect(document).not.to.have.property("required");
+    expect(["complete", "partial"]).to.include(document["x-redbox-completeness"]);
+  });
+
+  test("Does not serialize the record OID or caller data into the schema", function () {
+    const document = res.getBody();
+    const context = document["x-redbox-context"];
+    const publicContextKeys = [
+      "brand",
+      "enforcement",
+      "form",
+      "kind",
+      "operation",
+      "portal",
+      "recordType",
+      "unknownProperties",
+      "workflowStep"
+    ];
+
+    expect(Object.keys(context).sort()).to.deep.equal(publicContextKeys);
+    expect(JSON.stringify(document)).not.to.include(bru.getEnvVar("dmpOid"));
+    expect(context).not.to.have.any.keys("oid", "actor", "actorRoles", "roles", "user", "existingRecord");
+  });
+
+  test("Captures the update artifact identity for immutable requests", function () {
+    const document = res.getBody();
+    const etag = res.getHeader("etag");
+    const etagMatch = /^"sha256:([0-9a-f]{64})"$/.exec(etag || "");
+
+    expect(etagMatch, "strong update schema ETag").not.to.equal(null);
+    const digest = etagMatch[1];
+    expect(document["$id"]).to.equal(`/default/rdmp/api/records/schemas/${digest}`);
+    expect(res.getHeader("cache-control")).to.equal("private, no-cache");
+    expect(res.getHeader("vary")).to.equal("Authorization");
+
+    bru.setEnvVar("recordSchemaUpdateDigest", digest);
+    bru.setEnvVar("recordSchemaUpdateEtag", etag);
+    bru.setEnvVar("recordSchemaUpdateDocument", JSON.stringify(document));
+  });
+}

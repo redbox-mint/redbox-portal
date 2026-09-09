@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../..",
+    "types": ["node", "mocha", "chai"]
+  },
+  "include": [
+    "verify-record-contract-coverage.ts",
+    "verify-record-schema-rollout.ts",
+    "../test/unit/record-contract/record-contract-coverage-command.test.ts",
+    "../test/unit/record-contract/record-schema-rollout-evidence-command.test.ts",
+    "../../redbox-hook-dev/src/form-config/**/*.ts"
+  ]
+}

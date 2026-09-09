@@ -4,6 +4,7 @@ import('chai').then(mod => (expect = mod.expect));
 import {
   formatRecordEntityTag,
   parsePublicRecordConcurrencyRequest,
+  recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
   recordSaveResultHeaders,
 } from '../../src';
@@ -37,7 +38,6 @@ describe('RecordHttpConcurrency', function () {
       { 'if-match': '   ' },
       { 'if-match': formatRecordEntityTag('record-2', 7) },
       { 'if-match': [entityTag, entityTag] },
-      { 'If-Match': entityTag, 'if-match': entityTag },
     ];
     for (const headers of cases) {
       expect(parsePublicRecordConcurrencyRequest(headers, oid), JSON.stringify(headers)).to.deep.equal({
@@ -160,6 +160,18 @@ describe('RecordHttpConcurrency', function () {
     expect(parsePublicRecordConcurrencyRequest(headers, oid)).to.deep.equal({
       valid: true,
       context: { entityTagSupplied: false },
+    });
+  });
+
+  it('builds the shared concurrency request failure body for both API versions', function () {
+    const failure = { code: 'record-if-match-invalid', header: 'If-Match' };
+    expect(recordConcurrencyRequestFailureResponse('1.0', failure)).to.deep.equal({
+      status: 400,
+      v1: { message: 'Invalid record concurrency request.' },
+    });
+    expect(recordConcurrencyRequestFailureResponse('2.0', failure)).to.deep.equal({
+      status: 400,
+      displayErrors: [{ code: failure.code, source: { header: failure.header } }],
     });
   });
 

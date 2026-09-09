@@ -22,7 +22,7 @@ describe('ControllerGenerator', () => {
     fs.writeFileSync(
       path.join(coreTypesRoot, 'src', 'controllers', 'index.ts'),
       `
-import * as AdminControllerModule from './AdminController';
+import * as ActionControllerModule from './ActionController';
 
 const controllerCache: Record<string, any> = {};
 function getOrCreate(name: string, factory: () => any): any {
@@ -31,11 +31,11 @@ function getOrCreate(name: string, factory: () => any): any {
 }
 
 export const ControllerExports: Record<string, any> = {
-    get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
+    get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
 };
 
 export const ControllerNames = [
-    'AdminController',
+    'ActionController',
 ];
 `
     );

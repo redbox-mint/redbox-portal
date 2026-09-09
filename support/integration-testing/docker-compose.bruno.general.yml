@@ -10,6 +10,9 @@ x-bruno-service: &bruno-service
     - '../../test/bruno/package.json:/opt/bruno-tests/package.json'
     - '../../test/bruno/package-lock.json:/opt/bruno-tests/package-lock.json'
     - '../../test/bruno/attachment.png:/opt/bruno-tests/attachment.png'
+    - '../../test/bruno/test-font-regular.woff2:/opt/bruno-tests/test-font-regular.woff2'
+    - '../../test/bruno/test-font-bold.woff2:/opt/bruno-tests/test-font-bold.woff2'
+    - '../../test/bruno/test-font-variable.woff2:/opt/bruno-tests/test-font-variable.woff2'
     - '../../test/bruno/environments:/opt/bruno-tests/environments'
     - '../../test/bruno/1 - REST API:/opt/bruno-tests/1 - REST API'
     - '../../test/bruno/2 - AJAX calls:/opt/bruno-tests/2 - AJAX calls'
@@ -51,6 +54,10 @@ x-rbportal-env: &rbportal-env
   - LOAD_DEFAULT_FORMS=true
   # - sails_log__level=verbose
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
+  - sails_recordSchema__enabled=true
+  - sails_recordSchema__unknownProperties=allow
+  - sails_recordValidation__mode=shadow
+  - sails_recordtype__dataPublication__recordValidation__mode=enforce
   - sails_security__csrf=false
   - 'BRUNO_POST_SLEEP_SECONDS=${BRUNO_POST_SLEEP_SECONDS:-30}'
 

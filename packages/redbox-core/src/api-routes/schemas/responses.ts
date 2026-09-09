@@ -9,6 +9,7 @@ import {
   RECORD_ENTITY_TAG_PATTERN,
   RECORD_FORM_FINGERPRINT_MAX_LENGTH,
   RECORD_REVISION_MAX,
+  RECORD_SAVE_EXPECTED_JSON_TYPES,
   RECORD_SAVE_LINEAGE_LIMITS,
   RECORD_SAVE_MESSAGE_MAX_LENGTH,
   RECORD_SAVE_PROBLEM_KINDS,
@@ -16,6 +17,7 @@ import {
   RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN,
   RECORD_SAVE_REQUEST_ID_PATTERN,
   RECORD_SAVE_VALIDATOR_CLASS_MAX_LENGTH,
+  isRecordSaveJsonPointer,
   RECORD_VALIDATION_REFERENCE_PATTERN,
   VALIDATION_OPERATION_DESCRIPTION_MAX_LENGTH,
   VALIDATION_OPERATION_LABEL_MAX_LENGTH,
@@ -351,7 +353,17 @@ export const recordSaveIssueSchema = withOpenApi(
         .max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength)
         .regex(RECORD_SAVE_PUBLIC_IDENTIFIER_PATTERN)
         .optional(),
-      pointer: z.string().startsWith('/').max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength).optional(),
+      pointer: z
+        .string()
+        .max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxPointerLength)
+        .refine(isRecordSaveJsonPointer)
+        .optional(),
+      expected: z
+        .object({
+          type: z.enum(RECORD_SAVE_EXPECTED_JSON_TYPES),
+        })
+        .strict()
+        .optional(),
       attachmentId: z
         .string()
         .max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxAttachmentIdLength)
@@ -371,70 +383,23 @@ export const recordSaveIssueSchema = withOpenApi(
 );
 
 const recordSaveProblemSchema = withOpenApi(
-  z.object({
-    // Derived from the shared union so the documented contract cannot drift
-    // from the kinds the server is able to emit.
-    kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
-    phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
-    issues: z.array(recordSaveIssueSchema),
-    executionSummary: z
+  z.union([
+    z
       .object({
-        schemaVersion: z.literal(1),
-        executionId: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
-        requestId: z.string().regex(RECORD_SAVE_REQUEST_ID_PATTERN).optional(),
-        trigger: z.literal('record-hook'),
-        operation: z.enum(['create', 'update', 'delete', 'transition']),
-        transition: z
-          .object({
-            transitionId: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
-            definitionRevisionId: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
-            sourceStage: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
-            targetStage: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
-          })
-          .strict()
-          .optional(),
-        partial: z.boolean(),
-        completedThrough: z.enum(['pre', 'persistence', 'postSync', 'post-dispatch']).optional(),
-        detachedFinalization: z.enum(['complete', 'grace-expired']).optional(),
-        detachedPending: z.number().int().nonnegative().optional(),
-        durationMs: z.number().int().nonnegative(),
-        totalActions: z.number().int().nonnegative(),
-        counts: z
-          .object({
-            succeeded: z.number().int().nonnegative().optional(),
-            failed: z.number().int().nonnegative().optional(),
-            timed_out: z.number().int().nonnegative().optional(),
-            interrupted: z.number().int().nonnegative().optional(),
-            skipped: z.number().int().nonnegative().optional(),
-            dispatched: z.number().int().nonnegative().optional(),
-          })
-          .strict(),
-        actions: z
-          .array(
-            z
-              .object({
-                actionId: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength),
-                mode: z.enum(['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow']),
-                phase: z.enum(['pre', 'postSync', 'post']),
-                status: z.enum(['succeeded', 'failed', 'timed_out', 'interrupted', 'skipped', 'dispatched']),
-                attempts: z.number().int().nonnegative(),
-                durationMs: z.number().int().nonnegative(),
-                failureKind: z
-                  .enum(['configuration', 'validation', 'domain', 'transient', 'timeout', 'interrupted', 'unexpected'])
-                  .optional(),
-                failureCode: z.string().max(RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxCodeLength).optional(),
-                skippedReason: z
-                  .enum(['prior_action_failed', 'phase_not_reached', 'save_not_persisted', 'trigger_disabled'])
-                  .optional(),
-              })
-              .strict()
-          )
-          .max(100),
-        truncated: z.boolean(),
+        kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
+        source: z.literal('schema'),
+        phase: z.literal('schema'),
+        issues: z.array(recordSaveIssueSchema),
       })
-      .strict()
-      .optional(),
-  }),
+      .strict(),
+    z
+      .object({
+        kind: z.enum(RECORD_SAVE_PROBLEM_KINDS),
+        phase: z.enum(['pre-save', 'persistence', 'attachments', 'post-save', 'response', 'transport']),
+        issues: z.array(recordSaveIssueSchema),
+      })
+      .strict(),
+  ]),
   { description: 'A save phase problem and its safe display issues' }
 );
 
@@ -737,10 +702,105 @@ export const brandingHistoryRecordSchema = withOpenApi(
       hash: z.string(),
       css: z.string().optional(),
       variables: jsonObjectSchema.optional(),
+      typeface: jsonObjectSchema.optional(),
+      actorId: z.string().optional(),
+      actorDisplayName: z.string().optional(),
+      restoredFromVersion: z.number().int().optional(),
       dateCreated: dateTimeSchema.optional(),
     })
     .passthrough(),
   { description: 'Branding history entry' }
+);
+
+export const brandingTypefaceFaceSchema = withOpenApi(
+  z
+    .object({
+      slot: z.string(),
+      sha256: z.string(),
+      originalFilename: z.string(),
+      sizeBytes: z.number().int(),
+      uploadedAt: z.string(),
+      inspection: jsonObjectSchema,
+      warnings: z.array(z.string()),
+    })
+    .passthrough(),
+  { description: 'Brand typeface face metadata (no font bytes or storage keys)' }
+);
+
+export const brandingTypefaceStateSchema = withOpenApi(
+  z
+    .object({
+      mode: z.string(),
+      faces: z.object({}).passthrough(),
+    })
+    .passthrough(),
+  { description: 'Brand typeface state (default typography or custom faces)' }
+);
+
+export const brandingVersionEntrySchema = withOpenApi(
+  z
+    .object({
+      id: z.string(),
+      version: z.number().int(),
+      hash: z.string(),
+      dateCreated: z.string().optional(),
+      actorId: z.string().optional(),
+      actorDisplayName: z.string().optional(),
+      restoredFromVersion: z.number().int().optional(),
+      variables: jsonObjectSchema.optional(),
+      typeface: brandingTypefaceStateSchema.optional(),
+    })
+    .passthrough(),
+  { description: 'Retained branding version' }
+);
+
+export const brandingAdminStateSchema = withOpenApi(
+  z
+    .object({
+      branding: z.object({ id: z.string(), name: z.string() }).passthrough(),
+      active: z
+        .object({
+          version: z.number().int(),
+          hash: z.string(),
+          variables: jsonObjectSchema.optional(),
+          typeface: brandingTypefaceStateSchema.optional(),
+        })
+        .passthrough(),
+      draft: z
+        .object({
+          revision: z.number().int(),
+          variables: jsonObjectSchema.optional(),
+          typeface: brandingTypefaceStateSchema.optional(),
+          dirty: z.object({ colours: z.boolean(), typeface: z.boolean() }).passthrough(),
+        })
+        .passthrough(),
+      versions: z.array(brandingVersionEntrySchema),
+      limits: z
+        .object({
+          faceMaxBytes: z.number().int(),
+          familyMaxBytes: z.number().int(),
+          historyMaxVersions: z.number().int(),
+        })
+        .passthrough(),
+      healthWarnings: z.array(jsonObjectSchema),
+    })
+    .passthrough(),
+  { description: 'Canonical branding Admin state' }
+);
+
+export const brandingPublishStateResponseSchema = withOpenApi(
+  z
+    .object({
+      branding: z.object({ id: z.string(), name: z.string() }).passthrough(),
+      active: jsonObjectSchema,
+      draft: jsonObjectSchema,
+      versions: z.array(brandingVersionEntrySchema),
+      limits: jsonObjectSchema,
+      healthWarnings: z.array(jsonObjectSchema),
+      idempotent: z.boolean().optional(),
+    })
+    .passthrough(),
+  { description: 'Branding publish/restore response (complete Admin state)' }
 );
 
 export const userRecordSchema = withOpenApi(
@@ -838,6 +898,7 @@ export const recordTypeSchema = withOpenApi(
       hooks: recordTypeHooksSchema.optional(),
       dashboard: jsonObjectSchema.optional(),
       concurrentModification: recordConcurrentModificationConfigSchema.optional(),
+      recordSchemaCreateResolver: z.string().optional(),
     })
     .passthrough(),
   { description: 'Record type configuration' }

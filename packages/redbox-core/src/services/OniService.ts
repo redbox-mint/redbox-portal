@@ -27,6 +27,7 @@ import type {
 } from './oni-v2/types';
 import { makeOniAuditService } from './oni-v2/audit';
 import { ingestOniRepository, type OniIngestionResult } from './oni-v2/ingestion';
+import { createRecordMetadataDelta } from '../RecordsService';
 
 export namespace Services {
   /**
@@ -112,7 +113,12 @@ export namespace Services {
       });
     }
 
-    private async persistRecord(oid: string, record: OniRecordModel, user: OniUserModel): Promise<void> {
+    private async persistRecord(
+      oid: string,
+      record: OniRecordModel,
+      user: OniUserModel,
+      previousMetadata: unknown
+    ): Promise<void> {
       const brand = getBrand(record);
       const response = await RecordsService.updateMetaInternal({
         actor: { kind: 'service', id: 'OniService.persistRecord' },
@@ -124,6 +130,8 @@ export namespace Services {
         user: user as AnyRecord,
         triggerPreSaveTriggers: true,
         triggerPostSaveTriggers: false,
+        metadata: createRecordMetadataDelta(previousMetadata, record.metadata),
+        metadataMode: 'pre-applied',
       });
       if (!response.wasPersisted()) {
         throw new Error(String(response.message ?? response.outcome));
@@ -139,14 +147,15 @@ export namespace Services {
       oid: string,
       record: OniRecordModel,
       user: OniUserModel,
-      error: Error
+      error: Error,
+      previousMetadata: unknown
     ): Promise<void> {
       const config = this.getConfig(record);
       if (config == null) {
         return;
       }
       applyPublicationError(record, config, error);
-      await this.persistRecord(oid, record, user);
+      await this.persistRecord(oid, record, user, previousMetadata);
     }
 
     protected createRepository(
@@ -232,6 +241,7 @@ export namespace Services {
         sails.log.debug(`Not publishing: ${oid}, oniPublishing is disabled`);
         return recordObj;
       }
+      const previousMetadata = _.cloneDeep(recordObj.metadata);
 
       let siteName = getRequestedOniSiteName(config, optionsObj);
       if (siteName === '') {
@@ -273,7 +283,7 @@ export namespace Services {
         const err = this.asError(error);
         if (userObj != null) {
           try {
-            await this.recordPublicationError(oid, recordObj, userObj, err);
+            await this.recordPublicationError(oid, recordObj, userObj, err, previousMetadata);
           } catch (persistError) {
             sails.log.error(`${this.logHeader} failed to persist Oni publication error for '${oid}'`);
             sails.log.error(persistError);
@@ -311,7 +321,7 @@ export namespace Services {
         throw new Error(`Oni publish completed without a resolved user for '${oid}'`);
       }
       try {
-        await this.persistRecord(oid, recordObj, userObj);
+        await this.persistRecord(oid, recordObj, userObj, previousMetadata);
         completeOniAudit(auditCtx, {
           message: 'Oni dataset publish completed.',
           responseSummary: {

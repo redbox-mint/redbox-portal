@@ -287,34 +287,6 @@ export const recordtype: RecordTypeConfig = {
       name: 'Data Publication',
       namePlural: 'Data Publications',
     },
-    automaticTransitions: [
-      {
-        schemaVersion: 1,
-        id: 'queued-to-embargoed',
-        mode: 'automatic',
-        event: 'create',
-        sourceStage: 'queued',
-        targetStage: 'embargoed',
-        priority: 0,
-        condition:
-          'record.candidate.workflow.stage = "queued" and $string(record.candidate.metadata.embargoByDate) = "true"',
-        targetStageLabelCheck: 'Embargoed',
-        targetFormCheck: 'dataPublication-1.0-embargoed',
-      },
-      {
-        schemaVersion: 1,
-        id: 'published-to-embargoed',
-        mode: 'automatic',
-        event: 'update',
-        sourceStage: 'published',
-        targetStage: 'embargoed',
-        priority: 0,
-        condition:
-          'record.candidate.workflow.stage = "published" and $string(record.candidate.metadata.embargoByDate) = "true"',
-        targetStageLabelCheck: 'Embargoed',
-        targetFormCheck: 'dataPublication-1.0-embargoed',
-      },
-    ],
     searchFilters: [
       {
         name: 'text_title',
@@ -353,6 +325,16 @@ export const recordtype: RecordTypeConfig = {
     hooks: {
       onCreate: {
         pre: [
+          {
+            function: 'sails.services.triggerservice.transitionWorkflow',
+            options: {
+              triggerCondition:
+                "<%= _.isEqual(workflow.stage, 'queued') && metadata.embargoByDate?.toString() === 'true' %>",
+              targetWorkflowStageName: 'embargoed',
+              targetWorkflowStageLabel: 'Embargoed',
+              targetForm: 'dataPublication-1.0-embargoed',
+            },
+          },
           {
             function: 'sails.services.recordsservice.updateNotificationLog',
             options: {
@@ -455,6 +437,16 @@ export const recordtype: RecordTypeConfig = {
       },
       onUpdate: {
         pre: [
+          {
+            function: 'sails.services.triggerservice.transitionWorkflow',
+            options: {
+              triggerCondition:
+                "<%= _.isEqual(workflow.stage, 'published') && metadata.embargoByDate?.toString() === 'true' %>",
+              targetWorkflowStageName: 'embargoed',
+              targetWorkflowStageLabel: 'Embargoed',
+              targetForm: 'dataPublication-1.0-embargoed',
+            },
+          },
           {
             function: 'sails.services.recordsservice.updateNotificationLog',
             options: {

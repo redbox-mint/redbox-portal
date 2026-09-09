@@ -25,6 +25,16 @@ These endpoints are intended for brand-admin user management rather than general
 
 For the full REST API reference, see the [REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation) page.
 
+### Record schema contracts
+
+When record schema contracts are enabled, API clients can resolve authenticated
+caller-effective JSON Schema draft 2020-12 documents for create and partial
+update metadata, revalidate private caches with strong ETags, discover exact
+immutable schemas from record responses, and precondition updates against the
+current whole-document schema identity. See the
+[Record Schema Contract API](Record-Schema-Contract-API) for the exact routes,
+headers, media types, statuses, diagnostics, and client workflow.
+
 ### Record save outcomes (API v2)
 
 Record create and metadata-update requests negotiate API v2 with

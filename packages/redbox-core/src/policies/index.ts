@@ -6,7 +6,7 @@
  */
 
 export { brandingAndPortal } from './brandingAndPortal';
-export { checkAuth } from './checkAuth';
+export { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 export { checkBrandingValid } from './checkBrandingValid';
 export { companionAttachmentUploadAuth } from './companionAttachmentUploadAuth';
 export { contentSecurityPolicy } from './contentSecurityPolicy';
@@ -23,7 +23,7 @@ export { validateApiContractRequest } from './validateApiContractRequest';
 
 // Re-export as a namespace for convenient access
 import { brandingAndPortal } from './brandingAndPortal';
-import { checkAuth } from './checkAuth';
+import { checkAuth, checkRecordSchemaAuth } from './checkAuth';
 import { checkBrandingValid } from './checkBrandingValid';
 import { companionAttachmentUploadAuth } from './companionAttachmentUploadAuth';
 import { contentSecurityPolicy } from './contentSecurityPolicy';
@@ -39,21 +39,22 @@ import { setLang } from './setLang';
 import { validateApiContractRequest } from './validateApiContractRequest';
 
 export const Policies = {
-    brandingAndPortal,
-    checkAuth,
-    checkBrandingValid,
-    companionAttachmentUploadAuth,
-    contentSecurityPolicy,
-    disallowedHeadRequestHandler,
-    i18nLanguages,
-    isAuthenticated,
-    isWebServiceAuthenticated,
-    menuResolver,
-    noCache,
-    prepWs,
-    sessionAuth,
-    setLang,
-    validateApiContractRequest,
+  brandingAndPortal,
+  checkAuth,
+  checkRecordSchemaAuth,
+  checkBrandingValid,
+  companionAttachmentUploadAuth,
+  contentSecurityPolicy,
+  disallowedHeadRequestHandler,
+  i18nLanguages,
+  isAuthenticated,
+  isWebServiceAuthenticated,
+  menuResolver,
+  noCache,
+  prepWs,
+  sessionAuth,
+  setLang,
+  validateApiContractRequest,
 };
 
 export default Policies;

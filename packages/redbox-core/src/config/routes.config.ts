@@ -27,22 +27,6 @@ export interface RoutesConfig {
 }
 
 export const routes: RoutesConfig = {
-  'get /:branding/:portal/admin/record-definitions': { controller: 'RecordDefinitionAdminController', action: 'list', csrf: true },
-  'post /:branding/:portal/admin/record-definitions/:sourceKey/clone': { controller: 'RecordDefinitionAdminController', action: 'clone', csrf: true },
-  'get /:branding/:portal/admin/record-definitions/:key': { controller: 'RecordDefinitionAdminController', action: 'get', csrf: true },
-  'get /:branding/:portal/admin/record-definitions/:key/draft': { controller: 'RecordDefinitionAdminController', action: 'draft', csrf: true },
-  'put /:branding/:portal/admin/record-definitions/:key/draft': { controller: 'RecordDefinitionAdminController', action: 'save', csrf: true },
-  'delete /:branding/:portal/admin/record-definitions/:key/draft': { controller: 'RecordDefinitionAdminController', action: 'discard', csrf: true },
-  'post /:branding/:portal/admin/record-definitions/:key/validate': { controller: 'RecordDefinitionAdminController', action: 'validate', csrf: true },
-  'post /:branding/:portal/admin/record-definitions/:key/publish': { controller: 'RecordDefinitionAdminController', action: 'publish', csrf: true },
-  'get /:branding/:portal/admin/record-definitions/:key/revisions': { controller: 'RecordDefinitionAdminController', action: 'revisions', csrf: true },
-  'get /:branding/:portal/admin/record-definitions/:key/revisions/:revision': { controller: 'RecordDefinitionAdminController', action: 'revision', csrf: true },
-  'post /:branding/:portal/admin/record-definitions/:key/revisions/:revision/rollback': { controller: 'RecordDefinitionAdminController', action: 'rollback', csrf: true },
-  'post /:branding/:portal/admin/record-definitions/:key/retire': { controller: 'RecordDefinitionAdminController', action: 'retire', csrf: true },
-  'post /:branding/:portal/admin/record-definitions/:key/unretire': { controller: 'RecordDefinitionAdminController', action: 'unretire', csrf: true },
-  'get /:branding/:portal/admin/record-actions': { controller: 'RecordDefinitionAdminController', action: 'actions', csrf: true },
-  'put /:branding/:portal/admin/record-definitions/:key/draft/actions/:bindingId/secrets/:parameter': { controller: 'RecordDefinitionAdminController', action: 'writeSecret', csrf: true },
-  'delete /:branding/:portal/admin/record-definitions/:key/draft/actions/:bindingId/secrets/:parameter': { controller: 'RecordDefinitionAdminController', action: 'clearSecret', csrf: true },
   // CSRF Token
   'GET /csrfToken': { action: 'security/grant-csrf-token' },
 
@@ -100,6 +84,15 @@ export const routes: RoutesConfig = {
   '/:branding/:portal/images/favicon': {
     controller: 'BrandingController',
     action: 'renderFavicon',
+  },
+
+  // Public Brand Typeface delivery (portal-independent, sessionless, immutable).
+  // skipAssets must be false: Sails skips asset-extension URLs by default and
+  // .woff2 would otherwise never reach the action (cf. the preview .css routes).
+  'get /fonts/branding/:branding/:sha256.woff2': {
+    controller: 'BrandingController',
+    action: 'renderFont',
+    skipAssets: false,
   },
 
   // Admin routes
@@ -219,8 +212,34 @@ export const routes: RoutesConfig = {
   // App Branding routes
   'get /:branding/:portal/app/branding/config': { controller: 'BrandingAppController', action: 'config' },
   'post /:branding/:portal/app/branding/draft': { controller: 'BrandingAppController', action: 'draft' },
+  'put /:branding/:portal/app/branding/draft/typeface/faces/:slot': {
+    controller: 'BrandingAppController',
+    action: 'uploadFace',
+  },
+  'delete /:branding/:portal/app/branding/draft/typeface/faces/:slot': {
+    controller: 'BrandingAppController',
+    action: 'deleteFace',
+  },
+  'post /:branding/:portal/app/branding/draft/typeface/use-default': {
+    controller: 'BrandingAppController',
+    action: 'useDefault',
+  },
+  'post /:branding/:portal/app/branding/draft/typeface/revert': {
+    controller: 'BrandingAppController',
+    action: 'revert',
+  },
   'post /:branding/:portal/app/branding/preview': { controller: 'BrandingAppController', action: 'preview' },
+  'get /:branding/:portal/app/branding/versions': { controller: 'BrandingAppController', action: 'versions' },
+  'post /:branding/:portal/app/branding/versions/:versionId/preview': {
+    controller: 'BrandingAppController',
+    action: 'versionPreview',
+  },
   'post /:branding/:portal/app/branding/publish': { controller: 'BrandingAppController', action: 'publish' },
+  'post /:branding/:portal/app/branding/restore/:versionId': { controller: 'BrandingAppController', action: 'restore' },
+  'post /:branding/:portal/app/branding/rollback/:versionId': {
+    controller: 'BrandingAppController',
+    action: 'rollback',
+  },
   'post /:branding/:portal/app/branding/logo': { controller: 'BrandingAppController', action: 'logo' },
   'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 
@@ -369,6 +388,9 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/user/genKey': 'UserController.generateUserKey',
   'post /:branding/:portal/user/revokeKey': 'UserController.revokeUserKey',
   'post /:branding/:portal/user/update': 'UserController.update',
+
+  // Action routes
+  'post /:branding/:portal/action/:action': 'ActionController.callService',
 
   // App config routes
   'get /:branding/:portal/appconfig/form/:appConfigId': 'AppConfigController.getAppConfigForm',

@@ -1,0 +1,27 @@
+meta {
+  name: Reject Missing Inaccessible Record Schema
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/record-schema-inaccessible/api/records/schemas/{{recordSchemaMissingDigest}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Makes inaccessible and missing artifacts indistinguishable", function () {
+    expect(bru.getEnvVar("recordSchemaMissingDigest"), "derived missing digest").to.match(/^[0-9a-f]{64}$/);
+    expect(bru.getEnvVar("recordSchemaMissingDigest")).not.to.equal(bru.getEnvVar("recordSchemaUpdateDigest"));
+    expect(res.getStatus()).to.equal(404);
+    expect((res.getHeader("content-type") || "").split(";")[0]).to.equal("application/problem+json");
+
+    const normalized = { ...res.getBody(), instance: "<requested-schema>" };
+    expect(normalized).to.deep.equal(JSON.parse(bru.getEnvVar("recordSchemaInaccessibleProblem")));
+  });
+}

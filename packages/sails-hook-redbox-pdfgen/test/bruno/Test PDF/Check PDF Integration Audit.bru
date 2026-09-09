@@ -1,0 +1,72 @@
+meta {
+  name: Check PDF Integration Audit
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/default/rdmp/api/integration-audit/{{dmpOid}}?pageSize=50
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Audit log has PDF entries", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('records');
+      expect(Array.isArray(jsonData.records)).to.equal(true);
+
+      var pdfRecords = jsonData.records.filter(function (r) {
+          return r.integrationName === 'pdf';
+      });
+      expect(pdfRecords.length).to.be.greaterThan(0);
+  });
+
+  test("Has a successful generatePdfTrigger parent audit", function () {
+      var jsonData = res.getBody();
+      var parents = jsonData.records.filter(function (r) {
+          return r.integrationName === 'pdf' && r.integrationAction === 'generatePdfTrigger';
+      });
+      expect(parents.length).to.be.greaterThan(0);
+      var parent = parents[0];
+      expect(parent.status).to.equal('success');
+      expect(parent).to.have.property('traceId');
+      expect(parent.responseSummary).to.have.property('finalStatus');
+      expect(parent.responseSummary.finalStatus).to.equal('success');
+  });
+
+  test("Has a successful generatePdf child audit linked to the parent trace", function () {
+      var jsonData = res.getBody();
+      var parents = jsonData.records.filter(function (r) {
+          return r.integrationName === 'pdf' && r.integrationAction === 'generatePdfTrigger';
+      });
+      expect(parents.length, 'expected at least one generatePdfTrigger parent audit').to.be.greaterThan(0);
+      var parent = parents[0];
+      var parentTraceId = parent.traceId;
+
+      var children = jsonData.records.filter(function (r) {
+          return r.integrationName === 'pdf'
+              && r.integrationAction === 'generatePdf'
+              && r.traceId === parentTraceId;
+      });
+      expect(children.length).to.be.greaterThan(0);
+
+      var success = children.find(function (r) { return r.status === 'success'; });
+      expect(success, 'expected at least one successful generatePdf child').to.exist;
+      expect(success.parentSpanId).to.equal(parent.spanId);
+      expect(success.responseSummary).to.have.property('fileId');
+      expect(String(success.responseSummary.fileId).endsWith('.pdf')).to.equal(true);
+      expect(success.requestSummary).to.have.property('attempt');
+      expect(success.requestSummary).to.have.property('url');
+      expect(success.requestSummary).to.have.property('readinessStrategy');
+  });
+}

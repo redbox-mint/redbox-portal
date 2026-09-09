@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "schemas": [
+    {
+      "form": "core/generated-view-only",
+      "kind": "create",
+      "digest": "7b6c9cb5280275b30e83d363a164b40c799ba4b3bae161e606e613fde256a766",
+      "byteLength": 620,
+      "completeness": "complete"
+    },
+    {
+      "form": "core/generated-view-only",
+      "kind": "update",
+      "digest": "18df7feb3e0ac4bfa8d78507e17525ebf8e7d0e94596136aed7b03a273a18d28",
+      "byteLength": 620,
+      "completeness": "complete"
+    },
+    {
+      "form": "core/persisted-contributors",
+      "kind": "create",
+      "digest": "8185755caeb146751b20df63a9468a558adcff0ec54aee49d2479be4e5389a21",
+      "byteLength": 2444,
+      "completeness": "complete"
+    },
+    {
+      "form": "core/persisted-contributors",
+      "kind": "update",
+      "digest": "92199af94434c26eb0d54aab3d02db8cd2a165d51ca094eebec451835faba942",
+      "byteLength": 2444,
+      "completeness": "complete"
+    },
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "kind": "create",
+      "digest": "068f8328c9bec124091f981b1997cc760d1c4694898fd8ccd3c00d512f72fc96",
+      "byteLength": 4430,
+      "completeness": "partial"
+    },
+    {
+      "form": "dev-hook/dataRecord-1.0-draft",
+      "kind": "update",
+      "digest": "2696598502efcb3d897ff99f10c42fd1f3ea3d51701d76fc0801fa52dc8e5e00",
+      "byteLength": 4430,
+      "completeness": "partial"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+meta {
+  name: Save Workflow State Dashboard Config
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{host}}/default/rdmp/api/dashboard-config/merged/rdmp/draft
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "dashboardType": "standard",
+    "tableConfig": {
+      "rowConfig": [
+        {
+          "title": "Bruno Override",
+          "variable": "metadata.title",
+          "template": "{{title}}"
+        }
+      ]
+    }
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Saves the workflow state override", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.data.recordTypes.rdmp.steps.draft.dashboardType).to.equal("standard");
+    expect(jsonData.data.recordTypes.rdmp.steps.draft.tableConfig.rowConfig[0].title).to.equal("Bruno Override");
+  });
+}

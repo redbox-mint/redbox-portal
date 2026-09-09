@@ -4,6 +4,11 @@ import { isRecordSaveOutcome, RecordSaveOutcome, SaveStatusComponentName } from 
 import { FormComponentEventBus, FormComponentEventType, FormStateFacade } from '../form-state';
 
 type SaveStatusMessageType = 'saving' | 'deleting' | 'error' | 'warning' | 'unknown' | 'success' | null;
+type SaveStatusMessageConfigProperty =
+  | 'warningMessageCreate'
+  | 'warningMessageUpdate'
+  | 'unknownMessageCreate'
+  | 'unknownMessageUpdate';
 
 @Component({
   selector: 'redbox-form-save-status',
@@ -165,16 +170,29 @@ export class SaveStatusComponent extends FormFieldBaseComponent<undefined> {
   protected readonly messageType = computed<SaveStatusMessageType>(() => this.messageState());
   protected readonly errorPrefix = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-error' : '@dmpt-form-save-error');
   protected readonly successMessage = computed(() => this.lastOperation() === 'delete' ? '@dmpt-form-delete-success' : '@dmpt-form-save-success');
-  protected readonly warningMessage = computed(() => this.isCreateSave()
-    ? '@dmpt-form-save-warning-create'
-    : '@dmpt-form-save-warning-update');
-  protected readonly unknownMessage = computed(() => this.isCreateSave()
-    ? '@dmpt-form-save-unknown-create'
-    : '@dmpt-form-save-unknown-update');
+  protected readonly warningMessage = computed(() => {
+    const isCreate = this.isCreateSave();
+    return this.configuredMessage(
+      isCreate ? 'warningMessageCreate' : 'warningMessageUpdate',
+      isCreate ? '@dmpt-form-save-warning-create' : '@dmpt-form-save-warning-update'
+    );
+  });
+  protected readonly unknownMessage = computed(() => {
+    const isCreate = this.isCreateSave();
+    return this.configuredMessage(
+      isCreate ? 'unknownMessageCreate' : 'unknownMessageUpdate',
+      isCreate ? '@dmpt-form-save-unknown-create' : '@dmpt-form-save-unknown-update'
+    );
+  });
 
   private isCreateSave(): boolean {
     const operation = this.saveOperation();
     return operation === 'create' || (operation === null && !this.formComponent?.trimmedParams.oid());
+  }
+
+  private configuredMessage(property: SaveStatusMessageConfigProperty, fallback: string): string {
+    const configured = this.getStringProperty(property);
+    return typeof configured === 'string' && configured.trim() ? configured.trim() : fallback;
   }
 
   private saveOutcome(response: { outcome?: unknown } | null | undefined): RecordSaveOutcome | undefined {

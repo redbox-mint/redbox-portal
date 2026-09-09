@@ -7,9 +7,11 @@
         <thead>
           <tr>
             <th width="15%">{{ typeHeader | i18next }}</th>
-            <th width="40%">{{ locationHeader | i18next }}</th>
+            <th class="data-location-location-header" width="40%">{{ locationHeader | i18next }}</th>
             @if (notesEnabled) {
-              <th width="20%">{{ notesHeader | i18next }}</th>
+              <th class="data-location-notes-header" [attr.width]="iscEnabled ? '20%' : '40%'">
+                {{ notesHeader | i18next }}
+              </th>
             }
             @if (iscEnabled) {
               <th width="20%">{{ iscHeader | i18next }}</th>
@@ -33,23 +35,29 @@
                 }
               </td>
               @if (notesEnabled) {
-                <td>
-                  <span>{{ dataLocation.notes }}</span>
-                  @if (isEditMode()) {
-                    <button type="button" class="btn btn-primary btn-sm float-end" (click)="startEditNotes($index)">
-                      {{ editNotesButtonText | i18next }}
-                    </button>
-                  }
+                <td class="data-location-notes-cell">
+                  <div class="data-location-notes-layout">
+                    <span class="data-location-notes-text">{{ dataLocation.notes }}</span>
+                    @if (isEditMode()) {
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-sm data-location-edit-notes"
+                        (click)="startEditNotes($index)"
+                      >
+                        {{ editNotesButtonText | i18next }}
+                      </button>
+                    }
+                  </div>
                 </td>
               }
               @if (iscEnabled) {
                 <td>{{ dataLocation.isc }}</td>
               }
               @if (isEditMode()) {
-                <td>
+                <td class="data-location-action-cell">
                   <button
                     type="button"
-                    class="fa fa-minus-circle btn text-20 btn-danger"
+                    class="fa fa-minus-circle btn text-20 btn-danger data-location-remove"
                     [attr.aria-label]="'remove_location' | i18next"
                     (click)="removeLocation($index)"
                     [disabled]="isDisabled || isReadonly"

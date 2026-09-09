@@ -1,6 +1,5 @@
 import { Effect } from 'effect';
 import { isObservable, Observable } from 'rxjs';
-import type { RuntimeValue } from '../runtimeValues';
 
 /**
  * A mutable cell reporting whether the value a hook returned can genuinely be
@@ -12,16 +11,16 @@ export interface CancellationCell {
 }
 
 export interface LegacyEffectAdaptation {
-  effect: Effect.Effect<RuntimeValue, RuntimeValue, never>;
+  effect: Effect.Effect<unknown, unknown, never>;
   cooperativeCancellation: boolean;
 }
 
 /** Legacy Observable hooks are first-value: later emissions are ignored. */
-function observableEffect(observable: Observable<RuntimeValue>): Effect.Effect<RuntimeValue, RuntimeValue, never> {
+function observableEffect(observable: Observable<unknown>): Effect.Effect<unknown, unknown, never> {
   return Effect.async((resume, signal) => {
     let settled = false;
 
-    const settle = (effect: Effect.Effect<RuntimeValue, RuntimeValue, never>): void => {
+    const settle = (effect: Effect.Effect<unknown, unknown, never>): void => {
       if (settled) {
         return;
       }
@@ -34,7 +33,7 @@ function observableEffect(observable: Observable<RuntimeValue>): Effect.Effect<R
 
     const subscription = observable.subscribe({
       next: value => settle(Effect.succeed(value)),
-      error: (error: RuntimeValue) => settle(Effect.fail(error)),
+      error: (error: unknown) => settle(Effect.fail(error)),
       complete: () => settle(Effect.fail(new Error('Observable hook completed without a value'))),
     });
 
@@ -54,45 +53,24 @@ function observableEffect(observable: Observable<RuntimeValue>): Effect.Effect<R
  * once the fiber is interrupted, but an opaque Promise side effect continues,
  * which is why Promise-backed hooks report non-cooperative cancellation.
  */
-function promiseEffect(promise: PromiseLike<RuntimeValue>): Effect.Effect<RuntimeValue, RuntimeValue, never> {
-  return Effect.async((resume, signal) => {
-    let interrupted = false;
-    signal.addEventListener(
-      'abort',
-      () => {
-        interrupted = true;
-      },
-      { once: true }
-    );
-    Promise.resolve(promise).then(
-      value => {
-        if (!interrupted) {
-          resume(Effect.succeed(value));
-        }
-      },
-      (error: RuntimeValue) => {
-        if (!interrupted) {
-          resume(Effect.fail(error));
-        }
-      }
-    );
-  });
+function promiseEffect(promise: PromiseLike<unknown>): Effect.Effect<unknown, unknown, never> {
+  return Effect.tryPromise({ try: () => promise, catch: error => error });
 }
 
-function isThenable(value: RuntimeValue): value is PromiseLike<RuntimeValue> {
+function isThenable(value: unknown): value is PromiseLike<unknown> {
   if (value === null || (typeof value !== 'object' && typeof value !== 'function')) {
     return false;
   }
-  return typeof (value as PromiseLike<RuntimeValue>).then === 'function';
+  return typeof (value as PromiseLike<unknown>).then === 'function';
 }
 
 /** Adapt whatever a legacy hook returned to an Effect. */
-export function adaptLegacyHookResult(value: RuntimeValue): LegacyEffectAdaptation {
+export function adaptLegacyHookResult(value: unknown): LegacyEffectAdaptation {
   if (Effect.isEffect(value)) {
-    return { effect: value as Effect.Effect<RuntimeValue, RuntimeValue, never>, cooperativeCancellation: true };
+    return { effect: value as Effect.Effect<unknown, unknown, never>, cooperativeCancellation: true };
   }
   if (isObservable(value)) {
-    return { effect: observableEffect(value as Observable<RuntimeValue>), cooperativeCancellation: true };
+    return { effect: observableEffect(value), cooperativeCancellation: true };
   }
   if (isThenable(value)) {
     return { effect: promiseEffect(value), cooperativeCancellation: false };
@@ -105,9 +83,9 @@ export function adaptLegacyHookResult(value: RuntimeValue): LegacyEffectAdaptati
  * the call itself is deferred until the attempt starts.
  */
 export function legacyHookToEffect(
-  invoke: () => RuntimeValue,
+  invoke: () => unknown,
   cancellation: CancellationCell = { value: true }
-): Effect.Effect<RuntimeValue, RuntimeValue, never> {
+): Effect.Effect<unknown, unknown, never> {
   return Effect.suspend(() => {
     const adaptation = adaptLegacyHookResult(invoke());
     cancellation.value = adaptation.cooperativeCancellation;

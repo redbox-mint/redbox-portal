@@ -1,7 +1,10 @@
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { Effect, Layer } from 'effect';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { RaidRecordRepositoryTag } from '../../src/services/raid-v2/tags';
+import type { RaidRecordRepository } from '../../src/services/raid-v2/types';
 
 describe('RaidService', function() {
   let mockSails: any;
@@ -318,6 +321,50 @@ describe('RaidService', function() {
       
       expect(result).to.deep.equal(record);
     });
+
+    it('threads the initiating hook actor into the RAiD orchestration context', async function() {
+      const record = { metadata: {}, metaMetadata: { brandId: 'brand-1' } };
+      const options = { forceRun: true };
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
+      sinon.stub(RaidService, 'metTriggerCondition').returns('true');
+      const mintRaid = sinon.stub(RaidService as any, 'mintRaid').resolves(record);
+
+      await RaidService.mintTrigger('oid-1', record, options, user);
+
+      expect(mintRaid.calledOnce).to.equal(true);
+      expect(mintRaid.firstCall.args[4]).to.equal(user);
+    });
+
+    it('passes only the initiating actor identity through associated-record append writebacks', async function() {
+      const initiatingActor = {
+        username: 'owner',
+        roles: [{ id: 'role-researcher', name: 'Researcher' }],
+      };
+      const record = { metadata: {}, metaMetadata: { brandId: 'brand-1' } };
+      const config = (RaidService as any).resolveConfig(record).config;
+      const layer: Layer.Layer<RaidRecordRepository> = RaidService.buildLayer({
+        record,
+        options: {},
+        config,
+        context: {
+          oid: 'oid-1',
+          brandId: 'brand-1',
+          brandName: 'brand-one',
+          triggerSource: 'mintTrigger',
+          attemptCount: 0,
+          initiatingActor,
+        },
+      });
+
+      await Effect.runPromise(Effect.gen(function* () {
+        const records = yield* RaidRecordRepositoryTag;
+        yield* records.appendToRecord('associated-1', 'raid-1', 'metadata.raid');
+      }).pipe(Effect.provide(layer)));
+
+      const args = (global as any).RecordsService.appendToRecord.firstCall.args;
+      expect(args.slice(0, 3)).to.deep.equal(['associated-1', 'raid-1', 'metadata.raid']);
+      expect(args[5]).to.equal(initiatingActor);
+    });
   });
 
   describe('mintPostCreateRetryHandler', function() {
@@ -332,9 +379,16 @@ describe('RaidService', function() {
         }
       };
       
-      await RaidService.mintPostCreateRetryHandler(oid, record, {});
+      await RaidService.mintPostCreateRetryHandler(oid, record, {}, {
+        username: 'owner',
+        roles: [{ id: 'role-researcher', name: 'Researcher' }],
+      });
       
       expect((global as any).AgendaQueueService.schedule.called).to.be.true;
+      expect((global as any).AgendaQueueService.schedule.firstCall.args[2].initiatingActor).to.deep.equal({
+        username: 'owner',
+        roles: [{ id: 'role-researcher', name: 'Researcher' }],
+      });
     });
 
     it('should not schedule when oid is empty', async function() {
@@ -369,7 +423,11 @@ describe('RaidService', function() {
           data: {
             oid: 'record-123',
             options: {},
-            attemptCount: 2
+            attemptCount: 2,
+            initiatingActor: {
+              username: 'owner',
+              roles: [{ id: 'role-researcher', name: 'Researcher' }],
+            },
           }
         }
       };
@@ -382,6 +440,7 @@ describe('RaidService', function() {
       expect(mintRaidStub.called).to.be.true;
       expect(mintRaidStub.firstCall.args[0]).to.equal('record-123');
       expect(mintRaidStub.firstCall.args[3]).to.equal(2); // attemptCount
+      expect(mintRaidStub.firstCall.args[4]).to.equal(job.attrs.data.initiatingActor);
     });
   });
 
