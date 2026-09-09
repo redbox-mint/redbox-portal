@@ -1,0 +1,22 @@
+meta {
+  name: Rollback invalid history id
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/rollback/does-not-exist
+  body: none
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("Status 404 history-not-found", function(){
+    expect(res.getStatus()).to.equal(404);
+  });
+}

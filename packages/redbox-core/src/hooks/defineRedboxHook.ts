@@ -1,15 +1,18 @@
 import '../sails';
 import type { ApiRouteDefinition } from '../api-routes';
-import type { RecordContractContributor } from '../record-contract';
+import type { RegisterRedboxActions } from '../action-registry';
+import type { RuntimeRecord, RuntimeValue } from '../runtimeValues';
+
+type HookRoutes = RuntimeRecord | RuntimeValue[];
 
 type HookFactoryResult = {
-  defaults?: Record<string, unknown>;
-  routes?: unknown;
+  defaults?: HookRegistrationMap;
+  routes?: HookRoutes;
   configure?: () => void;
   initialize?: () => Promise<void>;
 };
 
-export type HookRegistrationMap = Record<string, unknown>;
+export type HookRegistrationMap = Record<string, RuntimeValue>;
 
 type HookDone = (error?: Error) => void;
 
@@ -18,7 +21,7 @@ type HookDone = (error?: Error) => void;
 // both assignable. An overload pair would reject the callback style outright.
 type HookInitializer = (sails: Sails.Application, done: HookDone) => void | Promise<void>;
 
-function normalizeError(error: unknown): Error {
+function normalizeError(error: RuntimeValue): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
@@ -29,9 +32,9 @@ function normalizeError(error: unknown): Error {
  * @remarks Service and controller maps use the core registry names when replacing a core implementation. Hook initializers may use either Promise or callback completion.
  * @see https://github.com/redbox-mint/redbox-portal/wiki/Redbox-Loader
  */
-export type DefineRedboxHookOptions = {
-  defaults?: Record<string, unknown>;
-  routes?: ((sails: Sails.Application) => unknown) | unknown;
+export type DefineRedboxHookOptions<AdditionalExports extends HookRegistrationMap = HookRegistrationMap> = {
+  defaults?: HookRegistrationMap;
+  routes?: ((sails: Sails.Application) => HookRoutes) | HookRoutes;
   configure?: (sails: Sails.Application) => void;
   initialize?: HookInitializer;
   registerRedboxConfig?: () => HookRegistrationMap;
@@ -40,23 +43,29 @@ export type DefineRedboxHookOptions = {
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
   registerRedboxFormConfigs?: () => HookRegistrationMap;
-  registerRecordContractContributors?: () => readonly RecordContractContributor[];
-  additionalExports?: Record<string, unknown>;
+  registerRedboxActions?: RegisterRedboxActions;
+  additionalExports?: AdditionalExports;
 };
 
-type DefinedRedboxHook = ((sails: Sails.Application) => HookFactoryResult) & {
+/** The callable hook factory returned by {@link defineRedboxHook}. */
+export interface DefinedRedboxHook {
+  (sails: Sails.Application): HookFactoryResult;
   registerRedboxConfig?: () => HookRegistrationMap;
   registerHookApiRoutes?: () => readonly ApiRouteDefinition[];
   registerRedboxControllers?: () => HookRegistrationMap;
   registerRedboxWebserviceControllers?: () => HookRegistrationMap;
   registerRedboxServices?: () => HookRegistrationMap;
   registerRedboxFormConfigs?: () => HookRegistrationMap;
-  registerRecordContractContributors?: () => readonly RecordContractContributor[];
+  registerRedboxActions?: RegisterRedboxActions;
   registerFormConfig?: () => HookRegistrationMap;
-} & Record<string, unknown>;
+}
 
+export function defineRedboxHook<AdditionalExports extends HookRegistrationMap>(
+  options: DefineRedboxHookOptions<AdditionalExports> & { readonly additionalExports: AdditionalExports }
+): DefinedRedboxHook & AdditionalExports;
+export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedboxHook;
 export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedboxHook {
-  const hookFactory = ((sails: Sails.Application): HookFactoryResult => {
+  const hookFactory: DefinedRedboxHook = (sails: Sails.Application): HookFactoryResult => {
     const hook: HookFactoryResult = {
       defaults: options.defaults ?? {},
     };
@@ -80,7 +89,7 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
         // which is inaccurate for default and rest parameters.
         await new Promise<void>((resolve, reject) => {
           let settled = false;
-          const done: HookDone = error => {
+          const done = (error?: RuntimeValue): void => {
             if (settled) {
               return;
             }
@@ -92,20 +101,19 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
             }
           };
 
-          try {
+          void new Promise<void>(resolveInvocation => {
             const result = initializer(sails, done);
             if (result && typeof result.then === 'function') {
               void Promise.resolve(result).then(() => done(), done);
             }
-          } catch (error) {
-            done(normalizeError(error));
-          }
+            resolveInvocation();
+          }).then(undefined, done);
         });
       };
     }
 
     return hook;
-  }) as DefinedRedboxHook;
+  };
 
   if (options.registerRedboxConfig) {
     hookFactory.registerRedboxConfig = options.registerRedboxConfig;
@@ -132,13 +140,11 @@ export function defineRedboxHook(options: DefineRedboxHookOptions): DefinedRedbo
     hookFactory.registerFormConfig = options.registerRedboxFormConfigs;
   }
 
-  if (options.registerRecordContractContributors) {
-    hookFactory.registerRecordContractContributors = options.registerRecordContractContributors;
+  if (options.registerRedboxActions) {
+    hookFactory.registerRedboxActions = options.registerRedboxActions;
   }
 
-  Object.assign(hookFactory, options.additionalExports);
-
-  return hookFactory;
+  return Object.assign(hookFactory, options.additionalExports);
 }
 
 export default defineRedboxHook;

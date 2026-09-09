@@ -714,7 +714,12 @@ export const http: HttpConfig = {
                 // strict: true,
                 // ... more Skipper options here ...
             });
-            return skipperMiddleware(req, res, next);
+            return skipperMiddleware(req, res, (error?: { status?: number; statusCode?: number; type?: string }) => {
+                if (!error) return next();
+                // Parser errors can contain the raw body and stack. Never pass them to serverError.
+                const oversized = error.status === 413 || error.statusCode === 413 || error.type === 'entity.too.large';
+                res.status(oversized ? 413 : 400).json({ error: oversized ? 'payload-too-large' : 'invalid-request-body' });
+            });
         },
 
         poweredBy: function (req: Request, res: Response, next: NextFunction) {

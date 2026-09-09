@@ -22,162 +22,31 @@
                     <div class="mb-3">
                       <label [for]="colourVar.key" class="form-label small">
                         {{ colourVar.label }}
-                        <i
-                          *ngIf="colourVar.help"
-                          class="fas fa-question-circle ms-1 text-muted"
+                        <i *ngIf="colourVar.help" class="fas fa-question-circle ms-1 text-muted"
                           tabindex="0"
                           data-bs-toggle="tooltip"
                           [attr.data-bs-title]="colourVar.help"
-                          [attr.aria-label]="colourVar.help"
-                        ></i>
+                          [attr.aria-label]="colourVar.help"></i>
                       </label>
                       <div class="input-group input-group-sm">
-                        <input
-                          type="color"
-                          class="form-control form-control-colour colour-picker-narrow"
+                        <input 
+                          type="color" 
+                          class="form-control form-control-colour colour-picker-narrow" 
                           [id]="colourVar.key"
                           [value]="draftConfig[colourVar.key] || colourVar.default"
-                          (input)="updateVariable(colourVar.key, $event)"
-                        />
-                        <input
-                          type="text"
-                          class="form-control"
+                          (input)="updateVariable(colourVar.key, $event)">
+                        <input 
+                          type="text" 
+                          class="form-control" 
                           [value]="draftConfig[colourVar.key] || colourVar.default"
                           (input)="updateVariable(colourVar.key, $event)"
-                          placeholder="#000000"
-                        />
+                          placeholder="#000000">
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </ng-container>
-          </div>
-
-          <!-- Typography -->
-          <div class="mb-4" *ngIf="state">
-            <h6 class="text-secondary mb-2">{{ 'branding-typography-title' | i18next }}</h6>
-            <p class="text-muted small">{{ 'branding-typography-help' | i18next }}</p>
-            <div class="alert alert-warning py-2 px-3 mb-3" role="alert" *ngIf="state.healthWarnings?.length">
-              <strong>{{ 'branding-health-warnings-title' | i18next }}</strong>
-              <ul class="mb-0 mt-1">
-                <li *ngFor="let warning of state.healthWarnings">
-                  {{ 'branding-health-warning-face' | i18next }}: {{ warning.slot || '–' }} ({{ warning.code }})
-                </li>
-              </ul>
-            </div>
-            <div class="alert alert-secondary py-2 px-3 mb-3" role="status">
-              <span *ngIf="draftTypefaceMode === 'default'">{{ 'branding-typography-state-default' | i18next }}</span>
-              <span *ngIf="draftTypefaceMode === 'custom'">{{ 'branding-typography-state-custom' | i18next }}</span>
-            </div>
-            <div class="alert alert-warning py-2 px-3 mb-3" role="alert" *ngIf="customIncomplete">
-              {{ 'branding-typography-incomplete' | i18next }}
-            </div>
-            <div class="row g-3">
-              <div class="col-lg-3 col-md-6" *ngFor="let card of typefaceSlots">
-                <div class="card h-100" [attr.aria-label]="card.label | i18next">
-                  <div class="card-body">
-                    <h6 class="card-title">
-                      {{ card.label | i18next }}
-                      <span class="badge bg-danger ms-1" *ngIf="card.required">{{
-                        'branding-required' | i18next
-                      }}</span>
-                      <span class="badge bg-secondary ms-1" *ngIf="!card.required">{{
-                        'branding-optional' | i18next
-                      }}</span>
-                    </h6>
-                    <p class="card-text small text-muted">{{ card.hint | i18next }}</p>
-                    <ng-container *ngIf="faceFor(card.slot) as face; else emptySlot">
-                      <dl class="small mb-2">
-                        <dt>{{ 'branding-face-file' | i18next }}</dt>
-                        <dd class="text-break">{{ face.originalFilename }}</dd>
-                        <dt>{{ 'branding-face-size' | i18next }}</dt>
-                        <dd>{{ face.sizeBytes }}</dd>
-                        <dt *ngIf="face.inspection?.family || face.inspection?.subfamily">
-                          {{ 'branding-face-metadata' | i18next }}
-                        </dt>
-                        <dd *ngIf="face.inspection?.family || face.inspection?.subfamily">
-                          {{ face.inspection.family }} {{ face.inspection.subfamily }}
-                        </dd>
-                      </dl>
-                      <div
-                        class="alert alert-warning py-1 px-2 small"
-                        role="alert"
-                        *ngFor="let warning of face.warnings"
-                      >
-                        {{ warning }}
-                      </div>
-                      <div class="d-flex flex-wrap gap-2">
-                        <label class="form-label mb-0">
-                          {{ 'branding-face-replace' | i18next }}
-                          <input
-                            type="file"
-                            class="form-control form-control-sm"
-                            accept=".woff2,font/woff2"
-                            (change)="uploadFace(card.slot, $event)"
-                            [disabled]="isUnavailable('face-' + card.slot)"
-                            [attr.aria-label]="card.label | i18next"
-                          />
-                        </label>
-                        <button
-                          class="btn btn-sm btn-outline-danger"
-                          (click)="removeFace(card.slot)"
-                          [disabled]="isUnavailable('face-' + card.slot)"
-                        >
-                          <span
-                            *ngIf="isBusy('face-' + card.slot)"
-                            class="spinner-border spinner-border-sm me-1"
-                            role="status"
-                          ></span>
-                          {{ 'branding-face-remove' | i18next }}
-                        </button>
-                      </div>
-                    </ng-container>
-                    <ng-template #emptySlot>
-                      <p class="text-muted small">{{ 'branding-face-empty' | i18next }}</p>
-                      <label class="form-label mb-0">
-                        {{ 'branding-face-upload' | i18next }}
-                        <input
-                          type="file"
-                          class="form-control form-control-sm"
-                          accept=".woff2,font/woff2"
-                          (change)="uploadFace(card.slot, $event)"
-                          [disabled]="isUnavailable('face-' + card.slot)"
-                          [attr.aria-label]="card.label | i18next"
-                        />
-                      </label>
-                      <span
-                        *ngIf="isBusy('face-' + card.slot)"
-                        class="spinner-border spinner-border-sm ms-2"
-                        role="status"
-                      ></span>
-                    </ng-template>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="d-flex flex-wrap gap-2 mt-3">
-              <button
-                class="btn btn-outline-secondary"
-                (click)="useDefaultTypography()"
-                [disabled]="isUnavailable('use-default')"
-              >
-                <span *ngIf="isBusy('use-default')" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                {{ 'branding-use-default-typography' | i18next }}
-              </button>
-              <button
-                class="btn btn-outline-secondary"
-                (click)="revertTypefaceDraft()"
-                [disabled]="isUnavailable('revert-typeface')"
-              >
-                <span
-                  *ngIf="isBusy('revert-typeface')"
-                  class="spinner-border spinner-border-sm me-2"
-                  role="status"
-                ></span>
-                {{ 'branding-revert-typeface' | i18next }}
-              </button>
-            </div>
           </div>
           <div class="row mt-3 border-top">
             <div class="col-md-6 mt-3">
@@ -186,14 +55,7 @@
                   <i class="fas fa-image me-2"></i>
                   {{ 'branding-logo-upload-label' | i18next }}
                 </label>
-                <input
-                  type="file"
-                  class="form-control"
-                  id="logoUpload"
-                  [disabled]="isUnavailable('logo')"
-                  (change)="uploadLogo($event)"
-                  accept="image/*"
-                />
+                <input type="file" class="form-control" id="logoUpload" (change)="uploadLogo($event)" accept="image/*" />
               </div>
             </div>
             <div class="col-md-6 mt-3">
@@ -202,14 +64,7 @@
                   <i class="fas fa-star me-2"></i>
                   {{ 'branding-favicon-upload-label' | i18next }}
                 </label>
-                <input
-                  type="file"
-                  class="form-control"
-                  id="faviconUpload"
-                  [disabled]="isUnavailable('favicon')"
-                  (change)="uploadFavicon($event)"
-                  accept="image/png,image/svg+xml,image/x-icon,.ico"
-                />
+                <input type="file" class="form-control" id="faviconUpload" (change)="uploadFavicon($event)" accept="image/png,image/svg+xml,image/x-icon,.ico" />
                 <div class="form-text">{{ 'branding-favicon-upload-help' | i18next }}</div>
               </div>
             </div>
@@ -218,34 +73,26 @@
           <div class="row mt-3 border-top pt-3">
             <div class="col-12">
               <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-primary" (click)="saveDraft()" [disabled]="isUnavailable('save-draft')">
+                <button class="btn btn-primary" (click)="saveDraft()" [disabled]="savingDraft">
                   <i class="fas fa-save me-2"></i>
-                  <span *ngIf="!isBusy('save-draft')">{{ 'branding-save-draft-button' | i18next }}</span>
-                  <span *ngIf="isBusy('save-draft')">
+                  <span *ngIf="!savingDraft">{{ 'branding-save-draft-button' | i18next }}</span>
+                  <span *ngIf="savingDraft">
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
                     {{ 'branding-save-draft-saving' | i18next }}
                   </span>
                 </button>
-                <button
-                  class="btn btn-info"
-                  (click)="createPreview()"
-                  [disabled]="isUnavailable('preview') || customIncomplete"
-                >
+                <button class="btn btn-info" (click)="createPreview()" [disabled]="generatingPreview">
                   <i class="fas fa-eye me-2"></i>
-                  <span *ngIf="!isBusy('preview')">{{ 'branding-generate-preview-button' | i18next }}</span>
-                  <span *ngIf="isBusy('preview')">
+                  <span *ngIf="!generatingPreview">{{ 'branding-generate-preview-button' | i18next }}</span>
+                  <span *ngIf="generatingPreview">
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
                     {{ 'branding-generate-preview-generating' | i18next }}
                   </span>
                 </button>
-                <button
-                  class="btn btn-success"
-                  (click)="publish()"
-                  [disabled]="isUnavailable('publish') || customIncomplete"
-                >
+                <button class="btn btn-success" (click)="publish()" [disabled]="publishing">
                   <i class="fas fa-rocket me-2"></i>
-                  <span *ngIf="!isBusy('publish')">{{ 'branding-publish-button' | i18next }}</span>
-                  <span *ngIf="isBusy('publish')">
+                  <span *ngIf="!publishing">{{ 'branding-publish-button' | i18next }}</span>
+                  <span *ngIf="publishing">
                     <span class="spinner-border spinner-border-sm me-2" role="status"></span>
                     {{ 'branding-publish-publishing' | i18next }}
                   </span>
@@ -263,7 +110,7 @@
   </div>
 
   <!-- Status Messages -->
-  <div class="row mx-0" *ngIf="message || error || conflict">
+  <div class="row mx-0" *ngIf="message || error">
     <div class="col-12 px-0">
       <div class="alert alert-success alert-dismissible fade show" *ngIf="message" role="alert">
         <i class="fas fa-check-circle me-2"></i>
@@ -275,114 +122,21 @@
         {{ error }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
       </div>
-      <div class="alert alert-warning fade show" *ngIf="conflict" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        {{ 'branding-conflict-message' | i18next }}
-        <button class="btn btn-sm btn-warning ms-2" (click)="reloadState()">
-          {{ 'branding-conflict-reload' | i18next }}
-        </button>
-      </div>
     </div>
   </div>
 
-  <!-- Preview -->
-  <div class="row mx-0" *ngIf="previewCssUrl">
+  <!-- Preview Iframe -->
+  <div class="row mx-0" *ngIf="previewToken">
     <div class="col-12 px-0">
       <div class="card panel-default panel-style">
         <div class="card-header">
           <h5 class="card-title mb-0">
             <i class="fas fa-eye me-2"></i>
             {{ 'branding-preview-title' | i18next }}
-            <span class="badge bg-info ms-2" *ngIf="previewKind === 'version'">{{
-              'branding-preview-version' | i18next
-            }}</span>
           </h5>
         </div>
         <div class="card-body">
-          <div class="mb-3">
-            <label for="previewSampleText" class="form-label">{{ 'branding-preview-sample-label' | i18next }}</label>
-            <input
-              type="text"
-              class="form-control"
-              id="previewSampleText"
-              [(ngModel)]="sampleText"
-              [attr.aria-label]="'branding-preview-sample-label' | i18next"
-            />
-            <div class="form-text">{{ 'branding-preview-sample-help' | i18next }}</div>
-          </div>
-          <branding-preview
-            *ngIf="previewCssUrl"
-            [baseCssHref]="previewBaseCssUrl"
-            [cssHref]="previewCssUrl"
-            [logoSrc]="logoUrl"
-            [sampleText]="sampleText"
-          ></branding-preview>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Version history -->
-  <div class="row mx-0" *ngIf="state">
-    <div class="col-12 px-0">
-      <div class="card panel-default panel-style">
-        <div class="card-header">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-history me-2"></i>
-            {{ 'branding-history-title' | i18next }}
-          </h5>
-        </div>
-        <div class="card-body">
-          <p class="text-muted" *ngIf="versions.length === 0">{{ 'branding-history-empty' | i18next }}</p>
-          <ul class="list-group" *ngIf="versions.length > 0">
-            <li class="list-group-item" *ngFor="let version of versions">
-              <div class="d-flex flex-wrap align-items-center gap-2">
-                <strong>v{{ version.version }}</strong>
-                <span class="badge bg-success" *ngIf="version.version === state.active.version">{{
-                  'branding-history-active' | i18next
-                }}</span>
-                <span class="text-muted small">{{ version.dateCreated }}</span>
-                <span class="small" *ngIf="version.actorDisplayName">{{ version.actorDisplayName }}</span>
-                <span class="small text-muted">{{ typefaceSummary(version.typeface) }}</span>
-                <span class="ms-auto d-flex flex-wrap gap-2">
-                  <button
-                    class="btn btn-sm btn-outline-info"
-                    (click)="previewVersionEntry(version)"
-                    [disabled]="isUnavailable('preview-' + version.id)"
-                  >
-                    {{ 'branding-history-preview' | i18next }}
-                  </button>
-                  <ng-container *ngIf="pendingRestoreId !== version.id; else confirmRestoreTpl">
-                    <button
-                      class="btn btn-sm btn-outline-warning"
-                      (click)="confirmRestore(version.id)"
-                      [disabled]="isUnavailable('restore-' + version.id)"
-                    >
-                      {{ 'branding-history-restore' | i18next }}
-                    </button>
-                  </ng-container>
-                  <ng-template #confirmRestoreTpl>
-                    <span class="small text-danger">{{ 'branding-restore-confirm' | i18next }}</span>
-                    <button
-                      class="btn btn-sm btn-warning"
-                      (click)="restoreVersion(version)"
-                      [disabled]="isUnavailable('restore-' + version.id)"
-                    >
-                      <span
-                        *ngIf="isBusy('restore-' + version.id)"
-                        class="spinner-border spinner-border-sm me-1"
-                        role="status"
-                      ></span>
-                      {{ 'branding-restore-confirm-yes' | i18next }}
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" (click)="cancelRestore()">
-                      {{ 'branding-restore-confirm-no' | i18next }}
-                    </button>
-                  </ng-template>
-                </span>
-              </div>
-            </li>
-          </ul>
+          <branding-preview *ngIf="previewCssUrl" [baseCssHref]="previewBaseCssUrl" [cssHref]="previewCssUrl" [logoSrc]="logoUrl"></branding-preview>
         </div>
       </div>
     </div>
@@ -392,7 +146,7 @@
 <!-- Loading State -->
 <div class="d-flex justify-content-center align-items-center loading-min-height" *ngIf="!initialized">
   <div class="text-center">
-    <div class="spinner-border text-primary spinner-lg" role="status">
+  <div class="spinner-border text-primary spinner-lg" role="status">
       <span class="visually-hidden"></span>
     </div>
     <p class="mt-3 text-muted"></p>

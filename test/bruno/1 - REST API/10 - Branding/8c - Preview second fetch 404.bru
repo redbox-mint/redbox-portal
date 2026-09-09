@@ -1,0 +1,19 @@
+meta {
+  name: Preview second fetch 404
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{host}}{{preview_single_url}}
+  body: none
+  auth: none
+}
+headers {
+     Authorization: Bearer {{token}}
+     ~Content-Type: application/json
+}
+
+tests {
+  test("Second fetch 404", function(){ expect(res.getStatus()).to.equal(404); });
+}

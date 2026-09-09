@@ -34,7 +34,6 @@ import type { DoiRecordModel } from './doi-v2/types';
 import { IntegrationAuditAction } from '../model/storage/IntegrationAuditModel';
 import { DoiPublishing } from '../configmodels/DoiPublishing';
 import type { IntegrationAuditContext } from './IntegrationAuditService';
-import { createRecordMetadataDelta } from '../RecordsService';
 
 type DoiAction = 'create' | 'update';
 type DoiAuditOptions = Record<string, unknown> & {
@@ -448,8 +447,7 @@ export namespace Services {
     public async publishDoiTrigger(
       oid: string,
       record: DoiRecordModel,
-      options: Record<string, unknown>,
-      user: Record<string, unknown> = {}
+      options: Record<string, unknown>
     ): Promise<unknown> {
       if (this.metTriggerCondition(oid, record, options) === 'true') {
         const runContext = createRunContext(record, String(options.profile ?? ''), undefined, 'publishDoiTrigger');
@@ -461,7 +459,6 @@ export namespace Services {
             auditContext: auditCtx,
           });
           if (doi != null) {
-            const previousMetadata = _.cloneDeep(record.metadata);
             record = await this.addDoiDataToRecord(oid, record, doi, options);
             try {
               const response = await RecordsService.updateMetaInternal({
@@ -470,9 +467,6 @@ export namespace Services {
                 mutationClass: 'external-side-effect',
                 oid,
                 record,
-                user,
-                metadata: createRecordMetadataDelta(previousMetadata, record.metadata),
-                metadataMode: 'pre-applied',
               });
               if (!response.wasPersisted()) {
                 throw new Error(String(response.message ?? response.outcome));

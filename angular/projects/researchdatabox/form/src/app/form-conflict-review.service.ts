@@ -293,7 +293,14 @@ export class FormConflictReviewService {
   }
 
   private pathId(path: readonly (string | number)[]): string {
-    return JSON.stringify(path);
+    if (path.length === 0) {
+      return 'record-root';
+    }
+    // `/` cannot survive encodeURIComponent, so it separates segments without a
+    // field name ever being able to forge a different path's identifier.
+    return path
+      .map(segment => `${typeof segment === 'number' ? 'n' : 's'}-${encodeURIComponent(String(segment))}`)
+      .join('/');
   }
 
   private isPathPrefix(prefix: readonly (string | number)[], path: readonly (string | number)[]): boolean {

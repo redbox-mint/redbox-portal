@@ -144,10 +144,8 @@ export const ServiceExports = {
 |---|---|
 | `ConfigService` | Runtime configuration access |
 | `AppConfigService` | Application-level configuration |
-| `BrandingService` | Multi-tenant branding lifecycle coordinator (colour/typeface draft, preview, atomic publish/restore, version retention, Admin-state responses) |
+| `BrandingService` | Multi-tenant branding management |
 | `BrandingLogoService` | Brand logo handling |
-| `BrandingTypefaceService` | Brand typeface validation and storage boundary (WOFF2 structural inspection, variable rejection, SHA-256 content addressing, integrity checks, orphan reconciliation) |
-| `BrandingThemeCssService` | Branding colour validation plus generated theme CSS, including fixed `@font-face` declarations and the internal brand font-family variable |
 
 ### Template & I18n Services
 
@@ -297,12 +295,6 @@ The loader generates a shim pointing to your hook:
 module.exports = require('redbox-hook-myproject').ServiceExports['RecordsService'];
 ```
 
-### Branding extension seams
-
-- `BrandingTypefaceService` is the font validation and storage boundary. Hook developers must not reimplement WOFF2 parsing or storage-key construction; call `inspectAndStoreFace`, `readFace`, `assertTypefaceAvailable`, or `reconcileAssets`.
-- `BrandingService` owns the colour/typeface draft, preview, publication, restoration, version retention, and cache refresh. Controllers stay thin transport adapters: resolve the authenticated brand/actor, parse the request, call the service, and map typed errors.
-- `BrandingThemeCssService.generate` never accepts a user-provided CSS family string; hook CSS still loads after the generated theme stylesheet and keeps override precedence.
-
 ## Service Patterns
 
 ### RxJS Observable Pattern
@@ -367,9 +359,9 @@ public isFeatureEnabled(): boolean {
 
 A hook-provided storage adapter must explicitly declare the complete versioned
 `recordConcurrency` capability before any record type can use strict concurrent
-modification mode. Implement `getCapabilities()` using the version token
-exported by `@researchdatabox/redbox-core`; an absent or unknown version is
-treated as unsupported.
+modification mode. Implement `getCapabilities()` using the contracts exported
+by `@researchdatabox/redbox-core`; an absent or partial declaration is treated
+as unsupported.
 
 The adapter must implement native atomic active update/removal and conditional
 tombstone update/removal, return the committed or removed revision/state, and
@@ -377,9 +369,10 @@ certify bounded non-application reasons. Supplied expected revisions are never
 ignored. A driver throw or unrecognized result after dispatch remains
 `unknown`; do not fall back to an OID-only Waterline write.
 
-Verify those guarantees against the adapter's real datastore dialect before
-declaring capability. The bundled Mongo integration tests and
-migration/deployment notes are documented in
+Run the reusable `STORAGE_CONCURRENCY_CONFORMANCE_CHECKS` exported by
+`@researchdatabox/redbox-core` against the adapter's real datastore dialect
+before declaring capability. The
+bundled Mongo implementation and migration/deployment notes are documented in
 `packages/sails-hook-redbox-storage-mongo/README.md`.
 
 ## Testing Services
@@ -451,3 +444,10 @@ cat api/services/RecordsService.js
 - [Redbox Loader](Redbox-Loader) - Shim generation system
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Architecture Overview](Architecture-Overview) - System architecture
+
+### Published record definitions
+
+`RecordDefinitionRuntimeService` resolves active immutable aggregates and checks
+active action readiness. Record-type and workflow adapters share a snapshot within
+an operation. See [Active record-definition resolution](Active-Record-Definition-Resolution)
+for cache bounds, cross-instance visibility, legacy compatibility and probe usage.
