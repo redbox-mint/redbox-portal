@@ -5,6 +5,7 @@ The loader exported by `@researchdatabox/redbox-core` generates shim files for m
 ## Overview
 
 When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
+
 1. Scan dependencies for registered hooks
 2. Generate shim files that bridge Sails.js to `@researchdatabox/redbox-core`
 3. Ensure all components are in place before the ORM, services, and policies load
@@ -39,12 +40,13 @@ When ReDBox Portal starts, the loader runs **before** `sails.lift()` to:
 
 Shims are regenerated when (in priority order):
 
-| Trigger | Description |
-|---|---|
-| `NODE_ENV !== 'production'` | Always regenerate in development |
-| `.regenerate-shims` file exists | Marker file triggers regeneration, then is deleted |
-| `REGENERATE_SHIMS=true` env var | Force regeneration via environment variable |
-| Empty shim directory | If `api/models/`, `api/policies/`, etc. are empty |
+| Trigger                         | Description                                          |
+| ------------------------------- | ---------------------------------------------------- |
+| `NODE_ENV !== 'production'`     | Always regenerate in development                     |
+| `.regenerate-shims` file exists | Marker file triggers regeneration, then is deleted   |
+| `REGENERATE_SHIMS=true` env var | Force regeneration via environment variable          |
+| Empty shim directory            | If `api/models/`, `api/policies/`, etc. are empty    |
+| Missing action registry shim    | If `config/actionRegistry.js` has not been generated |
 
 In production mode, shims are cached unless explicitly triggered.
 
@@ -80,16 +82,16 @@ Services are lazy-instantiated when first accessed, ensuring proper initializati
 
 **Generated Services:**
 
-| Service | Description |
-|---|---|
-| `RecordsService` | Core record CRUD operations |
-| `UsersService` | User account management |
-| `FormsService` | Dynamic form handling |
-| `WorkflowStepsService` | Workflow state transitions |
-| `SolrSearchService` | Search indexing |
-| `EmailService` | Email delivery |
-| `CacheService` | In-memory and database caching |
-| ... | 32 additional services |
+| Service                | Description                    |
+| ---------------------- | ------------------------------ |
+| `RecordsService`       | Core record CRUD operations    |
+| `UsersService`         | User account management        |
+| `FormsService`         | Dynamic form handling          |
+| `WorkflowStepsService` | Workflow state transitions     |
+| `SolrSearchService`    | Search indexing                |
+| `EmailService`         | Email delivery                 |
+| `CacheService`         | In-memory and database caching |
+| ...                    | 32 additional services         |
 
 See [Redbox Core Types - Services](redbox-core#core-services) for the complete service list.
 
@@ -136,7 +138,7 @@ module.exports = FormConfigExports['default-1.0-draft'];
 ```javascript
 // Example: api/form-config/index.js
 const forms = {
-    'default-1.0-draft': require('./default-1.0-draft.js'),
+  'default-1.0-draft': require('./default-1.0-draft.js'),
 };
 
 module.exports = { forms };
@@ -155,31 +157,68 @@ The loader scans `package.json` dependencies for hooks that declare capabilities
 
 ```json
 {
-    "name": "my-redbox-hook",
-    "sails": {
-        "hasModels": true,
-        "hasPolicies": true,
-        "hasServices": true,
-        "hasControllers": true,
-        "hasBootstrap": true,
-        "hasConfig": true,
-        "hasFormConfigs": true
-    }
+  "name": "my-redbox-hook",
+  "sails": {
+    "hasModels": true,
+    "hasPolicies": true,
+    "hasServices": true,
+    "hasControllers": true,
+    "hasBootstrap": true,
+    "hasConfig": true,
+    "hasFormConfigs": true,
+    "hasActions": true
+  }
 }
 ```
 
 Hooks must export registration functions:
 
-| Flag | Required Export | Description |
-|---|---|---|
-| `hasModels` | `registerRedboxModels()` | Returns model definitions object |
-| `hasPolicies` | `registerRedboxPolicies()` | Returns policies object |
-| `hasServices` | `registerRedboxServices()` | Returns services object (hook services take precedence over core) |
-| `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence) |
-| `hasBootstrap` | `registerRedboxBootstrap()` | Returns async bootstrap function |
-| `hasApiRoutes` | `registerHookApiRoutes()` | Returns an array of contract-first API route definitions |
-| `hasConfig` | `registerRedboxConfig()` | Returns config object to merge |
-| `hasFormConfigs` | `registerRedboxFormConfigs()` | Returns form config registry |
+| Flag             | Required Export                                                         | Description                                                             |
+| ---------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `hasModels`      | `registerRedboxModels()`                                                | Returns model definitions object                                        |
+| `hasPolicies`    | `registerRedboxPolicies()`                                              | Returns policies object                                                 |
+| `hasServices`    | `registerRedboxServices()`                                              | Returns services object (hook services take precedence over core)       |
+| `hasControllers` | `registerRedboxControllers()` / `registerRedboxWebserviceControllers()` | Returns controller export objects (hook controllers take precedence)    |
+| `hasBootstrap`   | `registerRedboxBootstrap()`                                             | Returns async bootstrap function                                        |
+| `hasApiRoutes`   | `registerHookApiRoutes()`                                               | Returns an array of contract-first API route definitions                |
+| `hasConfig`      | `registerRedboxConfig()`                                                | Returns config object to merge                                          |
+| `hasFormConfigs` | `registerRedboxFormConfigs()`                                           | Returns form config registry                                            |
+| `hasActions`     | `registerRedboxActions()`                                               | Synchronously returns action descriptors with direct handler references |
+
+### Action registration
+
+Action implementations are registered from code before Sails lifts. Core uses
+the same explicit `registerRedboxActions()` contract as hooks. Hook authors can
+declare the capability with `defineRedboxHook`:
+
+```typescript
+import { ActionRegistry, defineRedboxHook } from '@researchdatabox/redbox-core';
+
+const actions: readonly ActionRegistry.ActionRegistrationDescriptor[] = [];
+
+export const registerRedboxActions = (): readonly ActionRegistry.ActionRegistrationDescriptor[] => actions;
+
+export default defineRedboxHook({
+  registerRedboxActions,
+});
+```
+
+The hook package must also set `sails.hasActions` to `true` and export
+`registerRedboxActions` directly from its entry module. Passing the same named
+function to `defineRedboxHook` exposes it on the default hook factory for
+CommonJS consumers, but that property does not replace the direct named export
+from an ES module. Registration must be synchronous and return an array. Each
+descriptor contains a direct handler function; persisted service names, module
+paths, method names, and function strings are not accepted as handlers.
+
+The loader attaches package and resolved entry-module provenance, sorts exposed
+descriptor metadata by action ID, and fails startup for missing registration
+exports, asynchronous or malformed registrations, missing handlers, duplicate
+IDs, or conflicting contract versions. Action ID collisions are always errors;
+`hookLoadPriority` never selects a winner. The generated
+`config/actionRegistry.js` exposes frozen descriptor metadata separately from
+the registry's handler lookup, so descriptor JSON contains no functions or
+internal handler state.
 
 ### Hook Load Priority
 
@@ -187,10 +226,7 @@ Installations can define hook precedence in the root portal `package.json`:
 
 ```json
 {
-    "hookLoadPriority": [
-        "redbox-hook-jcu",
-        "sails-hook-redbox-pdfgen"
-    ]
+  "hookLoadPriority": ["redbox-hook-jcu", "sails-hook-redbox-pdfgen"]
 }
 ```
 
@@ -204,10 +240,10 @@ When a hook provides a service with the same name as a core service, the **hook 
 
 ```javascript
 // Hook providing a custom RecordsService
-module.exports.registerRedboxServices = function() {
-    return {
-        RecordsService: new MyCustomRecordsService().exports()
-    };
+module.exports.registerRedboxServices = function () {
+  return {
+    RecordsService: new MyCustomRecordsService().exports(),
+  };
 };
 ```
 
@@ -235,9 +271,9 @@ EXPORT_BOOTSTRAP_CONFIG_JSON=true npm start
 
 Generates two config snapshots in `support/debug-config/`:
 
-| File | Description |
-|---|---|
-| `pre-lift-config.json` | Config from core-types + hooks BEFORE Sails merges environment config |
+| File                         | Description                                                                |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `pre-lift-config.json`       | Config from core-types + hooks BEFORE Sails merges environment config      |
 | `post-bootstrap-config.json` | Final sails.config AFTER Sails loads environment config and runs bootstrap |
 
 This helps debug which layer is setting (or overwriting) configuration values.
@@ -250,8 +286,8 @@ The loader is called in `app.js` before Sails lifts:
 const { generateAllShims } = require('@researchdatabox/redbox-core');
 
 (async () => {
-    await generateAllShims(__dirname);
-    sails.lift(rc('sails'));
+  await generateAllShims(__dirname);
+  sails.lift(rc('sails'));
 })();
 ```
 

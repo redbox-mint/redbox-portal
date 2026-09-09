@@ -1,4 +1,3 @@
-import { cloneDeep as _cloneDeep, isEqual as _isEqual } from 'lodash';
 import { isPlainRecord } from './internal/plain-record';
 
 /** A property or array-index path through a JSON-like record value. */
@@ -119,7 +118,26 @@ export function recordValuePathsOverlap(
 
 /** Deterministic deep equality for JSON-like values; object key order is ignored. */
 export function canonicallyEqualRecordValues(first: unknown, second: unknown): boolean {
-  return _isEqual(first, second);
+  if (first === second) return true;
+  if (Array.isArray(first) || Array.isArray(second)) {
+    if (!Array.isArray(first) || !Array.isArray(second) || first.length !== second.length) return false;
+    for (let index = 0; index < first.length; index += 1) {
+      if (index in first !== index in second) return false;
+      if (index in first && !canonicallyEqualRecordValues(first[index], second[index])) return false;
+    }
+    return true;
+  }
+  if (isPlainRecord(first) || isPlainRecord(second)) {
+    if (!isPlainRecord(first) || !isPlainRecord(second)) return false;
+    const firstKeys = Object.keys(first);
+    const secondKeys = Object.keys(second);
+    if (firstKeys.length !== secondKeys.length) return false;
+    for (const key of firstKeys) {
+      if (!hasOwn(second, key) || !canonicallyEqualRecordValues(first[key], second[key])) return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -218,10 +236,10 @@ export function compareThreeWayRecordValues(base: unknown, local: unknown, lates
  * shift a later delete onto the wrong item.
  */
 export function applyRecordValueChanges<T>(latest: T, changes: readonly RecordValueChange[]): T {
-  let result: unknown = _cloneDeep(latest);
+  let result: unknown = cloneRecordValue(latest);
   for (const change of changesInApplicationOrder(changes)) {
     if (change.path.length === 0) {
-      result = change.kind === 'delete' ? undefined : _cloneDeep(change.changed);
+      result = change.kind === 'delete' ? undefined : cloneRecordValue(change.changed);
       continue;
     }
     result = applyChangeAtPath(result, change);
@@ -335,7 +353,7 @@ function applyChangeAtPath(root: unknown, change: RecordValueChange): unknown {
       delete parent[finalSegment];
     }
   } else {
-    defineValue(parent, finalSegment, _cloneDeep(change.changed));
+    defineValue(parent, finalSegment, cloneRecordValue(change.changed));
   }
   return clonedRoot;
 }
@@ -347,6 +365,18 @@ function defineValue(target: Record<string | number, unknown>, key: string | num
     writable: true,
     value,
   });
+}
+
+function cloneRecordValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(item => cloneRecordValue(item));
+  }
+  if (isPlainRecord(value)) {
+    const clone: Record<string, unknown> = {};
+    for (const key of Object.keys(value)) defineValue(clone, key, cloneRecordValue(value[key]));
+    return clone;
+  }
+  return value;
 }
 
 function containerFor(segment: string | number): Record<string, unknown> | unknown[] {

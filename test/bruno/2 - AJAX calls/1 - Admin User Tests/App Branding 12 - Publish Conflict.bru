@@ -28,15 +28,14 @@ script:pre-request {
 
 tests {
   test("Status code is 409 for publish conflict", function () {
+    // console.log(res.getBody());
     const status = res.getStatus();
     expect(409).to.equal(status);
 
     if (status === 409) {
       var raw = res.getBody();
       var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      // Standard v1 error envelope carries the conflict code as the message;
-      // the client reloads canonical state for current counters.
-      expect(body.message).to.equal('branding-conflict');
+      expect(body.error).to.equal('publish-conflict');
     }
   });
 }
