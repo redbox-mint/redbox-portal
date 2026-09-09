@@ -38,9 +38,9 @@
   "devDependencies": {
     "@tsconfig/node24": "24.0.5",
     "@types/debug": "4.1.13",
-    "@types/node": "26.4.0",
-    "@vitest/coverage-v8": "4.1.11",
+    "@types/node": "26.2.0",
+    "@vitest/coverage-v8": "4.1.10",
     "typescript": "5.9.3",
-    "vitest": "4.1.11"
+    "vitest": "4.1.10"
   }
 }

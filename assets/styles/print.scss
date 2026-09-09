@@ -37,6 +37,6 @@
   // Table cell border (tbody td separators, .table-bordered)
   --rb-print-cell-border: var(--rb-panel-branding-border-color, #{$print-table-border-color});
 
-  // Branding font family (custom Brand Typeface wins when active, else the default stack)
-  --rb-print-font-family: var(--rb-brand-font-family, #{inspect($branding-font-family)});
+  // Branding font family
+  --rb-print-font-family: #{inspect($branding-font-family)};
 }

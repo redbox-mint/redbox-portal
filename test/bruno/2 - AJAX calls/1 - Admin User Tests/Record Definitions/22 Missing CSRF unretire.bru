@@ -1,0 +1,37 @@
+meta {
+  name: Missing CSRF unretire
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{host}}/default/rdmp/admin/record-definitions/B09MissingDefinition/unretire
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  X-Source: jsclient
+}
+
+script:pre-request {
+  const cookie = bru.getVar("cookie") || bru.getEnvVar("adminCookie");
+  if (cookie) req.setHeader("Cookie", cookie);
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("Expected status 403", () => expect(res.getStatus()).to.equal(403));
+  test("No sensitive response data", () => {
+    const text = JSON.stringify(res.getBody());
+    expect(text).not.to.include("B09-bruno-secret-sentinel");
+    expect(text).not.to.include("protectedValue");
+    expect(text).not.to.include('"handler"');
+  });
+
+}

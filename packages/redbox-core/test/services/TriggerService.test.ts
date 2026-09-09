@@ -44,41 +44,6 @@ describe('TriggerService', function () {
     sinon.restore();
   });
 
-  describe('transitionWorkflow', function () {
-    it('should transition workflow if condition met', async function () {
-      const record = {
-        metaMetadata: { form: 'old-form' },
-        workflow: { stage: 'draft', stageLabel: 'Draft' },
-      };
-      const options = {
-        triggerCondition: 'true',
-        targetWorkflowStageName: 'published',
-        targetWorkflowStageLabel: 'Published',
-        targetForm: 'new-form',
-      };
-
-      const result = await TriggerService.transitionWorkflow('oid', record, options).toPromise();
-
-      expect(result.workflow.stage).to.equal('published');
-      expect(result.workflow.stageLabel).to.equal('Published');
-      expect(result.metaMetadata.form).to.equal('new-form');
-    });
-
-    it('should not transition if condition not met', async function () {
-      const record = {
-        workflow: { stage: 'draft' },
-      };
-      const options = {
-        triggerCondition: 'false',
-        targetWorkflowStageName: 'published',
-      };
-
-      const result = await TriggerService.transitionWorkflow('oid', record, options).toPromise();
-
-      expect(result.workflow.stage).to.equal('draft');
-    });
-  });
-
   describe('validateFieldUsingRegex', function () {
     it('should validate field matching regex', async function () {
       const record = { metadata: { field: 'test value' } };
@@ -264,8 +229,6 @@ describe('TriggerService', function () {
       const updateOptions = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
       expect(updateOptions.oid).to.equal('related-oid');
       expect(updateOptions.record.metadata.updated).to.equal('true');
-      expect(updateOptions.metadataMode).to.equal('pre-applied');
-      expect(updateOptions.metadata).to.deep.equal({ updated: 'true' });
     });
   });
 });

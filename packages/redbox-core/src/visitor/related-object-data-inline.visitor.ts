@@ -1,7 +1,8 @@
 import { get as getPath, set as setPath } from 'lodash';
 import type { ILogger } from '../Logger';
+import type { BrandingModel } from '../model/storage/BrandingModel';
+import type { UserModel } from '../model/storage/UserModel';
 import type { RecordsService } from '../RecordsService';
-import type { FormRecordAccessContext } from '../services/FormsService';
 import {
   AccordionFieldComponentDefinitionOutline,
   AccordionFormComponentDefinitionOutline,
@@ -21,13 +22,15 @@ import {
   TabFormComponentDefinitionOutline,
 } from '@researchdatabox/sails-ng-common';
 
+type AccessContext = { user: UserModel; brand: BrandingModel };
+
 export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor {
   protected override logName = 'RelatedObjectDataInlineFormConfigVisitor';
   private readonly pending: Promise<void>[] = [];
 
   constructor(logger: ILogger, private readonly recordsService: RecordsService) { super(logger); }
 
-  async resolve(form: FormConfigOutline, metadata: Record<string, unknown>, context: FormRecordAccessContext): Promise<void> {
+  async resolve(form: FormConfigOutline, metadata: Record<string, unknown>, context: AccessContext): Promise<void> {
     this.metadata = metadata;
     this.context = context;
     await form.accept(this);
@@ -35,7 +38,7 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
   }
 
   private metadata: Record<string, unknown> = {};
-  private context?: FormRecordAccessContext;
+  private context?: AccessContext;
   protected override async notImplemented(): Promise<void> {}
   async visitFormConfig(item: FormConfigOutline): Promise<void> { for (const def of item.componentDefinitions) await def.accept(this); }
   async visitRelatedObjectDataFormComponentDefinition(item: RelatedObjectDataFormComponentDefinitionOutline): Promise<void> { await item.component.accept(this); }

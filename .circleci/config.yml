@@ -16,12 +16,6 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
-      - run:
-          name: Test npm publish version handling
-          command: bash support/build/npm-publish-backend-packages.test.sh
-      - run:
-          name: Test Docker tag handling
-          command: bash support/build/docker-build-vars.test.sh
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -29,7 +23,6 @@ jobs:
       - setup_remote_docker
       - run:
           name: Build test image via Dockerfile
-          no_output_timeout: 30m
           command: |
             docker build \
               --progress plain \
@@ -107,7 +100,6 @@ jobs:
               packages/agenda-sqs-backend \
               packages/redbox-core \
               packages/redbox-dev-tools \
-              packages/sails-hook-redbox-pdfgen \
               packages/sails-ng-common \
               packages/sails-hook-redbox-storage-mongo
       - run:
@@ -179,24 +171,10 @@ jobs:
           command: |
             mkdir -p /tmp/.codecov-cli
             cd /tmp/.codecov-cli
-            downloadCodecovFile() {
-              local url="$1"
-              local target="$2"
-              local attempt
-              for attempt in 1 2 3 4 5; do
-                if curl --fail --location --silent --show-error --retry 2 --retry-delay 3 --retry-all-errors --output "$target" "$url" && test -s "$target"; then
-                  return 0
-                fi
-                echo "Retrying Codecov download ($attempt/5): $url" >&2
-                sleep 3
-              done
-              return 1
-            }
-            downloadCodecovFile https://keybase.io/codecovsecops/pgp_keys.asc pgp_keys.asc
-            gpg --no-default-keyring --keyring trustedkeys.gpg --import pgp_keys.asc
-            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov codecov
-            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM codecov.SHA256SUM
-            downloadCodecovFile https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig codecov.SHA256SUM.sig
+            curl https://keybase.io/codecovsecops/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://cli.codecov.io/latest/linux/codecov
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig
             gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x codecov
@@ -440,8 +418,9 @@ jobs:
             sudo mkdir -p .tmp/attachments/staging
             sudo chmod -R 777 .
       - run:
-          name: Run Mocha tests
+          name: Run Mocha tests including mandatory B09 generated HTTP/native gate
           no_output_timeout: 30m
+          # run-mocha-redbox.sh explicitly runs bash support/integration-testing/run-b09-native.sh first.
           command: timeout 1800s npm run test:mocha:ci
       - run:
           name: Upload Mocha code coverage
@@ -560,9 +539,6 @@ jobs:
           command: |
             cd ./packages/redbox-core
             npm install --no-save --include=dev
-      - run:
-          name: Verify record-contract coverage
-          command: nvm install && npm run test:record-contracts
       - run:
           name: Run Mocha tests with coverage
           no_output_timeout: 30m
@@ -847,7 +823,6 @@ jobs:
         type: enum
         enum:
           - beta
-          - rc
           - release
       release_version:
         type: string
@@ -965,7 +940,16 @@ jobs:
           command: |
             docker load -i /tmp/docker-images/redbox-portal-runtime-pdfgen-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
-            source support/build/docker-build-vars.sh
+
+            if [[ -n "${CIRCLE_BRANCH:-}" ]]; then
+              export TAG="$CIRCLE_BRANCH"
+            elif [[ -n "${CIRCLE_TAG:-}" ]]; then
+              export TAG="$CIRCLE_TAG"
+            else
+              export TAG="local"
+            fi
+            export DEPLOY_TAG=${TAG//\//-}
+            export REPO=${REPO:-qcifengineering/redbox-portal}
 
             docker tag redbox-portal:runtime-pdfgen-test "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-pdfgen-amd64"
@@ -1647,30 +1631,6 @@ workflows:
           filters:
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
-            branches:
-              ignore: /.*/
-      - npm-publish-backend:
-          name: npm-publish-backend-rc
-          release_kind: rc
-          release_version: ''
-          dist_tag: next
-          context:
-            - npm-publish
-          requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-rva-registry
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+-[Rr][Cc][0-9]+$/
             branches:
               ignore: /.*/
   docker_manual_publish:

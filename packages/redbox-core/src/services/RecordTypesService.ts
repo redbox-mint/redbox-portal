@@ -17,36 +17,18 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, firstValueFrom, map } from 'rxjs';
+import { Observable, map, mergeMap } from 'rxjs';
 import {
   resolveRecordConcurrentModificationConfig,
   type RecordConcurrentModificationConfig,
   type RecordConcurrentModificationMode,
 } from '@researchdatabox/sails-ng-common';
+import { activeRecordDefinitions } from './RecordDefinitionRuntimeService';
+import type { RecordTypeAttributes } from '../waterline-models/RecordType';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import { assertStorageConcurrencyCapabilityForMode, type StorageCapabilityProvider } from '../RecordStorageConcurrency';
-import {
-  isRecordSchemaEnabled,
-  validateRecordTypeRecordSchemaConfig,
-  type RecordSchemaConfigurationProblem,
-} from '../config/recordSchema.config';
-
-export class RecordTypeRecordSchemaConfigurationError extends TypeError {
-  public readonly problems: readonly RecordSchemaConfigurationProblem[];
-
-  public constructor(problems: readonly RecordSchemaConfigurationProblem[]) {
-    const first = problems[0];
-    super(
-      first
-        ? `Invalid record-type record schema configuration at ${first.path}: ${first.reason}.`
-        : 'Invalid record-type record schema configuration.'
-    );
-    this.name = 'RecordTypeRecordSchemaConfigurationError';
-    this.problems = Object.freeze([...problems]);
-  }
-}
 
 export namespace Services {
   /**
@@ -67,51 +49,30 @@ export namespace Services {
       'resolveConcurrentModificationPolicy',
     ];
 
-    protected recordTypes!: RecordTypeModel[];
+    protected recordTypes: RecordTypeModel[] = [];
+    private cacheBrandId?: string;
+    private cacheExpiresAt = 0;
+    private cacheGeneration = 0;
 
     public async bootstrap(defBrand: BrandingModel): Promise<RecordTypeModel[]> {
       let recordTypes: RecordTypeModel[] = (await RecordType.find({
         branding: defBrand.id,
       })) as unknown as RecordTypeModel[];
-      if (sails.config.appmode.bootstrapAlways) {
-        await RecordType.destroy({ branding: defBrand.id });
-        recordTypes = [];
-      }
-      if (_.isUndefined(recordTypes)) {
-        recordTypes = [];
-      }
-      sails.log.debug(
-        `RecordTypes found: ${recordTypes} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`
+      recordTypes = await Promise.all(
+        recordTypes
+          .filter(row => {
+            const identity = row as object as RecordTypeAttributes;
+            return !(
+              (identity.draftId != null || (identity.version ?? 0) > 0) &&
+              identity.activeRevisionId == null &&
+              identity.activeRevisionNumber == null
+            );
+          })
+          .map(row => activeRecordDefinitions().project(row as object as RecordTypeAttributes))
       );
-      if (_.isEmpty(recordTypes)) {
-        // var rTypesObs = [];
-        sails.log.verbose('Bootstrapping record type definitions... ');
-        // _.forOwn(sails.config.recordtype, (config, recordType) => {
-        //   recordTypes.push(recordType);
-        //   var obs = this.create(defBrand, recordType, config);
-        //   rTypesObs.push(obs);
-        // });
-
-        const configuredRecordTypes: Array<readonly [string, RecordTypeModel]> = [];
-        for (const recordType in sails.config.recordtype) {
-          const config: RecordTypeModel = sails.config.recordtype[recordType] as unknown as RecordTypeModel;
-          configuredRecordTypes.push([recordType, config]);
-        }
-        for (const [recordType, config] of configuredRecordTypes) {
-          this.assertRecordSchemaConfig(recordType, config.recordSchema);
-        }
-        const rTypes = [];
-        for (const [recordType, config] of configuredRecordTypes) {
-          rTypes.push(await firstValueFrom(this.create(defBrand, recordType, config)));
-        }
-        this.recordTypes = rTypes;
-        this.assertStrictStorageCapabilities(rTypes);
-        return rTypes;
-      }
       sails.log.verbose('Default recordTypes definition(s) exist.');
-      this.assertRecordSchemaConfigs(recordTypes);
       sails.log.verbose(JSON.stringify(recordTypes));
-      this.recordTypes = recordTypes;
+      this.rememberBootstrap(defBrand, recordTypes);
       this.assertStrictStorageCapabilities(recordTypes);
       return recordTypes;
     }
@@ -127,7 +88,6 @@ export namespace Services {
       name: string,
       config: RecordTypeModel & { dashboard?: unknown }
     ): Observable<RecordTypeModel> {
-      this.assertRecordSchemaConfig(name, config.recordSchema);
       const concurrentModification = resolveRecordConcurrentModificationConfig(config.concurrentModification);
       return super.getObservable(
         RecordType.create({
@@ -137,59 +97,75 @@ export namespace Services {
           searchCore: config.searchCore,
           searchFilters: config.searchFilters,
           hooks: config.hooks,
+          actionPlan: config.actionPlan,
+          automaticTransitions: config.automaticTransitions,
           transferResponsibility: config.transferResponsibility,
           relatedTo: config.relatedTo,
           searchable: config.searchable,
           dashboard: config.dashboard,
           recordValidation: config.recordValidation,
           concurrentModification,
-          recordSchema: config.recordSchema,
         }).fetch()
       );
     }
 
     public get(brand: BrandingModel, name: string, fields: string[] | null = null): Observable<RecordTypeModel> {
-      const criteria: { where: { branding: string; name: string }; select?: string[] } = {
-        where: { branding: brand.id, name: name },
-      };
-      if (fields) {
-        criteria.select = fields;
-      }
-      return super.getObservable(RecordType.findOne(criteria));
+      return super
+        .getObservable<RecordTypeAttributes>(RecordType.findOne({ where: { branding: brand.id, name } }))
+        .pipe(
+          mergeMap(async row => {
+            if (!row) return row as object as RecordTypeModel;
+            if (row.branding != null && String(row.branding) !== brand.id)
+              throw new Error('Record type brand does not match.');
+            // Resolve using the full identity before applying a caller's field projection.
+            return activeRecordDefinitions().project(row, fields);
+          })
+        );
     }
 
     public getAll(brand: BrandingModel, fields: string[] | null = null): Observable<RecordTypeModel[]> {
-      const criteria: { where: { branding: string }; select?: string[] } = { where: { branding: brand.id } };
-      if (fields) {
-        criteria.select = fields;
-      }
-      return super.getObservable(RecordType.find(criteria));
+      return super.getObservable<RecordTypeAttributes[]>(RecordType.find({ where: { branding: brand.id } })).pipe(
+        mergeMap(async rows => {
+          const projected: RecordTypeModel[] = [];
+          for (const row of rows) {
+            if (row.branding != null && String(row.branding) !== brand.id)
+              throw new Error('Record type brand does not match.');
+            // A managed identity with only a draft is not a runtime record type.
+            if (
+              (row.draftId != null || (row.version ?? 0) > 0) &&
+              row.activeRevisionId == null &&
+              row.activeRevisionNumber == null
+            )
+              continue;
+            projected.push(await activeRecordDefinitions().project(row, fields));
+          }
+          return projected;
+        })
+      );
     }
 
-    public getAllCache(): RecordTypeModel[] {
-      return this.recordTypes;
+    private rememberBootstrap(brand: BrandingModel, types: RecordTypeModel[]): void {
+      this.recordTypes = structuredClone(types);
+      this.cacheBrandId = brand.id;
+      this.cacheExpiresAt = performance.now() + 1_000;
+      this.cacheGeneration = activeRecordDefinitions().cacheGeneration;
+    }
+
+    /** @deprecated Bootstrap-only snapshot. Runtime callers must use brand-scoped getAll(). */
+    public getAllCache(brand?: BrandingModel): RecordTypeModel[] {
+      if (
+        !brand ||
+        this.cacheGeneration !== activeRecordDefinitions().cacheGeneration ||
+        performance.now() >= this.cacheExpiresAt ||
+        brand.id !== this.cacheBrandId
+      )
+        return [];
+      return structuredClone(this.recordTypes);
     }
 
     private configuredStorageService(): StorageCapabilityProvider | undefined {
       const serviceName = String((sails.config.storage as { serviceName?: string } | undefined)?.serviceName ?? '');
       return serviceName ? (sails.services?.[serviceName] as StorageCapabilityProvider | undefined) : undefined;
-    }
-
-    private assertRecordSchemaConfig(name: string, value: unknown): void {
-      if (!isRecordSchemaEnabled(sails.config.recordSchema) || value === undefined) return;
-      const pathName = /^[A-Za-z0-9_-]{1,100}$/.test(name) ? name : 'unknown';
-      const problems = validateRecordTypeRecordSchemaConfig(value, `recordtype.${pathName}.recordSchema`);
-      if (problems.length > 0) {
-        throw new RecordTypeRecordSchemaConfigurationError(problems);
-      }
-    }
-
-    private assertRecordSchemaConfigs(recordTypes: readonly RecordTypeModel[]): void {
-      for (const [index, recordType] of recordTypes.entries()) {
-        const runtimeRecordType: { readonly name?: unknown; readonly recordSchema?: unknown } = recordType;
-        const name = typeof runtimeRecordType.name === 'string' ? runtimeRecordType.name : `index-${index}`;
-        this.assertRecordSchemaConfig(name, runtimeRecordType.recordSchema);
-      }
     }
 
     private assertStrictStorageCapabilities(recordTypes: RecordTypeModel[]): void {
