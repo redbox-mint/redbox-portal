@@ -533,7 +533,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs
+            npm install --no-save --ignore-scripts && npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core
       - run:
           name: Install packages
           command: |

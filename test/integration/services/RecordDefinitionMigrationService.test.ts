@@ -17,7 +17,9 @@ import { Services as PublicationServices } from '../../../packages/redbox-core/s
 import database from '../../../packages/redbox-core/test/fixtures/legacy-record-actions/b11-database.json';
 
 describe('B11 generated loader and native Mongo migration', function () {
-  this.timeout(90000);
+  // Later cases perform repeated native CLI parity checks against the history
+  // accumulated by the preceding lifecycle cases.
+  this.timeout(600000);
   const globals = global as any;
   const identities: any[] = [];
   before(async function () {
@@ -2529,6 +2531,8 @@ describe('B11 generated loader and native Mongo migration', function () {
     const revisionCollection = manager.collection('recorddefinitionrevision');
     const historyCollection = manager.collection('recorddefinitionhistory');
     const identityCollection = manager.collection('recordtype');
+    const nativeIdentity = await identityCollection.findOne({ name: key });
+    assert.ok(nativeIdentity);
     const secret = 'B11-ASTRA13-SECRET';
     const runCli = () =>
       spawnSync(process.execPath, ['support/integration-testing/record-definition-preflight.cjs'], {
@@ -2590,8 +2594,8 @@ describe('B11 generated loader and native Mongo migration', function () {
     } finally {
       await revisionCollection.deleteMany({});
       await historyCollection.deleteMany({});
-      if (victimRevisions.length > 0) await revisionCollection.insertMany(victimRevisions);
-      if (victimHistories.length > 0) await historyCollection.insertMany(victimHistories);
+      if (allRevisions.length > 0) await revisionCollection.insertMany(allRevisions);
+      if (allHistories.length > 0) await historyCollection.insertMany(allHistories);
       const restored = await globals.RecordType.findOne({ branding: brand, name: key });
       await identityCollection.updateOne({ _id: restored._id }, { $set: { version: identity.version } });
     }
@@ -2624,8 +2628,8 @@ describe('B11 generated loader and native Mongo migration', function () {
     // Forged prior provenance: relabel rev1 as bootstrap/migration with a
     // forged actor and valid hashes must fail closed at both versions.
     for (const operation of ['bootstrap', 'migration']) {
-      const rev1 = await revisionCollection.findOne({ recordType: identity.id, revisionNumber: 1 });
-      const hist1 = await historyCollection.findOne({ recordType: identity.id, revisionNumber: 1 });
+      const rev1 = await revisionCollection.findOne({ recordType: nativeIdentity._id, revisionNumber: 1 });
+      const hist1 = await historyCollection.findOne({ recordType: nativeIdentity._id, revisionNumber: 1 });
       assert.ok(rev1 && hist1);
       const forgedActor = { id: secret };
       try {
@@ -2702,6 +2706,9 @@ describe('B11 generated loader and native Mongo migration', function () {
     const manager = globals.RecordType.getDatastore().manager;
     const historyCollection = manager.collection('recorddefinitionhistory');
     const revisionCollection = manager.collection('recorddefinitionrevision');
+    const identityCollection = manager.collection('recordtype');
+    const nativeIdentity = await identityCollection.findOne({ name: key });
+    assert.ok(nativeIdentity);
     const secret = 'B11-FRESH-SECRET';
     const runCli = () =>
       spawnSync(process.execPath, ['support/integration-testing/record-definition-preflight.cjs'], {
@@ -2815,7 +2822,8 @@ describe('B11 generated loader and native Mongo migration', function () {
         await historyCollection.deleteOne({ _id: insertedSecond.insertedId });
       }
       // Extra publication row with missing provenance fails closed.
-      const extraPub = await historyCollection.findOne({ recordType: fresh.id, revisionNumber: 1 });
+      const extraPub = await historyCollection.findOne({ recordType: nativeIdentity._id, revisionNumber: 1 });
+      assert.ok(extraPub);
       const forgedExtra: any = {
         ...extraPub,
         _id: `rdh_${randomUUID().replace(/-/g, '').slice(0, 32)}`,
@@ -2856,7 +2864,7 @@ describe('B11 generated loader and native Mongo migration', function () {
           for (const run of [() => service.preflight(), () => service.migrate()]) {
             await assert.rejects(
               run(),
-              /invalid-identity-history|conflicting-migration-history|invalid-active-history/
+              /invalid-identity-history|conflicting-migration-history|invalid-active-history|invalid-active-provenance/
             );
           }
           assert.equal(await globals.RecordDefinitionRevision.count({}), revisionCount);

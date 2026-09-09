@@ -3895,7 +3895,7 @@ export namespace Services {
             tracker,
             userObj,
             RecordAuditActionType.created,
-            recordTypeObj.searchable !== false
+            recordTypeObj?.searchable !== false
           );
         } else if (mutationState === 'not-applied') {
           tracker.recordPrimaryNotApplied(

@@ -1490,6 +1490,25 @@ describe('RecordsService', function () {
       }
     });
 
+    it('creates bootstrap records when the configured record type is unavailable', async function () {
+      const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), 'records-bootstrap-safe-'));
+      const recordsPath = path.join(bootstrapPath, 'records');
+      await fs.mkdir(recordsPath, { recursive: true });
+      await fs.writeFile(path.join(recordsPath, 'party.json'), JSON.stringify([{ title: 'Bootstrap party' }]));
+      mockSails.config.bootstrap = { bootstrapDataPath: bootstrapPath };
+      mockRecord.findOne.returns(createQueryObject(null));
+      (global as any).RecordTypesService.get = sinon.stub().returns(of(null));
+
+      try {
+        await RecordsService.bootstrapData();
+
+        expect(mockStorageService.create.calledOnce).to.equal(true);
+        expect(mockSails.log.error.called).to.equal(false);
+      } finally {
+        await fs.rm(bootstrapPath, { recursive: true, force: true });
+      }
+    });
+
     it('seeds in enforce mode through a direct durable internal bypass audit', async function () {
       const bootstrapPath = await fs.mkdtemp(path.join(os.tmpdir(), 'records-bootstrap-enforce-'));
       const recordsPath = path.join(bootstrapPath, 'records');
