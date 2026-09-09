@@ -1342,6 +1342,7 @@ describe('UsersService', function () {
       }).toPromise();
 
       expect(result).to.exist;
+      expect(mockUser.update.firstCall.args[1]).to.include({ token: null, loginDisabledVersion: 2 });
     });
 
     it('rejects setUserKey with a user.manage actor lacking the proven token scope', async function () {

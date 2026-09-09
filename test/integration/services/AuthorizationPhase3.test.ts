@@ -264,11 +264,14 @@ describe('Authorization Phase 3 migration and bootstrap', function () {
       rejected = true;
     }
     expect(rejected).to.equal(true);
-    await AuthorizationScopeService.reconcileOrphans({
-      apply: true,
-      expectedGeneration: startup.generation,
-      limit: 100,
-    });
+    await withMigrationLease(lease =>
+      AuthorizationScopeService.reconcileOrphans({
+        apply: true,
+        expectedGeneration: startup.generation,
+        limit: 100,
+        lease,
+      })
+    );
     expect((await AuthorizationScope.findOne({ id: created.id })).status).to.equal('orphaned');
   });
 });

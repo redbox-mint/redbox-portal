@@ -29,13 +29,20 @@ describe('The UsersService', function () {
       const retrieved = await firstValueFrom(UsersService.getUserWithId(user.id));
       expect(retrieved.id).to.equal(user.id);
       expect(UsersService.hasRole(retrieved, researcher)).to.have.property('id', researcher.id);
-      const updated = await firstValueFrom(
-        UsersService.updateUserRoles(user.id, [], {
-          ...options,
-          expectedVersion: retrieved.loginDisabledVersion,
-        })
-      );
-      expect(updated.roles).to.deep.equal([]);
+      let emptyRoleSetError: { code?: string; status?: number } | undefined;
+      try {
+        await firstValueFrom(
+          UsersService.updateUserRoles(user.id, [], {
+            ...options,
+            expectedVersion: retrieved.loginDisabledVersion,
+          })
+        );
+      } catch (error) {
+        emptyRoleSetError = error as { code?: string; status?: number };
+      }
+      expect(emptyRoleSetError).to.deep.include({ code: 'authorization.invalid-role', status: 422 });
+      const unchanged = await firstValueFrom(UsersService.getUserWithId(user.id));
+      expect(UsersService.hasRole(unchanged, researcher)).to.have.property('id', researcher.id);
     } finally {
       await User.replaceCollection(user.id, 'roles').members([]);
       await RoleAssignment.destroy({ principalId: user.id });

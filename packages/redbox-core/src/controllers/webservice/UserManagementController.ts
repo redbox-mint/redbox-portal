@@ -196,7 +196,13 @@ export namespace Controllers {
     private observedUserVersionForRoleCas(user: unknown): number | undefined {
       let current: unknown = user;
       for (let depth = 0; depth < 4 && Array.isArray(current) && current.length > 0; depth += 1) {
-        current = current[0];
+        // Sails' `exec`/`simplecb` Observable contract is `[err, rows]`.
+        // Accept the legacy envelope as well as an already-unwrapped row.
+        if (current.length === 2 && (current[0] === null || current[0] === undefined) && Array.isArray(current[1])) {
+          current = current[1];
+        } else {
+          current = current[0];
+        }
       }
       if (current === null || current === undefined || typeof current !== 'object') return undefined;
       const record = current as Record<string, unknown>;

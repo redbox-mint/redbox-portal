@@ -1,5 +1,6 @@
 import { withMigrationLease } from '../helpers/authorization';
 import type { AuthorizationContext } from '../../../packages/redbox-core/src/authorization';
+import { Services as AuthorizationServices } from '../../../packages/redbox-core/src/services/AuthorizationService';
 import { Services } from '../../../packages/redbox-core/src/services/RoleAdministrationService';
 
 describe('Authorization Phase 5 role and assignment administration', function () {
@@ -11,6 +12,7 @@ describe('Authorization Phase 5 role and assignment administration', function ()
   let brand: { id: string };
   let user: { id: string };
   let actor: AuthorizationContext;
+  let directActor: AuthorizationContext;
   let roleId: string | undefined;
   let manualAssignmentId: string | undefined;
   let externalAssignmentId: string | undefined;
@@ -29,6 +31,11 @@ describe('Authorization Phase 5 role and assignment administration', function ()
     expect(brand).to.exist;
     await AuthorizationBootstrapService.bootstrap({ bootstrapUser: admin });
     actor = await AuthorizationService.resolveUserContext(admin.id, brand.id, 'session');
+    directActor = await new AuthorizationServices.AuthorizationService().resolveUserContext(
+      admin.id,
+      brand.id,
+      'session'
+    );
     user = await User.create({
       username: `phase5-user-${suffix}`,
       password: 'phase5-test-password',
@@ -104,7 +111,7 @@ describe('Authorization Phase 5 role and assignment administration', function ()
     let rejected = false;
     try {
       await service.createRole({
-        actor,
+        actor: directActor,
         brandId: brand.id,
         key: rollbackKey,
         displayName: 'Must roll back',

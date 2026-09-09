@@ -1,7 +1,7 @@
 meta {
   name: Link Accounts
   type: http
-  seq: 10
+  seq: 12
 }
 
 post {
@@ -18,7 +18,11 @@ headers {
 body:json {
   {
       "primaryUserId": "{{apiUserId}}",
-      "secondaryUserId": "{{secondaryApiUserId}}"
+      "secondaryUserId": "{{secondaryApiUserId}}",
+      "primaryExpectedVersion": {{primaryExpectedVersion}},
+      "secondaryExpectedVersion": {{secondaryExpectedVersion}},
+      "linkConfirmationToken": "{{linkConfirmationToken}}",
+      "linkOperationId": "{{linkOperationId}}"
   }
 }
 

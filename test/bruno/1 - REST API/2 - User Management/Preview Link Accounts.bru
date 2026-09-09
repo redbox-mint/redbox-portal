@@ -1,0 +1,41 @@
+meta {
+  name: Preview Link Accounts
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{host}}/default/rdmp/api/users/link/preview
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "primaryUserId": "{{apiUserId}}",
+    "secondaryUserId": "{{secondaryApiUserId}}"
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Stores the server-bound link proof", function () {
+      var jsonData = res.getBody();
+      expect(jsonData).to.have.property('primaryExpectedVersion');
+      expect(jsonData).to.have.property('secondaryExpectedVersion');
+      expect(jsonData).to.have.property('confirmationToken');
+      expect(jsonData).to.have.property('linkOperationId');
+      bru.setEnvVar('primaryExpectedVersion', jsonData.primaryExpectedVersion);
+      bru.setEnvVar('secondaryExpectedVersion', jsonData.secondaryExpectedVersion);
+      bru.setEnvVar('linkConfirmationToken', jsonData.confirmationToken);
+      bru.setEnvVar('linkOperationId', jsonData.linkOperationId);
+  });
+}

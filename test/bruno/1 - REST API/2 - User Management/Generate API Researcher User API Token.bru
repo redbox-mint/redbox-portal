@@ -5,13 +5,14 @@ meta {
 }
 
 post {
-  url: {{host}}/default/rdmp/api/users/token/generate?id={{apiUserId}}
+  url: {{host}}/default/rdmp/api/users/token/generate?id={{apiUserId}}&expectedVersion=3
   body: json
   auth: none
 }
 
 query {
   id: {{apiUserId}}
+  expectedVersion: 3
 }
 
 headers {
