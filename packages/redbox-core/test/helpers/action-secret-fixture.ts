@@ -19,7 +19,7 @@ export function secretFixture(
     title: 'Secret test',
     description: 'Secret test',
     category: 'test',
-    handler,
+    handler: (...argumentsList: Parameters<ActionHandler>) => handler(...argumentsList),
     contexts: ['record-lifecycle'],
     modes: ['onCreate'],
     phases: ['pre'],

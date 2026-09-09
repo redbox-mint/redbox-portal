@@ -132,7 +132,7 @@ function recordTypeWithActions(actions: TestActions, base: Partial<EffectRecordT
           title: `RecordsService test action ${testActionSequence}`,
           description: 'Direct registered handler used by RecordsService characterization coverage.',
           category: 'test',
-          handler: definition.handler,
+          handler: (...argumentsList: Parameters<ActionHandler>) => definition.handler(...argumentsList),
           contexts: [scope.context],
           modes: [mode],
           phases: [phase],

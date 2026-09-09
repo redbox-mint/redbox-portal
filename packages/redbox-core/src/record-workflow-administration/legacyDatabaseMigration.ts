@@ -33,18 +33,16 @@ function fail(path: string, code = 'unsupported-or-malformed-data'): never {
 
 /** Reject executable own properties, including non-enumerable properties, before cloning. */
 export function assertLegacyMigrationData(value: RuntimeValue): void {
-  if (
-    !boundedValidationPreflight(value, {
-      maxBytes: 1_000_000,
-      maxDepth: 48,
-      maxStringLength: 32_768,
-      maxPropertyNameLength: 128,
-      maxWork: 50_000,
-      arrayCardinalityLimit: () => 256,
-      objectCardinalityLimit: () => 128,
-    }).ok
-  )
-    fail('$', 'unsafe-or-unbounded-data');
+  const preflight = boundedValidationPreflight(value, {
+    maxBytes: 1_000_000,
+    maxDepth: 48,
+    maxStringLength: 32_768,
+    maxPropertyNameLength: 128,
+    maxWork: 50_000,
+    arrayCardinalityLimit: () => 256,
+    objectCardinalityLimit: () => 128,
+  });
+  if (!preflight.ok) fail('$', preflight.reason === 'prototype' ? 'unsafe-property' : 'unsafe-or-unbounded-data');
   const pending = [value];
   while (pending.length > 0) {
     const item = pending.pop();

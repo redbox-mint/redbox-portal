@@ -163,6 +163,8 @@ function installSuccessfulServices(): {
   readonly queuedJobNames: string[];
   readonly queuedPayloads: ActionJsonObject[];
 } {
+  const sails = ((globalThis as any).sails ??= { config: {}, services: {} }) as any;
+  sails.config ??= {};
   const queuedJobNames: string[] = [];
   const queuedPayloads: ActionJsonObject[] = [];
   sails.config.emailnotification = {
