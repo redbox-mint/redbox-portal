@@ -28,7 +28,11 @@ headers {
 body:json {
   {
       "primaryUserId": "{{researcherUserId}}",
-      "secondaryUserId": "{{secondaryResearcherUserId}}"
+      "secondaryUserId": "{{secondaryResearcherUserId}}",
+      "primaryExpectedVersion": {{legacyPrimaryExpectedVersion}},
+      "secondaryExpectedVersion": {{legacySecondaryExpectedVersion}},
+      "linkConfirmationToken": "{{legacyLinkConfirmationToken}}",
+      "linkOperationId": "{{legacyLinkOperationId}}"
   }
 }
 
