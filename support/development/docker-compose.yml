@@ -81,7 +81,7 @@ services:
     volumes: *rbportal-volumes
   mongodb:
     #image: mvertes/alpine-mongo:latest
-    image: mongo:latest@sha256:e0ce8c35124d4a9f9785532d1f268f39e9728ffa1cb38f46fa482436424c4bd3
+    image: mongo:latest@sha256:613a7cc66be5bbf1796252660b43c9b8969a5ad1dab6180c9d917b7472867e64
     volumes:
       - './devdata:/devdata:delegated'
       - './.dev/mongo/data/db:/data/db:delegated'
