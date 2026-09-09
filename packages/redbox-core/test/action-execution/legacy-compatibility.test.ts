@@ -7,6 +7,7 @@ import { RecordHookCoordinator } from '../../src/services/record-hooks/coordinat
 type AnyRecord = Record<string, unknown>;
 
 function coordinator(
+  recordType: AnyRecord,
   resolveHook: (hook: AnyRecord) => (...args: unknown[]) => unknown,
   logger?: {
     debug?: (...args: any[]) => void;
@@ -27,36 +28,53 @@ function tick(): Promise<void> {
 }
 
 describe('record-hook legacy compatibility characterization', function () {
+  for (const mode of ['onCreate', 'onUpdate', 'onDelete', 'onTransitionWorkflow'] as const) {
+    it(`preserves phase and sibling action order for ${mode}`, async function () {
+      const order: string[] = [];
+      const definitions = (phase: string) => [0, 1].map(index => ({ function: `${phase}-${index}` }));
+      const recordType = {
+        hooks: { [mode]: { pre: definitions('pre'), postSync: definitions('postSync'), post: definitions('post') } },
+      };
+      const runner = new RecordHookCoordinator({
+        operation: createActionExecutionOperation(mode),
+        resolveHook: hook => (_oid, record) => {
+          order.push(hook.function);
+          return record;
+        },
+      });
+      const pre = await runner.runPre('oid-1', {}, recordType, mode, {});
+      order.push('persistence');
+      const postSync = await runner.runPostSync('oid-1', pre.record, recordType, mode, {}, {});
+      runner.dispatchPost('oid-1', postSync.record, recordType, mode, {});
+      await tick();
+      expect(order).to.deep.equal(['pre-0', 'pre-1', 'persistence', 'postSync-0', 'postSync-1', 'post-0', 'post-1']);
+    });
+  }
+
   it('preserves plain, Promise, Observable, and native Effect pre-hook values', async function () {
     const values = await Promise.all([
-      coordinator(() => () => 'plain').runPre(
+      coordinator({ hooks: { onCreate: { pre: [{ function: 'plain' }] } } }, () => () => 'plain').runPre(
         null,
         {},
         { hooks: { onCreate: { pre: [{ function: 'plain' }] } } },
         'onCreate',
         {}
       ),
-      coordinator(() => () => Promise.resolve('promise')).runPre(
-        null,
-        {},
+      coordinator(
         { hooks: { onCreate: { pre: [{ function: 'promise' }] } } },
-        'onCreate',
-        {}
-      ),
-      coordinator(() => () => of('observable')).runPre(
+        () => () => Promise.resolve('promise')
+      ).runPre(null, {}, { hooks: { onCreate: { pre: [{ function: 'promise' }] } } }, 'onCreate', {}),
+      coordinator({ hooks: { onCreate: { pre: [{ function: 'observable' }] } } }, () => () => of('observable')).runPre(
         null,
         {},
         { hooks: { onCreate: { pre: [{ function: 'observable' }] } } },
         'onCreate',
         {}
       ),
-      coordinator(() => () => Effect.succeed('effect')).runPre(
-        null,
-        {},
+      coordinator(
         { hooks: { onCreate: { pre: [{ function: 'effect' }] } } },
-        'onCreate',
-        {}
-      ),
+        () => () => Effect.succeed('effect')
+      ).runPre(null, {}, { hooks: { onCreate: { pre: [{ function: 'effect' }] } } }, 'onCreate', {}),
     ]);
 
     expect(values.map(result => result.record)).to.deep.equal(['plain', 'promise', 'observable', 'effect']);
@@ -71,7 +89,7 @@ describe('record-hook legacy compatibility characterization', function () {
         },
       },
     };
-    const result = await coordinator(hook => {
+    const result = await coordinator(recordType, hook => {
       const name = String(hook.function);
       return (_oid, record) => {
         invoked.push(name);
@@ -99,7 +117,7 @@ describe('record-hook legacy compatibility characterization', function () {
       },
     };
     const seen: AnyRecord[] = [];
-    const result = await coordinator(hook => {
+    const result = await coordinator(recordType, hook => {
       if (hook.function === 'record') {
         return (_oid, record, _options, _user, response) => {
           seen.push({ record: record as AnyRecord, response: response as AnyRecord });
@@ -149,6 +167,7 @@ describe('record-hook legacy compatibility characterization', function () {
       },
     };
     const result = coordinator(
+      recordType,
       hook => {
         if (hook.function === 'first') {
           return () => {
@@ -201,6 +220,7 @@ describe('record-hook legacy compatibility characterization', function () {
       },
     };
     const result = coordinator(
+      recordType,
       hook => () => {
         invoked.push(String(hook.function));
         return undefined;
@@ -224,6 +244,7 @@ describe('record-hook legacy compatibility characterization', function () {
       },
     };
     coordinator(
+      recordType,
       hook => () =>
         hook.function === 'observable'
           ? new Observable(subscriber => subscriber.error({ secret: 'do-not-log' }))

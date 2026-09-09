@@ -1,0 +1,26 @@
+meta {
+  name: Publish first version
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/publish
+  body: none
+  auth: none
+}
+
+headers {
+     Authorization: Bearer {{token}}
+     Content-Type: application/json
+}
+
+tests {
+  test("First publish returns version & hash", function(){
+    expect(res.getStatus()).to.equal(200);
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    bru.setVar('branding_version1', body.version);
+    bru.setVar('branding_hash1', body.hash);
+  });
+}

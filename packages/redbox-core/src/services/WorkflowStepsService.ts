@@ -17,12 +17,12 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, firstValueFrom, of } from 'rxjs';
+import { Observable, firstValueFrom, of, defer } from 'rxjs';
+import type { RuntimeValue } from '../runtimeValues';
+import { activeRecordDefinitions } from './RecordDefinitionRuntimeService';
 import { Services as services } from '../CoreService';
-import type { WorkflowStageDefinition } from '../config/workflow.config';
 import type { RecordTypeModel } from '../model/storage/RecordTypeModel';
 import type { WorkflowStepModel } from '../model/storage/WorkflowStepModel';
-
 
 type RecordTypeLike = Partial<RecordTypeModel> & { id?: string; name?: string };
 
@@ -34,78 +34,51 @@ export namespace Services {
    *
    */
   export class WorkflowSteps extends services.Core.Service {
+    protected override _exportedMethods: string[] = ['bootstrap', 'create', 'get', 'getFirst', 'getAllForRecordType'];
 
-    protected override _exportedMethods: string[] = [
-      'bootstrap',
-      'create',
-      'get',
-      'getFirst',
-      'getAllForRecordType'
-    ];
-
-    public async bootstrap(recordTypes: RecordTypeLike[]): Promise<unknown[]> {
-      let workflows = await WorkflowStep.find({}) as unknown as unknown[];
-      if (sails.config.appmode.bootstrapAlways) {
-        await WorkflowStep.destroy({});
-        workflows = [];
+    /** Read the caller's brand-scoped identities; only versioned aggregate seeds create definitions. */
+    public async bootstrap(recordTypes: RecordTypeLike[]): Promise<WorkflowStepModel[]> {
+      const steps: WorkflowStepModel[] = [];
+      for (const recordType of recordTypes) {
+        if (!recordType.id) continue;
+        const activeStages = await activeRecordDefinitions().stages(recordType);
+        steps.push(...(activeStages ?? await firstValueFrom(
+          super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id }))
+        )));
       }
-      
-          this.logger.debug(`WorkflowSteps found: ${workflows} and boostrapAlways set to: ${sails.config.appmode.bootstrapAlways}`);
-          if (_.isEmpty(workflows)) {
-            this.logger.verbose("Bootstrapping workflow definitions... ");
-            const wfSteps: Record<string, Array<{ recordType: RecordTypeLike; workflow: string }>> = {};
-            _.forEach(recordTypes, (recordType: RecordTypeLike) => {
-              const recordTypeName = recordType.name;
-              if (!recordTypeName) {
-                return;
-              }
-              this.logger.verbose("Processing recordType: " + recordTypeName);
-              wfSteps[recordTypeName] = []
-              _.forOwn(sails.config.workflow[recordTypeName], (_workflowConf: unknown, workflowName: string) => {
-                if (workflowName != null) {
-                  this.logger.verbose("workflow step added to list: " + workflowName)
-                  wfSteps[recordTypeName].push({ "recordType": recordType, "workflow": workflowName });
-                }
-              });
-            });
-            
-        
-          this.logger.verbose(`wfSteps: `);
-          this.logger.verbose(JSON.stringify(wfSteps));
-          const workflowSteps: unknown[] = [];
-          for(const recordTypeName in wfSteps) {
-            const workflowStepsObject = wfSteps[recordTypeName] as Array<{ recordType: RecordTypeLike; workflow: string }>;
-            for (const workflowStep of workflowStepsObject){
-              const workflowConf = sails.config.workflow[recordTypeName][workflowStep["workflow"]] as WorkflowStageDefinition & { hidden?: boolean };
-              const form = _.get(workflowConf,'config.form','');
-              if(form == '') {
-                _.set(workflowConf.config,'form','generated-view-only');
-              }
-              const obs = await firstValueFrom(this.create(workflowStep["recordType"], workflowStep["workflow"], workflowConf.config, workflowConf.starting == true, workflowConf.hidden));
-              workflowSteps.push(obs);
-            };
-          }
-          
-          return workflowSteps;
-        }
-        return workflows;
+      return steps;
     }
 
-
-
-    public create(recordType: RecordTypeLike, name: string, workflowConf: unknown, starting: boolean, hidden: boolean = false) {
+    public create(
+      recordType: RecordTypeLike,
+      name: string,
+      workflowConf: unknown,
+      starting: boolean,
+      hidden: boolean = false
+    ) {
       const recordTypeId = recordType.id as string;
-      return super.getObservable(WorkflowStep.create({
-        name: name,
-        config: workflowConf,
-        recordType: recordTypeId,
-        starting: starting,
-        hidden: hidden
-      }));
+      return super.getObservable(
+        WorkflowStep.create({
+          name: name,
+          config: workflowConf,
+          recordType: recordTypeId,
+          starting: starting,
+          hidden: hidden,
+        })
+      );
     }
 
-    public get(recordType: RecordTypeLike, name: string) {
-      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id as string, name: name }));
+    public get(recordType: RecordTypeLike, name: string): Observable<RuntimeValue> {
+      return defer(async () => {
+        const stages = await activeRecordDefinitions().stages(recordType);
+        return stages
+          ? stages.find(stage => stage.name === name)
+          : firstValueFrom(
+              super.getObservable<WorkflowStepModel | undefined>(
+                WorkflowStep.findOne({ recordType: recordType.id as string, name })
+              )
+            );
+      });
     }
 
     public getAllForRecordType(recordType?: RecordTypeLike | null): Observable<WorkflowStepModel[]> {
@@ -113,11 +86,28 @@ export namespace Services {
         this.logger.warn('WorkflowStepsService.getAllForRecordType called without a valid record type id');
         return of([] as WorkflowStepModel[]);
       }
-      return super.getObservable<WorkflowStepModel[]>(WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } }));
+      return defer(
+        async () =>
+          (await activeRecordDefinitions().stages(recordType)) ??
+          firstValueFrom(
+            super.getObservable<WorkflowStepModel[]>(
+              WorkflowStep.find({ recordType: recordType.id as string, hidden: { '!=': true } })
+            )
+          )
+      );
     }
 
-    public getFirst(recordType: RecordTypeLike) {
-      return super.getObservable(WorkflowStep.findOne({ recordType: recordType.id as string, starting: true }));
+    public getFirst(recordType: RecordTypeLike): Observable<RuntimeValue> {
+      return defer(async () => {
+        const stages = await activeRecordDefinitions().stages(recordType);
+        return stages
+          ? stages.find(stage => stage.starting)
+          : firstValueFrom(
+              super.getObservable<WorkflowStepModel | undefined>(
+                WorkflowStep.findOne({ recordType: recordType.id as string, starting: true })
+              )
+            );
+      });
     }
   }
 }

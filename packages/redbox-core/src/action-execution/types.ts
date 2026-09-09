@@ -1,32 +1,22 @@
 import { Effect } from 'effect';
-import type { RuntimeFiber } from 'effect/Fiber';
+import type { RuntimeValue } from '../runtimeValues';
 
-export const ACTION_FAILURE_KINDS = [
-  'configuration',
-  'validation',
-  'domain',
-  'transient',
-  'timeout',
-  'interrupted',
-  'unexpected',
-] as const;
+export type ActionFailureKind =
+  | 'configuration'
+  | 'validation'
+  | 'domain'
+  | 'transient'
+  | 'timeout'
+  | 'interrupted'
+  | 'unexpected';
 
-export type ActionFailureKind = (typeof ACTION_FAILURE_KINDS)[number];
+export type ActionExecutionStatus = 'succeeded' | 'failed' | 'timed_out' | 'interrupted' | 'skipped' | 'dispatched';
 
-export const ACTION_EXECUTION_STATUSES = [
-  'succeeded',
-  'failed',
-  'timed_out',
-  'interrupted',
-  'skipped',
-  'dispatched',
-] as const;
-
-export type ActionExecutionStatus = (typeof ACTION_EXECUTION_STATUSES)[number];
-
-export const ACTION_SKIPPED_REASONS = ['prior_action_failed'] as const;
-
-export type ActionSkippedReason = (typeof ACTION_SKIPPED_REASONS)[number];
+export type ActionSkippedReason =
+  | 'prior_action_failed'
+  | 'phase_not_reached'
+  | 'save_not_persisted'
+  | 'trigger_disabled';
 
 export type ActionExecutionMode = 'onCreate' | 'onUpdate' | 'onDelete' | 'onTransitionWorkflow';
 
@@ -35,6 +25,7 @@ export type ActionExecutionPhase = 'pre' | 'postSync' | 'post';
 export interface ActionExecutionContext {
   executionId: string;
   phaseExecutionId: string;
+  trigger: 'record-hook';
   mode: ActionExecutionMode;
   phase: ActionExecutionPhase;
   requestId?: string;
@@ -44,6 +35,7 @@ export interface ActionExecutionContext {
 export interface SafeActionFailure {
   kind: ActionFailureKind;
   code: string;
+  summary?: string;
   cancellationCooperative?: boolean;
 }
 
@@ -61,13 +53,26 @@ export interface ActionExecutionResult {
   skippedReason?: ActionSkippedReason;
 }
 
+export interface ActionExecutionCounts {
+  succeeded: number;
+  failed: number;
+  timed_out: number;
+  interrupted: number;
+  skipped: number;
+  dispatched: number;
+}
+
 export interface ActionExecutionReport {
+  schemaVersion: 1;
+  executionId: string;
+  phaseExecutionId: string;
   context: ActionExecutionContext;
   status: 'completed' | 'failed' | 'partial' | 'dispatched';
   startedAt: string;
   completedAt: string;
   durationMs: number;
   actions: ActionExecutionResult[];
+  counts: ActionExecutionCounts;
 }
 
 export interface ActionExecutionPolicy {
@@ -102,6 +107,9 @@ export interface ActionExecutionDependencies {
   random?: () => number;
   /** Injectable backoff sleep. Defaults to Effect's live Clock service. */
   sleep?: (durationMs: number) => Effect.Effect<void>;
+  /** Injectable wall-clock scheduling for bounded save-side handoffs. */
+  schedule?: (durationMs: number, task: () => void) => RuntimeValue;
+  cancelSchedule?: (handle: RuntimeValue) => void;
   uuid?: () => string;
   logger?: ActionExecutionLogger;
   supervisor?: ActionExecutionSupervisor;
@@ -110,36 +118,45 @@ export interface ActionExecutionDependencies {
 }
 
 export interface ActionExecutionLogger {
-  debug?: (message: string, fields?: Record<string, unknown>) => void;
-  info?: (message: string, fields?: Record<string, unknown>) => void;
-  warn?: (message: string, fields?: Record<string, unknown>) => void;
-  error?: (message: string, fields?: Record<string, unknown>) => void;
+  debug?: (message: string, fields?: Record<string, RuntimeValue>) => void;
+  info?: (message: string, fields?: Record<string, RuntimeValue>) => void;
+  warn?: (message: string, fields?: Record<string, RuntimeValue>) => void;
+  error?: (message: string, fields?: Record<string, RuntimeValue>) => void;
 }
 
 export interface ActionExecutionSupervisor {
-  register?: (fiber: RuntimeFiber<unknown, unknown>) => void;
+  register?: (fiber: RuntimeValue) => void;
+  unregister?: (fiber: RuntimeValue) => void;
   interruptAll?: () => void;
 }
 
-export interface ActionExecutionAction<A = unknown> {
+export interface ActionExecutionAction<A = RuntimeValue> {
   actionId: string;
   mode: ActionExecutionMode;
   phase: ActionExecutionPhase;
   index: number;
   policy?: ActionExecutionPolicy;
   /** Legacy Promise work is not cancellable even when the wait is timed out. */
-  cooperativeCancellation?: () => boolean;
-  invoke: () => Effect.Effect<A, unknown, never>;
+  cooperativeCancellation?: boolean | (() => boolean);
+  /** A false result records a bounded skip without consuming an attempt. */
+  shouldRun?: () => Effect.Effect<boolean, never, never>;
+  skippedReason?: ActionSkippedReason;
+  /** Validates/projects a successful value before the action is closed. */
+  project?: (value: RuntimeValue) => void;
+  invoke: () => Effect.Effect<A, RuntimeValue, never>;
 }
 
-export interface ActionExecutionOutcome {
+export interface ActionExecutionOutcome<A = RuntimeValue> {
   report: ActionExecutionReport;
+  values: A[];
   /** Kept in memory only for the compatibility adapter. */
-  terminalCause?: unknown;
+  terminalCause?: RuntimeValue;
 }
 
 export interface ActionExecutionOperation {
+  transition?: import('@researchdatabox/sails-ng-common').RecordTransitionAuditEvidence;
   executionId: string;
+  trigger: 'record-hook';
   mode: ActionExecutionMode;
   requestId?: string;
   recordOid?: string;
@@ -153,5 +170,16 @@ export interface ActionExecutionOperation {
   detachedCompletedAt?: string;
   /** In-memory guard/state for the exactly-once audit handoff. */
   detachedAuditFinalized?: boolean;
+  detachedAuditTimer?: RuntimeValue;
+  cancelDetachedAuditTimer?: (handle: RuntimeValue) => void;
   operationCompletedLogged?: boolean;
 }
+
+export const EMPTY_ACTION_COUNTS: ActionExecutionCounts = {
+  succeeded: 0,
+  failed: 0,
+  timed_out: 0,
+  interrupted: 0,
+  skipped: 0,
+  dispatched: 0,
+};

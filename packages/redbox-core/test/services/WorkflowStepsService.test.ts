@@ -35,66 +35,36 @@ describe('WorkflowStepsService', function() {
       findOne: sinon.stub().returns(mockDeferred({}))
     };
     
+    (global as any).RecordType = { findOne: sinon.stub().returns(mockDeferred({ id: 'rt1', name: 'dataset', branding: 'brand1' })) };
     service = new Services.WorkflowSteps();
   });
 
   afterEach(function() {
     cleanupServiceTestGlobals();
     delete (global as any).WorkflowStep;
+    delete (global as any).RecordType;
     sinon.restore();
   });
 
   describe('bootstrap', function() {
-    it('should load existing workflow steps', async function() {
-      const recordTypes = [{ name: 'dataset', id: 'rt1' }];
-      const existingSteps = [{ name: 'draft' }];
-      
-      const findStub = sinon.stub().resolves(existingSteps);
-      (global as any).WorkflowStep.find = findStub;
-      
-      const result = await service.bootstrap(recordTypes);
-      
-      expect(result).to.deep.equal(existingSteps);
+    it('reads only the supplied identities even with bootstrapAlways enabled', async function() {
+      mockSails.config.appmode.bootstrapAlways = true;
+      const steps = [{ name: 'edited', recordType: 'rt1' }];
+      (global as any).WorkflowStep.find.returns({ exec: sinon.stub().yields(null, steps) });
+      expect(await service.bootstrap([{ id: 'rt1', name: 'dataset' }])).to.deep.equal(steps);
+      expect((global as any).WorkflowStep.find.firstCall.args[0].recordType).to.equal('rt1');
+      expect((global as any).WorkflowStep.destroy.called).to.be.false;
+      expect((global as any).WorkflowStep.create.called).to.be.false;
     });
 
-    it('should create steps from config if missing', async function() {
-      const recordTypes = [{ name: 'dataset', id: 'rt1' }];
-      
-      const findStub = sinon.stub().resolves([]);
-      (global as any).WorkflowStep.find = findStub;
-      
-      const createDeferred = (data: unknown) => ({
-        exec: sinon.stub().yields(null, data)
-      });
-      (global as any).WorkflowStep.create.callsFake((data: unknown) => createDeferred(data));
-      
-      const result = await service.bootstrap(recordTypes);
-      
-      expect(result).to.have.length(1);
-      expect((global as any).WorkflowStep.create.called).to.be.true;
+    it('does not fill missing steps on an existing definition from legacy config', async function() {
+      expect(await service.bootstrap([{ id: 'rt1', name: 'dataset' }])).to.deep.equal([]);
+      expect((global as any).WorkflowStep.create.called).to.be.false;
     });
 
-    it('should preserve workflow-stage validation operation restrictions', async function() {
-      const recordTypes = [{ name: 'dataset', id: 'rt1' }];
-      const recordValidation = {
-        operations: {
-          publish: {
-            enabledValidationGroups: ['publish'],
-            roles: ['Librarians'],
-            allowedTargetSteps: ['published'],
-          },
-        },
-      };
-      mockSails.config.workflow.dataset.draft.config.recordValidation = recordValidation;
-      (global as any).WorkflowStep.find = sinon.stub().resolves([]);
-      (global as any).WorkflowStep.create.callsFake((data: unknown) => ({
-        exec: sinon.stub().yields(null, data)
-      }));
-
-      await service.bootstrap(recordTypes);
-
-      expect((global as any).WorkflowStep.create.firstCall.args[0].config.recordValidation)
-        .to.deep.equal(recordValidation);
+    it('does not read another brand when no identities are supplied', async function() {
+      expect(await service.bootstrap([])).to.deep.equal([]);
+      expect((global as any).WorkflowStep.find.called).to.be.false;
     });
   });
 

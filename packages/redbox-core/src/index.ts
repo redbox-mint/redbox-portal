@@ -10,9 +10,7 @@ export {
   RecordSaveTracker,
   RECORD_VALIDATION_BYPASS_REASONS,
   createRecordSaveContext,
-  createRecordSaveSchemaOutcomeMetadata,
   isInternalRecordValidationBypass,
-  isRecordSaveContext,
   isCanonicalSaveRequestId,
   isRecordValidationBypassReason,
   normalizeRecordConcurrencyContext,
@@ -26,12 +24,8 @@ export {
 export type {
   RecordConcurrencyContext,
   RecordSaveContext,
-  RecordSaveContextOptions,
   RecordSaveOperation,
   RecordSaveRouteFamily,
-  RecordSaveSchemaOutcomeInput,
-  RecordSaveSchemaOutcomeMetadata,
-  NormalizedRecordSchemaOperation,
   InternalRecordValidationBypass,
   RecordValidationBypassReason,
   StorageMutationLogger,
@@ -48,7 +42,6 @@ export type {
 export {
   RECORD_HTTP_HEADERS,
   parsePublicRecordConcurrencyRequest,
-  recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
   recordRepresentationRevision,
   recordSaveResultHeaderOption,
@@ -62,6 +55,7 @@ export type {
 } from './RecordHttpConcurrency';
 export { normalizeAttachmentStagingFileId } from './AttachmentStagingIdentity';
 export {
+  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
   INITIAL_RECORD_REVISION,
   RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   RecordConcurrencyCapabilityError,
@@ -73,11 +67,20 @@ export {
 } from './RecordStorageConcurrency';
 export type {
   RecordMutationPrecondition,
+  RecordStorageConcurrencyCapabilities,
   RecordStorageMutationOptions,
   StorageCapabilityProvider,
   StorageMutationNonApplicationReason,
   StorageServiceCapabilities,
 } from './RecordStorageConcurrency';
+// Behavioural conformance checks hook-provided storage adapters run against
+// their own dialect before declaring the record-concurrency capability.
+export { STORAGE_CONCURRENCY_CONFORMANCE_CHECKS } from './testing/storageConcurrencyConformance';
+export type {
+  RecordConcurrencyAdapter,
+  StorageConcurrencyConformanceCheck,
+  StorageConcurrencyConformanceHarness,
+} from './testing/storageConcurrencyConformance';
 // Shared concurrency policy/result contracts are re-exported here so server
 // code has one import site for record-save contracts.
 export {
@@ -117,7 +120,7 @@ export { DatastreamServiceResponse } from './DatastreamServiceResponse';
 
 export { DatastreamService } from './DatastreamService';
 export { QueueService } from './QueueService';
-export { RecordsService, createRecordMetadataDelta } from './RecordsService';
+export { RecordsService } from './RecordsService';
 export { HarvestRunService } from './HarvestRunService';
 export type {
   RecordRelationshipExpandOptions,
@@ -125,18 +128,12 @@ export type {
   RecordRelationshipEdge,
   RecordMetaWithRelationships,
   LegacyRelatedRecordsResponse,
-  RecordMetadataSubmission,
   RecordTypeLookupSummary,
 } from './RecordsService';
 export { classifyRecordWrite, recordWriteRequiresFormValidation } from './RecordWriteClassification';
 export type { RecordWriteClassification } from './RecordWriteClassification';
 export { SearchService } from './SearchService';
-export {
-  StorageService,
-  RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
-  getMissingRecordSchemaStorageCapabilities,
-} from './StorageService';
-export type { RecordSchemaStorageCapabilityMethod } from './StorageService';
+export { StorageService } from './StorageService';
 export { RecordAuditParams } from './RecordAuditParams';
 export { IntegrationAuditParams } from './IntegrationAuditParams';
 export type {
@@ -150,7 +147,6 @@ export * from './model/storage/HarvestRunModel';
 export { ILogger } from './Logger';
 
 export * from './model';
-export * from './record-contract';
 export * from './decorator';
 export * from './decorators';
 
@@ -223,6 +219,13 @@ export { Policies } from './policies';
 
 export { FormConfigExports } from './form-config';
 
+export * as ActionRegistry from './action-registry';
+export type { ActionDefinition as RegistryActionDefinition } from './action-registry';
+export { registerRedboxActions } from './action-registry';
+export * as ExpressionRuntime from './expression-runtime';
+export type { AutomaticTransitionDefinition, AutomaticTransitionEvent } from './workflow-transition/automatic';
+export * from './record-workflow-administration';
+
 import * as Middleware from './middleware/redboxSession';
 export { Middleware };
 
@@ -236,7 +239,7 @@ export { Config, SailsConfig } from './config';
 
 // Bootstrap functions
 export { coreBootstrap, preLiftSetup, BootstrapProvider } from './bootstrap';
-export { discoverRecordContractContributorRegistry, generateAllShims, mergeRedboxConfig } from './loader/index';
+export { generateAllShims, mergeRedboxConfig } from './loader/index';
 export type { LoaderOptions, GenerateAllShimsResult, RedboxMigration } from './loader/index';
 export { createGeneratedBootstrap } from './loader/bootstrapShimRuntime';
 export type { GeneratedHookBootstrap } from './loader/bootstrapShimRuntime';
@@ -275,3 +278,17 @@ export * from './visitor/vocab-inline.visitor';
 export * from './utilities/ContextVariableUtils';
 export * from './visitor/visitor-helpers';
 export * from './api-routes';
+export { registerRedboxMigrations } from './migrations';
+export {
+  RecordDefinitionMigrationService,
+  WaterlineRecordDefinitionMigrationReader,
+  RECORD_DEFINITION_MIGRATION_NAME,
+} from './services/RecordDefinitionMigrationService';
+export type {
+  RecordDefinitionMigrationReader,
+  RecordDefinitionMigrationReport,
+} from './services/RecordDefinitionMigrationService';
+export {
+  transformLegacyRecordDefinition,
+  LegacyDatabaseMigrationError,
+} from './record-workflow-administration/legacyDatabaseMigration';

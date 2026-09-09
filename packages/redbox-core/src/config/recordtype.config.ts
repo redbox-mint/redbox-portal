@@ -6,6 +6,8 @@
  */
 
 import type { ActionExecutionPolicy } from '../action-execution/types';
+import type { ActionPlan } from '../action-registry';
+import type { AutomaticTransitionDefinition } from '../workflow-transition/automatic';
 import type {
   RecordConcurrentModificationConfig,
   ValidationMode,
@@ -19,7 +21,6 @@ export type {
   RecordConcurrentModificationConfig,
   RecordConcurrentModificationMode,
 } from '@researchdatabox/sails-ng-common';
-import type { RecordTypeRecordSchemaConfig } from './recordSchema.config';
 
 export interface RecordHookOptions {
   [key: string]: unknown;
@@ -216,13 +217,16 @@ export interface RecordTypeDefinition {
   searchable?: boolean;
   labels?: RecordTypeLabels;
   hooks?: RecordHooksConfig;
+  /** Immutable registry-backed plan selected by record lifecycle and transition scopes. */
+  actionPlan?: ActionPlan;
+  /** Explicit, priority-ordered automatic workflow graph edges. */
+  automaticTransitions?: readonly AutomaticTransitionDefinition[];
   relatedTo?: RecordRelation[];
   transferResponsibility?: TransferResponsibilityConfig;
   searchFilters?: SearchFilterConfig[];
   dashboard?: Record<string, unknown>;
   recordValidation?: RecordTypeValidationConfig;
   concurrentModification?: RecordConcurrentModificationConfig;
-  recordSchema?: RecordTypeRecordSchemaConfig;
 }
 
 export interface RecordTypeConfig {
