@@ -895,6 +895,55 @@ describe('FormsService', function () {
       expect(branding).to.equal('brand-1');
       expect(contextVariables).to.deep.equal({ '@user_name': 'Alice' });
       expect(delegatedAccessContext).to.equal(recordAccessContext);
+      expect(buildClientFormConfig.firstCall.args[8]).to.equal(true);
+    });
+
+    it('preserves authored model defaults for contract compilation', async function () {
+      const context: RecordContractContext = {
+        publicContext: {
+          brand: 'default',
+          portal: 'portal-1',
+          kind: 'create',
+          recordType: 'dataset',
+          workflowStep: 'draft',
+          form: 'contract-defaults-form',
+          operation: 'create',
+          unknownProperties: 'allow',
+          enforcement: 'shadow',
+        },
+        resolution: {
+          sourceFormFingerprint: 'fingerprint',
+          sourceForm: {
+            name: 'contract-defaults-form',
+            componentDefinitions: [
+              {
+                name: 'configured',
+                component: { class: 'SimpleInputComponent', config: {} },
+                model: { class: 'SimpleInputModel', config: { defaultValue: 'Configured value' } },
+              },
+              {
+                name: 'unconfigured',
+                component: { class: 'SimpleInputComponent', config: {} },
+                model: { class: 'SimpleInputModel', config: {} },
+              },
+            ],
+          },
+          reusableFormDefinitions: {},
+          actor: { authenticated: true, roles: [] },
+          formMode: 'edit',
+          contextVariables: {},
+        },
+      };
+
+      const result = await FormsService.buildContractFormConfig(context);
+
+      expect(result.ok).to.equal(true);
+      if (!result.ok) throw new Error(result.reason);
+      const configured = findComponentDefinitionByName(result.effectiveForm.componentDefinitions as unknown[], 'configured');
+      const unconfigured = findComponentDefinitionByName(result.effectiveForm.componentDefinitions as unknown[], 'unconfigured');
+      expect(configured.model.config.defaultValue).to.equal('Configured value');
+      expect(configured.model.config.value).to.equal('Configured value');
+      expect(unconfigured.model.config).not.to.have.property('defaultValue');
     });
 
     it('uses metadata from the complete stored update record when resolving question-tree visibility', async function () {

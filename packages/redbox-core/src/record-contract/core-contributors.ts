@@ -84,7 +84,10 @@ function childComponents(value: unknown): readonly FormComponentDefinitionFrame[
 }
 
 function nullableFromDefault(component: Readonly<FormComponentDefinitionFrame>): boolean {
-  return modelConfig(component).defaultValue === null;
+  // Angular form controls use null for an empty value when no default is configured.
+  // An explicit non-null default is the signal that the field is intentionally non-null.
+  const defaultValue = modelConfig(component).defaultValue;
+  return defaultValue === undefined || defaultValue === null;
 }
 
 function scalar(

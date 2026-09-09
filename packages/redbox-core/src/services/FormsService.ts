@@ -907,7 +907,8 @@ export namespace Services {
       reusableFormDefs?: ReusableFormDefinitions,
       branding?: string,
       contextVariablesMap?: Record<string, unknown>,
-      recordAccessContext?: FormRecordAccessContext
+      recordAccessContext?: FormRecordAccessContext,
+      preserveDefaultValues = false
     ): Promise<FormConfigOutline> {
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({
@@ -916,6 +917,7 @@ export namespace Services {
         formMode,
         record: recordMetadata,
         translate: this.buildFormConfigTranslator(branding),
+        preserveDefaultValues,
       });
       const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
       await vocabVisitor.resolveVocabs(constructed, branding, {
@@ -991,7 +993,8 @@ export namespace Services {
         reusableFormDefinitions,
         context.publicContext.brand,
         _.cloneDeep(resolution.contextVariables),
-        recordAccessContext
+        recordAccessContext,
+        true
       );
       effectiveForm.componentDefinitions = this.retainSubmittableContractComponents(
         effectiveForm.componentDefinitions ?? []

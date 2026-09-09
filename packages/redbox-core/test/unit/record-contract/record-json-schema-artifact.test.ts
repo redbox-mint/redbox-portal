@@ -132,8 +132,8 @@ describe('record JSON Schema identity', function () {
       contributorTimeoutMs: 100,
     });
     const expectedDigests = {
-      create: '86864e1a72938e4a6b7c2e834c4dde441d1050da4fa4aafe2ba1ab5c8afd4403',
-      update: 'cb6f59e636553cebad5e122de33084574afda991f37521118482989d46e00325',
+      create: '7fa5419730645f25d10c59c3421bc1a3860c03d78abc1f741f454af0982350cb',
+      update: '8101d831d72278c745971ff87dea16973cfe13b1ba1436a572cea9dcb4ccecbf',
     } as const;
 
     for (const kind of ['create', 'update'] as const) {

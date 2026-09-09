@@ -264,6 +264,35 @@ describe('RecordContractCompiler and core contributors', function () {
     }
   });
 
+  it('allows null for fields without configured defaults because empty form controls use null', async function () {
+    const contract = expectCompiled(
+      await compiler().compile({
+        form: form([
+          field('description', 'TextAreaComponent'),
+          field('keywords', 'RepeatableComponent', {
+            elementTemplate: field('', 'SimpleInputComponent'),
+          }),
+        ]),
+        context: { ...publicContext, unknownProperties: 'declared' },
+      })
+    );
+
+    expect(contract.root.properties.description).to.include({ kind: 'scalar', scalarType: 'string', nullable: true });
+    expect(contract.root.properties.keywords).to.include({ kind: 'array', nullable: true });
+
+    const keywords = contract.root.properties.keywords;
+    if (keywords.kind === 'array') {
+      expect(keywords.items).to.include({ kind: 'scalar', scalarType: 'string', nullable: true });
+    }
+
+    const schema = renderRecordJsonSchema(contract);
+    expect(schema.properties?.description).to.deep.equal({ type: ['string', 'null'] });
+    expect(schema.properties?.keywords).to.deep.equal({
+      type: ['array', 'null'],
+      items: { type: ['string', 'null'] },
+    });
+  });
+
   it('compiles the configured data record form with RegExp validator configuration', async function () {
     const configuredFormModule = require('../../../../redbox-hook-dev/src/form-config/dataRecord-1.0-draft') as {
       default: FormConfigFrame;
@@ -298,9 +327,13 @@ describe('RecordContractCompiler and core contributors', function () {
     const contract = expectCompiled(await compiler().compile(request));
 
     expect(request).to.deep.equal(before);
-    expect(contract.root.properties.aliases).to.deep.include({ kind: 'array', nullable: false });
+    expect(contract.root.properties.aliases).to.deep.include({ kind: 'array', nullable: true });
     if (contract.root.properties.aliases.kind === 'array') {
-      expect(contract.root.properties.aliases.items).to.include({ kind: 'scalar', scalarType: 'string' });
+      expect(contract.root.properties.aliases.items).to.include({
+        kind: 'scalar',
+        scalarType: 'string',
+        nullable: true,
+      });
     }
     expect(contract.fieldOwners).to.have.property('/aliases/__record_schema_item');
   });
@@ -560,7 +593,7 @@ describe('RecordContractCompiler and core contributors', function () {
       $ref: `#/$defs/${encodeURIComponent(definitionKey!)}`,
     });
     expect(rendered.$defs).to.have.all.keys(definitionKey!);
-    expect(rendered.$defs?.[definitionKey!]).to.include({ type: 'string' });
+    expect(rendered.$defs?.[definitionKey!]).to.deep.include({ type: ['string', 'null'] });
 
     expectFailure(
       await compiler().compile({ form: form([reusableField]), context: publicContext }),

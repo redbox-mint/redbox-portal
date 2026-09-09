@@ -222,8 +222,11 @@ export namespace Services {
             // if (!('properties' in permittedChangesObj)) {
             //     throw new Error(`Permitted changes must have an object, a 'properties' property, at the top level ${JSON.stringify(permittedChanges)}`)
             // }
-            const permittedChangesProps = (('properties' in permittedChangesObj)
-              ? (permittedChangesObj['properties'] as Record<string | number, unknown>)
+            const permittedChangesProps = (('properties' in permittedChangesObj || 'optionalProperties' in permittedChangesObj)
+              ? {
+                  ...((permittedChangesObj['properties'] ?? {}) as Record<string | number, unknown>),
+                  ...((permittedChangesObj['optionalProperties'] ?? {}) as Record<string | number, unknown>),
+                }
               : permittedChangesObj) as Record<string | number, unknown>;
 
 
@@ -250,7 +253,8 @@ export namespace Services {
                 const permittedChangesValueObj = isKeyInPermittedChange
                   ? requirePermittedChangesSchemaObject(permittedChangesValue)
                   : undefined;
-                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValueObj && 'properties' in permittedChangesValueObj;
+                const isPermittedChangeObject = isKeyInPermittedChange && !!permittedChangesValueObj
+                  && ('properties' in permittedChangesValueObj || 'optionalProperties' in permittedChangesValueObj);
                 const isPermittedChangeArray = isKeyInPermittedChange && !!permittedChangesValueObj && 'elements' in permittedChangesValueObj;
                 const isPermittedChangeType = isKeyInPermittedChange && !!permittedChangesValueObj && 'type' in permittedChangesValueObj;
                 const isPermittedChangeEmpty = isKeyInPermittedChange && !!permittedChangesValueObj && Object.keys(permittedChangesValueObj).length === 0;
