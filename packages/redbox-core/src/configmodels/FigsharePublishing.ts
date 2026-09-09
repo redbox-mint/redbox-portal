@@ -85,10 +85,7 @@ export interface AuthorLookupRule {
 }
 
 export interface EmbargoBinding {
-  /** A non-empty/truthy result means the record has an active embargo. */
   accessRights: ValueBinding;
-  /** Figshare v2 embargo scope. Must evaluate to `article` or `file`. */
-  embargoType: ValueBinding;
   fullEmbargoUntil?: ValueBinding;
   reason?: ValueBinding;
 }
@@ -366,7 +363,6 @@ export class FigsharePublishing extends AppConfig implements FigsharePublishingC
     forceSync: false,
     accessRights: {
       accessRights: createDefaultBinding('metadata.accessRights', ''),
-      embargoType: createDefaultBinding('metadata.embargoType', 'article'),
       fullEmbargoUntil: createDefaultBinding('metadata.embargoUntil'),
       reason: createDefaultBinding('metadata.embargoReason'),
     },
@@ -798,10 +794,9 @@ export const FIGSHARE_PUBLISHING_SCHEMA = {
         forceSync: { type: 'boolean', title: 'Force Sync', default: false },
         accessRights: {
           type: 'object',
-          title: 'Embargo Bindings',
+          title: 'Access Rights Binding',
           properties: {
             accessRights: VALUE_BINDING_SCHEMA,
-            embargoType: VALUE_BINDING_SCHEMA,
             fullEmbargoUntil: VALUE_BINDING_SCHEMA,
             reason: VALUE_BINDING_SCHEMA,
           },

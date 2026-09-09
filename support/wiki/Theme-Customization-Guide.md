@@ -56,15 +56,3 @@ To customize your theme, add your SCSS variables and styles to the respective "c
 2. **Styles**: Add custom styles and overrides in `custom-theme.scss`.
 3. **Responsive Design**: Write custom media queries and responsive styles in `custom-responsive.scss`.
 4. **Colors**: Set up a custom color scheme in `custom-colors.scss`.
-
-## Brand Typeface
-
-Administrators can upload one static WOFF2 brand typeface per branding scope from the Admin branding page (Typography section). Logos and favicons keep their existing immediate lifecycle and are unaffected.
-
-- **Supported format**: static WOFF2 only. TTF, OTF, WOFF1, variable WOFF2, remote font URLs, and cross-origin hosting are rejected. Uploaded fonts are never converted, repaired, or subset.
-- **Face slots**: four fixed slots — Regular (required to publish a custom typeface), Bold, Italic, and Bold Italic (optional; browsers synthesise missing optional faces). The slot is authoritative: embedded family/subfamily metadata that disagrees only produces a warning.
-- **Default Typography**: the portal default. Generated typeface CSS is absent and all current typography and Google font requests remain unchanged.
-- **Scope and rendering**: an active custom typeface replaces the Google-hosted text fonts in brand-resolved browser pages (public, login, researcher, Admin, branded error, and print views). Icon fonts and monospace/code content are excluded. Hook CSS loads after the theme stylesheet and can still override it.
-- **Draft, preview, publish, restore**: colour and typeface edits share one persistent draft guarded by optimistic concurrency (a stale draft returns 409 with a reload action). Preview is optional and bound to an exact draft revision. Publish is atomic and idempotent when nothing changed. Restoring a retained version immediately publishes it as the next version; versions never rewind. The three newest complete versions are retained by default (configurable).
-- **Delivery**: faces are served same-origin from immutable content-addressed URLs (`/fonts/branding/<brand>/<sha256>.woff2`, cached for one year). Identical bytes are deduplicated within a brand only; different brands intentionally use separate storage objects. Only the active Regular face is preloaded; Google font requests are omitted only while a custom typeface is active. A missing or corrupt active face falls back to the CSS font stack in the browser and raises an Admin health warning.
-- **Errors**: oversized uploads return 413 (2 MiB per face, 8 MiB distinct family bytes by default); malformed/variable fonts and publish-without-Regular return 400; stale counters return 409.

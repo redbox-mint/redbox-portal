@@ -24,10 +24,6 @@ import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefi
 import { ModalDirective } from "ngx-bootstrap/modal";
 import { DateTime } from 'luxon';
 
-interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
-  sortProperty: string;
-}
-
 /**
  * Restore deleted records Component
  */
@@ -74,11 +70,10 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   filterParams: any = {};
 
   // Record table properties
-  tableHeaders: DeletedRecordTableHeader[] = [
+  tableHeaders: RecordPropViewMetaDto[] = [
     {
       label: "deleted-records-results-table-header-title",
       property: "title",
-      sortProperty: "deletedRecordMetadata.metadata.title",
       template: "",
       hide: false,
       multivalue: false
@@ -86,7 +81,6 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     {
       label: "deleted-records-results-table-header-created-date",
       property: "dateCreatedDisplay",
-      sortProperty: "deletedRecordMetadata.dateCreated",
       template: "",
       hide: false,
       multivalue: false
@@ -94,7 +88,6 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     {
       label: "deleted-records-results-table-header-modified-date",
       property: "dateModifiedDisplay",
-      sortProperty: "deletedRecordMetadata.lastSaveDate",
       template: "",
       hide: false,
       multivalue: false
@@ -102,7 +95,6 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     {
       label: "deleted-records-results-table-header-deleted-date",
       property: "dateDeletedDisplay",
-      sortProperty: "dateDeleted",
       template: "",
       hide: false,
       multivalue: false
@@ -164,8 +156,8 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     await this.gotoPage(1);
   }
 
-  public async headerSortChanged(event: any, data: DeletedRecordTableHeader) {
-    this.sort = `${data.sortProperty}:${event.sort === 'desc' ? '-1' : '1'}`;
+  public async headerSortChanged(event: any, data: any) {
+    this.sort = `${event.variable}:${event.sort === 'desc' ? '-1' : '1'}`;
     await this.gotoPage(1);
   }
 

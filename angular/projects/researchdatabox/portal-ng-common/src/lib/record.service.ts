@@ -53,13 +53,13 @@ import {
   isRecordSaveOutcome,
   isRecordSaveProblemKind,
   isRecordSaveRequestId,
-  recordEntityTagRevision,
+  RECORD_ENTITY_TAG_PATTERN,
   RecordAttachment,
   RecordConcurrentModificationConfig,
   RecordConcurrencyMetadata,
   RecordConcurrencyResolution,
-  RecordSaveLifecyclePhase,
   RecordSaveIssue,
+  RecordSavePhase,
   RecordSaveProblem,
   RecordSaveResult,
   sanitizeRecordConcurrencyMetadata,
@@ -101,7 +101,7 @@ export type RecordActionConcurrencyOutcome =
   | 'authorization-lost'
   | 'unknown';
 
-const recordSaveLifecyclePhases: ReadonlySet<RecordSaveLifecyclePhase> = new Set([
+const recordSavePhases: ReadonlySet<RecordSavePhase> = new Set([
   'pre-save',
   'persistence',
   'attachments',
@@ -110,22 +110,32 @@ const recordSaveLifecyclePhases: ReadonlySet<RecordSaveLifecyclePhase> = new Set
   'transport',
 ]);
 
+const saveRequestIdByteLength = 16;
+
+function recordEntityTagRevision(value: unknown): number | undefined {
+  if (!isRecordEntityTag(value)) return undefined;
+  const match = RECORD_ENTITY_TAG_PATTERN.exec(value);
+  const revision = match ? Number(match[1]) : undefined;
+  return isRecordRevision(revision) ? revision : undefined;
+}
+
 function createSaveRequestId(): string {
-  if (globalThis.crypto?.randomUUID) {
-    return globalThis.crypto.randomUUID();
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
   }
-  // crypto.randomUUID() may be unavailable when the portal is served over HTTP
-  // because it requires a secure context. getRandomValues() is still suitable
-  // for generating a cryptographically random UUID in that environment.
-  if (!globalThis.crypto?.getRandomValues) {
-    throw new Error('Unable to generate save request id: crypto.randomUUID() is unavailable');
+
+  if (typeof cryptoApi?.getRandomValues !== 'function') {
+    throw new Error('Web Crypto API is unavailable; cannot create a save request ID.');
   }
-  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, character =>
-    (
-      Number(character) ^
-      (globalThis.crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(character) / 4)))
-    ).toString(16)
-  );
+
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(saveRequestIdByteLength));
+  // RFC 4122 version 4 UUID: set the version and variant bits explicitly.
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+
+  return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
 }
 
 export interface RecordTypeConf {
@@ -1242,32 +1252,17 @@ export class RecordActionResult implements RecordSaveResult {
 
   private static toSafeProblem(value: unknown): RecordSaveProblem | null {
     const problem = RecordActionResult.plainRecord(value);
-    if (!problem || !isRecordSaveProblemKind(problem['kind'])) {
-      return null;
-    }
-    const issues = Array.isArray(problem['issues']) ? problem['issues'].map(RecordActionResult.toSafeIssue) : [];
-
-    if (problem['phase'] === 'schema') {
-      return problem['source'] === 'schema'
-        ? {
-            kind: problem['kind'],
-            source: 'schema',
-            phase: 'schema',
-            issues,
-          }
-        : null;
-    }
-
     if (
-      problem['source'] !== undefined ||
-      !recordSaveLifecyclePhases.has(problem['phase'] as RecordSaveLifecyclePhase)
+      !problem ||
+      !isRecordSaveProblemKind(problem['kind']) ||
+      !recordSavePhases.has(problem['phase'] as RecordSavePhase)
     ) {
       return null;
     }
-
+    const issues = Array.isArray(problem['issues']) ? problem['issues'].map(RecordActionResult.toSafeIssue) : [];
     return {
       kind: problem['kind'],
-      phase: problem['phase'] as RecordSaveLifecyclePhase,
+      phase: problem['phase'] as RecordSavePhase,
       issues,
     };
   }

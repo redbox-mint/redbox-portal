@@ -23,7 +23,7 @@ type TusPartPrefixSelection = {
   prefix?: string;
   partKeys: string[];
 };
-type AttachmentMetadataService = AttachmentMetadataServices.AttachmentMetadataService;
+type AttachmentMetadataServiceContract = AttachmentMetadataServices.AttachmentMetadataServiceContract;
 
 type RecordWithMetadata = {
   metaMetadata: { form: string; brandId?: string; attachmentFields?: string[] };
@@ -78,8 +78,8 @@ export namespace Services {
       return key.split('/').filter(Boolean).pop() ?? key;
     }
 
-    private attachmentMetadataService(): AttachmentMetadataService | undefined {
-      return sails.services.attachmentmetadataservice as unknown as AttachmentMetadataService | undefined;
+    private attachmentMetadataService(): AttachmentMetadataServiceContract | undefined {
+      return sails.services.attachmentmetadataservice as AttachmentMetadataServiceContract | undefined;
     }
 
     private requestUsername(requestContext?: DatastreamRequestContext): string | undefined {

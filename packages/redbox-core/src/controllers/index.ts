@@ -1,9 +1,9 @@
+import * as RecordDefinitionAdminControllerModule from './RecordDefinitionAdminController';
 /**
  * Controllers index - exports all controller classes
  */
 
 // API controller imports
-import * as ActionControllerModule from './ActionController';
 import * as AdminControllerModule from './AdminController';
 import * as AppConfigControllerModule from './AppConfigController';
 import * as AsynchControllerModule from './AsynchController';
@@ -37,7 +37,6 @@ import * as WSFormManagementControllerModule from './webservice/FormManagementCo
 import * as WSIntegrationAuditControllerModule from './webservice/IntegrationAuditController';
 import * as WSHarvestRunControllerModule from './webservice/HarvestRunController';
 import * as WSRecordControllerModule from './webservice/RecordController';
-import * as WSRecordSchemaControllerModule from './webservice/RecordSchemaController';
 import * as WSRecordTypeControllerModule from './webservice/RecordTypeController';
 import * as WSReportControllerModule from './webservice/ReportController';
 import * as WSSearchControllerModule from './webservice/SearchController';
@@ -56,7 +55,7 @@ function getOrCreate(name: string, factory: () => unknown): unknown {
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
-    get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
+    get RecordDefinitionAdminController() { return getOrCreate('RecordDefinitionAdminController', () => new RecordDefinitionAdminControllerModule.Controllers.RecordDefinitionAdmin().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
     get AsynchController() { return getOrCreate('AsynchController', () => new AsynchControllerModule.Controllers.Asynch().exports()); },
@@ -92,7 +91,6 @@ export const WebserviceControllerExports: Record<string, unknown> = {
     get HarvestRunController() { return getOrCreate('WS_HarvestRunController', () => new WSHarvestRunControllerModule.Controllers.HarvestRun().exports()); },
     get IntegrationAuditController() { return getOrCreate('WS_IntegrationAuditController', () => new WSIntegrationAuditControllerModule.Controllers.IntegrationAudit().exports()); },
     get RecordController() { return getOrCreate('WS_RecordController', () => new WSRecordControllerModule.Controllers.Record().exports()); },
-    get RecordSchemaController() { return getOrCreate('WS_RecordSchemaController', () => new WSRecordSchemaControllerModule.Controllers.RecordSchema().exports()); },
     get RecordTypeController() { return getOrCreate('WS_RecordTypeController', () => new WSRecordTypeControllerModule.Controllers.RecordType().exports()); },
     get ReportController() { return getOrCreate('WS_ReportController', () => new WSReportControllerModule.Controllers.Report().exports()); },
     get SearchController() { return getOrCreate('WS_SearchController', () => new WSSearchControllerModule.Controllers.Search().exports()); },
@@ -105,7 +103,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
-    'ActionController',
+    'RecordDefinitionAdminController',
     'AdminController',
     'AppConfigController',
     'AsynchController',
@@ -141,7 +139,6 @@ export const WebserviceControllerNames = [
     'HarvestRunController',
     'IntegrationAuditController',
     'RecordController',
-    'RecordSchemaController',
     'RecordTypeController',
     'ReportController',
     'SearchController',

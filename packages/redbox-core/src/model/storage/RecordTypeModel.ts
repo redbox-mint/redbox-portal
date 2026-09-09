@@ -1,18 +1,22 @@
-import type { RecordTypeValidationConfig } from '../../config/recordtype.config';
+import type { RecordTypeValidationConfig, TransferResponsibilityConfig } from '../../config/recordtype.config';
 import type { RecordConcurrentModificationConfig } from '@researchdatabox/sails-ng-common';
-import type { RecordTypeRecordSchemaConfig } from '../../config/recordSchema.config';
+import type { ActionPlan } from '../../action-registry';
+import type { AutomaticTransitionDefinition } from '../../workflow-transition/automatic';
+import type { RuntimeRecord } from '../../runtimeValues';
 
 export class RecordTypeModel {
   packageType: string = '';
   searchCore?: string = '';
   hooks?: RecordTypeHooks = new RecordTypeHooks();
+  actionPlan?: ActionPlan;
+  automaticTransitions?: readonly AutomaticTransitionDefinition[];
   relatedTo: RelatedTo[] = [];
   searchFilters: SearchFilter[] = [];
-  transferResponsibility: unknown = null; //Legacy to be removed in a future version
+  transferResponsibility: TransferResponsibilityConfig | null = null; //Legacy to be removed in a future version
   searchable = false as const;
   recordValidation?: RecordTypeValidationConfig;
   concurrentModification?: RecordConcurrentModificationConfig;
-  recordSchema?: RecordTypeRecordSchemaConfig;
+  retiredAt?: string | Date | null;
 }
 
 export class SearchFilter {
@@ -57,7 +61,5 @@ export class RecordTypeHookOnEvent {
 
 export class RecordTypeHookDeclaration {
   function: string = '';
-  options: {
-    [key: string]: unknown;
-  } = {};
+  options: RuntimeRecord = {};
 }

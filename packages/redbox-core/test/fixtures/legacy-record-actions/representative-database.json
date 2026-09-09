@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "brands": [
+    { "id": "brand-default", "name": "default" },
+    { "id": "brand-secondary", "name": "secondary" }
+  ],
+  "recordTypes": [
+    {
+      "id": "record-type-default",
+      "key": "brand-default_legacy-action-fixture",
+      "name": "legacy-action-fixture",
+      "branding": "brand-default",
+      "packageType": "legacy-action-fixture",
+      "searchable": false,
+      "hooks": {
+        "onCreate": {
+          "pre": [
+            {
+              "function": "sails.services.rdmpservice.runTemplates",
+              "options": {
+                "parseObject": false,
+                "templates": [
+                  {
+                    "field": "metadata.generatedTitle",
+                    "template": "<%= _.get(record, 'metadata.title', '') %>"
+                  }
+                ]
+              }
+            }
+          ],
+          "post": [
+            {
+              "function": "sails.services.emailservice.sendRecordNotification",
+              "options": {
+                "forceRun": true,
+                "to": "{{record.metadata.ownerEmail}}",
+                "subject": "Created {{record.metadata.title}}",
+                "template": "publicationReview",
+                "onNotifySuccess": [
+                  {
+                    "function": "sails.services.recordsservice.updateNotificationLog",
+                    "options": {
+                      "forceRun": true,
+                      "flagName": "notification.state",
+                      "flagVal": "created-email-sent",
+                      "saveRecord": true
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "onUpdate": {
+          "pre": [
+            {
+              "function": "sails.services.triggerservice.runHooksSync",
+              "options": {
+                "hooks": [
+                  {
+                    "function": "sails.services.rdmpservice.stripUserBasedPermissions",
+                    "options": {
+                      "triggerCondition": "<%= record.workflow.stage == 'published' %>"
+                    }
+                  },
+                  {
+                    "function": "sails.services.rdmpservice.restoreUserBasedPermissions",
+                    "options": {
+                      "triggerCondition": "<%= record.workflow.stage == 'draft' %>"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "onDelete": {
+          "pre": [
+            {
+              "function": "sails.services.rdmpservice.checkTotalSizeOfFilesInRecord",
+              "options": {
+                "forceRun": true
+              }
+            }
+          ],
+          "post": [
+            {
+              "function": "sails.services.rdmpservice.queueTriggerCall",
+              "options": {
+                "jobName": "DoiService-UpdateDoi",
+                "forceRun": true,
+                "triggerConfiguration": {
+                  "function": "sails.services.doiservice.updateDoiTriggerSync",
+                  "options": {
+                    "forceRun": true,
+                    "event": "delete"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "onTransitionWorkflow": {
+          "pre": [
+            {
+              "function": "sails.services.triggerservice.transitionWorkflow",
+              "options": {
+                "triggerCondition": "<%= record.workflow.stage == 'queued' %>",
+                "targetWorkflowStageName": "published",
+                "targetWorkflowStageLabel": "Published",
+                "targetForm": "legacy-action-fixture-1.0-published"
+              }
+            }
+          ],
+          "postSync": [
+            {
+              "function": "sails.services.rdmpservice.addWorkspaceToRecord",
+              "options": {
+                "rdmpOidField": "rdmpOid"
+              }
+            }
+          ],
+          "post": [
+            {
+              "function": "sails.services.doiservice.publishDoiTrigger",
+              "options": {
+                "forceRun": true,
+                "event": "publish"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "record-type-secondary",
+      "key": "brand-secondary_legacy-action-fixture",
+      "name": "legacy-action-fixture",
+      "branding": "brand-secondary",
+      "packageType": "legacy-action-fixture",
+      "searchable": false,
+      "hooks": {
+        "onDelete": {
+          "pre": [
+            {
+              "function": "sails.services.rdmpservice.checkTotalSizeOfFilesInRecord",
+              "options": { "forceRun": true }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "workflowSteps": [
+    {
+      "id": "workflow-default-draft",
+      "name": "draft",
+      "recordType": "record-type-default",
+      "starting": true,
+      "hidden": false,
+      "config": {
+        "form": "legacy-action-fixture-1.0-draft",
+        "workflow": { "stage": "draft", "stageLabel": "Draft" },
+        "authorization": { "viewRoles": ["Admin"], "editRoles": ["Admin"] }
+      }
+    },
+    {
+      "id": "workflow-default-published",
+      "name": "published",
+      "recordType": "record-type-default",
+      "starting": false,
+      "hidden": false,
+      "config": {
+        "form": "legacy-action-fixture-1.0-published",
+        "workflow": { "stage": "published", "stageLabel": "Published" },
+        "authorization": { "viewRoles": ["Admin"], "editRoles": ["Admin"] }
+      }
+    },
+    {
+      "id": "workflow-secondary-draft",
+      "name": "draft",
+      "recordType": "record-type-secondary",
+      "starting": true,
+      "hidden": false,
+      "config": {
+        "form": "legacy-action-fixture-1.0-draft",
+        "workflow": { "stage": "draft", "stageLabel": "Draft" },
+        "authorization": { "viewRoles": ["Admin"], "editRoles": ["Admin"] }
+      }
+    }
+  ],
+  "records": [
+    {
+      "redboxOid": "record-123",
+      "revision": 1,
+      "metadata": { "title": "Persisted lifecycle fixture" },
+      "metaMetadata": {
+        "type": "legacy-action-fixture",
+        "form": "legacy-action-fixture-1.0-draft",
+        "brandId": "brand-default"
+      },
+      "workflow": { "stage": "draft", "stageLabel": "Draft" },
+      "authorization": {
+        "edit": ["user-1"],
+        "view": [],
+        "editRoles": ["Admin"],
+        "viewRoles": ["Admin"]
+      }
+    }
+  ]
+}

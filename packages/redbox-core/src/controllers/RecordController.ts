@@ -61,7 +61,6 @@ import {
 import type { RecordConcurrencyContext, RecordSaveContext, RecordSaveOperation } from '../RecordSaveResponse';
 import {
   parsePublicRecordConcurrencyRequest,
-  recordConcurrencyRequestFailureResponse,
   recordRepresentationConcurrency,
   recordRepresentationRevision,
   recordSaveResultHeaderOption,
@@ -203,12 +202,10 @@ export namespace Controllers {
       targetStep?: string,
       concurrency?: RecordConcurrencyContext
     ): RecordSaveContext {
-      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'browser',
         operation,
-        portal: typeof locals?.portal === 'string' ? locals.portal : undefined,
         targetStep: typeof targetStep === 'string' ? targetStep.trim() : undefined,
         validationOperation,
         validationRequestParameters: normalizeRecordValidationRequestFacts(req.params, req.query),
@@ -235,11 +232,11 @@ export namespace Controllers {
     /**
      * Fingerprint the form contract this response delivers, through the same
      * authoritative service routine a save recomputes. A create has no stored
-     * record, so its contract is described by the starting workflow step. A
-     * target transition is a save intent and does not change the form that
-     * was delivered to the browser.
+     * record, so its contract is described by the workflow step the save will
+     * apply: the requested target when present, otherwise the starting step.
      */
     private async generatedFormFingerprint(
+      req: Sails.Req,
       brand: BrandingModel,
       currentRec: RecordModel | null,
       requestedRecordType: string | undefined,
@@ -253,12 +250,17 @@ export namespace Controllers {
         currentRec?.metaMetadata?.type ?? requestedRecordType ?? formConfig.type ?? ''
       ).trim();
       const recordType = (await firstValueFrom(RecordTypesService.get(brand, recordTypeName))) as unknown as AnyRecord;
+      const targetStepName = this.requestString(req.query, 'targetStep');
+      const targetStep = targetStepName
+        ? ((await firstValueFrom(WorkflowStepsService.get(recordType, targetStepName))) as unknown as AnyRecord | null)
+        : null;
 
       let fingerprintRecord: AnyRecord;
       if (currentRec) {
         fingerprintRecord = currentRec as unknown as AnyRecord;
       } else {
-        const effectiveStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as unknown as AnyRecord;
+        const effectiveStep =
+          targetStep ?? ((await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as unknown as AnyRecord);
         fingerprintRecord = {
           metaMetadata: {
             brandId: String(brand?.id ?? ''),
@@ -269,7 +271,12 @@ export namespace Controllers {
         };
       }
 
-      const fingerprint = await this.recordsService.getRecordFormFingerprint(fingerprintRecord, recordType, sourceForm);
+      const fingerprint = await this.recordsService.getRecordFormFingerprint(
+        fingerprintRecord,
+        recordType,
+        targetStep ?? undefined,
+        sourceForm
+      );
       if (!fingerprint) {
         throw new Error('The current form concurrency fingerprint could not be generated.');
       }
@@ -323,7 +330,16 @@ export namespace Controllers {
       res: Sails.Res,
       failure: { readonly code: string; readonly header: string }
     ) {
-      return this.sendResp(req, res, recordConcurrencyRequestFailureResponse(this.getApiVersion(req), failure));
+      if (this.getApiVersion(req) === '1.0') {
+        return this.sendResp(req, res, {
+          status: 400,
+          v1: { message: 'Invalid record concurrency request.' },
+        });
+      }
+      return this.sendResp(req, res, {
+        status: 400,
+        displayErrors: [{ code: failure.code, source: { header: failure.header } }],
+      });
     }
 
     private legacySaveBody(result: RecordSaveResponse): globalThis.Record<string, unknown> {
@@ -1110,7 +1126,7 @@ export namespace Controllers {
           formConfig: mergedForm,
         });
 
-        const formFingerprint = await this.generatedFormFingerprint(brand, currentRec, recordType, form);
+        const formFingerprint = await this.generatedFormFingerprint(req, brand, currentRec, recordType, form);
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
 
         // return the form config
@@ -1433,7 +1449,7 @@ export namespace Controllers {
       // If the sync completed before the async is done, maybe the user is cleared?
       // So clone the user for the async triggers.
       const user = _.cloneDeep(req.user);
-      const metadata = req.body;
+      let metadata = req.body;
       sails.log.verbose(`RecordController - updateInternal - enter`);
 
       let currentRec: RecordModel;
@@ -1458,6 +1474,9 @@ export namespace Controllers {
       let response;
       try {
         sails.log.verbose(`RecordController - updateInternal - before updateMeta`);
+        if (shouldMerge) {
+          metadata = this.mergeRecordMetadata(currentRec.metadata, metadata);
+        }
         response = await this.recordsService.updateMeta(
           brand,
           oid,
@@ -1466,7 +1485,7 @@ export namespace Controllers {
           true,
           true,
           nextStepResp,
-          shouldMerge ? { metadata, mode: 'merge', arrayMergeMode: 'replace' } : { metadata, mode: 'replace' },
+          metadata,
           saveRequest.context
         );
         sails.log.verbose(JSON.stringify(response));
@@ -1578,18 +1597,7 @@ export namespace Controllers {
       metaMetadata['lastSaveDate'] = DateTime.local().toISO();
       sails.log.verbose(`Calling record service...`);
       sails.log.verbose(currentRec);
-      return from(
-        this.recordsService.updateMeta(
-          brand,
-          oid,
-          currentRec,
-          user ?? {},
-          true,
-          true,
-          {},
-          { metadata: currentRec.metadata as AnyRecord, mode: 'pre-applied' }
-        )
-      );
+      return from(this.recordsService.updateMeta(brand, oid, currentRec, user ?? {}));
     }
 
     protected updateAuthorization(
@@ -1647,7 +1655,7 @@ export namespace Controllers {
           true,
           true,
           nextStep,
-          { metadata, mode: 'replace' },
+          metadata,
           saveRequest.context
         );
         if (response.wasPersisted()) {
@@ -2785,6 +2793,22 @@ export namespace Controllers {
 
       response['items'] = items;
       return response;
+    }
+
+    private mergeRecordMetadata(
+      currentMetadata: { [key: string]: unknown },
+      newMetadata: { [key: string]: unknown }
+    ): { [key: string]: unknown } {
+      // Merge the current and new metadata into a new object, replacing the current metadata property values with the new property values.
+      return _.mergeWith({}, currentMetadata, newMetadata, (objValue: unknown, srcValue: unknown) => {
+        if (Array.isArray(objValue)) {
+          // Merge behavior for arrays is to replace the existing array with the new array.
+          // This has the implicit assumption that arrays are complete, not partial.
+          // This makes more sense than concatenating because usually an array will contain all items, not a subset of the items.
+          return srcValue;
+        }
+        return undefined;
+      });
     }
   }
 }

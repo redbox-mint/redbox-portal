@@ -47,4 +47,3 @@ export { WorkspaceAppModel } from './WorkspaceAppModel';
 export { WorkflowStepModel } from './WorkflowStepModel';
 export { UserAuditModel } from './UserAuditModel';
 export { ReportModel } from './ReportModel';
-export * from './record-schema';
