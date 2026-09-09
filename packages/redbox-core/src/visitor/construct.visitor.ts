@@ -390,6 +390,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
   private formMode: FormModesConfig;
   private recordValues: Record<string, unknown> | null;
   private removeOverrides: boolean;
+  private preserveDefaultValues: boolean;
   private extractedDefaultValues: Record<string, unknown>;
   private translate?: (key: string) => string;
 
@@ -412,6 +413,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.formMode = 'view';
     this.recordValues = null;
     this.removeOverrides = false;
+    this.preserveDefaultValues = false;
     this.extractedDefaultValues = {};
 
     this.mostRecentRepeatableElementTemplatePath = null;
@@ -436,6 +438,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
    * @param options.formMode The currently active form mode. Defaults to 'view'.
    * @param options.record The record metadata values. Set to undefined or null to use the form default values.
    * @param options.removeOverrides True to remove all overrides, false to retain the overrides that the client visitor might use.
+   * @param options.preserveDefaultValues Preserve model default values for downstream contract compilation.
    * @param options.translate Resolve a translation code to text, used for form config default values.
    */
   async start(options: {
@@ -444,6 +447,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     formMode?: FormModesConfig;
     record?: Record<string, unknown> | null;
     removeOverrides?: boolean;
+    preserveDefaultValues?: boolean;
     translate?: (key: string) => string;
   }): Promise<FormConfigOutline> {
     this.data = _cloneDeep(options.data);
@@ -456,6 +460,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.recordValues = options.record === null || options.record === undefined ? null : options.record;
 
     this.removeOverrides = options.removeOverrides ?? false;
+    this.preserveDefaultValues = options.preserveDefaultValues ?? false;
 
     // Collect the form config defaults.
     // The defaults always need to be extract so they are available to any repeatable components.
@@ -2426,8 +2431,10 @@ this.mostRecentRepeatableElementTemplatePath !== null ||
       // - a value, which will be used to populate the entire repeatable and so any value on nested components will be ignored.
       item.config.value = this.currentModelValue();
 
-      // Remove the defaultValue property.
-      if (item?.config && 'defaultValue' in item.config) {
+      // Remove the defaultValue property from client forms. Contract compilation
+      // needs the authored default to distinguish nullable fields from fields
+      // with an explicit non-null default.
+      if (!this.preserveDefaultValues && item?.config && 'defaultValue' in item.config) {
         delete item.config.defaultValue;
       }
     }
