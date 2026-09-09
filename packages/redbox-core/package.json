@@ -135,7 +135,7 @@
     "srvx": "0.11.13",
     "serialize-javascript": "7.0.5",
     "svgo": "4.0.2",
-    "uuid": "14.0.1",
+    "uuid": "14.0.2",
     "@parcel/watcher": {
       "picomatch": "4.0.4"
     },
