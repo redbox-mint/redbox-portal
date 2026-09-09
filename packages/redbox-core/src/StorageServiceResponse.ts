@@ -32,11 +32,11 @@ import type { StorageMutationNonApplicationReason } from './RecordStorageConcurr
  * specific fields live on StorageMutationResponse/RecordSaveResponse so
  * existing storage services do not need to manufacture attachment state.
  */
-export class StorageServiceResponse implements ActionResult {
+export class StorageServiceResponse<TData = unknown> implements ActionResult {
   success: boolean = false;
   oid: string = '';
   message: string = '';
-  data?: unknown;
+  data?: TData;
   metadata: Record<string, unknown> | null = null;
   details?: Record<string, unknown> | string;
   totalItems: number = 0;

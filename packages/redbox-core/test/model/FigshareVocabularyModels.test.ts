@@ -6,21 +6,20 @@ import {
   FigshareVocabularySyncRunWLDef,
   isAllowedSyncRunTransition,
 } from '../../src/waterline-models/FigshareVocabularySyncRun';
-import type { RuntimeRecord } from '../../src/runtimeValues';
 
 let expect: Chai.ExpectStatic;
 
 type WaterlineDef = {
-  beforeCreate?: (record: RuntimeRecord, cb: (err?: Error) => void) => void;
-  beforeUpdate?: (record: RuntimeRecord, cb: (err?: Error) => void) => void;
+  beforeCreate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
+  beforeUpdate?: (record: Record<string, unknown>, cb: (err?: Error) => void) => void;
 };
 
 /** Run a lifecycle hook synchronously and return the record plus any error it raised. */
 function runHook(
   def: WaterlineDef,
   hook: 'beforeCreate' | 'beforeUpdate',
-  record: RuntimeRecord
-): { record: RuntimeRecord; error?: Error } {
+  record: Record<string, unknown>
+): { record: Record<string, unknown>; error?: Error } {
   let error: Error | undefined;
   let called = false;
   def[hook]!(record, err => {
@@ -80,7 +79,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create that omits a required field', () => {
-      const record = valid() as RuntimeRecord;
+      const record = valid() as Record<string, unknown>;
       delete record.displayName;
 
       const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', record);
@@ -90,7 +89,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create that omits the scope', () => {
-      const record = valid() as RuntimeRecord;
+      const record = valid() as Record<string, unknown>;
       delete record.scope;
 
       const result = runHook(FigshareVocabularySourceWLDef, 'beforeCreate', record);
@@ -170,7 +169,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create that omits the category id', () => {
-      const record = valid() as RuntimeRecord;
+      const record = valid() as Record<string, unknown>;
       delete record.categoryId;
 
       const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', record);
@@ -210,7 +209,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create that omits a required timestamp', () => {
-      const record = valid() as RuntimeRecord;
+      const record = valid() as Record<string, unknown>;
       delete record.firstSeenAt;
 
       const result = runHook(FigshareVocabularyCategoryWLDef, 'beforeCreate', record);
@@ -255,13 +254,13 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create without a name or updatedBy', () => {
-      const withoutName = valid() as RuntimeRecord;
+      const withoutName = valid() as Record<string, unknown>;
       delete withoutName.name;
       expect(runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', withoutName).error?.message).to.match(
         /name is required/
       );
 
-      const withoutUpdatedBy = valid() as RuntimeRecord;
+      const withoutUpdatedBy = valid() as Record<string, unknown>;
       delete withoutUpdatedBy.updatedBy;
       expect(runHook(FigshareVocabularyCrosswalkWLDef, 'beforeCreate', withoutUpdatedBy).error?.message).to.match(
         /updatedBy is required/
@@ -354,13 +353,13 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create without a revision or match type', () => {
-      const withoutRevision = valid() as RuntimeRecord;
+      const withoutRevision = valid() as Record<string, unknown>;
       delete withoutRevision.revision;
       expect(runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', withoutRevision).error?.message).to.match(
         /revision is required/
       );
 
-      const withoutMatchType = valid() as RuntimeRecord;
+      const withoutMatchType = valid() as Record<string, unknown>;
       delete withoutMatchType.matchType;
       expect(
         runHook(FigshareVocabularyCrosswalkMappingWLDef, 'beforeCreate', withoutMatchType).error?.message
@@ -461,7 +460,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create without a scope', () => {
-      const record = valid() as RuntimeRecord;
+      const record = valid() as Record<string, unknown>;
       delete record.scope;
 
       const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', record);
@@ -470,7 +469,7 @@ describe('Figshare vocabulary waterline models', () => {
     });
 
     it('rejects a create that omits a required field', () => {
-      const record = valid() as RuntimeRecord;
+      const record = valid() as Record<string, unknown>;
       delete record.expiresAt;
 
       const result = runHook(FigshareVocabularySyncRunWLDef, 'beforeCreate', record);

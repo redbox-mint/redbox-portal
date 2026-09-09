@@ -36,6 +36,8 @@ import {
   getRecordField,
   setRecordField,
 } from './figshare-v2/types';
+import { cloneDeep } from 'lodash';
+import { createRecordMetadataDelta } from '../RecordsService';
 
 declare const AgendaQueueService: QueueService;
 
@@ -467,7 +469,6 @@ export namespace Services {
       }
 
       const nextStepResp = await WorkflowStepsService.get(recordType, targetStep).toPromise();
-      const metadata = currentRec.metadata;
       const recordUpdateResult = await RecordsService.updateMetaInternal({
         actor: { kind: 'service', id: 'FigshareService.transitionWorkflowForRecord' },
         authorization: { kind: 'record-edit' },
@@ -478,7 +479,6 @@ export namespace Services {
         record: currentRec as Record<string, unknown>,
         user,
         targetStep: nextStepResp,
-        metadata: metadata as Record<string, unknown>,
       });
       if (recordUpdateResult.wasPersisted()) {
         if (recordUpdateResult.outcome === 'saved-with-warnings') {
@@ -571,7 +571,12 @@ export namespace Services {
       }
     }
 
-    public async persistSyncRecord(oid: string, record: RecordModel, user: UserModel): Promise<boolean> {
+    public async persistSyncRecord(
+      oid: string,
+      record: RecordModel,
+      user: UserModel,
+      previousMetadata: unknown = {}
+    ): Promise<boolean> {
       try {
         const brandName = getBrandName(record);
         const brand = BrandingService.getBrand(brandName);
@@ -585,6 +590,8 @@ export namespace Services {
           user,
           triggerPreSaveTriggers: false,
           triggerPostSaveTriggers: false,
+          metadata: createRecordMetadataDelta(previousMetadata, record.metadata),
+          metadataMode: 'pre-applied',
         });
         if (response != null && typeof response.wasPersisted === 'function' && !response.wasPersisted()) {
           sails.log.error(`FigService - failed to persist Figshare sync state for ${oid}: ${JSON.stringify(response)}`);
@@ -631,9 +638,10 @@ export namespace Services {
       if (this.getConfig(record) == null) {
         return record;
       }
+      const previousMetadata = cloneDeep(record.metadata);
       void this.syncRecordWithFigshare(record, `${oid}:post`, 'post-save')
         .then(async (updatedRecord: RecordModel) => {
-          const persisted = await this.persistSyncRecord(oid, updatedRecord, user);
+          const persisted = await this.persistSyncRecord(oid, updatedRecord, user, previousMetadata);
           if (persisted === false) {
             const config = this.getConfig(updatedRecord);
             if (config != null) {
@@ -669,7 +677,7 @@ export namespace Services {
           }
         })
         .catch(async (error: unknown) => {
-          await this.persistSyncRecord(oid, record, user);
+          await this.persistSyncRecord(oid, record, user, previousMetadata);
           sails.log.error(`FigService - uploadFilesToFigshareArticle sync failed for ${oid}`, error);
         });
     }
@@ -734,6 +742,7 @@ export namespace Services {
         return;
       }
       const record = (await RecordsService.getMeta(oid)) as RecordModel;
+      const previousMetadata = cloneDeep(record.metadata);
       const config = this.getConfig(record);
       if (config == null) {
         return;
@@ -810,7 +819,7 @@ export namespace Services {
         const publishResult = await client.publishArticle(articleId, {});
         const article = await client.getArticle(articleId);
         const updatedRecord = this.writeBack(record, article, publishResult);
-        const persisted = await this.persistSyncRecord(oid, updatedRecord, user);
+        const persisted = await this.persistSyncRecord(oid, updatedRecord, user, previousMetadata);
         if (persisted === false) {
           throw new Error(`Failed to persist Figshare publish state for record '${oid}'.`);
         }
@@ -856,6 +865,7 @@ export namespace Services {
         return;
       }
       let record = (await RecordsService.getMeta(oid)) as RecordModel;
+      const previousMetadata = cloneDeep(record.metadata);
       const config = this.getConfig(record);
       if (config == null) {
         return;
@@ -870,7 +880,7 @@ export namespace Services {
       });
       try {
         record = (await this.cleanupUploadedFiles(record, articleId)) as RecordModel;
-        const persisted = await this.persistSyncRecord(oid, record, user);
+        const persisted = await this.persistSyncRecord(oid, record, user, previousMetadata);
         if (persisted === false) {
           throw new Error(`Failed to persist Figshare cleanup state for record '${oid}'.`);
         }

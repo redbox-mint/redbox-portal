@@ -1,7 +1,8 @@
 import {
-  FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
   INITIAL_RECORD_REVISION,
+  RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
   RecordConcurrencyCapabilityError,
+  type StorageCapabilityProvider,
   assertStorageConcurrencyCapabilityForMode,
   hasFullRecordStorageConcurrencyCapability,
   nextRecordRevision,
@@ -15,18 +16,14 @@ describe('record storage concurrency contract', function () {
     expect = (await import('chai')).expect;
   });
 
-  it('treats absent and partial declarations as unsupported', function () {
+  it('treats absent and unsupported capability versions as unavailable', function () {
     expect(hasFullRecordStorageConcurrencyCapability(undefined)).to.equal(false);
     expect(hasFullRecordStorageConcurrencyCapability({})).to.equal(false);
+    const unsupportedVersion = {
+      getCapabilities: () => ({ recordConcurrency: 2 }),
+    };
     expect(
-      hasFullRecordStorageConcurrencyCapability({
-        getCapabilities: () => ({
-          recordConcurrency: {
-            ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES,
-            conditionalTombstoneCreate: false,
-          } as any,
-        }),
-      })
+      hasFullRecordStorageConcurrencyCapability(unsupportedVersion as unknown as StorageCapabilityProvider)
     ).to.equal(false);
   });
 
@@ -34,7 +31,7 @@ describe('record storage concurrency contract', function () {
     expect(
       hasFullRecordStorageConcurrencyCapability({
         getCapabilities: () => ({
-          recordConcurrency: { ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES },
+          recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
         }),
       })
     ).to.equal(true);

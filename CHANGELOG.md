@@ -2,10 +2,6 @@
 
 ## Unreleased
 
-- Breaking: removed the legacy generic action route and its code-selecting
-  `sails.config.action` configuration. Requests to the former
-  `POST /:branding/:portal/action/:action` endpoint now return not found; no
-  generic execution endpoint replaces it.
 - Added concurrent-record modification protection across browser, API v1/v2,
   datastream, internal-writer, and delete/restore/purge paths. Record types can
   use compatible `last-write-wins`, migration `observe`, or enforcing `strict`
@@ -53,8 +49,7 @@
   persisted-warning indexing/audit handling. Added API v2 save contracts and
   form-level field-aware validation/focus behavior. `AttachmentMetadata` now
   supports `attachmentId`, `operation`, `mutationState`, `generation`,
-  `isJournal`, `mutationFileId`, `attemptCount`, `lastAttemptAt`, and
-  `lastSafeErrorCode` for reconciliation. Save outcome messages use
+  `isJournal` and `mutationFileId` for reconciliation. Save outcome messages use
   translatable language keys throughout the browser flow. Confirmed physical
   attachment delete tombstones are reaped after reconciliation.
 - Audited English translation metadata and added a repeatable duplicate-key, placeholder, and plural-form check.

@@ -1,13 +1,6 @@
 import * as sinon from 'sinon';
 import { of, firstValueFrom } from 'rxjs';
-import {
-  setupServiceTestGlobals,
-  cleanupServiceTestGlobals,
-  createMockSails,
-  createQueryObject,
-  configureModelMethod,
-} from './testHelper';
-import { boundedDiagnosticValue } from '../../src/utilities/BoundedDiagnostics';
+import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
 
 let expect: Chai.ExpectStatic;
 
@@ -29,68 +22,68 @@ describe('RDMPService', function () {
         record: {
           processRecordCountersLogLevel: 'verbose',
           checkTotalSizeOfFilesInRecordLogLevel: 'verbose',
-          maxUploadSize: 1073741824, // 1GB
+          maxUploadSize: 1073741824 // 1GB
         },
         queue: {
-          serviceName: 'agendaqueueservice',
-        },
+          serviceName: 'agendaqueueservice'
+        }
       },
       log: {
         verbose: sinon.stub(),
         debug: sinon.stub(),
         info: sinon.stub(),
         warn: sinon.stub(),
-        error: sinon.stub(),
+        error: sinon.stub()
       },
       services: {
         agendaqueueservice: {
-          now: sinon.stub().resolves({}),
-        },
-      },
+          now: sinon.stub().resolves({})
+        }
+      }
     });
 
     mockUser = {
       find: sinon.stub().returns(createQueryObject([])),
-      findOne: sinon.stub().returns(createQueryObject(null)),
+      findOne: sinon.stub().returns(createQueryObject(null))
     };
 
     mockCounter = {
       findOrCreate: sinon.stub().returns(createQueryObject([{ id: 'counter-1', name: 'rdmpId', value: 100 }])),
-      updateOne: sinon.stub().returns(createQueryObject({ id: 'counter-1', value: 101 })),
+      updateOne: sinon.stub().returns(createQueryObject({ id: 'counter-1', value: 101 }))
     };
 
     setupServiceTestGlobals(mockSails);
     (global as any).User = mockUser;
     (global as any).Counter = mockCounter;
     (global as any).RecordType = {
-      findOne: sinon.stub(),
+      findOne: sinon.stub()
     };
     (global as any).RecordsService = {
       getMeta: sinon.stub().resolves({}),
       updateMeta: sinon.stub().resolves({}),
       hasEditAccess: sinon.stub().returns(true),
-      hasViewAccess: sinon.stub().returns(true),
+      hasViewAccess: sinon.stub().returns(true)
     };
     (global as any).BrandingService = {
-      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
     (global as any).UsersService = {
       hasRole: sinon.stub().returns(false),
-      getEffectiveUser: sinon.stub().callsFake((user: unknown) => of(user)),
+      getEffectiveUser: sinon.stub().callsFake((user: unknown) => of(user))
     };
     (global as any).RolesService = {
-      getAdminFromBrand: sinon.stub().returns({ id: 'admin-role', name: 'Admin' }),
+      getAdminFromBrand: sinon.stub().returns({ id: 'admin-role', name: 'Admin' })
     };
     (global as any).WorkflowStepsService = {
-      get: sinon.stub().resolves([]),
+      get: sinon.stub().resolves([])
     };
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => key),
-      tInter: sinon.stub().callsFake((msg: string, params: any) => msg),
+      tInter: sinon.stub().callsFake((msg: string, params: any) => msg)
     };
     (global as any).WorkspaceService = {
       addWorkspaceToRecord: sinon.stub().resolves({}),
-      removeWorkspaceFromRecord: sinon.stub().resolves({}),
+      removeWorkspaceFromRecord: sinon.stub().resolves({})
     };
 
     // Import after mocks are set up
@@ -219,12 +212,20 @@ describe('RDMPService', function () {
     it('should populate email list from contributor properties', function () {
       const record = {
         metadata: {
-          contributors: [{ email: 'user1@test.com' }, { email: 'user2@test.com' }],
-        },
+          contributors: [
+            { email: 'user1@test.com' },
+            { email: 'user2@test.com' }
+          ]
+        }
       };
       const emailList: string[] = [];
 
-      const result = (RDMPService as any).populateContribList(['metadata.contributors'], record, 'email', emailList);
+      const result = (RDMPService as any).populateContribList(
+        ['metadata.contributors'],
+        record,
+        'email',
+        emailList
+      );
 
       expect(result).to.include('user1@test.com');
       expect(result).to.include('user2@test.com');
@@ -233,12 +234,20 @@ describe('RDMPService', function () {
     it('should return unique emails', function () {
       const record = {
         metadata: {
-          contributors: [{ email: 'same@test.com' }, { email: 'same@test.com' }],
-        },
+          contributors: [
+            { email: 'same@test.com' },
+            { email: 'same@test.com' }
+          ]
+        }
       };
       const emailList: string[] = [];
 
-      const result = (RDMPService as any).populateContribList(['metadata.contributors'], record, 'email', emailList);
+      const result = (RDMPService as any).populateContribList(
+        ['metadata.contributors'],
+        record,
+        'email',
+        emailList
+      );
 
       expect(result).to.have.length(1);
     });
@@ -246,12 +255,17 @@ describe('RDMPService', function () {
     it('should handle single contributor (not array)', function () {
       const record = {
         metadata: {
-          owner: { email: 'owner@test.com' },
-        },
+          owner: { email: 'owner@test.com' }
+        }
       };
       const emailList: string[] = [];
 
-      const result = (RDMPService as any).populateContribList(['metadata.owner'], record, 'email', emailList);
+      const result = (RDMPService as any).populateContribList(
+        ['metadata.owner'],
+        record,
+        'email',
+        emailList
+      );
 
       expect(result).to.include('owner@test.com');
     });
@@ -260,7 +274,12 @@ describe('RDMPService', function () {
       const record = { metadata: {} };
       const emailList: string[] = [];
 
-      const result = (RDMPService as any).populateContribList(['metadata.nonexistent'], record, 'email', emailList);
+      const result = (RDMPService as any).populateContribList(
+        ['metadata.nonexistent'],
+        record,
+        'email',
+        emailList
+      );
 
       expect(result).to.be.empty;
     });
@@ -272,9 +291,9 @@ describe('RDMPService', function () {
         metadata: {
           contributors: [
             { email: 'editor@test.com', role: 'editor' },
-            { email: 'viewer@test.com', role: 'viewer' },
-          ],
-        },
+            { email: 'viewer@test.com', role: 'viewer' }
+          ]
+        }
       };
       const emailList: string[] = [];
       const rule = '<%= role === "editor" %>';
@@ -294,13 +313,19 @@ describe('RDMPService', function () {
     it('should handle single contributor matching rule', function () {
       const record = {
         metadata: {
-          owner: { email: 'owner@test.com', canEdit: true },
-        },
+          owner: { email: 'owner@test.com', canEdit: true }
+        }
       };
       const emailList: string[] = [];
       const rule = '<%= canEdit === true %>';
 
-      const result = (RDMPService as any).getContribListByRule(['metadata.owner'], record, rule, 'email', emailList);
+      const result = (RDMPService as any).getContribListByRule(
+        ['metadata.owner'],
+        record,
+        rule,
+        'email',
+        emailList
+      );
 
       expect(result).to.include('owner@test.com');
     });
@@ -308,8 +333,10 @@ describe('RDMPService', function () {
     it('should return empty list when rule matches nothing', function () {
       const record = {
         metadata: {
-          contributors: [{ email: 'user@test.com', role: 'viewer' }],
-        },
+          contributors: [
+            { email: 'user@test.com', role: 'viewer' }
+          ]
+        }
       };
       const emailList: string[] = [];
       const rule = '<%= role === "admin" %>';
@@ -331,7 +358,7 @@ describe('RDMPService', function () {
       const users = [
         { username: 'user1', email: 'user1@test.com' },
         null,
-        { username: 'user2', email: 'user2@test.com' },
+        { username: 'user2', email: 'user2@test.com' }
       ];
       const userEmails = ['user1@test.com', 'user2@test.com', 'pending@test.com'];
       const userList: string[] = [];
@@ -349,16 +376,14 @@ describe('RDMPService', function () {
     it('should increment global counter', async function () {
       const record = {
         metaMetadata: { brandId: 'brand-1' },
-        metadata: {},
+        metadata: {}
       };
       const options = {
-        counters: [
-          {
-            field_name: 'rdmpId',
-            strategy: 'global',
-            prefix: 'RDMP-',
-          },
-        ],
+        counters: [{
+          field_name: 'rdmpId',
+          strategy: 'global',
+          prefix: 'RDMP-'
+        }]
       };
 
       const result = await RDMPService.processRecordCounters('oid-1', record, options, {});
@@ -369,16 +394,14 @@ describe('RDMPService', function () {
     it('should increment field counter', async function () {
       const record = {
         metaMetadata: { brandId: 'brand-1' },
-        metadata: { counter: '5' },
+        metadata: { counter: '5' }
       };
       const options = {
-        counters: [
-          {
-            field_name: 'counter',
-            strategy: 'field',
-            prefix: '',
-          },
-        ],
+        counters: [{
+          field_name: 'counter',
+          strategy: 'field',
+          prefix: ''
+        }]
       };
 
       const result = await RDMPService.processRecordCounters('oid-1', record, options, {});
@@ -389,16 +412,14 @@ describe('RDMPService', function () {
     it('should start field counter at 1 if empty', async function () {
       const record = {
         metaMetadata: { brandId: 'brand-1' },
-        metadata: {},
+        metadata: {}
       };
       const options = {
-        counters: [
-          {
-            field_name: 'version',
-            strategy: 'field',
-            prefix: 'v',
-          },
-        ],
+        counters: [{
+          field_name: 'version',
+          strategy: 'field',
+          prefix: 'v'
+        }]
       };
 
       const result = await RDMPService.processRecordCounters('oid-1', record, options, {});
@@ -409,17 +430,15 @@ describe('RDMPService', function () {
     it('should handle template in counter', async function () {
       const record = {
         metaMetadata: { brandId: 'brand-1' },
-        metadata: {},
+        metadata: {}
       };
       const options = {
-        counters: [
-          {
-            field_name: 'formattedId',
-            strategy: 'field',
-            prefix: '',
-            template: '<%= newVal.toString().padStart(5, "0") %>',
-          },
-        ],
+        counters: [{
+          field_name: 'formattedId',
+          strategy: 'field',
+          prefix: '',
+          template: '<%= newVal.toString().padStart(5, "0") %>'
+        }]
       };
 
       const result = await RDMPService.processRecordCounters('oid-1', record, options, {});
@@ -442,9 +461,9 @@ describe('RDMPService', function () {
         metadata: {
           dataLocations: [
             { type: 'attachment', size: '1000' },
-            { type: 'attachment', size: '2000' },
-          ],
-        },
+            { type: 'attachment', size: '2000' }
+          ]
+        }
       };
 
       const result = RDMPService.checkTotalSizeOfFilesInRecord('oid-1', record, {}, {});
@@ -459,9 +478,9 @@ describe('RDMPService', function () {
         metadata: {
           dataLocations: [
             { type: 'attachment', size: '600' },
-            { type: 'attachment', size: '600' },
-          ],
-        },
+            { type: 'attachment', size: '600' }
+          ]
+        }
       };
 
       expect(() => {
@@ -474,12 +493,14 @@ describe('RDMPService', function () {
 
       const record = {
         metadata: {
-          dataLocations: [{ type: 'attachment', size: '2000' }],
-        },
+          dataLocations: [
+            { type: 'attachment', size: '2000' }
+          ]
+        }
       };
       const options = {
         maxUploadSizeMessageCode: 'custom-error-key',
-        replaceOrAppend: 'replace',
+        replaceOrAppend: 'replace'
       };
 
       expect(() => {
@@ -492,8 +513,10 @@ describe('RDMPService', function () {
     it('should skip records with no attachments', function () {
       const record = {
         metadata: {
-          dataLocations: [{ type: 'url', size: '999999' }],
-        },
+          dataLocations: [
+            { type: 'url', size: '999999' }
+          ]
+        }
       };
 
       // Should not throw because there are no attachments
@@ -507,8 +530,8 @@ describe('RDMPService', function () {
       const record: any = {
         authorization: {
           edit: ['user1', 'user2'],
-          editPending: ['pending@test.com'],
-        },
+          editPending: ['pending@test.com']
+        }
       };
       const options = { permissionTypes: 'edit' };
 
@@ -528,8 +551,8 @@ describe('RDMPService', function () {
           edit: ['editor'],
           view: ['viewer'],
           editPending: [],
-          viewPending: [],
-        },
+          viewPending: []
+        }
       };
       const options = { permissionTypes: 'view&edit' };
 
@@ -550,9 +573,9 @@ describe('RDMPService', function () {
           view: [],
           stored: {
             edit: ['user1', 'user2'],
-            view: ['viewer1'],
-          },
-        },
+            view: ['viewer1']
+          }
+        }
       };
       const options = {};
 
@@ -576,9 +599,9 @@ describe('RDMPService', function () {
             edit: ['user1'],
             view: ['viewer1'],
             editPending: ['pending-edit@test.com'],
-            viewPending: ['pending-view@test.com'],
-          },
-        },
+            viewPending: ['pending-view@test.com']
+          }
+        }
       };
       const options = {};
 
@@ -594,15 +617,13 @@ describe('RDMPService', function () {
   describe('runTemplates', function () {
     it('should run templates and set field values', async function () {
       const record: any = {
-        metadata: { title: 'Test Title' },
+        metadata: { title: 'Test Title' }
       };
       const options = {
-        templates: [
-          {
-            field: 'metadata.description',
-            template: 'Record: <%= record.metadata.title %>',
-          },
-        ],
+        templates: [{
+          field: 'metadata.description',
+          template: 'Record: <%= record.metadata.title %>'
+        }]
       };
 
       const result: any = await firstValueFrom(RDMPService.runTemplates('oid-1', record, options, {}));
@@ -612,13 +633,13 @@ describe('RDMPService', function () {
 
     it('should handle multiple templates', async function () {
       const record: any = {
-        metadata: { name: 'Test' },
+        metadata: { name: 'Test' }
       };
       const options = {
         templates: [
           { field: 'metadata.field1', template: 'Value1: <%= record.metadata.name %>' },
-          { field: 'metadata.field2', template: 'Value2: <%= record.metadata.name %>' },
-        ],
+          { field: 'metadata.field2', template: 'Value2: <%= record.metadata.name %>' }
+        ]
       };
 
       const result: any = await firstValueFrom(RDMPService.runTemplates('oid-1', record, options, {}));
@@ -631,12 +652,10 @@ describe('RDMPService', function () {
       const record: any = { metadata: {} };
       const options = {
         parseObject: true,
-        templates: [
-          {
-            field: 'metadata.config',
-            template: '{"enabled": true, "count": 5}',
-          },
-        ],
+        templates: [{
+          field: 'metadata.config',
+          template: '{"enabled": true, "count": 5}'
+        }]
       };
 
       const result: any = await firstValueFrom(RDMPService.runTemplates('oid-1', record, options, {}));
@@ -647,12 +666,10 @@ describe('RDMPService', function () {
     it('should throw error for invalid template', async function () {
       const record = { metadata: {} };
       const options = {
-        templates: [
-          {
-            field: 'metadata.test',
-            template: '<%= invalidVariable.property %>',
-          },
-        ],
+        templates: [{
+          field: 'metadata.test',
+          template: '<%= invalidVariable.property %>'
+        }]
       };
 
       try {
@@ -667,19 +684,21 @@ describe('RDMPService', function () {
   describe('addWorkspaceToRecord', function () {
     it('should add workspace to record', async function () {
       const workspaceData = {
-        metadata: { rdmpOid: 'rdmp-123' },
+        metadata: { rdmpOid: 'rdmp-123' }
       };
       const response = {};
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
-      const result = await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, {}, {}, response);
+      const result = await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, {}, user, response);
 
       expect((global as any).WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
+      expect((global as any).WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
       expect(response).to.have.property('workspaceOid', 'ws-1');
     });
 
     it('should return workspace data when no rdmpOid', async function () {
       const workspaceData = {
-        metadata: {},
+        metadata: {}
       };
       const response = {};
 
@@ -691,34 +710,37 @@ describe('RDMPService', function () {
 
     it('should use custom rdmpOidField', async function () {
       const workspaceData = {
-        metadata: { customRdmpField: 'rdmp-custom' },
+        metadata: { customRdmpField: 'rdmp-custom' }
       };
       const options = { rdmpOidField: 'customRdmpField' };
       const response = {};
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
-      await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, options, {}, response);
+      await RDMPService.addWorkspaceToRecord('ws-1', workspaceData, options, user, response);
 
-      // The method uses rdmpOid from metadata regardless of rdmpOidField in the WorkspaceService call
-      expect((global as any).WorkspaceService.addWorkspaceToRecord.called).to.be.true;
+      expect((global as any).WorkspaceService.addWorkspaceToRecord.calledWith('rdmp-custom', 'ws-1')).to.be.true;
+      expect((global as any).WorkspaceService.addWorkspaceToRecord.firstCall.args[4]).to.equal(user);
     });
   });
 
   describe('removeWorkspaceFromRecord', function () {
     it('should remove workspace from record', async function () {
       const workspaceData = {
-        metadata: { rdmpOid: 'rdmp-123' },
+        metadata: { rdmpOid: 'rdmp-123' }
       };
       const response = {};
+      const user = { username: 'owner', roles: [{ id: 'role-researcher', name: 'Researcher' }] };
 
-      const result = await RDMPService.removeWorkspaceFromRecord('ws-1', workspaceData, {}, {}, response);
+      const result = await RDMPService.removeWorkspaceFromRecord('ws-1', workspaceData, {}, user, response);
 
       expect((global as any).WorkspaceService.removeWorkspaceFromRecord.calledWith('rdmp-123', 'ws-1')).to.be.true;
+      expect((global as any).WorkspaceService.removeWorkspaceFromRecord.firstCall.args[4]).to.equal(user);
       expect(response).to.have.property('workspaceOid', 'ws-1');
     });
 
     it('should return workspace data when no rdmpOid', async function () {
       const workspaceData = {
-        metadata: {},
+        metadata: {}
       };
       const response = {};
 
@@ -734,7 +756,7 @@ describe('RDMPService', function () {
       const record = { metadata: {} };
       const options = {
         jobName: 'testJob',
-        triggerConfiguration: { function: 'testFn' },
+        triggerConfiguration: { function: 'testFn' }
       };
 
       const result = await firstValueFrom(RDMPService.queueTriggerCall('oid-1', record, options, {}));
@@ -748,7 +770,7 @@ describe('RDMPService', function () {
       const options = {
         jobName: 'testJob',
         triggerConfiguration: {},
-        triggerCondition: 'true',
+        triggerCondition: 'true'
       };
 
       sinon.stub(RDMPService, 'metTriggerCondition').returns('true');
@@ -759,145 +781,14 @@ describe('RDMPService', function () {
     });
   });
 
-  describe('bounded managed diagnostics', function () {
-    it('contains hostile diagnostic proxies without stringifying executable or secret material', function () {
-      const sentinel = 'hostile-diagnostic-secret-must-not-be-logged';
-      const hostileError = new Proxy(new Error(sentinel), {
-        getPrototypeOf: () => {
-          throw new Error(sentinel);
-        },
-      });
-
-      expect(() => boundedDiagnosticValue(hostileError)).not.to.throw();
-      expect(JSON.stringify(boundedDiagnosticValue(hostileError))).not.to.contain(sentinel);
-      expect(JSON.stringify(boundedDiagnosticValue(() => sentinel))).not.to.contain(sentinel);
-    });
-
-    it('preserves the permission fallback when the original lookup failure is a hostile array proxy', async function () {
-      const sentinel = 'hostile-rdmp-diagnostic-secret-must-not-be-logged';
-      const candidate = { username: 'candidate-user', email: 'candidate@example.test' };
-      const revokedArray = Proxy.revocable([sentinel], {});
-      const originalFailure = revokedArray.proxy;
-      revokedArray.revoke();
-      (global as any).UsersService.getEffectiveUser = sinon.stub().callsFake(() => {
-        throw originalFailure;
-      });
-
-      const resolved = await (RDMPService as any).resolvePermissionUser([candidate]);
-
-      expect(resolved).to.equal(candidate);
-      const logged = JSON.stringify(mockSails.log.verbose.args);
-      expect(logged).not.to.contain(sentinel);
-      expect(logged).to.contain('unavailable');
-    });
-
-    it('preserves the permission fallback while rejecting an oversized diagnostic code', async function () {
-      const sentinel = 'oversized-rdmp-diagnostic-secret-must-not-be-logged';
-      const candidate = { username: 'candidate-user', email: 'candidate@example.test' };
-      const originalFailure = {
-        code: `econnreset${sentinel.repeat(100_000)}`,
-        detail: sentinel,
-        status: 503,
-      };
-      (global as any).UsersService.getEffectiveUser = sinon.stub().callsFake(() => {
-        throw originalFailure;
-      });
-
-      const resolved = await (RDMPService as any).resolvePermissionUser([candidate]);
-
-      expect(resolved).to.equal(candidate);
-      const logged = JSON.stringify(mockSails.log.verbose.args);
-      expect(logged).not.to.contain(sentinel);
-      expect(logged).to.contain('"category":"object"');
-      expect(logged).to.contain('"status":503');
-    });
-
-    it('does not log complete candidates, options, contributors, attachments, or error sentinels', async function () {
-      const sentinel = 'rdmp-managed-secret-must-not-be-logged';
-      const record: any = {
-        redboxOid: 'oid-1',
-        metaMetadata: { createdBy: 'creator', brandId: 'default' },
-        metadata: {
-          password: sentinel,
-          dataLocations: [{ type: 'attachment', size: 10, secretToken: sentinel }],
-          contributors: [{ email: 'private@example.test', password: sentinel }],
-        },
-        authorization: {},
-      };
-
-      RDMPService.checkTotalSizeOfFilesInRecord('oid-1', record, { forceRun: true, password: sentinel }, {});
-      await RDMPService.processRecordCounters(
-        'oid-1',
-        record,
-        {
-          counters: [
-            {
-              strategy: 'field',
-              field_name: 'generatedCounter',
-              template: () => sentinel,
-              password: sentinel,
-            },
-          ],
-        },
-        {}
-      );
-      await firstValueFrom(
-        RDMPService.assignPermissions('oid-1', record, {
-          forceRun: true,
-          emailProperty: 'email',
-          editContributorProperties: ['metadata.contributors'],
-          viewContributorProperties: [],
-          recordCreatorPermissions: 'view&edit',
-          password: sentinel,
-        })
-      );
-      let templateFailed = false;
-      try {
-        await firstValueFrom(
-          RDMPService.runTemplates(
-            'oid-1',
-            record,
-            {
-              templates: [
-                {
-                  field: 'metadata.generated',
-                  template: () => {
-                    throw new Error(sentinel);
-                  },
-                  password: sentinel,
-                },
-              ],
-            },
-            { password: sentinel }
-          )
-        );
-      } catch {
-        templateFailed = true;
-      }
-      expect(templateFailed).to.equal(true);
-
-      const logged = JSON.stringify([
-        ...mockSails.log.verbose.args,
-        ...mockSails.log.debug.args,
-        ...mockSails.log.info.args,
-        ...mockSails.log.warn.args,
-        ...mockSails.log.error.args,
-      ]);
-      expect(logged).not.to.contain(sentinel);
-      expect(logged).not.to.contain('private@example.test');
-      expect(logged).not.to.contain('secretToken');
-      expect(logged).not.to.contain('password');
-    });
-  });
-
   describe('assignPermissions', function () {
     it('should return record when trigger condition not met', async function () {
       const record = {
         metadata: {},
-        authorization: {},
+        authorization: {}
       };
       const options = {
-        triggerCondition: 'false',
+        triggerCondition: 'false'
       };
 
       sinon.stub(RDMPService, 'metTriggerCondition').returns('false');
@@ -911,10 +802,10 @@ describe('RDMPService', function () {
       const record: any = {
         metaMetadata: { createdBy: 'creator' },
         metadata: {},
-        authorization: {},
+        authorization: {}
       };
       const options = {
-        recordCreatorPermissions: 'view&edit',
+        recordCreatorPermissions: 'view&edit'
       };
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
@@ -930,10 +821,10 @@ describe('RDMPService', function () {
       const record: any = {
         metaMetadata: { createdBy: 'creator' },
         metadata: {},
-        authorization: {},
+        authorization: {}
       };
       const options = {
-        recordCreatorPermissions: 'view',
+        recordCreatorPermissions: 'view'
       };
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
@@ -947,16 +838,16 @@ describe('RDMPService', function () {
       const record = {
         metadata: {
           editors: [{ email: 'editor@test.com' }],
-          viewers: [{ email: 'viewer@test.com' }],
+          viewers: [{ email: 'viewer@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         viewContributorProperties: ['metadata.viewers'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'view&edit',
+        recordCreatorPermissions: 'view&edit'
       };
 
       // Mock user lookups
@@ -971,23 +862,19 @@ describe('RDMPService', function () {
     it('should resolve linked aliases to their effective primary usernames before assigning permissions', async function () {
       const record: any = {
         metadata: {
-          editors: [{ email: 'alias@test.com' }],
+          editors: [{ email: 'alias@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'edit',
+        recordCreatorPermissions: 'edit'
       };
 
-      configureModelMethod(mockUser.find, [
-        { username: 'alias-user', email: 'alias@test.com', linkedPrimaryUserId: 'primary-1' },
-      ]);
-      (global as any).UsersService.getEffectiveUser = sinon
-        .stub()
-        .returns(of({ username: 'primary-user', email: 'alias@test.com' }));
+      configureModelMethod(mockUser.find, [{ username: 'alias-user', email: 'alias@test.com', linkedPrimaryUserId: 'primary-1' }]);
+      (global as any).UsersService.getEffectiveUser = sinon.stub().returns(of({ username: 'primary-user', email: 'alias@test.com' }));
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -998,28 +885,25 @@ describe('RDMPService', function () {
     it('should assign linked users when duplicate email matches resolve to one effective user', async function () {
       const record: any = {
         metadata: {
-          editors: [{ email: 'duplicate@test.com' }],
+          editors: [{ email: 'duplicate@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'edit',
+        recordCreatorPermissions: 'edit'
       };
       const primaryUser = { username: 'primary-user', email: 'duplicate@test.com' };
 
       configureModelMethod(mockUser.find, [
         { username: 'alias-user', email: 'duplicate@test.com', linkedPrimaryUserId: 'primary-1' },
-        primaryUser,
+        primaryUser
       ]);
-      (global as any).UsersService.getEffectiveUser = sinon
-        .stub()
-        .onFirstCall()
-        .returns(of(primaryUser))
-        .onSecondCall()
-        .returns(of(primaryUser));
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of(primaryUser))
+        .onSecondCall().returns(of(primaryUser));
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -1030,27 +914,24 @@ describe('RDMPService', function () {
     it('should leave permissions pending when duplicate email matches are not linked', async function () {
       const record: any = {
         metadata: {
-          editors: [{ email: 'duplicate@test.com' }],
+          editors: [{ email: 'duplicate@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'edit',
+        recordCreatorPermissions: 'edit'
       };
 
       configureModelMethod(mockUser.find, [
         { username: 'first-user', email: 'duplicate@test.com' },
-        { username: 'second-user', email: 'duplicate@test.com' },
+        { username: 'second-user', email: 'duplicate@test.com' }
       ]);
-      (global as any).UsersService.getEffectiveUser = sinon
-        .stub()
-        .onFirstCall()
-        .returns(of({ username: 'first-user', email: 'duplicate@test.com' }))
-        .onSecondCall()
-        .returns(of({ username: 'second-user', email: 'duplicate@test.com' }));
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of({ username: 'first-user', email: 'duplicate@test.com' }))
+        .onSecondCall().returns(of({ username: 'second-user', email: 'duplicate@test.com' }));
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -1061,25 +942,22 @@ describe('RDMPService', function () {
     it('should assign one permission when unlinked duplicate email matches have the same username', async function () {
       const record: any = {
         metadata: {
-          editors: [{ email: 'duplicate@test.com' }],
+          editors: [{ email: 'duplicate@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'edit',
+        recordCreatorPermissions: 'edit'
       };
       const duplicateUser = { username: 'duplicate@test.com', email: 'duplicate@test.com' };
 
       configureModelMethod(mockUser.find, [duplicateUser, { ...duplicateUser }]);
-      (global as any).UsersService.getEffectiveUser = sinon
-        .stub()
-        .onFirstCall()
-        .returns(of(duplicateUser))
-        .onSecondCall()
-        .returns(of({ ...duplicateUser }));
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of(duplicateUser))
+        .onSecondCall().returns(of({ ...duplicateUser }));
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -1090,25 +968,25 @@ describe('RDMPService', function () {
     it('should assign one permission when linked duplicate email matches have the same username', async function () {
       const record: any = {
         metadata: {
-          editors: [{ email: 'duplicate@test.com' }],
+          editors: [{ email: 'duplicate@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'edit',
+        recordCreatorPermissions: 'edit'
       };
       const duplicateUser = { username: 'duplicate@test.com', email: 'duplicate@test.com' };
 
-      configureModelMethod(mockUser.find, [{ ...duplicateUser, linkedPrimaryUserId: 'primary-1' }, duplicateUser]);
-      (global as any).UsersService.getEffectiveUser = sinon
-        .stub()
-        .onFirstCall()
-        .returns(of(duplicateUser))
-        .onSecondCall()
-        .returns(of(duplicateUser));
+      configureModelMethod(mockUser.find, [
+        { ...duplicateUser, linkedPrimaryUserId: 'primary-1' },
+        duplicateUser
+      ]);
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of(duplicateUser))
+        .onSecondCall().returns(of(duplicateUser));
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -1119,15 +997,15 @@ describe('RDMPService', function () {
     it('should short-circuit view resolution when there are no view contributors', async function () {
       const record: any = {
         metadata: {
-          editors: [{ email: 'editor@test.com' }],
+          editors: [{ email: 'editor@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'edit',
+        recordCreatorPermissions: 'edit'
       };
 
       configureModelMethod(mockUser.find, [{ username: 'editor-user', email: 'editor@test.com' }]);
@@ -1145,26 +1023,23 @@ describe('RDMPService', function () {
       const record: any = {
         metadata: {
           editors: [{ email: 'creator@test.com' }],
-          viewers: [{ email: 'viewer@test.com' }],
+          viewers: [{ email: 'viewer@test.com' }]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         editContributorProperties: ['metadata.editors'],
         viewContributorProperties: ['metadata.viewers'],
         emailProperty: 'email',
-        recordCreatorPermissions: 'view&edit',
+        recordCreatorPermissions: 'view&edit'
       };
 
       mockUser.find.onFirstCall().returns(createQueryObject([{ username: 'creator', email: 'creator@test.com' }]));
       mockUser.find.onSecondCall().returns(createQueryObject([{ username: 'viewer-user', email: 'viewer@test.com' }]));
-      (global as any).UsersService.getEffectiveUser = sinon
-        .stub()
-        .onFirstCall()
-        .returns(of({ username: 'creator', email: 'creator@test.com' }))
-        .onSecondCall()
-        .throws(new Error('lookup failed'));
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of({ username: 'creator', email: 'creator@test.com' }))
+        .onSecondCall().throws(new Error('lookup failed'));
 
       const result: any = await firstValueFrom(RDMPService.assignPermissions('oid-1', record, options));
 
@@ -1177,10 +1052,10 @@ describe('RDMPService', function () {
     it('should return record when trigger condition not met', async function () {
       const record = {
         metadata: {},
-        authorization: {},
+        authorization: {}
       };
       const options = {
-        triggerCondition: 'false',
+        triggerCondition: 'false'
       };
 
       sinon.stub(RDMPService, 'metTriggerCondition').returns('false');
@@ -1195,17 +1070,17 @@ describe('RDMPService', function () {
         metadata: {
           contributors: [
             { email: 'editor@test.com', role: 'editor' },
-            { email: 'viewer@test.com', role: 'viewer' },
-          ],
+            { email: 'viewer@test.com', role: 'viewer' }
+          ]
         },
         metaMetadata: { createdBy: 'creator' },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         userProperties: ['metadata.contributors'],
         editPermissionRule: '<%= role === "editor" %>',
         viewPermissionRule: '<%= role === "viewer" %>',
-        emailProperty: 'email',
+        emailProperty: 'email'
       };
 
       const result = await firstValueFrom(RDMPService.complexAssignPermissions('oid-1', record, options));
@@ -1216,28 +1091,25 @@ describe('RDMPService', function () {
     it('should assign linked users when duplicate email matches resolve to one effective user', async function () {
       const record: any = {
         metadata: {
-          contributors: [{ email: 'duplicate@test.com', role: 'editor' }],
+          contributors: [{ email: 'duplicate@test.com', role: 'editor' }]
         },
-        authorization: {},
+        authorization: {}
       };
       const options = {
         userProperties: ['metadata.contributors'],
         editPermissionRule: '<%= role === "editor" %>',
         viewPermissionRule: '<%= false %>',
-        emailProperty: 'email',
+        emailProperty: 'email'
       };
       const primaryUser = { username: 'primary-user', email: 'duplicate@test.com' };
 
       configureModelMethod(mockUser.find, [
         { username: 'alias-user', email: 'duplicate@test.com', linkedPrimaryUserId: 'primary-1' },
-        primaryUser,
+        primaryUser
       ]);
-      (global as any).UsersService.getEffectiveUser = sinon
-        .stub()
-        .onFirstCall()
-        .returns(of(primaryUser))
-        .onSecondCall()
-        .returns(of(primaryUser));
+      (global as any).UsersService.getEffectiveUser = sinon.stub()
+        .onFirstCall().returns(of(primaryUser))
+        .onSecondCall().returns(of(primaryUser));
 
       const result: any = await firstValueFrom(RDMPService.complexAssignPermissions('oid-1', record, options));
 

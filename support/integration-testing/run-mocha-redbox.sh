@@ -56,13 +56,6 @@ npm run webpack
 # `should` package before Sails boots so moduleloader does not scan them.
 rm -rf node_modules/redoc node_modules/should
 
-# Mandatory generated production HTTP/native Mongo gate, including when custom paths are selected.
-# A separate Sails process preserves production CSRF and generated discovery isolation.
-RECORD_DEFINITION_TEST_MONGO_URL=mongodb://mongodb:27017/redbox_b09_native \
-  bash support/integration-testing/run-b09-native.sh
-RECORD_DEFINITION_TEST_MONGO_URL=mongodb://mongodb:27017/redbox_b11_native \
-  bash support/integration-testing/run-b11-native.sh
-
 # Run the redbox-core loader to generate shims before tests start
 # This is crucial because test files require services/models at top-level
 echo "Generating shims via redbox-core loader..."
@@ -113,5 +106,4 @@ exec "${nyc_cmd[@]}" --no-clean \
   "${final_args[@]}" \
   \
   "${mocha_config_args[@]}" \
-  --grep 'B09 generated HTTP|B10 generated service / native Mongo|B11 generated loader and native Mongo' --invert \
   --exit "${bootstrap_test}" "${test_args[@]}"

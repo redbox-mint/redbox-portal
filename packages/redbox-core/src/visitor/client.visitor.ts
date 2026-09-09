@@ -1209,6 +1209,16 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     const requiredRoles = Array.from(
       new Set(constraints?.map(b => b?.authorization?.allowRoles ?? [])?.filter(i => i.length > 0) ?? [])
     );
+    const deniedRoles = Array.from(
+      new Set(constraints?.map(b => b?.authorization?.denyRoles ?? [])?.filter(i => i.length > 0) ?? [])
+    );
+
+    const isDenied = deniedRoles?.some(roles => {
+      return Array.isArray(roles) && roles.length > 0 && currentUserRoles.some(c => roles.includes(c));
+    });
+    if (isDenied) {
+      return false;
+    }
 
     // The current user must have at least one of the roles required by each component.
     return requiredRoles?.every(i => {

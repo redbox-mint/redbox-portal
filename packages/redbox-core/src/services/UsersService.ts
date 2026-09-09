@@ -241,6 +241,30 @@ export namespace Services {
       return (resolved as AnyRecord | null) ?? (user as AnyRecord);
     }
 
+    private rewriteLinkedAuthorization(
+      current: AnyRecord,
+      primaryUsername: string,
+      secondaryUsername: string,
+      secondaryEmail: string
+    ): AnyRecord {
+      const editPending = ((current.editPending ?? []) as string[]).map(email => String(email).toLowerCase());
+      const viewPending = ((current.viewPending ?? []) as string[]).map(email => String(email).toLowerCase());
+      const replaceUsername = (username: string) => (username === secondaryUsername ? primaryUsername : username);
+      return {
+        ...current,
+        edit: _.uniq([
+          ..._.uniq((current.edit ?? []) as string[]).map(replaceUsername),
+          ...(editPending.includes(secondaryEmail) ? [primaryUsername] : []),
+        ]),
+        view: _.uniq([
+          ..._.uniq((current.view ?? []) as string[]).map(replaceUsername),
+          ...(viewPending.includes(secondaryEmail) ? [primaryUsername] : []),
+        ]),
+        editPending: editPending.filter(email => email !== secondaryEmail),
+        viewPending: viewPending.filter(email => email !== secondaryEmail),
+      };
+    }
+
     private async rewriteLinkedRecordAuthorizations(
       primaryUser: AnyRecord,
       secondaryUser: AnyRecord,
@@ -248,6 +272,7 @@ export namespace Services {
     ): Promise<number> {
       const secondaryUsername = String(secondaryUser.username ?? '');
       const secondaryEmail = String(secondaryUser.email ?? '').toLowerCase();
+      const primaryUsername = String(primaryUser.username ?? '');
       const records = await Record.find({
         or: [
           { 'authorization.edit': secondaryUsername },
@@ -261,46 +286,14 @@ export namespace Services {
 
       let rewrittenCount = 0;
       for (const record of records as unknown[]) {
-        const recordObj = _.cloneDeep(record) as AnyRecord;
-        const authorization = (recordObj.authorization ?? {}) as AnyRecord;
-        authorization.edit = _.uniq((authorization.edit ?? []) as string[]);
-        authorization.view = _.uniq((authorization.view ?? []) as string[]);
-        authorization.editPending = ((authorization.editPending ?? []) as string[]).map(email =>
-          String(email).toLowerCase()
-        );
-        authorization.viewPending = ((authorization.viewPending ?? []) as string[]).map(email =>
-          String(email).toLowerCase()
-        );
-        recordObj.authorization = authorization;
-
-        let changed = false;
-        const nextEdit = _.map(authorization.edit as string[], username =>
-          username === secondaryUsername ? String(primaryUser.username ?? '') : username
-        );
-        const nextView = _.map(authorization.view as string[], username =>
-          username === secondaryUsername ? String(primaryUser.username ?? '') : username
-        );
-        if (!_.isEqual(nextEdit, authorization.edit)) {
-          authorization.edit = _.uniq(nextEdit);
-          changed = true;
-        }
-        if (!_.isEqual(nextView, authorization.view)) {
-          authorization.view = _.uniq(nextView);
-          changed = true;
-        }
-
-        if (_.includes(authorization.editPending as string[], secondaryEmail)) {
-          authorization.editPending = _.without(authorization.editPending as string[], secondaryEmail);
-          authorization.edit = _.uniq([...(authorization.edit as string[]), String(primaryUser.username ?? '')]);
-          changed = true;
-        }
-        if (_.includes(authorization.viewPending as string[], secondaryEmail)) {
-          authorization.viewPending = _.without(authorization.viewPending as string[], secondaryEmail);
-          authorization.view = _.uniq([...(authorization.view as string[]), String(primaryUser.username ?? '')]);
-          changed = true;
-        }
-
-        if (changed) {
+        const recordObj = record as AnyRecord;
+        const currentAuthorization = (recordObj.authorization ?? {}) as AnyRecord;
+        if (
+          !_.isEqual(
+            this.rewriteLinkedAuthorization(currentAuthorization, primaryUsername, secondaryUsername, secondaryEmail),
+            currentAuthorization
+          )
+        ) {
           const oid = String(recordObj.redboxOid ?? '');
           const response = await RecordsService.mutateMetaInternal({
             actor: { kind: 'service', id: 'UsersService.rewriteLinkedRecordAuthorizations' },
@@ -312,39 +305,12 @@ export namespace Services {
             mutate: snapshot => {
               const candidate = snapshot as unknown as AnyRecord;
               const current = (candidate.authorization ?? {}) as AnyRecord;
-              const edit = _.uniq((current.edit ?? []) as string[]).map(username =>
-                username === secondaryUsername ? String(primaryUser.username ?? '') : username
+              candidate.authorization = this.rewriteLinkedAuthorization(
+                current,
+                primaryUsername,
+                secondaryUsername,
+                secondaryEmail
               );
-              const view = _.uniq((current.view ?? []) as string[]).map(username =>
-                username === secondaryUsername ? String(primaryUser.username ?? '') : username
-              );
-              const editPending = ((current.editPending ?? []) as string[])
-                .map(email => String(email).toLowerCase())
-                .filter(email => email !== secondaryEmail);
-              const viewPending = ((current.viewPending ?? []) as string[])
-                .map(email => String(email).toLowerCase())
-                .filter(email => email !== secondaryEmail);
-              candidate.authorization = {
-                ...current,
-                edit: _.uniq([
-                  ...edit,
-                  ...(((current.editPending ?? []) as string[]).some(
-                    email => String(email).toLowerCase() === secondaryEmail
-                  )
-                    ? [String(primaryUser.username ?? '')]
-                    : []),
-                ]),
-                view: _.uniq([
-                  ...view,
-                  ...(((current.viewPending ?? []) as string[]).some(
-                    email => String(email).toLowerCase() === secondaryEmail
-                  )
-                    ? [String(primaryUser.username ?? '')]
-                    : []),
-                ]),
-                editPending,
-                viewPending,
-              };
               return candidate;
             },
             retry: { idempotent: true, recomputable: true, maxAttempts: 3 },

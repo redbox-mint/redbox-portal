@@ -75,6 +75,7 @@ export class DataLocationModel extends FormFieldModel<DataLocationModelValueType
 @Component({
     selector: "redbox-data-location",
     templateUrl: "./data-location.component.html",
+    styleUrls: ["./data-location.component.scss"],
     standalone: false
 })
 export class DataLocationComponent extends FormFieldBaseComponent<DataLocationModelValueType> implements AfterViewInit, OnDestroy {

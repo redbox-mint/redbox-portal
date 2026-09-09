@@ -20,6 +20,7 @@ There are several configuration items that are specific to the ReDBox Portal:
 6. [Figshare publishing AppConfig](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing) manages how records are mapped and published to Figshare
 7. [RAiD publishing AppConfig](Configuring-RAiD-Publishing) manages brand-specific credentials, mapping, retry, and audit behaviour for RAiD minting
 8. [`recordValidation`](Server-Side-Form-Validation-Operations) controls authoritative form-validation timeout, bounded shadow reporting, and global/operation rollout modes
+9. [`recordSchema`](Record-Schema-Contract-Operations) controls the default-disabled record-schema contract feature, unknown-property policy, compiler/cache limits, retention, and integration pins
 
 ## Configuration Defaults (redbox-core)
 
@@ -55,6 +56,19 @@ The loader generates a shim:
 const { Config } = require('@researchdatabox/redbox-core');
 module.exports.appmode = Config.appmode;
 ```
+
+### Branding typeface limits (`sails.config.branding`)
+
+`packages/redbox-core/src/config/branding.config.ts` adds four operator-configurable positive integers (invalid values fall back to the defaults with a logged warning):
+
+| Key | Default | Behaviour |
+|---|---|---|
+| `typefaceFaceMaxBytes` | `2 * 1024 * 1024` | Maximum compressed bytes for a newly uploaded face |
+| `typefaceFamilyMaxBytes` | `8 * 1024 * 1024` | Maximum distinct compressed bytes referenced by a resulting custom draft |
+| `historyMaxVersions` | `3` | Newest complete branding versions retained per brand |
+| `typefaceOrphanGraceMs` | `24 * 60 * 60 * 1000` | Minimum unreferenced object age before daily reconciliation deletes it |
+
+Lowering limits later affects only new uploads: already active or retained faces are grandfathered and remain publishable and restorable as long as their stored bytes verify. There is no feature flag and no decompressed-size setting. Font objects live on the Flydrive primary disk under `branding-fonts/<brand-id>/<sha256>.woff2` and must persist alongside the database backup (history pruning on upgrade is irreversible).
 
 ## Hook-Provided Configuration
 
@@ -144,3 +158,4 @@ Compare these files to identify where a setting is being overwritten.
 - [Redbox Loader](Redbox-Loader) - How config shims are generated
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks
 - [Configuring Solr](Configuring-Solr) - Solr connection, schema, and pre-index mapping options
+- [Record Schema Contract Operations](Record-Schema-Contract-Operations) - Record-schema configuration, rollout, storage, retention, diagnostics, telemetry, and troubleshooting

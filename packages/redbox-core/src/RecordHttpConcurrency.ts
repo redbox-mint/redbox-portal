@@ -40,40 +40,26 @@ export interface PublicRecordConcurrencyRequestOptions {
   readonly formBacked?: boolean;
 }
 
-/**
- * `undefined` means absent; `MULTIPLE` means the header appeared more than
- * once, which every concurrency header treats as a request-contract error
- * rather than silently taking the first value.
- */
-const MULTIPLE = Symbol('multiple-header-values');
-type HeaderValue = unknown | typeof MULTIPLE;
-
 const PUBLIC_MUTATION_RESOLUTIONS: ReadonlySet<RecordConcurrencyResolution> = new Set([
   'direct',
   'client-auto-merged',
   'client-manually-resolved',
 ]);
 
-/** Read one header without invoking accessors or retaining unrelated headers. */
-function readHeader(headers: Readonly<Record<string, unknown>> | undefined, name: string): HeaderValue {
+/** Node normalizes incoming request-header names to lowercase. */
+function readHeader(headers: Readonly<Record<string, unknown>> | undefined, name: string): unknown {
   if (!headers || typeof headers !== 'object' || Array.isArray(headers)) return undefined;
-  const wanted = name.toLowerCase();
-  const matching = Object.entries(Object.getOwnPropertyDescriptors(headers)).filter(
-    ([key, descriptor]) => key.toLowerCase() === wanted && 'value' in descriptor
-  );
-  if (matching.length === 0) return undefined;
-  if (matching.length > 1) return MULTIPLE;
-  return matching[0][1].value;
+  return headers[name.toLowerCase()];
 }
 
-/** `null` marks a present but unusable value: duplicated or not a string. */
-function singleStringHeader(value: HeaderValue): string | undefined | null {
+/** `null` marks a present but unusable value, including a duplicate-value array. */
+function singleStringHeader(value: unknown): string | undefined | null {
   if (value === undefined) return undefined;
   return typeof value === 'string' ? value : null;
 }
 
 /** `null` for a present but unusable value is deliberately preserved, not trimmed away. */
-function trimmedHeader(value: HeaderValue): string | undefined | null {
+function trimmedHeader(value: unknown): string | undefined | null {
   const header = singleStringHeader(value);
   return typeof header === 'string' ? header.trim() : header;
 }
@@ -99,10 +85,7 @@ export function parsePublicRecordConcurrencyRequest(
   recordOid: string | undefined,
   options: PublicRecordConcurrencyRequestOptions = {}
 ): PublicRecordConcurrencyRequestResult {
-  // A duplicated If-Match is handed to the parser as a list so it produces the
-  // same rejection as a comma-joined one.
-  const ifMatch = readHeader(headers, RECORD_HTTP_HEADERS.ifMatch);
-  const ifMatchValue = ifMatch === MULTIPLE ? [] : ifMatch;
+  const ifMatchValue = readHeader(headers, RECORD_HTTP_HEADERS.ifMatch);
   // Create has no prior representation, so any supplied precondition is a
   // request-contract error rather than something to compare.
   let parsedTag: RecordEntityTagParseResult;
@@ -176,6 +159,15 @@ export function parsePublicRecordConcurrencyRequest(
       ...(suppliedLinkage ? { resolutionOfRequestId: suppliedLinkage } : {}),
     },
   };
+}
+
+export function recordConcurrencyRequestFailureResponse(
+  apiVersion: string,
+  failure: { readonly code: string; readonly header: string }
+): Record<string, unknown> {
+  return apiVersion === '1.0'
+    ? { status: 400, v1: { message: 'Invalid record concurrency request.' } }
+    : { status: 400, displayErrors: [{ code: failure.code, source: { header: failure.header } }] };
 }
 
 export interface RecordRepresentationConcurrency {

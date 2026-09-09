@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-import type { RuntimeRecord, RuntimeValue } from '../runtimeValues';
 
 export type LifecycleHook =
   | 'beforeCreate'
@@ -11,28 +10,31 @@ export type LifecycleHook =
   | 'afterDestroy'
   | 'afterValidate';
 
-export type Constructor<T = object> = new (...args: RuntimeValue[]) => T;
+export type Constructor<T = unknown> = new (...args: unknown[]) => T;
 
-export type LifecycleHandler = (recordOrRecords: RuntimeRecord, proceed: (err?: Error) => void) => void;
+export type LifecycleHandler = (
+  recordOrRecords: Record<string, unknown>,
+  proceed: (err?: Error) => void,
+) => void;
 
 export interface AttributeOptions {
-  [key: string]: RuntimeValue | CallableFunction;
+  [key: string]: unknown;
   type?: string;
   required?: boolean;
   unique?: boolean;
-  defaultsTo?: RuntimeValue;
+  defaultsTo?: unknown;
   columnName?: string;
   columnType?: string;
   allowNull?: boolean;
   autoCreatedAt?: boolean;
   autoUpdatedAt?: boolean;
   description?: string;
-  example?: RuntimeValue;
+  example?: unknown;
   model?: string;
   collection?: string;
   via?: string;
   dominant?: boolean;
-  custom?: (value: RuntimeValue) => boolean;
+  custom?: (value: unknown) => boolean;
 }
 
 export interface EntityOptions {
@@ -42,13 +44,12 @@ export interface EntityOptions {
   migrate?: 'alter' | 'drop' | 'safe';
   datastore?: string;
   schema?: boolean;
-  dontUseObjectIds?: boolean;
   autoCreatedAt?: boolean;
   autoUpdatedAt?: boolean;
-  indexes?: RuntimeRecord[];
+  indexes?: Record<string, unknown>[];
   archiveModelIdentity?: string;
   archiveDateField?: string;
-  [key: string]: RuntimeValue | CallableFunction;
+  [key: string]: unknown;
 }
 
 export interface EntityMeta {
@@ -61,13 +62,12 @@ export interface EntityMeta {
     migrate?: 'alter' | 'drop' | 'safe';
     datastore?: string;
     schema?: boolean;
-    dontUseObjectIds?: boolean;
     autoCreatedAt?: boolean;
     autoUpdatedAt?: boolean;
-    indexes?: RuntimeRecord[];
+    indexes?: Record<string, unknown>[];
     archiveModelIdentity?: string;
     archiveDateField?: string;
-    [key: string]: RuntimeValue | CallableFunction;
+    [key: string]: unknown;
   };
   attributes: Record<string, AttributeOptions>;
   lifecycle: Partial<Record<LifecycleHook, LifecycleHandler[]>>;
@@ -80,21 +80,20 @@ export interface WaterlineModelDefinition {
   migrate?: 'alter' | 'drop' | 'safe';
   datastore?: string;
   schema?: boolean;
-  dontUseObjectIds?: boolean;
   autoCreatedAt?: boolean;
   autoUpdatedAt?: boolean;
-  indexes?: RuntimeRecord[];
+  indexes?: Record<string, unknown>[];
   archiveModelIdentity?: string;
   archiveDateField?: string;
   attributes: Record<string, AttributeOptions>;
   // Lifecycle hooks are functions with signature (recordOrRecords, proceed) => void
-  beforeCreate?: LifecycleHandler;
-  beforeUpdate?: LifecycleHandler;
-  beforeDestroy?: LifecycleHandler;
-  beforeValidate?: LifecycleHandler;
-  afterCreate?: LifecycleHandler;
-  afterUpdate?: LifecycleHandler;
-  afterDestroy?: LifecycleHandler;
-  afterValidate?: LifecycleHandler;
-  [key: string]: RuntimeValue | CallableFunction;
+  beforeCreate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  beforeUpdate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  beforeDestroy?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  beforeValidate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterCreate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterUpdate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterDestroy?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  afterValidate?: (recordOrRecords: Record<string, unknown>, proceed: (err?: Error) => void) => void;
+  [key: string]: unknown;
 }

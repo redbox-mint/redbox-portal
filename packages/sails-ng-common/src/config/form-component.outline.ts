@@ -298,6 +298,12 @@ export interface FormConstraintAuthorizationConfigFrame {
      * e.g. allowRoles: ['Admin', 'Librarians'],
      */
     allowRoles?: string[];
+    /**
+     * The form field will be excluded if the current user has any of these roles.
+     *
+     * e.g. denyRoles: ['Admin', 'Librarians'],
+     */
+    denyRoles?: string[];
 }
 
 export interface FormConstraintAuthorizationConfigOutline extends FormConstraintAuthorizationConfigFrame {

@@ -141,7 +141,7 @@ describe('Migrate v4 to v5 Visitor', async () => {
     expect(migrated.componentDefinitions[saveStatusIndex].component.class).to.equal('SaveStatusComponent');
     expect(migrated.componentDefinitions[validationSummaryIndex].component.class).to.equal('ValidationSummaryComponent');
     expect(migrated.componentDefinitions[validationSummaryIndex].constraints).to.deep.equal({
-      authorization: { allowRoles: [] },
+      authorization: { allowRoles: [], denyRoles: [] },
       allowModes: [],
     });
   });

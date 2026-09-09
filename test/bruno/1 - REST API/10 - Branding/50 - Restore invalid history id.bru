@@ -1,0 +1,35 @@
+meta {
+  name: Restore invalid history id
+  type: http
+  seq: 50
+}
+
+post {
+  url: {{host}}/default/rdmp/api/branding/restore/invalid-history-id
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "expectedVersion": {{rb_version}},
+    "expectedDraftRevision": {{rb_revision}}
+  }
+}
+
+tests {
+  test("Status code is 404 for invalid history ID", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("Contains history-not-found error", function(){
+    var raw = res.getBody();
+    var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    expect(body.message).to.equal('history-not-found');
+  });
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Save Dashboard View Step Config
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{host}}/default/rdmp/api/dashboard-config/merged-view/consolidated/consolidated
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+body:json {
+  {
+    "dashboardType": "consolidated",
+    "tableConfig": {
+      "formatRules": {
+        "sortBy": "metadata.title"
+      }
+    }
+  }
+}
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Saves the dashboard view step override", function () {
+    var jsonData = res.getBody();
+    expect(jsonData.data.views.consolidated.steps.consolidated.dashboardType).to.equal("consolidated");
+    expect(jsonData.data.views.consolidated.steps.consolidated.tableConfig.formatRules.sortBy).to.equal("metadata.title");
+  });
+}

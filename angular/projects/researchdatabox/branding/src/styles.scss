@@ -1,3 +1,6 @@
+// Inherit the active Brand Typeface when one is published; the default stack
+// preserves current typography otherwise. A hardcoded family here would beat
+// the generated theme (this bundle loads after theme.css) and pin old type.
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--rb-brand-font-family, Arial, Helvetica, sans-serif);
 }

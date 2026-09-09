@@ -14,6 +14,7 @@ import { harvestRunApiRoutes } from './groups/harvest-runs';
 import { integrationAuditApiRoutes } from './groups/integration-audit';
 import { notificationApiRoutes } from './groups/notifications';
 import { recordApiRoutes } from './groups/records';
+import { recordSchemaApiRoutes } from './groups/record-schemas';
 import { recordTypeApiRoutes } from './groups/recordtypes';
 import { reportsApiRoutes } from './groups/reports';
 import { searchApiRoutes } from './groups/search';
@@ -30,6 +31,7 @@ const apiDocumentInfo = {
 
 const coreApiRouteGroups = [
   recordApiRoutes,
+  recordSchemaApiRoutes,
   userApiRoutes,
   searchApiRoutes,
   formApiRoutes,

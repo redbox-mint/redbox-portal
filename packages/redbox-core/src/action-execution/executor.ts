@@ -2,14 +2,12 @@ import { Effect } from 'effect';
 import * as Cause from 'effect/Cause';
 import * as Fiber from 'effect/Fiber';
 import { randomUUID } from 'node:crypto';
-import type { RuntimeValue } from '../runtimeValues';
 import { ActionInterruptedFailure, ActionTimeoutFailure, normalizeActionFailure } from './failure';
 import { retryDelayMs, validateActionExecutionPolicy } from './policy';
 import type {
   ActionExecutionAction,
   ActionExecutionContext,
   ActionExecutionDependencies,
-  ActionExecutionCounts,
   ActionExecutionOperation,
   ActionExecutionOutcome,
   ActionExecutionReport,
@@ -19,36 +17,27 @@ import type {
   ActionSkippedReason,
   SafeActionFailure,
 } from './types';
-import { EMPTY_ACTION_COUNTS } from './types';
 
 /** A single attempt that fulfilled. */
 interface AttemptSuccess {
   ok: true;
-  value: RuntimeValue;
+  value: unknown;
 }
 
 /** A single attempt that failed, keeping the raw cause for the legacy adapter. */
 interface AttemptFailure {
   ok: false;
   failure: SafeActionFailure;
-  cause: RuntimeValue;
+  cause: unknown;
 }
 
 type Attempt = AttemptSuccess | AttemptFailure;
 
 /** An action after all of its attempts, paired with its serializable result. */
-interface AttemptedAction {
-  skipped: false;
+interface ExecutedAction {
   attempt: Attempt;
   result: ActionExecutionResult;
 }
-
-interface SkippedAction {
-  skipped: true;
-  result: ActionExecutionResult;
-}
-
-type ExecutedAction = AttemptedAction | SkippedAction;
 
 /**
  * A failed action is reported as its own status when the executor itself ended
@@ -79,19 +68,8 @@ function durationMs(startedAt: string, completedAt: string): number {
   return Math.max(0, Math.round(new Date(completedAt).getTime() - new Date(startedAt).getTime()));
 }
 
-function countByStatus(results: readonly ActionExecutionResult[]): ActionExecutionCounts {
-  const counts = { ...EMPTY_ACTION_COUNTS };
-  for (const result of results) {
-    counts[result.status] += 1;
-  }
-  return counts;
-}
-
 function isCooperativelyCancellable(action: ActionExecutionAction): boolean {
-  if (typeof action.cooperativeCancellation === 'function') {
-    return action.cooperativeCancellation();
-  }
-  return action.cooperativeCancellation !== false;
+  return action.cooperativeCancellation?.() ?? true;
 }
 
 function maxAttempts(action: Pick<ActionExecutionAction, 'policy'>): number {
@@ -104,8 +82,8 @@ function commonFields(
   context: ActionExecutionContext,
   action: LoggableAction,
   attempt?: number
-): Record<string, RuntimeValue> {
-  const fields: Record<string, RuntimeValue> = {
+): Record<string, unknown> {
+  const fields: Record<string, unknown> = {
     execution_id: context.executionId,
     phase_execution_id: context.phaseExecutionId,
   };
@@ -182,7 +160,7 @@ function logActionStart(
  * interruptions are converted to branded failures so normalization stays
  * deterministic.
  */
-function failureCause(cause: Cause.Cause<RuntimeValue>): RuntimeValue {
+function failureCause(cause: Cause.Cause<unknown>): unknown {
   const failure = Cause.failureOrCause(cause);
   if (failure._tag === 'Left') {
     return failure.left;
@@ -190,14 +168,14 @@ function failureCause(cause: Cause.Cause<RuntimeValue>): RuntimeValue {
   if (Cause.isInterruptedOnly(cause)) {
     return new ActionInterruptedFailure(true);
   }
-  return Cause.squash(failure.right) as RuntimeValue;
+  return Cause.squash(failure.right);
 }
 
 function runAttempt(action: ActionExecutionAction) {
   return Effect.gen(function* () {
     // suspend is deliberate: the legacy adapter invokes the resolved function
     // only when the attempt starts, so retries receive the same live arguments.
-    let effect: Effect.Effect<RuntimeValue, RuntimeValue, never> = Effect.suspend(() => action.invoke());
+    let effect: Effect.Effect<unknown, unknown, never> = Effect.suspend(() => action.invoke());
     if (action.policy?.timeoutMs !== undefined) {
       effect = effect.pipe(
         Effect.timeoutFail({
@@ -247,15 +225,9 @@ function executeAction(
   dependencies: ActionExecutionDependencies,
   context: ActionExecutionContext,
   detached = false,
-  project?: (value: RuntimeValue) => void
+  project?: (value: unknown) => void
 ): Effect.Effect<ExecutedAction, never, never> {
   return Effect.gen(function* () {
-    if (action.shouldRun !== undefined && !(yield* action.shouldRun())) {
-      return {
-        skipped: true,
-        result: skippedResult(action, action.skippedReason ?? 'trigger_disabled', dependencies),
-      } satisfies SkippedAction;
-    }
     const startedAt = iso(now(dependencies));
     let attemptNumber = 0;
     let attempt: Attempt;
@@ -279,29 +251,18 @@ function executeAction(
       retryFields.delay_ms = delay;
       dependencies.logger?.warn?.('record_hook_action_retry_scheduled', retryFields);
       if (delay > 0) {
-        yield* dependencies.sleep?.(delay) ?? Effect.sleep(`${delay} millis`);
+        yield* (dependencies.sleep?.(delay) ?? Effect.sleep(`${delay} millis`));
       }
     }
 
     if (attempt.ok && project) {
       try {
-        action.project?.(attempt.value);
         project(attempt.value);
       } catch (error) {
         attempt = {
           ok: false,
-          cause: error as RuntimeValue,
-          failure: normalizeActionFailure(error as RuntimeValue, isCooperativelyCancellable(action)),
-        };
-      }
-    } else if (attempt.ok && action.project !== undefined) {
-      try {
-        action.project(attempt.value);
-      } catch (error) {
-        attempt = {
-          ok: false,
-          cause: error as RuntimeValue,
-          failure: normalizeActionFailure(error as RuntimeValue, isCooperativelyCancellable(action)),
+          cause: error,
+          failure: normalizeActionFailure(error, isCooperativelyCancellable(action)),
         };
       }
     }
@@ -322,7 +283,7 @@ function executeAction(
       result.failure = attempt.failure;
     }
     logActionResult(dependencies, context, action, result, detached);
-    return { skipped: false, attempt, result } satisfies AttemptedAction;
+    return { attempt, result };
   });
 }
 
@@ -363,7 +324,6 @@ export function createActionExecutionOperation(
 ): ActionExecutionOperation {
   const operation: ActionExecutionOperation = {
     executionId: newId(dependencies),
-    trigger: 'record-hook',
     mode,
     reports: [],
     startedAt: iso(now(dependencies)),
@@ -383,17 +343,11 @@ export function createActionExecutionOperation(
  * a closed datastore.
  */
 export function createActionExecutionSupervisor(): ActionExecutionDependencies['supervisor'] {
-  const fibers = new Set<Fiber.Fiber<RuntimeValue, RuntimeValue>>();
+  const fibers = new Set<Fiber.RuntimeFiber<unknown, unknown>>();
   return {
-    register(fiber: RuntimeValue): void {
-      if (fiber !== null && typeof fiber === 'object') {
-        fibers.add(fiber as Fiber.Fiber<RuntimeValue, RuntimeValue>);
-      }
-    },
-    unregister(fiber: RuntimeValue): void {
-      if (fiber !== null && typeof fiber === 'object') {
-        fibers.delete(fiber as Fiber.Fiber<RuntimeValue, RuntimeValue>);
-      }
+    register(fiber): void {
+      fibers.add(fiber);
+      fiber.addObserver(() => fibers.delete(fiber));
     },
     interruptAll(): void {
       const active = Array.from(fibers);
@@ -414,7 +368,6 @@ export function createPhaseContext(
   const context: ActionExecutionContext = {
     executionId: operation.executionId,
     phaseExecutionId: newId(dependencies),
-    trigger: 'record-hook',
     mode,
     phase,
   };
@@ -436,16 +389,12 @@ function makeReport(
 ): ActionExecutionReport {
   const completedAt = iso(now(dependencies));
   const report: ActionExecutionReport = {
-    schemaVersion: 1,
-    executionId: context.executionId,
-    phaseExecutionId: context.phaseExecutionId,
     context,
     status,
     startedAt,
     completedAt,
     durationMs: durationMs(startedAt, completedAt),
     actions: results,
-    counts: countByStatus(results),
   };
 
   const fields = commonFields(context, { actionId: 'phase', mode: context.mode, phase: context.phase, index: -1 });
@@ -465,25 +414,18 @@ export function runSequentialActionPlan(
   actions: readonly ActionExecutionAction[],
   context: ActionExecutionContext,
   dependencies: ActionExecutionDependencies = {},
-  onSuccess?: (value: RuntimeValue, actionIndex: number) => void
+  onSuccess?: (value: unknown, actionIndex: number) => void
 ): Effect.Effect<ActionExecutionOutcome, never, never> {
   const plan = validatedPlan(actions);
   return Effect.gen(function* () {
     const startedAt = iso(now(dependencies));
-    const values: RuntimeValue[] = [];
     const results: ActionExecutionResult[] = [];
-    let terminalCause: RuntimeValue;
+    let terminalCause: unknown;
     let failed = false;
 
     for (const [index, action] of plan.entries()) {
-      const executed = yield* executeAction(action, dependencies, context, false, value => {
-        onSuccess?.(value, index);
-        values.push(value);
-      });
+      const executed = yield* executeAction(action, dependencies, context, false, value => onSuccess?.(value, index));
       results.push(executed.result);
-      if (executed.skipped) {
-        continue;
-      }
       if (executed.attempt.ok) {
         continue;
       }
@@ -496,7 +438,7 @@ export function runSequentialActionPlan(
     }
 
     const report = makeReport(context, results, startedAt, dependencies, failed ? 'failed' : 'completed');
-    const outcome: ActionExecutionOutcome = { report, values };
+    const outcome: ActionExecutionOutcome = { report };
     if (terminalCause !== undefined) {
       outcome.terminalCause = terminalCause;
     }
@@ -540,7 +482,9 @@ export function dispatchDetachedActionPlan(
     // each action still happens in configuration order.
     const fiber = Effect.runFork(
       executeAction(action, dependencies, context, true).pipe(
-        Effect.tap(executed => Effect.sync(() => dependencies.onDetachedActionComplete?.(context, executed.result))),
+        Effect.tap(executed =>
+          Effect.sync(() => dependencies.onDetachedActionComplete?.(context, executed.result))
+        ),
         Effect.onExit(exit => {
           if (exit._tag === 'Failure') {
             const interrupted = Cause.isInterruptedOnly(exit.cause);
@@ -576,26 +520,7 @@ export function dispatchDetachedActionPlan(
       )
     );
     dependencies.supervisor?.register?.(fiber);
-    // Awaiting the fiber from a separate watcher avoids retaining completed
-    // fibers in the supervisor set while keeping shutdown interruption cheap.
-    if (dependencies.supervisor?.unregister) {
-      Effect.runFork(
-        Fiber.await(fiber).pipe(
-          Effect.flatMap(() => Effect.sync(() => dependencies.supervisor?.unregister?.(fiber))),
-          Effect.catchAll(() => Effect.sync(() => dependencies.supervisor?.unregister?.(fiber)))
-        )
-      );
-    }
   }
 
-  return { report: makeReport(context, results, startedAt, dependencies, 'dispatched'), values: [] };
-}
-
-/** Promise bridge for callers outside an Effect program. */
-export async function runActionPlan(
-  actions: readonly ActionExecutionAction[],
-  context: ActionExecutionContext,
-  dependencies: ActionExecutionDependencies = {}
-): Promise<ActionExecutionOutcome> {
-  return Effect.runPromise(runSequentialActionPlan(actions, context, dependencies));
+  return { report: makeReport(context, results, startedAt, dependencies, 'dispatched') };
 }

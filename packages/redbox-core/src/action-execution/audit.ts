@@ -1,35 +1,47 @@
 import type {
   ActionExecutionMode,
   ActionExecutionOperation,
+  ActionExecutionPhase,
   ActionExecutionReport,
   ActionExecutionResult,
   ActionExecutionStatus,
+  ActionFailureKind,
+  ActionSkippedReason,
 } from './types';
-import type {
-  RecordActionExecutionActionSummary,
-  RecordActionExecutionSummary,
-} from '@researchdatabox/sails-ng-common';
-import { RECORD_SAVE_PUBLIC_FIELD_LIMITS } from '@researchdatabox/sails-ng-common';
 
-export type DetachedAuditFinalization = NonNullable<RecordActionExecutionSummary['detachedFinalization']>;
-export type RecordHookExecutionAuditAction = RecordActionExecutionActionSummary;
-export type RecordHookExecutionAuditSummary = RecordActionExecutionSummary;
+export type DetachedAuditFinalization = 'complete' | 'grace-expired';
+
+export interface RecordHookExecutionAuditAction {
+  actionId: string;
+  mode: ActionExecutionMode;
+  phase: ActionExecutionPhase;
+  status: ActionExecutionStatus;
+  attempts: number;
+  durationMs: number;
+  failureKind?: ActionFailureKind;
+  failureCode?: string;
+  skippedReason?: ActionSkippedReason;
+}
+
+export interface RecordHookExecutionAuditSummary {
+  schemaVersion: 1;
+  executionId: string;
+  requestId?: string;
+  trigger: 'record-hook';
+  operation: 'create' | 'update' | 'delete' | 'transition';
+  partial: boolean;
+  completedThrough?: 'pre' | 'persistence' | 'postSync' | 'post-dispatch';
+  detachedFinalization?: DetachedAuditFinalization;
+  detachedPending?: number;
+  durationMs: number;
+  totalActions: number;
+  counts: Partial<Record<ActionExecutionStatus, number>>;
+  actions: RecordHookExecutionAuditAction[];
+  truncated: boolean;
+}
 
 /** The design caps a persisted summary at the first 100 actions. */
 const MAX_AUDIT_ACTIONS = 100;
-
-function projectTransition(transition: ActionExecutionOperation['transition']) {
-  if (!transition) return undefined;
-  const { transitionId, definitionRevisionId, sourceStage, targetStage } = transition;
-  // Reject malformed evidence rather than coercing objects or truncating identities.
-  if (
-    ![transitionId, definitionRevisionId, sourceStage, targetStage].every(
-      value => typeof value === 'string' && value.length <= RECORD_SAVE_PUBLIC_FIELD_LIMITS.maxFieldLength
-    )
-  )
-    return undefined;
-  return { transitionId, definitionRevisionId, sourceStage, targetStage };
-}
 
 const OPERATION_BY_MODE: Record<ActionExecutionMode, RecordHookExecutionAuditSummary['operation']> = {
   onCreate: 'create',
@@ -142,10 +154,8 @@ export function projectRecordHookExecutionAuditSummary(
     }
   }
 
-  const transition = projectTransition(operation.transition);
   const summary: RecordHookExecutionAuditSummary = {
     schemaVersion: 1,
-    ...(transition ? { transition } : {}),
     executionId: operation.executionId,
     trigger: 'record-hook',
     operation: OPERATION_BY_MODE[operation.mode],

@@ -314,6 +314,7 @@ function createMigratedFigsharePublishingConfig(
       forceSync: Boolean(mapping.figshareForceEmbargoUpdateAlways),
       accessRights: {
         accessRights: { kind: 'path', path: 'metadata.accessRights' },
+        embargoType: { kind: 'path', path: 'metadata.embargoType', defaultValue: 'article' },
         fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
         reason: { kind: 'path', path: 'metadata.embargoReason' }
       }

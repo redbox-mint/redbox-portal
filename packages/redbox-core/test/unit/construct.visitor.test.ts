@@ -666,6 +666,35 @@ describe("Construct Visitor", async () => {
               hideWhenInactive: true,
             });
         });
+
+        it("should include save status message properties", async function () {
+            const visitor = new ConstructFormConfigVisitor(logger);
+            const expectedConfig = {
+              successDisplayDurationMs: 5000,
+              warningMessageCreate: "@storage-workspace-save-warning",
+              warningMessageUpdate: "@storage-workspace-save-warning",
+              unknownMessageCreate: "@storage-workspace-save-unknown",
+              unknownMessageUpdate: "@storage-workspace-save-unknown",
+            };
+            const actual = await visitor.start({
+                formMode: "edit",
+                data: {
+                    name: "test",
+                    componentDefinitions: [
+                      {
+                        name: "save_status",
+                        component: {
+                          class: "SaveStatusComponent",
+                          config: { ...expectedConfig }
+                        }
+                      }
+                    ]
+                }
+            });
+
+            expect(actual.componentDefinitions?.[0]?.component?.class).to.equal("SaveStatusComponent");
+            expect(actual.componentDefinitions?.[0]?.component?.config).to.containSubset(expectedConfig);
+        });
     });
 
     describe("record metadata retriever", async () => {

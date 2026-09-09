@@ -1,8 +1,3 @@
-import * as RecordDefinitionSeedServiceModule from './RecordDefinitionSeedService';
-import * as RecordDefinitionAdminServiceModule from './RecordDefinitionAdminService';
-import * as ActionSecretServiceModule from './ActionSecretService';
-import * as WorkflowTransitionServiceModule from './WorkflowTransitionService';
-import * as RecordDefinitionRuntimeServiceModule from './RecordDefinitionRuntimeService';
 /**
  * Services index - exports all service classes and creates ServiceExports object
  * for consumption by the redbox-core loader shim generation
@@ -16,6 +11,7 @@ import * as AsynchsServiceModule from './AsynchsService';
 import * as BrandingLogoServiceModule from './BrandingLogoService';
 import * as BrandingServiceModule from './BrandingService';
 import * as BrandingThemeCssServiceModule from './BrandingThemeCssService';
+import * as BrandingTypefaceServiceModule from './BrandingTypefaceService';
 import * as CacheServiceModule from './CacheService';
 import * as ConfigServiceModule from './ConfigService';
 import * as ContrastServiceModule from './ContrastService';
@@ -41,10 +37,8 @@ import * as PathRulesServiceModule from './PathRulesService';
 import * as RaidServiceModule from './RaidService';
 import * as RDMPServiceModule from './RDMPService';
 import * as RecordsServiceModule from './RecordsService';
-import * as RecordDefinitionDraftServiceModule from './RecordDefinitionDraftService';
-import * as RecordDefinitionPublicationServiceModule from './RecordDefinitionPublicationService';
-import * as RecordDefinitionValidationServiceModule from './RecordDefinitionValidationService';
 import * as RecordTypesServiceModule from './RecordTypesService';
+import * as RecordSchemaServiceModule from './RecordSchemaService';
 import * as RecordValidationServiceModule from './RecordValidationService';
 import * as ReportsServiceModule from './ReportsService';
 import * as RolesServiceModule from './RolesService';
@@ -64,6 +58,7 @@ import * as WorkspaceTypesServiceModule from './WorkspaceTypesService';
 import * as RvaImportServiceModule from './RvaImportService';
 import * as StorageManagerServiceModule from './StorageManagerService';
 import * as StandardDatastreamServiceModule from './StandardDatastreamService';
+import { RecordContractContributorRegistry, type RecordContractContributorDiscoveryState } from '../record-contract';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
@@ -73,6 +68,7 @@ export { AsynchsServiceModule as AsynchsService };
 export { BrandingLogoServiceModule as BrandingLogoService };
 export { BrandingServiceModule as BrandingService };
 export { BrandingThemeCssServiceModule as BrandingThemeCssService };
+export { BrandingTypefaceServiceModule as BrandingTypefaceService };
 export { CacheServiceModule as CacheService };
 export { ConfigServiceModule as ConfigService };
 export { ContrastServiceModule as ContrastService };
@@ -98,14 +94,8 @@ export { PathRulesServiceModule as PathRulesService };
 export { RaidServiceModule as RaidService };
 export { RDMPServiceModule as RDMPService };
 export { RecordsServiceModule as RecordsService };
-export { RecordDefinitionAdminServiceModule as RecordDefinitionAdminService };
-export { ActionSecretServiceModule as ActionSecretService };
-export { RecordDefinitionDraftServiceModule as RecordDefinitionDraftService };
-export { WorkflowTransitionServiceModule as WorkflowTransitionService };
-export { RecordDefinitionRuntimeServiceModule as RecordDefinitionRuntimeService };
-export { RecordDefinitionPublicationServiceModule as RecordDefinitionPublicationService };
-export { RecordDefinitionValidationServiceModule as RecordDefinitionValidationService };
 export { RecordTypesServiceModule as RecordTypesService };
+export { RecordSchemaServiceModule as RecordSchemaService };
 export { RecordValidationServiceModule as RecordValidationService };
 export { ReportsServiceModule as ReportsService };
 export { RolesServiceModule as RolesService };
@@ -137,6 +127,39 @@ export { StandardDatastreamServiceModule as StandardDatastreamService };
  * sails globals are available.
  */
 const serviceCache: Record<string, unknown> = {};
+
+const UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE: RecordContractContributorDiscoveryState = Object.freeze({
+  registrations: Object.freeze([]),
+  registrationIssues: Object.freeze([]),
+  componentTypes: Object.freeze([]),
+});
+let resolvedRecordSchemaContributorState: RecordContractContributorDiscoveryState | undefined;
+let resolvedRecordSchemaContributorRegistry: RecordContractContributorRegistry | undefined;
+
+function configuredRecordSchemaContributorState(): RecordContractContributorDiscoveryState {
+  return sails.config.recordContractContributorState ?? UNBOUND_RECORD_SCHEMA_CONTRIBUTOR_STATE;
+}
+
+function configuredRecordSchemaContributorRegistry(): RecordContractContributorRegistry | undefined {
+  const state = configuredRecordSchemaContributorState();
+  if (state !== resolvedRecordSchemaContributorState) {
+    resolvedRecordSchemaContributorState = state;
+    resolvedRecordSchemaContributorRegistry =
+      state.registrationIssues.length === 0 && state.registrations.length > 0
+        ? new RecordContractContributorRegistry(state.registrations)
+        : undefined;
+  }
+  return resolvedRecordSchemaContributorRegistry;
+}
+
+const recordSchemaContributorDependencies: Pick<
+  RecordSchemaServiceModule.RecordSchemaServiceDependencies,
+  'getContributorRegistry' | 'getContributorRegistrationIssues' | 'getContributorComponentTypes'
+> = {
+  getContributorRegistry: configuredRecordSchemaContributorRegistry,
+  getContributorRegistrationIssues: () => configuredRecordSchemaContributorState().registrationIssues,
+  getContributorComponentTypes: () => configuredRecordSchemaContributorState().componentTypes,
+};
 
 function getOrCreateService(name: string, factory: () => unknown): unknown {
   if (!serviceCache[name]) {
@@ -173,6 +196,11 @@ export const ServiceExports = {
   get BrandingThemeCssService() {
     return getOrCreateService('BrandingThemeCssService', () =>
       new BrandingThemeCssServiceModule.Services.BrandingThemeCss().exports()
+    );
+  },
+  get BrandingTypefaceService() {
+    return getOrCreateService('BrandingTypefaceService', () =>
+      new BrandingTypefaceServiceModule.Services.BrandingTypeface().exports()
     );
   },
   get CacheService() {
@@ -214,10 +242,14 @@ export const ServiceExports = {
     );
   },
   get IntegrationAuditService() {
-    return getOrCreateService('IntegrationAuditService', () => new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports());
+    return getOrCreateService('IntegrationAuditService', () =>
+      new IntegrationAuditServiceModule.Services.IntegrationAuditService().exports()
+    );
   },
   get IntegrationNotificationService() {
-    return getOrCreateService('IntegrationNotificationService', () => new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports());
+    return getOrCreateService('IntegrationNotificationService', () =>
+      new IntegrationNotificationServiceModule.Services.IntegrationNotificationService().exports()
+    );
   },
   get FormRecordConsistencyService() {
     return getOrCreateService('FormRecordConsistencyService', () =>
@@ -268,45 +300,14 @@ export const ServiceExports = {
   get RecordsService() {
     return getOrCreateService('RecordsService', () => new RecordsServiceModule.Services.Records().exports());
   },
-  get RecordDefinitionAdminService(): Pick<RecordDefinitionAdminServiceModule.Services.RecordDefinitionAdmin, 'handle'> {
-    return getOrCreateService('RecordDefinitionAdminService', () => new RecordDefinitionAdminServiceModule.Services.RecordDefinitionAdmin().exports()) as object as Pick<RecordDefinitionAdminServiceModule.Services.RecordDefinitionAdmin, 'handle'>;
-  },
-  get ActionSecretService(): ActionSecretServiceModule.ActionSecretServiceExports {
-    return getOrCreateService('ActionSecretService', () =>
-      new ActionSecretServiceModule.Services.ActionSecrets().exports()
-    ) as object as ActionSecretServiceModule.ActionSecretServiceExports;
-  },
-  get RecordDefinitionDraftService(): RecordDefinitionDraftServiceModule.RecordDefinitionDraftServiceExports {
-    return getOrCreateService('RecordDefinitionDraftService', () =>
-      new RecordDefinitionDraftServiceModule.Services.RecordDefinitionDraftLifecycle().exports()
-    ) as object as RecordDefinitionDraftServiceModule.RecordDefinitionDraftServiceExports;
-  },
-  get WorkflowTransitionService(): WorkflowTransitionServiceModule.WorkflowTransitionServiceExports {
-    return getOrCreateService('WorkflowTransitionService', () =>
-      new WorkflowTransitionServiceModule.Services.WorkflowTransition().exports()
-    ) as object as WorkflowTransitionServiceModule.WorkflowTransitionServiceExports;
-  },
-  get RecordDefinitionRuntimeService(): RecordDefinitionRuntimeServiceModule.RecordDefinitionRuntimeServiceExports {
-    return RecordDefinitionRuntimeServiceModule.activeRecordDefinitions().exports() as object as RecordDefinitionRuntimeServiceModule.RecordDefinitionRuntimeServiceExports;
-  },
-  get RecordDefinitionPublicationService(): RecordDefinitionPublicationServiceModule.RecordDefinitionPublicationServiceExports {
-    return getOrCreateService('RecordDefinitionPublicationService', () =>
-      new RecordDefinitionPublicationServiceModule.Services.RecordDefinitionPublication().exports()
-    ) as object as RecordDefinitionPublicationServiceModule.RecordDefinitionPublicationServiceExports;
-  },
-  get RecordDefinitionSeedService(): RecordDefinitionSeedServiceModule.RecordDefinitionSeedServiceExports {
-    return getOrCreateService('RecordDefinitionSeedService', () =>
-      new RecordDefinitionSeedServiceModule.Services.RecordDefinitionSeed().exports()
-    ) as object as RecordDefinitionSeedServiceModule.RecordDefinitionSeedServiceExports;
-  },
-  get RecordDefinitionValidationService(): RecordDefinitionValidationServiceModule.RecordDefinitionValidationServiceExports {
-    return getOrCreateService('RecordDefinitionValidationService', () =>
-      new RecordDefinitionValidationServiceModule.Services.RecordDefinitionValidation().exports()
-    ) as object as RecordDefinitionValidationServiceModule.RecordDefinitionValidationServiceExports;
-  },
   get RecordTypesService() {
     return getOrCreateService('RecordTypesService', () =>
       new RecordTypesServiceModule.Services.RecordTypes().exports()
+    );
+  },
+  get RecordSchemaService() {
+    return getOrCreateService('RecordSchemaService', () =>
+      new RecordSchemaServiceModule.Services.RecordSchema(recordSchemaContributorDependencies).exports()
     );
   },
   get RecordValidationService() {
@@ -391,5 +392,3 @@ export const ServiceExports = {
     );
   },
 };
-
-export { RecordDefinitionSeedServiceModule as RecordDefinitionSeedService };

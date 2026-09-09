@@ -1,0 +1,22 @@
+meta {
+  name: Verify Stale Schema Rejection
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/default/rdmp/api/records/metadata/{{recordSchemaEnforceOid}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+tests {
+  test("Confirms the stale schema-precondition update did not mutate the record", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().title).to.equal("Updated with matching schema precondition");
+  });
+}

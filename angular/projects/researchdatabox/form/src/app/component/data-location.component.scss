@@ -1,0 +1,26 @@
+.data-location-notes-cell,
+.data-location-action-cell {
+  vertical-align: middle;
+}
+
+.data-location-notes-layout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.data-location-notes-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.data-location-edit-notes {
+  flex: 0 0 auto;
+}
+
+.data-location-action-cell {
+  text-align: center;
+}

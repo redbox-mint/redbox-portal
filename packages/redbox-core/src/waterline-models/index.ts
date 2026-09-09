@@ -1,6 +1,5 @@
 export * from './AttachmentAccessAudit';
 export * from './AttachmentMetadata';
-export * from './ActionSecret';
 export * from './AppConfig';
 export * from './AsynchProgress';
 export * from './BrandingConfig';
@@ -23,11 +22,6 @@ export * from './Migration';
 export * from './NamedQuery';
 export * from './PathRule';
 export * from './RecordType';
-export * from './RecordDefinitionDraft';
-export * from './RecordDefinitionDraftOperationAck';
-export * from './RecordDefinitionHistory';
-export * from './RecordDefinitionLifecycleOperationAck';
-export * from './RecordDefinitionRevision';
 export * from './RBReport';
 export * from './Role';
 export * from './ThemeConfig';
@@ -44,7 +38,6 @@ export * from './WorkspaceType';
 // Re-export Waterline model definitions for convenience
 import { AttachmentAccessAuditWLDef } from './AttachmentAccessAudit';
 import { AttachmentMetadataWLDef } from './AttachmentMetadata';
-import { ActionSecretWLDef } from './ActionSecret';
 import { AppConfigWLDef } from './AppConfig';
 import { AsynchProgressWLDef } from './AsynchProgress';
 import { BrandingConfigWLDef } from './BrandingConfig';
@@ -66,11 +59,6 @@ import { I18nTranslationWLDef } from './I18nTranslation';
 import { MigrationWLDef } from './Migration';
 import { NamedQueryWLDef } from './NamedQuery';
 import { PathRuleWLDef } from './PathRule';
-import { RecordDefinitionDraftWLDef } from './RecordDefinitionDraft';
-import { RecordDefinitionDraftOperationAckWLDef } from './RecordDefinitionDraftOperationAck';
-import { RecordDefinitionHistoryWLDef } from './RecordDefinitionHistory';
-import { RecordDefinitionLifecycleOperationAckWLDef } from './RecordDefinitionLifecycleOperationAck';
-import { RecordDefinitionRevisionWLDef } from './RecordDefinitionRevision';
 import { RecordTypeWLDef } from './RecordType';
 import { ReportWLDef } from './RBReport';
 import { RoleWLDef } from './Role';
@@ -89,7 +77,6 @@ import { WorkspaceTypeWLDef } from './WorkspaceType';
 // Note: Record, DeletedRecord, RecordAudit are provided by storage hooks
 // and registered via the core-loader's registerModels() mechanism
 export const WaterlineModels = {
-  ActionSecret: ActionSecretWLDef,
   AttachmentAccessAudit: AttachmentAccessAuditWLDef,
   AttachmentMetadata: AttachmentMetadataWLDef,
   AppConfig: AppConfigWLDef,
@@ -113,11 +100,6 @@ export const WaterlineModels = {
   Migration: MigrationWLDef,
   NamedQuery: NamedQueryWLDef,
   PathRule: PathRuleWLDef,
-  RecordDefinitionDraft: RecordDefinitionDraftWLDef,
-  RecordDefinitionDraftOperationAck: RecordDefinitionDraftOperationAckWLDef,
-  RecordDefinitionHistory: RecordDefinitionHistoryWLDef,
-  RecordDefinitionLifecycleOperationAck: RecordDefinitionLifecycleOperationAckWLDef,
-  RecordDefinitionRevision: RecordDefinitionRevisionWLDef,
   RecordType: RecordTypeWLDef,
   RBReport: ReportWLDef,
   Role: RoleWLDef,

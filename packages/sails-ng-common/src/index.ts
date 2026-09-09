@@ -3,7 +3,6 @@ export * from './record.model';
 export * from './record-concurrency.model';
 export * from './record-diff';
 export * from './record-save.model';
-export * from './record-definition.model';
 export * from './report.model';
 export * from './status.model';
 export * from './template.outline';

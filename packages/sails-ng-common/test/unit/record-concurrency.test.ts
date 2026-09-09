@@ -11,6 +11,7 @@ import {
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
+  recordEntityTagRevision,
   isRecordSaveProblemKind,
   RECORD_CONCURRENCY_PROBLEM_CODES,
   RECORD_CONCURRENCY_RESOLUTIONS,
@@ -174,6 +175,8 @@ describe('record concurrency contracts', function () {
 
     it('guards structural entity tags and independent form fingerprints', function () {
       expect(isRecordEntityTag(entityTag)).to.equal(true);
+      expect(recordEntityTagRevision(entityTag)).to.equal(7);
+      expect(recordEntityTagRevision('not-an-entity-tag')).to.equal(undefined);
       expect(isRecordEntityTag('7')).to.equal(false);
       expect(isRecordEntityTag(`"rb-record-v1.7.${'a'.repeat(42)}"`)).to.equal(false);
       expect(isRecordEntityTag('x'.repeat(RECORD_ENTITY_TAG_MAX_LENGTH + 1))).to.equal(false);

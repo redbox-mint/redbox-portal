@@ -1,0 +1,24 @@
+meta {
+  name: Get branding font
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{host}}/fonts/branding/default/{{rb_face_sha}}.woff2
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Immutable font headers without session", function () {
+      expect(res.getHeader("content-type")).to.contain("font/woff2");
+      expect(res.getHeader("cache-control")).to.contain("immutable");
+      expect(res.getHeader("x-content-type-options")).to.contain("nosniff");
+      expect(res.getHeader("etag")).to.equal('"' + bru.getVar("rb_face_sha") + '"');
+  });
+}

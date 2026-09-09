@@ -1,23 +1,18 @@
-import {
-  AttributeOptions,
-  Constructor,
-  EntityMeta,
-  LifecycleHook,
-  LifecycleHandler,
-  WaterlineModelDefinition,
-} from './types';
+import { AttributeOptions, Constructor, EntityMeta, LifecycleHook, LifecycleHandler, WaterlineModelDefinition } from './types';
 import { REGISTRY } from './registry';
-import type { RuntimeRecord } from '../runtimeValues';
 
 export function toWaterlineModelDef(target: Constructor | EntityMeta): WaterlineModelDefinition {
   const meta = typeof target === 'function' ? REGISTRY.get(target) : target;
   if (!meta) {
     throw new Error('Entity has not been registered');
   }
-  const attributes = Object.entries(meta.attributes).reduce<Record<string, AttributeOptions>>((acc, [key, value]) => {
-    acc[key] = { ...value };
-    return acc;
-  }, {});
+  const attributes = Object.entries(meta.attributes).reduce<Record<string, AttributeOptions>>(
+    (acc, [key, value]) => {
+      acc[key] = { ...value };
+      return acc;
+    },
+    {},
+  );
   const { identity, primaryKey, ...rest } = meta.entity;
   const definition: WaterlineModelDefinition = {
     ...rest,
@@ -35,10 +30,10 @@ export function toWaterlineModelDef(target: Constructor | EntityMeta): Waterline
         definition[hook as LifecycleHook] = handlers[0] as LifecycleHandler;
       } else {
         // Multiple handlers - chain them with proceed callbacks
-        definition[hook as LifecycleHook] = function (
-          this: object,
-          recordOrRecords: RuntimeRecord,
-          proceed: (err?: Error) => void
+        definition[hook as LifecycleHook] = function(
+          this: unknown,
+          recordOrRecords: Record<string, unknown>,
+          proceed: (err?: Error) => void,
         ) {
           let index = 0;
           const runNext = (err?: Error) => {
@@ -64,13 +59,13 @@ export function toWaterlineModelDef(target: Constructor | EntityMeta): Waterline
 }
 
 export function buildInvalidNewRecordError(message: string): Error {
-  const err: Error & { code?: string } = new Error(message);
-  err.code = 'E_INVALID_NEW_RECORD';
-  return err;
+  const err = new Error(message);
+  (err as unknown as Record<string, unknown>).code = 'E_INVALID_NEW_RECORD';
+  return err
 }
 
 export function buildInvalidUpdateRecordError(message: string): Error {
-  const err: Error & { code?: string } = new Error(message);
-  err.code = 'E_INVALID_VALUES_TO_SET';
-  return err;
+  const err = new Error(message);
+  (err as unknown as Record<string, unknown>).code = 'E_INVALID_VALUES_TO_SET';
+  return err
 }

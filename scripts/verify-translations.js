@@ -143,33 +143,49 @@ function requireEnglishMetadata(keys, sourceDescription) {
   }
 }
 
-const recordsServiceSource = fs.readFileSync(
-  path.join(repositoryRoot, 'packages/redbox-core/src/services/RecordsService.ts'),
-  'utf8'
-);
-const saveCodesBlock = recordsServiceSource.match(
-  /const RECORD_VALIDATION_SAVE_CODES = \{([\s\S]*?)\}\s+as const;/
-);
-if (!saveCodesBlock) {
-  errors.push('packages/redbox-core/src/services/RecordsService.ts: record-validation save-code registry was not found');
-} else {
-  const saveTranslationKeys = [...saveCodesBlock[1].matchAll(/['"](record-validation-[a-z-]+)['"]/g)]
-    .map(match => `@record-save-${match[1]}`);
-  requireEnglishMetadata(saveTranslationKeys, 'RECORD_VALIDATION_SAVE_CODES');
-}
-
-const validatorTranslationKeys = new Set();
-for (const relativePath of [
-  'packages/redbox-core/src/services/RecordValidationService.ts',
-  'packages/redbox-core/src/visitor/validator.visitor.ts',
-  'packages/sails-ng-common/src/validation/validators.ts',
-]) {
-  const source = fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
-  for (const match of source.matchAll(/['"](@validator-(?:error|warning)-[A-Za-z0-9._:-]+)['"]/g)) {
-    validatorTranslationKeys.add(match[1]);
-  }
-}
-requireEnglishMetadata(validatorTranslationKeys, 'authoritative validator messages');
+const requiredValidationTranslationKeys = [
+  '@record-save-record-validation-failed',
+  '@record-save-record-validation-form-resolution-failed',
+  '@record-save-record-validation-configuration-failed',
+  '@record-save-record-validation-timeout',
+  '@record-save-record-validation-operation-invalid',
+  '@record-save-record-validation-operation-unauthorized',
+  '@record-save-record-validation-transition-unauthorized',
+  '@record-save-record-validation-edit-unauthorized',
+  '@record-save-record-validation-snapshot-unavailable',
+  '@record-save-record-validation-authority-context-divergence',
+  '@record-save-record-validation-post-sync-failed',
+  '@record-save-record-validation-bypass-invalid',
+  '@record-save-record-validation-bypass-forbidden',
+  '@record-save-record-validation-bypass-audit-failed',
+  '@record-save-record-validation-batch-bypass-audit-failed',
+  '@validator-error-any-of',
+  '@validator-error-different-values',
+  '@validator-error-doi',
+  '@validator-error-email',
+  '@validator-error-html-unsafe',
+  '@validator-error-jsonata-expression',
+  '@validator-error-map-enabled-modes',
+  '@validator-error-max',
+  '@validator-error-max-length',
+  '@validator-error-min',
+  '@validator-error-min-length',
+  '@validator-error-orcid',
+  '@validator-error-pattern',
+  '@validator-error-record-validation',
+  '@validator-error-required',
+  '@validator-error-required-true',
+  '@validator-error-typeahead-multi-select-unsupported',
+  '@validator-error-typeahead-provider',
+  '@validator-error-typeahead-query-id',
+  '@validator-error-typeahead-service-id',
+  '@validator-error-typeahead-source-type',
+  '@validator-error-typeahead-static-options',
+  '@validator-error-typeahead-vocab-ref',
+  '@validator-error-url',
+  '@validator-warning-html-sanitized',
+];
+requireEnglishMetadata(requiredValidationTranslationKeys, 'authoritative record validation');
 
 for (const relativePath of fs.readdirSync(defaultsRoot, { withFileTypes: true })) {
   if (!relativePath.isDirectory()) continue;

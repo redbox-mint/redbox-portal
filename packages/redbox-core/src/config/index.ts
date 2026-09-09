@@ -1,6 +1,3 @@
-import type { RecordDefinitionSeedManifest } from '../services/RecordDefinitionSeedService';
-import { recordDefinitionSeeds } from './recordDefinitionSeeds.config';
-export * from './recordDefinitionSeeds.config';
 /**
  * Config Types Index
  * 
@@ -20,6 +17,7 @@ export * from './http.config';
 export * from './i18n.config';
 export * from './search.config';
 export * from './namedQuery.config';
+export * from './action.config';
 export * from './dynamicasset.config';
 export * from './peopleSearch.config';
 export * from './reusableFormDefinitions.config';
@@ -77,10 +75,11 @@ export * from './typescript.config';
 export * from './custom_cache.config';
 export * from './validators.config';
 export * from './recordValidation.config';
+export * from './recordSchema.config';
 export * from './harvestRuns.config';
 
 import type { ApiRouteProvider } from '../api-routes';
-import type { RedboxActionRegistry } from '../action-registry';
+import type { RecordContractContributorDiscoveryState } from '../record-contract/contributor-registry';
 
 // Import config values for the Config namespace
 import { api, ReDBoxAPIConfig } from './api.config';
@@ -93,6 +92,7 @@ import { http, HttpConfig } from './http.config';
 import { i18n, I18nConfig } from './i18n.config';
 import { search, SearchConfig } from './search.config';
 import { namedQuery, NamedQueryConfig } from './namedQuery.config';
+import { action, ActionConfig } from './action.config';
 import { dynamicasset, DynamicAssetConfig } from './dynamicasset.config';
 import { peopleSearch, PeopleSearchConfig } from './peopleSearch.config';
 import { reusableFormDefinitions, ReusableFormDefinitions } from './reusableFormDefinitions.config';
@@ -153,6 +153,7 @@ import { typescript, TypeScriptHookConfig } from './typescript.config';
 import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
 import { recordValidation, RecordValidationConfig } from './recordValidation.config';
+import { recordSchema, RecordSchemaConfig } from './recordSchema.config';
 import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { WebAnalytics } from '../configmodels/WebAnalytics';
@@ -187,8 +188,6 @@ export interface PassportConfig {
  * Provides type-safe access to all configuration values
  */
 export interface SailsConfig {
-    /** Code-owned action registry generated before lift; persisted definitions cannot replace it. */
-    actionRegistry?: RedboxActionRegistry;
     // Core config keys (migrated)
     api: ReDBoxAPIConfig;
     appmode: AppModeConfig;
@@ -201,6 +200,7 @@ export interface SailsConfig {
     i18n: I18nConfig;
     search: SearchConfig;
     namedQuery: NamedQueryConfig;
+    action: ActionConfig;
     dynamicasset: DynamicAssetConfig;
     peopleSearch: PeopleSearchConfig;
     reusableFormDefinitions: ReusableFormDefinitions;
@@ -246,7 +246,6 @@ export interface SailsConfig {
     branding: BrandingConfig;
     brandingConfigurationDefaults: BrandingConfigurationDefaultsConfig;
     raid: RaidConfig;
-    recordDefinitionSeeds?: RecordDefinitionSeedManifest;
     recordtype: RecordTypeConfig;
     workflow: WorkflowConfig;
     dashboardview: DashboardViewConfig;
@@ -263,6 +262,7 @@ export interface SailsConfig {
     custom_cache: CustomCacheConfig;
     validators: ValidatorsConfig;
     recordValidation: RecordValidationConfig;
+    recordSchema: RecordSchemaConfig;
     harvestRuns: HarvestRunsConfig;
 
     // Auth-related configs
@@ -284,6 +284,7 @@ export interface SailsConfig {
 
     // Runtime state (can be set at runtime)
     startupMinute?: number;
+    recordContractContributorState?: RecordContractContributorDiscoveryState;
 }
 
 /**
@@ -291,7 +292,6 @@ export interface SailsConfig {
  * Used by the redbox-core loader for shim generation
  */
 export const Config = {
-    recordDefinitionSeeds,
     api,
     appmode,
     record,
@@ -302,6 +302,7 @@ export const Config = {
     i18n,
     search,
     namedQuery,
+    action,
     dynamicasset,
     peopleSearch,
     reusableFormDefinitions,
@@ -356,6 +357,7 @@ export const Config = {
     dashboardview,
     validators,
     recordValidation,
+    recordSchema,
     harvestRuns,
 } as const;
 

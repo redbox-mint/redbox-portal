@@ -35,7 +35,7 @@ describe('The BrandingService', function () {
   // Task 5 tests for branding configuration functionality
   describe('Branding Configuration (Task 5)', function () {
     this.timeout(180000);
-    const admin = { isAdmin: true };
+    const admin = { id: 'admin', displayName: 'Admin' };
 
     // Ensure each test runs with a clean branding state to avoid version/history interference
     beforeEach(async () => {
@@ -43,23 +43,41 @@ describe('The BrandingService', function () {
       if (!brand) {
         throw new Error('Default brand not found - tests require a default brand to exist');
       }
-      await BrandingConfig.update({ id: brand.id }).set({ css: '', hash: '', version: 0 });
+      await BrandingConfig.update({ id: brand.id }).set({
+        css: '',
+        hash: '',
+        version: 0,
+        variables: {},
+        typeface: null,
+        draftTypeface: null,
+        draftRevision: 0,
+      });
       await BrandingConfigHistory.destroy({ branding: brand.id });
     });
 
+    async function revision() {
+      const brand = await BrandingConfig.findOne({ name: 'default' });
+      return brand.draftRevision || 0;
+    }
+
+    async function counters() {
+      const brand = await BrandingConfig.findOne({ name: 'default' });
+      return { expectedVersion: brand.version || 0, expectedDraftRevision: brand.draftRevision || 0 };
+    }
+
     it('saveDraft accepts valid variables and rejects invalid keys', async () => {
-      const updated = await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#ffffff' }, actor: admin });
-      expect(updated.variables).to.have.property('site-branding-area-background-color', '#ffffff');
+      const state = await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#ffffff' }, expectedDraftRevision: await revision(), actor: admin });
+      expect(state.draft.variables).to.have.property('site-branding-area-background-color', '#ffffff');
 
       let err;
-      try { await BrandingService.saveDraft({ branding: 'default', variables: { 'branding-font-family': 'Arial, sans-serif' }, actor: admin }); } catch (e) { err = e; }
+      try { await BrandingService.saveDraft({ branding: 'default', variables: { 'branding-font-family': 'Arial, sans-serif' }, expectedDraftRevision: state.draft.revision, actor: admin }); } catch (e) { err = e; }
       expect(err).to.exist;
       expect(err.message).to.match(/Invalid variable key/);
     });
 
     it('preview issues token and stores CSS', async () => {
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#abcabc' }, actor: admin });
-      const { token, url, hash } = await BrandingService.preview('default', 'default');
+      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#abcabc' }, expectedDraftRevision: await revision(), actor: admin });
+      const { token, url, hash } = await BrandingService.preview('default', 'default', await revision());
       expect(token).to.match(/^[0-9a-f]{32}$/);
       expect(url).to.include(token);
       expect(hash).to.match(/^[0-9a-f]{32}$/);
@@ -70,8 +88,8 @@ describe('The BrandingService', function () {
     });
 
     it('preview token expires after TTL', async () => {
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#123123' }, actor: admin });
-      const { token } = await BrandingService.preview('default', 'default');
+      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#123123' }, expectedDraftRevision: await revision(), actor: admin });
+      const { token } = await BrandingService.preview('default', 'default', await revision());
       const name = 'branding-preview:' + token;
       const entry = await CacheEntry.findOne({ name });
       // Manually age the entry beyond TTL
@@ -83,13 +101,13 @@ describe('The BrandingService', function () {
       expect(err.message).to.match(/preview-expired/);
     });
 
-    it('publish bumps version, changes hash, creates history + rollback works', async () => {
+    it('publish bumps version, changes hash, creates history + restore works', async () => {
       // Capture starting version in case other suites have already published
       const starting = await BrandingConfig.findOne({ name: 'default' });
       const baseVersion = (starting && starting.version) || 0;
       // First draft & publish
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#aabbcc' }, actor: admin });
-      const pub1 = await BrandingService.publish('default', 'default', admin);
+      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#aabbcc' }, expectedDraftRevision: await revision(), actor: admin });
+      const pub1 = await BrandingService.publish('default', 'default', admin, await counters());
       expect(pub1.version).to.equal(baseVersion + 1);
       const brandAfterFirst = await BrandingConfig.findOne({ name: 'default' });
       const firstHash = brandAfterFirst.hash;
@@ -98,8 +116,8 @@ describe('The BrandingService', function () {
       expect(brandAfterFirst.css).to.include('--rb-site-branding-area-background-color: #aabbcc;');
 
       // Second draft & publish with different value
-      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#112233' }, actor: admin });
-      const pub2 = await BrandingService.publish('default', 'default', admin);
+      await BrandingService.saveDraft({ branding: 'default', variables: { 'site-branding-area-background-color': '#112233' }, expectedDraftRevision: await revision(), actor: admin });
+      const pub2 = await BrandingService.publish('default', 'default', admin, await counters());
       expect(pub2.version).to.equal(baseVersion + 2);
       const brandAfterSecond = await BrandingConfig.findOne({ name: 'default' });
       expect(brandAfterSecond.hash).to.not.equal(firstHash);
@@ -107,13 +125,13 @@ describe('The BrandingService', function () {
       // histories may include earlier versions; find the first version we created in this test
       const firstHistory = histories2.find(h => h.version === baseVersion + 1);
 
-      // Rollback to first version
-      const rollbackRes = await BrandingService.rollback(firstHistory.id, admin);
-      expect(rollbackRes.version).to.equal(baseVersion + 1);
-      const brandAfterRollback = await BrandingConfig.findOne({ name: 'default' });
-      expect(brandAfterRollback.variables['site-branding-area-background-color']).to.equal('#aabbcc');
-      expect(brandAfterRollback.hash).to.equal(firstHash);
-      expect(brandAfterRollback.css).to.include('--rb-site-branding-area-background-color: #aabbcc;');
+      // Restore the first version creates a new version with restored content
+      const restoreRes = await BrandingService.restore({ branding: 'default', versionId: firstHistory.id, ...(await counters()), actor: admin });
+      expect(restoreRes.version).to.equal(baseVersion + 3);
+      const brandAfterRestore = await BrandingConfig.findOne({ name: 'default' });
+      expect(brandAfterRestore.variables['site-branding-area-background-color']).to.equal('#aabbcc');
+      expect(brandAfterRestore.hash).to.equal(firstHash);
+      expect(brandAfterRestore.css).to.include('--rb-site-branding-area-background-color: #aabbcc;');
     });
   });
 });
