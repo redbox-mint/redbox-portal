@@ -27,7 +27,6 @@ export interface FigshareArticle {
   url_private_api?: string;
   is_embargoed?: boolean;
   access_type?: string;
-  embargo_type?: string;
   embargo_date?: string;
   embargo_reason?: string;
   [key: string]: unknown;
@@ -124,11 +123,8 @@ export interface FigshareCreateFilePayload {
   link?: string;
 }
 
-export type FigshareEmbargoType = 'article' | 'file';
-
 export interface FigshareEmbargoPayload {
-  is_embargoed: true;
-  embargo_type: FigshareEmbargoType;
+  access_type: unknown;
   embargo_date: unknown;
   embargo_reason: unknown;
 }

@@ -79,7 +79,6 @@ describe('FormConflictReviewService', () => {
     ]);
 
     expect(projection).not.toBeNull();
-    expect(projection?.items.map(item => item.id)).toEqual(['["status"]', '["summary"]']);
     expect(projection?.items).toEqual([
       jasmine.objectContaining({
         label: 'Record status',

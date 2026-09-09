@@ -70,7 +70,6 @@ export module Controllers {
 
 | Controller |
 |---|
-| `ActionController` |
 | `AdminController` |
 | `AppConfigController` |
 | `AsynchController` |
@@ -162,13 +161,6 @@ module.exports.registerRedboxWebserviceControllers = function() {
 ```
 
 Hook controllers take precedence over core controllers during shim generation.
-
-### Branding controllers
-
-- `BrandingController.renderFont` serves one immutable brand typeface face (`GET|HEAD /fonts/branding/:branding/:sha256.woff2`) with `font/woff2`, hash-derived ETag, year-long immutable caching, and `nosniff`. It is portal-independent and sessionless; unknown brands, absent objects, and hash mismatches are 404 without substitution.
-- `BrandingController.renderCss` derives its ETag from the exact served bytes and never rewrites publication state on read.
-- `BrandingAppController` (AJAX, session auth) mirrors `webservice/BrandingController` (REST, API auth) for the full draft/preview/version/publish/restore lifecycle. Both are thin adapters over `BrandingService` and return the complete canonical Admin state from mutations.
-- The old `rollback` endpoint remains for one major release as a deprecated alias with identical restore semantics plus a `Deprecation` header. It never rewinds the version number and is scheduled for next-major removal.
 
 ## Testing
 

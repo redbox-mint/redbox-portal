@@ -1,7 +1,6 @@
 /// <reference path="../sails.ts" />
 import { Entity, Attr, HasMany, BeforeCreate, BeforeUpdate, toWaterlineModelDef } from '../decorators';
 import { brandingThemeAllowedVariableNames } from '../services/BrandingThemeTokens';
-import type { BrandingTypefaceState } from '../model/BrandingTypeface';
 
 declare const sails: Sails.Application;
 
@@ -99,15 +98,6 @@ export class BrandingConfigClass {
   @Attr({ type: 'json' })
   public favicon?: Record<string, unknown>;
 
-  @Attr({ type: 'json' })
-  public typeface?: BrandingTypefaceState | null;
-
-  @Attr({ type: 'json' })
-  public draftTypeface?: BrandingTypefaceState | null;
-
-  @Attr({ type: 'number', defaultsTo: 0 })
-  public draftRevision?: number;
-
   @HasMany('role', 'branding')
   public roles?: unknown[];
 }
@@ -125,9 +115,6 @@ export interface BrandingConfigAttributes extends Sails.WaterlineAttributes {
   roles?: unknown[];
   variables?: Record<string, string>;
   version?: number;
-  typeface?: BrandingTypefaceState | null;
-  draftTypeface?: BrandingTypefaceState | null;
-  draftRevision?: number;
 }
 
 export interface BrandingConfigWaterlineModel extends Sails.Model<BrandingConfigAttributes> {

@@ -8,7 +8,7 @@ export NVM_DIR="$HOME/.nvm"
 cd angular
 nvm install
 nvm use
-npm ci --ignore-scripts --strict-peer-deps --no-audit
+npm ci --ignore-scripts --strict-peer-deps
 if [ $# -ne 0 ]
   then
     echo "Bundling ${1}"

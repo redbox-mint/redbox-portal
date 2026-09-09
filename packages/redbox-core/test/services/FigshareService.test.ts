@@ -14,7 +14,6 @@ const { createRunContext } = testRequire('../../src/services/figshare-v2/context
 const { mapCreateArticleResponse } = testRequire('../../src/services/figshare-v2/http');
 const { buildMetadataPayload, syncMetadataPhase } = testRequire('../../src/services/figshare-v2/metadata');
 const { syncAssetsPhase } = testRequire('../../src/services/figshare-v2/assets');
-const { syncEmbargoPhase } = testRequire('../../src/services/figshare-v2/embargo');
 const { getRecordField, setRecordField } = testRequire('../../src/services/figshare-v2/types');
 const { RBValidationError } = testRequire('../../src/model/RBValidationError');
 
@@ -422,121 +421,6 @@ describe('FigshareService', function () {
     expect(exports).to.have.property('publishAfterUploadFilesJob');
     expect(exports).to.have.property('transitionRecordWorkflowFromFigshareArticlePropertiesJob');
     expect(exports).to.have.property('syncRecordWithFigshare');
-  });
-
-  it('builds the Figshare v2 embargo payload from configurable bindings', async function () {
-    const config = buildFigsharePublishingConfig({
-      embargo: {
-        mode: 'recordDriven',
-        forceSync: false,
-        accessRights: {
-          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
-          embargoType: { kind: 'path', path: 'metadata.embargoType' },
-          fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
-          reason: { kind: 'path', path: 'metadata.embargoReason' },
-        },
-      },
-    }) as unknown as FigsharePublishingConfigData;
-    const client = buildAssetClient([]);
-    client.getArticle = sinon.stub().resolves({ id: '12345', is_embargoed: false });
-    client.setEmbargo = sinon.stub().resolves({});
-
-    await syncEmbargoPhase(client, config, {
-      metadata: {
-        embargoActive: true,
-        embargoType: 'file',
-        embargoUntil: '2026-08-31T01:42:13.000Z',
-        embargoReason: 'File embargo reason',
-      },
-    } as RecordModel, '12345');
-
-    expect((client.setEmbargo as sinon.SinonStub).calledOnceWithExactly('12345', {
-      is_embargoed: true,
-      embargo_type: 'file',
-      embargo_date: '2026-08-31T01:42:13.000Z',
-      embargo_reason: 'File embargo reason',
-    })).to.equal(true);
-  });
-
-  it('clears an existing embargo when the active binding is empty', async function () {
-    const config = buildFigsharePublishingConfig({
-      embargo: {
-        mode: 'recordDriven',
-        forceSync: false,
-        accessRights: {
-          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
-          embargoType: { kind: 'path', path: 'metadata.embargoType', defaultValue: 'article' },
-        },
-      },
-    }) as unknown as FigsharePublishingConfigData;
-    const client = buildAssetClient([]);
-    client.getArticle = sinon.stub().resolves({ id: '67890', is_embargoed: true });
-    client.clearEmbargo = sinon.stub().resolves({});
-
-    await syncEmbargoPhase(client, config, { metadata: {} } as RecordModel, '67890');
-
-    expect((client.clearEmbargo as sinon.SinonStub).calledOnceWithExactly('67890')).to.equal(true);
-  });
-
-  it('does not resend an unchanged Figshare v2 embargo', async function () {
-    const config = buildFigsharePublishingConfig({
-      embargo: {
-        mode: 'recordDriven',
-        forceSync: false,
-        accessRights: {
-          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
-          embargoType: { kind: 'path', path: 'metadata.embargoType' },
-          fullEmbargoUntil: { kind: 'path', path: 'metadata.embargoUntil' },
-          reason: { kind: 'path', path: 'metadata.embargoReason' },
-        },
-      },
-    }) as unknown as FigsharePublishingConfigData;
-    const client = buildAssetClient([]);
-    client.getArticle = sinon.stub().resolves({
-      id: '12345',
-      is_embargoed: true,
-      embargo_type: 'article',
-      embargo_date: '2027-01-31T00:00:00.000Z',
-      embargo_reason: 'Full embargo reason',
-    });
-    client.setEmbargo = sinon.stub().resolves({});
-
-    await syncEmbargoPhase(client, config, {
-      metadata: {
-        embargoActive: 'embargoed',
-        embargoType: 'article',
-        embargoUntil: '2027-01-31T00:00:00.000Z',
-        embargoReason: 'Full embargo reason',
-      },
-    } as RecordModel, '12345');
-
-    expect((client.setEmbargo as sinon.SinonStub).called).to.equal(false);
-  });
-
-  it('rejects an unsupported configured Figshare embargo type', async function () {
-    const config = buildFigsharePublishingConfig({
-      embargo: {
-        mode: 'recordDriven',
-        forceSync: false,
-        accessRights: {
-          accessRights: { kind: 'path', path: 'metadata.embargoActive' },
-          embargoType: { kind: 'path', path: 'metadata.embargoType' },
-        },
-      },
-    }) as unknown as FigsharePublishingConfigData;
-    const client = buildAssetClient([]);
-    client.getArticle = sinon.stub().resolves({ id: '12345', is_embargoed: false });
-
-    let thrown: unknown;
-    try {
-      await syncEmbargoPhase(client, config, {
-        metadata: { embargoActive: true, embargoType: 'account' },
-      } as RecordModel, '12345');
-    } catch (error) {
-      thrown = error;
-    }
-    expect(thrown).to.be.instanceOf(Error);
-    expect((thrown as Error).message).to.contain("Figshare embargo type must be 'article' or 'file'");
   });
 
   it('infers record oid from the full job id prefix when record fields are empty', function () {
@@ -1917,49 +1801,6 @@ describe('FigshareService', function () {
     expect((global as any).RecordsService.updateMetaInternal.firstCall.args[0].brand).to.equal(namedBrand);
   });
 
-  it('omits metadata submission when the Figshare job only transitions workflow', async function () {
-    getConfigStub.callsFake(
-      () =>
-        buildFigsharePublishingConfig({
-          workflow: {
-            transitionJob: {
-              enabled: true,
-              namedQuery: 'figshare-transition',
-              targetStep: 'published',
-              paramMap: {},
-              figshareTargetFieldKey: 'status',
-              figshareTargetFieldValue: 'public',
-              username: 'figshare-job-user',
-              userType: 'admin',
-            },
-          },
-        }) as any
-    );
-    const currentRecord = {
-      redboxOid: 'oid-1',
-      oid: 'oid-1',
-      metadata: {
-        title: 'Dataset title',
-        figshare_article_id: 'article-1',
-        persistedUndeclaredField: 'must not be resubmitted',
-      },
-      metaMetadata: { brandId: 'default-id', type: 'dataset' },
-    };
-    (global as any).NamedQueryService.performNamedQueryFromConfigResults.resolves([{ oid: 'oid-1' }]);
-    (global as any).RecordsService.getMeta.resolves(currentRecord);
-    sinon.stub(service, 'makeClient').returns({
-      getArticle: sinon.stub().resolves({ id: 'article-1', status: 'public' }),
-      listArticleFiles: sinon.stub().resolves([]),
-    });
-
-    await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
-
-    expect((global as any).RecordsService.updateMetaInternal.calledOnce).to.equal(true);
-    const options = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
-    expect(options.record).to.equal(currentRecord);
-    expect(options).not.to.have.property('metadata');
-  });
-
   it('treats a persisted warning as a successful Figshare state writeback', async function () {
     (global as any).RecordsService.updateMetaInternal.resolves({
       outcome: 'saved-with-warnings',
@@ -1969,30 +1810,11 @@ describe('FigshareService', function () {
 
     const persisted = await service.persistSyncRecord(
       'oid-1',
-      {
-        metaMetadata: { brandId: 'default' },
-        metadata: {
-          figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
-          untouched: 'keep',
-        },
-      } as any,
-      { username: 'figshare-job-user' } as any,
-      {
-        figshare: { status: 'pending', retained: true, files: [{ id: 'old' }] },
-        untouched: 'keep',
-      }
+      { metaMetadata: { brandId: 'default' }, metadata: {} } as any,
+      { username: 'figshare-job-user' } as any
     );
 
     expect(persisted).to.equal(true);
-    const updateOptions = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
-    expect(updateOptions.metadataMode).to.equal('pre-applied');
-    expect(updateOptions.metadata).to.deep.equal({
-      figshare: { status: 'complete', files: [{ id: 'new' }] },
-    });
-    expect(updateOptions.record.metadata).to.deep.equal({
-      figshare: { status: 'complete', retained: true, files: [{ id: 'new' }] },
-      untouched: 'keep',
-    });
   });
 
   it('uses figsharePublishing transitionJob config when running the workflow transition job', async function () {
@@ -2525,11 +2347,6 @@ describe('FigshareService', function () {
     expect(config.record.allFilesUploadedPath).to.equal('');
     expect(config.assets.staging.disk).to.equal('figshare-staging');
     expect(config.assets.staging.keyPrefix).to.equal('figshare/');
-    expect(config.embargo.accessRights.embargoType).to.deep.equal({
-      kind: 'path',
-      path: 'metadata.embargoType',
-      defaultValue: 'article',
-    });
     expect(config.workflow.transitionJob.enabled).to.equal(false);
     expect(config.workflow.transitionJob.namedQuery).to.equal('');
 
@@ -2537,8 +2354,6 @@ describe('FigshareService', function () {
     expect(schema.properties.queue.properties.publishAfterUploadDelay.default).to.equal('in 2 minutes');
     expect(schema.properties.assets.properties.staging.properties.disk.default).to.equal('figshare-staging');
     expect(schema.properties.assets.properties.staging.properties.keyPrefix.default).to.equal('figshare/');
-    expect(schema.properties.embargo.properties.accessRights.properties.embargoType.properties.kind.enum)
-      .to.include.members(['path', 'handlebars', 'jsonata']);
     expect(schema.properties.workflow.properties.transitionJob.properties.username.default).to.equal('');
     expect(schema.properties.testing).to.equal(undefined);
   });

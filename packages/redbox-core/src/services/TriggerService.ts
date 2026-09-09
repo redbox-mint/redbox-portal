@@ -17,8 +17,6 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, from } from 'rxjs';
-import { concatMap, last } from 'rxjs/operators';
 import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RecordModel } from '../model/storage/RecordModel';
@@ -26,18 +24,10 @@ import { Services as services } from '../CoreService';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { momentShim as moment } from '../shims/momentShim';
 import numeral from 'numeral';
-import { createRecordMetadataDelta } from '../RecordsService';
 
 export namespace Services {
   type RecordLike = RecordModel | Record<string, unknown>;
   type UserLike = { username?: string; roles?: Array<{ name: string }> } & Record<string, unknown>;
-  type HookConfig = { function?: string; options?: Record<string, unknown> };
-  type HookFn = (
-    oid: string,
-    record: RecordLike,
-    options: Record<string, unknown>,
-    user: UserLike
-  ) => Observable<unknown>;
   /**
    * Trigger related functions...
    *
@@ -46,44 +36,6 @@ export namespace Services {
    */
   @PopulateExportedMethods
   export class Trigger extends services.Core.Service {
-    /**
-     * Used in changing the workflow stages automatically based on configuration.
-     *
-     * @author <a target='_' href='https://github.com/shilob'>Shilo Banihit</a>
-     * @param  oid
-     * @param  record
-     * @param  options
-     * @return
-     */
-    public transitionWorkflow(oid: string, record: RecordLike, options: Record<string, unknown>) {
-      const triggerCondition = String(_.get(options, 'triggerCondition', ''));
-
-      const variables: Record<string, unknown> = {};
-      variables['imports'] = record;
-      const compiled = _.template(triggerCondition, variables);
-      const compileResult = compiled();
-      sails.log.verbose(`Trigger condition for ${oid} ==> "${triggerCondition}", has result: '${compileResult}'`);
-      if (_.isEqual(compileResult, 'true')) {
-        const workflowStageTarget = _.get(
-          options,
-          'targetWorkflowStageName',
-          _.get(record, 'workflow.stage')
-        ) as string;
-        const workflowStageLabel = _.get(
-          options,
-          'targetWorkflowStageLabel',
-          _.get(record, 'workflow.stageLabel')
-        ) as string;
-        sails.log.verbose(`Trigger condition met for ${oid}, transitioning to: ${workflowStageTarget}`);
-        _.set(record, 'workflow.stage', workflowStageTarget);
-        _.set(record, 'workflow.stageLabel', workflowStageLabel);
-        // we need to update the form too!!!!
-        _.set(record, 'metaMetadata.form', _.get(options, 'targetForm', _.get(record, 'metaMetadata.form')) as string);
-      }
-
-      return of(record);
-    }
-
     /**
      *
      * By default, hooks are launched asynch, this method allows for synch running of hooks while not blocking the save request thread.
@@ -98,40 +50,16 @@ export namespace Services {
      *   "hooks" - array, same structure as that of hook option's "pre" and "post" fields
      * @return
      */
-    public runHooksSync(oid: string, record: RecordLike, options: Record<string, unknown>, user: UserLike) {
-      sails.log.debug(`runHooksSync, starting...`);
-      sails.log.debug(JSON.stringify(options));
-      const hookFnArray = _.get(options, 'hooks', []) as Array<HookConfig>;
-      const hookFnDefArray: Array<{ hookFn: HookFn; hookOpt: Record<string, unknown> | undefined }> = [];
-      _.each(hookFnArray, hookFnDef => {
-        const hookFnStr = _.get(hookFnDef, 'function', null);
-        if (!_.isEmpty(hookFnStr) && _.isString(hookFnStr)) {
-          const hookFn = eval(hookFnStr);
-          const hookOpt = _.get(hookFnDef, 'options');
-          if (_.isFunction(hookFn)) {
-            sails.log.debug(`runHooksSync, adding: ${hookFnStr}`);
-            hookFnDefArray.push({ hookFn: hookFn, hookOpt: hookOpt });
-          } else {
-            sails.log.error(`runHooksSync, this is not a valid function: ${hookFnStr}`);
-            sails.log.error(hookFnDef);
-          }
-        } else {
-          sails.log.error(`runHooksSync, expected a string function name, got: ${hookFnStr}`);
-          sails.log.error(hookFnDef);
-        }
+    public runHooksSync(_oid: string, _record: RecordLike, _options: Record<string, unknown>, _user: UserLike): never {
+      throw new RBValidationError({
+        message: 'Nested function-string hooks are no longer executable.',
+        displayErrors: [
+          {
+            title: '@record-save-invalid-action-plan',
+            code: 'invalid-action-plan',
+          },
+        ],
       });
-      if (!_.isEmpty(hookFnDefArray)) {
-        sails.log.debug(`runHooksSync, running..`);
-        return from(hookFnDefArray).pipe(
-          concatMap(hookDef => {
-            return hookDef.hookFn(oid, record, hookDef.hookOpt ?? {}, user);
-          }),
-          last()
-        );
-      } else {
-        sails.log.debug(`runHooksSync, no observables to run`);
-        return of(record);
-      }
     }
 
     public async applyFieldLevelPermissions(
@@ -566,7 +494,6 @@ export namespace Services {
               record = await RecordsService.getMeta(oid);
               if (_.isObject(record)) {
                 sails.log.verbose(`runTemplatesOnRelatedRecord related record found and will run templates...`);
-                const previousMetadata = _.cloneDeep(_.get(record, 'metadata', {}));
                 _.each(templates, (templateConfig: Record<string, unknown>) => {
                   tmplConfig = templateConfig;
                   const imports = _.extend(
@@ -623,8 +550,6 @@ export namespace Services {
                   user,
                   triggerPreSaveTriggers: runPreSaveTriggers,
                   triggerPostSaveTriggers: runPostSaveTriggers,
-                  metadata: createRecordMetadataDelta(previousMetadata, _.get(record, 'metadata', {})),
-                  metadataMode: 'pre-applied',
                 });
                 if (!response.wasPersisted()) {
                   throw new Error(String(response.message ?? response.outcome));

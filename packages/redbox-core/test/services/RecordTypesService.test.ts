@@ -1,11 +1,12 @@
+import { activeRecordDefinitions } from '../../src/services/RecordDefinitionRuntimeService';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
-import { RecordTypeRecordSchemaConfigurationError, Services } from '../../src/services/RecordTypesService';
+import { Services } from '../../src/services/RecordTypesService';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { firstValueFrom, of } from 'rxjs';
 import { RecordTypeResponseModel } from '../../src/model/RecordTypeResponseModel';
-import { RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION } from '../../src/RecordStorageConcurrency';
+import { FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES } from '../../src/RecordStorageConcurrency';
 
 describe('RecordTypesService', function () {
   let service: Services.RecordTypes;
@@ -19,6 +20,23 @@ describe('RecordTypesService', function () {
         searchCore: 'sc',
         searchFilters: [],
         hooks: {},
+        actionPlan: {
+          schemaVersion: 1,
+          recordTypeKey: 'dataset',
+          bindings: [],
+        },
+        automaticTransitions: [
+          {
+            schemaVersion: 1,
+            id: 'draft-to-published',
+            mode: 'automatic',
+            event: 'update',
+            sourceStage: 'draft',
+            targetStage: 'published',
+            priority: 10,
+            condition: 'true',
+          },
+        ],
         transferResponsibility: false,
         relatedTo: [],
         searchable: true,
@@ -30,14 +48,13 @@ describe('RecordTypesService', function () {
           },
         },
         concurrentModification: { mode: 'observe' },
-        recordSchema: { unknownProperties: 'declared' },
       },
     };
     mockSails.config.appmode = { bootstrapAlways: false };
     mockSails.config.storage = { serviceName: 'teststorage' };
     mockSails.services.teststorage = {
       getCapabilities: () => ({
-        recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
+        recordConcurrency: { ...FULL_RECORD_STORAGE_CONCURRENCY_CAPABILITIES },
       }),
     };
 
@@ -80,114 +97,22 @@ describe('RecordTypesService', function () {
       const result = await service.bootstrap(brand as any);
 
       expect(result).to.deep.equal(existingTypes);
-      expect(service.getAllCache()).to.deep.equal(existingTypes);
+      expect(service.getAllCache({ id: 'brand1' } as any)).to.deep.equal(existingTypes);
     });
 
-    it('should create default record types if missing', async function () {
-      const brand = { id: 'brand1' };
-
-      const findStub = sinon.stub().resolves([]);
-      (global as any).RecordType.find = findStub;
-
-      const createDeferred = (data: unknown) => {
-        const deferred = { exec: sinon.stub().yields(null, data), fetch: () => deferred };
-        return deferred;
-      };
-      (global as any).RecordType.create.callsFake((data: unknown) => createDeferred(data));
-
-      const result = await service.bootstrap(brand as any);
-
-      expect(result).to.have.length(1);
-      expect(result[0]).to.have.property('name', 'dataset');
-      // The cache must hold the created types, not a list of `undefined`.
-      expect(service.getAllCache()).to.deep.equal(result);
-      expect((global as any).RecordType.create.called).to.be.true;
-      expect((global as any).RecordType.create.firstCall.args[0].recordValidation).to.deep.equal({
-        mode: 'shadow',
-        operations: {
-          publish: { mode: 'enforce', enabledValidationGroups: ['publish'] },
-        },
-      });
-      expect((global as any).RecordType.create.firstCall.args[0].concurrentModification).to.deep.equal({
-        mode: 'observe',
-      });
-      expect((global as any).RecordType.create.firstCall.args[0].recordSchema).to.deep.equal({
-        unknownProperties: 'declared',
-      });
-    });
-
-    it('should destroy and recreate if bootstrapAlways is true', async function () {
-      mockSails.config.appmode.bootstrapAlways = true;
-      const brand = { id: 'brand1' };
-
-      (global as any).RecordType.find.resolves([{ name: 'old' }]);
-      (global as any).RecordType.destroy.resolves([]);
-
-      const createDeferred = (data: unknown) => {
-        const deferred = { exec: sinon.stub().yields(null, data), fetch: () => deferred };
-        return deferred;
-      };
-      (global as any).RecordType.create.callsFake((data: unknown) => createDeferred(data));
-
-      const result = await service.bootstrap(brand as any);
-
-      expect((global as any).RecordType.destroy.called).to.be.true;
-      expect((global as any).RecordType.create.called).to.be.true;
-      expect(result).to.have.length(1);
-    });
-
-    it('rejects an unsupported configured record-schema override before persistence when enabled', async function () {
-      mockSails.config.recordSchema = { enabled: true };
-      mockSails.config.recordtype = {
-        valid: {
-          ...mockSails.config.recordtype.dataset,
-          recordSchema: { unknownProperties: 'declared' },
-        },
-        dataset: {
-          ...mockSails.config.recordtype.dataset,
-          recordSchema: { unknownProperties: 'strip' },
-        },
-      };
+    it('does not create legacy configuration when definitions are missing', async function () {
       (global as any).RecordType.find.resolves([]);
-
-      let failure: unknown;
-      try {
-        await service.bootstrap({ id: 'brand1' } as any);
-      } catch (error) {
-        failure = error;
-      }
-
-      expect(failure).to.be.instanceOf(RecordTypeRecordSchemaConfigurationError);
-      expect((failure as RecordTypeRecordSchemaConfigurationError).problems).to.deep.equal([
-        {
-          code: 'record-schema.config-invalid',
-          path: 'recordtype.dataset.recordSchema.unknownProperties',
-          reason: 'unsupported-value',
-        },
-      ]);
-      expect((global as any).RecordType.create.notCalled).to.equal(true);
+      expect(await service.bootstrap({ id: 'brand1' } as any)).to.deep.equal([]);
+      expect((global as any).RecordType.create.called).to.be.false;
     });
 
-    it('rejects an unsupported persisted record-schema override during enabled startup', async function () {
-      mockSails.config.recordSchema = { enabled: 'true' };
-      (global as any).RecordType.find.resolves([
-        { name: 'dataset', branding: 'brand1', recordSchema: { unknownProperties: 'strip' } },
-      ]);
-
-      let failure: unknown;
-      try {
-        await service.bootstrap({ id: 'brand1' } as any);
-      } catch (error) {
-        failure = error;
-      }
-
-      expect(failure).to.be.instanceOf(RecordTypeRecordSchemaConfigurationError);
-      expect((failure as RecordTypeRecordSchemaConfigurationError).problems[0]).to.deep.equal({
-        code: 'record-schema.config-invalid',
-        path: 'recordtype.dataset.recordSchema.unknownProperties',
-        reason: 'unsupported-value',
-      });
-      expect(service.getAllCache()).to.equal(undefined);
+    it('preserves edited definitions with bootstrapAlways enabled', async function () {
+      mockSails.config.appmode.bootstrapAlways = true;
+      const rows = [{ name: 'dataset', branding: 'brand1', packageType: 'edited' }];
+      (global as any).RecordType.find.resolves(rows);
+      expect(await service.bootstrap({ id: 'brand1' } as any)).to.deep.equal(rows);
+      expect((global as any).RecordType.destroy.called).to.be.false;
+      expect((global as any).RecordType.create.called).to.be.false;
     });
   });
 
@@ -289,7 +214,6 @@ describe('RecordTypesService', function () {
         (global as any).RecordType.findOne.alwaysCalledWith(
           sinon.match({
             where: { branding: 'brand1', name: 'dataset' },
-            select: ['concurrentModification'],
           })
         )
       ).to.equal(true);
@@ -373,6 +297,26 @@ describe('RecordTypesService', function () {
 
       expect(result).to.deep.equal(expected);
     });
+  });
+
+  it('bounds the legacy bootstrap snapshot, returns copies, isolates brands and clears it on local publication', async function () {
+    (global as any).RecordType.find.resolves([{ name: 'dataset' }]);
+    const brand = { id: 'brand1' } as any;
+    await service.bootstrap(brand);
+    expect(service.getAllCache()).to.deep.equal([]);
+    expect(service.getAllCache({ id: 'brand2' } as any)).to.deep.equal([]);
+    (service.getAllCache(brand)[0] as any).name = 'tampered';
+    expect((service.getAllCache(brand)[0] as any).name).to.equal('dataset');
+    activeRecordDefinitions().invalidate('brand1', 'dataset');
+    expect(service.getAllCache(brand)).to.deep.equal([]);
+    const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['performance'] });
+    try {
+      await service.bootstrap(brand);
+      clock.tick(2_000);
+      expect(service.getAllCache(brand)).to.deep.equal([]);
+    } finally {
+      clock.restore();
+    }
   });
 
   describe('exports', function () {
