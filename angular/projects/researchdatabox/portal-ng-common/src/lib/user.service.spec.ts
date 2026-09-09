@@ -271,11 +271,12 @@ describe('UserService testing', () => {
     expect(listReq.request.urlWithParams).toContain('includeDisabled=true');
     listReq.flush([]);
 
-    void userService.getBrandRoles();
+    const rolesPromise = userService.getBrandRoles();
     const rolesReq = httpTestingController.expectOne(
       request => request.method === 'GET' && request.url.endsWith('/api/roles')
     );
-    rolesReq.flush([]);
+    rolesReq.flush({ records: [{ id: 'role-1', name: 'Researcher' }] });
+    await expectAsync(rolesPromise).toBeResolvedTo([{ id: 'role-1', name: 'Researcher' }]);
 
     void userService.addLocalUser('newuser', { name: 'New', email: 'n@example.com' });
     const createReq = httpTestingController.expectOne(

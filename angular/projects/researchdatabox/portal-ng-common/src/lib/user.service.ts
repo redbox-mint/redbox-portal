@@ -133,6 +133,10 @@ export interface RoleSummary {
   name: string;
 }
 
+export interface RoleListResponse {
+  records: RoleSummary[];
+}
+
 /**
  * Pair-bound proof for account-link apply. All four fields are REQUIRED:
  * both caller-observed versions, the preview confirmation token, and the
@@ -382,8 +386,12 @@ export class UserService extends HttpClientService {
   public async getBrandRoles(): Promise<RoleSummary[]> {
     const url = `${this.brandingAndPortalUrl}/api/roles`;
     const result$ = this.http
-      .get<RoleSummary[]>(url, { responseType: 'json', observe: 'body', context: this.httpContext })
-      .pipe(map(res => res));
+      .get<RoleSummary[] | RoleListResponse>(url, {
+        responseType: 'json',
+        observe: 'body',
+        context: this.httpContext,
+      })
+      .pipe(map(res => (Array.isArray(res) ? res : res.records)));
     return await firstValueFrom(result$);
   }
 
