@@ -1,4 +1,4 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix, withMigrationLease } from '../helpers/authorization';
 import { buildRoleIdentityKey, type AuthorizationContext } from '../../../packages/redbox-core/src/authorization';
 import {
   authorizationAssignmentCatalogPageSchema,
@@ -10,7 +10,7 @@ import {
 describe('Authorization Phase 8.4 assignment contract services', function () {
   this.timeout(60_000);
 
-  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const suffix = uniqueSuffix();
   const roleKey = `phase84-role-${suffix}`.toLowerCase();
   const foreignRoleKey = `phase84-foreign-${suffix}`.toLowerCase();
   const requestIds: string[] = [];

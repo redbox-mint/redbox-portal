@@ -361,50 +361,39 @@ const authorizationCreateRoleCommonShape = {
   reason: reasonField,
 };
 
-export const authorizationCreateRoleBodySchema = z.union([
-  z
-    .object({
-      ...authorizationCreateRoleCommonShape,
-      scopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE).optional(),
-    })
-    .strict(),
-  z
-    .object({
-      ...authorizationCreateRoleCommonShape,
-      scopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE).optional(),
-      templateKey: templateKeyField,
-      templateRevision: positiveVersionField.optional(),
-    })
-    .strict(),
-  z
-    .object({
-      ...authorizationCreateRoleCommonShape,
-      cloneRoleKey: roleKeyField,
-    })
-    .strict(),
-]);
+export const authorizationCreateRoleBodySchema = z
+  .object({
+    ...authorizationCreateRoleCommonShape,
+    scopeKeys: z.array(scopeKeyField).max(AUTHORIZATION_MAX_SCOPE_SET_SIZE).optional(),
+    templateKey: templateKeyField.optional(),
+    templateRevision: positiveVersionField.optional(),
+    cloneRoleKey: roleKeyField.optional(),
+  })
+  .strict()
+  .refine(
+    body =>
+      (body.cloneRoleKey === undefined ||
+        (body.scopeKeys === undefined && body.templateKey === undefined && body.templateRevision === undefined)) &&
+      (body.templateKey !== undefined || body.templateRevision === undefined),
+    'Clone-based role creation must not include scopeKeys, templateKey, or templateRevision, and templateRevision requires templateKey'
+  );
 
 const authorizationUpdateRoleCommonShape = {
   expectedVersion: positiveVersionField,
   reason: reasonField,
 };
 
-export const authorizationUpdateRoleBodySchema = z.union([
-  z
-    .object({
-      ...authorizationUpdateRoleCommonShape,
-      displayName: displayNameField,
-      description: descriptionInputField.nullable().optional(),
-    })
-    .strict(),
-  z
-    .object({
-      ...authorizationUpdateRoleCommonShape,
-      displayName: displayNameField.optional(),
-      description: descriptionInputField.nullable(),
-    })
-    .strict(),
-]);
+export const authorizationUpdateRoleBodySchema = z
+  .object({
+    ...authorizationUpdateRoleCommonShape,
+    displayName: displayNameField.optional(),
+    description: descriptionInputField.nullable().optional(),
+  })
+  .strict()
+  .refine(
+    body => body.displayName !== undefined || body.description !== undefined,
+    'Either displayName or description must be provided'
+  );
 
 export const authorizationRoleScopePreviewBodySchema = z
   .object({
@@ -907,14 +896,6 @@ export const authorizationConfigurationImportMutationSchema = z
   })
   .strict();
 
-export const authorizationExpectedVersionBodySchema = z
-  .object({
-    expectedVersion: positiveVersionField,
-    confirmationToken: z.string().min(1).max(8_192).optional(),
-    reason: optionalTextField(AUTHORIZATION_API_MAX_REASON_LENGTH),
-  })
-  .strict();
-
 const authorizationBulkAssignmentRowBaseShape = {
   principalId: identifierField,
   roleKey: roleKeyField,
@@ -962,11 +943,6 @@ export const authorizationBulkPreviewBodySchema = z.union([
 export const authorizationBulkApplyBodySchema = z.union([
   z.object({ ...authorizationJsonBulkRequestShape, confirmationToken: confirmationTokenField }).strict(),
   z.object({ ...authorizationCsvBulkRequestShape, confirmationToken: confirmationTokenField }).strict(),
-]);
-
-export const authorizationBulkRequestSchema = z.union([
-  authorizationBulkPreviewBodySchema,
-  authorizationBulkApplyBodySchema,
 ]);
 
 export const authorizationBulkAssignmentRowPreviewSchema = z
@@ -1022,32 +998,6 @@ export const authorizationBulkAssignmentMutationSchema = z
   .strict()
   .openapi({ description: 'Atomic assignment batch result with per-row outcomes and batch audit identity' });
 
-export const authorizationPreviewSchema = z
-  .object({
-    operation: z.string(),
-    current: z.unknown().optional(),
-    proposed: z.unknown().optional(),
-    addedScopeKeys: z.array(scopeKeyField).optional(),
-    removedScopeKeys: z.array(scopeKeyField).optional(),
-    affectedAssignments: z.number().int().min(0).optional(),
-    warnings: z.array(z.string()).optional(),
-    fatalErrors: z.array(z.string()).optional(),
-    confirmationToken: z.string().optional(),
-  })
-  .passthrough()
-  .openapi({ description: 'Server-authoritative bounded impact preview' });
-
-export const authorizationMutationResultSchema = z
-  .object({
-    data: z.unknown(),
-    version: positiveVersionField,
-    auditEventId: identifierField,
-    requestId: identifierField,
-    batchId: identifierField.optional(),
-    changed: z.boolean(),
-  })
-  .openapi({ description: 'Versioned, audited authorization mutation result' });
-
 const authorizationRoleDependencySummarySchema = z
   .object({
     assignmentRows: z.number().int().min(0).max(1_001),
@@ -1073,41 +1023,36 @@ const authorizationRolePreviewCommonShape = {
   confirmationToken: confirmationTokenField.optional(),
 };
 
-export const authorizationRoleScopePreviewSchema = z
-  .object({
-    operation: z.literal('role-scopes'),
-    ...authorizationRolePreviewCommonShape,
-    proposed: authorizationRoleSchema,
-  })
-  .strict()
-  .openapi({ description: 'Server-authoritative preview of an effective role scope change' });
+function makeRolePreview(operation: 'role-scopes' | 'scope-adoption' | 'template-upgrade' | 'role-inactivate', description: string) {
+  return z
+    .object({
+      operation: z.literal(operation),
+      ...authorizationRolePreviewCommonShape,
+      proposed: authorizationRoleSchema,
+    })
+    .strict()
+    .openapi({ description });
+}
 
-export const authorizationScopeAdoptionPreviewSchema = z
-  .object({
-    operation: z.literal('scope-adoption'),
-    ...authorizationRolePreviewCommonShape,
-    proposed: authorizationRoleSchema,
-  })
-  .strict()
-  .openapi({ description: 'Server-authoritative preview of one protected system-role scope adoption' });
+export const authorizationRoleScopePreviewSchema = makeRolePreview(
+  'role-scopes',
+  'Server-authoritative preview of an effective role scope change'
+);
 
-export const authorizationRoleTemplateUpgradePreviewSchema = z
-  .object({
-    operation: z.literal('template-upgrade'),
-    ...authorizationRolePreviewCommonShape,
-    proposed: authorizationRoleSchema,
-  })
-  .strict()
-  .openapi({ description: 'Server-authoritative three-way role template upgrade preview' });
+export const authorizationScopeAdoptionPreviewSchema = makeRolePreview(
+  'scope-adoption',
+  'Server-authoritative preview of one protected system-role scope adoption'
+);
 
-export const authorizationRoleInactivationPreviewSchema = z
-  .object({
-    operation: z.literal('role-inactivate'),
-    ...authorizationRolePreviewCommonShape,
-    proposed: authorizationRoleSchema,
-  })
-  .strict()
-  .openapi({ description: 'Server-authoritative role inactivation impact preview' });
+export const authorizationRoleTemplateUpgradePreviewSchema = makeRolePreview(
+  'template-upgrade',
+  'Server-authoritative three-way role template upgrade preview'
+);
+
+export const authorizationRoleInactivationPreviewSchema = makeRolePreview(
+  'role-inactivate',
+  'Server-authoritative role inactivation impact preview'
+);
 
 export const authorizationRoleDeletionPreviewSchema = z
   .object({

@@ -72,9 +72,9 @@ export class RoleListComponent implements OnInit {
   }
 
   public async ngOnInit(): Promise<void> {
-    const supportingRequests = [this.loadTemplates()];
+    const supportingRequests = [this.loadCatalog('templates')];
     if (this.scopeKeys.includes('authorization.scope.read')) {
-      supportingRequests.push(this.loadScopes());
+      supportingRequests.push(this.loadCatalog('scopes'));
     }
     const supportingResults = await Promise.allSettled(supportingRequests);
     this.supportingErrors = supportingResults
@@ -182,13 +182,6 @@ export class RoleListComponent implements OnInit {
     this.clearBulkPreview();
   }
 
-  public onBulkRoleChange(role: AuthorizationRoleSummary, event: Event): void {
-    const input = event.target;
-    if (input instanceof HTMLInputElement) {
-      this.toggleBulkRole(role, input.checked);
-    }
-  }
-
   public roleSelectableForBulk(role: AuthorizationRoleSummary): boolean {
     return Boolean(
       role.templateKey &&
@@ -260,46 +253,39 @@ export class RoleListComponent implements OnInit {
     }
   }
 
-  private async loadScopes(): Promise<void> {
-    this.scopeCatalogAvailable = false;
+  private async loadCatalog(kind: 'scopes' | 'templates'): Promise<void> {
+    const isScopes = kind === 'scopes';
+    if (isScopes) {
+      this.scopeCatalogAvailable = false;
+    } else {
+      this.templateCatalogAvailable = false;
+    }
     let cursor: string | undefined;
-    const scopes: AuthorizationScope[] = [];
+    const items: Array<AuthorizationScope | AuthorizationTemplate> = [];
     for (let pageNumber = 0; pageNumber < AGGREGATE_PAGE_LIMIT; pageNumber += 1) {
-      const page = await this.authorizationAdminService.listScopes({ limit: 100, ...(cursor ? { cursor } : {}) });
-      scopes.push(...page.items);
+      const page = isScopes
+        ? await this.authorizationAdminService.listScopes({ limit: 100, ...(cursor ? { cursor } : {}) })
+        : await this.authorizationAdminService.listTemplates({ limit: 100, ...(cursor ? { cursor } : {}) });
+      items.push(...(page.items as Array<AuthorizationScope | AuthorizationTemplate>));
       cursor = page.nextCursor;
       if (!cursor) break;
     }
     if (cursor) {
       throw new AuthorizationAdminError(
         0,
-        'authorization.scope-catalog-truncated',
-        'The scope catalog exceeded the safe editor loading limit, so scope-changing controls are unavailable.'
+        isScopes ? 'authorization.scope-catalog-truncated' : 'authorization.template-catalog-truncated',
+        isScopes
+          ? 'The scope catalog exceeded the safe editor loading limit, so scope-changing controls are unavailable.'
+          : 'The template catalog exceeded the safe editor loading limit, so template controls are unavailable.'
       );
     }
-    this.scopes = scopes;
-    this.scopeCatalogAvailable = true;
-  }
-
-  private async loadTemplates(): Promise<void> {
-    this.templateCatalogAvailable = false;
-    let cursor: string | undefined;
-    const templates: AuthorizationTemplate[] = [];
-    for (let pageNumber = 0; pageNumber < AGGREGATE_PAGE_LIMIT; pageNumber += 1) {
-      const page = await this.authorizationAdminService.listTemplates({ limit: 100, ...(cursor ? { cursor } : {}) });
-      templates.push(...page.items);
-      cursor = page.nextCursor;
-      if (!cursor) break;
+    if (isScopes) {
+      this.scopes = items as AuthorizationScope[];
+      this.scopeCatalogAvailable = true;
+    } else {
+      this.templates = items as AuthorizationTemplate[];
+      this.templateCatalogAvailable = true;
     }
-    if (cursor) {
-      throw new AuthorizationAdminError(
-        0,
-        'authorization.template-catalog-truncated',
-        'The template catalog exceeded the safe editor loading limit, so template controls are unavailable.'
-      );
-    }
-    this.templates = templates;
-    this.templateCatalogAvailable = true;
   }
 
   private async loadRoleDetails(roles: AuthorizationRoleSummary[], append: boolean, loadId: number): Promise<void> {

@@ -1,4 +1,5 @@
 import { AuthorizationResourceError } from './errors';
+import { isRoleKey } from './validators';
 import type { AuthorizationContext, AuthorizationDecision, AuthorizationResourceResult, RoleKey } from './types';
 
 interface RoleLike {
@@ -52,12 +53,7 @@ export function allowedResource<T>(decision: AuthorizationDecision, resource: T)
 
 export function authorizationRoleKey(role: RoleLike): string | undefined {
   const value = role.key ?? role.name;
-  if (typeof value !== 'string' || value.length === 0) return undefined;
-  for (const character of value) {
-    const codePoint = character.codePointAt(0);
-    if (codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f)) return undefined;
-  }
-  return value;
+  return typeof value === 'string' && isRoleKey(value) ? value : undefined;
 }
 
 export function authorizationRoleBrandId(role: RoleLike): string | undefined {

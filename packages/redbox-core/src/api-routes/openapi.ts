@@ -267,9 +267,7 @@ function buildParameters(
   addParameters('header', route.request?.headers);
 
   const declaredPathParameters = new Set(
-    params
-      .filter(parameter => parameter.in === 'path' && typeof parameter.name === 'string')
-      .flatMap(parameter => (typeof parameter.name === 'string' ? [parameter.name] : []))
+    params.filter(parameter => parameter.in === 'path' && typeof parameter.name === 'string').map(parameter => parameter.name as string)
   );
   for (const name of getPathParameterNames(route.path)) {
     if (declaredPathParameters.has(name)) {

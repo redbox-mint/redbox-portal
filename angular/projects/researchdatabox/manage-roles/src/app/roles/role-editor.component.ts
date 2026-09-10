@@ -256,62 +256,63 @@ export class RoleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  public async previewOperation(operation: RolePreviewRequest['operation'], event?: Event): Promise<void> {
+    if (!this.role || !this.canManage) return;
+    const roleKey = this.role.key;
+    const expectedVersion = this.role.version;
+    const reasonPart = this.reason.trim() ? { reason: this.reason.trim() } : {};
+    if (operation === 'role-scopes') {
+      if (!this.scopeCatalogAvailable) return;
+      this.capturePreviewTrigger(event);
+      const request: RoleScopeRequest = { expectedVersion, scopeKeys: [...this.selectedScopeKeys], ...reasonPart };
+      await this.openPreview(this.authorizationAdminService.previewRoleScopes(roleKey, request), 'Apply scope change', {
+        operation,
+        request,
+      });
+    } else if (operation === 'template-upgrade') {
+      if (!this.targetRevision) return;
+      this.capturePreviewTrigger(event);
+      const request: RoleTemplateUpgradeRequest = {
+        expectedVersion,
+        targetRevision: this.targetRevision,
+        ...reasonPart,
+      };
+      await this.openPreview(
+        this.authorizationAdminService.previewRoleTemplateUpgrade(roleKey, request),
+        'Apply template upgrade',
+        { operation, request }
+      );
+    } else if (operation === 'role-inactivate') {
+      this.capturePreviewTrigger(event);
+      const request: RoleLifecycleRequest = { expectedVersion, ...reasonPart };
+      await this.openPreview(this.authorizationAdminService.previewRoleInactivation(roleKey, request), 'Inactivate role', {
+        operation,
+        request,
+      });
+    } else {
+      this.capturePreviewTrigger(event);
+      const request: RoleLifecycleRequest = { expectedVersion, ...reasonPart };
+      await this.openPreview(this.authorizationAdminService.previewRoleDeletion(roleKey, request), 'Delete eligible role', {
+        operation,
+        request,
+      });
+    }
+  }
+
   public async previewScopes(event?: Event): Promise<void> {
-    if (!this.role || !this.canManage || !this.scopeCatalogAvailable) return;
-    this.capturePreviewTrigger(event);
-    const request: RoleScopeRequest = {
-      expectedVersion: this.role.version,
-      scopeKeys: [...this.selectedScopeKeys],
-      ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
-    };
-    await this.openPreview(
-      this.authorizationAdminService.previewRoleScopes(this.role.key, request),
-      'Apply scope change',
-      { operation: 'role-scopes', request }
-    );
+    return this.previewOperation('role-scopes', event);
   }
 
   public async previewTemplateUpgrade(event?: Event): Promise<void> {
-    if (!this.role || !this.canManage || !this.targetRevision) return;
-    this.capturePreviewTrigger(event);
-    const request: RoleTemplateUpgradeRequest = {
-      expectedVersion: this.role.version,
-      targetRevision: this.targetRevision,
-      ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
-    };
-    await this.openPreview(
-      this.authorizationAdminService.previewRoleTemplateUpgrade(this.role.key, request),
-      'Apply template upgrade',
-      { operation: 'template-upgrade', request }
-    );
+    return this.previewOperation('template-upgrade', event);
   }
 
   public async previewInactivation(event?: Event): Promise<void> {
-    if (!this.role || !this.canManage) return;
-    this.capturePreviewTrigger(event);
-    const request: RoleLifecycleRequest = {
-      expectedVersion: this.role.version,
-      ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
-    };
-    await this.openPreview(
-      this.authorizationAdminService.previewRoleInactivation(this.role.key, request),
-      'Inactivate role',
-      { operation: 'role-inactivate', request }
-    );
+    return this.previewOperation('role-inactivate', event);
   }
 
   public async previewDeletion(event?: Event): Promise<void> {
-    if (!this.role || !this.canManage) return;
-    this.capturePreviewTrigger(event);
-    const request: RoleLifecycleRequest = {
-      expectedVersion: this.role.version,
-      ...(this.reason.trim() ? { reason: this.reason.trim() } : {}),
-    };
-    await this.openPreview(
-      this.authorizationAdminService.previewRoleDeletion(this.role.key, request),
-      'Delete eligible role',
-      { operation: 'role-delete', request }
-    );
+    return this.previewOperation('role-delete', event);
   }
 
   public async applyPreview(): Promise<void> {
@@ -320,27 +321,33 @@ export class RoleEditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.liveMessage = 'Applying the confirmed server preview.';
     this.error = undefined;
     try {
+      const roleKey = this.role.key;
       const confirmationToken = this.preview.confirmationToken;
-      if (this.previewRequest.operation === 'role-scopes') {
-        await this.authorizationAdminService.applyRoleScopes(this.role.key, {
-          ...this.previewRequest.request,
-          confirmationToken,
-        });
-      } else if (this.previewRequest.operation === 'template-upgrade') {
-        await this.authorizationAdminService.applyRoleTemplateUpgrade(this.role.key, {
-          ...this.previewRequest.request,
-          confirmationToken,
-        });
-      } else if (this.previewRequest.operation === 'role-inactivate') {
-        await this.authorizationAdminService.inactivateRole(this.role.key, {
-          ...this.previewRequest.request,
-          confirmationToken,
-        });
-      } else {
-        await this.authorizationAdminService.deleteRole(this.role.key, {
-          ...this.previewRequest.request,
-          confirmationToken,
-        });
+      const request = this.previewRequest.request;
+      const applyActions: Record<RolePreviewRequest['operation'], () => Promise<unknown>> = {
+        'role-scopes': () =>
+          this.authorizationAdminService.applyRoleScopes(roleKey, {
+            ...(request as RoleScopeRequest),
+            confirmationToken,
+          }),
+        'template-upgrade': () =>
+          this.authorizationAdminService.applyRoleTemplateUpgrade(roleKey, {
+            ...(request as RoleTemplateUpgradeRequest),
+            confirmationToken,
+          }),
+        'role-inactivate': () =>
+          this.authorizationAdminService.inactivateRole(roleKey, {
+            ...(request as RoleLifecycleRequest),
+            confirmationToken,
+          }),
+        'role-delete': () =>
+          this.authorizationAdminService.deleteRole(roleKey, {
+            ...(request as RoleLifecycleRequest),
+            confirmationToken,
+          }),
+      };
+      await applyActions[this.previewRequest.operation]();
+      if (this.previewRequest.operation === 'role-delete') {
         this.authorizationChanged.emit(`Role ${this.role.key} deleted.`);
         this.clearPreview();
         return;

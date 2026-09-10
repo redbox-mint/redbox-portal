@@ -41,7 +41,7 @@ const apiDocumentInfo = {
 const HTTP_METHODS: readonly HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch', 'head'];
 
 function isHttpMethod(value: unknown): value is HttpMethod {
-  return typeof value === 'string' && HTTP_METHODS.some(method => method === value);
+  return typeof value === 'string' && HTTP_METHODS.includes(value as HttpMethod);
 }
 
 const coreApiRouteGroups = [

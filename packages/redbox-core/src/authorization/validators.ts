@@ -31,23 +31,12 @@ export const RESERVED_CORE_SCOPE_NAMESPACES = Object.freeze([
 
 const RESERVED_CORE_SCOPE_NAMESPACE_SET = new Set<string>(RESERVED_CORE_SCOPE_NAMESPACES);
 
-function brandScopeKey(value: string): ScopeKey {
-  return value as ScopeKey;
-}
-
-function brandRoleKey(value: string): RoleKey {
-  return value as RoleKey;
-}
-
 function hasOnlyWhitespace(value: string): boolean {
   return value.trim().length === 0;
 }
 
 function containsControlCharacters(value: string): boolean {
-  return Array.from(value).some(character => {
-    const codePoint = character.codePointAt(0);
-    return codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f);
-  });
+  return /[\u0000-\u001F\u007F]/.test(value);
 }
 
 export function isReservedCoreScopeNamespace(namespace: string): boolean {
@@ -74,7 +63,7 @@ export function asScopeKey(value: string): ScopeKey {
     );
   }
 
-  return brandScopeKey(value);
+  return value as ScopeKey;
 }
 
 export function asRoleKey(value: string): RoleKey {
@@ -85,7 +74,7 @@ export function asRoleKey(value: string): RoleKey {
     );
   }
 
-  return brandRoleKey(value);
+  return value as RoleKey;
 }
 
 export function asNewRoleKey(value: string): RoleKey {
@@ -96,7 +85,7 @@ export function asNewRoleKey(value: string): RoleKey {
     );
   }
 
-  return brandRoleKey(value);
+  return value as RoleKey;
 }
 
 /**

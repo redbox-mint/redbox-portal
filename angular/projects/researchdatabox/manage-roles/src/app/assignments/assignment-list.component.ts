@@ -60,6 +60,15 @@ export class AssignmentListComponent implements OnInit {
   public mutationReason = '';
   public readonly timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   private assignmentLoadId = 0;
+  private readonly assignmentGuards: Record<
+    'revoke' | 'suppress' | 'unsuppress' | 'edit',
+    (assignment: AuthorizationAssignment) => boolean
+  > = {
+    revoke: assignment => assignment.source === 'manual' && assignment.status === 'active',
+    suppress: assignment => assignment.source === 'external' && assignment.status === 'active',
+    unsuppress: assignment => assignment.source === 'external' && assignment.status === 'suppressed',
+    edit: assignment => assignment.source === 'manual' && assignment.status !== 'suppressed',
+  };
 
   // Phase 0 left the CSV/JSON bulk-assignment UI unapproved. The delivered typed
   // service retains the bounded API methods, but this Phase 9 view deliberately
@@ -196,54 +205,62 @@ export class AssignmentListComponent implements OnInit {
     }
   }
 
+  public async mutateAssignment(
+    op: 'revoke' | 'suppress' | 'unsuppress',
+    assignment: AuthorizationAssignment
+  ): Promise<void> {
+    if (!this.canAct(op, assignment)) return;
+    const request = {
+      expectedVersion: assignment.version,
+      ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
+    };
+    const mutation =
+      op === 'revoke'
+        ? () => this.authorizationAdminService.revokeAssignment(assignment.roleKey, assignment.principalId, request)
+        : op === 'suppress'
+          ? () => this.authorizationAdminService.suppressAssignment(assignment.id, request)
+          : () => this.authorizationAdminService.unsuppressAssignment(assignment.id, request);
+    await this.mutate(assignment, op, mutation);
+  }
+
   public async revoke(assignment: AuthorizationAssignment): Promise<void> {
-    if (!this.canRevoke(assignment)) return;
-    await this.mutate(assignment, 'revoke', () =>
-      this.authorizationAdminService.revokeAssignment(assignment.roleKey, assignment.principalId, {
-        expectedVersion: assignment.version,
-        ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
-      })
-    );
+    return this.mutateAssignment('revoke', assignment);
   }
 
   public async suppress(assignment: AuthorizationAssignment): Promise<void> {
-    if (!this.canSuppress(assignment)) return;
-    await this.mutate(assignment, 'suppress', () =>
-      this.authorizationAdminService.suppressAssignment(assignment.id, {
-        expectedVersion: assignment.version,
-        ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
-      })
-    );
+    return this.mutateAssignment('suppress', assignment);
   }
 
   public async unsuppress(assignment: AuthorizationAssignment): Promise<void> {
-    if (!this.canUnsuppress(assignment)) return;
-    await this.mutate(assignment, 'unsuppress', () =>
-      this.authorizationAdminService.unsuppressAssignment(assignment.id, {
-        expectedVersion: assignment.version,
-        ...(this.mutationReason.trim() ? { reason: this.mutationReason.trim() } : {}),
-      })
-    );
+    return this.mutateAssignment('unsuppress', assignment);
+  }
+
+  public canAct(
+    action: 'revoke' | 'suppress' | 'unsuppress' | 'edit',
+    assignment: AuthorizationAssignment
+  ): boolean {
+    if (!this.canManage) return false;
+    return this.assignmentGuards[action](assignment);
   }
 
   public canRevoke(assignment: AuthorizationAssignment): boolean {
-    return this.canManage && assignment.source === 'manual' && assignment.status === 'active';
+    return this.canAct('revoke', assignment);
   }
 
   public canSuppress(assignment: AuthorizationAssignment): boolean {
-    return this.canManage && assignment.source === 'external' && assignment.status === 'active';
+    return this.canAct('suppress', assignment);
   }
 
   public canUnsuppress(assignment: AuthorizationAssignment): boolean {
-    return this.canManage && assignment.source === 'external' && assignment.status === 'suppressed';
+    return this.canAct('unsuppress', assignment);
   }
 
   public canEditManualAssignment(assignment: AuthorizationAssignment): boolean {
-    return this.canManage && assignment.source === 'manual' && assignment.status !== 'suppressed';
+    return this.canAct('edit', assignment);
   }
 
   public editManualAssignment(assignment: AuthorizationAssignment): void {
-    if (!this.canEditManualAssignment(assignment)) return;
+    if (!this.canAct('edit', assignment)) return;
     this.grantUserId = assignment.principalId;
     this.grantRoleKey = assignment.roleKey;
     this.grantExpiresAt = assignment.expiresAt ? this.toLocalDateTime(assignment.expiresAt) : '';

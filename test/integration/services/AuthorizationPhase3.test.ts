@@ -1,8 +1,6 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix as suffix, withMigrationLease } from '../helpers/authorization';
 describe('Authorization Phase 3 migration and bootstrap', function () {
   this.timeout(60_000);
-
-  const suffix = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   async function bootstrapAdmin() {
     const admin = await User.findOne({ username: 'admin' });

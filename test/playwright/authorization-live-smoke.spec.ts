@@ -132,8 +132,7 @@ test.describe('authorization live legacy-mode API smoke (opt-in)', () => {
     // its returned version plus the grant's `changed` ownership flag. The
     // `finally` cleanup revokes exactly that owned version and asserts no
     // active assignment remains while the retained row is revoked.
-    let grantedVersion: number | undefined;
-    let cleanupOwned = false;
+    let ownedVersion: number | undefined;
     try {
       const grantResponse = await request.put(assignmentPath, {
         headers: mutationHeaders,
@@ -152,9 +151,8 @@ test.describe('authorization live legacy-mode API smoke (opt-in)', () => {
       // revoke it. Only `changed === true` claims cleanup ownership.
       // Record the owned version before further assertions so even an
       // invalid audit event identity still triggers the versioned revoke.
-      cleanupOwned = grantBody.changed === true;
-      if (cleanupOwned) {
-        grantedVersion = grantBody.version as number;
+      if (grantBody.changed === true) {
+        ownedVersion = grantBody.version as number;
       }
       expect(typeof grantBody.auditEventId, 'grant must return an audit event identity').toBe('string');
 
@@ -164,13 +162,13 @@ test.describe('authorization live legacy-mode API smoke (opt-in)', () => {
       expect(listResponse.ok(), `live GET /assignments failed with ${listResponse.status()}`).toBe(true);
     } finally {
       // Reversal is strictly scoped to the assignment this test created:
-      // `cleanupOwned` is only true after this run's own grant returned
+      // `ownedVersion` is only set after this run's own grant returned
       // `changed === true` (the preflight above skipped when an assignment
       // already existed, and a concurrent no-op never takes ownership).
-      if (cleanupOwned && grantedVersion !== undefined) {
+      if (ownedVersion !== undefined) {
         const revokeResponse = await request.delete(assignmentPath, {
           headers: mutationHeaders,
-          data: { expectedVersion: grantedVersion, reason: SMOKE_REASON },
+          data: { expectedVersion: ownedVersion, reason: SMOKE_REASON },
         });
         expect(revokeResponse.ok(), `live revoke (reversal) failed with ${revokeResponse.status()}`).toBe(true);
         const revokeBody = (await revokeResponse.json()) as { version?: unknown; changed?: unknown };

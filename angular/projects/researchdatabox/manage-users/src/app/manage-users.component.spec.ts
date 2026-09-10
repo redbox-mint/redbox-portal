@@ -950,10 +950,10 @@ describe('ManageUsersComponent', () => {
     expect(app.canManageLinks(usersData[0] as any)).toBeTrue();
     expect(app.canManageLinks(usersData[1] as any)).toBeFalse();
     // RB-ANGULAR-001: mutation affordances follow the authorization projection.
+    // (ponytail: canManageAccess/canCreateUser aliases removed; user creation
+    // and access gates now call canManageUsers() directly.)
     expect(app.canManageUsers()).toBeTrue();
     expect(app.canManageAccountLinks()).toBeTrue();
-    expect(app.canManageAccess()).toBeTrue();
-    expect(app.canCreateUser()).toBeTrue();
     expect(app.canViewAudit()).toBeTrue();
     expect(app.canManageTokens()).toBeTrue();
     expect(app.getAccountStatusBadge(disabledViaPrimaryUser)).toBe('Disabled via admin');

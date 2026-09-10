@@ -1,5 +1,7 @@
 import { createHash } from 'crypto';
+import { isRecord } from '../api-routes/helpers';
 import { AuthorizationValidationError } from './errors';
+import { uniqueSortedScopeKeys } from './role-effective-scopes';
 import {
   AUTHORIZATION_SCOPE_RISKS,
   AUTHORIZATION_SCOPE_SOURCE_TYPES,
@@ -29,14 +31,6 @@ export interface ScopeRegistry {
   validateScopeKeys(scopeKeys: readonly ScopeKey[]): ScopeKeyValidationSummary;
 }
 
-function uniqueSortedScopeKeys(scopeKeys: readonly ScopeKey[]): ScopeKey[] {
-  return [...new Set(scopeKeys)].sort(compareScopeKeys);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function requiredString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new AuthorizationValidationError(
@@ -48,11 +42,11 @@ function requiredString(value: unknown, field: string): string {
 }
 
 function isScopeRisk(value: unknown): value is AuthorizationScopeRisk {
-  return AUTHORIZATION_SCOPE_RISKS.some(candidate => candidate === value);
+  return AUTHORIZATION_SCOPE_RISKS.includes(value as AuthorizationScopeRisk);
 }
 
 function isScopeSourceType(value: unknown): value is AuthorizationScopeSourceType {
-  return AUTHORIZATION_SCOPE_SOURCE_TYPES.some(candidate => candidate === value);
+  return AUTHORIZATION_SCOPE_SOURCE_TYPES.includes(value as AuthorizationScopeSourceType);
 }
 
 function parseScopeDefinition(value: unknown): AuthorizationScopeDefinition {
@@ -120,8 +114,8 @@ function freezeScopeDefinition(definition: RegisteredScopeDefinition): Registere
   return Object.freeze({ ...definition });
 }
 
-function definitionSignature(definition: RegisteredScopeDefinition): string {
-  return JSON.stringify({
+function definitionPayload(definition: RegisteredScopeDefinition) {
+  return {
     key: definition.key,
     label: definition.label,
     description: definition.description,
@@ -132,7 +126,11 @@ function definitionSignature(definition: RegisteredScopeDefinition): string {
     sourceType: definition.sourceType,
     sourcePackage: definition.sourcePackage,
     sourceVersion: definition.sourceVersion,
-  });
+  };
+}
+
+function definitionSignature(definition: RegisteredScopeDefinition): string {
+  return JSON.stringify(definitionPayload(definition));
 }
 
 function assertHookNamespaceOwnership(definition: RegisteredScopeDefinition): void {
@@ -233,18 +231,7 @@ function assertValidReplacementTargets(
 }
 
 function buildGeneration(definitions: readonly RegisteredScopeDefinition[]): string {
-  const payload = definitions.map(definition => ({
-    key: definition.key,
-    label: definition.label,
-    description: definition.description,
-    risk: definition.risk,
-    status: definition.status,
-    replacementKey: definition.replacementKey ?? null,
-    namespace: definition.namespace,
-    sourceType: definition.sourceType,
-    sourcePackage: definition.sourcePackage,
-    sourceVersion: definition.sourceVersion,
-  }));
+  const payload = definitions.map(definition => definitionPayload(definition));
 
   return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
 }

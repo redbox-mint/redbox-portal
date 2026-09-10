@@ -1,4 +1,4 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix, withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   buildRoleIdentityKey,
@@ -8,7 +8,7 @@ import {
 describe('Authorization Phase 4 effective context and decision engine', function () {
   this.timeout(60_000);
 
-  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const suffix = uniqueSuffix();
   const roleKey = `phase4-${suffix}`;
   let brandA: { id: string; name: string };
   let brandB: { id: string; name: string };

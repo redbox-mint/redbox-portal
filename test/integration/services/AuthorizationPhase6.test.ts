@@ -1,4 +1,4 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix, withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   freezeAuthorizationContext,
@@ -9,7 +9,7 @@ import { Services } from '../../../packages/redbox-core/src/services/Authorizati
 describe('Authorization Phase 6 route enforcement and rollout wiring', function () {
   this.timeout(60_000);
 
-  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const suffix = uniqueSuffix();
   const requestId = `phase6-shadow-${suffix}`;
 
   after(async () => {

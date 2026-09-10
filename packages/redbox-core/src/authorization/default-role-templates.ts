@@ -17,17 +17,14 @@ export interface DefaultRoleTemplateDefinition {
 
 const keys = (...values: string[]): readonly ScopeKey[] => Object.freeze(values.map(asScopeKey).sort(compareScopeKeys));
 
-/**
- * Scopes an anonymous or merely-authenticated principal may hold. This list is declared
- * independently of the Guest template rather than derived from it, so that widening the
- * template cannot silently widen the safety check that validates it. Extending this set
- * is a reviewed, deliberate change.
- */
-export const GUEST_SCOPE_ALLOWLIST: ReadonlySet<ScopeKey> = new Set(
-  ['authorization.self.read', 'portal.home.read'].map(asScopeKey)
-);
-
 const GUEST_SCOPE_KEYS = keys('authorization.self.read', 'portal.home.read');
+
+/**
+ * Scopes an anonymous or merely-authenticated principal may hold. Derived from
+ * the Guest template so the safety check that validates it cannot drift from
+ * the template. Extending this set is a reviewed, deliberate change.
+ */
+export const GUEST_SCOPE_ALLOWLIST: ReadonlySet<ScopeKey> = new Set(GUEST_SCOPE_KEYS);
 
 const RESEARCHER_SCOPE_KEYS = keys(
   ...GUEST_SCOPE_KEYS,

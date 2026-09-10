@@ -20,26 +20,21 @@ export function apiRoute(
   request?: ApiRequestDefinition,
   metadata: ApiRouteMetadata = {}
 ) {
-  const authorization = normalizeRouteAuthorization(
-    metadata.authorization ??
-      coreApiActionAuthorization(controller, action) ??
-      (() => {
-        throw new Error(
-          `API route ${String(method).toUpperCase()} ${path} (${controller}#${action}) must declare authorization metadata.`
-        );
-      })()
-  );
+  const resolvedAuthorization = metadata.authorization ?? coreApiActionAuthorization(controller, action);
+  if (!resolvedAuthorization) {
+    throw new Error(
+      `API route ${String(method).toUpperCase()} ${path} (${controller}#${action}) must declare authorization metadata.`
+    );
+  }
+  const authorization = normalizeRouteAuthorization(resolvedAuthorization);
   const redboxRoleExtension = getRedboxRoleExtension(path);
   const authorizationExtensions = authorization.kind === 'scope' ? { 'x-redbox-scope': authorization.scope } : {};
-  const extensions =
-    redboxRoleExtension || metadata.extensions || authorization.kind === 'scope'
-      ? {
-          ...(metadata.extensions ?? {}),
-          ...(redboxRoleExtension ?? {}),
-          ...(redboxRoleExtension === undefined ? {} : { 'x-redbox-roles-deprecated': true }),
-          ...authorizationExtensions,
-        }
-      : undefined;
+  const extensions = {
+    ...(metadata.extensions ?? {}),
+    ...(redboxRoleExtension ?? {}),
+    ...(redboxRoleExtension === undefined ? {} : { 'x-redbox-roles-deprecated': true }),
+    ...authorizationExtensions,
+  };
 
   const routeIdentity = { method, path, controller, action };
   return defineApiRoute({

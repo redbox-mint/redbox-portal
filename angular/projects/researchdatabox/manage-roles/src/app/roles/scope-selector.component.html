@@ -19,10 +19,10 @@
               <input
                 type="checkbox"
                 [id]="'scope-' + scope.key"
-                [checked]="isSelected(scope.key)"
+                [checked]="selectedScopeKeys.includes(scope.key)"
                 [disabled]="selectionDisabled(scope)"
                 [attr.aria-describedby]="'scope-state-' + scope.key"
-                (change)="onToggle(scope, $event)"
+                (change)="toggle(scope, $any($event.target).checked)"
               />
               <strong>{{ scope.label }}</strong> <code>{{ scope.key }}</code>
             </label>

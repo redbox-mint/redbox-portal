@@ -1,9 +1,4 @@
-import {
-  AuthorizationDecision,
-  AuthorizationDecisionEvidence,
-  AuthorizationDecisionInput,
-  AuthorizationRecordAclOutcome,
-} from './types';
+import { AuthorizationDecision, AuthorizationDecisionEvidence, AuthorizationDecisionInput } from './types';
 
 function createEvidence(
   input: AuthorizationDecisionInput,
@@ -38,10 +33,6 @@ function createDecision(
     brandId: input.brand?.brandId,
     evidence,
   });
-}
-
-function recordAclDenied(recordAcl: AuthorizationRecordAclOutcome | undefined): boolean {
-  return (recordAcl ?? 'not-applicable') === 'denied';
 }
 
 export function decideAuthorization(input: AuthorizationDecisionInput): AuthorizationDecision {
@@ -93,7 +84,7 @@ export function decideAuthorization(input: AuthorizationDecisionInput): Authoriz
     return createDecision(input, false, 'resource-brand-mismatch', evidence);
   }
 
-  if (recordAclDenied(input.resource?.recordAcl)) {
+  if ((input.resource?.recordAcl ?? 'not-applicable') === 'denied') {
     return createDecision(input, false, 'record-acl-denied', evidence);
   }
 

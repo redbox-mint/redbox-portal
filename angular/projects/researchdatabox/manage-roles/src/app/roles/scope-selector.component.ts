@@ -42,27 +42,23 @@ export class ScopeSelectorComponent {
       }));
   }
 
-  public isSelected(scopeKey: string): boolean {
-    return this.selectedScopeKeys.includes(scopeKey);
-  }
-  public isBase(scopeKey: string): boolean {
-    return this.baseScopeKeys.includes(scopeKey);
-  }
-
   public stateLabel(scope: AuthorizationScope): string {
     const delegationState = this.delegableScopeKeys.includes(scope.key)
       ? ''
       : ' · Outside your current delegation ceiling';
-    if (this.isBase(scope.key) && this.isSelected(scope.key)) return `Template base · effective${delegationState}`;
-    if (this.isBase(scope.key)) return `Template base · removed${delegationState}`;
-    if (this.isSelected(scope.key)) return `Local addition · effective${delegationState}`;
+    const isBase = this.baseScopeKeys.includes(scope.key);
+    const isSelected = this.selectedScopeKeys.includes(scope.key);
+    if (isBase && isSelected) return `Template base · effective${delegationState}`;
+    if (isBase) return `Template base · removed${delegationState}`;
+    if (isSelected) return `Local addition · effective${delegationState}`;
     return `Not granted${delegationState}`;
   }
 
   public selectionDisabled(scope: AuthorizationScope): boolean {
     return (
       this.disabled ||
-      (!this.isSelected(scope.key) && (scope.status !== 'active' || !this.delegableScopeKeys.includes(scope.key)))
+      (!this.selectedScopeKeys.includes(scope.key) &&
+        (scope.status !== 'active' || !this.delegableScopeKeys.includes(scope.key)))
     );
   }
 
@@ -72,12 +68,5 @@ export class ScopeSelectorComponent {
     if (checked) selected.add(scope.key);
     else selected.delete(scope.key);
     this.selectedScopeKeysChange.emit([...selected].sort());
-  }
-
-  public onToggle(scope: AuthorizationScope, event: Event): void {
-    const input = event.target;
-    if (input instanceof HTMLInputElement) {
-      this.toggle(scope, input.checked);
-    }
   }
 }

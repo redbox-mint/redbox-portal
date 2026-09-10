@@ -179,12 +179,7 @@ export const publishAuthorizationTemplateRevisionRoute = authorizationRoute(
   'publishTemplateRevision',
   {
     params: authorizationTemplateParamsSchema,
-    body: {
-      required: true,
-      content: {
-        'application/json': { schema: authorizationTemplatePublishBodySchema },
-      },
-    },
+    body: jsonBody(authorizationTemplatePublishBodySchema),
   },
   {
     authorization: scopeAuthorization('system.authorization.manage'),

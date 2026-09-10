@@ -1,4 +1,4 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix, withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   type AuthorizationConfigurationDocument,
@@ -15,7 +15,7 @@ import {
 describe('Authorization Phase 8.5 audit, explain, readiness, and configuration services', function () {
   this.timeout(90_000);
 
-  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const suffix = uniqueSuffix();
   const observerRoleKey = `phase85-observer-${suffix}`.toLowerCase();
   const importedRoleKey = `phase85-imported-${suffix}`.toLowerCase();
   const requestIds: string[] = [];

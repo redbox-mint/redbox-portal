@@ -216,17 +216,17 @@
               }
             </td>
             <td>
-              @if (canRevoke(assignment)) {
+              @if (canAct('revoke', assignment)) {
                 <button
                   type="button"
                   class="btn btn-warning btn-sm"
                   [disabled]="mutationPending"
-                  (click)="revoke(assignment)"
+                  (click)="mutateAssignment('revoke', assignment)"
                 >
                   Revoke manual source
                 </button>
               }
-              @if (canEditManualAssignment(assignment)) {
+              @if (canAct('edit', assignment)) {
                 <button
                   type="button"
                   class="btn btn-default btn-sm"
@@ -236,22 +236,22 @@
                   Edit expiry / reactivate
                 </button>
               }
-              @if (canSuppress(assignment)) {
+              @if (canAct('suppress', assignment)) {
                 <button
                   type="button"
                   class="btn btn-warning btn-sm"
                   [disabled]="mutationPending"
-                  (click)="suppress(assignment)"
+                  (click)="mutateAssignment('suppress', assignment)"
                 >
                   Suppress external source
                 </button>
               }
-              @if (canUnsuppress(assignment)) {
+              @if (canAct('unsuppress', assignment)) {
                 <button
                   type="button"
                   class="btn btn-default btn-sm"
                   [disabled]="mutationPending"
-                  (click)="unsuppress(assignment)"
+                  (click)="mutateAssignment('unsuppress', assignment)"
                 >
                   Remove suppression
                 </button>

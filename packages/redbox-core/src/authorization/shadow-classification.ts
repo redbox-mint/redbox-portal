@@ -31,12 +31,9 @@ export const AUTHORIZATION_MISMATCH_LEGACY_CATEGORY_MAP = {
   'needs-investigation': 'data-migration-drift-defect',
 } as const satisfies Record<string, AuthorizationMismatchCategory>;
 
-export const AUTHORIZATION_MISMATCH_LEGACY_CLASSIFICATIONS = [
-  'approved-security-difference',
-  'expected-legacy-gap',
-  'scope-declaration-fix-required',
-  'needs-investigation',
-] as const satisfies readonly (keyof typeof AUTHORIZATION_MISMATCH_LEGACY_CATEGORY_MAP)[];
+export const AUTHORIZATION_MISMATCH_LEGACY_CLASSIFICATIONS = Object.keys(
+  AUTHORIZATION_MISMATCH_LEGACY_CATEGORY_MAP
+) as (keyof typeof AUTHORIZATION_MISMATCH_LEGACY_CATEGORY_MAP)[];
 
 export const AUTHORIZATION_MISMATCH_CLASSIFICATIONS = [
   ...AUTHORIZATION_MISMATCH_CATEGORIES,

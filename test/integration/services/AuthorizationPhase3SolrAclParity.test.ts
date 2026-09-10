@@ -94,27 +94,6 @@ describe('Authorization Phase 3 Solr ACL parity (P3-009)', function () {
     };
   }
 
-  async function persistRepresentativeRecord(doc: Record<string, unknown>): Promise<Record<string, unknown>> {
-    // Real record persistence through the production Record model: the Solr
-    // parity proof must start from persisted records, never from in-memory
-    // docs resubmitted directly. Uses the Docker integration profile's live
-    // Mongo replica set; throws when the model is unavailable so the suite
-    // skips honestly instead of claiming a pass.
-    const globals = global as {
-      Record?: { create: (v: unknown) => { fetch: () => Promise<Record<string, unknown>> } };
-    };
-    if (globals.Record?.create === undefined) throw new Error('Record model unavailable in the integration profile.');
-    return globals.Record.create({ ...doc }).fetch();
-  }
-
-  async function indexPersistedRecord(persisted: Record<string, unknown>): Promise<void> {
-    // Production reindex path: the persisted record attrs flow through the
-    // live `solrAddOrUpdate` transform+add+commit pipeline, then stored
-    // `authorization_*` fields are read back from Solr. No pure query-builder
-    // assertion substitutes for this live round trip.
-    await searchService().solrAddOrUpdate({ attrs: { data: { ...persisted } } });
-  }
-
   async function readStoredAuthFields(coreId: string, storageId: string): Promise<Record<string, unknown>> {
     const params = new URLSearchParams({
       q: `storage_id:"${storageId}"`,
@@ -183,11 +162,10 @@ describe('Authorization Phase 3 Solr ACL parity (P3-009)', function () {
     const docs = variants.map(variant => aclRecord(variant, coreId));
     const persisted: Array<Record<string, unknown>> = [];
     try {
-      // Real persistence first: every parity doc is a persisted Record row.
-      // When Mongo/Record is unavailable the suite skips honestly via the
-      // thrown model error below, never claiming a pass without persistence.
-      for (const doc of docs) persisted.push(await persistRepresentativeRecord(doc));
-      for (const record of persisted) await indexPersistedRecord(record);
+      const recordModel = (global as { Record?: { create: (v: unknown) => { fetch: () => Promise<Record<string, unknown>> } } }).Record;
+      if (recordModel?.create === undefined) throw new Error('Record model unavailable in the integration profile.');
+      for (const doc of docs) persisted.push(await recordModel.create({ ...doc }).fetch());
+      for (const record of persisted) await searchService().solrAddOrUpdate({ attrs: { data: { ...record } } });
       const before: Record<string, string> = {};
       const beforeMongo: Record<string, string> = {};
       for (const record of persisted) {
@@ -233,7 +211,7 @@ describe('Authorization Phase 3 Solr ACL parity (P3-009)', function () {
         expect(mongoAfter, `Mongo authorization for '${mongoKey}' must be unchanged after migration`).to.equal(
           beforeMongo[mongoKey]
         );
-        await indexPersistedRecord(refetched);
+        await searchService().solrAddOrUpdate({ attrs: { data: { ...refetched } } });
       }
 
       for (const record of persisted) {

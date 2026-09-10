@@ -320,7 +320,7 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   newUser() {
-    if (!this.canCreateUser()) {
+    if (!this.canManageUsers()) {
       return;
     }
     this.setNewUserMessage();
@@ -473,7 +473,7 @@ export class ManageUsersComponent extends BaseComponent {
 
   async newUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
-    if (!this.canCreateUser()) {
+    if (!this.canManageUsers()) {
       this.setNewUserMessage('User management requires user.manage authorization.', 'danger');
       return;
     }
@@ -696,7 +696,7 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async disableUser(user: ManageUser) {
-    if (!this.canManageAccess()) {
+    if (!this.canManageUsers()) {
       this.setUpdateMessage('User management requires user.manage authorization.', 'danger');
       return;
     }
@@ -734,7 +734,7 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async enableUser(user: ManageUser) {
-    if (!this.canManageAccess()) {
+    if (!this.canManageUsers()) {
       this.setUpdateMessage('User management requires user.manage authorization.', 'danger');
       return;
     }
@@ -857,31 +857,11 @@ export class ManageUsersComponent extends BaseComponent {
    * authoritative; these gates only hide affordances.
    */
   canManageUsers(): boolean {
-    try {
-      return this.authorizationProjection.hasScope('user.manage');
-    } catch {
-      return false;
-    }
+    return this.hasUserScope('user.manage');
   }
 
   canManageAccountLinks(): boolean {
-    try {
-      return this.authorizationProjection.hasScope('user.account-link.manage');
-    } catch {
-      return false;
-    }
-  }
-
-  canManageAccess(): boolean {
-    return this.canManageUsers();
-  }
-
-  /**
-   * RB-ANGULAR-001 exact projections: user creation is gated on `user.manage`
-   * (the add button previously rendered for every viewer).
-   */
-  canCreateUser(): boolean {
-    return this.canManageUsers();
+    return this.hasUserScope('user.account-link.manage');
   }
 
   /**
@@ -891,11 +871,7 @@ export class ManageUsersComponent extends BaseComponent {
    * this gate; the server remains authoritative.
    */
   canViewAudit(): boolean {
-    try {
-      return this.authorizationProjection.hasScope('user.read');
-    } catch {
-      return false;
-    }
+    return this.hasUserScope('user.read');
   }
 
   /**
@@ -903,8 +879,12 @@ export class ManageUsersComponent extends BaseComponent {
    * `user.token.manage`, not the broader `user.manage`.
    */
   canManageTokens(): boolean {
+    return this.hasUserScope('user.token.manage');
+  }
+
+  private hasUserScope(scopeKey: string): boolean {
     try {
-      return this.authorizationProjection.hasScope('user.token.manage');
+      return this.authorizationProjection.hasScope(scopeKey);
     } catch {
       return false;
     }

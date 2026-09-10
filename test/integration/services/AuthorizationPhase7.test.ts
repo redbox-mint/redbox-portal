@@ -1,4 +1,4 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix, withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   buildRoleIdentityKey,
@@ -11,21 +11,11 @@ import { firstValueFrom } from 'rxjs';
 describe('Authorization Phase 7 brand/entity/record resource gates', function () {
   this.timeout(60_000);
 
-  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const suffix = uniqueSuffix();
   const createdRecordOids: string[] = [];
   const createdDeletedRecordOids: string[] = [];
   const createdVocabularyIds: string[] = [];
-  let foreignFormId: string | undefined;
-  let foreignRecordTypeId: string | undefined;
-  let foreignWorkflowStepId: string | undefined;
-  let foreignReportId: string | undefined;
-  let foreignNamedQueryId: string | undefined;
-  let foreignDashboardTypeId: string | undefined;
-  let foreignAppConfigId: string | undefined;
-  let foreignTranslationId: string | undefined;
-  let foreignHarvestRunId: string | undefined;
-  let foreignUserId: string | undefined;
-  let foreignRoleId: string | undefined;
+  const foreignIds = new Map<string, string>();
   let brandA: { id: string; name: string };
   let brandB: { id: string; name: string };
   let fullContext: AuthorizationContext;
@@ -45,40 +35,29 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
   });
 
   after(async () => {
-    if (foreignUserId) {
-      await User.destroy({ id: foreignUserId });
-    }
-    if (foreignRoleId) {
-      await Role.destroy({ id: foreignRoleId });
-    }
-    if (foreignHarvestRunId) {
-      await HarvestRecordEvent.destroy({ runId: foreignHarvestRunId });
-      await HarvestRunChunk.destroy({ runId: foreignHarvestRunId });
-      await HarvestRun.destroy({ id: foreignHarvestRunId });
-    }
-    if (foreignTranslationId) {
-      await I18nTranslation.destroy({ id: foreignTranslationId });
-    }
-    if (foreignAppConfigId) {
-      await AppConfig.destroy({ id: foreignAppConfigId });
-    }
-    if (foreignDashboardTypeId) {
-      await DashboardType.destroy({ id: foreignDashboardTypeId });
-    }
-    if (foreignNamedQueryId) {
-      await NamedQuery.destroy({ id: foreignNamedQueryId });
-    }
-    if (foreignReportId) {
-      await RBReport.destroy({ id: foreignReportId });
-    }
-    if (foreignWorkflowStepId) {
-      await WorkflowStep.destroy({ id: foreignWorkflowStepId });
-    }
-    if (foreignRecordTypeId) {
-      await RecordType.destroy({ id: foreignRecordTypeId });
-    }
-    if (foreignFormId) {
-      await Form.destroy({ id: foreignFormId });
+    const cleanups: Array<[string, (id: string) => Promise<unknown>]> = [
+      ['user', id => User.destroy({ id })],
+      ['role', id => Role.destroy({ id })],
+      [
+        'harvestRun',
+        async id => {
+          await HarvestRecordEvent.destroy({ runId: id });
+          await HarvestRunChunk.destroy({ runId: id });
+          await HarvestRun.destroy({ id });
+        },
+      ],
+      ['translation', id => I18nTranslation.destroy({ id })],
+      ['appConfig', id => AppConfig.destroy({ id })],
+      ['dashboardType', id => DashboardType.destroy({ id })],
+      ['namedQuery', id => NamedQuery.destroy({ id })],
+      ['report', id => RBReport.destroy({ id })],
+      ['workflowStep', id => WorkflowStep.destroy({ id })],
+      ['recordType', id => RecordType.destroy({ id })],
+      ['form', id => Form.destroy({ id })],
+    ];
+    for (const [key, destroy] of cleanups) {
+      const foreignId = foreignIds.get(key);
+      if (foreignId) await destroy(foreignId);
     }
     if (createdVocabularyIds.length > 0) {
       await VocabularyEntry.destroy({ vocabulary: createdVocabularyIds });
@@ -537,69 +516,74 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
           .map(record => record.redboxOid)
           .filter((oid): oid is string => oid?.startsWith('phase7-matrix-') === true)
           .sort();
-      const listOids = async (username: string, roles: typeof researcherRoles, bypassRecordAcl: boolean) => {
-        const listed = await RecordsService.getRecords(
-          '',
-          'rdmp',
-          0,
-          100,
-          username,
-          roles,
-          brandA,
-          false,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          bypassRecordAcl
-        );
-        return matrixOids(listed.items);
-      };
-      const exportOids = async (username: string, roles: typeof researcherRoles, bypassRecordAcl: boolean) => {
-        const exportStream = RecordsService.exportAllPlans(
-          username,
-          roles,
-          brandA,
-          'json',
-          undefined,
-          undefined,
-          'rdmp',
-          bypassRecordAcl
-        );
-        const chunks: Buffer[] = [];
-        for await (const chunk of exportStream) {
-          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        }
-        const exported = JSON.parse(Buffer.concat(chunks).toString('utf8')) as {
-          records: Array<{ redboxOid?: string }>;
-        };
-        return matrixOids(exported.records);
-      };
+      const collectOids = async (fetch: () => Promise<Array<{ redboxOid?: string }>>) =>
+        matrixOids(await fetch());
+      const listOids = async (username: string, roles: typeof researcherRoles, bypassRecordAcl: boolean) =>
+        collectOids(async () => {
+          const listed = await RecordsService.getRecords(
+            '',
+            'rdmp',
+            0,
+            100,
+            username,
+            roles,
+            brandA,
+            false,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            bypassRecordAcl
+          );
+          return listed.items;
+        });
+      const exportOids = async (username: string, roles: typeof researcherRoles, bypassRecordAcl: boolean) =>
+        collectOids(async () => {
+          const exportStream = RecordsService.exportAllPlans(
+            username,
+            roles,
+            brandA,
+            'json',
+            undefined,
+            undefined,
+            'rdmp',
+            bypassRecordAcl
+          );
+          const chunks: Buffer[] = [];
+          for await (const chunk of exportStream) {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          }
+          const exported = JSON.parse(Buffer.concat(chunks).toString('utf8')) as {
+            records: Array<{ redboxOid?: string }>;
+          };
+          return exported.records;
+        });
 
       for (const record of matrixRecords as Array<Record<string, unknown>>) {
         indexedRecords.push(record);
         await SolrSearchService.solrAddOrUpdate({ attrs: { data: record } });
       }
-      const searchOids = async (username: string, roles: typeof researcherRoles, bypassRecordAcl: boolean) => {
-        const searched = await SolrSearchService.searchFuzzy(
-          'default',
-          'rdmp',
-          '',
-          '*',
-          [],
-          [],
-          brandA,
-          { username },
-          roles,
-          ['redboxOid'],
-          0,
-          100,
-          bypassRecordAcl
-        );
-        return matrixOids(searched.records as Array<{ redboxOid?: string }>);
-      };
+      const searchOids = async (username: string, roles: typeof researcherRoles, bypassRecordAcl: boolean) =>
+        collectOids(async () => {
+          const searched = await SolrSearchService.searchFuzzy(
+            'default',
+            'rdmp',
+            '',
+            '*',
+            [],
+            [],
+            brandA,
+            { username },
+            roles,
+            ['redboxOid'],
+            0,
+            100,
+            bypassRecordAcl
+          );
+          return searched.records as Array<{ redboxOid?: string }>;
+        });
 
       expect(await listOids(researcherUser.username, researcherRoles, false)).to.deep.equal(expectedAclOids);
       expect(await exportOids(researcherUser.username, researcherRoles, false)).to.deep.equal(expectedAclOids);
@@ -690,13 +674,13 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       branding: brandB.id,
       configuration: { name: formName, type: recordTypeName, componentDefinitions: [] },
     }).fetch();
-    foreignFormId = form.id;
+    foreignIds.set('form', form.id);
     const recordType = await RecordType.create({
       name: recordTypeName,
       branding: brandB.id,
       packageType: 'dataset',
     }).fetch();
-    foreignRecordTypeId = recordType.id;
+    foreignIds.set('recordType', recordType.id);
     const workflowStep = await WorkflowStep.create({
       name: workflowName,
       form: form.id,
@@ -704,7 +688,7 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       starting: true,
       recordType: recordType.id,
     }).fetch();
-    foreignWorkflowStepId = workflowStep.id;
+    foreignIds.set('workflowStep', workflowStep.id);
     const report = await RBReport.create({
       name: reportName,
       title: 'Foreign phase 7 report',
@@ -712,7 +696,7 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       filter: {},
       columns: [],
     }).fetch();
-    foreignReportId = report.id;
+    foreignIds.set('report', report.id);
     const namedQuery = await NamedQuery.create({
       name: queryName,
       branding: brandB.id,
@@ -722,20 +706,20 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       resultObjectMapping: '{}',
       brandIdFieldPath: 'metaMetadata.brandId',
     }).fetch();
-    foreignNamedQueryId = namedQuery.id;
+    foreignIds.set('namedQuery', namedQuery.id);
     const dashboardType = await DashboardType.create({
       name: dashboardName,
       branding: brandB.id,
       formatRules: {},
       tableConfig: {},
     }).fetch();
-    foreignDashboardTypeId = dashboardType.id;
+    foreignIds.set('dashboardType', dashboardType.id);
     const appConfig = await AppConfig.create({
       configKey: appConfigKey,
       branding: brandB.id,
       configData: { secretMarker: `foreign-${suffix}` },
     }).fetch();
-    foreignAppConfigId = appConfig.id;
+    foreignIds.set('appConfig', appConfig.id);
     const translation = await I18nTranslation.create({
       key: translationKey,
       locale: 'en',
@@ -743,7 +727,7 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       value: `foreign-${suffix}`,
       branding: brandB.id,
     }).fetch();
-    foreignTranslationId = translation.id;
+    foreignIds.set('translation', translation.id);
 
     expect(await firstValueFrom(FormsService.getFormByName(formName, true, brandA.id))).to.equal(null);
     expect(await firstValueFrom(RecordTypesService.get(brandA, recordTypeName))).to.equal(undefined);
@@ -780,7 +764,7 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       sourceName: `phase7-source-${suffix}`,
       startedAt: new Date().toISOString(),
     }).fetch();
-    foreignHarvestRunId = harvestRun.id;
+    foreignIds.set('harvestRun', harvestRun.id);
 
     expect(await HarvestRunService.getRun(brandA, harvestRun.id)).to.equal(null);
     expect(await HarvestRunService.getRun(brandB, harvestRun.id)).to.have.nested.property('run.id', harvestRun.id);
@@ -789,7 +773,7 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       name: `Phase7ForeignRole-${suffix}`,
       branding: brandB.id,
     }).fetch();
-    foreignRoleId = role.id;
+    foreignIds.set('role', role.id);
     const user = await User.create({
       username: `phase7-foreign-${suffix}`,
       password: `phase7-password-${suffix}`,
@@ -797,7 +781,7 @@ describe('Authorization Phase 7 brand/entity/record resource gates', function ()
       name: 'Local Admin',
       email: `phase7-foreign-${suffix}@example.test`,
     }).fetch();
-    foreignUserId = user.id;
+    foreignIds.set('user', user.id);
     await User.addToCollection(user.id, 'roles').members([role.id]);
 
     expect(await firstValueFrom(UsersService.getUserForBrand(user.id, brandA.id))).to.equal(null);

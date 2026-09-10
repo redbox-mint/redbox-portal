@@ -46,7 +46,7 @@ export class AuthorizationProjectionService extends HttpClientService {
 
   public async load(force = false): Promise<AuthorizationProjection> {
     await this.waitForInit();
-    const context = this.contextKey();
+    const context = `${this.brandingAndPortalUrl}`;
 
     if (!force && this.loadedContext === context && this.projection) {
       return this.projection;
@@ -124,10 +124,11 @@ export class AuthorizationProjectionService extends HttpClientService {
     if (typeof value !== 'object' || value === null) {
       return false;
     }
-    const rolloutMode: unknown = Reflect.get(value, 'rolloutMode');
-    const principal: unknown = Reflect.get(value, 'principal');
-    const roles: unknown = Reflect.get(value, 'roles');
-    const scopeKeys: unknown = Reflect.get(value, 'scopeKeys');
+    const candidate = value as Record<string, unknown>;
+    const rolloutMode: unknown = candidate['rolloutMode'];
+    const principal: unknown = candidate['principal'];
+    const roles: unknown = candidate['roles'];
+    const scopeKeys: unknown = candidate['scopeKeys'];
     return (
       (rolloutMode === 'legacy' || rolloutMode === 'shadow' || rolloutMode === 'enforce') &&
       typeof principal === 'object' &&
@@ -136,9 +137,5 @@ export class AuthorizationProjectionService extends HttpClientService {
       Array.isArray(scopeKeys) &&
       scopeKeys.every(scopeKey => typeof scopeKey === 'string')
     );
-  }
-
-  private contextKey(): string {
-    return `${this.brandingAndPortalUrl}`;
   }
 }

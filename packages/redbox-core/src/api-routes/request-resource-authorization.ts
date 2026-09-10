@@ -28,12 +28,3 @@ export function requireRequestResourceAuthorization(req: Sails.Req): RequestReso
   req.resourceAuthorization = extracted;
   return extracted;
 }
-
-export function requireRequestBrandId(req: Sails.Req): string {
-  const { context } = requireRequestResourceAuthorization(req);
-  const brandId = context.brand?.id?.trim();
-  if (!brandId || !context.brand?.exists || !context.brand.authorized) {
-    throw new Error('The request does not have an authorized brand context.');
-  }
-  return brandId;
-}

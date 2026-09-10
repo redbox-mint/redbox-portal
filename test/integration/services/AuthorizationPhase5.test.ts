@@ -1,4 +1,4 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix, withMigrationLease } from '../helpers/authorization';
 import type { AuthorizationContext } from '../../../packages/redbox-core/src/authorization';
 import { Services as AuthorizationServices } from '../../../packages/redbox-core/src/services/AuthorizationService';
 import { Services } from '../../../packages/redbox-core/src/services/RoleAdministrationService';
@@ -6,7 +6,7 @@ import { Services } from '../../../packages/redbox-core/src/services/RoleAdminis
 describe('Authorization Phase 5 role and assignment administration', function () {
   this.timeout(60_000);
 
-  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const suffix = uniqueSuffix();
   const roleKey = `phase5-${suffix}`.toLowerCase();
   const requestIds: string[] = [];
   let brand: { id: string };

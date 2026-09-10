@@ -92,7 +92,7 @@
                   [attr.aria-label]="'Select ' + role.displayName"
                   [disabled]="pending || !roleSelectableForBulk(role)"
                   [checked]="selectedRoleIds.has(role.id)"
-                  (change)="onBulkRoleChange(role, $event)"
+                  (change)="toggleBulkRole(role, $any($event.target).checked)"
                 />
               </td>
             }

@@ -1,4 +1,4 @@
-import { withMigrationLease } from '../helpers/authorization';
+import { uniqueSuffix, withMigrationLease } from '../helpers/authorization';
 import {
   asScopeKey,
   type AuthorizationContext,
@@ -20,7 +20,7 @@ import type { Collection, Document } from 'mongodb';
 describe('Authorization Phase 8 contract query and template publication services', function () {
   this.timeout(60_000);
 
-  const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const suffix = uniqueSuffix();
   const templateKey = `phase8-template-${suffix}`.toLowerCase();
   const requestId = `phase8-template-publish-${suffix}`;
   const roleRequestIds: string[] = [];

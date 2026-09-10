@@ -8,12 +8,8 @@ import {
 } from './types';
 import { compareScopeKeys } from './validators';
 
-function uniqueSortedScopeKeys(scopeKeys: readonly ScopeKey[]): ScopeKey[] {
+export function uniqueSortedScopeKeys(scopeKeys: readonly ScopeKey[]): ScopeKey[] {
   return [...new Set(scopeKeys)].sort(compareScopeKeys);
-}
-
-function freezeScopeOverrides(overrides: readonly RoleScopeOverride[]): readonly RoleScopeOverride[] {
-  return Object.freeze(overrides.map(override => Object.freeze({ ...override })));
 }
 
 function partitionEffectiveScopeKeys(
@@ -95,7 +91,7 @@ export function normalizeRoleScopeOverrides(input: RoleScopeNormalizationInput):
     }
   }
 
-  return freezeScopeOverrides(overrides);
+  return Object.freeze(overrides.map(override => Object.freeze({ ...override })));
 }
 
 export function previewRoleTemplateUpgrade(params: {

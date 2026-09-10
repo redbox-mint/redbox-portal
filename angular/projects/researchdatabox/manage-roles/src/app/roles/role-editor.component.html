@@ -195,7 +195,7 @@
         type="button"
         class="btn btn-info"
         [disabled]="loading || pending || !scopeCatalogAvailable"
-        (click)="previewScopes($event)"
+        (click)="previewOperation('role-scopes', $event)"
       >
         Preview scope changes
       </button>
@@ -216,7 +216,7 @@
           type="button"
           class="btn btn-info"
           [disabled]="pending || !targetRevision"
-          (click)="previewTemplateUpgrade($event)"
+          (click)="previewOperation('template-upgrade', $event)"
         >
           Preview upgrade
         </button>
@@ -229,10 +229,10 @@
           Both operations use a fresh server dependency scan. A delete button appears only in the eligible server
           preview.
         </p>
-        <button type="button" class="btn btn-warning" [disabled]="pending" (click)="previewInactivation($event)">
+        <button type="button" class="btn btn-warning" [disabled]="pending" (click)="previewOperation('role-inactivate', $event)">
           Preview inactivation
         </button>
-        <button type="button" class="btn btn-default" [disabled]="pending" (click)="previewDeletion($event)">
+        <button type="button" class="btn btn-default" [disabled]="pending" (click)="previewOperation('role-delete', $event)">
           Check deletion eligibility
         </button>
       </section>

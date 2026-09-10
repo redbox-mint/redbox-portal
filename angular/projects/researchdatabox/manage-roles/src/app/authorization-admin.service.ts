@@ -35,6 +35,38 @@ import {
 
 type MaybeWrapped<T> = T | { data: T; meta?: Record<string, unknown> };
 
+const ACTIONABLE_CODE_MESSAGES = new Map<string, string>([
+  [
+    'authorization.version-conflict',
+    'Authorization data changed while you were editing. Your input is preserved; reload and compare before trying again.',
+  ],
+  [
+    'authorization.preview-stale',
+    'The server impact preview is stale. Your input is preserved; request a new preview before applying.',
+  ],
+  [
+    'authorization.last-brand-admin',
+    'This change would remove the final effective brand administrator. Assign another administrator first.',
+  ],
+  [
+    'authorization.last-system-admin',
+    'This change would remove the final effective system administrator. Assign another administrator first.',
+  ],
+]);
+
+const ACTIONABLE_STATUS_MESSAGES = new Map<number, string>([
+  [409, 'The authorization state changed or a protected invariant rejected the operation. Reload before trying again.'],
+  [403, 'You no longer have permission to perform this authorization operation.'],
+  [404, 'The requested authorization resource is unavailable in the active brand.'],
+  [422, 'The server found invalid rows. Review the preview and correct every fatal error before applying.'],
+  [401, 'Your session is no longer authorized. Sign in again before continuing.'],
+]);
+
+const TRANSACTION_UNAVAILABLE_MESSAGE =
+  'This change could not be committed atomically. No partial authorization change was applied.';
+const SERVER_ERROR_MESSAGE =
+  'The server could not complete the authorization request. No unconfirmed change should be retried automatically.';
+
 export class AuthorizationAdminError extends Error implements AuthorizationUiErrorState {
   constructor(
     public readonly status: number,
@@ -247,48 +279,58 @@ export class AuthorizationAdminService extends HttpClientService {
   }
 
   private async get<T>(path: string, query?: object): Promise<T> {
-    if (this.isInitializing()) {
-      await this.waitForInit();
-    }
-    return this.request(
-      this.http.get<MaybeWrapped<T>>(this.apiUrl(path), {
-        ...this.jsonOptions(),
-        params: this.toHttpParams(query),
-      })
-    );
+    return this.verb<T>('get', path, undefined, query);
   }
 
   private async post<T>(path: string, body: object): Promise<T> {
-    if (this.isInitializing()) {
-      await this.waitForInit();
-    }
-    return this.request(this.http.post<MaybeWrapped<T>>(this.apiUrl(path), body, this.jsonOptions()));
+    return this.verb<T>('post', path, body);
   }
 
   private async put<T>(path: string, body: object): Promise<T> {
-    if (this.isInitializing()) {
-      await this.waitForInit();
-    }
-    return this.request(this.http.put<MaybeWrapped<T>>(this.apiUrl(path), body, this.jsonOptions()));
+    return this.verb<T>('put', path, body);
   }
 
   private async patch<T>(path: string, body: object): Promise<T> {
-    if (this.isInitializing()) {
-      await this.waitForInit();
-    }
-    return this.request(this.http.patch<MaybeWrapped<T>>(this.apiUrl(path), body, this.jsonOptions()));
+    return this.verb<T>('patch', path, body);
   }
 
   private async delete<T>(path: string, body: object): Promise<T> {
+    return this.verb<T>('delete', path, body);
+  }
+
+  private async verb<T>(
+    method: 'get' | 'post' | 'put' | 'patch' | 'delete',
+    path: string,
+    body?: object,
+    query?: object
+  ): Promise<T> {
     if (this.isInitializing()) {
       await this.waitForInit();
     }
-    return this.request(
-      this.http.delete<MaybeWrapped<T>>(this.apiUrl(path), {
-        ...this.jsonOptions(),
-        body,
-      })
-    );
+    const url = this.apiUrl(path);
+    const options = this.jsonOptions();
+    switch (method) {
+      case 'get':
+        return this.request(
+          this.http.get<MaybeWrapped<T>>(url, {
+            ...options,
+            params: this.toHttpParams(query),
+          })
+        );
+      case 'post':
+        return this.request(this.http.post<MaybeWrapped<T>>(url, body, options));
+      case 'put':
+        return this.request(this.http.put<MaybeWrapped<T>>(url, body, options));
+      case 'patch':
+        return this.request(this.http.patch<MaybeWrapped<T>>(url, body, options));
+      case 'delete':
+        return this.request(
+          this.http.delete<MaybeWrapped<T>>(url, {
+            ...options,
+            body,
+          })
+        );
+    }
   }
 
   private apiUrl(path: string): string {
@@ -304,17 +346,13 @@ export class AuthorizationAdminService extends HttpClientService {
   }
 
   private toHttpParams(query?: object): HttpParams {
-    let params = new HttpParams();
     if (!query) {
-      return params;
+      return new HttpParams();
     }
-    for (const [key, rawValue] of Object.entries(query as Record<string, unknown>)) {
-      if (rawValue === undefined || rawValue === null || rawValue === '') {
-        continue;
-      }
-      params = params.set(key, String(rawValue));
-    }
-    return params;
+    const filtered = Object.entries(query as Record<string, unknown>)
+      .filter(([, rawValue]) => rawValue !== undefined && rawValue !== null && rawValue !== '')
+      .map(([key, rawValue]) => [key, String(rawValue)] as const);
+    return new HttpParams({ fromObject: Object.fromEntries(filtered) });
   }
 
   private async request<T>(observable: Observable<MaybeWrapped<T>>): Promise<T> {
@@ -386,41 +424,25 @@ export class AuthorizationAdminService extends HttpClientService {
   }
 
   private actionableMessage(status: number, code: string, detail?: string): string {
-    if (code === 'authorization.version-conflict') {
-      return 'Authorization data changed while you were editing. Your input is preserved; reload and compare before trying again.';
-    }
-    if (code === 'authorization.preview-stale') {
-      return 'The server impact preview is stale. Your input is preserved; request a new preview before applying.';
-    }
-    if (code === 'authorization.last-brand-admin') {
-      return 'This change would remove the final effective brand administrator. Assign another administrator first.';
-    }
-    if (code === 'authorization.last-system-admin') {
-      return 'This change would remove the final effective system administrator. Assign another administrator first.';
+    const byCode = ACTIONABLE_CODE_MESSAGES.get(code);
+    if (byCode) {
+      return byCode;
     }
     if (status === 409) {
-      return 'The authorization state changed or a protected invariant rejected the operation. Reload before trying again.';
+      return ACTIONABLE_STATUS_MESSAGES.get(409) as string;
     }
     if (code === 'authorization.transaction-unavailable' || status === 503) {
-      return 'This change could not be committed atomically. No partial authorization change was applied.';
+      return TRANSACTION_UNAVAILABLE_MESSAGE;
     }
-    if (status === 403) {
-      return 'You no longer have permission to perform this authorization operation.';
-    }
-    if (status === 404) {
-      return 'The requested authorization resource is unavailable in the active brand.';
-    }
-    if (status === 422) {
-      return 'The server found invalid rows. Review the preview and correct every fatal error before applying.';
+    const byStatus = ACTIONABLE_STATUS_MESSAGES.get(status);
+    if (byStatus) {
+      return byStatus;
     }
     if (status === 400) {
       return detail || 'Review the supplied authorization values and try again.';
     }
-    if (status === 401) {
-      return 'Your session is no longer authorized. Sign in again before continuing.';
-    }
     if (status >= 500) {
-      return 'The server could not complete the authorization request. No unconfirmed change should be retried automatically.';
+      return SERVER_ERROR_MESSAGE;
     }
     return detail || 'The authorization request could not be completed.';
   }

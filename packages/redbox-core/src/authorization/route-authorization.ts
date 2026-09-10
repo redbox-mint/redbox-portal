@@ -1,5 +1,6 @@
 import type { ScopeRegistry } from './scope-registry';
 import type { AuthorizationContext, RouteAuthorization, ScopeKey } from './types';
+import { isRecord } from '../api-routes/helpers';
 import { asScopeKey } from './validators';
 
 const MAX_ROUTE_ID_LENGTH = 256;
@@ -18,12 +19,16 @@ export function scopeAuthorization(scope: string | ScopeKey): RouteAuthorization
   return Object.freeze({ kind: 'scope', scope: asScopeKey(scope) });
 }
 
+export function kindAuthorization(kind: 'public' | 'pre-auth', reason: string): RouteAuthorization {
+  return Object.freeze({ kind, reason: validateReason(reason, kind) });
+}
+
 export function publicAuthorization(reason: string): RouteAuthorization {
-  return Object.freeze({ kind: 'public', reason: validateReason(reason, 'public') });
+  return kindAuthorization('public', reason);
 }
 
 export function preAuthAuthorization(reason: string): RouteAuthorization {
-  return Object.freeze({ kind: 'pre-auth', reason: validateReason(reason, 'pre-auth') });
+  return kindAuthorization('pre-auth', reason);
 }
 
 function validateReason(reason: string, kind: 'public' | 'pre-auth'): string {
@@ -32,10 +37,6 @@ function validateReason(reason: string, kind: 'public' | 'pre-auth'): string {
     throw new Error(`${kind} route authorization reason must contain 1-${MAX_REASON_LENGTH} characters.`);
   }
   return normalized;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export function normalizeRouteAuthorization(value: unknown): RouteAuthorization {

@@ -1,7 +1,7 @@
 import { ZodIssue, ZodType } from 'zod';
 
 import { ApiFileConstraint, ApiRequestDefinition, ApiRouteDefinition } from './types';
-import { isRecord, isStrictObjectSchema } from './helpers';
+import { isRecord, isCatchallObjectSchema } from './helpers';
 import { buildRequestSourceInput, extractApiRequest } from './request-extraction';
 
 export interface ApiValidationIssue {
@@ -57,7 +57,7 @@ function validateSource(
   // undeclared authority-bearing properties. Other sources still need projection
   // because the framework adds fields that are not part of each action's contract.
   const value =
-    source === 'body' && isStrictObjectSchema(schema)
+    source === 'body' && isCatchallObjectSchema(schema, 'never')
       ? buildRequestSourceInput(req, request, source)
       : buildRequestSourceInput(req, request, source, schema);
   const result = schema.safeParse(value);

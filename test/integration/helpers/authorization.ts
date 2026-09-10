@@ -12,6 +12,8 @@ export async function withMigrationLease<T>(work: (lease: MigrationLeaseHandle) 
   }
 }
 
+export const uniqueSuffix = (): string => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 export async function adminMutationOptions() {
   const brand = BrandingService.getDefault();
   const admin = await User.findOne({ username: 'admin' });

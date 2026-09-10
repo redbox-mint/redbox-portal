@@ -41,7 +41,7 @@
               <span class="mu-toggle-switch"></span>
               <span class="mu-toggle-text">{{ 'manage-users-show-disabled' | i18next }}</span>
             </label>
-            @if (canCreateUser()) {
+            @if (canManageUsers()) {
               <button class="btn btn-primary" type="button" (click)="newUser()">
                 <i class="fa fa-plus"></i>
                 {{ 'manage-users-add-local' | i18next }}
@@ -113,7 +113,7 @@
                           {{ 'manage-users-link-manage' | i18next }}
                         </button>
                       }
-                      @if (!isLinkedAlias(user) && canManageAccess()) {
+                      @if (!isLinkedAlias(user) && canManageUsers()) {
                         @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
                           <button
                             type="button"
