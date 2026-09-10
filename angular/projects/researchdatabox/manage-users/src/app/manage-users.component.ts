@@ -176,6 +176,14 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
+    // Affordance gates (add/edit/token/link buttons) read the shared
+    // authorization projection. It only loads on explicit request, so load it
+    // here; on failure the gates stay fail-closed (buttons hidden) while the
+    // read-only list still renders.
+    await this.authorizationProjection.load().catch((error: unknown) => {
+      this.loggerService.debug(`Manage Users authorization projection unavailable: ${String(error)}`);
+      return undefined;
+    });
     const roles: RoleSummary[] = await this.userService.getBrandRoles();
     for (const role of roles) {
       this.allRoles.push({ id: role.id, name: role.name, users: [], hasRole: false });

@@ -17,9 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, catchError, of, type Observable } from 'rxjs';
 import { Inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 
 import { ConfigService } from './config.service';
@@ -310,6 +310,62 @@ export class UserService extends HttpClientService {
     return { responseType: 'json', observe: 'body', context: this.httpContext };
   }
 
+  /**
+   * Mutation endpoints resolve `{status, message}` for handled outcomes but
+   * still reject on transport/validation failures. Every dialog treats the
+   * resolved SaveResult as exhaustive, so convert rejections here instead of
+   * leaving callers stuck on "Saving..." with an unhandled rejection.
+   */
+  private async saveRequest(request$: Observable<SaveResult>, action: string): Promise<SaveResult> {
+    return await firstValueFrom(
+      request$.pipe(
+        map(response => this.toSaveResult(response, action)),
+        catchError(error => of({ status: false, message: this.saveErrorMessage(error, action) }))
+      )
+    );
+  }
+
+  /**
+   * Mutation endpoints either resolve the legacy `{status, message}` envelope
+   * or, for the typed REST contract, the mutated record itself (e.g. the
+   * created user on 201). Any resolved 2xx body counts as success; only the
+   * envelope's explicit boolean may report failure. Extra body fields (token,
+   * version) are preserved for callers that read them.
+   */
+  private toSaveResult(response: unknown, action: string): SaveResult {
+    if (response && typeof response === 'object' && typeof (response as { status?: unknown }).status === 'boolean') {
+      return response as SaveResult;
+    }
+    if (response && typeof response === 'object') {
+      const message = (response as { message?: unknown }).message;
+      return {
+        ...(response as Record<string, unknown>),
+        status: true,
+        message: typeof message === 'string' ? message : `${action} succeeded.`,
+      } as SaveResult;
+    }
+    return { status: false, message: `${action} returned an unexpected response.` };
+  }
+
+  private saveErrorMessage(error: unknown, action: string): string {
+    if (error instanceof HttpErrorResponse) {
+      const body = error.error as { message?: unknown; error?: unknown } | string | null | undefined;
+      if (typeof body === 'string' && body.trim()) {
+        return body;
+      }
+      if (body && typeof body === 'object') {
+        if (typeof body.message === 'string' && body.message.trim()) {
+          return body.message;
+        }
+        if (typeof body.error === 'string' && body.error.trim()) {
+          return body.error;
+        }
+      }
+      return `${action} failed (${error.status || 'network error'}).`;
+    }
+    return error instanceof Error && error.message ? error.message : `${action} failed.`;
+  }
+
   public async getUsers(options?: { includeDisabled?: boolean }): Promise<User[] | UserListResponse> {
     let url = `${this.brandingAndPortalUrl}/api/users`;
     if (options?.includeDisabled) {
@@ -334,7 +390,7 @@ export class UserService extends HttpClientService {
         { responseType: 'json', observe: 'body', context: this.httpContext }
       )
       .pipe(map(res => res));
-    return await firstValueFrom(result$);
+    return await this.saveRequest(result$, 'Update user');
   }
 
   public async addLocalUser(username: string, details: LocalUserCreateDetails): Promise<SaveResult> {
@@ -346,7 +402,7 @@ export class UserService extends HttpClientService {
         { responseType: 'json', observe: 'body', context: this.httpContext }
       )
       .pipe(map(res => res));
-    return await firstValueFrom(result$);
+    return await this.saveRequest(result$, 'Create user');
   }
 
   public async genKey(userid: string, expectedVersion: number): Promise<SaveResult> {
@@ -363,7 +419,7 @@ export class UserService extends HttpClientService {
         }
       )
       .pipe(map(res => res));
-    return await firstValueFrom(result$);
+    return await this.saveRequest(result$, 'Generate API key');
   }
 
   public async revokeKey(userid: string, expectedVersion: number): Promise<SaveResult> {
@@ -380,7 +436,7 @@ export class UserService extends HttpClientService {
         }
       )
       .pipe(map(res => res));
-    return await firstValueFrom(result$);
+    return await this.saveRequest(result$, 'Revoke API key');
   }
 
   public async getBrandRoles(): Promise<RoleSummary[]> {
@@ -406,7 +462,7 @@ export class UserService extends HttpClientService {
         { responseType: 'json', observe: 'body', context: this.httpContext }
       )
       .pipe(map(res => res));
-    return await firstValueFrom(result$);
+    return await this.saveRequest(result$, 'Update user roles');
   }
 
   public async searchLinkCandidates(primaryUserId: string, query: string): Promise<UserLinkCandidate[]> {
@@ -465,7 +521,7 @@ export class UserService extends HttpClientService {
         context: this.httpContext,
       })
       .pipe(map(res => res));
-    return await firstValueFrom(result$);
+    return await this.saveRequest(result$, 'Disable user');
   }
 
   public async enableUser(userId: string, options: UserAccessOptions): Promise<SaveResult> {
@@ -481,7 +537,7 @@ export class UserService extends HttpClientService {
         context: this.httpContext,
       })
       .pipe(map(res => res));
-    return await firstValueFrom(result$);
+    return await this.saveRequest(result$, 'Enable user');
   }
 
   public async linkAccounts(
