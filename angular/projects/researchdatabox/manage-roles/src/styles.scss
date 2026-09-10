@@ -1,1 +1,33 @@
 /* You can add global styles to this file, and also import other style files */
+
+// The portal theme renders Bootstrap 3 `.label` backgrounds transparent, which
+// makes status pills white-on-white. Restore the standard contextual colors for
+// the manage-roles app only; other apps are unaffected.
+manage-roles {
+  .label-default {
+    background-color: #777;
+  }
+  .label-primary {
+    background-color: #337ab7;
+  }
+  .label-success {
+    background-color: #5cb85c;
+  }
+  .label-info {
+    background-color: #5bc0de;
+  }
+  .label-warning {
+    background-color: #f0ad4e;
+  }
+  .label-danger {
+    background-color: #d9534f;
+  }
+  .manage-roles-brand {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  // The portal theme lays `.modal-header` out with flexbox, which disables the
+  // classic right-floated `.close` button. Restore block layout for our modals.
+  .manage-roles-modal .modal-header {
+    display: block;
+  }
+}

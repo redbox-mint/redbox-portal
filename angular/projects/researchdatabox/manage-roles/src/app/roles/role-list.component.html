@@ -4,16 +4,17 @@
   [attr.aria-hidden]="editorOpen || bulkPreview ? 'true' : null"
   [attr.inert]="editorOpen || bulkPreview ? '' : null"
 >
-  <div class="section-heading">
-    <div>
-      <h2 id="roles-heading">Roles</h2>
-      <p>Brand roles use immutable keys and versioned effective scope sets.</p>
+  <div class="clearfix">
+    <div class="pull-right">
+      @if (canManageRoles) {
+        <button type="button" class="btn btn-primary btn-sm" [disabled]="!canCreateRole" (click)="openCreate($event)">
+          <i class="fa fa-plus"></i>
+          Create role
+        </button>
+      }
     </div>
-    @if (canManageRoles) {
-      <button type="button" class="btn btn-primary" [disabled]="!canCreateRole" (click)="openCreate($event)">
-        Create role
-      </button>
-    }
+    <h2 id="roles-heading">Roles</h2>
+    <p class="help-block">Brand roles use immutable keys and versioned effective scope sets.</p>
   </div>
 
   @if (error) {
@@ -36,36 +37,38 @@
     </div>
   }
 
-  <form class="filter-grid" (submit)="$event.preventDefault(); loadRoles(false)">
-    <div class="form-group">
-      <label for="role-search">Search roles</label>
-      <input id="role-search" class="form-control" type="search" maxlength="128" [(ngModel)]="search" name="search" />
-    </div>
-    <div class="form-group">
-      <label for="role-status">Status</label>
-      <select id="role-status" class="form-control" [(ngModel)]="status" name="status">
-        <option value="">Any status</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="role-template-filter">Template</label>
-      <select id="role-template-filter" class="form-control" [(ngModel)]="templateFilter" name="templateFilter">
-        <option value="">Any template</option>
-        @for (template of templates; track template.key) {
-          <option [value]="template.key">{{ template.displayName }}</option>
-        }
-      </select>
-    </div>
-    <div class="filter-actions">
-      <button class="btn btn-default" type="submit" [disabled]="loading">Apply filters</button>
-      <button class="btn btn-link" type="button" [disabled]="loading" (click)="resetFilters()">Reset</button>
+  <form class="well well-sm" (submit)="$event.preventDefault(); loadRoles(false)">
+    <div class="row">
+      <div class="form-group form-group-sm col-md-3">
+        <label for="role-search" class="small text-uppercase text-muted">Search roles</label>
+        <input id="role-search" class="form-control input-sm" type="search" maxlength="128" [(ngModel)]="search" name="search" />
+      </div>
+      <div class="form-group form-group-sm col-md-3">
+        <label for="role-status" class="small text-uppercase text-muted">Status</label>
+        <select id="role-status" class="form-control input-sm" [(ngModel)]="status" name="status">
+          <option value="">Any status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="form-group form-group-sm col-md-3">
+        <label for="role-template-filter" class="small text-uppercase text-muted">Template</label>
+        <select id="role-template-filter" class="form-control input-sm" [(ngModel)]="templateFilter" name="templateFilter">
+          <option value="">Any template</option>
+          @for (template of templates; track template.key) {
+            <option [value]="template.key">{{ template.displayName }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group form-group-sm col-md-3 manage-roles-filter-actions">
+        <button class="btn btn-primary btn-sm" type="submit" [disabled]="loading">Apply filters</button>
+        <button class="btn btn-link btn-sm" type="button" [disabled]="loading" (click)="resetFilters()">Reset</button>
+      </div>
     </div>
   </form>
 
   <div class="table-responsive">
-    <table class="table table-striped table-hover">
+    <table class="table table-bordered table-striped table-hover">
       <caption class="sr-only">
         Roles in the active brand, including protection, template, override, and assignment state
       </caption>
@@ -100,11 +103,11 @@
               <strong>{{ role.displayName }}</strong
               ><br /><code>{{ role.key }}</code>
               @if (role.protectedKind !== 'none') {
-                <span class="label label-info protected-label">Protected: {{ role.protectedKind }}</span>
+                <span class="label label-info manage-roles-inline-label">Protected: {{ role.protectedKind }}</span>
               }
             </td>
             <td>
-              <span class="status-text">{{ role.status }}</span>
+              <span class="label" [class.label-success]="role.status === 'active'" [class.label-default]="role.status !== 'active'">{{ role.status }}</span>
             </td>
             <td>
               @if (role.templateKey) {
@@ -115,15 +118,15 @@
             </td>
             <td>{{ overrideCount(role) ?? 'Loading' }}</td>
             <td>{{ assignmentCount(role) }}</td>
-            <td>
-              <button type="button" class="btn btn-default btn-sm" (click)="openEdit(role.key, $event)">
+            <td class="text-right text-nowrap">
+              <button type="button" class="btn btn-primary btn-xs" (click)="openEdit(role.key, $event)">
                 {{ canManageRoles ? 'Inspect / edit' : 'Inspect' }}
               </button>
             </td>
           </tr>
         } @empty {
           <tr>
-            <td [attr.colspan]="canManageSystem ? 7 : 6">
+            <td [attr.colspan]="canManageSystem ? 7 : 6" class="text-center text-muted">
               {{ loading ? 'Loading roles…' : 'No roles match these filters.' }}
             </td>
           </tr>
@@ -135,66 +138,68 @@
     <p class="help-block">Assignment counts marked “+” are lower bounds from the first 1,000 visible rows.</p>
   }
   @if (nextCursor) {
-    <button type="button" class="btn btn-default" [disabled]="loading" (click)="loadRoles(true)">
+    <button type="button" class="btn btn-default btn-sm" [disabled]="loading" (click)="loadRoles(true)">
       Load more roles
     </button>
   }
 
   @if (canManageSystem) {
-    <section class="bulk-upgrade" aria-labelledby="bulk-upgrade-heading">
-      <h3 #bulkUpgradeHeading id="bulk-upgrade-heading" tabindex="-1">Selected-role template upgrade</h3>
-      <p>
-        System-only. The server validates every explicit role and version before enabling apply. Selected:
-        {{ selectedRoleIds.size }} / 100.
-      </p>
-      <div class="filter-grid">
-        <div class="form-group">
-          <label for="bulk-template">Template</label
-          ><select
-            id="bulk-template"
-            class="form-control"
-            [(ngModel)]="bulkTemplateKey"
-            [disabled]="pending"
-            (change)="bulkTemplateChanged()"
-          >
-            <option value="">Select</option>
-            @for (template of templates; track template.key) {
-              <option [value]="template.key">{{ template.displayName }}</option>
-            }
-          </select>
+    <div class="panel panel-default manage-roles-subpanel">
+      <div class="panel-heading"><strong #bulkUpgradeHeading id="bulk-upgrade-heading" tabindex="-1">Selected-role template upgrade</strong></div>
+      <div class="panel-body">
+        <p class="help-block">
+          System-only. The server validates every explicit role and version before enabling apply. Selected:
+          {{ selectedRoleIds.size }} / 100.
+        </p>
+        <div class="row">
+          <div class="form-group form-group-sm col-md-4">
+            <label for="bulk-template" class="small text-uppercase text-muted">Template</label
+            ><select
+              id="bulk-template"
+              class="form-control input-sm"
+              [(ngModel)]="bulkTemplateKey"
+              [disabled]="pending"
+              (change)="bulkTemplateChanged()"
+            >
+              <option value="">Select</option>
+              @for (template of templates; track template.key) {
+                <option [value]="template.key">{{ template.displayName }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group form-group-sm col-md-4">
+            <label for="bulk-revision" class="small text-uppercase text-muted">Target revision</label
+            ><input
+              id="bulk-revision"
+              class="form-control input-sm"
+              type="number"
+              min="1"
+              [disabled]="pending"
+              [(ngModel)]="bulkTargetRevision"
+            />
+          </div>
+          <div class="form-group form-group-sm col-md-4">
+            <label for="bulk-reason" class="small text-uppercase text-muted">Reason</label
+            ><input
+              id="bulk-reason"
+              class="form-control input-sm"
+              type="text"
+              maxlength="1000"
+              [disabled]="pending"
+              [(ngModel)]="bulkReason"
+            />
+          </div>
         </div>
-        <div class="form-group">
-          <label for="bulk-revision">Target revision</label
-          ><input
-            id="bulk-revision"
-            class="form-control"
-            type="number"
-            min="1"
-            [disabled]="pending"
-            [(ngModel)]="bulkTargetRevision"
-          />
-        </div>
-        <div class="form-group">
-          <label for="bulk-reason">Reason</label
-          ><input
-            id="bulk-reason"
-            class="form-control"
-            type="text"
-            maxlength="1000"
-            [disabled]="pending"
-            [(ngModel)]="bulkReason"
-          />
-        </div>
+        <button
+          type="button"
+          class="btn btn-info btn-sm"
+          [disabled]="pending || !selectedRoleIds.size || !bulkTemplateKey || !bulkTargetRevision"
+          (click)="previewBulkUpgrade($event)"
+        >
+          Preview selected upgrades
+        </button>
       </div>
-      <button
-        type="button"
-        class="btn btn-info"
-        [disabled]="pending || !selectedRoleIds.size || !bulkTemplateKey || !bulkTargetRevision"
-        (click)="previewBulkUpgrade($event)"
-      >
-        Preview selected upgrades
-      </button>
-    </section>
+    </div>
   }
   <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
 </section>

@@ -1,33 +1,13 @@
-h2 {
-  margin-top: 0;
+.manage-roles-filter-actions {
+  padding-top: 1.6rem;
 }
-.filter-grid {
-  align-items: end;
-  background: #f3f6f8;
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(10rem, 1fr));
-  margin: 1rem 0;
-  padding: 1rem;
+.manage-roles-filter-actions .btn-link {
+  margin-left: 0.5rem;
 }
-.filter-grid .form-group {
-  margin: 0;
+.table-responsive {
+  margin-top: 1rem;
 }
-.filter-actions {
-  display: flex;
-}
-td p {
-  color: #52667a;
+td .help-block {
   margin: 0.4rem 0 0;
   max-width: 42rem;
-}
-@media (max-width: 900px) {
-  .filter-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-@media (max-width: 600px) {
-  .filter-grid {
-    grid-template-columns: 1fr;
-  }
 }

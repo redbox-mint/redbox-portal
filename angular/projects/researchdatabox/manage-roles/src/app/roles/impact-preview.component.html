@@ -1,22 +1,25 @@
-<div class="preview-backdrop" aria-hidden="true"></div>
+<div class="modal-backdrop in" aria-hidden="true"></div>
 <section
   #dialog
-  class="preview-dialog"
+  class="modal manage-roles-modal"
   role="dialog"
   aria-modal="true"
   aria-labelledby="impact-preview-heading"
   tabindex="-1"
   (keydown.tab)="trapFocus($event)"
 >
-  <header>
-    <h2 id="impact-preview-heading">Server impact preview</h2>
-    <p>
-      Operation: <strong>{{ preview.operation }}</strong>
-    </p>
-  </header>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 class="modal-title" id="impact-preview-heading">Server impact preview</h2>
+        <p class="help-block">
+          Operation: <strong>{{ preview.operation }}</strong>
+        </p>
+      </header>
+      <div class="modal-body">
   @if (rolePreview; as roleImpact) {
     @if (roleImpact.addedScopeKeys.length) {
-      <h3>Scopes added</h3>
+      <strong>Scopes added</strong>
       <ul>
         @for (scope of roleImpact.addedScopeKeys; track scope) {
           <li>
@@ -26,7 +29,7 @@
       </ul>
     }
     @if (roleImpact.removedScopeKeys.length) {
-      <h3>Scopes removed</h3>
+      <strong>Scopes removed</strong>
       <ul>
         @for (scope of roleImpact.removedScopeKeys; track scope) {
           <li>
@@ -39,33 +42,35 @@
       Affected assignments: <strong>{{ roleImpact.affectedAssignments }}</strong>
     </p>
     @if (roleImpact.dependencies; as dependencies) {
-      <h3>Dependencies</h3>
-      <dl class="preview-grid">
-        <div>
-          <dt>Assignment rows</dt>
-          <dd>{{ dependencies.assignmentRows }}</dd>
-        </div>
-        <div>
-          <dt>Legacy memberships</dt>
-          <dd>{{ dependencies.legacyUserAssociations }}</dd>
-        </div>
-        <div>
-          <dt>Active records</dt>
-          <dd>{{ dependencies.activeRecords }}</dd>
-        </div>
-        <div>
-          <dt>Deleted records</dt>
-          <dd>{{ dependencies.deletedRecords }}</dd>
-        </div>
-        <div>
-          <dt>Configuration references</dt>
-          <dd>{{ dependencies.storedConfigReferences + dependencies.runtimeConfigReferences }}</dd>
-        </div>
-        <div>
-          <dt>Scan complete</dt>
-          <dd>{{ dependencies.scanIncomplete ? 'No' : 'Yes' }}</dd>
-        </div>
-      </dl>
+      <strong>Dependencies</strong>
+      <table class="table table-bordered table-condensed">
+        <tbody>
+          <tr>
+            <th scope="row">Assignment rows</th>
+            <td>{{ dependencies.assignmentRows }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Legacy memberships</th>
+            <td>{{ dependencies.legacyUserAssociations }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Active records</th>
+            <td>{{ dependencies.activeRecords }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Deleted records</th>
+            <td>{{ dependencies.deletedRecords }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Configuration references</th>
+            <td>{{ dependencies.storedConfigReferences + dependencies.runtimeConfigReferences }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Scan complete</th>
+            <td>{{ dependencies.scanIncomplete ? 'No' : 'Yes' }}</td>
+          </tr>
+        </tbody>
+      </table>
     }
   } @else if (bulkPreview; as bulkImpact) {
     <p>
@@ -97,12 +102,15 @@
       </ul>
     </div>
   }
-  <footer>
+      </div>
+  <footer class="modal-footer">
     @if (showConfirm) {
-      <button type="button" class="btn btn-primary" [disabled]="!canConfirm" (click)="confirmed.emit()">
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="!canConfirm" (click)="confirmed.emit()">
         {{ confirmLabel }}
       </button>
     }
-    <button type="button" class="btn btn-default" [disabled]="pending" (click)="dismissed.emit()">Cancel</button>
+    <button type="button" class="btn btn-default btn-sm" [disabled]="pending" (click)="dismissed.emit()">Cancel</button>
   </footer>
+    </div>
+  </div>
 </section>

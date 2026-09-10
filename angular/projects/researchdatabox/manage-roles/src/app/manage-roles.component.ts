@@ -37,7 +37,7 @@ export class ManageRolesComponent extends BaseComponent {
   public projectionError?: AuthorizationUiErrorState;
   public liveMessage = '';
 
-  @ViewChildren('tabButton') private tabButtons?: QueryList<ElementRef<HTMLButtonElement>>;
+  @ViewChildren('tabButton') private tabButtons?: QueryList<ElementRef<HTMLAnchorElement>>;
   private projectionRequestId = 0;
 
   constructor(

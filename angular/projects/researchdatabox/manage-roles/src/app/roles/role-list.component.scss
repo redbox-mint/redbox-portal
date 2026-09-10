@@ -1,50 +1,18 @@
-.section-heading {
-  align-items: flex-start;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
+.manage-roles-filter-actions {
+  padding-top: 1.6rem;
 }
-.section-heading h2 {
-  margin-top: 0;
+.manage-roles-filter-actions .btn-link {
+  margin-left: 0.5rem;
 }
-.filter-grid {
-  align-items: end;
-  background: #f3f6f8;
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(10rem, 1fr)) auto;
-  margin: 1rem 0;
-  padding: 1rem;
-}
-.filter-grid .form-group {
-  margin: 0;
-}
-.filter-actions {
-  display: flex;
-}
-.protected-label {
-  display: inline-block;
+.manage-roles-inline-label {
   margin-left: 0.4rem;
 }
-.status-text {
-  font-weight: 700;
-  text-transform: capitalize;
-}
-.bulk-upgrade {
-  border-left: 4px solid #337ab7;
+.manage-roles-subpanel {
   margin-top: 2rem;
-  padding: 0.25rem 0 1rem 1rem;
 }
-@media (max-width: 900px) {
-  .filter-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+.table-responsive {
+  margin-top: 1rem;
 }
-@media (max-width: 600px) {
-  .filter-grid {
-    grid-template-columns: 1fr;
-  }
-  .section-heading {
-    display: block;
-  }
+td .btn {
+  white-space: normal;
 }

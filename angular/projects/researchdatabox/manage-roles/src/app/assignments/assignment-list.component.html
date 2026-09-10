@@ -1,10 +1,6 @@
 <section aria-labelledby="assignments-heading" [attr.aria-busy]="loading || mutationPending">
-  <div class="section-heading">
-    <div>
-      <h2 id="assignments-heading">Assignments</h2>
-      <p>Each row is one source of authority. Revoking a manual row does not revoke external sources.</p>
-    </div>
-  </div>
+  <h2 id="assignments-heading">Assignments</h2>
+  <p class="help-block">Each row is one source of authority. Revoking a manual row does not revoke external sources.</p>
   @if (error) {
     <div class="alert alert-danger" role="alert">
       {{ error.message }}
@@ -27,77 +23,82 @@
     </div>
   }
 
-  <form class="filter-grid" (submit)="$event.preventDefault(); loadAssignments(false)">
-    <div class="form-group">
-      <label for="assignment-user">User ID</label
-      ><input
-        id="assignment-user"
-        class="form-control"
-        type="search"
-        maxlength="256"
-        [(ngModel)]="userId"
-        name="userId"
-      />
+  <form class="well well-sm" (submit)="$event.preventDefault(); loadAssignments(false)">
+    <div class="row">
+      <div class="form-group form-group-sm col-md-4">
+        <label for="assignment-user" class="small text-uppercase text-muted">User ID</label
+        ><input
+          id="assignment-user"
+          class="form-control input-sm"
+          type="search"
+          maxlength="256"
+          [(ngModel)]="userId"
+          name="userId"
+        />
+      </div>
+      <div class="form-group form-group-sm col-md-4">
+        <label for="assignment-role" class="small text-uppercase text-muted">Role</label
+        ><select id="assignment-role" class="form-control input-sm" [(ngModel)]="roleKey" name="roleKey">
+          <option value="">Any role</option>
+          @for (role of availableRoles; track role.id) {
+            <option [value]="role.key">{{ role.displayName }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group form-group-sm col-md-4">
+        <label for="assignment-source" class="small text-uppercase text-muted">Source</label
+        ><select id="assignment-source" class="form-control input-sm" [(ngModel)]="source" name="source">
+          <option value="">Any source</option>
+          <option value="manual">Manual</option>
+          <option value="onboarding">Onboarding</option>
+          <option value="migration">Migration</option>
+          <option value="external">External provider</option>
+          <option value="recovery">Recovery</option>
+        </select>
+      </div>
+      <div class="form-group form-group-sm col-md-4">
+        <label for="assignment-status" class="small text-uppercase text-muted">Status</label
+        ><select id="assignment-status" class="form-control input-sm" [(ngModel)]="status" name="status">
+          <option value="">Any status</option>
+          <option value="active">Active</option>
+          <option value="revoked">Revoked</option>
+          <option value="suppressed">Suppressed</option>
+        </select>
+      </div>
+      <div class="form-group form-group-sm col-md-4">
+        <label for="assignment-presence" class="small text-uppercase text-muted">Source presence</label
+        ><select id="assignment-presence" class="form-control input-sm" [(ngModel)]="sourcePresent" name="sourcePresent">
+          <option value="">Either</option>
+          <option value="true">Provider still requests</option>
+          <option value="false">Provider absent</option>
+        </select>
+      </div>
+      <div class="form-group form-group-sm col-md-4">
+        <label for="assignment-expiry" class="small text-uppercase text-muted">Expiry</label
+        ><select id="assignment-expiry" class="form-control input-sm" [(ngModel)]="expiry" name="expiry">
+          <option value="">Any expiry</option>
+          <option value="expired">Expired</option>
+          <option value="unexpired">Unexpired</option>
+          <option value="never">Never expires</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="assignment-role">Role</label
-      ><select id="assignment-role" class="form-control" [(ngModel)]="roleKey" name="roleKey">
-        <option value="">Any role</option>
-        @for (role of availableRoles; track role.id) {
-          <option [value]="role.key">{{ role.displayName }}</option>
-        }
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="assignment-source">Source</label
-      ><select id="assignment-source" class="form-control" [(ngModel)]="source" name="source">
-        <option value="">Any source</option>
-        <option value="manual">Manual</option>
-        <option value="onboarding">Onboarding</option>
-        <option value="migration">Migration</option>
-        <option value="external">External provider</option>
-        <option value="recovery">Recovery</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="assignment-status">Status</label
-      ><select id="assignment-status" class="form-control" [(ngModel)]="status" name="status">
-        <option value="">Any status</option>
-        <option value="active">Active</option>
-        <option value="revoked">Revoked</option>
-        <option value="suppressed">Suppressed</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="assignment-presence">Source presence</label
-      ><select id="assignment-presence" class="form-control" [(ngModel)]="sourcePresent" name="sourcePresent">
-        <option value="">Either</option>
-        <option value="true">Provider still requests</option>
-        <option value="false">Provider absent</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="assignment-expiry">Expiry</label
-      ><select id="assignment-expiry" class="form-control" [(ngModel)]="expiry" name="expiry">
-        <option value="">Any expiry</option>
-        <option value="expired">Expired</option>
-        <option value="unexpired">Unexpired</option>
-        <option value="never">Never expires</option>
-      </select>
-    </div>
-    <div class="filter-actions">
-      <button class="btn btn-default" type="submit" [disabled]="loading">Apply filters</button
-      ><button class="btn btn-link" type="button" [disabled]="loading" (click)="resetFilters()">Reset</button>
+    <div class="manage-roles-filter-actions">
+      <button class="btn btn-primary btn-sm" type="submit" [disabled]="loading">Apply filters</button
+      ><button class="btn btn-link btn-sm" type="button" [disabled]="loading" (click)="resetFilters()">Reset</button>
     </div>
   </form>
 
   @if (canManage) {
-    <section class="grant-panel" aria-labelledby="grant-assignment-heading">
-      <h3 id="grant-assignment-heading">
-        {{
-          editingManualAssignment ? 'Edit or reactivate a manual assignment' : 'Grant or reactivate a manual assignment'
-        }}
-      </h3>
+    <div class="panel panel-default manage-roles-subpanel">
+      <div class="panel-heading">
+        <strong id="grant-assignment-heading">
+          {{
+            editingManualAssignment ? 'Edit or reactivate a manual assignment' : 'Grant or reactivate a manual assignment'
+          }}
+        </strong>
+      </div>
+      <div class="panel-body">
       @if (editingManualAssignment) {
         <p class="help-block">The update will require the assignment version shown in the table.</p>
       }
@@ -110,21 +111,21 @@
           </button>
         </div>
       }
-      <div class="grant-grid">
-        <div class="form-group">
-          <label for="grant-user">User ID</label
+      <div class="row">
+        <div class="form-group form-group-sm col-md-3">
+          <label for="grant-user" class="small text-uppercase text-muted">User ID</label
           ><input
             id="grant-user"
-            class="form-control"
+            class="form-control input-sm"
             type="text"
             maxlength="256"
             [readonly]="editingManualAssignment"
             [(ngModel)]="grantUserId"
           />
         </div>
-        <div class="form-group">
-          <label for="grant-role">Role</label
-          ><select id="grant-role" class="form-control" [disabled]="editingManualAssignment" [(ngModel)]="grantRoleKey">
+        <div class="form-group form-group-sm col-md-3">
+          <label for="grant-role" class="small text-uppercase text-muted">Role</label
+          ><select id="grant-role" class="form-control input-sm" [disabled]="editingManualAssignment" [(ngModel)]="grantRoleKey">
             <option value="">Select a role</option>
             @for (role of availableRoles; track role.id) {
               <option [value]="role.key" [disabled]="!grantRoleAllowed(role)">
@@ -138,35 +139,36 @@
             }
           </select>
         </div>
-        <div class="form-group">
-          <label for="grant-expiry"
-            >Expires at <span class="text-muted">(optional, {{ timezone }})</span></label
-          ><input id="grant-expiry" class="form-control" type="datetime-local" [(ngModel)]="grantExpiresAt" />
+        <div class="form-group form-group-sm col-md-3">
+          <label for="grant-expiry" class="small text-uppercase text-muted"
+            >Expires at <span class="text-muted">({{ timezone }})</span></label
+          ><input id="grant-expiry" class="form-control input-sm" type="datetime-local" [(ngModel)]="grantExpiresAt" />
         </div>
-        <div class="form-group">
-          <label for="assignment-reason">Reason <span class="text-muted">(optional)</span></label
+        <div class="form-group form-group-sm col-md-3">
+          <label for="assignment-reason" class="small text-uppercase text-muted">Reason <span class="text-muted">(optional)</span></label
           ><input
             id="assignment-reason"
-            class="form-control"
+            class="form-control input-sm"
             type="text"
             maxlength="1000"
             [(ngModel)]="mutationReason"
           />
         </div>
       </div>
-      <button type="button" class="btn btn-primary" [disabled]="mutationPending" (click)="grantAssignment()">
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="mutationPending" (click)="grantAssignment()">
         {{ editingManualAssignment ? 'Save expiry / reactivate' : 'Grant / reactivate' }}
       </button>
       @if (editingManualAssignment) {
-        <button type="button" class="btn btn-default" [disabled]="mutationPending" (click)="cancelManualEdit()">
+        <button type="button" class="btn btn-default btn-sm" [disabled]="mutationPending" (click)="cancelManualEdit()">
           Cancel edit
         </button>
       }
-    </section>
+      </div>
+    </div>
   }
 
   <div class="table-responsive">
-    <table class="table table-striped table-hover">
+    <table class="table table-bordered table-striped table-hover">
       <caption class="sr-only">
         Authorization assignment sources, provenance, expiry, and available source-specific actions
       </caption>
@@ -177,7 +179,7 @@
           <th scope="col">Status</th>
           <th scope="col">Assigned / expiry</th>
           <th scope="col">Revocation / suppression</th>
-          <th scope="col">Action</th>
+            <th scope="col" class="text-right">Action</th>
         </tr>
       </thead>
       <tbody>
@@ -188,13 +190,20 @@
               ><br /><strong>{{ assignment.roleKey }}</strong>
             </td>
             <td>
-              {{ assignment.source }} · {{ assignment.sourceKey }}<br /><span>{{
+              <span class="label label-default text-capitalize">{{ assignment.source }}</span>
+              <code>{{ assignment.sourceKey }}</code
+              ><br /><small class="text-muted">{{
                 assignment.sourcePresent ? 'Provider present' : 'Provider absent'
-              }}</span>
+              }}</small>
             </td>
             <td>
-              <strong>{{ assignment.status }}</strong
-              ><br />Version {{ assignment.version }}
+              <span
+                class="label text-capitalize"
+                [class.label-success]="assignment.status === 'active'"
+                [class.label-danger]="assignment.status === 'revoked'"
+                [class.label-warning]="assignment.status !== 'active' && assignment.status !== 'revoked'"
+                >{{ assignment.status }}</span
+              ><br /><small class="text-muted">Version {{ assignment.version }}</small>
             </td>
             <td>
               {{ assignment.assignedAt | date: 'medium' }} by {{ assignment.assignedBy }}<br />
@@ -215,52 +224,52 @@
                 None
               }
             </td>
-            <td>
+            <td class="text-right text-nowrap">
               @if (canAct('revoke', assignment)) {
                 <button
                   type="button"
-                  class="btn btn-warning btn-sm"
+                  class="btn btn-warning btn-xs"
                   [disabled]="mutationPending"
                   (click)="mutateAssignment('revoke', assignment)"
                 >
-                  Revoke manual source
+                  Revoke
                 </button>
               }
               @if (canAct('edit', assignment)) {
                 <button
                   type="button"
-                  class="btn btn-default btn-sm"
+                  class="btn btn-default btn-xs"
                   [disabled]="mutationPending"
                   (click)="editManualAssignment(assignment)"
                 >
-                  Edit expiry / reactivate
+                  Edit
                 </button>
               }
               @if (canAct('suppress', assignment)) {
                 <button
                   type="button"
-                  class="btn btn-warning btn-sm"
+                  class="btn btn-warning btn-xs"
                   [disabled]="mutationPending"
                   (click)="mutateAssignment('suppress', assignment)"
                 >
-                  Suppress external source
+                  Suppress
                 </button>
               }
               @if (canAct('unsuppress', assignment)) {
                 <button
                   type="button"
-                  class="btn btn-default btn-sm"
+                  class="btn btn-default btn-xs"
                   [disabled]="mutationPending"
                   (click)="mutateAssignment('unsuppress', assignment)"
                 >
-                  Remove suppression
+                  Unsuppress
                 </button>
               }
             </td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="6">{{ loading ? 'Loading assignments…' : 'No assignment sources match these filters.' }}</td>
+            <td colspan="6" class="text-center text-muted">{{ loading ? 'Loading assignments…' : 'No assignment sources match these filters.' }}</td>
           </tr>
         }
       </tbody>
@@ -271,7 +280,7 @@
     still requests it.
   </p>
   @if (nextCursor) {
-    <button type="button" class="btn btn-default" [disabled]="loading" (click)="loadAssignments(true)">
+    <button type="button" class="btn btn-default btn-sm" [disabled]="loading" (click)="loadAssignments(true)">
       Load more assignments
     </button>
   }

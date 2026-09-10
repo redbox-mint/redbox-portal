@@ -1,22 +1,16 @@
 @if (isReady) {
-  <section class="authorization-admin" aria-labelledby="authorization-admin-heading">
-    <header class="authorization-admin__header">
-      <div>
-        <p class="authorization-admin__eyebrow">Administration</p>
-        <h1 id="authorization-admin-heading">Authorization</h1>
+  <div class="col-xs-12">
+    <div class="panel panel-default">
+      <div class="panel-heading clearfix">
+        <span class="panel-title">Authorization</span>
         @if (projection?.brand; as brand) {
-          <p class="authorization-admin__context">
-            Active brand: <strong>{{ brand.name }}</strong>
-          </p>
+          <small class="manage-roles-brand">{{ brand.name }}</small>
+        }
+        @if (projection) {
+          <span class="label label-info pull-right manage-roles-rollout">Rollout: {{ projection.rolloutMode }}</span>
         }
       </div>
-      @if (projection) {
-        <div class="rollout-summary" aria-label="Authorization rollout mode">
-          <span class="status-label">Rollout mode</span>
-          <strong>{{ projection.rolloutMode }}</strong>
-        </div>
-      }
-    </header>
+      <div class="panel-body">
 
     @if (stagedRollout) {
       <div class="alert alert-warning staged-notice" role="status">
@@ -45,30 +39,30 @@
     }
 
     @if (projection && availableTabs.length) {
-      <div class="authorization-tabs" role="tablist" aria-label="Authorization administration sections">
+      <ul class="nav nav-tabs" role="tablist" aria-label="Authorization administration sections">
         @for (tab of availableTabs; track tab.id; let index = $index) {
-          <button
-            #tabButton
-            type="button"
-            role="tab"
-            class="authorization-tabs__tab"
-            [class.authorization-tabs__tab--active]="activeTab === tab.id"
-            [id]="'authorization-tab-' + tab.id"
-            [attr.aria-selected]="activeTab === tab.id"
-            aria-controls="authorization-panel"
-            [attr.tabindex]="activeTab === tab.id ? 0 : -1"
-            (click)="selectTab(tab.id)"
-            (keydown)="onTabKeydown($event, index)"
-          >
-            {{ tab.label }}
-          </button>
+          <li role="presentation" [class.active]="activeTab === tab.id">
+            <a
+              #tabButton
+              href="#authorization-panel"
+              role="tab"
+              [id]="'authorization-tab-' + tab.id"
+              [attr.aria-selected]="activeTab === tab.id"
+              aria-controls="authorization-panel"
+              [attr.tabindex]="activeTab === tab.id ? 0 : -1"
+              (click)="$event.preventDefault(); selectTab(tab.id)"
+              (keydown)="onTabKeydown($event, index)"
+            >
+              {{ tab.label }}
+            </a>
+          </li>
         }
-      </div>
+      </ul>
 
       @if (activeTab; as selectedTab) {
         <div
           id="authorization-panel"
-          class="authorization-panel"
+          class="manage-roles-panel"
           role="tabpanel"
           [attr.aria-labelledby]="'authorization-tab-' + selectedTab"
           tabindex="0"
@@ -100,5 +94,7 @@
     }
 
     <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
-  </section>
+      </div>
+    </div>
+  </div>
 }

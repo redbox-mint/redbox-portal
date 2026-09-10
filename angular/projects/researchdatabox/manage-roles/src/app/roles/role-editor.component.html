@@ -1,7 +1,7 @@
-<div class="editor-backdrop" aria-hidden="true"></div>
+<div class="modal-backdrop in" aria-hidden="true"></div>
 <section
   #editorDialog
-  class="role-editor"
+  class="modal manage-roles-modal"
   role="dialog"
   aria-modal="true"
   aria-labelledby="role-editor-heading"
@@ -11,13 +11,16 @@
   tabindex="-1"
   (keydown.tab)="trapFocus($event)"
 >
-  <header class="role-editor__header">
-    <div>
-      <p class="role-editor__eyebrow">{{ editing ? 'Role details' : 'New role' }}</p>
-      <h2 id="role-editor-heading">{{ editing ? role?.displayName || roleKey : 'Create a role' }}</h2>
-    </div>
-    <button type="button" class="btn btn-default" [disabled]="pending" (click)="closed.emit()">Close</button>
-  </header>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <header class="modal-header">
+        <button type="button" class="close" aria-label="Close" [disabled]="pending" (click)="closed.emit()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <p class="modal-eyebrow">{{ editing ? 'Role details' : 'New role' }}</p>
+        <h2 class="modal-title" id="role-editor-heading">{{ editing ? role?.displayName || roleKey : 'Create a role' }}</h2>
+      </header>
+      <div class="modal-body">
 
   @if (error) {
     <div class="alert alert-danger" role="alert">
@@ -26,19 +29,19 @@
         <span>Request {{ error.requestId }}.</span>
       }
       @if (error.isConflict) {
-        <div class="role-editor__actions">
+        <p>
           <button
             type="button"
-            class="btn btn-default btn-sm"
+            class="btn btn-default btn-xs"
             [disabled]="loading || pending"
             (click)="loadRole(false)"
           >
             Reload for comparison
           </button>
-          <button type="button" class="btn btn-default btn-sm" [disabled]="loading || pending" (click)="loadRole(true)">
+          <button type="button" class="btn btn-default btn-xs" [disabled]="loading || pending" (click)="loadRole(true)">
             Discard input and use server version
           </button>
-        </div>
+        </p>
       }
     </div>
   }
@@ -109,26 +112,28 @@
       <p class="help-block">Lowercase letters, numbers, and hyphens. This value cannot be renamed.</p>
     </div>
   } @else if (role) {
-    <dl class="role-identity">
-      <div>
-        <dt>Immutable key</dt>
-        <dd>
-          <code>{{ role.key }}</code>
-        </dd>
-      </div>
-      <div>
-        <dt>Version</dt>
-        <dd>{{ role.version }}</dd>
-      </div>
-      <div>
-        <dt>Status</dt>
-        <dd>{{ role.status }}</dd>
-      </div>
-      <div>
-        <dt>Protection</dt>
-        <dd>{{ role.protectedKind === 'none' ? 'Not protected' : role.protectedKind }}</dd>
-      </div>
-    </dl>
+    <table class="table table-bordered table-condensed role-identity">
+      <tbody>
+        <tr>
+          <th scope="row">Immutable key</th>
+          <td>
+            <code>{{ role.key }}</code>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">Version</th>
+          <td>{{ role.version }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Status</th>
+          <td class="text-capitalize">{{ role.status }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Protection</th>
+          <td>{{ role.protectedKind === 'none' ? 'Not protected' : role.protectedKind }}</td>
+        </tr>
+      </tbody>
+    </table>
   }
 
   <div class="form-group">
@@ -187,13 +192,13 @@
   }
 
   @if (editing && role && canManage) {
-    <div class="role-editor__actions">
-      <button type="button" class="btn btn-primary" [disabled]="pending" (click)="saveMetadata()">
+    <div class="form-group manage-roles-editor-actions">
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="pending" (click)="saveMetadata()">
         Save label and description
       </button>
       <button
         type="button"
-        class="btn btn-info"
+        class="btn btn-info btn-sm"
         [disabled]="loading || pending || !scopeCatalogAvailable"
         (click)="previewOperation('role-scopes', $event)"
       >
@@ -201,51 +206,58 @@
       </button>
     </div>
     @if (role.templateKey) {
-      <section class="role-editor__section" aria-labelledby="template-upgrade-heading">
-        <h3 id="template-upgrade-heading">Template upgrade</h3>
-        <p>Pinned to {{ role.templateKey }} revision {{ role.templateRevision }}.</p>
-        <label for="target-template-revision">Target revision</label>
-        <input
-          id="target-template-revision"
-          class="form-control compact-input"
-          type="number"
-          min="1"
-          [(ngModel)]="targetRevision"
-        />
-        <button
-          type="button"
-          class="btn btn-info"
-          [disabled]="pending || !targetRevision"
-          (click)="previewOperation('template-upgrade', $event)"
-        >
-          Preview upgrade
-        </button>
-      </section>
+      <div class="well well-sm" aria-labelledby="template-upgrade-heading">
+        <strong id="template-upgrade-heading">Template upgrade</strong>
+        <p class="help-block">Pinned to {{ role.templateKey }} revision {{ role.templateRevision }}.</p>
+        <div class="form-inline">
+          <div class="form-group form-group-sm">
+            <label for="target-template-revision">Target revision</label>
+            <input
+              id="target-template-revision"
+              class="form-control input-sm manage-roles-revision-input"
+              type="number"
+              min="1"
+              [(ngModel)]="targetRevision"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn btn-info btn-sm"
+            [disabled]="pending || !targetRevision"
+            (click)="previewOperation('template-upgrade', $event)"
+          >
+            Preview upgrade
+          </button>
+        </div>
+      </div>
     }
     @if (!protectedRole && role.status === 'active') {
-      <section class="role-editor__section role-editor__section--danger" aria-labelledby="role-lifecycle-heading">
-        <h3 id="role-lifecycle-heading">Role lifecycle</h3>
+      <div class="alert alert-warning" aria-labelledby="role-lifecycle-heading">
+        <strong id="role-lifecycle-heading">Role lifecycle</strong>
         <p>
           Both operations use a fresh server dependency scan. A delete button appears only in the eligible server
           preview.
         </p>
-        <button type="button" class="btn btn-warning" [disabled]="pending" (click)="previewOperation('role-inactivate', $event)">
+        <button type="button" class="btn btn-warning btn-sm" [disabled]="pending" (click)="previewOperation('role-inactivate', $event)">
           Preview inactivation
         </button>
-        <button type="button" class="btn btn-default" [disabled]="pending" (click)="previewOperation('role-delete', $event)">
+        <button type="button" class="btn btn-default btn-sm" [disabled]="pending" (click)="previewOperation('role-delete', $event)">
           Check deletion eligibility
         </button>
-      </section>
+      </div>
     }
   } @else if (!editing) {
-    <div class="role-editor__actions">
-      <button type="button" class="btn btn-primary" [disabled]="loading || pending" (click)="createRole()">
+    <div class="form-group manage-roles-editor-actions">
+      <button type="button" class="btn btn-primary btn-sm" [disabled]="loading || pending" (click)="createRole()">
         Create role
       </button>
-      <button type="button" class="btn btn-default" [disabled]="pending" (click)="closed.emit()">Cancel</button>
+      <button type="button" class="btn btn-default btn-sm" [disabled]="pending" (click)="closed.emit()">Cancel</button>
     </div>
   }
   <div class="sr-only" aria-live="polite" aria-atomic="true">{{ liveMessage }}</div>
+      </div>
+    </div>
+  </div>
 </section>
 
 @if (preview) {
