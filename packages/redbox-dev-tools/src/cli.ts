@@ -20,6 +20,7 @@ import {
   parseRoutes,
 } from './cli-parsers';
 import {registerSyncTranslationCommand} from "./commands/sync-translation";
+import {registerUpdateLintRulesCommand} from "./commands/lint";
 
 const program = new Command();
 const packageJson = readPackageJson(path.resolve(__dirname, '..', 'package.json')) as { version?: string };
@@ -130,6 +131,8 @@ registerMigrateFigshareConfigCommand(program);
 registerClientFormConfigCommand(program);
 registerQuestionTreeDiagramCommand(program);
 registerSyncTranslationCommand(program);
+
+registerUpdateLintRulesCommand(program);
 
 program
   .command('init [name]')
