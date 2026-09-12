@@ -139,7 +139,12 @@ const state = { mode, project, imageId, revision, portalNodeVersion, setupDurati
   browserStubURL: `http://playwright-stubs:${process.env.RBPORTAL_PLAYWRIGHT_STUB_PORT || 8787}`,
   scenariosEnabled: process.env.RBPORTAL_PLAYWRIGHT_SCENARIOS === 'true', observedAt: new Date().toISOString() };
 fs.writeFileSync('.tmp/playwright/stack.json', JSON.stringify(state, null, 2));
-fs.writeFileSync('.tmp/playwright/logs/run-metadata.json', JSON.stringify(state, null, 2));
+// The container runner may have replaced this file as root on the previous
+// run. Replace it through the writable log directory instead of opening it.
+const metadataPath = '.tmp/playwright/logs/run-metadata.json';
+const temporaryPath = `${metadataPath}.${process.pid}.tmp`;
+fs.writeFileSync(temporaryPath, JSON.stringify(state, null, 2));
+fs.renameSync(temporaryPath, metadataPath);
 NODE
 if [[ "$action" == up ]]; then
   if [[ "${1:-}" == --detach ]]; then shift; fi

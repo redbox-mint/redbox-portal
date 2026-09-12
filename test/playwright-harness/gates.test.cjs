@@ -19,9 +19,11 @@ async function fixture(t) {
       res.end('<div id="result">Loading</div><script src="/config.js"></script>');
     }
   });
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const browser = await chromium.launch();
-  t.after(async () => { await browser.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  if (t.signal.aborted) { await browser.close(); t.signal.throwIfAborted(); }
+  t.after(() => browser.close());
   const page = await browser.newPage();
   return { page, script, requests, base: `http://127.0.0.1:${server.address().port}` };
 }

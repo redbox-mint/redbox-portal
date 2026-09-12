@@ -28,9 +28,10 @@ else if(args.includes('run')) {
 }
 `, { mode: 0o755 });
   const log = path.join(root, 'calls.jsonl');
-  const run = (args, extra = {}) => {
+  const run = (args, extra = {}, processOptions = {}) => {
     const child = spawn('bash', [path.join(scripts, 'playwright.sh'), ...args], {
       cwd: os.tmpdir(), detached: true,
+      ...processOptions,
       env: { ...process.env, COMPOSE_PROJECT_NAME: 'redbox-playwright-probe', PATH: `${root}/bin:${process.env.PATH}`, PROBE_LOG: log, ...extra },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -58,6 +59,21 @@ test('unhealthy startup cleans up without launching tests', async t => {
   assert.equal(result.code, 23, result.output);
   assert.equal((await calls()).some(args => args.includes('run')), false);
   assert.equal((await calls()).filter(args => args.includes('down')).length, 2);
+});
+test('a later host run replaces metadata left read-only by the container runner', async t => {
+  const { root, run, calls } = await setup(t);
+  // The harness itself runs as root in Docker. Exercise the host wrapper as
+  // an ordinary user so root cannot bypass the previous artifact's mode.
+  const ordinaryUser = process.getuid?.() === 0 ? { uid: 65534, gid: 65534 } : {};
+  await fs.chmod(root, 0o777);
+  const first = await run(['ci'], {}, ordinaryUser).result;
+  assert.equal(first.code, 0, first.output);
+  const metadataPath = path.join(root, '.tmp/playwright/logs/run-metadata.json');
+  await fs.chmod(metadataPath, 0o444);
+  const second = await run(['ci'], {}, ordinaryUser).result;
+  assert.equal(second.code, 0, second.output);
+  assert.equal((await calls()).filter(args => args.includes('run')).length, 2);
+  assert.equal(JSON.parse(await fs.readFile(metadataPath, 'utf8')).mode, 'image');
 });
 test('persistent reuse rejects stale builds and failed cleanup without destroying a prepared stack', async t => {
   const { root, run, calls } = await setup(t);
