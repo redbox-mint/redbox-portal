@@ -155,7 +155,9 @@ at the same candidate revision/image, then independent spec runs and the mounted
 rebuild/manual-debug checks. An intervening product or test fix resets the
 three-run count. Run metadata records the candidate/image, portal and runner
 Node versions, Angular, Playwright, actual Chromium version, locale, timezone,
-worker count and retries. Final qualification evidence remains **pending**.
+worker count and retries. The completed
+[baseline evidence report](Playwright-Regression-Baseline.md) records the final
+qualification.
 
 ## Storage and contract corrections
 
@@ -223,9 +225,9 @@ applied and read back on 2026-09-12 after a successful full PR run; existing
 protection fields and strictness were preserved. Both ordinary and Dependabot
 PR workflows contain the same complete Playwright job.
 
-[CircleCI job 145117](https://circleci.com/gh/redbox-mint/redbox-portal/145117)
-passed 117 browser tests and 19 harness checks at revision `2be5f128f`, and
-[form unit job 145102](https://circleci.com/gh/redbox-mint/redbox-portal/145102)
-passed 872 tests. A subsequent mounted run exposed the F09 early-input race;
-the final candidate must include that correction. Final CI and local
-three-run qualification evidence remain pending.
+[CircleCI job 145128](https://circleci.com/gh/redbox-mint/redbox-portal/145128)
+passed 117 browser tests and 19 harness checks for candidate `179cfe11f`, and
+[form unit job 145144](https://circleci.com/gh/redbox-mint/redbox-portal/145144)
+passed 873 tests. The [baseline evidence report](Playwright-Regression-Baseline.md)
+records all three fresh full runs, the 21 independent spec runs, image
+inspection, mounted rebuilds and failure-artifact verification.
