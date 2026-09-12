@@ -147,9 +147,10 @@ services:
       interval: '10s'
       timeout: '5s'
       retries: 30
-      # Preparation builds the package graph, all Angular apps, and webpack
-      # before lifting Sails. A healthy response still ends this grace early.
-      start_period: '20m'
+      # Cold preparation builds the package graph, every Angular app, and
+      # webpack before Sails starts; measured runs can exceed 25 minutes under
+      # disk contention. A healthy response still ends this grace early.
+      start_period: '30m'
   mongodb:
     image: mongo:7.0.41-jammy
     pull_policy: missing
