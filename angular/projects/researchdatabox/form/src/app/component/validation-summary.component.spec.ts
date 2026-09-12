@@ -13,6 +13,27 @@ import { TranslationService } from '@researchdatabox/portal-ng-common';
 describe('ValidationSummaryFieldComponent', () => {
   let translationService: { translationMap: Record<string, string>; t: (key: string) => string };
 
+  it('opens a closed accordion panel and focuses its invalid field from the summary', async () => {
+    const config: FormConfigFrame = { name: 'closed-panel-focus', componentDefinitions: [
+      { name: 'panels', layout: { class: 'AccordionLayout' }, component: { class: 'AccordionComponent', config: { startingOpenMode: 'first-open', panels: [
+        { name: 'intro', layout: { class: 'AccordionPanelLayout', config: { buttonLabel: 'Introduction' } }, component: { class: 'AccordionPanelComponent', config: { componentDefinitions: [] } } },
+        { name: 'details', layout: { class: 'AccordionPanelLayout', config: { buttonLabel: 'Details' } }, component: { class: 'AccordionPanelComponent', config: { componentDefinitions: [
+          { name: 'required', layout: { class: 'DefaultLayout', config: { label: 'Required detail' } }, model: { class: 'SimpleInputModel', config: { value: '', validators: [{ class: 'required' }] } }, component: { class: 'SimpleInputComponent' } },
+        ] } } },
+      ] } } },
+      { name: 'errors', component: { class: 'ValidationSummaryComponent' } },
+    ] };
+    const { fixture } = await createFormAndWaitForReady(config);
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const button = Array.from(nativeEl.querySelectorAll('button[aria-expanded]')).find(element => element.textContent?.includes('Details'));
+    expect(button?.getAttribute('aria-expanded')).toBe('false');
+    nativeEl.querySelector<HTMLAnchorElement>('a[data-validation-summary-id]')?.click();
+    await fixture.whenStable();
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    expect(button?.getAttribute('aria-expanded')).toBe('true');
+    expect(document.activeElement).toBe(nativeEl.querySelector('input'));
+  });
+
   beforeEach(async () => {
     await createTestbedModule({
       declarations: {

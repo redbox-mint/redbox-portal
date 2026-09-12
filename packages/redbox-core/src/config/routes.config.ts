@@ -20,7 +20,7 @@ export interface RouteTargetObject {
   view?: string;
 }
 
-export type RouteTarget = string | RouteTargetObject;
+export type RouteTarget = string | RouteTargetObject | ((req: Sails.Req, res: Sails.Res) => unknown);
 
 export interface RoutesConfig {
   [routePattern: string]: RouteTarget;
@@ -28,7 +28,7 @@ export interface RoutesConfig {
 
 export const routes: RoutesConfig = {
   // CSRF Token
-  'GET /csrfToken': { action: 'security/grant-csrf-token' },
+  'GET /csrfToken': (_req, res) => res.json({ _csrf: res.locals._csrf }),
 
   // Home routes (demo hook overrides to /default/rdmp/home)
   '/:branding/:portal/home': {

@@ -1056,7 +1056,7 @@ export class DashboardComponent extends BaseComponent {
 
   private getFilters(type: string) {
     let filterFields: FilterField[] = [];
-    let queryFilters: QueryFilter[] = this.formatRules.queryFilters[this.recordType];
+    let queryFilters: QueryFilter[] = this.formatRules.queryFilters?.[this.recordType] ?? [];
     if (_isArray(queryFilters)) {
       for (let queryFilter of queryFilters) {
         if (queryFilter.filterType == type) {

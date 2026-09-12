@@ -85,6 +85,14 @@ export class FormComponentValueChangeEventProducer extends FormComponentEventBas
 	 * @returns 
 	 */
 	private publishValueChanged(value: unknown): void {
+
+    // Repeatable descendants keep their controls when earlier rows are removed.
+    // Resolve the current lineage instead of continuing to publish the old index.
+    const currentFieldId = this.options ? this.resolveFieldId(this.options) : undefined;
+    if (currentFieldId && currentFieldId !== this.fieldId) {
+      this.fieldId = currentFieldId;
+      this.scopedBus = this.eventBus.scoped(currentFieldId);
+    }
 		if (!this.fieldId) {
 			return;
 		}

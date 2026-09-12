@@ -8,7 +8,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { Observable, ReplaySubject } from 'rxjs';
+import { merge, Observable, ReplaySubject } from 'rxjs';
 import { Provider } from '@angular/core';
 import { FormEventBusAdapterEffects, FORM_EVENT_BUS_ADAPTER_CONFIG, FormEventBusAdapterConfig } from './form-event-bus-adapter.effects';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
@@ -20,11 +20,15 @@ import {
   FieldValueChangedEvent,
   FormSaveRequestedEvent,
   createFormDeleteRequestedEvent,
-  createFormSaveRequestedEvent
+  createFormSaveRequestedEvent,
+  createFormSaveSuccessEvent,
+  createFormSaveFailureEvent
 } from '../events/form-component-event.types';
 import * as FormActions from '../state/form.actions';
 import * as FormSelectors from '../state/form.selectors';
 import { FormStatus } from '@researchdatabox/sails-ng-common';
+import { formReducer } from '../state/form.reducer';
+import { formInitialState } from '../state/form.state';
 
 describe('FormEventBusAdapterEffects', () => {
   let effects: FormEventBusAdapterEffects;
@@ -503,6 +507,45 @@ describe('FormEventBusAdapterEffects', () => {
   });
 
   describe('Save Requested Promotion', () => {
+    for (const outcome of ['success', 'failure'] as const) {
+      it(`leaves saving state after each of two rapid ${outcome} responses`, fakeAsync(() => {
+        setupTestBed({ throttleWindowMs: 250 });
+        let state = { ...formInitialState, status: FormStatus.READY };
+        const status = store.overrideSelector(FormSelectors.selectStatus, state.status);
+        store.refreshState();
+        const subscription = merge(
+          effects.promoteSaveRequested$,
+          effects.promoteSaveSuccess$,
+          effects.promoteSaveFailure$
+        ).subscribe(action => {
+          state = formReducer(state, action);
+          status.setResult(state.status);
+          store.refreshState();
+        });
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          eventBus.publish(createFormSaveRequestedEvent({ force: true }));
+          expect(state.status).toBe(FormStatus.SAVING);
+          tick(10);
+          if (outcome === 'success') {
+            eventBus.publish(createFormSaveSuccessEvent({ savedData: { title: `Save ${attempt}` } }));
+          } else {
+            eventBus.publish(createFormSaveFailureEvent({ error: `Transport failure ${attempt}` }));
+          }
+          expect(state.status).toBe(FormStatus.READY);
+          expect(state.pendingActions).toEqual([]);
+        }
+        expect(state.submissionAttempt).toBe(2);
+        if (outcome === 'success') {
+          expect(state.modelSnapshot).toEqual({ title: 'Save 2' });
+        } else {
+          expect(state.error).toBe('Transport failure 2');
+        }
+        tick(250);
+        subscription.unsubscribe();
+      }));
+    }
+
     it('should promote save-requested to submitForm action', fakeAsync(() => {
       setupTestBed();
 
@@ -536,21 +579,23 @@ describe('FormEventBusAdapterEffects', () => {
       }));
     }));
 
-    it('should throttle duplicate save-requested events within window', fakeAsync(() => {
+    it('suppresses overlapping saves and accepts an immediate retry after failure', fakeAsync(() => {
       setupTestBed({ throttleWindowMs: 250 });
-
-      const promoted: any[] = [];
-      effects.promoteSaveRequested$.subscribe(action => promoted.push(action));
-
-      for (let i = 0; i < 3; i++) {
-        eventBus.publish<FormSaveRequestedEvent>({
-          ...createFormSaveRequestedEvent({ force: false, enabledValidationGroups: ["all"], targetStep: undefined })
-        });
-        tick(50);
-      }
-
+      const status = store.overrideSelector(FormSelectors.selectStatus, FormStatus.READY);
+      const promoted: unknown[] = [];
+      effects.promoteSaveRequested$.subscribe(action => {
+        promoted.push(action);
+        status.setResult(FormStatus.SAVING);
+        store.refreshState();
+      });
+      const requestSave = () => eventBus.publish(createFormSaveRequestedEvent({ force: false }));
+      requestSave();
+      requestSave();
       expect(promoted.length).toBe(1);
-      expect(promoted[0].type).toBe(FormActions.submitForm.type);
+      status.setResult(FormStatus.READY);
+      store.refreshState();
+      requestSave();
+      expect(promoted.length).toBe(2);
     }));
   });
 });

@@ -26,6 +26,31 @@ describe('RepeatableComponent', () => {
     expect(component).toBeDefined();
   });
 
+  it('updates descendant paths and emitted field identity after removing a preceding group row', async () => {
+    const config: FormConfigFrame = { name: 'reindexed-groups', componentDefinitions: [{
+      name: 'rows', model: { class: 'RepeatableModel', config: { value: [{ source: 'Alpha' }, { source: 'Beta' }] } },
+      component: { class: 'RepeatableComponent', config: { allowZeroRows: true, elementTemplate: {
+        name: '', model: { class: 'GroupModel' }, component: { class: 'GroupComponent', config: { componentDefinitions: [{
+          name: 'source', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' },
+        }] } },
+      } } },
+    }] };
+    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const repeatable = formComponent.componentDefArr[0].component as RepeatableComponent;
+    const survivor = repeatable.formFieldCompMapEntries[1].component?.formFieldCompMapEntries[0];
+    const originalControl = survivor?.model?.formControl;
+    fixture.nativeElement.querySelector('.rb-form-repeatable-item__remove')?.click();
+    await fixture.whenStable();
+    expect(repeatable.formFieldCompMapEntries.length).toBe(1);
+    expect(survivor?.lineagePaths?.angularComponentsJsonPointer).toBe('/rows/0/source');
+    expect(survivor?.lineagePaths?.dataModel).toEqual(['rows', '0', 'source']);
+    const publish = spyOn(TestBed.inject(FormComponentEventBus), 'publish').and.callThrough();
+    originalControl?.setValue('Beta edited');
+    await fixture.whenStable();
+    expect(formComponent.form?.getRawValue()).toEqual({ rows: [{ source: 'Beta edited' }] });
+    expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({ type: 'field.value.changed', fieldId: '/rows/0/source' }));
+  });
+
   it('should upsert array sync source values item by item', () => {
     const fixture = TestBed.createComponent(RepeatableComponent);
     const component = fixture.componentInstance as any;

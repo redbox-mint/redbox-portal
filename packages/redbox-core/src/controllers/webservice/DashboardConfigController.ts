@@ -44,7 +44,13 @@ export namespace Controllers {
     }
 
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
-      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      const status = this.statusForError(error);
+      return this.sendResp(req, res, {
+        status,
+        errors: [this.asError(error)],
+        displayErrors: status === 500 ? [] : [{ title: this.asError(error).message }],
+        headers: this.getNoCacheHeaders()
+      });
     }
 
     private resolveBrand(req: Sails.Req): BrandingModel {
@@ -138,12 +144,12 @@ export namespace Controllers {
       try {
         const dashboardType = this.getParam(req, 'dashboardType');
         if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ title: 'dashboardType is required' }], headers: this.getNoCacheHeaders() });
         }
         const brand = this.resolveBrand(req);
         const saved = await DashboardTypesService.getDashboardTypeDefinition(brand, dashboardType);
         if (!saved) {
-          return this.sendResp(req, res, { status: 404, errors: [new Error(`Dashboard type '${dashboardType}' not found`)], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ title: `Dashboard type '${dashboardType}' not found` }], headers: this.getNoCacheHeaders() });
         }
         return this.sendResp(req, res, { data: saved, headers: this.getNoCacheHeaders() });
       } catch (error) {
@@ -155,7 +161,7 @@ export namespace Controllers {
       try {
         const dashboardType = this.getParam(req, 'dashboardType');
         if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ title: 'dashboardType is required' }], headers: this.getNoCacheHeaders() });
         }
         const brand = this.resolveBrand(req);
         const saved = await firstValueFrom(DashboardTypesService.updateDashboardType(brand, dashboardType, req.body));
@@ -169,7 +175,7 @@ export namespace Controllers {
       try {
         const dashboardType = this.getParam(req, 'dashboardType');
         if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ title: 'dashboardType is required' }], headers: this.getNoCacheHeaders() });
         }
         const brand = this.resolveBrand(req);
         const saved = await firstValueFrom(DashboardTypesService.deleteDashboardType(brand, dashboardType));
@@ -208,7 +214,7 @@ export namespace Controllers {
         const recordType = this.getParam(req, 'recordType');
         const workflowStage = this.getParam(req, 'workflowStage');
         if (!recordType || !workflowStage) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('recordType and workflowStage are required')], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ title: 'recordType and workflowStage are required' }], headers: this.getNoCacheHeaders() });
         }
         const merged = await DashboardConfigService.getMergedDashboardTableConfig(this.resolveBrand(req), recordType, workflowStage);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
@@ -222,7 +228,7 @@ export namespace Controllers {
         const viewName = this.getParam(req, 'viewName');
         const stepName = this.getParam(req, 'stepName');
         if (!viewName || !stepName) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('viewName and stepName are required')], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ title: 'viewName and stepName are required' }], headers: this.getNoCacheHeaders() });
         }
         const merged = await DashboardConfigService.getMergedDashboardViewTableConfig(this.resolveBrand(req), viewName, stepName);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });
@@ -235,7 +241,7 @@ export namespace Controllers {
       try {
         const dashboardType = this.getParam(req, 'dashboardType');
         if (!dashboardType) {
-          return this.sendResp(req, res, { status: 400, errors: [new Error('dashboardType is required')], headers: this.getNoCacheHeaders() });
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ title: 'dashboardType is required' }], headers: this.getNoCacheHeaders() });
         }
         const merged = await DashboardConfigService.getMergedDashboardTypeFormatRules(this.resolveBrand(req), dashboardType);
         return this.sendResp(req, res, { data: merged, headers: this.getNoCacheHeaders() });

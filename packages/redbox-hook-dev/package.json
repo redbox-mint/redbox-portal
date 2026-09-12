@@ -4,6 +4,17 @@
   "description": "ReDBox development hook. Supplies the demo record types, workflows, dashboards and forms that ship with the core repo for development and testing only. Not installed into client or published production images.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./playwright": {
+      "types": "./dist/playwright/index.d.ts",
+      "default": "./dist/playwright/index.js"
+    }
+  },
   "files": [
     "dist",
     "README.md"

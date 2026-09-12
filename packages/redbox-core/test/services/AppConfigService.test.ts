@@ -56,6 +56,21 @@ describe('AppConfigService', function () {
   });
 
   describe('createConfig', function () {
+    it('reports override presence and resets only the requested brand/key before reloading defaults', async function () {
+      const destroy = sinon.stub().resolves([]);
+      Object.assign(AppConfig, { destroy });
+      const branding = { id: 'brand1', name: 'default' } as import('../../src/model/storage/BrandingModel').BrandingModel;
+      const refresh = sinon.stub(service, 'refreshBrandingAppConfigMap').resolves();
+      const read = sinon.stub(service, 'getAppConfigByBrandAndKey').resolves({ enabled: false });
+
+      expect(await service.hasConfigOverride('brand1', 'systemMessage')).to.equal(false);
+      expect(await service.resetConfigOverride(branding, 'systemMessage')).to.deep.equal({ enabled: false });
+      expect(destroy.calledOnceWithExactly({ branding: 'brand1', configKey: 'systemMessage' })).to.equal(true);
+      expect(refresh.calledOnceWithExactly(branding)).to.equal(true);
+      expect(read.calledOnceWithExactly('brand1', 'systemMessage')).to.equal(true);
+      expect(destroy.calledBefore(refresh)).to.equal(true);
+    });
+
     it('should create new config', async function () {
       // Need to populate map first or mock refreshBrandingAppConfigMap
       // We can just rely on refreshBrandingAppConfigMap calling loadAppConfigurationModel which works with mocks

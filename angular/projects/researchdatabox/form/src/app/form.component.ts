@@ -1264,6 +1264,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (this.form && formIsModified) {
       if (formIsValid && !formIsSaving) {
         this.saveResponse.set(null); // Indicate save in progress
+        this.store.dispatch(FormActions.submitFormStarted());
         this.loggerService.info(
           `${this.logName}: Form valid flag: ${this.form.valid}, targetStep: ${targetStep}, enabledValidationGroups: ${enabledValidationGroups}. Saving...`
         );
@@ -2173,14 +2174,14 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     return typeof translated === 'string' ? translated : '@form-conflict-navigation-warning';
   }
 
-  /** Native navigation warning for unresolved memory-only conflict work. */
+  /** Native navigation warning for unsaved edits and unresolved conflict work. */
   @HostListener('window:beforeunload', ['$event'])
   public protectUnresolvedConflictNavigation(event: BeforeUnloadEvent): string | undefined {
     if (this.allowConflictNavigationOnce) {
       this.allowConflictNavigationOnce = false;
       return undefined;
     }
-    if (!this.formConflictState()) {
+    if (!this.formConflictState() && !this.form?.dirty) {
       return undefined;
     }
     const warning = this.conflictNavigationWarning();
@@ -2326,6 +2327,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const formLevelErrors: Record<string, unknown> = {};
     let issueIndex = 0;
     for (const problem of problems) {
+      // Transport and concurrency failures describe the save operation, not
+      // invalid field values. They must leave valid edits available for retry.
+      if (problem.kind !== 'validation') continue;
       for (const issue of Array.isArray(problem?.issues) ? problem.issues : []) {
         const resolved = this.resolveServerIssue(issue);
         if (!resolved) {

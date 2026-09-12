@@ -1,4 +1,4 @@
-import { AbstractControl } from '@angular/forms';
+import { AbstractControl, FormArray, FormGroup } from '@angular/forms';
 import { FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
 import { getObjectWithJsonPointer } from '@researchdatabox/sails-ng-common';
 import { FormComponent } from '../../form.component';
@@ -11,7 +11,7 @@ import { FormComponent } from '../../form.component';
  * same JSON pointer source of truth.
  */
 export interface BehaviourFieldResolverContext {
-  formComponent: FormComponent;
+  formComponent: Pick<FormComponent, 'form' | 'getQuerySource'>;
 }
 
 export interface ResolvedField {
@@ -56,4 +56,21 @@ export function resolveFieldByPointer(
  */
 export function isRepeatableFieldEntry(entry: FormFieldCompMapEntry | undefined): boolean {
   return !!entry?.lineagePaths?.formConfig?.includes('elementTemplate');
+}
+
+/** Preserve the bound control's identity across row moves, and reject removed rows. */
+export function resolveFieldByIdentity(
+  entry: FormFieldCompMapEntry | undefined,
+  ctx: BehaviourFieldResolverContext
+): ResolvedField | undefined {
+  const control = entry?.model?.formControl;
+  const form = ctx.formComponent.form;
+  if (!entry || !control || !form) return undefined;
+  const contains = (candidate: AbstractControl): boolean => {
+    if (candidate === control) return true;
+    if (candidate instanceof FormArray) return candidate.controls.some(contains);
+    if (candidate instanceof FormGroup) return Object.values(candidate.controls).some(contains);
+    return false;
+  };
+  return contains(form) ? { entry, control } : undefined;
 }

@@ -146,6 +146,14 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent).toBeTruthy();
   });
 
+  it('renders a saved table configuration without optional query filters', () => {
+    const component = TestBed.createComponent(DashboardComponent).componentInstance;
+    component.recordType = 'dataset';
+    component.formatRules = { ...component.defaultFormatRules };
+    Reflect.deleteProperty(component.formatRules, 'queryFilters');
+    expect(component.getTextFilters()).toEqual([]);
+  });
+
   it(`should have a set a pre defined dashboard type options`, () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;

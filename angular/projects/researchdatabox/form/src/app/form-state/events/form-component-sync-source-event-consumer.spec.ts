@@ -28,7 +28,7 @@ describe('FormComponentSyncSourceEventConsumer', () => {
     });
 
     eventStream$ = new Subject();
-    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$']);
+    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
     eventBus.select$.and.returnValue(eventStream$.asObservable());
 
     consumer = TestBed.runInInjectionContext(() => new FormComponentSyncSourceEventConsumer(eventBus));
@@ -89,6 +89,7 @@ describe('FormComponentSyncSourceEventConsumer', () => {
 
     expect(setValueSpy).not.toHaveBeenCalled();
     expect(control.value).toEqual(['existing row']);
+    expect(eventBus.publish).not.toHaveBeenCalled();
   }));
 
   it('should NOT call custom value setter when template returns undefined', fakeAsync(() => {
@@ -166,6 +167,11 @@ describe('FormComponentSyncSourceEventConsumer', () => {
     tick();
 
     expect(control.value).toBeNull();
+    expect(eventBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      value: null,
+      previousValue: 'existing'
+    }));
   }));
 
   it('should still update when template returns empty array', fakeAsync(() => {

@@ -86,7 +86,7 @@
                   </td>
                   <td align="center">
                     @if (user.token) {
-                      <i class="fa fa-check" style="color: #16a34a" aria-hidden="true"></i>
+                      <i class="fa fa-check text-success" aria-hidden="true"></i>
                     }
                   </td>
                   <td>
@@ -226,7 +226,7 @@
             }
 
             @if (linkCandidates.length > 0) {
-              <div class="table-responsive" style="margin-top: 15px">
+              <div class="table-responsive mt-3">
                 <table class="table table-bordered table-striped table-hover">
                   <thead>
                     <tr>
@@ -272,7 +272,7 @@
             }
 
             @if (selectedLinkCandidate; as selectedLinkCandidate) {
-              <div class="alert alert-info" style="margin-top: 15px">
+              <div class="alert alert-info mt-3">
                 {{ 'manage-users-link-selected' | i18next }}: {{ selectedLinkCandidate.name }} ({{
                   selectedLinkCandidate.username
                 }})
@@ -411,7 +411,7 @@
             </div>
             <div class="modal-body mu-modal-body">
               @if (isEffectivelyDisabled(currentUser)) {
-                <div class="alert alert-warning" style="margin-bottom: 16px">
+                <div class="alert alert-warning mb-3">
                   @if (isDisabledViaPrimary(currentUser)) {
                     {{
                       'manage-users-disable-notice-primary'
@@ -423,7 +423,7 @@
                 </div>
               }
               @if (currentUser.accountLinkState === 'linked-alias') {
-                <div class="alert alert-info" style="margin-bottom: 16px">
+                <div class="alert alert-info mb-3">
                   {{
                     'manage-users-edit-linked-notice'
                       | i18next: { primaryUsername: currentUser.effectivePrimaryUsername || currentUser.username }
@@ -597,7 +597,7 @@
                         }
                       </div>
                       @if (!updateUserForm.controls['roles'].valid && submitted) {
-                        <div class="form-text error text-danger" style="margin-top: 8px">
+                        <div class="form-text error text-danger mt-2">
                           <div>{{ 'manage-users-validation-role' | i18next }}</div>
                         </div>
                       }
@@ -804,7 +804,7 @@
                     }
                   </div>
                   @if (!newUserForm.controls['roles'].valid && submitted) {
-                    <div class="form-text error text-danger" style="margin-top: 8px">
+                    <div class="form-text error text-danger mt-2">
                       <div>{{ 'manage-users-validation-role' | i18next }}</div>
                     </div>
                   }

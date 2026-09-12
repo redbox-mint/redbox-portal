@@ -13,7 +13,7 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
           [formlyAttributes]="field">
         <span>{{ props.label || field.key }}</span>
         @if (props.required) {
-          <span class="app-config-checkbox-required">*</span>
+          <span class="app-config-checkbox-required" aria-hidden="true">*</span>
         }
       </label>
 

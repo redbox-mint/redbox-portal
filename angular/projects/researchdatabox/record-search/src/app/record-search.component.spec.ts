@@ -7,6 +7,7 @@ import { getStubConfigService, getStubTranslationService } from '@researchdatabo
 import { RecordSearchComponent } from './record-search.component';
 import { RecordSearchRefinerComponent } from './record-search-refiner/record-search-refiner.component';
 import { SearchService } from './search.service';
+import { RecordSearchParams } from './search-models';
 
 function getStubSearchService(typeData: any[] = []) {
   return {
@@ -155,6 +156,26 @@ describe('RecordSearchComponent', () => {
     expect(component.searchMsg).toBe('');
     expect(goSpy).toHaveBeenCalledWith(component.search_url);
     expect(component.totalItems).toBe(0);
+  });
+
+  it('starts an amended search on page one while pagination retains its requested page', async () => {
+    const requestedPages: number[] = [];
+    searchService.search = async (params: RecordSearchParams) => {
+      requestedPages.push(params.currentPage);
+      return { records: [], totalItems: 20, page: params.currentPage, facets: [] };
+    };
+    const component = TestBed.createComponent(RecordSearchComponent).componentInstance;
+    component.ngOnInit();
+    await component.waitForInit();
+    component.params.basicSearch = 'owned records';
+    component.params.currentPage = 2;
+
+    const refiner = component.params.getRefinerConfig('title')!;
+    refiner.value = '07';
+    await component.search(refiner);
+    await component.pageChanged({ page: 2 });
+
+    expect(requestedPages).toEqual([1, 2]);
   });
 
   it('search should set fallback dashboardTitle when title is missing', async () => {
