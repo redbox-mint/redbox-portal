@@ -147,7 +147,9 @@ services:
       interval: '10s'
       timeout: '5s'
       retries: 30
-      start_period: '60s'
+      # Preparation builds the package graph, all Angular apps, and webpack
+      # before lifting Sails. A healthy response still ends this grace early.
+      start_period: '20m'
   mongodb:
     image: mongo:7.0.41-jammy
     pull_policy: missing
@@ -159,8 +161,10 @@ services:
       test: ['CMD-SHELL', 'echo ''db.runCommand("ping").ok'' | mongosh']
       interval: '10s'
       timeout: '5s'
-      retries: 10
-      start_period: '30s'
+      retries: 20
+      # A fresh realm import also builds Keycloak and initializes its schema.
+      # Keep cold starts within the readiness window on development machines.
+      start_period: '120s'
   solr:
     image: solr:10.0.0
     pull_policy: missing

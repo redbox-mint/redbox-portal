@@ -57,12 +57,17 @@ npm run test:playwright:run -- test/playwright/forms/behaviours.spec.ts --grep '
 `up` rebuilds the mounted package graph, both Angular libraries, every Angular
 application, and webpack assets before starting the portal. It uses committed
 lockfiles with `npm ci`, the pinned Angular build Node, and a separate compiler
-heap allowance. Rerun it after
+heap allowance. Mounted startup allows 20 minutes for preparation before counting
+failed health checks; the measured image build spent over 10 minutes on Angular
+and webpack alone on the development machine. A successful portal response
+ends the grace period early. Rerun it after
 application/configuration changes. Persistent runs reject a stale source
 fingerprint, a different prepared mode/project, an unhealthy portal, or a failed
 fixture cleanup. `clean` resets the disposable database and owned bind data.
 The default Compose project is `redbox-playwright`; alternate project names must
-start with `redbox-playwright-`.
+start with `redbox-playwright-`. Keycloak gets a 120-second initialization
+period and up to 20 subsequent readiness checks; a fresh stack must build its
+configuration and import the test realm before the portal can start.
 
 Seeding prints concrete edit/view URLs and records each returned OID in
 `.tmp/playwright/seed-ledger.json` before checking the remaining response.
@@ -190,19 +195,22 @@ worker count and retries. Final qualification evidence remains **pending**.
 
 ## Defects exercised by the regression cases
 
-| Cases | Corrected behaviour |
-| --- | --- |
-| F04 | Calculated field changes publish value events so dependent expressions settle. |
-| F05, F10, F14, F17 | Repeatable identities survive reindexing; delayed actions resolve the intended logical field. |
-| F13, F16 | Validation navigation opens ancestor containers; collapsing an accordion retains its controls and values. |
-| F20 | Server date writeback enters the date control through its supported value conversion. |
-| F21, F25; editor journeys | CSP-compatible markup/styles and required typeahead/upload policies allow real interactions. |
-| F27, F30 | Failed saves remain retryable; the busy-state guard prevents concurrent submits without dropping immediate retries. Dirty navigation and conflict outcomes remain visible. |
-| A06, A12 | Newly created roles refresh the branding cache before assignment. |
-| A10 | Dashboard-type CRUD actions are registered under the existing Admin policy; missing types return an actual 404. Workflow responses resolve saved table overrides consistently with the compiled templates, and tables accept saved configurations without optional query filters. |
-| A15 | Deleted-record title filtering addresses stored metadata; a purged record returns 404. |
-| A18 | The translation editor uses the same default Angular HTTP backend as the other apps; TipTap receives the page's CSP nonce. |
-| A19 | Applying a search refiner returns to page one, so a narrower result set remains visible after pagination. |
+| Cases and browser regression | Corrected behaviour | Fix and focused diagnostic |
+| --- | --- | --- |
+| [F04](../../test/playwright/forms/expressions.spec.ts) | Calculated changes publish value events so dependent expressions settle. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form-state/events/form-component-change-event-producer.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-state/events/form-component-change-event-consumer.spec.ts) |
+| [F05](../../test/playwright/forms/expressions.spec.ts), [F10](../../test/playwright/forms/behaviours.spec.ts), [F14](../../test/playwright/forms/validation.spec.ts), [F17](../../test/playwright/forms/structure.spec.ts) | Repeatable identities survive reindexing; delayed actions resolve the intended logical field. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-field-resolver.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-field-resolver.spec.ts) |
+| [F13](../../test/playwright/forms/validation.spec.ts) | Validation navigation opens ancestor containers and focuses the field. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form-state/events/form-component-focus-request-coordinator.service.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/component/validation-summary.component.spec.ts) |
+| [F16](../../test/playwright/forms/structure.spec.ts) | Collapsing an accordion retains its controls and values. | [Implementation](../../angular/projects/researchdatabox/form/src/app/component/accordion.component.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/component/accordion.component.spec.ts) |
+| [F20](../../test/playwright/forms/components-basic.spec.ts) | Server date writeback uses the date control’s supported conversion. | [Implementation](../../angular/projects/researchdatabox/form/src/app/component/date-input.component.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-server-sync.service.spec.ts) |
+| [F21, F25 and editor journeys](../../test/playwright/forms/components-integrations.spec.ts) | CSP-compatible markup and required typeahead/upload policies allow real interactions. | [Implementation](../../packages/redbox-core/src/config/csp.config.ts), [diagnostic](../../packages/redbox-core/test/policies/contentSecurityPolicy.test.ts) |
+| [F27](../../test/playwright/forms/lifecycle.spec.ts), [F30](../../test/playwright/forms/concurrency.spec.ts) | Failed saves remain retryable; dirty navigation and conflict outcomes retain the correct record identity. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form.component.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form.component.spec.ts) |
+| [F15](../../test/playwright/forms/validation.spec.ts), [F26, F29](../../test/playwright/forms/lifecycle.spec.ts) | Every save completion updates the state, including successive successes or failures inside 250 ms; the form does not remain busy after a completed request. | [Adapter](../../angular/projects/researchdatabox/form/src/app/form-state/effects/form-event-bus-adapter.effects.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-state/effects/form-event-bus-adapter.effects.spec.ts) |
+| [A06, A12](../../test/playwright/apps/users-and-roles.spec.ts) | New roles refresh the branding cache before assignment. | [Implementation](../../packages/redbox-core/src/services/RolesService.ts), [diagnostic](../../packages/redbox-core/test/services/RolesService.test.ts) |
+| [A10](../../test/playwright/apps/configuration-editors.spec.ts) | Workflow responses resolve saved dashboard table overrides consistently with compiled templates. | [Implementation](../../packages/redbox-core/src/controllers/RecordController.ts), [diagnostic](../../packages/redbox-core/test/controllers/RecordController.test.ts) |
+| [A10](../../test/playwright/apps/configuration-editors.spec.ts) | Dashboard CRUD routes use the existing Admin policy and missing types return 404. | [Controller](../../packages/redbox-core/src/controllers/webservice/DashboardConfigController.ts), [diagnostic](../../packages/redbox-core/test/controllers/webservice/DashboardConfigController.test.ts) |
+| [A15](../../test/playwright/apps/deleted-records.spec.ts) | Deleted-record title filtering addresses stored metadata; purged records return 404. | [Implementation](../../angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.ts), [diagnostic](../../angular/projects/researchdatabox/deleted-records/src/app/deleted-records.component.spec.ts) |
+| [A18](../../test/playwright/apps/portal-settings.spec.ts) | The translation editor uses the shared HTTP backend and supplies TipTap with the page CSP nonce. | [Implementation](../../angular/projects/researchdatabox/translation/src/main.ts), [diagnostic](../../angular/projects/researchdatabox/translation/src/app/translation.component.spec.ts) |
+| [A19](../../test/playwright/apps/dashboard-and-search.spec.ts) | Applying a refiner returns to page one so a narrower result set remains visible. | [Implementation](../../angular/projects/researchdatabox/record-search/src/app/record-search.component.ts), [diagnostic](../../angular/projects/researchdatabox/record-search/src/app/record-search.component.spec.ts) |
 
 Focused backend and Angular tests accompany product fixes. Their passing results
 are diagnostic evidence, separate from the required browser qualification.
@@ -216,7 +224,7 @@ additional applicable ruleset. The repository's Playwright job is present in
 both ordinary and Dependabot PR workflows.
 
 Remaining maintainer action: add `ci/circleci: test-playwright` to the required
-checks on the intended merge target after confirming the completed PR job. Keep
-all existing required checks and strictness. No branch-protection settings have
+checks on `develop`, the merge target for this implementation, after confirming
+the completed PR job. Keep all existing required checks and strictness. No branch-protection settings have
 been changed by this implementation. Actual PR-job evidence and merge-enforcement
 sign-off remain pending alongside the local three-run qualification.

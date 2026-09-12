@@ -294,7 +294,8 @@ export class FormEventBusAdapterEffects {
           return [submitAction, FormActions.syncModelSnapshot({ snapshot: event.modelSnapshot })];
         }
         return submitAction;
-      }
+      },
+      false
     )
   );
   /**
@@ -305,7 +306,8 @@ export class FormEventBusAdapterEffects {
       FormComponentEventType.FORM_SAVE_FAILURE,
       PromotionCriterion.TRIGGERS_SIDE_EFFECT,
       (event: FormSaveFailureEvent) =>
-        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.error) })
+        FormActions.submitFormFailure({ error: formatErrorsForMessage(event.error) }),
+      false
     )
   );
 
@@ -367,7 +369,7 @@ export class FormEventBusAdapterEffects {
    *
    * Creates an observable that:
    * 1. Subscribes to specific event type (R15.21)
-   * 2. Throttles duplicates (R15.22)
+   * 2. Optionally throttles frequent notifications (R15.22)
    * 3. Maps to action (R15.23)
    * 4. Logs diagnostics (R15.26)
    * 5. Respects disabled flag (R15.27)
@@ -377,9 +379,10 @@ export class FormEventBusAdapterEffects {
   private createPromotionStream<T extends keyof any>(
     eventType: string,
     criterion: PromotionCriterion,
-    actionMapper: (event: any) => any
+    actionMapper: (event: any) => any,
+    throttle = true
   ): Observable<any> {
-    return this.eventBus.select$(eventType as any).pipe(
+    const events$ = this.eventBus.select$(eventType as any).pipe(
       // R15.27: Disable promotions if configured
       filter(() => {
         if (this.config.disabled) {
@@ -389,12 +392,15 @@ export class FormEventBusAdapterEffects {
           return false;
         }
         return true;
-      }),
-      // R15.22: Throttle to prevent duplicate dispatches
-      throttleTime(this.config.throttleWindowMs, undefined, {
-        leading: true,
-        trailing: false
-      }),
+      })
+    );
+    // Every completed save must release its busy state, even when two saves
+    // finish inside the notification throttle window. The request guard
+    // already prevents concurrent saves; completion events are not duplicates.
+    const promotedEvents$ = throttle
+      ? events$.pipe(throttleTime(this.config.throttleWindowMs, undefined, { leading: true, trailing: false }))
+      : events$;
+    return promotedEvents$.pipe(
       // R15.23 & R15.26: Map to action and (optionally) log promotion in one step
       mergeMap((event) => {
         const mapped = actionMapper(event);
