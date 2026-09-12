@@ -22,9 +22,13 @@ test('persistent freshness ignores regenerated shims but detects authored source
   await write('api/form-config/index.js', 'generated during the next Sails lift');
   await write('config/recordtype.js', 'generated configuration');
   await write('assets/angular/form/browser/main.js', 'compiled output');
+  // Compose overlays this directory with support/resources/development/bootstrap-data.
+  // The underlying host contents must not make the same prepared stack stale.
+  await write('bootstrap-data/records/party.json', 'hidden beneath the container bind mount');
   assert.equal(run('check').status, 0);
   for (const file of ['angular/projects/form/src/app.ts', 'packages/hook/src/playwright/catalogue.ts',
-    'views/record.ejs', 'api/migrations/owned.js', 'config/env/integrationtest.js', '.nvmrc']) {
+    'views/record.ejs', 'api/migrations/owned.js', 'config/env/integrationtest.js', '.nvmrc',
+    'support/resources/development/bootstrap-data/records/party.json']) {
     await write(file, 'changed authored input');
     const stale = run('check');
     assert.equal(stale.status, 1, file);

@@ -8,7 +8,9 @@ const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../..');
 const stamp = path.join(root, '.tmp/playwright/build-stamp');
 const excluded = new Set(['node_modules', 'dist', 'coverage', '.angular', '.tmp', '.git', 'out-tsc']);
-const roots = ['packages', 'angular', 'config', 'api', 'tasks', 'scripts', 'views', 'assets', 'bootstrap-data',
+// Compose overlays bootstrap-data with the development fixtures below. Hash
+// their source path so host commands and the prepared container see the same inputs.
+const roots = ['packages', 'angular', 'config', 'api', 'tasks', 'scripts', 'views', 'assets',
   'support/integration-testing', 'support/build', 'support/resources/development/bootstrap-data',
   'package.json', 'package-lock.json', '.nvmrc', 'Dockerfile', '.dockerignore',
   'app.ts', 'app.js', 'app.integrationtest.js', 'tsconfig.json', 'webpack.config.js'];
