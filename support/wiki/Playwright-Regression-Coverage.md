@@ -51,7 +51,7 @@ export RBPORTAL_PLAYWRIGHT_PORT=1501 # Optional; defaults to 1500.
 npm run test:playwright:up
 npm run test:playwright:scenarios -- --json
 npm run test:playwright:seed -- behaviour-logical-row
-npm run test:playwright:run -- test/playwright/forms/behaviours.spec.ts --grep 'logical row'
+npm run test:playwright:run -- test/playwright/forms/behaviours.spec.ts --grep F10
 ```
 
 `up` rebuilds the mounted package graph, both Angular libraries, every Angular

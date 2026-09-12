@@ -161,10 +161,8 @@ services:
       test: ['CMD-SHELL', 'echo ''db.runCommand("ping").ok'' | mongosh']
       interval: '10s'
       timeout: '5s'
-      retries: 20
-      # A fresh realm import also builds Keycloak and initializes its schema.
-      # Keep cold starts within the readiness window on development machines.
-      start_period: '120s'
+      retries: 10
+      start_period: '30s'
   solr:
     image: solr:10.0.0
     pull_policy: missing
@@ -193,8 +191,10 @@ services:
       test: ['CMD-SHELL', "/usr/bin/bash -c 'true </dev/tcp/127.0.0.1/8080'"]
       interval: '10s'
       timeout: '5s'
-      retries: 10
-      start_period: '30s'
+      retries: 20
+      # A fresh realm import also builds Keycloak and initializes its schema.
+      # Keep cold starts within the readiness window on development machines.
+      start_period: '120s'
     volumes:
       - './keycloakdb/import:/opt/keycloak/data/import:ro'
     networks:
