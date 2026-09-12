@@ -65,9 +65,9 @@
       Body text example with <a href="#">link</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
     </p>
     <p class="preview-sample-regular">Regular: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
-    <p class="preview-sample-bold" style="font-weight: 700;">Bold: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
-    <p class="preview-sample-italic" style="font-style: italic;">Italic: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
-    <p class="preview-sample-bold-italic" style="font-weight: 700; font-style: italic;">Bold Italic: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
+    <p class="preview-sample-bold fw-bold">Bold: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
+    <p class="preview-sample-italic fst-italic">Italic: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
+    <p class="preview-sample-bold-italic fw-bold fst-italic">Bold Italic: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
     <div class="mb-3">
       <label class="form-label">Form control
         <input class="form-control" type="text" [value]="sampleText || 'Sample input'" />

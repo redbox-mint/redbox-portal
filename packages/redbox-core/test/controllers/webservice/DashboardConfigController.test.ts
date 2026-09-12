@@ -116,6 +116,18 @@ describe('Webservice DashboardConfigController', () => {
     (global as any).DashboardTypesService = originalDashboardTypesService;
   });
 
+  it('returns an actual 404 response for a deleted dashboard type', async () => {
+    (global as any).DashboardTypesService.getDashboardTypeDefinition.resolves(null);
+    const req = { session: { branding: 'default' }, param: sinon.stub().withArgs('dashboardType').returns('deleted-owned-type'), query: {}, headers: {} } as unknown as Sails.Req;
+    const res = { status: sinon.stub().returnsThis(), set: sinon.stub().returnsThis(), json: sinon.stub().returnsThis() };
+
+    await controller.getDashboardType(req, res as unknown as Sails.Res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(res.status.calledWith(500)).to.be.false;
+    expect(JSON.stringify(res.json.firstCall.args[0])).to.include('not found');
+  });
+
   it('returns dashboard config info', async () => {
     const req = { session: { branding: 'default' } } as unknown as Sails.Req;
     const res = {} as Sails.Res;

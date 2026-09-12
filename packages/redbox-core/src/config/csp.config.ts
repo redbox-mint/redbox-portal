@@ -65,13 +65,18 @@ export const csp: ContentSecurityPolicyConfig = {
         'default-src': ["'self'"],
         'script-src': ["'self'"],
         'worker-src': ["'self'"],
-        'img-src': ["'self'", 'https://*.tile.openstreetmap.org'],
+        // Uppy uses embedded SVG images for its upload controls.
+        'img-src': ["'self'", 'data:', 'https://*.tile.openstreetmap.org'],
         'connect-src': ["'self'"],
         'media-src': ["'self'"],
         'frame-src': ["'self'"],
         'object-src': ["'none'"],
         'manifest-src': ["'self'"],
         'style-src': ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
+        // ngx-bootstrap 20.0.2's typeahead host emits this fixed attribute:
+        // position: absolute; display: block;
+        // Permit that exact declaration while keeping other inline styles blocked.
+        'style-src-attr': ["'unsafe-hashes'", "'sha256-tZ+MxWbF/shMQXOC/5LWmt82DgjkScmCpZf+WyFumHA='"],
         'font-src': ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
         'frame-ancestors': ["'none'"],
         'form-action': ["'self'"],

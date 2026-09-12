@@ -46,7 +46,7 @@ export class FormComponentFocusRequestCoordinator implements OnDestroy {
     }
 
     const lineagePath = event.lineagePath ?? [];
-    this.revealTabParents(lineagePath);
+    this.revealParents(lineagePath);
     await this.awaitPaint();
 
     const focused = await this.focusWithRetry(event, 3);
@@ -123,16 +123,18 @@ export class FormComponentFocusRequestCoordinator implements OnDestroy {
     return focusable instanceof HTMLElement ? focusable : null;
   }
 
-  private revealTabParents(angularPath: Array<string | number>): void {
+  private revealParents(angularPath: Array<string | number>): void {
     if (!this.formComponent || angularPath.length < 2) {
       return;
     }
     for (let index = 0; index < angularPath.length - 1; index++) {
-      const containerName = String(angularPath[index]);
       const targetTabId = String(angularPath[index + 1]);
-      const candidate = this.findComponentEntryByName(containerName, this.formComponent.componentDefArr);
+      const candidate = this.findComponentEntryFromLineage(angularPath.slice(0, index + 1));
       if (this.hasSelectTab(candidate?.component)) {
         candidate.component.selectTab(targetTabId);
+      }
+      if (this.hasSetOpen(candidate?.component)) {
+        candidate.component.setOpen(true);
       }
     }
   }
@@ -142,6 +144,10 @@ export class FormComponentFocusRequestCoordinator implements OnDestroy {
       return false;
     }
     return typeof (component as { selectTab?: unknown }).selectTab === 'function';
+  }
+
+  private hasSetOpen(component: unknown): component is { setOpen: (open: boolean) => void } {
+    return !!component && typeof component === 'object' && typeof (component as { setOpen?: unknown }).setOpen === 'function';
   }
 
   private hasRequestFocus(component: unknown): component is { requestFocus: (options: unknown) => boolean } {
@@ -171,19 +177,6 @@ export class FormComponentFocusRequestCoordinator implements OnDestroy {
     }
 
     return currentEntry;
-  }
-
-  private findComponentEntryByName(name: string, entries: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
-    for (const entry of entries) {
-      if (entry.compConfigJson?.name === name) {
-        return entry;
-      }
-      const childEntry = this.findComponentEntryByName(name, entry.component?.formFieldCompMapEntries ?? []);
-      if (childEntry) {
-        return childEntry;
-      }
-    }
-    return undefined;
   }
 
   private async awaitPaint(): Promise<void> {

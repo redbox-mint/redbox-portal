@@ -138,7 +138,7 @@ describe('DeletedRecordsComponent', () => {
         }
         console.info('filterFields', filterFields, filterFields.split(','));
         console.info('filterString', filterString, item.title);
-        if (filterFields && filterFields.split(',').includes('title') &&
+        if (filterFields && filterFields.split(',').includes('deletedRecordMetadata.metadata.title') &&
           filterString && !item.title.includes(filterString)) {
           console.debug(`item filtered out:
           filterFields does not include 'title' '${filterFields.split(',')}' or

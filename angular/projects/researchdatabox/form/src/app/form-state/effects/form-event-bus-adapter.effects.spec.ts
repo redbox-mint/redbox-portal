@@ -536,21 +536,23 @@ describe('FormEventBusAdapterEffects', () => {
       }));
     }));
 
-    it('should throttle duplicate save-requested events within window', fakeAsync(() => {
+    it('suppresses overlapping saves and accepts an immediate retry after failure', fakeAsync(() => {
       setupTestBed({ throttleWindowMs: 250 });
-
-      const promoted: any[] = [];
-      effects.promoteSaveRequested$.subscribe(action => promoted.push(action));
-
-      for (let i = 0; i < 3; i++) {
-        eventBus.publish<FormSaveRequestedEvent>({
-          ...createFormSaveRequestedEvent({ force: false, enabledValidationGroups: ["all"], targetStep: undefined })
-        });
-        tick(50);
-      }
-
+      const status = store.overrideSelector(FormSelectors.selectStatus, FormStatus.READY);
+      const promoted: unknown[] = [];
+      effects.promoteSaveRequested$.subscribe(action => {
+        promoted.push(action);
+        status.setResult(FormStatus.SAVING);
+        store.refreshState();
+      });
+      const requestSave = () => eventBus.publish(createFormSaveRequestedEvent({ force: false }));
+      requestSave();
+      requestSave();
       expect(promoted.length).toBe(1);
-      expect(promoted[0].type).toBe(FormActions.submitForm.type);
+      status.setResult(FormStatus.READY);
+      store.refreshState();
+      requestSave();
+      expect(promoted.length).toBe(2);
     }));
   });
 });

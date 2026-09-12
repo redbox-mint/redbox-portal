@@ -249,6 +249,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
           sourceId: this.getFormComponent.eventScopeId
         })
       );
+      return;
     }
     void this.revealAndFocusValidationTarget(summary);
   }

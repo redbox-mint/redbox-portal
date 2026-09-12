@@ -189,10 +189,8 @@ export class FormEventBusAdapterEffects {
         }
         return true;
       }),
-      throttleTime(this.config.throttleWindowMs, undefined, {
-        leading: true,
-        trailing: false
-      }),
+      // Busy state suppresses overlapping saves. A time window also discards
+      // deliberate retries after fast failures, despite the button being ready.
       withLatestFrom(this.store.select(FormSelectors.selectStatus)),
       filter(([event, status]) => {
         if (status === FormStatus.SAVING || status === FormStatus.DELETING) {
