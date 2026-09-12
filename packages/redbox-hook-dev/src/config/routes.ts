@@ -6,6 +6,6 @@
 
 import type { RoutesConfig } from '@researchdatabox/redbox-core';
 
-export const routes: Partial<RoutesConfig> = {
-    '/': '/default/rdmp/home',
-};
+export const routes = {
+  '/': '/default/rdmp/home',
+} as unknown as Partial<RoutesConfig>;

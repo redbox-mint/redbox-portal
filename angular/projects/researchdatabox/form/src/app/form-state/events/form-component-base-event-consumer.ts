@@ -1,6 +1,7 @@
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
   createFormValidationGroupsChangeRequestEvent,
+  createFieldValueChangedEvent,
   FormComponentEvent,
   FormComponentEventType,
   FormComponentEventTypeValue,
@@ -25,7 +26,7 @@ import {
   FormExpressionsTargetFieldVisible,
   FormExpressionsTargetFieldDisabled,
 } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty } from 'lodash-es';
+import { isEmpty as _isEmpty, isEqual as _isEqual } from 'lodash-es';
 import { isTypeFormValidationGroupsChangeRequestInfo, setControlValue } from '../custom-set-value.control';
 import { syncComponentDisplayFromModel } from '../custom-display-sync.control';
 import { FormFieldModel } from '@researchdatabox/portal-ng-common';
@@ -488,9 +489,22 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
   ) {
     if (exprTarget === FormExpressionsTargetModelValue) {
       // The model.value property must be handled specially.
-      if (this.model?.formControl && this.model?.formControl.value !== targetValue) {
+      if (this.model?.formControl && !_isEqual(this.model.formControl.value, targetValue)) {
+        const previousValue = this.cloneExpressionContextValue(this.model.formControl.value, 'previousValue');
         await setControlValue(this.model.formControl, targetValue, { emitEvent: false });
         await syncComponentDisplayFromModel(this.options?.component);
+        // Silent writes avoid treating calculated values as user input, but
+        // downstream expressions still need the target's new value. Publish
+        // its identity (not the original source) after updating the control.
+        const fieldId = this.options ? this.resolveFieldId(this.options) : undefined;
+        if (fieldId) {
+          this.eventBus.publish(createFieldValueChangedEvent({
+            fieldId,
+            sourceId: '*',
+            value: this.cloneExpressionContextValue(this.model.formControl.value, 'value'),
+            previousValue,
+          }));
+        }
         // setControlValue with emitEvent:false suppresses Angular's
         // StatusChangeEvent/PristineChangeEvent. Without an explicit re-broadcast,
         // listeners like SaveButtonComponent never see that an expression-driven

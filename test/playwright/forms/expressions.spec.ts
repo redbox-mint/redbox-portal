@@ -1,0 +1,74 @@
+import { expect, test } from '../fixtures/test';
+import { openScenario } from './_scenario';
+import { field, saveForm } from '../helpers/forms';
+
+test('F03 expression conditions match ready and changed inputs independently', async ({ adminPage }) => {
+  await openScenario(adminPage, 'expression-conditions');
+  const title = field(adminPage, 'Title');
+  const pointer = field(adminPage, 'Pointer result');
+  const jsonata = field(adminPage, 'JSONata result');
+  const query = field(adminPage, 'Query result');
+  await expect(pointer).toHaveValue('Ready / pointer');
+  await expect(jsonata).toHaveValue('no match');
+  await expect(query).toHaveValue('no match');
+  await field(adminPage, 'Unrelated').fill('changed independently');
+  await expect(pointer).toHaveValue('Ready / pointer');
+  await title.fill('match input');
+  await expect(pointer).toHaveValue('match input / pointer');
+  await expect(jsonata).toHaveValue('match input / jsonata');
+  await expect(query).toHaveValue('no match');
+  await title.fill('query input');
+  await expect(query).toHaveValue('query input / query');
+  await expect(jsonata).toHaveValue('match input / jsonata');
+  await title.fill('neither');
+  await expect(pointer).toHaveValue('neither / pointer');
+  await expect(jsonata).toHaveValue('match input / jsonata');
+  await expect(query).toHaveValue('query input / query');
+  await expect(field(adminPage, 'Unrelated')).toHaveValue('changed independently');
+});
+
+test('F04 expression chaining updates two derived fields and visibility before saving', async ({ adminPage, records }) => {
+  const owned = await records.create('e2e-expression-chaining', { title: 'Ready', visibility: 'show', editable: 'yes', controlled: 'retained' });
+  await adminPage.goto(`/default/rdmp/record/edit/${owned.oid}`);
+  const title = field(adminPage, 'Title');
+  await expect(field(adminPage, 'First derived')).toHaveValue('Ready / first');
+  await expect(field(adminPage, 'Second derived')).toHaveValue('Ready / first / second');
+  await title.fill('Changed');
+  await expect(field(adminPage, 'First derived')).toHaveValue('Changed / first');
+  await expect(field(adminPage, 'Second derived')).toHaveValue('Changed / first / second');
+  await field(adminPage, 'Editable').fill('no');
+  await expect(field(adminPage, 'Controlled value')).toBeDisabled();
+  await field(adminPage, 'Editable').fill('yes');
+  await expect(field(adminPage, 'Controlled value')).toBeEditable();
+  await field(adminPage, 'Visibility').fill('hide');
+  await expect(field(adminPage, 'Controlled value')).toBeHidden();
+  await field(adminPage, 'Visibility').fill('show');
+  await expect(field(adminPage, 'Controlled value')).toHaveValue('retained');
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(title).toHaveValue('Changed');
+  await expect(field(adminPage, 'Second derived')).toHaveValue('Changed / first / second');
+  const persisted = await records.read(owned.oid);
+  expect(persisted.body).toMatchObject({ first: 'Changed / first', second: 'Changed / first / second', controlled: 'retained' });
+});
+
+test('F05 expression repeatables preserve the surviving row after removal', async ({ adminPage, records }) => {
+  const owned = await records.create('e2e-expression-repeatables', { title: 'Rows', rows: [{ source: 'Alpha' }, { source: 'Beta' }] });
+  await adminPage.goto(`/default/rdmp/record/edit/${owned.oid}`);
+  const rows = adminPage.locator('redbox-form-repeatable .rb-form-repeatable-item');
+  await expect(rows).toHaveCount(2);
+  await expect(field(rows.nth(0), 'Row result')).toHaveValue('Alpha / row');
+  await expect(field(rows.nth(1), 'Row result')).toHaveValue('Beta / row');
+  await field(rows.nth(1), 'Row source').fill('Beta changed');
+  await expect(field(rows.nth(1), 'Row result')).toHaveValue('Beta changed / row');
+  await expect(field(rows.nth(0), 'Row result')).toHaveValue('Alpha / row');
+  await rows.nth(0).getByRole('button', { name: /remove/i }).click();
+  await expect(rows).toHaveCount(1);
+  await field(rows.nth(0), 'Row source').fill('Beta survives');
+  await expect(field(rows.nth(0), 'Row result')).toHaveValue('Beta survives / row');
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(rows).toHaveCount(1);
+  await expect(field(rows.nth(0), 'Row source')).toHaveValue('Beta survives');
+  await expect(field(rows.nth(0), 'Row result')).toHaveValue('Beta survives / row');
+});

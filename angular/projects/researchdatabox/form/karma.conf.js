@@ -53,7 +53,9 @@ module.exports = function (config) {
     customLaunchers: {
       ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding']
+        // URL-driven form tests repeatedly call history.replaceState. Chromium
+        // otherwise silently ignores updates after 200 rapid navigations.
+        flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-ipc-flooding-protection']
       }
     },
     browsers: isCI ? ['ChromeHeadlessNoSandbox'] : ['Chrome'],

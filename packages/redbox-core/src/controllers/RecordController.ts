@@ -425,6 +425,9 @@ export namespace Controllers {
         return false;
       }
 
+      // A certified non-write still belongs to this record. The browser checks
+      // that identity before presenting the returned conflict for review.
+      result.oid = oid;
       const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, current));
       if (!hasEditAccess) {
         result.problems = [
@@ -1298,11 +1301,11 @@ export namespace Controllers {
     public async getDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const brand: BrandingModel = this.getReqBrand(req);
-      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404 });
+      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Deleted record not found.' }] });
       const record = await this.recordsService.getDeletedRecordMeta(oid, brand);
-      if (!record) return this.sendResp(req, res, { status: 404 });
+      if (!record) return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Deleted record not found.' }] });
       if (!(await firstValueFrom(this.hasViewAccess(brand, req.user, record)))) {
-        return this.sendResp(req, res, { status: 403 });
+        return this.sendResp(req, res, { status: 403, displayErrors: [{ detail: 'Access to this deleted record is denied.' }] });
       }
       const representation = recordRepresentationConcurrency(record);
       const formName = String(record.metaMetadata?.['form'] ?? '').trim();
@@ -2204,7 +2207,14 @@ export namespace Controllers {
           });
         }
 
-        const wfSteps = await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType));
+        const wfSteps = _.cloneDeep(await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType)));
+        // The dashboard's column definitions must use the same resolved
+        // overrides as its compiled templates. Keep cached workflow data intact.
+        for (const step of wfSteps) {
+          const stage = _.get(step, 'config.workflow.stage', step.name);
+          const table = await DashboardTypesService.getDashboardTableConfig(brand, normalizedRecordTypeName, stage);
+          if (table != null) _.set(step, 'config.dashboard.table', table);
+        }
         return this.sendResp(req, res, { data: wfSteps });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });

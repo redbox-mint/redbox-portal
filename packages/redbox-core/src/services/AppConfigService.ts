@@ -52,6 +52,8 @@ export namespace Services {
       'createOrUpdateConfig',
       'getAppConfigForm',
       'getAppConfigByBrandAndKey',
+      'hasConfigOverride',
+      'resetConfigOverride',
       'createConfig',
       'registerConfigModel'
     ];
@@ -282,6 +284,17 @@ export namespace Services {
         config = new modelClass();
       }
       return this.maskSecretFields(configKey, config);
+    }
+
+    public async hasConfigOverride(brandId: string, configKey: string): Promise<boolean> {
+      return (await this.findLatestConfigRecord(brandId, configKey)) != null;
+    }
+
+    /** Remove this brand's stored override and immediately reload its defaults. */
+    public async resetConfigOverride(branding: BrandingModel, configKey: string): Promise<unknown> {
+      await AppConfig.destroy({ branding: branding.id, configKey });
+      await this.refreshBrandingAppConfigMap(branding);
+      return this.getAppConfigByBrandAndKey(branding.id, configKey);
     }
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {

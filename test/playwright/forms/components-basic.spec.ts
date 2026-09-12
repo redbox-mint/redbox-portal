@@ -1,0 +1,54 @@
+import { expect, test } from '../fixtures/test';
+import { field, saveForm } from '../helpers/forms';
+
+test('F19 components-basic preserve text, numeric-input strings, booleans and choices including empty, false and zero', async ({ adminPage, records }) => {
+  const record = await records.create('e2e-components-basic', { title: 'Primitives', text: 'Original', number: '7', description: 'Original paragraph', enabled: false, radio: 'alpha', choice: 'one' });
+  await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
+  await field(adminPage, 'Text value').fill('Changed text');
+  await field(adminPage, 'Number value').fill('42');
+  await field(adminPage, 'Description').fill('First paragraph\nSecond paragraph');
+  await adminPage.getByRole('checkbox', { name: 'Enabled', exact: true }).check();
+  await adminPage.getByRole('radio', { name: 'Beta', exact: true }).check();
+  await field(adminPage, 'Choice').selectOption({ label: 'Two' });
+  await saveForm(adminPage);
+  expect((await records.read(record.oid)).body).toMatchObject({ text: 'Changed text', number: '42', description: 'First paragraph\nSecond paragraph', enabled: true, radio: 'beta', choice: 'two' });
+  await adminPage.reload();
+  await expect(adminPage.getByRole('checkbox', { name: 'Enabled', exact: true })).toBeChecked();
+  await expect(adminPage.getByRole('radio', { name: 'Beta', exact: true })).toBeChecked();
+  await expect(field(adminPage, 'Choice').locator('option:checked')).toHaveText('Two');
+  await expect(field(adminPage, 'Description')).toHaveValue('First paragraph\nSecond paragraph');
+  await field(adminPage, 'Text value').clear();
+  await field(adminPage, 'Description').clear();
+  await field(adminPage, 'Number value').fill('0');
+  await adminPage.getByRole('checkbox', { name: 'Enabled', exact: true }).uncheck();
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(field(adminPage, 'Text value')).toHaveValue('');
+  await expect(field(adminPage, 'Number value')).toHaveValue('0');
+  await expect(field(adminPage, 'Description')).toHaveValue('');
+  await expect(adminPage.getByRole('checkbox', { name: 'Enabled', exact: true })).not.toBeChecked();
+  expect((await records.read(record.oid)).body).toMatchObject({ text: '', number: '0', description: '', enabled: false, radio: 'beta', choice: 'two' });
+});
+
+test('F20 components-date picker and typed entry preserve the selected calendar day across reload', async ({ adminPage, records }) => {
+  const record = await records.create('e2e-components-date', { title: 'Calendar', date: '2026-10-03T00:00:00.000Z' });
+  await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
+  const date = field(adminPage, 'Review date');
+  await expect(date).toHaveValue('2026-10-03');
+  await adminPage.locator('redbox-date-input .date-input-addon').click();
+  const picker = adminPage.locator('bs-datepicker-container');
+  await expect(picker).toBeVisible();
+  await picker.locator('td span:not(.is-other-month)').filter({ hasText: /^4$/ }).click();
+  await expect(date).toHaveValue('2026-10-04');
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(date).toHaveValue('2026-10-04');
+  expect((await records.read(record.oid)).body).toMatchObject({ date: '2026-10-04T00:00:00.000Z' });
+  await date.fill('2027-04-04');
+  await field(adminPage, 'Title').click();
+  await expect(date).toHaveValue('2027-04-04');
+  await saveForm(adminPage);
+  await adminPage.reload();
+  await expect(date).toHaveValue('2027-04-04');
+  expect((await records.read(record.oid)).body).toMatchObject({ date: '2027-04-04T00:00:00.000Z' });
+});

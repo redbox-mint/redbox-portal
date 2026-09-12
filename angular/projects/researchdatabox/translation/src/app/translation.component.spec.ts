@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './translation.component';
 import { FormBuilder } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
-import { signal } from '@angular/core';
+import { CSP_NONCE, signal } from '@angular/core';
 // Portal common services / stubs
 import {
   ConfigService,
@@ -116,6 +116,14 @@ describe('AppComponent (translation)', () => {
   it('should create', async () => {
     const { comp } = create();
     expect(comp).toBeTruthy();
+  });
+
+  it('applies the portal CSP nonce to the translation editor stylesheet', () => {
+    TestBed.overrideProvider(CSP_NONCE, { useValue: 'translation-editor-nonce' });
+    const { comp, fixture } = create();
+    comp.openEdit({ key: 'nonce-test', value: '<p>Editable text</p>', contentFormat: 'html' });
+    expect(comp.richTextEditor?.options.injectNonce).toBe('translation-editor-nonce');
+    fixture.destroy();
   });
 
   it('ngOnInit loads languages and sets selectedLang', async () => {

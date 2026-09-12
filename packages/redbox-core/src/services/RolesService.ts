@@ -140,7 +140,11 @@ export namespace Services {
         const newRole = await Role.create(roleConfig);
         sails.log.verbose("createRoleWithBrand - adding role to brand " + newRole.id);
         const q = BrandingConfig.addToCollection(brand.id, 'roles').members([newRole.id]);
-  return await firstValueFrom(super.getObservable<BrandingModel>(q, 'exec', 'simplecb'));
+        const result = await firstValueFrom(super.getObservable<BrandingModel>(q, 'exec', 'simplecb'));
+        // Subsequent user mutations resolve role names from the cached brand.
+        // Publish the new role there before acknowledging its creation.
+        await BrandingService.refreshBrandingCache(brand.id);
+        return result;
       } else {
         sails.log.verbose('createRoleWithBrand - role ' + roleName + ' exists');
         return of(brand);

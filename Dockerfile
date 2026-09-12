@@ -61,23 +61,9 @@ RUN npm run webpack
 RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
  && support/build/api-descriptors/generateAPIDescriptors.sh
 
-RUN cp -a node_modules /tmp/test-node_modules \
- && mkdir -p /tmp/test-package-node-modules/packages \
- && for package_path in \
-      packages/agenda-sqs-backend \
-      packages/raido \
-      packages/rva-registry \
-      packages/sails-ng-common \
-      packages/redbox-core \
-      packages/sails-hook-redbox-storage-mongo \
-      packages/redbox-hook-dev \
-      packages/sails-hook-redbox-pdfgen; do \
-      if [ -d "$package_path/node_modules" ]; then \
-        mkdir -p "/tmp/test-package-node-modules/$package_path"; \
-        cp -a "$package_path/node_modules" "/tmp/test-package-node-modules/$package_path/node_modules"; \
-      fi; \
-    done
-
+# Keep the builder's dependency tree for the test target. A separate stage
+# prunes runtime dependencies without copying every development package twice.
+FROM builder AS production_dependencies
 RUN npm prune --omit=dev --no-audit \
  && rm -rf \
     node_modules/redbox-hook-dev \
@@ -107,18 +93,18 @@ RUN apt-get update \
  && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
  && echo $TZ > /etc/timezone
 
-COPY --from=builder --chown=node:node /opt/redbox-portal/package*.json ./
-COPY --from=builder --chown=node:node /opt/redbox-portal/app.js ./app.js
-COPY --from=builder --chown=node:node /opt/redbox-portal/api ./api
-COPY --from=builder --chown=node:node /opt/redbox-portal/assets ./assets
-COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
-COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
-COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
-COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/package*.json ./
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/app.js ./app.js
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/api ./api
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/assets ./assets
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/public
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/config ./config
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages ./packages
 RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen
-COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
-COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/views ./views
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
 EXPOSE 1337
 
@@ -181,7 +167,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=1
 USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
+COPY --from=production_dependencies --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
 RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --no-audit \
     ./packages/sails-hook-redbox-pdfgen
 USER root
@@ -193,14 +179,20 @@ USER node
 # record types, workflows, dashboards and forms) on top of the otherwise pristine
 # runtime. Built with `--target test` and used by the integration test suites.
 # The vanilla runtime image never includes it, so published/client images stay
-# pristine. The hook's dist was built in the builder stage and copied in via the
-# packages/ directory; here we only re-link it into node_modules so the
-# redbox-loader discovers it (it was pruned from node_modules for `runtime`).
+# pristine. Restore the compiled hook and development dependencies directly
+# from the unpruned builder, then link the hook for redbox-loader discovery.
 FROM runtime AS test
 USER root
+# Mounted regression preparation uses the same pinned Angular build Node as
+# the builder. Keep it out of every published runtime target.
+COPY --from=builder /root/.nvm/versions/node /opt/redbox-build-node
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
-COPY --from=builder --chown=node:node /tmp/test-node_modules ./node_modules
-COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages
+COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/node_modules ./packages/sails-hook-redbox-pdfgen/node_modules
 RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
  && chown -h node:node node_modules/redbox-hook-dev
 USER node

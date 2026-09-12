@@ -164,7 +164,77 @@ export const getMergedDashboardTypeFormatRulesRoute = apiRoute(
   }
 );
 
+export const getDashboardTypesRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/dashboard-config/dashboard-types',
+  'webservice/DashboardConfigController',
+  'getDashboardTypes',
+  {  },
+  {
+    tags: ['DashboardConfig'],
+    summary: 'List dashboard types',
+    responses: { 200: dashboardConfigResponse },
+  }
+);
+
+export const createDashboardTypeRoute = apiRoute(
+  'post',
+  '/:branding/:portal/api/dashboard-config/dashboard-types',
+  'webservice/DashboardConfigController',
+  'createDashboardType',
+  { body: { required: true, content: { 'application/json': { schema: dashboardConfigBody } } } },
+  {
+    tags: ['DashboardConfig'],
+    summary: 'Create a dashboard type',
+    responses: { 201: dashboardConfigResponse },
+  }
+);
+
+export const getDashboardTypeRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/dashboard-config/dashboard-types/:dashboardType',
+  'webservice/DashboardConfigController',
+  'getDashboardType',
+  { params: dashboardTypeParams },
+  {
+    tags: ['DashboardConfig'],
+    summary: 'Get a dashboard type',
+    responses: { 200: dashboardConfigResponse },
+  }
+);
+
+export const updateDashboardTypeRoute = apiRoute(
+  'put',
+  '/:branding/:portal/api/dashboard-config/dashboard-types/:dashboardType',
+  'webservice/DashboardConfigController',
+  'updateDashboardType',
+  { params: dashboardTypeParams, body: { required: true, content: { 'application/json': { schema: dashboardConfigBody } } } },
+  {
+    tags: ['DashboardConfig'],
+    summary: 'Update a dashboard type',
+    responses: { 200: dashboardConfigResponse },
+  }
+);
+
+export const deleteDashboardTypeRoute = apiRoute(
+  'delete',
+  '/:branding/:portal/api/dashboard-config/dashboard-types/:dashboardType',
+  'webservice/DashboardConfigController',
+  'deleteDashboardType',
+  { params: dashboardTypeParams },
+  {
+    tags: ['DashboardConfig'],
+    summary: 'Delete an unassigned dashboard type',
+    responses: { 200: dashboardConfigResponse },
+  }
+);
+
 export const dashboardConfigApiRoutes = [
+  getDashboardTypesRoute,
+  createDashboardTypeRoute,
+  getDashboardTypeRoute,
+  updateDashboardTypeRoute,
+  deleteDashboardTypeRoute,
   getDashboardConfigInfoRoute,
   getDashboardConfigDefaultsRoute,
   getDashboardConfigOverridesRoute,

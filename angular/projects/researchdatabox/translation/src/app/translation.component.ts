@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -486,6 +486,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private svc = inject(PortalTranslationService);
+  private readonly cspNonce = inject(CSP_NONCE, { optional: true });
 
   // Simple state
   languages = signal<any[]>([]);
@@ -1012,6 +1013,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private createRichTextEditor(content: string): Editor | null {
     try {
       const editor = new Editor({
+        injectNonce: this.cspNonce?.trim() || undefined,
         extensions: this.buildRichTextExtensions(),
         content: content || '',
         editable: true,
