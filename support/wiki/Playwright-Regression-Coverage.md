@@ -57,7 +57,7 @@ npm run test:playwright:run -- test/playwright/forms/behaviours.spec.ts --grep F
 `up` rebuilds the mounted package graph, both Angular libraries, every Angular
 application, and webpack assets before starting the portal. It uses committed
 lockfiles with `npm ci`, the pinned Angular build Node, and a separate compiler
-heap allowance. Mounted startup allows 20 minutes for preparation before counting
+heap allowance. Mounted startup allows 30 minutes for preparation before counting
 failed health checks; the measured image build spent over 10 minutes on Angular
 and webpack alone on the development machine. A successful portal response
 ends the grace period early. Rerun it after
@@ -199,6 +199,7 @@ worker count and retries. Final qualification evidence remains **pending**.
 | --- | --- | --- |
 | [F04](../../test/playwright/forms/expressions.spec.ts) | Calculated changes publish value events so dependent expressions settle. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form-state/events/form-component-change-event-producer.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-state/events/form-component-change-event-consumer.spec.ts) |
 | [F05](../../test/playwright/forms/expressions.spec.ts), [F10](../../test/playwright/forms/behaviours.spec.ts), [F14](../../test/playwright/forms/validation.spec.ts), [F17](../../test/playwright/forms/structure.spec.ts) | Repeatable identities survive reindexing; delayed actions resolve the intended logical field. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-field-resolver.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-field-resolver.spec.ts) |
+| [F09](../../test/playwright/forms/behaviours.spec.ts) | A behaviour disabled on form ready preserves early user input while compiled expressions load; the initialization guard does not discard the lookup. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form-state/behaviours/behaviour-handler.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-state/behaviours/form-behaviour-manager.service.spec.ts) |
 | [F13](../../test/playwright/forms/validation.spec.ts) | Validation navigation opens ancestor containers and focuses the field. | [Implementation](../../angular/projects/researchdatabox/form/src/app/form-state/events/form-component-focus-request-coordinator.service.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/component/validation-summary.component.spec.ts) |
 | [F16](../../test/playwright/forms/structure.spec.ts) | Collapsing an accordion retains its controls and values. | [Implementation](../../angular/projects/researchdatabox/form/src/app/component/accordion.component.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/component/accordion.component.spec.ts) |
 | [F20](../../test/playwright/forms/components-basic.spec.ts) | Server date writeback uses the date control’s supported conversion. | [Implementation](../../angular/projects/researchdatabox/form/src/app/component/date-input.component.ts), [diagnostic](../../angular/projects/researchdatabox/form/src/app/form-server-sync.service.spec.ts) |
@@ -217,14 +218,14 @@ are diagnostic evidence, separate from the required browser qualification.
 
 ## Merge-check audit
 
-A read-only GitHub check on 2026-09-12 found that `master` requires existing
-CircleCI build/unit jobs but does not require `ci/circleci: test-playwright`.
-`develop` has no required-status-check configuration; neither branch has an
-additional applicable ruleset. The repository's Playwright job is present in
-both ordinary and Dependabot PR workflows.
+The merge target `develop` requires `ci/circleci: test-playwright`. The rule was
+applied and read back on 2026-09-12 after a successful full PR run; existing
+protection fields and strictness were preserved. Both ordinary and Dependabot
+PR workflows contain the same complete Playwright job.
 
-Remaining maintainer action: add `ci/circleci: test-playwright` to the required
-checks on `develop`, the merge target for this implementation, after confirming
-the completed PR job. Keep all existing required checks and strictness. No branch-protection settings have
-been changed by this implementation. Actual PR-job evidence and merge-enforcement
-sign-off remain pending alongside the local three-run qualification.
+[CircleCI job 145117](https://circleci.com/gh/redbox-mint/redbox-portal/145117)
+passed 117 browser tests and 19 harness checks at revision `2be5f128f`, and
+[form unit job 145102](https://circleci.com/gh/redbox-mint/redbox-portal/145102)
+passed 872 tests. A subsequent mounted run exposed the F09 early-input race;
+the final candidate must include that correction. Final CI and local
+three-run qualification evidence remain pending.

@@ -175,6 +175,45 @@ describe('FormBehaviourManager', () => {
     );
   }));
 
+  it('keeps an early user change while compiled items load for a behaviour disabled on form ready', fakeAsync(() => {
+    let resolveCompiled!: (value: { evaluate: jasmine.Spy }) => void;
+    const compiled = new Promise<{ evaluate: jasmine.Spy }>(resolve => { resolveCompiled = resolve; });
+    const formComponent = {
+      form: { value: { source: 'oid-early' } },
+      formDefMap: { formConfig: { behaviours: [{
+        name: 'fetch-on-change',
+        condition: 'event.type = "field.value.changed"',
+        conditionKind: 'jsonata',
+        runOnFormReady: false,
+        processors: [{ type: 'fetchMetadata' }],
+        actions: [],
+      }] } },
+      getRecordCompiledItems: jasmine.createSpy('getRecordCompiledItems').and.returnValue(compiled),
+      getQuerySource: () => ({ queryOrigSource: [], querySource: [], jsonPointerSource: {} }),
+      requestParams: () => ({}),
+    } as any;
+    recordService.getRecordMeta.and.resolveTo({ title: 'Early lookup' });
+    manager.bind(formComponent);
+
+    allEvents$.next({
+      type: FormComponentEventType.FORM_DEFINITION_READY,
+      sourceId: FormComponentEventType.FORM_DEFINITION_READY,
+      timestamp: Date.now(),
+    } as any);
+    allEvents$.next({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      fieldId: '/source', sourceId: '*', value: 'oid-early', timestamp: Date.now(),
+    } as any);
+    tick();
+    expect(recordService.getRecordMeta).not.toHaveBeenCalled();
+
+    resolveCompiled({ evaluate: jasmine.createSpy('evaluate').and.resolveTo(true) });
+    tick();
+
+    expect(recordService.getRecordMeta).toHaveBeenCalledOnceWith('oid-early');
+    expect(logger.error).not.toHaveBeenCalled();
+  }));
+
   it('runs form-ready behaviours once even when they emit broadcast events', fakeAsync(() => {
     eventBus.publish.and.callFake(event => {
       allEvents$.next(event as unknown as FormComponentEvent);

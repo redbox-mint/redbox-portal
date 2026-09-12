@@ -51,20 +51,27 @@ test('F08 behaviour debounce fetches only the settled input within the observati
   await testInfo.attach('debounced-requests.json', { body: JSON.stringify(requests), contentType: 'application/json' });
 });
 
-test('F09 behaviour events-errors shows the configured failure action and recovers with a downstream event', async ({ adminPage, records, diagnostics }) => {
+test('F09 behaviour events-errors handles early input during compiled loading and recovers with a downstream event', async ({ adminPage, records, diagnostics }) => {
   const source = await records.create('e2e-initialisation-modes', { title: 'Recovered lookup' });
   const missing = `e2e-missing-${randomUUID()}`;
   const url = new RegExp(`/record/metadata/${missing}\\?`);
-  await openScenario(adminPage, 'behaviour-events-errors');
-  diagnostics.expectFailure({ kind: 'response', method: 'GET', url, status: 500, count: 1, reason: 'The storage service throws on the deliberately nonexistent record; the portal returns a real lookup error.' });
-  diagnostics.expectFailure({ kind: 'console', url, message: /Failed to load resource.*500/, count: 1, reason: 'Chromium reports the same nonexistent-record response.' });
-  diagnostics.expectFailure({ kind: 'console', url: /\/angular\/form\/browser\/(?:main|chunk)(?:-[\w-]+)?\.js$/, message: /BehaviourHandler: Behaviour execution failed/, count: 1, reason: 'The form bundle logs its handled metadata lookup failure (including hashed production assets).' });
-  await field(adminPage, 'Lookup record').fill(missing);
-  await expect(field(adminPage, 'Lookup result')).toHaveValue('Lookup failed');
-  await expect(field(adminPage, 'Event result')).toHaveValue('Waiting');
-  await field(adminPage, 'Lookup record').fill(source.oid);
-  await expect(field(adminPage, 'Lookup result')).toHaveValue('Recovered lookup / fetched');
-  await expect(field(adminPage, 'Event result')).toHaveValue('Recovered lookup / fetched / event');
+  const gate = new ResponseGate(adminPage, { url: /\/dynamicAsset\/formCompiledItems\/e2e-behaviour-events-errors(?:\?|$)/, method: 'GET' });
+  await gate.install();
+  try {
+    await openScenario(adminPage, 'behaviour-events-errors');
+    expect((await gate.waitForCapture()).ok()).toBeTruthy();
+    await expect(adminPage.locator('.rb-form-components')).not.toHaveAttribute('aria-hidden', 'true');
+    diagnostics.expectFailure({ kind: 'response', method: 'GET', url, status: 500, count: 1, reason: 'The storage service throws on the deliberately nonexistent record; the portal returns a real lookup error.' });
+    diagnostics.expectFailure({ kind: 'console', url, message: /Failed to load resource.*500/, count: 1, reason: 'Chromium reports the same nonexistent-record response.' });
+    diagnostics.expectFailure({ kind: 'console', url: /\/angular\/form\/browser\/(?:main|chunk)(?:-[\w-]+)?\.js$/, message: /BehaviourHandler: Behaviour execution failed/, count: 1, reason: 'The form bundle logs its handled metadata lookup failure (including hashed production assets).' });
+    await field(adminPage, 'Lookup record').fill(missing);
+    await gate.release();
+    await expect(field(adminPage, 'Lookup result')).toHaveValue('Lookup failed');
+    await expect(field(adminPage, 'Event result')).toHaveValue('Waiting');
+    await field(adminPage, 'Lookup record').fill(source.oid);
+    await expect(field(adminPage, 'Lookup result')).toHaveValue('Recovered lookup / fetched');
+    await expect(field(adminPage, 'Event result')).toHaveValue('Recovered lookup / fetched / event');
+  } finally { await gate.dispose(); }
 });
 
 for (const removeTarget of [false, true]) {
