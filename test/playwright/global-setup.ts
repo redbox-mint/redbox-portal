@@ -1,14 +1,15 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
-import { chromium, type FullConfig } from '@playwright/test';
-import { adminStorageStatePath } from './helpers';
+import { createRequire } from 'node:module';
+import { randomBytes } from 'node:crypto';
+import type { FullConfig } from '@playwright/test';
 
 async function ensureDirs(): Promise<void> {
   for (const dirPath of [
     '.tmp/junit/backend-playwright',
     '.tmp/playwright/report',
     '.tmp/playwright/test-results',
-    path.dirname(adminStorageStatePath)
+    '.tmp/playwright/logs',
+    '.tmp/playwright/coverage',
   ]) {
     await fs.mkdir(dirPath, { recursive: true });
   }
@@ -22,40 +23,23 @@ async function globalSetup(config: FullConfig): Promise<void> {
     throw new Error('Playwright baseURL is required for browser smoke tests.');
   }
 
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ baseURL });
-  const page = await context.newPage();
-
-  try {
-    await page.goto('/default/rdmp/user/login', { waitUntil: 'domcontentloaded' });
-    await page.locator('#adminLoginShow').waitFor({ state: 'visible', timeout: 30_000 });
-
-    const loginResponse = await context.request.post('/user/login_local', {
-      form: {
-        username: 'admin',
-        password: 'rbadmin'
-      },
-      headers: {
-        'x-source': 'jsclient'
-      }
-    });
-
-    if (!loginResponse.ok()) {
-      throw new Error(`Admin login request failed with ${loginResponse.status()} ${loginResponse.statusText()}.`);
-    }
-
-    const loginResult = await loginResponse.json() as { user?: { username?: string }, message?: string };
-    if (loginResult.user?.username !== 'admin') {
-      throw new Error(`Admin login did not establish the expected session. Response message: ${loginResult.message ?? 'none'}`);
-    }
-
-    await page.goto('/default/rdmp/admin', { waitUntil: 'domcontentloaded' });
-    await page.locator('.admin-main-content').waitFor({ state: 'visible', timeout: 30_000 });
-    await context.storageState({ path: adminStorageStatePath });
-  } finally {
-    await context.close();
-    await browser.close();
-  }
+  // Authentication is intentionally per-test. A global storage state would
+  // allow logout, role edits, or session rotation in one test to affect the
+  // next test. Keep setup limited to deterministic directories and a base URL
+  // preflight; fixtures acquire a fresh CSRF/session pair when needed.
+  const require = createRequire(__filename);
+  const metadataPath = '.tmp/playwright/logs/run-metadata.json';
+  const prepared = await fs.readFile(metadataPath, 'utf8').then(JSON.parse).catch(() => ({}));
+  const runId = process.env.PLAYWRIGHT_RUN_ID ?? `${Date.now().toString(36)}-${randomBytes(3).toString('hex')}`;
+  process.env.PLAYWRIGHT_RUN_ID = runId;
+  await fs.writeFile(metadataPath, JSON.stringify({
+    ...prepared, runId, browserStartedAt: new Date().toISOString(), baseURL,
+    runnerNodeVersion: process.version,
+    angularVersion: JSON.parse(await fs.readFile('angular/package.json', 'utf8')).dependencies['@angular/core'],
+    playwrightVersion: require('@playwright/test/package.json').version,
+    browser: config.projects[0].use.browserName, locale: config.projects[0].use.locale,
+    timezoneId: config.projects[0].use.timezoneId, workers: config.workers, retries: config.projects[0].retries,
+  }, null, 2));
 }
 
 export default globalSetup;

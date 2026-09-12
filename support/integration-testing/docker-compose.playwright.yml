@@ -7,16 +7,23 @@ x-playwright-service: &playwright-service
   working_dir: /opt/redbox-portal
   stop_grace_period: 30m
   environment:
-    PLAYWRIGHT_BASE_URL: http://redboxportal:1500
+    PLAYWRIGHT_BASE_URL: http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    PLAYWRIGHT_STUB_URL: http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
+    PLAYWRIGHT_PORTAL_STUB_URL: http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
+    PLAYWRIGHT_BROWSER_STUB_URL: http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
     CI: 'true'
+    TZ: Australia/Brisbane
   volumes:
-    - '../../:/opt/redbox-portal:delegated'
-  networks:
-    main:
-      aliases:
-        - playwright
+    - '../../test:/opt/redbox-portal/test:ro'
+    - '../../support:/opt/redbox-portal/support:ro'
+    - '../../angular:/opt/redbox-portal/angular:ro'
+    - '../../packages:/opt/redbox-portal/packages:ro'
+    - '../../playwright.config.ts:/opt/redbox-portal/playwright.config.ts:ro'
+    - '../../node_modules:/opt/redbox-portal/node_modules:ro'
+    - '../../.tmp/playwright:/opt/redbox-portal/.tmp/playwright'
+    - '../../.tmp/junit/backend-playwright:/opt/redbox-portal/.tmp/junit/backend-playwright'
   init: true
   entrypoint:
     - bash
@@ -24,27 +31,35 @@ x-playwright-service: &playwright-service
 
 x-rbportal-env: &rbportal-env
   - NODE_ENV=integrationtest
-  - PORT=1500
+  - RBPORTAL_PLAYWRIGHT_MODE=${RBPORTAL_PLAYWRIGHT_MODE:-image}
+  # Scenario registrations are opt-in. The lifecycle wrapper sets this to true
+  # for acceptance runs; a direct portal start remains free of test forms.
+  - RBPORTAL_PLAYWRIGHT_SCENARIOS=${RBPORTAL_PLAYWRIGHT_SCENARIOS:-false}
+  - PORT=${RBPORTAL_PLAYWRIGHT_PORT:-1500}
+  - sails_appUrl=http://localhost:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
   - NODE_OPTIONS=--max-old-space-size=1024
+  - sails_security__csrf=true
+  # Process the real queue promptly so indexing keeps pace with owned fixtures.
+  - sails_agendaQueue__options__processEvery=0.1 seconds
+  - sails_vocab__rva__baseUrl=http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}/rva
+  - PLAYWRIGHT_BROWSER_STUB_URL=http://playwright-stubs:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}
   - 'RBPORTAL_REMOTE_DEBUG=${RBPORTAL_REMOTE_DEBUG:-}'
   - UPPY_COMPANION_ENABLED=true
   - UPPY_COMPANION_SECRET=integrationtest-companion-secret
   - UPPY_COMPANION_FILE_PATH=/tmp/companion
-  - UPPY_COMPANION_HOST=redboxportal:1500
+  - UPPY_COMPANION_HOST=redboxportal:${RBPORTAL_PLAYWRIGHT_PORT:-1500}
   - UPPY_COMPANION_PROTOCOL=http
   - UPPY_COMPANION_PATH=/companion
-  - UPPY_COMPANION_UPLOAD_URLS=http://redboxportal:1500/default/rdmp/companion/record/pending-oid/attach
+  - UPPY_COMPANION_UPLOAD_URLS=http://redboxportal:${RBPORTAL_PLAYWRIGHT_PORT:-1500}/default/rdmp/companion/record/pending-oid/attach
   - UPPY_GOOGLE_KEY=integrationtest-google-key
   - UPPY_GOOGLE_SECRET=integrationtest-google-secret
   - UPPY_ONEDRIVE_KEY=integrationtest-onedrive-key
   - UPPY_ONEDRIVE_SECRET=integrationtest-onedrive-secret
   - sails_redbox__apiKey=c8e844fc-8550-497f-b970-7900ec8741ca
-  - sails_record__baseUrl_redbox=http://redbox:9000/redbox
-  - sails_record__baseUrl_mint=http://203.101.226.160/mint
   - LOAD_DEFAULT_FORMS=true
   - sails_brandingConfigurationDefaults__auth__local__default__token=d077835a-696b-4728-85cf-3ffd57152b1e
-  - sails_security__csrf=false
   - RBPORTAL_COVERAGE_DIR=/tmp/coverage/playwright
+  - TZ=Australia/Brisbane
 
 x-rbportal-depends: &rbportal-depends
   keycloak:
@@ -55,6 +70,8 @@ x-rbportal-depends: &rbportal-depends
     condition: service_healthy
   email:
     condition: service_healthy
+  playwright-stubs:
+    condition: service_healthy
 
 x-rbportal-service: &rbportal-service
   image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
@@ -64,22 +81,21 @@ x-rbportal-service: &rbportal-service
     - '../../test:/opt/redbox-portal/test'
     - '../../support:/opt/redbox-portal/support'
     - '../../app.integrationtest.js:/opt/redbox-portal/app.integrationtest.js'
-    - '../../.tmp/attachments:/attachments'
+    - '../../.tmp/playwright/attachments:/attachments'
     - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
     - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
-    - '../../package.json:/opt/redbox-portal/package.json:ro'
-    - '../../package-lock.json:/opt/redbox-portal/package-lock.json:ro'
     - '../../coverage/playwright:/tmp/coverage/playwright'
+    - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
   stop_grace_period: 30m
   healthcheck:
-    test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
+    test: ['CMD-SHELL', 'curl -fsS http://localhost:$${PORT}/default/rdmp/home']
     interval: '10s'
     timeout: '5s'
     retries: 30
     start_period: '60s'
   depends_on: *rbportal-depends
   expose:
-    - '1500'
+    - '${RBPORTAL_PLAYWRIGHT_PORT:-1500}'
   environment: *rbportal-env
   networks:
     main:
@@ -94,33 +110,40 @@ services:
   playwright:
     <<: *playwright-service
     profiles: [ci]
+    network_mode: service:redboxportal
     depends_on:
       redboxportal:
+        condition: service_healthy
+      playwright-stubs:
         condition: service_healthy
   playwright-mount:
     <<: *playwright-service
     profiles: [mount]
+    network_mode: service:redboxportal-mount
     depends_on:
       redboxportal-mount:
+        condition: service_healthy
+      playwright-stubs:
         condition: service_healthy
   redboxportal:
     <<: *rbportal-service
     profiles: [ci]
     ports:
-      - '1500:1500'
+      - '${RBPORTAL_PLAYWRIGHT_PORT:-1500}:${RBPORTAL_PLAYWRIGHT_PORT:-1500}'
   redboxportal-mount:
     <<: *rbportal-service
     profiles: [mount]
     ports:
-      - '1500:1500'
+      - '${RBPORTAL_PLAYWRIGHT_PORT:-1500}:${RBPORTAL_PLAYWRIGHT_PORT:-1500}'
     image: ${RBPORTAL_IMAGE:-qcifengineering/redbox-portal:develop}
     volumes:
       - '../../:/opt/redbox-portal:delegated'
-      - '../../.tmp/attachments:/attachments'
+      - '../../.tmp/playwright/attachments:/attachments'
+      - '../../.tmp/playwright/application-bundles.json:/opt/redbox-portal/playwright-application-bundles.json:ro'
       - '../../test/resources/config/emailnotification.js:/opt/redbox-portal/config/emailnotification.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://localhost:1500/default/rdmp/home']
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:$${PORT}/default/rdmp/home']
       interval: '10s'
       timeout: '5s'
       retries: 30
@@ -128,8 +151,6 @@ services:
   mongodb:
     image: mongo:7.0.41-jammy
     pull_policy: missing
-    ports:
-      - '27017:27017'
     networks:
       main:
         aliases:
@@ -192,7 +213,7 @@ services:
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
       TZ: 'Australia/Brisbane'
     volumes:
-      - '../../.tmp/email:/data'
+      - '../../.tmp/playwright/email:/data'
     networks:
       main:
         aliases:
@@ -203,3 +224,30 @@ services:
       timeout: '5s'
       retries: 10
       start_period: '10s'
+  playwright-stubs:
+    image: node:24.16.0-bookworm@sha256:40ad9f3064e67d6860b4bc3fe1880b2953934fd6320ada990e45fe0efa6badd7
+    pull_policy: missing
+    working_dir: /opt/playwright-stubs
+    command: ['node', 'server.cjs']
+    environment:
+      PORT: '${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}'
+      TZ: Australia/Brisbane
+    volumes:
+      - './playwright-stubs:/opt/playwright-stubs:ro'
+    expose: ['${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}']
+    ports: ['127.0.0.1:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}']
+    networks:
+      main:
+        aliases: [playwright-stubs]
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:${RBPORTAL_PLAYWRIGHT_STUB_PORT:-8787}/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: '5s'
+      timeout: '3s'
+      retries: 20
+      start_period: '5s'

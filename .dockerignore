@@ -20,3 +20,21 @@ docs
 test
 coverage
 *.tgz
+
+# Loader shims belong to the image's installed hooks, never a developer's last
+# portal startup. Keep authored migrations and environment configuration.
+api/controllers/**/*.js
+api/models/**/*.js
+api/services/**/*.js
+api/policies/**/*.js
+api/middleware/**/*.js
+api/responses/**/*.js
+api/form-config/**/*.js
+api/shims/**/*.js
+config/*.js
+!config/form.js
+.regenerate-shims
+support/debug-config
+
+# All embedded applications are rebuilt in the builder stage.
+assets/angular

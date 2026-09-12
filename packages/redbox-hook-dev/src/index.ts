@@ -1,8 +1,6 @@
 import '@researchdatabox/redbox-core';
 import { defineRedboxHook, HookRegistrationMap } from '@researchdatabox/redbox-core';
 import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-import { recordtype } from './config/recordtype';
-import { workflow } from './config/workflow';
 import { dashboardtype } from './config/dashboardtype';
 import { dashboardview } from './config/dashboardview';
 import { workspacetype } from './config/workspacetype';
@@ -13,6 +11,8 @@ import { routes } from './config/routes';
 import { views } from './config/views';
 import { jsonld } from './config/jsonld';
 import { FormConfigExports } from './form-config';
+import { getPlaywrightForms, getPlaywrightRegistration } from './playwright/registration';
+export * from './playwright';
 
 export {};
 
@@ -30,9 +30,11 @@ export {};
  */
 const hook = defineRedboxHook({
   registerRedboxConfig(): HookRegistrationMap {
+    const scenarioRegistration = getPlaywrightRegistration();
     return {
-      recordtype,
-      workflow,
+      recordtype: scenarioRegistration.recordtype,
+      workflow: scenarioRegistration.workflow,
+      ...(scenarioRegistration.csp ? { csp: scenarioRegistration.csp } : {}),
       dashboardtype,
       dashboardview,
       workspacetype,
@@ -45,7 +47,7 @@ const hook = defineRedboxHook({
     };
   },
   registerRedboxFormConfigs(): Record<string, FormConfigFrame> {
-    return FormConfigExports;
+    return getPlaywrightForms();
   },
   additionalExports: {
     FormConfigExports,
