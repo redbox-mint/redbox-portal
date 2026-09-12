@@ -32,6 +32,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Concurrent Record Modifications](https://github.com/redbox-mint/redbox-portal/wiki/Concurrent-Record-Modifications)**: Entity-tag clients, record-type modes, adapter contracts, lifecycle recovery, telemetry, canary rollout, and rollback.
 - **[Migrating Save Buttons to Validation Operations](https://github.com/redbox-mint/redbox-portal/wiki/Migrating-Save-Buttons-to-Validation-Operations)**: Add server-owned operation intent while retaining interactive validation groups.
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.
+- **[Playwright regression coverage](Playwright-Regression-Coverage.md)**: Chromium baseline, scenario catalogue, application manifest, and qualification workflow.
 - **[Translation Updates Runbook](https://github.com/redbox-mint/redbox-portal/wiki/Translation-Updates-Runbook)**: Translation key, metadata, plural, locale, and verification guidance.
 - **[REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation)**: Link to the REST API reference.
 - **[Generated Reference Documentation](https://github.com/redbox-mint/redbox-portal/wiki/Generated-Reference-Documentation)**: Current hook extension contracts, form contracts, schemas, machine artifacts, and local generation commands.
