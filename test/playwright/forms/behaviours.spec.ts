@@ -3,6 +3,7 @@ import { openScenario } from './_scenario';
 import { field, saveForm } from '../helpers/forms';
 import { ResponseGate } from '../helpers/response-gate';
 import { randomUUID } from 'node:crypto';
+import { scenarioSeedData } from '../../../packages/redbox-hook-dev/src/playwright/seed-data';
 
 test('F06 behaviour processors fetch real record metadata, transform and persist the mapped result', async ({ adminPage, records }, testInfo) => {
   const source = await records.create('e2e-initialisation-modes', { title: 'Independent metadata source' });
@@ -69,9 +70,13 @@ test('F09 behaviour events-errors shows the configured failure action and recove
 for (const removeTarget of [false, true]) {
   test(`F10 behaviour logical-row ${removeTarget ? 'discards a removed target' : 'follows its surviving target after reindexing'}`, async ({ adminPage, records }) => {
     const source = await records.create('e2e-initialisation-modes', { title: 'Delayed row metadata' });
-    await openScenario(adminPage, 'behaviour-logical-row');
+    const target = await records.create('e2e-behaviour-logical-row', scenarioSeedData('behaviour-logical-row'));
+    await adminPage.goto(`/default/rdmp/record/edit/${target.oid}`);
     const rows = adminPage.locator('redbox-form-repeatable .rb-form-repeatable-item');
     await expect(rows).toHaveCount(3);
+    await expect(field(rows.nth(0), 'Row label')).toHaveValue('Alpha');
+    await expect(field(rows.nth(1), 'Row label')).toHaveValue('Beta');
+    await expect(field(rows.nth(2), 'Row label')).toHaveValue('Gamma');
     const gate = new ResponseGate(adminPage, { url: new RegExp(`/record/metadata/${source.oid}\\?`), method: 'GET' });
     await gate.install();
     try {

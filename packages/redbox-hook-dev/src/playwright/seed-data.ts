@@ -6,7 +6,14 @@ export function scenarioSeedData(id: string): Record<string, unknown> {
   if (id === 'expression-conditions') return { ...metadata, title: 'Ready', unrelated: 'Unrelated', pointerResult: '', jsonataResult: '', queryResult: '' };
   if (id === 'expression-chaining') return { ...metadata, source: 'Seeded', first: '', second: '', visibility: 'show', editable: 'yes', controlled: 'Retained value' };
   if (id === 'expression-repeatables') return { ...metadata, rows: [{ source: 'Alpha', result: '' }, { source: 'Beta', result: '' }] };
-  if (id.startsWith('behaviour-')) return { ...metadata, lookup: '', result: 'Waiting', dependent: 'Waiting', disabledResult: 'Unchanged', ...(id === 'behaviour-logical-row' ? { rows: ['Alpha', 'Beta', 'Gamma'].map(name => ({ name, result: `Waiting ${name[0]}` })) } : {}) };
+  if (id.startsWith('behaviour-')) return {
+    ...metadata, lookup: '', result: 'Waiting', dependent: 'Waiting', disabledResult: 'Unchanged',
+    ...(id === 'behaviour-logical-row' ? { rows: [
+      { label: 'Alpha', result: 'Waiting A' },
+      { label: 'Beta', result: 'Waiting B' },
+      { label: 'Gamma', result: 'Waiting C' },
+    ] } : {}),
+  };
   if (id === 'validation-fields-cross-field') return { ...metadata, requiredValue: 'Required', email: 'seed@example.test', left: 'A', right: 'B' };
   if (id === 'validation-groups') return { ...metadata, mode: 'none', extra: 'no', requiredValue: '', conditionalValue: '' };
   if (id === 'validation-summaries') return { ...metadata, requiredValue: 'Valid', overview: 'Overview', tabValue: 'Valid tab', intro: 'Introduction', panelValue: 'Valid panel', advisoryValue: '' };
