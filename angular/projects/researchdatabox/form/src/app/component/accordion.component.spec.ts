@@ -80,21 +80,69 @@ describe('AccordionComponent', () => {
     expect(compiled.querySelectorAll('.panel.panel-default').length).toBe(2);
   });
 
+  it('preserves the visible value and dirty state when a panel closes and reopens', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(buildAccordionForm('first-open'));
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const input = nativeEl.querySelector<HTMLInputElement>('.panel-collapse.show input')!;
+    const header = nativeEl.querySelector<HTMLButtonElement>('.panel-heading button')!;
+    input.value = 'Edited before collapsing';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    header.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(header.getAttribute('aria-expanded')).toBe('false');
+    header.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(nativeEl.querySelector<HTMLInputElement>('.panel-collapse.show input')?.value).toBe('Edited before collapsing');
+    expect(formComponent.form?.get('textfield_1')?.value).toBe('Edited before collapsing');
+    expect(formComponent.form?.get('textfield_1')?.dirty).toBeTrue();
+  });
+
+  it('includes edits from an initially closed panel in the form even while both panels are collapsed', async () => {
+    const { fixture, formComponent } = await createFormAndWaitForReady(buildAccordionForm('first-open'));
+    const root: HTMLElement = fixture.nativeElement;
+    const headers = root.querySelectorAll<HTMLButtonElement>('.panel-heading button');
+    headers[1].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const second = root.querySelectorAll<HTMLInputElement>('.panel-collapse.show input')[1];
+    second.value = 'Second edited';
+    second.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(formComponent.form?.dirty).toBeTrue();
+    expect(formComponent.form?.getRawValue()).toEqual({ textfield_1: 'hello 1', textfield_2: 'Second edited' });
+    headers[0].click();
+    headers[1].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(root.querySelectorAll('.panel-collapse.show input').length).toBe(0);
+    expect(formComponent.form?.getRawValue()).toEqual({ textfield_1: 'hello 1', textfield_2: 'Second edited' });
+    expect(formComponent.form?.dirty).toBeTrue();
+    headers[1].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(root.querySelector<HTMLInputElement>('.panel-collapse.show input')?.value).toBe('Second edited');
+  });
+
   it('supports all-open, first-open and last-open starting modes', async () => {
     const allOpen = await createFormAndWaitForReady(buildAccordionForm('all-open'));
-    expect((allOpen.fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(2);
+    expect((allOpen.fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(2);
 
     const firstOpen = await createFormAndWaitForReady(buildAccordionForm('first-open'));
-    expect((firstOpen.fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(1);
+    expect((firstOpen.fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(1);
 
     const lastOpen = await createFormAndWaitForReady(buildAccordionForm('last-open'));
-    expect((lastOpen.fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(1);
+    expect((lastOpen.fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(1);
   });
 
   it('defaults to all-open when startingOpenMode is omitted', async () => {
     const { fixture } = await createFormAndWaitForReady(buildAccordionForm());
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelectorAll('input[type="text"]').length).toBe(2);
+    expect(compiled.querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(2);
   });
 
   it('supports multiple panels open simultaneously after toggling', async () => {
@@ -108,7 +156,7 @@ describe('AccordionComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(2);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(2);
   });
 
   it('toggles panel open state', async () => {
@@ -118,19 +166,19 @@ describe('AccordionComponent', () => {
     const firstButton = compiled.querySelector('.panel-heading button') as HTMLButtonElement;
     expect(firstButton).toBeTruthy();
 
-    expect(compiled.querySelectorAll('input[type="text"]').length).toBe(1);
+    expect(compiled.querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(1);
     firstButton.click();
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(0);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(0);
   });
 
   it('expands and collapses all panels from controls', async () => {
     const { fixture } = await createFormAndWaitForReady(buildAccordionForm('first-open'));
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.querySelectorAll('input[type="text"]').length).toBe(1);
+    expect(compiled.querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(1);
 
     const expandAllButton = Array.from(compiled.querySelectorAll('.accordion-controls button')).find(button =>
       button.textContent?.includes('Expand all'));
@@ -140,7 +188,7 @@ describe('AccordionComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(2);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(2);
 
     const collapseAllButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.accordion-controls button'))
       .find(button => button.textContent?.includes('Collapse all'));
@@ -150,7 +198,7 @@ describe('AccordionComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]').length).toBe(0);
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]').length).toBe(0);
   });
 
   it('wires aria relationships for panel header and region', async () => {
@@ -201,7 +249,7 @@ describe('AccordionComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    const inputs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('input[type="text"]')) as HTMLInputElement[];
+    const inputs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.panel-collapse.show input[type="text"]')) as HTMLInputElement[];
     expect(inputs.length).toBe(2);
     const panelTwoInput = inputs.find(input => input.value === 'hello 2') as HTMLInputElement;
     expect(panelTwoInput).toBeTruthy();
