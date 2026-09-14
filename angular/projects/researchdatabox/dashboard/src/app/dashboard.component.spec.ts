@@ -146,6 +146,27 @@ describe('DashboardComponent standard', () => {
     expect(dashboardComponent).toBeTruthy();
   });
 
+  const optionalFilterCases: Array<Record<string, never[]> | undefined> = [undefined, {}, { rdmp: [] }];
+  for (const filters of optionalFilterCases) {
+    it(`omits text filters safely when no filters exist for the selected record type: ${JSON.stringify(filters)}`, () => {
+      const component = TestBed.createComponent(DashboardComponent).componentInstance;
+      component.recordType = 'dataset';
+      component.formatRules = { ...component.defaultFormatRules, queryFilters: filters ?? {} };
+      if (filters === undefined) Reflect.deleteProperty(component.formatRules, 'queryFilters');
+      expect(component.getTextFilters()).toEqual([]);
+    });
+  }
+
+  it('preserves configured text filters for the selected record type', () => {
+    const component = TestBed.createComponent(DashboardComponent).componentInstance;
+    component.recordType = 'dataset';
+    const field = { name: 'title', path: 'metadata.title', label: 'Title' };
+    component.formatRules = { ...component.defaultFormatRules, queryFilters: {
+      dataset: [{ filterType: 'text', filterFields: [field] }],
+    } };
+    expect(component.getTextFilters()).toEqual([field]);
+  });
+
   it(`should have a set a pre defined dashboard type options`, () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     const dashboardComponent = fixture.componentInstance;
