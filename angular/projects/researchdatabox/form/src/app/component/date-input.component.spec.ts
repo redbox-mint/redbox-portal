@@ -1,3 +1,5 @@
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { FormServerSyncService } from '../form-server-sync.service';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { DateInputComponent, parseFreeTextDate } from './date-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
@@ -60,7 +62,7 @@ describe('DateInputComponent', () => {
   beforeEach(async () => {
     await createTestbedModule({
       declarations: [DateInputComponent],
-      imports: [BsDatepickerModule.forRoot()],
+      imports: [BsDatepickerModule.forRoot(), NoopAnimationsModule],
     });
   });
 
@@ -69,6 +71,38 @@ describe('DateInputComponent', () => {
     const component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  for (const serverDay of [3, 4]) {
+    it(`keeps the datepicker valid and displays the saved day ${serverDay} after ISO writeback`, async () => {
+      const original = new Date(2026, 9, 3);
+      const saved = new Date(2026, 9, serverDay);
+      const { fixture, formComponent } = await createFormAndWaitForReady({
+        name: 'date-writeback', componentDefinitions: [{ name: 'date',
+          model: { class: 'DateInputModel', config: { value: original } },
+          component: { class: 'DateInputComponent' },
+        }],
+      });
+      const control = formComponent.form!.get('date')!;
+      // Save acknowledgement has cleared pre-request dirtiness before writeback.
+      const result = await TestBed.inject(FormServerSyncService).applyServerMetadata(
+        { date: original }, { date: saved.toISOString() }, formComponent.formDefMap!, formComponent.form!, 'preserveLocalEdits',
+      );
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+      expect(result.skipped).toEqual([]);
+      expect(control.value).toEqual(saved);
+      expect(control.valid).toBeTrue();
+      expect(control.pristine).toBeTrue();
+      expect(input.value).toBe(`2026/10/0${serverDay}`);
+      // bsValue is a write-only input; verify the rendered calendar selection.
+      (fixture.nativeElement.querySelector('.date-input-addon') as HTMLElement).click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const selectedDay = document.querySelector('bs-datepicker-container .bs-datepicker-body .selected');
+      expect(selectedDay?.textContent?.trim()).toBe(String(serverDay));
+    });
+  }
 
   it('should render Date input component from default value', async () => {
     const formConfig: FormConfigFrame = {
