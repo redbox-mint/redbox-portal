@@ -1,4 +1,6 @@
 import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
+import { FormControl } from '@angular/forms';
+import type { CustomSetValueControl } from '../form-state/custom-set-value.control';
 import {
   FormFieldBaseComponent,
   FormFieldCompMapEntry,
@@ -191,10 +193,22 @@ export function parseFreeTextDate(rawText: string | null | undefined, dateFormat
   return undefined;
 }
 
+class DateInputFormControl extends FormControl<DateInputModelValueType> implements CustomSetValueControl {
+  public setCustomValue(value: unknown, options?: ModifyOptions): void {
+    const normalized = normalizeDateInputValue(value, true);
+    if (normalized === undefined) throw new TypeError('A date control requires a valid date, ISO date string or null.');
+    this.setValue(normalized, options);
+  }
+}
+
 export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   public override logName = DateInputModelName;
   public enableTimePicker: boolean = false;
   public dateFormat: string = '';
+
+  protected override postCreateGetFormControl(): FormControl<DateInputModelValueType> {
+    return new DateInputFormControl(this.initValue ?? null);
+  }
 
   protected override postCreateGetInitValue(): DateInputModelValueType | undefined {
     return normalizeDateInputValue(this.fieldConfig.config?.value, true) ?? null;
