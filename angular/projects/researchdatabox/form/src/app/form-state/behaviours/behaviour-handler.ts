@@ -110,6 +110,11 @@ export class BehaviourHandler {
    */
   private async execute(event: FormComponentEvent): Promise<void> {
     const isFormReadyEvent = event.type === FormComponentEventType.FORM_DEFINITION_READY;
+    // A disabled ready event must not hold the self-feedback guard while
+    // compiled items load, because that would discard real user changes.
+    if (isFormReadyEvent && this.behaviour.runOnFormReady === false) {
+      return;
+    }
     // Once a runOnFormReady behaviour has completed its initial load pipeline,
     // block ALL subsequent events — not just FORM_DEFINITION_READY re-entries.
     // Without this, a broadcast event (sourceId="*") emitted by the action
