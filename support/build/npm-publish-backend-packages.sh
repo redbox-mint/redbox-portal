@@ -7,6 +7,8 @@ readonly REQUESTED_VERSION="${NPM_PUBLISH_VERSION:-}"
 readonly DIST_TAG="${NPM_DIST_TAG:-latest}"
 readonly DRY_RUN="${NPM_PUBLISH_DRY_RUN:-false}"
 readonly PIPELINE_NUMBER="${CIRCLE_PIPELINE_NUMBER:-}"
+readonly REGISTRY_VERIFY_ATTEMPTS="${NPM_PUBLISH_VERIFY_ATTEMPTS:-36}"
+readonly REGISTRY_VERIFY_DELAY_SECONDS="${NPM_PUBLISH_VERIFY_DELAY_SECONDS:-10}"
 
 readonly PACKAGE_PATHS=(
   "packages/raido"
@@ -212,39 +214,37 @@ assert_no_staged_file_dependencies() {
   done
 }
 
-assert_versions_not_published() {
-  local version="$1"
-  local attempt package_path package_name view_error view_output status
+registry_integrity() {
+  local package_name="$1"
+  local version="$2"
+  local attempt view_error view_output status actual_integrity
 
-  log "Checking npm registry for existing $version package versions."
-  for package_path in "${STAGED_PACKAGE_PATHS[@]}"; do
-    package_name="$(package_name "$STAGING_ROOT/$package_path")"
+  for attempt in 1 2 3; do
+    view_output="$(mktemp)"
+    view_error="$(mktemp)"
+    status=0
+    npm view "$package_name@$version" dist.integrity \
+      --registry=https://registry.npmjs.org/ \
+      --prefer-online >"$view_output" 2>"$view_error" || status=$?
+    actual_integrity="$(tr -d '\r\n' <"$view_output")"
 
-    for attempt in 1 2 3; do
-      view_output="$(mktemp)"
-      view_error="$(mktemp)"
-      status=0
-      npm view "$package_name@$version" version \
-        --registry=https://registry.npmjs.org/ \
-        --prefer-online >"$view_output" 2>"$view_error" || status=$?
-      if [[ "$status" -eq 0 ]]; then
-        cat "$view_output"
-        rm -f "$view_output" "$view_error"
-        fail "$package_name@$version already exists on npm."
-      fi
-      if grep -Eq '(E404|404 Not Found|No match found|not found)' "$view_error"; then
-        rm -f "$view_output" "$view_error"
-        break
-      fi
-      if [[ "$attempt" -eq 3 ]]; then
-        cat "$view_output" >&2
-        cat "$view_error" >&2
-        rm -f "$view_output" "$view_error"
-        fail "Unable to determine whether $package_name@$version already exists."
-      fi
+    if [[ "$status" -eq 0 && -n "$actual_integrity" && "$actual_integrity" != "undefined" ]]; then
+      printf '%s\n' "$actual_integrity"
       rm -f "$view_output" "$view_error"
-      sleep "$attempt"
-    done
+      return 0
+    fi
+    if grep -Eq '(E404|404 Not Found|No match found|not found)' "$view_error"; then
+      rm -f "$view_output" "$view_error"
+      return 1
+    fi
+    if [[ "$attempt" -eq 3 ]]; then
+      cat "$view_output" >&2
+      cat "$view_error" >&2
+      rm -f "$view_output" "$view_error"
+      fail "Unable to determine whether $package_name@$version already exists."
+    fi
+    rm -f "$view_output" "$view_error"
+    sleep "$attempt"
   done
 }
 
@@ -266,7 +266,11 @@ pack_dry_run() {
 }
 
 publish_packages() {
-  local package_path package_name version package_dir pack_output_file tarball_filename tarball_path expected_integrity actual_integrity
+  local package_path package_name version package_dir pack_output_file tarball_filename tarball_path expected_integrity actual_integrity existing_integrity registry_status
+  local index
+  local -a package_names=()
+  local -a package_versions=()
+  local -a package_integrities=()
 
   if [[ "$DRY_RUN" == "true" ]]; then
     log "NPM_PUBLISH_DRY_RUN=true; skipping npm publish."
@@ -286,9 +290,30 @@ publish_packages() {
     rm -f "$pack_output_file"
     tarball_path="$package_dir/$tarball_filename"
 
-    log "Publishing $package_name@$version from $tarball_filename."
-    npm publish "$tarball_path" --access public --tag "$DIST_TAG"
+    existing_integrity=''
+    if existing_integrity="$(registry_integrity "$package_name" "$version")"; then
+      if [[ "$existing_integrity" != "$expected_integrity" ]]; then
+        fail "$package_name@$version already exists with registry integrity $existing_integrity, but the staged package has integrity $expected_integrity."
+      fi
+      log "$package_name@$version is already published with the expected integrity; skipping publish."
+    else
+      registry_status=$?
+      [[ "$registry_status" -eq 1 ]] \
+        || fail "Unable to determine whether $package_name@$version already exists."
+      log "Publishing $package_name@$version from $tarball_filename."
+      npm publish "$tarball_path" --access public --tag "$DIST_TAG"
+    fi
 
+    package_names+=("$package_name")
+    package_versions+=("$version")
+    package_integrities+=("$expected_integrity")
+  done
+
+  log "Verifying published package integrity in the npm registry."
+  for index in "${!package_names[@]}"; do
+    package_name="${package_names[$index]}"
+    version="${package_versions[$index]}"
+    expected_integrity="${package_integrities[$index]}"
     actual_integrity="$(published_integrity "$package_name" "$version")"
     if [[ "$actual_integrity" != "$expected_integrity" ]]; then
       fail "$package_name@$version registry integrity mismatch. Packed $expected_integrity but registry reports $actual_integrity."
@@ -301,7 +326,7 @@ published_integrity() {
   local version="$2"
   local attempt actual_integrity status
 
-  for attempt in {1..12}; do
+  for attempt in $(seq 1 "$REGISTRY_VERIFY_ATTEMPTS"); do
     status=0
     actual_integrity="$(npm view "$package_name@$version" dist.integrity \
       --registry=https://registry.npmjs.org/ \
@@ -312,8 +337,8 @@ published_integrity() {
       return 0
     fi
 
-    printf '[npm-publish] Waiting for %s@%s to become readable from npm registry (attempt %s/12).\n' "$package_name" "$version" "$attempt" >&2
-    sleep 10
+    printf '[npm-publish] Waiting for %s@%s to become readable from npm registry (attempt %s/%s).\n' "$package_name" "$version" "$attempt" "$REGISTRY_VERIFY_ATTEMPTS" >&2
+    sleep "$REGISTRY_VERIFY_DELAY_SECONDS"
   done
 
   fail "Unable to read $package_name@$version dist.integrity from npm after publish."
@@ -330,7 +355,6 @@ main() {
   build_packages
   stage_packages "$version"
   assert_no_staged_file_dependencies
-  assert_versions_not_published "$version"
   pack_dry_run
   publish_packages
 
