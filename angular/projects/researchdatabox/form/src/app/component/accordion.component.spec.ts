@@ -85,20 +85,25 @@ describe('AccordionComponent', () => {
     const nativeEl: HTMLElement = fixture.nativeElement;
     const input = nativeEl.querySelector<HTMLInputElement>('.panel-collapse.show input')!;
     const header = nativeEl.querySelector<HTMLButtonElement>('.panel-heading button')!;
+    const control = formComponent.form?.get('textfield_1');
     input.value = 'Edited before collapsing';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
     await fixture.whenStable();
-    header.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(header.getAttribute('aria-expanded')).toBe('false');
-    header.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(nativeEl.querySelector<HTMLInputElement>('.panel-collapse.show input')?.value).toBe('Edited before collapsing');
-    expect(formComponent.form?.get('textfield_1')?.value).toBe('Edited before collapsing');
-    expect(formComponent.form?.get('textfield_1')?.dirty).toBeTrue();
+    for (let cycle = 0; cycle < 3; cycle++) {
+      header.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(header.getAttribute('aria-expanded')).toBe('false');
+      header.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(nativeEl.querySelector<HTMLInputElement>('.panel-collapse.show input')).toBe(input);
+      expect(input.value).toBe('Edited before collapsing');
+      expect(formComponent.form?.get('textfield_1')).toBe(control);
+      expect(control?.value).toBe('Edited before collapsing');
+      expect(control?.dirty).toBeTrue();
+    }
   });
 
   it('includes edits from an initially closed panel in the form even while both panels are collapsed', async () => {

@@ -295,7 +295,6 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {
   componentRefs: ComponentRef<FormBaseWrapperComponent<unknown>>[] = [];
   private componentInstances: FormFieldBaseComponent<unknown>[] = [];
   private formDefMap?: FormComponentsMap;
-  private childrenInitialised = false;
 
   protected override async initData() {
     const formCompDef = this.formFieldCompMapEntry?.compConfigJson;
@@ -305,7 +304,7 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {
   }
 
   protected override async setComponentReady(): Promise<void> {
-    await this.initialiseChildrenIfNeeded();
+    await this.initialiseChildren();
     await super.setComponentReady();
   }
 
@@ -387,16 +386,12 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {
     }
   }
 
-  private async initialiseChildrenIfNeeded(): Promise<void> {
+  private async initialiseChildren(): Promise<void> {
     try {
       await this.untilViewIsInitialised();
       if (!this.componentsDefinitionsContainerRef) {
         return;
       }
-      if (this.childrenInitialised) {
-        return;
-      }
-
       const formConfig = this.formComponentRef.formDefMap?.formConfig;
       const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? '';
       const compFormConfig: FormConfigFrame = {
@@ -430,7 +425,6 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {
       if (this.formFieldCompMapEntry) {
         this.formFieldCompMapEntry.formControlMap = groupedByNameMap.withFormControl;
       }
-      this.childrenInitialised = true;
     } catch (error) {
       this.loggerService.error('Failed to initialise accordion panel children', error);
       throw error;
