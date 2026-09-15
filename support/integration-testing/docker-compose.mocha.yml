@@ -4,7 +4,7 @@ networks:
 
 services:
   redboxportal:
-    image: qcifengineering/redbox-portal:develop
+    image: qcifengineering/redbox-portal:v4.3.1
     pull_policy: 'always'
     ports:
        - "1500:1500"

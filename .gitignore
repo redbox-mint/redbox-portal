@@ -175,12 +175,11 @@ assets/angular
 api/core/**/*.js
 dev
 .dev
-core/dist
+**/dist/*
 api/models/Record.js
 api/models/RecordAudit.js
 api/models/DeletedRecord.js
 support/raido/src*
-support/raido/dist
 support/raido/*.tgz
 angular/.angular/cache/
 
