@@ -2,7 +2,6 @@ import { ChangeDetectorRef, Component, DestroyRef, inject, Input } from '@angula
 import { DOCUMENT } from '@angular/common';
 import { FormFieldBaseComponent, FormFieldCompMapEntry } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
-import { TabComponent } from './tab.component';
 import {
   FormValidatorComponentErrors,
   FormValidatorSummaryErrors,
@@ -10,7 +9,6 @@ import {
   GroupFieldModelName,
   isTypeFieldDefinitionName,
   RepeatableComponentName,
-  TabComponentName,
   TabContentComponentName,
   TabContentLayoutName,
   ValidationSummaryComponentName,
@@ -124,14 +122,6 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   private validationRefreshDeferred = false;
   private validationRefreshDeferredHandle: ReturnType<typeof setTimeout> | undefined;
   private formChangesBound = false;
-  private readonly focusableSelector = [
-    'input:not([type="hidden"]):not([disabled])',
-    'select:not([disabled])',
-    'textarea:not([disabled])',
-    'button:not([disabled])',
-    'a[href]:not([disabled])',
-    '[tabindex]:not([tabindex="-1"])',
-  ].join(',');
 
   constructor() {
     super();
@@ -249,8 +239,9 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
           sourceId: this.getFormComponent.eventScopeId
         })
       );
+      return;
     }
-    void this.revealAndFocusValidationTarget(summary);
+    void this.focusValidationTarget(summary.id);
   }
 
   public getValidationSummaryLabel(summary: FormValidatorSummaryErrors): string {
@@ -268,60 +259,13 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     return leafLabel;
   }
 
-  private async revealAndFocusValidationTarget(summary: FormValidatorSummaryErrors): Promise<void> {
-    this.revealTabParents(summary.lineagePaths?.angularComponents ?? []);
+  private async focusValidationTarget(elementId: string | null): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 0));
-    this.focusValidationTarget(summary);
-  }
-
-  private revealTabParents(angularPath: Array<string | number>): void {
-    if (angularPath.length < 2) {
-      return;
-    }
-    for (let index = 0; index < angularPath.length - 1; index++) {
-      const containerName = String(angularPath[index]);
-      const targetTabId = String(angularPath[index + 1]);
-      const candidate = this.findComponentEntryByName(containerName);
-      const tabComponent = candidate?.component as Pick<TabComponent, 'selectTab'> | undefined;
-      if (
-        candidate?.compConfigJson?.component?.class === TabComponentName &&
-        typeof tabComponent?.selectTab === 'function'
-      ) {
-        tabComponent.selectTab(targetTabId);
-      }
-    }
-  }
-
-  private focusValidationTarget(summary: FormValidatorSummaryErrors): void {
-    const linkedElement = summary.id ? this.doc.getElementById(summary.id) : null;
+    const linkedElement = elementId ? this.doc.getElementById(elementId) : null;
     if (linkedElement instanceof HTMLElement) {
-      this.scrollAndFocus(linkedElement);
-      return;
+      linkedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      linkedElement.focus({ preventScroll: true });
     }
-
-    const entry = this.findComponentEntryFromLineage(summary.lineagePaths?.angularComponents ?? []);
-    const targetElement =
-      entry?.componentRef?.location?.nativeElement ??
-      entry?.layoutRef?.location?.nativeElement;
-    if (targetElement instanceof HTMLElement) {
-      const focusable = this.findFocusableElement(targetElement) ?? targetElement;
-      this.scrollAndFocus(focusable);
-    }
-  }
-
-  private scrollAndFocus(element: HTMLElement): void {
-    element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    });
-    if (typeof element.focus === 'function') {
-      element.focus({ preventScroll: true });
-    }
-  }
-
-  private findFocusableElement(parent: HTMLElement): HTMLElement | null {
-    const focusable = parent.querySelector(this.focusableSelector);
-    return focusable instanceof HTMLElement ? focusable : null;
   }
 
   private getLineageLabels(summary: FormValidatorSummaryErrors): string[] {
@@ -481,20 +425,6 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return this.formService.translate(summary.id);
     }
     return this.formService.translate("@validator-label-default");
-  }
-
-  private findComponentEntryFromLineage(angularPath: Array<string | number>, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
-    return this.formService.getFormFieldCompMapEntry(
-      {angularComponents: angularPath},
-      entries ?? this.getFormComponent?.componentDefArr ?? [],
-    );
-  }
-
-  private findComponentEntryByName(name: string, entries?: FormFieldCompMapEntry[]): FormFieldCompMapEntry | undefined {
-    return this.formService.getFormFieldCompMapEntry(
-      name,
-      entries ?? this.getFormComponent?.componentDefArr ?? [],
-    );
   }
 
   private get getFormComponent(): FormComponent {
