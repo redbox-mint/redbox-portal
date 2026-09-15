@@ -2326,6 +2326,9 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     const formLevelErrors: Record<string, unknown> = {};
     let issueIndex = 0;
     for (const problem of problems) {
+      // Transport and concurrency failures describe the save operation, not
+      // invalid field values. They must leave valid edits available for retry.
+      if (problem.kind !== 'validation') continue;
       for (const issue of Array.isArray(problem?.issues) ? problem.issues : []) {
         const resolved = this.resolveServerIssue(issue);
         if (!resolved) {
