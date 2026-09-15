@@ -4,7 +4,7 @@ import { FormComponentEventBus } from '../events/form-component-event-bus.servic
 import { createFieldValueChangedEvent } from '../events/form-component-event.types';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
-import { BehaviourFieldResolverContext, resolveFieldByPointer } from './behaviour-field-resolver';
+import { BehaviourFieldResolverContext, resolveFieldByIdentity, resolveFieldByPointer } from './behaviour-field-resolver';
 
 /**
  * Dependencies shared by action execution.
@@ -169,9 +169,5 @@ async function resolveDynamicField(
  */
 function resolveLogicalField(ctx: BehaviourActionExecutionContext) {
   const lockedEntry = ctx.getLogicalFieldEntry(ctx.listName, ctx.actionIndex);
-  const currentPointer = lockedEntry?.lineagePaths?.angularComponentsJsonPointer;
-  if (!currentPointer) {
-    return undefined;
-  }
-  return resolveFieldByPointer(currentPointer, ctx.fieldResolverContext);
+  return resolveFieldByIdentity(lockedEntry, ctx.fieldResolverContext);
 }
