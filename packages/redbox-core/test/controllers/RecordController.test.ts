@@ -584,6 +584,7 @@ describe('RecordController getWorkflowSteps', () => {
       )
     ).to.equal(true);
     expect(result.metadata).to.deep.equal({ title: 'Latest' });
+    expect(result.oid).to.equal('oid-1');
     expect(result.concurrency?.revision).to.equal(4);
     expect((global as any).FormsService.buildClientFormConfig.firstCall.args[1]).to.equal('view');
     expect((global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.firstCall.args[2]).to.equal(
