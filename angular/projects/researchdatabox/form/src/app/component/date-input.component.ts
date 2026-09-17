@@ -1,3 +1,5 @@
+import { FormControl, ValidatorFn } from '@angular/forms';
+import type { CustomSetValueControl } from '../form-state/custom-set-value.control';
 import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
 import {
   FormFieldBaseComponent,
@@ -10,6 +12,7 @@ import {
   DateInputComponentName,
   DateInputModelName,
   type DateInputFieldComponentConfigFrame,
+  type DateInputFieldModelConfigFrame,
   type DateInputModelValueType,
 } from '@researchdatabox/sails-ng-common/dist/src/config/component/date-input.outline';
 import { mapMomentToLuxonFormat } from '@researchdatabox/sails-ng-common/dist/src/date-format-helpers';
@@ -18,9 +21,9 @@ import { BsDatepickerConfig, BsDatepickerDirective } from 'ngx-bootstrap/datepic
 import { isUndefined as _isUndefined, isEmpty as _isEmpty, isNull as _isNull } from 'lodash-es';
 import { createFormStatusDirtyRequestEvent, FormComponentEventBus } from '../form-state';
 
-function normalizeDateInputValue(value: unknown, parseDateOnlyIso: boolean = false): DateInputModelValueType | undefined {
+function normalizeDateInputValue(value: unknown, parseDateOnlyIso: boolean = false): Date | null | undefined {
   if (_isUndefined(value) || _isNull(value)) {
-    return value as DateInputModelValueType;
+    return value as null | undefined;
   }
 
   if (value instanceof Date) {
@@ -191,22 +194,88 @@ export function parseFreeTextDate(rawText: string | null | undefined, dateFormat
   return undefined;
 }
 
+/** Calendar dates are strings in the record; only the picker uses local Date objects. */
+function normalizeCalendarDate(value: unknown): string | null | undefined {
+  if (value === null || value === undefined || value === '') return null;
+  if (value instanceof Date) return DateTime.fromJSDate(value).toISODate() ?? undefined;
+  if (typeof value !== 'string') return undefined;
+  const text = value.trim();
+  if (!text) return null;
+  if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(text)) return undefined;
+  return DateTime.fromISO(text, { setZone: true }).toISODate() ?? undefined;
+}
+
+class CalendarDateFormControl extends FormControl<DateInputModelValueType> implements CustomSetValueControl {
+  readonly pickerControl: FormControl<Date | null>;
+  private readonly pickerValidator: ValidatorFn = () => this.pickerControl.errors;
+
+  constructor(value: string | null) {
+    super(value);
+    this.pickerControl = new FormControl(this.toPickerDate(value));
+    this.pickerControl.valueChanges.subscribe(picked => {
+      // Invalid typed text is handled by the component's blur parser.
+      if (normalizeCalendarDate(picked) === undefined) return;
+      this.setValue(picked);
+      this.markAsDirty();
+      this.markAsTouched();
+    });
+    this.pickerControl.statusChanges.subscribe(() => this.updateValueAndValidity({ emitEvent: false }));
+    this.registerOnDisabledChange(disabled => {
+      if (disabled) this.pickerControl.disable({ emitEvent: false });
+      else this.pickerControl.enable({ emitEvent: false });
+    });
+  }
+
+  private toPickerDate(value: string | null): Date | null {
+    return value === null ? null : DateTime.fromISO(value).toJSDate();
+  }
+
+  override setValue(value: DateInputModelValueType, options?: Parameters<FormControl['setValue']>[1]): void {
+    const day = normalizeCalendarDate(value);
+    if (day === undefined) throw new TypeError('A calendar date requires a valid date, ISO date string or null.');
+    const display = this.toPickerDate(day);
+    if (this.pickerControl.value?.getTime() !== display?.getTime()) {
+      this.pickerControl.setValue(display, { emitEvent: false });
+    }
+    super.setValue(day, options);
+  }
+
+  setCustomValue(value: DateInputModelValueType, options?: ModifyOptions): void {
+    this.setValue(value, options);
+  }
+
+  override setValidators(validators: ValidatorFn | ValidatorFn[] | null): void {
+    super.setValidators([...(Array.isArray(validators) ? validators : validators ? [validators] : []), this.pickerValidator]);
+  }
+}
+
 export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
   public override logName = DateInputModelName;
   public enableTimePicker: boolean = false;
   public dateFormat: string = '';
 
+  get dateOnly(): boolean {
+    return (this.fieldConfig.config as DateInputFieldModelConfigFrame | undefined)?.dateOnly === true;
+  }
+
+  protected override postCreateGetFormControl(): FormControl<DateInputModelValueType> {
+    return this.dateOnly
+      ? new CalendarDateFormControl(normalizeCalendarDate(this.initValue) ?? null)
+      : new FormControl(this.initValue ?? null);
+  }
+
   protected override postCreateGetInitValue(): DateInputModelValueType | undefined {
+    if (this.dateOnly) return normalizeCalendarDate(this.fieldConfig.config?.value) ?? null;
     return normalizeDateInputValue(this.fieldConfig.config?.value, true) ?? null;
   }
 
   public override setValue(value: DateInputModelValueType, opts?: ModifyOptions): void {
-    const normalizedValue = normalizeDateInputValue(value);
+    const normalizedValue = this.dateOnly ? normalizeCalendarDate(value) : normalizeDateInputValue(value);
     super.setValue((normalizedValue ?? value) as DateInputModelValueType, opts);
   }
 
   public override patchValue(value: DateInputModelValueType, opts?: ModifyOptions): void {
-    const normalizedValue = normalizeDateInputValue(value);
+    const normalizedValue = this.dateOnly ? normalizeCalendarDate(value) : normalizeDateInputValue(value);
     super.patchValue((normalizedValue ?? value) as DateInputModelValueType, opts);
   }
 
@@ -240,12 +309,13 @@ export class DateInputModel extends FormFieldModel<DateInputModelValueType> {
           bsDatepicker
           #dateInputEl
           [bsConfig]="bsConfig"
-          [formControl]="formControl"
+          [formControl]="inputControl"
           [class.is-valid]="showValidState"
           [class.is-invalid]="!isValid"
           [readonly]="isReadonly"
           [title]="tooltip | i18next"
           [placeholder]="placeholder | i18next"
+          (input)="model?.dateOnly && formControl.markAsDirty()"
           (blur)="onInputBlur($event)"
           (bsValueChange)="onDatepickerValueChange($event)"
         />
@@ -292,6 +362,10 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   @ViewChild(BsDatepickerDirective) datepicker!: BsDatepickerDirective;
   @ViewChild('dateInputEl') dateInputEl!: ElementRef<HTMLInputElement>;
 
+  get inputControl(): FormControl<DateInputModelValueType> {
+    return this.formControl instanceof CalendarDateFormControl ? this.formControl.pickerControl : this.formControl;
+  }
+
   override ngAfterViewInit() {
     this.syncDateValue(this.formControl?.value);
     this.formControl.valueChanges.subscribe((value: DateInputModelValueType | string) => {
@@ -329,12 +403,19 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   onDatepickerValueChange(dateValue: DateInputModelValueType): void {
+    if (this.model?.dateOnly) {
+      if (this.datepickerSelectionInProgress) this.requestFormDirty('datepicker.selection');
+      this.datepickerSelectionInProgress = false;
+      return;
+    }
     if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
       const isDatepickerUserSelection = this.datepickerSelectionInProgress;
 
       this.lastValidValue = dateValue;
       if (!areDateInputValuesEqual(this.formControl?.value, dateValue)) {
-        this.formControl?.setValue(dateValue, { emitEvent: true });
+        // The picker already displays this value. Writing it back through its
+        // value accessor applies useUtc again and can recurse indefinitely.
+        this.formControl?.setValue(dateValue, { emitEvent: true, emitModelToViewChange: false });
       }
 
       if (isDatepickerUserSelection) {
@@ -358,6 +439,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   private syncDateValue(dateValue: DateInputModelValueType | string | undefined): void {
+    if (this.model?.dateOnly) return;
     if (!this.robustParsing && typeof dateValue === 'string') {
       return;
     }
@@ -406,6 +488,18 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
 
     const inputEl = event.target as HTMLInputElement;
     const rawText = inputEl?.value || '';
+    if (this.model?.dateOnly) {
+      this.formControl.markAsTouched();
+      const parsed = this.robustParsing
+        ? parseFreeTextDate(rawText, this.dateFormat)
+        : DateTime.fromFormat(rawText, mapMomentToLuxonFormat(this.dateFormat), { zone: 'utc' }).toJSDate();
+      const day = normalizeCalendarDate(rawText)
+        ?? (parsed instanceof Date ? DateTime.fromJSDate(parsed, { zone: 'utc' }).toISODate() : undefined);
+      // Keep the prior value for invalid text; never put timestamps into this model.
+      this.formControl.setValue(day ?? (rawText.trim() ? this.formControl.value : null));
+      this.rewriteCalendarInput();
+      return;
+    }
     if (!rawText || rawText.trim() === '') {
       this.lastValidValue = null;
       this.formControl?.setValue(null, { emitEvent: true });
@@ -467,7 +561,22 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     }
   }
 
+  private rewriteCalendarInput(): void {
+    const value = this.inputControl.value;
+    this.dateInputEl.nativeElement.value = value instanceof Date
+      ? DateTime.fromJSDate(value).toFormat(mapMomentToLuxonFormat(this.bsConfig.dateInputFormat)) : '';
+  }
+
   public get bsConfig(): BsDatepickerConfig {
+    if (this.model?.dateOnly) {
+      return {
+        dateInputFormat: this.dateFormat,
+        showWeekNumbers: this.showWeekNumbers,
+        containerClass: this.containerClass,
+        ...this.bsFullConfig,
+        useUtc: false,
+      } as BsDatepickerConfig;
+    }
     if (_isEmpty(this.bsFullConfig)) {
       //Commonly used properties only
       return {
@@ -493,7 +602,7 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
   }
 
   get enableTimePicker(): boolean {
-    return this.model?.enableTimePicker ?? this.enableTimePickerDefault;
+    return !this.model?.dateOnly && (this.model?.enableTimePicker ?? this.enableTimePickerDefault);
   }
 
   @Input() public override model?: DateInputModel;

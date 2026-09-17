@@ -53,6 +53,7 @@ export class DateInputFieldComponentDefinition extends FieldComponentDefinition 
 
 
 export class DateInputFieldModelConfig extends FieldModelConfig<DateInputModelValueType> implements DateInputFieldModelConfigOutline {
+    dateOnly?: boolean = false;
     constructor() {
         super();
     }
