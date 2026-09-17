@@ -21,6 +21,23 @@ let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
 describe("Client Visitor", async () => {
+  it('preserves date-only model configuration and calendar values for the browser', async function () {
+    const constructed = await new ConstructFormConfigVisitor(logger).start({
+      formMode: 'edit',
+      data: {
+        name: 'calendar-date-config',
+        componentDefinitions: [{
+          name: 'date',
+          component: { class: 'DateInputComponent', config: { dateFormat: 'DD/MM/YYYY' } },
+          model: { class: 'DateInputModel', config: { dateOnly: true, defaultValue: '2026-09-17' } },
+        }],
+      },
+    });
+    const clientForm = await new ClientFormConfigVisitor(logger).start({ form: constructed, formMode: 'edit' });
+    expect(clientForm.componentDefinitions[0].model?.config).to.include({ dateOnly: true, value: '2026-09-17' });
+    expect(clientForm.componentDefinitions[0].component.class).to.equal('DateInputComponent');
+  });
+
   describe("Repeatable Component", async () => {
     it(`should preserve repeatable zero-row config in client output`, async function () {
       const args: FormConfigFrame = {
