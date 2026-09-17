@@ -24,11 +24,13 @@ describeMongo('Record pagination with MongoDB', function () {
   const fixtures = Array.from({ length: recordCount }, (_, index) => ({
     _id: new ObjectId(index.toString(16).padStart(24, '0')),
     redboxOid: `record-${String(recordCount - index).padStart(4, '0')}`,
-    lastSaveDate: index < recordCount / 2 ? '2026-09-02T00:00:00Z' : '2026-09-01T00:00:00Z',
+    lastSaveDate: index < recordCount / 2 ? '2026-09-01T00:00:00Z' : '2026-09-02T00:00:00Z',
+    metadata: { title: index < recordCount / 2 ? 'Zebra' : 'Alpha' },
     metaMetadata: { brandId: brand.id, type: 'rdmp', packageType: 'rdmp' },
     authorization: { view: [username] },
   }));
-  const expectedOids = fixtures.map(record => record.redboxOid);
+  const fixtureOids = fixtures.map(record => record.redboxOid);
+  const expectedOids = [...fixtureOids.slice(recordCount / 2), ...fixtureOids.slice(0, recordCount / 2)];
 
   before(async function () {
     originalRecord = Reflect.get(global, 'Record');
@@ -42,10 +44,10 @@ describeMongo('Record pagination with MongoDB', function () {
     service.recordCol = database.collection('record');
     service.deletedRecordCol = database.collection('deletedrecord');
     await service.recordCol.insertMany(fixtures);
-    await service.deletedRecordCol.insertMany(fixtures.map(record => ({
+    await service.deletedRecordCol.insertMany(fixtures.map((record, index) => ({
       _id: record._id,
       redboxOid: record.redboxOid,
-      lastSaveDate: record.lastSaveDate,
+      dateDeleted: index < recordCount / 2 ? '2026-09-04T00:00:00Z' : '2026-09-03T00:00:00Z',
       deletedRecordMetadata: record,
     })));
   });
@@ -77,12 +79,27 @@ describeMongo('Record pagination with MongoDB', function () {
         }
         expect(oids).to.have.length(recordCount);
         expect(new Set(oids).size).to.equal(recordCount);
-        const expectedOrder = sort
-          ? [...expectedOids.slice(recordCount / 2), ...expectedOids.slice(0, recordCount / 2)]
-          : expectedOids;
+        const expectedOrder = sort ? fixtureOids : expectedOids;
         expect(oids).to.deep.equal(expectedOrder);
       });
     }
+  }
+
+  for (const [sort, expected] of [
+    ['metadata.title:1', expectedOids],
+    ['dateDeleted:-1', fixtureOids],
+    ['redboxOid:1', [...fixtureOids].reverse()],
+  ] as const) {
+    it(`sorts deleted records by the stored values for ${sort}`, async function () {
+      const oids: unknown[] = [];
+      for (let start = 0; start < recordCount; start += pageSize) {
+        const result = await service.getDeletedRecords(
+          undefined, undefined, start, pageSize, username, [], brand, undefined, undefined, sort
+        );
+        oids.push(...result.items.map(record => record.redboxOid));
+      }
+      expect(oids).to.deep.equal(expected);
+    });
   }
 
   for (const format of ['csv', 'json']) {

@@ -16,6 +16,7 @@ import {
   DatastreamService,
   StorageService,
   StorageServiceResponse,
+  RBValidationError,
   DatastreamServiceResponse,
   Datastream,
   Attachment,
@@ -676,16 +677,25 @@ export namespace Services {
 
     private getRecordSort(sort?: string, secondarySort?: string): Record<string, number> {
       const expression = _.isEmpty(sort) ? '{"lastSaveDate": -1}' : sort;
-      let fields: Record<string, number>;
+      let parsed: unknown;
       try {
-        fields = JSON.parse(expression);
+        parsed = JSON.parse(expression);
       } catch (_error) {
         const [field, direction = '-1'] = expression.split(':');
-        fields = { [field]: _.toNumber(direction) };
+        parsed = { [field]: _.toNumber(direction) };
       }
-      if (Array.isArray(fields)) {
-        fields = Object.fromEntries(fields);
+      if (parsed === null || typeof parsed !== 'object' ||
+        (Array.isArray(parsed) && !parsed.every(entry =>
+          Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[0].length > 0
+        ))) {
+        throw new RBValidationError({
+          message: 'Invalid record sort expression',
+          displayErrors: [{ status: '400', detail: 'Sort must be an object or an array of [field, direction] pairs.' }],
+        });
       }
+      const fields: Record<string, number> = Object.fromEntries(
+        Array.isArray(parsed) ? parsed : Object.entries(parsed)
+      );
       if (!_.isEmpty(secondarySort)) {
         const [field, direction] = secondarySort.split(':');
         fields[field] = _.toNumber(direction);
@@ -717,10 +727,15 @@ export namespace Services {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
-        sort: this.getRecordSort(sort, secondarySort),
+        sort: Object.fromEntries(Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
+          directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
+            ? field : `deletedRecordMetadata.${field}`,
+          direction,
+        ])),
       };
 
       const roleNames = this.getRoleNames(roles, brand);
