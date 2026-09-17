@@ -535,6 +535,46 @@ describe('MongoStorageService', function () {
     expect(runStub.calledOnce).to.be.true;
   });
 
+  for (const method of ['getRecords', 'getDeletedRecords']) {
+    for (const { sort, secondarySort, expected } of [
+      { sort: undefined, expected: [['lastSaveDate', -1], ['_id', 1]] },
+      { sort: '', expected: [['lastSaveDate', -1], ['_id', 1]] },
+      { sort: 'metadata.title', expected: [['metadata.title', -1], ['_id', 1]] },
+      { sort: 'lastSaveDate:1', expected: [['lastSaveDate', 1], ['_id', 1]] },
+      {
+        sort: '{"metadata.title":1,"lastSaveDate":-1}',
+        expected: [['metadata.title', 1], ['lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: '[["metadata.title",1],["lastSaveDate",-1]]',
+        expected: [['metadata.title', 1], ['lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: 'lastSaveDate:1', secondarySort: 'redboxOid:-1',
+        expected: [['lastSaveDate', 1], ['redboxOid', -1], ['_id', 1]],
+      },
+      { sort: '{"_id":-1}', expected: [['_id', -1]] },
+      {
+        sort: 'lastSaveDate:1', secondarySort: '_id:-1',
+        expected: [['lastSaveDate', 1], ['_id', -1]],
+      },
+    ]) {
+      it(`${method} keeps requested sort precedence and breaks ties for ${sort}, ${secondarySort}`, async function () {
+        const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
+        const runStub = sandbox.stub(service, queryMethod).resolves({ items: [], totalItems: 0 });
+
+        await service[method](
+          'draft', ['rdmp'], 20, 20, 'user', [], { id: 'brand-1' },
+          undefined, undefined, sort, undefined, undefined, undefined, secondarySort
+        );
+
+        const options = runStub.firstCall.args[2];
+        expect(options).to.include({ skip: 20, limit: 20 });
+        expect(Object.entries(options.sort)).to.deep.equal(expected);
+      });
+    }
+  }
+
   it('builds deleted-record queries for equal filters and sort fallbacks', async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
 
@@ -684,6 +724,9 @@ describe('MongoStorageService', function () {
     // Two streamed passes over Mongo (column collection + CSV), each paging once for data and once
     // for the empty terminating batch.
     expect(service.recordCol.find.callCount).to.equal(4);
+    for (const call of service.recordCol.find.getCalls()) {
+      expect(Object.entries(call.args[1].sort)).to.deep.equal([['lastSaveDate', -1], ['_id', 1]]);
+    }
   });
 
   it('sanitizes formula-prefixed values after nested records are flattened', async function () {
@@ -806,6 +849,9 @@ describe('MongoStorageService', function () {
     expect(output).to.include('"redboxOid":"1"');
     expect(output).to.include('"redboxOid":"2"');
     expect(findStub.callCount).to.equal(3);
+    for (const call of findStub.getCalls()) {
+      expect(Object.entries(call.args[1].sort)).to.deep.equal([['lastSaveDate', -1], ['_id', 1]]);
+    }
   });
 
   it('filters role names by brand', function () {

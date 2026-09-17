@@ -674,6 +674,30 @@ export namespace Services {
       return record;
     }
 
+    private getRecordSort(sort?: string, secondarySort?: string): Record<string, number> {
+      const expression = _.isEmpty(sort) ? '{"lastSaveDate": -1}' : sort;
+      let fields: Record<string, number>;
+      try {
+        fields = JSON.parse(expression);
+      } catch (_error) {
+        const [field, direction = '-1'] = expression.split(':');
+        fields = { [field]: _.toNumber(direction) };
+      }
+      if (Array.isArray(fields)) {
+        fields = Object.fromEntries(fields);
+      }
+      if (!_.isEmpty(secondarySort)) {
+        const [field, direction] = secondarySort.split(':');
+        fields[field] = _.toNumber(direction);
+      }
+      // MongoDB does not keep equal sort values in a consistent order across
+      // skip/limit queries. A unique final key prevents duplicates and omissions.
+      if (!Object.hasOwn(fields, '_id')) {
+        fields._id = 1;
+      }
+      return fields;
+    }
+
     public async getDeletedRecords(
       workflowState: string,
       recordType = undefined,
@@ -696,29 +720,8 @@ export namespace Services {
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
+        sort: this.getRecordSort(sort, secondarySort),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
-
-      if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
-          secondarySort.substring(secondarySort.indexOf(':') + 1)
-        );
-      }
 
       const roleNames = this.getRoleNames(roles, brand);
       const andArray = [];
@@ -800,29 +803,8 @@ export namespace Services {
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
+        sort: this.getRecordSort(sort, secondarySort),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
-
-      if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
-          secondarySort.substring(secondarySort.indexOf(':') + 1)
-        );
-      }
 
       const roleNames = this.getRoleNames(roles, brand);
       const andArray = [];
@@ -951,9 +933,7 @@ export namespace Services {
       andArray.push(permissions);
       const options = {
         limit: _.toNumber(sails.config.record.export.maxRecords),
-        sort: {
-          lastSaveDate: -1,
-        },
+        sort: this.getRecordSort(),
       };
       if (!_.isEmpty(modAfter)) {
         andArray.push({
