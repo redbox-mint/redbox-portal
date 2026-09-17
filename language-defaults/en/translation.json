@@ -1301,6 +1301,7 @@
   "@validator-error-max": "Value must be at most {{requiredThreshold}}.",
   "@validator-error-min-length": "Value must be at least {{requiredLength}} characters long.",
   "@validator-error-max-length": "Value must be at most {{requiredLength}} characters long.",
+  "@validator-error-aggregate-max-length": "Combined value must be at most {{requiredLength}} characters long (currently {{actualLength}}).",
   "@validator-error-required": "This field requires a value.",
   "@validator-error-required-true": "This field must be completed.",
   "@validator-error-email": "Please enter a valid email address.",

@@ -15,6 +15,7 @@ import {
   formValidatorLengthOrSize
 } from "./helpers";
 import { JSONataEvaluate } from "../jsonata-helpers";
+import { get as _get } from "lodash";
 
 function hasMeaningfulValue(value: unknown): boolean {
   if (value == null) {
@@ -199,6 +200,45 @@ export const formValidatorsSharedDefinitions: FormValidatorDefinition[] = [
           });
         }
         return null;
+      };
+    },
+  },
+  {
+    class: "aggregateMaxLength",
+    message: "@validator-error-aggregate-max-length",
+    create: (config) => {
+      const maxLength = formValidatorGetDefinitionNumber(config, "maxLength");
+      const valuePath = formValidatorGetDefinitionString(config, "valuePath", "");
+      const separator = formValidatorGetDefinitionString(config, "separator", ", ");
+      const trim = formValidatorGetDefinitionBoolean(config, "trim", true);
+      const ignoreEmpty = formValidatorGetDefinitionBoolean(config, "ignoreEmpty", true);
+      const distinct = formValidatorGetDefinitionBoolean(config, "distinct", false);
+      if (!Number.isInteger(maxLength) || maxLength < 0) {
+        throw new Error("'maxLength' must be a non-negative integer in aggregateMaxLength validator config.");
+      }
+
+      return (control) => {
+        if (!Array.isArray(control.value)) {
+          return null; // absent aggregates and unsupported control types are optional
+        }
+        let values = control.value.map(item => {
+          const value = valuePath ? _get(item, valuePath) : item;
+          // Missing properties and non-primitive values are empty, never '[object Object]'.
+          const text = typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+            ? String(value)
+            : "";
+          return trim ? text.trim() : text;
+        });
+        if (ignoreEmpty) {
+          values = values.filter(value => value.length > 0);
+        }
+        if (distinct) {
+          values = Array.from(new Set(values));
+        }
+        const actualLength = values.join(separator).length;
+        return actualLength > maxLength
+          ? formValidatorBuildError(config, { requiredLength: maxLength, actualLength })
+          : null;
       };
     },
   },
