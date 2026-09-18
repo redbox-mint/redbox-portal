@@ -574,7 +574,6 @@ export namespace Controllers {
             return this.sendResp(req, res, {
               status: 404,
               displayErrors: [{ code: 'missing-record' }],
-              v1: { message: TranslationService.t('missing-record') },
             });
           }
 
