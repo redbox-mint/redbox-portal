@@ -437,7 +437,7 @@ export namespace Controllers {
       }
     }
 
-    public edit(req: Sails.Req, res: Sails.Res) {
+    public async edit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ? req.param('oid') : '';
       let recordType = req.param('recordType') ? req.param('recordType') : '';
@@ -451,6 +451,18 @@ export namespace Controllers {
       const appSelector = 'dmp-form';
       const appName = 'dmp';
       const hasExistingRecord = String(oid ?? '').trim() !== '';
+      let existingRecord: RecordModel | undefined;
+      if (hasExistingRecord) {
+        try {
+          existingRecord = await this.recordsService.getMeta(oid);
+        } catch (error) {
+          sails.log.error(error);
+          return res.serverError();
+        }
+        if (_.isEmpty(existingRecord)) {
+          return res.notFound();
+        }
+      }
       const buildEditViewLocals = (pageTitle?: string) => ({
         oid: oid,
         rdmp: rdmp,
@@ -464,12 +476,12 @@ export namespace Controllers {
       sails.log.debug('RECORD::APP formName: ' + extFormName);
       const renderCreateEditView = () => this.sendView(req, res, 'record/edit', buildEditViewLocals(`Create ${this.getRecordTypePageTitle(recordType, locals)}`));
 
-      const renderExistingEditView = () => this.recordsService.getMeta(oid).then((record) => {
+      const renderExistingEditView = () => {
         if (!recordType) {
-          recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
+          recordType = String(_.get(existingRecord, 'metaMetadata.type', '') ?? '').trim();
         }
-        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(record as AnyRecord, locals)));
-      });
+        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(existingRecord as AnyRecord, locals)));
+      };
 
       if (recordType != '' && extFormName == '') {
         FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(form => {
@@ -499,8 +511,8 @@ export namespace Controllers {
           });
         });
       } else {
-        from(this.recordsService.getMeta(oid)).pipe(flatMap(record => {
-          const formName = record.metaMetadata.form;
+        of(existingRecord).pipe(flatMap(record => {
+          const formName = record?.metaMetadata.form ?? '';
           return FormsService.getFormByName(formName, true, String(brand.id));
         })).subscribe(form => {
           if (!form) {
@@ -562,11 +574,10 @@ export namespace Controllers {
           // defaults to retrieve the form of the current workflow state...
           currentRec = await this.recordsService.getMeta(oid);
           if (_.isEmpty(currentRec)) {
-            const msg = `Error, empty metadata for OID: ${oid}`;
             return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ detail: msg }],
-              v1: { message: msg },
+              status: 404,
+              displayErrors: [{ code: 'missing-record' }],
+              v1: { message: TranslationService.t('missing-record') },
             });
           }
 

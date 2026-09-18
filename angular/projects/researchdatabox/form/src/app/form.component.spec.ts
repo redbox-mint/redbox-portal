@@ -1,5 +1,7 @@
 import {fakeAsync, flushMicrotasks, TestBed, tick} from '@angular/core/testing';
 import { Location } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { FormComponent } from './form.component';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
@@ -75,6 +77,31 @@ describe('FormComponent', () => {
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
+
+  for (const testCase of [
+    { status: 404, url: '/default/rdmp/record/form/auto/deleted-oid', message: 'missing-record' },
+    { status: 404, url: '/default/rdmp/record/metadata/deleted-oid', message: 'missing-record' },
+    { status: 500, url: '/default/rdmp/record/form/auto/oid-1', message: 'form-load-error' },
+    { status: 404, url: '/default/rdmp/dynamicAsset/formTemplates/rdmp', message: 'form-load-error' },
+  ]) {
+    it(`replaces the spinner with an alert when ${testCase.url} returns ${testCase.status}`, async () => {
+      spyOn(TestBed.inject(FormService), 'downloadFormComponents').and.rejectWith(new HttpErrorResponse({
+        status: testCase.status,
+        url: testCase.url,
+      }));
+      const fixture = TestBed.createComponent(FormComponent);
+      fixture.componentInstance.oid.set('deleted-oid');
+      fixture.autoDetectChanges();
+      await fixture.whenStable();
+
+      const element: HTMLElement = fixture.nativeElement;
+      expect(element.querySelector('.rb-form-loading')).toBeNull();
+      expect(element.querySelector('.rb-form-shell__main--loading')).toBeNull();
+      expect(element.querySelector('[role="alert"]')?.textContent)
+        .toContain(TestBed.inject(TranslationService).t(testCase.message));
+      expect(fixture.componentInstance.componentsLoaded()).toBeFalse();
+    });
+  }
 
   it('should render basic form config', async () => {
     const formConfig: FormConfigFrame = {

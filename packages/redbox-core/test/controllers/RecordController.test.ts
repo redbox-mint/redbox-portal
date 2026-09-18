@@ -291,6 +291,80 @@ describe('RecordController getWorkflowSteps', () => {
     expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
   });
 
+  for (const missingRecord of [undefined, null, {}]) {
+    for (const route of ['standard', 'named-form', 'record-type']) {
+      it(`returns notFound for ${route} edit when the record lookup returns ${JSON.stringify(missingRecord)}`, async () => {
+        const req = {
+          param: sinon.stub().callsFake((name: string) => {
+            if (name === 'oid') return 'deleted-oid';
+            if (name === 'recordType' && route === 'record-type') return 'rdmp';
+            return '';
+          }),
+          query: {},
+          session: { branding: 'default' },
+          options: { locals: route === 'named-form' ? { localFormName: 'form-1' } : {} },
+        } as unknown as Sails.Req;
+        const notFound = sinon.stub();
+        const res = { notFound } as unknown as Sails.Res;
+        const sendView = sinon.stub(controller, 'sendView');
+        (controller.recordsService.getMeta as sinon.SinonStub).resolves(missingRecord);
+
+        await controller.edit(req, res);
+
+        expect(notFound.calledOnce).to.be.true;
+        expect(sendView.called).to.be.false;
+        expect((FormsService.getFormByName as sinon.SinonStub).called).to.be.false;
+        expect((FormsService.getFormByStartingWorkflowStep as sinon.SinonStub).called).to.be.false;
+      });
+    }
+  }
+
+  it('returns a server error without rendering the editor when the record lookup fails', async () => {
+    const req = {
+      param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
+      query: {},
+      session: { branding: 'default' },
+    } as unknown as Sails.Req;
+    const serverError = sinon.stub();
+    const notFound = sinon.stub();
+    const res = { serverError, notFound } as unknown as Sails.Res;
+    const sendView = sinon.stub(controller, 'sendView');
+    (controller.recordsService.getMeta as sinon.SinonStub).rejects(new Error('Storage unavailable'));
+
+    await controller.edit(req, res);
+
+    expect(serverError.calledOnce).to.be.true;
+    expect(notFound.called).to.be.false;
+    expect(sendView.called).to.be.false;
+  });
+
+  for (const apiVersion of ['1.0', '2.0']) {
+    for (const edit of ['true', 'false']) {
+      it(`returns a missing-record 404 for a deleted record's form (API ${apiVersion}, edit=${edit})`, async () => {
+        const req = {
+          param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'deleted-oid' : 'auto'),
+          query: { apiVersion, edit },
+          session: { branding: 'default' },
+        } as unknown as Sails.Req;
+        const status = sinon.stub().returnsThis();
+        const json = sinon.stub().returnsThis();
+        const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+        (controller.recordsService.getMeta as sinon.SinonStub).resolves(undefined);
+
+        await controller.getForm(req, res);
+
+        expect(status.calledOnceWithExactly(404)).to.be.true;
+        expect(json.calledOnce).to.be.true;
+        if (apiVersion === '1.0') {
+          expect(json.firstCall.args[0]).to.include({ message: 'missing-record' });
+        } else {
+          expect(json.firstCall.args[0].errors[0]).to.include({ code: 'missing-record' });
+        }
+        expect((controller.recordsService.hasViewAccess as sinon.SinonStub).called).to.be.false;
+      });
+    }
+  }
+
   it('uses saved metadata title on existing edit routes', async () => {
     const req = {
       param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : ''),
@@ -300,11 +374,7 @@ describe('RecordController getWorkflowSteps', () => {
     } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendViewStub = sinon.stub(controller, 'sendView');
-    (controller.recordsService.getMeta as sinon.SinonStub).onFirstCall().resolves({
-      redboxOid: 'oid-1',
-      metaMetadata: { type: 'rdmp', form: 'form-1' },
-      metadata: { title: 'Saved title' },
-    }).onSecondCall().resolves({
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
       redboxOid: 'oid-1',
       metaMetadata: { type: 'rdmp', form: 'form-1' },
       metadata: { title: 'Saved title' },
@@ -324,6 +394,7 @@ describe('RecordController getWorkflowSteps', () => {
     expect(sendViewStub.calledOnce).to.be.true;
     expect(sendViewStub.firstCall.args[2]).to.equal('record/edit');
     expect(sendViewStub.firstCall.args[3]).to.deep.include({ title: 'Saved title | Site' });
+    expect((controller.recordsService.getMeta as sinon.SinonStub).calledOnce).to.be.true;
   });
 
   it('uses create record type title on create routes', async () => {
