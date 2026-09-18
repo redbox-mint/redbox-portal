@@ -79,16 +79,15 @@ describe('FormComponent', () => {
   });
 
   for (const testCase of [
-    { status: 404, url: '/default/rdmp/record/form/auto/deleted-oid', message: 'missing-record' },
-    { status: 404, url: '/default/rdmp/record/metadata/deleted-oid', message: 'missing-record' },
-    { status: 500, url: '/default/rdmp/record/form/auto/oid-1', message: 'form-load-error' },
-    { status: 404, url: '/default/rdmp/dynamicAsset/formTemplates/rdmp', message: 'form-load-error' },
+    { error: new HttpErrorResponse({ status: 404, url: '/default/rdmp/record/form/auto/deleted-oid' }), message: 'missing-record' },
+    { error: new HttpErrorResponse({ status: 404, url: '/default/rdmp/record/metadata/deleted-oid' }), message: 'missing-record' },
+    { error: new HttpErrorResponse({ status: 500, url: '/default/rdmp/record/form/auto/oid-1' }), message: 'form-load-error' },
+    { error: new HttpErrorResponse({ status: 404, url: '/default/rdmp/dynamicAsset/formTemplates/rdmp' }), message: 'form-load-error' },
+    { error: new HttpErrorResponse({ status: 404 }), message: 'form-load-error' },
+    { error: new Error('Unable to initialize form components'), message: 'form-load-error' },
   ]) {
-    it(`replaces the spinner with an alert when ${testCase.url} returns ${testCase.status}`, async () => {
-      spyOn(TestBed.inject(FormService), 'downloadFormComponents').and.rejectWith(new HttpErrorResponse({
-        status: testCase.status,
-        url: testCase.url,
-      }));
+    it(`replaces the spinner with an alert for ${testCase.error.message}`, async () => {
+      spyOn(TestBed.inject(FormService), 'downloadFormComponents').and.rejectWith(testCase.error);
       const fixture = TestBed.createComponent(FormComponent);
       fixture.componentInstance.oid.set('deleted-oid');
       fixture.autoDetectChanges();

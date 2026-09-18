@@ -425,14 +425,11 @@ export namespace Controllers {
         }
 
         const pageTitle = this.getSavedRecordPageTitle(record as AnyRecord, locals);
-        return this.sendView(req, res, 'record/view', {
+        return this.sendView(req, res, (locals?.['view'] as string | undefined) ?? 'record/view', {
           title: this.formatDocumentTitle(pageTitle, locals),
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error ?? '');
-        if (errorMessage.toLowerCase().includes('not found')) {
-          return res.notFound();
-        }
+        sails.log.error(error);
         return res.serverError();
       }
     }
