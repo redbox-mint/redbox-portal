@@ -363,6 +363,31 @@ describe('RecordController getWorkflowSteps', () => {
         expect((controller.recordsService.hasViewAccess as sinon.SinonStub).called).to.be.false;
       });
     }
+
+    it(`keeps code-500 record lookup failures as server errors (API ${apiVersion})`, async () => {
+      const req = {
+        param: sinon.stub().callsFake((name: string) => name === 'oid' ? 'oid-1' : 'auto'),
+        query: { apiVersion, edit: 'true' },
+        session: { branding: 'default' },
+      } as unknown as Sails.Req;
+      const status = sinon.stub().returnsThis();
+      const json = sinon.stub().returnsThis();
+      const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+      const lookupError = { error: { code: 500 }, message: 'Storage unavailable' };
+      (controller.recordsService.getMeta as sinon.SinonStub).rejects(lookupError);
+
+      await controller.getForm(req, res);
+
+      expect(status.calledOnceWithExactly(500)).to.be.true;
+      expect(json.calledOnce).to.be.true;
+      const payload = json.firstCall.args[0];
+      expect(JSON.stringify(payload)).not.to.include('missing-record');
+      if (apiVersion === '1.0') {
+        expect(payload).to.include({ message: 'Error getting form definition', details: lookupError.message });
+      } else {
+        expect(payload.errors[0]).to.include({ title: 'Error getting form definition', detail: lookupError.message });
+      }
+    });
   }
 
   it('uses saved metadata title on existing edit routes', async () => {

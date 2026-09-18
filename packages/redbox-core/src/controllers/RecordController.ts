@@ -667,16 +667,8 @@ export namespace Controllers {
         }
 
       } catch (error) {
-        const displayError: ErrorResponseItemV2 = { title: "Error getting form definition" };
-        let msg;
-        const typedError = error as { error?: { code?: number }; message?: string };
-        if (typedError.error && typedError.error.code == 500) {
-          displayError.code = 'missing-record';
-          msg = TranslationService.t('missing-record');
-        } else {
-          displayError.detail = typedError.message;
-          msg = typedError.message;
-        }
+        const msg = (error as { message?: string }).message;
+        const displayError: ErrorResponseItemV2 = { title: "Error getting form definition", detail: msg };
         return this.sendResp(req, res, {
           errors: [this.asError(error)],
           displayErrors: [displayError],
