@@ -6,7 +6,7 @@ import type { Model } from 'sails';
 import { DateTime } from 'luxon';
 
 import mongodb = require('mongodb');
-import type { Collection, Db, Document, FindCursor, FindOptions, GridFSFile } from 'mongodb';
+import type { Collection, Db, Document, FindCursor, FindOptions, GridFSFile, SortDirection } from 'mongodb';
 import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
@@ -675,14 +675,36 @@ export namespace Services {
       return record;
     }
 
-    private getRecordSort(sort?: string, secondarySort?: string): Record<string, number> {
+    private getSortDirection(direction: unknown): SortDirection {
+      if (typeof direction === 'number' || typeof direction === 'string') {
+        switch (String(direction).toLowerCase()) {
+          case '1':
+          case 'asc':
+          case 'ascending':
+            return 1;
+          case '-1':
+          case 'desc':
+          case 'descending':
+            return -1;
+        }
+      } else if (direction !== null && typeof direction === 'object' && !Array.isArray(direction) &&
+        '$meta' in direction && typeof direction.$meta === 'string') {
+        return { $meta: direction.$meta };
+      }
+      throw new RBValidationError({
+        message: 'Invalid record sort direction',
+        displayErrors: [{ status: '400', detail: 'Sort direction must be 1, -1, asc, desc, ascending, descending, or a $meta expression.' }],
+      });
+    }
+
+    private getRecordSort(sort?: string, secondarySort?: string): Record<string, SortDirection> {
       const expression = _.isEmpty(sort) ? '{"lastSaveDate": -1}' : sort;
       let parsed: unknown;
       try {
         parsed = JSON.parse(expression);
       } catch (_error) {
         const [field, direction = '-1'] = expression.split(':');
-        parsed = { [field]: _.toNumber(direction) };
+        parsed = { [field]: direction };
       }
       if (parsed === null || typeof parsed !== 'object' ||
         (Array.isArray(parsed) && !parsed.every(entry =>
@@ -693,12 +715,13 @@ export namespace Services {
           displayErrors: [{ status: '400', detail: 'Sort must be an object or an array of [field, direction] pairs.' }],
         });
       }
-      const fields: Record<string, number> = Object.fromEntries(
-        Array.isArray(parsed) ? parsed : Object.entries(parsed)
+      const fields: Record<string, SortDirection> = Object.fromEntries(
+        (Array.isArray(parsed) ? parsed : Object.entries(parsed))
+          .map(([field, direction]) => [field, this.getSortDirection(direction)])
       );
       if (!_.isEmpty(secondarySort)) {
         const [field, direction] = secondarySort.split(':');
-        fields[field] = _.toNumber(direction);
+        fields[field] = this.getSortDirection(direction);
       }
       // MongoDB does not keep equal sort values in a consistent order across
       // skip/limit queries. A unique final key prevents duplicates and omissions.
@@ -728,12 +751,18 @@ export namespace Services {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
       const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
+      const sortAliases = new Map([
+        ['title', 'deletedRecordMetadata.metadata.title'],
+        ['dateCreatedDisplay', 'deletedRecordMetadata.dateCreated'],
+        ['dateModifiedDisplay', 'deletedRecordMetadata.lastSaveDate'],
+        ['dateDeletedDisplay', 'dateDeleted'],
+      ]);
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
         sort: Object.fromEntries(Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
-          directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
-            ? field : `deletedRecordMetadata.${field}`,
+          sortAliases.get(field) ?? (directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
+            ? field : `deletedRecordMetadata.${field}`),
           direction,
         ])),
       };

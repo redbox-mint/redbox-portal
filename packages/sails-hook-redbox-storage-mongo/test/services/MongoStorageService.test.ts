@@ -576,6 +576,26 @@ describe('MongoStorageService', function () {
       },
       { sort: '{}', expected: [['_id', 1]] },
       { sort: '[]', expected: [['_id', 1]] },
+      {
+        sort: '{"metadata.title":"ASC","lastSaveDate":"descending"}',
+        expected: [['metadata.title', 1], ['lastSaveDate', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.metadata.title', 1], ['deletedRecordMetadata.lastSaveDate', -1], ['_id', 1]],
+      },
+      {
+        sort: '[["lastSaveDate","-1"],["redboxOid","1"]]',
+        expected: [['lastSaveDate', -1], ['redboxOid', 1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', -1], ['redboxOid', 1], ['_id', 1]],
+      },
+      {
+        sort: 'lastSaveDate:ascending', secondarySort: 'redboxOid:desc',
+        expected: [['lastSaveDate', 1], ['redboxOid', -1], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.lastSaveDate', 1], ['redboxOid', -1], ['_id', 1]],
+      },
+      {
+        sort: '{"score":{"$meta":"textScore"}}',
+        expected: [['score', { $meta: 'textScore' }], ['_id', 1]],
+        expectedDeleted: [['deletedRecordMetadata.score', { $meta: 'textScore' }], ['_id', 1]],
+      },
     ]) {
       it(`${method} keeps requested sort precedence and breaks ties for ${sort}, ${secondarySort}`, async function () {
         const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
@@ -608,7 +628,58 @@ describe('MongoStorageService', function () {
         expect(runStub.notCalled).to.be.true;
       });
     }
+
+    const invalidDirections = [null, true, false, {}, [], [1], 'up', '', 0, 2, { $meta: 1 }];
+    const invalidSorts = invalidDirections.flatMap(direction => [
+      { sort: JSON.stringify({ lastSaveDate: direction }), secondarySort: undefined },
+      { sort: JSON.stringify([['lastSaveDate', direction]]), secondarySort: undefined },
+    ]);
+    invalidSorts.push(...['lastSaveDate:up', 'lastSaveDate:0', 'lastSaveDate:', 'lastSaveDate:NaN'].flatMap(sort => [
+      { sort, secondarySort: undefined },
+      { sort: 'lastSaveDate:-1', secondarySort: sort },
+    ]));
+    for (const { sort, secondarySort } of invalidSorts) {
+      it(`${method} rejects invalid directions in ${sort}, ${secondarySort}`, async function () {
+        const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
+        const runStub = sandbox.stub(service, queryMethod);
+        let failure: unknown;
+        try {
+          await service[method]('draft', ['rdmp'], 0, 20, 'user', [], { id: 'brand-1' },
+            undefined, undefined, sort, undefined, undefined, undefined, secondarySort);
+        } catch (error) {
+          failure = error;
+        }
+        expect(failure).to.have.property('name', 'RBValidationError');
+        expect(failure).to.have.nested.property('displayErrors[0].status', '400');
+        expect(runStub.notCalled).to.be.true;
+      });
+    }
   }
+
+  for (const [field, storedField] of [
+    ['title', 'deletedRecordMetadata.metadata.title'],
+    ['dateCreatedDisplay', 'deletedRecordMetadata.dateCreated'],
+    ['dateModifiedDisplay', 'deletedRecordMetadata.lastSaveDate'],
+    ['dateDeletedDisplay', 'dateDeleted'],
+  ]) {
+    for (const direction of [1, -1]) {
+      it(`sorts the deleted-record ${field} column in direction ${direction}`, async function () {
+        const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+        await service.getDeletedRecords(undefined, undefined, 0, 20, 'user', [], { id: 'brand-1' },
+          undefined, undefined, `${field}:${direction}`);
+        expect(Object.entries(runStub.firstCall.args[2].sort)).to.deep.equal([[storedField, direction], ['_id', 1]]);
+      });
+    }
+  }
+
+  it('maps deleted-record aliases in JSON and secondary sorts', async function () {
+    const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+    await service.getDeletedRecords(undefined, undefined, 0, 20, 'user', [], { id: 'brand-1' },
+      undefined, undefined, '{"title":1}', undefined, undefined, undefined, 'dateDeletedDisplay:-1');
+    expect(Object.entries(runStub.firstCall.args[2].sort)).to.deep.equal([
+      ['deletedRecordMetadata.metadata.title', 1], ['dateDeleted', -1], ['_id', 1],
+    ]);
+  });
 
   it('keeps deleted-record fields and already qualified record fields at their requested paths', async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });

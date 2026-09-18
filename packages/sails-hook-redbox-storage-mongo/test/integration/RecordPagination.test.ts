@@ -24,6 +24,7 @@ describeMongo('Record pagination with MongoDB', function () {
   const fixtures = Array.from({ length: recordCount }, (_, index) => ({
     _id: new ObjectId(index.toString(16).padStart(24, '0')),
     redboxOid: `record-${String(recordCount - index).padStart(4, '0')}`,
+    dateCreated: index < recordCount / 2 ? '2026-08-02T00:00:00Z' : '2026-08-01T00:00:00Z',
     lastSaveDate: index < recordCount / 2 ? '2026-09-01T00:00:00Z' : '2026-09-02T00:00:00Z',
     metadata: { title: index < recordCount / 2 ? 'Zebra' : 'Alpha' },
     metaMetadata: { brandId: brand.id, type: 'rdmp', packageType: 'rdmp' },
@@ -89,6 +90,14 @@ describeMongo('Record pagination with MongoDB', function () {
     ['metadata.title:1', expectedOids],
     ['dateDeleted:-1', fixtureOids],
     ['redboxOid:1', [...fixtureOids].reverse()],
+    ['title:1', expectedOids],
+    ['title:-1', fixtureOids],
+    ['dateCreatedDisplay:1', expectedOids],
+    ['dateCreatedDisplay:-1', fixtureOids],
+    ['dateModifiedDisplay:1', fixtureOids],
+    ['dateModifiedDisplay:-1', expectedOids],
+    ['dateDeletedDisplay:1', expectedOids],
+    ['dateDeletedDisplay:-1', fixtureOids],
   ] as const) {
     it(`sorts deleted records by the stored values for ${sort}`, async function () {
       const oids: unknown[] = [];
