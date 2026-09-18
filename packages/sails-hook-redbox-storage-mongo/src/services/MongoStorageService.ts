@@ -703,7 +703,14 @@ export namespace Services {
       try {
         parsed = JSON.parse(expression);
       } catch (_error) {
-        const [field, direction = '-1'] = expression.split(':');
+        const parts = expression.split(':');
+        if (parts.length > 2 || parts.some(part => part.length === 0)) {
+          throw new RBValidationError({
+            message: 'Invalid record sort expression',
+            displayErrors: [{ status: '400', detail: 'Sort must be field or field:direction with no empty segments.' }],
+          });
+        }
+        const [field, direction = '-1'] = parts;
         parsed = { [field]: direction };
       }
       if (parsed === null || typeof parsed !== 'object' ||
@@ -720,7 +727,14 @@ export namespace Services {
           .map(([field, direction]) => [field, this.getSortDirection(direction)])
       );
       if (!_.isEmpty(secondarySort)) {
-        const [field, direction] = secondarySort.split(':');
+        const parts = secondarySort.split(':');
+        if (parts.length !== 2 || parts.some(part => part.length === 0)) {
+          throw new RBValidationError({
+            message: 'Invalid secondary record sort expression',
+            displayErrors: [{ status: '400', detail: 'Secondary sort must be field:direction with no empty segments.' }],
+          });
+        }
+        const [field, direction] = parts;
         fields[field] = this.getSortDirection(direction);
       }
       // MongoDB does not keep equal sort values in a consistent order across

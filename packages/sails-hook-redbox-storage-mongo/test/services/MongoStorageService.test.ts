@@ -634,12 +634,14 @@ describe('MongoStorageService', function () {
       { sort: JSON.stringify({ lastSaveDate: direction }), secondarySort: undefined },
       { sort: JSON.stringify([['lastSaveDate', direction]]), secondarySort: undefined },
     ]);
-    invalidSorts.push(...['lastSaveDate:up', 'lastSaveDate:0', 'lastSaveDate:', 'lastSaveDate:NaN'].flatMap(sort => [
+    invalidSorts.push(...['lastSaveDate:up', 'lastSaveDate:0', 'lastSaveDate:', 'lastSaveDate:NaN',
+      ':asc', 'field:desc:extra', 'field:asc:extra'].flatMap(sort => [
       { sort, secondarySort: undefined },
       { sort: 'lastSaveDate:-1', secondarySort: sort },
     ]));
+    invalidSorts.push({ sort: 'lastSaveDate:-1', secondarySort: 'field' });
     for (const { sort, secondarySort } of invalidSorts) {
-      it(`${method} rejects invalid directions in ${sort}, ${secondarySort}`, async function () {
+      it(`${method} rejects invalid sort syntax or directions in ${sort}, ${secondarySort}`, async function () {
         const queryMethod = method === 'getRecords' ? 'runRecordQuery' : 'runDeletedRecordQuery';
         const runStub = sandbox.stub(service, queryMethod);
         let failure: unknown;
