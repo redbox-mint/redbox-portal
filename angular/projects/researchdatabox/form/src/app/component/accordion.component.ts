@@ -1,5 +1,4 @@
 import {
-  AfterViewChecked,
   Component,
   ComponentRef,
   ElementRef,
@@ -243,11 +242,9 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
         [attr.id]="panelContentId"
         [attr.aria-labelledby]="panelHeaderId"
       >
-        @if (isOpen) {
-          <div class="panel-body">
-            <ng-container #componentContainer></ng-container>
-          </div>
-        }
+        <div class="panel-body">
+          <ng-container #componentContainer></ng-container>
+        </div>
       </div>
       <span class="sr-only" aria-live="polite">{{ ariaLiveMessage }}</span>
     </div>
@@ -274,7 +271,7 @@ export class AccordionComponent extends FormFieldBaseComponent<undefined> {
   ],
   standalone: false,
 })
-export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> implements AfterViewChecked {
+export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> {
   protected override logName = AccordionPanelComponentName;
   protected formService = inject(FormService);
   private document = inject(DOCUMENT);
@@ -298,9 +295,6 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
   componentRefs: ComponentRef<FormBaseWrapperComponent<unknown>>[] = [];
   private componentInstances: FormFieldBaseComponent<unknown>[] = [];
   private formDefMap?: FormComponentsMap;
-  private childrenInitialised = false;
-  private childrenInitializing = false;
-  private pendingOpenInitialise = false;
 
   protected override async initData() {
     const formCompDef = this.formFieldCompMapEntry?.compConfigJson;
@@ -310,16 +304,13 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
   }
 
   protected override async setComponentReady(): Promise<void> {
-    await this.initialiseChildrenIfNeeded();
+    await this.initialiseChildren();
     await super.setComponentReady();
   }
 
   public setOpen(open: boolean): void {
     if (!open) {
       this.preserveFocusBeforeClose();
-    }
-    if (open && !this.isOpen) {
-      this.pendingOpenInitialise = true;
     }
     if (open !== this.isOpen) {
       this.announceState(open);
@@ -329,18 +320,6 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
 
   public toggleOpen(): void {
     this.setOpen(!this.isOpen);
-  }
-
-  ngAfterViewChecked(): void {
-    if (this.isOpen && this.pendingOpenInitialise && !this.childrenInitializing) {
-      this.pendingOpenInitialise = false;
-      this.childrenInitializing = true;
-      this.initialiseChildrenIfNeeded()
-        .catch(() => undefined)
-        .finally(() => {
-          this.childrenInitializing = false;
-        });
-    }
   }
 
   public get panelLabel(): string {
@@ -407,21 +386,12 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
     }
   }
 
-  private async initialiseChildrenIfNeeded(): Promise<void> {
+  private async initialiseChildren(): Promise<void> {
     try {
       await this.untilViewIsInitialised();
       if (!this.componentsDefinitionsContainerRef) {
         return;
       }
-      if (this.childrenInitialised && this.componentsDefinitionsContainerRef.length > 0) {
-        return;
-      }
-      if (this.childrenInitialised) {
-        this.componentRefs.forEach(componentRef => componentRef.destroy());
-        this.componentRefs = [];
-        this.componentInstances = [];
-      }
-
       const formConfig = this.formComponentRef.formDefMap?.formConfig;
       const formComponentName = this.formFieldCompMapEntry?.compConfigJson?.name ?? '';
       const compFormConfig: FormConfigFrame = {
@@ -455,7 +425,6 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
       if (this.formFieldCompMapEntry) {
         this.formFieldCompMapEntry.formControlMap = groupedByNameMap.withFormControl;
       }
-      this.childrenInitialised = true;
     } catch (error) {
       this.loggerService.error('Failed to initialise accordion panel children', error);
       throw error;
