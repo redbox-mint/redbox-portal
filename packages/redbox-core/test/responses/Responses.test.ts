@@ -1,9 +1,11 @@
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
+import { Controllers } from '../../src/CoreController';
 import { ok } from '../../src/responses/ok';
 import { badRequest } from '../../src/responses/badRequest';
 import { created } from '../../src/responses/created';
 import { forbidden } from '../../src/responses/forbidden';
+import { notFound } from '../../src/responses/notFound';
 import { serverError } from '../../src/responses/serverError';
 
 before(async () => {
@@ -47,10 +49,15 @@ describe('Responses', function () {
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((key: string) => key === 'default-title' ? 'Site' : key)
     };
+
+    sinon.stub(Controllers.Core.Controller.prototype, 'sendView').callsFake((_req, response, view, locals) => {
+      response.view(view, locals);
+    });
   });
 
   afterEach(function () {
     (global as any).TranslationService = originalTranslationService;
+    sinon.restore();
   });
 
   describe('ok', function () {
@@ -126,6 +133,14 @@ describe('Responses', function () {
 
       expect(res.view.calledWith('bad-view', { data: 'error', title: 'Site' })).to.be.true;
     });
+
+    it('should render the branded 400 view by default for HTML requests', function () {
+      req.wantsJSON = false;
+
+      badRequest.call({ req, res }, 'error');
+
+      expect(res.view.calledWith('400', { data: 'error', title: 'Site' })).to.be.true;
+    });
   });
 
   describe('created', function () {
@@ -164,6 +179,31 @@ describe('Responses', function () {
 
       expect(res.view.calledWith('forbidden-view', { data: 'denied', title: 'Site' })).to.be.true;
     });
+
+    it('should render the branded 403 view by default for HTML requests', function () {
+      req.wantsJSON = false;
+
+      forbidden.call({ req, res }, 'denied');
+
+      expect(res.view.calledWith('403', { data: 'denied', title: 'Site' })).to.be.true;
+    });
+  });
+
+  describe('notFound', function () {
+    it('should preserve the JSON 404 response', function () {
+      notFound.call({ req, res }, 'missing');
+
+      expect(res.status.calledWith(404)).to.be.true;
+      expect(res.json.calledWith('missing')).to.be.true;
+    });
+
+    it('should render the branded 404 view by default for HTML requests', function () {
+      req.wantsJSON = false;
+
+      notFound.call({ req, res }, 'missing');
+
+      expect(res.view.calledWith('404', { data: 'missing', title: 'Site' })).to.be.true;
+    });
   });
 
   describe('serverError', function () {
@@ -182,6 +222,14 @@ describe('Responses', function () {
       serverError.call(context, 'oops', 'error-view');
 
       expect(res.view.calledWith('error-view', { data: 'oops', title: 'Site' })).to.be.true;
+    });
+
+    it('should render the branded 500 view by default for HTML requests', function () {
+      req.wantsJSON = false;
+
+      serverError.call({ req, res }, 'oops');
+
+      expect(res.view.calledWith('500', { data: 'oops', title: 'Site' })).to.be.true;
     });
   });
 });
