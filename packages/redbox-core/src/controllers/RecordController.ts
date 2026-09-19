@@ -425,6 +425,9 @@ export namespace Controllers {
         return false;
       }
 
+      // A certified non-write still belongs to this record. The browser checks
+      // that identity before presenting the returned conflict for review.
+      result.oid = oid;
       const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, current));
       if (!hasEditAccess) {
         result.problems = [
