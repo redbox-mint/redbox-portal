@@ -75,7 +75,7 @@ services:
       - './solr-multi-core-example.js:/opt/redbox-portal/config/solr.js'
       - '../resources/development/bootstrap-data:/opt/redbox-portal/bootstrap-data:ro'
   mongodb:
-    image: mongo:latest@sha256:81a1c8842a09589fc8d5f285266f3340bf4abdf66700ba22988f14cc9b2b3118
+    image: mongo:latest@sha256:2609aaf7a1abbff404101af896e05f243d22be742471ed857b50b9ce0270fdbd
     pull_policy: 'always'
     networks:
       main:
@@ -88,7 +88,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:latest@sha256:0fa7fa176707f060772fd57bc806ee469b610dd01a1d809d64e3b8adb3eb5871
+    image: solr:latest@sha256:d5d3e2445d6ecf634d81259f1d0c25ba7fd3d297bc31f0032aca16cdc6cbd8e5
     pull_policy: 'always'
     expose:
       - '8983'
@@ -109,7 +109,7 @@ services:
       - solr-precreate
       - redbox
   keycloak:
-    image: quay.io/keycloak/keycloak:26.7.3-0
+    image: quay.io/keycloak/keycloak:26.7.3-1
     pull_policy: 'always'
     expose:
       - '8080'
