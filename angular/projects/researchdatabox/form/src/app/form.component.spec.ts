@@ -1893,6 +1893,21 @@ describe('FormComponent', () => {
     }
   });
 
+  it('keeps valid edits dirty and retryable after an uncertain transport failure', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    formComponent.form = new FormGroup({ title: new FormControl('Retry this value', Validators.required) });
+    formComponent.form.markAsDirty();
+    formComponent.oid.set('oid-123');
+    spyOn(formComponent.recordService, 'update').and.resolveTo(retryFailureResponse('unknown'));
+
+    await formComponent.saveForm();
+
+    expect(formComponent.form.valid).toBeTrue();
+    expect(formComponent.form.dirty).toBeTrue();
+    expect(formComponent.form.getRawValue()).toEqual({ title: 'Retry this value' });
+  });
+
   it('emits a persisted warning without requesting close or redirect', async () => {
     const fixture = TestBed.createComponent(FormComponent);
     const formComponent = fixture.componentInstance;
