@@ -54,6 +54,7 @@ describe('RecordController getWorkflowSteps', () => {
     };
     (global as any).DashboardTypesService = {
       getDashboardView: sinon.stub(),
+      getDashboardTableConfig: sinon.stub().resolves(null),
     };
     (global as any).FormsService = {
       getFormByStartingWorkflowStep: sinon.stub(),
@@ -950,6 +951,24 @@ describe('RecordController getWorkflowSteps', () => {
     expect((global as any).WorkflowStepsService.getAllForRecordType.calledWith(recordType)).to.be.true;
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]).to.deep.equal({ data: wfSteps });
+  });
+
+  it('returns resolved dashboard columns and filters without mutating cached workflow steps', async () => {
+    const req = { param: sinon.stub().returns('dataset'), session: { branding: 'default' } } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    const steps = [{ name: 'draft', config: { workflow: { stage: 'draft' }, form: 'dataset-draft' } }];
+    const original = JSON.parse(JSON.stringify(steps));
+    const table = { rowConfig: [{ title: 'Owned title', variable: 'metadata.title' }], formatRules: { filterBy: { filterMode: 'equal' } } };
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    (global as any).WorkflowStepsService.getAllForRecordType.returns(of(steps));
+    (global as any).DashboardTypesService.getDashboardTableConfig.resolves(table);
+
+    await controller.getWorkflowSteps(req, res);
+
+    expect((global as any).DashboardTypesService.getDashboardTableConfig.calledOnceWith(sinon.match({ id: 'brand-1' }), 'dataset', 'draft')).to.equal(true);
+    expect(sendResp.firstCall.args[2].data[0].config).to.deep.equal({ ...original[0].config, dashboard: { table } });
+    expect(steps).to.deep.equal(original);
   });
 
   it('returns dashboard view metadata for a valid dashboard view', async () => {
