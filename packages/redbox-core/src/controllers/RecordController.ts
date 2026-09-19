@@ -2211,7 +2211,14 @@ export namespace Controllers {
           });
         }
 
-        const wfSteps = await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType));
+        const wfSteps = _.cloneDeep(await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType)));
+        // The dashboard's column definitions must use the same resolved
+        // overrides as its compiled templates. Keep cached workflow data intact.
+        for (const step of wfSteps) {
+          const stage = _.get(step, 'config.workflow.stage', step.name);
+          const table = await DashboardTypesService.getDashboardTableConfig(brand, normalizedRecordTypeName, stage);
+          if (table != null) _.set(step, 'config.dashboard.table', table);
+        }
         return this.sendResp(req, res, { data: wfSteps });
       } catch (error) {
         return this.sendResp(req, res, { status: 500, errors: [this.asError(error)] });
