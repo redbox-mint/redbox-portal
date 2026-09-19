@@ -1,6 +1,6 @@
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { Services as coreServices } from '../CoreService';
-import type { DomPurifyConfig } from '../config/dompurify.config';
+import { safeSvgUriRegexp, type DomPurifyConfig } from '../config/dompurify.config';
 
 import domPurify = require('dompurify');
 import { Buffer } from 'buffer';
@@ -28,6 +28,17 @@ type SanitizerNode = {
   remove: () => void;
   removeAttribute: (name: string) => void;
   getAttribute: (name: string) => string | null;
+};
+
+const getUnsafeSvgReferenceError = (value: string): string | null => {
+  const reference = value.toLowerCase().trim();
+  if (reference.startsWith('javascript:')) return 'javascript-protocol';
+  if (reference.startsWith('vbscript:')) return 'vbscript-protocol';
+  if (reference.startsWith('data:')) return 'data-url-embed';
+  if (reference.startsWith('http:') || reference.startsWith('https:') || reference.startsWith('//')) {
+    return 'external-ref';
+  }
+  return safeSvgUriRegexp.test(reference) ? null : 'unsafe-uri-reference';
 };
 
 const isDomPurifyInstance = (candidate: unknown): candidate is DomPurifyInstance => {
@@ -303,16 +314,6 @@ export namespace Services {
     private validateHrefAttributes(svg: string): { valid: boolean; errors: string[] } {
       const errors: string[] = [];
 
-      // Check for dangerous protocols in href attributes
-      const dangerousProtocols = [
-        'javascript:', 'vbscript:', 'data:', 'file:', 'ftp:', 'ftps:',
-        'chrome:', 'resource:', 'moz-extension:', 'chrome-extension:',
-        'ms-appx:', 'ms-appx-web:', 'about:', 'blob:', 'filesystem:'
-      ];
-
-      // Check for external references (http/https/protocol-relative)
-      const externalProtocols = ['http:', 'https:', '//'];
-
       // Match href attributes with both quoted and unquoted values
       // Group 1: quoted value (single or double quotes)
       // Group 2: unquoted value (non-whitespace, non->)
@@ -321,31 +322,9 @@ export namespace Services {
 
       while ((match = hrefPattern.exec(svg)) !== null) {
         // Use whichever capture group matched (quoted = group 1, unquoted = group 2)
-        const url = (match[1] !== undefined ? match[1] : match[2]).toLowerCase().trim();
-
-        // Check for dangerous protocols
-        for (const protocol of dangerousProtocols) {
-          if (url.startsWith(protocol)) {
-            if (protocol === 'javascript:') {
-              errors.push('javascript-protocol');
-            } else if (protocol === 'vbscript:') {
-              errors.push('vbscript-protocol');
-            } else if (protocol === 'data:') {
-              errors.push('data-url-embed');
-            } else {
-              errors.push('dangerous-protocol');
-            }
-            break;
-          }
-        }
-
-        // Check for external references
-        for (const protocol of externalProtocols) {
-          if (url.startsWith(protocol)) {
-            errors.push('external-ref');
-            break;
-          }
-        }
+        const url = match[1] !== undefined ? match[1] : match[2];
+        const error = getUnsafeSvgReferenceError(url);
+        if (error && !errors.includes(error)) errors.push(error);
       }
 
       return { valid: errors.length === 0, errors };
@@ -423,8 +402,7 @@ export namespace Services {
       // Pre-validation: Check for dangerous patterns before sanitization
       const hrefValidation = this.validateHrefAttributes(svg);
       if (!hrefValidation.valid) {
-        // Filter out 'external-ref' as it will be caught by hooks
-        errors.push(...hrefValidation.errors.filter(e => e !== 'external-ref'));
+        errors.push(...hrefValidation.errors);
       }
 
       // Check for script elements
@@ -469,34 +447,9 @@ export namespace Services {
             return;
           }
 
-          const lowerHref = href.toLowerCase().trim();
-          const dangerousProtocols = [
-            'javascript:', 'vbscript:', 'data:', 'file:', 'chrome:',
-            'resource:', 'moz-extension:', 'chrome-extension:', 'ms-appx:',
-            'about:', 'blob:', 'filesystem:'
-          ];
-          const externalProtocols = ['http:', 'https:', '//'];
-
-          let shouldRemove = false;
-
-          for (const protocol of dangerousProtocols) {
-            if (lowerHref.startsWith(protocol)) {
-              shouldRemove = true;
-              break;
-            }
-          }
-
-          if (!shouldRemove) {
-            for (const protocol of externalProtocols) {
-              if (lowerHref.startsWith(protocol)) {
-                shouldRemove = true;
-                errors.push('external-ref');
-                break;
-              }
-            }
-          }
-
-          if (shouldRemove) {
+          const hrefError = getUnsafeSvgReferenceError(href);
+          if (hrefError) {
+            if (!errors.includes(hrefError)) errors.push(hrefError);
             node.removeAttribute('href');
             node.removeAttribute('xlink:href');
           }
