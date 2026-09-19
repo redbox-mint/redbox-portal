@@ -37,7 +37,7 @@
     "@tiptap/pm": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
     "@tmcw/togeojson": "7.1.2",
-    "@uppy/core": "6.0.0",
+    "@uppy/core": "6.0.1",
     "@uppy/dashboard": "6.0.0",
     "@uppy/dropbox": "6.0.0",
     "@uppy/google-drive": "6.0.0",
