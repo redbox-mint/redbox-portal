@@ -1,4 +1,4 @@
-import type { FormRuntimeAction, GenerationLaunchDefinition, GenerationRuntimeSession } from '@researchdatabox/sails-ng-common';
+import type { FormRuntimeAction, GenerationLaunchDefinition, GenerationRuntimeInitialValue, GenerationRuntimeSession } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import type { BrandingModel, UserModel } from '../model';
 import { GenerationActorContext, GenerationError } from '../model/generation';
@@ -14,7 +14,24 @@ interface RecordsLike {
   hasViewAccess(brand: BrandingModel, user: UserModel, roles: unknown[], record: RecordLike): boolean;
 }
 interface ProfileLike { resolvePublished(brandId: string, profileId: string): Promise<GenerationProfileVersionAttributes>; }
-interface SchemaLike { validateTargets(definition: GenerationProfileVersionAttributes['definition'], form: NonNullable<FormAttributes['configuration']>): unknown; }
+interface SchemaLike {
+  validateTargets(
+    definition: GenerationProfileVersionAttributes['definition'],
+    form: NonNullable<FormAttributes['configuration']>,
+  ): Map<string, { disabled: boolean }>;
+}
+
+function pointerGet(value: unknown, pointer: string): unknown {
+  if (!pointer.startsWith('/')) return undefined;
+  return pointer.slice(1).split('/').map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'))
+    .reduce<unknown>((current, key) => current && typeof current === 'object'
+      ? (current as Record<string, unknown>)[key]
+      : undefined, value);
+}
+
+function pointersOverlap(left: string, right: string): boolean {
+  return left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
+}
 
 export interface GenerationActionContext {
   actor: GenerationActorContext;
@@ -33,7 +50,7 @@ export interface AuthorizedGenerationLaunch {
 
 export namespace Services {
   export class GenerationBindingService extends services.Core.Service {
-    protected override _exportedMethods = ['createOrUpdate', 'resolveActions', 'resolveCreateLaunches', 'authorizeLaunch', 'buildInitialValues', 'resolveTargetSession', 'buildTargetUrl'];
+    protected override _exportedMethods = ['createOrUpdate', 'resolveActions', 'resolveCreateLaunches', 'authorizeLaunch', 'buildInitialValues', 'buildCompletionValues', 'resolveTargetSession', 'buildTargetUrl'];
 
     public async createOrUpdate(
       brandId: string,
@@ -63,7 +80,16 @@ export namespace Services {
       const targetForm = await firstValueFrom(FormsService.getFormByName(effectiveFormName, true, brandId)) as FormAttributes | null;
       if (!targetForm?.configuration) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation binding target form was not found');
       const schemaService = requireService<SchemaLike>('generationschemaservice', ['validateTargets']);
-      schemaService.validateTargets(profileVersion.definition, targetForm.configuration);
+      const resolvedTargets = schemaService.validateTargets(profileVersion.definition, targetForm.configuration);
+      const generatedTargetPointers = new Set(profileVersion.definition.targetFields.map((field) => field.metadataPointer));
+      for (const mapping of input.sourceValueMappings ?? []) {
+        const target = resolvedTargets.get(mapping.targetMetadataPointer);
+        const overlapsGeneratedTarget = [...generatedTargetPointers].some((pointer) =>
+          pointersOverlap(pointer, mapping.targetMetadataPointer));
+        if (!target || target.disabled || overlapsGeneratedTarget) {
+          throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation source value mapping does not resolve to a separate editable target');
+        }
+      }
       const values = { ...input, nameLower: input.name.trim().toLowerCase() };
       const existing = await GenerationBinding.findOne({ brandId, key: input.key });
       if (existing) {
@@ -167,6 +193,22 @@ export namespace Services {
       const pointer = String(binding.sourceRelationship?.metadataPointer ?? '');
       if (!pointer.startsWith('/')) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation relationship mapping is invalid');
       return [{ metadataPointer: pointer, value: sourceOid }];
+    }
+
+    public buildCompletionValues(
+      binding: GenerationBindingAttributes,
+      sourceMetadata: Record<string, unknown>,
+    ): GenerationRuntimeInitialValue[] {
+      const values = (binding.sourceValueMappings ?? []).flatMap((mapping) => {
+        const value = pointerGet(sourceMetadata, mapping.sourceMetadataPointer);
+        return value === undefined
+          ? []
+          : [{ metadataPointer: mapping.targetMetadataPointer, value: structuredClone(value) }];
+      });
+      if (Buffer.byteLength(JSON.stringify(values), 'utf8') > 256 * 1024) {
+        throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation completion values exceed the configured size limit');
+      }
+      return values;
     }
 
     public async resolveTargetSession(

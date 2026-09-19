@@ -2,6 +2,7 @@ import type {
   FormRuntimeAction,
   GenerationCandidatePatch,
   GenerationQuestion,
+  GenerationRuntimeInitialValue,
   GenerationRunPhase,
   GenerationRunStatus,
 } from '@researchdatabox/sails-ng-common';
@@ -70,8 +71,14 @@ export interface GenerationBindingDefinition {
     sourceSlotId: string;
     metadataPointer: string;
   };
+  sourceValueMappings?: GenerationSourceValueMapping[];
   allowMultipleTargetsPerSource: boolean;
   maxSuccessfulRunsPerIntent: number;
+}
+
+export interface GenerationSourceValueMapping {
+  sourceMetadataPointer: string;
+  targetMetadataPointer: string;
 }
 
 export interface GenerationActorContext {
@@ -141,6 +148,7 @@ export interface GenerationArtifactPayload {
   providerRequest?: GenerationProviderRequest;
   rawResponse?: unknown;
   candidate?: GenerationCandidatePatch;
+  completionValues?: GenerationRuntimeInitialValue[];
   validationDiagnostics?: Array<Record<string, unknown>>;
 }
 

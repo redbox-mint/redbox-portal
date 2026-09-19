@@ -24,6 +24,10 @@ import { requireService, requireWaterlineRows } from './generation/require-servi
 interface BindingLike {
   authorizeLaunch(input: Record<string, unknown>): Promise<AuthorizedGenerationLaunch>;
   buildTargetUrl(binding: GenerationBindingAttributes, actor: GenerationActorContext, runId: string): string;
+  buildCompletionValues(
+    binding: GenerationBindingAttributes,
+    sourceMetadata: Record<string, unknown>,
+  ): import('@researchdatabox/sails-ng-common').GenerationRuntimeInitialValue[];
 }
 interface CryptoLike {
   encrypt(brandId: string, runId: string, payload: unknown): Promise<GenerationEncryptedEnvelope>;
@@ -60,7 +64,10 @@ export namespace Services {
       bindingKey: string;
       sourceOid: string;
     }): Promise<GenerationLaunchResult> {
-      const bindingService = requireService<BindingLike>('generationbindingservice', ['authorizeLaunch', 'buildTargetUrl']);
+      const bindingService = requireService<BindingLike>(
+        'generationbindingservice',
+        ['authorizeLaunch', 'buildTargetUrl', 'buildCompletionValues'],
+      );
       const authorized = await bindingService.authorizeLaunch(input);
       await this.assertLimits(input.actor);
       const expiresAt = new Date(Date.now() + sails.config.generation.artifacts.operationalExpiryMinutes * 60_000).toISOString();
@@ -93,10 +100,21 @@ export namespace Services {
         required: question.required, options: question.options, maxLength: question.maxLength,
         defaultValue: defaults.find((item) => item.id === question.id)?.value as GenerationQuestion['defaultValue'],
       }));
+      const completionValues = bindingService.buildCompletionValues(
+        authorized.binding,
+        authorized.source.metadata ?? {},
+      );
       const crypto = requireService<CryptoLike>('generationcryptoservice', ['encrypt', 'decrypt']);
-      const envelope = await crypto.encrypt(input.actor.brandId, run.id, { questions } satisfies GenerationArtifactPayload & { questions: GenerationQuestion[] });
+      const envelope = await crypto.encrypt(input.actor.brandId, run.id, {
+        questions,
+        completionValues,
+      } satisfies GenerationArtifactPayload & { questions: GenerationQuestion[] });
       await GenerationRunArtifact.create({
-        brandId: input.actor.brandId, runId: run.id, expiresAt, ...envelope, contentKinds: ['questionDefaults'],
+        brandId: input.actor.brandId,
+        runId: run.id,
+        expiresAt,
+        ...envelope,
+        contentKinds: ['questionDefaults', 'completionValues'],
       }).fetch();
       return { runId: run.id, targetUrl: bindingService.buildTargetUrl(authorized.binding, input.actor, run.id) };
     }
@@ -115,6 +133,7 @@ export namespace Services {
       return {
         runId: run.id, status: run.status, phase: run.phase, attemptCount: run.attemptCount,
         retryable: run.retryable, questions: payload?.questions ?? [], result,
+        ...(result ? { completionValues: payload?.completionValues ?? [] } : {}),
         ...(run.errorCode ? { error: { code: run.errorCode, messageKey: `generation-error-${run.errorCode.toLowerCase().replaceAll('_', '-')}`, retryable: run.retryable } } : {}),
         artifactExpiresAt: run.artifactExpiresAt,
       };
@@ -155,7 +174,7 @@ export namespace Services {
       const existing = await crypto.decrypt<GenerationArtifactPayload & { questions?: GenerationQuestion[] }>(input.actor.brandId, run.id, envelopeFromArtifact(artifact));
       const envelope = await crypto.encrypt(input.actor.brandId, run.id, { ...existing, frozenInput });
       await GenerationRunArtifact.updateOne({ id: artifact.id, brandId: input.actor.brandId, runId: run.id }).set({
-        ...envelope, contentKinds: ['questionDefaults', 'frozenInput'],
+        ...envelope, contentKinds: ['questionDefaults', 'frozenInput', 'completionValues'],
       });
       const persistence = requireService<PersistenceLike>('generationpersistenceservice', ['transitionRun']);
       const attemptCount = run.attemptCount + 1;

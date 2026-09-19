@@ -94,12 +94,34 @@ export class GenerationPatchApplierService {
     form: FormGroup,
     executionSnapshot: Record<string, unknown>,
     eventBus: FormComponentEventBus,
+    completionValues: GenerationRuntimeInitialValue[] = [],
   ): GenerationPatchApplicationResult {
     const changedFieldIds: string[] = [];
     const conflictFieldIds: string[] = [];
-    const changes: Array<{ control: AbstractControl; fieldId: string; value: unknown; previousValue: unknown }> = [];
+    const changes: Array<{
+      control: AbstractControl;
+      fieldId: string;
+      value: unknown;
+      previousValue: unknown;
+      origin: 'generation' | 'system';
+    }> = [];
 
-    for (const item of candidate.items) {
+    const items = [
+      ...candidate.items.map((item) => ({
+        fieldId: item.fieldId,
+        metadataPointer: item.metadataPointer,
+        value: item.value,
+        origin: 'generation' as const,
+      })),
+      ...completionValues.map((item) => ({
+        fieldId: this.fieldId(item.metadataPointer),
+        metadataPointer: item.metadataPointer,
+        value: item.value,
+        origin: 'system' as const,
+      })),
+    ];
+
+    for (const item of items) {
       const target = this.resolvePatchTarget(form, executionSnapshot, item.metadataPointer);
       if (!target || target.control.disabled || !isEqual(target.control.value, target.expectedValue)) {
         conflictFieldIds.push(item.fieldId);
@@ -111,6 +133,7 @@ export class GenerationPatchApplierService {
           fieldId: target.fieldId,
           value: structuredClone(item.value),
           previousValue: structuredClone(target.control.value),
+          origin: item.origin,
         });
         changedFieldIds.push(item.fieldId);
       }
@@ -131,7 +154,7 @@ export class GenerationPatchApplierService {
         value: change.value,
         previousValue: change.previousValue,
         sourceId: change.fieldId,
-        origin: 'generation',
+        origin: change.origin,
         correlationId: candidate.runId,
       }));
     }

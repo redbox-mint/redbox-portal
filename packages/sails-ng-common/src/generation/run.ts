@@ -1,4 +1,5 @@
 import { GenerationCandidatePatch } from './candidate-patch';
+import { GenerationRuntimeInitialValue } from './form-runtime-meta';
 import { GenerationQuestion } from './question';
 
 export const GENERATION_RUN_STATUSES = [
@@ -41,6 +42,7 @@ export interface GenerationRunView {
   retryable: boolean;
   questions: GenerationQuestion[];
   result: GenerationCandidatePatch | null;
+  completionValues?: GenerationRuntimeInitialValue[];
   error?: GenerationSafeError;
   artifactExpiresAt?: string;
 }

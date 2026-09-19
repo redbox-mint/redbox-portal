@@ -111,7 +111,8 @@ export namespace Services {
           ...payload, knowledge, providerRequest, rawResponse: response.content, candidate,
         } satisfies GenerationArtifactPayload & { questions?: unknown[] });
         await GenerationRunArtifact.updateOne({ id: artifact.id, brandId, runId }).set({
-          ...envelope, contentKinds: ['frozenInput', 'knowledge', 'providerRequest', 'rawResponse', 'candidate'],
+          ...envelope,
+          contentKinds: ['frozenInput', 'knowledge', 'providerRequest', 'rawResponse', 'candidate', 'completionValues'],
         });
         await persistence.transitionRun(brandId, runId, 'validating', 'completed', {
           phase: 'population', candidateDigest: candidate.candidateDigest,

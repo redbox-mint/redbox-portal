@@ -24,6 +24,19 @@ const normalize = (record: Record<string, unknown>, callback: (error?: Error) =>
       !String(Reflect.get(relationship, 'metadataPointer') ?? '').startsWith('/'))) {
       return callback(buildInvalidNewRecordError('Generation binding sourceRelationship is invalid'));
     }
+    const mappings = record.sourceValueMappings;
+    if (mappings !== undefined && mappings !== null && (!Array.isArray(mappings) || mappings.length > 50 || mappings.some((mapping) =>
+      !mapping || typeof mapping !== 'object' ||
+      !String(Reflect.get(mapping, 'sourceMetadataPointer') ?? '').startsWith('/') ||
+      !String(Reflect.get(mapping, 'targetMetadataPointer') ?? '').startsWith('/')))) {
+      return callback(buildInvalidNewRecordError('Generation binding sourceValueMappings are invalid'));
+    }
+    if (Array.isArray(mappings)) {
+      const targets = mappings.map((mapping) => String(Reflect.get(mapping, 'targetMetadataPointer') ?? ''));
+      if (new Set(targets).size !== targets.length) {
+        return callback(buildInvalidNewRecordError('Generation binding sourceValueMappings target pointers must be unique'));
+      }
+    }
     callback();
   });
 };
@@ -55,6 +68,7 @@ export class GenerationBindingClass {
   @Attr({ type: 'json', required: true }) public allowedRoles!: string[];
   @Attr({ type: 'json', required: true }) public action!: Record<string, unknown>;
   @Attr({ type: 'json', required: true }) public sourceRelationship!: Record<string, unknown>;
+  @Attr({ type: 'json' }) public sourceValueMappings?: Array<{ sourceMetadataPointer: string; targetMetadataPointer: string }>;
   @Attr({ type: 'boolean', defaultsTo: true }) public allowMultipleTargetsPerSource!: boolean;
   @Attr({ type: 'number', defaultsTo: 1 }) public maxSuccessfulRunsPerIntent!: number;
   @Attr({ type: 'string', required: true }) public createdBy!: string;
@@ -66,6 +80,7 @@ export interface GenerationBindingAttributes extends Sails.WaterlineAttributes {
   profileId: string; sourceRecordType: string; sourceWorkflowStages?: string[]; sourceModes?: string[];
   targetRecordType: string; targetFormName?: string; targetStartingWorkflowStage: string; targetMode: string;
   allowedRoles: string[]; action: Record<string, unknown>; sourceRelationship: Record<string, unknown>;
+  sourceValueMappings?: Array<{ sourceMetadataPointer: string; targetMetadataPointer: string }>;
   allowMultipleTargetsPerSource: boolean; maxSuccessfulRunsPerIntent: number; createdBy: string; updatedBy: string;
 }
 export interface GenerationBindingWaterlineModel extends Sails.Model<GenerationBindingAttributes> { attributes: GenerationBindingAttributes; }

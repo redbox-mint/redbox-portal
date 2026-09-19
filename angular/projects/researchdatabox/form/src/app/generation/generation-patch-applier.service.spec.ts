@@ -94,6 +94,39 @@ describe('GenerationPatchApplierService', () => {
     }));
   });
 
+  it('copies completion values into flat contributor controls without overwriting edits made during generation', () => {
+    const contributorForm = new FormGroup({
+      contributor_ci: new FormControl({ text_full_name: 'Manually selected person' }),
+      contributors: new FormControl<unknown[]>([]),
+    });
+    const emptyCandidate = { ...candidate(), items: [] };
+    const copiedContributors = [{ text_full_name: 'Ethan McLeod', email: 'ethan@example.test' }];
+
+    const result = service.apply(emptyCandidate, contributorForm, {
+      contributor_ci: null,
+      contributors: [],
+    }, eventBus, [
+      {
+        metadataPointer: '/mainTab/people/contributor_ci',
+        value: { text_full_name: 'Amelia Hartwell' },
+      },
+      {
+        metadataPointer: '/mainTab/people/contributors',
+        value: copiedContributors,
+      },
+    ]);
+
+    expect(result).toEqual({ changedFieldIds: ['contributors'], conflictFieldIds: ['contributor_ci'] });
+    expect(contributorForm.get('contributor_ci')?.value).toEqual({ text_full_name: 'Manually selected person' });
+    expect(contributorForm.get('contributors')?.value).toEqual(copiedContributors);
+    expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: 'field.value.changed',
+      fieldId: 'contributors',
+      origin: 'system',
+      correlationId: 'run-1',
+    }));
+  });
+
   it('applies server-provided initial values as system-originated changes', () => {
     const initialForm = new FormGroup({ title: new FormControl('') });
 

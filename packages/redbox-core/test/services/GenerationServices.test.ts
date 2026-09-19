@@ -6,6 +6,7 @@ import { Services as SecretServices } from '../../src/services/GenerationSecretR
 import { Services as CryptoServices } from '../../src/services/GenerationCryptoService';
 import { GENERATION_RUN_TRANSITIONS, Services as PersistenceServices } from '../../src/services/GenerationPersistenceService';
 import { Services as ContextServices } from '../../src/services/GenerationContextService';
+import { Services as BindingServices } from '../../src/services/GenerationBindingService';
 import { Services as ProfileServices } from '../../src/services/GenerationProfileService';
 import { Services as PromptServices } from '../../src/services/GenerationPromptService';
 import { buildEvidenceAliases, Services as SchemaServices } from '../../src/services/GenerationSchemaService';
@@ -167,6 +168,40 @@ describe('Generation core primitives and services', () => {
     const unknownReviewedAnswer = profileDefinition();
     unknownReviewedAnswer.targetFields[0].reviewedAnswerIds = ['missing'];
     expect(() => service.validateDefinition(unknownReviewedAnswer)).to.throw('unknown reviewed answer');
+  });
+
+  it('builds deterministic completion values from allowlisted binding mappings', () => {
+    const service = new BindingServices.GenerationBindingService();
+    const values = service.buildCompletionValues({
+      sourceValueMappings: [
+        {
+          sourceMetadataPointer: '/contributor_ci',
+          targetMetadataPointer: '/mainTab/people/contributor_ci',
+        },
+        {
+          sourceMetadataPointer: '/contributors',
+          targetMetadataPointer: '/mainTab/people/contributors',
+        },
+        {
+          sourceMetadataPointer: '/not_present',
+          targetMetadataPointer: '/mainTab/people/contributor_supervisor',
+        },
+      ],
+    } as any, {
+      contributor_ci: { text_full_name: 'Amelia Hartwell' },
+      contributors: [{ text_full_name: 'Ethan McLeod' }],
+    });
+
+    expect(values).to.deep.equal([
+      {
+        metadataPointer: '/mainTab/people/contributor_ci',
+        value: { text_full_name: 'Amelia Hartwell' },
+      },
+      {
+        metadataPointer: '/mainTab/people/contributors',
+        value: [{ text_full_name: 'Ethan McLeod' }],
+      },
+    ]);
   });
 
   it('resolves editable generation targets nested through tabs and panels', () => {

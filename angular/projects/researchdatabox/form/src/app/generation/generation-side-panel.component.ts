@@ -190,7 +190,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
       const run = await this.api.getRun(session.runId);
       this.configureQuestions(run.questions);
       this.updateRun(run);
-      if (run.result) this.applyCandidate(run.result, form);
+      if (run.result) this.applyCandidate(run.result, form, run.completionValues ?? []);
       queueMicrotask(() => this.panelTitle?.nativeElement.focus());
     } catch (error) {
       this.fail(error);
@@ -258,7 +258,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
       this.updateRun(next);
       if (next.result) {
         const form = this.form();
-        if (form) this.applyCandidate(next.result, form);
+        if (form) this.applyCandidate(next.result, form, next.completionValues ?? []);
         break;
       }
       delayMs = Math.min(Math.round(delayMs * 1.45), 4000);
@@ -286,8 +286,18 @@ export class GenerationSidePanelComponent implements OnDestroy {
     }));
   }
 
-  private applyCandidate(candidate: GenerationCandidatePatch, form: FormGroup): void {
-    const result = this.applier.apply(candidate, form, this.executionSnapshot, this.eventBus);
+  private applyCandidate(
+    candidate: GenerationCandidatePatch,
+    form: FormGroup,
+    completionValues: GenerationRunView['completionValues'] = [],
+  ): void {
+    const result = this.applier.apply(
+      candidate,
+      form,
+      this.executionSnapshot,
+      this.eventBus,
+      completionValues,
+    );
     this.candidate.set(candidate);
     this.conflicts.set(result.conflictFieldIds);
     this.provenance.setPending(candidate);
@@ -296,8 +306,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
 
   private async commitAfterSave(targetOid: string): Promise<void> {
     const candidate = this.candidate();
-    const session = this.effectiveSession();
-    if (!candidate || !session) return;
+    if (!candidate) return;
     this.store.dispatch(GenerationActions.commitStarted());
     const reviewedFieldIds = candidate.items
       .filter((item) => item.reviewRequired && !this.provenance.byPointer()[item.metadataPointer]?.reviewRequired)
@@ -305,7 +314,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
     let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        await this.api.commit(session.runId, { targetOid, candidateDigest: candidate.candidateDigest, reviewedFieldIds });
+        await this.api.commit(candidate.runId, { targetOid, candidateDigest: candidate.candidateDigest, reviewedFieldIds });
         this.store.dispatch(GenerationActions.commitFinished());
         await this.provenance.load(targetOid);
         return;

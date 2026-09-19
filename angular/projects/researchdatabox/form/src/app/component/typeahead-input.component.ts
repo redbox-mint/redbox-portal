@@ -513,14 +513,17 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     if (this.programmaticDisplayUpdate) {
       return false;
     }
-    if (String(this.displayControl.value ?? '').trim().length > 0) {
-      return false;
-    }
+    const displayValue = String(this.displayControl.value ?? '');
     const value = this.model?.getValue();
+    let modelDisplayValue = '';
     if (this.valueMode === 'optionObject' && this.isOptionObjectValue(value)) {
-      return this.getOptionObjectLabel(value).trim().length > 0;
+      modelDisplayValue = this.getOptionObjectLabel(value);
+    } else if (typeof value === 'string') {
+      modelDisplayValue = value;
     }
-    return typeof value === 'string' && value.trim().length > 0;
+    // Silent system updates do not emit form-control valueChanges. Refresh a
+    // previously confirmed display value, but leave active user input alone.
+    return displayValue === this.lastConfirmedDisplayValue && displayValue !== modelDisplayValue;
   }
 
   private getAutoDisplaySyncSignature(): string {
