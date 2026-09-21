@@ -245,9 +245,7 @@ export namespace Controllers {
           if (!recordOid) {
             continue;
           }
-          if (recordOid === graph.rootOid) {
-            keptRecords.push(record);
-            allowedTargetOids.add(recordOid);
+          if (!brand?.id || _.get(record, 'metaMetadata.brandId') !== brand.id) {
             continue;
           }
           const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record));
@@ -262,7 +260,7 @@ export namespace Controllers {
       }
 
       const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
-        if (allowedTargetOids.has(edge.targetOid) || edge.targetOid === graph.rootOid) {
+        if (allowedTargetOids.has(edge.sourceOid) && allowedTargetOids.has(edge.targetOid)) {
           return true;
         }
         omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
@@ -1503,20 +1501,41 @@ export namespace Controllers {
       }
     }
 
-    public getRelatedRecords(req: Sails.Req, res: Sails.Res) {
-      return this.getRelatedRecordsInternal(req, res).then(response => {
-        return this.sendResp(req, res, { data: response });
-      });
+    public async getRelatedRecords(req: Sails.Req, res: Sails.Res) {
+      try {
+        const response = await this.getRelatedRecordsInternal(req, res);
+        if (response !== undefined) {
+          return this.sendResp(req, res, { data: response });
+        }
+      } catch (error) {
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Failed to load related records.' }],
+        });
+      }
     }
 
-    public async getRelatedRecordsInternal(req: Sails.Req, _res: Sails.Res) {
+    public async getRelatedRecordsInternal(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
       const brand: BrandingModel = this.getReqBrand(req);
-      const oid = req.param('oid');
-      //TODO may need to check user authorization like in getPermissionsInternal?
-      //let record = await this.getRecord(oid).toPromise();
-      //or the permissions may be checked in a parent call that will retrieved record oids that a user has access to
-      //plus some additional rules/logic that may be applied to filter the records
+      const oid = String(req.param('oid') ?? '').trim();
+      if (!oid) {
+        this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+        return;
+      }
+
+      // Authorize the root before traversal, even when relationshipDepth is zero.
+      const record = await this.recordsService.getMeta(oid);
+      if (_.isEmpty(record) || !brand?.id || record.metaMetadata?.brandId !== brand.id) {
+        this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
+        return;
+      }
+      if (!await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record))) {
+        this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'error-403-heading' }] });
+        return;
+      }
+
       const relationshipOptions = this.parseRelationshipExpandOptions(req);
       const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand, relationshipOptions);
       const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relatedRecords);
