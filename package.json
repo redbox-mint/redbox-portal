@@ -231,7 +231,7 @@
     "pino-test": "2.0.0",
     "prettier": "3.8.3",
     "redbox-hook-dev": "file:packages/redbox-hook-dev",
-    "redoc": "2.5.3",
+    "redoc": "2.5.4",
     "sass": "1.98.0",
     "sass-loader": "16.0.7",
     "serialize-javascript": "7.0.5",
