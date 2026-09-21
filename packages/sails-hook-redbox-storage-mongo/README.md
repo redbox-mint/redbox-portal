@@ -64,3 +64,23 @@ after advertising strict capability.
 Hook-provided adapters must verify these guarantees against their real
 datastore/dialect before declaring capability. The bundled Mongo adapter does
 so in `test/integration/MongoStorageConcurrency.integration.test.ts`.
+
+## Pagination regression tests
+
+Record and deleted-record lists append `_id` to the requested sort so equal
+timestamps or titles have a consistent order across pages. CSV and JSON exports
+use `lastSaveDate` descending, then `_id` ascending. This does not provide a
+snapshot if matching records are inserted, deleted, or updated during pagination.
+
+The optional Mongo integration tests seed 3,068 records with repeated timestamps
+in a temporary database and check both list methods and export formats. Run the
+package tests in a Docker development environment with `MONGO_TEST_URL` pointing
+to a test Mongo server:
+
+```bash
+cd packages/sails-hook-redbox-storage-mongo
+MONGO_TEST_URL=mongodb://mongodb:27017 npm test -- --timeout 30000
+```
+
+Without `MONGO_TEST_URL`, the Mongo integration tests are skipped. The tests
+remove only the uniquely named database they create.
