@@ -53,8 +53,8 @@ export const routes: RoutesConfig = {
         locals: { 'view': 'record/search', pageTitleKey: 'record-search-heading' }
     },
     '/:branding/:portal/record/view-orig/:oid': {
-        controller: 'RenderViewController',
-        action: 'render',
+        controller: 'RecordController',
+        action: 'view',
         locals: { 'view': 'record/view-orig' }
     },
 
