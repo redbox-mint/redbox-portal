@@ -571,9 +571,7 @@ export namespace Controllers {
           if (!recordOid) {
             continue;
           }
-          if (recordOid === graph.rootOid) {
-            keptRecords.push(record);
-            allowedTargetOids.add(recordOid);
+          if (!brand?.id || _.get(record, 'metaMetadata.brandId') !== brand.id) {
             continue;
           }
           const hasAccess = await firstValueFrom(this.hasViewAccess(brand, user, record));
@@ -588,7 +586,7 @@ export namespace Controllers {
       }
 
       const filteredEdges = (graph.edges ?? []).filter((edge: RecordRelationshipGraph['edges'][number]) => {
-        if (allowedTargetOids.has(edge.targetOid) || edge.targetOid === graph.rootOid) {
+        if (allowedTargetOids.has(edge.sourceOid) && allowedTargetOids.has(edge.targetOid)) {
           return true;
         }
         omittedByAccess[edge.relationId] = Number(omittedByAccess[edge.relationId] ?? 0) + 1;
@@ -836,19 +834,16 @@ export namespace Controllers {
         }
 
         const pageTitle = this.getSavedRecordPageTitle(record as AnyRecord, locals);
-        return this.sendView(req, res, 'record/view', {
+        return this.sendView(req, res, (locals?.['view'] as string | undefined) ?? 'record/view', {
           title: this.formatDocumentTitle(pageTitle, locals),
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error ?? '');
-        if (errorMessage.toLowerCase().includes('not found')) {
-          return res.notFound();
-        }
+        sails.log.error(error);
         return res.serverError();
       }
     }
 
-    public edit(req: Sails.Req, res: Sails.Res) {
+    public async edit(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ? req.param('oid') : '';
       let recordType = req.param('recordType') ? req.param('recordType') : '';
@@ -862,6 +857,18 @@ export namespace Controllers {
       const appSelector = 'dmp-form';
       const appName = 'dmp';
       const hasExistingRecord = String(oid ?? '').trim() !== '';
+      let existingRecord: RecordModel | undefined;
+      if (hasExistingRecord) {
+        try {
+          existingRecord = await this.recordsService.getMeta(oid);
+        } catch (error) {
+          sails.log.error(error);
+          return res.serverError();
+        }
+        if (_.isEmpty(existingRecord)) {
+          return res.notFound();
+        }
+      }
       const buildEditViewLocals = (pageTitle?: string) => ({
         oid: oid,
         rdmp: rdmp,
@@ -881,18 +888,12 @@ export namespace Controllers {
           buildEditViewLocals(`Create ${this.getRecordTypePageTitle(recordType, locals)}`)
         );
 
-      const renderExistingEditView = () =>
-        this.recordsService.getMeta(oid).then(record => {
-          if (!recordType) {
-            recordType = String(_.get(record, 'metaMetadata.type', '') ?? '').trim();
-          }
-          return this.sendView(
-            req,
-            res,
-            'record/edit',
-            buildEditViewLocals(this.getSavedRecordPageTitle(record as AnyRecord, locals))
-          );
-        });
+      const renderExistingEditView = () => {
+        if (!recordType) {
+          recordType = String(_.get(existingRecord, 'metaMetadata.type', '') ?? '').trim();
+        }
+        return this.sendView(req, res, 'record/edit', buildEditViewLocals(this.getSavedRecordPageTitle(existingRecord as AnyRecord, locals)));
+      };
 
       if (recordType != '' && extFormName == '') {
         FormsService.getFormByStartingWorkflowStep(brand, recordType, true).subscribe(form => {
@@ -925,32 +926,25 @@ export namespace Controllers {
           }
         );
       } else {
-        from(this.recordsService.getMeta(oid))
-          .pipe(
-            flatMap(record => {
-              const formName = record.metaMetadata.form;
-              return FormsService.getFormByName(formName, true, String(brand.id));
-            })
-          )
-          .subscribe(
-            form => {
-              if (!form) {
-                return this.sendResp(req, res, {
-                  status: 404,
-                  displayErrors: [{ detail: 'Form not found' }],
-                });
-              }
-              sails.log.debug(form);
-              // Deprecated: customAngularApp has been removed from FormConfigFrame
-              if (!recordType) {
-                recordType = form.configuration?.type ?? '';
-              }
-              return renderExistingEditView();
-            },
-            _error => {
-              return this.sendView(req, res, 'record/edit', buildEditViewLocals());
-            }
-          );
+        of(existingRecord).pipe(flatMap(record => {
+          const formName = record?.metaMetadata.form ?? '';
+          return FormsService.getFormByName(formName, true, String(brand.id));
+        })).subscribe(form => {
+          if (!form) {
+            return this.sendResp(req, res, {
+              status: 404,
+              displayErrors: [{ detail: 'Form not found' }]
+            });
+          }
+          sails.log.debug(form);
+          // Deprecated: customAngularApp has been removed from FormConfigFrame
+          if (!recordType) {
+            recordType = form.configuration?.type ?? '';
+          }
+          return renderExistingEditView();
+        }, _error => {
+          return this.sendView(req, res, 'record/edit', buildEditViewLocals());
+        });
       }
     }
 
@@ -1001,11 +995,9 @@ export namespace Controllers {
           // defaults to retrieve the form of the current workflow state...
           currentRec = await this.recordsService.getMeta(oid);
           if (_.isEmpty(currentRec)) {
-            const msg = `Error, empty metadata for OID: ${oid}`;
             return this.sendResp(req, res, {
-              status: 500,
-              displayErrors: [{ detail: msg }],
-              v1: { message: msg },
+              status: 404,
+              displayErrors: [{ code: 'missing-record' }],
             });
           }
 
@@ -1139,16 +1131,8 @@ export namespace Controllers {
           });
         }
       } catch (error) {
-        const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition' };
-        let msg;
-        const typedError = error as { error?: { code?: number }; message?: string };
-        if (typedError.error && typedError.error.code == 500) {
-          displayError.code = 'missing-record';
-          msg = TranslationService.t('missing-record');
-        } else {
-          displayError.detail = typedError.message;
-          msg = typedError.message;
-        }
+        const msg = (error as { message?: string }).message;
+        const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition', detail: msg };
         return this.sendResp(req, res, {
           errors: [this.asError(error)],
           displayErrors: [displayError],
@@ -2215,20 +2199,41 @@ export namespace Controllers {
       }
     }
 
-    public getRelatedRecords(req: Sails.Req, res: Sails.Res) {
-      return this.getRelatedRecordsInternal(req, res).then(response => {
-        return this.sendResp(req, res, { data: response });
-      });
+    public async getRelatedRecords(req: Sails.Req, res: Sails.Res) {
+      try {
+        const response = await this.getRelatedRecordsInternal(req, res);
+        if (response !== undefined) {
+          return this.sendResp(req, res, { data: response });
+        }
+      } catch (error) {
+        return this.sendResp(req, res, {
+          status: 500,
+          errors: [this.asError(error)],
+          displayErrors: [{ detail: 'Failed to load related records.' }],
+        });
+      }
     }
 
-    public async getRelatedRecordsInternal(req: Sails.Req, _res: Sails.Res) {
+    public async getRelatedRecordsInternal(req: Sails.Req, res: Sails.Res) {
       sails.log.verbose(`getRelatedRecordsInternal - starting...`);
       const brand: BrandingModel = this.getReqBrand(req);
-      const oid = req.param('oid');
-      //TODO may need to check user authorization like in getPermissionsInternal?
-      //let record = await this.getRecord(oid).toPromise();
-      //or the permissions may be checked in a parent call that will retrieved record oids that a user has access to
-      //plus some additional rules/logic that may be applied to filter the records
+      const oid = String(req.param('oid') ?? '').trim();
+      if (!oid) {
+        this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Record oid is required.' }] });
+        return;
+      }
+
+      // Authorize the root before traversal, even when relationshipDepth is zero.
+      const record = await this.recordsService.getMeta(oid);
+      if (_.isEmpty(record) || !brand?.id || record.metaMetadata?.brandId !== brand.id) {
+        this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
+        return;
+      }
+      if (!await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record))) {
+        this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'error-403-heading' }] });
+        return;
+      }
+
       const relationshipOptions = this.parseRelationshipExpandOptions(req);
       const relatedRecords = await this.recordsService.getRelatedRecords(oid, brand, relationshipOptions);
       const filteredRelationships = await this.filterRelationshipGraphByAccess(brand, req.user ?? {}, relatedRecords);

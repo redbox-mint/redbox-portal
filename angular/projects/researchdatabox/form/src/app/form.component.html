@@ -12,8 +12,10 @@
     (resolutionRequested)="submitManualConflictResolution($event)"
   ></redbox-form-conflict-presenter>
 
-  <div class="rb-form-shell__main" [class.rb-form-shell__main--loading]="!componentsLoaded()">
-    @if (!componentsLoaded()) {
+  <div class="rb-form-shell__main" [class.rb-form-shell__main--loading]="!componentsLoaded() && !error()">
+    @if (!componentsLoaded() && error()) {
+      <div class="alert alert-danger" role="alert">{{ error() | i18next }}</div>
+    } @else if (!componentsLoaded()) {
       <div class="rb-form-loading">
         <img
           class="center-block rb-form-loading__spinner"

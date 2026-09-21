@@ -672,6 +672,7 @@
   "edit-error-no-permissions": "You do not have permission to edit this record",
   "view-error-no-permissions": "You do not have permission to view this record",
   "missing-record": "Problems retrieving this record, are you sure it exists?",
+  "form-load-error": "Unable to load this form. Please try again or contact your administrator.",
   "failed-delete": "Problems deleting this record.",
   "failed-restore": "Problems restoring this deleted record.",
   "failed-destroy": "Problems destroying this deleted record.",
