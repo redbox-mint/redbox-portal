@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import * as lodash from 'lodash';
 import * as sinon from 'sinon';
 import { Controllers } from '../../src/controllers/RecordController';
 import { RecordsService, RecordRelationshipGraph } from '../../src/RecordsService';
@@ -16,6 +17,7 @@ describe('Record relationship authorization', () => {
   let sendResp: sinon.SinonStub;
   let req: Sails.Req;
   let res: Sails.Res;
+  let savedGlobals: Record<string, unknown>;
 
   function record(oid: string, brandId = brand.id) {
     return {
@@ -27,6 +29,14 @@ describe('Record relationship authorization', () => {
   }
 
   beforeEach(() => {
+    savedGlobals = {
+      sails: Reflect.get(globalThis, 'sails'),
+      _: Reflect.get(globalThis, '_'),
+    };
+    Object.assign(globalThis, {
+      sails: { log: { verbose: sinon.stub() } },
+      _: lodash,
+    });
     controller = new TestRecordController();
     getMeta = sinon.stub().resolves(record('root'));
     getRelatedRecords = sinon.stub().resolves({
@@ -47,7 +57,10 @@ describe('Record relationship authorization', () => {
     res = {} as Sails.Res;
   });
 
-  afterEach(() => sinon.restore());
+  afterEach(() => {
+    sinon.restore();
+    Object.assign(globalThis, savedGlobals);
+  });
 
   it('rejects an inaccessible root before traversing, including at depth zero', async () => {
     hasViewAccess.returns(false);
@@ -88,9 +101,12 @@ describe('Record relationship authorization', () => {
   });
 
   it('handles storage failures without returning a graph', async () => {
-    getMeta.rejects(new Error('Storage unavailable'));
+    const storageError = new Error('Storage unavailable');
+    getMeta.rejects(storageError);
     await controller.getRelatedRecords(req, res);
+    sinon.assert.calledOnceWithExactly(getMeta, 'root');
     assert.equal(sendResp.firstCall.args[2].status, 500);
+    assert.deepEqual(sendResp.firstCall.args[2].errors, [storageError]);
     assert.equal(sendResp.firstCall.args[2].data, undefined);
     sinon.assert.notCalled(getRelatedRecords);
   });
