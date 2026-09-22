@@ -1137,6 +1137,7 @@ export namespace Controllers {
         const msg = (error as { message?: string }).message;
         const displayError: ErrorResponseItemV2 = { title: 'Error getting form definition', detail: msg };
         return this.sendResp(req, res, {
+          status: 500,
           errors: [this.asError(error)],
           displayErrors: [displayError],
           v1: msg,
