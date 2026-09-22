@@ -2550,7 +2550,7 @@ describe('FormComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, undefined, { formDebugParam: true });
     const debugPanels = fixture.nativeElement.querySelectorAll('redbox-form-debug-panel');
     expect(debugPanels.length).toBe(1);
   });
@@ -2575,7 +2575,7 @@ describe('FormComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, undefined, { formDebugParam: true });
     await ensureDebugPanelOpen(fixture);
     const configTabButton = Array.from(fixture.nativeElement.querySelectorAll('.rb-form-debug-tabs button') as NodeListOf<HTMLButtonElement>)
       .find((button) => button.textContent?.trim() === 'Config');
@@ -2615,7 +2615,6 @@ describe('FormComponent', () => {
   });
 
   it('enables debug UI when formDebug query param is true-like', async () => {
-    setFormDebugUrl('YES');
     const formConfig: FormConfigFrame = {
       name: 'debug-query-enabled',
       componentDefinitions: [
@@ -2632,7 +2631,7 @@ describe('FormComponent', () => {
       ]
     };
 
-    const { fixture } = await createFormAndWaitForReady(formConfig);
+    const { fixture } = await createFormAndWaitForReady(formConfig, undefined, { formDebugParam: 'YES' });
     expect(fixture.nativeElement.querySelectorAll('redbox-form-debug-panel').length).toBe(1);
   });
 
