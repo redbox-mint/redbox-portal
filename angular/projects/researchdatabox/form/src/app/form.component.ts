@@ -406,6 +406,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     super();
     this.initDependencies = [this.translationService, this.configService, this.formService, this.recordService];
     this.window = this.document.defaultView;
+    this.debugState.refreshFromUrl();
     // Params can be injected via HTML if the app is used outside of Angular
     if (_isEmpty(this.trimmedParams.oid())) {
       this.oid.set(elementRef.nativeElement.getAttribute('oid'));
