@@ -41,21 +41,13 @@ updates:
       - '/packages/sails-hook-redbox-storage-mongo'
       - '/packages/sails-ng-common'
       - '/packages/redbox-hook-dev'
-      - '/packages/agenda-sqs-backend'
       - '/angular'
       - '/angular/projects/researchdatabox/portal-ng-common'
       - '/angular/projects/researchdatabox/portal-ng-form-custom'
     schedule:
       interval: 'daily'
     target-branch: 'develop'
-    # Vitest packages declare exact peer versions, so keep their updates
-    # together to preserve strict-peer-deps installability.
     groups:
-      vitest:
-        applies-to: 'version-updates'
-        patterns:
-          - 'vitest'
-          - '@vitest/*'
       uppy:
         applies-to: 'version-updates'
         patterns:
@@ -112,6 +104,20 @@ updates:
       - dependency-name: 'jasmine-core'
         update-types:
           - 'version-update:semver-major'
+
+  # Keep this package separate so its exact-version Vitest peers are always
+  # proposed together. Pattern-based grouping in the multi-directory update
+  # has repeatedly produced separate, uninstallable pull requests.
+  - package-ecosystem: 'npm'
+    directory: '/packages/agenda-sqs-backend'
+    schedule:
+      interval: 'daily'
+    target-branch: 'develop'
+    groups:
+      agenda-sqs-backend-dev:
+        dependency-type: 'development'
+    cooldown:
+      default-days: 7
 
   # Update support npm files
   - package-ecosystem: 'npm'
