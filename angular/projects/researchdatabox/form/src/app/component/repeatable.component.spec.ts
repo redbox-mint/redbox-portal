@@ -1,9 +1,10 @@
+import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
+import { ValidationSummaryFieldComponent } from './validation-summary.component';
 import {FormConfigFrame} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from './content.component';
 import {SimpleInputComponent} from './simple-input.component';
 import {RepeatableComponent, RepeatableElementLayoutComponent} from "./repeatable.component";
 import {GroupFieldComponent} from './group.component';
-import {createFormAndWaitForReady, createTestbedModule} from "../helpers.spec";
 import {fakeAsync, flushMicrotasks, TestBed, tick} from "@angular/core/testing";
 import {FormComponentEventBus, FormComponentEventType} from "../form-state";
 
@@ -13,6 +14,7 @@ describe('RepeatableComponent', () => {
     await createTestbedModule({
       declarations: {
         "SimpleInputComponent": SimpleInputComponent,
+        "ValidationSummaryFieldComponent": ValidationSummaryFieldComponent,
         "ContentComponent": ContentComponent,
         "RepeatableComponent": RepeatableComponent,
         "RepeatableElementLayoutComponent": RepeatableElementLayoutComponent,
@@ -49,6 +51,48 @@ describe('RepeatableComponent', () => {
     await fixture.whenStable();
     expect(formComponent.form?.getRawValue()).toEqual({ rows: [{ source: 'Beta edited' }] });
     expect(publish).toHaveBeenCalledWith(jasmine.objectContaining({ type: 'field.value.changed', fieldId: '/rows/0/source' }));
+  });
+
+  it('focuses the surviving invalid email from the summary after an earlier row is removed', async () => {
+    const config: FormConfigFrame = { name: 'repeatable-summary-reindex', componentDefinitions: [
+      { name: 'rows', model: { class: 'RepeatableModel', config: { value: [
+        { email: 'alpha@example.test' }, { email: 'invalid' },
+      ] } }, component: { class: 'RepeatableComponent', config: { allowZeroRows: true, elementTemplate: {
+        name: '', layout: { class: 'RepeatableElementLayout' }, model: { class: 'GroupModel' },
+        component: { class: 'GroupComponent', config: { componentDefinitions: [
+          { name: 'email', layout: { class: 'DefaultLayout', config: { label: 'Contact email' } },
+            model: { class: 'SimpleInputModel', config: { validators: [{ class: 'email' }] } },
+            component: { class: 'SimpleInputComponent' } },
+        ] } },
+      } } } },
+      { name: 'errors', component: { class: 'ValidationSummaryComponent' } },
+    ] };
+    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const root: HTMLElement = fixture.nativeElement;
+    const focusSummary = async () => {
+      const link = root.querySelector<HTMLAnchorElement>('a[data-validation-summary-id]')!;
+      expect(link).not.toBeNull();
+      link.focus();
+      link.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    };
+    await focusSummary();
+    expect(document.activeElement).toBe(root.querySelectorAll('input')[1]);
+    root.querySelector<HTMLButtonElement>('.rb-form-repeatable-item__remove')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await focusSummary();
+    expect(root.querySelectorAll('a[data-validation-summary-id]').length).toBe(1);
+    expect(document.activeElement).toBe(root.querySelector('input'));
+    const email = root.querySelector<HTMLInputElement>('input')!;
+    email.value = 'survivor@example.test';
+    email.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(formComponent.form?.getRawValue()).toEqual({ rows: [{ email: 'survivor@example.test' }] });
+    expect(formComponent.form?.valid).toBeTrue();
   });
 
   it('should upsert array sync source values item by item', () => {

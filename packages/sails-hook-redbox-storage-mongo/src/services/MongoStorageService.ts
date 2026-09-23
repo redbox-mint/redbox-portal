@@ -17,6 +17,7 @@ import type {
   GridFSFile,
   IndexDescriptionInfo,
   IndexDirection,
+  SortDirection,
 } from 'mongodb';
 import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
@@ -28,6 +29,7 @@ import {
   StorageService,
   StorageServiceResponse,
   StorageMutationResponse,
+  RBValidationError,
   DatastreamServiceResponse,
   Datastream,
   Attachment,
@@ -2506,6 +2508,76 @@ export namespace Services {
       return record;
     }
 
+    private getSortDirection(direction: unknown): SortDirection {
+      if (typeof direction === 'number' || typeof direction === 'string') {
+        switch (String(direction).toLowerCase()) {
+          case '1':
+          case 'asc':
+          case 'ascending':
+            return 1;
+          case '-1':
+          case 'desc':
+          case 'descending':
+            return -1;
+        }
+      } else if (direction !== null && typeof direction === 'object' && !Array.isArray(direction) &&
+        '$meta' in direction && typeof direction.$meta === 'string') {
+        return { $meta: direction.$meta };
+      }
+      throw new RBValidationError({
+        message: 'Invalid record sort direction',
+        displayErrors: [{ status: '400', detail: 'Sort direction must be 1, -1, asc, desc, ascending, descending, or a $meta expression.' }],
+      });
+    }
+
+    private getRecordSort(sort?: string, secondarySort?: string): Record<string, SortDirection> {
+      const expression = _.isEmpty(sort) ? '{"lastSaveDate": -1}' : sort;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(expression);
+      } catch (_error) {
+        const parts = expression.split(':');
+        if (parts.length > 2 || parts.some(part => part.length === 0)) {
+          throw new RBValidationError({
+            message: 'Invalid record sort expression',
+            displayErrors: [{ status: '400', detail: 'Sort must be field or field:direction with no empty segments.' }],
+          });
+        }
+        const [field, direction = '-1'] = parts;
+        parsed = { [field]: direction };
+      }
+      if (parsed === null || typeof parsed !== 'object' ||
+        (Array.isArray(parsed) && !parsed.every(entry =>
+          Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[0].length > 0
+        ))) {
+        throw new RBValidationError({
+          message: 'Invalid record sort expression',
+          displayErrors: [{ status: '400', detail: 'Sort must be an object or an array of [field, direction] pairs.' }],
+        });
+      }
+      const fields: Record<string, SortDirection> = Object.fromEntries(
+        (Array.isArray(parsed) ? parsed : Object.entries(parsed))
+          .map(([field, direction]) => [field, this.getSortDirection(direction)])
+      );
+      if (!_.isEmpty(secondarySort)) {
+        const parts = secondarySort.split(':');
+        if (parts.length !== 2 || parts.some(part => part.length === 0)) {
+          throw new RBValidationError({
+            message: 'Invalid secondary record sort expression',
+            displayErrors: [{ status: '400', detail: 'Secondary sort must be field:direction with no empty segments.' }],
+          });
+        }
+        const [field, direction] = parts;
+        fields[field] = this.getSortDirection(direction);
+      }
+      // MongoDB does not keep equal sort values in a consistent order across
+      // skip/limit queries. A unique final key prevents duplicates and omissions.
+      if (!Object.hasOwn(fields, '_id')) {
+        fields._id = 1;
+      }
+      return fields;
+    }
+
     public async getDeletedRecords(
       workflowState: string,
       recordType = undefined,
@@ -2525,32 +2597,22 @@ export namespace Services {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
+      const sortAliases = new Map([
+        ['title', 'deletedRecordMetadata.metadata.title'],
+        ['dateCreatedDisplay', 'deletedRecordMetadata.dateCreated'],
+        ['dateModifiedDisplay', 'deletedRecordMetadata.lastSaveDate'],
+        ['dateDeletedDisplay', 'dateDeleted'],
+      ]);
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
+        sort: Object.fromEntries(Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
+          sortAliases.get(field) ?? (directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
+            ? field : `deletedRecordMetadata.${field}`),
+          direction,
+        ])),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
-
-      if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
-          secondarySort.substring(secondarySort.indexOf(':') + 1)
-        );
-      }
 
       const roleNames = this.getRoleNames(roles, brand);
       const andArray = [];
@@ -2632,29 +2694,8 @@ export namespace Services {
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
+        sort: this.getRecordSort(sort, secondarySort),
       };
-      if (_.isEmpty(sort)) {
-        sort = '{"lastSaveDate": -1}';
-      }
-      sails.log.verbose(`Sort is: ${sort}`);
-      if (_.indexOf(`${sort}`, '1') == -1) {
-        sort = `{"${sort}":-1}`;
-      } else {
-        try {
-          options['sort'] = JSON.parse(sort);
-        } catch (_error) {
-          options['sort'] = {};
-          options['sort'][`${sort.substring(0, sort.indexOf(':'))}`] = _.toNumber(
-            sort.substring(sort.indexOf(':') + 1)
-          );
-        }
-      }
-
-      if (!_.isEmpty(secondarySort)) {
-        options['sort'][`${secondarySort.substring(0, secondarySort.indexOf(':'))}`] = _.toNumber(
-          secondarySort.substring(secondarySort.indexOf(':') + 1)
-        );
-      }
 
       const roleNames = this.getRoleNames(roles, brand);
       const andArray = [];
@@ -2783,9 +2824,7 @@ export namespace Services {
       andArray.push(permissions);
       const options = {
         limit: _.toNumber(sails.config.record.export.maxRecords),
-        sort: {
-          lastSaveDate: -1,
-        },
+        sort: this.getRecordSort(),
       };
       if (!_.isEmpty(modAfter)) {
         andArray.push({

@@ -1,7 +1,7 @@
+import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { ValidationSummaryFieldComponent } from "./validation-summary.component";
 import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
-import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { SimpleInputComponent } from "./simple-input.component";
 import { GroupFieldComponent } from './group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
@@ -56,23 +56,43 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(component).toBeDefined();
   });
 
-  it('should reveal tabs implemented by a dynamically loaded component instance', () => {
+  it('focuses the linked element when a summary has no component lineage', fakeAsync(() => {
     const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
-    const component = fixture.componentInstance as any;
-    const selectTab = jasmine.createSpy('selectTab');
-    spyOn(component, 'findComponentEntryByName').and.callFake((name: string) =>
-      name === 'mainTab'
-        ? {
-            compConfigJson: { component: { class: 'TabComponent' } },
-            component: { selectTab },
-          }
-        : undefined,
-    );
+    const input = document.createElement('input');
+    input.id = 'summary-target-without-lineage';
+    fixture.nativeElement.appendChild(input);
+    const scrollSpy = spyOn(input, 'scrollIntoView');
+    const publishSpy = spyOn(TestBed.inject(FormComponentEventBus), 'publish');
+    const event = new MouseEvent('click', { cancelable: true });
 
-    component.revealTabParents(['mainTab', 'storage', 'field']);
+    fixture.componentInstance.onValidationSummaryClick(event, {
+      id: input.id, message: 'Required field', errors: [],
+      lineagePaths: { angularComponents: [], dataModel: [], formConfig: [], layout: [] },
+    });
+    tick(0);
 
-    expect(selectTab).toHaveBeenCalledOnceWith('storage');
-  });
+    expect(event.defaultPrevented).toBeTrue();
+    expect(document.activeElement).toBe(input);
+    expect(scrollSpy).toHaveBeenCalledOnceWith({ behavior: 'smooth', block: 'center' });
+    expect(publishSpy).not.toHaveBeenCalled();
+  }));
+
+  for (const targetId of [null, 'missing-summary-target']) {
+    it(`leaves focus unchanged when a summary has no lineage and target ${targetId}`, fakeAsync(() => {
+      const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
+      const input = document.createElement('input');
+      fixture.nativeElement.appendChild(input);
+      input.focus();
+
+      fixture.componentInstance.onValidationSummaryClick(new MouseEvent('click'), {
+        id: targetId, message: 'Unavailable field', errors: [],
+        lineagePaths: { angularComponents: [], dataModel: [], formConfig: [], layout: [] },
+      });
+      tick(0);
+
+      expect(document.activeElement).toBe(input);
+    }));
+  }
 
   it('should cancel a deferred validation refresh when destroyed', fakeAsync(() => {
     const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
@@ -466,6 +486,8 @@ describe('ValidationSummaryFieldComponent', () => {
     const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
     const nativeEl: HTMLElement = fixture.nativeElement;
     const link = nativeEl.querySelector('a[data-validation-summary-id="form-item-id-text-1-event"]') as HTMLAnchorElement | null;
+    const input = nativeEl.querySelector<HTMLInputElement>('input')!;
+    const focusSpy = spyOn(input, 'focus').and.callThrough();
 
     expect(link).toBeTruthy();
     link?.click();
@@ -480,6 +502,10 @@ describe('ValidationSummaryFieldComponent', () => {
     expect(focusRequest.lineagePath).toEqual(['text_1_event']);
     expect(focusRequest.source).toBe('validation-summary');
     expect(focusRequest.sourceId).toBe(formComponent.eventScopeId);
+    await fixture.whenStable();
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    expect(document.activeElement).toBe(input);
+    expect(focusSpy).toHaveBeenCalledTimes(1);
   });
 
   it('should reveal hidden tab and focus field when clicking a validation summary link', async () => {
