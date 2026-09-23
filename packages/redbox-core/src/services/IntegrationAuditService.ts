@@ -752,7 +752,7 @@ export namespace Services {
 
       if (_.isPlainObject(requestSummary) && requestSummary != null) {
         const event = (requestSummary as Record<string, unknown>)['event'];
-        if (event === 'draft' || event === 'publish') {
+        if (event === 'draft' || event === 'publish' || event === 'register' || event === 'hide') {
           keyResult['event'] = event;
         }
       }
@@ -907,6 +907,8 @@ export namespace Services {
         if (doiState === 'registered') return this.makeOutcome('doi', 'registered', 'pending', true);
         if (event === 'publish') return this.makeOutcome('doi', 'published', 'success');
         if (event === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        // State change requests record only the event; both of these leave the DOI registered.
+        if (event === 'register' || event === 'hide') return this.makeOutcome('doi', 'registered', 'pending', true);
         if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {
           return this.makeOutcome('doi', 'published', 'success');
         }
