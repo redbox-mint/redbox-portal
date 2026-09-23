@@ -116,6 +116,114 @@ describe('Webservice DashboardConfigController', () => {
     (global as any).DashboardTypesService = originalDashboardTypesService;
   });
 
+  function createResponse() {
+    return {
+      status: sinon.stub().returnsThis(),
+      set: sinon.stub().returnsThis(),
+      json: sinon.stub().returnsThis(),
+    };
+  }
+
+  for (const action of [
+    'getDashboardType',
+    'updateDashboardType',
+    'deleteDashboardType',
+    'getMergedTypeFormatRules',
+  ] as const) {
+    for (const dashboardType of [undefined, '   ']) {
+      it(`${action} returns a serializable 400 for ${dashboardType === undefined ? 'missing' : 'blank'} dashboardType`, async () => {
+        const req = {
+          session: { branding: 'default' },
+          param: sinon.stub().withArgs('dashboardType').returns(dashboardType),
+          query: {},
+          headers: {},
+        } as unknown as Sails.Req;
+        const res = createResponse();
+
+        await controller[action](req, res as unknown as Sails.Res);
+
+        sinon.assert.calledOnceWithExactly(res.status, 400);
+        expect(res.json.firstCall.args[0].message).to.equal('dashboardType is required');
+        expect(res.set.firstCall.args[0]['Cache-control']).to.equal('no-cache, private');
+      });
+    }
+  }
+
+  for (const testCase of [
+    {
+      action: 'getMergedConfig',
+      present: 'recordType',
+      missing: 'workflowStage',
+      message: 'recordType and workflowStage are required',
+    },
+    {
+      action: 'getMergedConfig',
+      present: 'workflowStage',
+      missing: 'recordType',
+      message: 'recordType and workflowStage are required',
+    },
+    {
+      action: 'getMergedViewConfig',
+      present: 'viewName',
+      missing: 'stepName',
+      message: 'viewName and stepName are required',
+    },
+    {
+      action: 'getMergedViewConfig',
+      present: 'stepName',
+      missing: 'viewName',
+      message: 'viewName and stepName are required',
+    },
+  ] as const) {
+    it(`${testCase.action} returns a serializable 400 when ${testCase.missing} is missing`, async () => {
+      const param = sinon.stub();
+      param.withArgs(testCase.present).returns('configured-value');
+      const req = {
+        session: { branding: 'default' },
+        param,
+        query: {},
+        headers: {},
+      } as unknown as Sails.Req;
+      const res = createResponse();
+
+      await controller[testCase.action](req, res as unknown as Sails.Res);
+
+      sinon.assert.calledOnceWithExactly(res.status, 400);
+      expect(res.json.firstCall.args[0].message).to.equal(testCase.message);
+      expect(res.set.firstCall.args[0]['Cache-control']).to.equal('no-cache, private');
+      sinon.assert.notCalled(DashboardConfigService.getMergedDashboardTableConfig as sinon.SinonStub);
+      sinon.assert.notCalled(DashboardConfigService.getMergedDashboardViewTableConfig as sinon.SinonStub);
+    });
+  }
+
+  for (const testCase of [
+    {
+      error: new Error('Dashboard configuration is invalid'),
+      status: 400,
+      message: 'Dashboard configuration is invalid',
+    },
+    {
+      error: new Error('Dashboard configuration was not found'),
+      status: 404,
+      message: 'Dashboard configuration was not found',
+    },
+    { error: new Error('Private database connection failure'), status: 500, message: 'server-error' },
+    { error: 'Private non-Error failure', status: 500, message: 'server-error' },
+  ]) {
+    it(`serializes a ${testCase.status} response for service rejection: ${String(testCase.error)}`, async () => {
+      (DashboardConfigService.getDashboardConfigInfo as sinon.SinonStub).returns(Promise.reject(testCase.error));
+      const req = { session: { branding: 'default' }, query: {}, headers: {} } as unknown as Sails.Req;
+      const res = createResponse();
+
+      await controller.getConfigInfo(req, res as unknown as Sails.Res);
+
+      sinon.assert.calledOnceWithExactly(res.status, testCase.status);
+      expect(res.json.firstCall.args[0].message).to.equal(testCase.message);
+      expect(JSON.stringify(res.json.firstCall.args[0])).not.to.include('Private');
+      expect(res.set.firstCall.args[0]['Cache-control']).to.equal('no-cache, private');
+    });
+  }
+
   it('returns an actual 404 response for a deleted dashboard type', async () => {
     (global as any).DashboardTypesService.getDashboardTypeDefinition.resolves(null);
     const req = { session: { branding: 'default' }, param: sinon.stub().withArgs('dashboardType').returns('deleted-owned-type'), query: {}, headers: {} } as unknown as Sails.Req;
@@ -161,13 +269,12 @@ describe('Webservice DashboardConfigController', () => {
       session: { branding: 'default' },
       body: { name: 'my-type', formatRules: { filterBy: {} }, tableConfig: { rowConfig: [] } }
     } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    const res = createResponse();
 
-    await controller.createDashboardType(req, res);
+    await controller.createDashboardType(req, res as unknown as Sails.Res);
 
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(409);
+    sinon.assert.calledOnceWithExactly(res.status, 409);
+    expect(res.json.firstCall.args[0].message).to.equal("Dashboard type 'my-type' already exists for brand 'default'");
   });
 
   it('maps system dashboard type delete errors to forbidden responses', async () => {
@@ -175,13 +282,12 @@ describe('Webservice DashboardConfigController', () => {
     const param = sinon.stub();
     param.withArgs('dashboardType').returns('standard');
     const req = { session: { branding: 'default' }, param } as unknown as Sails.Req;
-    const res = {} as Sails.Res;
-    const sendRespStub = sinon.stub(controller as any, 'sendResp');
+    const res = createResponse();
 
-    await controller.deleteDashboardType(req, res);
+    await controller.deleteDashboardType(req, res as unknown as Sails.Res);
 
-    expect(sendRespStub.calledOnce).to.be.true;
-    expect(sendRespStub.firstCall.args[2]?.status).to.equal(403);
+    sinon.assert.calledOnceWithExactly(res.status, 403);
+    expect(res.json.firstCall.args[0].message).to.equal("System dashboard type 'standard' cannot be deleted");
   });
 
   it('returns a merged workflow config', async () => {
