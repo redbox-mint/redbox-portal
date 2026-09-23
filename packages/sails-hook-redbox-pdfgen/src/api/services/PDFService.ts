@@ -348,6 +348,12 @@ export namespace Services {
             return false;
           }
         };
+        const loginPath = `/${(sails.config.auth?.loginPath || 'user/login').replace(/^\/+|\/+$/g, '')}`;
+        const isAuthenticationRedirect = (url: string): boolean => {
+          const pathname = new URL(url).pathname.replace(/\/+$/, '');
+          return pathname === loginPath || pathname.endsWith(loginPath)
+            || /^\/user\/(?:login(?:_[^/]*)?|begin_oidc)$/.test(pathname);
+        };
         let blockedNavigationUrl: string | undefined;
 
         // A page-wide Authorization header follows redirects and can reach other
@@ -426,7 +432,15 @@ export namespace Services {
             throw new Error(`Record navigation returned HTTP ${navigationResponse.status()}`);
           }
           const redirectUrls = navigationResponse.request().redirectChain().map(request => request.url());
-          for (const url of [...redirectUrls, navigationResponse.url(), page.url()]) {
+          for (const url of redirectUrls) {
+            if (new URL(url).origin !== expectedUrl.origin) {
+              throw new Error(`Record navigation left the portal origin: ${url}`);
+            }
+            if (isAuthenticationRedirect(url)) {
+              throw new Error(`Record navigation redirected through authentication: ${url}`);
+            }
+          }
+          for (const url of [navigationResponse.url(), page.url()]) {
             if (!isRecordUrl(url)) {
               throw new Error(`Record navigation left the expected record route: ${url}`);
             }

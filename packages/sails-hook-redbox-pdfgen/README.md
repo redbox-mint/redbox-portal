@@ -88,7 +88,7 @@ The same settings are editable in the portal admin UI under **PDF Generation Con
 | `retryBackoffMultiplier` | number | `2` | Exponential multiplier: delay is `retryDelayMs * multiplier ^ retryIndex`. |
 | `PDFOptions` | object | `{}` | Puppeteer `page.pdf()` options. |
 
-The bearer token is sent only to the configured portal origin. PDF generation fails if the record request has no response, returns a non-2xx status, redirects through another route, or leaves the expected record URL. Off-origin page navigation is blocked before it can reach an external login service. These failures are recorded in the PDF audit and follow the normal retry settings; no PDF is staged or attached for a failed attempt.
+The bearer token is sent only to the configured portal origin. PDF generation fails if the record request has no response, returns a non-2xx status, redirects through a login route, or finishes outside the expected record URL. Same-origin redirects can succeed when they finish at the requested record. Off-origin page navigation is blocked before it can reach an external login service. These failures are recorded in the PDF audit and follow the normal retry settings; no PDF is staged or attached for a failed attempt.
 
 ### Readiness strategies
 

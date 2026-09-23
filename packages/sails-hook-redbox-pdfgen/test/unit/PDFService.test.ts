@@ -193,6 +193,20 @@ describe('PDFService Unit Tests', () => {
     expect(mockPage.pdf.called).to.be.false;
   });
 
+  it('accepts a same-origin redirect that ends at the requested record', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-redirected';
+    const intermediateUrl = 'http://localhost:1500/default/rdmp/record/resolve/oid-redirected';
+    mockPage.goto.resolves(navigationResponse(recordUrl, 200, [recordUrl, intermediateUrl]));
+
+    await Effect.runPromise(
+      pdfService.attemptPDFGeneration('oid-redirected', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(mockPage.pdf.calledOnce).to.be.true;
+    expect(storageDiskPutStub.calledOnce).to.be.true;
+    expect(addDatastreamStub.calledOnce).to.be.true;
+  });
+
   it('rejects a missing navigation response', async () => {
     mockPage.goto.resolves(null);
 
