@@ -880,6 +880,10 @@ export namespace Services {
         || action === IntegrationAuditAction.updateDoiTriggerSync;
     }
 
+    /**
+     * Maps a DOI audit summary to a user-facing outcome. The DOI state DataCite returned takes
+     * precedence over the requested event, which takes precedence over the record's workflow stage.
+     */
     private mapDoiOutcome(s: IntegrationStatusSummary, ctx: IntegrationStatusRecordContext): IntegrationOutcome | undefined {
       const status = s.status;
       const kr = s.keyResult ?? {};
@@ -900,6 +904,7 @@ export namespace Services {
       if (status === 'success') {
         if (doiState === 'findable') return this.makeOutcome('doi', 'published', 'success');
         if (doiState === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
+        if (doiState === 'registered') return this.makeOutcome('doi', 'registered', 'pending', true);
         if (event === 'publish') return this.makeOutcome('doi', 'published', 'success');
         if (event === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
         if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {
@@ -975,10 +980,10 @@ export namespace Services {
         if (mapper) {
           s.outcome = mapper(s, ctx);
         }
-        // Backfill doi from ctx.citationDoi for doi summaries in draft-assigned/published states without a doi yet
+        // Backfill doi from ctx.citationDoi for doi summaries in draft-assigned/registered/published states without a doi yet
         if (s.integrationName.toLowerCase() === 'doi' && !s.keyResult?.['doi'] && ctx.citationDoi) {
           const outcomeState = s.outcome?.state;
-          if (outcomeState === 'draft-assigned' || outcomeState === 'published') {
+          if (outcomeState === 'draft-assigned' || outcomeState === 'registered' || outcomeState === 'published') {
             if (!s.keyResult) s.keyResult = {};
             s.keyResult['doi'] = ctx.citationDoi;
           }

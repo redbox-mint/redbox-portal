@@ -723,6 +723,24 @@ describe('IntegrationAuditService', function () {
 
       expect(result[0].outcome?.state).to.equal('published');
     });
+
+    it('does not report a registered DOI as published on a published record', async function () {
+      mockStorageService.countIntegrationAudit.resolves(2);
+      mockStorageService.getIntegrationAudit.resolves(metadataOnlyUpdateRows('registered'));
+
+      const result = await service.getStatusSummaryWithOutcomes(
+        { oid: 'oid-1', integrationName: 'doi' } as any,
+        { workflowStage: 'published', citationDoi: '10.1234/draft' } as any
+      );
+
+      expect(result[0].keyResult?.event).to.equal(undefined);
+      expect(result[0].outcome).to.deep.include({
+        state: 'registered',
+        severity: 'pending',
+        labelKey: '@integration-status-outcome-doi-registered',
+        helpKey: '@integration-status-outcome-doi-registered-help',
+      });
+    });
   });
 
   it('extractKeyResult reads articleId from responseSummary (figshare shape)', async function () {

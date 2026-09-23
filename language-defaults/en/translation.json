@@ -1479,6 +1479,8 @@
   "@integration-status-outcome-doi-updating": "DOI being updated",
   "@integration-status-outcome-doi-draft-assigned": "Draft DOI assigned",
   "@integration-status-outcome-doi-draft-assigned-help": "Your draft DOI will become active when the record is published.",
+  "@integration-status-outcome-doi-registered": "DOI registered but not public",
+  "@integration-status-outcome-doi-registered-help": "The DOI resolves, but DataCite does not publicly list its metadata.",
   "@integration-status-outcome-doi-published": "DOI active",
   "@integration-status-outcome-doi-error": "DOI request had a problem",
   "@integration-status-outcome-figshare-none": "Not yet sent to Figshare",
