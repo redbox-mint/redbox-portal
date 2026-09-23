@@ -767,6 +767,11 @@ export namespace Services {
           if (!_.isEmpty(dataId) && /^10\.\d+\/\S+/i.test(String(dataId))) {
             keyResult['doi'] = dataId;
           }
+          // DataCite returns the DOI's resulting state, which is the only record of it when no event was sent.
+          const doiState = _.get(rs['data'], ['attributes', 'state']);
+          if (doiState === 'draft' || doiState === 'registered' || doiState === 'findable') {
+            keyResult['doiState'] = doiState;
+          }
         }
         if (!_.isEmpty(rs['articleId'])) {
           keyResult['articleId'] = rs['articleId'];
@@ -879,6 +884,7 @@ export namespace Services {
       const status = s.status;
       const kr = s.keyResult ?? {};
       const event = kr['event'] as string | undefined;
+      const doiState = kr['doiState'] as string | undefined;
       const doiKnown = Boolean(kr['doi']) || Boolean(ctx.citationDoi);
 
       if (status === 'started') {
@@ -892,6 +898,8 @@ export namespace Services {
       if (status === 'failed') return this.makeOutcome('doi', 'error', 'error', true);
 
       if (status === 'success') {
+        if (doiState === 'findable') return this.makeOutcome('doi', 'published', 'success');
+        if (doiState === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
         if (event === 'publish') return this.makeOutcome('doi', 'published', 'success');
         if (event === 'draft') return this.makeOutcome('doi', 'draft-assigned', 'pending', true);
         if (doiKnown && this.isPublishedStage(ctx.workflowStage)) {

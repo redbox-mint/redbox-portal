@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { DateTime } from 'luxon';
 import type {
   DoiAffiliationMapping,
+  DoiArraySourceMapping,
   DoiContributorMapping,
   DoiCreatorMapping,
   DoiGeoLocationMapping,
@@ -66,6 +67,22 @@ async function mapNameIdentifiers(mappings: Array<Record<string, unknown>> | und
   return values.length === 0 ? undefined : values;
 }
 
+/**
+ * Resolves the record values an array mapping iterates over. A single value is treated as a
+ * one-item list, null items are skipped, and non-object items are exposed to bindings as `item.value`.
+ */
+function getSourceItems(record: DoiRecordModel, sourcePath: string): Array<{ item: JsonObject; index: number }> {
+  const source = _.get(record, sourcePath);
+  const values: unknown[] = Array.isArray(source) ? source : source == null ? [] : [source];
+  const items: Array<{ item: JsonObject; index: number }> = [];
+  values.forEach((value, index) => {
+    if (value != null) {
+      items.push({ item: _.isPlainObject(value) ? value as JsonObject : { value }, index });
+    }
+  });
+  return items;
+}
+
 async function mapCreators(
   mappings: DoiCreatorMapping[] | DoiContributorMapping[] | undefined,
   record: DoiRecordModel,
@@ -77,17 +94,8 @@ async function mapCreators(
   }
   const results: JsonObject[] = [];
   for (const mapping of mappings) {
-    const sourceItems = _.get(record, mapping.sourcePath);
-    if (!Array.isArray(sourceItems)) {
-      continue;
-    }
-    for (let index = 0; index < sourceItems.length; index++) {
-      const item = sourceItems[index];
-      const context = {
-        ...createBindingContext(record, oid, profile),
-        item: item != null && typeof item === 'object' ? item as Record<string, unknown> : {},
-        index
-      };
+    for (const { item, index } of getSourceItems(record, mapping.sourcePath)) {
+      const context = { ...createBindingContext(record, oid, profile), item, index };
       const mapped = await mapNamedFields(mapping as unknown as Record<string, unknown>, context);
       const affiliations = await mapAffiliations(mapping.affiliations, context);
       const nameIdentifiers = await mapNameIdentifiers(mapping.nameIdentifiers as Array<Record<string, unknown>> | undefined, context);
@@ -105,45 +113,48 @@ async function mapCreators(
   return results;
 }
 
-/** Expands a configured metadata collection and omits entries missing its required value. */
-async function mapSimpleArray<T extends Record<string, unknown>>(
+/** Fields an entry must contain before it is sent: every `all` field and at least one `any` field. */
+interface EntryRequirement<T> {
+  all?: ReadonlyArray<keyof T & string>;
+  any?: ReadonlyArray<keyof T & string>;
+}
+
+function meetsRequirement<T>(entry: JsonObject, requirement: EntryRequirement<T>): boolean {
+  const present = (field: string) => entry[field] != null;
+  return (requirement.all ?? []).every(present)
+    && (requirement.any == null || requirement.any.some(present));
+}
+
+/**
+ * Maps a metadata collection, expanding mappings with a `sourcePath` into one entry per record item.
+ * Entries missing a field DataCite requires for that collection are omitted rather than sent.
+ */
+async function mapSimpleArray<T extends DoiArraySourceMapping>(
   mappings: T[] | undefined,
   record: DoiRecordModel,
   oid: string,
   profile: DoiProfile,
-  requiredField?: string
+  requirement: EntryRequirement<T>
 ): Promise<JsonObject[]> {
   if (!Array.isArray(mappings)) {
     return [];
   }
   const context = createBindingContext(record, oid, profile);
   const results: JsonObject[] = [];
+  const addMapped = (mapped: JsonObject) => {
+    if (meetsRequirement(mapped, requirement)) {
+      results.push(mapped);
+    }
+  };
   for (const mapping of mappings) {
-    const addMapped = (mapped: JsonObject) => {
-      if (!_.isEmpty(mapped) && (requiredField == null || asTrimmedString(mapped[requiredField]) != null)) {
-        results.push(mapped);
-      }
-    };
+    const fields = mapping as unknown as JsonObject;
     const sourcePath = typeof mapping.sourcePath === 'string' ? mapping.sourcePath.trim() : '';
-    if (sourcePath !== '') {
-      const sourceItems = _.get(record, sourcePath);
-      if (!Array.isArray(sourceItems)) {
-        continue;
-      }
-      for (let index = 0; index < sourceItems.length; index++) {
-        const sourceItem = sourceItems[index];
-        if (sourceItem == null) {
-          continue;
-        }
-        const item = typeof sourceItem === 'object' && !Array.isArray(sourceItem)
-          ? sourceItem as Record<string, unknown>
-          : { value: sourceItem };
-        const mapped = await mapNamedFields(mapping, { ...context, item, index });
-        addMapped(mapped);
-      }
-    } else {
-      const mapped = await mapNamedFields(mapping, context);
-      addMapped(mapped);
+    if (sourcePath === '') {
+      addMapped(await mapNamedFields(fields, context));
+      continue;
+    }
+    for (const { item, index } of getSourceItems(record, sourcePath)) {
+      addMapped(await mapNamedFields(fields, { ...context, item, index }));
     }
   }
   return results;
@@ -200,7 +211,7 @@ async function mapRelatedItems(
   const results: JsonObject[] = [];
   for (const mapping of mappings) {
     const entry = await mapNamedFields(mapping as unknown as Record<string, unknown>, context);
-    const titles = await mapSimpleArray(mapping.titles as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'title');
+    const titles = await mapSimpleArray(mapping.titles, record, oid, profile, { all: ['title'] });
     const creators = await mapCreators(mapping.creators, record, oid, profile);
     const contributors = await mapCreators(mapping.contributors, record, oid, profile);
     if (titles.length > 0) {
@@ -224,7 +235,9 @@ async function mapRelatedItems(
  * publisher, publicationYear, resourceTypeGeneral) and the landing-page url when a
  * DOI is moved into the findable state, which is reached via the 'publish' event.
  * Drafts (and other transitions) accept incomplete metadata, so the required-field
- * pre-flight checks are only applied for findable publishes.
+ * pre-flight checks are only applied for findable publishes. A metadata-only update
+ * sends no event and the DOI's current state is not known locally, so those checks
+ * are left to DataCite, which rejects incomplete findable DOIs with a 422 response.
  */
 function isFindableEvent(event: string | undefined): boolean {
   return event === 'publish';
@@ -287,17 +300,19 @@ export async function buildDoiPayload(
   const version = asTrimmedString(await evaluateBinding(profile.metadata.version, context));
   const formats = asStringArray(await evaluateBinding(profile.metadata.formats, context));
   const sizes = asStringArray(await evaluateBinding(profile.metadata.sizes, context));
-  const titles = await mapSimpleArray(profile.metadata.titles as unknown as Array<Record<string, unknown>>, record, oid, profile, 'title');
+  const titles = await mapSimpleArray(profile.metadata.titles, record, oid, profile, { all: ['title'] });
   const creators = await mapCreators(profile.metadata.creators, record, oid, profile);
-  const subjects = await mapSimpleArray(profile.metadata.subjects as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'subject');
+  const subjects = await mapSimpleArray(profile.metadata.subjects, record, oid, profile, { all: ['subject'] });
   const contributors = await mapCreators(profile.metadata.contributors, record, oid, profile);
-  const dates = await mapSimpleArray(profile.metadata.dates as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'date');
-  const alternateIdentifiers = await mapSimpleArray(profile.metadata.alternateIdentifiers as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'identifier');
-  const relatedIdentifiers = await mapSimpleArray(profile.metadata.relatedIdentifiers as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'relatedIdentifier');
-  const rightsList = await mapSimpleArray(profile.metadata.rightsList as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile);
-  const descriptions = await mapSimpleArray(profile.metadata.descriptions as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'description');
+  const dates = await mapSimpleArray(profile.metadata.dates, record, oid, profile, { all: ['date', 'dateType'] });
+  const alternateIdentifiers = await mapSimpleArray(profile.metadata.alternateIdentifiers, record, oid, profile, { all: ['identifier', 'identifierType'] });
+  const relatedIdentifiers = await mapSimpleArray(profile.metadata.relatedIdentifiers, record, oid, profile, {
+    all: ['relatedIdentifier', 'relatedIdentifierType', 'relationType']
+  });
+  const rightsList = await mapSimpleArray(profile.metadata.rightsList, record, oid, profile, { any: ['rights', 'rightsUri', 'rightsIdentifier'] });
+  const descriptions = await mapSimpleArray(profile.metadata.descriptions, record, oid, profile, { all: ['description', 'descriptionType'] });
   const geoLocations = await mapGeoLocations(profile.metadata.geoLocations, record, oid, profile);
-  const fundingReferences = await mapSimpleArray(profile.metadata.fundingReferences as unknown as Array<Record<string, unknown>> | undefined, record, oid, profile, 'funderName');
+  const fundingReferences = await mapSimpleArray(profile.metadata.fundingReferences, record, oid, profile, { all: ['funderName'] });
   const relatedItems = await mapRelatedItems(profile.metadata.relatedItems, record, oid, profile);
   const types = await mapNamedFields(profile.metadata.types as unknown as Record<string, unknown>, context);
 
@@ -363,10 +378,10 @@ export async function buildDoiPayload(
   if (errors.length > 0) {
     const error = new RBValidationError({
       message: `Could not build DOI payload for oid ${oid}: ${errors.join(', ')}`,
-      displayErrors: errors.map(code => ({ code, title: 'datacite-validation-error', meta: { oid, action, event } }))
+      displayErrors: errors.map(code => ({ code, title: 'datacite-validation-error', meta: { oid, action, ...(event != null ? { event } : {}) } }))
     });
     (error as RBValidationError & { requestSummary?: Record<string, unknown> }).requestSummary = {
-      event,
+      ...(event != null ? { event } : {}),
       action,
       requestBody
     };

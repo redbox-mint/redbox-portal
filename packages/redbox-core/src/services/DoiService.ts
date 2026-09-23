@@ -6,6 +6,7 @@
 import { of } from 'rxjs';
 import axios from 'axios';
 import _ from 'lodash';
+import { toBoolean } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
 import { BrandingModel } from '../model/storage/BrandingModel';
@@ -278,7 +279,7 @@ export namespace Services {
         if (action === 'update' && citationDoi == null) {
           throw new RBValidationError({
             message: `Could not update DOI for oid ${oid}: doi-required`,
-            displayErrors: [{ code: 'doi-required', title: 'datacite-validation-error', meta: { oid, action, event } }]
+            displayErrors: [{ code: 'doi-required', title: 'datacite-validation-error', meta: { oid, action, ...(event != null ? { event } : {}) } }]
           });
         }
         if (action === 'update' && citationDoi != null && prefix != null && !citationDoi.startsWith(prefix)) {
@@ -336,8 +337,12 @@ export namespace Services {
       if (config == null) {
         return null;
       }
-      // A metadata-only update leaves an existing DataCite DOI in its current state.
-      const effectiveEvent = action === 'update' && options.metadataOnly === true
+      // A metadata-only update sends no event, leaving an existing DataCite DOI in its current state.
+      const metadataOnly = toBoolean(options.metadataOnly);
+      if (metadataOnly && action === 'create') {
+        sails.log.warn(`Ignoring metadataOnly for oid ${oid}: a new DOI is created with the '${event || config.operations.createEvent}' event.`);
+      }
+      const effectiveEvent = metadataOnly && action === 'update'
         ? undefined
         : event || (action === 'update' ? config.operations.updateEvent : config.operations.createEvent);
       return this.publishV2Doi(oid, record, config, effectiveEvent, action, options);

@@ -24,8 +24,8 @@ export type ValueBinding = PathBinding | HandlebarsBinding | JsonataBinding;
 export type DoiBindingKind = ValueBinding['kind'];
 
 export interface DoiArraySourceMapping {
+  /** Record path to repeatable values; when set, one entry is mapped per value, exposed to bindings as `item` and `index`. */
   sourcePath?: string;
-  itemMode?: 'array';
 }
 
 export interface DoiNameIdentifierMapping {
@@ -472,8 +472,7 @@ const CONTRIBUTOR_SCHEMA = {
 };
 
 const OPTIONAL_ARRAY_SOURCE_PROPERTIES = {
-  sourcePath: { type: 'string', title: 'Source Path' },
-  itemMode: { type: 'string', title: 'Item Mode', enum: ['array'] }
+  sourcePath: { type: 'string', title: 'Source Path' }
 };
 
 const TITLE_SCHEMA = {

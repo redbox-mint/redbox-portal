@@ -215,11 +215,30 @@ describe('DoiService', function() {
       } });
 
       await service.publishDoi('oid1', record, 'publish', 'update', { metadataOnly: true });
+      await service.publishDoi('oid1', record, 'publish', 'update', { metadataOnly: 'true' });
 
-      const updateCall = (runtime.runUpdateDoiProgram as sinon.SinonStub).firstCall;
-      expect(updateCall).to.exist;
-      expect(updateCall.args[3].data.attributes).to.not.have.property('event');
-      expect(updateCall.args[3].data.attributes.titles).to.deep.equal([{ title: 'Updated title' }]);
+      const updateCalls = (runtime.runUpdateDoiProgram as sinon.SinonStub).getCalls();
+      expect(updateCalls).to.have.length(2);
+      for (const updateCall of updateCalls) {
+        expect(updateCall.args[3].data.attributes).to.not.have.property('event');
+        expect(updateCall.args[3].data.attributes.titles).to.deep.equal([{ title: 'Updated title' }]);
+        expect(updateCall.args[4].requestSummary).to.not.have.property('event');
+      }
+    });
+
+    it('warns and keeps the event when metadataOnly is set on a DOI create', async function() {
+      const record = withBrand({ metadata: {
+        creators: [{ given_name: 'First', family_name: 'Last' }],
+        citation_title: 'New title',
+        citation_publisher: 'My Publisher',
+        citation_publication_date: '2023-04-01'
+      } });
+
+      await service.publishDoi('oid1', record, 'draft', 'create', { metadataOnly: true });
+
+      const createCall = (runtime.runCreateDoiProgram as sinon.SinonStub).firstCall;
+      expect(createCall.args[2].data.attributes.event).to.equal('draft');
+      expect((mockSails.log.warn as sinon.SinonStub).calledWithMatch('Ignoring metadataOnly for oid oid1')).to.be.true;
     });
 
     it('keeps explicit and configured events on ordinary DOI updates', async function() {

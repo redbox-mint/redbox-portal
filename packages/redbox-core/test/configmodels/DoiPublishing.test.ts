@@ -13,7 +13,7 @@ describe('DoiPublishing configuration', function () {
     ({ expect } = await import('chai'));
   });
 
-  it('exposes array source settings for every simple metadata collection', function () {
+  it('exposes an array source path for every simple metadata collection', function () {
     const metadata = DOI_PUBLISHING_SCHEMA.properties.profiles.items.properties.metadata.properties;
     const collections = [
       'titles', 'subjects', 'dates', 'alternateIdentifiers', 'relatedIdentifiers',
@@ -21,17 +21,14 @@ describe('DoiPublishing configuration', function () {
     ] as const;
 
     for (const collection of collections) {
-      const properties = metadata[collection].items.properties;
-      expect(properties.sourcePath.type, collection).to.equal('string');
-      expect(properties.itemMode.enum, collection).to.deep.equal(['array']);
+      expect(metadata[collection].items.properties.sourcePath.type, collection).to.equal('string');
     }
 
     const relatedTitles = metadata.relatedItems.items.properties.titles.items.properties;
     expect(relatedTitles.sourcePath.type).to.equal('string');
-    expect(relatedTitles.itemMode.enum).to.deep.equal(['array']);
   });
 
-  it('preserves array source settings through the admin form adapter', function () {
+  it('preserves array source paths through the admin form adapter', function () {
     const config = new DoiPublishing();
     config.profiles = {
       dataPublication: {
@@ -45,12 +42,10 @@ describe('DoiPublishing configuration', function () {
           titles: [{ title: createDefaultBinding('record.title') }],
           subjects: [{
             sourcePath: 'metadata.keywords',
-            itemMode: 'array',
             subject: createDefaultBinding('item.value')
           }],
           descriptions: [{
             sourcePath: 'metadata.notes',
-            itemMode: 'array',
             description: createDefaultBinding('item.text'),
             descriptionType: createDefaultBinding('', 'Other')
           }],
@@ -72,7 +67,7 @@ describe('DoiPublishing configuration', function () {
 
     const form = toDoiPublishingFormModel(config);
     expect(form.profiles[0].metadata.subjects?.[0].sourcePath).to.equal('metadata.keywords');
-    expect(form.profiles[0].metadata.descriptions?.[0].itemMode).to.equal('array');
+    expect(form.profiles[0].metadata.descriptions?.[0].sourcePath).to.equal('metadata.notes');
 
     const saved = fromDoiPublishingFormModel(form);
     expect(saved.profiles.dataPublication).to.deep.equal(config.profiles.dataPublication);
