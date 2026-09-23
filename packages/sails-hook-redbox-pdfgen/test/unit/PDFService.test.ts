@@ -6,6 +6,7 @@ const {
   installPdfgenTestGlobals,
   waitForAssertion,
   navigationResponse,
+  navigationRequest,
 } = require('../support/globals');
 
 const globalAny = global as any;
@@ -324,6 +325,127 @@ describe('PDFService Unit Tests', () => {
     expect(storageDiskPutStub.calledOnce).to.be.true;
     expect(addDatastreamStub.calledOnce).to.be.true;
   });
+
+  for (const status of [401, 500]) {
+    it(`rejects a same-URL reload that returns HTTP ${status} during readiness`, async () => {
+      const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-reload';
+      const request = navigationRequest(recordUrl, mockPage.mainFrame());
+      mockPage.waitForNetworkIdle.callsFake(async () => {
+        mockPage.on.withArgs('request').firstCall.args[1](request);
+        request.response.returns(navigationResponse(recordUrl, status));
+      });
+
+      const exit = await Effect.runPromiseExit(
+        pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
+      );
+
+      expect(exit._tag).to.equal('Failure');
+      const failure = Cause.failureOption(exit.cause);
+      expect(failure._tag).to.equal('Some');
+      expect(failure.value._tag).to.equal('BrowserError');
+      expect(failure.value.cause.message).to.equal(`Record navigation returned HTTP ${status}`);
+      expect(mockPage.pdf.called).to.be.false;
+      expect(storageDiskPutStub.called).to.be.false;
+      expect(addDatastreamStub.called).to.be.false;
+    });
+  }
+
+  it('rejects a reload through authentication that returns to the record URL', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-reload';
+    const loginUrl = 'http://localhost:1500/default/rdmp/user/login';
+    const response = navigationResponse(recordUrl, 200, [recordUrl, loginUrl]);
+    mockPage.waitForNetworkIdle.callsFake(async () => {
+      mockPage.on.withArgs('request').firstCall.args[1](navigationRequest(recordUrl, mockPage.mainFrame(), response));
+    });
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    const failure = Cause.failureOption(exit.cause);
+    expect(failure._tag).to.equal('Some');
+    expect(failure.value.cause.message).to.equal(`Record navigation redirected through authentication: ${loginUrl}`);
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+    expect(addDatastreamStub.called).to.be.false;
+  });
+
+  it('rejects a pending main-frame reload instead of reusing the initial response', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-reload';
+    mockPage.waitForNetworkIdle.callsFake(async () => {
+      mockPage.on.withArgs('request').firstCall.args[1](navigationRequest(recordUrl, mockPage.mainFrame()));
+    });
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    const failure = Cause.failureOption(exit.cause);
+    expect(failure._tag).to.equal('Some');
+    expect(failure.value.cause.message).to.equal('Record navigation returned no response');
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+    expect(addDatastreamStub.called).to.be.false;
+  });
+
+  it('rejects a failed reload that starts before goto resolves', async () => {
+    mockPage.goto.callsFake(async (url: string) => {
+      const reload = navigationRequest(url, mockPage.mainFrame(), navigationResponse(url, 500));
+      mockPage.on.withArgs('request').firstCall.args[1](reload);
+      return navigationResponse(url);
+    });
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.waitForNetworkIdle.called).to.be.false;
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+    expect(addDatastreamStub.called).to.be.false;
+  });
+
+  it('renders a successful same-URL reload during readiness', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-reload';
+    const request = navigationRequest(recordUrl, mockPage.mainFrame());
+    mockPage.waitForNetworkIdle.callsFake(async () => {
+      mockPage.on.withArgs('request').firstCall.args[1](request);
+      request.response.returns(navigationResponse(recordUrl));
+    });
+
+    await Effect.runPromise(
+      pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(mockPage.pdf.calledOnce).to.be.true;
+    expect(storageDiskPutStub.calledOnce).to.be.true;
+    expect(addDatastreamStub.calledOnce).to.be.true;
+  });
+
+  for (const kind of ['subresource', 'iframe']) {
+    it(`ignores a failed ${kind} response after a successful main-frame reload`, async () => {
+      const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-reload';
+      mockPage.waitForNetworkIdle.callsFake(async () => {
+        const onRequest = mockPage.on.withArgs('request').firstCall.args[1];
+        onRequest(navigationRequest(recordUrl, mockPage.mainFrame(), navigationResponse(recordUrl)));
+        onRequest({
+          ...navigationRequest(recordUrl, kind === 'iframe' ? {} : mockPage.mainFrame(), navigationResponse(recordUrl, 500)),
+          isNavigationRequest: () => kind === 'iframe',
+        });
+      });
+
+      await Effect.runPromise(
+        pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
+      );
+
+      expect(mockPage.pdf.calledOnce).to.be.true;
+      expect(storageDiskPutStub.calledOnce).to.be.true;
+      expect(addDatastreamStub.calledOnce).to.be.true;
+    });
+  }
 
   it('blocks off-origin navigation and keeps the bearer token on portal requests', async () => {
     const handler = () => mockPage.on.getCalls()

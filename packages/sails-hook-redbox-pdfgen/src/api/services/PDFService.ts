@@ -1,6 +1,6 @@
 import { of } from 'rxjs';
 
-import { launch, type Page, type PDFOptions as PuppeteerPDFOptions } from 'puppeteer';
+import { launch, type HTTPRequest, type Page, type PDFOptions as PuppeteerPDFOptions } from 'puppeteer';
 import { DateTime } from 'luxon';
 import * as fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -356,6 +356,7 @@ export namespace Services {
             || /^\/user\/(?:login(?:_[^/]*)?|begin_oidc)$/.test(pathname);
         };
         let blockedNavigationUrl: string | undefined;
+        let latestNavigationRequest: HTTPRequest | undefined;
 
         // A page-wide Authorization header follows redirects and can reach other
         // origins. Attach the token only to requests for this portal instead.
@@ -363,13 +364,15 @@ export namespace Services {
           try: async () => {
             page.on('request', (request) => {
               const requestUrl = new URL(request.url());
-              if (request.isNavigationRequest() && request.frame() === page.mainFrame()
-                  && requestUrl.origin !== expectedUrl.origin) {
-                blockedNavigationUrl = request.url();
-                void request.abort('blockedbyclient').catch((error: unknown) => {
-                  sails.log.warn('PDFService::Failed to block off-origin navigation.', error);
-                });
-                return;
+              if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+                latestNavigationRequest = request;
+                if (requestUrl.origin !== expectedUrl.origin) {
+                  blockedNavigationUrl = request.url();
+                  void request.abort('blockedbyclient').catch((error: unknown) => {
+                    sails.log.warn('PDFService::Failed to block off-origin navigation.', error);
+                  });
+                  return;
+                }
               }
 
               const headers = request.headers();
@@ -415,7 +418,7 @@ export namespace Services {
 
         yield* this.logDebug(`PDFService::Chromium loading page: ${currentURL}`);
 
-        const navigationResponse = yield* Effect.tryPromise({
+        const initialNavigationResponse = yield* Effect.tryPromise({
           try: () => page.goto(currentURL, { waitUntil: 'domcontentloaded' }),
           catch: (cause) => new BrowserError(oid, currentURL, blockedNavigationUrl
             ? new Error(`Blocked navigation outside the portal: ${blockedNavigationUrl}`)
@@ -426,6 +429,11 @@ export namespace Services {
           if (blockedNavigationUrl) {
             throw new Error(`Blocked navigation outside the portal: ${blockedNavigationUrl}`);
           }
+          // A reload can replace the document without changing its URL. A pending
+          // navigation must not fall back to an earlier successful response.
+          const navigationResponse = latestNavigationRequest
+            ? latestNavigationRequest.response()
+            : initialNavigationResponse;
           if (navigationResponse == null) {
             throw new Error('Record navigation returned no response');
           }

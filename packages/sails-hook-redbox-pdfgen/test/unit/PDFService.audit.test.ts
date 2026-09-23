@@ -6,6 +6,7 @@ const {
   installPdfgenTestGlobals,
   waitForAssertion,
   navigationResponse,
+  navigationRequest,
 } = require('../support/globals');
 
 const globalAny = global as any;
@@ -224,6 +225,28 @@ describe('PDFService Integration Audit', () => {
     expect(error._tag).to.equal('BrowserError');
     expect(details.responseSummary.cause).to.contain(loginUrl);
     expect(mockPage.pdf.called).to.be.false;
+  });
+
+  it('records an audit failure for a same-URL reload that returns HTTP 500', async () => {
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-reload';
+    mockPage.waitForNetworkIdle.callsFake(async () => {
+      const request = navigationRequest(recordUrl, mockPage.mainFrame(), navigationResponse(recordUrl, 500));
+      mockPage.on.withArgs('request').firstCall.args[1](request);
+    });
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-reload', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(auditStub.failAudit.calledOnce).to.be.true;
+    expect(auditStub.completeAudit.called).to.be.false;
+    const [, error, details] = auditStub.failAudit.firstCall.args;
+    expect(error._tag).to.equal('BrowserError');
+    expect(details.responseSummary.cause).to.equal('Record navigation returned HTTP 500');
+    expect(mockPage.pdf.called).to.be.false;
+    expect(globalAny.sails.services.storagemanagerservice.stagingDisk().put.called).to.be.false;
+    expect(globalAny.sails.services.standarddatastreamservice.addDatastream.called).to.be.false;
   });
 
   it('records a child audit failure when readiness config validation fails', async () => {
