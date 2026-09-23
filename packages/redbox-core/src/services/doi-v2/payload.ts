@@ -117,9 +117,33 @@ async function mapSimpleArray<T extends Record<string, unknown>>(
   const context = createBindingContext(record, oid, profile);
   const results: JsonObject[] = [];
   for (const mapping of mappings) {
-    const mapped = await mapNamedFields(mapping, context);
-    if (!_.isEmpty(mapped)) {
-      results.push(mapped);
+    const primaryField = ['subject', 'description', 'title', 'date', 'identifier', 'relatedIdentifier', 'funderName']
+      .find(field => field in mapping);
+    const addMapped = (mapped: JsonObject) => {
+      if (!_.isEmpty(mapped) && (primaryField == null || asTrimmedString(mapped[primaryField]) != null)) {
+        results.push(mapped);
+      }
+    };
+    const sourcePath = typeof mapping.sourcePath === 'string' ? mapping.sourcePath.trim() : '';
+    if (sourcePath !== '') {
+      const sourceItems = _.get(record, sourcePath);
+      if (!Array.isArray(sourceItems)) {
+        continue;
+      }
+      for (let index = 0; index < sourceItems.length; index++) {
+        const sourceItem = sourceItems[index];
+        if (sourceItem == null) {
+          continue;
+        }
+        const item = typeof sourceItem === 'object' && !Array.isArray(sourceItem)
+          ? sourceItem as Record<string, unknown>
+          : { value: sourceItem };
+        const mapped = await mapNamedFields(mapping, { ...context, item, index });
+        addMapped(mapped);
+      }
+    } else {
+      const mapped = await mapNamedFields(mapping, context);
+      addMapped(mapped);
     }
   }
   return results;
@@ -202,7 +226,7 @@ async function mapRelatedItems(
  * Drafts (and other transitions) accept incomplete metadata, so the required-field
  * pre-flight checks are only applied for findable publishes.
  */
-function isFindableEvent(event: string): boolean {
+function isFindableEvent(event: string | undefined): boolean {
   return event === 'publish';
 }
 
@@ -249,7 +273,7 @@ export async function buildDoiPayload(
   oid: string,
   profile: DoiProfile,
   action: DoiAction,
-  event: string
+  event: string | undefined
 ): Promise<Record<string, unknown>> {
   const context = createBindingContext(record, oid, profile);
   const doi = asTrimmedString(await evaluateBinding(profile.metadata.doi, context));
@@ -277,7 +301,7 @@ export async function buildDoiPayload(
   const types = await mapNamedFields(profile.metadata.types as unknown as Record<string, unknown>, context);
 
   const attributes: Record<string, unknown> = {
-    event,
+    ...(event != null ? { event } : {}),
     ...(doi != null ? { doi } : {}),
     ...(action === 'create' && prefix != null ? { prefix } : {}),
     ...(url != null ? { url } : {}),

@@ -257,7 +257,7 @@ export namespace Services {
       oid: string,
       record: DoiRecordModel,
       config: DoiPublishing,
-      event: string,
+      event: string | undefined,
       action: DoiAction,
       options: DoiAuditOptions
     ): Promise<string | null> {
@@ -265,7 +265,7 @@ export namespace Services {
       const runContext = createRunContext(record, resolvedProfile.name, undefined, String(options.triggerSource ?? 'publishDoi'));
       const auditAction = action === 'update' ? IntegrationAuditAction.updateDoi : IntegrationAuditAction.publishDoi;
       const auditCtx = startDoiAudit(oid, auditAction, runContext, {
-        event,
+        ...(event != null ? { event } : {}),
         action,
         profile: resolvedProfile.name
       }, options.auditContext);
@@ -288,7 +288,7 @@ export namespace Services {
 
         const payload = await buildDoiPayload(record, oid, resolvedProfile.profile, action, event);
         requestSummary = {
-          event,
+          ...(event != null ? { event } : {}),
           action,
           profile: resolvedProfile.name,
           ...(citationDoi != null ? { doi: citationDoi } : {}),
@@ -334,7 +334,10 @@ export namespace Services {
       if (config == null) {
         return null;
       }
-      const effectiveEvent = event || (action === 'update' ? config.operations.updateEvent : config.operations.createEvent);
+      // A metadata-only update leaves an existing DataCite DOI in its current state.
+      const effectiveEvent = action === 'update' && options.metadataOnly === true
+        ? undefined
+        : event || (action === 'update' ? config.operations.updateEvent : config.operations.createEvent);
       return this.publishV2Doi(oid, record, config, effectiveEvent, action, options);
     }
 
