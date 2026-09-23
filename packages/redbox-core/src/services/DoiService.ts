@@ -378,14 +378,24 @@ export namespace Services {
       }
     }
 
-    public async changeDoiState(brand: BrandingModel, doi: string, event: string): Promise<boolean> {
+    /**
+     * Sends a DataCite state change event for a DOI. Pass the record's oid so the audit appears in
+     * that record's integration status; without it, the audit is filed under the DOI.
+     */
+    public async changeDoiState(brand: BrandingModel, doi: string, event: string, oid?: string): Promise<boolean> {
       const config = resolveDoiPublishingConfigForBrand(brand);
       if (config == null) {
         return false;
       }
 
-      const runContext = createRunContext({ metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } }, undefined, undefined, 'changeDoiState');
-      const auditCtx = startDoiAudit(doi, IntegrationAuditAction.changeDoiState, runContext, { doi, event });
+      const recordOid = asTrimmedString(oid);
+      const runContext = createRunContext(
+        { redboxOid: recordOid, metadata: {}, branding: brand.name, metaMetadata: { brandId: brand.id } },
+        undefined,
+        undefined,
+        'changeDoiState'
+      );
+      const auditCtx = startDoiAudit(recordOid ?? doi, IntegrationAuditAction.changeDoiState, runContext, { doi, event });
       try {
         const result = await runChangeDoiStateProgram(config, runContext, doi, event, {
           auditContext: auditCtx,

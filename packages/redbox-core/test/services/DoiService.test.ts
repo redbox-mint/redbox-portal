@@ -639,6 +639,21 @@ describe('DoiService', function() {
 
       expect(result).to.be.true;
       expect((runtime.runChangeDoiStateProgram as sinon.SinonStub).calledOnce).to.be.true;
+      expect(((global as any).IntegrationAuditService.startAudit as sinon.SinonStub).firstCall.args[0]).to.equal('10.1234/5678');
+    });
+
+    it('files the state change audit under the record oid when one is provided', async function() {
+      sinon.stub(runtime, 'runChangeDoiStateProgram').resolves({
+        statusCode: 200,
+        responseSummary: { changed: true, doi: '10.1234/5678', event: 'register' }
+      });
+
+      await service.changeDoiState({ id: 'brand-1', name: 'default' }, '10.1234/5678', 'register', 'oid1');
+
+      const startAudit = (global as any).IntegrationAuditService.startAudit as sinon.SinonStub;
+      expect(startAudit.firstCall.args[0]).to.equal('oid1');
+      expect(startAudit.firstCall.args[2].requestSummary).to.deep.equal({ doi: '10.1234/5678', event: 'register' });
+      expect((runtime.runChangeDoiStateProgram as sinon.SinonStub).firstCall.args[1].recordOid).to.equal('oid1');
     });
   });
 
