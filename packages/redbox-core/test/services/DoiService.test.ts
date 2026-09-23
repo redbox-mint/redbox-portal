@@ -222,6 +222,25 @@ describe('DoiService', function() {
       expect(updateCall.args[3].data.attributes.titles).to.deep.equal([{ title: 'Updated title' }]);
     });
 
+    it('keeps explicit and configured events on ordinary DOI updates', async function() {
+      const record = withBrand({ metadata: {
+        creators: [{ given_name: 'First', family_name: 'Last' }],
+        citation_doi: '10.1234/5678',
+        citation_title: 'Updated title',
+        citation_publisher: 'My Publisher',
+        citation_publication_date: '2023-04-01'
+      } });
+      mockSails.config.brandingConfigurationDefaults.doiPublishing.operations.updateEvent = 'draft';
+
+      await service.publishDoi('oid1', record, 'publish', 'update');
+      await service.publishDoi('oid1', record, '', 'update');
+
+      const updateCalls = (runtime.runUpdateDoiProgram as sinon.SinonStub).getCalls();
+      expect(updateCalls).to.have.length(2);
+      expect(updateCalls[0].args[3].data.attributes.event).to.equal('publish');
+      expect(updateCalls[1].args[3].data.attributes.event).to.equal('draft');
+    });
+
     it('should include the DOI request body in failure audits when the downstream create call fails', async function() {
       (runtime.runCreateDoiProgram as sinon.SinonStub).rejects({
         statusCode: 422,
