@@ -173,8 +173,7 @@ jobs:
       - run:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
-      - run: &installCodecov
-          # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-codecov-cli
+      - run: &installCodecov # https://docs.codecov.com/docs/codecov-uploader#integrity-checking-the-codecov-cli
           name: Install codecov
           command: |
             mkdir -p /tmp/.codecov-cli
@@ -374,11 +373,25 @@ jobs:
           command: |
             sudo mkdir -p coverage/playwright
             sudo mkdir -p .tmp/junit/backend-playwright
-            sudo mkdir -p .tmp/playwright
-            sudo mkdir -p .tmp/attachments/staging
+            sudo mkdir -p .tmp/playwright/{logs,attachments,email}
             sudo chmod -R 777 .
       - run:
-          name: Run Playwright browser smoke tests
+          name: Validate Playwright coverage manifest
+          command: npm run test:playwright:check-coverage
+      - run:
+          name: Record Playwright run metadata
+          command: |
+            {
+              echo "commit=$(git rev-parse HEAD)"
+              echo "image=${RBPORTAL_IMAGE}"
+              node -p "'playwright=' + require('./package.json').devDependencies['@playwright/test']"
+              echo "workers=1"
+              echo "retries=0"
+              echo "locale=en-AU"
+              echo "timezone=Australia/Brisbane"
+            } > .tmp/playwright/run-metadata.txt
+      - run:
+          name: Run complete Playwright regression suite
           no_output_timeout: 30m
           command: timeout 1800s npm run test:playwright:ci
       - run:
@@ -388,6 +401,10 @@ jobs:
       - run:
           name: Upload Playwright code coverage
           command: |
+            if [ ! -f ./coverage/playwright/lcov.info ]; then
+              echo "Backend coverage is unavailable because the portal did not produce an lcov report. See the browser result and startup logs."
+              exit 0
+            fi
             sudo chmod -R a+rwX ./coverage
             node support/unit-testing/codecov/prepare-report.cjs "./coverage/playwright/lcov.info"
             /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \

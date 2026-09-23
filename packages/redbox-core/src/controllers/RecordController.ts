@@ -1286,11 +1286,11 @@ export namespace Controllers {
     public async getDeletedRecord(req: Sails.Req, res: Sails.Res) {
       const oid = req.param('oid');
       const brand: BrandingModel = this.getReqBrand(req);
-      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404 });
+      if (!oid || !brand?.id) return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Deleted record not found.' }] });
       const record = await this.recordsService.getDeletedRecordMeta(oid, brand);
-      if (!record) return this.sendResp(req, res, { status: 404 });
+      if (!record) return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: 'Deleted record not found.' }] });
       if (!(await firstValueFrom(this.hasViewAccess(brand, req.user, record)))) {
-        return this.sendResp(req, res, { status: 403 });
+        return this.sendResp(req, res, { status: 403, displayErrors: [{ detail: 'Access to this deleted record is denied.' }] });
       }
       const representation = recordRepresentationConcurrency(record);
       const formName = String(record.metaMetadata?.['form'] ?? '').trim();

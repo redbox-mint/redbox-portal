@@ -33,6 +33,53 @@ describe('FormComponentValueChangeEventConsumer', () => {
     consumer.destroy();
   });
 
+  it('propagates a calculated value to a downstream expression without another user event', fakeAsync(() => {
+    const first = createSetup([{ name: 'first', config: {
+      conditionKind: 'jsonpointer', condition: '/source::field.value.changed', target: 'model.value', template: '',
+    } }]);
+    const second = createSetup([{ name: 'second', config: {
+      conditionKind: 'jsonpointer', condition: '/first::field.value.changed', target: 'model.value', template: '',
+    } }]);
+    if (!first.definition.lineagePaths || !second.definition.lineagePaths) throw new Error('Missing fixture lineage');
+    first.definition.lineagePaths.angularComponentsJsonPointer = '/first';
+    second.definition.lineagePaths.angularComponentsJsonPointer = '/second';
+    const downstream = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventConsumer(eventBus));
+    eventBus.publish.and.callFake(event => {
+      if (event.type === FormComponentEventType.FIELD_VALUE_CHANGED && 'value' in event && typeof event.fieldId === 'string') {
+        eventStream$.next({
+          type: FormComponentEventType.FIELD_VALUE_CHANGED,
+          fieldId: event.fieldId,
+          sourceId: event.sourceId,
+          value: event.value,
+          timestamp: Date.now(),
+        });
+      }
+    });
+    consumer.bind(first);
+    downstream.bind(second);
+    try {
+      eventStream$.next({ type: 'field.value.changed', fieldId: '/source', sourceId: '/source', value: 'changed', timestamp: 1 });
+      tick();
+      expect(first.control.value).toBe('changed');
+      expect(second.control.value).toBe('changed');
+    } finally {
+      downstream.destroy();
+    }
+  }));
+
+  it('does not rebroadcast structurally unchanged calculated values', fakeAsync(() => {
+    const binding = createSetup({
+      initialFormControlValue: { rows: ['one', 'two'] },
+      expressions: [{ name: 'rows', config: {
+        conditionKind: 'jsonpointer', condition: '/source::field.value.changed', target: 'model.value', template: '',
+      } }],
+    });
+    consumer.bind(binding);
+    eventStream$.next({ type: 'field.value.changed', fieldId: '/source', sourceId: '/source', value: { rows: ['one', 'two'] }, timestamp: 1 });
+    tick();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  }));
+
   it('should subscribe to FIELD_VALUE_CHANGED events when bound', () => {
     const expr: FormExpressionsConfigFrame = {
       name: 'model-update',

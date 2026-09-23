@@ -25,7 +25,7 @@ export namespace Controllers {
     /**
      * Exported methods, accessible from internet.
      */
-    protected override _exportedMethods: string[] = ['getAppConfig', 'saveAppConfig'];
+    protected override _exportedMethods: string[] = ['getAppConfig', 'saveAppConfig', 'resetAppConfig'];
 
     /**
      **************************************************************************************************
@@ -34,6 +34,23 @@ export namespace Controllers {
      */
 
     public bootstrap() { }
+
+    public async resetAppConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        const { params } = getValidatedApiRequest(req);
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
+        const value = await AppConfigService.resetConfigOverride(brand, params.appConfigId as string);
+        res.setHeader('X-ReDBox-Config-Source', 'default');
+        return this.apiRespond(req, res, value, 200);
+      } catch (error: unknown) {
+        sails.log.error(error);
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ title: this.getErrorMessage(error) }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
+    }
 
     public async saveAppConfig(req: Sails.Req, res: Sails.Res) {
       try {
@@ -62,7 +79,8 @@ export namespace Controllers {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         const appConfigId = params.appConfigId as string;
         const appConfig = await AppConfigService.getAppConfigByBrandAndKey(brand.id, appConfigId);
-
+        const overridden = await AppConfigService.hasConfigOverride(brand.id, appConfigId);
+        res.setHeader('X-ReDBox-Config-Source', overridden ? 'override' : 'default');
         return this.apiRespond(req, res, appConfig, 200);
       } catch (error) {
         sails.log.error(error);

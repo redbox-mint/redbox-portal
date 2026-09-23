@@ -1,3 +1,4 @@
+import { playwrightDemoTileLayers } from '../playwright/environment';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
 const formConfig: FormConfigFrame = {
@@ -974,6 +975,7 @@ const formConfig: FormConfigFrame = {
                       component: {
                         class: 'MapComponent',
                         config: {
+                          tileLayers: playwrightDemoTileLayers(),
                           zoom: 4,
                           center: [-24.67, 134.07],
                           enableImport: true,

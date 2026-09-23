@@ -32,7 +32,7 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     });
 
     eventStream$ = new Subject();
-    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$']);
+    eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
     eventBus.select$.and.returnValue(eventStream$.asObservable());
 
     consumer = TestBed.runInInjectionContext(() => new FormComponentUIAttributeChangeEventConsumer(eventBus));
@@ -94,6 +94,10 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
 
     // Default value is the full meta object
     expect(control.value).toEqual(meta);
+    expect(eventBus.publish).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+      type: FormComponentEventType.FIELD_VALUE_CHANGED,
+      value: meta
+    }));
   }));
 
   it('should use a custom control value setter when one is registered', fakeAsync(() => {
@@ -160,6 +164,7 @@ describe('FormComponentUIAttributeChangeEventConsumer', () => {
     tick();
 
     expect(setValueSpy).not.toHaveBeenCalled();
+    expect(eventBus.publish).not.toHaveBeenCalled();
   }));
 
   it('should update layout config when target starts with "layout."', fakeAsync(() => {

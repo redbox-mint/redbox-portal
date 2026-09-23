@@ -55,6 +55,7 @@ describe('RolesService', function() {
     };
     (global as any).BrandingService = {
       getDefault: sinon.stub().returns({ id: 'brand-1' }),
+      refreshBrandingCache: sinon.stub().resolves(),
       loadAvailableBrands: sinon.stub().returns(of([]))
     };
 
@@ -183,6 +184,7 @@ describe('RolesService', function() {
       
       expect(mockRole.create.called).to.be.true;
       expect(mockBrandingConfig.addToCollection.called).to.be.true;
+      expect(BrandingService.refreshBrandingCache).to.have.property('calledOnce', true);
     });
 
     it('should skip creation if role exists', async function() {

@@ -162,6 +162,7 @@ export class RecordSearchComponent extends BaseComponent implements OnDestroy {
   }
 
   async search(refinerConfig: RecordSearchRefiner | null = null): Promise<void> {
+    this.params.currentPage = 1;
     await this.doSearch(refinerConfig, true);
   }
 

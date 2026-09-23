@@ -4,6 +4,7 @@ import { LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import { FormComponentsMap, FormService } from './form.service';
 import { FormServerSyncService } from './form-server-sync.service';
+import { DateInputModel } from './component/date-input.component';
 
 describe('FormServerSyncService', () => {
   let service: FormServerSyncService;
@@ -45,6 +46,19 @@ describe('FormServerSyncService', () => {
     expect(form.dirty).toBeTrue();
     expect(result.patched).toEqual(['serverControl']);
     expect(result.skipped).toEqual([{ name: 'localControl', reason: 'local-edit' }]);
+  });
+
+  it('normalizes an ISO server date before passing it to the datepicker control', async () => {
+    const model = new DateInputModel({ class: 'DateInputModel', config: { value: new Date('2026-10-03T00:00:00.000Z') } });
+    const date = model.formControl!;
+    if (!(date instanceof FormControl)) throw new Error('DateInputModel must create a scalar form control.');
+    const form = new FormGroup({ date });
+    const map = new FormComponentsMap([], {} as FormConfigFrame);
+    map.withFormControl = { date };
+    const result = await service.applyServerMetadata({ date: new Date('2026-10-03T00:00:00.000Z') }, { date: '2026-10-04T00:00:00.000Z' }, map, form, 'preserveLocalEdits');
+    expect(result).toEqual({ patched: ['date'], skipped: [] });
+    expect(date.value).toEqual(new Date('2026-10-04T00:00:00.000Z'));
+    expect(date.pristine).toBeTrue();
   });
 
   it('restores an edit emitted while an asynchronous control replacement is pending', async () => {

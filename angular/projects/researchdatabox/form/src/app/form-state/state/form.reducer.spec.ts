@@ -11,6 +11,16 @@ import { formInitialState, FormFeatureState } from './form.state';
 import * as FormActions from './form.actions';
 
 describe('formReducer', () => {
+  it('starts a direct conflict-resolution save and clears the earlier error without double-counting ordinary saves', () => {
+    const failed: FormFeatureState = { ...formInitialState, status: FormStatus.READY, error: 'Earlier conflict' };
+    const started = formReducer(failed, FormActions.submitFormStarted());
+    expect(started.status).toBe(FormStatus.SAVING);
+    expect(started.error).toBeNull();
+    expect(started.pendingActions).toEqual(['submitForm']);
+    expect(started.submissionAttempt).toBe(1);
+    expect(formReducer(started, FormActions.submitFormStarted())).toBe(started);
+  });
+
   describe('default state', () => {
     it('should return formInitialState when undefined state is passed', () => {
       const action = { type: 'NOOP' };

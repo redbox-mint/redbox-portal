@@ -100,3 +100,43 @@ Some packages have their own independent test suites.
 
 ## Continuous Integration
 Tests are automatically run in CircleCI on every push. API route validation and OpenAPI generation now run in a dedicated `generate-api-docs` job that builds redbox-core first, while the main build job stays focused on linting and runtime image packaging. See `.circleci/config.yml` for the full pipeline definition.
+
+### 6. Playwright regression suite
+
+The Playwright acceptance suite runs Chromium with one worker, zero retries,
+locale `en-AU`, and timezone `Australia/Brisbane`. It uses disposable MongoDB,
+Solr, Mailpit and a local HTTP stub service. Scenario forms are opt in:
+`RBPORTAL_PLAYWRIGHT_SCENARIOS=true` is accepted only in `development` and
+`integrationtest` environments.
+
+```bash
+# Disposable mounted run (rebuilds current packages and Angular bundles)
+npm run test:playwright -- test/playwright/forms/initialisation.spec.ts
+
+# Keep a disposable stack running for manual debugging
+npm run test:playwright:up
+npm run test:playwright:scenarios
+npm run test:playwright:run -- test/playwright/forms/behaviours.spec.ts --grep 'logical row'
+npm run test:playwright:clean
+
+# Tested image mode (used by CI)
+npm run test:playwright:ci
+npm run test:playwright:check-coverage
+```
+
+Run `npx playwright install chromium` when running against a persistent host
+stack. Reports, traces, screenshots, videos, browser diagnostics and portal /
+stub logs are written below `.tmp/playwright`; authentication state is never
+saved there. `test:playwright:clean` removes only the Playwright project and
+its `.tmp/playwright/attachments` and `.tmp/playwright/email` bind data. A
+disposable database reset also removes append-only harvest/audit history and
+previously bootstrapped scenario configuration; unsetting the opt-in flag on a
+persistent database does not remove those records.
+
+To add a scenario, define a pure entry in
+`packages/redbox-hook-dev/src/playwright/catalogue.ts`. The normal loader then
+registers its generated `e2e-` record type, workflow and form. Use the composed
+fixtures in `test/playwright/fixtures` and assert visible, persisted behaviour.
+When a test fails, inspect the generated `browser-diagnostics.json` and use
+`node_modules/.bin/playwright show-trace <trace.zip>` or
+`node_modules/.bin/playwright show-report .tmp/playwright/report`.

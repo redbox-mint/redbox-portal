@@ -1306,6 +1306,22 @@ describe('FormComponent', () => {
     expect(steps).toEqual(['export', 'reload']);
   });
 
+  it('warns before leaving ordinary dirty edits and stops warning after they are saved', async () => {
+    const { formComponent } = await createConcurrencyTestForm();
+    const clean = new Event('beforeunload', { cancelable: true });
+    formComponent.protectUnresolvedConflictNavigation(clean as BeforeUnloadEvent);
+    expect(clean.defaultPrevented).toBeFalse();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    formComponent.form?.markAsDirty();
+    const dirty = new Event('beforeunload', { cancelable: true });
+    formComponent.protectUnresolvedConflictNavigation(dirty as BeforeUnloadEvent);
+    expect(dirty.defaultPrevented).toBeTrue();
+    formComponent.form?.markAsPristine();
+    const saved = new Event('beforeunload', { cancelable: true });
+    formComponent.protectUnresolvedConflictNavigation(saved as BeforeUnloadEvent);
+    expect(saved.defaultPrevented).toBeFalse();
+  });
+
   it('warns before navigation for unresolved memory-only work and bypasses only the explicit exported reload', async () => {
     const { formComponent } = await createConcurrencyTestForm();
     formComponent.form?.get('title')?.setValue('Unsaved title');

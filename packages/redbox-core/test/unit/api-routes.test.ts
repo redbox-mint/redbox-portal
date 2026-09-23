@@ -402,6 +402,21 @@ describe('API routes contract layer', function () {
       });
   });
 
+  it('registers dashboard type CRUD under the existing Admin authorization rule', function () {
+    const paths = buildCoreApiRouteConfig();
+    const actions = [
+      ['get', '', 'getDashboardTypes'], ['post', '', 'createDashboardType'],
+      ['get', '/:dashboardType', 'getDashboardType'], ['put', '/:dashboardType', 'updateDashboardType'],
+      ['delete', '/:dashboardType', 'deleteDashboardType'],
+    ];
+    for (const [method, suffix, action] of actions) {
+      const path = `/:branding/:portal/api/dashboard-config/dashboard-types${suffix}`;
+      expect(paths[`${method} ${path}`]).to.deep.equal({ controller: 'webservice/DashboardConfigController', action, csrf: false });
+      const registered = registerCoreApiRoutes().find(route => route.method === method && route.path === path);
+      expect(registered?.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    }
+  });
+
   it('should register the three record-schema GET routes with unique method/path keys', function () {
     const registeredRoutes = registerCoreApiRoutes();
     const registeredKeys = registeredRoutes.map(route => `${route.method} ${route.path}`);

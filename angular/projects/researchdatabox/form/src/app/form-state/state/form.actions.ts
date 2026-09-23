@@ -30,6 +30,9 @@ export const submitForm = createAction(
   props<SaveOperationEventConfig & SaveRedirectEventConfig>()
 );
 
+/** A save has entered the transport path, including a reviewed conflict retry. */
+export const submitFormStarted = createAction('[Form] Submit Form Started');
+
 export const submitFormSuccess = createAction(
   '[Form] Submit Form Success',
   props<{ savedData: any; lastSavedAt: string } & SaveRedirectEventConfig>()

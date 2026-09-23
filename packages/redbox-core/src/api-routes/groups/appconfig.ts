@@ -14,7 +14,9 @@ export const getAppConfigByIdRoute = apiRoute(
     tags: ['AppConfig'],
     summary: 'Get app config',
     responses: {
-      200: responseField(appConfigValueSchema, 'App config'),
+      200: { ...responseField(appConfigValueSchema, 'App config'), headers: {
+        'X-ReDBox-Config-Source': stringField('override when the active brand has a persisted override; otherwise default'),
+      } },
       400: badRequestResponse,
       500: internalServerErrorResponse,
     },
@@ -44,4 +46,24 @@ export const saveAppConfigByIdRoute = apiRoute(
   }
 );
 
-export const appConfigApiRoutes = [getAppConfigByIdRoute, saveAppConfigByIdRoute];
+export const resetAppConfigByIdRoute = apiRoute(
+  'delete',
+  '/:branding/:portal/api/appconfig/:appConfigId',
+  'webservice/AppConfigController',
+  'resetAppConfig',
+  { params: objectField({ appConfigId: stringField() }, ['appConfigId']) },
+  {
+    tags: ['AppConfig'],
+    summary: 'Reset app config to its configured defaults',
+    description: 'Removes only the active brand’s persisted override. Repeated resets are idempotent.',
+    responses: {
+      200: { ...responseField(appConfigValueSchema, 'Resolved default configuration'), headers: {
+        'X-ReDBox-Config-Source': stringField('default after the persisted override is removed'),
+      } },
+      400: badRequestResponse,
+      500: internalServerErrorResponse,
+    },
+  }
+);
+
+export const appConfigApiRoutes = [getAppConfigByIdRoute, saveAppConfigByIdRoute, resetAppConfigByIdRoute];

@@ -102,6 +102,83 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).TranslationService = originalTranslationService;
   });
 
+  describe('getDeletedRecord error responses', () => {
+    function createResponse() {
+      return {
+        status: sinon.stub().returnsThis(),
+        set: sinon.stub().returnsThis(),
+        json: sinon.stub().returnsThis(),
+      };
+    }
+
+    for (const testCase of [
+      { name: 'record ID is missing', oid: undefined, brand: { id: 'brand-1' } },
+      { name: 'brand is missing', oid: 'deleted-oid', brand: undefined },
+      { name: 'brand ID is missing', oid: 'deleted-oid', brand: {} },
+    ]) {
+      it(`returns a serializable 404 without reading storage when ${testCase.name}`, async () => {
+        (BrandingService.getBrand as sinon.SinonStub).returns(testCase.brand);
+        const req = {
+          param: sinon.stub().withArgs('oid').returns(testCase.oid),
+          session: { branding: 'default' },
+        } as unknown as Sails.Req;
+        const res = createResponse();
+
+        await controller.getDeletedRecord(req, res as unknown as Sails.Res);
+
+        sinon.assert.calledOnceWithExactly(res.status, 404);
+        expect(res.json.firstCall.args[0].message).to.equal('Deleted record not found.');
+        sinon.assert.notCalled(controller.recordsService.getDeletedRecordMeta as sinon.SinonStub);
+      });
+    }
+
+    for (const apiVersion of ['1.0', '2.0']) {
+      it(`returns a serializable 404 when a deleted record has been purged (API ${apiVersion})`, async () => {
+        const req = {
+          param: sinon.stub().withArgs('oid').returns('purged-oid'),
+          session: { branding: 'default' },
+          headers: { 'x-redbox-api-version': apiVersion },
+        } as unknown as Sails.Req;
+        const res = createResponse();
+        (controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).resolves(null);
+
+        await controller.getDeletedRecord(req, res as unknown as Sails.Res);
+
+        sinon.assert.calledOnceWithExactly(res.status, 404);
+        const body = res.json.firstCall.args[0];
+        expect(apiVersion === '1.0' ? body.message : body.errors[0].detail).to.equal('Deleted record not found.');
+        sinon.assert.notCalled(controller.recordsService.hasViewAccess as sinon.SinonStub);
+      });
+
+      it(`returns a serializable 403 without exposing deleted metadata when access is denied (API ${apiVersion})`, async () => {
+        const req = {
+          param: sinon.stub().withArgs('oid').returns('deleted-oid'),
+          session: { branding: 'default' },
+          user: { username: 'alice', roles: [] },
+          headers: { 'x-redbox-api-version': apiVersion },
+        } as unknown as Sails.Req;
+        const res = createResponse();
+        (controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).resolves({
+          redboxOid: 'deleted-oid',
+          metaMetadata: { brandId: 'brand-1', form: 'restricted-form' },
+          metadata: { secret: 'private-deleted-value' },
+        });
+        (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(false);
+
+        await controller.getDeletedRecord(req, res as unknown as Sails.Res);
+
+        sinon.assert.calledOnceWithExactly(res.status, 403);
+        const body = res.json.firstCall.args[0];
+        expect(apiVersion === '1.0' ? body.message : body.errors[0].detail).to.equal(
+          'Access to this deleted record is denied.'
+        );
+        expect(JSON.stringify(body)).not.to.include('private-deleted-value');
+        sinon.assert.notCalled(controller.recordsService.hasEditAccess as sinon.SinonStub);
+        sinon.assert.notCalled(FormsService.getFormByName as sinon.SinonStub);
+      });
+    }
+  });
+
   it('renders record view with saved metadata title', async () => {
     const req = {
       param: sinon.stub().withArgs('oid').returns('oid-1'),
