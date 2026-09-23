@@ -1,4 +1,4 @@
-const { Effect } = require('effect');
+const { Cause, Effect } = require('effect');
 const sinon = require('sinon');
 const { expect } = require('@researchdatabox/redbox-dev-tools/testing');
 const {
@@ -205,6 +205,89 @@ describe('PDFService Unit Tests', () => {
     expect(mockPage.pdf.calledOnce).to.be.true;
     expect(storageDiskPutStub.calledOnce).to.be.true;
     expect(addDatastreamStub.calledOnce).to.be.true;
+  });
+
+  for (const redirectUrl of ['http://[invalid', '/default/rdmp/user/login']) {
+    it(`rejects an invalid redirect URL: ${redirectUrl}`, async () => {
+      const recordUrl = 'http://localhost:1500/default/rdmp/record/view/oid-invalid-redirect';
+      mockPage.goto.resolves(navigationResponse(recordUrl, 200, [recordUrl, redirectUrl]));
+
+      const exit = await Effect.runPromiseExit(
+        pdfService.attemptPDFGeneration('oid-invalid-redirect', {}, {}, { name: 'default' }, 1)
+      );
+
+      expect(exit._tag).to.equal('Failure');
+      const failure = Cause.failureOption(exit.cause);
+      expect(failure._tag).to.equal('Some');
+      expect(failure.value._tag).to.equal('BrowserError');
+      expect(failure.value.cause.message).to.equal(`Record navigation contained an invalid redirect URL: ${redirectUrl}`);
+      expect(mockPage.waitForNetworkIdle.called).to.be.false;
+      expect(mockPage.pdf.called).to.be.false;
+      expect(storageDiskPutStub.called).to.be.false;
+      expect(addDatastreamStub.called).to.be.false;
+    });
+  }
+
+  for (const { change, sourceUrlBase, responsePath } of [
+    {
+      change: 'adds',
+      sourceUrlBase: '/default/rdmp/record/view',
+      responsePath: '/default/rdmp/record/view/oid-query?version=other',
+    },
+    {
+      change: 'changes',
+      sourceUrlBase: '/default/rdmp/record/render?oid=',
+      responsePath: '/default/rdmp/record/render?oid=/another-record',
+    },
+    {
+      change: 'removes',
+      sourceUrlBase: '/default/rdmp/record/render?oid=',
+      responsePath: '/default/rdmp/record/render',
+    },
+  ]) {
+    it(`rejects a record response that ${change} the requested query string`, async () => {
+      mockPage.goto.resolves(navigationResponse(`http://localhost:1500${responsePath}`));
+
+      const exit = await Effect.runPromiseExit(
+        pdfService.attemptPDFGeneration('oid-query', {}, { sourceUrlBase }, { name: 'default' }, 1)
+      );
+
+      expect(exit._tag).to.equal('Failure');
+      expect(mockPage.waitForNetworkIdle.called).to.be.false;
+      expect(mockPage.pdf.called).to.be.false;
+      expect(storageDiskPutStub.called).to.be.false;
+      expect(addDatastreamStub.called).to.be.false;
+    });
+  }
+
+  it('accepts a redirect that preserves the requested query string', async () => {
+    const sourceUrlBase = '/default/rdmp/record/render?oid=';
+    const recordUrl = 'http://localhost:1500/default/rdmp/record/render?oid=/oid-query';
+    mockPage.goto.resolves(navigationResponse(recordUrl, 200, [recordUrl]));
+
+    await Effect.runPromise(
+      pdfService.attemptPDFGeneration('oid-query', {}, { sourceUrlBase }, { name: 'default' }, 1)
+    );
+
+    expect(mockPage.goto.firstCall.args[0]).to.equal(recordUrl);
+    expect(mockPage.pdf.calledOnce).to.be.true;
+    expect(storageDiskPutStub.calledOnce).to.be.true;
+    expect(addDatastreamStub.calledOnce).to.be.true;
+  });
+
+  it('rejects a page that changes the query string while becoming ready', async () => {
+    mockPage.waitForNetworkIdle.callsFake(async () => {
+      mockPage.url.returns('http://localhost:1500/default/rdmp/record/view/oid-late-query?version=other');
+    });
+
+    const exit = await Effect.runPromiseExit(
+      pdfService.attemptPDFGeneration('oid-late-query', {}, {}, { name: 'default' }, 1)
+    );
+
+    expect(exit._tag).to.equal('Failure');
+    expect(mockPage.pdf.called).to.be.false;
+    expect(storageDiskPutStub.called).to.be.false;
+    expect(addDatastreamStub.called).to.be.false;
   });
 
   it('rejects a missing navigation response', async () => {

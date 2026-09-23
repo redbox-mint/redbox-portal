@@ -343,14 +343,15 @@ export namespace Services {
         const isRecordUrl = (url: string): boolean => {
           try {
             const candidate = new URL(url);
-            return candidate.origin === expectedUrl.origin && candidate.pathname === expectedUrl.pathname;
+            return candidate.origin === expectedUrl.origin && candidate.pathname === expectedUrl.pathname
+              && candidate.search === expectedUrl.search;
           } catch {
             return false;
           }
         };
         const loginPath = `/${(sails.config.auth?.loginPath || 'user/login').replace(/^\/+|\/+$/g, '')}`;
-        const isAuthenticationRedirect = (url: string): boolean => {
-          const pathname = new URL(url).pathname.replace(/\/+$/, '');
+        const isAuthenticationRedirect = (url: URL): boolean => {
+          const pathname = url.pathname.replace(/\/+$/, '');
           return pathname === loginPath || pathname.endsWith(loginPath)
             || /^\/user\/(?:login(?:_[^/]*)?|begin_oidc)$/.test(pathname);
         };
@@ -433,10 +434,16 @@ export namespace Services {
           }
           const redirectUrls = navigationResponse.request().redirectChain().map(request => request.url());
           for (const url of redirectUrls) {
-            if (new URL(url).origin !== expectedUrl.origin) {
+            let redirectUrl: URL;
+            try {
+              redirectUrl = new URL(url);
+            } catch (cause) {
+              throw new Error(`Record navigation contained an invalid redirect URL: ${url}`, { cause });
+            }
+            if (redirectUrl.origin !== expectedUrl.origin) {
               throw new Error(`Record navigation left the portal origin: ${url}`);
             }
-            if (isAuthenticationRedirect(url)) {
+            if (isAuthenticationRedirect(redirectUrl)) {
               throw new Error(`Record navigation redirected through authentication: ${url}`);
             }
           }
