@@ -1,7 +1,7 @@
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { Validators } from '@angular/forms';
-import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
+import { BsDatepickerConfig, BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { DateInputComponent } from './date-input.component';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { setControlValue } from '../form-state/custom-set-value.control';
@@ -14,13 +14,13 @@ describe('DateInputComponent calendar dates', () => {
     });
   });
 
-  async function createDateField(value: string | null = null, bsFullConfig: { useUtc?: boolean } = {}) {
+  async function createDateField(value: string | null = null, bsFullConfig: Partial<BsDatepickerConfig> = {}, robustParsing = true) {
     const result = await createFormAndWaitForReady({
       name: 'calendar-date-test',
       componentDefinitions: [{
         name: 'date',
         model: { class: 'DateInputModel', config: { dateOnly: true, value } },
-        component: { class: 'DateInputComponent', config: { dateFormat: 'DD/MM/YYYY', bsFullConfig } },
+        component: { class: 'DateInputComponent', config: { dateFormat: 'DD/MM/YYYY', bsFullConfig, robustParsing } },
       }],
     });
     const component = result.fixture.debugElement.query(By.directive(DateInputComponent)).componentInstance as DateInputComponent;
@@ -83,6 +83,31 @@ describe('DateInputComponent calendar dates', () => {
     expect(control.dirty).toBeTrue();
     expect(control.touched).toBeTrue();
   });
+
+  for (const robustParsing of [true, false]) {
+    it(`uses the picker format for typed calendar dates with robust parsing ${robustParsing}`, async () => {
+      const { fixture, component, input, control } = await createDateField(
+        '2026-10-04', { dateInputFormat: 'MM/DD/YYYY' }, robustParsing,
+      );
+      expect(component.bsConfig.dateInputFormat).toBe('MM/DD/YYYY');
+      expect(input.value).toBe('10/04/2026');
+
+      for (const [text, expected, displayed] of [
+        ['10/04/2026', '2026-10-04', '10/04/2026'],
+        ['11/05/2026', '2026-11-05', '11/05/2026'],
+        ['not a date', '2026-11-05', '11/05/2026'],
+        ['', null, ''],
+      ]) {
+        input.value = text!;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(control.value).toBe(expected);
+        expect(input.value).toBe(displayed!);
+      }
+    });
+  }
 
   it('accepts dates from form expressions without shifting the day or marking edits', async () => {
     const { fixture, input, control } = await createDateField('2026-09-17');

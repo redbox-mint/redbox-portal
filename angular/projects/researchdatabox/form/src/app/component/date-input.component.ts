@@ -498,9 +498,10 @@ export class DateInputComponent extends FormFieldBaseComponent<DateInputModelVal
     const rawText = inputEl?.value || '';
     if (this.model?.dateOnly) {
       this.formControl.markAsTouched();
+      const dateInputFormat = this.bsConfig.dateInputFormat;
       const parsed = this.robustParsing
-        ? parseFreeTextDate(rawText, this.dateFormat)
-        : DateTime.fromFormat(rawText, mapMomentToLuxonFormat(this.dateFormat), { zone: 'utc' }).toJSDate();
+        ? parseFreeTextDate(rawText, dateInputFormat)
+        : DateTime.fromFormat(rawText, mapMomentToLuxonFormat(dateInputFormat), { zone: 'utc' }).toJSDate();
       const day = normalizeCalendarDate(rawText)
         ?? (parsed instanceof Date ? DateTime.fromJSDate(parsed, { zone: 'utc' }).toISODate() : undefined);
       // Keep the prior value for invalid text; never put timestamps into this model.
